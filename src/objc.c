@@ -2876,3 +2876,22 @@ void objc_toElem_visit_CallExp_selector(IRState *irs, CallExp *ce, elem *&ec, el
     ec = toElem(ce->argument0, irs);
     esel = toElem(ce->e1, irs);
 }
+
+ControlFlow objc_toElem_visit_CastExp_Tclass_fromObjc(int &rtl, ClassDeclaration *cdfrom, ClassDeclaration *cdto)
+{
+    if (cdto->objc.objc)
+    {   // casting from objc type to objc type, use objc function
+        if (cdto->isInterfaceDeclaration())
+            rtl = RTLSYM_INTERFACE_CAST_OBJC;
+        else if (cdfrom->objc.objc)
+            rtl = RTLSYM_DYNAMIC_CAST_OBJC;
+
+        return CFnone;
+    }
+    else
+    {
+        // casting from objc type to non-objc type, always null
+        return CFgoto;
+    }
+
+}

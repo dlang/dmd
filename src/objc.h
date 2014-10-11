@@ -424,7 +424,8 @@ enum ControlFlow
     CFreturn,
     CFcontinue,
     CFbreak,
-    CFvisit
+    CFvisit,
+    CFgoto
 };
 
 struct Objc_StructDeclaration
@@ -547,5 +548,6 @@ void objc_toElem_visit_AssertExp_callInvariant(symbol *&ts, elem *&einv, Type *t
 void objc_toElem_visit_DotVarExp_nonFragileAbiOffset(VarDeclaration *v, Type *tb1, elem *&offset);
 elem * objc_toElem_visit_ObjcSelectorExp(ObjcSelectorExp *ose);
 void objc_toElem_visit_CallExp_selector(IRState *irs, CallExp *ce, elem *&ec, elem *&esel);
+ControlFlow objc_toElem_visit_CastExp_Tclass_fromObjc(int &rtl, ClassDeclaration *cdfrom, ClassDeclaration *cdto);
 
 #endif

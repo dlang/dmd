@@ -3916,10 +3916,8 @@ elem *toElem(Expression *e, IRState *irs)
                 ClassDeclaration *cdfrom = tfrom->isClassHandle();
                 ClassDeclaration *cdto   = t->isClassHandle();
 #if DMD_OBJC
-                bool isFromObjc = cdfrom->objc.objc;
                 bool isToObjc = cdto->objc.objc;
 #else
-                bool isFromObjc = false;
                 bool isToObjc = false;
 #endif
                 if (cdfrom->cpp)
@@ -3943,27 +3941,16 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
                     goto Lret;
                 }
-                else if (isFromObjc)
+                else if (cdfrom->objc.objc)
                 {
-#if DMD_OBJC
-                    if (cdto->objc.objc)
-                    {   // casting from objc type to objc type, use objc function
-                        if (cdto->isInterfaceDeclaration())
-                            rtl = RTLSYM_INTERFACE_CAST_OBJC;
-                        else if (cdfrom->objc.objc)
-                            rtl = RTLSYM_DYNAMIC_CAST_OBJC;
-                    }
-                    else
-                    {   // casting from objc type to non-objc type, always null
+                    if (objc_toElem_visit_CastExp_Tclass_fromObjc(rtl, cdfrom, cdto) == CFgoto)
                         goto Lzero;
-                    }
-#endif
                 }
                 else if (isToObjc)
                 {   // casting from non-objc type to objc type, always null
                     goto Lzero;
                 }
-                if (isFromObjc && isToObjc && cdto->isInterfaceDeclaration())
+                if (cdfrom->objc.objc && isToObjc && cdto->isInterfaceDeclaration())
                     rtl = RTLSYM_INTERFACE_CAST_OBJC;
                 else if (cdfrom->isInterfaceDeclaration())
                 {
