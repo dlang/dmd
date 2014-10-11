@@ -3605,11 +3605,7 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                 }
             }
-#if DMD_OBJC
             elem *ecall = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments, esel);
-#else
-            elem *ecall = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments);
-#endif
 
             if (dctor && ecall->Eoper == OPind)
             {
