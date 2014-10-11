@@ -5286,7 +5286,6 @@ elem *toElem(Expression *e, IRState *irs)
             result = e;
         }
 
-#if DMD_OBJC
         void visit(ObjcDotClassExp *odce)
         {
             result = objc_toElem_visit_ObjcDotClassExp(irs, odce);
@@ -5294,9 +5293,10 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(ObjcClassRefExp *ocre)
         {
-            result = el_var(ObjcSymbols::getClassReference(ocre->cdecl));
+            result = objc_toElem_visit_ObjcClassRefExp(ocre);
         }
 
+#if DMD_OBJC
         void visit(ObjcProtocolOfExp *e)
         {
             result = el_ptr(ObjcSymbols::getProtocolSymbol(e->idecl));

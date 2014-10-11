@@ -2948,3 +2948,8 @@ elem *objc_toElem_visit_ObjcDotClassExp(IRState *irs, ObjcDotClassExp *odce)
     }
     return e;
 }
+
+elem *objc_toElem_visit_ObjcClassRefExp(ObjcClassRefExp *ocre)
+{
+    return el_var(ObjcSymbols::getClassReference(ocre->cdecl));
+}
