@@ -3418,17 +3418,10 @@ elem *toElem(Expression *e, IRState *irs)
             result = e;
         }
 
-#if DMD_OBJC
         void visit(ObjcSelectorExp *ose)
         {
-            if (ose->func)
-                result = ose->func->objc.selector->toElem();
-            else if (ose->selname)
-                result = ObjcSelector::lookup(ose->selname)->toElem();
-            else
-                assert(0);
+            result = objc_toElem_visit_ObjcSelectorExp(ose);
         }
-#endif
 
         void visit(CallExp *ce)
         {

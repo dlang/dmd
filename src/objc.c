@@ -2855,3 +2855,17 @@ void objc_toElem_visit_DotVarExp_nonFragileAbiOffset(VarDeclaration *v, Type *tb
         }
     }
 }
+
+elem * objc_toElem_visit_ObjcSelectorExp(ObjcSelectorExp *ose)
+{
+    elem *result = NULL;
+
+    if (ose->func)
+        result = ose->func->objc.selector->toElem();
+    else if (ose->selname)
+        result = ObjcSelector::lookup(ose->selname)->toElem();
+    else
+        assert(0);
+
+    return result;
+}
