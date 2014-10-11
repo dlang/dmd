@@ -401,6 +401,7 @@ public:
 
 class ObjcSelectorExp;
 struct IRState;
+typedef struct Symbol symbol;
 
 elem *callfunc(Loc loc,
                IRState *irs,
@@ -413,6 +414,8 @@ elem *callfunc(Loc loc,
                elem *ehidden,          // if !=NULL, this is the 'hidden' argument
                Expressions *arguments,
                elem *esel);      // selector for Objective-C methods (when not provided by fd)
+
+type *Type_toCtype(Type *t);
 
 enum ControlFlow
 {
@@ -539,5 +542,6 @@ void objc_callfunc_setupSelectorCall(elem *&ec, elem *ehidden, elem *ethis, Type
 void objc_toElem_visit_StringExp_Tclass(StringExp *se, elem *&e);
 void objc_toElem_visit_NewExp_Tclass(IRState *irs, NewExp *ne, Type *&ectype, TypeClass *tclass, ClassDeclaration *cd, elem *&ex, elem *&ey, elem *&ez);
 bool objc_toElem_visit_NewExp_Tclass_isDirectCall(bool isObjc);
+void objc_toElem_visit_AssertExp_callInvariant(symbol *&ts, elem *&einv, Type *t1);
 
 #endif

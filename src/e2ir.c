@@ -1806,21 +1806,13 @@ elem *toElem(Expression *e, IRState *irs)
 
                 FuncDeclaration *inv;
 
-#if DMD_OBJC
-                bool callObjcInvariant = global.params.useInvariants &&
-                    t1->ty == Tclass && ((TypeClass *)t1)->sym->objc.objc;
-#else
-                bool callObjcInvariant = false;
-#endif
-                if (callObjcInvariant)
-                {
-                    ts = symbol_genauto(Type_toCtype(t1));
-                    // Call Objective-C invariant
-                    einv = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT_OBJC]), el_var(ts));
-                }
-                else
-                // If e1 is a class object, call the class invariant on it
                 if (global.params.useInvariants && t1->ty == Tclass &&
+                    ((TypeClass *)t1)->sym->objc.objc)
+                {
+                    objc_toElem_visit_AssertExp_callInvariant(ts, einv, t1);
+                }
+                // If e1 is a class object, call the class invariant on it
+                else if (global.params.useInvariants && t1->ty == Tclass &&
                     !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
                     !((TypeClass *)t1)->sym->isCPPclass())
                 {

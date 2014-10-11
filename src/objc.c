@@ -2835,3 +2835,10 @@ bool objc_toElem_visit_NewExp_Tclass_isDirectCall(bool isObjc)
     return true;
 #endif
 }
+
+void objc_toElem_visit_AssertExp_callInvariant(symbol *&ts, elem *&einv, Type *t1)
+{
+    ts = symbol_genauto(Type_toCtype(t1));
+    // Call Objective-C invariant
+    einv = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT_OBJC]), el_var(ts));
+}
