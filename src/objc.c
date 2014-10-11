@@ -2912,3 +2912,21 @@ void objc_toElem_visit_CastExp_Tclass_assertNoOffset(int offset, ClassDeclaratio
     if (cdfrom->objc.objc)
         assert(offset == 0); // no offset for Objective-C objects/interfaces
 }
+
+ControlFlow objc_toElem_visit_CastExp_Tclass_toObjcCall(elem *&e, int rtl, ClassDeclaration *cdto)
+{
+    if (cdto->objc.objc)
+    {
+        elem *esym;
+        if (cdto->isInterfaceDeclaration())
+            esym = el_ptr(ObjcSymbols::getProtocolSymbol(cdto));
+        else
+            esym = el_var(ObjcSymbols::getClassReference(cdto));
+
+        elem *ep = el_param(esym, e);
+        e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
+        return CFgoto;
+    }
+
+    return CFnone;
+}

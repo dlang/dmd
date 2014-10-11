@@ -3978,20 +3978,8 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                     goto Lret;                  // no-op
                 }
-#if DMD_OBJC
-                if (cdto->objc.objc)
-                {
-                    elem *esym;
-                    if (cdto->isInterfaceDeclaration())
-                        esym = el_ptr(ObjcSymbols::getProtocolSymbol(cdto));
-                    else
-                        esym = el_var(ObjcSymbols::getClassReference(cdto));
-
-                    elem *ep = el_param(esym, e);
-                    e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
+                if (objc_toElem_visit_CastExp_Tclass_toObjcCall(e, rtl, cdto) == CFgoto)
                     goto Lret;
-                }
-#endif
                 /* The offset from cdfrom=>cdto can only be determined at runtime.
                  */
                 elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
