@@ -9697,14 +9697,11 @@ Expression *CastExp::semantic(Scope *sc)
             if (t1b->ty == Tnull || tob->ty == Tnull || t1b->size(loc) != tob->size(loc))
                 goto Lfail;
         }
-#if DMD_OBJC
-        bool objcTakeStringLiteral = tob->ty == Tclass && ((TypeClass *)tob)->sym->objc.objc &&
-        ((TypeClass *)tob)->sym->objc.takesStringLiteral;
-#else
-        bool objcTakeStringLiteral = false;
-#endif
-        if ((t1b->ty == Tarray || t1b->ty == Tsarray) && tob->ty == Tclass && !objcTakeStringLiteral)
-            goto Lfail;
+
+        if ((t1b->ty == Tarray || t1b->ty == Tsarray) && tob->ty == Tclass &&
+            !(((TypeClass *)tob)->sym->objc.objc &&
+            ((TypeClass *)tob)->sym->objc.takesStringLiteral))
+                goto Lfail;
 
         // Look for casting to a vector type
         if (tob->ty == Tvector && t1b->ty != Tvector)
