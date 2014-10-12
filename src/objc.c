@@ -2081,6 +2081,46 @@ TypeInfoObjcSelectorDeclaration *TypeInfoObjcSelectorDeclaration::create(Type *t
     return new TypeInfoObjcSelectorDeclaration(tinfo);
 }
 
+// MARK: ObjcSelectorExp
+
+ObjcSelectorExp::ObjcSelectorExp(Loc loc, FuncDeclaration *f, int hasOverloads)
+: Expression(loc, TOKobjcselector, sizeof(ObjcSelectorExp))
+{
+    this->func = f;
+    this->selname = NULL;
+    this->hasOverloads = hasOverloads;
+}
+
+ObjcSelectorExp::ObjcSelectorExp(Loc loc, char *selname, int hasOverloads)
+: Expression(loc, TOKobjcselector, sizeof(ObjcSelectorExp))
+{
+    this->func = NULL;
+    this->selname = selname;
+    this->hasOverloads = hasOverloads;
+}
+
+Expression *ObjcSelectorExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("ObjcSelectorExp::semantic('%s')\n", toChars());
+#endif
+    if (!type)
+    {
+        type = new TypeObjcSelector(func->type);
+        type = type->semantic(loc, sc);
+        if (!func->needThis())
+        {   error("%s isn't a member function, has no selector", func->toChars());
+            return new ErrorExp();
+        }
+        ClassDeclaration *cd = func->toParent()->isClassDeclaration();
+        if (!cd->objc.objc)
+        {   error("%s isn't an Objective-C class, function has no selector", cd->toChars());
+            return new ErrorExp();
+        }
+    }
+    return this;
+}
+
 // MARK: addObjcSymbols
 
 void Objc_ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
