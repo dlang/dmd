@@ -2006,6 +2006,7 @@ int TypeObjcSelector::hasPointers()
 #include "expression.h"
 #include "init.h"
 #include "statement.h"
+#include "utf.h"
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 
@@ -2482,6 +2483,53 @@ void objc_InterfaceDeclaration_semantic_createMetaclass(InterfaceDeclaration *se
         members->push(self->objc.metaclass);
         self->objc.metaclass->addMember(sc, self, 1);
     }
+}
+
+ControlFlow objc_StringExp_semantic(StringExp *self, Expression *&error)
+{
+    // determine if this string is pure ascii
+    int ascii = 1;
+    for (size_t i = 0; i < self->len; ++i)
+    {
+        if (((unsigned char *)self->string)[i] & 0x80)
+        {
+            ascii = 0;
+            break;
+        }
+    }
+
+    if (!ascii)
+    {   // use UTF-16 for non-ASCII strings
+        OutBuffer buffer;
+        size_t newlen = 0;
+        const char *p;
+        size_t u;
+        unsigned c;
+
+        for (u = 0; u < self->len;)
+        {
+            p = utf_decodeChar((unsigned char *)self->string, self->len, &u, &c);
+            if (p)
+            {
+                self->error("%s", p);
+                error = new ErrorExp();
+                return CFreturn;
+            }
+            else
+            {
+                buffer.writeUTF16(c);
+                newlen++;
+                if (c >= 0x10000)
+                    newlen++;
+            }
+        }
+        buffer.writeUTF16(0);
+        self->string = buffer.extractData();
+        self->len = newlen;
+        self->sz = 2;
+    }
+    self->committed = 1;
+    return CFnone;
 }
 
 // MARK: implicitConvTo

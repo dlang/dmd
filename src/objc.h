@@ -521,6 +521,8 @@ void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration *self, S
 ControlFlow objc_InterfaceDeclaration_semantic_mixingObjc(InterfaceDeclaration *self, Scope *sc, size_t i, TypeClass *tc);
 void objc_InterfaceDeclaration_semantic_createMetaclass(InterfaceDeclaration *self, Scope *sc);
 
+ControlFlow objc_StringExp_semantic(StringExp *self, Expression *&error);
+
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 

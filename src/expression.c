@@ -3698,11 +3698,6 @@ Expression *StringExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("StringExp::semantic() %s\n", toChars());
 #endif
-#if DMD_OBJC
-    bool isClassAndNotCommited = type && type->ty == Tclass && !committed;
-#else
-    bool isClassAndNotCommited = false;
-#endif
     if (!type)
     {
         OutBuffer buffer;
@@ -3775,49 +3770,11 @@ Expression *StringExp::semantic(Scope *sc)
         //type = type->immutableOf();
         //printf("type = %s\n", type->toChars());
     }
-    else if (isClassAndNotCommited)
+    else if (type && type->ty == Tclass && !committed)
     {
-#if DMD_OBJC
-        // determine if this string is pure ascii
-        int ascii = 1;
-        for (size_t i = 0; i < len; ++i)
-        {
-            if (((unsigned char *)string)[i] & 0x80)
-            {
-                ascii = 0;
-                break;
-            }
-        }
-
-        if (!ascii)
-        {   // use UTF-16 for non-ASCII strings
-            OutBuffer buffer;
-            size_t newlen = 0;
-            const char *p;
-            size_t u;
-            unsigned c;
-
-            for (u = 0; u < len;)
-            {
-                p = utf_decodeChar((unsigned char *)string, len, &u, &c);
-                if (p)
-                {   error("%s", p);
-                    return new ErrorExp();
-                }
-                else
-                {   buffer.writeUTF16(c);
-                    newlen++;
-                    if (c >= 0x10000)
-                        newlen++;
-                }
-            }
-            buffer.writeUTF16(0);
-            string = buffer.extractData();
-            len = newlen;
-            sz = 2;
-        }
-        committed = 1;
-#endif
+        Expression* error;
+        if (objc_StringExp_semantic(this, error) == CFreturn)
+            return error;
     }
     return this;
 }
