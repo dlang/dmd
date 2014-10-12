@@ -6252,15 +6252,6 @@ public:
     #endif
     }
 
-#if DMD_OBJC
-    void visit(ObjcExceptionBridge *e)
-    {
-        // transparently pass to body, translating exception ABI model does nothing
-        // when interpreting code
-        result = e->body->interpret(istate);
-    }
-#endif
-
     void visit(RemoveExp *e)
     {
     #if LOG

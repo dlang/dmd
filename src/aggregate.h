@@ -240,9 +240,6 @@ class ClassDeclaration : public AggregateDeclaration
 public:
     static ClassDeclaration *object;
     static ClassDeclaration *throwable;
-#if DMD_OBJC
-    static ClassDeclaration *objcthrowable;
-#endif
     static ClassDeclaration *exception;
     static ClassDeclaration *errorException;
 

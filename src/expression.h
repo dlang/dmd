@@ -88,7 +88,7 @@ bool isArrayOpOperand(Expression *e);
 Expression *arrayOp(BinExp *e, Scope *sc);
 Expression *arrayOp(BinAssignExp *e, Scope *sc);
 bool hasSideEffect(Expression *e);
-int canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
+bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
 Expression *Expression_optimize(Expression *e, int result, bool keepLvalue);
 MATCH implicitConvTo(Expression *e, Type *t);
 Expression *implicitCastTo(Expression *e, Scope *sc, Type *t);

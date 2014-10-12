@@ -962,15 +962,6 @@ public:
 
         incUsage(irs, s->loc);
         elem *e = toElemDtor(s->exp, irs);
-#if DMD_OBJC
-        ClassDeclaration *cd = s->exp->type->toBasetype()->isClassHandle();
-        if (cd && cd->objc.objc) // throwing Objective-C exception
-        {
-            e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROW_OBJC_AS_D]),e);
-            block_appendexp(blx->curblock, e);
-            return;
-        }
-#endif
         e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROWC]),e);
         block_appendexp(blx->curblock, e);
     }
@@ -1273,15 +1264,6 @@ public:
     void visit(ImportStatement *s)
     {
     }
-
-#if DMD_OBJC
-    void visit (ObjcExceptionBridge *s)
-    {
-        assert(s->wrapped);
-        IRState mystate(irs, s);
-        Statement_toIR(s->wrapped, &mystate);
-    }
-#endif
 };
 
 void Statement_toIR(Statement *s, IRState *irs)

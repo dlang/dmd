@@ -54,9 +54,6 @@ class LabelStatement;
 class AsmStatement;
 class CompoundAsmStatement;
 class ImportStatement;
-#if DMD_OBJC
-struct ObjcExceptionBridge;
-#endif
 
 class Type;
 class TypeError;
@@ -353,9 +350,6 @@ public:
     virtual void visit(AsmStatement *s) { visit((Statement *)s); }
     virtual void visit(CompoundAsmStatement *s) { visit((CompoundStatement *)s); }
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }
-#if DMD_OBJC
-    virtual void visit(ObjcExceptionBridge *s) { visit((Statement *)s); }
-#endif
 
     virtual void visit(Type *) { assert(0); }
     virtual void visit(TypeError *t) { visit((Type *)t); }

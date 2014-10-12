@@ -645,14 +645,6 @@ public:
         }
     }
 
-#if DMD_OBJC
-    void visit(ObjcExceptionBridge *s)
-    {
-        // this is a transparent expression
-        visit(s->body);
-    }
-#endif
-
     void visit(Catch *c)
     {
         buf->writestring("catch");

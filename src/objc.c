@@ -2027,14 +2027,6 @@ Objc_ClassDeclaration::Objc_ClassDeclaration(ClassDeclaration* cdecl, const char
     classSymbol = NULL;
     methods = NULL;
     metaclass = NULL;
-
-    if (cdecl->ident && cdecl->ident == Id::ObjcThrowable)
-    {
-        if (ClassDeclaration::objcthrowable)
-            ClassDeclaration::objcthrowable->error("%s", msg);
-
-        ClassDeclaration::objcthrowable = cdecl;
-    }
 }
 
 bool Objc_ClassDeclaration::isInterface()

@@ -75,13 +75,7 @@ enum BE
     BEbreak =    0x20,
     BEcontinue = 0x40,
 	BEerrthrow = 0x80,
-//#if DMD_OBJC
-    BEthrowobjc = 0x100,
-    BEthrowany = (BEthrow | BEthrowobjc),
-    BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt | BEthrowobjc),
-//#else
-    //BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
-//#endif
+    BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
 };
 
 class Statement : public RootObject
@@ -620,9 +614,6 @@ class TryFinallyStatement : public Statement
 public:
     Statement *body;
     Statement *finalbody;
-#if DMD_OBJC
-    int objcdisable;        // !=0 when should ignore Objective-C exceptions
-#endif
 
     TryFinallyStatement(Loc loc, Statement *body, Statement *finalbody);
     static TryFinallyStatement *create(Loc loc, Statement *body, Statement *finalbody);
@@ -774,35 +765,5 @@ public:
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-#if DMD_OBJC
-
-Catch *objcMakeCatch(Loc loc, Catches *objccatches, Scope *sc);
-
-enum ObjcThrowMode
-{
-    THROWobjc,
-    THROWd,
-};
-
-class ObjcExceptionBridge : public Statement
-{
-public:
-    Statement *body;
-    Statement *wrapped;
-    ObjcThrowMode mode;
-
-    ObjcExceptionBridge(Loc loc, Statement *body, ObjcThrowMode mode);
-    Statement *syntaxCopy();
-    int blockExit(bool mustNotThrow);
-    Statement *semantic(Scope *sc);
-    int usesEH();
-    
-    Expression *interpret(InterState *istate);
-    
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-#endif
 
 #endif /* DMD_STATEMENT_H */

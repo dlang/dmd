@@ -35,9 +35,6 @@
 
 ClassDeclaration *ClassDeclaration::object;
 ClassDeclaration *ClassDeclaration::throwable;
-#if DMD_OBJC
-ClassDeclaration *ClassDeclaration::objcthrowable;
-#endif
 ClassDeclaration *ClassDeclaration::exception;
 ClassDeclaration *ClassDeclaration::errorException;
 

@@ -973,30 +973,15 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
 
 int arrayExpressionCanThrow(Expressions *exps, FuncDeclaration *func, bool mustNotThrow)
 {
-#if DMD_OBJC
-    int result = 0;
-#endif
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
         {
             Expression *e = (*exps)[i];
-#if DMD_OBJC
-            if (e)
-            {
-                result |= canThrow(e, func, mustNotThrow);
-                if (result == BEthrowany)
-                    return result;
-            }
-#else
             if (e && canThrow(e, func, mustNotThrow))
                 return 1;
-#endif
         }
     }
-#if DMD_OBJC
-    return result;
-#endif
     return 0;
 }
 
