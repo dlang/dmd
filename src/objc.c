@@ -2581,6 +2581,12 @@ ControlFlow objc_IsExp_semantic_TOKobjcselector(IsExp *self, Type *&tded)
     return CFbreak;
 }
 
+void objc_IsExp_semantic_TOKreturn_selector(IsExp *self, Type *&tded)
+{
+    tded = ((TypeDelegate *)self->targ)->next;
+    tded = ((TypeFunction *)tded)->next;
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

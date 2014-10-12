@@ -6278,11 +6278,6 @@ Expression *IsExp::semantic(Scope *sc)
                 /* Get the 'return type' for the function,
                  * delegate, or pointer to function.
                  */
-#if DMD_OBJC
-                bool isObjcSelector = targ->ty == Tobjcselector;
-#else
-                bool isObjcSelector = false;
-#endif
                 if (targ->ty == Tfunction)
                     tded = ((TypeFunction *)targ)->next;
                 else if (targ->ty == Tdelegate)
@@ -6290,9 +6285,9 @@ Expression *IsExp::semantic(Scope *sc)
                     tded = ((TypeDelegate *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
-                else if (isObjcSelector)
-                {   tded = ((TypeDelegate *)targ)->next;
-                    tded = ((TypeFunction *)tded)->next;
+                else if (targ->ty == Tobjcselector)
+                {
+                    objc_IsExp_semantic_TOKreturn_selector(this, tded);
                 }
                 else if (targ->ty == Tpointer &&
                          ((TypePointer *)targ)->next->ty == Tfunction)
