@@ -2680,6 +2680,13 @@ ObjcSelectorExp * objc_AddrExp_semantic_TOKdotvar_selector(AddrExp *self, DotVar
     return new ObjcSelectorExp(self->loc, f, dve->hasOverloads);
 }
 
+Expression * objc_AddrExp_semantic_TOKvar_selector(AddrExp *self, Scope *sc, VarExp *ve, FuncDeclaration *f)
+{
+    Expression *e = new ObjcSelectorExp(self->loc, f, ve->hasOverloads);
+    e = e->semantic(sc);
+    return e;
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
