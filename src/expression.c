@@ -6233,13 +6233,14 @@ Expression *IsExp::semantic(Scope *sc)
                 tded = ((TypeDelegate *)targ)->next;    // the underlying function type
                 break;
 
-#if DMD_OBJC
             case TOKobjcselector:
-                if (targ->ty != Tobjcselector)
+            {
+                ControlFlow cf = objc_IsExp_semantic_TOKobjcselector(this, tded);
+                if (cf == CFgoto)
                     goto Lno;
-                tded = ((TypeObjcSelector *)targ)->next; // the underlying function type
-                break;
-#endif
+                else if (cf == CFbreak)
+                    break;
+            }
 
             case TOKfunction:
             case TOKparameters:

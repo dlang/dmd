@@ -525,6 +525,8 @@ ControlFlow objc_StringExp_semantic(StringExp *self, Expression *&error);
 
 ControlFlow objc_NewExp_semantic_alloc(NewExp *self, Scope *sc, ClassDeclaration *cd);
 
+ControlFlow objc_IsExp_semantic_TOKobjcselector(IsExp *self, Type *&tded);
+
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 

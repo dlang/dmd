@@ -2573,6 +2573,14 @@ ControlFlow objc_NewExp_semantic_alloc(NewExp *self, Scope *sc, ClassDeclaration
     return CFnone;
 }
 
+ControlFlow objc_IsExp_semantic_TOKobjcselector(IsExp *self, Type *&tded)
+{
+    if (self->targ->ty != Tobjcselector)
+        return CFgoto;
+    tded = ((TypeObjcSelector *)self->targ)->next; // the underlying function type
+    return CFbreak;
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
