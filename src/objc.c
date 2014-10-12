@@ -2532,6 +2532,47 @@ ControlFlow objc_StringExp_semantic(StringExp *self, Expression *&error)
     return CFnone;
 }
 
+ControlFlow objc_NewExp_semantic_alloc(NewExp *self, Scope *sc, ClassDeclaration *cd)
+{
+    if (cd->objc.meta)
+    {
+        self->error("cannot instanciate meta class '%s'", cd->toChars());
+        return CFgoto;
+    }
+
+    // use Objective-C 'alloc' function
+    Dsymbol *s = cd->search(self->loc, Id::alloc, 0);
+    if (s)
+    {
+        FuncDeclaration *allocf = s->isFuncDeclaration();
+        if (allocf)
+        {
+            allocf = resolveFuncCall(self->loc, sc, allocf, NULL, NULL, self->newargs);
+            if (!allocf->isStatic())
+            {
+                self->error("function %s must be static to qualify as an allocator for Objective-C class %s", allocf->toChars(), cd->toChars());
+                return CFgoto;
+            }
+            else if (((TypeFunction *)allocf->type)->next != allocf->parent->isClassDeclaration()->type)
+            {
+                self->error("function %s should return %s instead of %s to qualify as an allocator for Objective-C class %s",
+                      allocf->toChars(), allocf->parent->isClassDeclaration()->type->toChars(),
+                      ((TypeFunction *)allocf->type)->next->toChars(), cd->toChars());
+                return CFgoto;
+            }
+
+            self->objcalloc = allocf;
+        }
+    }
+    if (self->objcalloc == NULL)
+    {
+        self->error("no matching 'alloc' function in Objective-C class %s", cd->toChars());
+        return CFgoto;
+    }
+
+    return CFnone;
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

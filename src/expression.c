@@ -4848,46 +4848,10 @@ Lagain:
             }
         }
 
-#if DMD_OBJC
-        bool isObjc = cd->objc.objc;
-#else
-        bool isObjc = false;
-#endif
-        if (isObjc)
+        if (cd->objc.objc)
         {
-#if DMD_OBJC
-            if (cd->objc.meta)
-            {   error("cannot instanciate meta class '%s'", cd->toChars());
+            if (objc_NewExp_semantic_alloc(this, sc, cd) == CFgoto)
                 goto Lerr;
-            }
-
-            // use Objective-C 'alloc' function
-            Dsymbol *s = cd->search(loc, Id::alloc, 0);
-            if (s)
-            {
-                FuncDeclaration *allocf = s->isFuncDeclaration();
-                if (allocf)
-                {
-                    allocf = resolveFuncCall(loc, sc, allocf, NULL, NULL, newargs);
-                    if (!allocf->isStatic())
-                    {   error("function %s must be static to qualify as an allocator for Objective-C class %s", allocf->toChars(), cd->toChars());
-                        goto Lerr;
-                    }
-                    else if (((TypeFunction *)allocf->type)->next != allocf->parent->isClassDeclaration()->type)
-                    {   error("function %s should return %s instead of %s to qualify as an allocator for Objective-C class %s",
-                            allocf->toChars(), allocf->parent->isClassDeclaration()->type->toChars(),
-                            ((TypeFunction *)allocf->type)->next->toChars(), cd->toChars());
-                        goto Lerr;
-                    }
-
-                    objcalloc = allocf;
-                }
-            }
-            if (objcalloc == NULL)
-            {   error("no matching 'alloc' function in Objective-C class %s", cd->toChars());
-                goto Lerr;
-            }
-#endif
         }
         else if (cd->aggNew)
         {
