@@ -69,26 +69,12 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
     Type *t = e1->type->toBasetype();
     //printf("e1->type = %s, var->type = %s\n", e1->type->toChars(), var->type->toChars());
 
-    bool isObjcHandled = false;
-#if DMD_OBJC
-    if (e1->op == TOKobjcclsref)
-    {
-        // We already have an Objective-C class reference, just use that as 'this'.
-        isObjcHandled = true;
-    }
-    else if (ad &&
-        ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc.objc &&
-        var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
-        ((FuncDeclaration *)var)->objc.selector)
-    {
-        // Create class reference from the class declaration
-        e1 = new ObjcClassRefExp(e1->loc, (ClassDeclaration *)ad);
-        isObjcHandled = true;
-    }
-#endif
+    if (objc_getRightThis(ad, e1, var) == CFgoto)
+        goto Lend;
+
     /* If e1 is not the 'this' pointer for ad
      */
-    if (!isObjcHandled && ad &&
+    if (ad &&
         !(t->ty == Tpointer && t->nextOf()->ty == Tstruct &&
           ((TypeStruct *)t->nextOf())->sym == ad)
         &&
@@ -165,6 +151,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
             return new ErrorExp();
         }
     }
+Lend:
     return e1;
 }
 

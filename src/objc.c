@@ -2958,3 +2958,25 @@ elem *objc_toElem_visit_ObjcProtocolOfExp(ObjcProtocolOfExp *e)
 {
     return el_ptr(ObjcSymbols::getProtocolSymbol(e->idecl));
 }
+
+ControlFlow objc_getRightThis(AggregateDeclaration *ad, Expression *&e1, Declaration *var)
+{
+    ControlFlow controlFlow = CFnone;
+
+    if (e1->op == TOKobjcclsref)
+    {
+        // We already have an Objective-C class reference, just use that as 'this'.
+        controlFlow = CFgoto;
+    }
+    else if (ad &&
+             ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc.objc &&
+             var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
+             ((FuncDeclaration *)var)->objc.selector)
+    {
+        // Create class reference from the class declaration
+        e1 = new ObjcClassRefExp(e1->loc, (ClassDeclaration *)ad);
+        controlFlow = CFgoto;
+    }
+
+    return controlFlow;
+}

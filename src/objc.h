@@ -557,4 +557,6 @@ elem *objc_toElem_visit_ObjcDotClassExp(IRState *irs, ObjcDotClassExp *odce);
 elem *objc_toElem_visit_ObjcClassRefExp(ObjcClassRefExp *ocre);
 elem *objc_toElem_visit_ObjcProtocolOfExp(ObjcProtocolOfExp *e);
 
+ControlFlow objc_getRightThis(AggregateDeclaration *ad, Expression *&e1, Declaration *var);
+
 #endif
