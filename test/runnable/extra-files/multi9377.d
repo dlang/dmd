@@ -1,4 +1,4 @@
-import std.c.stdio;
+import core.stdc.stdio;
 
 import mul9377a, mul9377b;
 

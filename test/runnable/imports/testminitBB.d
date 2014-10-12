@@ -1,6 +1,6 @@
 module imports.testminitBB;
 
-import std.c.stdio;
+import core.stdc.stdio;
 int bb;
 
 static this()

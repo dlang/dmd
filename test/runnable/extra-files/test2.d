@@ -1,6 +1,6 @@
 
 import object;
-import std.c.stdio;
+import core.stdc.stdio;
 import std.algorithm;
 
 /* ================================ */

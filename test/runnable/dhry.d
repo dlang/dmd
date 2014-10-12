@@ -335,9 +335,9 @@
  *************************************************************************
  */
 
-import std.c.stdio;
-import std.c.string;
-import std.c.stdlib;
+import core.stdc.stdio;
+import core.stdc.string;
+import core.stdc.stdlib;
 import std.string;
 
 
@@ -867,7 +867,7 @@ Boolean Func_3 (Enumeration Enum_Par_Val)
 
 version (Windows)
 {
-    import std.c.windows.windows;
+    import core.sys.windows.windows;
 
     double dtime()
     {
@@ -881,7 +881,7 @@ version (Windows)
 
 version (linux)
 {
-    import std.c.linux.linux;
+    import core.stdc.time;
 
     double dtime()
     {
@@ -895,7 +895,7 @@ version (linux)
 
 version (OSX)	// supplied by Anders F Bjorklund
 {
-    import std.c.linux.linux;
+    import core.sys.posix.sys.time;
 
     double dtime()
     {

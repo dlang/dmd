@@ -3,7 +3,7 @@
 // Test to manipulate 3D vectors, in D!
 // by Sean L Palmer (seanpalmer@directvinternet.com)
 // This code is released without any warranty.  Use at your own risk.
-import std.c.stdio;
+import core.stdc.stdio;
 import std.math : sqrt;
 
 template VecTemplate(tfloat, int dim:3)

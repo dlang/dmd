@@ -1,7 +1,7 @@
 // Public Domain
 
-import std.c.windows.windows;
-import std.c.stdlib;
+import core.sys.windows.windows;
+import core.stdc.stdlib;
 
 version(D_Version2)
 {

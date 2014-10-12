@@ -1,7 +1,7 @@
 import std.stdio;
 import std.conv;
-import std.c.stdlib;
-import std.c.time;
+import core.stdc.stdlib;
+import core.stdc.time;
 
 const int LONG_TIME = 4000;
 
@@ -42,11 +42,11 @@ int main(string[] args)
     t.length = q + 1;
 
     /* compute pi */
-    std.c.time.time(&startime);
+    core.stdc.time.time(&startime);
     arctan(2);
     arctan(3);
     mul4();
-    std.c.time.time(&endtime);
+    core.stdc.time.time(&endtime);
 
     // Return to the number of digits we want to display
     q--;

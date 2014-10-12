@@ -262,9 +262,9 @@ string genTempFilename(string result_path)
 
 int system(string command)
 {
-    if (!command) return std.c.process.system(null);
+    if (!command) return core.stdc.stdlib.system(null);
     const commandz = toStringz(command);
-    auto status = std.c.process.system(commandz);
+    auto status = core.stdc.stdlib.system(commandz);
     if (status == -1) return status;
     version (Windows) status <<= 8;
     return status;

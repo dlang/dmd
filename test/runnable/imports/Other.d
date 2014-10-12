@@ -1,6 +1,6 @@
 module imports.Other; // makes no difference if removed
 import Same;
-import std.c.stdio;
+import core.stdc.stdio;
 
 class Other : Same // segfault
 // class Other : Same.Same //***UGLY ALERT*** but doesn't segfault

@@ -3,10 +3,10 @@
  * MyDll demonstration of how to write D DLLs.
  */
 
-import std.c.stdio;
-import std.c.stdlib;
+import core.stdc.stdio;
+import core.stdc.stdlib;
 import std.string;
-import std.c.windows.windows;
+import core.sys.windows.windows;
 import core.memory;
 import core.runtime;
 import core.sys.windows.dll;
@@ -26,7 +26,7 @@ extern (Windows)
 
         case DLL_PROCESS_DETACH:
 	    printf("DLL_PROCESS_DETACH\n");
-	    std.c.stdio._fcloseallp = null;	// so stdio doesn't get closed
+	    core.stdc.stdio._fcloseallp = null;	// so stdio doesn't get closed
 	    dll_process_detach(hInstance);
 	    //Runtime.terminate();
 	    break;

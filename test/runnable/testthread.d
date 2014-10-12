@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 
-import std.c.stdio;
+import core.stdc.stdio;
 import core.thread;
 
 version (CRuntime_DigitalMars)
