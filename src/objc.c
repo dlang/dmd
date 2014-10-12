@@ -2667,6 +2667,14 @@ void objc_CallExp_semantic_opOverload_selector(CallExp *self, Scope *sc, Type *t
         self->error("calling a selector needs an Objective-C object as the first argument");
 }
 
+void objc_CallExp_semantic_noFunction_selector(Type *t1, TypeFunction *&tf, const char *&p)
+{
+    TypeObjcSelector *td = (TypeObjcSelector *)t1;
+    assert(td->next->ty == Tfunction);
+    tf = (TypeFunction *)(td->next);
+    p = "Objective-C selector";
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
