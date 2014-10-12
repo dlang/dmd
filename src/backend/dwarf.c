@@ -1256,6 +1256,17 @@ void dwarf_func_term(Symbol *sfunc)
                         {   // BUG: register pairs not supported in Dwarf?
                             infobuf->writeByte(DW_OP_reg0 + sa->Sreglsw);
                         }
+                        else if (sa->Sflags & SFLclosurevar)
+                        {
+                            //printf("dwarf closure: closptr_idx: %i (%s), closvar_off: %llx\n",
+                            //    sa->closptr_idx, globsym.tab[sa->closptr_idx]->Sident, sa->closvar_off);
+                            targ_size_t closptr_off = sa->closptr_idx < globsym.top ? globsym.tab[sa->closptr_idx]->Soffset : 0;
+                            infobuf->writeByte(DW_OP_fbreg);
+                            infobuf->writesLEB128(Auto.size + BPoff - Para.size + closptr_off); // closure pointer offset from frame base
+                            infobuf->writeByte(DW_OP_deref);
+                            infobuf->writeByte(DW_OP_plus_uconst);
+                            infobuf->writeByte(sa->closvar_off); // closure var offset
+                        }
                         else
                         {
                             infobuf->writeByte(DW_OP_fbreg);

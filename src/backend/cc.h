@@ -1226,6 +1226,7 @@ struct Symbol
         #define SFLwasstatic    0x800000 // was an uninitialized static
         #define SFLweak         0x1000000 // resolve to NULL if not found
         #define SFLartifical    0x4000000 // compiler generated symbol
+        #define SFLclosurevar   0x8000000 // is closure variable
 
         // CPP
         #define SFLnodtor       0x10    // set if destructor for Symbol is already called
@@ -1275,6 +1276,8 @@ struct Symbol
     vec_t       Slvreg;         // when symbol is in register
     targ_size_t Ssize;          // tyfunc: size of function
     targ_size_t Soffset;        // variables: offset of Symbol in its storage class
+    SYMIDX      closptr_idx;    // variables: index of closure pointer in global symbol table
+    targ_size_t closvar_off;    // variables: offset of closure variable
 
     // CPP || OPTIMIZER
     SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])

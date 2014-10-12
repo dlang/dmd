@@ -672,7 +672,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
         Symbol *sclosure;
         sclosure = symbol_name("__closptr", SCauto, Type_toCtype(Type::tvoidptr));
         sclosure->Sflags |= SFLtrue | SFLfree;
-        symbol_add(sclosure);
+        SYMIDX closptr_idx = symbol_add(sclosure);
         irs->sclosure = sclosure;
 
         unsigned offset = Target::ptrsize;      // leave room for previous sthis
@@ -733,6 +733,12 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
             AggregateDeclaration::alignmember(xalign, memalignsize, &offset);
             v->offset = offset;
             offset += memsize;
+
+            /* Flag symbol as closure variable */
+            Symbol *vsym = toSymbol(v);
+            vsym->Sflags |= SFLclosurevar;
+            vsym->closptr_idx = closptr_idx; // index of closure pointer in symbol table
+            vsym->closvar_off = v->offset;   // offset of closure variable
 
             /* Can't do nrvo if the variable is put in a closure, since
              * what the shidden points to may no longer exist.
