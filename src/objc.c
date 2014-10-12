@@ -2675,6 +2675,11 @@ void objc_CallExp_semantic_noFunction_selector(Type *t1, TypeFunction *&tf, cons
     p = "Objective-C selector";
 }
 
+ObjcSelectorExp * objc_AddrExp_semantic_TOKdotvar_selector(AddrExp *self, DotVarExp *dve, FuncDeclaration *f)
+{
+    return new ObjcSelectorExp(self->loc, f, dve->hasOverloads);
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

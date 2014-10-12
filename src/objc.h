@@ -531,6 +531,8 @@ void objc_IsExp_semantic_TOKreturn_selector(IsExp *self, Type *&tded);
 void objc_CallExp_semantic_opOverload_selector(CallExp *self, Scope *sc, Type *t1);
 void objc_CallExp_semantic_noFunction_selector(Type *t1, TypeFunction *&tf, const char *&p);
 
+ObjcSelectorExp * objc_AddrExp_semantic_TOKdotvar_selector(AddrExp *self, DotVarExp *dve, FuncDeclaration *f);
+
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 

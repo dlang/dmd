@@ -9131,16 +9131,9 @@ Expression *AddrExp::semantic(Scope *sc)
             Expression *e;
             if (f->needThis())
             {
-#if DMD_OBJC
-                bool isObjcSelector = f->objc.selector;
-#else
-                bool isObjcSelector = false;
-#endif
-                if (isObjcSelector)
+                if (f->objc.selector)
                 {
-#if DMD_OBJC
-                    e = new ObjcSelectorExp(loc, f, dve->hasOverloads);
-#endif
+                    e = objc_AddrExp_semantic_TOKdotvar_selector(this, dve, f);
                 }
                 else
                     e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
