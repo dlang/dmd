@@ -528,6 +528,8 @@ ControlFlow objc_NewExp_semantic_alloc(NewExp *self, Scope *sc, ClassDeclaration
 ControlFlow objc_IsExp_semantic_TOKobjcselector(IsExp *self, Type *&tded);
 void objc_IsExp_semantic_TOKreturn_selector(IsExp *self, Type *&tded);
 
+void objc_CallExp_semantic_opOverload_selector(CallExp *self, Scope *sc, Type *t1);
+
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 

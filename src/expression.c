@@ -8378,11 +8378,6 @@ Lagain:
     // Check for call operator overload
     if (t1)
     {
-#if DMD_OBJC
-        bool isObjcSelector = t1->ty == Tobjcselector;
-#else
-        bool isObjcSelector = false;
-#endif
         if (t1->ty == Tstruct)
         {
             StructDeclaration *sd = ((TypeStruct *)t1)->sym;
@@ -8478,42 +8473,9 @@ Lagain:
             e = e->semantic(sc);
             return e;
         }
-        else if (isObjcSelector)
+        else if (t1->ty == Tobjcselector)
         {
-#if DMD_OBJC
-            assert(argument0 == NULL);
-            TypeObjcSelector *sel = (TypeObjcSelector *)t1;
-
-            // harvest first argument and check if valid target for a selector
-            int validtarget = 0;
-            if (arguments->dim >= 1)
-            {   argument0 = ((Expression *)arguments->data[0])->semantic(sc);
-                if (argument0 && argument0->type->ty == Tclass)
-                {   TypeClass *tc = (TypeClass *)argument0->type;
-                    if (tc && tc->sym && tc->sym->objc.objc)
-                        validtarget = 1; // Objective-C object
-                }
-                else if (argument0 && argument0->type->ty == Tpointer)
-                {   TypePointer *tp = (TypePointer *)argument0->type;
-                    if (tp->next->ty == Tstruct)
-                    {   TypeStruct *ts = (TypeStruct *)tp->next;
-                        if (ts && ts->sym && ts->sym->objc.selectorTarget)
-                            validtarget = 1; // struct with objc_selectortarget pragma applied
-                    }
-                }
-            }
-            if (validtarget)
-            {   // take first argument and use it as 'this'
-                // create new array of expressions omiting first argument
-                Expressions *newargs = new Expressions();
-                for (int i = 1; i < arguments->dim; ++i)
-                    newargs->push(arguments->tdata()[i]);
-                assert(newargs->dim == arguments->dim - 1);
-                arguments = newargs;
-            }
-            else
-                error("calling a selector needs an Objective-C object as the first argument");
-#endif
+            objc_CallExp_semantic_opOverload_selector(this, sc, t1);
         }
     }
 

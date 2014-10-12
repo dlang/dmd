@@ -2627,6 +2627,46 @@ void objc_IsExp_semantic_TOKreturn_selector(IsExp *self, Type *&tded)
     tded = ((TypeFunction *)tded)->next;
 }
 
+void objc_CallExp_semantic_opOverload_selector(CallExp *self, Scope *sc, Type *t1)
+{
+    assert(self->argument0 == NULL);
+    TypeObjcSelector *sel = (TypeObjcSelector *)t1;
+
+    // harvest first argument and check if valid target for a selector
+    int validtarget = 0;
+    if (self->arguments->dim >= 1)
+    {
+        self->argument0 = ((Expression *)self->arguments->data[0])->semantic(sc);
+        if (self->argument0 && self->argument0->type->ty == Tclass)
+        {
+            TypeClass *tc = (TypeClass *)self->argument0->type;
+            if (tc && tc->sym && tc->sym->objc.objc)
+                validtarget = 1; // Objective-C object
+        }
+        else if (self->argument0 && self->argument0->type->ty == Tpointer)
+        {
+            TypePointer *tp = (TypePointer *)self->argument0->type;
+            if (tp->next->ty == Tstruct)
+            {
+                TypeStruct *ts = (TypeStruct *)tp->next;
+                if (ts && ts->sym && ts->sym->objc.selectorTarget)
+                    validtarget = 1; // struct with objc_selectortarget pragma applied
+            }
+        }
+    }
+    if (validtarget)
+    {   // take first argument and use it as 'this'
+        // create new array of expressions omiting first argument
+        Expressions *newargs = new Expressions();
+        for (int i = 1; i < self->arguments->dim; ++i)
+            newargs->push(self->arguments->tdata()[i]);
+        assert(newargs->dim == self->arguments->dim - 1);
+        self->arguments = newargs;
+    }
+    else
+        self->error("calling a selector needs an Objective-C object as the first argument");
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
