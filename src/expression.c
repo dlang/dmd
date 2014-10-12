@@ -8039,9 +8039,7 @@ CallExp::CallExp(Loc loc, Expression *e, Expressions *exps)
 {
     this->arguments = exps;
     this->f = NULL;
-#if DMD_OBJC
     this->argument0 = NULL;
-#endif
 }
 
 CallExp::CallExp(Loc loc, Expression *e)

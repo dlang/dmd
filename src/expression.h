@@ -906,9 +906,7 @@ class CallExp : public UnaExp
 public:
     Expressions *arguments;     // function arguments
     FuncDeclaration *f;         // symbol to call
-#if DMD_OBJC
     Expression *argument0;      // this argument for Objective-C selector
-#endif
 
     CallExp(Loc loc, Expression *e, Expressions *exps);
     CallExp(Loc loc, Expression *e);
