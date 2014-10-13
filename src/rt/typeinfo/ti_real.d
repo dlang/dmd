@@ -49,7 +49,7 @@ class TypeInfo_e : TypeInfo
 
     override size_t getHash(in void* p)
     {
-        return hashOf(p, real.sizeof);
+        return rt.util.hash.hashOf(p, real.sizeof);
     }
 
     override bool equals(in void* p1, in void* p2)

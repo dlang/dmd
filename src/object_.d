@@ -222,7 +222,7 @@ class TypeInfo
         try
         {
             auto data = this.toString();
-            return hashOf(data.ptr, data.length);
+            return rt.util.hash.hashOf(data.ptr, data.length);
         }
         catch (Throwable)
         {
@@ -983,7 +983,7 @@ class TypeInfo_Struct : TypeInfo
         }
         else
         {
-            return hashOf(p, init().length);
+            return rt.util.hash.hashOf(p, init().length);
         }
     }
 
@@ -2768,6 +2768,12 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 }
 
 
+size_t hashOf(T)(auto ref T arg, size_t seed = 0)
+{
+    import core.internal.hash;
+    return core.internal.hash.hashOf(arg, seed);
+}
+
 bool _xopEquals(in void*, in void*)
 {
     throw new Error("TypeInfo.equals is not implemented");
@@ -2834,7 +2840,7 @@ size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted
     }
 
     if(!hasCustomToHash(element))
-        return hashOf(ptr, elementSize * count);
+        return rt.util.hash.hashOf(ptr, elementSize * count);
 
     size_t hash = 0;
     foreach(size_t i; 0 .. count)

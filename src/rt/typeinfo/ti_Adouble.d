@@ -27,7 +27,7 @@ class TypeInfo_Ad : TypeInfo_Array
     override size_t getHash(in void* p) @trusted const
     {
         double[] s = *cast(double[]*)p;
-        return hashOf(s.ptr, s.length * double.sizeof);
+        return rt.util.hash.hashOf(s.ptr, s.length * double.sizeof);
     }
 
     override bool equals(in void* p1, in void* p2) const
