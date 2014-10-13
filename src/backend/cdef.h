@@ -1033,7 +1033,7 @@ typedef unsigned SYMFLGS;
          (symbol *)0,(symbol *)0,(symbol *)0,(dt_t *)0,0,(type *)0,{0},\
          SYMBOLZERO\
          UNIXFIELDS\
-         SCextern,(fl),(flags),0,0,0,0,0,0,0,{0},(regsaved),{name}}
+         SCextern,(fl),(flags),0,0,0,0,0,0,0,0,0,{0},(regsaved),{name}}
 
 /**********************************
  * Storage classes
