@@ -749,17 +749,7 @@ void FuncDeclaration::semantic(Scope *sc)
             error("return type inference is not supported if may override base class function");
         }
 
-#if DMD_OBJC
-        // Handle Objective-C static member functions, which are virtual
-        // functions of the metaclass, by changing the parent class
-        // declaration to the metaclass.
-        if (cd->objc.objc && isStatic())
-        {   if (!cd->objc.meta) // but check that it hasn't already been done
-            {   assert(cd->objc.metaclass);
-                parent = cd = cd->objc.metaclass;
-            }
-        }
-#endif
+        objc_FuncDeclaration_semantic_parentForStaticMethod(this, parent, cd);
 
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])

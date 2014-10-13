@@ -2694,6 +2694,21 @@ void objc_FuncDeclaration_semantic_checkAbstractStatic(FuncDeclaration *self)
         self->error("static functions cannot be abstract");
 }
 
+void objc_FuncDeclaration_semantic_parentForStaticMethod(FuncDeclaration *self, Dsymbol *&parent, ClassDeclaration *&cd)
+{
+    // Handle Objective-C static member functions, which are virtual
+    // functions of the metaclass, by changing the parent class
+    // declaration to the metaclass.
+    if (cd->objc.objc && self->isStatic())
+    {
+        if (!cd->objc.meta) // but check that it hasn't already been done
+        {
+            assert(cd->objc.metaclass);
+            parent = cd = cd->objc.metaclass;
+        }
+    }
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
