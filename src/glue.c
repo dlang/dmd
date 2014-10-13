@@ -1287,14 +1287,14 @@ elem *Module::toEmodulename()
 
         /* Class ModuleInfo is defined in std.moduleinfo.
          * The first member is the name of it, char name[],
-         * which will be at offset 8.
+         * which will be at offset 2 * Target::ptrsize.
          */
 
         si = toSymbol();
 #if 1
         // Use this instead so -fPIC will work
         efilename = el_ptr(si);
-        efilename = el_bin(OPadd, TYnptr, efilename, el_long(TYuint, 8));
+        efilename = el_bin(OPadd, TYnptr, efilename, el_long(TYuint, 2 * Target::ptrsize));
         if (config.exe != EX_WIN64)
             efilename = el_una(OPind, TYdarray, efilename);
 #else
