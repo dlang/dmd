@@ -86,6 +86,11 @@ public:
             type *tp = Type_toCtype(arg->type);
             if (arg->storageClass & (STCout | STCref))
                 tp = type_allocn(TYref, tp);
+            else if (arg->storageClass & STClazy)
+            {   // Mangle as delegate
+                type *tf = type_function(TYnfunc, NULL, 0, false, tp);
+                tp = type_delegate(tf);
+            }
             ptypes[i] = tp;
         }
 
