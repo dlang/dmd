@@ -534,6 +534,8 @@ void objc_CallExp_semantic_noFunction_selector(Type *t1, TypeFunction *&tf, cons
 ObjcSelectorExp * objc_AddrExp_semantic_TOKdotvar_selector(AddrExp *self, DotVarExp *dve, FuncDeclaration *f);
 Expression * objc_AddrExp_semantic_TOKvar_selector(AddrExp *self, Scope *sc, VarExp *ve, FuncDeclaration *f);
 
+void objc_FuncDeclaration_semantic_checkAbstractStatic(FuncDeclaration *self);
+
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 

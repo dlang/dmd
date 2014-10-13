@@ -2687,6 +2687,13 @@ Expression * objc_AddrExp_semantic_TOKvar_selector(AddrExp *self, Scope *sc, Var
     return e;
 }
 
+void objc_FuncDeclaration_semantic_checkAbstractStatic(FuncDeclaration *self)
+{
+    // Because static functions are virtual in Objective-C objects
+    if (self->isAbstract() && self->isStatic() && self->linkage == LINKobjc)
+        self->error("static functions cannot be abstract");
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
