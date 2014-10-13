@@ -665,12 +665,7 @@ void FuncDeclaration::semantic(Scope *sc)
     {
         storage_class |= STCabstract;
 
-#if DMD_OBJC
-        bool isObjcAndCtorDtor = id->objc.objc && isCtorDeclaration() || isDtorDeclaration();
-#else
-        bool isObjcAndCtorDtor = false;
-#endif
-        if (isObjcAndCtorDtor)
+        if (id->objc.objc && (isCtorDeclaration() || isDtorDeclaration()))
         {
             // constructors and destructor allowed in Objective-C interfaces
             // to map them to selectors.
