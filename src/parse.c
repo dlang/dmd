@@ -2174,15 +2174,17 @@ Dsymbol *Parser::parseAggregate()
     //printf("Parser::parseAggregate()\n");
     nextToken();
     if (token.value != TOKidentifier)
-    {   id = NULL;
+    {
+        id = NULL;
     }
     else
-    {   id = token.ident;
+    {
+        id = token.ident;
         nextToken();
 
         if (token.value == TOKlparen)
-        {   // Class template declaration.
-
+        {
+            // Class template declaration.
             // Gather template parameter list
             tpl = parseTemplateParameterList();
             constraint = parseConstraint();
@@ -2249,7 +2251,8 @@ Dsymbol *Parser::parseAggregate()
             break;
     }
     if (a && token.value == TOKsemicolon)
-    {   nextToken();
+    {
+        nextToken();
     }
     else if (token.value == TOKlcurly)
     {
@@ -2257,7 +2260,7 @@ Dsymbol *Parser::parseAggregate()
         nextToken();
         Dsymbols *decl = parseDeclDefs(0);
         if (token.value != TOKrcurly)
-            error("} expected following member declarations in aggregate");
+            error("} expected following members in %s declaration at %s", Token::toChars(tok), loc.toChars());
         nextToken();
         if (anon)
         {
@@ -2270,7 +2273,7 @@ Dsymbol *Parser::parseAggregate()
     }
     else
     {
-        error("{ } expected following aggregate declaration");
+        error("{ } expected following %s declaration", Token::toChars(tok));
         a = new StructDeclaration(loc, NULL);
     }
 
