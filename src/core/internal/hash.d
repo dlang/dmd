@@ -113,7 +113,7 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && (is(T ==
 {
     static if (is(typeof(val.toHash()) == size_t)) //CTFE depends on toHash()
     {
-        return mixHash(val.toHash(), seed);
+        return hashOf(val.toHash(), seed);
     }
     else
     {
@@ -148,13 +148,13 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == 
 //class or interface hash. CTFE depends on toHash
 size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T == interface) || is(T == class))
 {
-    return mixHash(val ? (cast(Object)val).toHash() : 0, seed);
+    return hashOf(val ? (cast(Object)val).toHash() : 0, seed);
 }
 
 //associative array hash. CTFE depends on base types
 size_t hashOf(T)(auto ref T aa, size_t seed = 0) if (!is(T == enum) && __traits(isAssociativeArray, T))
 {
-    if (!aa.length) return mixHash(0, seed);
+    if (!aa.length) return hashOf(0, seed);
     size_t h = 0;
 
     // The computed hash is independent of the foreach traversal order.
@@ -165,7 +165,7 @@ size_t hashOf(T)(auto ref T aa, size_t seed = 0) if (!is(T == enum) && __traits(
         hpair[1] = val.hashOf();
         h ^= hpair.hashOf();
     }
-    return mixHash(h, seed);
+    return h.hashOf(seed);
 }
 
 unittest
@@ -492,14 +492,6 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
     h1 ^= len;
     h1 = fmix32(h1);
     return h1;
-}
-
-
-@trusted pure nothrow
-size_t mixHash(size_t hash, size_t seed)
-{
-    auto h = hash.toUbyte();
-    return bytesHash(h.ptr, h.length, seed);
 }
 
 //  Check that bytesHash works with CTFE
