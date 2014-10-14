@@ -51,7 +51,7 @@ class TypeInfo_r : TypeInfo
 
     override size_t getHash(in void* p)
     {
-        return hashOf(p, cdouble.sizeof);
+        return rt.util.hash.hashOf(p, cdouble.sizeof);
     }
 
     override bool equals(in void* p1, in void* p2)
