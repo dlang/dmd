@@ -1327,11 +1327,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
         // Declare 'this'
         AggregateDeclaration *ad = isThis();
-#if DMD_OBJC
         vthis = declareThis(sc2, ad, &objc.vcmd);
-#else
-        vthis = declareThis(sc2, ad);
-#endif
 
         // Declare hidden variable _arguments[] and _argptr
         if (f->varargs == 1)
