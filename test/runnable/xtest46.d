@@ -6897,12 +6897,15 @@ struct Function
     int[] ai = [1,2,3];
 }
 
-@property void meta(alias m)()
+template meta(alias m)
 {
-    static Function md;
-    printf("length = %d\n", md.ai.length);
-    printf("ptr = %p\n", md.ai.ptr);
-    md.ai[0] = 0;
+    static @property void meta()
+    {
+        static Function md;
+        printf("length = %d\n", md.ai.length);
+        printf("ptr = %p\n", md.ai.ptr);
+        md.ai[0] = 0;
+    }
 }
 
 void test9130()

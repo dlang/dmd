@@ -7047,6 +7047,24 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
 }
 
 
+/****************************************
+ * Used when determining where a TemplateInstance
+ * is nested from two alias parameters.
+ * Returns true if a and b are the same Dsymbol,
+ * or if both are classes and a inherits from b.
+ */
+static bool templateNestTarget(Dsymbol *child, Dsymbol *parent)
+{
+    if (child == parent)
+        return true;
+    ClassDeclaration *cdchild  = child ->isClassDeclaration();
+    ClassDeclaration *cdparent = parent->isClassDeclaration();
+    if (cdchild && cdparent && cdparent->isBaseOf(cdchild, NULL))
+        return true;
+    return false;
+}
+
+
 /*****************************************
  * Determines if a TemplateInstance will need a nested
  * generation of the TemplateDeclaration.
@@ -7113,47 +7131,46 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
             }
             TemplateInstance *ti = sa->isTemplateInstance();
             Declaration *d = sa->isDeclaration();
+            FuncDeclaration *f = d ? d->isFuncDeclaration() : NULL;
             if ((td && td->literal) ||
                 (ti && ti->enclosing) ||
                 (d && !d->isDataseg() &&
                  !(d->storage_class & STCmanifest) &&
-                 (!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
+                 (!f || f->isNested() || f->isThis()) &&
                  !isTemplateMixin()
                 ))
             {
-                // if module level template
-                if (isstatic)
+                Dsymbol *dparent = sa->toParent2();
+
+                if (!isstatic && !enclosing)
+                    enclosing = toParent2();
+
+                if (!enclosing)
+                    enclosing = dparent;
+                else if (enclosing != dparent)
                 {
-                    Dsymbol *dparent = sa->toParent2();
-                    if (!enclosing)
-                        enclosing = dparent;
-                    else if (enclosing != dparent)
+                    /* Select the more deeply nested of the two.
+                        * Error if one is not nested inside the other.
+                        */
+                    for (Dsymbol *p = enclosing; p; p = p->parent)
                     {
-                        /* Select the more deeply nested of the two.
-                         * Error if one is not nested inside the other.
-                         */
-                        for (Dsymbol *p = enclosing; p; p = p->parent)
-                        {
-                            if (p == dparent)
-                                goto L1;        // enclosing is most nested
-                        }
-                        for (Dsymbol *p = dparent; p; p = p->parent)
-                        {
-                            if (p == enclosing)
-                            {
-                                enclosing = dparent;
-                                goto L1;        // dparent is most nested
-                            }
-                        }
-                        error("%s is nested in both %s and %s",
-                                toChars(), enclosing->toChars(), dparent->toChars());
+                        if (templateNestTarget(p, dparent))
+                            goto L1;        // enclosing is most nested
                     }
-                  L1:
-                    //printf("\tnested inside %s\n", enclosing->toChars());
-                    nested |= 1;
+                    for (Dsymbol *p = dparent; p; p = p->parent)
+                    {
+                        if (templateNestTarget(p, enclosing))
+                        {
+                            enclosing = dparent;
+                            goto L1;        // dparent is most nested
+                        }
+                    }
+                    error("%s is nested in both %s and %s",
+                            toChars(), enclosing->toChars(), dparent->toChars());
                 }
-                else
-                    error("cannot use local '%s' as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
+              L1:
+                //printf("\tnested inside %s\n", enclosing->toChars());
+                nested |= 1;
             }
         }
         else if (va)

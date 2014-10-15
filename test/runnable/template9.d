@@ -3265,6 +3265,20 @@ void test12207()
 }
 
 /******************************************/
+// 12230
+
+static template T12230(alias a)
+{
+    void foo() { a(); }
+}
+
+struct S12230
+{
+    void m() {}
+    alias t = T12230!m;
+}
+
+/******************************************/
 // 12263
 
 template A12263(alias a) { int x; }
@@ -3277,6 +3291,56 @@ template fqnSym12263(alias T : B12263!A, alias B12263, A...)
 
 static assert(fqnSym12263!(A12263!(Object)));
 static assert(fqnSym12263!(B12263!(Object)));
+
+/******************************************/
+// 12285
+
+struct S12285
+{
+    int a, c;
+
+    template toA(alias s)
+    {
+        void copy()
+        {
+            a = s;
+        }
+    }
+
+    alias cToA = toA!c;
+}
+
+void test12285()
+{
+    S12285 s;
+    s.c = 42;
+    s.cToA.copy();
+    assert(s.a == 42);
+}
+
+/******************************************/
+// 12286
+
+class A12286          { int i; }
+class B12286 : A12286 { int j; }
+
+template copy12286(alias a, alias b)
+{
+    void copy12286() { a = b; }
+}
+
+class C12286 : B12286
+{
+    alias copyIJ = copy12286!(i, j);
+}
+
+void test12286()
+{
+    auto c = new C12286;
+    c.j = 42;
+    c.copyIJ();
+    assert(c.i == 42);
+}
 
 /******************************************/
 // 12290
@@ -4326,6 +4390,8 @@ int main()
     test11872();
     test12122();
     test12207();
+    test12285();
+    test12286();
     test12376();
     test13235();
     test13294();
