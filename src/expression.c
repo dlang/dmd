@@ -4105,7 +4105,17 @@ Expression *StructLiteralExp::addDtorHook(Scope *sc)
      */
     if (sd->dtor && sc->func)
     {
-        Identifier *idtmp = Lexer::uniqueId("__sl");
+        /* Make an identifier for the temporary of the form:
+         *   __sl%s%d, where %s is the struct name
+         */
+        const size_t len = 10;
+        char buf[len + 1];
+        buf[len] = 0;
+        strcpy(buf, "__sl");
+        strncat(buf, sd->ident->toChars(), len - 4 - 1);
+        assert(buf[len] == 0);
+        Identifier *idtmp = Lexer::uniqueId(buf);
+
         VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
         tmp->storage_class |= STCtemp | STCctfe;
         Expression *ae = new DeclarationExp(loc, tmp);
@@ -9294,7 +9304,7 @@ Expression *DeleteExp::semantic(Scope *sc)
                 VarDeclaration *v;
 
                 if (fd && f)
-                {   Identifier *id = Lexer::idPool("__tmp");
+                {   Identifier *id = Lexer::idPool("__tmpea");
                     v = new VarDeclaration(loc, e1->type, id, new ExpInitializer(loc, e1));
                     v->storage_class |= STCtemp;
                     v->semantic(sc);
