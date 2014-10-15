@@ -1,8 +1,9 @@
 /*
+REQUIRED_ARGS: -w
 TEST_OUTPUT:
 ---
-fail_compilation/diag13074.d(29): Error: AA key type S now requires equality rather than comparison
-fail_compilation/diag13074.d(29):        Please define opEquals, or remove opCmp to also rely on default memberwise comparison.
+fail_compilation/diag13074.d(30): Warning: AA key type S now requires equality rather than comparison
+fail_compilation/diag13074.d(30):          Please define opEquals, or remove opCmp to also rely on default memberwise comparison.
 ---
 */
 struct S
@@ -36,8 +37,8 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag13074.d(70): Error: AA key type C now requires equality rather than comparison
-fail_compilation/diag13074.d(70):        Please override Object.opEquals and toHash.
+fail_compilation/diag13074.d(71): Warning: AA key type C now requires equality rather than comparison
+fail_compilation/diag13074.d(71):          Please override Object.opEquals and toHash.
 ---
 */
 class C

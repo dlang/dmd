@@ -4600,9 +4600,9 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             }
             if (sd->xcmp && sd->xcmp != sd->xerrcmp)
             {
-                error(loc, "%sAA key type %s now requires equality rather than comparison",
+                warning(loc, "%sAA key type %s now requires equality rather than comparison",
                     s, sd->toChars());
-                errorSupplemental(loc, "Please define opEquals, or remove opCmp to also rely on default memberwise comparison.");
+                warningSupplemental(loc, "Please define opEquals, or remove opCmp to also rely on default memberwise comparison.");
             }
         #endif
         }
@@ -4672,9 +4672,9 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             if (fcmp->vtblIndex < cd->vtbl.dim && cd->vtbl[fcmp->vtblIndex] != fcmp)
             {
                 const char *s = (index->toBasetype()->ty != Tclass) ? "bottom of " : "";
-                error(loc, "%sAA key type %s now requires equality rather than comparison",
+                warning(loc, "%sAA key type %s now requires equality rather than comparison",
                     s, cd->toChars());
-                errorSupplemental(loc, "Please override Object.opEquals and toHash.");
+                warningSupplemental(loc, "Please override Object.opEquals and toHash.");
             }
         #endif
         }
