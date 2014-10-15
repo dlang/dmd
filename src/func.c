@@ -3457,17 +3457,10 @@ bool FuncDeclaration::isVirtual()
         !(p->isInterfaceDeclaration() && isFinalFunc()));
 #endif
 
-#if DMD_OBJC
-    if (linkage == LINKobjc)
-    {   // * final member functions are kept virtual with Objective-C linkage
-        //   because the Objective-C runtime always use dynamic dispatch.
-        // * static member functions are kept virtual too, as they represent
-        //   methods of the metaclass.
-        return isMember() &&
-            !(protection == PROTprivate || protection == PROTpackage) &&
-            p->isClassDeclaration();
-    }
-#endif
+    bool result;
+    if (objc_FuncDeclaration_isVirtual(this, p, result) == CFreturn)
+        return result;
+
     return isMember() &&
         !(isStatic() || protection.kind == PROTprivate || protection.kind == PROTpackage) &&
         p->isClassDeclaration() &&

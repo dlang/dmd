@@ -2793,6 +2793,24 @@ void objc_FuncDeclaration_isThis(FuncDeclaration *self, AggregateDeclaration *&a
             ad = cd->objc.metaclass;
 }
 
+ControlFlow objc_FuncDeclaration_isVirtual(FuncDeclaration *self, Dsymbol *p, bool &result)
+{
+    if (self->linkage == LINKobjc)
+    {
+        // * final member functions are kept virtual with Objective-C linkage
+        //   because the Objective-C runtime always use dynamic dispatch.
+        // * static member functions are kept virtual too, as they represent
+        //   methods of the metaclass.
+        result = self->isMember() &&
+            !(self->protection == PROTprivate || self->protection == PROTpackage) &&
+            p->isClassDeclaration();
+
+        return CFreturn;
+    }
+
+    return CFnone;
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
