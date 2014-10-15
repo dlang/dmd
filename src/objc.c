@@ -2760,6 +2760,12 @@ void objc_FuncDeclaration_semantic_addClassMethodList(FuncDeclaration *self, Cla
     }
 }
 
+void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *self)
+{
+    if (self->linkage != LINKobjc && self->objc.selector)
+        self->error("function must have Objective-C linkage to attach a selector");
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

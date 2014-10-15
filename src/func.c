@@ -1003,12 +1003,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
         objc_FuncDeclaration_semantic_checkInheritedSelector(this, cd);
         objc_FuncDeclaration_semantic_addClassMethodList(this, cd);
-
-#if DMD_OBJC
-
-        if (linkage != LINKobjc && objc.selector)
-            error("function must have Objective-C linkage to attach a selector");
-#endif
+        objc_FuncDeclaration_semantic_checkLinkage(this);
 
         /* Go through all the interface bases.
          * Disallow overriding any final functions in the interface(s).
