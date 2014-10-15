@@ -185,7 +185,7 @@ T[] _arraySliceExpAddSliceAssign_s(T[] a, T value, T[] b)
 
             if (((cast(uint) aptr | cast(uint) bptr) & 15) != 0)
             {
-                asm // unaligned case
+                asm pure nothrow @nogc // unaligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -212,7 +212,7 @@ T[] _arraySliceExpAddSliceAssign_s(T[] a, T value, T[] b)
             }
             else
             {
-                asm // aligned case
+                asm pure nothrow @nogc // aligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -426,7 +426,7 @@ T[] _arraySliceSliceAddSliceAssign_s(T[] a, T[] c, T[] b)
 
             if (((cast(uint) aptr | cast(uint) bptr | cast(uint) cptr) & 15) != 0)
             {
-                asm // unaligned case
+                asm pure nothrow @nogc // unaligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -456,7 +456,7 @@ T[] _arraySliceSliceAddSliceAssign_s(T[] a, T[] c, T[] b)
             }
             else
             {
-                asm // aligned case
+                asm pure nothrow @nogc // aligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -658,7 +658,7 @@ T[] _arrayExpSliceAddass_s(T[] a, T value)
 
             if (((cast(uint) aptr) & 15) != 0)
             {
-                asm // unaligned case
+                asm pure nothrow @nogc // unaligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -682,7 +682,7 @@ T[] _arrayExpSliceAddass_s(T[] a, T value)
             }
             else
             {
-                asm // aligned case
+                asm pure nothrow @nogc // aligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -883,7 +883,7 @@ T[] _arraySliceSliceAddass_s(T[] a, T[] b)
 
             if (((cast(uint) aptr | cast(uint) bptr) & 15) != 0)
             {
-                asm // unaligned case
+                asm pure nothrow @nogc // unaligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -910,7 +910,7 @@ T[] _arraySliceSliceAddass_s(T[] a, T[] b)
             }
             else
             {
-                asm // aligned case
+                asm pure nothrow @nogc // aligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -1122,7 +1122,7 @@ T[] _arraySliceExpMinSliceAssign_s(T[] a, T value, T[] b)
 
             if (((cast(uint) aptr | cast(uint) bptr) & 15) != 0)
             {
-                asm // unaligned case
+                asm pure nothrow @nogc // unaligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -1149,7 +1149,7 @@ T[] _arraySliceExpMinSliceAssign_s(T[] a, T value, T[] b)
             }
             else
             {
-                asm // aligned case
+                asm pure nothrow @nogc // aligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -1183,7 +1183,7 @@ T[] _arraySliceExpMinSliceAssign_s(T[] a, T value, T[] b)
 
             uint l = cast(ushort) value;
 
-            asm
+            asm pure nothrow @nogc
             {
                 mov RSI, aptr;
                 mov RDI, n;
@@ -1400,7 +1400,7 @@ T[] _arrayExpSliceMinSliceAssign_s(T[] a, T[] b, T value)
 
             if (((cast(uint) aptr | cast(uint) bptr) & 15) != 0)
             {
-                asm // unaligned case
+                asm pure nothrow @nogc // unaligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -1429,7 +1429,7 @@ T[] _arrayExpSliceMinSliceAssign_s(T[] a, T[] b, T value)
             }
             else
             {
-                asm // aligned case
+                asm pure nothrow @nogc // aligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -1644,7 +1644,7 @@ T[] _arraySliceSliceMinSliceAssign_s(T[] a, T[] c, T[] b)
 
             if (((cast(uint) aptr | cast(uint) bptr | cast(uint) cptr) & 15) != 0)
             {
-                asm // unaligned case
+                asm pure nothrow @nogc // unaligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -1674,7 +1674,7 @@ T[] _arraySliceSliceMinSliceAssign_s(T[] a, T[] c, T[] b)
             }
             else
             {
-                asm // aligned case
+                asm pure nothrow @nogc // aligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -1876,7 +1876,7 @@ T[] _arrayExpSliceMinass_s(T[] a, T value)
 
             if (((cast(uint) aptr) & 15) != 0)
             {
-                asm // unaligned case
+                asm pure nothrow @nogc // unaligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -1900,7 +1900,7 @@ T[] _arrayExpSliceMinass_s(T[] a, T value)
             }
             else
             {
-                asm // aligned case
+                asm pure nothrow @nogc // aligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -2101,7 +2101,7 @@ T[] _arraySliceSliceMinass_s(T[] a, T[] b)
 
             if (((cast(uint) aptr | cast(uint) bptr) & 15) != 0)
             {
-                asm // unaligned case
+                asm pure nothrow @nogc // unaligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -2128,7 +2128,7 @@ T[] _arraySliceSliceMinass_s(T[] a, T[] b)
             }
             else
             {
-                asm // aligned case
+                asm pure nothrow @nogc // aligned case
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -2340,7 +2340,7 @@ T[] _arraySliceExpMulSliceAssign_s(T[] a, T value, T[] b)
 
             if (((cast(uint) aptr | cast(uint) bptr) & 15) != 0)
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -2367,7 +2367,7 @@ T[] _arraySliceExpMulSliceAssign_s(T[] a, T value, T[] b)
             }
             else
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -2581,7 +2581,7 @@ T[] _arraySliceSliceMulSliceAssign_s(T[] a, T[] c, T[] b)
 
             if (((cast(uint) aptr | cast(uint) bptr | cast(uint) cptr) & 15) != 0)
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -2611,7 +2611,7 @@ T[] _arraySliceSliceMulSliceAssign_s(T[] a, T[] c, T[] b)
             }
             else
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -2813,7 +2813,7 @@ T[] _arrayExpSliceMulass_s(T[] a, T value)
 
             if (((cast(uint) aptr) & 15) != 0)
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -2837,7 +2837,7 @@ T[] _arrayExpSliceMulass_s(T[] a, T value)
             }
             else
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -3038,7 +3038,7 @@ T[] _arraySliceSliceMulass_s(T[] a, T[] b)
 
             if (((cast(uint) aptr | cast(uint) bptr) & 15) != 0)
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -3065,7 +3065,7 @@ T[] _arraySliceSliceMulass_s(T[] a, T[] b)
             }
             else
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     mov RSI, aptr;
                     mov RDI, n;
@@ -3097,7 +3097,7 @@ T[] _arraySliceSliceMulass_s(T[] a, T[] b)
         {
             auto n = aptr + (a.length & ~7);
 
-            asm
+            asm pure nothrow @nogc
             {
                 mov RSI, aptr;
                 mov RDI, n;
