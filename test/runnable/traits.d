@@ -1514,6 +1514,79 @@ void test12237()
 
 /********************************************************/
 
+struct Child
+{
+static:
+
+    static template T(alias x)
+    {
+        void set(int n) { x = n; }
+    }
+    mixin template M(alias x)
+    {
+        void set(int n) { x = n; }
+    }
+
+    struct S
+    {
+        int i;
+        alias t = T!i;
+        mixin M!i m;
+    }
+
+    alias v = S.i;
+    alias t = S.t;
+    alias tf = t.set;
+    alias m = S.m;
+    alias mf = m.set;
+
+    void test(alias s)()
+    {
+        s.i = 0;
+
+        __traits(child, s, v) = 1;
+        assert(s.i == 1);
+
+        __traits(child, s, t).set(2);
+        assert(s.i == 2);
+        __traits(child, s, tf)(3);
+        assert(s.i == 3);
+        __traits(child, __traits(child, s, t), tf)(4);
+        assert(s.i == 4);
+
+        __traits(child, s, m).set(5);
+        assert(s.i == 5);
+        __traits(child, s, mf)(6);
+        assert(s.i == 6);
+        __traits(child, __traits(child, s, m), mf)(7);
+        assert(s.i == 7);
+    }
+
+    void testAll()
+    {
+        S s;
+        test!s();
+
+        static struct W
+        {
+            S s;
+            void testW()
+            {
+                test!s();
+            }
+        }
+        W w;
+        w.testW();
+    }
+}
+
+void testChild()
+{
+    Child.testAll();
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
@@ -1552,6 +1625,7 @@ int main()
     test_getUnitTests();
     test_getFunctionAttributes();
     test_isOverrideFunction();
+    testChild();
     test12237();
 
     writeln("Success");

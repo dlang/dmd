@@ -557,6 +557,63 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         return (new DsymbolExp(e->loc, s))->semantic(sc);
     }
+    else if (e->ident == Id::child)
+    {
+        if (dim != 2)
+            goto Ldimerror;
+
+        RootObject *o1 = (*e->args)[0];
+        Expression *ex;
+        if (Dsymbol *sym = getDsymbol(o1))
+            ex = new DsymbolExp(e->loc, sym);
+        else
+        if ((ex = isExpression(o1)) != NULL)
+            {}
+        else
+        {
+            e->error("symbol or expression expected as first argument of __traits %s instead of %s", e->ident->toChars(), o1->toChars());
+            goto Lfalse;
+        }
+
+        if (ex->op == TOKdotexp)
+        {
+            DotExp *de = (DotExp*)ex;
+            if (de->e2->op == TOKimport)
+                ex = de->e1;
+            else
+            {
+                de->e2->error("cannot resolve child of %s", de->e2->toChars());
+                goto Lfalse;
+            }
+        }
+
+        ex = ex->semantic(sc);
+
+        Dsymbol *sym2 = getDsymbol((*e->args)[1]);
+        if (!sym2)
+        {
+            e->error("symbol expected as second argument of __traits %s instead of %s", e->ident->toChars(), (*e->args)[1]->toChars());
+            goto Lfalse;
+        }
+
+        if (Declaration *d = sym2->isDeclaration())
+            ex = new DotVarExp(e->loc, ex, d);
+        else
+        if (ScopeDsymbol *ti = sym2->isScopeDsymbol())
+        {
+            Expression *ex2 = new DotExp(e->loc, ex, new ScopeExp(e->loc, ti));
+            ex2->type = ex->type->copy();
+            ex = ex2;
+        }
+        else
+        {
+            e->error("invalid second argument of __traits %s", e->ident->toChars());
+            goto Lfalse;
+        }
+
+        ex = ex->semantic(sc);
+        return ex;
+    }
     else if (e->ident == Id::hasMember ||
              e->ident == Id::getMember ||
              e->ident == Id::getOverloads ||

@@ -330,6 +330,7 @@ Msgtable msgtable[] =
     { "identifier" },
     { "getProtection" },
     { "parent" },
+    { "child" },
     { "getMember" },
     { "getOverloads" },
     { "getVirtualFunctions" },
