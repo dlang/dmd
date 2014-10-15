@@ -2766,7 +2766,7 @@ void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *self)
         self->error("function must have Objective-C linkage to attach a selector");
 }
 
-// MARK: FuncDeclaration::declareThis
+// MARK: FuncDeclaration
 
 void objc_FuncDeclaration_declareThis(FuncDeclaration *self, Scope *sc, VarDeclaration** vobjccmd, VarDeclaration *v)
 {
@@ -2782,6 +2782,15 @@ void objc_FuncDeclaration_declareThis(FuncDeclaration *self, Scope *sc, VarDecla
 
         assert(*vobjccmd != v);
     }
+}
+
+void objc_FuncDeclaration_isThis(FuncDeclaration *self, AggregateDeclaration *&ad)
+{
+    // Use Objective-C class object as 'this'
+    ClassDeclaration *cd = self->isMember2()->isClassDeclaration();
+    if (cd->objc.objc)
+        if (!cd->objc.meta) // but check that it hasn't already been done
+            ad = cd->objc.metaclass;
 }
 
 // MARK: implicitConvTo

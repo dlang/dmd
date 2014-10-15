@@ -3281,24 +3281,13 @@ AggregateDeclaration *FuncDeclaration::isThis()
 {
     //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
     AggregateDeclaration *ad = NULL;
-#if DMD_OBJC
-    bool isObjcSelector = objc.selector;
-#else
-    bool isObjcSelector = false;
-#endif
     if ((storage_class & STCstatic) == 0 && !isFuncLiteralDeclaration())
     {
         ad = isMember2();
     }
-    else if (isObjcSelector) // static Objective-C functions
+    else if (objc.selector) // static Objective-C functions
     {
-#if DMD_OBJC
-        // Use Objective-C class object as 'this'
-        ClassDeclaration *cd = isMember2()->isClassDeclaration();
-        if (cd->objc.objc)
-            if (!cd->objc.meta) // but check that it hasn't already been done
-                ad = cd->objc.metaclass;
-#endif
+        objc_FuncDeclaration_isThis(this, ad);
     }
     //printf("-FuncDeclaration::isThis() %p\n", ad);
     return ad;
