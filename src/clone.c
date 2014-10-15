@@ -250,7 +250,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
          *    tmp = this; this = s; tmp.dtor();
          */
         //printf("\tswap copy\n");
-        Identifier *idtmp = Lexer::uniqueId("__tmp");
+        Identifier *idtmp = Lexer::uniqueId("__swap");
         VarDeclaration *tmp = NULL;
         AssignExp *ec = NULL;
         if (sd->dtor)
