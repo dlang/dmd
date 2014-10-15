@@ -2811,6 +2811,11 @@ ControlFlow objc_FuncDeclaration_isVirtual(FuncDeclaration *self, Dsymbol *p, bo
     return CFnone;
 }
 
+bool objc_FuncDeclaration_objcPreinitInvariant(FuncDeclaration *self)
+{
+    return self->ident != Id::_dobjc_preinit && self->ident != Id::_dobjc_invariant;
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

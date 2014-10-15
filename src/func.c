@@ -3828,11 +3828,7 @@ bool FuncDeclaration::addPreInvariant()
     AggregateDeclaration *ad = isThis();
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
 
-#if DMD_OBJC
-    bool objcCond = ident != Id::_dobjc_preinit && ident != Id::_dobjc_invariant;
-#else
-    bool objcCond = true;
-#endif
+    bool objcCond = objc_FuncDeclaration_objcPreinitInvariant(this);
 
     return (ad && !(cd && cd->isCPPclass()) &&
             global.params.useInvariants &&

@@ -543,6 +543,7 @@ void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *self);
 void objc_FuncDeclaration_declareThis(FuncDeclaration *self, Scope *sc, VarDeclaration** vobjccmd, VarDeclaration *v);
 void objc_FuncDeclaration_isThis(FuncDeclaration *self, AggregateDeclaration *&ad);
 ControlFlow objc_FuncDeclaration_isVirtual(FuncDeclaration *self, Dsymbol *p, bool &result);
+bool objc_FuncDeclaration_objcPreinitInvariant(FuncDeclaration *self);
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
