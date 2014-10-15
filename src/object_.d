@@ -29,7 +29,6 @@ private
     import rt.util.string;
     debug(PRINTF) import core.stdc.stdio;
 
-    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
     extern (C) Object _d_newclass(const TypeInfo_Class ci);
     extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
     extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
@@ -1924,6 +1923,7 @@ extern (C) void rt_attachDisposeEvent(Object h, DEvent e)
         auto len = m.devt.length + 4; // grow by 4 elements
         auto pos = m.devt.length;     // insert position
         auto p = realloc(m.devt.ptr, DEvent.sizeof * len);
+        import core.exception : onOutOfMemoryError;
         if (!p)
             onOutOfMemoryError();
         m.devt = (cast(DEvent*)p)[0 .. len];
@@ -1991,7 +1991,7 @@ extern (C)
 
 auto aaLiteral(Key, Value, T...)(auto ref T args) if (T.length % 2 == 0)
 {
-    static if(!T.length) 
+    static if(!T.length)
     {
         return cast(void*)null;
     }
@@ -2007,7 +2007,7 @@ auto aaLiteral(Key, Value, T...)(auto ref T args) if (T.length % 2 == 0)
         {
             keys ~= args[2*i];
             values ~= args[2*i + 1];
-        }   
+        }
 
         void[] key_slice;
         void[] value_slice;
