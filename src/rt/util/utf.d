@@ -16,7 +16,7 @@
  *      WIKI = Phobos/StdUtf
  *
  * Copyright: Copyright Digital Mars 2003 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
  */
 

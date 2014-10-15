@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright (c) 2013 Lars Tandle Kyllingstad.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Lars Tandle Kyllingstad
  * Standards: The Open Group Base Specifications Issue 7, IEEE Std 1003.1-2008
  */

@@ -2,7 +2,7 @@
  * This module is used to detect copy relocated ModuleInfos (located in .bss section).
  *
  * Copyright: Copyright Martin Nowak 2014-.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
  * Source: $(DRUNTIMESRC src/rt/_sections_linux.d)
  */
