@@ -148,6 +148,14 @@ void errorSupplemental(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
+void warningSupplemental(Loc loc, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vwarningSupplemental(loc, format, ap);
+    va_end( ap );
+}
+
 void deprecation(Loc loc, const char *format, ...)
 {
     va_list ap;
@@ -220,6 +228,12 @@ void vwarning(Loc loc, const char *format, va_list ap)
         if (global.params.warnings == 1)
             global.warnings++;  // warnings don't count if gagged
     }
+}
+
+void vwarningSupplemental(Loc loc, const char *format, va_list ap)
+{
+    if (global.params.warnings && !global.gag)
+        verrorPrint(loc, COLOR_YELLOW, "         ", format, ap);
 }
 
 void vdeprecation(Loc loc, const char *format, va_list ap,

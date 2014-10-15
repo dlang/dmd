@@ -4582,6 +4582,29 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             //   AA assumes that its result is consistent with bitwise equality.
             // else:
             //   bitwise equality & hashing
+
+        #if 1
+            /* Note that this diagnostic error report should be removed in near future.
+             * See also bugzilla 13074.
+             */
+
+            // duplicate a part of StructDeclaration::semanticTypeInfoMembers
+            if (sd->xcmp &&
+                sd->xcmp->scope &&
+                sd->xcmp->semanticRun < PASSsemantic3done)
+            {
+                unsigned errors = global.startGagging();
+                sd->xcmp->semantic3(sd->xcmp->scope);
+                if (global.endGagging(errors))
+                    sd->xcmp = sd->xerrcmp;
+            }
+            if (sd->xcmp && sd->xcmp != sd->xerrcmp)
+            {
+                warning(loc, "%sAA key type %s now requires equality rather than comparison",
+                    s, sd->toChars());
+                warningSupplemental(loc, "Please define opEquals, or remove opCmp to also rely on default memberwise comparison.");
+            }
+        #endif
         }
         else if (sd->xeq == sd->xerreq)
         {
@@ -4649,9 +4672,9 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             if (fcmp->vtblIndex < cd->vtbl.dim && cd->vtbl[fcmp->vtblIndex] != fcmp)
             {
                 const char *s = (index->toBasetype()->ty != Tclass) ? "bottom of " : "";
-                error(loc, "%sAA key type %s now requires equality rather than comparison",
+                warning(loc, "%sAA key type %s now requires equality rather than comparison",
                     s, cd->toChars());
-                errorSupplemental(loc, "Please override Object.opEquals and toHash.");
+                warningSupplemental(loc, "Please override Object.opEquals and toHash.");
             }
         #endif
         }
