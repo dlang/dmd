@@ -2709,6 +2709,25 @@ void objc_FuncDeclaration_semantic_parentForStaticMethod(FuncDeclaration *self, 
     }
 }
 
+void objc_FuncDeclaration_semantic_checkInheritedSelector(FuncDeclaration *self, ClassDeclaration *cd)
+{
+    if (cd->objc.objc)
+    {
+        // Check for Objective-C selector inherited form overriden functions
+        for (size_t i = 0; i < self->foverrides.dim; ++i)
+        {
+            FuncDeclaration *foverride = (FuncDeclaration *)self->foverrides.data[i];
+            if (foverride && foverride->objc.selector)
+            {
+                if (!self->objc.selector)
+                    self->objc.selector = foverride->objc.selector; // inherit selector
+                else if (self->objc.selector != foverride->objc.selector)
+                    self->error("Objective-C selector %s must be the same as selector %s in overriden function.", self->objc.selector->stringvalue, foverride->objc.selector->stringvalue);
+            }
+        }
+    }
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

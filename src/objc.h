@@ -536,6 +536,7 @@ Expression * objc_AddrExp_semantic_TOKvar_selector(AddrExp *self, Scope *sc, Var
 
 void objc_FuncDeclaration_semantic_checkAbstractStatic(FuncDeclaration *self);
 void objc_FuncDeclaration_semantic_parentForStaticMethod(FuncDeclaration *self, Dsymbol *&parent, ClassDeclaration *&cd);
+void objc_FuncDeclaration_semantic_checkInheritedSelector(FuncDeclaration *self, ClassDeclaration *cd);
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);

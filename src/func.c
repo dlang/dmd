@@ -1004,18 +1004,7 @@ void FuncDeclaration::semantic(Scope *sc)
 #if DMD_OBJC
         if (cd->objc.objc)
         {
-            // Check for Objective-C selector inherited form overriden functions
-            for (size_t i = 0; i < foverrides.dim; ++i)
-            {
-                FuncDeclaration *foverride = (FuncDeclaration *)foverrides.data[i];
-                if (foverride && foverride->objc.selector)
-                {
-                    if (!objc.selector)
-                        objc.selector = foverride->objc.selector; // inherit selector
-                    else if (objc.selector != foverride->objc.selector)
-                        error("Objective-C selector %s must be the same as selector %s in overriden function.", objc.selector->stringvalue, foverride->objc.selector->stringvalue);
-                }
-            }
+            objc_FuncDeclaration_semantic_checkInheritedSelector(this, cd);
 
             // Add to class method lists
             objc.createSelector(); // create a selector if needed
