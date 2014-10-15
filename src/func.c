@@ -1001,36 +1001,10 @@ void FuncDeclaration::semantic(Scope *sc)
 
     L2: ;
 
+        objc_FuncDeclaration_semantic_checkInheritedSelector(this, cd);
+        objc_FuncDeclaration_semantic_addClassMethodList(this, cd);
+
 #if DMD_OBJC
-        if (cd->objc.objc)
-        {
-            objc_FuncDeclaration_semantic_checkInheritedSelector(this, cd);
-
-            // Add to class method lists
-            objc.createSelector(); // create a selector if needed
-            if (objc.selector && cd)
-            {
-                assert(isStatic() ? cd->objc.meta : !cd->objc.meta);
-
-                cd->objc.methodList.push(this);
-                if (cd->objc.methods == NULL)
-                {
-                    cd->objc.methods = new StringTable;
-                    cd->objc.methods->_init();
-                }
-                StringValue *sv = cd->objc.methods->update(objc.selector->stringvalue, objc.selector->stringlen);
-
-                if (sv->ptrvalue)
-                {   // check if the other function with the same selector is
-                    // overriden by this one
-                    FuncDeclaration *selowner = (FuncDeclaration *)sv->ptrvalue;
-                    if (selowner != this && !overrides(selowner))
-                        error("Objcective-C selector '%s' already in use by function '%s'.", objc.selector->stringvalue, selowner->toChars());
-                }
-                else
-                    sv->ptrvalue = this;
-            }
-        }
 
         if (linkage != LINKobjc && objc.selector)
             error("function must have Objective-C linkage to attach a selector");

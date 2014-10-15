@@ -2728,6 +2728,38 @@ void objc_FuncDeclaration_semantic_checkInheritedSelector(FuncDeclaration *self,
     }
 }
 
+void objc_FuncDeclaration_semantic_addClassMethodList(FuncDeclaration *self, ClassDeclaration *cd)
+{
+    if (cd->objc.objc)
+    {
+        // Add to class method lists
+        self->objc.createSelector(); // create a selector if needed
+        if (self->objc.selector && cd)
+        {
+            assert(self->isStatic() ? cd->objc.meta : !cd->objc.meta);
+
+            cd->objc.methodList.push(self);
+            if (cd->objc.methods == NULL)
+            {
+                cd->objc.methods = new StringTable;
+                cd->objc.methods->_init();
+            }
+            StringValue *sv = cd->objc.methods->update(self->objc.selector->stringvalue, self->objc.selector->stringlen);
+
+            if (sv->ptrvalue)
+            {
+                // check if the other function with the same selector is
+                // overriden by this one
+                FuncDeclaration *selowner = (FuncDeclaration *)sv->ptrvalue;
+                if (selowner != self && !self->overrides(selowner))
+                    self->error("Objcective-C selector '%s' already in use by function '%s'.", self->objc.selector->stringvalue, selowner->toChars());
+            }
+            else
+                sv->ptrvalue = self;
+        }
+    }
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
