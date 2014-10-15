@@ -540,6 +540,8 @@ void objc_FuncDeclaration_semantic_checkInheritedSelector(FuncDeclaration *self,
 void objc_FuncDeclaration_semantic_addClassMethodList(FuncDeclaration *self, ClassDeclaration *cd);
 void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *self);
 
+void objc_FuncDeclaration_declareThis(FuncDeclaration *self, Scope *sc, VarDeclaration** vobjccmd, VarDeclaration *v);
+
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 

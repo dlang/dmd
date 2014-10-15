@@ -2766,6 +2766,24 @@ void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *self)
         self->error("function must have Objective-C linkage to attach a selector");
 }
 
+// MARK: FuncDeclaration::declareThis
+
+void objc_FuncDeclaration_declareThis(FuncDeclaration *self, Scope *sc, VarDeclaration** vobjccmd, VarDeclaration *v)
+{
+    if (vobjccmd && self->objc.selector)
+    {
+        VarDeclaration* varObjc = new VarDeclaration(self->loc, Type::tvoidptr, Id::_cmd, NULL);
+        varObjc->storage_class |= STCparameter;
+        varObjc->semantic(sc);
+        if (!sc->insert(varObjc))
+            assert(0);
+        varObjc->parent = self;
+        *vobjccmd = varObjc;
+
+        assert(*vobjccmd != v);
+    }
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)
