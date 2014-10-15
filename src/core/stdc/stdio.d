@@ -848,7 +848,7 @@ version(CRuntime_DigitalMars)
     private extern __gshared int[_MAX_SEMAPHORES] _iSemThreadIds;
     private extern __gshared int[_MAX_SEMAPHORES] _iSemNestCount;
     private extern __gshared HANDLE[_NFILE] _osfhnd;
-    private extern __gshared ubyte[_NFILE] __fhnd_info;
+    extern shared ubyte[_NFILE] __fhnd_info;
 
     private void _WaitSemaphore(int iSemaphore);
     private void _ReleaseSemaphore(int iSemaphore);

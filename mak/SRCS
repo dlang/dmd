@@ -45,6 +45,8 @@ SRCS=\
 	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\sys\event.d \
 	\
+	src\core\sys\linux\tipc.d \
+	\
 	src\core\sys\posix\signal.d \
 	src\core\sys\posix\dirent.d \
 	src\core\sys\posix\sys\resource.d \
@@ -62,9 +64,11 @@ SRCS=\
 	src\core\sys\solaris\sys\types.d \
 	src\core\sys\solaris\sys\procset.d \
 	\
+	src\core\sys\windows\com.d \
 	src\core\sys\windows\dbghelp.d \
 	src\core\sys\windows\dll.d \
 	src\core\sys\windows\stacktrace.d \
+	src\core\sys\windows\stat.d \
 	src\core\sys\windows\threadaux.d \
 	src\core\sys\windows\windows.d \
 	\
