@@ -138,6 +138,9 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                 goto L1;
             }
 
+            if (sc->func && sc->func->isThis() == ad)
+                return (new ThisExp(loc))->semantic(sc);
+
             /* Can't find a path from e1 to ad
              */
             if (flag)

@@ -613,6 +613,33 @@ A12302 func12302() { return null; }
 enum b12302 = isCallable12302!func12302;
 
 /***************************************************/
+// 12305
+
+struct A12305
+{
+    void fun()
+    {
+    }
+
+    void caller(T)(T t)
+    {
+        t.callee();
+    }
+}
+
+struct B12305
+{
+    alias callee = A12305.fun;
+}
+
+void test12305()
+{
+    A12305 a;
+    B12305 b;
+    a.caller(b);
+}
+
+/***************************************************/
 // 12476
 
 template A12476(T) {  }
