@@ -2,7 +2,7 @@
  * Contains OS-level routines needed by the garbage collector.
  *
  * Copyright: Copyright Digital Mars 2005 - 2013.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, David Friedman, Sean Kelly, Leandro Lucarella
  */
 

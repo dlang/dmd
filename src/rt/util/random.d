@@ -2,7 +2,7 @@
  * Random number generators for internal usage.
  *
  * Copyright: Copyright Digital Mars 2014.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  */
 module rt.util.random;
 

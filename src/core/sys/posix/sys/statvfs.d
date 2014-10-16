@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Robert Klotzner 2012
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Robert Klotzner
  * Standards: The Open Group Base Specifications Issue 6 IEEE Std 1003.1, 2004 Edition
  */

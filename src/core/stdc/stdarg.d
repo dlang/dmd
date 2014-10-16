@@ -2,9 +2,7 @@
  * D header file for C99.
  *
  * Copyright: Copyright Digital Mars 2000 - 2009.
- * License:   Distributed under the
- *    <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License 1.0</a>.
- *    (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Hauke Duden
  * Standards: ISO/IEC 9899:1999 (E)
  * Source: $(DRUNTIMESRC core/stdc/_stdarg.d)
