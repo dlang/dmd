@@ -545,6 +545,8 @@ void objc_FuncDeclaration_isThis(FuncDeclaration *self, AggregateDeclaration *&a
 ControlFlow objc_FuncDeclaration_isVirtual(FuncDeclaration *self, Dsymbol *p, bool &result);
 bool objc_FuncDeclaration_objcPreinitInvariant(FuncDeclaration *self);
 
+void objc_FuncDeclaration_toObjFile_extraArgument(FuncDeclaration *self, size_t &pi);
+
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 
