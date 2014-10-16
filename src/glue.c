@@ -1394,9 +1394,7 @@ unsigned totym(Type *tx)
         case Tdelegate: t = TYdelegate; break;
         case Tarray:    t = TYdarray;   break;
         case Tsarray:   t = TYstruct;   break;
-//#if DMD_OBJC
         case Tobjcselector: t = TYnptr; break;
-//#endif
 
         case Tstruct:
             t = TYstruct;
