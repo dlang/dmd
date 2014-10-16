@@ -2824,6 +2824,22 @@ void objc_FuncDeclaration_toObjFile_extraArgument(FuncDeclaration *self, size_t 
         pi += 1; // Extra arument for Objective-C selector
 }
 
+void objc_FuncDeclaration_toObjFile_selfCmd(FuncDeclaration *self, Symbol **params, size_t &pi)
+{
+    if (self->objc.selector)
+    {
+        // Need to add Objective-C self and _cmd arguments as last/first parameters
+        //        error("Objective-C method ABI not implemented yet.");
+        assert(self->objc.vcmd);
+        Symbol *sobjccmd = toSymbol(self->objc.vcmd);
+
+        // sthis becomes first parameter
+        memmove(params + 1, params, pi * sizeof(params[0]));
+        params[0] = sobjccmd;
+        pi += 1;
+    }
+}
+
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

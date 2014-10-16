@@ -1097,24 +1097,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         pi++;
     }
 
-#if DMD_OBJC
-    if (objc.selector)
-    {
-        // Need to add Objective-C self and _cmd arguments as last/first parameters
-        //        error("Objective-C method ABI not implemented yet.");
-        assert(objc.vcmd);
-        Symbol *sobjccmd = toSymbol(objc.vcmd);
-#if 0
-        // sthis becomes last parameter
-        params[pi] = sobjccmd;
-#else
-        // sthis becomes first parameter
-        memmove(params + 1, params, pi * sizeof(params[0]));
-        params[0] = sobjccmd;
-#endif
-        pi += 1;
-    }
-#endif
+    objc_FuncDeclaration_toObjFile_selfCmd(this, params, pi);
 
     if (sthis)
     {
