@@ -30,6 +30,7 @@ class AggregateDeclaration;
 class FuncDeclaration;
 class UserAttributeDeclaration;
 struct DocComment;
+struct AA;
 class TemplateInstance;
 
 #include "dsymbol.h"
@@ -119,6 +120,8 @@ struct Scope
     size_t lastoffset;          // offset in docbuf of where to insert next dec (for ditto)
     size_t lastoffset2;         // offset in docbuf of where to insert next dec (for unittest)
     OutBuffer *docbuf;          // buffer for documentation output
+    AA *anchorCounts;           // lookup duplicate anchor name count
+    Identifier *prevAnchor;     // qualified symbol name of last doc anchor
 
     static Scope *freelist;
     static Scope *alloc();

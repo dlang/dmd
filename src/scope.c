@@ -87,6 +87,8 @@ Scope::Scope()
     this->lastdc = NULL;
     this->lastoffset = 0;
     this->docbuf = NULL;
+    this->anchorCounts = NULL;
+    this->prevAnchor = NULL;
     this->userAttribDecl = NULL;
 }
 

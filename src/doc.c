@@ -20,6 +20,7 @@
 #include "rmem.h"
 #include "root.h"
 #include "port.h"
+#include "aav.h"
 
 #include "attrib.h"
 #include "cond.h"
@@ -127,6 +128,14 @@ bool isCVariadicParameter(Dsymbol *s, const utf8_t *p, size_t len)
 {
     TypeFunction *tf = isTypeFunction(s);
     return tf && tf->varargs == 1 && cmp("...", p, len) == 0;
+}
+
+static TemplateDeclaration *getEponymousParentTemplate(Dsymbol *s)
+{
+    if (!s->parent)
+        return NULL;
+    TemplateDeclaration *td = s->parent->isTemplateDeclaration();
+    return (td && td->onemember == s) ? td : NULL;
 }
 
 static const char ddoc_default[] = "\
@@ -522,39 +531,59 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s, Scope *sc)
     if (!s || s->isPackage() || s->isModule())
         return false;
 
-    TemplateDeclaration *td;
-    bool dot = false;
-
     // Add parent names first
+    bool dot = false;
     if (s->parent)
         dot = emitAnchorName(buf, s->parent, sc);
     else if (sc)
         dot = emitAnchorName(buf, sc->scopesym, skipNonQualScopes(sc->enclosing));
 
     // Eponymous template members can share the parent anchor name
-    if (s->parent && (td = s->parent->isTemplateDeclaration()) != NULL &&
-        td->onemember == s)
+    if (getEponymousParentTemplate(s))
         return dot;
     if (dot)
         buf->writeByte('.');
+    
     // Use "this" not "__ctor"
+    TemplateDeclaration *td;
     if (s->isCtorDeclaration() || ((td = s->isTemplateDeclaration()) != NULL &&
         td->onemember && td->onemember->isCtorDeclaration()))
+    {
         buf->writestring("this");
+    }
     else
     {
         /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
          * We don't want the template parameter list and constraints. */
         buf->writestring(s->Dsymbol::toChars());
     }
-
     return true;
 }
 
 static void emitAnchor(OutBuffer *buf, Dsymbol *s, Scope *sc)
 {
+    Identifier *ident;
+    {
+        OutBuffer anc;
+        emitAnchorName(&anc, s, skipNonQualScopes(sc));
+        ident = Lexer::idPool(anc.peekString());
+    }
+    size_t *count = (size_t*)dmd_aaGet(&sc->anchorCounts, ident);
+    TemplateDeclaration *td = getEponymousParentTemplate(s);
+    // don't write an anchor for matching consecutive ditto symbols
+    if (*count > 0 && sc->prevAnchor == ident &&
+        sc->lastdc && (isDitto(s->comment) || (td && isDitto(td->comment))))
+        return;
+
+    (*count)++;
+    // cache anchor name
+    sc->prevAnchor = ident;
+
     buf->writestring("$(DDOC_ANCHOR ");
-    emitAnchorName(buf, s, skipNonQualScopes(sc));
+    buf->writestring(ident->string);
+    // only append count once there's a duplicate
+    if (*count != 1)
+        buf->printf(".%u", *count);
     buf->writeByte(')');
 }
 
@@ -627,13 +656,7 @@ void emitDitto(Dsymbol *s, Scope *sc)
     /* If 'this' is a function template, then highlightCode() was
      * already run by FuncDeclaration::toDocbuffer().
      */
-    TemplateDeclaration *td;
-    if (s->parent &&
-        (td = s->parent->isTemplateDeclaration()) != NULL &&
-        td->onemember == s)
-    {
-    }
-    else
+    if (!getEponymousParentTemplate(s))
         highlightCode(sc, s, &b, o);
     b.writeByte(')');
     buf->spread(sc->lastoffset, b.offset);
@@ -1184,18 +1207,14 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             //printf("FuncDeclaration::toDocbuffer() %s\n", fd->toChars());
             if (fd->ident)
             {
-                TemplateDeclaration *td;
+                TemplateDeclaration *td = getEponymousParentTemplate(fd);
 
-                if (fd->parent &&
-                    (td = fd->parent->isTemplateDeclaration()) != NULL &&
-                    td->onemember == fd)
+                if (td)
                 {
                     /* It's a function template
                      */
                     size_t o = buf->offset;
-
                     declarationToDocBuffer(fd, td);
-
                     highlightCode(sc, fd, buf, o);
                 }
                 else
@@ -1225,11 +1244,9 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
         #if 0
                 emitProtection(buf, sd->protection);
         #endif
-                TemplateDeclaration *td;
+                TemplateDeclaration *td = getEponymousParentTemplate(sd);
 
-                if (sd->parent &&
-                    (td = sd->parent->isTemplateDeclaration()) != NULL &&
-                    td->onemember == sd)
+                if (td)
                 {
                     size_t o = buf->offset;
                     toDocBuffer(td, buf, sc);
@@ -1251,11 +1268,9 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
         #if 0
                 emitProtection(buf, cd->protection);
         #endif
-                TemplateDeclaration *td;
+                TemplateDeclaration *td = getEponymousParentTemplate(cd);
 
-                if (cd->parent &&
-                    (td = cd->parent->isTemplateDeclaration()) != NULL &&
-                    td->onemember == cd)
+                if (td)
                 {
                     size_t o = buf->offset;
                     toDocBuffer(td, buf, sc);

@@ -23,6 +23,8 @@ int func2(T,U)(T x, U y) {}
 /// ditto
 int func2(T)(T x) {}
 
+/// Separate overload item.
+int func2()() {}
 
 
 ///
@@ -169,4 +171,7 @@ struct T
     /****
      */
     this(A...)(A args) { }
+    
+    ///
+    this(int){}
 }
