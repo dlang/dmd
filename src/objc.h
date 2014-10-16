@@ -583,4 +583,6 @@ elem *objc_toElem_visit_ObjcProtocolOfExp(ObjcProtocolOfExp *e);
 
 ControlFlow objc_getRightThis(AggregateDeclaration *ad, Expression *&e1, Declaration *var);
 
+void objc_Module_genobjfile_initSymbols();
+
 #endif

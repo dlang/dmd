@@ -3283,6 +3283,8 @@ elem *objc_toElem_visit_ObjcProtocolOfExp(ObjcProtocolOfExp *e)
     return el_ptr(ObjcSymbols::getProtocolSymbol(e->idecl));
 }
 
+// MARK: getRightThis
+
 ControlFlow objc_getRightThis(AggregateDeclaration *ad, Expression *&e1, Declaration *var)
 {
     ControlFlow controlFlow = CFnone;
@@ -3303,4 +3305,11 @@ ControlFlow objc_getRightThis(AggregateDeclaration *ad, Expression *&e1, Declara
     }
 
     return controlFlow;
+}
+
+// MARK: Module::genobjfile
+
+void objc_Module_genobjfile_initSymbols()
+{
+    ObjcSymbols::init();
 }
