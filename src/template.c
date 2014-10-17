@@ -2062,23 +2062,32 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         /* For constructors, qualifier check will be opposite direction.
          * Qualified constructor always makes qualified object, then will be checked
          * that it is implicitly convertible to tthis.
+         *
+         * For destructors, the shared qualifier is stripped from the object.
          */
         Type *tthis_fd = fd->needThis() ? tthis : NULL;
-        if (tthis_fd && fd->isCtorDeclaration())
+        if (tthis_fd)
         {
-            //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
-            //        tf->mod, tthis_fd->mod, fd->isolateReturn());
-            if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
-                tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
-                fd->isolateReturn())
+            if (fd->isCtorDeclaration())
             {
-                /* && tf->isShared() == tthis_fd->isShared()*/
-                // Uniquely constructed object can ignore shared qualifier.
-                // TODO: Is this appropriate?
-                tthis_fd = NULL;
+                //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
+                //        tf->mod, tthis_fd->mod, fd->isolateReturn());
+                if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
+                    tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
+                    fd->isolateReturn())
+                {
+                    /* && tf->isShared() == tthis_fd->isShared()*/
+                    // Uniquely constructed object can ignore shared qualifier.
+                    // TODO: Is this appropriate?
+                    tthis_fd = NULL;
+                }
+                else
+                    return 0;   // MATCHnomatch
             }
-            else
-                return 0;   // MATCHnomatch
+            else if (fd->isDtorDeclaration() && tthis_fd->isShared())
+            {
+                tthis_fd = tthis_fd->unSharedOf();
+            }
         }
         MATCH mfa = tf->callMatch(tthis_fd, fargs);
         //printf("test1: mfa = %d\n", mfa);
