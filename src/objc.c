@@ -3360,3 +3360,9 @@ void objc_toCBuffer_visit_ObjcClassRefExp(OutBuffer *buf, ObjcClassRefExp *e)
     buf->writestring(e->cdecl->objc.ident->string);
     buf->writestring(".class");
 }
+
+void objc_toCBuffer_visit_ObjcProtocolOfExp(OutBuffer *buf, HdrGenState *hgs, ObjcProtocolOfExp *e)
+{
+    toCBuffer(e->e1, buf, hgs);
+    buf->writestring(".protocolof");
+}

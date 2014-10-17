@@ -593,5 +593,6 @@ void objc_Module_genobjfile_initSymbols();
 void objc_toCBuffer_visit_ObjcSelectorExp(OutBuffer *buf, ObjcSelectorExp *e);
 void objc_toCBuffer_visit_ObjcDotClassExp(OutBuffer *buf, HdrGenState *hgs, ObjcDotClassExp *e);
 void objc_toCBuffer_visit_ObjcClassRefExp(OutBuffer *buf, ObjcClassRefExp *e);
+void objc_toCBuffer_visit_ObjcProtocolOfExp(OutBuffer *buf, HdrGenState *hgs, ObjcProtocolOfExp *e);
 
 #endif
