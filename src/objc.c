@@ -3337,3 +3337,14 @@ void objc_Module_genobjfile_initSymbols()
 {
     ObjcSymbols::init();
 }
+
+// MARK: toCBuffer
+
+void objc_toCBuffer_visit_ObjcSelectorExp(OutBuffer *buf, ObjcSelectorExp *e)
+{
+    buf->writeByte('&');
+    if (e->func)
+        buf->writestring(e->func->toChars());
+    else
+        buf->writestring(e->selname);
+}

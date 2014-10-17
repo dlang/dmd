@@ -588,4 +588,6 @@ ControlFlow objc_getRightThis(AggregateDeclaration *ad, Expression *&e1, Declara
 
 void objc_Module_genobjfile_initSymbols();
 
+void objc_toCBuffer_visit_ObjcSelectorExp(OutBuffer *buf, ObjcSelectorExp *e);
+
 #endif

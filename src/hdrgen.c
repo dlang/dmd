@@ -2749,16 +2749,12 @@ public:
         buf->writestring(e->value->toChars());
     }
 
-#if DMD_OBJC
     void visit(ObjcSelectorExp *e)
     {
-        buf->writeByte('&');
-        if (e->func)
-            buf->writestring(e->func->toChars());
-        else
-            buf->writestring(e->selname);
+        objc_toCBuffer_visit_ObjcSelectorExp(buf, e);
     }
 
+#if DMD_OBJC
     void visit(ObjcDotClassExp *e)
     {
         toCBuffer(e->e1, buf, hgs);
