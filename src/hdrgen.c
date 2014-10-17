@@ -2754,13 +2754,12 @@ public:
         objc_toCBuffer_visit_ObjcSelectorExp(buf, e);
     }
 
-#if DMD_OBJC
     void visit(ObjcDotClassExp *e)
     {
-        toCBuffer(e->e1, buf, hgs);
-        buf->writestring(".class");
+        objc_toCBuffer_visit_ObjcDotClassExp(buf, hgs, e);
     }
 
+#if DMD_OBJC
     void visit(ObjcClassRefExp *e)
     {
         buf->writestring(e->cdecl->objc.ident->string);

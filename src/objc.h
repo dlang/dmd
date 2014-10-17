@@ -401,6 +401,7 @@ public:
 
 class ObjcSelectorExp;
 struct IRState;
+struct HdrGenState;
 typedef struct Symbol symbol;
 
 elem *callfunc(Loc loc,
@@ -417,6 +418,7 @@ elem *callfunc(Loc loc,
 
 type *Type_toCtype(Type *t);
 elem *toElem(Expression *e, IRState *irs);
+void toCBuffer(Expression *e, OutBuffer *buf, HdrGenState *hgs);
 
 enum ControlFlow
 {
@@ -589,5 +591,6 @@ ControlFlow objc_getRightThis(AggregateDeclaration *ad, Expression *&e1, Declara
 void objc_Module_genobjfile_initSymbols();
 
 void objc_toCBuffer_visit_ObjcSelectorExp(OutBuffer *buf, ObjcSelectorExp *e);
+void objc_toCBuffer_visit_ObjcDotClassExp(OutBuffer *buf, HdrGenState *hgs, ObjcDotClassExp *e);
 
 #endif

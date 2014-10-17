@@ -3348,3 +3348,9 @@ void objc_toCBuffer_visit_ObjcSelectorExp(OutBuffer *buf, ObjcSelectorExp *e)
     else
         buf->writestring(e->selname);
 }
+
+void objc_toCBuffer_visit_ObjcDotClassExp(OutBuffer *buf, HdrGenState *hgs, ObjcDotClassExp *e)
+{
+    toCBuffer(e->e1, buf, hgs);
+    buf->writestring(".class");
+}
