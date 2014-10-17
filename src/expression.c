@@ -982,6 +982,10 @@ int arrayExpressionCanThrow(Expressions *exps, FuncDeclaration *func, bool mustN
 
 /****************************************
  * Expand tuples.
+ * Input:
+ *      exps    aray of Expressions
+ * Output:
+ *      exps    rewritten in place
  */
 
 void expandTuples(Expressions *exps)
@@ -1102,10 +1106,17 @@ int expandAliasThisTuples(Expressions *exps, size_t starti)
     return -1;
 }
 
+/****************************************
+ * The common type is determined by applying ?: to each pair.
+ * Output:
+ *      exps[]  properties resolved, implicitly cast to common type, rewritten in place
+ *      *pt     if pt is not NULL, set to the common type
+ * Returns:
+ *      true    a semantic error was detected
+ */
+
 bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 {
-    /* The type is determined by applying ?: to each pair.
-     */
     /* Still have a problem with:
      *  ubyte[][] = [ cast(ubyte[])"hello", [1]];
      * which works if the array literal is initialized top down with the ubyte[][]
@@ -1216,6 +1227,10 @@ TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s)
 
 /****************************************
  * Preprocess arguments to function.
+ * Output:
+ *      exps[]  tuples expanded, properties resolved, rewritten in place
+ * Returns:
+ *      true    a semantic error occurred
  */
 
 bool preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
@@ -1236,7 +1251,7 @@ bool preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
                 arg = new ErrorExp();
                 err = true;
             }
-            if (checkNonAssignmentArrayOp(arg))
+            else if (checkNonAssignmentArrayOp(arg))
             {
                 arg = new ErrorExp();
                 err = true;
@@ -1291,7 +1306,10 @@ Expression *valueNoDtor(Expression *e)
 }
 
 /********************************************
- * Determine if t is an array of structs that need a default construction.
+ * Issue an error if default construction is disabled for type t.
+ * Default construction is required for arrays and 'out' parameters.
+ * Returns:
+ *      true    an error was issued
  */
 bool checkDefCtor(Loc loc, Type *t)
 {
@@ -1337,7 +1355,9 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
 }
 
 /*********************************************
- * Call copy constructor for struct value argument.
+ * If e is an instance of a struct, and that struct has a copy constructor,
+ * rewrite e as:
+ *    (tmp = e),tmp
  * Input:
  *      sc      just used to specify the scope of created temporary variable
  */
@@ -1379,24 +1399,30 @@ Expression *callCpCtor(Scope *sc, Expression *e)
  *      4. add hidden _arguments[] argument
  *      5. call copy constructor for struct value arguments
  * Input:
+ *      tf      type of the function
  *      fd      the function being called, NULL if called indirectly
+ * Output:
+ *      *prettype return type of function
  * Returns:
- *      return type from function
+ *      true    errors happened
  */
 
-Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
-        Type *tthis, Expressions *arguments, FuncDeclaration *fd)
+bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
+        Type *tthis, Expressions *arguments, FuncDeclaration *fd, Type **prettype)
 {
     //printf("functionParameters()\n");
     assert(arguments);
     assert(fd || tf->next);
     size_t nargs = arguments ? arguments->dim : 0;
     size_t nparams = Parameter::dim(tf->parameters);
+    unsigned olderrors = global.errors;
+    bool err = false;
+    *prettype = Type::terror;
 
     if (nargs > nparams && tf->varargs == 0)
     {
         error(loc, "expected %llu arguments, not %llu for non-variadic function type %s", (ulonglong)nparams, (ulonglong)nargs, tf->toChars());
-        return Type::terror;
+        return true;
     }
 
     // If inferring return type, and semantic3() needs to be run if not already run
@@ -1416,7 +1442,10 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
     size_t n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
-    unsigned char wildmatch = 0;
+    /* If the function return type has wildcards in it, we'll need to figure out the actual type
+     * based on the actual argument types.
+     */
+    MOD wildmatch = 0;
     if (tthis && tf->isWild() && !isCtorCall)
     {
         Type *t = tthis;
@@ -1453,7 +1482,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     if (tf->varargs == 2 && i + 1 == nparams)
                         goto L2;
                     error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
-                    return Type::terror;
+                    return true;
                 }
                 arg = p->defaultArg;
                 arg = inlineCopy(arg, sc);
@@ -1474,7 +1503,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                             goto L2;
                         else if (nargs != nparams)
                         {   error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
-                            return Type::terror;
+                            return true;
                         }
                         goto L1;
                     }
@@ -1541,7 +1570,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         if (!arg)
                         {
                             error(loc, "not enough arguments");
-                            return Type::terror;
+                            return true;
                         }
                         break;
                 }
@@ -1608,7 +1637,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         Linouterr:
             const char *s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
             error(loc, "modify inout to %s is not allowed inside inout function", s);
-            return Type::terror;
+            return true;
         }
     }
 
@@ -1641,9 +1670,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             {
                 Type *t = arg->type;
                 if (!t->isMutable() || !t->isAssignable())  // check blit assignable
+                {
                     arg->error("cannot modify struct %s with immutable members", arg->toChars());
+                    err = true;
+                }
                 else
-                    checkDefCtor(arg->loc, t);
+                    err |= checkDefCtor(arg->loc, t);   // t must be default constructible
                 arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STClazy)
@@ -1696,6 +1728,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         }
         else
         {
+            // These will be the trailing ... arguments
 
             // If not D linkage, do promotions
             if (tf->linkage != LINKd)
@@ -1721,12 +1754,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     if (arg->type->ty == Tarray)
                     {
                         arg->error("cannot pass dynamic arrays to %s vararg functions", p);
-                        arg = new ErrorExp();
+                        err = true;
                     }
                     if (arg->type->ty == Tsarray)
                     {
                         arg->error("cannot pass static arrays to %s vararg functions", p);
-                        arg = new ErrorExp();
+                        err = true;
                     }
                 }
             }
@@ -1735,12 +1768,9 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             if (arg->type->needsDestruction())
             {
                 arg->error("cannot pass types that need destruction as variadic arguments");
-                arg = new ErrorExp();
+                err = true;
             }
 
-#if 0
-            arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
-#else
             // Convert static arrays to dynamic arrays
             // BUG: I don't think this is right for D2
             Type *tb = arg->type->toBasetype();
@@ -1757,7 +1787,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             {
                 arg = callCpCtor(sc, arg);
             }
-#endif
 
             // Give error for overloaded function addresses
             if (arg->op == TOKsymoff)
@@ -1765,7 +1794,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 if (se->hasOverloads &&
                     !se->var->isFuncDeclaration()->isUnique())
                 {   arg->error("function %s is overloaded", arg->toChars());
-                    arg = new ErrorExp();
+                    err = true;
                 }
             }
             arg->rvalue();
@@ -1803,6 +1832,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 const char* s2 = tthis->isNaked() ? " mutable" : tthis->modToChars();
                 ::error(loc, "inout constructor %s creates%s object, not%s",
                         fd->toPrettyChars(), s1, s2);
+                err = true;
             }
         }
         tret = tthis;
@@ -1813,7 +1843,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret->toChars());
         tret = tret->substWildTo(wildmatch);
     }
-    return tret;
+    *prettype = tret;
+    return (err || olderrors != global.errors);
 }
 
 /******************************** Expression **************************/
@@ -4647,9 +4678,7 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
-            unsigned olderrors = global.errors;
-            type = functionParameters(loc, sc, tf, type, arguments, f);
-            if (olderrors != global.errors)
+            if (functionParameters(loc, sc, tf, type, arguments, f, &type))
                 return new ErrorExp();
         }
         else
@@ -4676,9 +4705,8 @@ Lagain:
             assert(allocator);
 
             TypeFunction *tf = (TypeFunction *)f->type;
-            unsigned olderrors = global.errors;
-            functionParameters(loc, sc, tf, NULL, newargs, f);
-            if (olderrors != global.errors)
+            Type *rettype;
+            if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype))
                 return new ErrorExp();
         }
         else
@@ -4718,9 +4746,8 @@ Lagain:
             assert(allocator);
 
             TypeFunction *tf = (TypeFunction *)f->type;
-            unsigned olderrors = global.errors;
-            functionParameters(loc, sc, tf, NULL, newargs, f);
-            if (olderrors != global.errors)
+            Type *rettype;
+            if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype))
                 return new ErrorExp();
         }
         else
@@ -4750,9 +4777,7 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
-            unsigned olderrors = global.errors;
-            type = functionParameters(loc, sc, tf, type, arguments, f);
-            if (olderrors != global.errors)
+            if (functionParameters(loc, sc, tf, type, arguments, f, &type))
                 return new ErrorExp();
         }
         else
@@ -8727,9 +8752,7 @@ Lagain:
 
     if (!arguments)
         arguments = new Expressions();
-    unsigned int olderrors = global.errors;
-    type = functionParameters(loc, sc, (TypeFunction *)(t1), tthis, arguments, f);
-    if (olderrors != global.errors)
+    if (functionParameters(loc, sc, (TypeFunction *)(t1), tthis, arguments, f, &type))
         return new ErrorExp();
 
     if (!type)
