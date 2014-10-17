@@ -868,7 +868,22 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     Expression *e = NULL;
-    for (size_t i = 0; i < sd->fields.dim; i++)
+    bool allPostBlitDisabled = sd->postblits.dim != 0;
+    for (size_t i = 0; i < sd->postblits.dim; i++)
+    {
+        if (!(sd->postblits[i]->storage_class & STCdisable))
+        {
+            allPostBlitDisabled = false;
+            break;
+        }
+    }
+
+    if (allPostBlitDisabled)
+    {
+        stc |= STCdisable;
+    }
+
+    for (size_t i = 0; i < sd->fields.dim && !(stc & STCdisable); i++)
     {
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
