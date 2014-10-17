@@ -3354,3 +3354,9 @@ void objc_toCBuffer_visit_ObjcDotClassExp(OutBuffer *buf, HdrGenState *hgs, Objc
     toCBuffer(e->e1, buf, hgs);
     buf->writestring(".class");
 }
+
+void objc_toCBuffer_visit_ObjcClassRefExp(OutBuffer *buf, ObjcClassRefExp *e)
+{
+    buf->writestring(e->cdecl->objc.ident->string);
+    buf->writestring(".class");
+}

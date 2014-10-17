@@ -2759,13 +2759,12 @@ public:
         objc_toCBuffer_visit_ObjcDotClassExp(buf, hgs, e);
     }
 
-#if DMD_OBJC
     void visit(ObjcClassRefExp *e)
     {
-        buf->writestring(e->cdecl->objc.ident->string);
-        buf->writestring(".class");
+        objc_toCBuffer_visit_ObjcClassRefExp(buf, e);
     }
 
+#if DMD_OBJC
     void visit(ObjcProtocolOfExp *e)
     {
         toCBuffer(e->e1, buf, hgs);
