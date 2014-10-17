@@ -3366,3 +3366,10 @@ void objc_toCBuffer_visit_ObjcProtocolOfExp(OutBuffer *buf, HdrGenState *hgs, Ob
     toCBuffer(e->e1, buf, hgs);
     buf->writestring(".protocolof");
 }
+
+// MARK: inline
+
+void objc_inline_visit_ObjcSelectorExp(int &cost)
+{
+    cost = COST_MAX;
+}

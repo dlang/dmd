@@ -313,12 +313,10 @@ public:
         cost = COST_MAX;
     }
 
-#if DMD_OBJC
     void visit(ObjcSelectorExp *e)
     {
-        cost = COST_MAX;
+        objc_inline_visit_ObjcSelectorExp(cost);
     }
-#endif
 
     void visit(DeclarationExp *e)
     {

@@ -404,6 +404,8 @@ struct IRState;
 struct HdrGenState;
 typedef struct Symbol symbol;
 
+extern const int COST_MAX;
+
 elem *callfunc(Loc loc,
                IRState *irs,
                int directcall,         // 1: don't do virtual call
@@ -594,5 +596,7 @@ void objc_toCBuffer_visit_ObjcSelectorExp(OutBuffer *buf, ObjcSelectorExp *e);
 void objc_toCBuffer_visit_ObjcDotClassExp(OutBuffer *buf, HdrGenState *hgs, ObjcDotClassExp *e);
 void objc_toCBuffer_visit_ObjcClassRefExp(OutBuffer *buf, ObjcClassRefExp *e);
 void objc_toCBuffer_visit_ObjcProtocolOfExp(OutBuffer *buf, HdrGenState *hgs, ObjcProtocolOfExp *e);
+
+void objc_inline_visit_ObjcSelectorExp(int &cost);
 
 #endif
