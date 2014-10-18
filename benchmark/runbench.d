@@ -203,6 +203,8 @@ string genTempFilename(string result_path)
 
 int system(string command)
 {
+    import std.c.process;
+
     if (command.empty) return std.c.process.system(null);
     const commandz = toStringz(command);
     auto status = std.c.process.system(commandz);
@@ -293,31 +295,20 @@ int main(string[] args)
         pattern = args[1];
 	}
 
-    EnvData envData;
-    envData.results_dir   = getenv("RESULTS_DIR");
-    envData.sep           = getenv("SEP");
-    envData.dsep          = getenv("DSEP");
-    envData.obj           = getenv("OBJ");
-    envData.exe           = getenv("EXE");
-    envData.os            = getenv("OS");
-    envData.dmd           = replace(getenv("DMD"), "/", envData.sep);
-    envData.compiler      = "dmd"; //should be replaced for other compilers
-    envData.ccompiler     = getenv("CC");
-    envData.model         = getenv("MODEL");
-    envData.required_args = getenv("ARGS");
-
     // provide some sensible defaults
     version(Windows) enum isWindows = true; else enum isWindows = false;
-    if (envData.results_dir  .empty) envData.results_dir   = "results";
-    if (envData.sep          .empty) envData.sep           = isWindows ? r"\" : "/";
-    if (envData.dsep         .empty) envData.dsep          = isWindows ? r"\\" : "/";
-    if (envData.obj          .empty) envData.obj           = isWindows ? ".obj" : ".o";
-    if (envData.exe          .empty) envData.exe           = isWindows ? ".exe" : "";
-    if (envData.os           .empty) envData.os            = isWindows ? "win32" : "";
-    if (envData.dmd          .empty) envData.dmd           = "dmd";
-    if (envData.compiler     .empty) envData.compiler      = "dmd"; //should be replaced for other compilers
-    if (envData.model        .empty) envData.model         = envData.os == "win32" ? "32" : "64";
-    if (envData.required_args.empty) envData.required_args = "-O -release -inline";
+    EnvData envData;
+    envData.results_dir = environment.get("RESULTS_DIR", "results");
+    envData.sep = environment.get("SEP", isWindows ? r"\" : "/");
+    envData.dsep = environment.get("DSEP", isWindows ? r"\\" : "/");
+    envData.obj = environment.get("OBJ", isWindows ? ".obj" : ".o");
+    envData.exe = environment.get("EXE", isWindows ? ".exe" : "");
+    envData.os = environment.get("OS", isWindows ? "win32" : "");
+    envData.dmd = replace(environment.get("DMD", "dmd"), "/", envData.sep);
+    envData.compiler = "dmd"; //should be replaced for other compilers
+    envData.ccompiler = environment.get("CC");
+    envData.model = environment.get("MODEL", envData.os == "win32" ? "32" : "64");
+    envData.required_args = environment.get("ARGS", "-O -release -inline");
 
     if (std.file.exists("../src/gc/config.d"))
         envData.required_args ~= " -version=initGCFromEnvironment ../src/gc/config.d";
