@@ -7,7 +7,6 @@
  *    (See accompanying file LICENSE)
  * Authors:   Sean Kelly
  * Source:    $(DRUNTIMESRC core/stdc/_config.d)
- * Authors:   Sean Kelly
  * Standards: ISO/IEC 9899:1999 (E)
  */
 
