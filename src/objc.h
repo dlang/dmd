@@ -599,4 +599,6 @@ void objc_toCBuffer_visit_ObjcProtocolOfExp(OutBuffer *buf, HdrGenState *hgs, Ob
 
 void objc_inline_visit_ObjcSelectorExp(int &cost);
 
+void objc_interpret_visit_ObjcSelectorExp(ObjcSelectorExp *e, Expression *&result);
+
 #endif

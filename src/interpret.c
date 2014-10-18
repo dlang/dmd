@@ -2212,15 +2212,10 @@ public:
         result->type = e->type;
     }
 
-#if DMD_OBJC
     void visit(ObjcSelectorExp *e)
     {
-#if LOG
-        printf("ObjcSelectorExp::interpret() %s\n", e->toChars());
-#endif
-        result = e;
+        objc_interpret_visit_ObjcSelectorExp(e, result);
     }
-#endif
 
     // -------------------------------------------------------------
     //         Remove out, ref, and this
