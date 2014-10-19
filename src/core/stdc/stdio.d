@@ -848,7 +848,7 @@ version(CRuntime_DigitalMars)
     private extern __gshared int[_MAX_SEMAPHORES] _iSemThreadIds;
     private extern __gshared int[_MAX_SEMAPHORES] _iSemNestCount;
     private extern __gshared HANDLE[_NFILE] _osfhnd;
-    private extern __gshared ubyte[_NFILE] __fhnd_info;
+    extern shared ubyte[_NFILE] __fhnd_info;
 
     private void _WaitSemaphore(int iSemaphore);
     private void _ReleaseSemaphore(int iSemaphore);
@@ -856,7 +856,7 @@ version(CRuntime_DigitalMars)
     // this is copied from semlock.h in DMC's runtime.
     private void LockSemaphore(uint num)
     {
-        asm
+        asm nothrow @nogc
         {
             mov EDX, num;
             lock;
@@ -873,7 +873,7 @@ version(CRuntime_DigitalMars)
     // this is copied from semlock.h in DMC's runtime.
     private void UnlockSemaphore(uint num)
     {
-        asm
+        asm nothrow @nogc
         {
             mov EDX, num;
             lock;

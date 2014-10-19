@@ -2,7 +2,7 @@
  * This module contains the default hash implementation.
  *
  * Copyright: Copyright Sean Kelly 2009 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly
  */
 

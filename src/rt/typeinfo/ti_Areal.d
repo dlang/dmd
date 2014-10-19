@@ -2,7 +2,7 @@
  * TypeInfo support code.
  *
  * Copyright: Copyright Digital Mars 2004 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright
  */
 
@@ -27,7 +27,7 @@ class TypeInfo_Ae : TypeInfo_Array
     override size_t getHash(in void* p) @trusted const
     {
         real[] s = *cast(real[]*)p;
-        return hashOf(s.ptr, s.length * real.sizeof);
+        return rt.util.hash.hashOf(s.ptr, s.length * real.sizeof);
     }
 
     override bool equals(in void* p1, in void* p2) const

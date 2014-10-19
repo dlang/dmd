@@ -779,6 +779,16 @@ private struct Demangle
             next();
             // TODO: Handle this.
             return dst[beg .. len];
+        case 'Z': // Internal symbol
+            // This 'type' is used for untyped internal symbols, i.e.:
+            // __array
+            // __init
+            // __vtbl
+            // __Class
+            // __Interface
+            // __ModuleInfo
+            next();
+            return dst[beg .. len];
         default:
             if (t >= 'a' && t <= 'w')
             {
@@ -1862,6 +1872,14 @@ version(unittest)
         ["_D8demangle4testFNhG2dZv", "void demangle.test(__vector(double[2]))"],
         ["_D8demangle4testFNhG4fNhG4fZv", "void demangle.test(__vector(float[4]), __vector(float[4]))"],
         ["_D8bug1119234__T3fooS23_D8bug111924mainFZ3bariZ3fooMFZv","void bug11192.foo!(int bug11192.main().bar).foo()"],
+        ["_D13libd_demangle12__ModuleInfoZ", "libd_demangle.__ModuleInfo"],
+        ["_D15TypeInfo_Struct6__vtblZ", "TypeInfo_Struct.__vtbl"],
+        ["_D3std5stdio12__ModuleInfoZ", "std.stdio.__ModuleInfo"],
+        ["_D3std6traits15__T8DemangleTkZ8Demangle6__initZ", "std.traits.Demangle!(uint).Demangle.__init"],
+        ["_D3foo3Bar7__ClassZ", "foo.Bar.__Class"],
+        ["_D3foo3Bar6__vtblZ", "foo.Bar.__vtbl"],
+        ["_D3foo3Bar11__interfaceZ", "foo.Bar.__interface"],
+        ["_D3foo7__arrayZ", "foo.__array"],
     ];
 
     template staticIota(int x)

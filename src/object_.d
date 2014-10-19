@@ -6,7 +6,7 @@
  *      WIKI = Object
  *
  * Copyright: Copyright Digital Mars 2000 - 2011.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
  */
 
@@ -29,7 +29,6 @@ private
     import rt.util.string;
     debug(PRINTF) import core.stdc.stdio;
 
-    extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
     extern (C) Object _d_newclass(const TypeInfo_Class ci);
     extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
     extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
@@ -222,7 +221,7 @@ class TypeInfo
         try
         {
             auto data = this.toString();
-            return hashOf(data.ptr, data.length);
+            return rt.util.hash.hashOf(data.ptr, data.length);
         }
         catch (Throwable)
         {
@@ -983,7 +982,7 @@ class TypeInfo_Struct : TypeInfo
         }
         else
         {
-            return hashOf(p, init().length);
+            return rt.util.hash.hashOf(p, init().length);
         }
     }
 
@@ -1924,6 +1923,7 @@ extern (C) void rt_attachDisposeEvent(Object h, DEvent e)
         auto len = m.devt.length + 4; // grow by 4 elements
         auto pos = m.devt.length;     // insert position
         auto p = realloc(m.devt.ptr, DEvent.sizeof * len);
+        import core.exception : onOutOfMemoryError;
         if (!p)
             onOutOfMemoryError();
         m.devt = (cast(DEvent*)p)[0 .. len];
@@ -1991,7 +1991,7 @@ extern (C)
 
 auto aaLiteral(Key, Value, T...)(auto ref T args) if (T.length % 2 == 0)
 {
-    static if(!T.length) 
+    static if(!T.length)
     {
         return cast(void*)null;
     }
@@ -2007,7 +2007,7 @@ auto aaLiteral(Key, Value, T...)(auto ref T args) if (T.length % 2 == 0)
         {
             keys ~= args[2*i];
             values ~= args[2*i + 1];
-        }   
+        }
 
         void[] key_slice;
         void[] value_slice;
@@ -2768,6 +2768,12 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 }
 
 
+size_t hashOf(T)(auto ref T arg, size_t seed = 0)
+{
+    import core.internal.hash;
+    return core.internal.hash.hashOf(arg, seed);
+}
+
 bool _xopEquals(in void*, in void*)
 {
     throw new Error("TypeInfo.equals is not implemented");
@@ -2834,7 +2840,7 @@ size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted
     }
 
     if(!hasCustomToHash(element))
-        return hashOf(ptr, elementSize * count);
+        return rt.util.hash.hashOf(ptr, elementSize * count);
 
     size_t hash = 0;
     foreach(size_t i; 0 .. count)

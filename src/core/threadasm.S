@@ -2,7 +2,7 @@
  * Support code for mutithreading.
  *
  * Copyright: Copyright Mikola Lysenko 2005 - 2012.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Mikola Lysenko, Martin Nowak, Kai Nacke
  */
 
@@ -29,63 +29,91 @@
  ************************************************************************************/
 #if defined( __PPC64__ )
 
+#if defined(_CALL_ELF) && _CALL_ELF == 2
+#define USE_ABI_2
+#define LINKAGE_SZ   32
+#define LR_OFS       16
+#define TOC_OFS      24
+#define GPR_OFS      32
+#define STACK_SZ     (LINKAGE_SZ + 26*8)
+#define OFS_R3_R10   GPR_OFS
+#define OFS_R14_R31  (GPR_OFS+8*8)
+#else
+#define LINKAGE_SZ   48
+#define LR_OFS       16
+#define TOC_OFS      40
+#define GPR_OFS      112
+#define STACK_SZ     (LINKAGE_SZ + 8*8 + 18*8)
+#define OFS_R3_R10   (STACK_SZ+LINKAGE_SZ)
+#define OFS_R14_R31  GPR_OFS
+#endif
 
     .text
-    .globl  _D4core6thread18callWithStackShellFMDFPvZvZv
+#if defined( USE_ABI_2 )
+    .abiversion 2
+#endif
+    .globl  _D4core6thread18callWithStackShellFNbMDFPvZvZv
+    .globl  _D4core6thread18callWithStackShellFNbMDFNbPvZvZv
     .align  2
-    .type _D4core6thread18callWithStackShellFMDFPvZvZv,@function
-    .section  .opd,"aw",@progbits
-_D4core6thread18callWithStackShellFMDFPvZvZv:
+    .type   _D4core6thread18callWithStackShellFNbMDFNbPvZvZv,@function
+#if defined( USE_ABI_2 )
+    .section .text._D4core6thread18callWithStackShellFNbMDFNbPvZvZv,"a",@progbits
+#else
+    .section .opd,"aw",@progbits
+#endif
+_D4core6thread18callWithStackShellFNbMDFNbPvZvZv:
+#if !defined( USE_ABI_2 )
     .align  3
-    .quad .L._D4core6thread18callWithStackShellFMDFPvZvZv
+    .quad .L._D4core6thread18callWithStackShellFNbMDFNbPvZvZv
     .quad .TOC.@tocbase
     .quad 0
+#endif
     .text
 /*
  * Called with:
  * r3: pointer context
  * r4: pointer to function
  */
-.L._D4core6thread18callWithStackShellFMDFPvZvZv:
+.L._D4core6thread18callWithStackShellFNbMDFNbPvZvZv:
     .cfi_startproc
+    stdu    1, -STACK_SZ(1)
     mflr    0
-    std     0, 16(1)                    // save LR
-    stdu    1, -256(1)                  // stack size: 18*8 + 112 = 256
+    std     0, LR_OFS(1)
     .cfi_def_cfa_offset 256
     .cfi_offset lr, 16
 
     /* Save r14-r31 in general register save area */
-    std     14, (112 + 0 * 8)(1)
-    std     15, (112 + 1 * 8)(1)
-    std     16, (112 + 2 * 8)(1)
-    std     17, (112 + 3 * 8)(1)
-    std     18, (112 + 4 * 8)(1)
-    std     19, (112 + 5 * 8)(1)
-    std     20, (112 + 6 * 8)(1)
-    std     21, (112 + 7 * 8)(1)
-    std     22, (112 + 8 * 8)(1)
-    std     23, (112 + 9 * 8)(1)
-    std     24, (112 + 10 * 8)(1)
-    std     25, (112 + 11 * 8)(1)
-    std     26, (112 + 12 * 8)(1)
-    std     27, (112 + 13 * 8)(1)
-    std     28, (112 + 14 * 8)(1)
-    std     29, (112 + 15 * 8)(1)
-    std     30, (112 + 16 * 8)(1)
-    std     31, (112 + 17 * 8)(1)
+    std     14, (OFS_R14_R31 + 0 * 8)(1)
+    std     15, (OFS_R14_R31 + 1 * 8)(1)
+    std     16, (OFS_R14_R31 + 2 * 8)(1)
+    std     17, (OFS_R14_R31 + 3 * 8)(1)
+    std     18, (OFS_R14_R31 + 4 * 8)(1)
+    std     19, (OFS_R14_R31 + 5 * 8)(1)
+    std     20, (OFS_R14_R31 + 6 * 8)(1)
+    std     21, (OFS_R14_R31 + 7 * 8)(1)
+    std     22, (OFS_R14_R31 + 8 * 8)(1)
+    std     23, (OFS_R14_R31 + 9 * 8)(1)
+    std     24, (OFS_R14_R31 + 10 * 8)(1)
+    std     25, (OFS_R14_R31 + 11 * 8)(1)
+    std     26, (OFS_R14_R31 + 12 * 8)(1)
+    std     27, (OFS_R14_R31 + 13 * 8)(1)
+    std     28, (OFS_R14_R31 + 14 * 8)(1)
+    std     29, (OFS_R14_R31 + 15 * 8)(1)
+    std     30, (OFS_R14_R31 + 16 * 8)(1)
+    std     31, (OFS_R14_R31 + 17 * 8)(1)
 
     /* Save r3-r10 in parameter save area of caller */
-    std     3, (256 + 48 + 0 * 8)(1)
-    std     4, (256 + 48 + 1 * 8)(1)
-    std     5, (256 + 48 + 2 * 8)(1)
-    std     6, (256 + 48 + 3 * 8)(1)
-    std     7, (256 + 48 + 4 * 8)(1)
-    std     8, (256 + 48 + 5 * 8)(1)
-    std     9, (256 + 48 + 6 * 8)(1)
-    std     10, (256 + 48 + 7 * 8)(1)
+    std     3, (OFS_R3_R10 + 0 * 8)(1)
+    std     4, (OFS_R3_R10 + 1 * 8)(1)
+    std     5, (OFS_R3_R10 + 2 * 8)(1)
+    std     6, (OFS_R3_R10 + 3 * 8)(1)
+    std     7, (OFS_R3_R10 + 4 * 8)(1)
+    std     8, (OFS_R3_R10 + 5 * 8)(1)
+    std     9, (OFS_R3_R10 + 6 * 8)(1)
+    std     10, (OFS_R3_R10 + 7 * 8)(1)
 
     /* Save r2 in TOC save area */
-    std     2, 40(1)
+    std     2, TOC_OFS(1)
 
     /* Do not save r11, r12 and r13. */
 
@@ -103,46 +131,46 @@ _D4core6thread18callWithStackShellFMDFPvZvZv:
     nop
 
     /* Restore r2 from TOC save area */
-    ld      2, 40(1)
+    ld      2, TOC_OFS(1)
 
     /* Restore r3-r10 from local variable space */
-    ld      3, (256 + 48 + 0 * 8)(1)
-    ld      4, (256 + 48 + 1 * 8)(1)
-    ld      5, (256 + 48 + 2 * 8)(1)
-    ld      6, (256 + 48 + 3 * 8)(1)
-    ld      7, (256 + 48 + 4 * 8)(1)
-    ld      8, (256 + 48 + 5 * 8)(1)
-    ld      9, (256 + 48 + 6 * 8)(1)
-    ld      10, (256 + 48 + 7 * 8)(1)
+    ld      3, (OFS_R3_R10 + 0 * 8)(1)
+    ld      4, (OFS_R3_R10 + 1 * 8)(1)
+    ld      5, (OFS_R3_R10 + 2 * 8)(1)
+    ld      6, (OFS_R3_R10 + 3 * 8)(1)
+    ld      7, (OFS_R3_R10 + 4 * 8)(1)
+    ld      8, (OFS_R3_R10 + 5 * 8)(1)
+    ld      9, (OFS_R3_R10 + 6 * 8)(1)
+    ld      10, (OFS_R3_R10 + 7 * 8)(1)
 
     /* Restore r14-r31 from general register save area */
-    ld      14, (112 + 0 * 8)(1)
-    ld      15, (112 + 1 * 8)(1)
-    ld      16, (112 + 2 * 8)(1)
-    ld      17, (112 + 3 * 8)(1)
-    ld      18, (112 + 4 * 8)(1)
-    ld      19, (112 + 5 * 8)(1)
-    ld      20, (112 + 6 * 8)(1)
-    ld      21, (112 + 7 * 8)(1)
-    ld      22, (112 + 8 * 8)(1)
-    ld      23, (112 + 9 * 8)(1)
-    ld      24, (112 + 10 * 8)(1)
-    ld      25, (112 + 11 * 8)(1)
-    ld      26, (112 + 12 * 8)(1)
-    ld      27, (112 + 13 * 8)(1)
-    ld      28, (112 + 14 * 8)(1)
-    ld      29, (112 + 15 * 8)(1)
-    ld      30, (112 + 16 * 8)(1)
-    ld      31, (112 + 17 * 8)(1)
+    ld      14, (OFS_R14_R31 + 0 * 8)(1)
+    ld      15, (OFS_R14_R31 + 1 * 8)(1)
+    ld      16, (OFS_R14_R31 + 2 * 8)(1)
+    ld      17, (OFS_R14_R31 + 3 * 8)(1)
+    ld      18, (OFS_R14_R31 + 4 * 8)(1)
+    ld      19, (OFS_R14_R31 + 5 * 8)(1)
+    ld      20, (OFS_R14_R31 + 6 * 8)(1)
+    ld      21, (OFS_R14_R31 + 7 * 8)(1)
+    ld      22, (OFS_R14_R31 + 8 * 8)(1)
+    ld      23, (OFS_R14_R31 + 9 * 8)(1)
+    ld      24, (OFS_R14_R31 + 10 * 8)(1)
+    ld      25, (OFS_R14_R31 + 11 * 8)(1)
+    ld      26, (OFS_R14_R31 + 12 * 8)(1)
+    ld      27, (OFS_R14_R31 + 13 * 8)(1)
+    ld      28, (OFS_R14_R31 + 14 * 8)(1)
+    ld      29, (OFS_R14_R31 + 15 * 8)(1)
+    ld      30, (OFS_R14_R31 + 16 * 8)(1)
+    ld      31, (OFS_R14_R31 + 17 * 8)(1)
 
-    addi    1, 1, 256
-    ld      0, 16(1)
+    ld      0, LR_OFS(1)
     mtlr    0
+    addi    1, 1, STACK_SZ
     blr
     .long 0
     .quad 0
 .Lend:
-    .size _D4core6thread18callWithStackShellFMDFPvZvZv, .Lend-.L._D4core6thread18callWithStackShellFMDFPvZvZv
+    .size _D4core6thread18callWithStackShellFNbMDFNbPvZvZv, .Lend-.L._D4core6thread18callWithStackShellFNbMDFNbPvZvZv
     .cfi_endproc
 
 #elif defined( __ppc__ ) || defined( __PPC__ ) || defined( __powerpc__ )

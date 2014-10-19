@@ -210,7 +210,7 @@ version( Windows )
 
             version( D_InlineAsm_X86 )
             {
-                asm { fninit; }
+                asm nothrow @nogc { fninit; }
             }
 
             try
@@ -2272,7 +2272,7 @@ else
         else version (AsmX86_Posix)
         {
             size_t[3] regs = void;
-            asm
+            asm pure nothrow @nogc
             {
                 mov [regs + 0 * 4], EBX;
                 mov [regs + 1 * 4], ESI;
@@ -2284,7 +2284,7 @@ else
         else version (AsmX86_Windows)
         {
             size_t[3] regs = void;
-            asm
+            asm pure nothrow @nogc
             {
                 mov [regs + 0 * 4], EBX;
                 mov [regs + 1 * 4], ESI;
@@ -2296,7 +2296,7 @@ else
         else version (AsmX86_64_Posix)
         {
             size_t[5] regs = void;
-            asm
+            asm pure nothrow @nogc
             {
                 mov [regs + 0 * 8], RBX;
                 mov [regs + 1 * 8], R12;
@@ -2310,7 +2310,7 @@ else
         else version (AsmX86_64_Windows)
         {
             size_t[7] regs = void;
-            asm
+            asm pure nothrow @nogc
             {
                 mov [regs + 0 * 8], RBX;
                 mov [regs + 1 * 8], RSI;
@@ -3026,9 +3026,9 @@ nothrow:
 private void* getStackTop() nothrow
 {
     version (D_InlineAsm_X86)
-        asm { naked; mov EAX, ESP; ret; }
+        asm pure nothrow @nogc { naked; mov EAX, ESP; ret; }
     else version (D_InlineAsm_X86_64)
-        asm { naked; mov RAX, RSP; ret; }
+        asm pure nothrow @nogc { naked; mov RAX, RSP; ret; }
     else version (GNU)
         return __builtin_frame_address(0);
     else
@@ -3041,9 +3041,9 @@ private void* getStackBottom() nothrow
     version (Windows)
     {
         version (D_InlineAsm_X86)
-            asm { naked; mov EAX, FS:4; ret; }
+            asm pure nothrow @nogc { naked; mov EAX, FS:4; ret; }
         else version(D_InlineAsm_X86_64)
-            asm
+            asm pure nothrow @nogc
             {    naked;
                  mov RAX, 8;
                  mov RAX, GS:[RAX];
@@ -3453,7 +3453,7 @@ private
 
         version( AsmX86_Windows )
         {
-            asm
+            asm pure nothrow @nogc
             {
                 naked;
 
@@ -3491,7 +3491,7 @@ private
         }
         else version( AsmX86_64_Windows )
         {
-            asm
+            asm pure nothrow @nogc
             {
                 naked;
 
@@ -3559,7 +3559,7 @@ private
         }
         else version( AsmX86_Posix )
         {
-            asm
+            asm pure nothrow @nogc
             {
                 naked;
 
@@ -3591,7 +3591,7 @@ private
         }
         else version( AsmX86_64_Posix )
         {
-            asm
+            asm pure nothrow @nogc
             {
                 naked;
 
@@ -4439,7 +4439,7 @@ private:
             {
                 static EXCEPTION_REGISTRATION* fs0()
                 {
-                    asm
+                    asm pure nothrow @nogc
                     {
                         naked;
                         mov EAX, FS:[0];
@@ -4478,7 +4478,7 @@ private:
             // to 16 bytes.
             static void trampoline()
             {
-                asm
+                asm pure nothrow @nogc
                 {
                     naked;
                     sub RSP, 32; // Shadow space (Win64 calling convention)
@@ -5064,13 +5064,13 @@ version( AsmX86_64_Windows )
         void testNonvolatileRegister(alias REG)()
         {
             auto zeroRegister = new Fiber(() {
-                mixin("asm { xor "~REG~", "~REG~"; }");
+                mixin("asm pure nothrow @nogc { xor "~REG~", "~REG~"; }");
             });
             long after;
 
-            mixin("asm { mov "~REG~", 0xFFFFFFFFFFFFFFFF; }");
+            mixin("asm pure nothrow @nogc { mov "~REG~", 0xFFFFFFFFFFFFFFFF; }");
             zeroRegister.call();
-            mixin("asm { mov after, "~REG~"; }");
+            mixin("asm pure nothrow @nogc { mov after, "~REG~"; }");
 
             assert(after == -1);
         }
@@ -5078,13 +5078,13 @@ version( AsmX86_64_Windows )
         void testNonvolatileRegisterSSE(alias REG)()
         {
             auto zeroRegister = new Fiber(() {
-                mixin("asm { xorpd "~REG~", "~REG~"; }");
+                mixin("asm pure nothrow @nogc { xorpd "~REG~", "~REG~"; }");
             });
             long[2] before = [0xFFFFFFFF_FFFFFFFF, 0xFFFFFFFF_FFFFFFFF], after;
 
-            mixin("asm { movdqu "~REG~", before; }");
+            mixin("asm pure nothrow @nogc { movdqu "~REG~", before; }");
             zeroRegister.call();
-            mixin("asm { movdqu after, "~REG~"; }");
+            mixin("asm pure nothrow @nogc { movdqu after, "~REG~"; }");
 
             assert(before == after);
         }
@@ -5118,7 +5118,7 @@ version( D_InlineAsm_X86_64 )
         void testStackAlignment()
         {
             void* pRSP;
-            asm
+            asm pure nothrow @nogc
             {
                 mov pRSP, RSP;
             }

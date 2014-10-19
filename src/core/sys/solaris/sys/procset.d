@@ -2,7 +2,7 @@
  * D header file defining a process set.
  *
  * Copyright:   Copyright 2014 Jason King.
- * License:     <a href="http://www.boost.org/LICENSE_1.0.txt">Boost License 1.0</a>.
+ * License:     $(WEB www.boost.org/LICENSE_1.0.txt, Boost License 1.0).
  * Authors:     Jason King
  */
 

@@ -2,7 +2,7 @@
  * TypeInfo support code.
  *
  * Copyright: Copyright Digital Mars 2004 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright
  */
 
@@ -28,7 +28,7 @@ class TypeInfo_m : TypeInfo
 
     override size_t getHash(in void* p)
     {
-        return hashOf(p, ulong.sizeof);
+        return rt.util.hash.hashOf(p, ulong.sizeof);
     }
 
     override bool equals(in void* p1, in void* p2)

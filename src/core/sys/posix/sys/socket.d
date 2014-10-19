@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
@@ -462,15 +462,22 @@ version( linux )
         MSG_OOB         = 0x01,
         MSG_PEEK        = 0x02,
         MSG_TRUNC       = 0x20,
-        MSG_WAITALL     = 0x100
+        MSG_WAITALL     = 0x100,
+        MSG_NOSIGNAL    = 0x4000
     }
 
     enum
     {
+        AF_APPLETALK    = 5,
         AF_INET         = 2,
+        AF_IPX          = 4,
         AF_UNIX         = 1,
-        AF_UNSPEC       = 0
+        AF_UNSPEC       = 0,
+        PF_APPLETALK    = AF_APPLETALK,
+        PF_IPX          = AF_IPX
     }
+
+    enum int SOCK_RDM   = 4;
 
     enum
     {
@@ -569,6 +576,7 @@ else version( OSX )
     enum
     {
         SOCK_DGRAM      = 2,
+        SOCK_RDM        = 4,
         SOCK_SEQPACKET  = 5,
         SOCK_STREAM     = 1
     }
@@ -617,9 +625,13 @@ else version( OSX )
 
     enum
     {
+        AF_APPLETALK    = 16,
         AF_INET         = 2,
+        AF_IPX          = 23,
         AF_UNIX         = 1,
-        AF_UNSPEC       = 0
+        AF_UNSPEC       = 0,
+        PF_APPLETALK    = AF_APPLETALK,
+        PF_IPX          = AF_IPX
     }
 
     enum
@@ -741,6 +753,7 @@ else version( FreeBSD )
     enum
     {
         SOCK_DGRAM      = 2,
+        SOCK_RDM        = 4,
         SOCK_SEQPACKET  = 5,
         SOCK_STREAM     = 1
     }
@@ -784,12 +797,15 @@ else version( FreeBSD )
         MSG_OOB         = 0x1,
         MSG_PEEK        = 0x2,
         MSG_TRUNC       = 0x10,
-        MSG_WAITALL     = 0x40
+        MSG_WAITALL     = 0x40,
+        MSG_NOSIGNAL    = 0x20000
     }
 
     enum
     {
+        AF_APPLETALK    = 16,
         AF_INET         = 2,
+        AF_IPX          = 23,
         AF_UNIX         = 1,
         AF_UNSPEC       = 0
     }
@@ -1086,7 +1102,9 @@ else version( Android )
 
     enum
     {
+        AF_APPLETALK    = 5,
         AF_INET         = 2,
+        AF_IPX          = 4,
         AF_UNIX         = 1,
         AF_UNSPEC       = 0
     }
@@ -1098,14 +1116,7 @@ else version( Android )
         SHUT_RDWR
     }
 
-    // constants needed for std.socket
-    enum AF_IPX       = 4;
-    enum AF_APPLETALK = 5;
-    enum SOCK_RDM     = 4;
-    enum IPPROTO_IGMP = 2;
-    enum IPPROTO_PUP  = 12;
-    enum IPPROTO_IDP  = 22;
-    enum INADDR_NONE  = 0xFFFFFFFF;
+    enum SOCK_RDM = 4;
 
     int     accept(int, sockaddr*, socklen_t*);
     int     bind(int, in sockaddr*, int);

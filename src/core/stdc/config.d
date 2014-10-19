@@ -7,7 +7,6 @@
  *    (See accompanying file LICENSE)
  * Authors:   Sean Kelly
  * Source:    $(DRUNTIMESRC core/stdc/_config.d)
- * Authors:   Sean Kelly
  * Standards: ISO/IEC 9899:1999 (E)
  */
 
@@ -20,6 +19,37 @@ nothrow:
 
 version( Windows )
 {
+    struct __c_long
+    {
+      pure nothrow @nogc @safe:
+        this(int x) { lng = x; }
+        int lng;
+        alias lng this;
+    }
+
+    struct __c_ulong
+    {
+      pure nothrow @nogc @safe:
+        this(uint x) { lng = x; }
+        uint lng;
+        alias lng this;
+    }
+
+    /*
+     * This is cpp_long instead of c_long because:
+     * 1. Implicit casting of an int to __c_long doesn't happen, because D doesn't
+     *    allow constructor calls in implicit conversions.
+     * 2. long lng;
+     *    cast(__c_long)lng;
+     *    does not work because lng has to be implicitly cast to an int in the constructor,
+     *    and since that truncates it is not done.
+     * Both of these break existing code, so until we find a resolution the types are named
+     * cpp_xxxx.
+     */
+
+    alias __c_long   cpp_long;
+    alias __c_ulong  cpp_ulong;
+
     alias int   c_long;
     alias uint  c_ulong;
 }
@@ -32,6 +62,25 @@ else
   }
   else
   {
+    struct __c_long
+    {
+      pure nothrow @nogc @safe:
+        this(int x) { lng = x; }
+        int lng;
+        alias lng this;
+    }
+
+    struct __c_ulong
+    {
+      pure nothrow @nogc @safe:
+        this(uint x) { lng = x; }
+        uint lng;
+        alias lng this;
+    }
+
+    alias __c_long   cpp_long;
+    alias __c_ulong  cpp_ulong;
+
     alias int   c_long;
     alias uint  c_ulong;
   }
@@ -49,6 +98,7 @@ version( DigitalMars )
          */
         struct __c_long_double
         {
+          pure nothrow @nogc @safe:
             this(double d) { ld = d; }
             double ld;
             alias ld this;

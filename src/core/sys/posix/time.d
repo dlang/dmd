@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly,
               Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
@@ -97,15 +97,23 @@ CLOCK_MONOTONIC
 
 version( linux )
 {
-    enum CLOCK_MONOTONIC        = 1;
-    enum CLOCK_MONOTONIC_RAW    = 4; // non-standard
-    enum CLOCK_MONOTONIC_COARSE = 6; // non-standard
+    enum CLOCK_MONOTONIC          = 1;
+    // To be removed in December 2015.
+    static import core.sys.linux.time;
+    deprecated("Please import it from core.sys.linux.time instead.")
+        alias CLOCK_MONOTONIC_RAW = core.sys.linux.time.CLOCK_MONOTONIC_RAW; // non-standard
+    deprecated("Please import it from core.sys.linux.time instead.")
+        alias CLOCK_MONOTONIC_COARSE = core.sys.linux.time.CLOCK_MONOTONIC_COARSE; // non-standard
 }
 else version (FreeBSD)
 {   // time.h
     enum CLOCK_MONOTONIC         = 4;
-    enum CLOCK_MONOTONIC_PRECISE = 11;
-    enum CLOCK_MONOTONIC_FAST    = 12;
+    // To be removed in December 2015.
+    static import core.sys.freebsd.time;
+    deprecated("Please import it from core.sys.freebsd.time instead.")
+        alias CLOCK_MONOTONIC_PRECISE = core.sys.freebsd.time.CLOCK_MONOTONIC_PRECISE;
+    deprecated("Please import it from core.sys.freebsd.time instead.")
+        alias CLOCK_MONOTONIC_FAST = core.sys.freebsd.time.CLOCK_MONOTONIC_FAST;
 }
 else version (OSX)
 {
@@ -188,7 +196,10 @@ version( linux )
     }
 
     enum CLOCK_REALTIME         = 0;
-    enum CLOCK_REALTIME_COARSE  = 5; // non-standard
+    // To be removed in December 2015.
+    static import core.sys.linux.time;
+    deprecated("Please import it from core.sys.linux.time instead.")
+        alias CLOCK_REALTIME_COARSE = core.sys.linux.time.CLOCK_REALTIME_COARSE; // non-standard
     enum TIMER_ABSTIME          = 0x01;
 
     alias int clockid_t;
@@ -227,8 +238,8 @@ else version( FreeBSD )
         timespec it_value;
     }
 
-    enum CLOCK_REALTIME     = 0;
-    enum TIMER_ABSTIME      = 0x01;
+    enum CLOCK_REALTIME      = 0;
+    enum TIMER_ABSTIME       = 0x01;
 
     alias int clockid_t; // <sys/_types.h>
     alias int timer_t;

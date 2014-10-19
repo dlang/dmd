@@ -327,7 +327,7 @@ public:
             return true;
 
         void** peb;
-        asm
+        asm pure nothrow @nogc
         {
             mov EAX,FS:[0x30];
             mov peb, EAX;

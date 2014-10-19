@@ -70,6 +70,7 @@ MANIFEST=\
 	\
 	src\core\sys\freebsd\dlfcn.d \
 	src\core\sys\freebsd\execinfo.d \
+	src\core\sys\freebsd\time.d \
 	\
 	src\core\sys\freebsd\sys\elf.d \
 	src\core\sys\freebsd\sys\elf_common.d \
@@ -86,6 +87,8 @@ MANIFEST=\
 	src\core\sys\linux\execinfo.d \
 	src\core\sys\linux\link.d \
 	src\core\sys\linux\termios.d \
+	src\core\sys\linux\time.d \
+	src\core\sys\linux\tipc.d \
 	\
 	src\core\sys\linux\sys\inotify.d \
 	src\core\sys\linux\sys\mman.d \
@@ -154,9 +157,11 @@ MANIFEST=\
 	src\core\sys\solaris\sys\types.d \
 	src\core\sys\solaris\execinfo.d \
 	\
+	src\core\sys\windows\com.d \
 	src\core\sys\windows\dbghelp.d \
 	src\core\sys\windows\dll.d \
 	src\core\sys\windows\stacktrace.d \
+	src\core\sys\windows\stat.d \
 	src\core\sys\windows\threadaux.d \
 	src\core\sys\windows\windows.d \
 	\

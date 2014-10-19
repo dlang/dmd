@@ -2,7 +2,7 @@
  * Contains all implicitly declared types and variables.
  *
  * Copyright: Copyright Digital Mars 2000 - 2011.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
  *
  *          Copyright Digital Mars 2000 - 2011.
@@ -632,6 +632,34 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
             return false;
     }
     return true;
+}
+
+/**
+Calculates the hash value of $(D arg) with $(D seed) initial value.
+Result may be non-equals with $(D typeid(T).getHash(&arg))
+The $(D seed) value may be used for hash chaining:
+----
+struct Test
+{
+    int a;
+    string b;
+    MyObject c;
+
+    size_t toHash() const @safe pure nothrow
+    {
+        size_t hash = a.hashOf();
+        hash = b.hashOf(hash);
+        size_t h1 = c.myMegaHash();
+        hash = h1.hashOf(hash); //Mix two hash values
+        return hash;
+    }
+}
+----
+*/
+size_t hashOf(T)(auto ref T arg, size_t seed = 0)
+{
+    import core.internal.hash;
+    return core.internal.hash.hashOf(arg, seed);
 }
 
 bool _xopEquals(in void* ptr, in void* ptr);
