@@ -64,10 +64,10 @@ void test12630() @nogc
     static const arr1 = [[1,2], [3, 4]];
     enum         arr2 = [[1,2], [3, 4]];
 
-    static const aa1 = [1:1, 2:2];
+  //static const aa1 = [1:1, 2:2];
     enum         aa2 = [1:1, 2:2];
 
-    static const v1 = aa1[1];
+  //static const v1 = aa1[1];
     enum         v2 = aa2[1];
 
     Object o;
