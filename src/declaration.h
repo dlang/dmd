@@ -83,7 +83,8 @@ enum PURE;
 #define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
 #define STCtemp          0x10000000000LL // temporary variable
 #define STCrvalue        0x20000000000LL // force rvalue for variables
-#define STCnogc          0x40000000000LL  // @nogc
+#define STCnogc          0x40000000000LL // @nogc
+#define STCvolatile      0x80000000000LL // destined for volatile in the back end
 
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |

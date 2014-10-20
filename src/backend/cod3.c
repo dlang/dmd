@@ -1416,6 +1416,8 @@ void doswitch(block *b)
                 gen2sib(ce,LEA,(REX_W << 16) | modregxrm(0,r1,4),modregxrmx(0,r1,r2));    // LEA R1,[R1][R2]
                 gen2(ce,0xFF,modregrmx(3,4,r1));                                          // JMP R1
 
+                pinholeopt(ce, NULL);
+
                 b->Btablesize = (int) (vmax - vmin + 1) * 4;
             }
             else
@@ -5243,7 +5245,8 @@ void pinholeopt(code *c,block *b)
             }
 
             // Replace [R13] with 0[R13]
-            if (c->Irex & REX_B && (c->Irm & modregrm(3,0,5)) == modregrm(0,0,5))
+            if (c->Irex & REX_B && ((c->Irm & modregrm(3,0,7)) == modregrm(0,0,BP) ||
+                                    issib(c->Irm) && (c->Irm & modregrm(3,0,0)) == 0 && (c->Isib & 7) == BP))
             {
                 c->Irm |= modregrm(1,0,0);
                 c->IFL1 = FLconst;

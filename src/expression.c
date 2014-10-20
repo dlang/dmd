@@ -1403,12 +1403,13 @@ Expression *callCpCtor(Scope *sc, Expression *e)
  *      fd      the function being called, NULL if called indirectly
  * Output:
  *      *prettype return type of function
+ *      *peprefix expression to execute before arguments[] are evaluated, NULL if none
  * Returns:
  *      true    errors happened
  */
 
 bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
-        Type *tthis, Expressions *arguments, FuncDeclaration *fd, Type **prettype)
+        Type *tthis, Expressions *arguments, FuncDeclaration *fd, Type **prettype, Expression **peprefix)
 {
     //printf("functionParameters()\n");
     assert(arguments);
@@ -1418,6 +1419,8 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     unsigned olderrors = global.errors;
     bool err = false;
     *prettype = Type::terror;
+    Expression *eprefix = NULL;
+    *peprefix = NULL;
 
     if (nargs > nparams && tf->varargs == 0)
     {
@@ -1685,7 +1688,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             else
             {
-                arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
+//                arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
             }
 
             //printf("arg: %s\n", arg->toChars());
@@ -1785,7 +1788,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (tb->ty == Tstruct)
             {
-                arg = callCpCtor(sc, arg);
+//                arg = callCpCtor(sc, arg);
             }
 
             // Give error for overloaded function addresses
@@ -1800,9 +1803,146 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             arg->rvalue();
             arg = arg->optimize(WANTvalue);
         }
-    L3:
         (*arguments)[i] =  arg;
     }
+
+    /* Remaining problems:
+     * 1. order of evaluation - some function push L-to-R, others R-to-L. Until we resolve what array assignment does (which is
+     *    implemented by calling a function) we'll defer this for now.
+     * 2. value structs (or static arrays of them) that need to be copy constructed
+     * 3. value structs (or static arrays of them) that have destructors, and subsequent arguments that may throw before the
+     *    function gets called (functions normally destroy their parameters)
+     * 2 and 3 are handled by doing the argument construction in 'eprefix' so that if a later argument throws, they are cleaned
+     * up properly. Pushing arguments on the stack then cannot fail.
+     */
+    if (1)
+    {
+        /* Compute indices of first and last throwing argument.
+         * Used to not set up destructors unless a throw can happen in a later argument.
+         */
+        bool anythrow = false;
+        size_t firstthrow = ~0;
+        size_t lastthrow = ~0;
+        for (size_t i = 0; i < arguments->dim; ++i)
+        {
+            Expression *arg = (*arguments)[i];
+            if (canThrow(arg, sc->func, false))
+            {
+                if (!anythrow)
+                {
+                    anythrow = true;
+                    firstthrow = i;
+                }
+                lastthrow = i;
+            }
+        }
+
+        bool appendToPrefix = false;
+        VarDeclaration *gate = NULL;
+        for (size_t i = 0; i < arguments->dim; ++i)
+        {
+            Expression *arg = (*arguments)[i];
+
+            /* Skip reference parameters
+             */
+            if (i < nparams)
+            {
+                Parameter *p = Parameter::getNth(tf->parameters, i);
+                if (p->storageClass & (STClazy | STCref | STCout))
+                    continue;
+            }
+
+            TypeStruct *ts = NULL;
+            Type *tv = arg->type->baseElemOf();
+            if (tv->ty == Tstruct)
+                ts = (TypeStruct *)tv;
+
+            if (anythrow && i < lastthrow)      // if there are throws after this arg
+            {
+                if (ts && ts->sym->dtor)
+                {
+                    appendToPrefix = true;
+
+                    // Need the gate because throws may occur after this arg is constructed
+                    if (!gate)
+                    {
+                        Identifier *idtmp = Lexer::uniqueId("__gate");
+                        gate = new VarDeclaration(loc, Type::tbool, idtmp, NULL);
+                        gate->storage_class |= STCtemp | STCctfe | STCvolatile;
+                        gate->semantic(sc);
+
+                        Expression *ae = new DeclarationExp(loc, gate);
+                        ae = ae->semantic(sc);
+                        eprefix = Expression::combine(eprefix, ae);
+                    }
+                }
+            }
+            if (anythrow && i == lastthrow)
+            {
+                appendToPrefix = false;
+            }
+            if (appendToPrefix) // don't need to add to prefix until there's something to destruct
+            {
+                Identifier *idtmp = Lexer::uniqueId("__pfx");
+                VarDeclaration *tmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(loc, arg));
+                tmp->storage_class |= STCtemp | STCctfe;
+                tmp->semantic(sc);
+
+                /* Modify the destructor so it only runs if gate==false
+                 */
+                if (tmp->edtor)
+                {
+                    Expression *e = tmp->edtor;
+                    e = new OrOrExp(e->loc, new VarExp(e->loc, gate), e);       // (gate || destructor)
+                    tmp->edtor = e->semantic(sc);
+                    //printf("edtor: %s\n", tmp->edtor->toChars());
+                }
+
+                // auto __pfx = arg
+                Expression *ae = new DeclarationExp(loc, tmp);
+                ae = ae->semantic(sc);
+                eprefix = Expression::combine(eprefix, ae);
+
+                arg = new VarExp(loc, tmp);
+                arg = arg->semantic(sc);
+            }
+            else if (ts)
+            {
+                arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
+            }
+            else if (anythrow && firstthrow <= i && i <= lastthrow && gate)
+            {
+                Identifier *id = Lexer::uniqueId("__pfy");
+                VarDeclaration *tmp = new VarDeclaration(loc, arg->type, id, new ExpInitializer(loc, arg));
+                tmp->storage_class |= STCtemp | STCctfe;
+                tmp->semantic(sc);
+
+                Expression *ae = new DeclarationExp(loc, tmp);
+                ae = ae->semantic(sc);
+                eprefix = Expression::combine(eprefix, ae);
+
+                arg = new VarExp(loc, tmp);
+                arg = arg->semantic(sc);
+            }
+
+            if (anythrow && i == lastthrow)
+            {
+                /* Set gate to true after prefix runs
+                 */
+                if (eprefix)
+                {
+                    assert(gate);
+                    // (gate = true)
+                    Expression *e = new AssignExp(gate->loc, new VarExp(gate->loc, gate), new IntegerExp(gate->loc, 1, Type::tbool));
+                    e = e->semantic(sc);
+                    eprefix = Expression::combine(eprefix, e);
+                    gate = NULL;
+                }
+            }
+            (*arguments)[i] = arg;
+        }
+    }
+    //if (eprefix) printf("eprefix: %s\n", eprefix->toChars());
 
     // If D linkage and variadic, add _arguments[] as first argument
     if (tf->linkage == LINKd && tf->varargs == 1)
@@ -1844,6 +1984,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         tret = tret->substWildTo(wildmatch);
     }
     *prettype = tret;
+    *peprefix = eprefix;
     return (err || olderrors != global.errors);
 }
 
@@ -4471,6 +4612,7 @@ NewExp::NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
     this->newargs = newargs;
     this->newtype = newtype;
     this->arguments = arguments;
+    argprefix = NULL;
     member = NULL;
     allocator = NULL;
     onstack = 0;
@@ -4498,6 +4640,7 @@ Expression *NewExp::semantic(Scope *sc)
     Type *tb;
     ClassDeclaration *cdthis = NULL;
     size_t nargs;
+    Expression *newprefix = NULL;
 
 Lagain:
     if (thisexp)
@@ -4678,7 +4821,7 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
-            if (functionParameters(loc, sc, tf, type, arguments, f, &type))
+            if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
                 return new ErrorExp();
         }
         else
@@ -4706,7 +4849,7 @@ Lagain:
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;
-            if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype))
+            if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype, &newprefix))
                 return new ErrorExp();
         }
         else
@@ -4747,7 +4890,7 @@ Lagain:
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;
-            if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype))
+            if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype, &newprefix))
                 return new ErrorExp();
         }
         else
@@ -4777,7 +4920,7 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
-            if (functionParameters(loc, sc, tf, type, arguments, f, &type))
+            if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
                 return new ErrorExp();
         }
         else
@@ -4851,6 +4994,8 @@ Lagain:
     //printf("NewExp:type '%s'\n", type->toChars());
     semanticTypeInfo(sc, type);
 
+    if (newprefix)
+        return combine(newprefix, this);
     return this;
 
 Lerr:
@@ -8750,9 +8895,10 @@ Lagain:
     }
     assert(t1->ty == Tfunction);
 
+    Expression *argprefix;
     if (!arguments)
         arguments = new Expressions();
-    if (functionParameters(loc, sc, (TypeFunction *)(t1), tthis, arguments, f, &type))
+    if (functionParameters(loc, sc, (TypeFunction *)(t1), tthis, arguments, f, &type, &argprefix))
         return new ErrorExp();
 
     if (!type)
@@ -8771,7 +8917,7 @@ Lagain:
         if (tf->next->isBaseOf(t, &offset) && offset)
         {
             type = tf->next;
-            return castTo(sc, t);
+            return combine(argprefix, castTo(sc, t));
         }
     }
 
@@ -8782,7 +8928,7 @@ Lagain:
         f->tookAddressOf = 0;
     }
 
-    return this;
+    return combine(argprefix, this);
 }
 
 

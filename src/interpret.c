@@ -3006,6 +3006,14 @@ public:
     #if LOG
         printf("%s NewExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
+
+        if (e->argprefix)
+        {
+            result = e->argprefix->interpret(istate, ctfeNeedNothing);
+            if (exceptionOrCantInterpret(result))
+                return;
+        }
+
         if (e->newtype->ty == Tarray && e->arguments)
         {
             result = recursivelyCreateArrayLiteral(e->loc, e->newtype, istate, e->arguments, 0);

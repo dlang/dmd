@@ -1383,6 +1383,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *ex = NULL;
                 elem *ey = NULL;
+                elem *ezprefix = NULL;
                 elem *ez = NULL;
 
                 if (ne->allocator || ne->onstack)
@@ -1489,11 +1490,14 @@ elem *toElem(Expression *e, IRState *irs)
 
                 if (ne->member)
                 {
+                    if (ne->argprefix)
+                        ezprefix = toElem(ne->argprefix, irs);
                     // Call constructor
                     ez = callfunc(ne->loc, irs, 1, ne->type, ez, ectype, ne->member, ne->member->type, NULL, ne->arguments);
                 }
 
                 e = el_combine(ex, ey);
+                e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }
             else if (t->ty == Tpointer && t->nextOf()->toBasetype()->ty == Tstruct)
@@ -1511,6 +1515,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *ex = NULL;
                 elem *ey = NULL;
+                elem *ezprefix = NULL;
                 elem *ez = NULL;
 
                 if (ne->allocator)
@@ -1537,6 +1542,8 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *ev = el_same(&ex);
 
+                if (ne->argprefix)
+                        ezprefix = toElem(ne->argprefix, irs);
                 if (ne->member)
                 {
                     if (sd->isNested())
@@ -1579,11 +1586,14 @@ elem *toElem(Expression *e, IRState *irs)
                 //elem_print(ez);
 
                 e = el_combine(ex, ey);
+                e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }
             else if (t->ty == Tarray)
             {
                 TypeDArray *tda = (TypeDArray *)t;
+
+                elem *ezprefix = ne->argprefix ? toElem(ne->argprefix, irs) : NULL;
 
                 assert(ne->arguments && ne->arguments->dim >= 1);
                 if (ne->arguments->dim == 1)
@@ -1616,11 +1626,13 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
                     e->Eflags |= EFLAGS_variadic;
                 }
+                e = el_combine(ezprefix, e);
             }
             else if (t->ty == Tpointer)
             {
                 TypePointer *tp = (TypePointer *)t;
                 Expression *di = tp->next->defaultInit();
+                elem *ezprefix = ne->argprefix ? toElem(ne->argprefix, irs) : NULL;
 
                 // call _d_newitemT(ti)
                 e = toElem(ne->newtype->getTypeInfo(NULL), irs);
@@ -1630,6 +1642,8 @@ elem *toElem(Expression *e, IRState *irs)
 
                 if (ne->arguments && ne->arguments->dim == 1)
                 {
+                    /* ezprefix, ts=_d_newitemT(ti), *ts=arguments[0], ts
+                     */
                     elem *e2 = toElem((*ne->arguments)[0], irs);
 
                     symbol *ts = symbol_genauto(Type_toCtype(tp));
@@ -1642,6 +1656,7 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_combine(e, el_var(ts));
                     //elem_print(e);
                 }
+                e = el_combine(ezprefix, e);
             }
             else
             {

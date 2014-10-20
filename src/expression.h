@@ -554,6 +554,8 @@ public:
     Type *newtype;
     Expressions *arguments;     // Array of Expression's
 
+    Expression *argprefix;      // expression to be evaluated just before arguments[]
+
     CtorDeclaration *member;    // constructor function
     NewDeclaration *allocator;  // allocator function
     int onstack;                // allocate on stack

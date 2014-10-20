@@ -5108,6 +5108,12 @@ code *cdddtor(elem *e,regm_t *pretregs)
     cd = cat(cd, nteh_gensindex(0));    // the actual index will be patched in later
                                         // by except_fillInEHTable()
 
+    // Mark all registers as destroyed
+    {
+        code *cy = getregs(allregs);
+        assert(!cy);
+    }
+
     assert(*pretregs == 0);
     code *c = codelem(e->E1,pretregs,FALSE);
     gen1(c,0xC3);               // RET
