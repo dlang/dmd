@@ -1,4 +1,5 @@
 *.[oa]
+*.dep
 *.deps
 src/cdxxx.c
 src/debtab.c
