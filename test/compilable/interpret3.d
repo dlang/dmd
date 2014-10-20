@@ -6677,3 +6677,24 @@ void test12851()
     const int[5] arr;
     alias staticZip = TypeTuple!(arr[0]);
 }
+
+/**************************************************
+    13630 - indexing and setting array element via pointer
+**************************************************/
+
+struct S13630(T)
+{
+    T[3] arr;
+
+    this(A...)(auto ref in A args)
+    {
+        auto p = arr.ptr;
+
+        foreach (ref v; args)
+        {
+            *p = 0;
+        }
+    }
+}
+
+enum s13630 = S13630!float(1);
