@@ -2163,10 +2163,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
         VarExp *ve = (VarExp *)ex;
         v = ve->var->isVarDeclaration();
         assert(v && "v is not an VarDeclaration");
-#if DMD_OBJC
-        if (Dsymbol* parent = v->toParent())
-            receiver = parent->isClassDeclaration();
-#endif
+        objc_Type_dotExp_TOKvar_setReceiver(v, receiver);
     }
     if (v)
     {

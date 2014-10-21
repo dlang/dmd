@@ -3399,3 +3399,9 @@ void objc_Type_dotExp_TOKdotvar_setReceiver(ClassDeclaration *&receiver, DotVarE
     if (baseType && baseType->ty == Tclass)
         receiver = ((TypeClass*) baseType)->sym;
 }
+
+void objc_Type_dotExp_TOKvar_setReceiver(VarDeclaration *v, ClassDeclaration *&receiver)
+{
+    if (Dsymbol* parent = v->toParent())
+        receiver = parent->isClassDeclaration();
+}
