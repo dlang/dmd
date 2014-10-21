@@ -119,7 +119,7 @@ void StringTable::_init(size_t size)
 
 StringTable::~StringTable()
 {
-    for (size_t i = 0; i < count; i++)
+    for (size_t i = 0; i < tabledim; i++)
         if (table[i].value)
             mem.free(table[i].value);
 
