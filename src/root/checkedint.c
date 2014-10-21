@@ -95,18 +95,18 @@ int64_t adds(int64_t x, int64_t y, bool& overflow)
 void unittest2()
 {
     bool overflow = false;
-    assert(adds(2LL, 3LL, overflow) == 5);
+    assert(adds((int64_t)2, (int64_t)3, overflow) == 5);
     assert(!overflow);
-    assert(adds(1LL, INT64_MAX - 1, overflow) == INT64_MAX);
+    assert(adds((int64_t)1, INT64_MAX - 1, overflow) == INT64_MAX);
     assert(!overflow);
-    assert(adds(INT64_MIN + 1LL, -1LL, overflow) == INT64_MIN);
+    assert(adds(INT64_MIN + 1, (int64_t)-1, overflow) == INT64_MIN);
     assert(!overflow);
-    assert(adds(INT64_MAX, 1LL, overflow) == INT64_MIN);
+    assert(adds(INT64_MAX, (int64_t)1, overflow) == INT64_MIN);
     assert(overflow);
     overflow = false;
-    assert(adds(INT64_MIN, -1LL, overflow) == INT64_MAX);
+    assert(adds(INT64_MIN, (int64_t)-1, overflow) == INT64_MAX);
     assert(overflow);
-    assert(adds(0LL, 0LL, overflow) == 0);
+    assert(adds((int64_t)0, (int64_t)0, overflow) == 0);
     assert(overflow);                   // sticky
 }
 #endif
@@ -166,18 +166,18 @@ uint64_t addu(uint64_t x, uint64_t y, bool& overflow)
 void unittest4()
 {
     bool overflow = false;
-    assert(addu(2ULL, 3ULL, overflow) == 5);
+    assert(addu((uint64_t)2, (uint64_t)3, overflow) == 5);
     assert(!overflow);
-    assert(addu(1, UINT64_MAX - 1, overflow) == UINT64_MAX);
+    assert(addu((uint64_t)1, UINT64_MAX - 1, overflow) == UINT64_MAX);
     assert(!overflow);
-    assert(addu(0ULL, -1LL, overflow) == UINT64_MAX);
+    assert(addu((uint64_t)0, (uint64_t)-1, overflow) == UINT64_MAX);
     assert(!overflow);
-    assert(addu(UINT64_MAX, 1, overflow) == 0ULL);
+    assert(addu(UINT64_MAX, (uint64_t)1, overflow) == 0);
     assert(overflow);
     overflow = false;
-    assert(addu(0ULL + 1, -1LL, overflow) == 0ULL);
+    assert(addu((uint64_t)0 + 1, (uint64_t)-1, overflow) == 0);
     assert(overflow);
-    assert(addu(0ULL, 0ULL, overflow) == 0);
+    assert(addu((uint64_t)0, (uint64_t)0, overflow) == 0);
     assert(overflow);                   // sticky
 }
 #endif
@@ -239,18 +239,18 @@ int64_t subs(int64_t x, int64_t y, bool& overflow)
 void unittest6()
 {
     bool overflow = false;
-    assert(subs(2LL, -3LL, overflow) == 5);
+    assert(subs((int64_t)2, (int64_t)-3, overflow) == 5);
     assert(!overflow);
-    assert(subs(1LL, -INT64_MAX + 1LL, overflow) == INT64_MAX);
+    assert(subs((int64_t)1, -INT64_MAX + (int64_t)1, overflow) == INT64_MAX);
     assert(!overflow);
-    assert(subs(INT64_MIN + 1LL, 1LL, overflow) == INT64_MIN);
+    assert(subs(INT64_MIN + 1, (int64_t)1, overflow) == INT64_MIN);
     assert(!overflow);
-    assert(subs(INT64_MAX, -1LL, overflow) == INT64_MIN);
+    assert(subs(INT64_MAX, (int64_t)-1, overflow) == INT64_MIN);
     assert(overflow);
     overflow = false;
-    assert(subs(INT64_MIN, 1LL, overflow) == INT64_MAX);
+    assert(subs(INT64_MIN, (int64_t)1, overflow) == INT64_MAX);
     assert(overflow);
-    assert(subs(0LL, 0LL, overflow) == 0);
+    assert(subs((int64_t)0, (int64_t)0, overflow) == 0);
     assert(overflow);                   // sticky
 }
 #endif
@@ -308,18 +308,18 @@ uint64_t subu(uint64_t x, uint64_t y, bool& overflow)
 void unittest8()
 {
     bool overflow = false;
-    assert(subu(3ULL, 2ULL, overflow) == 1);
+    assert(subu((uint64_t)3, (uint64_t)2, overflow) == 1);
     assert(!overflow);
-    assert(subu(UINT64_MAX, 1, overflow) == UINT64_MAX - 1);
+    assert(subu(UINT64_MAX, (uint64_t)1, overflow) == UINT64_MAX - 1);
     assert(!overflow);
-    assert(subu(1ULL, 1ULL, overflow) == 0ULL);
+    assert(subu((uint64_t)1, (uint64_t)1, overflow) == 0);
     assert(!overflow);
-    assert(subu(0ULL, 1ULL, overflow) == UINT64_MAX);
+    assert(subu((uint64_t)0, (uint64_t)1, overflow) == UINT64_MAX);
     assert(overflow);
     overflow = false;
     assert(subu(UINT64_MAX - 1, UINT64_MAX, overflow) == UINT64_MAX);
     assert(overflow);
-    assert(subu(0ULL, 0ULL, overflow) == 0);
+    assert(subu((uint64_t)0, (uint64_t)0, overflow) == 0);
     assert(overflow);                   // sticky
 }
 #endif
@@ -371,15 +371,15 @@ int64_t negs(int64_t x, bool& overflow)
 void unittest10()
 {
     bool overflow = false;
-    assert(negs(0LL, overflow) == -0);
+    assert(negs((int64_t)0, overflow) == -0);
     assert(!overflow);
-    assert(negs(1234LL, overflow) == -1234);
+    assert(negs((int64_t)1234, overflow) == -1234);
     assert(!overflow);
-    assert(negs(-5678LL, overflow) == 5678);
+    assert(negs((int64_t)-5678, overflow) == 5678);
     assert(!overflow);
     assert(negs(INT64_MIN, overflow) == -INT64_MIN);
     assert(overflow);
-    assert(negs(0LL, overflow) == -0);
+    assert(negs((int64_t)0, overflow) == -0);
     assert(overflow);                   // sticky
 }
 #endif
@@ -441,20 +441,20 @@ int64_t muls(int64_t x, int64_t y, bool& overflow)
 void unittest12()
 {
     bool overflow = false;
-    assert(muls(2LL, 3LL, overflow) == 6);
+    assert(muls((int64_t)2, (int64_t)3, overflow) == 6);
     assert(!overflow);
-    assert(muls(-200LL, 300LL, overflow) == -60000);
+    assert(muls((int64_t)-200, (int64_t)300, overflow) == -60000);
     assert(!overflow);
-    assert(muls(1LL, INT64_MAX, overflow) == INT64_MAX);
+    assert(muls((int64_t)1, INT64_MAX, overflow) == INT64_MAX);
     assert(!overflow);
-    assert(muls(INT64_MIN, 1LL, overflow) == INT64_MIN);
+    assert(muls(INT64_MIN, (int64_t)1, overflow) == INT64_MIN);
     assert(!overflow);
-    assert(muls(INT64_MAX, 2LL, overflow) == (INT64_MAX * 2));
+    assert(muls(INT64_MAX, (int64_t)2, overflow) == (INT64_MAX * 2));
     assert(overflow);
     overflow = false;
-    assert(muls(INT64_MIN, -1LL, overflow) == INT64_MIN);
+    assert(muls(INT64_MIN, (int64_t)-1, overflow) == INT64_MIN);
     assert(overflow);
-    assert(muls(0LL, 0LL, overflow) == 0);
+    assert(muls((int64_t)0, (int64_t)0, overflow) == 0);
     assert(overflow);                   // sticky
 }
 #endif
@@ -515,19 +515,19 @@ uint64_t mulu(uint64_t x, uint64_t y, bool& overflow)
 void unittest14()
 {
     bool overflow = false;
-    assert(mulu(2ULL, 3ULL, overflow) == 6);
+    assert(mulu((uint64_t)2, (uint64_t)3, overflow) == 6);
     assert(!overflow);
     assert(mulu(1, UINT64_MAX, overflow) == UINT64_MAX);
     assert(!overflow);
-    assert(mulu(0ULL, 1, overflow) == 0ULL);
+    assert(mulu((uint64_t)0, 1, overflow) == 0);
     assert(!overflow);
     assert(mulu(UINT64_MAX, 2, overflow) == (UINT64_MAX * 2));
     assert(overflow);
     overflow = false;
-    assert(mulu(0ULL, -1, overflow) == 0ULL);
+    assert(mulu((uint64_t)0, -1, overflow) == 0);
     assert(!overflow);
     overflow = true;
-    assert(mulu(0ULL, 0ULL, overflow) == 0);
+    assert(mulu((uint64_t)0, (uint64_t)0, overflow) == 0);
     assert(overflow);                   // sticky
 }
 #endif
