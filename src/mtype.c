@@ -823,12 +823,9 @@ void Type::check()
     }
 
     Type *tn = nextOf();
-#if DMD_OBJC
-    bool isObjcSelector = ty == Tobjcselector || (tn && tn->ty == Tobjcselector);
-#else
-    bool isObjcSelector = false;
-#endif
-    if (tn && ty != Tfunction && tn->ty != Tfunction && ty != Tenum && !isObjcSelector)
+    if (tn && ty != Tfunction && tn->ty != Tfunction &&
+        ty != Tenum &&
+        ty != Tobjcselector && tn->ty != Tobjcselector)
     {
         // Verify transitivity
         switch (mod)
