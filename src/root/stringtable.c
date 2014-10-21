@@ -27,7 +27,7 @@ hash_t calcHash(const char *str, size_t len)
         uint16_t scratchS[2];
         uint32_t scratchI;
     };
-    
+
     while (1)
     {
         switch (len)
@@ -69,131 +69,131 @@ hash_t calcHash(const char *str, size_t len)
     }
 }
 
-static int hashCmp(hash_t lhs, hash_t rhs)
+struct StringEntry
 {
-    if (lhs == rhs)
-        return 0;
-    else if (lhs < rhs)
-        return -1;
-    return 1;
+    hash_t hash;
+    StringValue *value;
+
+    StringEntry(hash_t hash, const char* s, size_t length)
+        : hash(hash)
+        , value(StringValue::alloc(s, length))
+    {
+    }
+
+    bool equals(hash_t hash, const char* s, size_t length)
+    {
+        return this->hash == hash && this->value->length == length &&
+            ::memcmp(this->value->lstring, s, length) == 0;
+    }
+
+};
+
+StringValue *StringValue::alloc(const char *p, size_t length)
+{
+    StringValue *sv = (StringValue *)mem.malloc(sizeof(StringValue) + length + 1);
+    sv->ptrvalue = NULL;
+    sv->length = length;
+    ::memcpy(sv->lstring, p, length);
+    sv->lstring[length] = 0;
+    return sv;
 }
 
-void StringValue::ctor(const char *p, size_t length)
+static size_t nextpow2(size_t val)
 {
-    this->length = length;
-    this->lstring[length] = 0;
-    memcpy(this->lstring, p, length * sizeof(char));
+    size_t res = 1;
+    while (res < val)
+        res <<= 1;
+    return res;
 }
+
+static const double loadFactor = 0.8;
 
 void StringTable::_init(size_t size)
 {
-    table = (void **)mem.calloc(size, sizeof(void *));
+    size = nextpow2((size_t)(size / loadFactor));
+    if (size < 32) size = 32;
+    table = (StringEntry *)mem.calloc(size, sizeof(table[0]));
     tabledim = size;
     count = 0;
 }
 
 StringTable::~StringTable()
 {
-    // Zero out dangling pointers to help garbage collector.
-    // Should zero out StringEntry's too.
     for (size_t i = 0; i < count; i++)
-        table[i] = NULL;
+        if (table[i].value)
+            mem.free(table[i].value);
 
+    // Zero out dangling pointers to help garbage collector.
+    memset(table, 0, tabledim * sizeof(table[0]));
     mem.free(table);
     table = NULL;
 }
 
-struct StringEntry
+size_t StringTable::findSlot(hash_t hash, const char *s, size_t length)
 {
-    StringEntry *left;
-    StringEntry *right;
-    hash_t hash;
-
-    StringValue value;
-
-    static StringEntry *alloc(const char *s, size_t len);
-};
-
-StringEntry *StringEntry::alloc(const char *s, size_t len)
-{
-    StringEntry *se;
-
-    se = (StringEntry *) mem.calloc(1,sizeof(StringEntry) + len + 1);
-    se->value.ctor(s, len);
-    se->hash = calcHash(s,len);
-    return se;
+    size_t i = hash & (tabledim - 1);
+    // linear probing
+    while (table[i].value && !(table[i].equals(hash, s, length)))
+        i = (i + 1) & (tabledim - 1);
+    return i;
 }
 
-void **StringTable::search(const char *s, size_t len)
+StringValue *StringTable::lookup(const char *s, size_t length)
 {
-    hash_t hash;
-    unsigned u;
-    int cmp;
-    StringEntry **se;
+    const hash_t hash = calcHash(s, length);
+    const size_t i = findSlot(hash, s, length);
+    // printf("lookup %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+    return table[i].value;
+}
 
-    //printf("StringTable::search(%p,%d)\n",s,len);
-    hash = calcHash(s,len);
-    u = hash % tabledim;
-    se = (StringEntry **)&table[u];
-    //printf("\thash = %d, u = %d\n",hash,u);
-    while (*se)
+StringValue *StringTable::update(const char *s, size_t length)
+{
+    const hash_t hash = calcHash(s, length);
+    size_t i = findSlot(hash, s, length);
+    if (!table[i].value)
     {
-        cmp = hashCmp((*se)->hash, hash);
-        if (cmp == 0)
+        if (++count > tabledim * loadFactor)
         {
-            cmp = (*se)->value.len() - len;
-            if (cmp == 0)
-            {
-                cmp = ::memcmp(s,(*se)->value.toDchars(),len);
-                if (cmp == 0)
-                    break;
-            }
+            grow();
+            i = findSlot(hash, s, length);
         }
-        if (cmp < 0)
-            se = &(*se)->left;
-        else
-            se = &(*se)->right;
+        table[i] = StringEntry(hash, s, length);
     }
-    //printf("\treturn %p, %p\n",se, (*se));
-    return (void **)se;
+    // printf("update %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+    return table[i].value;
 }
 
-StringValue *StringTable::lookup(const char *s, size_t len)
-{   StringEntry *se;
-
-    se = *(StringEntry **)search(s,len);
-    if (se)
-        return &se->value;
-    else
-        return NULL;
-}
-
-StringValue *StringTable::update(const char *s, size_t len)
-{   StringEntry **pse;
-    StringEntry *se;
-
-    pse = (StringEntry **)search(s,len);
-    se = *pse;
-    if (!se)                    // not in table: so create new entry
+StringValue *StringTable::insert(const char *s, size_t length)
+{
+    const hash_t hash = calcHash(s, length);
+    size_t i = findSlot(hash, s, length);
+    if (!table[i].value)
     {
-        se = StringEntry::alloc(s, len);
-        *pse = se;
+        if (++count > tabledim * loadFactor)
+        {
+            grow();
+            i = findSlot(hash, s, length);
+        }
+        table[i] = StringEntry(hash, s, length);
     }
-    return &se->value;
+    // printf("insert %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+    return table[i].value;
 }
 
-StringValue *StringTable::insert(const char *s, size_t len)
-{   StringEntry **pse;
-    StringEntry *se;
+void StringTable::grow()
+{
+    const size_t odim = tabledim;
+    StringEntry *otab = table;
+    tabledim *= 2;
+    table = (StringEntry *)mem.calloc(tabledim, sizeof(table[0]));
 
-    pse = (StringEntry **)search(s,len);
-    se = *pse;
-    if (se)
-        return NULL;            // error: already in table
-    else
+    for (size_t i = 0; i < odim; ++i)
     {
-        se = StringEntry::alloc(s, len);
-        *pse = se;
+        StringEntry &se = otab[i];
+        if (!se.value) continue;
+        table[findSlot(se.hash, se.value->toDchars(), se.value->len())] = se;
     }
-    return &se->value;
+
+    memset(otab, 0, odim * sizeof(otab[0]));
+    mem.free(otab);
 }
