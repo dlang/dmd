@@ -3391,7 +3391,7 @@ void objc_Type_init(unsigned char sizeTy[TMAX])
     sizeTy[Tobjcselector] = sizeof(TypeObjcSelector);
 }
 
-// MARK: Type::dotExp
+// MARK: dotExp
 
 void objc_Type_dotExp_TOKdotvar_setReceiver(ClassDeclaration *&receiver, DotVarExp *dv)
 {
@@ -3410,4 +3410,10 @@ void objc_Type_dotExp_offsetof(Type *self, Expression *e, ClassDeclaration *rece
 {
     if (receiver && receiver->objc.objc)
         self->error(e->loc, ".offsetof (%s) is not available for members of Objective-C classes (%s)", e->toChars(), receiver->toChars());
+}
+
+void objc_TypeClass_dotExp_tupleof(TypeClass *self, Expression *e)
+{
+    if (self->sym->objc.objc)
+        self->error(e->loc, ".tupleof (%s) is not available for Objective-C classes (%s)", e->toChars(), self->sym->toChars());
 }

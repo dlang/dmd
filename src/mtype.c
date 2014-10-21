@@ -7934,10 +7934,8 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
 
     if (ident == Id::tupleof)
     {
-#if DMD_OBJC
-        if (sym->objc.objc)
-            error(e->loc, ".tupleof (%s) is not available for Objective-C classes (%s)", e->toChars(), sym->toChars());
-#endif
+        objc_TypeClass_dotExp_tupleof(this, e);
+
         /* Create a TupleExp
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck

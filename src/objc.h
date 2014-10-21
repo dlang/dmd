@@ -607,4 +607,6 @@ void objc_Type_dotExp_TOKdotvar_setReceiver(ClassDeclaration *&receiver, DotVarE
 void objc_Type_dotExp_TOKvar_setReceiver(VarDeclaration *v, ClassDeclaration *&receiver);
 void objc_Type_dotExp_offsetof(Type *self, Expression *e, ClassDeclaration *receiver);
 
+void objc_TypeClass_dotExp_tupleof(TypeClass *self, Expression *e);
+
 #endif
