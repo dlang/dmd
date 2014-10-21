@@ -3405,3 +3405,9 @@ void objc_Type_dotExp_TOKvar_setReceiver(VarDeclaration *v, ClassDeclaration *&r
     if (Dsymbol* parent = v->toParent())
         receiver = parent->isClassDeclaration();
 }
+
+void objc_Type_dotExp_offsetof(Type *self, Expression *e, ClassDeclaration *receiver)
+{
+    if (receiver && receiver->objc.objc)
+        self->error(e->loc, ".offsetof (%s) is not available for members of Objective-C classes (%s)", e->toChars(), receiver->toChars());
+}

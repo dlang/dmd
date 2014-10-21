@@ -2169,10 +2169,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
     {
         if (ident == Id::offsetof)
         {
-#if DMD_OBJC
-            if (receiver && receiver->objc.objc)
-                error(e->loc, ".offsetof (%s) is not available for members of Objective-C classes (%s)", e->toChars(), receiver->toChars());
-#endif
+            objc_Type_dotExp_offsetof(this, e, receiver);
             if (v->isField())
             {
                 e = new IntegerExp(e->loc, v->offset, Type::tsize_t);
