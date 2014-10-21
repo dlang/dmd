@@ -3390,3 +3390,12 @@ void objc_Type_init(unsigned char sizeTy[TMAX])
 {
     sizeTy[Tobjcselector] = sizeof(TypeObjcSelector);
 }
+
+// MARK: Type::dotExp
+
+void objc_Type_dotExp_TOKdotvar_setReceiver(ClassDeclaration *&receiver, DotVarExp *dv)
+{
+    Type* baseType = dv->e1->type->toBasetype();
+    if (baseType && baseType->ty == Tclass)
+        receiver = ((TypeClass*) baseType)->sym;
+}
