@@ -3417,3 +3417,15 @@ void objc_TypeClass_dotExp_tupleof(TypeClass *self, Expression *e)
     if (self->sym->objc.objc)
         self->error(e->loc, ".tupleof (%s) is not available for Objective-C classes (%s)", e->toChars(), self->sym->toChars());
 }
+
+ControlFlow objc_TypeClass_dotExp_protocolof(Scope *sc, Expression *&e, Identifier *ident)
+{
+    if (ident == Id::protocolof)
+    {
+        e = new ObjcProtocolOfExp(e->loc, e);
+        e = e->semantic(sc);
+        return CFreturn;
+    }
+
+    return CFnone;
+}

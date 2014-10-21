@@ -8087,14 +8087,9 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-#if DMD_OBJC
-        if (ident == Id::protocolof)
-        {
-            e = new ObjcProtocolOfExp(e->loc, e);
-            e = e->semantic(sc);
+
+        if (objc_TypeClass_dotExp_protocolof(sc, e, ident) == CFreturn)
             return e;
-        }
-#endif
 
         if (ident == Id::outer && sym->vthis)
         {
