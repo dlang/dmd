@@ -3383,3 +3383,10 @@ void objc_interpret_visit_ObjcSelectorExp(ObjcSelectorExp *e, Expression *&resul
 #endif
     result = e;
 }
+
+// MARK: Type::init
+
+void objc_Type_init(unsigned char sizeTy[TMAX])
+{
+    sizeTy[Tobjcselector] = sizeof(TypeObjcSelector);
+}

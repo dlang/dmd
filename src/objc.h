@@ -601,4 +601,6 @@ void objc_inline_visit_ObjcSelectorExp(int &cost);
 
 void objc_interpret_visit_ObjcSelectorExp(ObjcSelectorExp *e, Expression *&result);
 
+void objc_Type_init(unsigned char sizeTy[TMAX]);
+
 #endif

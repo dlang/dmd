@@ -44,6 +44,7 @@
 #include "import.h"
 #include "aggregate.h"
 #include "hdrgen.h"
+#include "objc.h"
 
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
@@ -218,9 +219,7 @@ void Type::init()
     sizeTy[Treturn] = sizeof(TypeReturn);
     sizeTy[Terror] = sizeof(TypeError);
     sizeTy[Tnull] = sizeof(TypeNull);
-#if DMD_OBJC
-    sizeTy[Tobjcselector] = sizeof(TypeObjcSelector);
-#endif
+    objc_Type_init(sizeTy);
 
     initTypeMangle();
 
