@@ -2497,12 +2497,9 @@ Type *TypeNext::makeConst()
         return cto;
     }
     TypeNext *t = (TypeNext *)Type::makeConst();
-#if DMD_OBJC
-    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
-#else
-    bool isObjcSelector = false;
-#endif
-    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+        !next->isImmutable())
     {
         if (next->isShared())
         {
