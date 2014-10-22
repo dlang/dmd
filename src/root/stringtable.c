@@ -131,11 +131,14 @@ StringTable::~StringTable()
 
 size_t StringTable::findSlot(hash_t hash, const char *s, size_t length)
 {
-    size_t i = hash & (tabledim - 1);
-    // linear probing
-    while (table[i].value && !(table[i].equals(hash, s, length)))
-        i = (i + 1) & (tabledim - 1);
-    return i;
+    // quadratic probing using triangular numbers
+    // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
+    for (size_t i = hash & (tabledim - 1), j = 1; ;++j)
+    {
+        if (!table[i].value || (table[i].equals(hash, s, length)))
+            return i;
+        i = (i + j) & (tabledim - 1);
+    }
 }
 
 StringValue *StringTable::lookup(const char *s, size_t length)
