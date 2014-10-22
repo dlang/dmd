@@ -4371,6 +4371,12 @@ void FuncLiteralDeclaration::modifyReturns(Scope *sc, Type *tret)
     w.tret = tret;
     w.fld = this;
     fbody->accept(&w);
+
+    // Also update the inferred function type to match the new return type.
+    // This is required so the code generator does not try to cast the
+    // modified returns back to the original type.
+    if (inferRetType && type->nextOf() != tret)
+        ((TypeFunction *)type)->next = tret;
 }
 
 const char *FuncLiteralDeclaration::kind()
