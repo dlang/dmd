@@ -327,6 +327,26 @@ void testDIP29_6()
 }
 
 /***********************************/
+// 13640
+
+struct S13640
+{
+    static struct R
+    {
+        int* p;
+        this(inout ref int* p) inout pure { this.p = p; }
+    }
+
+    int* p;
+
+    void foo() inout pure
+    {
+        // Implicit conversion from inout(R) to R should be disallowed.
+        static assert(!__traits(compiles, { R r = inout(R)(p); }));
+    }
+}
+
+/***********************************/
 
 void main()
 {
