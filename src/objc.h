@@ -611,4 +611,6 @@ void objc_TypeClass_dotExp_tupleof(TypeClass *self, Expression *e);
 ControlFlow objc_TypeClass_dotExp_protocolof(Scope *sc, Expression *&e, Identifier *ident);
 void objc_TypeClass_dotExp_TOKtype(TypeClass *self, Scope *sc, Expression *&e, Declaration *d);
 
+void objc_Expression_optimize_visit_CallExp_Tobjcselector(Type *&t1);
+
 #endif

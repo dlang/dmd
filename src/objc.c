@@ -3436,3 +3436,10 @@ void objc_TypeClass_dotExp_TOKtype(TypeClass *self, Scope *sc, Expression *&e, D
     DotVarExp *de = new DotVarExp(e->loc, new ObjcClassRefExp(e->loc, self->sym), d);
     e = de->semantic(sc);
 }
+
+// MARK: Expression_optimize
+void objc_Expression_optimize_visit_CallExp_Tobjcselector(Type *&t1)
+{
+    if (t1->ty == Tobjcselector)
+        t1 = t1->nextOf();
+}
