@@ -1,6 +1,9 @@
 // PERMUTE_ARGS:
 
-import std.stdio, std.random;
+import std.algorithm : map;
+import std.random : Random, uniform, unpredictableSeed;
+import std.range : repeat;
+import std.stdio : writeln;
 
 // Quick, dirty and inefficient AA using linear search, useful for testing.
 struct LinearAA(K, V) {
@@ -64,17 +67,23 @@ struct LinearAA(K, V) {
 }
 
 void main() {
+    Random gen;
+    uint[] seed;
+    gen.seed(map!((a) {
+        seed ~= unpredictableSeed;
+        return seed[$-1]; })(repeat(0)));
+    writeln(seed);
     foreach(iter; 0..10) {  // Bug only happens after a few iterations.
         writeln(iter);
         uint[size_t] builtin;
         LinearAA!(size_t, uint) linAA;
         uint[] nums = new uint[100_000];
         foreach(ref num; nums) {
-            num = uniform(0U, uint.max);
+            num = uniform(0U, uint.max, gen);
         }
 
         foreach(i; 0..10_000) {
-            auto index = uniform(0, nums.length);
+            auto index = uniform(0, nums.length, gen);
             if(index in builtin) {
                 assert(index in linAA);
                 assert(builtin[index] == nums[index]);
