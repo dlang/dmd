@@ -17,56 +17,62 @@
 #include "stringtable.h"
 
 // TODO: Merge with root.String
-hash_t calcHash(const char *str, size_t len)
+// MurmurHash2 was written by Austin Appleby, and is placed in the public
+// domain. The author hereby disclaims copyright to this source code.
+// https://sites.google.com/site/murmurhash/
+static uint32_t calcHash(const char *key, size_t len)
 {
-    hash_t hash = 0;
+    // 'm' and 'r' are mixing constants generated offline.
+    // They're not really 'magic', they just happen to work well.
 
-    union
+    const uint32_t m = 0x5bd1e995;
+    const int r = 24;
+
+    // Initialize the hash to a 'random' value
+
+    uint32_t h = len;
+
+    // Mix 4 bytes at a time into the hash
+
+    const uint8_t *data = (const uint8_t *)key;
+
+    while(len >= 4)
     {
-        uint8_t  scratchB[4];
-        uint16_t scratchS[2];
-        uint32_t scratchI;
+#if defined _M_I86 || defined _M_AMD64 || defined __i386 || defined __x86_64
+        uint32_t k = *(uint32_t *)data; // possibly unaligned load
+#else
+        uint32_t k = data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
+#endif
+
+        k *= m;
+        k ^= k >> r;
+        k *= m;
+
+        h *= m;
+        h ^= k;
+
+        data += 4;
+        len -= 4;
+    }
+
+    // Handle the last few bytes of the input array
+
+    switch(len & 3)
+    {
+    case 3: h ^= data[2] << 16;
+    case 2: h ^= data[1] << 8;
+    case 1: h ^= data[0];
+        h *= m;
     };
 
-    while (1)
-    {
-        switch (len)
-        {
-            case 0:
-                return hash;
+    // Do a few final mixes of the hash to ensure the last few
+    // bytes are well-incorporated.
 
-            case 1:
-                hash *= 37;
-                hash += *(const uint8_t *)str;
-                return hash;
+    h ^= h >> 13;
+    h *= m;
+    h ^= h >> 15;
 
-            case 2:
-                hash *= 37;
-                scratchB[0] = str[0];
-                scratchB[1] = str[1];
-                hash += scratchS[0];
-                return hash;
-
-            case 3:
-                hash *= 37;
-                scratchB[0] = str[0];
-                scratchB[1] = str[1];
-                hash += (scratchS[0] << 8) +
-                        ((const uint8_t *)str)[2];
-                return hash;
-
-            default:
-                hash *= 37;
-                scratchB[0] = str[0];
-                scratchB[1] = str[1];
-                scratchB[2] = str[2];
-                scratchB[3] = str[3];
-                hash += scratchI;
-                str += 4;
-                len -= 4;
-                break;
-        }
-    }
+    return h;
 }
 
 struct StringEntry
