@@ -609,5 +609,6 @@ void objc_Type_dotExp_offsetof(Type *self, Expression *e, ClassDeclaration *rece
 
 void objc_TypeClass_dotExp_tupleof(TypeClass *self, Expression *e);
 ControlFlow objc_TypeClass_dotExp_protocolof(Scope *sc, Expression *&e, Identifier *ident);
+void objc_TypeClass_dotExp_TOKtype(TypeClass *self, Scope *sc, Expression *&e, Declaration *d);
 
 #endif

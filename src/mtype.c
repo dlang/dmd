@@ -8218,19 +8218,12 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-#if DMD_OBJC
-        bool isObjcClassMethod = sym->objc.objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->objc.selector;
-#else
-        bool isObjcClassMethod = false;
-#endif
-        if (isObjcClassMethod)
+
+        if (sym->objc.objc && d->isFuncDeclaration() &&
+            d->isStatic() && ((FuncDeclaration *)d)->objc.selector)
         {
-#if DMD_OBJC
-            // Objective-C class methods uses the class object as 'this'
-            DotVarExp *de = new DotVarExp(e->loc, new ObjcClassRefExp(e->loc, sym), d);
-            e = de->semantic(sc);
+            objc_TypeClass_dotExp_TOKtype(this, sc, e, d);
             return e;
-#endif
         }
         else if (d->needThis() && sc->intypeof != 1)
         {

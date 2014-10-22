@@ -3429,3 +3429,10 @@ ControlFlow objc_TypeClass_dotExp_protocolof(Scope *sc, Expression *&e, Identifi
 
     return CFnone;
 }
+
+void objc_TypeClass_dotExp_TOKtype(TypeClass *self, Scope *sc, Expression *&e, Declaration *d)
+{
+    // Objective-C class methods uses the class object as 'this'
+    DotVarExp *de = new DotVarExp(e->loc, new ObjcClassRefExp(e->loc, self->sym), d);
+    e = de->semantic(sc);
+}
