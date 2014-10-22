@@ -1953,7 +1953,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             VarDeclaration *tmp;
             if (aggr->op == TOKarrayliteral &&
                 !((*arguments)[dim - 1]->storageClass & STCref))
-             {
+            {
                 ArrayLiteralExp *ale = (ArrayLiteralExp *)aggr;
                 size_t edim = ale->elements ? ale->elements->dim : 0;
                 aggr->type = tab->nextOf()->sarrayOf(edim);
