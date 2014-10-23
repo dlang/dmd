@@ -3214,9 +3214,7 @@ Type *Parser::parseBasicType2(Type *t)
 
             case TOKdelegate:
             case TOKfunction:
-//#if DMD_OBJC
             case TOKobjcselector:
-//#endif
             {
                 // Handle delegate declaration:
                 //      t delegate(parameter list) nothrow pure
