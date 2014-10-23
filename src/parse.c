@@ -3077,18 +3077,7 @@ Type *Parser::parseBasicType()
             while (token.value == TOKdot)
             {
                 nextToken();
-#if DMD_OBJC && 0
-                bool isClass = token.value == TOKclass;
-#else
-                bool isClass = false;
-#endif
-                if (isClass)
-                {
-                    // allow this for Objective-C types
-                    assert(token.ident);
-                    break;
-                }
-                else if (token.value != TOKidentifier)
+                if (token.value != TOKidentifier)
                 {
                     error("identifier expected following '.' instead of '%s'", token.toChars());
                     break;
