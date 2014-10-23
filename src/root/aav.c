@@ -56,7 +56,8 @@ size_t dmd_aaLen(AA* aa)
 
 /*************************************************
  * Get pointer to value in associative array indexed by key.
- * Add entry for key if it is not already there.
+ * Add entry for key if it is not already there, returning a pointer to a null Value.
+ * Create the associative array if it does not already exist.
  */
 
 Value* dmd_aaGet(AA** paa, Key key)
