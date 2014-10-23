@@ -19,9 +19,7 @@
 #include "arraytypes.h"
 #include "lexer.h"
 #include "enum.h"
-#if DMD_OBJC
 #include "objc.h"
-#endif
 
 class Type;
 class TypeQualified;
