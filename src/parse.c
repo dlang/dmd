@@ -7707,9 +7707,7 @@ void initPrecedence()
 
     precedence[TOKtype] = PREC_expr;
     precedence[TOKerror] = PREC_expr;
-#if DMD_OBJC
     precedence[TOKobjcclsref] = PREC_expr; // Objective-C class reference, same as TOKtype
-#endif
 
     precedence[TOKtypeof] = PREC_primary;
     precedence[TOKmixin] = PREC_primary;
@@ -7780,9 +7778,7 @@ void initPrecedence()
     precedence[TOKnew] = PREC_unary;
     precedence[TOKnewanonclass] = PREC_unary;
     precedence[TOKcast] = PREC_unary;
-#if DMD_OBJC
     precedence[TOKobjcselector] = PREC_unary; // same as delegate
-#endif
 
     precedence[TOKvector] = PREC_unary;
     precedence[TOKpow] = PREC_pow;
