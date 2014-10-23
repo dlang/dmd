@@ -3795,10 +3795,7 @@ L2:
         else if (!isThis)
             error("no identifier for declarator %s", t->toChars());
 
-#if DMD_OBJC
-        if (t->ty == Tobjcselector)
-            link = LINKobjc; // force Objective-C linkage
-#endif
+        objc_Parser_parseDeclarations_Tobjcselector(t, link);
         if (tok == TOKtypedef || tok == TOKalias)
         {
             Declaration *v;

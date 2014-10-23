@@ -3469,3 +3469,9 @@ void objc_Parser_parseBasicType2_selector(Type *&t, TypeFunction *tf)
     tf->linkage = LINKobjc; // force Objective-C linkage
     t = new TypeObjcSelector(tf);
 }
+
+void objc_Parser_parseDeclarations_Tobjcselector(Type *&t, LINK &link)
+{
+    if (t->ty == Tobjcselector)
+        link = LINKobjc; // force Objective-C linkage
+}

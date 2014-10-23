@@ -617,5 +617,6 @@ void objc_Expression_optimize_visit_CallExp_Tobjcselector(Type *&t1);
 void objc_Parser_parseCtor_selector(Parser *self, TemplateParameters *tpl, Parameters *parameters, CtorDeclaration *f);
 void objc_Parser_parseDtor(Parser *self, DtorDeclaration *f);
 void objc_Parser_parseBasicType2_selector(Type *&t, TypeFunction *tf);
+void objc_Parser_parseDeclarations_Tobjcselector(Type *&t, LINK &link);
 
 #endif
