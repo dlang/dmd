@@ -3236,21 +3236,10 @@ Type *Parser::parseBasicType2(Type *t)
                         tf = (TypeFunction *)tf->addSTC(stc);
                 }
 
-#if DMD_OBJC
-                bool isObjcSelector = save == TOKobjcselector;
-#else
-                bool isObjcSelector = false;
-#endif
-
                 if (save == TOKdelegate)
                     t = new TypeDelegate(tf);
-                else if (isObjcSelector)
-                {
-#if DMD_OBJC
-                    tf->linkage = LINKobjc; // force Objective-C linkage
-                    t = new TypeObjcSelector(tf);
-#endif
-                }
+                else if (save == TOKobjcselector)
+                    objc_Parser_parseBasicType2_selector(t, tf);
                 else
                     t = new TypePointer(tf);    // pointer to function
                 continue;

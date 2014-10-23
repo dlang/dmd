@@ -3463,3 +3463,9 @@ void objc_Parser_parseDtor(Parser *self, DtorDeclaration *f)
 {
     f->objc.selector = self->parseObjCSelector();
 }
+
+void objc_Parser_parseBasicType2_selector(Type *&t, TypeFunction *tf)
+{
+    tf->linkage = LINKobjc; // force Objective-C linkage
+    t = new TypeObjcSelector(tf);
+}
