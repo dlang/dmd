@@ -2005,6 +2005,7 @@ int TypeObjcSelector::hasPointers()
 
 #include "expression.h"
 #include "init.h"
+#include "parse.h"
 #include "statement.h"
 #include "utf.h"
 
@@ -3442,4 +3443,18 @@ void objc_Expression_optimize_visit_CallExp_Tobjcselector(Type *&t1)
 {
     if (t1->ty == Tobjcselector)
         t1 = t1->nextOf();
+}
+
+// MARK: parse
+
+void objc_Parser_parseCtor_selector(Parser *self, TemplateParameters *tpl, Parameters *parameters, CtorDeclaration *f)
+{
+    f->objc.selector = self->parseObjCSelector();
+    if (f->objc.selector)
+    {
+        if (tpl)
+            self->error("constructor template cannot have an Objective-C selector attached");
+        if (f->objc.selector->paramCount != parameters->dim)
+            self->error("number of colons in Objective-C selector must match the number of parameters");
+    }
 }

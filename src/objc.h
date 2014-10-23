@@ -400,6 +400,7 @@ public:
 /***************************************/
 
 class ObjcSelectorExp;
+class Parser;
 struct IRState;
 struct HdrGenState;
 typedef struct Symbol symbol;
@@ -612,5 +613,7 @@ ControlFlow objc_TypeClass_dotExp_protocolof(Scope *sc, Expression *&e, Identifi
 void objc_TypeClass_dotExp_TOKtype(TypeClass *self, Scope *sc, Expression *&e, Declaration *d);
 
 void objc_Expression_optimize_visit_CallExp_Tobjcselector(Type *&t1);
+
+void objc_Parser_parseCtor_selector(Parser *self, TemplateParameters *tpl, Parameters *parameters, CtorDeclaration *f);
 
 #endif

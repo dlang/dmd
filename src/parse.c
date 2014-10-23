@@ -37,10 +37,7 @@
 #include "aliasthis.h"
 #include "nspace.h"
 #include "hdrgen.h"
-
-#if DMD_OBJC
 #include "objc.h"
-#endif
 
 // How multiple declarations are parsed.
 // If 1, treat as C.
@@ -1550,15 +1547,7 @@ Dsymbol *Parser::parseCtor(PrefixAttributes *pAttrs)
     CtorDeclaration *f = new CtorDeclaration(loc, Loc(), stc, tf);
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
-#if DMD_OBJC
-    f->objc.selector = parseObjCSelector();
-    if (f->objc.selector)
-    {   if (tpl)
-        error("constructor template cannot have an Objective-C selector attached");
-        if (f->objc.selector->paramCount != parameters->dim)
-            error("number of colons in Objective-C selector must match the number of parameters");
-    }
-#endif
+    objc_Parser_parseCtor_selector(this, tpl, parameters, f);
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
