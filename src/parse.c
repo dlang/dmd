@@ -1596,9 +1596,7 @@ Dsymbol *Parser::parseDtor(PrefixAttributes *pAttrs)
     DtorDeclaration *f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
-#if DMD_OBJC
-    f->objc.selector = parseObjCSelector();
-#endif
+    objc_Parser_parseDtor(this, f);
     Dsymbol *s = parseContracts(f);
     if (udas)
     {

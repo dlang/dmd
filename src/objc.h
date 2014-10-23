@@ -615,5 +615,6 @@ void objc_TypeClass_dotExp_TOKtype(TypeClass *self, Scope *sc, Expression *&e, D
 void objc_Expression_optimize_visit_CallExp_Tobjcselector(Type *&t1);
 
 void objc_Parser_parseCtor_selector(Parser *self, TemplateParameters *tpl, Parameters *parameters, CtorDeclaration *f);
+void objc_Parser_parseDtor(Parser *self, DtorDeclaration *f);
 
 #endif

@@ -3458,3 +3458,8 @@ void objc_Parser_parseCtor_selector(Parser *self, TemplateParameters *tpl, Param
             self->error("number of colons in Objective-C selector must match the number of parameters");
     }
 }
+
+void objc_Parser_parseDtor(Parser *self, DtorDeclaration *f)
+{
+    f->objc.selector = self->parseObjCSelector();
+}
