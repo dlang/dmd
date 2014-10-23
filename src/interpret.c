@@ -6301,7 +6301,16 @@ public:
             }
             else if (result->op == TOKaddress)
             {
-                result = ((AddrExp*)result)->e1;  // *(&x) ==> x
+                result = ((AddrExp *)result)->e1;  // *(&x) ==> x
+
+                // Bugzilla 13630, convert *(&[1,2,3]) to [1,2,3][0]
+                if (result->op == TOKarrayliteral &&
+                    result->type->toBasetype()->nextOf()->toBasetype()->equivalent(e->type))
+                {
+                    IntegerExp *ofs = new IntegerExp(result->loc, 0, Type::tsize_t);
+                    result = new IndexExp(e->loc, result, ofs);
+                    result->type = e->type;
+                }
             }
             else if (result->op == TOKnull)
             {
