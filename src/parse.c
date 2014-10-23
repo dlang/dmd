@@ -6629,11 +6629,6 @@ Expression *Parser::parsePrimaryExp()
                 {
                     tok = token.value;
                     nextToken();
-#if DMD_OBJC
-                    bool isObjcSelector = token.value == TOKobjcselector;
-#else
-                    bool isObjcSelector = false;
-#endif
                     if (tok == TOKequal &&
                         (token.value == TOKtypedef ||
                          token.value == TOKstruct ||
@@ -6650,7 +6645,7 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKwild && peek(&token)->value == TOKrparen ||
                          token.value == TOKfunction ||
                          token.value == TOKdelegate ||
-                         isObjcSelector ||
+                         token.value == TOKobjcselector ||
                          token.value == TOKreturn))
                     {
                         tok2 = token.value;
