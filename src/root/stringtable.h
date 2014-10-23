@@ -39,8 +39,8 @@ public:
 
 private:
     friend struct StringEntry;
+    friend struct StringTable;
     StringValue();  // not constructible
-    static StringValue *alloc(const char *p, size_t length);
 };
 
 struct StringTable
@@ -48,6 +48,10 @@ struct StringTable
 private:
     StringEntry *table;
     size_t tabledim;
+
+    uint8_t **pools;
+    size_t npools, nfill;
+
     size_t count;
 
 public:
@@ -59,6 +63,8 @@ public:
     StringValue *update(const char *s, size_t len);
 
 private:
+    uint32_t allocValue(const char *p, size_t length);
+    StringValue *getValue(uint32_t validx);
     size_t findSlot(hash_t hash, const char *s, size_t len);
     void grow();
 };

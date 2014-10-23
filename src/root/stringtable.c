@@ -16,6 +16,9 @@
 #include "rmem.h"                       // mem
 #include "stringtable.h"
 
+#define POOL_BITS 12
+#define POOL_SIZE (1U << POOL_BITS)
+
 // TODO: Merge with root.String
 // MurmurHash2 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
@@ -77,31 +80,50 @@ static uint32_t calcHash(const char *key, size_t len)
 
 struct StringEntry
 {
-    hash_t hash;
-    StringValue *value;
+    uint32_t hash, vptr;
 
-    StringEntry(hash_t hash, const char* s, size_t length)
+    StringEntry(uint32_t hash, uint32_t vptr)
         : hash(hash)
-        , value(StringValue::alloc(s, length))
+        , vptr(vptr)
     {
     }
 
-    bool equals(hash_t hash, const char* s, size_t length)
+    bool equals(StringValue *sv, hash_t hash, const char* s, size_t length)
     {
-        return this->hash == hash && this->value->length == length &&
-            ::memcmp(this->value->lstring, s, length) == 0;
+        return this->hash == hash && sv->length == length &&
+            ::memcmp(sv->lstring, s, length) == 0;
     }
-
 };
 
-StringValue *StringValue::alloc(const char *p, size_t length)
+uint32_t StringTable::allocValue(const char *s, size_t length)
 {
-    StringValue *sv = (StringValue *)mem.malloc(sizeof(StringValue) + length + 1);
+    const size_t nbytes = sizeof(StringValue) + length + 1;
+
+    if (!npools || nfill + nbytes > POOL_SIZE)
+    {
+        pools = (uint8_t **)mem.realloc(pools, ++npools * sizeof(pools[0]));
+        pools[npools - 1] = (uint8_t *)mem.malloc(nbytes > POOL_SIZE ? nbytes : POOL_SIZE);
+        nfill = 0;
+    }
+
+    StringValue *sv = (StringValue *)&pools[npools - 1][nfill];
     sv->ptrvalue = NULL;
     sv->length = length;
-    ::memcpy(sv->lstring, p, length);
+    ::memcpy(sv->lstring, s, length);
     sv->lstring[length] = 0;
-    return sv;
+
+    const uint32_t vptr = npools << POOL_BITS | nfill;
+    nfill += nbytes + (-nbytes & 7); // align to 8 bytes
+    return vptr;
+}
+
+StringValue *StringTable::getValue(uint32_t vptr)
+{
+    if (!vptr) return NULL;
+
+    const size_t idx = (vptr >> POOL_BITS) - 1;
+    const size_t off = vptr & POOL_SIZE - 1;
+    return (StringValue *)&pools[idx][off];
 }
 
 static size_t nextpow2(size_t val)
@@ -120,19 +142,20 @@ void StringTable::_init(size_t size)
     if (size < 32) size = 32;
     table = (StringEntry *)mem.calloc(size, sizeof(table[0]));
     tabledim = size;
+    pools = NULL;
+    npools = nfill = 0;
     count = 0;
 }
 
 StringTable::~StringTable()
 {
-    for (size_t i = 0; i < tabledim; i++)
-        if (table[i].value)
-            mem.free(table[i].value);
+    for (size_t i = 0; i < npools; ++i)
+        mem.free(pools[i]);
 
-    // Zero out dangling pointers to help garbage collector.
-    memset(table, 0, tabledim * sizeof(table[0]));
     mem.free(table);
+    mem.free(pools);
     table = NULL;
+    pools = NULL;
 }
 
 size_t StringTable::findSlot(hash_t hash, const char *s, size_t length)
@@ -141,7 +164,7 @@ size_t StringTable::findSlot(hash_t hash, const char *s, size_t length)
     // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
     for (size_t i = hash & (tabledim - 1), j = 1; ;++j)
     {
-        if (!table[i].value || (table[i].equals(hash, s, length)))
+        if (!table[i].vptr || (table[i].equals(getValue(table[i].vptr), hash, s, length)))
             return i;
         i = (i + j) & (tabledim - 1);
     }
@@ -152,41 +175,41 @@ StringValue *StringTable::lookup(const char *s, size_t length)
     const hash_t hash = calcHash(s, length);
     const size_t i = findSlot(hash, s, length);
     // printf("lookup %.*s %p\n", (int)length, s, table[i].value ?: NULL);
-    return table[i].value;
+    return getValue(table[i].vptr);
 }
 
 StringValue *StringTable::update(const char *s, size_t length)
 {
     const hash_t hash = calcHash(s, length);
     size_t i = findSlot(hash, s, length);
-    if (!table[i].value)
+    if (!table[i].vptr)
     {
         if (++count > tabledim * loadFactor)
         {
             grow();
             i = findSlot(hash, s, length);
         }
-        table[i] = StringEntry(hash, s, length);
+        table[i] = StringEntry(hash, allocValue(s, length));
     }
     // printf("update %.*s %p\n", (int)length, s, table[i].value ?: NULL);
-    return table[i].value;
+    return getValue(table[i].vptr);
 }
 
 StringValue *StringTable::insert(const char *s, size_t length)
 {
     const hash_t hash = calcHash(s, length);
     size_t i = findSlot(hash, s, length);
-    if (!table[i].value)
+    if (!table[i].vptr)
     {
         if (++count > tabledim * loadFactor)
         {
             grow();
             i = findSlot(hash, s, length);
         }
-        table[i] = StringEntry(hash, s, length);
+        table[i] = StringEntry(hash, allocValue(s, length));
     }
     // printf("insert %.*s %p\n", (int)length, s, table[i].value ?: NULL);
-    return table[i].value;
+    return getValue(table[i].vptr);
 }
 
 void StringTable::grow()
@@ -199,10 +222,9 @@ void StringTable::grow()
     for (size_t i = 0; i < odim; ++i)
     {
         StringEntry &se = otab[i];
-        if (!se.value) continue;
-        table[findSlot(se.hash, se.value->toDchars(), se.value->len())] = se;
+        if (!se.vptr) continue;
+        StringValue *sv = getValue(se.vptr);
+        table[findSlot(se.hash, sv->lstring, sv->length)] = se;
     }
-
-    memset(otab, 0, odim * sizeof(otab[0]));
     mem.free(otab);
 }
