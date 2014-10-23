@@ -6533,8 +6533,6 @@ Type *TypeIdentifier::syntaxCopy()
 
 void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
 {
-    Dsymbol *scopesym;
-
     //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
 
     if ((ident->equals(Id::super) || ident->equals(Id::This)) && !hasThis(sc))
@@ -6558,7 +6556,16 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
             }
         }
     }
+    if (ident == Id::ctfe)
+    {
+        error(loc, "variable __ctfe cannot be read at compile time");
+        *pe = NULL;
+        *ps = NULL;
+        *pt = Type::terror;
+        return;
+    }
 
+    Dsymbol *scopesym;
     Dsymbol *s = sc->search(loc, ident, &scopesym);
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
     if (*pt)
