@@ -3988,60 +3988,6 @@ L2:
     return a;
 }
 
-#if DMD_OBJC
-/*****************************************
- * Parse Objective-C selector name enclosed in brackets. Such as:
- *   [setObject:forKey:otherArgs::]
- * Return NULL when no bracket found.
- */
-
-ObjcSelector *Parser::parseObjCSelector()
-{
-    if (token.value != TOKlbracket)
-        return NULL; // no selector
-
-    ObjcSelectorBuilder selBuilder;
-    nextToken();
-    while (1)
-    {
-        switch (token.value)
-        {
-            case TOKidentifier:
-            Lcaseident:
-                selBuilder.addIdentifier(token.ident);
-                break;
-            case TOKcolon:
-                selBuilder.addColon();
-                break;
-            case TOKrbracket:
-                goto Lendloop;
-            default:
-                // special case to allow D keywords in Objective-C selector names
-                if (token.ident)
-                    goto Lcaseident;
-                goto Lparseerror;
-        }
-        nextToken();
-    }
-Lendloop:
-    nextToken();
-    if (!selBuilder.isValid())
-    {   error("illegal Objective-C selector name");
-        return NULL;
-    }
-    return ObjcSelector::lookup(&selBuilder);
-
-Lparseerror:
-    error("illegal Objective-C selector name");
-    // exit bracket ignoring content
-    while (token.value != TOKrbracket && token.value != TOKeof)
-        nextToken();
-    nextToken();
-    return NULL;
-}
-#endif
-
-
 /*****************************************
  * Parse auto declarations of the form:
  *   storageClass ident = init, ident = init, ... ;

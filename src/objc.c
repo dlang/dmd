@@ -3449,7 +3449,7 @@ void objc_Expression_optimize_visit_CallExp_Tobjcselector(Type *&t1)
 
 void objc_Parser_parseCtor_selector(Parser *self, TemplateParameters *tpl, Parameters *parameters, CtorDeclaration *f)
 {
-    f->objc.selector = self->parseObjCSelector();
+    f->objc.selector = objc_parseSelector(self);
     if (f->objc.selector)
     {
         if (tpl)
@@ -3461,7 +3461,7 @@ void objc_Parser_parseCtor_selector(Parser *self, TemplateParameters *tpl, Param
 
 void objc_Parser_parseDtor(Parser *self, DtorDeclaration *f)
 {
-    f->objc.selector = self->parseObjCSelector();
+    f->objc.selector = objc_parseSelector(self);
 }
 
 void objc_Parser_parseBasicType2_selector(Type *&t, TypeFunction *tf)
@@ -3478,7 +3478,7 @@ void objc_Parser_parseDeclarations_Tobjcselector(Type *&t, LINK &link)
 
 void objc_Parser_parseDeclarations_Tfunction(Parser *self, Type *t, TemplateParameters *tpl, FuncDeclaration *f)
 {
-    f->objc.selector = self->parseObjCSelector();
+    f->objc.selector = objc_parseSelector(self);
     if (f->objc.selector)
     {
         TypeFunction *tf = (TypeFunction *)t;
@@ -3487,4 +3487,56 @@ void objc_Parser_parseDeclarations_Tfunction(Parser *self, Type *t, TemplatePara
         if (f->objc.selector->paramCount != tf->parameters->dim)
             self->error("number of colons in Objective-C selector must match number of parameters");
     }
+}
+
+/*****************************************
+ * Parse Objective-C selector name enclosed in brackets. Such as:
+ *   [setObject:forKey:otherArgs::]
+ * Return NULL when no bracket found.
+ */
+
+ObjcSelector *objc_parseSelector(Parser *self)
+{
+    if (self->token.value != TOKlbracket)
+        return NULL; // no selector
+
+    ObjcSelectorBuilder selBuilder;
+    self->nextToken();
+    while (1)
+    {
+        switch (self->token.value)
+        {
+            case TOKidentifier:
+            Lcaseident:
+                selBuilder.addIdentifier(self->token.ident);
+                break;
+            case TOKcolon:
+                selBuilder.addColon();
+                break;
+            case TOKrbracket:
+                goto Lendloop;
+            default:
+                // special case to allow D keywords in Objective-C selector names
+                if (self->token.ident)
+                    goto Lcaseident;
+                goto Lparseerror;
+        }
+        self->nextToken();
+    }
+Lendloop:
+    self->nextToken();
+    if (!selBuilder.isValid())
+    {
+        self->error("illegal Objective-C selector name");
+        return NULL;
+    }
+    return ObjcSelector::lookup(&selBuilder);
+
+Lparseerror:
+    error("illegal Objective-C selector name");
+    // exit bracket ignoring content
+    while (self->token.value != TOKrbracket && self->token.value != TOKeof)
+        self->nextToken();
+    self->nextToken();
+    return NULL;
 }
