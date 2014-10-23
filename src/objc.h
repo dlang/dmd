@@ -618,5 +618,6 @@ void objc_Parser_parseCtor_selector(Parser *self, TemplateParameters *tpl, Param
 void objc_Parser_parseDtor(Parser *self, DtorDeclaration *f);
 void objc_Parser_parseBasicType2_selector(Type *&t, TypeFunction *tf);
 void objc_Parser_parseDeclarations_Tobjcselector(Type *&t, LINK &link);
+void objc_Parser_parseDeclarations_Tfunction(Parser *self, Type *t, TemplateParameters *tpl, FuncDeclaration *f);
 
 #endif

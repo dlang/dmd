@@ -3888,17 +3888,7 @@ L2:
             addComment(f, comment);
             if (pAttrs)
                 pAttrs->storageClass = STCundefined;
-#if DMD_OBJC
-            f->objc.selector = parseObjCSelector();
-            if (f->objc.selector)
-            {
-                TypeFunction *tf = (TypeFunction *)t;
-                if (tpl)
-                    error("function template cannot have an Objective-C selector attached");
-                if (f->objc.selector->paramCount != tf->parameters->dim)
-                    error("number of colons in Objective-C selector must match number of parameters");
-            }
-#endif
+            objc_Parser_parseDeclarations_Tfunction(this, t, tpl, f);
             if (tpl)
                 constraint = parseConstraint();
             Dsymbol *s = parseContracts(f);

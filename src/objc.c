@@ -3475,3 +3475,16 @@ void objc_Parser_parseDeclarations_Tobjcselector(Type *&t, LINK &link)
     if (t->ty == Tobjcselector)
         link = LINKobjc; // force Objective-C linkage
 }
+
+void objc_Parser_parseDeclarations_Tfunction(Parser *self, Type *t, TemplateParameters *tpl, FuncDeclaration *f)
+{
+    f->objc.selector = self->parseObjCSelector();
+    if (f->objc.selector)
+    {
+        TypeFunction *tf = (TypeFunction *)t;
+        if (tpl)
+            self->error("function template cannot have an Objective-C selector attached");
+        if (f->objc.selector->paramCount != tf->parameters->dim)
+            self->error("number of colons in Objective-C selector must match number of parameters");
+    }
+}
