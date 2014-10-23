@@ -3540,3 +3540,10 @@ Lparseerror:
     self->nextToken();
     return NULL;
 }
+
+ControlFlow objc_Parser_parsePostExp_TOKclass(Parser *self, Expression *&e, Loc loc)
+{
+    e = new ObjcDotClassExp(loc, e);
+    self->nextToken();
+    return CFcontinue;
+}

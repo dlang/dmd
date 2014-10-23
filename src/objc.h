@@ -620,5 +620,6 @@ void objc_Parser_parseBasicType2_selector(Type *&t, TypeFunction *tf);
 void objc_Parser_parseDeclarations_Tobjcselector(Type *&t, LINK &link);
 void objc_Parser_parseDeclarations_Tfunction(Parser *self, Type *t, TemplateParameters *tpl, FuncDeclaration *f);
 ObjcSelector *objc_parseSelector(Parser *self);
+ControlFlow objc_Parser_parsePostExp_TOKclass(Parser *self, Expression *&e, Loc loc);
 
 #endif

@@ -6906,11 +6906,6 @@ Expression *Parser::parsePostExp(Expression *e)
             case TOKdot:
             {
                 nextToken();
-#if DMD_OBJC
-                bool isClass = token.value == TOKclass;
-#else
-                bool isClass = false;
-#endif
                 if (token.value == TOKidentifier)
                 {   Identifier *id = token.ident;
 
@@ -6930,13 +6925,10 @@ Expression *Parser::parsePostExp(Expression *e)
                     continue;
                 }
 
-                else if (isClass)
+                else if (token.value == TOKclass)
                 {
-#if DMD_OBJC
-                    e = new ObjcDotClassExp(loc, e);
-                    nextToken();
-                    continue;
-#endif
+                    if (objc_Parser_parsePostExp_TOKclass(this, e, loc) == CFcontinue)
+                        continue;
                 }
                 else
                     error("identifier expected following '.', not '%s'", token.toChars());
