@@ -38,7 +38,6 @@ public:
     const char *toDchars() const { return lstring; }
 
 private:
-    friend struct StringEntry;
     friend struct StringTable;
     StringValue();  // not constructible
 };

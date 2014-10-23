@@ -81,18 +81,6 @@ static uint32_t calcHash(const char *key, size_t len)
 struct StringEntry
 {
     uint32_t hash, vptr;
-
-    StringEntry(uint32_t hash, uint32_t vptr)
-        : hash(hash)
-        , vptr(vptr)
-    {
-    }
-
-    bool equals(StringValue *sv, hash_t hash, const char* s, size_t length)
-    {
-        return this->hash == hash && sv->length == length &&
-            ::memcmp(sv->lstring, s, length) == 0;
-    }
 };
 
 uint32_t StringTable::allocValue(const char *s, size_t length)
@@ -164,7 +152,11 @@ size_t StringTable::findSlot(hash_t hash, const char *s, size_t length)
     // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
     for (size_t i = hash & (tabledim - 1), j = 1; ;++j)
     {
-        if (!table[i].vptr || (table[i].equals(getValue(table[i].vptr), hash, s, length)))
+        StringValue *sv;
+        if (!table[i].vptr ||
+            table[i].hash == hash &&
+            (sv = getValue(table[i].vptr))->length == length &&
+            ::memcmp(s, sv->lstring, length) == 0)
             return i;
         i = (i + j) & (tabledim - 1);
     }
@@ -189,7 +181,8 @@ StringValue *StringTable::update(const char *s, size_t length)
             grow();
             i = findSlot(hash, s, length);
         }
-        table[i] = StringEntry(hash, allocValue(s, length));
+        table[i].hash = hash;
+        table[i].vptr = allocValue(s, length);
     }
     // printf("update %.*s %p\n", (int)length, s, table[i].value ?: NULL);
     return getValue(table[i].vptr);
@@ -206,7 +199,8 @@ StringValue *StringTable::insert(const char *s, size_t length)
             grow();
             i = findSlot(hash, s, length);
         }
-        table[i] = StringEntry(hash, allocValue(s, length));
+        table[i].hash = hash;
+        table[i].vptr = allocValue(s, length);
     }
     // printf("insert %.*s %p\n", (int)length, s, table[i].value ?: NULL);
     return getValue(table[i].vptr);
