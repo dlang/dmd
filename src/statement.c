@@ -4209,10 +4209,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         cs->push(new ExpStatement(loc, e));
 
         FuncDeclaration *fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorexit, STCnothrow);
-#if DMD_OBJC
-        if (cd && cd->objc.objc) // replace with Objective-C's equivalent function
-            fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::objc_sync_exit);
-#endif
+        objc_SynchronizedStatement_semantic_sync_exit(cd, args, fdexit);
         e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         Statement *s = new ExpStatement(loc, e);

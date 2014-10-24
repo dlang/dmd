@@ -2774,6 +2774,12 @@ void objc_SynchronizedStatement_semantic_sync_enter(ClassDeclaration *cd, Parame
         fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::objc_sync_enter, STCnothrow);
 }
 
+void objc_SynchronizedStatement_semantic_sync_exit(ClassDeclaration *cd, Parameters* args, FuncDeclaration *&fdexit)
+{
+    if (cd && cd->objc.objc) // replace with Objective-C's equivalent function
+        fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::objc_sync_exit, STCnothrow);
+}
+
 // MARK: FuncDeclaration
 
 void objc_FuncDeclaration_declareThis(FuncDeclaration *self, Scope *sc, VarDeclaration** vobjccmd, VarDeclaration *v)

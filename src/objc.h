@@ -559,6 +559,7 @@ void objc_FuncDeclaration_semantic_addClassMethodList(FuncDeclaration *self, Cla
 void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *self);
 
 void objc_SynchronizedStatement_semantic_sync_enter(ClassDeclaration *cd, Parameters* args, FuncDeclaration *&fdenter);
+void objc_SynchronizedStatement_semantic_sync_exit(ClassDeclaration *cd, Parameters* args, FuncDeclaration *&fdexit);
 
 void objc_FuncDeclaration_declareThis(FuncDeclaration *self, Scope *sc, VarDeclaration** vobjccmd, VarDeclaration *v);
 void objc_FuncDeclaration_isThis(FuncDeclaration *self, AggregateDeclaration *&ad);
