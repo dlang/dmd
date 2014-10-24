@@ -6125,7 +6125,7 @@ public:
         }
         else
         {
-            e->error("%s is not a compile-time boolean expression", e1->toChars());
+            e->error("%s is not a compile time boolean expression", e1->toChars());
             result = EXP_CANT_INTERPRET;
             return;
         }

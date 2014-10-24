@@ -3019,6 +3019,12 @@ Expression *IdentifierExp::semantic(Scope *sc)
 
     if (ident == Id::ctfe)
     {
+        if (sc->flags & SCOPEctfe)
+        {
+            error("variable __ctfe cannot be read at compile time");
+            return new ErrorExp();
+        }
+
         // Create the magic __ctfe bool variable
         VarDeclaration *vd = new VarDeclaration(loc, Type::tbool, Id::ctfe, NULL);
         vd->storage_class |= STCtemp;
@@ -11569,7 +11575,7 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         error("cannot rebind scope variables");
     }
-    if (e1->op == TOKvar && ((VarExp*)e1)->var->ident == Id::ctfe)
+    if (e1->op == TOKvar && ((VarExp *)e1)->var->ident == Id::ctfe)
     {
         error("cannot modify compiler-generated variable __ctfe");
     }
