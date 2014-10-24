@@ -949,10 +949,15 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
 
             // Resolve parameter types and 'auto ref's.
             tf->fargs = fargs;
+            unsigned olderrors = global.startGagging();
             fd->type = tf->semantic(loc, paramscope);
-            fd->originalType = fd->type;    // for mangling
-            if (fd->type->ty != Tfunction)
+            if (global.endGagging(olderrors))
+            {
+                assert(fd->type->ty != Tfunction);
                 goto Lnomatch;
+            }
+            assert(fd->type->ty == Tfunction);
+            fd->originalType = fd->type;    // for mangling
         }
 
         // TODO: dedtypes => ti->tiargs ?
