@@ -228,12 +228,7 @@ void ClassDeclaration::toObjFile(bool multiobj)
     if (!members)
         return;
 
-#if DMD_OBJC
-    bool isObjc = objc.objc;
-#else
-    bool isObjc = false;
-#endif
-    if (isObjc)
+    if (objc.objc)
     {
         // Objective-C classes and protocols must belong to the same object file
         // as their corresponding Objective-C module info.
