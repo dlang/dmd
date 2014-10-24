@@ -38,10 +38,7 @@
 #include "declaration.h"
 #include "hdrgen.h"
 #include "doc.h"
-
-#if DMD_OBJC
 #include "objc.h"
-#endif
 
 bool response_expand(size_t *pargc, const char ***pargv);
 
