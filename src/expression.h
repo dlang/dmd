@@ -875,22 +875,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-#if DMD_OBJC
-class ObjcSelectorExp : public Expression
-{
-public:
-    FuncDeclaration *func;
-    char *selname;
-    int hasOverloads;
-
-    ObjcSelectorExp(Loc loc, FuncDeclaration *func, int hasOverloads = 0);
-    ObjcSelectorExp(Loc loc, char *selname, int hasOverloads = 0);
-    Expression *semantic(Scope *sc);
-
-    void accept(Visitor *v) { v->visit(this); }
-};
-#endif
-
 class DotTypeExp : public UnaExp
 {
 public:
