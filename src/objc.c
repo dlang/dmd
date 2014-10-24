@@ -2001,6 +2001,11 @@ int TypeObjcSelector::hasPointers()
     return FALSE; // not in GC memory
 }
 
+TypeInfoDeclaration *TypeObjcSelector::getTypeInfoDeclaration()
+{
+    return TypeInfoObjcSelectorDeclaration::create(this);
+}
+
 /***************************************/
 
 #include "cond.h"

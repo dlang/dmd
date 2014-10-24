@@ -225,13 +225,6 @@ TypeInfoDeclaration *TypeDelegate::getTypeInfoDeclaration()
     return TypeInfoDelegateDeclaration::create(this);
 }
 
-#if DMD_OBJC
-TypeInfoDeclaration *TypeObjcSelector::getTypeInfoDeclaration()
-{
-    return TypeInfoObjcSelectorDeclaration::create(this);
-}
-#endif
-
 TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
 {
     return TypeInfoTupleDeclaration::create(this);
