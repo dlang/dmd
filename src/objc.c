@@ -2011,6 +2011,7 @@ int TypeObjcSelector::hasPointers()
 #include "utf.h"
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
+unsigned totym(Type *tx);
 
 Objc_StructDeclaration::Objc_StructDeclaration()
 {
@@ -3593,4 +3594,28 @@ void objc_callSideEffectLevel_Tobjcselector(Type *t, TypeFunction *&tf)
 void objc_lambdaHasSideEffect_TOKcall_Tobjcselector(Type *&t)
 {
     t = ((TypeObjcSelector *)t)->next;
+}
+
+// MARK: Type_toCtype
+
+void objc_Type_toCtype_visit_TypeObjcSelector(TypeObjcSelector *t)
+{
+    type *tn;
+
+    //printf("TypePointer::toCtype() %s\n", t->toChars());
+    if (t->ctype)
+        return;
+
+    if (1 || global.params.symdebug)
+    {   /* Need to always do this, otherwise C++ name mangling
+         * goes awry.
+         */
+        t->ctype = type_alloc(TYnptr);
+        tn = tschar; // expose selector as a char*
+        t->ctype->Tnext = tn;
+        tn->Tcount++;
+    }
+    else
+        t->ctype = type_fake(totym(t));
+    t->ctype->Tcount++;
 }

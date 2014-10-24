@@ -106,29 +106,10 @@ public:
         t->ctype = type_delegate(Type_toCtype(t->next));
     }
 
-#if DMD_OBJC
     void visit(TypeObjcSelector *t)
     {
-        type *tn;
-
-        //printf("TypePointer::toCtype() %s\n", t->toChars());
-        if (t->ctype)
-            return;
-
-        if (1 || global.params.symdebug)
-        {   /* Need to always do this, otherwise C++ name mangling
-             * goes awry.
-             */
-            t->ctype = type_alloc(TYnptr);
-            tn = tschar; // expose selector as a char*
-            t->ctype->Tnext = tn;
-            tn->Tcount++;
-        }
-        else
-            t->ctype = type_fake(totym(t));
-        t->ctype->Tcount++;
+        objc_Type_toCtype_visit_TypeObjcSelector(t);
     }
-#endif
 
     void visit(TypeStruct *t)
     {

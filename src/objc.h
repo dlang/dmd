@@ -645,4 +645,6 @@ void objc_callSideEffectLevel_Tobjcselector(Type *t, TypeFunction *&tf);
 
 void objc_lambdaHasSideEffect_TOKcall_Tobjcselector(Type *&t);
 
+void objc_Type_toCtype_visit_TypeObjcSelector(TypeObjcSelector *t);
+
 #endif
