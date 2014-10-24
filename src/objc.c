@@ -2006,6 +2006,7 @@ int TypeObjcSelector::hasPointers()
 #include "cond.h"
 #include "expression.h"
 #include "init.h"
+#include "module.h"
 #include "parse.h"
 #include "statement.h"
 #include "utf.h"
@@ -3618,4 +3619,21 @@ void objc_Type_toCtype_visit_TypeObjcSelector(TypeObjcSelector *t)
     else
         t->ctype = type_fake(totym(t));
     t->ctype->Tcount++;
+}
+
+// MARK: Module::genmoduleinfo
+
+void objc_Module_genmoduleinfo_classes(Module *self)
+{
+    // generate the list of objc classes and categories in this module
+    ClassDeclarations objccls;
+    ClassDeclarations objccat;
+    for (int i = 0; i < self->members->dim; i++)
+    {
+        Dsymbol *member = self->members->tdata()[i];
+        member->addObjcSymbols(&objccls, &objccat);
+    }
+    // only emit objc module info for modules with Objective-C symbols
+    if (objccls.dim || objccat.dim || ObjcSymbols::hassymbols)
+        ObjcSymbols::getModuleInfo(&objccls, &objccat);
 }

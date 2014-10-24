@@ -647,4 +647,6 @@ void objc_lambdaHasSideEffect_TOKcall_Tobjcselector(Type *&t);
 
 void objc_Type_toCtype_visit_TypeObjcSelector(TypeObjcSelector *t);
 
+void objc_Module_genmoduleinfo_classes(Module *self);
+
 #endif

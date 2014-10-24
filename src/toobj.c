@@ -192,19 +192,7 @@ void Module::genmoduleinfo()
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
-#if DMD_OBJC
-    // generate the list of objc classes and categories in this module
-    ClassDeclarations objccls;
-    ClassDeclarations objccat;
-    for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *member = members->tdata()[i];
-        member->addObjcSymbols(&objccls, &objccat);
-    }
-    // only emit objc module info for modules with Objective-C symbols
-    if (objccls.dim || objccat.dim || ObjcSymbols::hassymbols)
-        ObjcSymbols::getModuleInfo(&objccls, &objccat);
-#endif
-
+    objc_Module_genmoduleinfo_classes(this);
     csym->Sdt = dt;
     out_readonly(csym);
     outdata(csym);
