@@ -189,10 +189,8 @@ bool lambdaHasSideEffect(Expression *e)
                 Type *t = ce->e1->type->toBasetype();
                 if (t->ty == Tdelegate)
                     t = ((TypeDelegate *)t)->next;
-#if DMD_OBJC
                 if (t->ty == Tobjcselector)
-                    t = ((TypeObjcSelector *)t)->next;
-#endif
+                    objc_lambdaHasSideEffect_TOKcall_Tobjcselector(t);
                 if (t->ty == Tfunction &&
                     (ce->f ? callSideEffectLevel(ce->f)
                            : callSideEffectLevel(ce->e1->type)) > 0)

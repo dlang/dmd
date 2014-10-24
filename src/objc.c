@@ -3530,6 +3530,7 @@ Lendloop:
     {
         self->error("illegal Objective-C selector name");
         return NULL;
+
     }
     return ObjcSelector::lookup(&selBuilder);
 
@@ -3573,4 +3574,11 @@ void objc_tryMain_init()
 void objc_callSideEffectLevel_Tobjcselector(Type *t, TypeFunction *&tf)
 {
     tf = (TypeFunction *)((TypeDelegate *)t)->next;
+}
+
+// MARK: lambdaHasSideEffect
+
+void objc_lambdaHasSideEffect_TOKcall_Tobjcselector(Type *&t)
+{
+    t = ((TypeObjcSelector *)t)->next;
 }

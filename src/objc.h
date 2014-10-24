@@ -640,4 +640,6 @@ void objc_tryMain_init();
 
 void objc_callSideEffectLevel_Tobjcselector(Type *t, TypeFunction *&tf);
 
+void objc_lambdaHasSideEffect_TOKcall_Tobjcselector(Type *&t);
+
 #endif
