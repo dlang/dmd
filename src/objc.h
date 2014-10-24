@@ -400,6 +400,7 @@ public:
 /***************************************/
 
 class Parser;
+class TypeInfoObjcSelectorDeclaration;
 struct IRState;
 struct HdrGenState;
 typedef struct Symbol symbol;
@@ -650,5 +651,7 @@ void objc_lambdaHasSideEffect_TOKcall_Tobjcselector(Type *&t);
 void objc_Type_toCtype_visit_TypeObjcSelector(TypeObjcSelector *t);
 
 void objc_Module_genmoduleinfo_classes(Module *self);
+
+void objc_TypeInfo_toDt_visit_TypeInfoObjcSelectorDeclaration(dt_t **pdt, TypeInfoObjcSelectorDeclaration *d);
 
 #endif

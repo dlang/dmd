@@ -2014,6 +2014,7 @@ TypeInfoDeclaration *TypeObjcSelector::getTypeInfoDeclaration()
 #include "module.h"
 #include "parse.h"
 #include "statement.h"
+#include "typinf.c"
 #include "utf.h"
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
@@ -3657,4 +3658,20 @@ void objc_Module_genmoduleinfo_classes(Module *self)
     // only emit objc module info for modules with Objective-C symbols
     if (objccls.dim || objccat.dim || ObjcSymbols::hassymbols)
         ObjcSymbols::getModuleInfo(&objccls, &objccat);
+}
+
+// MARK: TypeInfo_toDt
+
+void objc_TypeInfo_toDt_visit_TypeInfoObjcSelectorDeclaration(dt_t **pdt, TypeInfoObjcSelectorDeclaration *d)
+{
+    //printf("TypeInfoObjcSelectorDeclaration::toDt()\n");
+    dtxoff(pdt, Type::typeinfodelegate->toVtblSymbol(), 0); // vtbl for TypeInfo_ObjcSelector
+    dtsize_t(pdt, 0);                        // monitor
+
+    assert(d->tinfo->ty == Tobjcselector);
+
+    TypeObjcSelector *tc = (TypeObjcSelector *)d->tinfo;
+
+    tc->next->nextOf()->getTypeInfo(NULL);
+    dtxoff(pdt, toSymbol(tc->next->nextOf()->vtinfo), 0); // TypeInfo for selector return value
 }

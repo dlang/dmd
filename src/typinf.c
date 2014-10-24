@@ -496,21 +496,10 @@ public:
         dtabytes(pdt, 0, namelen + 1, name);
     }
 
-#if DMD_OBJC
     void visit(TypeInfoObjcSelectorDeclaration *d)
     {
-        //printf("TypeInfoObjcSelectorDeclaration::toDt()\n");
-        dtxoff(pdt, Type::typeinfodelegate->toVtblSymbol(), 0); // vtbl for TypeInfo_ObjcSelector
-        dtsize_t(pdt, 0);                        // monitor
-
-        assert(d->tinfo->ty == Tobjcselector);
-
-        TypeObjcSelector *tc = (TypeObjcSelector *)d->tinfo;
-
-        tc->next->nextOf()->getTypeInfo(NULL);
-        dtxoff(pdt, toSymbol(tc->next->nextOf()->vtinfo), 0); // TypeInfo for selector return value
+        objc_TypeInfo_toDt_visit_TypeInfoObjcSelectorDeclaration(pdt, d);
     }
-#endif
 
     void visit(TypeInfoStructDeclaration *d)
     {
