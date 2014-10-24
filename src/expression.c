@@ -2724,9 +2724,10 @@ int IntegerExp::isBool(int result)
 
 Expression *IntegerExp::semantic(Scope *sc)
 {
-    assert(type && type->deco);
+    assert(type);
     if (type->ty == Terror)
         return new ErrorExp();
+    assert(type->deco);
     normalize();
     return this;
 }
