@@ -4203,10 +4203,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         args->push(new Parameter(0, ClassDeclaration::object->type, NULL, NULL));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorenter, STCnothrow);
-#if DMD_OBJC
-        if (cd && cd->objc.objc) // replace with Objective-C's equivalent function
-            fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::objc_sync_enter);
-#endif
+        objc_SynchronizedStatement_semantic_sync_enter(cd, args, fdenter);
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         cs->push(new ExpStatement(loc, e));

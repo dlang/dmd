@@ -2768,6 +2768,12 @@ void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *self)
         self->error("function must have Objective-C linkage to attach a selector");
 }
 
+void objc_SynchronizedStatement_semantic_sync_enter(ClassDeclaration *cd, Parameters* args, FuncDeclaration *&fdenter)
+{
+    if (cd && cd->objc.objc) // replace with Objective-C's equivalent function
+        fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::objc_sync_enter, STCnothrow);
+}
+
 // MARK: FuncDeclaration
 
 void objc_FuncDeclaration_declareThis(FuncDeclaration *self, Scope *sc, VarDeclaration** vobjccmd, VarDeclaration *v)

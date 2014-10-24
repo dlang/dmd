@@ -558,6 +558,8 @@ void objc_FuncDeclaration_semantic_checkInheritedSelector(FuncDeclaration *self,
 void objc_FuncDeclaration_semantic_addClassMethodList(FuncDeclaration *self, ClassDeclaration *cd);
 void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *self);
 
+void objc_SynchronizedStatement_semantic_sync_enter(ClassDeclaration *cd, Parameters* args, FuncDeclaration *&fdenter);
+
 void objc_FuncDeclaration_declareThis(FuncDeclaration *self, Scope *sc, VarDeclaration** vobjccmd, VarDeclaration *v);
 void objc_FuncDeclaration_isThis(FuncDeclaration *self, AggregateDeclaration *&ad);
 ControlFlow objc_FuncDeclaration_isVirtual(FuncDeclaration *self, Dsymbol *p, bool &result);
