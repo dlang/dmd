@@ -257,18 +257,8 @@ void ClassDeclaration::toObjFile(bool multiobj)
         member->toObjFile(multiobj);
     }
 
-#if DMD_OBJC
-    if (objc.objc)
-    {
-        if (!objc.meta)
-        {
-            ObjcClassDeclaration* objcdecl = ObjcClassDeclaration::create(this);
-            objcdecl->toObjFile(multiobj);
-            objc.classSymbol = objcdecl->symbol;
-        }
-        return; // skip rest of output
-    }
-#endif
+    if (objc_ClassDeclaration_toObjFile(this, multiobj) == CFreturn)
+        return;
 
     // Generate C symbols
     toSymbol(this);

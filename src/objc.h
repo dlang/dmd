@@ -569,6 +569,8 @@ bool objc_FuncDeclaration_objcPreinitInvariant(FuncDeclaration *self);
 void objc_FuncDeclaration_toObjFile_extraArgument(FuncDeclaration *self, size_t &pi);
 void objc_FuncDeclaration_toObjFile_selfCmd(FuncDeclaration *self, Symbol **params, size_t &pi);
 
+ControlFlow objc_ClassDeclaration_toObjFile(ClassDeclaration *self, bool multiobj);
+
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result);
 MATCH objc_implicitConvTo_visit_ObjcSelectorExp(Type *&t, ObjcSelectorExp *e);
 
