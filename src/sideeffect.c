@@ -115,15 +115,10 @@ int callSideEffectLevel(Type *t)
     t = t->toBasetype();
 
     TypeFunction *tf;
-#if DMD_OBJC
-    bool isObjcSelector = t->ty == Tobjcselector;
-#else
-    bool isObjcSelector = false;
-#endif
     if (t->ty == Tdelegate)
         tf = (TypeFunction *)((TypeDelegate *)t)->next;
-    else if (isObjcSelector)
-        tf = (TypeFunction *)((TypeDelegate *)t)->next;
+    else if (t->ty == Tobjcselector)
+        objc_callSideEffectLevel_Tobjcselector(t, tf);
     else
     {
         assert(t->ty == Tfunction);

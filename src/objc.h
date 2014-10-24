@@ -638,4 +638,6 @@ ControlFlow objc_Parser_parsePostExp_TOKclass(Parser *self, Expression *&e, Loc 
 void objc_tryMain_dObjc();
 void objc_tryMain_init();
 
+void objc_callSideEffectLevel_Tobjcselector(Type *t, TypeFunction *&tf);
+
 #endif

@@ -3567,3 +3567,10 @@ void objc_tryMain_init()
     ObjcSymbols::init();
     ObjcSelector::init();
 }
+
+// MARK: callSideEffectLevel
+
+void objc_callSideEffectLevel_Tobjcselector(Type *t, TypeFunction *&tf)
+{
+    tf = (TypeFunction *)((TypeDelegate *)t)->next;
+}
