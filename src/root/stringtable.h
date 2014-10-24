@@ -38,21 +38,23 @@ public:
     const char *toDchars() const { return lstring; }
 
 private:
-    friend struct StringEntry;
+    friend struct StringTable;
     StringValue();  // not constructible
-    // This is more like a placement new c'tor
-    void ctor(const char *p, size_t length);
 };
 
 struct StringTable
 {
 private:
-    void **table;
-    size_t count;
+    StringEntry *table;
     size_t tabledim;
 
+    uint8_t **pools;
+    size_t npools, nfill;
+
+    size_t count;
+
 public:
-    void _init(size_t size = 37);
+    void _init(size_t size = 0);
     ~StringTable();
 
     StringValue *lookup(const char *s, size_t len);
@@ -60,7 +62,10 @@ public:
     StringValue *update(const char *s, size_t len);
 
 private:
-    void **search(const char *s, size_t len);
+    uint32_t allocValue(const char *p, size_t length);
+    StringValue *getValue(uint32_t validx);
+    size_t findSlot(hash_t hash, const char *s, size_t len);
+    void grow();
 };
 
 #endif
