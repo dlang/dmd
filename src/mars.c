@@ -1202,16 +1202,7 @@ Language changes listed by -transition=id:\n\
     if (boundscheck == 0)
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 
-#if DMD_OBJC
-	VersionCondition::addPredefinedGlobalIdent("D_ObjC");
-
-    if (global.params.isOSX && global.params.is64bit) // && isArm
-    {
-        global.params.isObjcNonFragileAbi = 1;
-        VersionCondition::addPredefinedGlobalIdent("D_ObjCNonFragileABI");
-    }
-#endif
-
+    objc_tryMain_dObjc();
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
 
     // Initialization

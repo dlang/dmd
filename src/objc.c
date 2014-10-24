@@ -2003,6 +2003,7 @@ int TypeObjcSelector::hasPointers()
 
 /***************************************/
 
+#include "cond.h"
 #include "expression.h"
 #include "init.h"
 #include "parse.h"
@@ -3546,4 +3547,17 @@ ControlFlow objc_Parser_parsePostExp_TOKclass(Parser *self, Expression *&e, Loc 
     e = new ObjcDotClassExp(loc, e);
     self->nextToken();
     return CFcontinue;
+}
+
+// MARK: tryMain
+
+void objc_tryMain_dObjc()
+{
+    VersionCondition::addPredefinedGlobalIdent("D_ObjC");
+
+    if (global.params.isOSX && global.params.is64bit) // && isArm
+    {
+        global.params.isObjcNonFragileAbi = 1;
+        VersionCondition::addPredefinedGlobalIdent("D_ObjCNonFragileABI");
+    }
 }

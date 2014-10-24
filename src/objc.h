@@ -635,4 +635,6 @@ void objc_Parser_parseDeclarations_Tfunction(Parser *self, Type *t, TemplatePara
 ObjcSelector *objc_parseSelector(Parser *self);
 ControlFlow objc_Parser_parsePostExp_TOKclass(Parser *self, Expression *&e, Loc loc);
 
+void objc_tryMain_dObjc();
+
 #endif
