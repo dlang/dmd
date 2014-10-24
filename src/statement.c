@@ -4158,17 +4158,12 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         if (exp->op == TOKerror)
             goto Lbody;
         ClassDeclaration *cd = exp->type->isClassHandle();
-#if DMD_OBJC
-        bool isObjc = cd && cd->objc.objc;
-#else
-        bool isObjc = false;
-#endif
         if (!cd)
         {
             error("can only synchronize on class objects, not '%s'", exp->type->toChars());
             return new ErrorStatement();
         }
-        else if (isObjc)
+        else if (cd && cd->objc.objc)
         {
             /* interface declaration not a special case in Objective-C */
         }
