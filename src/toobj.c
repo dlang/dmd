@@ -40,10 +40,7 @@
 #include "cgcv.h"
 #include "outbuf.h"
 #include "irstate.h"
-
-#if DMD_OBJC
 #include "objc.h"
-#endif
 
 extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
