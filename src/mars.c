@@ -1211,10 +1211,7 @@ Language changes listed by -transition=id:\n\
     Module::init();
     Target::init();
     Expression::init();
-#if DMD_OBJC
-    ObjcSymbols::init();
-    ObjcSelector::init();
-#endif
+    objc_tryMain_init();
     initPrecedence();
     builtin_init();
     initTraitsStringTable();

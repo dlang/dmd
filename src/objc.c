@@ -3561,3 +3561,9 @@ void objc_tryMain_dObjc()
         VersionCondition::addPredefinedGlobalIdent("D_ObjCNonFragileABI");
     }
 }
+
+void objc_tryMain_init()
+{
+    ObjcSymbols::init();
+    ObjcSelector::init();
+}
