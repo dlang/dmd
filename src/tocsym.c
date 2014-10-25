@@ -191,7 +191,7 @@ Symbol *toSymbol(Dsymbol *s)
                      * It applies to PDB format, but should apply to CV as PDB derives from CV.
                      *    http://msdn.microsoft.com/en-us/library/ff553493(VS.85).aspx
                      */
-                    s->prettyIdent = vd->toPrettyChars();
+                    s->prettyIdent = vd->toPrettyChars(true);
                 }
                 else
                 {
@@ -291,7 +291,7 @@ Symbol *toSymbol(Dsymbol *s)
                 Symbol *s = symbol_calloc(id);
                 slist_add(s);
 
-                s->prettyIdent = fd->toPrettyChars();
+                s->prettyIdent = fd->toPrettyChars(true);
                 s->Sclass = SCglobal;
                 symbol_func(s);
                 func_t *f = s->Sfunc;
@@ -572,20 +572,6 @@ Symbol *AggregateDeclaration::toInitializer()
         StructDeclaration *sd = isStructDeclaration();
         if (sd)
             s->Salignment = sd->alignment;
-        slist_add(s);
-        sinit = s;
-    }
-    return sinit;
-}
-
-Symbol *TypedefDeclaration::toInitializer()
-{
-    if (!sinit)
-    {
-        Classsym *stag = fake_classsym(Id::ClassInfo);
-        Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
         slist_add(s);
         sinit = s;
     }

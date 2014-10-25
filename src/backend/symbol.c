@@ -2311,11 +2311,13 @@ void symbol_gendebuginfo()
  * for next obj file to be created.
  */
 
-static list_t slist;
+static Symbol **slist;
+static size_t slist_length;
 
 void slist_add(Symbol *s)
 {
-    list_prepend(&slist,s);
+    slist = (Symbol **)realloc(slist, (slist_length + 1) * sizeof(Symbol *));
+    slist[slist_length++] = s;
 }
 
 /*************************************
@@ -2325,8 +2327,9 @@ void slist_add(Symbol *s)
 void slist_reset()
 {
     //printf("slist_reset()\n");
-    for (list_t sl = slist; sl; sl = list_next(sl))
-    {   Symbol *s = list_symbol(sl);
+    for (size_t i = 0; i < slist_length; ++i)
+    {
+        Symbol *s = slist[i];
 
 #if MACHOBJ
         s->Soffset = 0;
@@ -2345,4 +2348,3 @@ void slist_reset()
 
 
 #endif /* !SPP */
-

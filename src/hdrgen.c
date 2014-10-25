@@ -62,29 +62,7 @@ void genhdrfile(Module *m)
     HdrGenState hgs;
     hgs.hdrgen = true;
 
-    if (m->md)
-    {
-        if (m->md->isdeprecated)
-        {
-            if (m->md->msg)
-            {
-                buf.writestring("deprecated(");
-                toCBuffer(m->md->msg, &buf, &hgs);
-                buf.writestring(") ");
-            }
-            else
-                buf.writestring("deprecated ");
-        }
-        buf.writestring("module ");
-        buf.writestring(m->md->toChars());
-        buf.writeByte(';');
-        buf.writenl();
-    }
-    for (size_t i = 0; i < m->members->dim; i++)
-    {
-        Dsymbol *s = (*m->members)[i];
-        toCBuffer(s, &buf, &hgs);
-    }
+    toCBuffer(m, &buf, &hgs);
 
     // Transfer image to file
     m->hdrfile->setbuffer(buf.data, buf.offset);
@@ -379,7 +357,6 @@ public:
             s->elsebody->accept(this);
             buf->level--;
             buf->writeByte('}');
-            buf->writenl();
         }
         buf->writenl();
     }
@@ -1014,12 +991,6 @@ public:
         buf->writestring(t->sym->toChars());
     }
 
-    void visit(TypeTypedef *t)
-    {
-        //printf("TypeTypedef::toCBuffer2() '%s'\n", t->sym->toChars());
-        buf->writestring(t->sym->toChars());
-    }
-
     void visit(TypeStruct *t)
     {
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
@@ -1187,7 +1158,10 @@ public:
             buf->writestring("{}");
         }
         else if (d->decl->dim == 1)
+        {
             ((*d->decl)[0])->accept(this);
+            return;
+        }
         else
         {
             buf->writenl();
@@ -1685,19 +1659,6 @@ public:
         }
     }
 
-    void visit(TypedefDeclaration *d)
-    {
-        buf->writestring("typedef ");
-        typeToBuffer(d->basetype, d->ident);
-        if (d->init)
-        {
-            buf->writestring(" = ");
-            d->init->accept(this);
-        }
-        buf->writeByte(';');
-        buf->writenl();
-    }
-
     void visit(AliasDeclaration *d)
     {
         buf->writestring("alias ");
@@ -1760,13 +1721,15 @@ public:
                 hgs->autoMember--;
             }
             else if (hgs->tpltMember == 0 && !global.params.useInline)
+            {
                 buf->writeByte(';');
+                buf->writenl();
+            }
             else
                 bodyToBuffer(f);
         }
         else
             bodyToBuffer(f);
-        buf->writenl();
     }
 
     void bodyToBuffer(FuncDeclaration *f)
@@ -1881,22 +1844,24 @@ public:
 
     void visit(StaticCtorDeclaration *d)
     {
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         if (d->isSharedStaticCtorDeclaration())
             buf->writestring("shared ");
+        buf->writestring("static this()");
         if (hgs->hdrgen && !hgs->tpltMember)
         {
-            buf->writestring("static this();");
+            buf->writeByte(';');
             buf->writenl();
-            return;
         }
-        buf->writestring("static this()");
-        bodyToBuffer(d);
+        else
+            bodyToBuffer(d);
     }
 
     void visit(StaticDtorDeclaration *d)
     {
         if (hgs->hdrgen)
             return;
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         if (d->isSharedStaticDtorDeclaration())
             buf->writestring("shared ");
         buf->writestring("static ~this()");
@@ -1907,6 +1872,7 @@ public:
     {
         if (hgs->hdrgen)
             return;
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
         buf->writestring("invariant");
         bodyToBuffer(d);
     }
@@ -1915,12 +1881,14 @@ public:
     {
         if (hgs->hdrgen)
             return;
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
         buf->writestring("unittest");
         bodyToBuffer(d);
     }
 
     void visit(NewDeclaration *d)
     {
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         buf->writestring("new");
         parametersToBuffer(d->arguments, d->varargs);
         bodyToBuffer(d);
@@ -1928,6 +1896,7 @@ public:
 
     void visit(DeleteDeclaration *d)
     {
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         buf->writestring("delete");
         parametersToBuffer(d->arguments, 0);
         bodyToBuffer(d);
@@ -2081,14 +2050,6 @@ public:
                     TypeEnum *te = (TypeEnum *)t;
                     buf->printf("cast(%s)", te->sym->toChars());
                     t = te->sym->memtype;
-                    goto L1;
-                }
-
-                case Ttypedef:
-                {
-                    TypeTypedef *tt = (TypeTypedef *)t;
-                    buf->printf("cast(%s)", tt->sym->toChars());
-                    t = tt->sym->basetype;
                     goto L1;
                 }
 
@@ -2967,6 +2928,41 @@ public:
             }
         }
         buf->writeByte(')');
+    }
+
+    void visit(Module *m)
+    {
+        if (m->md)
+        {
+            if (m->userAttribDecl)
+            {
+                buf->writestring("@(");
+                argsToBuffer(m->userAttribDecl->atts);
+                buf->writeByte(')');
+                buf->writenl();
+            }
+            if (m->md->isdeprecated)
+            {
+                if (m->md->msg)
+                {
+                    buf->writestring("deprecated(");
+                    m->md->msg->accept(this);
+                    buf->writestring(") ");
+                }
+                else
+                    buf->writestring("deprecated ");
+            }
+
+            buf->writestring("module ");
+            buf->writestring(m->md->toChars());
+            buf->writeByte(';');
+            buf->writenl();
+        }
+        for (size_t i = 0; i < m->members->dim; i++)
+        {
+            Dsymbol *s = (*m->members)[i];
+            s->accept(this);
+        }
     }
 };
 

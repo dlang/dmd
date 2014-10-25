@@ -483,11 +483,6 @@ TypeTuple *toArgTypes(Type *t)
             t->toBasetype()->accept(this);
         }
 
-        void visit(TypeTypedef *t)
-        {
-            t->sym->basetype->accept(this);
-        }
-
         void visit(TypeClass *)
         {
             result = new TypeTuple(Type::tvoidptr);

@@ -537,6 +537,31 @@ static assert(is(typeof(&f12970k) == void function() @system));
 static assert(is(typeof(&f12970l) == void function() @system));
 
 /***************************************************/
+// Parsing prefix STC_FUNCATTR for variable declaration
+
+__gshared immutable pure nothrow @property @nogc @safe void function() prefix_qualified_fp1;
+__gshared{immutable{pure{nothrow{@property{@nogc{@safe{void function() prefix_qualified_fp2;}}}}}}}
+static assert(typeof(prefix_qualified_fp1).stringof == typeof(prefix_qualified_fp2).stringof);
+static assert(typeof(prefix_qualified_fp1).stringof
+        == "immutable(void function() pure nothrow @nogc @property @safe)");
+
+const pure nothrow @property @nogc @safe void function()[] prefix_qualified_fp_array1;
+const{pure{nothrow{@property{@nogc{@safe{void function()[] prefix_qualified_fp_array2;}}}}}}
+static assert(typeof(prefix_qualified_fp_array1).stringof == typeof(prefix_qualified_fp_array2).stringof);
+static assert(typeof(prefix_qualified_fp_array1).stringof
+        == "const(void function() pure nothrow @nogc @property @safe[])");
+
+/***************************************************/
+// Parsing prefix, intermediate, or postfix @safe for alias declaration
+
+@safe alias void function() AliasDecl_FP1;
+alias @safe void function() AliasDecl_FP2;    // is not @safe
+alias void function() @safe AliasDecl_FP3;
+static assert(AliasDecl_FP1.stringof == "void function() @safe");
+static assert(AliasDecl_FP2.stringof == "void function()");
+static assert(AliasDecl_FP3.stringof == "void function() @safe");
+
+/***************************************************/
 // 13217
 
 void writeln13217(string) {}

@@ -104,7 +104,7 @@ Library *LibMSCoff_factory()
 LibMSCoff::LibMSCoff()
 {
     libfile = NULL;
-    tab._init();
+    tab._init(14000);
 }
 
 /***********************************
@@ -867,4 +867,3 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
 #endif
     assert(libbuf->offset == moffset);
 }
-

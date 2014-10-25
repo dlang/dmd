@@ -1,6 +1,6 @@
 module imports.testminitAA;
 
-import std.c.stdio;
+import core.stdc.stdio;
 int aa;
 
 static this()

@@ -2,6 +2,6 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -cov
 
-import std.c.string;
+import core.stdc.string;
 import testcov1a;
 

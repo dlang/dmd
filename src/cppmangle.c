@@ -49,6 +49,7 @@ class CppMangleVisitor : public Visitor
     Objects components;
     OutBuffer buf;
     bool is_top_level;
+    bool components_on;
 
     void writeBase36(size_t i)
     {
@@ -67,38 +68,43 @@ class CppMangleVisitor : public Visitor
 
     int substitute(RootObject *p)
     {
-        for (size_t i = 0; i < components.dim; i++)
-        {
-            if (p == components[i])
+        //printf("substitute %s\n", p ? p->toChars() : NULL);
+        if (components_on)
+            for (size_t i = 0; i < components.dim; i++)
             {
-                /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
-                 */
-                buf.writeByte('S');
-                if (i)
-                    writeBase36(i - 1);
-                buf.writeByte('_');
-                return 1;
+                if (p == components[i])
+                {
+                    /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
+                     */
+                    buf.writeByte('S');
+                    if (i)
+                        writeBase36(i - 1);
+                    buf.writeByte('_');
+                    return 1;
+                }
             }
-        }
         return 0;
     }
 
     int exist(RootObject *p)
     {
-        for (size_t i = 0; i < components.dim; i++)
-        {
-            if (p == components[i])
+        //printf("exist %s\n", p ? p->toChars() : NULL);
+        if (components_on)
+            for (size_t i = 0; i < components.dim; i++)
             {
-                return 1;
+                if (p == components[i])
+                {
+                    return 1;
+                }
             }
-        }
         return 0;
     }
 
     void store(RootObject *p)
     {
-        //printf("push %s\n", p ? p->toChars() : NULL);
-        components.push(p);
+        //printf("store %s\n", p ? p->toChars() : NULL);
+        if (components_on)
+            components.push(p);
     }
 
     void source_name(Dsymbol *s, bool skipname = false)
@@ -209,7 +215,6 @@ class CppMangleVisitor : public Visitor
                         if (!substitute(d))
                         {
                             cpp_mangle_name(d, false);
-                            store(d);
                         }
                     }
                     else
@@ -315,6 +320,60 @@ class CppMangleVisitor : public Visitor
                     buf.writestring("Sa");      // "Sa" is short for ::std::allocator
                     source_name(se, true);
                 }
+                else if (s->ident == Id::basic_string)
+                {
+                    components_on = false;      // turn off substitutions
+                    buf.writestring("Sb");      // "Sb" is short for ::std::basic_string
+                    size_t off = buf.offset;
+                    source_name(se, true);
+                    components_on = true;
+
+                    // Replace ::std::basic_string < char, ::std::char_traits<char>, ::std::allocator<char> >
+                    // with Ss
+                    //printf("xx: '%.*s'\n", (int)(buf.offset - off), buf.data + off);
+                    if (buf.offset - off >= 26 &&
+                        memcmp(buf.data + off, "IcSt11char_traitsIcESaIcEE", 26) == 0)
+                    {
+                        buf.remove(off - 2, 28);
+                        buf.insert(off - 2, "Ss", 2);
+                        return;
+                    }
+                    buf.setsize(off);
+                    source_name(se, true);
+                }
+                else if (s->ident == Id::basic_istream ||
+                         s->ident == Id::basic_ostream ||
+                         s->ident == Id::basic_iostream)
+                {
+                    /* Replace
+                     * ::std::basic_istream<char,  std::char_traits<char> > with Si
+                     * ::std::basic_ostream<char,  std::char_traits<char> > with So
+                     * ::std::basic_iostream<char, std::char_traits<char> > with Sd
+                     */
+                    size_t off = buf.offset;
+                    components_on = false;      // turn off substitutions
+                    source_name(se, true);
+                    components_on = true;
+
+                    //printf("xx: '%.*s'\n", (int)(buf.offset - off), buf.data + off);
+                    if (buf.offset - off >= 21 &&
+                        memcmp(buf.data + off, "IcSt11char_traitsIcEE", 21) == 0)
+                    {
+                        buf.remove(off, 21);
+                        char p[2];
+                        p[0] = 'S';
+                        p[1] = 'i';
+                        if (s->ident == Id::basic_ostream)
+                            p[1] = 'o';
+                        else if(s->ident == Id::basic_iostream)
+                            p[1] = 'd';
+                        buf.insert(off, p, 2);
+                        return;
+                    }
+                    buf.setsize(off);
+                    buf.writestring("St");
+                    source_name(se);
+                }
                 else
                 {
                     buf.writestring("St");
@@ -332,6 +391,7 @@ class CppMangleVisitor : public Visitor
         }
         else
             source_name(se);
+        store(s);
     }
 
     void mangle_variable(VarDeclaration *d, bool is_temp_arg_ref)
@@ -387,11 +447,20 @@ class CppMangleVisitor : public Visitor
                 buf.writeByte('K');
             prefix_name(p);
 
+            // See ABI 5.1.8 Compression
+
             // Replace ::std::allocator with Sa
             if (buf.offset >= 17 && memcmp(buf.data, "_ZN3std9allocator", 17) == 0)
             {
                 buf.remove(3, 14);
                 buf.insert(3, "Sa", 2);
+            }
+
+            // Replace ::std::basic_string with Sb
+            if (buf.offset >= 21 && memcmp(buf.data, "_ZN3std12basic_string", 21) == 0)
+            {
+                buf.remove(3, 18);
+                buf.insert(3, "Sb", 2);
             }
 
             // Replace ::std with St
@@ -469,7 +538,7 @@ class CppMangleVisitor : public Visitor
 
 public:
     CppMangleVisitor()
-        : buf(), components(), is_top_level(false)
+        : buf(), components(), is_top_level(false), components_on(true)
     {
     }
 
@@ -707,7 +776,42 @@ public:
 
     void visit(TypeStruct *t)
     {
+        Identifier *id = t->sym->ident;
+        //printf("struct id = '%s'\n", id->toChars());
+        char c;
+        if (id == Id::__c_long)
+            c = 'l';
+        else if (id == Id::__c_ulong)
+            c = 'm';
+        else
+            c = 0;
+        if (c)
+        {
+            if (t->isImmutable() || t->isShared())
+            {
+                visit((Type *)t);
+            }
+            if (t->isConst())
+            {
+                if (substitute(t))
+                {
+                    return;
+                }
+                else
+                {
+                    store(t);
+                }
+            }
+
+            if (t->isConst())
+                buf.writeByte('K');
+
+            buf.writeByte(c);
+            return;
+        }
+
         is_top_level = false;
+
         if (substitute(t)) return;
         if (t->isImmutable() || t->isShared())
         {
@@ -719,7 +823,6 @@ public:
         if (!substitute(t->sym))
         {
             cpp_mangle_name(t->sym, t->isConst());
-            store(t->sym);
         }
 
         if (t->isImmutable() || t->isShared())
@@ -742,7 +845,6 @@ public:
         if (!substitute(t->sym))
         {
             cpp_mangle_name(t->sym, t->isConst());
-            store(t->sym);
         }
 
         if (t->isImmutable() || t->isShared())
@@ -752,11 +854,6 @@ public:
 
         if (t->isConst())
             store(t);
-    }
-
-    void visit(TypeTypedef *t)
-    {
-        visit((Type *)t);
     }
 
     void visit(TypeClass *t)
@@ -777,7 +874,6 @@ public:
         if (!substitute(t->sym))
         {
             cpp_mangle_name(t->sym, t->isConst());
-            store(t->sym);
         }
         if (t->isConst())
             store(NULL);
@@ -1053,14 +1149,44 @@ public:
 
     void visit(TypeStruct *type)
     {
-        if (checkTypeSaved(type)) return;
-        //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        mangleModifier(type);
-        if (type->sym->isUnionDeclaration())
-            buf.writeByte('T');
+        Identifier *id = type->sym->ident;
+        char c;
+        if (id == Id::__c_long_double)
+            c = 'O';                    // VC++ long double
+        else if (id == Id::__c_long)
+            c = 'J';                    // VC++ long
+        else if (id == Id::__c_ulong)
+            c = 'K';                    // VC++ unsigned long
         else
-            buf.writeByte('U');
-        mangleIdent(type->sym);
+            c = 0;
+
+        if (c)
+        {
+            if (type->isImmutable() || type->isShared())
+            {
+                visit((Type*)type);
+                return;
+            }
+
+            if (type->isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
+            {
+                if (checkTypeSaved(type)) return;
+            }
+
+            mangleModifier(type);
+            buf.writeByte(c);
+        }
+        else
+        {
+            if (checkTypeSaved(type)) return;
+            //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
+            mangleModifier(type);
+            if (type->sym->isUnionDeclaration())
+                buf.writeByte('T');
+            else
+                buf.writeByte('U');
+            mangleIdent(type->sym);
+        }
         flags &= ~IS_NOT_TOP_TYPE;
         flags &= ~IGNORE_CONST;
     }
@@ -1680,8 +1806,14 @@ private:
             flags &= ~IGNORE_CONST;
             if (rettype->ty == Tstruct || rettype->ty == Tenum)
             {
-                tmp.buf.writeByte('?');
-                tmp.buf.writeByte('A');
+                Identifier *id = rettype->toDsymbol(NULL)->ident;
+                if (id != Id::__c_long_double &&
+                    id != Id::__c_long &&
+                    id != Id::__c_ulong)
+                {
+                    tmp.buf.writeByte('?');
+                    tmp.buf.writeByte('A');
+                }
             }
             tmp.flags |= MANGLE_RETURN_TYPE;
             rettype->accept(&tmp);

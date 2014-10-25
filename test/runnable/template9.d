@@ -3811,6 +3811,17 @@ void test13204()
 }
 
 /******************************************/
+// 8462 (dup of 13204)
+
+alias FP8462 = void function(C8462.Type arg);
+
+class C8462
+{
+    enum Type { Foo }
+    alias funcPtrPtr = FP8462*;
+}
+
+/******************************************/
 // 13218
 
 template isCallable13218(T...)
@@ -4206,6 +4217,18 @@ void test13417()
 }
 
 /******************************************/
+// 13484
+
+int foo13484()(void delegate() hi) { return 1; }
+int foo13484(T)(void delegate(T) hi) { return 2; }
+
+void test13484()
+{
+    assert(foo13484({}) == 1);          // works
+    assert(foo13484((float v){}) == 2); // works <- throws error
+}
+
+/******************************************/
 
 int main()
 {
@@ -4310,6 +4333,7 @@ int main()
     test13374();
     test13378();
     test13379();
+    test13484();
 
     printf("Success\n");
     return 0;

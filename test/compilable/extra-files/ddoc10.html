@@ -5,7 +5,7 @@
         <h1>ddoc10</h1>
 <br><br>
 <dl><dt><big><a name="Foo"></a>struct <u>Foo</u>(T);
-<br><a name="Foo"></a>struct <u>Foo</u>(T, U);
+<br>struct <u>Foo</u>(T, U);
 </big></dt>
 <dd>The foo<br><br>
 
@@ -18,14 +18,19 @@
 
 </dd>
 <dt><big><a name="func2"></a>int <u>func2</u>(T, U)(T <i>x</i>, U <i>y</i>);
-<br><a name="func2"></a>int <u>func2</u>(T)(T <i>x</i>);
+<br>int <u>func2</u>(T)(T <i>x</i>);
 </big></dt>
 <dd>This comment is also repeated twice, and the second function signature is
  not very well documented.<br><br>
 
 </dd>
+<dt><big><a name="func2.2"></a>int <u>func2</u>()();
+</big></dt>
+<dd>Separate overload item.<br><br>
+
+</dd>
 <dt><big><a name="func3"></a>int <u>func3</u>(T, U)(T <i>x</i>, U <i>y</i>);
-<br><a name="func3"></a>int <u>func3</u>(T, U = int, V : long)(T <i>x</i>);
+<br>int <u>func3</u>(T, U = int, V : long)(T <i>x</i>);
 </big></dt>
 <dd>This used to work adequately and documented both <u>func3</u> templates
  simultaneously. Now, it documents the first template twice and
@@ -33,13 +38,13 @@
 
 </dd>
 <dt><big><a name="map"></a>void <u>map</u>(char <i>rs</i>);
-<br><a name="map"></a>void <u>map</u>(int <i>rs</i>);
+<br>void <u>map</u>(int <i>rs</i>);
 </big></dt>
 <dd>blah<br><br>
 
 </dd>
 <dt><big><a name="map2"></a>void <u>map2</u>()(char <i>rs</i>);
-<br><a name="map2"></a>void <u>map2</u>()(int <i>rs</i>);
+<br>void <u>map2</u>()(int <i>rs</i>);
 </big></dt>
 <dd>blah<br><br>
 
@@ -122,6 +127,10 @@ Attempt one:  Doc outside static if.<br><br>
 </big></dt>
 <dd><br><br>
 <dl><dt><big><a name="T.this"></a>this(A...)(A <i>args</i>);
+</big></dt>
+<dd><br><br>
+</dd>
+<dt><big><a name="T.this.2"></a>this(int);
 </big></dt>
 <dd><br><br>
 </dd>

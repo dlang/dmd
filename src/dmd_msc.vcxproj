@@ -222,6 +222,7 @@
     </ClCompile>
     <ClCompile Include="root\aav.c" />
     <ClCompile Include="root\async.c" />
+    <ClCompile Include="root\checkedint.c" />
     <ClCompile Include="root\dmgcmem.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -353,6 +354,7 @@
     <ClInclude Include="tk\vec.h" />
     <ClInclude Include="root\aav.h" />
     <ClInclude Include="root\async.h" />
+    <ClInclude Include="root\checkedint.h" />
     <ClInclude Include="root\longdouble.h" />
     <ClInclude Include="root\port.h" />
     <ClInclude Include="root\rmem.h" />

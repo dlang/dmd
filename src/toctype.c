@@ -21,6 +21,7 @@
 #include "declaration.h"
 #include "enum.h"
 #include "aggregate.h"
+#include "id.h"
 
 #include "cc.h"
 #include "global.h"
@@ -85,6 +86,11 @@ public:
             type *tp = Type_toCtype(arg->type);
             if (arg->storageClass & (STCout | STCref))
                 tp = type_allocn(TYref, tp);
+            else if (arg->storageClass & STClazy)
+            {   // Mangle as delegate
+                type *tf = type_function(TYnfunc, NULL, 0, false, tp);
+                tp = type_delegate(tf);
+            }
             ptypes[i] = tp;
         }
 
@@ -129,10 +135,13 @@ public:
         Type *tm = t->mutableOf();
         if (tm->ctype)
         {
-            Symbol *s = tm->ctype->Ttag;
-            t->ctype = type_alloc(TYstruct);
-            t->ctype->Ttag = (Classsym *)s;            // structure tag name
+            t->ctype = type_alloc(tybasic(tm->ctype->Tty));
             t->ctype->Tcount++;
+            if (t->ctype->Tty == TYstruct)
+            {
+                Symbol *s = tm->ctype->Ttag;
+                t->ctype->Ttag = (Classsym *)s;            // structure tag name
+            }
             // Add modifiers
             switch (t->mod)
             {
@@ -162,6 +171,12 @@ public:
         else
         {
             StructDeclaration *sym = t->sym;
+            if (sym->ident == Id::__c_long_double)
+            {
+                t->ctype = type_fake(TYdouble);
+                t->ctype->Tcount++;
+                return;
+            }
             t->ctype = type_struct_class(sym->toPrettyChars(true), sym->alignsize, sym->structsize,
                     sym->arg1type ? Type_toCtype(sym->arg1type) : NULL,
                     sym->arg2type ? Type_toCtype(sym->arg2type) : NULL,
@@ -228,7 +243,7 @@ public:
         }
         else if (t->sym->memtype->toBasetype()->ty == Tint32)
         {
-            t->ctype = type_enum(t->sym->toPrettyChars(), Type_toCtype(t->sym->memtype));
+            t->ctype = type_enum(t->sym->toPrettyChars(true), Type_toCtype(t->sym->memtype));
             tm->ctype = t->ctype;
         }
         else
@@ -239,15 +254,10 @@ public:
         //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
     }
 
-    void visit(TypeTypedef *t)
-    {
-        t->ctype = Type_toCtype(t->sym->basetype);
-    }
-
     void visit(TypeClass *t)
     {
         //printf("TypeClass::toCtype() %s\n", toChars());
-        type *tc = type_struct_class(t->sym->toPrettyChars(), t->sym->alignsize, t->sym->structsize,
+        type *tc = type_struct_class(t->sym->toPrettyChars(true), t->sym->alignsize, t->sym->structsize,
                 NULL,
                 NULL,
                 false,

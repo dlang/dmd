@@ -5,14 +5,14 @@
 
 // Bugzilla 4543
 
-import std.c.stdio;
+import core.stdc.stdio;
 import imports.circularA;
 
 class bclass {};
-typedef bclass Tclass;
+alias bclass Tclass;
 
 struct bstruct {}
-typedef bstruct Tstruct;
+alias bstruct Tstruct;
 
 
 /************************************/

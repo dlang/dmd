@@ -1416,13 +1416,17 @@ unsigned totym(Type *tx)
         case Tdelegate: t = TYdelegate; break;
         case Tarray:    t = TYdarray;   break;
         case Tsarray:   t = TYstruct;   break;
-        case Tstruct:   t = TYstruct;   break;
 #if DMD_OBJC
         case Tobjcselector: t = TYnptr; break;
 #endif
 
+        case Tstruct:
+            t = TYstruct;
+            if (tx->toDsymbol(NULL)->ident == Id::__c_long_double)
+                t = TYdouble;
+            break;
+
         case Tenum:
-        case Ttypedef:
             t = totym(tx->toBasetype());
             break;
 

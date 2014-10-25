@@ -77,13 +77,15 @@ Msgtable msgtable[] =
     { "__vptr" },
     { "__monitor" },
     { "gate", "__gate" },
+    { "__c_long" },
+    { "__c_ulong" },
+    { "__c_long_double" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
     { "TypeInfo_Interface" },
     { "TypeInfo_Struct" },
     { "TypeInfo_Enum" },
-    { "TypeInfo_Typedef" },
     { "TypeInfo_Pointer" },
     { "TypeInfo_Vector" },
     { "TypeInfo_Array" },
@@ -366,6 +368,11 @@ Msgtable msgtable[] =
 
     // For C++ mangling
     { "allocator" },
+    { "basic_string" },
+    { "basic_istream" },
+    { "basic_ostream" },
+    { "basic_iostream" },
+    { "char_traits" },
 };
 
 

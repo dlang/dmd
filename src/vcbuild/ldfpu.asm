@@ -3,9 +3,9 @@
 ;; All Rights Reserved
 ;; written by Rainer Schuetze
 ;; http://www.digitalmars.com
-;; License for redistribution is by either the Artistic License
-;; in artistic.txt, or the GNU General Public License in gnu.txt.
-;; See the included readme.txt for details.
+;; Distributed under the Boost Software License, Version 1.0.
+;; http://www.boost.org/LICENSE_1_0.txt
+;; https://github.com/D-Programming-Language/dmd/blob/master/src/vcbuild/ldfpu.asm
 
 ;; 80 bit floating point value implementation for Microsoft compiler
 
@@ -316,6 +316,30 @@ ld_tan PROC
 	mov rax,rcx
 	ret
 ld_tan ENDP
+
+; void ld_yl2x(long_double *x, long_double *y, long_double *r);
+; rcx: &x
+; rdx: &y
+; r8:  &r
+ld_yl2x PROC
+    fld tbyte ptr [rdx]
+    fld tbyte ptr [rcx]
+    fyl2x
+    fstp tbyte ptr [r8]
+    ret
+ld_yl2x ENDP
+
+; void ld_yl2xp1(long_double *x, long_double *y, long_double *r);
+; rcx: &x
+; rdx: &y
+; r8:  &r
+ld_yl2xp1 PROC
+    fld tbyte ptr [rdx]
+    fld tbyte ptr [rcx]
+    fyl2xp1
+    fstp tbyte ptr [r8]
+    ret
+ld_yl2xp1 ENDP
 
 ; int ld_initfpu(int bits, int mask)
 ; ecx: bits

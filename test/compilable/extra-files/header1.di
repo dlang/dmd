@@ -4,7 +4,7 @@ import std.stdio;
 pragma (lib, "test");
 pragma (msg, "Hello World");
 static assert(true, "message");
-typedef double mydbl = 10;
+alias double mydbl;
 int testmain();
 struct S
 {
@@ -27,7 +27,6 @@ template Foo(T, int V)
 		auto aa = [1:1, 2:2, 3:3];
 		int n, m;
 	}
-
 	int bar(double d, int x)
 	{
 		if (d)
@@ -132,9 +131,12 @@ template Foo(T, int V)
 			toString();
 		}
 	}
-
 }
 static this();
+nothrow pure @nogc @safe static this();
+nothrow pure @nogc @safe static this();
+nothrow pure @nogc @safe shared static this();
+nothrow pure @nogc @safe shared static this();
 interface iFoo
 {
 }
@@ -201,13 +203,14 @@ class Test
 	alias A!short getHShort;
 	alias A!ushort getHUShort;
 	alias A!real getHReal;
+	nothrow pure @nogc @safe new(size_t sz);
+	nothrow pure @nogc @safe delete(void* p);
 }
 void templ(T)(T val)
 {
 	pragma (msg, "Invalid destination type.");
 }
 static char[] charArray = ['"', '\''];
-
 class Point
 {
 	auto x = 10;
@@ -224,23 +227,19 @@ template Foo2(bool bar)
 		else
 		{
 		}
-
 		static if (!bar)
 		{
 		}
 		else
 		{
 		}
-
 	}
-
 }
 template Foo4()
 {
 	void bar()
 	{
 	}
-
 }
 template Foo4x(T...)
 {
@@ -263,7 +262,6 @@ auto foo7(int x)
 {
 	return 5;
 }
-
 class D8
 {
 }
@@ -286,7 +284,6 @@ template V10(T)
 			}
 		}
 	}
-
 }
 int foo11(int function() fn);
 int bar11(T)()
@@ -306,7 +303,6 @@ struct S12
 {
 	nothrow this(int n);
 	nothrow this(string s);
-
 }
 struct T12
 {
@@ -316,7 +312,6 @@ struct T12
 	immutable this(A...)(A args)
 	{
 	}
-
 }
 import std.stdio : writeln, F = File;
 void foo6591()()
@@ -325,8 +320,6 @@ void foo6591()()
 }
 version (unittest)
 {
-	nothrow pure {}
-	nothrow pure {}
 	public {}
 	extern (C) {}
 	align{}

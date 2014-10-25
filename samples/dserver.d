@@ -14,11 +14,11 @@
  * Compuserve:  >INTERNET:kraigb@microsoft.com
  */
 
-import std.c.stdio;
-import std.c.stdlib;
-import std.c.string;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 import std.string;
-import std.c.windows.windows;
+import core.sys.windows.windows;
 import std.c.windows.com;
 
 import chello;

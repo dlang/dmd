@@ -43,22 +43,14 @@
  * Emit symbolic debug info in Dwarf2 format.
  */
 
-void toDebug(TypedefDeclaration *tdd)
-{
-    //printf("TypedefDeclaration::toDebug('%s')\n", tdd->toChars());
-}
-
-
 void toDebug(EnumDeclaration *ed)
 {
     //printf("EnumDeclaration::toDebug('%s')\n", ed->toChars());
 }
 
-
 void toDebug(StructDeclaration *sd)
 {
 }
-
 
 void toDebug(ClassDeclaration *cd)
 {

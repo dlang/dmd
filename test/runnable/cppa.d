@@ -1,3 +1,4 @@
+// PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
 
 import core.stdc.stdio;
@@ -379,11 +380,14 @@ version (linux)
 {
     extern(C++, __gnu_cxx)
     {
-    struct new_allocator(T)
-    {
-        alias size_type = size_t;
-        void deallocate(T*, size_type);
-    }
+	struct new_allocator(T)
+	{
+	    alias size_type = size_t;
+	    static if (is(T : char))
+		void deallocate(T*, size_type) { }
+	    else
+		void deallocate(T*, size_type);
+	}
     }
 }
 
@@ -391,35 +395,71 @@ extern (C++, std)
 {
     struct allocator(T)
     {
-    version (linux)
-    {
-        alias size_type = size_t;
-        void deallocate(T* p, size_type sz)
-        {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
-    }
+	version (linux)
+	{
+	    alias size_type = size_t;
+	    void deallocate(T* p, size_type sz)
+	    {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
+	}
     }
 
     version (linux)
     {
-    class vector(T, A = allocator!T)
-    {
-        final void push_back(ref const T);
-    }
+	class vector(T, A = allocator!T)
+	{
+	    final void push_back(ref const T);
+	}
+
+	struct char_traits(T)
+	{
+	}
+
+	struct basic_string(T, C = char_traits!T, A = allocator!T)
+	{
+	}
+
+	struct basic_istream(T, C = char_traits!T)
+	{
+	}
+
+	struct basic_ostream(T, C = char_traits!T)
+	{
+	}
+
+	struct basic_iostream(T, C = char_traits!T)
+	{
+	}
     }
 }
 
 extern (C++)
 {
     version (linux)
+    {
         void foo14(std.vector!(int) p);
+        void foo14a(std.basic_string!(char) *p);
+        void foo14b(std.basic_string!(int) *p);
+        void foo14c(std.basic_istream!(char) *p);
+        void foo14d(std.basic_ostream!(char) *p);
+        void foo14e(std.basic_iostream!(char) *p);
+
+	void foo14f(std.char_traits!char* x, std.basic_string!char* p, std.basic_string!char* q);
+    }
 }
 
 void test14()
 {
     version (linux)
     {
-    std.vector!int p;
+        std.vector!int p;
         foo14(p);
+
+	foo14a(null);
+	foo14b(null);
+	foo14c(null);
+	foo14d(null);
+	foo14e(null);
+	foo14f(null, null, null);
     }
 }
 
@@ -487,6 +527,88 @@ extern(C++)
 
 /****************************************/
 
+version (CRuntime_Microsoft)
+{
+    struct __c_long_double
+    {
+	this(double d) { ld = d; }
+	double ld;
+	alias ld this;
+    }
+
+    alias __c_long_double myld;
+}
+else
+    alias c_long_double myld;
+
+extern (C++) myld testld(myld);
+
+
+void test15()
+{
+    myld ld = 5.0;
+    ld = testld(ld);
+    assert(ld == 6.0);
+}
+
+/****************************************/
+
+version( Windows )
+{
+    alias int   x_long;
+    alias uint  x_ulong;
+}
+else
+{
+  static if( (void*).sizeof > int.sizeof )
+  {
+    alias long  x_long;
+    alias ulong x_ulong;
+  }
+  else
+  {
+    alias int   x_long;
+    alias uint  x_ulong;
+  }
+}
+
+struct __c_long
+{
+    this(x_long d) { ld = d; }
+    x_long ld;
+    alias ld this;
+}
+
+struct __c_ulong
+{
+    this(x_ulong d) { ld = d; }
+    x_ulong ld;
+    alias ld this;
+}
+
+alias __c_long mylong;
+alias __c_ulong myulong;
+
+extern (C++) mylong testl(mylong);
+extern (C++) myulong testul(myulong);
+
+
+void test16()
+{
+  {
+    mylong ld = 5;
+    ld = testl(ld);
+    assert(ld == 5 + mylong.sizeof);
+  }
+  {
+    myulong ld = 5;
+    ld = testul(ld);
+    assert(ld == 5 + myulong.sizeof);
+  }
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -507,6 +629,8 @@ void main()
     test13161();
     test14();
     test13289();
+    test15();
+    test16();
 
     printf("Success\n");
 }

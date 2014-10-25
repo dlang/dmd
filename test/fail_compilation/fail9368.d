@@ -15,7 +15,7 @@ enum E
 
 void main()
 {
-    typedef E F;
+    alias E F;
     F f;
     final switch (f)
     {

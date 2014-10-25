@@ -3,6 +3,11 @@ import std.stdio;
 import std.math;
 import core.bitop;
 
+version (X86_64)
+    version = AnyX86;
+else version (X86)
+    version = AnyX86;
+
 /*******************************************/
 
 void test1()
@@ -67,10 +72,43 @@ static assert({
 
 /*******************************************/
 
+void test3()
+{
+    version (AnyX86)
+    {
+        static assert( _popcnt( cast(ushort)0 ) == 0 );
+        static assert( _popcnt( cast(ushort)7 ) == 3 );
+        static assert( _popcnt( cast(ushort)0xAA )== 4);
+        static assert( _popcnt( cast(ushort)0xFFFF ) == 16 );
+        static assert( _popcnt( cast(ushort)0xCCCC ) == 8 );
+        static assert( _popcnt( cast(ushort)0x7777 ) == 12 );
+        static assert( _popcnt( cast(uint)0 ) == 0 );
+        static assert( _popcnt( cast(uint)7 ) == 3 );
+        static assert( _popcnt( cast(uint)0xAA )== 4);
+        static assert( _popcnt( cast(uint)0x8421_1248 ) == 8 );
+        static assert( _popcnt( cast(uint)0xFFFF_FFFF ) == 32 );
+        static assert( _popcnt( cast(uint)0xCCCC_CCCC ) == 16 );
+        static assert( _popcnt( cast(uint)0x7777_7777 ) == 24 );
+        version (X86_64)
+        {
+            static assert( _popcnt( cast(ulong)0 ) == 0 );
+            static assert( _popcnt( cast(ulong)7 ) == 3 );
+            static assert( _popcnt( cast(ulong)0xAA )== 4);
+            static assert( _popcnt( cast(ulong)0x8421_1248 ) == 8 );
+            static assert( _popcnt( cast(ulong)0xFFFF_FFFF_FFFF_FFFF ) == 64 );
+            static assert( _popcnt( cast(ulong)0xCCCC_CCCC_CCCC_CCCC ) == 32 );
+            static assert( _popcnt( cast(ulong)0x7777_7777_7777_7777 ) == 48 );
+        }
+    }
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
     test2();
+    test3();
 
     printf("Success\n");
     return 0;

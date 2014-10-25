@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9904.d(22): Error: cannot cast from typeof(null) to S1
-fail_compilation/fail9904.d(23): Error: cannot cast from typeof(null) to S2
+fail_compilation/fail9904.d(22): Error: cannot cast expression null of type typeof(null) to S1
+fail_compilation/fail9904.d(23): Error: cannot cast expression null of type typeof(null) to S2
 ---
 */
 

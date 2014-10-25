@@ -15,10 +15,10 @@
 
 // From an example from "Inside OLE" Copyright Microsoft
 
-import std.c.stdio;
-import std.c.stdlib;
+import core.stdc.stdio;
+import core.stdc.stdlib;
 import std.string;
-import std.c.windows.windows;
+import core.sys.windows.windows;
 import std.c.windows.com;
 
 GUID CLSID_Hello = { 0x30421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };

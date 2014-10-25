@@ -1,5 +1,5 @@
 import std.stdio;
-import std.c.stdio;
+import core.stdc.stdio;
 
 /******************************************/
 
@@ -3290,15 +3290,15 @@ void test144()
 
 void test145()
 {
-    import std.c.stdio;
+    import core.stdc.stdio;
     printf("hello world 145\n");
 }
 
 void test146()
 {
     test1();
-    static import std.c.stdio;
-    std.c.stdio.printf("hello world 146\n");
+    static import core.stdc.stdio;
+    core.stdc.stdio.printf("hello world 146\n");
 }
 
 /***************************************************/
@@ -3685,7 +3685,7 @@ auto ref boo(int i) pure nothrow { return i; }
 
 class A152 {
     auto hoo(int i) pure  { return i; }
-    const boo(int i) const { return i; }
+    const boo(int i) nothrow { return i; }
     auto coo(int i) const { return i; }
     auto doo(int i) immutable { return i; }
     auto eoo(int i) shared { return i; }
@@ -6393,13 +6393,21 @@ void test161()
 }
 
 /***************************************************/
+// 7175
+
+void test7175()
+{
+    struct S { ubyte[0] arr; }
+    S s;
+    assert(s.arr.ptr !is null);
+    assert(cast(void*)s.arr.ptr is cast(void*)&s);
+}
+
+/***************************************************/
 // 8819
 
 void test8819()
 {
-    void[0] sa0 = (void[0]).init;
-    assert(sa0.ptr !is null); // 7175 - ptr should not be null
-
     void[1] sa1 = (void[1]).init;
     assert((cast(ubyte*)sa1.ptr)[0] == 0);
 
@@ -7037,6 +7045,31 @@ void test11317()
 }
 
 /***************************************************/
+// 11888
+
+void test11888()
+{
+    static long val;
+
+    static ubyte* foo(size_t* len)
+    {
+        *len = val.sizeof;
+        return cast(ubyte*)&val;
+    }
+
+    size_t size;
+    ubyte[] t = foo(&size)[0..size];
+    assert(t.ptr is cast(void*)&val);
+    assert(t.length == 8);
+
+    // regression test
+    int[3] sa1 = [1,2,3];
+    int[1] sa2 = sa1[1..2]; // convert slice to Tsarray
+    assert(sa2.length == 1);
+    assert(sa2[0] == 2);
+}
+
+/***************************************************/
 // 12153
 
 void test12153()
@@ -7102,6 +7135,81 @@ void test13154()
     assert(floats1 == [2, 1, 0]); // fail!
     assert(floats1 != [0, 0, 0]); // fail!
     assert(floats2 == [2, 1, 0]);
+}
+
+/***************************************************/
+// 13437
+
+ubyte[4] foo13437() { return [1,2,3,4]; }
+
+void test13437()
+{
+    auto n = cast(ubyte[4])foo13437()[];  // OK <- ICE: e2ir.c 4616
+    static assert(is(typeof(n) == ubyte[4]));
+    assert(n == [1,2,3,4]);
+}
+
+/***************************************************/
+// 13472
+
+class A13472
+{
+    int a;
+}
+
+void test13472()
+{
+    A13472[] test;
+    test.length = 4;
+    auto b = test[0..2] ~ null ~ test[2..$];
+    assert(b.length == 5);
+}
+
+/***************************************************/
+// 13476
+
+template ParameterTypeTuple13476(func...)
+{
+    static if (is(typeof(*func[0]) P == function))
+        alias ParameterTypeTuple13476 = P;
+    else
+        static assert(0, "argument has no parameters");
+}
+
+int flag13476;
+
+__gshared extern(C) void function(int) nothrow someFunc13476 = &Stub13476!someFunc13476;
+
+extern(C) auto Stub13476(alias func)(ParameterTypeTuple13476!func args)
+{
+    ++flag13476;
+    extern(C) void function(int) nothrow impl = (i) { };
+    return (func = impl)(args);
+}
+
+__gshared extern(C) void function(int) nothrow  someFunc13476Alt = &Stub13476Alt!someFunc13476AltP;
+__gshared extern(C) void function(int) nothrow* someFunc13476AltP = &someFunc13476Alt;
+
+extern(C) auto Stub13476Alt(alias func)(int args) nothrow
+{
+    ++flag13476;
+    extern(C) void function(int) nothrow impl = (i) {};
+    return (*func = impl)(args);
+}
+
+void test13476()
+{
+    assert(flag13476 == 0);
+
+    someFunc13476(42);
+    assert(flag13476 == 1);
+    someFunc13476(43);
+    assert(flag13476 == 1);
+
+    someFunc13476Alt(42);
+    assert(flag13476 == 2);
+    someFunc13476Alt(43);
+    assert(flag13476 == 2);
 }
 
 /***************************************************/
@@ -7376,6 +7484,7 @@ int main()
     test199();
     test8526();
     test161();
+    test7175();
     test8819();
     test8917();
     test8945();
@@ -7396,9 +7505,13 @@ int main()
     test11075();
     test11181();
     test11317();
+    test11888();
     test12153();
     test12937();
     test13154();
+    test13437();
+    test13472();
+    test13476();
 
     printf("Success\n");
     return 0;

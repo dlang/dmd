@@ -253,20 +253,19 @@ const char* traits[] = {
     "getAttributes",
     "getFunctionAttributes",
     "getUnitTests",
-    "getVirtualIndex",
-    NULL
+    "getVirtualIndex"
 };
 
 StringTable traitsStringTable;
 
 void initTraitsStringTable()
 {
-    traitsStringTable._init();
+    const size_t ntraits = sizeof(traits) / sizeof(traits[0]);
+    traitsStringTable._init(ntraits);
 
-    for (size_t idx = 0; ; idx++)
+    for (size_t idx = 0; idx < ntraits; idx++)
     {
         const char *s = traits[idx];
-        if (!s) break;
         StringValue *sv = traitsStringTable.insert(s, strlen(s));
         sv->ptrvalue = (void *)traits[idx];
     }
@@ -735,6 +734,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("first argument is not a symbol");
             goto Lfalse;
         }
+        if (s->isImport())
+        {
+            s = s->isImport()->mod;
+        }
         //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttribDecl, s->scope);
         UserAttributeDeclaration *udad = s->userAttribDecl;
         TupleExp *tup = new TupleExp(e->loc, udad ? udad->getAttributes() : new Expressions());
@@ -908,7 +911,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         {
             unsigned errors = global.startGagging();
             Scope *sc2 = sc->push();
-            sc2->speculative = true;
+            sc2->tinst = NULL;
+            sc2->minst = NULL;
             sc2->flags = (sc->flags & ~(SCOPEctfe | SCOPEcondition)) | SCOPEcompile;
             bool err = false;
 

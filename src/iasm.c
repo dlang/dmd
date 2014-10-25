@@ -4616,10 +4616,6 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
 {
     //printf("AsmStatement::semantic()\n");
 
-    assert(sc->func);
-    if (sc->func->setUnsafe())
-        s->error("inline assembler not allowed in @safe function %s", sc->func->toChars());
-
     OP *o;
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL, *o4 = NULL;
     PTRNTAB ptb;
@@ -4806,4 +4802,3 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
 }
 
 #endif
-

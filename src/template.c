@@ -730,8 +730,8 @@ bool TemplateDeclaration::evaluateConstraint(
 
     Scope *scx = paramscope->push(ti);
     scx->parent = ti;
-    scx->tinst = ti;
-    scx->speculative = true;
+    scx->tinst = NULL;
+    scx->minst = NULL;
 
     assert(!ti->symtab);
     if (fd)
@@ -868,6 +868,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
     paramscope->tinst = ti;
+    paramscope->minst = sc->minst;
     paramscope->callsc = sc;
     paramscope->stc = 0;
 
@@ -1026,11 +1027,6 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
      */
 
     TemplateInstance ti(Loc(), ident);      // create dummy template instance
-    ti.tinst = this->getInstantiating(sc);
-    if (ti.tinst)
-        ti.instantiatingModule = ti.tinst->instantiatingModule;
-    else
-        ti.instantiatingModule = sc->instantiatingModule();
     // Set type arguments to dummy template instance to be types
     // generated from the parameters to this template declaration
     ti.tiargs = new Objects();
@@ -1168,6 +1164,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
     paramsym->parent = scope->parent;   // should use hasnestedArgs and enclosing?
     Scope *paramscope = scope->push(paramsym);
     paramscope->tinst = ti;
+    paramscope->minst = sc->minst;
     paramscope->callsc = sc;
     paramscope->stc = 0;
 
@@ -1571,39 +1568,20 @@ Lretry:
             if (m == MATCHnomatch && prmtype->deco)
                 m = farg->implicitConvTo(prmtype);
 
-            /* If no match, see if there's a conversion to a delegate
-             */
             if (m == MATCHnomatch)
             {
-                Type *tbp = prmtype->toBasetype();
-                Type *tba = farg->type->toBasetype();
-                if (tbp->ty == Tdelegate)
+                AggregateDeclaration *ad = isAggregate(farg->type);
+                if (ad && ad->aliasthis)
                 {
-                    TypeDelegate *td = (TypeDelegate *)prmtype->toBasetype();
-                    TypeFunction *tf = (TypeFunction *)td->next;
-
-                    if (!tf->varargs && Parameter::dim(tf->parameters) == 0)
+                    /* If a semantic error occurs while doing alias this,
+                     * eg purity(bug 7295), just regard it as not a match.
+                     */
+                    unsigned olderrors = global.startGagging();
+                    Expression *e = resolveAliasThis(sc, farg);
+                    if (!global.endGagging(olderrors))
                     {
-                        m = deduceType(farg->type, paramscope, tf->next, parameters, dedtypes);
-                        if (m == MATCHnomatch && tf->next->toBasetype()->ty == Tvoid)
-                            m = MATCHconvert;
-                    }
-                    //printf("\tm2 = %d\n", m);
-                }
-                else if (AggregateDeclaration *ad = isAggregate(tba))
-                {
-                    if (ad->aliasthis)
-                    {
-                        /* If a semantic error occurs while doing alias this,
-                         * eg purity(bug 7295), just regard it as not a match.
-                         */
-                        unsigned olderrors = global.startGagging();
-                        Expression *e = resolveAliasThis(sc, farg);
-                        if (!global.endGagging(olderrors))
-                        {
-                            farg = e;
-                            goto Lretry;
-                        }
+                        farg = e;
+                        goto Lretry;
                     }
                 }
             }
@@ -1852,17 +1830,17 @@ Lmatch:
     // Partially instantiate function for constraint and fd->leastAsSpecialized()
     {
         assert(paramsym);
-        Scope *sc1 = scope->push(paramsym);
-        sc1->tinst = ti;
-
-        Scope *sc2 = sc1->push(ti);
+        Scope *sc2 = scope;
+        sc2 = sc2->push(paramsym);
+        sc2 = sc2->push(ti);
         sc2->parent = ti;
         sc2->tinst = ti;
+        sc2->minst = sc->minst;
 
         fd = doHeaderInstantiation(ti, sc2, fd, tthis, fargs);
 
-        sc2->pop();
-        sc1->pop();
+        sc2 = sc2->pop();
+        sc2 = sc2->pop();
 
         if (!fd)
             goto Lnomatch;
@@ -1875,10 +1853,10 @@ Lmatch:
     }
 
 #if 0
-    for (i = 0; i < dedargs->dim; i++)
+    for (size_t i = 0; i < dedargs->dim; i++)
     {
-        Type *t = (*dedargs)[i];
-        printf("\tdedargs[%d] = %d, %s\n", i, t->dyncast(), t->toChars());
+        RootObject *o = (*dedargs)[i];
+        printf("\tdedargs[%d] = %d, %s\n", i, o->dyncast(), o->toChars());
     }
 #endif
 
@@ -2199,12 +2177,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (!tiargs)
                 tiargs = new Objects();
             TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
-            ti->tinst = td->getInstantiating(sc);
-            if (ti->tinst)
-                ti->instantiatingModule = ti->tinst->instantiatingModule;
-            else
-                ti->instantiatingModule = sc->instantiatingModule();
-
             Objects dedtypes;
             dedtypes.setDim(td->parameters->dim);
             assert(td->semanticRun != PASSinit);
@@ -2315,11 +2287,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             /* This is a 'dummy' instance to evaluate constraint properly.
              */
             TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
-            ti->tinst = td->getInstantiating(sc);
-            if (ti->tinst)
-                ti->instantiatingModule = ti->tinst->instantiatingModule;
-            else
-                ti->instantiatingModule = sc->instantiatingModule();
             ti->parent = td->parent;    // Maybe calculating valid 'enclosing' is unnecessary.
 
             FuncDeclaration *fd = f;
@@ -2773,21 +2740,6 @@ void TemplateDeclaration::removeInstance(TemplateInstance *handle)
         }
     }
     --numinstances;
-}
-
-/*******************************************
- * Returns template instance which instantiating this template declaration.
- */
-
-TemplateInstance *TemplateDeclaration::getInstantiating(Scope *sc)
-{
-    /* If this is instantiated declaration in root module, Return it.
-     */
-    TemplateInstance *tinst = isInstantiated();
-    if (tinst && (!tinst->instantiatingModule || tinst->instantiatingModule->isRoot()))
-        return tinst;
-
-    return sc->tinst;
 }
 
 /* ======================== Type ============================================ */
@@ -3542,7 +3494,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     fparam->type = fparam->type->addStorageClass(fparam->storageClass);
                     fparam->storageClass &= ~(STC_TYPECTOR | STCin);
                 }
-                //printf("\t-> this   = %d, ", ty); print();
+                //printf("\t-> this   = %d, ", t->ty); t->print();
                 //printf("\t-> tparam = %d, ", tparam->ty); tparam->print();
 
                 /* See if tuple match
@@ -3990,22 +3942,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             {
                 result = deduceType(tb, sc, tparam, parameters, dedtypes, wm);
                 return;
-            }
-            visit((Type *)t);
-        }
-
-        void visit(TypeTypedef *t)
-        {
-            // Extra check
-            if (tparam && tparam->ty == Ttypedef)
-            {
-                TypeTypedef *tp = (TypeTypedef *)tparam;
-
-                if (t->sym != tp->sym)
-                {
-                    result = MATCHnomatch;
-                    return;
-                }
             }
             visit((Type *)t);
         }
@@ -5661,9 +5597,10 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->name = ident;
     this->tiargs = NULL;
     this->tempdecl = NULL;
-    this->instantiatingModule = NULL;
     this->inst = NULL;
     this->tinst = NULL;
+    this->tnext = NULL;
+    this->minst = NULL;
     this->deferred = NULL;
     this->argsym = NULL;
     this->aliasdecl = NULL;
@@ -5672,7 +5609,6 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->havetempdecl = false;
     this->enclosing = NULL;
     this->gagged = false;
-    this->speculative = false;
     this->hash = 0;
     this->fargs = NULL;
 }
@@ -5692,9 +5628,10 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->name = td->ident;
     this->tiargs = tiargs;
     this->tempdecl = td;
-    this->instantiatingModule = NULL;
     this->inst = NULL;
     this->tinst = NULL;
+    this->tnext = NULL;
+    this->minst = NULL;
     this->deferred = NULL;
     this->argsym = NULL;
     this->aliasdecl = NULL;
@@ -5703,7 +5640,6 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->havetempdecl = true;
     this->enclosing = NULL;
     this->gagged = false;
-    this->speculative = false;
     this->hash = 0;
     this->fargs = NULL;
 
@@ -5834,8 +5770,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #if LOG
         printf("Recursive template expansion\n");
 #endif
+        Ungag ungag(global.gag);
+        if (!gagged)
+            global.gag = 0;
         error(loc, "recursive template expansion");
-        if (global.gag)
+        if (gagged)
             semanticRun = PASSinit;
         else
             inst = this;
@@ -5843,28 +5782,13 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         return;
     }
 
-    Module *mi = sc->instantiatingModule();
-    if (!instantiatingModule || instantiatingModule->isRoot())
-        instantiatingModule = mi;
-    //printf("mi = %s\n", mi->toChars());
-
-    /* Get the enclosing template instance from the scope tinst
-     */
+    // Get the enclosing template instance from the scope tinst
     tinst = sc->tinst;
 
-    if (global.gag)
-        gagged = true;
-    if (sc->speculative || (tinst && tinst->speculative))
-    {
-        //printf("\tspeculative ti %s '%s' gag = %d, spec = %d\n", tempdecl->parent->toChars(), toChars(), global.gag, sc->speculative);
-        speculative = true;
-    }
-    if (sc->flags & (SCOPEconstraint | SCOPEcompile))
-    {
-        // Disconnect the chain if this instantiation is in definitely speculative context.
-        // It should be done after sc->instantiatingModule().
-        tinst = NULL;
-    }
+    // Get the instantiating module from the scope minst
+    minst = sc->minst;
+
+    gagged = (global.gag > 0);
 
     semanticRun = PASSsemantic;
 
@@ -5919,46 +5843,37 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
         // If both this and the previous instantiation were gagged,
         // use the number of errors that happened last time.
-        if (inst->gagged && gagged)
-        {
-            global.errors += inst->errors;
-            global.gaggedErrors += inst->errors;
-        }
+        global.errors += errors;
+        global.gaggedErrors += errors;
 
         // If the first instantiation was gagged, but this is not:
-        if (inst->gagged && !gagged)
+        if (inst->gagged)
         {
             // It had succeeded, mark it is a non-gagged instantiation,
             // and reuse it.
-            inst->gagged = false;
+            inst->gagged = gagged;
         }
 
-        // If the first instantiation was speculative, but this is not:
-        if (inst->speculative && !sc->speculative)
-        {
-            // Mark it is a non-speculative instantiation.
-            inst->speculative = false;
-
-            // Bugzilla 13400: When an instance is changed to non-speculative,
-            // its instantiatingModule should also be updated.
-            // See test/runnable/link13400.d
-            inst->instantiatingModule = mi;
-        }
+        this->tnext = inst->tnext;
+        inst->tnext = this;
 
         // If the first instantiation was in speculative context, but this is not:
-        if (!inst->tinst && inst->speculative &&
-            tinst && !(sc->flags & (SCOPEconstraint | SCOPEcompile)))
+        if (tinst && !inst->tinst && !inst->minst)
         {
             // Reconnect the chain if this instantiation is not in speculative context.
-            TemplateInstance *tix = tinst;
-            while (tix && tix != inst)
-                tix = tix->tinst;
-            if (tix != inst)    // Bugzilla 13379: Prevent circular chain
+            TemplateInstance *ti = tinst;
+            while (ti && ti != inst)
+                ti = ti->tinst;
+            if (ti != inst)    // Bugzilla 13379: Prevent circular chain
                 inst->tinst = tinst;
         }
 
-        if (!inst->instantiatingModule || inst->instantiatingModule->isRoot())
-            inst->instantiatingModule = mi;
+        // If the first instantiation was speculative, but this is not:
+        if (!inst->minst)
+        {
+            // Mark it is a non-speculative instantiation.
+            inst->minst = minst;
+        }
 
 #if LOG
         printf("\tit's a match with instance %p, %d\n", inst, inst->semanticRun);
@@ -5987,7 +5902,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     Dsymbols *target_symbol_list;
     size_t target_symbol_list_idx = 0;
     //if (sc->scopesym) printf("3: sc is %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
-    if (sc->scopesym && sc->scopesym->members && !sc->scopesym->isTemplateMixin())
+    if (!tinst && sc->scopesym && sc->scopesym->members)
     {
         /* A module can have explicit template instance and its alias
          * in module scope (e,g, `alias Base64Impl!('+', '/') Base64;`).
@@ -6071,6 +5986,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     argsym->parent = scope->parent;
     scope = scope->push(argsym);
     scope->tinst = this;
+    scope->minst = minst;
     //scope->stc = 0;
 
     // Declare each template parameter as an alias for the argument type
@@ -6138,7 +6054,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
     sc2->parent = this;
     sc2->tinst = this;
-    sc2->speculative = speculative;
+    sc2->minst = minst;
 
     tryExpandMembers(sc2);
 
@@ -7080,12 +6996,6 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
 
         if (!flag)
         {
-            ti->tinst = td->getInstantiating(sc);
-            if (ti->tinst)
-                ti->instantiatingModule = ti->tinst->instantiatingModule;
-            else
-                ti->instantiatingModule = sc->instantiatingModule();
-
             /* Calculate the need for overload resolution.
              * When only one template can match with tiargs, inference is not necessary.
              */
@@ -7428,6 +7338,7 @@ void TemplateInstance::semantic2(Scope *sc)
         sc = sc->push(argsym);
         sc = sc->push(this);
         sc->tinst = this;
+        sc->minst = minst;
 
         int needGagging = (gagged && !global.gag);
         unsigned int olderrors = global.errors;
@@ -7486,6 +7397,7 @@ void TemplateInstance::semantic3(Scope *sc)
         sc = sc->push(argsym);
         sc = sc->push(this);
         sc->tinst = this;
+        sc->minst = minst;
 
         int needGagging = (gagged && !global.gag);
         unsigned int olderrors = global.errors;
@@ -7774,11 +7686,11 @@ void unSpeculative(Scope *sc, RootObject *o)
     {
         // If the instance is already non-speculative,
         // or it is leaked to the speculative scope.
-        if (!ti->speculative || sc->speculative)
+        if (ti->minst != NULL || sc->minst == NULL)
             return;
 
         // Remark as non-speculative instance.
-        ti->speculative = false;
+        ti->minst = sc->minst;
         if (!ti->tinst)
             ti->tinst = sc->tinst;
 
@@ -7793,7 +7705,7 @@ void unSpeculative(Scope *sc, RootObject *o)
  * Returns true if this is not instantiated in non-root module, and
  * is a part of non-speculative instantiatiation.
  *
- * Note: instantiatingModule does not stabilize until semantic analysis is completed,
+ * Note: minst does not stabilize until semantic analysis is completed,
  * so don't call this function during semantic analysis to return precise result.
  */
 bool TemplateInstance::needsCodegen()
@@ -7808,8 +7720,8 @@ bool TemplateInstance::needsCodegen()
         global.params.allInst ||
         global.params.debuglevel)
     {
-        //printf("%s instantiatingModule = %s, speculative = %d, enclosing in nonRoot = %d\n",
-        //    toPrettyChars(), instantiatingModule ? instantiatingModule->toChars() : NULL, speculative,
+        //printf("%s minst = %s, enclosing in nonRoot = %d\n",
+        //    toPrettyChars(), minst ? minst->toChars() : NULL,
         //    enclosing && !enclosing->isInstantiated() && enclosing->inNonRoot());
         if (enclosing)
         {
@@ -7823,15 +7735,38 @@ bool TemplateInstance::needsCodegen()
         return true;
     }
 
-    if (instantiatingModule && !instantiatingModule->isRoot())
+    // If this may be a speculative instantiation:
+    if (!minst)
     {
-        Module *mi = instantiatingModule;
+        for (TemplateInstance *ti = this; ti; ti = ti->tnext)
+        {
+            TemplateInstance *tix = ti;
+            while (tix && !tix->minst)
+                tix = tix->tinst;
+            if (tix)
+            {
+                assert(tix->minst);
 
+                // cache the result, ti is in non-speculative instantiation chain
+                minst = tix->minst;
+                return tix->needsCodegen();
+            }
+            // ti was speculative.
+        }
+
+        // cache the result, mark as definitely speculative
+        tinst = NULL;
+        minst = NULL;
+        return false;
+    }
+
+    if (!minst->isRoot())
+    {
         /* If a TemplateInstance is ever instantiated by non-root modules,
          * we do not have to generate code for it,
          * because it will be generated when the non-root module is compiled.
          *
-         * But, if mi imports any root modules, we still need to generate the code.
+         * But, if minst imports any root modules, we still need to generate the code.
          *
          * The problem is if A imports B, and B imports A, and both A
          * and B instantiate the same template, does the compilation of A
@@ -7840,21 +7775,13 @@ bool TemplateInstance::needsCodegen()
          * See bugzilla 2500.
          */
 
-        if (!mi->rootImports())
+        if (!minst->rootImports())
         {
-            //printf("instantiated by %s   %s\n", instantiatingModule->toChars(), toChars());
+            //printf("instantiated by %s   %s\n", minst->toChars(), toChars());
             return false;
         }
     }
-
-    for (TemplateInstance *ti = this; ti; ti = ti->tinst)
-    {
-        //printf("\tti = %s spec = %d\n", ti->toChars(), ti->speculative);
-        if (!ti->speculative)
-            return true;
-    }
-
-    return false;
+    return true;
 }
 
 /* ======================== TemplateMixin ================================ */

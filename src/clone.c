@@ -93,7 +93,8 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
 
         unsigned errors = global.startGagging();    // Do not report errors, even if the
         sc = sc->push();
-        sc->speculative = true;
+        sc->tinst = NULL;
+        sc->minst = NULL;
 
         for (size_t i = 0; i < 2; i++)
         {
@@ -249,7 +250,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
          *    tmp = this; this = s; tmp.dtor();
          */
         //printf("\tswap copy\n");
-        Identifier *idtmp = Lexer::uniqueId("__tmp");
+        Identifier *idtmp = Lexer::uniqueId("__swap");
         VarDeclaration *tmp = NULL;
         AssignExp *ec = NULL;
         if (sd->dtor)
@@ -406,7 +407,8 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
 
             unsigned errors = global.startGagging();    // Do not report errors, even if the
             sc = sc->push();
-            sc->speculative = true;
+            sc->tinst = NULL;
+            sc->minst = NULL;
 
             for (size_t j = 0; j < 2; j++)
             {
@@ -866,7 +868,12 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     Expression *e = NULL;
-    for (size_t i = 0; i < sd->fields.dim; i++)
+    for (size_t i = 0; i < sd->postblits.dim; i++)
+    {
+        stc |= sd->postblits[i]->storage_class & STCdisable;
+    }
+
+    for (size_t i = 0; i < sd->fields.dim && !(stc & STCdisable); i++)
     {
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)

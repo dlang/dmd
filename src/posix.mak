@@ -391,7 +391,7 @@ install: all
 	cp dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
 	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
 	cp backendlicense.txt $(INSTALL_DIR)/dmd-backendlicense.txt
-	cp artistic.txt $(INSTALL_DIR)/dmd-artistic.txt
+	cp boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
 
 ######################################################
 

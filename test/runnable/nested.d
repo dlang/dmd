@@ -1,6 +1,6 @@
 // REQUIRED_ARGS:
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 /*******************************************/
 

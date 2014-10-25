@@ -742,21 +742,6 @@ dt_t **Type_toDt(Type *t, dt_t **pdt)
         {
             StructDeclaration_toDt(t->sym, pdt);
         }
-
-        void visit(TypeTypedef *t)
-        {
-            if (t->sym->init)
-            {
-                dt_t *dt = Initializer_toDt(t->sym->init);
-
-                pdt = dtend(pdt);
-                *pdt = dt;
-            }
-            else
-            {
-                Type_toDt(t->sym->basetype, pdt);
-            }
-        }
     };
 
     TypeToDt v(pdt);
@@ -780,8 +765,8 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
             tnext = tbn->nextOf();
             tbn = tnext->toBasetype();
         }
-        if (!e)                         // if not already supplied
-            e = tnext->defaultInit();   // use default initializer
+        if (!e)                             // if not already supplied
+            e = tsa->defaultInit(Loc());    // use default initializer
         Expression_toDt(e, pdt);
         dt_optimize(*pdt);
         if (e->op == TOKstring)

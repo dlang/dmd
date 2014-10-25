@@ -2824,7 +2824,7 @@ int Token::isKeyword()
 
 void Lexer::initKeywords()
 {
-    stringtable._init(6151);
+    stringtable._init(28000);
 
     cmtable_init();
 

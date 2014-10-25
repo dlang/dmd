@@ -57,11 +57,6 @@ Symbol *AggregateDeclaration::toInitializer()
     return NULL;
 }
 
-Symbol *TypedefDeclaration::toInitializer()
-{
-    return NULL;
-}
-
 Symbol *EnumDeclaration::toInitializer()
 {
     return NULL;
@@ -134,11 +129,6 @@ void StructDeclaration::toObjFile(bool multiobj)
 }
 
 void VarDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void TypedefDeclaration::toObjFile(bool multiobj)
 {
     assert(0);
 }
@@ -234,12 +224,6 @@ Expression *Type::getTypeInfo(Scope *sc)
 }
 
 TypeInfoDeclaration *Type::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeTypedef::getTypeInfoDeclaration()
 {
     assert(0);
     return NULL;

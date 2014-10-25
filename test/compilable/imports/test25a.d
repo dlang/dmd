@@ -1,7 +1,7 @@
 module imports.test25a;
 
 import imports.test25b;
-import std.c.stdio;
+import core.stdc.stdio;
 
 class Afoo
 {

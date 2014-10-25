@@ -59,7 +59,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             {
                 if (match == MATCHconst &&
                     (e->type->constConv(t) ||
-                     !e->isLvalue() && e->type->immutableOf()->equals(t->immutableOf())))
+                     !e->isLvalue() && e->type->equivalent(t)))
                 {
                     /* Do not emit CastExp for const conversions and
                      * unique conversions on rvalue.
@@ -272,7 +272,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             Type *t1b = e->e1->type->toBasetype();
             Type *t2b = e->e2->type->toBasetype();
             if (t1b->ty == Tpointer && t2b->isintegral() &&
-                t1b->immutableOf()->equals(tb->immutableOf()))
+                t1b->equivalent(tb))
             {
                 // ptr + offset
                 // ptr - offset
@@ -280,7 +280,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 return (m > MATCHconst) ? MATCHconst : m;
             }
             if (t2b->ty == Tpointer && t1b->isintegral() &&
-                t2b->immutableOf()->equals(tb->immutableOf()))
+                t2b->equivalent(tb))
             {
                 // offset + ptr
                 MATCH m = e->e2->implicitConvTo(t);
@@ -521,7 +521,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
              * and mutable to immutable. It works because, after all, a null
              * doesn't actually point to anything.
              */
-            if (t->immutableOf()->equals(e->type->immutableOf()))
+            if (t->equivalent(e->type))
             {
                 result = MATCHconst;
                 return;
@@ -1301,6 +1301,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(SliceExp *e)
         {
+            //printf("SliceExp::implicitConvTo e = %s, type = %s\n", e->toChars(), e->type->toChars());
             visit((Expression *)e);
             if (result != MATCHnomatch)
                 return;
@@ -1321,8 +1322,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
              * same mod bits.
              */
             Type *t1b = e->e1->type->toBasetype();
-            if (tb->ty == Tarray &&
-                typeb->immutableOf()->equals(tb->immutableOf()))
+            if (tb->ty == Tarray && typeb->equivalent(tb))
             {
                 Type *tbn = tb->nextOf();
                 Type *tx = NULL;
@@ -2350,22 +2350,19 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
         void visit(SliceExp *e)
         {
+            //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e->toChars(), e->type->toChars(), t->toChars());
             Type *typeb = e->type->toBasetype();
             Type *tb = t->toBasetype();
 
-            if (typeb->ty == Tarray && tb->ty == Tsarray)
+            if (typeb->ty == Tarray && (tb->ty == Tarray || tb->ty == Tsarray) &&
+                typeb->nextOf()->equivalent(tb->nextOf()))
             {
+                // T[] to const(T)[]
+                // T[] to const(T)[dim]
+
                 /* If a SliceExp has Tsarray, it will become lvalue.
                  * That's handled in SliceExp::isLvalue and toLvalue
                  */
-                result = e->copy();
-                result->type = t;
-            }
-            else if (typeb->ty == Tarray && tb->ty == Tarray &&
-                     typeb->nextOf()->constConv(tb->nextOf()) == MATCHconst)
-            {
-                // immutable(T)[] to const(T)[]
-                //           T [] to const(T)[]
                 result = e->copy();
                 result->type = t;
             }
@@ -3138,15 +3135,15 @@ Lcc:
     {
         goto Lt2;
     }
-    else if (e->op != TOKquestion && t1->ty == Tarray &&
-             isArrayOperand(e1) && e2->implicitConvTo(t1->nextOf()))
+    else if (t1->ty == Tarray && isBinArrayOp(e->op) &&
+             isArrayOpOperand(e1) && e2->implicitConvTo(t1->nextOf()))
     {
         // T[] op T
         e2 = e2->castTo(sc, t1->nextOf());
         t = t1->nextOf()->arrayOf();
     }
-    else if (e->op != TOKquestion && t2->ty == Tarray &&
-             isArrayOperand(e2) && e1->implicitConvTo(t2->nextOf()))
+    else if (t2->ty == Tarray && isBinArrayOp(e->op) &&
+             isArrayOpOperand(e2) && e1->implicitConvTo(t2->nextOf()))
     {
         // T op T[]
         e1 = e1->castTo(sc, t2->nextOf());

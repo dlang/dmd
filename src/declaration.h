@@ -190,30 +190,6 @@ public:
 
 /**************************************************************/
 
-class TypedefDeclaration : public Declaration
-{
-public:
-    Type *basetype;
-    Initializer *init;
-
-    TypedefDeclaration(Loc loc, Identifier *ident, Type *basetype, Initializer *init);
-    Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
-    void semantic2(Scope *sc);
-    const char *kind();
-    Type *getType();
-
-    void toObjFile(bool multiobj);                       // compile to .obj file
-
-    TypedefDeclaration *isTypedefDeclaration() { return this; }
-
-    Symbol *sinit;
-    Symbol *toInitializer();
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-/**************************************************************/
-
 class AliasDeclaration : public Declaration
 {
 public:
@@ -382,15 +358,6 @@ class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
 public:
     TypeInfoInterfaceDeclaration(Type *tinfo);
     static TypeInfoInterfaceDeclaration *create(Type *tinfo);
-
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-class TypeInfoTypedefDeclaration : public TypeInfoDeclaration
-{
-public:
-    TypeInfoTypedefDeclaration(Type *tinfo);
-    static TypeInfoTypedefDeclaration *create(Type *tinfo);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -577,7 +544,6 @@ public:
     Identifier *outId;                  // identifier for out statement
     VarDeclaration *vresult;            // variable corresponding to outId
     LabelDsymbol *returnLabel;          // where the return goes
-    Scope *scout;                       // out contract scope for vresult->semantic
 
     DsymbolTable *localsymtab;          // used to prevent symbols in different
                                         // scopes from having the same name
@@ -626,9 +592,11 @@ public:
     VarDeclaration *nrvo_var;           // variable to replace with shidden
     Symbol *shidden;                    // hidden pointer passed to function
 
+    ReturnStatements *returns;
+
     GotoStatements *gotos;              // Gotos with forward references
 
-    BUILTIN builtin;               // set if this is a known, builtin
+    BUILTIN builtin;                    // set if this is a known, builtin
                                         // function we can evaluate at compile
                                         // time
 
@@ -703,7 +671,7 @@ public:
     void checkNestedReference(Scope *sc, Loc loc);
     bool needsClosure();
     bool hasNestedFrameRefs();
-    void buildResultVar();
+    void buildResultVar(Scope *sc, Type *tret);
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *, Identifier *oid);
     Parameters *getParameters(int *pvarargs);
@@ -894,7 +862,7 @@ public:
     // toObjFile() these nested functions after this one
     FuncDeclarations deferredNested;
 
-    UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc);
+    UnitTestDeclaration(Loc loc, Loc endloc, StorageClass stc, char *codedoc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
@@ -912,7 +880,7 @@ public:
     Parameters *arguments;
     int varargs;
 
-    NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs);
+    NewDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     const char *kind();
@@ -930,7 +898,7 @@ class DeleteDeclaration : public FuncDeclaration
 public:
     Parameters *arguments;
 
-    DeleteDeclaration(Loc loc, Loc endloc, Parameters *arguments);
+    DeleteDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     const char *kind();

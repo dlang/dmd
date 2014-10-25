@@ -528,6 +528,7 @@ class ReturnStatement : public Statement
 {
 public:
     Expression *exp;
+    size_t caseDim;
 
     ReturnStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
@@ -751,6 +752,20 @@ public:
     {
         return asmSemantic(this, sc);
     }
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+// a complete asm {} block
+class CompoundAsmStatement : public CompoundStatement
+{
+public:
+    StorageClass stc; // postfix attributes like nothrow/pure/@trusted
+
+    CompoundAsmStatement(Loc loc, Statements *s, StorageClass stc);
+    CompoundAsmStatement *syntaxCopy();
+    CompoundAsmStatement *semantic(Scope *sc);
+    Statements *flatten(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };

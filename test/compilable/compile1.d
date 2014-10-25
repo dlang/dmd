@@ -708,3 +708,46 @@ final class C12703
 {
     S12703 s = S12703(1);
 }
+
+/***************************************************/
+// 13481
+
+mixin template Mix13481(void function() callback)
+{
+    static this()
+    {
+        callback();
+    }
+}
+
+void sort13481() { int[] arr; arr.sort; }
+mixin Mix13481!(&sort13481);
+
+mixin Mix13481!({ int[] arr; arr.sort; });
+
+/***************************************************/
+// 13564
+
+class E13564(T)
+{
+    int pos;
+}
+
+class C13564(T)
+{
+    struct S
+    {
+        ~this()
+        {
+            C13564!int c;
+            c.element.pos = 0;
+        }
+    }
+
+    E13564!T element;
+}
+
+void test13564()
+{
+    auto c = new C13564!int();
+}

@@ -52,6 +52,7 @@ class DebugStatement;
 class GotoStatement;
 class LabelStatement;
 class AsmStatement;
+class CompoundAsmStatement;
 class ImportStatement;
 #if DMD_OBJC
 struct ObjcExceptionBridge;
@@ -77,7 +78,6 @@ class TypeTypeof;
 class TypeReturn;
 class TypeStruct;
 class TypeEnum;
-class TypeTypedef;
 class TypeClass;
 class TypeTuple;
 class TypeSlice;
@@ -129,7 +129,6 @@ class InterfaceDeclaration;
 
 class Declaration;
 class TupleDeclaration;
-class TypedefDeclaration;
 class AliasDeclaration;
 class OverDeclaration;
 class VarDeclaration;
@@ -141,7 +140,6 @@ class TypeInfoDeclaration;
 class TypeInfoStructDeclaration;
 class TypeInfoClassDeclaration;
 class TypeInfoInterfaceDeclaration;
-class TypeInfoTypedefDeclaration;
 class TypeInfoPointerDeclaration;
 class TypeInfoArrayDeclaration;
 class TypeInfoStaticArrayDeclaration;
@@ -353,6 +351,7 @@ public:
     virtual void visit(GotoStatement *s) { visit((Statement *)s); }
     virtual void visit(LabelStatement *s) { visit((Statement *)s); }
     virtual void visit(AsmStatement *s) { visit((Statement *)s); }
+    virtual void visit(CompoundAsmStatement *s) { visit((CompoundStatement *)s); }
     virtual void visit(ImportStatement *s) { visit((Statement *)s); }
 #if DMD_OBJC
     virtual void visit(ObjcExceptionBridge *s) { visit((Statement *)s); }
@@ -378,7 +377,6 @@ public:
     virtual void visit(TypeReturn *t) { visit((TypeQualified *)t); }
     virtual void visit(TypeStruct *t) { visit((Type *)t); }
     virtual void visit(TypeEnum *t) { visit((Type *)t); }
-    virtual void visit(TypeTypedef *t) { visit((Type *)t); }
     virtual void visit(TypeClass *t) { visit((Type *)t); }
     virtual void visit(TypeTuple *t) { visit((Type *)t); }
     virtual void visit(TypeSlice *t) { visit((TypeNext *)t); }
@@ -430,7 +428,6 @@ public:
 
     virtual void visit(Declaration *s) { visit((Dsymbol *)s); }
     virtual void visit(TupleDeclaration *s) { visit((Declaration *)s); }
-    virtual void visit(TypedefDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(AliasDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(OverDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(VarDeclaration *s) { visit((Declaration *)s); }
@@ -442,7 +439,6 @@ public:
     virtual void visit(TypeInfoStructDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(TypeInfoClassDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(TypeInfoInterfaceDeclaration *s) { visit((TypeInfoDeclaration *)s); }
-    virtual void visit(TypeInfoTypedefDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(TypeInfoPointerDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(TypeInfoArrayDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(TypeInfoStaticArrayDeclaration *s) { visit((TypeInfoDeclaration *)s); }
