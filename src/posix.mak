@@ -141,6 +141,10 @@ DMD_OBJS = \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o nspace.o errors.o
 
+ifeq ($(D_OBJC),1)
+	DMD_OBJS += objc_attrib.o
+endif
+
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o object.o \
@@ -202,6 +206,10 @@ SRC = win32.mak posix.mak osmodel.mak \
 	intrange.h intrange.c canthrow.c target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c
+
+ifeq ($(D_OBJC),1)
+	SRC += objc_attrib.c
+endif
 
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
@@ -494,6 +502,7 @@ endif
 	gcov intrange.c
 	gcov target.c
 ifeq ($(D_OBJC),1)
+	gcov objc_attrib.c
 	gcov objc_glue.c
 	gcov objc_todt.c
 	gcov objc_toobj.c
