@@ -1413,24 +1413,6 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
-// MARK: toObjFile
-
-ControlFlow objc_ClassDeclaration_toObjFile(ClassDeclaration *self, bool multiobj)
-{
-    if (self->objc.objc)
-    {
-        if (!self->objc.meta)
-        {
-            ObjcClassDeclaration* objcdecl = ObjcClassDeclaration::create(self);
-            objcdecl->toObjFile(multiobj);
-            self->objc.classSymbol = objcdecl->symbol;
-        }
-        return CFreturn; // skip rest of output
-    }
-
-    return CFnone;
-}
-
 // MARK: implicitConvTo
 
 ControlFlow objc_implicitConvTo_visit_StringExp_Tclass(Type *t, MATCH *result)

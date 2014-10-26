@@ -109,3 +109,21 @@ void NonFragileAbiObjcProtocolDeclaration::toObjFile(int multiobj)
     labelSymbol->Sseg = objc_getsegment(SEGobjc_protolist);
     outdata(labelSymbol);
 }
+
+// MARK: ClassDeclaration
+
+ControlFlow objc_ClassDeclaration_toObjFile(ClassDeclaration *self, bool multiobj)
+{
+    if (self->objc.objc)
+    {
+        if (!self->objc.meta)
+        {
+            ObjcClassDeclaration* objcdecl = ObjcClassDeclaration::create(self);
+            objcdecl->toObjFile(multiobj);
+            self->objc.classSymbol = objcdecl->symbol;
+        }
+        return CFreturn; // skip rest of output
+    }
+
+    return CFnone;
+}
