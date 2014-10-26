@@ -2054,7 +2054,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         if (tiargs && tiargs->dim > 0)
             return 0;
 
-        //printf("fd = %s %s\n", fd->toChars(), fd->type->toChars());
+        //printf("fd = %s %s, fargs = %s\n", fd->toChars(), fd->type->toChars(), fargs->toChars());
         m->anyf = fd;
         TypeFunction *tf = (TypeFunction *)fd->type;
 

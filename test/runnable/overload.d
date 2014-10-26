@@ -1009,6 +1009,22 @@ void test11785()
 }
 
 /***************************************************/
+// 11915
+
+int f11915(    int) { return 1; }
+int f11915(ref int) { return 2; }
+
+int g11915(    int) { return 1; }
+int g11915(out int) { return 2; }
+
+void test11915()
+{
+    const int n = 1;
+    assert(f11915(n) == 1);
+    assert(g11915(n) == 1);
+}
+
+/***************************************************/
 // 11916
 
 auto f11916(T)(    T)            { return 1; }
@@ -1068,6 +1084,7 @@ int main()
     test10658a();
     test10658b();
     test11785();
+    test11915();
     test11916();
 
     printf("Success\n");
