@@ -1413,13 +1413,6 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
-// MARK: cppmangle
-
-void objc_CppMangleVisitor_visit_TypeObjcSelector(OutBuffer &buf, TypeObjcSelector *t)
-{
-    buf.writestring("P13objc_selector");
-}
-
 ControlFlow objc_ScopeDsymbol_multiplyDefined(Dsymbol *s1, Dsymbol *s2)
 {
     bool isMetaclass = s1->isClassDeclaration() && s2->isClassDeclaration() &&
