@@ -144,6 +144,8 @@
 		7A8F5AAF173E8704002091B3 /* type.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A75173E8704002091B3 /* type.c */; };
 		7A8F5AB0173E8704002091B3 /* util2.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A76173E8704002091B3 /* util2.c */; };
 		7A8F5AB1173E8704002091B3 /* var.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A77173E8704002091B3 /* var.c */; };
+		7AE59E3B19FD3CFF003AB12D /* objc_todt.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E3919FD3CFF003AB12D /* objc_todt.c */; };
+		7AE59E4219FD4242003AB12D /* objc_glue.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E4019FD4242003AB12D /* objc_glue.c */; };
 		7B226337196FEC14003C9F1D /* color.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226335196FEC14003C9F1D /* color.c */; };
 		7B22633B196FEC56003C9F1D /* nogc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226338196FEC56003C9F1D /* nogc.c */; };
 		7B22633C196FEC56003C9F1D /* nspace.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226339196FEC56003C9F1D /* nspace.c */; };
@@ -395,6 +397,9 @@
 		7A8F5ACF173E870F002091B3 /* ty.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = ty.h; sourceTree = "<group>"; };
 		7A8F5AD0173E870F002091B3 /* type.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = type.h; sourceTree = "<group>"; };
 		7A8F5AD1173E870F002091B3 /* xmm.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = xmm.h; sourceTree = "<group>"; };
+		7AE59E3919FD3CFF003AB12D /* objc_todt.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_todt.c; path = src/objc_todt.c; sourceTree = "<group>"; };
+		7AE59E4019FD4242003AB12D /* objc_glue.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_glue.c; path = src/objc_glue.c; sourceTree = "<group>"; };
+		7AE59E4119FD4242003AB12D /* objc_glue.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; name = objc_glue.h; path = src/objc_glue.h; sourceTree = "<group>"; };
 		7B226335196FEC14003C9F1D /* color.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = color.c; path = src/color.c; sourceTree = "<group>"; };
 		7B226336196FEC14003C9F1D /* color.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = color.h; path = src/color.h; sourceTree = "<group>"; };
 		7B226338196FEC56003C9F1D /* nogc.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = nogc.c; path = src/nogc.c; sourceTree = "<group>"; };
@@ -482,6 +487,7 @@
 				7A8F5958173E8692002091B3 /* module.h */,
 				7A8F5959173E8692002091B3 /* mtype.h */,
 				7A588DE7177238B300C6E503 /* objc.h */,
+				7AE59E4119FD4242003AB12D /* objc_glue.h */,
 				7A8F595B173E8692002091B3 /* parse.h */,
 				7A8F595C173E8692002091B3 /* scope.h */,
 				7A8F595D173E8692002091B3 /* statement.h */,
@@ -544,6 +550,8 @@
 				7A8F58CF173E8680002091B3 /* msc.c */,
 				7A8F58D0173E8680002091B3 /* mtype.c */,
 				7A588DE8177238E500C6E503 /* objc.c */,
+				7AE59E4019FD4242003AB12D /* objc_glue.c */,
+				7AE59E3919FD3CFF003AB12D /* objc_todt.c */,
 				7A8F58D1173E8680002091B3 /* opover.c */,
 				7A8F58D2173E8680002091B3 /* optimize.c */,
 				7A8F58D3173E8680002091B3 /* parse.c */,
@@ -899,6 +907,7 @@
 				7A8F5A84173E8704002091B3 /* cgreg.c in Sources */,
 				7A8F5A85173E8704002091B3 /* cgsched.c in Sources */,
 				7A8F5A86173E8704002091B3 /* cgxmm.c in Sources */,
+				7AE59E3B19FD3CFF003AB12D /* objc_todt.c in Sources */,
 				7A8F5A87173E8704002091B3 /* cod1.c in Sources */,
 				7A8F5A88173E8704002091B3 /* cod2.c in Sources */,
 				7A8F5A89173E8704002091B3 /* cod3.c in Sources */,
@@ -925,6 +934,7 @@
 				7A8F5A9E173E8704002091B3 /* md5.c in Sources */,
 				7A8F5A9F173E8704002091B3 /* mscoffobj.c in Sources */,
 				7A8F5AA0173E8704002091B3 /* newman.c in Sources */,
+				7AE59E4219FD4242003AB12D /* objc_glue.c in Sources */,
 				7A8F5AA1173E8704002091B3 /* nteh.c in Sources */,
 				7A8F5AA3173E8704002091B3 /* os.c in Sources */,
 				7A8F5AA4173E8704002091B3 /* out.c in Sources */,

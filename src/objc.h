@@ -14,6 +14,8 @@
 #include "mtype.h"
 #include "stringtable.h"
 
+#include "objc_glue.h"
+
 struct elem;
 struct dt_t;
 
@@ -26,42 +28,6 @@ class ClassDeclaration;
 class InterfaceDeclaration;
 class ObjcSelector;
 class ObjcClassDeclaration;
-
-enum ObjcSegment
-{
-    SEGcat_inst_meth,
-    SEGcat_cls_meth,
-    SEGstring_object,
-    SEGcstring_object,
-    SEGmessage_refs,
-    SEGsel_fixup,
-    SEGcls_refs,
-    SEGclass,
-    SEGmeta_class,
-    SEGcls_meth,
-    SEGinst_meth,
-    SEGprotocol,
-    SEGcstring,
-    SEGustring,
-    SEGcfstring,
-    SEGcategory,
-    SEGclass_vars,
-    SEGinstance_vars,
-    SEGmodule_info,
-    SEGsymbols,
-    SEGprotocol_ext,
-    SEGclass_ext,
-    SEGproperty,
-    SEGimage_info,
-    SEGmethname,
-    SEGmethtype,
-    SEGclassname,
-    SEGselrefs,
-    SEGobjc_const,
-    SEGobjc_ivar,
-    SEGobjc_protolist,
-    SEG_MAX
-};
 
 class ObjcSymbols
 {

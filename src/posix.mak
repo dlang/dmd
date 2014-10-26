@@ -151,6 +151,10 @@ GLUE_OBJS = \
 	toobj.o toctype.o toelfdebug.o toir.o \
 	irstate.o typinf.o iasm.o
 
+ifeq ($(D_OBJC),1)
+	GLUE_OBJS += objc_glue.o objc_todt.o
+endif
+
 ifeq (osx,$(OS))
     GLUE_OBJS += libmach.o scanmach.o
 else
@@ -219,6 +223,11 @@ GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
 	tk.c eh.c gluestub.c
+
+ifeq ($(D_OBJC),1)
+	GLUE_SRC += objc_glue.h objc_glue.c \
+		objc_todt.c
+endif
 
 BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
@@ -485,6 +494,7 @@ endif
 	gcov intrange.c
 	gcov target.c
 
+	gcov objc_todt.c
 #	gcov hdrgen.c
 #	gcov tocvdebug.c
 
