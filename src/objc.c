@@ -1413,13 +1413,6 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
-// MARK: toArgTypes
-
-TypeTuple * objc_toArgTypesVisit (TypeObjcSelector*)
-{
-    return new TypeTuple();     // pass on the stack for efficiency
-}
-
 // MARK: semantic
 
 void objc_PragmaDeclaration_semantic_objcTakesStringLiteral(PragmaDeclaration* self, Scope *sc)
