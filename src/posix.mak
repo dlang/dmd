@@ -157,7 +157,7 @@ GLUE_OBJS = \
 	irstate.o typinf.o iasm.o
 
 ifeq ($(D_OBJC),1)
-	GLUE_OBJS += objc_glue.o objc_todt.o objc_toobj.o
+	GLUE_OBJS += objc_e2ir.o objc_glue.o objc_todt.o objc_toobj.o
 endif
 
 ifeq (osx,$(OS))
@@ -235,8 +235,7 @@ GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	tk.c eh.c gluestub.c
 
 ifeq ($(D_OBJC),1)
-	GLUE_SRC += objc_glue.h objc_glue.c \
-		objc_todt.c objc_toobj.c
+	GLUE_SRC += objc_e2ir.c objc_glue.h objc_glue.c objc_todt.c objc_toobj.c
 endif
 
 BACK_SRC = \
@@ -510,6 +509,7 @@ ifeq ($(D_OBJC),1)
 	gcov objc_class.c
 	gcov objc_cppmangle.c
 	gcov objc_dsymbol.c
+	gcov objc_e2ir.c
 	gcov objc_expression.c
 	gcov objc_func.c
 	gcov objc_glue.c

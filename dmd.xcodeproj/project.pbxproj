@@ -155,6 +155,7 @@
 		7AE59E5519FD9298003AB12D /* objc_cast.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5419FD9298003AB12D /* objc_cast.c */; };
 		7AE59E5719FD93B9003AB12D /* objc_cppmangle.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5619FD93B9003AB12D /* objc_cppmangle.c */; };
 		7AE59E5919FD94A5003AB12D /* objc_dsymbol.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5819FD94A5003AB12D /* objc_dsymbol.c */; };
+		7AE59E5B19FD9579003AB12D /* objc_e2ir.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5A19FD9579003AB12D /* objc_e2ir.c */; };
 		7B226337196FEC14003C9F1D /* color.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226335196FEC14003C9F1D /* color.c */; };
 		7B22633B196FEC56003C9F1D /* nogc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226338196FEC56003C9F1D /* nogc.c */; };
 		7B22633C196FEC56003C9F1D /* nspace.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226339196FEC56003C9F1D /* nspace.c */; };
@@ -418,6 +419,7 @@
 		7AE59E5419FD9298003AB12D /* objc_cast.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_cast.c; path = src/objc_cast.c; sourceTree = "<group>"; };
 		7AE59E5619FD93B9003AB12D /* objc_cppmangle.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_cppmangle.c; path = src/objc_cppmangle.c; sourceTree = "<group>"; };
 		7AE59E5819FD94A5003AB12D /* objc_dsymbol.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_dsymbol.c; path = src/objc_dsymbol.c; sourceTree = "<group>"; };
+		7AE59E5A19FD9579003AB12D /* objc_e2ir.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_e2ir.c; path = src/objc_e2ir.c; sourceTree = "<group>"; };
 		7B226335196FEC14003C9F1D /* color.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = color.c; path = src/color.c; sourceTree = "<group>"; };
 		7B226336196FEC14003C9F1D /* color.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = color.h; path = src/color.h; sourceTree = "<group>"; };
 		7B226338196FEC56003C9F1D /* nogc.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = nogc.c; path = src/nogc.c; sourceTree = "<group>"; };
@@ -574,6 +576,7 @@
 				7AE59E4C19FD8D2F003AB12D /* objc_class.c */,
 				7AE59E5619FD93B9003AB12D /* objc_cppmangle.c */,
 				7AE59E5819FD94A5003AB12D /* objc_dsymbol.c */,
+				7AE59E5A19FD9579003AB12D /* objc_e2ir.c */,
 				7AE59E5019FD8ED7003AB12D /* objc_expression.c */,
 				7AE59E5219FD9047003AB12D /* objc_func.c */,
 				7AE59E4019FD4242003AB12D /* objc_glue.c */,
@@ -872,6 +875,7 @@
 				7A8F5917173E8680002091B3 /* json.c in Sources */,
 				7AE59E5519FD9298003AB12D /* objc_cast.c in Sources */,
 				7A8F5918173E8680002091B3 /* lexer.c in Sources */,
+				7AE59E5B19FD9579003AB12D /* objc_e2ir.c in Sources */,
 				7AE59E5319FD9047003AB12D /* objc_func.c in Sources */,
 				7A8F591A173E8680002091B3 /* libmach.c in Sources */,
 				7A8F591D173E8680002091B3 /* link.c in Sources */,
