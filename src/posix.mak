@@ -142,8 +142,8 @@ DMD_OBJS = \
 	intrange.o canthrow.o target.o nspace.o errors.o
 
 ifeq ($(D_OBJC),1)
-	DMD_OBJS += objc_argtypes.o objc_attrib.o objc_class.o objc_expression.o \
-		objc_func.o
+	DMD_OBJS += objc_argtypes.o objc_attrib.o objc_cast.o objc_class.o \
+		objc_expression.o objc_func.o
 endif
 
 ROOT_OBJS = \
@@ -209,8 +209,8 @@ SRC = win32.mak posix.mak osmodel.mak \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c
 
 ifeq ($(D_OBJC),1)
-	SRC += objc_argtypes.c objc_attrib.c objc_class.c objc_expression.c \
-		objc_func.c
+	SRC += objc_argtypes.c objc_attrib.c objc_cast.c objc_class.c \
+		objc_expression.c objc_func.c
 endif
 
 ROOT_SRC = $(ROOT)/root.h \
@@ -506,6 +506,7 @@ endif
 ifeq ($(D_OBJC),1)
 	gcov objc_argtypes.c
 	gcov objc_attrib.c
+	gcov objc_cast.c
 	gcov objc_class.c
 	gcov objc_expression.c
 	gcov objc_func.c
