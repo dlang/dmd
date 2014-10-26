@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "declaration.h"
 #include "mars.h"
 #include "objc_glue.h"
 #include "outbuf.h"
@@ -19,6 +20,8 @@
 #include "cc.h"
 #include "mach.h"
 #include "obj.h"
+
+// MARK: Utility
 
 void error (const char* format, ...)
 {
@@ -119,4 +122,28 @@ int objc_getsegment(ObjcSegment segid)
     seg[SEGprotocol_ext] = MachObj::getsegment("__protocol_ext", "__OBJC", align, S_ATTR_NO_DEAD_STRIP);
     
     return seg[segid];
+}
+
+// MARK: toObjFile
+
+void objc_FuncDeclaration_toObjFile_extraArgument(FuncDeclaration *self, size_t &pi)
+{
+    if (self->objc.selector)
+        pi += 1; // Extra arument for Objective-C selector
+}
+
+void objc_FuncDeclaration_toObjFile_selfCmd(FuncDeclaration *self, Symbol **params, size_t &pi)
+{
+    if (self->objc.selector)
+    {
+        // Need to add Objective-C self and _cmd arguments as last/first parameters
+        //        error("Objective-C method ABI not implemented yet.");
+        assert(self->objc.vcmd);
+        Symbol *sobjccmd = toSymbol(self->objc.vcmd);
+
+        // sthis becomes first parameter
+        memmove(params + 1, params, pi * sizeof(params[0]));
+        params[0] = sobjccmd;
+        pi += 1;
+    }
 }
