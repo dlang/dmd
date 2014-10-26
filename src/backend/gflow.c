@@ -974,6 +974,7 @@ STATIC void accumaecpx(elem *n)
             vec_free(Kr);
             break;
         }
+        case OPddtor:
         case OPasm:
             assert(!n->Eexp);                   // no ASM available expressions
             vec_set(KILL);                      // KILL everything
