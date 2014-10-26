@@ -3389,6 +3389,21 @@ void test12376()
 }
 
 /******************************************/
+// 12447
+
+enum   test12447(string str) = str; // [1]
+string test12447(T...)(T args) if (T.length) { return args[0]; }    // [2]
+
+// With [1]: The template parameter str cannot be be deduced -> no match
+// With [2]: T is deduced to a type tuple (string), then match to the function call.
+static assert(test12447("foo") == "foo");
+
+// With [1]: template parameter str is deduced to "bar", then match.
+// With [2]: T is deduced to an expression tuple ("bar"), but it will make invalid the function signature (T args).
+//           The failure should be masked silently and prefer the 1st version.
+static assert(test12447!("bar") == "bar");
+
+/******************************************/
 // 12651
 
 alias TemplateArgsOf12651(alias T : Base!Args, alias Base, Args...) = Args;

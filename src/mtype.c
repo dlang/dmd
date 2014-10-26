@@ -5873,7 +5873,13 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                 goto Nomatch;
         }
         else if (p->storageClass & STCout)
-        {   if (m && !arg->isLvalue())
+        {
+            if (m && !arg->isLvalue())
+                goto Nomatch;
+
+            Type *targb = targ->toBasetype();
+            Type *tprmb = tprm->toBasetype();
+            if (!targb->constConv(tprmb))
                 goto Nomatch;
         }
         }

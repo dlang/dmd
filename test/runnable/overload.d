@@ -1009,6 +1009,51 @@ void test11785()
 }
 
 /***************************************************/
+// 11915
+
+int f11915(    int) { return 1; }
+int f11915(ref int) { return 2; }
+
+int g11915(    int) { return 1; }
+int g11915(out int) { return 2; }
+
+void test11915()
+{
+    const int n = 1;
+    assert(f11915(n) == 1);
+    assert(g11915(n) == 1);
+}
+
+/***************************************************/
+// 11916
+
+auto f11916(T)(    T)            { return 1; }
+auto f11916(T)(out T) if (false) { return 2; }
+
+auto g11916(T)(    T) { return 1; }
+auto g11916(T)(out T) { return 2; }
+
+void test11916()
+{
+    const int c = 1;
+    int m = 2;
+
+    // 'out const int' is invalid function parameter, so (out T) version will be dropped
+    // from overload candidates before template constraint evaluated.
+    assert(f11916(c) == 1);
+
+    // Both (T) and (out T) have valid signatures with T == int, but the 2nd overload will be
+    // dropped from overload candidates because of the template constraint.
+    assert(f11916(m) == 1);
+
+    // 'out const int' parameter is invalid, so non-out version is selected.
+    assert(g11916(c) == 1);
+
+    // MATCHconst for (T) version, and MATCHexact for (out T) version.
+    assert(g11916(m) == 2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1039,6 +1084,8 @@ int main()
     test10658a();
     test10658b();
     test11785();
+    test11915();
+    test11916();
 
     printf("Success\n");
     return 0;

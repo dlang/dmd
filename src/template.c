@@ -949,10 +949,15 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
 
             // Resolve parameter types and 'auto ref's.
             tf->fargs = fargs;
+            unsigned olderrors = global.startGagging();
             fd->type = tf->semantic(loc, paramscope);
-            fd->originalType = fd->type;    // for mangling
-            if (fd->type->ty != Tfunction)
+            if (global.endGagging(olderrors))
+            {
+                assert(fd->type->ty != Tfunction);
                 goto Lnomatch;
+            }
+            assert(fd->type->ty == Tfunction);
+            fd->originalType = fd->type;    // for mangling
         }
 
         // TODO: dedtypes => ti->tiargs ?
@@ -2049,7 +2054,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         if (tiargs && tiargs->dim > 0)
             return 0;
 
-        //printf("fd = %s %s\n", fd->toChars(), fd->type->toChars());
+        //printf("fd = %s %s, fargs = %s\n", fd->toChars(), fd->type->toChars(), fargs->toChars());
         m->anyf = fd;
         TypeFunction *tf = (TypeFunction *)fd->type;
 
@@ -2294,9 +2299,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             MATCH mta = (MATCH)(x >> 4);
             MATCH mfa = (MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
-            if (!fd)
-                goto Lerror;
-            if (mfa == MATCHnomatch)
+            if (!fd || mfa == MATCHnomatch)
                 continue;
 
             Type *tthis_fd = fd->needThis() ? tthis : NULL;
@@ -2576,14 +2579,23 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
         tf->next = NULL;
     fd->type = tf;
     fd->type = fd->type->addSTC(scx->stc);
+
+    unsigned olderrors = global.startGagging();
     fd->type = fd->type->semantic(fd->loc, scx);
+    scx = scx->pop();
+
+    if (global.endGagging(olderrors))
+    {
+        assert(fd->type->ty != Tfunction);
+        return NULL;
+    }
+    assert(fd->type->ty == Tfunction);
+
     fd->originalType = fd->type;    // for mangling
     //printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
     //printf("fd->needThis() = %d\n", fd->needThis());
 
-    scx = scx->pop();
-
-    return fd->type->ty == Tfunction ? fd : NULL;
+    return fd;
 }
 
 bool TemplateDeclaration::hasStaticCtorOrDtor()
