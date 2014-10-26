@@ -1413,14 +1413,6 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
-ControlFlow objc_ScopeDsymbol_multiplyDefined(Dsymbol *s1, Dsymbol *s2)
-{
-    bool isMetaclass = s1->isClassDeclaration() && s2->isClassDeclaration() &&
-        ((ClassDeclaration *)s1)->objc.meta && ((ClassDeclaration *)s2)->objc.meta;
-
-    return isMetaclass ? CFreturn : CFnone;
-}
-
 // MARK: callfunc
 void objc_callfunc_setupSelector(elem *ec, FuncDeclaration *fd, elem *esel, Type *t, TypeFunction *&tf, elem *&ethis)
 {
