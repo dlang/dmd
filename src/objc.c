@@ -1413,13 +1413,6 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
-// MARK: inline
-
-void objc_inline_visit_ObjcSelectorExp(int &cost)
-{
-    cost = COST_MAX;
-}
-
 // MARK: interpret
 
 void objc_interpret_visit_ObjcSelectorExp(ObjcSelectorExp *e, Expression *&result)
