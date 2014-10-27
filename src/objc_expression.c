@@ -15,6 +15,8 @@
 #include "objc.h"
 #include "utf.h"
 
+// MARK: semantic
+
 ControlFlow objc_StringExp_semantic(StringExp *self, Expression *&error)
 {
     // determine if this string is pure ascii
@@ -175,4 +177,28 @@ Expression * objc_AddrExp_semantic_TOKvar_selector(AddrExp *self, Scope *sc, Var
     Expression *e = new ObjcSelectorExp(self->loc, f, ve->hasOverloads);
     e = e->semantic(sc);
     return e;
+}
+
+// MARK: getRightThis
+
+ControlFlow objc_getRightThis(AggregateDeclaration *ad, Expression *&e1, Declaration *var)
+{
+    ControlFlow controlFlow = CFnone;
+
+    if (e1->op == TOKobjcclsref)
+    {
+        // We already have an Objective-C class reference, just use that as 'this'.
+        controlFlow = CFgoto;
+    }
+    else if (ad &&
+             ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc.objc &&
+             var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
+             ((FuncDeclaration *)var)->objc.selector)
+    {
+        // Create class reference from the class declaration
+        e1 = new ObjcClassRefExp(e1->loc, (ClassDeclaration *)ad);
+        controlFlow = CFgoto;
+    }
+
+    return controlFlow;
 }

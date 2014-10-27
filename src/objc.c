@@ -1413,30 +1413,6 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
-// MARK: getRightThis
-
-ControlFlow objc_getRightThis(AggregateDeclaration *ad, Expression *&e1, Declaration *var)
-{
-    ControlFlow controlFlow = CFnone;
-
-    if (e1->op == TOKobjcclsref)
-    {
-        // We already have an Objective-C class reference, just use that as 'this'.
-        controlFlow = CFgoto;
-    }
-    else if (ad &&
-             ad->isClassDeclaration() && ((ClassDeclaration *)ad)->objc.objc &&
-             var->isFuncDeclaration() && ((FuncDeclaration *)var)->isStatic() &&
-             ((FuncDeclaration *)var)->objc.selector)
-    {
-        // Create class reference from the class declaration
-        e1 = new ObjcClassRefExp(e1->loc, (ClassDeclaration *)ad);
-        controlFlow = CFgoto;
-    }
-
-    return controlFlow;
-}
-
 // MARK: Module::genobjfile
 
 void objc_Module_genobjfile_initSymbols()
