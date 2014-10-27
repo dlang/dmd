@@ -1317,15 +1317,18 @@ void CompileDeclaration::compileIt(Scope *sc)
         else
         {
             se = se->toUTF8(sc);
+            unsigned errors = global.errors;
             Parser p(loc, sc->module, (utf8_t *)se->string, se->len, 0);
             p.nextToken();
 
-            unsigned errors = global.errors;
             decl = p.parseDeclDefs(0);
             if (p.token.value != TOKeof)
                 exp->error("incomplete mixin declaration (%s)", se->toChars());
-            if (global.errors != errors)
+            if (p.errors)
+            {
+                assert(global.errors != errors);
                 decl = NULL;
+            }
         }
     }
 }

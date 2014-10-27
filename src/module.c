@@ -516,6 +516,8 @@ void Module::parse()
         members = p.parseModule();
         md = p.md;
         numlines = p.scanloc.linnum;
+        if (p.errors)
+            ++global.errors;
     }
 
     if (srcfile->ref == 0)

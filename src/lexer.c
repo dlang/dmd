@@ -259,6 +259,7 @@ Lexer::Lexer(Module *mod,
     this->doDocComment = doDocComment;
     this->anyToken = 0;
     this->commentToken = commentToken;
+    this->errors = false;
     //initKeywords();
 
     /* If first line starts with '#!', ignore the line
@@ -319,6 +320,7 @@ void Lexer::error(const char *format, ...)
     va_start(ap, format);
     ::verror(token.loc, format, ap);
     va_end(ap);
+    errors = true;
 }
 
 void Lexer::error(Loc loc, const char *format, ...)
@@ -327,6 +329,7 @@ void Lexer::error(Loc loc, const char *format, ...)
     va_start(ap, format);
     ::verror(loc, format, ap);
     va_end(ap);
+    errors = true;
 }
 
 void Lexer::deprecation(const char *format, ...)
@@ -335,6 +338,8 @@ void Lexer::deprecation(const char *format, ...)
     va_start(ap, format);
     ::vdeprecation(token.loc, format, ap);
     va_end(ap);
+    if (global.params.useDeprecated == 0)
+        errors = true;
 }
 
 TOK Lexer::nextToken()
