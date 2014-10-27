@@ -147,3 +147,10 @@ void objc_FuncDeclaration_toObjFile_selfCmd(FuncDeclaration *self, Symbol **para
         pi += 1;
     }
 }
+
+// MARK: Module::genobjfile
+
+void objc_Module_genobjfile_initSymbols()
+{
+    ObjcSymbols::init();
+}

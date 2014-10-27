@@ -1413,13 +1413,6 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
-// MARK: Module::genobjfile
-
-void objc_Module_genobjfile_initSymbols()
-{
-    ObjcSymbols::init();
-}
-
 // MARK: inline
 
 void objc_inline_visit_ObjcSelectorExp(int &cost)
