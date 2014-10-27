@@ -3007,6 +3007,13 @@ public:
         printf("%s NewExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
 
+        if (e->allocator)
+        {
+            e->error("member allocators not supported by CTFE");
+            result = EXP_CANT_INTERPRET;
+            return;
+        }
+
         if (e->argprefix)
         {
             result = e->argprefix->interpret(istate, ctfeNeedNothing);
