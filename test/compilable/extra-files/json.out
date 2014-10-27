@@ -338,6 +338,9 @@
     "kind" : "function",
     "line" : 57,
     "char" : 15,
+    "storageClass" : [
+     "@property"
+    ],
     "deco" : "FNbNdZi",
     "endline" : 74,
     "endchar" : 1

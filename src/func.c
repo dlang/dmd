@@ -586,7 +586,15 @@ void FuncDeclaration::semantic(Scope *sc)
         tfo->purity     = tfx->purity;
         tfo->trust      = tfx->trust;
 
-        storage_class &= ~(STC_TYPECTOR | STC_FUNCATTR);
+        if (tfo->purity == PUREfwdref) {
+            storage_class |= STCpure;
+        }
+        if (tfo->trust == TRUSTsafe) {
+            storage_class |= STCsafe;
+        }
+        if (tfo->isproperty) {
+            storage_class |= STCproperty;
+        }
     }
 
     f = (TypeFunction *)type;
