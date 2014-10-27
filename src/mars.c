@@ -444,10 +444,12 @@ int tryMain(size_t argc, const char *argv[])
 #elif TARGET_LINUX
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("linux");
+    VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isLinux = true;
 #elif TARGET_OSX
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("OSX");
+    VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isOSX = true;
 
     // For legacy compatibility
@@ -455,14 +457,17 @@ int tryMain(size_t argc, const char *argv[])
 #elif TARGET_FREEBSD
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("FreeBSD");
+    VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isFreeBSD = true;
 #elif TARGET_OPENBSD
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("OpenBSD");
+    VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isFreeBSD = true;
 #elif TARGET_SOLARIS
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("Solaris");
+    VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isSolaris = true;
 #else
 #error "fix this"

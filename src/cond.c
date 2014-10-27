@@ -213,6 +213,8 @@ bool VersionCondition::isPredefined(const char *ident)
         "Alpha_HardFloat",
         "LittleEndian",
         "BigEndian",
+        "ELFv1",
+        "ELFv2",
         "D_Coverage",
         "D_Ddoc",
         "D_InlineAsm_X86",
