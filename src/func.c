@@ -4595,7 +4595,7 @@ void DtorDeclaration::semantic(Scope *sc)
         type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
     sc = sc->push();
-    sc->stc &= ~STCstatic;              // not a static destructor
+    sc->stc &= ~(STCstatic|STCshared);  // not a static or shared destructor
     sc->linkage = LINKd;
 
     FuncDeclaration::semantic(sc);

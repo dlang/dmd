@@ -1574,6 +1574,8 @@ Dsymbol *Parser::parseDtor(PrefixAttributes *pAttrs)
             ::error(loc, "use 'static ~this()' to declare a static destructor");
         else if (ss == (STCshared | STCstatic))
             ::error(loc, "use 'shared static ~this()' to declare a shared static destructor");
+        else if (ss == STCshared)
+            ::error(loc, "destructors cannot be shared");
     }
 
     DtorDeclaration *f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
