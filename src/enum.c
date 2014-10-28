@@ -88,6 +88,9 @@ int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
             em->ed = this;
             //printf("add %s to scope %s\n", em->toChars(), scopesym->toChars());
             em->addMember(sc, scopesym, 1);
+
+            if (sc->linkage == LINKc && !isAnonymous())
+                em->addMember(sc, sds, 1);
         }
     }
     added = true;
