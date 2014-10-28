@@ -1413,13 +1413,6 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
-// MARK: Expression_optimize
-void objc_Expression_optimize_visit_CallExp_Tobjcselector(Type *&t1)
-{
-    if (t1->ty == Tobjcselector)
-        t1 = t1->nextOf();
-}
-
 // MARK: parse
 
 void objc_Parser_parseCtor_selector(Parser *self, TemplateParameters *tpl, Parameters *parameters, CtorDeclaration *f)
