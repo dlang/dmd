@@ -1413,13 +1413,6 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
-// MARK: Type::init
-
-void objc_Type_init(unsigned char sizeTy[TMAX])
-{
-    sizeTy[Tobjcselector] = sizeof(TypeObjcSelector);
-}
-
 // MARK: dotExp
 
 void objc_Type_dotExp_TOKdotvar_setReceiver(ClassDeclaration *&receiver, DotVarExp *dv)
