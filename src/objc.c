@@ -1413,16 +1413,6 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
-// MARK: interpret
-
-void objc_interpret_visit_ObjcSelectorExp(ObjcSelectorExp *e, Expression *&result)
-{
-#if LOG
-    printf("ObjcSelectorExp::interpret() %s\n", e->toChars());
-#endif
-    result = e;
-}
-
 // MARK: Type::init
 
 void objc_Type_init(unsigned char sizeTy[TMAX])

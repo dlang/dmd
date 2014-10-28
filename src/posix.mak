@@ -144,7 +144,7 @@ DMD_OBJS = \
 ifeq ($(D_OBJC),1)
 	DMD_OBJS += objc_argtypes.o objc_attrib.o objc_cast.o objc_class.o \
 		objc_cppmangle.o objc_dsymbol.o objc_expression.o objc_func.o \
-		objc_hdrgen.o objc_inline.o
+		objc_hdrgen.o objc_inline.o objc_interpret.o
 endif
 
 ROOT_OBJS = \
@@ -212,7 +212,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 ifeq ($(D_OBJC),1)
 	SRC += objc_argtypes.c objc_attrib.c objc_cast.c objc_class.c \
 		objc_cppmangle.c objc_dsymbol.c objc_expression.c objc_func.c \
-		objc_hdrgen.c objc_inline.c
+		objc_hdrgen.c objc_inline.c objc_interpret.c
 endif
 
 ROOT_SRC = $(ROOT)/root.h \
@@ -517,6 +517,7 @@ ifeq ($(D_OBJC),1)
 	gcov objc_glue.c
 	gcov objc_hdrgen.c
 	gcov objc_inline.c
+	gcov objc_interpret.c
 	gcov objc_todt.c
 	gcov objc_toobj.c
 endif
