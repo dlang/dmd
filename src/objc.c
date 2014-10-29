@@ -1360,19 +1360,6 @@ bool Ojbc_FuncDeclaration::isProperty()
         (t->parameters->dim == 0 && t->next != Type::tvoid));
 }
 
-// MARK: TypeInfoObjcSelectorDeclaration
-
-TypeInfoObjcSelectorDeclaration::TypeInfoObjcSelectorDeclaration(Type *tinfo)
-: TypeInfoDeclaration(tinfo, 0)
-{
-    type = Type::typeinfodelegate->type;
-}
-
-TypeInfoObjcSelectorDeclaration *TypeInfoObjcSelectorDeclaration::create(Type *tinfo)
-{
-    return new TypeInfoObjcSelectorDeclaration(tinfo);
-}
-
 // MARK: tryMain
 
 void objc_tryMain_dObjc()
