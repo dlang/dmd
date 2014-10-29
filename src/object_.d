@@ -2367,6 +2367,7 @@ pure nothrow unittest
     //testFwdRange(aa.byPair, tuple("a", 1));
 }
 
+// Explicitly undocumented. It will be removed in March 2015.
 deprecated("Please use destroy instead of clear.")
 alias destroy clear;
 
