@@ -55,28 +55,37 @@ private alias BlkInfo = core.memory.GC.BlkInfo;
 
 version (GNU) import gcc.builtins;
 
-     debug (PRINTF_TO_FILE) import core.stdc.stdio : fprintf, fopen, fflush, FILE;
-else debug (PRINTF) import core.stdc.stdio : printf;
-else debug (CACHE_HITRATE) import core.stdc.stdio : printf;
-else debug (COLLECT_PRINTF) import core.stdc.stdio : printf;
-debug private import core.stdc.stdio;
+debug (PRINTF_TO_FILE) import core.stdc.stdio : fprintf, fopen, fflush, FILE;
+else                   import core.stdc.stdio : printf; // needed to output profiling results
+
+import core.time;
+alias currTime = MonoTime.currTime;
 
 debug(PRINTF_TO_FILE)
 {
-    import core.time;
-
     private __gshared MonoTime gcStartTick;
     private __gshared FILE* gcx_fh;
 
     private int printf(ARGS...)(const char* fmt, ARGS args) nothrow
     {
-        if (gcStartTick == MonoTime.init)
-            gcStartTick = MonoTime.currTime;
         if (!gcx_fh)
             gcx_fh = fopen("gcx.log", "w");
-        immutable timeElapsed = MonoTime.currTime - gcStartTick;
-        immutable secondsAsDouble = diff.total!"hnsecs" / cast(double)convert!("seconds", "hnsecs")(1);
-        int len = fprintf(gcx_fh, "%10.6lf: ", secondsAsDouble);
+        if (!gcx_fh)
+            return 0;
+        
+        int len;
+        if (MonoTime.ticksPerSecond == 0)
+        {
+            len = fprintf(gcx_fh, "before init: ");
+        }
+        else
+        {
+            if (gcStartTick == MonoTime.init)
+                gcStartTick = MonoTime.currTime;
+            immutable timeElapsed = MonoTime.currTime - gcStartTick;
+            immutable secondsAsDouble = timeElapsed.total!"hnsecs" / cast(double)convert!("seconds", "hnsecs")(1);
+            len = fprintf(gcx_fh, "%10.6lf: ", secondsAsDouble);
+        }
         len += fprintf(gcx_fh, fmt, args);
         fflush(gcx_fh);
         return len;
@@ -95,11 +104,10 @@ debug(PRINTF) void printFreeInfo(Pool* pool) nothrow
 
 // Track total time spent preparing for GC,
 // marking, sweeping and recovering pages.
-import core.stdc.stdio, core.stdc.time;
-__gshared long prepTime;
-__gshared long markTime;
-__gshared long sweepTime;
-__gshared long recoverTime;
+__gshared Duration prepTime;
+__gshared Duration markTime;
+__gshared Duration sweepTime;
+__gshared Duration recoverTime;
 __gshared size_t maxPoolMemory;
 
 private
@@ -1444,19 +1452,19 @@ struct Gcx
     {
         if (GC.config.profile)
         {
-            printf("\tTotal GC prep time:  %d milliseconds\n",
-                prepTime * 1000 / CLOCKS_PER_SEC);
-            printf("\tTotal mark time:  %d milliseconds\n",
-                markTime * 1000 / CLOCKS_PER_SEC);
-            printf("\tTotal sweep time:  %d milliseconds\n",
-                sweepTime * 1000 / CLOCKS_PER_SEC);
-            printf("\tTotal page recovery time:  %d milliseconds\n",
-                recoverTime * 1000 / CLOCKS_PER_SEC);
-            long pauseTime = recoverTime + sweepTime + markTime + prepTime;
-            printf("\tGrand total GC time:  %d milliseconds\n",
-                pauseTime * 1000 / CLOCKS_PER_SEC);
+            printf("\tTotal GC prep time:  %lld milliseconds\n",
+                   prepTime.total!("msecs"));
+            printf("\tTotal mark time:  %lld milliseconds\n",
+                   markTime.total!("msecs"));
+            printf("\tTotal sweep time:  %lld milliseconds\n",
+                   sweepTime.total!("msecs"));
+            printf("\tTotal page recovery time:  %lld milliseconds\n",
+                   recoverTime.total!("msecs"));
+            long gcTime = (recoverTime + sweepTime + markTime + prepTime).total!("msecs");
+            printf("\tGrand total GC time:  %lld milliseconds\n", gcTime);
+            long pauseTime = (markTime + prepTime).total!("msecs");
             printf("maxPoolMemory = %lld MB, pause time = %lld ms\n", 
-                   cast(long) maxPoolMemory >> 20, 1000 * pauseTime / CLOCKS_PER_SEC);
+                   cast(long) maxPoolMemory >> 20, pauseTime);
         }
 
         debug(CACHE_HITRATE)
@@ -2465,11 +2473,11 @@ struct Gcx
     {
         size_t n;
         Pool*  pool;
-        clock_t start, stop;
+        MonoTime start, stop;
 
         if (GC.config.profile)
         {
-            start = clock();
+            start = currTime();
         }
 
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
@@ -2517,7 +2525,7 @@ struct Gcx
 
         if (GC.config.profile)
         {
-            stop = clock();
+            stop = currTime();
             prepTime += (stop - start);
             start = stop;
         }
@@ -2612,7 +2620,7 @@ struct Gcx
 
         if (GC.config.profile)
         {
-            stop = clock();
+            stop = currTime();
             markTime += (stop - start);
             start = stop;
         }
@@ -2733,7 +2741,7 @@ struct Gcx
 
         if (GC.config.profile)
         {
-            stop = clock();
+            stop = currTime();
             sweepTime += (stop - start);
             start = stop;
         }
@@ -2794,7 +2802,7 @@ struct Gcx
 
         if (GC.config.profile)
         {
-            stop = clock();
+            stop = currTime();
             recoverTime += (stop - start);
         }
 
