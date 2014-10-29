@@ -145,7 +145,7 @@ ifeq ($(D_OBJC),1)
 	DMD_OBJS += objc_argtypes.o objc_attrib.o objc_cast.o objc_class.o \
 		objc_cppmangle.o objc_dsymbol.o objc_expression.o objc_func.o \
 		objc_hdrgen.o objc_inline.o objc_interpret.o objc_mtype.o \
-		objc_optimize.o objc_parse.o
+		objc_optimize.o objc_parse.o objc_sideeffect.o
 endif
 
 ROOT_OBJS = \
@@ -214,7 +214,7 @@ ifeq ($(D_OBJC),1)
 	SRC += objc_argtypes.c objc_attrib.c objc_cast.c objc_class.c \
 		objc_cppmangle.c objc_dsymbol.c objc_expression.c objc_func.c \
 		objc_hdrgen.c objc_inline.c objc_interpret.c objc_mtype.c \
-		objc_optimize.c objc_parse.c
+		objc_optimize.c objc_parse.c objc_sideeffect.c
 endif
 
 ROOT_SRC = $(ROOT)/root.h \
@@ -523,6 +523,7 @@ ifeq ($(D_OBJC),1)
 	gcov objc_mtype.c
 	gcov objc_optimize.c
 	gcov objc_parse.c
+	gcov objc_sideeffect.c
 	gcov objc_todt.c
 	gcov objc_toobj.c
 endif

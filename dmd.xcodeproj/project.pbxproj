@@ -162,6 +162,7 @@
 		7AE59E631A002E55003AB12D /* objc_mtype.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E621A002E55003AB12D /* objc_mtype.c */; };
 		7AE59E651A00300B003AB12D /* objc_optimize.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E641A00300B003AB12D /* objc_optimize.c */; };
 		7AE59E671A0031BD003AB12D /* objc_parse.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E661A0031BD003AB12D /* objc_parse.c */; };
+		7AE59E6B1A0037C1003AB12D /* objc_sideeffect.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E6A1A0037C1003AB12D /* objc_sideeffect.c */; };
 		7B226337196FEC14003C9F1D /* color.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226335196FEC14003C9F1D /* color.c */; };
 		7B22633B196FEC56003C9F1D /* nogc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226338196FEC56003C9F1D /* nogc.c */; };
 		7B22633C196FEC56003C9F1D /* nspace.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226339196FEC56003C9F1D /* nspace.c */; };
@@ -432,6 +433,7 @@
 		7AE59E621A002E55003AB12D /* objc_mtype.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_mtype.c; path = src/objc_mtype.c; sourceTree = "<group>"; };
 		7AE59E641A00300B003AB12D /* objc_optimize.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_optimize.c; path = src/objc_optimize.c; sourceTree = "<group>"; };
 		7AE59E661A0031BD003AB12D /* objc_parse.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = objc_parse.c; path = src/objc_parse.c; sourceTree = "<group>"; };
+		7AE59E6A1A0037C1003AB12D /* objc_sideeffect.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_sideeffect.c; path = src/objc_sideeffect.c; sourceTree = "<group>"; };
 		7B226335196FEC14003C9F1D /* color.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = color.c; path = src/color.c; sourceTree = "<group>"; };
 		7B226336196FEC14003C9F1D /* color.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = color.h; path = src/color.h; sourceTree = "<group>"; };
 		7B226338196FEC56003C9F1D /* nogc.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = nogc.c; path = src/nogc.c; sourceTree = "<group>"; };
@@ -598,6 +600,7 @@
 				7AE59E621A002E55003AB12D /* objc_mtype.c */,
 				7AE59E641A00300B003AB12D /* objc_optimize.c */,
 				7AE59E661A0031BD003AB12D /* objc_parse.c */,
+				7AE59E6A1A0037C1003AB12D /* objc_sideeffect.c */,
 				7AE59E3919FD3CFF003AB12D /* objc_todt.c */,
 				7AE59E4519FD4AFF003AB12D /* objc_toobj.c */,
 				7A8F58D1173E8680002091B3 /* opover.c */,
@@ -868,6 +871,7 @@
 				7A8F58FC173E8680002091B3 /* ctfeexpr.c in Sources */,
 				7BA9FB2618D9AFEA002A15A5 /* file.c in Sources */,
 				7A8F58FD173E8680002091B3 /* declaration.c in Sources */,
+				7AE59E6B1A0037C1003AB12D /* objc_sideeffect.c in Sources */,
 				7A8F58FE173E8680002091B3 /* delegatize.c in Sources */,
 				7A8F58FF173E8680002091B3 /* doc.c in Sources */,
 				7A8F5900173E8680002091B3 /* dsymbol.c in Sources */,

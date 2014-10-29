@@ -1432,20 +1432,6 @@ void objc_tryMain_init()
     ObjcSelector::init();
 }
 
-// MARK: callSideEffectLevel
-
-void objc_callSideEffectLevel_Tobjcselector(Type *t, TypeFunction *&tf)
-{
-    tf = (TypeFunction *)((TypeDelegate *)t)->next;
-}
-
-// MARK: lambdaHasSideEffect
-
-void objc_lambdaHasSideEffect_TOKcall_Tobjcselector(Type *&t)
-{
-    t = ((TypeObjcSelector *)t)->next;
-}
-
 // MARK: Type_toCtype
 
 void objc_Type_toCtype_visit_TypeObjcSelector(TypeObjcSelector *t)
