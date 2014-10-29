@@ -10,6 +10,7 @@
  */
 
 #include "aggregate.h"
+#include "module.h"
 #include "objc.h"
 
 #include "cc.h"
@@ -126,4 +127,21 @@ ControlFlow objc_ClassDeclaration_toObjFile(ClassDeclaration *self, bool multiob
     }
 
     return CFnone;
+}
+
+// MARK: Module::genmoduleinfo
+
+void objc_Module_genmoduleinfo_classes(Module *self)
+{
+    // generate the list of objc classes and categories in this module
+    ClassDeclarations objccls;
+    ClassDeclarations objccat;
+    for (int i = 0; i < self->members->dim; i++)
+    {
+        Dsymbol *member = self->members->tdata()[i];
+        member->addObjcSymbols(&objccls, &objccat);
+    }
+    // only emit objc module info for modules with Objective-C symbols
+    if (objccls.dim || objccat.dim || ObjcSymbols::hassymbols)
+        ObjcSymbols::getModuleInfo(&objccls, &objccat);
 }

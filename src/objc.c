@@ -1456,23 +1456,6 @@ void objc_Type_toCtype_visit_TypeObjcSelector(TypeObjcSelector *t)
     t->ctype->Tcount++;
 }
 
-// MARK: Module::genmoduleinfo
-
-void objc_Module_genmoduleinfo_classes(Module *self)
-{
-    // generate the list of objc classes and categories in this module
-    ClassDeclarations objccls;
-    ClassDeclarations objccat;
-    for (int i = 0; i < self->members->dim; i++)
-    {
-        Dsymbol *member = self->members->tdata()[i];
-        member->addObjcSymbols(&objccls, &objccat);
-    }
-    // only emit objc module info for modules with Objective-C symbols
-    if (objccls.dim || objccat.dim || ObjcSymbols::hassymbols)
-        ObjcSymbols::getModuleInfo(&objccls, &objccat);
-}
-
 // MARK: TypeInfo_toDt
 
 void objc_TypeInfo_toDt_visit_TypeInfoObjcSelectorDeclaration(dt_t **pdt, TypeInfoObjcSelectorDeclaration *d)
