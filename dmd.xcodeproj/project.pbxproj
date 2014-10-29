@@ -165,6 +165,7 @@
 		7AE59E6B1A0037C1003AB12D /* objc_sideeffect.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E6A1A0037C1003AB12D /* objc_sideeffect.c */; };
 		7AE59E6F1A017F8E003AB12D /* objc_typinf.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E6E1A017F8E003AB12D /* objc_typinf.c */; };
 		7AE59E711A01850F003AB12D /* objc_declaration.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E701A01850F003AB12D /* objc_declaration.c */; };
+		7AE59E731A018782003AB12D /* objc_toctype.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E721A018782003AB12D /* objc_toctype.c */; };
 		7B226337196FEC14003C9F1D /* color.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226335196FEC14003C9F1D /* color.c */; };
 		7B22633B196FEC56003C9F1D /* nogc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226338196FEC56003C9F1D /* nogc.c */; };
 		7B22633C196FEC56003C9F1D /* nspace.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226339196FEC56003C9F1D /* nspace.c */; };
@@ -438,6 +439,7 @@
 		7AE59E6A1A0037C1003AB12D /* objc_sideeffect.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_sideeffect.c; path = src/objc_sideeffect.c; sourceTree = "<group>"; };
 		7AE59E6E1A017F8E003AB12D /* objc_typinf.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_typinf.c; path = src/objc_typinf.c; sourceTree = "<group>"; };
 		7AE59E701A01850F003AB12D /* objc_declaration.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_declaration.c; path = src/objc_declaration.c; sourceTree = "<group>"; };
+		7AE59E721A018782003AB12D /* objc_toctype.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_toctype.c; path = src/objc_toctype.c; sourceTree = "<group>"; };
 		7B226335196FEC14003C9F1D /* color.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = color.c; path = src/color.c; sourceTree = "<group>"; };
 		7B226336196FEC14003C9F1D /* color.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = color.h; path = src/color.h; sourceTree = "<group>"; };
 		7B226338196FEC56003C9F1D /* nogc.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = nogc.c; path = src/nogc.c; sourceTree = "<group>"; };
@@ -606,6 +608,7 @@
 				7AE59E641A00300B003AB12D /* objc_optimize.c */,
 				7AE59E661A0031BD003AB12D /* objc_parse.c */,
 				7AE59E6A1A0037C1003AB12D /* objc_sideeffect.c */,
+				7AE59E721A018782003AB12D /* objc_toctype.c */,
 				7AE59E3919FD3CFF003AB12D /* objc_todt.c */,
 				7AE59E4519FD4AFF003AB12D /* objc_toobj.c */,
 				7AE59E6E1A017F8E003AB12D /* objc_typinf.c */,
@@ -957,6 +960,7 @@
 				7AE59E5919FD94A5003AB12D /* objc_dsymbol.c in Sources */,
 				7A8F5998173E86C7002091B3 /* man.c in Sources */,
 				7A8F5999173E86C7002091B3 /* port.c in Sources */,
+				7AE59E731A018782003AB12D /* objc_toctype.c in Sources */,
 				7A8F599A173E86C7002091B3 /* response.c in Sources */,
 				7B226337196FEC14003C9F1D /* color.c in Sources */,
 				7A8F599B173E86C7002091B3 /* rmem.c in Sources */,

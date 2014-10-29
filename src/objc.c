@@ -1320,27 +1320,3 @@ void objc_tryMain_init()
     ObjcSymbols::init();
     ObjcSelector::init();
 }
-
-// MARK: Type_toCtype
-
-void objc_Type_toCtype_visit_TypeObjcSelector(TypeObjcSelector *t)
-{
-    type *tn;
-
-    //printf("TypePointer::toCtype() %s\n", t->toChars());
-    if (t->ctype)
-        return;
-
-    if (1 || global.params.symdebug)
-    {   /* Need to always do this, otherwise C++ name mangling
-         * goes awry.
-         */
-        t->ctype = type_alloc(TYnptr);
-        tn = tschar; // expose selector as a char*
-        t->ctype->Tnext = tn;
-        tn->Tcount++;
-    }
-    else
-        t->ctype = type_fake(totym(t));
-    t->ctype->Tcount++;
-}
