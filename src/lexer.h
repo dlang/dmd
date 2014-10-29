@@ -247,6 +247,7 @@ public:
     int doDocComment;           // collect doc comment information
     int anyToken;               // !=0 means seen at least one token
     int commentToken;           // !=0 means comments are TOKcomment's
+    bool errors;                // errors occurred during lexing or parsing
 
     Lexer(Module *mod,
         const utf8_t *base, size_t begoffset, size_t endoffset,

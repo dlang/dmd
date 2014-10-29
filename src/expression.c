@@ -6840,13 +6840,16 @@ Expression *CompileExp::semantic(Scope *sc)
         return new ErrorExp();
     }
     se = se->toUTF8(sc);
+    unsigned errors = global.errors;
     Parser p(loc, sc->module, (utf8_t *)se->string, se->len, 0);
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
-    unsigned errors = global.errors;
     Expression *e = p.parseExpression();
-    if (global.errors != errors)
+    if (p.errors)
+    {
+        assert(global.errors != errors);        // should have caught all these cases
         return new ErrorExp();
+    }
     if (p.token.value != TOKeof)
     {   error("incomplete mixin expression (%s)", se->toChars());
         return new ErrorExp();
