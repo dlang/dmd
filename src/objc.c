@@ -1291,15 +1291,9 @@ TypeInfoDeclaration *TypeObjcSelector::getTypeInfoDeclaration()
 /***************************************/
 
 #include "cond.h"
-#include "expression.h"
 #include "init.h"
-#include "module.h"
-#include "parse.h"
-#include "statement.h"
 #include "typinf.c"
-#include "utf.h"
 
-elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 unsigned totym(Type *tx);
 
 Objc_StructDeclaration::Objc_StructDeclaration()
