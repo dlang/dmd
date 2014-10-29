@@ -13,6 +13,8 @@
 #include "declaration.h"
 #include "mtype.h"
 
+// MARK: TypeInfoObjcSelectorDeclaration
+
 TypeInfoObjcSelectorDeclaration::TypeInfoObjcSelectorDeclaration(Type *tinfo)
 : TypeInfoDeclaration(tinfo, 0)
 {

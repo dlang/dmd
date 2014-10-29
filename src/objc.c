@@ -1332,34 +1332,6 @@ bool Objc_ClassDeclaration::isRootClass()
     return isInterface() && !metaclass && !cdecl->baseClass;
 }
 
-// MARK: Ojbc_FuncDeclaration
-
-Ojbc_FuncDeclaration::Ojbc_FuncDeclaration(FuncDeclaration* fdecl)
-{
-    this->fdecl = fdecl;
-    selector = NULL;
-    vcmd = NULL;
-}
-
-void Ojbc_FuncDeclaration::createSelector()
-{
-    if (selector == NULL && fdecl->linkage == LINKobjc && fdecl->isVirtual() && fdecl->type)
-    {
-        TypeFunction *ftype = (TypeFunction *)fdecl->type;
-        selector = ObjcSelector::create(fdecl);
-    }
-}
-
-bool Ojbc_FuncDeclaration::isProperty()
-{
-    TypeFunction* t = (TypeFunction*)fdecl->type;
-
-    return (fdecl->storage_class & STCproperty) &&
-        t && t->parameters &&
-        ((t->parameters->dim == 1 && t->next == Type::tvoid) ||
-        (t->parameters->dim == 0 && t->next != Type::tvoid));
-}
-
 // MARK: tryMain
 
 void objc_tryMain_dObjc()
