@@ -9,13 +9,39 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/objc_class.c
  */
 
-// MARK: semantic
-
 #include "aggregate.h"
 #include "id.h"
 #include "init.h"
 #include "scope.h"
 #include "statement.h"
+
+// MARK: Objc_ClassDeclaration
+
+Objc_ClassDeclaration::Objc_ClassDeclaration(ClassDeclaration* cdecl, const char* msg)
+{
+    this->cdecl = cdecl;
+    objc = false;
+    meta = false;
+    extern_ = false;
+    hasPreinit = false;
+    takesStringLiteral = false;
+    ident = NULL;
+    classSymbol = NULL;
+    methods = NULL;
+    metaclass = NULL;
+}
+
+bool Objc_ClassDeclaration::isInterface()
+{
+    return objc;
+}
+
+bool Objc_ClassDeclaration::isRootClass()
+{
+    return isInterface() && !metaclass && !cdecl->baseClass;
+}
+
+// MARK: semantic
 
 void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration *self)
 {

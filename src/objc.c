@@ -1308,30 +1308,6 @@ Objc_StructDeclaration::Objc_StructDeclaration()
     isSelector = false;
 }
 
-Objc_ClassDeclaration::Objc_ClassDeclaration(ClassDeclaration* cdecl, const char* msg)
-{
-    this->cdecl = cdecl;
-    objc = false;
-    meta = false;
-    extern_ = false;
-    hasPreinit = false;
-    takesStringLiteral = false;
-    ident = NULL;
-    classSymbol = NULL;
-    methods = NULL;
-    metaclass = NULL;
-}
-
-bool Objc_ClassDeclaration::isInterface()
-{
-    return objc;
-}
-
-bool Objc_ClassDeclaration::isRootClass()
-{
-    return isInterface() && !metaclass && !cdecl->baseClass;
-}
-
 // MARK: tryMain
 
 void objc_tryMain_dObjc()
