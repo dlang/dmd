@@ -849,9 +849,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                         continue;
                     if (fparam->storageClass & (STCout | STCref))
                     {
-                        tparam = tparam->pointerTo();
-                        targ = targ->pointerTo();
-                        if (targ->implicitConvTo(tparam->addMod(mod)) == MATCHnomatch)
+                        if (targ->constConv(tparam->castMod(mod)) == MATCHnomatch)
                             return;
                         continue;
                     }
