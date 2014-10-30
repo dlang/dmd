@@ -1291,10 +1291,6 @@ TypeInfoDeclaration *TypeObjcSelector::getTypeInfoDeclaration()
 /***************************************/
 
 #include "cond.h"
-#include "init.h"
-#include "typinf.c"
-
-unsigned totym(Type *tx);
 
 Objc_StructDeclaration::Objc_StructDeclaration()
 {
