@@ -16,6 +16,62 @@
 #include "objc.h"
 #include "utf.h"
 
+// MARK: Class References
+
+ObjcClassRefExp::ObjcClassRefExp(Loc loc, ClassDeclaration *cdecl)
+: Expression(loc, TOKobjcclsref, sizeof(ObjcClassRefExp))
+{
+    this->cdecl = cdecl;
+    this->type = ObjcClassDeclaration::getObjcMetaClass(cdecl)->getType();
+}
+
+// MARK: .class Expression
+
+ObjcDotClassExp::ObjcDotClassExp(Loc loc, Expression *e)
+: UnaExp(loc, TOKobjc_dotclass, sizeof(ObjcDotClassExp), e)
+{
+    noop = 0;
+}
+
+Expression *ObjcDotClassExp::semantic(Scope *sc)
+{
+    if (Expression *ex = unaSemantic(sc))
+        return ex;
+
+    if (e1->type && e1->type->ty == Tclass)
+    {
+        ClassDeclaration *cd = ((TypeClass *)e1->type)->sym;
+        if (cd->objc.objc)
+        {
+            if (e1->op = TOKtype)
+            {
+                if (cd->isInterfaceDeclaration())
+                {
+                    error("%s is an interface type and has no static 'class' property", e1->type->toChars());
+                    return new ErrorExp();
+                }
+                return new ObjcClassRefExp(loc, cd);
+            }
+            else if (cd->objc.meta)
+            {
+                // this is already a class object, nothing to do
+                noop = 1;
+                type = cd->type;
+                return this;
+            }
+            else
+            {
+                // this is a regular (non-class) object, invoke class method
+                type = cd->objc.metaclass->type;
+                return this;
+            }
+        }
+    }
+
+    error("%s of type %s has no 'class' property", e1->toChars(), e1->type->toChars());
+    return new ErrorExp();
+}
+
 // MARK: ObjcSelectorExp
 
 ObjcSelectorExp::ObjcSelectorExp(Loc loc, FuncDeclaration *f, int hasOverloads)
@@ -76,7 +132,7 @@ Expression *ObjcProtocolOfExp::semantic(Scope *sc)
         ClassDeclaration *cd = ((TypeClass *)e1->type)->sym;
         if (cd->objc.objc)
         {
-            if (e1->op == TOKtype)
+            if (e1->op = TOKtype)
             {
                 if (cd->isInterfaceDeclaration())
                 {
