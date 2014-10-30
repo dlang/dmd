@@ -145,7 +145,7 @@ ifeq ($(D_OBJC),1)
 	DMD_OBJS += objc_argtypes.o objc_attrib.o objc_cast.o objc_class.o \
 		objc_cppmangle.o objc_declaration.o objc_dsymbol.o objc_expression.o \
 		objc_func.o objc_hdrgen.o objc_inline.o objc_interpret.o \
-		objc_mtype.o objc_optimize.o objc_parse.o objc_selector.o \
+		objc_mars.o objc_mtype.o objc_optimize.o objc_parse.o objc_selector.o \
 		objc_sideeffect.o objc_struct.o
 endif
 
@@ -216,7 +216,7 @@ ifeq ($(D_OBJC),1)
 	SRC += objc_argtypes.c objc_attrib.c objc_cast.c objc_class.c \
 		objc_cppmangle.c objc_declaration.c objc_dsymbol.c objc_expression.c \
 		objc_func.c objc_hdrgen.c objc_inline.c objc_interpret.c \
-		objc_mtype.c objc_optimize.c objc_parse.c objc_selector.c \
+		objc_mars.c objc_mtype.c objc_optimize.c objc_parse.c objc_selector.c \
 		objc_sideeffect.c objc_struct.c
 endif
 
@@ -274,18 +274,9 @@ TK_SRC = \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
 
 ifeq ($(D_OBJC),1)
-# Files to add for Objective-C support
-
-GLUE_OBJS:=$(GLUE_OBJS)\
-	objc.o
-
-SRC:=$(SRC)\
-	objc.c
-
-GLUE_FLAGS:=$(GLUE_FLAGS) -DD_OBJC=1
-CFLAGS:=$(CFLAGS) -DD_OBJC=1
-
-
+	# Flags to add for Objective-C support
+	GLUE_FLAGS:=$(GLUE_FLAGS) -DD_OBJC=1
+	CFLAGS:=$(CFLAGS) -DD_OBJC=1
 endif
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
@@ -525,6 +516,7 @@ ifeq ($(D_OBJC),1)
 	gcov objc_hdrgen.c
 	gcov objc_inline.c
 	gcov objc_interpret.c
+	gcov objc_mars.c
 	gcov objc_mtype.c
 	gcov objc_optimize.c
 	gcov objc_parse.c
