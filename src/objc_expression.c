@@ -56,6 +56,50 @@ Expression *ObjcSelectorExp::semantic(Scope *sc)
     return this;
 }
 
+// MARK: .interface Expression
+
+ClassDeclaration *ObjcProtocolOfExp::protocolClassDecl = NULL;
+
+ObjcProtocolOfExp::ObjcProtocolOfExp(Loc loc, Expression *e)
+: UnaExp(loc, TOKobjc_dotprotocolof, sizeof(ObjcProtocolOfExp), e)
+{
+    idecl = NULL;
+}
+
+Expression *ObjcProtocolOfExp::semantic(Scope *sc)
+{
+    if (Expression *ex = unaSemantic(sc))
+        return ex;
+
+    if (e1->type && e1->type->ty == Tclass)
+    {
+        ClassDeclaration *cd = ((TypeClass *)e1->type)->sym;
+        if (cd->objc.objc)
+        {
+            if (e1->op == TOKtype)
+            {
+                if (cd->isInterfaceDeclaration())
+                {
+                    if (protocolClassDecl)
+                    {
+                        idecl = (InterfaceDeclaration *)cd;
+                        type = protocolClassDecl->type;
+                        return this;
+                    }
+                    else
+                    {
+                        error("'protocolof' property not available because its the 'Protocol' Objective-C class is not defined (did you forget to import objc.types?)");
+                        return new ErrorExp();
+                    }
+                }
+            }
+        }
+    }
+
+    error("%s of type %s has no 'protocolof' property", e1->toChars(), e1->type->toChars());
+    return new ErrorExp();
+}
+
 // MARK: semantic
 
 ControlFlow objc_StringExp_semantic(StringExp *self, Expression *&error)
