@@ -133,5 +133,6 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\stat.d \
 	$(IMPDIR)\core\sys\windows\threadaux.d \
 	$(IMPDIR)\core\sys\windows\windows.d \
+	$(IMPDIR)\core\sys\windows\winsock2.d \
 	\
 	$(IMPDIR)\etc\linux\memoryerror.d

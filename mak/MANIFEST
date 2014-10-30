@@ -164,6 +164,7 @@ MANIFEST=\
 	src\core\sys\windows\stat.d \
 	src\core\sys\windows\threadaux.d \
 	src\core\sys\windows\windows.d \
+	src\core\sys\windows\winsock2.d \
 	\
 	src\gc\gc.d \
 	src\gc\os.d \
