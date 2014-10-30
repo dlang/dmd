@@ -572,3 +572,10 @@ Symbol* NonFragileAbiObjcProtocolDeclaration::getClassName()
 {
     return NonFragileAbiObjcSymbols::instance->getClassNameRo(idecl->objc.ident);
 }
+
+// MARK: ObjcSelector
+
+Symbol *ObjcSelector::toNameSymbol()
+{
+    return ObjcSymbols::getMethVarName(stringvalue, stringlen);
+}

@@ -15,9 +15,22 @@
 #include "el.h"
 #include "global.h"
 #include "mtype.h"
+#include "objc.h"
 #include "oper.h"
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
+
+// MARK: ObjcSelector
+
+Symbol *ObjcSelector::toRefSymbol()
+{
+    return ObjcSymbols::getMethVarRef(stringvalue, stringlen);
+}
+
+elem *ObjcSelector::toElem()
+{
+    return el_var(toRefSymbol());
+}
 
 // MARK: callfunc
 
