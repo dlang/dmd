@@ -15,6 +15,58 @@
 #include "scope.h"
 #include "statement.h"
 
+// MARK: ObjcClassDeclaration
+
+ObjcClassDeclaration *ObjcClassDeclaration::create(ClassDeclaration *cdecl, int ismeta)
+{
+    if (global.params.isObjcNonFragileAbi)
+        return new NonFragileAbiObjcClassDeclaration(cdecl, ismeta);
+    else
+        return new FragileAbiObjcClassDeclaration(cdecl, ismeta);
+}
+
+/* ClassDeclaration::metaclass contains the metaclass from the semantic point
+ of view. This function returns the metaclass from the Objective-C runtime's
+ point of view. Here, the metaclass of a metaclass is the root metaclass, not
+ nil, and the root metaclass's metaclass is itself. */
+ClassDeclaration *ObjcClassDeclaration::getObjcMetaClass(ClassDeclaration *cdecl)
+{
+    if (!cdecl->objc.metaclass && cdecl->objc.meta)
+    {
+        if (cdecl->baseClass)
+            return getObjcMetaClass(cdecl->baseClass);
+        else
+            return cdecl;
+    }
+    else
+        return cdecl->objc.metaclass;
+}
+
+ObjcClassDeclaration::ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta)
+{
+    this->cdecl = cdecl;
+    this->ismeta = ismeta;
+    symbol = NULL;
+    sprotocols = NULL;
+    sproperties = NULL;
+}
+
+// MARK: ObjcProtocolDeclaration
+
+ObjcProtocolDeclaration* ObjcProtocolDeclaration::create(ClassDeclaration *idecl)
+{
+    if (global.params.isObjcNonFragileAbi)
+        return new NonFragileAbiObjcProtocolDeclaration(idecl);
+    else
+        return new FragileAbiObjcProtocolDeclaration(idecl);
+}
+
+ObjcProtocolDeclaration::ObjcProtocolDeclaration(ClassDeclaration *idecl)
+{
+    this->idecl = idecl;
+    symbol = NULL;
+}
+
 // MARK: Objc_ClassDeclaration
 
 Objc_ClassDeclaration::Objc_ClassDeclaration(ClassDeclaration* cdecl, const char* msg)

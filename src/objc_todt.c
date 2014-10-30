@@ -320,6 +320,20 @@ Symbol *NonFragileAbiObjcClassDeclaration::getIVarList()
     return sym;
 }
 
+Symbol *NonFragileAbiObjcClassDeclaration::getIVarOffset(VarDeclaration* ivar)
+{
+    if (ivar->toParent() == cdecl)
+        return NonFragileAbiObjcSymbols::instance->getIVarOffset(cdecl, ivar, false);
+
+    else if (cdecl->baseClass)
+        return NonFragileAbiObjcClassDeclaration(cdecl->baseClass).getIVarOffset(ivar);
+
+    else
+        assert(false || "Trying to get the base class of root class");
+
+    return NULL;
+}
+
 Symbol *NonFragileAbiObjcClassDeclaration::getClassRo()
 {
     dt_t* dt = NULL;
