@@ -32,12 +32,6 @@ void mangleToBuffer(Type *t, OutBuffer *buf);
 
 #include "cond.h"
 
-Objc_StructDeclaration::Objc_StructDeclaration()
-{
-    selectorTarget = false;
-    isSelector = false;
-}
-
 // MARK: tryMain
 
 void objc_tryMain_dObjc()
