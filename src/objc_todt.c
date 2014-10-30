@@ -19,6 +19,261 @@
 #include "global.h"
 #include "type.h"
 
+static char* buildIVarName (ClassDeclaration* cdecl, VarDeclaration* ivar, size_t* resultLength)
+{
+    const char* className = cdecl->objc.ident->string;
+    size_t classLength = cdecl->objc.ident->len;
+    const char* ivarName = ivar->ident->string;
+    size_t ivarLength = ivar->ident->len;
+
+    // Ensure we have a long-enough buffer for the symbol name. Previous buffer is reused.
+    static const char* prefix = "_OBJC_IVAR_$_";
+    static size_t prefixLength = 13;
+    static char* name;
+    static size_t length;
+    size_t requiredLength = prefixLength + classLength + 1 + ivarLength;
+
+    if (requiredLength + 1 >= length)
+    {
+        length = requiredLength + 12;
+        name = (char*) realloc(name, length);
+    }
+
+    // Create symbol name _OBJC_IVAR_$_<ClassName>.<IvarName>
+    memmove(name, prefix, prefixLength);
+    memmove(name + prefixLength, className, classLength);
+    memmove(name + prefixLength + classLength + 1, ivarName, ivarLength);
+    name[prefixLength + classLength] = '.';
+    name[requiredLength] = 0;
+
+    *resultLength = requiredLength;
+    return name;
+}
+
+static const char* getTypeEncoding(Type* type)
+{
+    if (type == Type::tvoid)            return "v";
+    else if (type == Type::tint8)       return "c";
+    else if (type == Type::tuns8)       return "C";
+    else if (type == Type::tchar)       return "C";
+    else if (type == Type::tint16)      return "s";
+    else if (type == Type::tuns16)      return "S";
+    else if (type == Type::twchar)      return "S";
+    else if (type == Type::tint32)      return "l";
+    else if (type == Type::tuns32)      return "L";
+    else if (type == Type::tdchar)      return "L";
+    else if (type == Type::tint64)      return "q";
+    else if (type == Type::tuns64)      return "Q";
+    else if (type == Type::tfloat32)     return "f";
+    else if (type == Type::timaginary32) return "f";
+    else if (type == Type::tfloat64)     return "d";
+    else if (type == Type::timaginary64) return "d";
+    else if (type == Type::tfloat80)     return "d"; // "float80" is "long double" in Objective-C, but "long double" has no specific
+    else if (type == Type::timaginary80) return "d"; // encoding character documented. Since @encode in Objective-C outputs "d", which is the same as "double", that's what we do here. But it doesn't look right.
+
+    else                                 return "?"; // unknown
+    // TODO: add "B" BOOL, "*" char*, "#" Class, "@" id, ":" SEL
+    // TODO: add "^"<type> indirection and "^^" double indirection
+}
+
+// MARK: ObjcSymbols
+
+Symbol *ObjcSymbols::getMethVarType(const char *s, size_t len)
+{
+    hassymbols = 1;
+
+    StringValue *sv = smethvartypetable->update(s, len);
+    Symbol *sy = (Symbol *) sv->ptrvalue;
+    if (!sy)
+    {
+        static size_t classnamecount = 0;
+        char namestr[42];
+        sprintf(namestr, "L_OBJC_METH_VAR_TYPE_%lu", classnamecount++);
+        sy = getCString(s, len, namestr, SEGmethtype);
+        sv->ptrvalue = sy;
+        outdata(sy);
+    }
+    return sy;
+}
+
+Symbol *ObjcSymbols::getMethVarType(Dsymbol **types, size_t dim)
+{
+    // Ensure we have a long-enough buffer for the symbol name. Previous buffer is reused.
+    static char *typecode = NULL;
+    static size_t typecode_cap = 0;
+    size_t typecode_len = 0;
+
+    for (size_t i = 0; i < dim; ++i) {
+        Type *type;
+
+        if (FuncDeclaration* func = types[i]->isFuncDeclaration())
+            type = func->type->nextOf();
+        else
+            type = types[i]->getType();
+
+        const char *typestr = getTypeEncoding(type);
+
+        // Append character
+        // Ensure enough length
+        if (typecode_len + 1 >= typecode_cap)
+        {   typecode_cap += typecode_len + 12;
+            typecode = (char *)realloc(typecode, typecode_cap);
+        }
+        typecode[typecode_len] = typestr[0];
+        ++typecode_len;
+    }
+
+    if (typecode_len + 1 >= typecode_cap)
+    {   typecode_cap += typecode_len + 12;
+        typecode = (char *)realloc(typecode, typecode_cap);
+    }
+    typecode[typecode_len] = 0; // zero-terminated
+
+    return getMethVarType(typecode, typecode_len);
+}
+
+Symbol *ObjcSymbols::getMethVarType(FuncDeclaration *func)
+{
+    static Dsymbol **types;
+    static size_t types_dim;
+
+    size_t param_dim = func->parameters ? func->parameters->dim : 0;
+    if (types_dim < 1 + param_dim)
+    {   types_dim = 1 + param_dim + 8;
+        types = (Dsymbol **)realloc(types, types_dim * sizeof(Dsymbol **));
+    }
+    types[0] = func; // return type first
+    if (param_dim)
+        memcpy(types+1, func->parameters->tdata(), param_dim * sizeof(Dsymbol **));
+
+    return getMethVarType(types, 1 + param_dim);
+}
+
+Symbol *ObjcSymbols::getMethVarType(Dsymbol *s)
+{
+    return getMethVarType(&s, 1);
+}
+
+Symbol *ObjcSymbols::getPropertyName(const char* str, size_t len)
+{
+    hassymbols = 1;
+    StringValue* sv = spropertyNameTable->update(str, len);
+    Symbol* symbol = (Symbol*) sv->ptrvalue;
+
+    if (!symbol)
+    {
+        static size_t propertyNameCount = 0;
+        char nameStr[42];
+        sprintf(nameStr, "L_OBJC_PROP_NAME_ATTR_%lu", propertyNameCount++);
+        symbol = getCString(str, len, nameStr);
+        sv->ptrvalue = symbol;
+    }
+
+    return symbol;
+}
+
+Symbol *ObjcSymbols::getPropertyName(Identifier* ident)
+{
+    return getPropertyName(ident->string, ident->len);
+}
+
+Symbol *ObjcSymbols::getPropertyTypeString(FuncDeclaration* property)
+{
+    assert(property->objc.isProperty());
+
+    TypeFunction* type = (TypeFunction*) property->type;
+    Type* propertyType = type->next->ty != TYvoid ? type->next : (*type->parameters)[0]->type;
+    const char* typeEncoding = getTypeEncoding(propertyType);
+    size_t len = strlen(typeEncoding);
+    size_t nameLength = 1 + len;
+
+    // Method encodings are not handled
+    char* name = (char*) malloc(nameLength + 1);
+    name[0] = 'T';
+    memmove(name + 1, typeEncoding, len);
+    name[nameLength] = 0;
+
+    return getPropertyName(name, nameLength);
+}
+
+// MARK: NonFragileAbiObjcSymbols
+
+NonFragileAbiObjcSymbols *NonFragileAbiObjcSymbols::instance = NULL;
+
+NonFragileAbiObjcSymbols::NonFragileAbiObjcSymbols()
+{
+    emptyCache = NULL;
+    emptyVTable = NULL;
+    instance = (NonFragileAbiObjcSymbols*) ObjcSymbols::instance;
+}
+
+Symbol *NonFragileAbiObjcSymbols::getClassNameRo(Identifier* ident)
+{
+    return getClassNameRo(ident->string, ident->len);
+}
+
+Symbol *NonFragileAbiObjcSymbols::getClassNameRo(const char *s, size_t len)
+{
+    hassymbols = 1;
+
+    StringValue *sv = sclassnametable->update(s, len);
+    Symbol *sy = (Symbol *) sv->ptrvalue;
+    if (!sy)
+    {
+        static size_t classnamecount = 0;
+        char namestr[42];
+        sprintf(namestr, "L_OBJC_CLASS_NAME_%lu", classnamecount++);
+        sy = getCString(s, len, namestr, SEGclassname);
+        sv->ptrvalue = sy;
+    }
+    return sy;
+}
+
+Symbol *NonFragileAbiObjcSymbols::getIVarOffset(ClassDeclaration* cdecl, VarDeclaration* ivar, bool outputSymbol)
+{
+    hassymbols = 1;
+
+    size_t length;
+    const char* name = buildIVarName(cdecl, ivar, &length);
+    StringValue* stringValue = sivarOffsetTable->update(name, length);
+    Symbol* symbol = (Symbol*) stringValue->ptrvalue;
+
+    if (!symbol)
+    {
+        symbol = getGlobal(name);
+        stringValue->ptrvalue = symbol;
+        symbol->Sfl |= FLextern;
+    }
+
+    if (outputSymbol)
+    {
+        dt_t* dt = NULL;
+        dtsize_t(&dt, ivar->offset);
+
+        symbol->Sdt = dt;
+        symbol->Sseg = objc_getsegment(SEGobjc_ivar);
+        symbol->Sfl &= ~FLextern;
+
+        outdata(symbol);
+    }
+    
+    return  symbol;
+}
+
+Symbol *NonFragileAbiObjcSymbols::getEmptyCache()
+{
+    hassymbols = 1;
+
+    return emptyCache = emptyCache ? emptyCache : getGlobal("__objc_empty_cache");
+}
+
+Symbol *NonFragileAbiObjcSymbols::getEmptyVTable()
+{
+    hassymbols = 1;
+
+    return emptyVTable = emptyVTable ? emptyVTable : getGlobal("__objc_empty_vtable");
+}
+
 // MARK: ObjcClassDeclaration
 
 Symbol *ObjcClassDeclaration::getMetaclass()

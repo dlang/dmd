@@ -12,13 +12,245 @@
 #include "aggregate.h"
 #include "declaration.h"
 #include "cc.h"
+#include "dt.h"
 #include "el.h"
 #include "global.h"
 #include "mtype.h"
 #include "objc.h"
 #include "oper.h"
+#include "type.h"
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
+
+// MARK: ObjcSymbols
+
+Symbol *ObjcSymbols::getFunction(const char* name)
+{
+    return getGlobal(name, type_fake(TYhfunc));
+}
+
+Symbol *ObjcSymbols::getMsgSend(Type *ret, int hasHiddenArg)
+{
+    if (hasHiddenArg)
+    {   if (!msgSend_stret)
+        msgSend_stret = symbol_name("_objc_msgSend_stret", SCglobal, type_fake(TYhfunc));
+        return msgSend_stret;
+    }
+    else if (ret->isfloating())
+    {   if (!msgSend_fpret)
+        msgSend_fpret = symbol_name("_objc_msgSend_fpret", SCglobal, type_fake(TYnfunc));
+        return msgSend_fpret;
+    }
+    else
+    {   if (!msgSend)
+        msgSend = symbol_name("_objc_msgSend", SCglobal, type_fake(TYnfunc));
+        return msgSend;
+    }
+    assert(0);
+    return NULL;
+}
+
+Symbol *ObjcSymbols::getMsgSendSuper(int hasHiddenArg)
+{
+    if (hasHiddenArg)
+    {   if (!msgSendSuper_stret)
+        msgSendSuper_stret = symbol_name("_objc_msgSendSuper_stret", SCglobal, type_fake(TYhfunc));
+        return msgSendSuper_stret;
+    }
+    else
+    {   if (!msgSendSuper)
+        msgSendSuper = symbol_name("_objc_msgSendSuper", SCglobal, type_fake(TYnfunc));
+        return msgSendSuper;
+    }
+    assert(0);
+    return NULL;
+}
+
+Symbol *ObjcSymbols::getMsgSendFixup(Type* returnType, bool hasHiddenArg)
+{
+    if (hasHiddenArg)
+    {
+        if (!msgSend_stret_fixup)
+            msgSend_stret_fixup = getFunction("_objc_msgSend_stret_fixup");
+        return msgSend_stret_fixup;
+    }
+    else if (returnType->isfloating())
+    {
+        if (!msgSend_fpret_fixup)
+            msgSend_fpret_fixup = getFunction("_objc_msgSend_fpret_fixup");
+        return msgSend_fpret_fixup;
+    }
+    else
+    {
+        if (!msgSend_fixup)
+            msgSend_fixup = getFunction("_objc_msgSend_fixup");
+        return msgSend_fixup;
+    }
+    assert(0);
+    return NULL;
+}
+
+Symbol *ObjcSymbols::getStringLiteralClassRef()
+{
+    if (!stringLiteralClassRef)
+        stringLiteralClassRef = symbol_name("___CFConstantStringClassReference", SCglobal, type_fake(TYnptr));
+    return stringLiteralClassRef;
+}
+
+Symbol *ObjcSymbols::getUString(const void *str, size_t len, const char *symbolName)
+{
+    hassymbols = 1;
+
+    // create data
+    dt_t *dt = NULL;
+    dtnbytes(&dt, (len + 1)*2, (const char *)str);
+
+    // find segment
+    int seg = objc_getsegment(SEGustring);
+
+    // create symbol
+    Symbol *s;
+    s = symbol_name(symbolName, SCstatic, type_allocn(TYarray, tschar));
+    s->Sdt = dt;
+    s->Sseg = seg;
+    return s;
+}
+
+Symbol *ObjcSymbols::getClassReference(ClassDeclaration* cdecl)
+{
+    hassymbols = 1;
+    const char* s = cdecl->objc.ident->string;
+    size_t len = cdecl->objc.ident->len;
+
+    StringValue *sv = sclassreftable->update(s, len);
+    Symbol *sy = (Symbol *) sv->ptrvalue;
+    if (!sy)
+    {
+        // create data
+        dt_t *dt = NULL;
+        Symbol *sclsname = getClassName(cdecl);
+        dtxoff(&dt, sclsname, 0, TYnptr);
+
+        // find segment for class references
+        int seg = objc_getsegment(SEGcls_refs);
+
+        static size_t classrefcount = 0;
+        const char* prefix = global.params.isObjcNonFragileAbi ? "L_OBJC_CLASSLIST_REFERENCES_$_" : "L_OBJC_CLASS_REFERENCES_%lu";
+
+        char namestr[42];
+        sprintf(namestr, prefix, classrefcount++);
+        sy = symbol_name(namestr, SCstatic, type_fake(TYnptr));
+        sy->Sdt = dt;
+        sy->Sseg = seg;
+        outdata(sy);
+
+        sv->ptrvalue = sy;
+    }
+    return sy;
+}
+
+Symbol *ObjcSymbols::getMethVarRef(const char *s, size_t len)
+{
+    hassymbols = 1;
+
+    StringValue *sv = smethvarreftable->update(s, len);
+    Symbol *refsymbol = (Symbol *) sv->ptrvalue;
+    if (refsymbol == NULL)
+    {
+        // create data
+        dt_t *dt = NULL;
+        Symbol *sselname = getMethVarName(s, len);
+        dtxoff(&dt, sselname, 0*0x9877660, TYnptr);
+
+        // find segment
+        int seg = objc_getsegment(SEGselrefs);
+
+        // create symbol
+        static size_t selcount = 0;
+        char namestr[42];
+        sprintf(namestr, "L_OBJC_SELECTOR_REFERENCES_%lu", selcount);
+        refsymbol = symbol_name(namestr, SCstatic, type_fake(TYnptr));
+
+        refsymbol->Sdt = dt;
+        refsymbol->Sseg = seg;
+        outdata(refsymbol);
+        sv->ptrvalue = refsymbol;
+
+        ++selcount;
+    }
+    return refsymbol;
+}
+
+Symbol *ObjcSymbols::getMethVarRef(Identifier *ident)
+{
+    return getMethVarRef(ident->string, ident->len);
+}
+
+Symbol *ObjcSymbols::getMessageReference(ObjcSelector* selector, Type* returnType, bool hasHiddenArg)
+{
+    assert(selector->usesVTableDispatch());
+    hassymbols = 1;
+
+    Symbol* msgSendFixup = ObjcSymbols::getMsgSendFixup(returnType, hasHiddenArg);
+    Symbol* selectorSymbol = getMethVarName(selector->stringvalue, selector->stringlen);
+    size_t msgSendFixupLength = strlen(msgSendFixup->Sident);
+    size_t fixupSelectorLength = 0;
+    const char* fixupSelector = ObjcSelectorBuilder::fixupSelector(selector, msgSendFixup->Sident, msgSendFixupLength, &fixupSelectorLength);
+
+    StringValue *sv = smethvarreftable->update(fixupSelector, fixupSelectorLength);
+    Symbol *refsymbol = (Symbol *) sv->ptrvalue;
+    if (refsymbol == NULL)
+    {
+        // create data
+        dt_t* dt = NULL;
+        dtxoff(&dt, msgSendFixup, 0, TYnptr);
+        dtxoff(&dt, selectorSymbol, 0, TYnptr);
+
+        // find segment
+        int segment = objc_getsegment(SEGmessage_refs);
+
+        // create symbol
+        refsymbol = symbol_name(fixupSelector, SCstatic, type_fake(TYnptr));
+        refsymbol->Sdt = dt;
+        refsymbol->Sseg = segment;
+        refsymbol->Salignment = 16;
+        outdata(refsymbol);
+        sv->ptrvalue = refsymbol;
+    }
+    return refsymbol;
+}
+
+Symbol *ObjcSymbols::getStringLiteral(const void *str, size_t len, size_t sz)
+{
+    hassymbols = 1;
+
+    // Objective-C NSString literal (also good for CFString)
+    static size_t strcount = 0;
+    char namestr[24];
+    sprintf(namestr, "l_.str%lu", strcount);
+    Symbol *sstr;
+    if (sz == 1)
+        sstr = getCString((const char *)str, len, namestr);
+    else
+        sstr = getUString(str, len, namestr);
+
+    dt_t *dt = NULL;
+    dtxoff(&dt, getStringLiteralClassRef(), 0, TYnptr);
+    dtdword(&dt, sz == 1 ? 1992 : 2000);
+
+    if (global.params.isObjcNonFragileAbi)
+        dtdword(&dt, 0); // .space 4
+
+    dtxoff(&dt, sstr, 0, TYnptr);
+    dtsize_t(&dt, len);
+
+    sprintf(namestr, "L__unnamed_cfstring_%lu", strcount++);
+    Symbol *si = symbol_name(namestr, SCstatic, type_fake(TYnptr));
+    si->Sdt = dt;
+    si->Sseg = objc_getsegment(SEGcfstring);
+    outdata(si);
+    return si;
+}
 
 // MARK: ObjcSelector
 

@@ -160,8 +160,8 @@ GLUE_OBJS = \
 	irstate.o typinf.o iasm.o
 
 ifeq ($(D_OBJC),1)
-	GLUE_OBJS += objc_e2ir.o objc_glue.o objc_toctype.o objc_todt.o \
-		objc_toobj.o objc_typinf.o
+	GLUE_OBJS += objc_e2ir.o objc_glue.o objc_symbols_common.o \
+		objc_toctype.o objc_todt.o objc_toobj.o objc_typinf.o
 endif
 
 ifeq (osx,$(OS))
@@ -242,8 +242,8 @@ GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	tk.c eh.c gluestub.c
 
 ifeq ($(D_OBJC),1)
-	GLUE_SRC += objc_e2ir.c objc_glue.h objc_glue.c objc_toctype.c \
-		objc_todt.c objc_toobj.c objc_typinf.c
+	GLUE_SRC += objc_e2ir.c objc_glue.h objc_glue.c objc_symbols_common.c \
+		objc_toctype.c objc_todt.c objc_toobj.c objc_typinf.c
 endif
 
 BACK_SRC = \
@@ -530,6 +530,7 @@ ifeq ($(D_OBJC),1)
 	gcov objc_parse.c
 	gcov objc_selector.c
 	gcov objc_sideeffect.c
+	gcov objc_symbols_common.c
 	gcov objc_toctype.c
 	gcov objc_todt.c
 	gcov objc_toobj.c

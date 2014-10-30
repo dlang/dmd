@@ -19,6 +19,73 @@
 #include "mach.h"
 #include "type.h"
 
+// MARK: ObjcSymbols
+
+Symbol *ObjcSymbols::getImageInfo()
+{
+    assert(!siminfo); // only allow once per object file
+    hassymbols = 1;
+
+    dt_t *dt = NULL;
+    dtdword(&dt, 0); // version
+    dtdword(&dt, global.params.isObjcNonFragileAbi ? 0 : 16); // flags
+
+    siminfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tschar));
+    siminfo->Sdt = dt;
+    siminfo->Sseg = objc_getsegment(SEGimage_info);
+    outdata(siminfo);
+
+    return siminfo;
+}
+
+Symbol *ObjcSymbols::getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat)
+{
+    assert(!smodinfo); // only allow once per object file
+    smodinfo = instance->_getModuleInfo(cls, cat);
+    ObjcSymbols::getImageInfo(); // make sure we also generate image info
+
+    return smodinfo;
+}
+
+// MARK: FragileAbiObjcSymbols
+
+Symbol *FragileAbiObjcSymbols::_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat)
+{
+    dt_t *dt = NULL;
+
+    dtdword(&dt, 7);  // version
+    dtdword(&dt, 16); // size
+    dtxoff(&dt, ObjcSymbols::getCString("", 0, "L_CLASS_NAME_"), 0, TYnptr); // name
+    dtxoff(&dt, ObjcSymbols::getSymbolMap(cls, cat), 0, TYnptr); // symtabs
+
+    Symbol* symbol = symbol_name("L_OBJC_MODULE_INFO", SCstatic, type_allocn(TYarray, tschar));
+    symbol->Sdt = dt;
+    symbol->Sseg = objc_getsegment(SEGmodule_info);
+    outdata(symbol);
+
+    return symbol;
+}
+
+// MARK: NonFragileAbiObjcSymbols
+
+Symbol *NonFragileAbiObjcSymbols::_getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat)
+{
+    dt_t *dt = NULL;
+
+    for (size_t i = 0; i < cls->dim; i++)
+        dtxoff(&dt, ObjcSymbols::getClassName((*cls)[i]), 0, TYnptr);
+
+    for (size_t i = 0; i < cat->dim; i++)
+        dtxoff(&dt, ObjcSymbols::getClassName((*cat)[i]), 0, TYnptr);
+
+    Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SCstatic, type_allocn(TYarray, tschar));
+    symbol->Sdt = dt;
+    symbol->Sseg = objc_getsegment(SEGmodule_info);
+    outdata(symbol);
+
+    return symbol;
+}
+
 // MARK: FragileAbiObjcClassDeclaration
 
 void FragileAbiObjcClassDeclaration::toObjFile(int multiobj)
