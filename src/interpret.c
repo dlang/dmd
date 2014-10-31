@@ -4012,12 +4012,13 @@ public:
         {
             VarExp *ve = (VarExp *)e1;
             VarDeclaration *v = ve->var->isVarDeclaration();
+            Type *t1b = e1->type->toBasetype();
             if (wantRef)
             {
                 setValueNull(v);
                 setValue(v, newval);
             }
-            else if (e1->type->toBasetype()->ty == Tstruct)
+            else if (t1b->ty == Tstruct)
             {
                 // In-place modification
                 if (newval->op != TOKstructliteral)
@@ -4032,17 +4033,64 @@ public:
                 else
                     setValue(v, newval);
             }
-            else
+            else if (t1b->ty == Tsarray)
             {
-                TY tyE1 = e1->type->toBasetype()->ty;
-                if (tyE1 == Tsarray && newval->op == TOKslice)
+                if (newval->op == TOKslice)
                 {
                     // Newly set value is non-ref static array,
                     // so making new ArrayLiteralExp is legitimate.
                     newval = resolveSlice(newval);
+                    assert(newval->op == TOKarrayliteral);
                     ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
                 }
-                if (tyE1 == Tarray || tyE1 == Taarray)
+                if (e->op == TOKassign)
+                {
+                    Expression *oldval = getValue(v);
+                    assert(oldval->op == TOKarrayliteral);
+                    assert(newval->op == TOKarrayliteral);
+
+                    Expressions *oldelems = ((ArrayLiteralExp *)oldval)->elements;
+                    Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
+                    assert(oldelems->dim == newelems->dim);
+
+                    Type *elemtype = oldval->type->nextOf();
+                    for (size_t j = 0; j < newelems->dim; j++)
+                    {
+                        Expression *newelem = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
+                        // Bugzilla 9245
+                        if (Expression *x = evaluatePostblit(istate, newelem))
+                        {
+                            result = x;
+                            return;
+                        }
+                        // Bugzilla 13661
+                        if (Expression *x = evaluateDtor(istate, (*oldelems)[j]))
+                        {
+                            result = x;
+                            return;
+                        }
+                        (*oldelems)[j] = newelem;
+                    }
+                }
+                else
+                {
+                    setValue(v, newval);
+
+                    if (e->op == TOKconstruct && e->e2->isLvalue())
+                    {
+                        // Bugzilla 9245
+                        if (Expression *x = evaluatePostblit(istate, newval))
+                        {
+                            result = x;
+                            return;
+                        }
+                    }
+                }
+                return;
+            }
+            else
+            {
+                if (t1b->ty == Tarray || t1b->ty == Taarray)
                 {
                     // arr op= arr
                     setValue(v, newval);
@@ -4050,16 +4098,6 @@ public:
                 else
                 {
                     setValue(v, newval);
-                    if (e->op != TOKblit && tyE1 == Tsarray && e->e2->isLvalue())
-                    {
-                        assert(newval->op == TOKarrayliteral);
-                        ArrayLiteralExp *ale = (ArrayLiteralExp *)newval;
-                        if (Expression *x = evaluatePostblits(istate, ale, 0, ale->elements->dim))
-                        {
-                            result = x;
-                            return;
-                        }
-                    }
                 }
             }
         }

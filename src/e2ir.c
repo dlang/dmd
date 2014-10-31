@@ -2800,46 +2800,66 @@ elem *toElem(Expression *e, IRState *irs)
                     goto Lret;
                 }
 
-                /* Determine if we need to do postblit
+                /* Bugzilla 13661: Even if the elements in rhs are all rvalues and
+                 * don't have to call postblits, this assignment should call
+                 * destructors on old assigned elements.
                  */
-                if (postblit &&
-                    !(ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                      ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                      ae->e2->op != TOKslice && ae->e2->isLvalue()))
+                bool lvalueElem = false;
+                if (ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
+                    ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
+                    ae->e2->op != TOKslice && ae->e2->isLvalue())
                 {
-                    postblit = false;
+                    lvalueElem = true;
                 }
 
                 elem *e2 = toElem(ae->e2, irs);
 
-                if (!postblit || ae->op == TOKblit || type_size(e1->ET) == 0)
+                if (!postblit || (!lvalueElem && ae->op == TOKconstruct) ||
+                    ae->op == TOKblit || type_size(e1->ET) == 0)
                 {
                     e = el_bin(OPstreq, tym, e1, e2);
                     e->ET = Type_toCtype(ae->e1->type);
                     if (type_size(e->ET) == 0)
                         e->Eoper = OPcomma;
                 }
-                else
+                else if (ae->op == TOKconstruct)
                 {
-                    elem *eto = e1;
-                    elem *efrom = e2;
-
-                    eto   = sarray_toDarray(ae->e1->loc, ae->e1->type, NULL, eto);
-                    efrom = sarray_toDarray(ae->e2->loc, ae->e2->type, NULL, efrom);
+                    e1 = sarray_toDarray(ae->e1->loc, ae->e1->type, NULL, e1);
+                    e2 = sarray_toDarray(ae->e2->loc, ae->e2->type, NULL, e2);
 
                     /* Generate:
-                     *      _d_arrayassign(ti, efrom, eto)
-                     * or:
-                     *      _d_arrayctor(ti, efrom, eto)
+                     *      _d_arrayctor(ti, e2, e1)
                      */
                     Expression *ti = t1b->nextOf()->toBasetype()->getTypeInfo(NULL);
                     if (config.exe == EX_WIN64)
                     {
-                        eto   = addressElem(eto,   Type::tvoid->arrayOf());
-                        efrom = addressElem(efrom, Type::tvoid->arrayOf());
+                        e1 = addressElem(e1, Type::tvoid->arrayOf());
+                        e2 = addressElem(e2, Type::tvoid->arrayOf());
                     }
-                    elem *ep = el_params(eto, efrom, toElem(ti, irs), NULL);
-                    int rtl = (ae->op == TOKconstruct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
+                    elem *ep = el_params(e1, e2, toElem(ti, irs), NULL);
+                    e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCTOR]), ep);
+                }
+                else
+                {
+                    e1 = sarray_toDarray(ae->e1->loc, ae->e1->type, NULL, e1);
+                    e2 = sarray_toDarray(ae->e2->loc, ae->e2->type, NULL, e2);
+
+                    symbol *stmp = symbol_genauto(Type_toCtype(t1b->nextOf()));
+                    elem *etmp = el_una(OPaddr, TYnptr, el_var(stmp));
+
+                    /* Generate:
+                     *      _d_arrayassign_r(ti, e2, e1, etmp)
+                     * or:
+                     *      _d_arrayassign_r(ti, e2, e1, etmp)
+                     */
+                    Expression *ti = t1b->nextOf()->toBasetype()->getTypeInfo(NULL);
+                    if (config.exe == EX_WIN64)
+                    {
+                        e1 = addressElem(e1, Type::tvoid->arrayOf());
+                        e2 = addressElem(e2, Type::tvoid->arrayOf());
+                    }
+                    elem *ep = el_params(etmp, e1, e2, toElem(ti, irs), NULL);
+                    int rtl = lvalueElem ? RTLSYM_ARRAYASSIGN_L : RTLSYM_ARRAYASSIGN_R;
                     e = el_bin(OPcall, TYdarray, el_var(rtlsym[rtl]), ep);
                 }
             }
