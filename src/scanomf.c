@@ -98,6 +98,46 @@ static unsigned short parseIdx(unsigned char **pp)
     return idx;
 }
 
+// skip numeric field of a data type of a COMDEF record
+static void skipNumericField(unsigned char **pp)
+{
+    unsigned char *p = *pp;
+    unsigned char c = *p++;
+    if (c == 0x81)
+        p += 2;
+    else if (c == 0x84)
+        p += 3;
+    else if (c == 0x88)
+        p += 4;
+    else
+        assert(c <= 0x80);
+    *pp = p;
+}
+
+// skip data type of a COMDEF record
+static void skipDataType(unsigned char **pp)
+{
+    unsigned char *p = *pp;
+    unsigned char c = *p++;
+
+    if (c == 0x61)
+    {
+        // FAR data
+        skipNumericField(&p);
+        skipNumericField(&p);
+    }
+    else if (c == 0x62)
+    {
+        // NEAR data
+        skipNumericField(&p);
+    }
+    else
+    {
+        assert(1 <= c && c <= 0x5f); // Borland segment indices
+    }
+    *pp = p;
+}
+
 
 
 /*****************************************
@@ -199,6 +239,17 @@ void scanOmfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, const char* nam
 
                 //printf("[s] name='%s'\n",name);
                 (*pAddSymbol)(pctx, names[idx],pickAny);
+                break;
+            }
+            case COMDEF:
+            {
+                while (p + 1 < pnext)
+                {
+                    parseName(&p, name);
+                    parseIdx(&p);               // type index
+                    skipDataType(&p);           // data type
+                    (*pAddSymbol)(pctx, name, 0);
+                }
                 break;
             }
             case ALIAS:
