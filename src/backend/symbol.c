@@ -2330,6 +2330,8 @@ void slist_reset()
     for (size_t i = 0; i < slist_length; ++i)
     {
         Symbol *s = slist[i];
+        // symbol wasn't used since last reset
+        if (!s->Sxtrnnum) continue;
 
 #if MACHOBJ
         s->Soffset = 0;
