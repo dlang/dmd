@@ -3122,6 +3122,13 @@ Expression *IdentifierExp::semantic(Scope *sc)
         }
         else
         {
+            if (withsym)
+            {
+                Declaration *d = s->isDeclaration();
+                if (d)
+                    accessCheck(loc, sc, NULL, d);
+            }
+
             /* If f is really a function template,
              * then replace f with the function template declaration.
              */
