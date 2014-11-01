@@ -263,6 +263,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 Expression *evaluatePostblits(InterState *istate, ArrayLiteralExp *ale, size_t lwr, size_t upr);
 Expression *evaluatePostblit(InterState *istate, Expression *e);
+Expression *evaluateDtor(InterState *istate, Expression *e);
 Expression *scrubReturnValue(Loc loc, Expression *e);
 
 
@@ -5165,9 +5166,35 @@ public:
 
         if (ecall->op == TOKdotvar)
         {
+            DotVarExp *dve = (DotVarExp *)e->e1;
+
             // Calling a member function
-            pthis = ((DotVarExp *)e->e1)->e1;
-            fd = ((DotVarExp *)e->e1)->var->isFuncDeclaration();
+            pthis = dve->e1;
+            fd = dve->var->isFuncDeclaration();
+
+            // Special handling for: typeid(T[n]).destroy(cast(void*)&v)
+            TypeInfoDeclaration *tid;
+            if (pthis->op == TOKsymoff &&
+                (tid = ((SymOffExp *)pthis)->var->isTypeInfoDeclaration()) != NULL &&
+                tid->tinfo->toBasetype()->ty == Tsarray &&
+                fd->ident == Id::destroy &&
+                e->arguments->dim == 1 &&
+                (*e->arguments)[0]->op == TOKsymoff)
+            {
+                Type *tb = tid->tinfo->baseElemOf();
+                if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->dtor)
+                {
+                    Declaration *v = ((SymOffExp *)(*e->arguments)[0])->var;
+                    Expression *arg = getVarExp(e->loc, istate, v, ctfeNeedRvalue);
+
+                    result = evaluateDtor(istate, arg);
+                    if (result)
+                        return;
+                    result = CTFEExp::voidexp;
+                    return;
+
+                }
+            }
         }
         else if (ecall->op == TOKvar)
         {
@@ -7257,6 +7284,33 @@ Expression *evaluatePostblit(InterState *istate, Expression *e)
     {
         // e.__postblit()
         e = interpret(sd->postblit, istate, NULL, e);
+    }
+    else
+        assert(0);
+    if (exceptionOrCantInterpret(e))
+        return e;
+    return NULL;
+}
+
+Expression *evaluateDtor(InterState *istate, Expression *e)
+{
+    Type *tb = e->type->baseElemOf();
+    if (tb->ty != Tstruct)
+        return NULL;
+    StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+    if (!sd->dtor)
+        return NULL;
+
+    if (e->op == TOKarrayliteral)
+    {
+        ArrayLiteralExp *alex = (ArrayLiteralExp *)e;
+        for (size_t i = 0; i < alex->elements->dim; i++)
+            e = evaluateDtor(istate, (*alex->elements)[i]);
+    }
+    else if (e->op == TOKstructliteral)
+    {
+        // e.__dtor()
+        e = interpret(sd->dtor, istate, NULL, e);
     }
     else
         assert(0);
