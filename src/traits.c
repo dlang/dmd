@@ -835,7 +835,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     /* Skip if already present in idents[]
                      */
                     for (size_t j = 0; j < idents->dim; j++)
-                    {   Identifier *id = (*idents)[j];
+                    {
+                        Identifier *id = (*idents)[j];
                         if (id == sm->ident)
                             return 0;
 #ifdef DEBUG
@@ -865,6 +866,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         ClassDeclaration *cd = sds->isClassDeclaration();
         if (cd && e->ident == Id::allMembers)
         {
+            if (cd->scope)
+                cd->semantic(NULL);    // Bugzilla 13668: Try to resolve forward reference
+
             struct PushBaseMembers
             {
                 static void dg(ClassDeclaration *cd, Identifiers *idents)
@@ -872,6 +876,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
                     {
                         ClassDeclaration *cb = (*cd->baseclasses)[i]->base;
+                        assert(cb);
                         ScopeDsymbol::foreach(NULL, cb->members, &PushIdentsDg::dg, idents);
                         if (cb->baseclasses->dim)
                             dg(cb, idents);
