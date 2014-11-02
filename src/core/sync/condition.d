@@ -69,7 +69,7 @@ class Condition
      * Throws:
      *  SyncException on error.
      */
-    this( Mutex m )
+    this( Mutex m ) @safe
     {
         version( Windows )
         {

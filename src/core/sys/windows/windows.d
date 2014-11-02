@@ -486,7 +486,7 @@ BOOL CreateDirectoryExW(LPCWSTR lpTemplateDirectory, LPCWSTR lpNewDirectory, LPS
 BOOL RemoveDirectoryA(LPCSTR lpPathName);
 BOOL RemoveDirectoryW(LPCWSTR lpPathName);
 
-BOOL   CloseHandle(HANDLE hObject);
+BOOL   CloseHandle(HANDLE hObject) @trusted;
 
 HANDLE CreateFileA(in char* lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
     SECURITY_ATTRIBUTES *lpSecurityAttributes, DWORD dwCreationDisposition,
@@ -1616,7 +1616,7 @@ LONG InterlockedExchange(LPLONG Target, LONG Value);
 LONG InterlockedExchangeAdd(LPLONG Addend, LONG Value);
 LONG InterlockedCompareExchange(LONG *Destination, LONG Exchange, LONG Comperand);
 
-void InitializeCriticalSection(CRITICAL_SECTION * lpCriticalSection);
+void InitializeCriticalSection(CRITICAL_SECTION * lpCriticalSection) @trusted;
 void EnterCriticalSection(CRITICAL_SECTION * lpCriticalSection);
 BOOL TryEnterCriticalSection(CRITICAL_SECTION * lpCriticalSection);
 void LeaveCriticalSection(CRITICAL_SECTION * lpCriticalSection);
@@ -3479,7 +3479,7 @@ enum : uint
 
 @nogc
 {
-export HANDLE CreateSemaphoreA(LPSECURITY_ATTRIBUTES lpSemaphoreAttributes, LONG lInitialCount, LONG lMaximumCount, LPCTSTR lpName);
+export HANDLE CreateSemaphoreA(LPSECURITY_ATTRIBUTES lpSemaphoreAttributes, LONG lInitialCount, LONG lMaximumCount, LPCTSTR lpName) @trusted;
 export HANDLE OpenSemaphoreA(DWORD dwDesiredAccess, BOOL bInheritHandle, LPCTSTR lpName);
 export BOOL ReleaseSemaphore(HANDLE hSemaphore, LONG lReleaseCount, LPLONG lpPreviousCount);
 }

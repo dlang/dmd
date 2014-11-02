@@ -434,7 +434,7 @@ version( Posix )
 {
     int pthread_cond_broadcast(pthread_cond_t*);
     int pthread_cond_destroy(pthread_cond_t*);
-    int pthread_cond_init(in pthread_cond_t*, pthread_condattr_t*);
+    int pthread_cond_init(in pthread_cond_t*, pthread_condattr_t*) @trusted;
     int pthread_cond_signal(pthread_cond_t*);
     int pthread_cond_timedwait(pthread_cond_t*, pthread_mutex_t*, in timespec*);
     int pthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);
@@ -449,12 +449,12 @@ version( Posix )
     int pthread_key_create(pthread_key_t*, void function(void*));
     int pthread_key_delete(pthread_key_t);
     int pthread_mutex_destroy(pthread_mutex_t*);
-    int pthread_mutex_init(pthread_mutex_t*, pthread_mutexattr_t*);
+    int pthread_mutex_init(pthread_mutex_t*, pthread_mutexattr_t*) @trusted;
     int pthread_mutex_lock(pthread_mutex_t*);
     int pthread_mutex_trylock(pthread_mutex_t*);
     int pthread_mutex_unlock(pthread_mutex_t*);
     int pthread_mutexattr_destroy(pthread_mutexattr_t*);
-    int pthread_mutexattr_init(pthread_mutexattr_t*);
+    int pthread_mutexattr_init(pthread_mutexattr_t*) @trusted;
     int pthread_once(pthread_once_t*, void function());
     int pthread_rwlock_destroy(pthread_rwlock_t*);
     int pthread_rwlock_init(pthread_rwlock_t*, in pthread_rwlockattr_t*);
@@ -616,7 +616,7 @@ version( linux )
     int pthread_attr_setguardsize(pthread_attr_t*, size_t);
     int pthread_getconcurrency();
     int pthread_mutexattr_gettype(in pthread_mutexattr_t*, int*);
-    int pthread_mutexattr_settype(pthread_mutexattr_t*, int);
+    int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
     int pthread_setconcurrency(int);
 }
 else version( OSX )
@@ -630,7 +630,7 @@ else version( OSX )
     int pthread_attr_setguardsize(pthread_attr_t*, size_t);
     int pthread_getconcurrency();
     int pthread_mutexattr_gettype(in pthread_mutexattr_t*, int*);
-    int pthread_mutexattr_settype(pthread_mutexattr_t*, int);
+    int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
     int pthread_setconcurrency(int);
 }
 else version( FreeBSD )
@@ -649,7 +649,7 @@ else version( FreeBSD )
     int pthread_attr_setguardsize(pthread_attr_t*, size_t);
     int pthread_getconcurrency();
     int pthread_mutexattr_gettype(pthread_mutexattr_t*, int*);
-    int pthread_mutexattr_settype(pthread_mutexattr_t*, int);
+    int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
     int pthread_setconcurrency(int);
 }
 else version (Solaris)
@@ -667,7 +667,7 @@ else version (Solaris)
     int pthread_attr_setguardsize(pthread_attr_t*, size_t);
     int pthread_getconcurrency();
     int pthread_mutexattr_gettype(pthread_mutexattr_t*, int*);
-    int pthread_mutexattr_settype(pthread_mutexattr_t*, int);
+    int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
     int pthread_setconcurrency(int);
 }
 else version (Android)
@@ -680,7 +680,7 @@ else version (Android)
     int pthread_attr_getguardsize(in pthread_attr_t*, size_t*);
     int pthread_attr_setguardsize(pthread_attr_t*, size_t);
     int pthread_mutexattr_gettype(in pthread_mutexattr_t*, int*);
-    int pthread_mutexattr_settype(pthread_mutexattr_t*, int);
+    int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
 }
 else
 {
