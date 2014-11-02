@@ -7448,6 +7448,7 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
+        accessCheck(e->loc, sc, NULL, v);
         Expression *ve = new VarExp(e->loc, v);
         ve = ve->semantic(sc);
         return ve;
@@ -8095,6 +8096,7 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
+        accessCheck(e->loc, sc, NULL, v);
         Expression *ve = new VarExp(e->loc, v);
         ve = ve->semantic(sc);
         return ve;

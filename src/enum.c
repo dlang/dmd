@@ -681,6 +681,7 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
         vd->parent = ed->isAnonymous() ? ed->parent : ed;
         vd->userAttribDecl = ed->isAnonymous() ? ed->userAttribDecl : NULL;
     }
+    accessCheck(loc, sc, NULL, vd);
     Expression *e = new VarExp(loc, vd);
     return e->semantic(sc);
 }
