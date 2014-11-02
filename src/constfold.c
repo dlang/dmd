@@ -44,7 +44,7 @@ Expression *expType(Type *type, Expression *e)
 int isConst(Expression *e)
 {
     //printf("Expression::isConst(): %s\n", e->toChars());
-    switch(e->op)
+    switch (e->op)
     {
         case TOKint64:
         case TOKfloat64:
@@ -70,7 +70,8 @@ int isConst(Expression *e)
 /* ========================================================================== */
 
 Expression *Neg(Type *type, Expression *e1)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     if (e1->type->isreal())
@@ -91,7 +92,8 @@ Expression *Neg(Type *type, Expression *e1)
 }
 
 Expression *Com(Type *type, Expression *e1)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     e = new IntegerExp(loc, ~e1->toInteger(), type);
@@ -99,7 +101,8 @@ Expression *Com(Type *type, Expression *e1)
 }
 
 Expression *Not(Type *type, Expression *e1)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     e = new IntegerExp(loc, e1->isBool(0), type);
@@ -107,7 +110,8 @@ Expression *Not(Type *type, Expression *e1)
 }
 
 Expression *Bool(Type *type, Expression *e1)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     e = new IntegerExp(loc, e1->isBool(1), type);
@@ -115,7 +119,8 @@ Expression *Bool(Type *type, Expression *e1)
 }
 
 Expression *Add(Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
 #if LOG
@@ -145,27 +150,33 @@ Expression *Add(Type *type, Expression *e1, Expression *e2)
         int x;
 
         if (e1->type->isreal())
-        {   r1 = e1->toReal();
+        {
+            r1 = e1->toReal();
             x = 0;
         }
         else if (e1->type->isimaginary())
-        {   i1 = e1->toImaginary();
+        {
+            i1 = e1->toImaginary();
             x = 3;
         }
         else
-        {   c1 = e1->toComplex();
+        {
+            c1 = e1->toComplex();
             x = 6;
         }
 
         if (e2->type->isreal())
-        {   r2 = e2->toReal();
+        {
+            r2 = e2->toReal();
         }
         else if (e2->type->isimaginary())
-        {   i2 = e2->toImaginary();
+        {
+            i2 = e2->toImaginary();
             x += 1;
         }
         else
-        {   c2 = e2->toComplex();
+        {
+            c2 = e2->toComplex();
             x += 2;
         }
 
@@ -203,7 +214,8 @@ Expression *Add(Type *type, Expression *e1, Expression *e2)
 
 
 Expression *Min(Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     if (type->isreal())
@@ -230,27 +242,33 @@ Expression *Min(Type *type, Expression *e1, Expression *e2)
         int x;
 
         if (e1->type->isreal())
-        {   r1 = e1->toReal();
+        {
+            r1 = e1->toReal();
             x = 0;
         }
         else if (e1->type->isimaginary())
-        {   i1 = e1->toImaginary();
+        {
+            i1 = e1->toImaginary();
             x = 3;
         }
         else
-        {   c1 = e1->toComplex();
+        {
+            c1 = e1->toComplex();
             x = 6;
         }
 
         if (e2->type->isreal())
-        {   r2 = e2->toReal();
+        {
+            r2 = e2->toReal();
         }
         else if (e2->type->isimaginary())
-        {   i2 = e2->toImaginary();
+        {
+            i2 = e2->toImaginary();
             x += 1;
         }
         else
-        {   c2 = e2->toComplex();
+        {
+            c2 = e2->toComplex();
             x += 2;
         }
 
@@ -283,11 +301,13 @@ Expression *Min(Type *type, Expression *e1, Expression *e2)
 }
 
 Expression *Mul(Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     if (type->isfloating())
-    {   complex_t c;
+    {
+        complex_t c;
         d_float80 r;
 
         if (e1->type->isreal())
@@ -334,11 +354,13 @@ Expression *Mul(Type *type, Expression *e1, Expression *e2)
 }
 
 Expression *Div(Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     if (type->isfloating())
-    {   complex_t c;
+    {
+        complex_t c;
         d_float80 r;
 
         //e1->type->print();
@@ -375,14 +397,16 @@ Expression *Div(Type *type, Expression *e1, Expression *e2)
             assert(0);
     }
     else
-    {   sinteger_t n1;
+    {
+        sinteger_t n1;
         sinteger_t n2;
         sinteger_t n;
 
         n1 = e1->toInteger();
         n2 = e2->toInteger();
         if (n2 == 0)
-        {   e2->error("divide by 0");
+        {
+            e2->error("divide by 0");
             e2 = new IntegerExp(loc, 1, e2->type);
             n2 = 1;
         }
@@ -396,7 +420,8 @@ Expression *Div(Type *type, Expression *e1, Expression *e2)
 }
 
 Expression *Mod(Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     if (type->isfloating())
@@ -404,12 +429,14 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
         complex_t c;
 
         if (e2->type->isreal())
-        {   real_t r2 = e2->toReal();
+        {
+            real_t r2 = e2->toReal();
 
             c = complex_t(Port::fmodl(e1->toReal(), r2), Port::fmodl(e1->toImaginary(), r2));
         }
         else if (e2->type->isimaginary())
-        {   real_t i2 = e2->toImaginary();
+        {
+            real_t i2 = e2->toImaginary();
 
             c = complex_t(Port::fmodl(e1->toReal(), i2), Port::fmodl(e1->toImaginary(), i2));
         }
@@ -426,19 +453,22 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
             assert(0);
     }
     else
-    {   sinteger_t n1;
+    {
+        sinteger_t n1;
         sinteger_t n2;
         sinteger_t n;
 
         n1 = e1->toInteger();
         n2 = e2->toInteger();
         if (n2 == 0)
-        {   e2->error("divide by 0");
+        {
+            e2->error("divide by 0");
             e2 = new IntegerExp(loc, 1, e2->type);
             n2 = 1;
         }
         if (n2 == -1 && !type->isunsigned())
-        {    // Check for int.min % -1
+        {
+            // Check for int.min % -1
             if (n1 == 0xFFFFFFFF80000000ULL && type->toBasetype()->ty != Tint64)
             {
                 e2->error("integer overflow: int.min % -1");
@@ -462,7 +492,8 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
 }
 
 Expression *Pow(Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     // Handle integer power operations.
@@ -536,7 +567,8 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
 }
 
 Expression *Shl(Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     e = new IntegerExp(loc, e1->toInteger() << e2->toInteger(), type);
@@ -651,13 +683,15 @@ Expression *And(Type *type, Expression *e1, Expression *e2)
 }
 
 Expression *Or(Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     e = new IntegerExp(e1->loc, e1->toInteger() | e2->toInteger(), type);
     return e;
 }
 
 Expression *Xor(Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     e = new IntegerExp(e1->loc, e1->toInteger() ^ e2->toInteger(), type);
     return e;
 }
@@ -665,7 +699,8 @@ Expression *Xor(Type *type, Expression *e1, Expression *e2)
 /* Also returns EXP_CANT_INTERPRET if cannot be computed.
  */
 Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
     int cmp = 0;
     real_t r1;
@@ -680,11 +715,13 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         if (e2->op == TOKnull)
             cmp = 1;
         else if (e2->op == TOKstring)
-        {   StringExp *es2 = (StringExp *)e2;
+        {
+            StringExp *es2 = (StringExp *)e2;
             cmp = (0 == es2->len);
         }
         else if (e2->op == TOKarrayliteral)
-        {   ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+        {
+            ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
             cmp = !es2->elements || (0 == es2->elements->dim);
         }
         else
@@ -693,18 +730,21 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
     else if (e2->op == TOKnull)
     {
         if (e1->op == TOKstring)
-        {   StringExp *es1 = (StringExp *)e1;
+        {
+            StringExp *es1 = (StringExp *)e1;
             cmp = (0 == es1->len);
         }
         else if (e1->op == TOKarrayliteral)
-        {   ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
+        {
+            ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
             cmp = !es1->elements || (0 == es1->elements->dim);
         }
         else
             return EXP_CANT_INTERPRET;
     }
     else if (e1->op == TOKstring && e2->op == TOKstring)
-    {   StringExp *es1 = (StringExp *)e1;
+    {
+        StringExp *es1 = (StringExp *)e1;
         StringExp *es2 = (StringExp *)e2;
 
         if (es1->sz != es2->sz)
@@ -719,7 +759,8 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
             cmp = 0;
     }
     else if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral)
-    {   ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
+    {
+        ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
         ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
 
         if ((!es1->elements || !es1->elements->dim) &&
@@ -732,7 +773,8 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         else
         {
             for (size_t i = 0; i < es1->elements->dim; i++)
-            {   Expression *ee1 = (*es1->elements)[i];
+            {
+                Expression *ee1 = (*es1->elements)[i];
                 Expression *ee2 = (*es2->elements)[i];
 
                 Expression *v = Equal(TOKequal, Type::tint32, ee1, ee2);
@@ -745,7 +787,8 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         }
     }
     else if (e1->op == TOKarrayliteral && e2->op == TOKstring)
-    {   // Swap operands and use common code
+    {
+        // Swap operands and use common code
         Expression *etmp = e1;
         e1 = e2;
         e2 = etmp;
@@ -776,7 +819,8 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         }
     }
     else if (e1->op == TOKstructliteral && e2->op == TOKstructliteral)
-    {   StructLiteralExp *es1 = (StructLiteralExp *)e1;
+    {
+        StructLiteralExp *es1 = (StructLiteralExp *)e1;
         StructLiteralExp *es2 = (StructLiteralExp *)e2;
 
         if (es1->sd != es2->sd)
@@ -792,13 +836,15 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         {
             cmp = 1;
             for (size_t i = 0; i < es1->elements->dim; i++)
-            {   Expression *ee1 = (*es1->elements)[i];
+            {
+                Expression *ee1 = (*es1->elements)[i];
                 Expression *ee2 = (*es2->elements)[i];
 
                 if (ee1 == ee2)
                     continue;
                 if (!ee1 || !ee2)
-                {   cmp = 0;
+                {
+                    cmp = 0;
                     break;
                 }
                 Expression *v = Equal(TOKequal, Type::tint32, ee1, ee2);
@@ -816,7 +862,9 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         }
     }
     else if (e1->isConst() != 1 || e2->isConst() != 1)
+    {
         return EXP_CANT_INTERPRET;
+    }
     else if (e1->type->isreal())
     {
         r1 = e1->toReal();
@@ -847,6 +895,7 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
     }
     else
         return EXP_CANT_INTERPRET;
+
     if (op == TOKnotequal)
         cmp ^= 1;
     e = new IntegerExp(loc, cmp, type);
@@ -901,7 +950,8 @@ Expression *Identity(TOK op, Type *type, Expression *e1, Expression *e2)
 
 
 Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
     dinteger_t n;
     real_t r1;
@@ -910,7 +960,8 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
     //printf("Cmp(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
 
     if (e1->op == TOKstring && e2->op == TOKstring)
-    {   StringExp *es1 = (StringExp *)e1;
+    {
+        StringExp *es1 = (StringExp *)e1;
         StringExp *es2 = (StringExp *)e2;
         size_t sz = es1->sz;
         assert(sz == es2->sz);
@@ -944,7 +995,9 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
         }
     }
     else if (e1->isConst() != 1 || e2->isConst() != 1)
+    {
         return EXP_CANT_INTERPRET;
+    }
     else if (e1->type->isreal())
     {
         r1 = e1->toReal();
@@ -1008,7 +1061,8 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
         assert(0);
     }
     else
-    {   sinteger_t n1;
+    {
+        sinteger_t n1;
         sinteger_t n2;
 
         n1 = e1->toInteger();
@@ -1068,7 +1122,8 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
  */
 
 Expression *Cast(Type *type, Type *to, Expression *e1)
-{   Expression *e = EXP_CANT_INTERPRET;
+{
+    Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
 
     //printf("Cast(type = %s, to = %s, e1 = %s)\n", type->toChars(), to->toChars(), e1->toChars());
@@ -1077,14 +1132,18 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         return e1;
     if (e1->type->implicitConvTo(to) >= MATCHconst ||
         to->implicitConvTo(e1->type) >= MATCHconst)
+    {
         return expType(to, e1);
+    }
 
     // Allow covariant converions of delegates
     // (Perhaps implicit conversion from pure to impure should be a MATCHconst,
     // then we wouldn't need this extra check.)
     if (e1->type->toBasetype()->ty == Tdelegate &&
         e1->type->implicitConvTo(to) == MATCHconvert)
+    {
         return expType(to, e1);
+    }
 
     Type *tb = to->toBasetype();
     Type *typeb = type->toBasetype();
@@ -1107,11 +1166,14 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         return EXP_CANT_INTERPRET;
 
     if (tb->ty == Tbool)
+    {
         e = new IntegerExp(loc, e1->toInteger() != 0, type);
+    }
     else if (type->isintegral())
     {
         if (e1->type->isfloating())
-        {   dinteger_t result;
+        {
+            dinteger_t result;
             real_t r = e1->toReal();
 
             switch (typeb->ty)
@@ -1139,26 +1201,34 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
             e = new IntegerExp(loc, e1->toInteger(), type);
     }
     else if (tb->isreal())
-    {   real_t value = e1->toReal();
+    {
+        real_t value = e1->toReal();
 
         e = new RealExp(loc, value, type);
     }
     else if (tb->isimaginary())
-    {   real_t value = e1->toImaginary();
+    {
+        real_t value = e1->toImaginary();
 
         e = new RealExp(loc, value, type);
     }
     else if (tb->iscomplex())
-    {   complex_t value = e1->toComplex();
+    {
+        complex_t value = e1->toComplex();
 
         e = new ComplexExp(loc, value, type);
     }
     else if (tb->isscalar())
+    {
         e = new IntegerExp(loc, e1->toInteger(), type);
+    }
     else if (tb->ty == Tvoid)
+    {
         e = EXP_CANT_INTERPRET;
+    }
     else if (tb->ty == Tstruct && e1->op == TOKint64)
-    {   // Struct = 0;
+    {
+        // Struct = 0;
         StructDeclaration *sd = tb->toDsymbol(NULL)->isStructDeclaration();
         assert(sd);
         Expressions *elements = new Expressions;
@@ -1185,29 +1255,35 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
 
 
 Expression *ArrayLength(Type *type, Expression *e1)
-{   Expression *e;
+{
+    Expression *e;
     Loc loc = e1->loc;
 
     if (e1->op == TOKstring)
-    {   StringExp *es1 = (StringExp *)e1;
+    {
+        StringExp *es1 = (StringExp *)e1;
 
         e = new IntegerExp(loc, es1->len, type);
     }
     else if (e1->op == TOKarrayliteral)
-    {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
+    {
+        ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
         size_t dim;
 
         dim = ale->elements ? ale->elements->dim : 0;
         e = new IntegerExp(loc, dim, type);
     }
     else if (e1->op == TOKassocarrayliteral)
-    {   AssocArrayLiteralExp *ale = (AssocArrayLiteralExp *)e1;
+    {
+        AssocArrayLiteralExp *ale = (AssocArrayLiteralExp *)e1;
         size_t dim = ale->keys->dim;
 
         e = new IntegerExp(loc, dim, type);
     }
     else if (e1->type->toBasetype()->ty == Tsarray)
+    {
         e = ((TypeSArray *)e1->type->toBasetype())->dim;
+    }
     else
         e = EXP_CANT_INTERPRET;
     return e;
@@ -1216,13 +1292,15 @@ Expression *ArrayLength(Type *type, Expression *e1)
 /* Also return EXP_CANT_INTERPRET if this fails
  */
 Expression *Index(Type *type, Expression *e1, Expression *e2)
-{   Expression *e = EXP_CANT_INTERPRET;
+{
+    Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
 
     //printf("Index(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     assert(e1->type);
     if (e1->op == TOKstring && e2->op == TOKint64)
-    {   StringExp *es1 = (StringExp *)e1;
+    {
+        StringExp *es1 = (StringExp *)e1;
         uinteger_t i = e2->toInteger();
 
         if (i >= es1->len)
@@ -1236,7 +1314,8 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         }
     }
     else if (e1->type->toBasetype()->ty == Tsarray && e2->op == TOKint64)
-    {   TypeSArray *tsa = (TypeSArray *)e1->type->toBasetype();
+    {
+        TypeSArray *tsa = (TypeSArray *)e1->type->toBasetype();
         uinteger_t length = tsa->dim->toInteger();
         uinteger_t i = e2->toInteger();
 
@@ -1246,7 +1325,8 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             e = new ErrorExp();
         }
         else if (e1->op == TOKarrayliteral)
-        {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
+        {
+            ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             e = (*ale->elements)[(size_t)i];
             e->type = type;
             e->loc = loc;
@@ -1259,14 +1339,16 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         uinteger_t i = e2->toInteger();
 
         if (e1->op == TOKarrayliteral)
-        {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
+        {
+            ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             if (i >= ale->elements->dim)
             {
                 e1->error("array index %llu is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
                 e = new ErrorExp();
             }
             else
-            {   e = (*ale->elements)[(size_t)i];
+            {
+                e = (*ale->elements)[(size_t)i];
                 e->type = type;
                 e->loc = loc;
                 if (hasSideEffect(e))
@@ -1287,7 +1369,8 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             if (ex == EXP_CANT_INTERPRET)
                 return ex;
             if (ex->isBool(true))
-            {   e = (*ae->values)[i];
+            {
+                e = (*ae->values)[i];
                 e->type = type;
                 e->loc = loc;
                 if (hasSideEffect(e))
@@ -1302,19 +1385,22 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 /* Also return EXP_CANT_INTERPRET if this fails
  */
 Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
-{   Expression *e = EXP_CANT_INTERPRET;
+{
+    Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
 
 #if LOG
     printf("Slice()\n");
     if (lwr)
-    {   printf("\te1 = %s\n", e1->toChars());
+    {
+        printf("\te1 = %s\n", e1->toChars());
         printf("\tlwr = %s\n", lwr->toChars());
         printf("\tupr = %s\n", upr->toChars());
     }
 #endif
     if (e1->op == TOKstring && lwr->op == TOKint64 && upr->op == TOKint64)
-    {   StringExp *es1 = (StringExp *)e1;
+    {
+        StringExp *es1 = (StringExp *)e1;
         uinteger_t ilwr = lwr->toInteger();
         uinteger_t iupr = upr->toInteger();
 
@@ -1344,7 +1430,8 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
     else if (e1->op == TOKarrayliteral &&
             lwr->op == TOKint64 && upr->op == TOKint64 &&
             !hasSideEffect(e1))
-    {   ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
+    {
+        ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
         uinteger_t ilwr = lwr->toInteger();
         uinteger_t iupr = upr->toInteger();
 
@@ -1404,9 +1491,15 @@ void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *n
         unsigned value = (unsigned)((*newae->elements)[j]->toInteger());
         switch (existingSE->sz)
         {
-            case 1: s[j+firstIndex] = (utf8_t)value; break;
-            case 2: ((unsigned short *)s)[j+firstIndex] = (unsigned short)value; break;
-            case 4: ((unsigned *)s)[j+firstIndex] = value; break;
+            case 1:
+                s[j + firstIndex] = (utf8_t)value;
+                break;
+            case 2:
+                ((unsigned short *)s)[j + firstIndex] = (unsigned short)value;
+                break;
+            case 4:
+                ((unsigned *)s)[j + firstIndex] = value;
+                break;
             default:
                 assert(0);
                 break;
@@ -1452,9 +1545,15 @@ int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, si
         unsigned svalue;
         switch (sz)
         {
-            case 1: svalue = s[j + lo1]; break;
-            case 2: svalue = ((unsigned short *)s)[j+lo1]; break;
-            case 4: svalue = ((unsigned *)s)[j + lo1]; break;
+            case 1:
+                svalue = s[j + lo1];
+                break;
+            case 2:
+                svalue = ((unsigned short *)s)[j+lo1];
+                break;
+            case 4:
+                svalue = ((unsigned *)s)[j + lo1];
+                break;
             default:
                 assert(0);
         }
@@ -1468,7 +1567,8 @@ int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, si
 /* Also return EXP_CANT_INTERPRET if this fails
  */
 Expression *Cat(Type *type, Expression *e1, Expression *e2)
-{   Expression *e = EXP_CANT_INTERPRET;
+{
+    Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
     Type *t;
     Type *t1 = e1->type->toBasetype();
@@ -1478,12 +1578,14 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
     //printf("\tt1 = %s, t2 = %s, type = %s\n", t1->toChars(), t2->toChars(), type->toChars());
 
     if (e1->op == TOKnull && (e2->op == TOKint64 || e2->op == TOKstructliteral))
-    {   e = e2;
+    {
+        e = e2;
         t = t1;
         goto L2;
     }
     else if ((e1->op == TOKint64 || e1->op == TOKstructliteral) && e2->op == TOKnull)
-    {   e = e1;
+    {
+        e = e1;
         t = t2;
      L2:
         Type *tn = e->type->toBasetype();
@@ -1514,7 +1616,8 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
             e = es;
         }
         else
-        {   // Create an ArrayLiteralExp
+        {
+            // Create an ArrayLiteralExp
             Expressions *elements = new Expressions();
             elements->push(e);
             e = new ArrayLiteralExp(e->loc, elements);
@@ -1750,18 +1853,21 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         goto L1;
     }
     else if (e1->op == TOKstring && e2->op == TOKnull)
-    {   e = e1;
+    {
+        e = e1;
         t = e2->type;
       L1:
         Type *tb = t->toBasetype();
         if (tb->ty == Tarray && tb->nextOf()->equals(e->type))
-        {   Expressions *expressions = new Expressions();
+        {
+            Expressions *expressions = new Expressions();
             expressions->push(e);
             e = new ArrayLiteralExp(loc, expressions);
             e->type = t;
         }
         if (!e->type->equals(type))
-        {   StringExp *se = (StringExp *)e->copy();
+        {
+            StringExp *se = (StringExp *)e->copy();
             e = se->castTo(NULL, type);
         }
     }
@@ -1772,11 +1878,14 @@ Expression *Ptr(Type *type, Expression *e1)
 {
     //printf("Ptr(e1 = %s)\n", e1->toChars());
     if (e1->op == TOKadd)
-    {   AddExp *ae = (AddExp *)e1;
+    {
+        AddExp *ae = (AddExp *)e1;
         if (ae->e1->op == TOKaddress && ae->e2->op == TOKint64)
-        {   AddrExp *ade = (AddrExp *)ae->e1;
+        {
+            AddrExp *ade = (AddrExp *)ae->e1;
             if (ade->e1->op == TOKstructliteral)
-            {   StructLiteralExp *se = (StructLiteralExp *)ade->e1;
+            {
+                StructLiteralExp *se = (StructLiteralExp *)ade->e1;
                 unsigned offset = (unsigned)ae->e2->toInteger();
                 Expression *e = se->getField(type, offset);
                 if (!e)
