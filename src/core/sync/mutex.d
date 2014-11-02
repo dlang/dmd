@@ -58,7 +58,7 @@ class Mutex :
      * Throws:
      *  SyncException on error.
      */
-    this()
+    this() @trusted
     {
         version( Windows )
         {
