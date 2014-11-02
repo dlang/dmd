@@ -1581,11 +1581,13 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad->toChars(), toChars());
 
     if (aliassym)
-    {   // If this variable was really a tuple, set the offsets for the tuple fields
+    {
+        // If this variable was really a tuple, set the offsets for the tuple fields
         TupleDeclaration *v2 = aliassym->isTupleDeclaration();
         assert(v2);
         for (size_t i = 0; i < v2->objects->dim; i++)
-        {   RootObject *o = (*v2->objects)[i];
+        {
+            RootObject *o = (*v2->objects)[i];
             assert(o->dyncast() == DYNCAST_EXPRESSION);
             Expression *e = (Expression *)o;
             assert(e->op == TOKdsymbol);
@@ -1603,17 +1605,26 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
      * as members. That means ignore them if they are already a field.
      */
     if (offset)
-        return;         // already a field
+    {
+        // already a field
+        *poffset = ad->structsize;  // Bugzilla 13613
+        return;
+    }
     for (size_t i = 0; i < ad->fields.dim; i++)
     {
         if (ad->fields[i] == this)
-            return;     // already a field
+        {
+            // already a field
+            *poffset = ad->structsize;  // Bugzilla 13613
+            return;
+        }
     }
 
     // Check for forward referenced types which will fail the size() call
     Type *t = type->toBasetype();
     if (storage_class & STCref)
-    {   // References are the size of a pointer
+    {
+        // References are the size of a pointer
         t = Type::tvoidptr;
     }
     if (t->ty == Tstruct || t->ty == Tsarray)
@@ -1651,7 +1662,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     offset = AggregateDeclaration::placeField(poffset, memsize, memalignsize, alignment,
                 &ad->structsize, &ad->alignsize, isunion);
 
-    //printf("\t%s: alignsize = %d\n", toChars(), alignsize);
+    //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
 
     //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad->toChars(), offset, memsize);
     ad->fields.push(this);
