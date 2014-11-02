@@ -2954,10 +2954,10 @@ struct Gcx
                         pool.structFinals.alloc(pool.mark.nbits);
                     pool.structFinals.data[dataIndex] |= orWith;
                 }
+                mask &= ~BlkAttr.FINALIZE; // prevent from setting normal finalize attribute.
+                if (!mask)
+                    return;
             }
-            mask &= ~BlkAttr.FINALIZE; // prevent from setting normal finalize attribute.
-            if (!mask)
-                return;
         }
 
         if (mask & BlkAttr.FINALIZE)
