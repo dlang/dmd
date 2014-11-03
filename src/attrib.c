@@ -716,7 +716,6 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
         for (size_t i = 0; i < decl->dim; i++)
         {
             Dsymbol *s = (*decl)[i];
-
             s->setFieldOffset(ad, &offset, this->isunion);
             if (this->isunion)
                 offset = 0;
@@ -727,7 +726,18 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
         ad->structsize = savestructsize;
         ad->alignsize  = savealignsize;
 
+        if (fieldstart == ad->fields.dim)
+        {
+            /* Bugzilla 13613: If the fields in this->members had been already
+             * added in ad->fields, just update *poffset for the subsequent
+             * field offset calculation.
+             */
+            *poffset = ad->structsize;
+            return;
+        }
+
         // 0 sized structs are set to 1 byte
+        // TODO: is this corect hebavior?
         if (anonstructsize == 0)
         {
             anonstructsize = 1;
