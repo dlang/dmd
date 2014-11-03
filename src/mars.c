@@ -1138,7 +1138,7 @@ Language changes listed by -transition=id:\n\
     }
     else
     {
-        VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
+        VersionCondition::addPredefinedGlobalIdent("D_InlineAsm"); //legacy
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition::addPredefinedGlobalIdent("X86");
 #if TARGET_OSX
@@ -1159,8 +1159,8 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("CRuntime_Microsoft");
     else
         VersionCondition::addPredefinedGlobalIdent("CRuntime_DigitalMars");
-#else
-    VersionCondition::addPredefinedGlobalIdent("CRuntime_GNU");
+#elif TARGET_LINUX
+    VersionCondition::addPredefinedGlobalIdent("CRuntime_Glibc");
 #endif
     if (global.params.isLP64)
         VersionCondition::addPredefinedGlobalIdent("D_LP64");
