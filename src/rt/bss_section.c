@@ -4,7 +4,7 @@
  * Copyright: Copyright Martin Nowak 2014-.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
- * Source: $(DRUNTIMESRC src/rt/_sections_linux.d)
+ * Source: $(DRUNTIMESRC src/rt/_bss_section.c)
  */
 
 /* These symbols are defined in the linker script and bracket the

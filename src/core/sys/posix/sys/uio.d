@@ -37,7 +37,7 @@ ssize_t readv(int, in iovec*, int);
 ssize_t writev(int, in iovec*, int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct iovec
     {
@@ -81,7 +81,7 @@ else version (Solaris)
     ssize_t readv(int, in iovec*, int);
     ssize_t writev(int, in iovec*, int);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     version (X86)
     {

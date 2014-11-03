@@ -39,7 +39,7 @@ passwd* getpwnam(in char*);
 passwd* getpwuid(uid_t);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct passwd
     {
@@ -100,7 +100,7 @@ else version (Solaris)
         char* pw_shell;
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     struct passwd
     {
@@ -128,7 +128,7 @@ int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
 int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
@@ -148,9 +148,8 @@ else version (Solaris)
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
-    // Missing from bionic
 }
 else
 {
@@ -166,7 +165,7 @@ passwd* getpwent();
 void    setpwent();
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     void    endpwent();
     passwd* getpwent();
@@ -190,7 +189,7 @@ else version (Solaris)
     passwd* getpwent();
     void setpwent();
 }
-else version ( Android )
+else version ( CRuntime_Bionic )
 {
     void    endpwent();
 }

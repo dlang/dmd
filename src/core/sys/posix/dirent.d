@@ -40,7 +40,7 @@ dirent* readdir(DIR*);
 void    rewinddir(DIR*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     // NOTE: The following constants are non-standard Linux definitions
     //       for dirent.d_type.
@@ -170,7 +170,7 @@ else version (Solaris)
         dirent* readdir(DIR*);
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum
     {
@@ -224,7 +224,7 @@ void    rewinddir(DIR*);
 int readdir_r(DIR*, dirent*, dirent**);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
   static if( __USE_LARGEFILE64 )
   {
@@ -256,7 +256,7 @@ else version (Solaris)
         int readdir_r(DIR*, dirent*, dirent**);
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     int readdir_r(DIR*, dirent*, dirent**);
 }
@@ -273,7 +273,7 @@ void   seekdir(DIR*, c_long);
 c_long telldir(DIR*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     void   seekdir(DIR*, c_long);
     c_long telldir(DIR*);
@@ -291,7 +291,7 @@ else version (Solaris)
     c_long telldir(DIR*);
     void seekdir(DIR*, c_long);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
 }
 else

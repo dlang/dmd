@@ -14,7 +14,7 @@
 
 module etc.linux.memoryerror;
 
-version (linux)
+version (CRuntime_Glibc)
 {
     version (X86)
         version = MemoryErrorSupported;

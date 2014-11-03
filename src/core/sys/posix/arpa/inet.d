@@ -49,7 +49,7 @@ char*     inet_ntop(int, in void*, char*, socklen_t);
 int       inet_pton(int, in char*, void*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     alias uint16_t in_port_t;
     alias uint32_t in_addr_t;
@@ -148,7 +148,7 @@ else version( Solaris )
     const(char)*    inet_ntop(int, in void*, char*, socklen_t);
     int             inet_pton(int, in char*, void*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     alias uint32_t in_addr_t;
 

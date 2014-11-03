@@ -93,7 +93,7 @@ version( Posix )
     ssize_t write(int, in void*, size_t);
 }
 
-version( linux )
+version( CRuntime_Glibc )
 {
   static if( __USE_FILE_OFFSET64 )
   {
@@ -152,7 +152,7 @@ else version( Posix )
     int   ftruncate(int, off_t) @trusted;
 }
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum F_OK       = 0;
     enum R_OK       = 4;
@@ -806,7 +806,7 @@ else version( FreeBSD )
         _CS_POSIX_V6_WIDTH_RESTRICTED_ENVS =  14,
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum F_OK       = 0;
     enum R_OK       = 4;
@@ -1114,7 +1114,7 @@ else version( Solaris )
 int fdatasync(int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int fdatasync(int) @trusted;
 }
@@ -1122,7 +1122,7 @@ else version( Solaris )
 {
     int fdatasync(int) @trusted;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     int fdatasync(int) @trusted;
 }
@@ -1155,7 +1155,7 @@ int        usleep(useconds_t);
 pid_t      vfork();
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     char*      crypt(in char*, in char*);
     char*      ctermid(char*);
@@ -1252,7 +1252,7 @@ else version( FreeBSD )
     int        usleep(useconds_t) @trusted;
     pid_t      vfork();
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     int        fchdir(int) @trusted;
     pid_t      getpgid(pid_t) @trusted;

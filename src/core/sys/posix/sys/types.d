@@ -29,7 +29,7 @@ extern (C):
 __syscall_slong_t
 __syscall_ulong_t
 */
-version (linux)
+version (CRuntime_Glibc)
 {
     version (X86_64)
     {
@@ -76,7 +76,7 @@ time_t
 uid_t
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
   static if( __USE_FILE_OFFSET64 )
   {
@@ -180,7 +180,7 @@ else version (Solaris)
     alias c_long time_t;
     alias uint uid_t;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     version(X86)
     {
@@ -220,7 +220,7 @@ suseconds_t
 useconds_t
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
   static if( __USE_FILE_OFFSET64 )
   {
@@ -283,7 +283,7 @@ else version (Solaris)
     alias id_t zoneid_t;
     alias id_t ctid_t;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     version(X86)
     {
@@ -321,7 +321,7 @@ pthread_rwlockattr_t
 pthread_t
 */
 
-version (linux)
+version (CRuntime_Glibc)
 {
     version (X86)
     {
@@ -731,7 +731,7 @@ else version (Solaris)
 
     alias uint pthread_key_t;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     version(X86)
     {
@@ -793,7 +793,7 @@ pthread_barrier_t
 pthread_barrierattr_t
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct pthread_barrier_t
     {
@@ -832,7 +832,7 @@ else version (Solaris)
         void* __pthread_barrierattrp;
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
 }
 else
@@ -847,7 +847,7 @@ else
 pthread_spinlock_t
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     alias int pthread_spinlock_t; // volatile
 }

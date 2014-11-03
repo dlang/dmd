@@ -10,7 +10,8 @@ import core.sys.posix.sys.ipc;
 public import core.sys.posix.sys.types;
 public import core.stdc.config;
 
-version (linux):
+version (CRuntime_Glibc):
+// Some of these may be from linux kernel headers.
 extern (C):
 
 public enum MSG_STAT = 11;

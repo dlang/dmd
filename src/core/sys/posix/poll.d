@@ -48,7 +48,7 @@ POLLNVAL
 int poll(pollfd[], nfds_t, int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct pollfd
     {
@@ -170,7 +170,7 @@ else version( Solaris )
 
     int poll(pollfd*, nfds_t, int);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     struct pollfd
     {

@@ -78,7 +78,7 @@ int    stat(in char*, stat*);
 mode_t umask(mode_t);
  */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     version (X86)
     {
@@ -869,7 +869,7 @@ else version (Solaris)
     extern (D) bool S_ISDOOR(mode_t mode) { return S_ISTYPE(mode, S_IFDOOR); }
     extern (D) bool S_ISPORT(mode_t mode) { return S_ISTYPE(mode, S_IFPORT); }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     version (X86)
     {
@@ -1037,7 +1037,7 @@ S_IFSOCK
 int mknod(in 3char*, mode_t, dev_t);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000
@@ -1091,7 +1091,7 @@ else version (Solaris)
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000

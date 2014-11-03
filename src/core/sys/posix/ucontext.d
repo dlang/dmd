@@ -38,7 +38,7 @@ struct ucontext_t
 }
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
 
     version( X86_64 )

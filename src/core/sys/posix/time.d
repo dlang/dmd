@@ -40,7 +40,7 @@ size_t strftime(char*, size_t, in char*, in tm*);
 time_t time(time_t*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     time_t timegm(tm*); // non-standard
 }
@@ -56,7 +56,7 @@ else version (Solaris)
 {
     time_t timegm(tm*); // non-standard
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     // Not supported.
 }
@@ -95,7 +95,7 @@ int clock_nanosleep(clockid_t, int, in timespec*, timespec*);
 CLOCK_MONOTONIC
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum CLOCK_MONOTONIC          = 1;
     // To be removed in December 2015.
@@ -123,10 +123,11 @@ else version (Solaris)
 {
     enum CLOCK_MONOTONIC = 4;
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
-    enum CLOCK_MONOTONIC    = 1;
-    enum CLOCK_MONOTONIC_HR = 5;
+    enum CLOCK_MONOTONIC        = 1;
+    enum CLOCK_MONOTONIC_RAW    = 4;
+    enum CLOCK_MONOTONIC_COARSE = 6;
 }
 else
 {
@@ -172,7 +173,7 @@ int timer_getoverrun(timer_t);
 int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum CLOCK_PROCESS_CPUTIME_ID = 2;
     enum CLOCK_THREAD_CPUTIME_ID  = 3;
@@ -277,7 +278,7 @@ else version (Solaris)
     int timer_gettime(timer_t, itimerspec*);
     int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum CLOCK_PROCESS_CPUTIME_ID = 2;
     enum CLOCK_THREAD_CPUTIME_ID  = 3;
@@ -379,7 +380,7 @@ tm* getdate(in char*);
 char* strptime(in char*, in char*, tm*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     extern __gshared int    daylight;
     extern __gshared c_long timezone;
@@ -409,7 +410,7 @@ else version (Solaris)
     char* __strptime_dontzero(in char*, in char*, tm*);
     alias __strptime_dontzero strptime;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     extern __gshared int    daylight;
     extern __gshared c_long timezone;
