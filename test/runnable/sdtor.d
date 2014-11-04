@@ -3351,6 +3351,22 @@ void test13303()
 
 /**********************************/
 
+struct S13673
+{
+    string _name;
+    ~this() {}
+}
+
+string name13673;
+
+void test13673()
+{
+    S13673(name13673);
+    S13673(name13673);
+}
+
+/**********************************/
+
 void test13586()
 {
     static struct S {
@@ -3538,6 +3554,7 @@ int main()
     test13089();
     test11763();
     test13303();
+    test13673();
     test13586();
 
     printf("Success\n");
