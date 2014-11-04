@@ -80,6 +80,7 @@ Global global;
 
 void Global::init()
 {
+    inifilename = NULL;
     mars_ext = "d";
     hdr_ext  = "di";
     doc_ext  = "html";
@@ -242,6 +243,7 @@ void usage()
         global.version, global.copyright, global.written);
     printf("\
 Documentation: http://dlang.org/\n\
+Config file: %s\n\
 Usage:\n\
   dmd files.d ... { -switch }\n\
 \n\
@@ -309,7 +311,7 @@ Usage:\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
-", fpic);
+", FileName::canonicalName(global.inifilename), fpic);
 }
 
 extern signed char tyalignsize[];
@@ -374,7 +376,6 @@ int tryMain(size_t argc, const char *argv[])
 #if TARGET_WINDOS
     bool setdefaultlib = false;
 #endif
-    const char *inifilename = NULL;
     global.init();
 
 #ifdef DEBUG
@@ -479,9 +480,9 @@ int tryMain(size_t argc, const char *argv[])
     VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
-    inifilename = inifile(argv[0], "sc.ini", "Environment");
+    global.inifilename = inifile(argv[0], "sc.ini", "Environment");
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    inifilename = inifile(argv[0], "dmd.conf", "Environment");
+    global.inifilename = inifile(argv[0], "dmd.conf", "Environment");
 #else
 #error "fix this"
 #endif
@@ -497,7 +498,7 @@ int tryMain(size_t argc, const char *argv[])
 
     char envsection[80];
     sprintf(envsection, "Environment%s", arch);
-    inifile(argv[0], inifilename, envsection);
+    inifile(argv[0], global.inifilename, envsection);
 
     getenv_setargv("DFLAGS", &argc, &argv);
 
@@ -1024,7 +1025,7 @@ Language changes listed by -transition=id:\n\
 
     if(global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s",
-              envsection, inifilename);
+              envsection, global.inifilename);
 
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;
@@ -1181,7 +1182,8 @@ Language changes listed by -transition=id:\n\
     if (global.params.verbose)
     {   fprintf(global.stdmsg, "binary    %s\n", argv[0]);
         fprintf(global.stdmsg, "version   %s\n", global.version);
-        fprintf(global.stdmsg, "config    %s\n", inifilename ? inifilename : "(none)");
+        fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename
+                                                                    : "(none)");
     }
 
     //printf("%d source files\n",files.dim);

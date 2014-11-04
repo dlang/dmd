@@ -205,6 +205,7 @@ typedef unsigned structalign_t;
 
 struct Global
 {
+    const char *inifilename;
     const char *mars_ext;
     const char *obj_ext;
     const char *lib_ext;
