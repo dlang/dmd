@@ -229,7 +229,14 @@ void ensurePathToNameExists(Loc loc, const char *name)
 extern void backend_init();
 extern void backend_term();
 
-void usage()
+static void logo()
+{
+    printf("DMD%llu D Compiler %s\n%s %s\n",
+           (unsigned long long) sizeof(size_t) * 8,
+        global.version, global.copyright, global.written);
+}
+
+static void usage()
 {
 #if TARGET_LINUX
     const char fpic[] ="\
@@ -238,9 +245,7 @@ void usage()
 #else
     const char fpic[] = "";
 #endif
-    printf("DMD%llu D Compiler %s\n%s %s\n",
-           (unsigned long long) sizeof(size_t) * 8,
-        global.version, global.copyright, global.written);
+    logo();
     printf("\
 Documentation: http://dlang.org/\n\
 Config file: %s\n\
@@ -274,7 +279,7 @@ Usage:\n\
   -H             generate 'header' file\n\
   -Hddirectory   write 'header' file to directory\n\
   -Hffilename    write 'header' file to filename\n\
-  --help         print help\n\
+  --help         print help and exit\n\
   -Ipath         where to look for imports\n\
   -ignore        ignore unsupported pragmas\n\
   -inline        do function inlining\n\
@@ -303,6 +308,7 @@ Usage:\n\
   -unittest      compile in unit tests\n\
   -v             verbose\n\
   -vcolumns      print character (column) numbers in diagnostics\n\
+  --version      print compiler version and exit\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -vtls          list all variables going into thread local storage\n\
@@ -910,6 +916,10 @@ Language changes listed by -transition=id:\n\
             }
             else if (strcmp(p + 1, "-r") == 0)
                 global.params.debugr = true;
+            else if (strcmp(p + 1, "-version") == 0)
+            {   logo();
+                exit(EXIT_SUCCESS);
+            }
             else if (strcmp(p + 1, "-x") == 0)
                 global.params.debugx = true;
             else if (strcmp(p + 1, "-y") == 0)
