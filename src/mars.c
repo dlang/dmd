@@ -243,6 +243,7 @@ void usage()
         global.version, global.copyright, global.written);
     printf("\
 Documentation: http://dlang.org/\n\
+Config file: %s\n\
 Usage:\n\
   dmd files.d ... { -switch }\n\
 \n\
@@ -310,7 +311,7 @@ Usage:\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
-", fpic);
+", FileName::canonicalName(global.inifilename), fpic);
 }
 
 extern signed char tyalignsize[];
