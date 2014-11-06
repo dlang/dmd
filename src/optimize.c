@@ -260,7 +260,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             e->e1 = e->e1->optimize(result);
             if (e->e1->isConst() == 1)
             {
-                ret = Neg(e->type, e->e1);
+                ret = Neg(e->type, e->e1).copy();
             }
         }
 

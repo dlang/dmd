@@ -14,6 +14,7 @@
 #include <assert.h>
 #include <string.h>                     // mem{cpy|set|cmp}()
 #include <math.h>
+#include <new>
 
 #include "rmem.h"
 #include "root.h"
@@ -69,26 +70,28 @@ int isConst(Expression *e)
 
 /* ========================================================================== */
 
-Expression *Neg(Type *type, Expression *e1)
+UnionExp Neg(Type *type, Expression *e1)
 {
-    Expression *e;
+    UnionExp ue;
     Loc loc = e1->loc;
 
     if (e1->type->isreal())
     {
-        e = new RealExp(loc, -e1->toReal(), type);
+        new(&ue) RealExp(loc, -e1->toReal(), type);
     }
     else if (e1->type->isimaginary())
     {
-        e = new RealExp(loc, -e1->toImaginary(), type);
+        new(&ue) RealExp(loc, -e1->toImaginary(), type);
     }
     else if (e1->type->iscomplex())
     {
-        e = new ComplexExp(loc, -e1->toComplex(), type);
+        new(&ue) ComplexExp(loc, -e1->toComplex(), type);
     }
     else
-        e = new IntegerExp(loc, -e1->toInteger(), type);
-    return e;
+    {
+        new(&ue) IntegerExp(loc, -e1->toInteger(), type);
+    }
+    return ue;
 }
 
 Expression *Com(Type *type, Expression *e1)
