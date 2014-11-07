@@ -56,8 +56,9 @@ STATIC unsigned cs_comphash(elem *);
 STATIC void addhcstab(elem *,int);
 STATIC void touchlvalue(elem *);
 STATIC void touchfunc(int);
-STATIC void touchstar(void);
+STATIC void touchstar();
 STATIC void touchaccess(elem *);
+STATIC void touchall();
 
 /*******************************
  * Eliminate common subexpressions across extended basic blocks.
@@ -282,6 +283,9 @@ STATIC void ecom(elem **pe)
         return;
 
     case OPddtor:
+        touchall();
+        ecom(&e->E1);
+        touchall();
         return;
 
     case OPparam:
@@ -658,6 +662,21 @@ STATIC void touchstar()
                 hcstab[i].Helem = NULL;
   }
   hcsarray.touchstari = hcsarray.top;
+}
+
+/*******************************
+ * Eliminate all common subexpressions.
+ */
+
+STATIC void touchall()
+{
+    for (unsigned i = 0; i < hcsarray.top; i++)
+    {
+        hcstab[i].Helem = NULL;
+    }
+    hcsarray.touchstari = hcsarray.top;
+    hcsarray.touchfunci[0] = hcsarray.top;
+    hcsarray.touchfunci[1] = hcsarray.top;
 }
 
 #if TARGET_SEGMENTED
