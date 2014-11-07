@@ -5064,7 +5064,7 @@ version( AsmX86_64_Windows )
         void testNonvolatileRegister(alias REG)()
         {
             auto zeroRegister = new Fiber(() {
-                mixin("asm pure nothrow @nogc { xor "~REG~", "~REG~"; }");
+                mixin("asm pure nothrow @nogc { naked; xor "~REG~", "~REG~"; ret; }");
             });
             long after;
 
@@ -5078,7 +5078,7 @@ version( AsmX86_64_Windows )
         void testNonvolatileRegisterSSE(alias REG)()
         {
             auto zeroRegister = new Fiber(() {
-                mixin("asm pure nothrow @nogc { xorpd "~REG~", "~REG~"; }");
+                mixin("asm pure nothrow @nogc { naked; xorpd "~REG~", "~REG~"; ret; }");
             });
             long[2] before = [0xFFFFFFFF_FFFFFFFF, 0xFFFFFFFF_FFFFFFFF], after;
 
