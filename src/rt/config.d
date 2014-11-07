@@ -20,35 +20,35 @@ module rt.config;
 // Configuration via the command line can be disabled by declaring a variable for the
 // linker to pick up before using it's default from the runtime:
 //
-//   extern(C) __gshared bool drt_cmdline_enabled = false;
+//   extern(C) __gshared bool rt_cmdline_enabled = false;
 //
-// Likewise, declare a boolean drt_envvars_enabled to enable configuration via the
+// Likewise, declare a boolean rt_envvars_enabled to enable configuration via the
 // environment variable "DRT_" followed by the option name, e.g. "DRT_GCOPT":
 //
-//   extern(C) __gshared bool drt_envvars_enabled = true;
+//   extern(C) __gshared bool rt_envvars_enabled = true;
 //
 // Setting default configuration properties in the executable can be done by specifying an
-// array of options named drt_args:
+// array of options named rt_options:
 //
-//   extern(C) __gshared string[] drt_args = [ "gcopt=precise:1 profile:1"];
+//   extern(C) __gshared string[] rt_options = [ "gcopt=precise:1 profile:1"];
 //
-// Evaluation order of options is drt_args, then environment variables, then command
+// Evaluation order of options is rt_options, then environment variables, then command
 // line arguments, i.e. if command line arguments are not disabled, they can override
 // options specified through the environment or embedded in the executable.
 
 
 // put each variable in its own COMDAT by making them template instances
-template drt_envvars_enabled()
+template rt_envvars_enabled()
 {
-    pragma(mangle,"drt_envvars_enabled") extern(C) __gshared bool drt_envvars_enabled = false;
+    pragma(mangle,"rt_envvars_enabled") __gshared bool rt_envvars_enabled = false;
 }
-template drt_cmdline_enabled()
+template rt_cmdline_enabled()
 {
-    pragma(mangle,"drt_cmdline_enabled") extern(C) __gshared bool drt_cmdline_enabled = true;
+    pragma(mangle,"rt_cmdline_enabled") __gshared bool rt_cmdline_enabled = true;
 }
-template drt_args()
+template rt_options()
 {
-    pragma(mangle,"drt_args") extern(C) __gshared string[] drt_args = [];
+    pragma(mangle,"rt_options") __gshared string[] rt_options = [];
 }
 
 import core.stdc.ctype : toupper;
@@ -58,18 +58,18 @@ import core.stdc.string : strlen;
 extern extern(C) string[] rt_args() @nogc nothrow;
 
 /**
-* get a druntme config option using standard configuration options
+* get a druntime config option using standard configuration options
 *      opt             name of the option to retreive
 *
 * returns the options' value if
-*  - set on the command line as "--DRT-<opt>=value" (drt_cmdline_enabled enabled)
-*  - the environment variable "DRT_<OPT>" is set (drt_envvars_enabled enabled)
+*  - set on the command line as "--DRT-<opt>=value" (rt_cmdline_enabled enabled)
+*  - the environment variable "DRT_<OPT>" is set (rt_envvars_enabled enabled)
 *  - drt_args[] contains an entry "<opt>=value"
 *  - null otherwise
 */
-extern(C) string drtConfigOption(string opt) @nogc nothrow
+string rt_configOption(string opt) @nogc nothrow
 {
-    if(drt_cmdline_enabled!())
+    if(rt_cmdline_enabled!())
     {
         foreach (a; rt_args)
         {
@@ -78,7 +78,7 @@ extern(C) string drtConfigOption(string opt) @nogc nothrow
                 return a[7 + opt.length .. $];
         }
     }
-    if(drt_envvars_enabled!())
+    if(rt_envvars_enabled!())
     {
         if (opt.length >= 32)
             assert(0);
@@ -93,7 +93,7 @@ extern(C) string drtConfigOption(string opt) @nogc nothrow
         if (p)
             return cast(string) p[0 .. strlen(p)];
     }
-    foreach (a; drt_args!())
+    foreach (a; rt_options!())
     {
         if(a.length > opt.length && a[0..opt.length] == opt && a[opt.length] == '=')
             return a[opt.length + 1 .. $];

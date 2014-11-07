@@ -15,9 +15,9 @@ import core.vararg;
 
 extern extern(C) string[] rt_args();
 
-extern extern(C) __gshared bool drt_envvars_enabled;
-extern extern(C) __gshared bool drt_cmdline_enabled;
-extern extern(C) __gshared string[] drt_args;
+extern extern(C) __gshared bool rt_envvars_enabled;
+extern extern(C) __gshared bool rt_cmdline_enabled;
+extern extern(C) __gshared string[] rt_options;
 
 struct Config
 {
@@ -33,20 +33,20 @@ struct Config
 
     bool initialize(...) // avoid inlining
     {
-        foreach (a; drt_args)
+        foreach (a; rt_options)
         {
             if(a.length >= 6 && a[0..6] == "gcopt=")
                 if (!parseOptions(a[6 .. $]))
                     return false;
         }
-        if(drt_envvars_enabled)
+        if(rt_envvars_enabled)
         {
             auto p = getenv("DRT_GCOPT");
             if (p)
                 if (!parseOptions(p[0 .. strlen(p)]))
                     return false;
         }
-        if(drt_cmdline_enabled)
+        if(rt_cmdline_enabled)
         {
             foreach (a; rt_args)
             {
