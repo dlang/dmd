@@ -2395,7 +2395,7 @@ Foo9320 test9320(Foo9320 a, Foo9320 b, Foo9320 c) {
 struct Test9386
 {
     string name;
-    static char[21] op;
+    static char[25] op;
     static size_t i;
 
     static @property string sop() { return cast(string)op[0..i]; }
@@ -2474,7 +2474,6 @@ void test9386()
               Test9386("3") : Test9386("three"),
               Test9386("4") : Test9386("four") ];
 
-        assert(Test9386.sop == "aaaaaaaa");
         Test9386.op[] = 0;
         Test9386.i = 0;
 
