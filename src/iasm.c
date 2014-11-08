@@ -4650,7 +4650,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     {
         asmstate.bInit = true;
         init_optab();
-        asmstate.psDollar = LabelDsymbol::create(Id::__dollar);
+        asmstate.psDollar = LabelDsymbol::create(Id::_dollar);
         asmstate.psLocalsize = Dsymbol::create(Id::__LOCAL_SIZE);
     }
 
