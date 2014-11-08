@@ -3919,12 +3919,12 @@ bool FuncDeclaration::addPostInvariant()
  * Generate a FuncDeclaration for a runtime library function.
  */
 
-FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, const char *name)
+FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc)
 {
-    return genCfunc(args, treturn, Lexer::idPool(name));
+    return genCfunc(args, treturn, Lexer::idPool(name), stc);
 }
 
-FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, Identifier *id)
+FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc)
 {
     FuncDeclaration *fd;
     TypeFunction *tf;
@@ -3946,7 +3946,7 @@ FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, Iden
     }
     else
     {
-        tf = new TypeFunction(args, treturn, 0, LINKc);
+        tf = new TypeFunction(args, treturn, 0, LINKc, stc);
         fd = new FuncDeclaration(Loc(), Loc(), id, STCstatic, tf);
         fd->protection = Prot(PROTpublic);
         fd->linkage = LINKc;
