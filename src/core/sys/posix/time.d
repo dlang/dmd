@@ -123,10 +123,6 @@ else version (Solaris)
 {
     enum CLOCK_MONOTONIC = 4;
 }
-else version (Windows)
-{
-    pragma(msg, "no Windows support for CLOCK_MONOTONIC");
-}
 else version (Android)
 {
     enum CLOCK_MONOTONIC    = 1;

@@ -513,6 +513,9 @@ $(IMPDIR)\core\sys\windows\threadaux.d : src\core\sys\windows\threadaux.d
 $(IMPDIR)\core\sys\windows\windows.d : src\core\sys\windows\windows.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\windows\winsock2.d : src\core\sys\windows\winsock2.d
+	copy $** $@
+
 $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d
 	copy $** $@
 
