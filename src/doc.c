@@ -568,7 +568,7 @@ static void emitAnchor(OutBuffer *buf, Dsymbol *s, Scope *sc)
         emitAnchorName(&anc, s, skipNonQualScopes(sc));
         ident = Lexer::idPool(anc.peekString());
     }
-    size_t *count = (size_t*)dmd_aaGet(&sc->anchorCounts, ident);
+    size_t *count = (size_t*)dmd_aaGet(&sc->anchorCounts, (void *)ident);
     TemplateDeclaration *td = getEponymousParentTemplate(s);
     // don't write an anchor for matching consecutive ditto symbols
     if (*count > 0 && sc->prevAnchor == ident &&
