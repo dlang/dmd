@@ -669,8 +669,20 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
          *    }
          */
         //printf("FuncDeclaration::buildClosure() %s\n", toChars());
+
+        /* Generate type name for closure struct */
+        const char *name1 = "CLOSURE.";
+        const char *name2 = fd->toPrettyChars();
+        size_t namesize = strlen(name1)+strlen(name2)+1;
+        char *closname = (char *) calloc(namesize, sizeof(char));
+        strcat(strcat(closname, name1), name2);
+
+        /* Build type for closure */
+        type *Closstru = type_struct_class(closname, Target::ptrsize, 0, NULL, NULL, false, false, true);
+        symbol_struct_addField(Closstru->Ttag, "__chain", Type_toCtype(Type::tvoidptr), 0);
+
         Symbol *sclosure;
-        sclosure = symbol_name("__closptr", SCauto, Type_toCtype(Type::tvoidptr));
+        sclosure = symbol_name("__closptr", SCauto, type_pointer(Closstru));
         sclosure->Sflags |= SFLtrue | SFLfree;
         symbol_add(sclosure);
         irs->sclosure = sclosure;
@@ -734,6 +746,15 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
             v->offset = offset;
             offset += memsize;
 
+            /* Set Sscope to closure */
+            Symbol *vsym = toSymbol(v);
+            assert(vsym->Sscope == NULL);
+            vsym->Sscope = sclosure;
+
+            /* Add variable as closure type member */
+            symbol_struct_addField(Closstru->Ttag, vsym->Sident, vsym->Stype, v->offset);
+            //printf("closure field %s: memalignsize: %i, offset: %i\n", vsym->Sident, memalignsize, v->offset);
+
             /* Can't do nrvo if the variable is put in a closure, since
              * what the shidden points to may no longer exist.
              */
@@ -743,6 +764,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
             }
         }
         // offset is now the size of the closure
+        Closstru->Ttag->Sstruct->Sstructsize = offset;
 
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, offset);

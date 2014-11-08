@@ -133,7 +133,7 @@ void symbol_print(symbol *s)
 #endif
     dbg_printf(" Sl      = %p",s->Sl);
     dbg_printf(" Sr      = %p\n",s->Sr);
-#if SCPP
+#if SCPP || MARS
     if (s->Sscope)
         dbg_printf(" Sscope = '%s'\n",s->Sscope->Sident);
 #endif

@@ -1256,6 +1256,36 @@ void dwarf_func_term(Symbol *sfunc)
                         {   // BUG: register pairs not supported in Dwarf?
                             infobuf->writeByte(DW_OP_reg0 + sa->Sreglsw);
                         }
+                        else if (sa->Sscope && vcode == autocode)
+                        {
+                            assert(sa->Sscope->Stype->Tnext && sa->Sscope->Stype->Tnext->Tty == TYstruct);
+
+                            /* find member offset in closure */
+                            targ_size_t memb_off = 0;
+                            struct_t *st = sa->Sscope->Stype->Tnext->Ttag->Sstruct; // Sscope is __closptr
+                            for (symlist_t sl = st->Sfldlst; sl; sl = list_next(sl))
+                            {
+                                symbol *sf = list_symbol(sl);
+                                if (sf->Sclass == SCmember)
+                                {
+                                    if(strcmp(sa->Sident, sf->Sident) == 0)
+                                    {
+                                        memb_off = sf->Smemoff;
+                                        goto L2;
+                                    }
+                                }
+                            }
+                            L2:
+                            targ_size_t closptr_off = sa->Sscope->Soffset; // __closptr offset
+                            //printf("dwarf closure: sym: %s, closptr: %s, ptr_off: %lli, memb_off: %lli\n",
+                            //    sa->Sident, sa->Sscope->Sident, closptr_off, memb_off);
+
+                            infobuf->writeByte(DW_OP_fbreg);
+                            infobuf->writesLEB128(Auto.size + BPoff - Para.size + closptr_off); // closure pointer offset from frame base
+                            infobuf->writeByte(DW_OP_deref);
+                            infobuf->writeByte(DW_OP_plus_uconst);
+                            infobuf->writeuLEB128(memb_off); // closure variable offset
+                        }
                         else
                         {
                             infobuf->writeByte(DW_OP_fbreg);
