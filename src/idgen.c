@@ -161,7 +161,7 @@ Msgtable msgtable[] =
     { "___out", "out" },
     { "___in", "in" },
     { "__int", "int" },
-    { "__dollar", "$" },
+    { "_dollar", "$" },
     { "__LOCAL_SIZE" },
 
     // For operator overloads
