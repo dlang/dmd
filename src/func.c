@@ -1772,7 +1772,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else
             {
-                const bool inlineAsm = hasReturnExp & 8;
+                const bool inlineAsm = (hasReturnExp & 8) != 0;
                 if ((blockexit & BEfallthru) && f->next->ty != Tvoid && !inlineAsm)
                 {
                     Expression *e;
