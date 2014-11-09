@@ -495,7 +495,8 @@ TypeTuple * objc_toArgTypesVisit (TypeObjcSelector*);
 void objc_PragmaDeclaration_semantic_objcTakesStringLiteral(PragmaDeclaration* self, Scope *sc);
 void objc_PragmaDeclaration_semantic_objcSelectorTarget(PragmaDeclaration* self, Scope *sc);
 void objc_PragmaDeclaration_semantic_objcSelector(PragmaDeclaration* self, Scope *sc);
-void objc_PragmaDeclaration_semantic_objcNameOverride(PragmaDeclaration* self, Scope *sc);
+
+ControlFlow objc_setMangleOverride_ClassDeclaration(Dsymbol *s, char *name);
 
 void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration *self);
 void objc_ClassDeclaration_semantic_SIZEOKnone(ClassDeclaration *self, Scope *sc);

@@ -278,7 +278,6 @@ Msgtable msgtable[] =
 	{ "mangle" },
     // DMD_OBJC
     { "objc_takestringliteral" },
-    { "objc_nameoverride" },
 	{ "objc_selectortarget" },
 	{ "objc_isselector" },
 

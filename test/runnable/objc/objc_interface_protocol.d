@@ -2,7 +2,7 @@
 // REQUIRED_ARGS: -L-framework -LCocoa
 
 extern (Objective-C)
-pragma(objc_nameoverride, "NSObject")
+pragma(mangle, "NSObject")
 interface ObjcObject {
     static ObjcObject alloc() [alloc];
     bool conformsToProtocol(Protocol p) [conformsToProtocol:];
@@ -16,7 +16,7 @@ class NSObject : ObjcObject {
 }
 
 extern (Objective-C)
-pragma(objc_nameoverride, "Object")
+pragma(mangle, "Object")
 abstract class __Object {
     @disable this();
     void* isa;
