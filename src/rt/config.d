@@ -36,19 +36,20 @@ module rt.config;
 // line arguments, i.e. if command line arguments are not disabled, they can override
 // options specified through the environment or embedded in the executable.
 
+import core.demangle : mangleC;
 
 // put each variable in its own COMDAT by making them template instances
 template rt_envvars_enabled()
 {
-    pragma(mangle,"rt_envvars_enabled") __gshared bool rt_envvars_enabled = false;
+    pragma(mangle,mangleC("rt_envvars_enabled")) __gshared bool rt_envvars_enabled = false;
 }
 template rt_cmdline_enabled()
 {
-    pragma(mangle,"rt_cmdline_enabled") __gshared bool rt_cmdline_enabled = true;
+    pragma(mangle,mangleC("rt_cmdline_enabled")) __gshared bool rt_cmdline_enabled = true;
 }
 template rt_options()
 {
-    pragma(mangle,"rt_options") __gshared string[] rt_options = [];
+    pragma(mangle,mangleC("rt_options")) __gshared string[] rt_options = [];
 }
 
 import core.stdc.ctype : toupper;
@@ -64,7 +65,7 @@ extern extern(C) string[] rt_args() @nogc nothrow;
 * returns the options' value if
 *  - set on the command line as "--DRT-<opt>=value" (rt_cmdline_enabled enabled)
 *  - the environment variable "DRT_<OPT>" is set (rt_envvars_enabled enabled)
-*  - drt_args[] contains an entry "<opt>=value"
+*  - rt_options[] contains an entry "<opt>=value"
 *  - null otherwise
 */
 string rt_configOption(string opt) @nogc nothrow
