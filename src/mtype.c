@@ -3995,8 +3995,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             /* Only do this for types that don't need to have semantic()
              * run on them for the size, since they may be forward referenced.
              */
-            if (mulu(tbn->size(loc), d2, overflow) >= 0x1000000 ||  // put a 'reasonable' limit on it
-                overflow)
+            if (mulu(tbn->size(loc), d2, overflow) >= 0x1000000 || overflow) // put a 'reasonable' limit on it
             {
               Loverflow:
                 error(loc, "index %llu overflow for static array", (unsigned long long)d1);
