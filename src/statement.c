@@ -5067,8 +5067,8 @@ CompoundAsmStatement *CompoundAsmStatement::semantic(Scope *sc)
 
     assert(sc->func);
     // use setImpure/setGC when the deprecation cycle is over
-    PURE pure;
-    if (!(stc & STCpure) && (pure = sc->func->isPureBypassingInference()) != PUREimpure && pure != PUREfwdref)
+    PURE purity;
+    if (!(stc & STCpure) && (purity = sc->func->isPureBypassingInference()) != PUREimpure && purity != PUREfwdref)
         deprecation("asm statement is assumed to be impure - mark it with 'pure' if it is not");
     if (!(stc & STCnogc) && sc->func->isNogcBypassingInference())
         deprecation("asm statement is assumed to use the GC - mark it with '@nogc' if it does not");
