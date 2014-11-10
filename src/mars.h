@@ -345,7 +345,7 @@ enum MATCH
     MATCHexact          // exact match
 };
 
-typedef uint64_t StorageClass;
+typedef uinteger_t StorageClass;
 
 #include "errors.h"
 
