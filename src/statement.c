@@ -2042,6 +2042,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
         }
 
         case Taarray:
+            if (op == TOKforeach_reverse)
+                warning("cannot use foreach_reverse with an associative array");
             if (!checkForArgTypes())
                 return this;
 
