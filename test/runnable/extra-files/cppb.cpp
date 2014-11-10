@@ -373,3 +373,22 @@ unsigned long testul(unsigned long ul)
 
 /******************************************/
 
+struct S13707
+{
+    void* a;
+    void* b;
+    S13707(void *a, void* b)
+    {
+        this->a = a;
+        this->b = b;
+    }
+};
+
+S13707 func13707()
+{
+    S13707 pt(NULL, NULL);
+    return pt;
+}
+
+/******************************************/
+
