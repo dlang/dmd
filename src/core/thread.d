@@ -2142,10 +2142,16 @@ extern (C) void thread_detachInstance( Thread t )
 
 unittest
 {
+    import core.sync.semaphore;
+    auto sem = new Semaphore();
+
     auto t = new Thread(
     {
+        sem.notify();
         Thread.sleep(100.msecs);
     }).start();
+
+    sem.wait(); // thread cannot be detached while being started
     thread_detachInstance(t);
     foreach (t2; Thread)
         assert(t !is t2);
