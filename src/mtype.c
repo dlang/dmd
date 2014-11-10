@@ -2974,7 +2974,20 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (fparam->storageClass & (STCout | STCref | STClazy))
             {
                 if (t->ty == Tsarray)
-                    error(loc, "cannot have out or ref parameter of type %s", t->toChars());
+                {
+                    if (tf->linkage != LINKc)
+                    {
+                        error(loc, "cannot have out or ref parameter of type %s", t->toChars());
+                    }
+                    else
+                    {
+                        // ignore ref storage class for extern(C) static arrays
+                        // to have a D1<->D2 compatible syntax for those that
+                        // does not lose type safety
+                        // see https://issues.dlang.org/show_bug.cgi?id=8887
+                        fparam->storageClass &= ~STCref;
+                    }
+                }
             }
             if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
                 error(loc, "cannot have parameter of type %s", fparam->type->toChars());
