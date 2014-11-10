@@ -360,14 +360,14 @@ class CppMangleVisitor : public Visitor
                         memcmp(buf.data + off, "IcSt11char_traitsIcEE", 21) == 0)
                     {
                         buf.remove(off, 21);
-                        char p[2];
-                        p[0] = 'S';
-                        p[1] = 'i';
+                        char mbuf[2];
+                        mbuf[0] = 'S';
+                        mbuf[1] = 'i';
                         if (s->ident == Id::basic_ostream)
-                            p[1] = 'o';
+                            mbuf[1] = 'o';
                         else if(s->ident == Id::basic_iostream)
-                            p[1] = 'd';
-                        buf.insert(off, p, 2);
+                            mbuf[1] = 'd';
+                        buf.insert(off, mbuf, 2);
                         return;
                     }
                     buf.setsize(off);
