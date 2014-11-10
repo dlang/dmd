@@ -3507,7 +3507,9 @@ private
                 push R13;
                 push R14;
                 push R15;
-                // Five registers = 40 bytes; stack is now aligned to 16 bytes
+                push RDI;
+                push RSI;
+                // 7 registers = 56 bytes; stack is now aligned to 16 bytes
                 sub RSP, 160;
                 movdqa [RSP + 144], XMM6;
                 movdqa [RSP + 128], XMM7;
@@ -3546,6 +3548,8 @@ private
                 movdqa XMM7, [RSP + 128];
                 movdqa XMM6, [RSP + 144];
                 add RSP, 160;
+                pop RSI;
+                pop RDI;
                 pop R15;
                 pop R14;
                 pop R13;
@@ -4494,6 +4498,8 @@ private:
             push( 0x00000000_00000000 );                            // R13
             push( 0x00000000_00000000 );                            // R14
             push( 0x00000000_00000000 );                            // R15
+            push( 0x00000000_00000000 );                            // RDI
+            push( 0x00000000_00000000 );                            // RSI
             push( 0x00000000_00000000 );                            // XMM6 (high)
             push( 0x00000000_00000000 );                            // XMM6 (low)
             push( 0x00000000_00000000 );                            // XMM7 (high)
