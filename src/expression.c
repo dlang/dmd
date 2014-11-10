@@ -40,6 +40,7 @@
 #include "doc.h"
 #include "aav.h"
 #include "nspace.h"
+#include "ctfe.h"
 
 bool isArrayOpValid(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
@@ -2004,7 +2005,6 @@ Expression *EXP_CANT_INTERPRET;
 Expression *EXP_CONTINUE_INTERPRET;
 Expression *EXP_BREAK_INTERPRET;
 Expression *EXP_GOTO_INTERPRET;
-Expression *EXP_VOID_INTERPRET;
 
 void Expression::init()
 {
@@ -2012,7 +2012,8 @@ void Expression::init()
     EXP_CONTINUE_INTERPRET = new ErrorExp();
     EXP_BREAK_INTERPRET = new ErrorExp();
     EXP_GOTO_INTERPRET = new ErrorExp();
-    EXP_VOID_INTERPRET = new ErrorExp();
+
+    VoidExp::voidexp = new VoidExp(Loc());
 }
 
 Expression *Expression::syntaxCopy()
@@ -13848,6 +13849,8 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
     e = e->castTo(sc, type);
     return e;
 }
+
+/****************************************************************/
 
 Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
 {

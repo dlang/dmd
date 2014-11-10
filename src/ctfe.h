@@ -94,6 +94,18 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+/****************************************************************/
+
+// This type is only used by the interpreter, and is a placeholder for void.
+
+class VoidExp : public Expression
+{
+public:
+    VoidExp(Loc loc);
+
+    static VoidExp* voidexp;    // a handy instance to share
+};
+
 
 /// True if 'e' is EXP_CANT_INTERPRET, or an exception
 bool exceptionOrCantInterpret(Expression *e);
