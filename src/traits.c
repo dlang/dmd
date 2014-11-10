@@ -253,19 +253,20 @@ const char* traits[] = {
     "getAttributes",
     "getFunctionAttributes",
     "getUnitTests",
-    "getVirtualIndex"
+    "getVirtualIndex",
+    NULL
 };
 
 StringTable traitsStringTable;
 
 void initTraitsStringTable()
 {
-    const size_t ntraits = sizeof(traits) / sizeof(traits[0]);
-    traitsStringTable._init(ntraits);
+    traitsStringTable._init(40);
 
-    for (size_t idx = 0; idx < ntraits; idx++)
+    for (size_t idx = 0;; idx++)
     {
         const char *s = traits[idx];
+        if (!s) break;
         StringValue *sv = traitsStringTable.insert(s, strlen(s));
         sv->ptrvalue = (void *)traits[idx];
     }
