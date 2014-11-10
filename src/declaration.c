@@ -1112,22 +1112,18 @@ Lnomatch:
         AggregateDeclaration *aad = parent->isAggregateDeclaration();
         if (aad)
         {
-            if (storage_class & (STCconst | STCimmutable) && init && !init->isVoidInitializer())
+            if (global.params.vfield &&
+                storage_class & (STCconst | STCimmutable) && init && !init->isVoidInitializer())
             {
-                StorageClass stc = storage_class & (STCconst | STCimmutable);
-                deprecation(loc, "%s field with initializer should be static, __gshared, or an enum",
-                    StorageClassDeclaration::stcToChars(NULL, stc));
-                if (!tb->isTypeBasic())
-                    storage_class |= STCstatic;
+                const char *p = loc.toChars();
+                const char *s = (storage_class & STCimmutable) ? "immutable" : "const";
+                fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
             }
-            else
+            storage_class |= STCfield;
+            if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor)
             {
-                storage_class |= STCfield;
-                if ((tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor))
-                {
-                    if (!isThisDeclaration() && !init)
-                        aad->noDefaultCtor = true;
-                }
+                if (!isThisDeclaration() && !init)
+                    aad->noDefaultCtor = true;
             }
         }
 
@@ -1688,8 +1684,6 @@ AggregateDeclaration *VarDeclaration::isThis()
     if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter |
                            STCtls | STCgshared | STCctfe)))
     {
-        if ((storage_class & (STCconst | STCimmutable | STCwild)) && init)
-            return NULL;
         for (Dsymbol *s = this; s; s = s->parent)
         {
             ad = s->isMember();

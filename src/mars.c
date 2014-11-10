@@ -643,7 +643,8 @@ int tryMain(size_t argc, const char *argv[])
                     {
                         printf("\
 Language changes listed by -transition=id:\n\
-  =tls           do list all variables going into thread local storage\n\
+  =field,3449    list all non-mutable fields which occupy an object instance\n\
+  =tls           list all variables going into thread local storage\n\
 ");
                         return EXIT_FAILURE;
                     }
@@ -668,6 +669,8 @@ Language changes listed by -transition=id:\n\
                     {
                         if (strcmp(p + 12, "tls") == 0)
                             global.params.vtls = 1;
+                        if (strcmp(p + 12, "field") == 0)
+                            global.params.vfield = 1;
                     }
                     else
                         goto Lerror;

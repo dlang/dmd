@@ -7533,16 +7533,19 @@ Expression *DotVarExp::semantic(Scope *sc)
         accessCheck(loc, sc, e1, var);
 
         VarDeclaration *v = var->isVarDeclaration();
-        Expression *e = expandVar(WANTvalue, v);
-        if (e)
-            return e;
+        if (v && (v->isDataseg() || (v->storage_class & STCmanifest)))
+        {
+            Expression *e = expandVar(WANTvalue, v);
+            if (e)
+                return e;
+        }
 
         if (v && v->isDataseg())     // fix bugzilla 8238
         {
             // (e1, v)
             accessCheck(loc, sc, e1, v);
-            VarExp *ve = new VarExp(loc, v);
-            e = new CommaExp(loc, e1, ve);
+            Expression *e = new VarExp(loc, v);
+            e = new CommaExp(loc, e1, e);
             e = e->semantic(sc);
             return e;
         }
