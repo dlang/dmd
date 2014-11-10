@@ -269,6 +269,21 @@ clean:
 	tytab.c verstr.h core \
 	*.cov *.deps *.gcda *.gcno *.a
 
+######## generate a default dmd.conf
+
+define DEFAULT_DMD_CONF
+[Environment32]
+DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/32$(if $(filter $(OS),osx),, -L--export-dynamic)
+
+[Environment64]
+DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/64$(if $(filter $(OS),osx),, -L--export-dynamic)
+endef
+
+export DEFAULT_DMD_CONF
+
+dmd.conf:
+	[ -f $@ ] || echo "$$DEFAULT_DMD_CONF" > $@
+
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
