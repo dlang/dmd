@@ -1553,6 +1553,39 @@ public:
 
 /****************************************************************/
 
+/* A type meant as a union of all the Expression types,
+ * to serve essentially as a Variant that will sit on the stack
+ * during CTFE to reduce memory consumption.
+ */
+struct UnionExp
+{
+    /* Extract pointer to Expression
+     */
+    Expression *exp() { return (Expression *)&u; }
+
+    /* Convert to an allocated Expression
+     */
+    Expression *copy()
+    {
+        Expression *e = exp();
+        assert(e->size <= sizeof(u));
+        return e->copy();
+    }
+
+  private:
+    union U
+    {
+        char exp       [sizeof(Expression)];
+        char integerexp[sizeof(IntegerExp)];
+        char errorexp  [sizeof(ErrorExp)];
+        char realexp   [sizeof(RealExp)];
+        char complexexp[sizeof(ComplexExp)];
+    };
+    U u;
+};
+
+/****************************************************************/
+
 /* Special values used by the interpreter
  */
 extern Expression *EXP_CANT_INTERPRET;
@@ -1563,7 +1596,7 @@ extern Expression *EXP_VOID_INTERPRET;
 
 Expression *expType(Type *type, Expression *e);
 
-Expression *Neg(Type *type, Expression *e1);
+UnionExp Neg(Type *type, Expression *e1);
 Expression *Com(Type *type, Expression *e1);
 Expression *Not(Type *type, Expression *e1);
 Expression *Bool(Type *type, Expression *e1);

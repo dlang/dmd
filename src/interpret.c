@@ -3206,12 +3206,12 @@ public:
         }
         switch (e->op)
         {
-        case TOKneg:    result = Neg(e->type, e1); break;
-        case TOKtilde:  result = Com(e->type, e1); break;
-        case TOKnot:    result = Not(e->type, e1); break;
-        case TOKtobool: result = Bool(e->type, e1); break;
-        case TOKvector: result = e; break; // do nothing
-        default: assert(0);
+            case TOKneg:    result = Neg(e->type, e1).copy(); break;
+            case TOKtilde:  result = Com(e->type, e1); break;
+            case TOKnot:    result = Not(e->type, e1); break;
+            case TOKtobool: result = Bool(e->type, e1); break;
+            case TOKvector: result = e; break; // do nothing
+            default: assert(0);
         }
     }
 
