@@ -599,12 +599,15 @@ void Module::parse()
         assert(prev);
         if (Module *mprev = prev->isModule())
         {
-            if (strcmp(srcname, mprev->srcfile->toChars()) == 0)
-                error(loc, "from file %s must be imported with 'import %s;'",
-                    srcname, toPrettyChars());
-            else
+            if (FileName::compare(srcname, mprev->srcfile->toChars()) != 0)
                 error(loc, "from file %s conflicts with another module %s from file %s",
                     srcname, mprev->toChars(), mprev->srcfile->toChars());
+            else if (isRoot() && mprev->isRoot())
+                error(loc, "from file %s is specified twice on the command line",
+                    srcname);
+            else
+                error(loc, "from file %s must be imported with 'import %s;'",
+                    srcname, toPrettyChars());
         }
         else if (Package *pkg = prev->isPackage())
         {
