@@ -239,7 +239,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         if(newlength + SMALLPAD + typeInfoSize > info.size)
             // new size does not fit inside block
             return false;
-        auto length = cast(ubyte *)(info.base + info.size - SMALLPAD);
+        auto length = cast(ubyte *)(info.base + info.size - typeInfoSize - SMALLPAD);
         if(oldlength != ~0)
         {
             if(isshared)
@@ -269,7 +269,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         }
         if (typeInfoSize)
         {
-            auto typeInfo = cast(TypeInfo_Struct*)(info.base + info.size - SMALLPAD - size_t.sizeof);
+            auto typeInfo = cast(TypeInfo_Struct*)(info.base + info.size - size_t.sizeof);
             *typeInfo = cast(TypeInfo_Struct)ti.next;
         }
     }
@@ -278,7 +278,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         if(newlength + MEDPAD + typeInfoSize > info.size)
             // new size does not fit inside block
             return false;
-        auto length = cast(ushort *)(info.base + info.size - MEDPAD);
+        auto length = cast(ushort *)(info.base + info.size - typeInfoSize - MEDPAD);
         if(oldlength != ~0)
         {
             if(isshared)
@@ -308,7 +308,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         }
         if (typeInfoSize)
         {
-            auto typeInfo = cast(TypeInfo_Struct*)(info.base + info.size - MEDPAD - size_t.sizeof);
+            auto typeInfo = cast(TypeInfo_Struct*)(info.base + info.size - size_t.sizeof);
             *typeInfo = cast(TypeInfo_Struct)ti.next;
         }
     }
@@ -699,13 +699,13 @@ Lcontinue:
     {
         if(info.size <= 256)
         {
-            curallocsize = *(cast(ubyte *)(info.base + info.size - SMALLPAD));
             arraypad = SMALLPAD + structTypeInfoSize(ti.next);
+            curallocsize = *(cast(ubyte *)(info.base + info.size - arraypad));
         }
         else if(info.size < PAGESIZE)
         {
-            curallocsize = *(cast(ushort *)(info.base + info.size - MEDPAD));
             arraypad = MEDPAD + structTypeInfoSize(ti.next);
+            curallocsize = *(cast(ushort *)(info.base + info.size - arraypad));
         }
         else
         {
@@ -1259,10 +1259,8 @@ extern (C) int rt_hasArrayFinalizerInSegment(void* p, size_t size, in void[] seg
         return false;
 
     TypeInfo_Struct si = void;
-    if(size <= 256)
-        si = *cast(TypeInfo_Struct*)(p + size - SMALLPAD - size_t.sizeof);
-    else if (size < PAGESIZE)
-        si = *cast(TypeInfo_Struct*)(p + size - MEDPAD - size_t.sizeof);
+    if (size < PAGESIZE)
+        si = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
     else
         si = *cast(TypeInfo_Struct*)(p + size_t.sizeof);
 
@@ -1280,13 +1278,13 @@ extern (C) void rt_finalize_array2(void* p, size_t size, bool resetMemory = true
     TypeInfo_Struct si = void;
     if(size <= 256)
     {
-        si = *cast(TypeInfo_Struct*)(p + size - SMALLPAD - size_t.sizeof);
-        size = *cast(ubyte*)(p + size - SMALLPAD);
+        si = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
+        size = *cast(ubyte*)(p + size - size_t.sizeof - SMALLPAD);
     }
     else if (size < PAGESIZE)
     {
-        si = *cast(TypeInfo_Struct*)(p + size - MEDPAD - size_t.sizeof);
-        size = *cast(ushort*)(p + size - MEDPAD);
+        si = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
+        size = *cast(ushort*)(p + size - size_t.sizeof - MEDPAD);
     }
     else
     {
