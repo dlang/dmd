@@ -914,6 +914,15 @@ L2:
             //printf("  2 RETstack\n");
             return RETstack;            // 32 bit C/C++ structs always on stack
         }
+        if (global.params.isWindows && tf->linkage == LINKcpp && !global.params.is64bit &&
+                 sd->isPOD() && sd->ctor)
+        {
+            // win32 returns otherwise POD structs with ctors via memory
+            // unless it's not really a struct
+            if (sd->ident == Id::__c_long || sd->ident == Id::__c_ulong)
+                return RETregs;
+            return RETstack;
+        }
         if (sd->arg1type && !sd->arg2type)
         {
             tns = sd->arg1type;
