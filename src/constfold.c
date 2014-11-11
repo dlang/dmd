@@ -1178,7 +1178,7 @@ UnionExp Cast(Type *type, Type *to, Expression *e1)
     if (e1->op == TOKvector && ((TypeVector *)e1->type)->basetype->equals(type) && type->equals(to))
     {
         Expression *ex = ((VectorExp *)e1)->e1;
-        memcpy(&ue, ex, ex->size);
+        new(&ue) UnionExp(ex);
         return ue;
     }
 
