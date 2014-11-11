@@ -8,8 +8,8 @@ extern (Objective-C)
 class NSObject {
 	void* isa;
 	
-	static NSObject alloc() [alloc];
-	NSObject init() [init];
+	static NSObject alloc() @selector("alloc");
+	NSObject init() @selector("init");
 }
 
 int globalVar;

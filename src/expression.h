@@ -63,7 +63,7 @@ TupleDeclaration *isAliasThisTuple(Expression *e);
 int expandAliasThisTuples(Expressions *exps, size_t starti = 0);
 FuncDeclaration *hasThis(Scope *sc);
 Expression *fromConstInitializer(int result, Expression *e);
-bool arrayExpressionSemantic(Expressions *exps, Scope *sc);
+bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors = false);
 int arrayExpressionCanThrow(Expressions *exps, FuncDeclaration *func, bool mustNotThrow);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 Expression *valueNoDtor(Expression *e);

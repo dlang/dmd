@@ -10,6 +10,7 @@
  */
 
 #include "aggregate.h"
+#include "attrib.h"
 #include "declaration.h"
 #include "id.h"
 #include "objc.h"
@@ -45,6 +46,67 @@ bool Ojbc_FuncDeclaration::isProperty()
 
 // MARK: semantic
 
+void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration *self, Scope *sc)
+{
+    if (!self->userAttribDecl)
+        return;
+
+    Expressions *udas = self->userAttribDecl->getAttributes();
+    arrayExpressionSemantic(udas, sc, true);
+
+    for (size_t i = 0; i < udas->dim; i++)
+    {
+        Expression *uda = (*udas)[i];
+        assert(uda->type);
+
+        if (uda->type->ty != Ttuple)
+            continue;
+
+        Expressions *exps = ((TupleExp *)uda)->exps;
+
+        for (size_t j = 0; j < exps->dim; j++)
+        {
+            Expression *e = (*exps)[j];
+            assert(e->type);
+
+            if (e->type->ty == Tstruct)
+            {
+                StructLiteralExp *literal = (StructLiteralExp *)e;
+                assert(literal->sd);
+
+                if (strcmp(Id::udaSelector->string, literal->sd->toPrettyChars()) == 0)
+                {
+                    if (self->objc.selector)
+                    {
+                        self->error("can only have one Objective-C selector per method");
+                        return;
+                    }
+
+                    assert(literal->elements->dim == 1);
+                    StringExp *se = (*literal->elements)[0]->toStringExp();
+                    assert(se);
+
+                    self->objc.selector = ObjcSelector::lookup((const char *)se->toUTF8(sc)->string);
+                }
+            }
+        }
+    }
+}
+
+void objc_FuncDeclaration_semantic_validateSelector (FuncDeclaration *self)
+{
+    if (!self->objc.selector)
+        return;
+
+    TypeFunction *tf = (TypeFunction *)self->type;
+
+    if (self->objc.selector->paramCount != tf->parameters->dim)
+        self->error("number of colons in Objective-C selector must match number of parameters");
+
+    if (self->parent && self->parent->isTemplateInstance())
+        self->error("template cannot have an Objective-C selector attached");
+}
+
 void objc_FuncDeclaration_semantic_checkAbstractStatic(FuncDeclaration *self)
 {
     // Because static functions are virtual in Objective-C objects
@@ -52,7 +114,7 @@ void objc_FuncDeclaration_semantic_checkAbstractStatic(FuncDeclaration *self)
         self->error("static functions cannot be abstract");
 }
 
-void objc_FuncDeclaration_semantic_parentForStaticMethod(FuncDeclaration *self, Dsymbol *&parent, ClassDeclaration *&cd)
+void objc_FuncDeclaration_semantic_parentForStaticMethod(FuncDeclaration *self, ClassDeclaration *&cd)
 {
     // Handle Objective-C static member functions, which are virtual
     // functions of the metaclass, by changing the parent class
@@ -62,7 +124,7 @@ void objc_FuncDeclaration_semantic_parentForStaticMethod(FuncDeclaration *self, 
         if (!cd->objc.meta) // but check that it hasn't already been done
         {
             assert(cd->objc.metaclass);
-            parent = cd = cd->objc.metaclass;
+            cd = cd->objc.metaclass;
         }
     }
 }

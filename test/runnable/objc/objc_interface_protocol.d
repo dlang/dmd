@@ -4,15 +4,15 @@
 extern (Objective-C)
 pragma(mangle, "NSObject")
 interface ObjcObject {
-    static ObjcObject alloc() [alloc];
-    bool conformsToProtocol(Protocol p) [conformsToProtocol:];
+    static ObjcObject alloc() @selector("alloc");
+    bool conformsToProtocol(Protocol p) @selector("conformsToProtocol:");
 }
 
 extern (Objective-C)
 class NSObject : ObjcObject {
     void* isa;
-    this() [init];
-    static bool classConformsToProtocol(Protocol p) [conformsToProtocol:];
+    this() @selector("init");
+    static bool classConformsToProtocol(Protocol p) @selector("conformsToProtocol:");
 }
 
 extern (Objective-C)

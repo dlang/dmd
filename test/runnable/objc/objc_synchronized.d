@@ -3,8 +3,8 @@
 
 extern (Objective-C)
 class NSObject {
-    static NSObject alloc() [alloc];
-    this() [init];
+    static NSObject alloc() @selector("alloc");
+    this() @selector("init");
 }
 
 void main() {

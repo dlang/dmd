@@ -5,8 +5,8 @@ extern (Objective-C)
 class NSObject {
 	void* isa; // pointer to class object
 
-	static NSObject alloc() [alloc];
-	this() [init];
+	static NSObject alloc() @selector("alloc");
+	this() @selector("init");
 }
 
 int invariant1;

@@ -2,14 +2,14 @@
 
 extern (Objective-C)
 interface ObjcObject {
-	this() [init];
-	this(int i) [initWithInt:];
+	this() @selector("init");
+	this(int i) @selector("initWithInt:");
 }
 
 extern (Objective-C)
 class NSObject : ObjcObject {
-	this() [init];
-	this(int i) [initWithInt:];
+	this() @selector("init");
+	this(int i) @selector("initWithInt:");
 }
 
 class TestObject : NSObject {

@@ -3,9 +3,9 @@
 
 extern (Objective-C)
 class NSObject {
-    static NSObject alloc() [alloc];
-    static NSObject allocWithZone(void*) [allocWithZone:];
-    NSObject init() [init];
+    static NSObject alloc() @selector("alloc");
+    static NSObject allocWithZone(void*) @selector("allocWithZone:");
+    NSObject init() @selector("init");
 }
 
 import objc.runtime;

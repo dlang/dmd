@@ -520,8 +520,10 @@ void objc_CallExp_semantic_noFunction_selector(Type *t1, TypeFunction *&tf, cons
 ObjcSelectorExp * objc_AddrExp_semantic_TOKdotvar_selector(AddrExp *self, DotVarExp *dve, FuncDeclaration *f);
 Expression * objc_AddrExp_semantic_TOKvar_selector(AddrExp *self, Scope *sc, VarExp *ve, FuncDeclaration *f);
 
+void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration *self, Scope *sc);
+void objc_FuncDeclaration_semantic_validateSelector(FuncDeclaration *self);
 void objc_FuncDeclaration_semantic_checkAbstractStatic(FuncDeclaration *self);
-void objc_FuncDeclaration_semantic_parentForStaticMethod(FuncDeclaration *self, Dsymbol *&parent, ClassDeclaration *&cd);
+void objc_FuncDeclaration_semantic_parentForStaticMethod(FuncDeclaration *self, ClassDeclaration *&cd);
 void objc_FuncDeclaration_semantic_checkInheritedSelector(FuncDeclaration *self, ClassDeclaration *cd);
 void objc_FuncDeclaration_semantic_addClassMethodList(FuncDeclaration *self, ClassDeclaration *cd);
 void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *self);
@@ -600,12 +602,8 @@ void objc_TypeClass_dotExp_TOKtype(TypeClass *self, Scope *sc, Expression *&e, D
 
 void objc_Expression_optimize_visit_CallExp_Tobjcselector(Type *&t1);
 
-void objc_Parser_parseCtor_selector(Parser *self, TemplateParameters *tpl, Parameters *parameters, CtorDeclaration *f);
-void objc_Parser_parseDtor(Parser *self, DtorDeclaration *f);
 void objc_Parser_parseBasicType2_selector(Type *&t, TypeFunction *tf);
 void objc_Parser_parseDeclarations_Tobjcselector(Type *&t, LINK &link);
-void objc_Parser_parseDeclarations_Tfunction(Parser *self, Type *t, TemplateParameters *tpl, FuncDeclaration *f);
-ObjcSelector *objc_parseSelector(Parser *self);
 ControlFlow objc_Parser_parsePostExp_TOKclass(Parser *self, Expression *&e, Loc loc);
 
 void objc_tryMain_dObjc();

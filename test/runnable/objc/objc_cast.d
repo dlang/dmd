@@ -3,15 +3,15 @@
 
 extern (Objective-C)
 interface ObjcObject {
-	static ObjcObject alloc() [alloc];
-	static ObjcObject alloc(void* zone) [allocWithZone:];
+	static ObjcObject alloc() @selector("alloc");
+	static ObjcObject alloc(void* zone) @selector("allocWithZone:");
 }
 
 extern (Objective-C)
 class NSObject : ObjcObject {
 	void* isa; // pointer to class object
 
-	this() [init];
+	this() @selector("init");
 }
 
 extern (Objective-C)

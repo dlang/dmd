@@ -4,9 +4,9 @@
 pragma (objc_takestringliteral)
 extern (Objective-C)
 interface ObjcObject {
-    bool isEqualToString(ObjcObject other) [isEqualToString:];
-    wchar characterAtIndex(size_t index) [characterAtIndex:];
-    size_t length() @property [length];
+    bool isEqualToString(ObjcObject other) @selector("isEqualToString:");
+    wchar characterAtIndex(size_t index) @selector("characterAtIndex:");
+    size_t length() @property @selector("length");
 }
 
 void main() {

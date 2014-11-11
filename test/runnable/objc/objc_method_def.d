@@ -7,7 +7,7 @@ extern (Objective-C)
 class NSObject {
 	void* isa;
 	
-	static NSObject alloc() [alloc];
+	static NSObject alloc() @selector("alloc");
 	NSObject init();
 }
 

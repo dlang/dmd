@@ -7,13 +7,13 @@ alias void* id; // untyped Objective-C object pointer
 
 extern (Objective-C)
 interface Class {
-	NSObject alloc() [alloc];
+	NSObject alloc() @selector("alloc");
 }
 
 extern (Objective-C)
 interface NSObject {
-	NSObject initWithUTF8String(in char *str) [initWithUTF8String:];
-	void release() [release];
+	NSObject initWithUTF8String(in char *str) @selector("initWithUTF8String:");
+	void release() @selector("release");
 }
 
 extern (C) void NSLog(NSObject, ...);

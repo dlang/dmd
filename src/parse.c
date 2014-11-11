@@ -1547,7 +1547,6 @@ Dsymbol *Parser::parseCtor(PrefixAttributes *pAttrs)
     CtorDeclaration *f = new CtorDeclaration(loc, Loc(), stc, tf);
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
-    objc_Parser_parseCtor_selector(this, tpl, parameters, f);
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
@@ -1596,7 +1595,6 @@ Dsymbol *Parser::parseDtor(PrefixAttributes *pAttrs)
     DtorDeclaration *f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
-    objc_Parser_parseDtor(this, f);
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
@@ -3888,7 +3886,6 @@ L2:
             addComment(f, comment);
             if (pAttrs)
                 pAttrs->storageClass = STCundefined;
-            objc_Parser_parseDeclarations_Tfunction(this, t, tpl, f);
             if (tpl)
                 constraint = parseConstraint();
             Dsymbol *s = parseContracts(f);

@@ -4,14 +4,14 @@
 extern (Objective-C)
 pragma (objc_takestringliteral)
 interface ObjcObject {
-    static ObjcObject alloc() [alloc];
+    static ObjcObject alloc() @selector("alloc");
 }
 
 extern (Objective-C)
 class NSObject : ObjcObject {
     void* isa;
-    this() [init];
-    bool isKindOfClass(Class c) [isKindOfClass:];
+    this() @selector("init");
+    bool isKindOfClass(Class c) @selector("isKindOfClass:");
 }
 
 void main() {
