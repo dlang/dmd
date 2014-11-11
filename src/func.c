@@ -1453,7 +1453,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         Statement *fpreinv = NULL;
         if (addPreInvariant())
         {
-            Expression *e = addInvariant(sc, ad, vthis, isDtorDeclaration());
+            Expression *e = addInvariant(sc, ad, vthis, isDtorDeclaration() != NULL);
             if (e)
                 fpreinv = new ExpStatement(Loc(), e);
         }
@@ -1462,7 +1462,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         Statement *fpostinv = NULL;
         if (addPostInvariant())
         {
-            Expression *e = addInvariant(sc, ad, vthis, isCtorDeclaration());
+            Expression *e = addInvariant(sc, ad, vthis, isCtorDeclaration() != NULL);
             if (e)
                 fpostinv = new ExpStatement(Loc(), e);
         }
