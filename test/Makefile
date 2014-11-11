@@ -119,10 +119,6 @@ DISABLED_TESTS += builtin
 
 DISABLED_TESTS += dhry
 # runnable/dhry.d(488): Error: undefined identifier dtime
-
-# 64 bit test failures
-DISABLED_TESTS += test17
-DISABLED_SH_TESTS += test39
 endif
 
 ifeq ($(OS),win64)
