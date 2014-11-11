@@ -31,6 +31,8 @@
 #include "rmem.h"
 #include "visitor.h"
 
+Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct);
+
 void genCmain(Scope *sc);
 
 /* A visitor to walk entire statements and provides ability to replace any sub-statements.
@@ -1443,63 +1445,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         Statement *fpreinv = NULL;
         if (addPreInvariant())
         {
-            Expression *e = NULL;
-            if (isDtorDeclaration())
-            {
-                // Call invariant directly only if it exists
-                FuncDeclaration *inv = ad->inv;
-                ClassDeclaration *cd = ad->isClassDeclaration();
-
-                while (!inv && cd)
-                {
-                    cd = cd->baseClass;
-                    if (!cd)
-                        break;
-                    inv = cd->inv;
-                }
-                if (inv)
-                {
-                #if 1
-                    // Workaround for bugzilla 13394: For the correct mangling,
-                    // run attribute inference on inv if needed.
-                    inv->functionSemantic();
-                #endif
-
-                    //e = new DsymbolExp(Loc(), inv);
-                    //e = new CallExp(Loc(), e);
-                    //e = e->semantic(sc2);
-
-                    /* Bugzilla 13113: Currently virtual invariant calls completely
-                     * bypass attribute enforcement.
-                     * Change the behavior of pre-invariant call by following it.
-                     */
-                    e = new ThisExp(Loc());
-                    e->type = vthis->type;
-                    e = new DotVarExp(Loc(), e, inv, 0);
-                    e->type = inv->type;
-                    e = new CallExp(Loc(), e);
-                    e->type = Type::tvoid;
-                }
-            }
-            else
-            {
-            #if 1
-                // Workaround for bugzilla 13394: For the correct mangling,
-                // run attribute inference on inv if needed.
-                if (ad->isStructDeclaration() && ad->inv)
-                    ad->inv->functionSemantic();
-            #endif
-
-                // Call invariant virtually
-                Expression *v = new ThisExp(Loc());
-                v->type = vthis->type;
-                if (ad->isStructDeclaration())
-                    v = v->addressOf();
-                Expression *se = new StringExp(Loc(), (char *)"null this");
-                se = se->semantic(sc);
-                se->type = Type::tchar->arrayOf();
-                e = new AssertExp(loc, v, se);
-            }
+            Expression *e = addInvariant(sc, ad, vthis, isDtorDeclaration());
             if (e)
                 fpreinv = new ExpStatement(Loc(), e);
         }
@@ -1508,59 +1454,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         Statement *fpostinv = NULL;
         if (addPostInvariant())
         {
-            Expression *e = NULL;
-            if (isCtorDeclaration())
-            {
-                // Call invariant directly only if it exists
-                FuncDeclaration *inv = ad->inv;
-                ClassDeclaration *cd = ad->isClassDeclaration();
-
-                while (!inv && cd)
-                {
-                    cd = cd->baseClass;
-                    if (!cd)
-                        break;
-                    inv = cd->inv;
-                }
-                if (inv)
-                {
-                #if 1
-                    // Workaround for bugzilla 13394: For the correct mangling,
-                    // run attribute inference on inv if needed.
-                    inv->functionSemantic();
-                #endif
-
-                    //e = new DsymbolExp(Loc(), inv);
-                    //e = new CallExp(Loc(), e);
-                    //e = e->semantic(sc2);
-
-                    /* Bugzilla 13113: As same as pre-invariant in destructor,
-                     * change the behavior of post-invariant call.
-                     */
-                    e = new ThisExp(Loc());
-                    e->type = vthis->type;
-                    e = new DotVarExp(Loc(), e, inv, 0);
-                    e->type = inv->type;
-                    e = new CallExp(Loc(), e);
-                    e->type = Type::tvoid;
-                }
-            }
-            else
-            {
-            #if 1
-                // Workaround for bugzilla 13394: For the correct mangling,
-                // run attribute inference on inv if needed.
-                if (ad->isStructDeclaration() && ad->inv)
-                    ad->inv->functionSemantic();
-            #endif
-
-                // Call invariant virtually
-                Expression *v = new ThisExp(Loc());
-                v->type = vthis->type;
-                if (ad->isStructDeclaration())
-                    v = v->addressOf();
-                e = new AssertExp(Loc(), v);
-            }
+            Expression *e = addInvariant(sc, ad, vthis, isCtorDeclaration());
             if (e)
                 fpostinv = new ExpStatement(Loc(), e);
         }
@@ -3913,6 +3807,75 @@ bool FuncDeclaration::addPostInvariant()
             (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
             !naked &&
             ident != Id::cpctor);
+}
+
+/********************************************************
+ * Generate Expression to call the invariant.
+ * Input:
+ *      ad      aggregate with the invariant
+ *      vthis   variable with 'this'
+ *      direct  call invariant directly
+ */
+Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct)
+{
+    Expression *e = NULL;
+    if (direct)
+    {
+        // Call invariant directly only if it exists
+        FuncDeclaration *inv = ad->inv;
+        ClassDeclaration *cd = ad->isClassDeclaration();
+
+        while (!inv && cd)
+        {
+            cd = cd->baseClass;
+            if (!cd)
+                break;
+            inv = cd->inv;
+        }
+        if (inv)
+        {
+        #if 1
+            // Workaround for bugzilla 13394: For the correct mangling,
+            // run attribute inference on inv if needed.
+            inv->functionSemantic();
+        #endif
+
+            //e = new DsymbolExp(Loc(), inv);
+            //e = new CallExp(Loc(), e);
+            //e = e->semantic(sc2);
+
+            /* Bugzilla 13113: Currently virtual invariant calls completely
+             * bypass attribute enforcement.
+             * Change the behavior of pre-invariant call by following it.
+             */
+            e = new ThisExp(Loc());
+            e->type = vthis->type;
+            e = new DotVarExp(Loc(), e, inv, 0);
+            e->type = inv->type;
+            e = new CallExp(Loc(), e);
+            e->type = Type::tvoid;
+        }
+    }
+    else
+    {
+    #if 1
+        // Workaround for bugzilla 13394: For the correct mangling,
+        // run attribute inference on inv if needed.
+        if (ad->isStructDeclaration() && ad->inv)
+            ad->inv->functionSemantic();
+    #endif
+
+        // Call invariant virtually
+        Expression *v = new ThisExp(Loc());
+        v->type = vthis->type;
+        if (ad->isStructDeclaration())
+            v = v->addressOf();
+        Expression *se = new StringExp(Loc(), (char *)"null this");
+        se = se->semantic(sc);
+        se->type = Type::tchar->arrayOf();
+        e = new AssertExp(Loc(), v, se);
+    }
+    return e;
 }
 
 /**********************************
