@@ -114,9 +114,6 @@ export SEP=/
 endif
 
 ifeq ($(OS),freebsd)
-DISABLED_TESTS += builtin
-# precision related bug: Error: static assert  (0x1.f9f8d9aea10fb28ep-2L == 0x1.f9f8d9aea10fdf1cp-2L) is false
-
 DISABLED_TESTS += dhry
 # runnable/dhry.d(488): Error: undefined identifier dtime
 endif
