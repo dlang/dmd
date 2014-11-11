@@ -126,7 +126,6 @@ DISABLED_SH_TESTS += test39
 endif
 
 ifeq ($(OS),win64)
-DISABLED_TESTS += testargtypes
 DISABLED_TESTS += testxmm
 endif
 
