@@ -912,7 +912,15 @@ Expression *op_overload(Expression *e, Scope *sc)
                 }
             }
 
-            result = compare_overload(e, sc, Id::eq);
+            // Comparing a class with typeof(null) should not call opEquals
+            if (t1->ty == Tclass && t2->ty == Tnull ||
+                t1->ty == Tnull && t2->ty == Tclass)
+            {
+            }
+            else
+            {
+                result = compare_overload(e, sc, Id::eq);
+            }
         }
 
         void visit(CmpExp *e)

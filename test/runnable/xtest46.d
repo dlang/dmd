@@ -1892,6 +1892,18 @@ void test91()
 
 /***************************************************/
 
+bool fun13468(Object e, typeof(null) needle)
+{
+    return (e == needle);
+}
+
+void test13468()
+{
+    assert(fun13468(null, null));
+}
+
+/***************************************************/
+
 auto ref foo92(ref int x) { return x; }
 int bar92(ref int x) { return x; }
 
@@ -7502,6 +7514,7 @@ int main()
     test10539();
     test10634();
     test7254();
+    test13468();
     test11075();
     test11181();
     test11317();
