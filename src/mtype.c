@@ -2971,6 +2971,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
             Type *t = fparam->type->toBasetype();
 
+            bool d2_compatibility_ref_cleared = false;
+
             if (fparam->storageClass & (STCout | STCref | STClazy))
             {
                 if (t->ty == Tsarray)
@@ -2986,6 +2988,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                         // does not lose type safety
                         // see https://issues.dlang.org/show_bug.cgi?id=8887
                         fparam->storageClass &= ~STCref;
+                        d2_compatibility_ref_cleared = true;
                     }
                 }
             }
@@ -3038,7 +3041,15 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (global.params.Dversion >= 3 && sc->module && sc->module->isRoot() &&
                 t->ty == Tsarray)
             {
-                warning(loc, "D2 passes static arrays by value, use %s[] instead", t->next->toChars());
+                // ignore ref storage class for extern(C) static arrays
+                // to have a D1<->D2 compatible syntax for those that
+                // does not lose type safety
+                // see https://issues.dlang.org/show_bug.cgi?id=8887
+
+                if ((tf->linkage != LINKc) || !d2_compatibility_ref_cleared)
+                {
+                    warning(loc, "D2 passes static arrays by value, use %s[] instead", t->next->toChars());
+                }
             }
         }
         argsc->pop();
