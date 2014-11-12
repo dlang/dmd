@@ -403,6 +403,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
          */
         aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
         aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
+        inv = buildInv(this, sc2);
 
         // Look for the constructor
         ctor = searchCtor();
@@ -416,8 +417,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         xeq = buildXopEquals(this, sc2);
         xcmp = buildXopCmp(this, sc2);
         xhash = buildXtoHash(this, sc2);
-
-        inv = buildInv(this, sc2);
 
         Module.dprogress++;
         semanticRun = PASSsemanticdone;

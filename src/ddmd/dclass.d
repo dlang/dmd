@@ -950,6 +950,29 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             }
         }
 
+        version (none) // Controversial - see Bugzilla 519
+        {
+            /* If class has no constructor, but does have an invariant, create a default constructor merely
+             * as a place where the invariant call will be added.
+             */
+            if (!ctor && global.params.useInvariants && inv && !isCPPclass())
+            {
+                auto tf = new TypeFunction(null, null, 0, LINKd, inv.storage_class);
+                auto btf = cast(TypeFunction)inv.type;
+                tf.purity = btf.purity;
+                tf.isnothrow = btf.isnothrow;
+                tf.isnogc = btf.isnogc;
+                tf.trust = btf.trust;
+                auto ctor = new CtorDeclaration(loc, Loc(), 0, tf);
+                ctor.fbody = new CompoundStatement(Loc(), new Statements());
+                members.push(ctor);
+                ctor.addMember(sc, this, 1);
+                ctor.semantic(sc2);
+                this.ctor = ctor;
+                defaultCtor = ctor;
+            }
+        }
+
         dtor = buildDtor(this, sc2);
 
         if (auto f = hasIdentityOpAssign(this, sc2))

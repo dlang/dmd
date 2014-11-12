@@ -179,10 +179,82 @@ void test13147()
 
 /***************************************************/
 
+class C519 {
+        invariant {
+                ++x;
+        }
+        __gshared int x;
+}
+
+void test519a() {
+        auto s = new C519();
+        assert(C519.x == 0);
+        delete s;
+        assert(C519.x == 1);
+}
+
+/***************************************************/
+
+struct S519 {
+    invariant() {
+        printf("S519.invariant\n");
+        ++x;
+    }
+    __gshared int x;
+}
+
+void test519b() {
+  {
+    auto foo = new S519();
+    printf("lifetime of foo\n");
+    delete foo;
+    assert(S519.x == 1);
+  }
+  printf("test2\n");
+  {
+    auto foo = S519();
+    printf("lifetime of foo\n");
+  }
+  assert(S519.x == 2);
+}
+
+
+/***************************************************/
+
+struct S519c {
+    invariant() {
+        printf("S519c.invariant\n");
+        ++x;
+    }
+    __gshared int x;
+    int y;
+}
+
+void test519c() {
+  {
+    auto foo = new S519c(1);
+    printf("lifetime of foo\n");
+    delete foo;
+    assert(S519c.x == 2);
+  }
+  printf("test2\n");
+  {
+    auto foo = S519c(1);
+    printf("lifetime of foo\n");
+  }
+  assert(S519c.x == 4);
+}
+
+
+/***************************************************/
+
 void main()
 {
     testinvariant();
     test6453();
     test13113();
     test13147();
+    test519a();
+    test519b();
+    test519c();
 }
