@@ -161,12 +161,22 @@ bool exceptionOrCantInterpret(Expression *e)
     if (e == EXP_CANT_INTERPRET)
         return true;
     if (!e ||
-        e == EXP_GOTO_INTERPRET || e == EXP_VOID_INTERPRET ||
+        e == EXP_GOTO_INTERPRET ||
         e == EXP_BREAK_INTERPRET || e == EXP_CONTINUE_INTERPRET)
     {
         return false;
     }
     return e->op == TOKthrownexception;
+}
+
+/********************** VoidExp ******************************************/
+
+VoidExp *VoidExp::voidexp;
+
+VoidExp::VoidExp(Loc loc)
+    : Expression(loc, TOKvoidreturn, sizeof(VoidExp))
+{
+    type = Type::tvoid;
 }
 
 /************** Aggregate literals (AA/string/array/struct) ******************/

@@ -183,6 +183,7 @@ enum TOK
         TOKpound,
 
         TOKinterval,
+        TOKvoidreturn,
 
         TOKMAX
 };

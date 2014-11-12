@@ -799,7 +799,7 @@ Expression *ctfeInterpretForPragmaMsg(Expression *e)
  *      thisarg    'this', if a needThis() function, NULL if not.
  *
  * Return result expression if successful, EXP_CANT_INTERPRET if not,
- * or EXP_VOID_INTERPRET if function returned void.
+ * or VoidExp if function returned void.
  */
 
 Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *arguments, Expression *thisarg)
@@ -1051,10 +1051,10 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
 
     // If fell off the end of a void function, return void
     if (!e && tf->next->ty == Tvoid)
-        return EXP_VOID_INTERPRET;
+        return VoidExp::voidexp;
 
     // If result is void, return void
-    if (e == EXP_VOID_INTERPRET)
+    if (e->op == TOKvoidreturn)
         return e;
 
     // If it generated an exception, return it
@@ -1122,7 +1122,7 @@ public:
                 result = EXP_CANT_INTERPRET;
                 return;
             }
-            if (e && e != EXP_VOID_INTERPRET && e->op == TOKthrownexception)
+            if (e && e->op == TOKthrownexception)
             {
                 result = e;
                 return;
@@ -1337,7 +1337,7 @@ public:
 
         if (!s->exp)
         {
-            result = EXP_VOID_INTERPRET;
+            result = VoidExp::voidexp;
             return;
         }
         assert(istate && istate->fd && istate->fd->type);
@@ -1968,7 +1968,7 @@ public:
         // If it is with(Enum) {...}, just execute the body.
         if (s->exp->op == TOKimport || s->exp->op == TOKtype)
         {
-            result = s->body ? s->body->interpret(istate) : EXP_VOID_INTERPRET;
+            result = s->body ? s->body->interpret(istate) : VoidExp::voidexp;
             return;
         }
 
@@ -2009,7 +2009,7 @@ public:
             }
         }
         else
-            e = EXP_VOID_INTERPRET;
+            e = VoidExp::voidexp;
         ctfeStack.pop(s->wthis);
         result = e;
     }
@@ -2686,7 +2686,7 @@ public:
             // A tuple of assignments can contain void (Bug 5676).
             if (goal == ctfeNeedNothing)
                 continue;
-            if (ex == EXP_VOID_INTERPRET)
+            if (ex->op == TOKvoidreturn)
             {
                 e->error("ICE: void element %s in tuple", exp->toChars());
                 assert(0);
@@ -4957,7 +4957,7 @@ public:
                 result = e->e2->interpret(istate);
                 if (exceptionOrCantInterpret(result))
                     return;
-                if (result == EXP_VOID_INTERPRET)
+                if (result->op == TOKvoidreturn)
                 {
                     assert(e->type->ty == Tvoid);
                     result = NULL;
@@ -5009,7 +5009,7 @@ public:
                 if (exceptionOrCantInterpret(result))
                     return;
 
-                if (result == EXP_VOID_INTERPRET)
+                if (result->op == TOKvoidreturn)
                 {
                     assert(e->type->ty == Tvoid);
                     result = NULL;
@@ -5314,7 +5314,7 @@ public:
             if (!global.gag)
                 showCtfeBackTrace(e, fd);
         }
-        else if (result == EXP_VOID_INTERPRET)
+        else if (result->op == TOKvoidreturn)
             ;
         else if (result->op != TOKthrownexception)
         {
@@ -5371,7 +5371,7 @@ public:
                     result = newval;
                     return;
                 }
-                if (newval != EXP_VOID_INTERPRET)
+                if (newval->op != TOKvoidreturn)
                 {
                     // v isn't necessarily null.
                     setValueWithoutChecking(v, copyLiteral(newval));
@@ -6511,7 +6511,7 @@ public:
         }
         if (agg->op == TOKnull)
         {
-            result = EXP_VOID_INTERPRET;
+            result = VoidExp::voidexp;
             return;
         }
         assert(agg->op == TOKassocarrayliteral);
@@ -7143,14 +7143,14 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
                     return e;
                 (*se->elements)[i] = e;
             }
-            return EXP_VOID_INTERPRET;
+            return VoidExp::voidexp;
         }
     }
     if (nargs == 1 && !pthis &&
         (fd->ident == Id::criticalenter || fd->ident == Id::criticalexit))
     {
         // Support synchronized{} as a no-op
-        return EXP_VOID_INTERPRET;
+        return VoidExp::voidexp;
     }
     if (!pthis)
     {
