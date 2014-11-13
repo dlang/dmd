@@ -435,27 +435,49 @@ void FuncDeclaration::semantic(Scope *sc)
         sc = sc->push();
         sc->stc |= storage_class & (STCdisable | STCdeprecated);  // forward to function type
         TypeFunction *tf = (TypeFunction *)type;
-#if 1
-        /* If the parent is @safe, then this function defaults to safe
-         * too.
-         * If the parent's @safe-ty is inferred, then this function's @safe-ty needs
-         * to be inferred first.
-         */
-        if (tf->trust == TRUSTdefault &&
-            !isInstantiated())
+
+        if (sc->func)
         {
-            for (Dsymbol *p = sc->func; p; p = p->toParent2())
+            /* If the parent is @safe, then this function defaults to safe too.
+             */
+            if (tf->trust == TRUSTdefault)
             {
-                FuncDeclaration *fd = p->isFuncDeclaration();
-                if (fd)
+                FuncDeclaration *fd = sc->func;
+
+                /* If the parent's @safe-ty is inferred, then this function's @safe-ty needs
+                 * to be inferred first.
+                 * If this function's @safe-ty is inferred, then it needs to be infeerd first.
+                 * (local template function inside @safe function can be inferred to @system).
+                 */
+                if (fd->isSafeBypassingInference() && !isInstantiated())
+                    tf->trust = TRUSTsafe;              // default to @safe
+            }
+
+            /* If the nesting parent is pure, then this function defaults to pure too.
+             */
+            if (tf->purity == PUREimpure && (isNested() || isThis()))
+            {
+                FuncDeclaration *fd = NULL;
+                for (Dsymbol *p = toParent2(); p; p = p->toParent2())
                 {
-                    if (fd->isSafeBypassingInference())
-                        tf->trust = TRUSTsafe;              // default to @safe
-                    break;
+                    if (AggregateDeclaration *ad = p->isAggregateDeclaration())
+                    {
+                        if (ad->isNested())
+                            continue;
+                        break;
+                    }
+                    if ((fd = p->isFuncDeclaration()) != NULL)
+                        break;
                 }
+
+                /* If the parent's purity is inferred, then this function's purity needs
+                 * to be inferred first.
+                 */
+                if (fd && fd->isPureBypassingInferenceX())
+                    tf->purity = PUREfwdref;            // default to pure
             }
         }
-#endif
+
         if (tf->isref)      sc->stc |= STCref;
         if (tf->isnothrow)  sc->stc |= STCnothrow;
         if (tf->isnogc)     sc->stc |= STCnogc;
@@ -3540,6 +3562,8 @@ bool FuncDeclaration::setImpure()
     if (flags & FUNCFLAGpurityInprocess)
     {
         flags &= ~FUNCFLAGpurityInprocess;
+        if (fes)
+            fes->func->setImpure();
     }
     else if (isPure())
         return true;
@@ -3578,6 +3602,8 @@ bool FuncDeclaration::setUnsafe()
     {
         flags &= ~FUNCFLAGsafetyInprocess;
         ((TypeFunction *)type)->trust = TRUSTsystem;
+        if (fes)
+            fes->func->setUnsafe();
     }
     else if (isSafe())
         return true;
@@ -3609,6 +3635,8 @@ bool FuncDeclaration::setGC()
     {
         flags &= ~FUNCFLAGnogcInprocess;
         ((TypeFunction *)type)->isnogc = false;
+        if (fes)
+            fes->func->setGC();
     }
     else if (isNogc())
         return true;

@@ -2407,13 +2407,11 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         return;
 
     /* Given:
-     * void f()
-     * { pure void g()
-     *   {
-     *      void h()
-     *      {
-     *         void i() { }
-     *      }
+     * void f() {
+     *   pure void g() {
+     *     /+pure+/ void h() {
+     *       /+pure+/ void i() { }
+     *     }
      *   }
      * }
      * g() can call h() but not f()
@@ -2445,10 +2443,11 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
     // OR, they must have the same pure parent.
     if (!f->isPure() && calledparent != outerfunc)
     {
-        if (sc->flags & SCOPEcompile ? outerfunc->isPureBypassingInferenceX() : outerfunc->setImpure())
+        FuncDeclaration *ff = outerfunc;
+        if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
         {
             error("pure function '%s' cannot call impure function '%s'",
-                outerfunc->toPrettyChars(), f->toPrettyChars());
+                ff->toPrettyChars(), f->toPrettyChars());
         }
     }
 }
@@ -2489,50 +2488,24 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
          * Therefore, this function and all its immediately enclosing
          * functions must be pure.
          */
-        for (Dsymbol *s = sc->func; s; s = s->toParent2())
+        FuncDeclaration *ff = sc->func;
+        if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
         {
-            FuncDeclaration *ff = s->isFuncDeclaration();
-            if (!ff)
-                break;
-            if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
-            {
-                error("pure function '%s' cannot access mutable static data '%s'",
-                    sc->func->toPrettyChars(), v->toChars());
-                break;
-            }
+            error("pure function '%s' cannot access mutable static data '%s'",
+                ff->toPrettyChars(), v->toChars());
         }
     }
     else
     {
-        /* Bugzilla 10981: Special case for the contracts of pure virtual function.
-         * Rewrite:
-         *  tret foo(int i) pure
-         *  in { assert(i); } out { assert(i); } body { ... }
-         *
-         * as:
-         *  tret foo(int i) pure {
-         *    void __require() pure { assert(i); }  // allow accessing to i
-         *    void __ensure() pure { assert(i); }   // allow accessing to i
-         *    __require();
-         *    ...
-         *    __ensure();
-         *  }
-         */
-        if ((sc->func->ident == Id::require || sc->func->ident == Id::ensure) &&
-            v->isParameter() && sc->func->parent == v->parent)
-        {
-            return;
-        }
-
         /* Given:
-         * void f()
-         * { int fx;
-         *   pure void g()
-         *   {  int gx;
-         *      void h()
-         *      {  int hx;
-         *         void i() { }
-         *      }
+         * void f() {
+         *   int fx;
+         *   pure void g() {
+         *     int gx;
+         *     /+pure+/ void h() {
+         *       int hx;
+         *       /+pure+/ void i() { }
+         *     }
          *   }
          * }
          * i() can modify hx and gx but not fx
@@ -2543,15 +2516,37 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
         {
             if (s == vparent)
                 break;
+
+            if (AggregateDeclaration *ad = s->isAggregateDeclaration())
+            {
+                if (ad->isNested())
+                    continue;
+                break;
+            }
             FuncDeclaration *ff = s->isFuncDeclaration();
             if (!ff)
                 break;
-            if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
+            if (ff->isNested())
             {
-                error("pure nested function '%s' cannot access mutable data '%s'",
-                    ff->toChars(), v->toChars());
-                break;
+                if (ff->type->isImmutable())
+                {
+                    error("pure immutable nested function '%s' cannot access mutable data '%s'",
+                        ff->toPrettyChars(), v->toChars());
+                    break;
+                }
+                continue;
             }
+            if (ff->isThis())
+            {
+                if (ff->type->isImmutable())
+                {
+                    error("pure immutable member function '%s' cannot access mutable data '%s'",
+                        ff->toPrettyChars(), v->toChars());
+                    break;
+                }
+                continue;
+            }
+            break;
         }
     }
 

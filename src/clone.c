@@ -26,7 +26,7 @@
 
 
 /*******************************************
- * Merge function attributes pure, nothrow, @safe, and @disable
+ * Merge function attributes pure, nothrow, @safe, @nogc, and @disable
  */
 StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f)
 {

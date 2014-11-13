@@ -33,6 +33,7 @@
 #include "import.h"
 
 bool walkPostorder(Statement *s, StoppableVisitor *v);
+StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f);
 
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
 {
@@ -2298,7 +2299,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 }
                 args->push(new Parameter(stc, arg->type, id, NULL));
             }
-            tfld = new TypeFunction(args, Type::tint32, 0, LINKd);
+            StorageClass stc = mergeFuncAttrs(STCsafe | STCpure | STCnothrow | STCnogc, func);
+            tfld = new TypeFunction(args, Type::tint32, 0, LINKd, stc);
             cases = new Statements();
             gotos = new ScopeStatements();
             FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, this);
