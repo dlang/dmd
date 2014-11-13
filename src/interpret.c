@@ -102,9 +102,9 @@ struct InterState
     InterState *caller;         // calling function's InterState
     FuncDeclaration *fd;        // function being interpreted
     Statement *start;           // if !=NULL, start execution at this statement
-    /* target of EXP_GOTO_INTERPRET result; also
-     * target of labelled EXP_BREAK_INTERPRET or
-     * EXP_CONTINUE_INTERPRET. (NULL if no label).
+    /* target of CTFEExp result; also
+     * target of labelled CTFEExp or
+     * CTFEExp. (NULL if no label).
      */
     Statement *gotoTarget;
     // Support for ref return values:
@@ -799,7 +799,7 @@ Expression *ctfeInterpretForPragmaMsg(Expression *e)
  *      thisarg    'this', if a needThis() function, NULL if not.
  *
  * Return result expression if successful, EXP_CANT_INTERPRET if not,
- * or VoidExp if function returned void.
+ * or CTFEExp if function returned void.
  */
 
 Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *arguments, Expression *thisarg)
@@ -1013,7 +1013,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
          * statement, then go recursively down the AST looking
          * for that statement, then execute starting there.
          */
-        if (e == EXP_GOTO_INTERPRET)
+        if (e && e->op == TOKgoto)
         {
             istatex.start = istatex.gotoTarget; // set starting statement
             istatex.gotoTarget = NULL;
@@ -1021,7 +1021,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
         else
             break;
     }
-    assert(e != EXP_CONTINUE_INTERPRET && e != EXP_BREAK_INTERPRET);
+    assert(!(e && e->op == TOKcontinue) && !(e && e->op == TOKbreak));
 
     /* Bugzilla 7887: If the returned reference is a ref parameter of fd,
      * peel off the local indirection.
@@ -1051,10 +1051,10 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
 
     // If fell off the end of a void function, return void
     if (!e && tf->next->ty == Tvoid)
-        return VoidExp::voidexp;
+        return CTFEExp::voidexp;
 
     // If result is void, return void
-    if (e->op == TOKvoidreturn)
+    if (e->op == TOKvoidexp)
         return e;
 
     // If it generated an exception, return it
@@ -1174,7 +1174,7 @@ public:
                 e = sx->interpret(istate);
                 if (e == EXP_CANT_INTERPRET)
                     break;
-                if (e == EXP_CONTINUE_INTERPRET)
+                if (e && e->op == TOKcontinue)
                 {
                     if (istate->gotoTarget && istate->gotoTarget != s)
                         break; // continue at higher level
@@ -1182,7 +1182,7 @@ public:
                     e = NULL;
                     continue;
                 }
-                if (e == EXP_BREAK_INTERPRET)
+                if (e && e->op == TOKbreak)
                 {
                     if (!istate->gotoTarget || istate->gotoTarget == s)
                     {
@@ -1337,7 +1337,7 @@ public:
 
         if (!s->exp)
         {
-            result = VoidExp::voidexp;
+            result = CTFEExp::voidexp;
             return;
         }
         assert(istate && istate->fd && istate->fd->type);
@@ -1433,13 +1433,13 @@ public:
                     target = target->isScopeStatement()->statement;
             }
             istate->gotoTarget = target;
-            result = EXP_BREAK_INTERPRET;
+            result = CTFEExp::breakexp;
             return;
         }
         else
         {
             istate->gotoTarget = NULL;
-            result = EXP_BREAK_INTERPRET;
+            result = CTFEExp::breakexp;
             return;
         }
     }
@@ -1471,12 +1471,12 @@ public:
                     target = target->isScopeStatement()->statement;
             }
             istate->gotoTarget = target;
-            result = EXP_CONTINUE_INTERPRET;
+            result = CTFEExp::continueexp;
             return;
         }
         else
         {
-            result = EXP_CONTINUE_INTERPRET;
+            result = CTFEExp::continueexp;
             return;
         }
     }
@@ -1506,7 +1506,7 @@ public:
                 break;
             if (wasGoto && istate->start)
                 return;
-            if (e == EXP_BREAK_INTERPRET)
+            if (e && e->op == TOKbreak)
             {
                 if (!istate->gotoTarget || istate->gotoTarget == s)
                 {
@@ -1515,7 +1515,7 @@ public:
                 } // else break at a higher level
                 break;
             }
-            if (e && e != EXP_CONTINUE_INTERPRET)
+            if (e && e->op != TOKcontinue)
                 break;
             if (istate->gotoTarget && istate->gotoTarget != s)
                 break; // continue at a higher level
@@ -1584,7 +1584,7 @@ public:
             if (wasGoto && istate->start)
                 return;
 
-            if (e == EXP_BREAK_INTERPRET)
+            if (e && e->op == TOKbreak)
             {
                 if (!istate->gotoTarget || istate->gotoTarget == s)
                 {
@@ -1593,7 +1593,7 @@ public:
                 } // else break at a higher level
                 break;
             }
-            if (e && e != EXP_CONTINUE_INTERPRET)
+            if (e && e->op != TOKcontinue)
                 break;
 
             if (istate->gotoTarget && istate->gotoTarget != s)
@@ -1639,7 +1639,7 @@ public:
                 result = e;
                 return;
             }
-            if (e == EXP_BREAK_INTERPRET)
+            if (e && e->op == TOKbreak)
             {
                 if (!istate->gotoTarget || istate->gotoTarget == s)
                 {
@@ -1691,7 +1691,7 @@ public:
         istate->start = scase;
         e = s->body ? s->body->interpret(istate) : NULL;
         assert(!istate->start);
-        if (e == EXP_BREAK_INTERPRET)
+        if (e && e->op == TOKbreak)
         {
             if (!istate->gotoTarget || istate->gotoTarget == s)
             {
@@ -1739,7 +1739,7 @@ public:
 
         assert(s->label && s->label->statement);
         istate->gotoTarget = s->label->statement;
-        result = EXP_GOTO_INTERPRET;
+        result = CTFEExp::gotoexp;
     }
 
     void visit(GotoCaseStatement *s)
@@ -1756,7 +1756,7 @@ public:
 
         assert(s->cs);
         istate->gotoTarget = s->cs;
-        result = EXP_GOTO_INTERPRET;
+        result = CTFEExp::gotoexp;
     }
 
     void visit(GotoDefaultStatement *s)
@@ -1773,7 +1773,7 @@ public:
 
         assert(s->sw && s->sw->sdefault);
         istate->gotoTarget = s->sw->sdefault;
-        result = EXP_GOTO_INTERPRET;
+        result = CTFEExp::gotoexp;
     }
 
     void visit(LabelStatement *s)
@@ -1839,7 +1839,7 @@ public:
                 if (ca->handler)
                 {
                     e = ca->handler->interpret(istate);
-                    if (e == EXP_GOTO_INTERPRET)
+                    if (e && e->op == TOKgoto)
                     {
                         InterState istatex = *istate;
                         istatex.start = istate->gotoTarget; // set starting statement
@@ -1968,7 +1968,7 @@ public:
         // If it is with(Enum) {...}, just execute the body.
         if (s->exp->op == TOKimport || s->exp->op == TOKtype)
         {
-            result = s->body ? s->body->interpret(istate) : VoidExp::voidexp;
+            result = s->body ? s->body->interpret(istate) : CTFEExp::voidexp;
             return;
         }
 
@@ -1995,7 +1995,7 @@ public:
         if (s->body)
         {
             e = s->body->interpret(istate);
-            if (e == EXP_GOTO_INTERPRET)
+            if (e && e->op == TOKgoto)
             {
                 InterState istatex = *istate;
                 istatex.start = istate->gotoTarget; // set starting statement
@@ -2009,7 +2009,7 @@ public:
             }
         }
         else
-            e = VoidExp::voidexp;
+            e = CTFEExp::voidexp;
         ctfeStack.pop(s->wthis);
         result = e;
     }
@@ -2489,7 +2489,7 @@ public:
             e = e->semantic(NULL);
             if (e->op == TOKerror)
                 e = EXP_CANT_INTERPRET;
-            else // Convert NULL to VoidExp
+            else // Convert NULL to CTFEExp
                 e = e->interpret(istate, goal);
         }
         else
@@ -2686,7 +2686,7 @@ public:
             // A tuple of assignments can contain void (Bug 5676).
             if (goal == ctfeNeedNothing)
                 continue;
-            if (ex->op == TOKvoidreturn)
+            if (ex->op == TOKvoidexp)
             {
                 e->error("ICE: void element %s in tuple", exp->toChars());
                 assert(0);
@@ -2920,7 +2920,7 @@ public:
                 if (!exp)
                 {
                     /* Ideally, we'd convert NULL members into void expressions.
-                    * The problem is that the VoidExp will be removed when we
+                    * The problem is that the CTFEExp will be removed when we
                     * leave CTFE, causing another memory allocation if we use this
                     * same struct literal again.
                     *
@@ -4957,7 +4957,7 @@ public:
                 result = e->e2->interpret(istate);
                 if (exceptionOrCantInterpret(result))
                     return;
-                if (result->op == TOKvoidreturn)
+                if (result->op == TOKvoidexp)
                 {
                     assert(e->type->ty == Tvoid);
                     result = NULL;
@@ -5009,7 +5009,7 @@ public:
                 if (exceptionOrCantInterpret(result))
                     return;
 
-                if (result->op == TOKvoidreturn)
+                if (result->op == TOKvoidexp)
                 {
                     assert(e->type->ty == Tvoid);
                     result = NULL;
@@ -5314,7 +5314,7 @@ public:
             if (!global.gag)
                 showCtfeBackTrace(e, fd);
         }
-        else if (result->op == TOKvoidreturn)
+        else if (result->op == TOKvoidexp)
             ;
         else if (result->op != TOKthrownexception)
         {
@@ -5371,7 +5371,7 @@ public:
                     result = newval;
                     return;
                 }
-                if (newval->op != TOKvoidreturn)
+                if (newval->op != TOKvoidexp)
                 {
                     // v isn't necessarily null.
                     setValueWithoutChecking(v, copyLiteral(newval));
@@ -6511,7 +6511,7 @@ public:
         }
         if (agg->op == TOKnull)
         {
-            result = VoidExp::voidexp;
+            result = CTFEExp::voidexp;
             return;
         }
         assert(agg->op == TOKassocarrayliteral);
@@ -7143,14 +7143,14 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
                     return e;
                 (*se->elements)[i] = e;
             }
-            return VoidExp::voidexp;
+            return CTFEExp::voidexp;
         }
     }
     if (nargs == 1 && !pthis &&
         (fd->ident == Id::criticalenter || fd->ident == Id::criticalexit))
     {
         // Support synchronized{} as a no-op
-        return VoidExp::voidexp;
+        return CTFEExp::voidexp;
     }
     if (!pthis)
     {

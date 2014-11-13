@@ -161,20 +161,24 @@ bool exceptionOrCantInterpret(Expression *e)
     if (e == EXP_CANT_INTERPRET)
         return true;
     if (!e ||
-        e == EXP_GOTO_INTERPRET ||
-        e == EXP_BREAK_INTERPRET || e == EXP_CONTINUE_INTERPRET)
+        e->op == TOKgoto ||
+        e->op == TOKbreak ||
+        e->op == TOKcontinue)
     {
         return false;
     }
     return e->op == TOKthrownexception;
 }
 
-/********************** VoidExp ******************************************/
+/********************** CTFEExp ******************************************/
 
-VoidExp *VoidExp::voidexp;
+CTFEExp *CTFEExp::voidexp;
+CTFEExp *CTFEExp::breakexp;
+CTFEExp *CTFEExp::continueexp;
+CTFEExp *CTFEExp::gotoexp;
 
-VoidExp::VoidExp(Loc loc)
-    : Expression(loc, TOKvoidreturn, sizeof(VoidExp))
+CTFEExp::CTFEExp(TOK tok)
+    : Expression(Loc(), tok, sizeof(CTFEExp))
 {
     type = Type::tvoid;
 }

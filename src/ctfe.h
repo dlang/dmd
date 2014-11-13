@@ -96,15 +96,21 @@ public:
 
 /****************************************************************/
 
-// This type is only used by the interpreter, and is a placeholder for void.
+// This type is only used by the interpreter.
 
-class VoidExp : public Expression
+class CTFEExp : public Expression
 {
 public:
-    VoidExp(Loc loc);
+    CTFEExp(TOK tok);
 
-    static VoidExp* voidexp;    // a handy instance to share
+    // Handy instances to share
+    static CTFEExp* voidexp;
+    static CTFEExp* breakexp;
+    static CTFEExp* continueexp;
+    static CTFEExp* gotoexp;
 };
+
+/****************************************************************/
 
 
 /// True if 'e' is EXP_CANT_INTERPRET, or an exception
