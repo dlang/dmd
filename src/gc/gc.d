@@ -47,7 +47,6 @@ import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 import core.stdc.string : memcpy, memset, memmove;
 import core.bitop;
 import core.sync.mutex;
-import core.exception : onOutOfMemoryError, onInvalidMemoryOperationError;
 import core.thread;
 static import core.memory;
 private alias BlkAttr = core.memory.GC.BlkAttr;
@@ -125,10 +124,18 @@ private
 
 private
 {
-    // to allow compilation of this module without access to the rt package,
-    //  make these functions available from rt.lifetime
-    extern (C) void rt_finalize2(void* p, bool det, bool resetMemory) nothrow;
-    extern (C) int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow;
+    extern (C)
+    {
+        // to allow compilation of this module without access to the rt package,
+        //  make these functions available from rt.lifetime
+        void rt_finalize2(void* p, bool det, bool resetMemory) nothrow;
+        int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow;
+
+        // Declared as an extern instead of importing core.exception
+        // to avoid inlining - see issue 13725.
+        void onInvalidMemoryOperationError() nothrow;
+        void onOutOfMemoryError() nothrow;
+    }
 
     enum
     {
