@@ -98,13 +98,13 @@ void modulus_bug6000b() {
 
 void modulus2() {
     short s;
-    byte b;
+    byte b = byte.max;
     byte c = s % b;
 }
 
 void modulus3() {
     int i;
-    short s;
+    short s = short.max;
     short t = i % s;
 }
 
