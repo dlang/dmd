@@ -217,6 +217,11 @@ version( linux )
         }
     }
 
+    extern (D) size_t CMSG_SPACE(size_t len) pure nothrow @nogc
+    {
+        return CMSG_ALIGN(len) + CMSG_ALIGN(cmsghdr.sizeof);
+    }
+
     struct linger
     {
         int l_onoff;
