@@ -2002,18 +2002,15 @@ Expression::Expression(Loc loc, TOK op, int size)
 }
 
 Expression *EXP_CANT_INTERPRET;
-Expression *EXP_CONTINUE_INTERPRET;
-Expression *EXP_BREAK_INTERPRET;
-Expression *EXP_GOTO_INTERPRET;
 
 void Expression::init()
 {
     EXP_CANT_INTERPRET = new ErrorExp();
-    EXP_CONTINUE_INTERPRET = new ErrorExp();
-    EXP_BREAK_INTERPRET = new ErrorExp();
-    EXP_GOTO_INTERPRET = new ErrorExp();
 
-    VoidExp::voidexp = new VoidExp(Loc());
+    CTFEExp::voidexp = new CTFEExp(TOKvoidexp);
+    CTFEExp::breakexp = new CTFEExp(TOKbreak);
+    CTFEExp::continueexp = new CTFEExp(TOKcontinue);
+    CTFEExp::gotoexp = new CTFEExp(TOKgoto);
 }
 
 Expression *Expression::syntaxCopy()

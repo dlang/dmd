@@ -1589,9 +1589,6 @@ struct UnionExp
 /* Special values used by the interpreter
  */
 extern Expression *EXP_CANT_INTERPRET;
-extern Expression *EXP_CONTINUE_INTERPRET;
-extern Expression *EXP_BREAK_INTERPRET;
-extern Expression *EXP_GOTO_INTERPRET;
 
 Expression *expType(Type *type, Expression *e);
 
