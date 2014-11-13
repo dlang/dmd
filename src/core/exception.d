@@ -400,7 +400,8 @@ deprecated void setAssertHandler( AssertHandler h ) @trusted nothrow @nogc
 
 /**
  * A callback for assert errors in D.  The user-supplied assert handler will
- * be called if one has been supplied, otherwise an AssertError will be thrown.
+ * be called if one has been supplied, otherwise an $(LREF AssertError) will be
+ * thrown.
  *
  * Params:
  *  file = The name of the file that signaled this error.
@@ -416,7 +417,8 @@ extern (C) void onAssertError( string file = __FILE__, size_t line = __LINE__ ) 
 
 /**
  * A callback for assert errors in D.  The user-supplied assert handler will
- * be called if one has been supplied, otherwise an AssertError will be thrown.
+ * be called if one has been supplied, otherwise an $(LREF AssertError) will be
+ * thrown.
  *
  * Params:
  *  file = The name of the file that signaled this error.
@@ -453,14 +455,14 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg ) nothr
 
 
 /**
- * A callback for array bounds errors in D.  A RangeError will be thrown.
+ * A callback for array bounds errors in D.  A $(LREF RangeError) will be thrown.
  *
  * Params:
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
  *
  * Throws:
- *  RangeError.
+ *  $(LREF RangeError).
  */
 extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
 {
@@ -469,7 +471,7 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
 
 
 /**
- * A callback for finalize errors in D.  A FinalizeError will be thrown.
+ * A callback for finalize errors in D.  A $(LREF FinalizeError) will be thrown.
  *
  * Params:
  *  info = The ClassInfo instance for the object that failed finalization.
@@ -478,7 +480,7 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
  *  line = The line number on which this error occurred.
  *
  * Throws:
- *  FinalizeError.
+ *  $(LREF FinalizeError).
  */
 extern (C) void onFinalizeError( ClassInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
 {
@@ -487,11 +489,11 @@ extern (C) void onFinalizeError( ClassInfo info, Throwable e, string file = __FI
 
 
 /**
- * A callback for hidden function errors in D.  A HiddenFuncError will be
+ * A callback for hidden function errors in D.  A $(LREF HiddenFuncError) will be
  * thrown.
  *
  * Throws:
- *  HiddenFuncError.
+ *  $(LREF HiddenFuncError).
  */
 extern (C) void onHiddenFuncError( Object o ) @safe pure nothrow
 {
@@ -500,11 +502,11 @@ extern (C) void onHiddenFuncError( Object o ) @safe pure nothrow
 
 
 /**
- * A callback for out of memory errors in D.  An OutOfMemoryError will be
+ * A callback for out of memory errors in D.  An $(LREF OutOfMemoryError) will be
  * thrown.
  *
  * Throws:
- *  OutOfMemoryError.
+ *  $(LREF OutOfMemoryError).
  */
 extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc /* dmd @@@BUG11461@@@ */
 {
@@ -516,10 +518,10 @@ extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure
 
 /**
  * A callback for invalid memory operations in D.  An
- * InvalidMemoryOperationError will be thrown.
+ * $(LREF InvalidMemoryOperationError) will be thrown.
  *
  * Throws:
- *  InvalidMemoryOperationError.
+ *  $(LREF InvalidMemoryOperationError).
  */
 extern (C) void onInvalidMemoryOperationError(void* pretend_sideffect = null) @trusted pure nothrow @nogc /* dmd @@@BUG11461@@@ */
 {
@@ -531,14 +533,14 @@ extern (C) void onInvalidMemoryOperationError(void* pretend_sideffect = null) @t
 
 
 /**
- * A callback for switch errors in D.  A SwitchError will be thrown.
+ * A callback for switch errors in D.  A $(LREF SwitchError) will be thrown.
  *
  * Params:
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
  *
  * Throws:
- *  SwitchError.
+ *  $(LREF SwitchError).
  */
 extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
 {
@@ -547,7 +549,7 @@ extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ ) 
 
 
 /**
- * A callback for unicode errors in D.  A UnicodeException will be thrown.
+ * A callback for unicode errors in D.  A $(LREF UnicodeException) will be thrown.
  *
  * Params:
  *  msg = Information about the error.
@@ -556,7 +558,7 @@ extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ ) 
  *  line = The line number on which this error occurred.
  *
  * Throws:
- *  UnicodeException.
+ *  $(LREF UnicodeException).
  */
 extern (C) void onUnicodeError( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__ ) @safe pure
 {
