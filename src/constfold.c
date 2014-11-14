@@ -510,7 +510,7 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         if (!e2->type->isunsigned() && (sinteger_t)n < 0)
         {
             if (e1->type->isintegral())
-                return EXP_CANT_INTERPRET;
+                return ErrorExp::errorexp;
 
             // Don't worry about overflow, from now on n is unsigned.
             neg = true;
@@ -561,10 +561,10 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
             e = new RealExp(loc, Port::ldbl_nan, type);
         }
         else
-            e = EXP_CANT_INTERPRET;
+            e = ErrorExp::errorexp;
     }
     else
-        e = EXP_CANT_INTERPRET;
+        e = ErrorExp::errorexp;
 
     return e;
 }
@@ -699,7 +699,7 @@ Expression *Xor(Type *type, Expression *e1, Expression *e2)
     return e;
 }
 
-/* Also returns EXP_CANT_INTERPRET if cannot be computed.
+/* Also returns ErrorExp::errorexp if cannot be computed.
  */
 Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
 {
@@ -728,7 +728,7 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
             cmp = !es2->elements || (0 == es2->elements->dim);
         }
         else
-            return EXP_CANT_INTERPRET;
+            return ErrorExp::errorexp;
     }
     else if (e2->op == TOKnull)
     {
@@ -743,7 +743,7 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
             cmp = !es1->elements || (0 == es1->elements->dim);
         }
         else
-            return EXP_CANT_INTERPRET;
+            return ErrorExp::errorexp;
     }
     else if (e1->op == TOKstring && e2->op == TOKstring)
     {
@@ -753,7 +753,7 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         if (es1->sz != es2->sz)
         {
             assert(global.errors);
-            return EXP_CANT_INTERPRET;
+            return ErrorExp::errorexp;
         }
         if (es1->len == es2->len &&
             memcmp(es1->string, es2->string, es1->sz * es1->len) == 0)
@@ -781,8 +781,8 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
                 Expression *ee2 = (*es2->elements)[i];
 
                 Expression *v = Equal(TOKequal, Type::tint32, ee1, ee2);
-                if (v == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
+                if (v && v->op == TOKerror)
+                    return v;
                 cmp = (int)v->toInteger();
                 if (cmp == 0)
                     break;
@@ -814,7 +814,7 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
                 uinteger_t c = es1->charAt(i);
                 Expression *ee2 = (*es2->elements)[i];
                 if (ee2->isConst() != 1)
-                    return EXP_CANT_INTERPRET;
+                    return ErrorExp::errorexp;
                 cmp = (c == ee2->toInteger());
                 if (cmp == 0)
                     break;
@@ -851,8 +851,8 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
                     break;
                 }
                 Expression *v = Equal(TOKequal, Type::tint32, ee1, ee2);
-                if (v == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
+                if (v && v->op == TOKerror)
+                    return v;
                 cmp = (int)v->toInteger();
                 if (cmp == 0)
                     break;
@@ -866,7 +866,7 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
     }
     else if (e1->isConst() != 1 || e2->isConst() != 1)
     {
-        return EXP_CANT_INTERPRET;
+        return ErrorExp::errorexp;
     }
     else if (e1->type->isreal())
     {
@@ -897,7 +897,7 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
         cmp = (e1->toInteger() == e2->toInteger());
     }
     else
-        return EXP_CANT_INTERPRET;
+        return ErrorExp::errorexp;
 
     if (op == TOKnotequal)
         cmp ^= 1;
@@ -999,7 +999,7 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
     }
     else if (e1->isConst() != 1 || e2->isConst() != 1)
     {
-        return EXP_CANT_INTERPRET;
+        return ErrorExp::errorexp;
     }
     else if (e1->type->isreal())
     {
@@ -1119,14 +1119,14 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
     return e;
 }
 
-/* Also returns EXP_CANT_INTERPRET if cannot be computed.
+/* Also returns ErrorExp::errorexp if cannot be computed.
  *  to: type to cast to
  *  type: type to paint the result
  */
 
 Expression *Cast(Type *type, Type *to, Expression *e1)
 {
-    Expression *e = EXP_CANT_INTERPRET;
+    Expression *e = ErrorExp::errorexp;
     Loc loc = e1->loc;
 
     //printf("Cast(type = %s, to = %s, e1 = %s)\n", type->toChars(), to->toChars(), e1->toChars());
@@ -1166,7 +1166,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         return expType(to, e1);
 
     if (e1->isConst() != 1)
-        return EXP_CANT_INTERPRET;
+        return ErrorExp::errorexp;
 
     if (tb->ty == Tbool)
     {
@@ -1227,7 +1227,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     }
     else if (tb->ty == Tvoid)
     {
-        e = EXP_CANT_INTERPRET;
+        e = ErrorExp::errorexp;
     }
     else if (tb->ty == Tstruct && e1->op == TOKint64)
     {
@@ -1240,7 +1240,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
             VarDeclaration *v = sd->fields[i];
             Expression *exp = new IntegerExp(0);
             exp = Cast(v->type, v->type, exp);
-            if (exp == EXP_CANT_INTERPRET)
+            if (exp && exp->op == TOKerror)
                 return exp;
             elements->push(exp);
         }
@@ -1288,15 +1288,15 @@ Expression *ArrayLength(Type *type, Expression *e1)
         e = ((TypeSArray *)e1->type->toBasetype())->dim;
     }
     else
-        e = EXP_CANT_INTERPRET;
+        e = ErrorExp::errorexp;
     return e;
 }
 
-/* Also return EXP_CANT_INTERPRET if this fails
+/* Also return ErrorExp::errorexp if this fails
  */
 Expression *Index(Type *type, Expression *e1, Expression *e2)
 {
-    Expression *e = EXP_CANT_INTERPRET;
+    Expression *e = ErrorExp::errorexp;
     Loc loc = e1->loc;
 
     //printf("Index(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
@@ -1334,7 +1334,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             e->type = type;
             e->loc = loc;
             if (hasSideEffect(e))
-                e = EXP_CANT_INTERPRET;
+                e = ErrorExp::errorexp;
         }
     }
     else if (e1->type->toBasetype()->ty == Tarray && e2->op == TOKint64)
@@ -1355,7 +1355,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
                 e->type = type;
                 e->loc = loc;
                 if (hasSideEffect(e))
-                    e = EXP_CANT_INTERPRET;
+                    e = ErrorExp::errorexp;
             }
         }
     }
@@ -1369,7 +1369,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             i--;
             Expression *ekey = (*ae->keys)[i];
             Expression *ex = Equal(TOKequal, Type::tbool, ekey, e2);
-            if (ex == EXP_CANT_INTERPRET)
+            if (ex && ex->op == TOKerror)
                 return ex;
             if (ex->isBool(true))
             {
@@ -1377,7 +1377,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
                 e->type = type;
                 e->loc = loc;
                 if (hasSideEffect(e))
-                    e = EXP_CANT_INTERPRET;
+                    e = ErrorExp::errorexp;
                 break;
             }
         }
@@ -1385,11 +1385,11 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
     return e;
 }
 
-/* Also return EXP_CANT_INTERPRET if this fails
+/* Also return ErrorExp::errorexp if this fails
  */
 Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
 {
-    Expression *e = EXP_CANT_INTERPRET;
+    Expression *e = ErrorExp::errorexp;
     Loc loc = e1->loc;
 
 #if LOG
@@ -1567,11 +1567,11 @@ int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, si
     return 0;
 }
 
-/* Also return EXP_CANT_INTERPRET if this fails
+/* Also return ErrorExp::errorexp if this fails
  */
 Expression *Cat(Type *type, Expression *e1, Expression *e2)
 {
-    Expression *e = EXP_CANT_INTERPRET;
+    Expression *e = ErrorExp::errorexp;
     Loc loc = e1->loc;
     Type *t;
     Type *t1 = e1->type->toBasetype();
@@ -1892,10 +1892,10 @@ Expression *Ptr(Type *type, Expression *e1)
                 unsigned offset = (unsigned)ae->e2->toInteger();
                 Expression *e = se->getField(type, offset);
                 if (!e)
-                    e = EXP_CANT_INTERPRET;
+                    e = ErrorExp::errorexp;
                 return e;
             }
         }
     }
-    return EXP_CANT_INTERPRET;
+    return ErrorExp::errorexp;
 }

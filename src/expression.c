@@ -2001,11 +2001,11 @@ Expression::Expression(Loc loc, TOK op, int size)
     type = NULL;
 }
 
-Expression *EXP_CANT_INTERPRET;
+ErrorExp *ErrorExp::errorexp;
 
 void Expression::init()
 {
-    EXP_CANT_INTERPRET = new ErrorExp();
+    ErrorExp::errorexp = new ErrorExp();
 
     CTFEExp::voidexp = new CTFEExp(TOKvoidexp);
     CTFEExp::breakexp = new CTFEExp(TOKbreak);
@@ -11563,7 +11563,7 @@ Expression *AssignExp::semantic(Scope *sc)
         // Try to do a decent error message with the expression
         // before it got constant folded
         if (e1x->op != TOKvar)
-            e1x = e1x->optimize(WANTvalue);
+            e1x = e1x->optimize(0);
 
         if (op == TOKassign)
             e1x = e1x->modifiableLvalue(sc, e1old);
