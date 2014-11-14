@@ -128,12 +128,8 @@ private
     {
         // to allow compilation of this module without access to the rt package,
         //  make these functions available from rt.lifetime
-		void rt_finalize_struct(void* p, size_t size, bool resetMemory) nothrow;
-		int rt_hasStructFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow;
-		void rt_finalize_array2(void* p, size_t size, bool resetMemory) nothrow;
-		int rt_hasArrayFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow;
-        void rt_finalize2(void* p, bool det, bool resetMemory) nothrow;
-        int rt_hasFinalizerInSegment(void* p, in void[] segment) nothrow;
+		void rt_finalizeFromGC(void* p, size_t size, uint attr) nothrow;
+		int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, in void[] segment) nothrow;
 
         // Declared as an extern instead of importing core.exception
         // to avoid inlining - see issue 13725.
@@ -1597,7 +1593,7 @@ struct Gcx
     {
         foreach (pool; pooltable[0 .. npools])
         {
-            if (!pool.finals.nbits && !pool.structFinals.nbits) continue;
+            if (!pool.finals.nbits) continue;
 
             if (pool.isLargeObject)
             {
@@ -1607,22 +1603,17 @@ struct Gcx
                     if (bin > B_PAGE) continue;
                     size_t biti = pn;
 
-                    auto p = sentinel_add(pool.baseAddr + pn * PAGESIZE);
-
-                    if (pool.structFinals.nbits && pool.structFinals.test(biti))
-                    {
-                        size_t size = pool.bPageOffsets[pn] * PAGESIZE - SENTINEL_EXTRA;
-                        if (pool.appendable.nbits && pool.appendable.test(biti) && rt_hasArrayFinalizerInSegment(p, size, segment))
-                            rt_finalize_array2(p, size, true);
-                        else if (rt_hasStructFinalizerInSegment(p, size, segment))
-                            rt_finalize_struct(p, size, false);
-                        else
-                            continue;
-                    }
-                    else if (!pool.finals.nbits || !pool.finals.test(biti) || !rt_hasFinalizerInSegment(p, segment))
+                    if (!pool.finals.test(biti))
                         continue;
-                    else
-                        rt_finalize2(p, false, false);
+
+                    auto p = sentinel_add(pool.baseAddr + pn * PAGESIZE);
+                    size_t size = pool.bPageOffsets[pn] * PAGESIZE - SENTINEL_EXTRA;
+                    uint attr = getBits(pool, biti);
+
+                    if(!rt_hasFinalizerInSegment(p, size, attr, segment))
+                        continue;
+
+                    rt_finalizeFromGC(p, size, attr);
 
                     clrBits(pool, biti, ~BlkAttr.NONE);
 
@@ -1670,21 +1661,16 @@ struct Gcx
                             clearIndex = biti & GCBits.BITS_MASK;
                         }
 
-                        if (pool.structFinals.nbits && pool.structFinals.test(biti))
-                        {
-                            auto q = sentinel_add(p);
-                            auto qsize = size - SENTINEL_EXTRA;
-                            if (pool.appendable.nbits && pool.appendable.test(biti) && rt_hasArrayFinalizerInSegment(q, qsize, segment))
-                                rt_finalize_array2(q, qsize, true);
-                            else if (rt_hasStructFinalizerInSegment(q, size, segment))
-                                rt_finalize_struct(q, size, false);
-                            else
-                                continue;
-                        }
-                        else if (!pool.finals.nbits || !pool.finals.test(biti) || !rt_hasFinalizerInSegment(sentinel_add(p), segment))
+                        if (!pool.finals.test(biti))
                             continue;
-                        else
-                            rt_finalize2(sentinel_add(p), false, false);
+
+                        auto q = sentinel_add(p);
+                        uint attr = getBits(pool, biti);
+
+                        if(!rt_hasFinalizerInSegment(q, size, attr, segment))
+                            continue;
+
+                        rt_finalizeFromGC(q, size, attr);
 
                         toClear |= GCBits.BITS_1 << clearIndex;
 
@@ -2673,25 +2659,22 @@ struct Gcx
                     size_t biti = pn;
 
                     if (!pool.mark.test(biti))
-                    {   byte *p = pool.baseAddr + pn * PAGESIZE;
+                    {
+                        byte *p = pool.baseAddr + pn * PAGESIZE;
+                        void* q = sentinel_add(p);
+                        sentinel_Invariant(q);
 
-                        sentinel_Invariant(sentinel_add(p));
-
-                        if (pool.structFinals.nbits && pool.structFinals.testClear(biti))
+                        if (pool.finals.nbits && pool.finals.testClear(biti))
                         {
-                            auto size = (pool.bPageOffsets[pn] * PAGESIZE) - SENTINEL_EXTRA;
-                            if (pool.appendable.nbits && pool.appendable.test(biti))
-                                rt_finalize_array2(sentinel_add(p), size, true);
-                            else
-                                rt_finalize_struct(sentinel_add(p), size, false);
+                            size_t size = pool.bPageOffsets[pn] * PAGESIZE - SENTINEL_EXTRA;
+                            uint attr = getBits(pool, biti);
+                            rt_finalizeFromGC(q, size, attr);
                         }
-                        else if (pool.finals.nbits && pool.finals.testClear(biti))
-                            rt_finalize2(sentinel_add(p), false, false);
 
                         clrBits(pool, biti, ~BlkAttr.NONE ^ BlkAttr.FINALIZE);
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
-                        log_free(sentinel_add(p));
+                        log_free(q);
                         pool.pagetable[pn] = B_FREE;
                         if(pn < pool.searchStart) pool.searchStart = pn;
                         freedpages++;
@@ -2753,19 +2736,13 @@ struct Gcx
 
                             if (!pool.mark.test(biti))
                             {
-                                sentinel_Invariant(sentinel_add(p));
+                                void* q = sentinel_add(p);
+                                sentinel_Invariant(q);
 
                                 pool.freebits.set(biti);
 
-                                if (pool.structFinals.nbits && pool.structFinals.test(biti))
-                                {
-                                    if (pool.appendable.nbits && pool.appendable.test(biti))
-                                        rt_finalize_array2(sentinel_add(p), size - SENTINEL_EXTRA, true);
-                                    else
-                                        rt_finalize_struct(sentinel_add(p), size - SENTINEL_EXTRA, false);
-                                }
-                                else if (pool.finals.nbits && pool.finals.test(biti))
-                                    rt_finalize2(sentinel_add(p), false, false);
+                                if (pool.finals.nbits && pool.finals.test(biti))
+                                    rt_finalizeFromGC(q, size - SENTINEL_EXTRA, getBits(pool, biti));
 
                                 toClear |= GCBits.BITS_1 << clearIndex;
 
@@ -2912,8 +2889,10 @@ struct Gcx
     {
         uint bits;
 
-        if ((pool.finals.nbits && pool.finals.test(biti)) || (pool.structFinals.nbits && pool.structFinals.test(biti)))
+        if (pool.finals.nbits && pool.finals.test(biti))
             bits |= BlkAttr.FINALIZE;
+        if (pool.structFinals.nbits && pool.structFinals.test(biti))
+            bits |= BlkAttr.STRUCTFINAL;
         if (pool.noscan.test(biti))
             bits |= BlkAttr.NO_SCAN;
         if (pool.nointerior.nbits && pool.nointerior.test(biti))
@@ -2943,21 +2922,11 @@ struct Gcx
         immutable bitOffset = biti & GCBits.BITS_MASK;
         immutable orWith = GCBits.BITS_1 << bitOffset;
 
-        if (inf !is null)
+        if (mask & BlkAttr.STRUCTFINAL)
         {
-            if (typeid(inf) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
-            {
-                auto ti = cast(TypeInfo_Struct)cast(void*)inf;
-                if(ti.xdtor !is null)
-                {
-                    if (!pool.structFinals.nbits)
-                        pool.structFinals.alloc(pool.mark.nbits);
-                    pool.structFinals.data[dataIndex] |= orWith;
-                }
-                mask &= ~BlkAttr.FINALIZE; // prevent from setting normal finalize attribute.
-                if (!mask)
-                    return;
-            }
+            if (!pool.structFinals.nbits)
+                pool.structFinals.alloc(pool.mark.nbits);
+            pool.structFinals.data[dataIndex] |= orWith;
         }
 
         if (mask & BlkAttr.FINALIZE)
@@ -3005,13 +2974,12 @@ struct Gcx
         immutable bitOffset = biti & GCBits.BITS_MASK;
         immutable keep = ~(GCBits.BITS_1 << bitOffset);
 
-        if (mask & BlkAttr.FINALIZE)
-        {
-            if (pool.finals.nbits)
-                pool.finals.data[dataIndex] &= keep;
-            if (pool.structFinals.nbits)
-                pool.structFinals.data[dataIndex] &= keep;
-        }
+        if (mask & BlkAttr.FINALIZE && pool.finals.nbits)
+            pool.finals.data[dataIndex] &= keep;
+
+        if (pool.structFinals.nbits && (mask & BlkAttr.STRUCTFINAL))
+            pool.structFinals.data[dataIndex] &= keep;
+
         if (mask & BlkAttr.NO_SCAN)
             pool.noscan.data[dataIndex] &= keep;
 //        if (mask & BlkAttr.NO_MOVE && pool.nomove.nbits)
