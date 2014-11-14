@@ -1,8 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail269.d(12): Error: circular initialization of a
-fail_compilation/fail269.d(19): Error: circular initialization of bug7209
+fail_compilation/fail269.d(13): Error: circular initialization of a
+fail_compilation/fail269.d(12):        while evaluating b.init
+fail_compilation/fail269.d(20): Error: circular initialization of bug7209
 ---
 */
 
