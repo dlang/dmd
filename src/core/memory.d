@@ -220,6 +220,8 @@ struct GC
         and is only implemented for data structures at least a page in size.
         */
         NO_INTERIOR = 0b0001_0000,
+
+        STRUCTFINAL = 0b0010_0000, // the block has a finalizer for (an array of) structs
     }
 
 
@@ -458,8 +460,8 @@ struct GC
      *  p  = A pointer to the root of a valid memory block or to null.
      *  mx = The minimum extension size in bytes.
      *  sz = The desired extension size in bytes.
-     *  ti = TypeInfo to describe the full memory block. The GC might use 
-     *       this information to improve scanning for pointers or to 
+     *  ti = TypeInfo to describe the full memory block. The GC might use
+     *       this information to improve scanning for pointers or to
      *       call finalizers.
      *
      * Returns:
