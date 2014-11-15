@@ -144,6 +144,8 @@
 		7A8F5AAF173E8704002091B3 /* type.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A75173E8704002091B3 /* type.c */; };
 		7A8F5AB0173E8704002091B3 /* util2.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A76173E8704002091B3 /* util2.c */; };
 		7A8F5AB1173E8704002091B3 /* var.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A77173E8704002091B3 /* var.c */; };
+		7AD1A2331A17B031004A996E /* objc_stubs.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AD1A2321A17B031004A996E /* objc_stubs.c */; };
+		7AD1A2351A17BBCF004A996E /* objc_func_selector.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AD1A2341A17BBCF004A996E /* objc_func_selector.c */; };
 		7AE59E3B19FD3CFF003AB12D /* objc_todt.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E3919FD3CFF003AB12D /* objc_todt.c */; };
 		7AE59E4219FD4242003AB12D /* objc_glue.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E4019FD4242003AB12D /* objc_glue.c */; };
 		7AE59E4719FD4AFF003AB12D /* objc_toobj.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E4519FD4AFF003AB12D /* objc_toobj.c */; };
@@ -420,6 +422,8 @@
 		7A8F5ACF173E870F002091B3 /* ty.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = ty.h; sourceTree = "<group>"; };
 		7A8F5AD0173E870F002091B3 /* type.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = type.h; sourceTree = "<group>"; };
 		7A8F5AD1173E870F002091B3 /* xmm.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = xmm.h; sourceTree = "<group>"; };
+		7AD1A2321A17B031004A996E /* objc_stubs.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_stubs.c; path = src/objc_stubs.c; sourceTree = "<group>"; };
+		7AD1A2341A17BBCF004A996E /* objc_func_selector.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_func_selector.c; path = src/objc_func_selector.c; sourceTree = "<group>"; };
 		7AE59E3919FD3CFF003AB12D /* objc_todt.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_todt.c; path = src/objc_todt.c; sourceTree = "<group>"; };
 		7AE59E4019FD4242003AB12D /* objc_glue.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_glue.c; path = src/objc_glue.c; sourceTree = "<group>"; };
 		7AE59E4119FD4242003AB12D /* objc_glue.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; name = objc_glue.h; path = src/objc_glue.h; sourceTree = "<group>"; };
@@ -605,6 +609,7 @@
 				7AE59E5A19FD9579003AB12D /* objc_e2ir.c */,
 				7AE59E5019FD8ED7003AB12D /* objc_expression.c */,
 				7AE59E5219FD9047003AB12D /* objc_func.c */,
+				7AD1A2341A17BBCF004A996E /* objc_func_selector.c */,
 				7AE59E4019FD4242003AB12D /* objc_glue.c */,
 				7AE59E5C19FED7E7003AB12D /* objc_hdrgen.c */,
 				7AE59E5E19FED973003AB12D /* objc_inline.c */,
@@ -615,6 +620,7 @@
 				7AE59E661A0031BD003AB12D /* objc_parse.c */,
 				7AE59E761A02CB45003AB12D /* objc_selector.c */,
 				7AE59E6A1A0037C1003AB12D /* objc_sideeffect.c */,
+				7AD1A2321A17B031004A996E /* objc_stubs.c */,
 				7AE59E7A1A02D27C003AB12D /* objc_struct.c */,
 				7AE59E781A02D0AA003AB12D /* objc_symbols_common.c */,
 				7AE59E721A018782003AB12D /* objc_toctype.c */,
@@ -1031,6 +1037,7 @@
 				7A8F5AA7173E8704002091B3 /* ph2.c in Sources */,
 				7AE59E5D19FED7E7003AB12D /* objc_hdrgen.c in Sources */,
 				7A8F5AA9173E8704002091B3 /* ptrntab.c in Sources */,
+				7AD1A2331A17B031004A996E /* objc_stubs.c in Sources */,
 				7A8F5AAA173E8704002091B3 /* rtlsym.c in Sources */,
 				7A8F5AAB173E8704002091B3 /* strtold.c in Sources */,
 				7A8F5AAC173E8704002091B3 /* symbol.c in Sources */,
@@ -1039,6 +1046,7 @@
 				7B22633C196FEC56003C9F1D /* nspace.c in Sources */,
 				7A8F5AAE173E8704002091B3 /* ti_pvoid.c in Sources */,
 				7AE59E631A002E55003AB12D /* objc_mtype.c in Sources */,
+				7AD1A2351A17BBCF004A996E /* objc_func_selector.c in Sources */,
 				7A8F5AAF173E8704002091B3 /* type.c in Sources */,
 				7A81B2231A02D37E0092B6AF /* objc_mars.c in Sources */,
 				7A8F5AB0173E8704002091B3 /* util2.c in Sources */,

@@ -144,9 +144,11 @@ DMD_OBJS = \
 ifeq ($(D_OBJC),1)
 	DMD_OBJS += objc_argtypes.o objc_attrib.o objc_cast.o objc_class.o \
 		objc_cppmangle.o objc_declaration.o objc_dsymbol.o objc_expression.o \
-		objc_func.o objc_hdrgen.o objc_inline.o objc_interpret.o \
-		objc_mars.o objc_mtype.o objc_optimize.o objc_parse.o objc_selector.o \
-		objc_sideeffect.o objc_struct.o
+		objc_func_selector.o objc_func.o objc_hdrgen.o objc_inline.o \
+		objc_interpret.o objc_mars.o objc_mtype.o objc_optimize.o \
+		objc_parse.o objc_selector.o objc_sideeffect.o objc_struct.o
+else
+	DMD_OBJS += objc_func_selector.o objc_stubs.o
 endif
 
 ROOT_OBJS = \
@@ -215,9 +217,11 @@ SRC = win32.mak posix.mak osmodel.mak \
 ifeq ($(D_OBJC),1)
 	SRC += objc_argtypes.c objc_attrib.c objc_cast.c objc_class.c \
 		objc_cppmangle.c objc_declaration.c objc_dsymbol.c objc_expression.c \
-		objc_func.c objc_hdrgen.c objc_inline.c objc_interpret.c \
-		objc_mars.c objc_mtype.c objc_optimize.c objc_parse.c objc_selector.c \
-		objc_sideeffect.c objc_struct.c
+		objc_func.c objc_func_selector.c objc_hdrgen.c objc_inline.c \
+		objc_interpret.c objc_mars.c objc_mtype.c objc_optimize.c \
+		objc_parse.c objc_selector.c objc_sideeffect.c objc_struct.c
+else
+	SRC += objc_func_selector.c objc_stubs.c
 endif
 
 ROOT_SRC = $(ROOT)/root.h \
@@ -512,6 +516,7 @@ ifeq ($(D_OBJC),1)
 	gcov objc_e2ir.c
 	gcov objc_expression.c
 	gcov objc_func.c
+	gcov objc_func_selector.c
 	gcov objc_glue.c
 	gcov objc_hdrgen.c
 	gcov objc_inline.c
@@ -522,6 +527,7 @@ ifeq ($(D_OBJC),1)
 	gcov objc_parse.c
 	gcov objc_selector.c
 	gcov objc_sideeffect.c
+	gcov objc_stubs.c
 	gcov objc_struct.c
 	gcov objc_symbols_common.c
 	gcov objc_toctype.c
