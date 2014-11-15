@@ -272,13 +272,14 @@ void initTraitsStringTable()
     }
 }
 
-void *trait_search_fp(void *arg, const char *seed)
+void *trait_search_fp(void *arg, const char *seed, int* cost)
 {
     //printf("trait_search_fp('%s')\n", seed);
     size_t len = strlen(seed);
     if (!len)
         return NULL;
 
+    *cost = 0;
     StringValue *sv = traitsStringTable.lookup(seed, len);
     return sv ? (void*)sv->ptrvalue : NULL;
 }

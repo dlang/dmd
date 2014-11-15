@@ -415,7 +415,7 @@ Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
  * Search for symbol with correct spelling.
  */
 
-void *symbol_search_fp(void *arg, const char *seed)
+void *symbol_search_fp(void *arg, const char *seed, int* cost)
 {
     /* If not in the lexer's string table, it certainly isn't in the symbol table.
      * Doing this first is a lot faster.
@@ -429,9 +429,10 @@ void *symbol_search_fp(void *arg, const char *seed)
     Identifier *id = (Identifier *)sv->ptrvalue;
     assert(id);
 
+    *cost = 0;
     Dsymbol *s = (Dsymbol *)arg;
     Module::clearCache();
-    return (void *)s->search(Loc(), id, IgnoreErrors | IgnoreAmbiguous);
+    return (void *)s->search(Loc(), id, IgnoreErrors);
 }
 
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
@@ -905,6 +906,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     {
         Dsymbol *s = NULL;
         OverloadSet *a = NULL;
+        int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
 
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
@@ -918,7 +920,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
              */
-            Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? IgnorePrivateMembers : IgnoreNone);
+            Dsymbol *s2 = ss->search(loc, ident, sflags | (ss->isModule() ? IgnorePrivateMembers : IgnoreNone));
             if (!s)
             {
                 s = s2;
