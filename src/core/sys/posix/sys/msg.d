@@ -1,13 +1,26 @@
 /**
 * D header file for POSIX.
 *
-* Authors:   Neven Miculinić
+* Copyright: Copyright Neven Miculinić.
+* License: $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+* Authors: Neven Miculinić
+* Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
+*/
+
+/* Copyright Neven Miculnić 2014.
+* Distributed under the Boost Software License, Version 1.0.
+* (See accompanying file LICENSE or copy at
+* http://www.boost.org/LICENSE_1_0.txt)
+*/
+
+/*
 * Mostly copied/adapted from 
 * /usr/include/linux/msg.h
 * /usr/include/x86_64-linux-gnu/sys/msg.h
 * constants from headers on Linux Mint x86-64
 * manuals
 */
+
 module core.sys.posix.sys.msg;
 
 private import core.sys.posix.sys.ipc;
