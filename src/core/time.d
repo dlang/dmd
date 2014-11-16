@@ -100,7 +100,7 @@ version(OSX)
 
 public import core.sys.osx.mach.kern_return;
 
-extern(C) nothrow
+extern(C) nothrow @nogc
 {
 
 struct mach_timebase_info_data_t
@@ -164,23 +164,25 @@ assert(std.datetime.Date(2010, 9, 7) - std.datetime.Date(2010, 10, 3) ==
  +/
 struct Duration
 {
+@safe pure:
+
 public:
 
     /++
         A $(D Duration) of $(D 0). It's shorter than doing something like
         $(D dur!"seconds"(0)) and more explicit than $(D Duration.init).
       +/
-    static @property @safe pure nothrow Duration zero() { return Duration(0); }
+    static @property nothrow @nogc Duration zero() { return Duration(0); }
 
     /++
         Largest $(D Duration) possible.
       +/
-    static @property @safe pure nothrow Duration max() { return Duration(long.max); }
+    static @property nothrow @nogc Duration max() { return Duration(long.max); }
 
     /++
         Most negative $(D Duration) possible.
       +/
-    static @property @safe pure nothrow Duration min() { return Duration(long.min); }
+    static @property nothrow @nogc Duration min() { return Duration(long.min); }
 
     unittest
     {
@@ -205,7 +207,7 @@ public:
             $(TR $(TD this &gt; rhs) $(TD &gt; 0))
             )
      +/
-    int opCmp(Duration rhs) @safe const pure nothrow
+    int opCmp(Duration rhs) const nothrow @nogc
     {
         if(_hnsecs < rhs._hnsecs)
             return -1;
@@ -279,7 +281,7 @@ public:
         Params:
             rhs = The duration to add to or subtract from this $(D Duration).
       +/
-    Duration opBinary(string op, D)(D rhs) @safe const pure nothrow
+    Duration opBinary(string op, D)(D rhs) const nothrow @nogc
         if((op == "+" || op == "-") &&
            (is(_Unqual!D == Duration) ||
             is(_Unqual!D == TickDuration)))
@@ -357,7 +359,7 @@ public:
             lhs = The $(D TickDuration) to add to this $(D Duration) or to
                   subtract this $(D Duration) from.
       +/
-    Duration opBinaryRight(string op, D)(D lhs) @safe const pure nothrow
+    Duration opBinaryRight(string op, D)(D lhs) const nothrow @nogc
         if((op == "+" || op == "-") &&
             is(_Unqual!D == TickDuration))
     {
@@ -410,7 +412,7 @@ public:
         Params:
             rhs = The duration to add to or subtract from this $(D Duration).
       +/
-    ref Duration opOpAssign(string op, D)(in D rhs) @safe pure nothrow
+    ref Duration opOpAssign(string op, D)(in D rhs) nothrow @nogc
         if((op == "+" || op == "-") &&
            (is(_Unqual!D == Duration) ||
             is(_Unqual!D == TickDuration)))
@@ -511,7 +513,7 @@ public:
         Params:
             value = The value to multiply this $(D Duration) by.
       +/
-    Duration opBinary(string op)(long value) @safe const pure nothrow
+    Duration opBinary(string op)(long value) const nothrow @nogc
         if(op == "*")
     {
         return Duration(_hnsecs * value);
@@ -550,7 +552,7 @@ public:
         Params:
             value = The value to multiply this $(D Duration) by.
       +/
-    ref Duration opOpAssign(string op)(long value) @safe pure nothrow
+    ref Duration opOpAssign(string op)(long value) nothrow @nogc
         if(op == "*")
     {
         _hnsecs *= value;
@@ -605,7 +607,7 @@ public:
         Throws:
             $(D TimeException) if an attempt to divide by $(D 0) is made.
       +/
-    Duration opBinary(string op)(long value) @safe pure const
+    Duration opBinary(string op)(long value) const
         if(op == "/")
     {
         if(value == 0)
@@ -656,7 +658,7 @@ public:
         Throws:
             $(D TimeException) if an attempt to divide by $(D 0) is made.
       +/
-    ref Duration opOpAssign(string op)(long value) @safe pure
+    ref Duration opOpAssign(string op)(long value)
         if(op == "/")
     {
         if(value == 0)
@@ -713,7 +715,7 @@ public:
         Params:
             value = The number of units to multiply this $(D Duration) by.
       +/
-    Duration opBinaryRight(string op)(long value) @safe const pure nothrow
+    Duration opBinaryRight(string op)(long value) const nothrow @nogc
         if(op == "*")
     {
         return opBinary!op(value);
@@ -744,7 +746,7 @@ public:
     /++
         Returns the negation of this $(D Duration).
       +/
-    Duration opUnary(string op)() @safe const pure nothrow
+    Duration opUnary(string op)() const nothrow @nogc
         if(op == "-")
     {
         return Duration(-_hnsecs);
@@ -770,7 +772,7 @@ public:
         $(D TickDuration) is using $(XREF conv, to), e.g.:
         $(D duration.to!TickDuration())
       +/
-    TickDuration opCast(T)() @safe const pure nothrow
+    TickDuration opCast(T)() const nothrow @nogc
         if(is(_Unqual!T == TickDuration))
     {
         return TickDuration.from!"hnsecs"(_hnsecs);
@@ -808,7 +810,7 @@ public:
 
 
     //Temporary hack until bug http://d.puremagic.com/issues/show_bug.cgi?id=5747 is fixed.
-    Duration opCast(T)() @safe const pure nothrow
+    Duration opCast(T)() const nothrow @nogc
         if(is(_Unqual!T == Duration))
     {
         return this;
@@ -853,7 +855,7 @@ public:
            unitsAreInDescendingOrder(units))
     {
         /++ Ditto +/
-        void split(Args...)(out Args args) @safe const pure nothrow
+        void split(Args...)(out Args args) const nothrow @nogc
             if(units.length != 0 && args.length == units.length && allAreMutableIntegralTypes!Args)
         {
             long hnsecs = _hnsecs;
@@ -867,7 +869,7 @@ public:
         }
 
         /++ Ditto +/
-        auto split() @safe const pure nothrow
+        auto split() const nothrow @nogc
         {
             static if(units.length == 0)
                 return split!("weeks", "days", "hours", "minutes", "seconds", "msecs", "usecs", "hnsecs")();
@@ -1153,7 +1155,7 @@ public:
         $(D d.get!"minutes"()) is equivalent to $(D d.split().minutes).
       +/
     deprecated("Please use split instead. get was too frequently confused for total.")
-    long get(string units)() @safe const pure nothrow
+    long get(string units)() const nothrow @nogc
         if(units == "weeks" ||
            units == "days" ||
            units == "hours" ||
@@ -1209,7 +1211,7 @@ public:
         (minus the larger units).
       +/
     deprecated(`Please use split instead. The functions which wrapped get were too frequently confused with total.`)
-    @property long weeks() @safe const pure nothrow
+    @property long weeks() const nothrow @nogc
     {
         return get!"weeks"();
     }
@@ -1242,7 +1244,7 @@ public:
         (minus the larger units).
       +/
     deprecated(`Please use split instead. days was too frequently confused for total!"days".`)
-    @property long days() @safe const pure nothrow
+    @property long days() const nothrow @nogc
     {
         return get!"days"();
     }
@@ -1277,7 +1279,7 @@ public:
         (minus the larger units).
       +/
     deprecated(`Please use split instead. hours was too frequently confused for total!"hours".`)
-    @property long hours() @safe const pure nothrow
+    @property long hours() const nothrow @nogc
     {
         return get!"hours"();
     }
@@ -1312,7 +1314,7 @@ public:
         (minus the larger units).
       +/
     deprecated(`Please use split instead. minutes was too frequently confused for total!"minutes".`)
-    @property long minutes() @safe const pure nothrow
+    @property long minutes() const nothrow @nogc
     {
         return get!"minutes"();
     }
@@ -1347,7 +1349,7 @@ public:
         (minus the larger units).
       +/
     deprecated(`Please use split instead. seconds was too frequently confused for total!"seconds".`)
-    @property long seconds() @safe const pure nothrow
+    @property long seconds() const nothrow @nogc
     {
         return get!"seconds"();
     }
@@ -1381,7 +1383,7 @@ public:
         Returns the fractional seconds past the second in this $(D Duration).
      +/
     deprecated(`Please use split instead.`)
-    @property FracSec fracSec() @safe const pure nothrow
+    @property FracSec fracSec() const nothrow
     {
         try
         {
@@ -1432,7 +1434,7 @@ public:
         Returns the total number of the given units in this $(D Duration).
         So, unlike $(D split), it does not strip out the larger units.
       +/
-    @property long total(string units)() @safe const pure nothrow
+    @property long total(string units)() const nothrow @nogc
         if(units == "weeks" ||
            units == "days" ||
            units == "hours" ||
@@ -1502,7 +1504,7 @@ public:
     //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
     //have versions of toString() with extra modifiers, so we define one version
     //with modifiers and one without.
-    string toString() @safe const pure nothrow
+    string toString() const nothrow
     {
         return _toStringImpl();
     }
@@ -1560,7 +1562,7 @@ public:
     /++
         Returns whether this $(D Duration) is negative.
       +/
-    @property bool isNegative() @safe const pure nothrow
+    @property bool isNegative() const nothrow @nogc
     {
         return _hnsecs < 0;
     }
@@ -1584,7 +1586,7 @@ private:
         Since we have two versions of toString, we have _toStringImpl
         so that they can share implementations.
       +/
-    string _toStringImpl() @safe const pure nothrow
+    string _toStringImpl() const nothrow
     {
         static void appListSep(ref string res, uint pos, bool last) nothrow
         {
@@ -1639,7 +1641,7 @@ private:
         Params:
             hnsecs = The total number of hecto-nanoseconds in this $(D Duration).
       +/
-    @safe pure nothrow this(long hnsecs)
+    this(long hnsecs) nothrow @nogc
     {
         _hnsecs = hnsecs;
     }
@@ -1707,7 +1709,7 @@ assert(nsecs(142).total!"nsecs" == 100);
         units  = The time units of the $(D Duration) (e.g. $(D "days")).
         length = The number of units in the $(D Duration).
   +/
-Duration dur(string units)(long length) @safe pure nothrow
+Duration dur(string units)(long length) @safe pure nothrow @nogc
     if(units == "weeks" ||
        units == "days" ||
        units == "hours" ||
@@ -1824,6 +1826,8 @@ unittest
   +/
 struct MonoTime
 {
+@safe:
+
     /++
         The current time of the system's monotonic clock. This has no relation
         to the wall clock time, as the wall clock time can be adjusted (e.g.
@@ -1841,7 +1845,7 @@ struct MonoTime
                         Mac OS X. It has not been tested whether it occurs on
                         either Windows or on Linux.
       +/
-    static @property MonoTime currTime() @trusted nothrow
+    static @property MonoTime currTime() @trusted nothrow @nogc
     {
         if(_ticksPerSecond == 0)
             assert(0, "MonoTime failed to get the frequency of the system's monotonic clock.");
@@ -1871,21 +1875,24 @@ struct MonoTime
     }
 
 
+    static @property pure nothrow @nogc
+    {
     /++
         A $(D MonoTime) of $(D 0) ticks. It's provided to be consistent with
         $(D Duration.zero), and it's more explicit than $(D MonoTime.init).
       +/
-    static @property @safe pure nothrow MonoTime zero() { return MonoTime(0); }
+    MonoTime zero() { return MonoTime(0); }
 
     /++
         Largest $(D MonoTime) possible.
       +/
-    static @property @safe pure nothrow MonoTime max() { return MonoTime(long.max); }
+    MonoTime max() { return MonoTime(long.max); }
 
     /++
         Most negative $(D MonoTime) possible.
       +/
-    static @property @safe pure nothrow MonoTime min() { return MonoTime(long.min); }
+    MonoTime min() { return MonoTime(long.min); }
+    }
 
     unittest
     {
@@ -1908,7 +1915,7 @@ struct MonoTime
                 $(TR $(TD this &gt; rhs) $(TD &gt; 0))
             )
      +/
-    int opCmp(MonoTime rhs) const @safe pure nothrow
+    int opCmp(MonoTime rhs) const pure nothrow @nogc
     {
         if(_ticks < rhs._ticks)
             return -1;
@@ -1997,7 +2004,7 @@ assert(before + timeElapsed == after).
             MonoTime's $(D ticks) property and keep all calculations in ticks
             rather than using $(LREF Duration).
       +/
-    Duration opBinary(string op)(MonoTime rhs) const @safe pure nothrow
+    Duration opBinary(string op)(MonoTime rhs) const pure nothrow @nogc
         if(op == "-")
     {
         immutable diff = _ticks - rhs._ticks;
@@ -2022,7 +2029,7 @@ assert(before + timeElapsed == after).
         {
             foreach(U; _TypeTuple!(MonoTime, const MonoTime, immutable MonoTime))
             {
-                static void test()(T before, U after, Duration min, size_t line = __LINE__)
+                static void test()(T before, U after, Duration min, size_t line = __LINE__) @trusted
                 {
                     immutable diff = after - before;
                     scope(failure)
@@ -2053,7 +2060,7 @@ assert(before + timeElapsed == after).
         Adding or subtracting a $(LREF Duration) to/from a MonoTime results in
         a MonoTime which is adjusted by that amount.
       +/
-    MonoTime opBinary(string op)(Duration rhs) const @safe pure nothrow
+    MonoTime opBinary(string op)(Duration rhs) const pure nothrow @nogc
         if(op == "+" || op == "-")
     {
         immutable rhsConverted = convClockFreq(rhs._hnsecs, hnsecsPer!"seconds", ticksPerSecond);
@@ -2099,7 +2106,7 @@ assert(before + timeElapsed == after).
 
 
     /++ Ditto +/
-    ref MonoTime opOpAssign(string op)(Duration rhs) @safe pure nothrow
+    ref MonoTime opOpAssign(string op)(Duration rhs) pure nothrow @nogc
         if(op == "+" || op == "-")
     {
         immutable rhsConverted = convClockFreq(rhs._hnsecs, hnsecsPer!"seconds", ticksPerSecond);
@@ -2153,7 +2160,7 @@ assert(before + timeElapsed == after).
         that higher precision, or if the program needs to avoid the rounding
         errors caused by converting to hnsecs.
       +/
-    @property long ticks() const @safe pure nothrow
+    @property long ticks() const pure nothrow @nogc
     {
         return _ticks;
     }
@@ -2172,7 +2179,7 @@ assert(before + timeElapsed == after).
         e.g. if the system clock had a resolution of microseconds, then
         ticksPerSecond would be $(D 1_000_000).
       +/
-    static @property long ticksPerSecond() @safe pure nothrow
+    static @property long ticksPerSecond() pure nothrow @nogc
     {
         return _ticksPerSecond;
     }
@@ -2184,7 +2191,7 @@ assert(before + timeElapsed == after).
 
 
     ///
-    string toString() @safe const pure nothrow
+    string toString() const pure nothrow
     {
         return "MonoTime(" ~ numToString(_ticks) ~ " ticks, " ~ numToString(_ticksPerSecond) ~ " ticks per second)";
     }
@@ -2268,7 +2275,7 @@ private:
     See_Also:
         $(LREF ticksToNSecs)
   +/
-long convClockFreq(long ticks, long srcTicksPerSecond, long dstTicksPerSecond) @safe pure nothrow
+long convClockFreq(long ticks, long srcTicksPerSecond, long dstTicksPerSecond) @safe pure nothrow @nogc
 {
     // This would be more straightforward with floating point arithmetic,
     // but we avoid it here in order to avoid the rounding errors that that
@@ -2366,7 +2373,7 @@ unittest
     See_Also:
         $(LREF convClockFreq)
   +/
-long ticksToNSecs(long ticks) @safe pure nothrow
+long ticksToNSecs(long ticks) @safe pure nothrow @nogc
 {
     return convClockFreq(ticks, MonoTime.ticksPerSecond, 1_000_000_000);
 }
@@ -2386,7 +2393,7 @@ unittest
 /++
     The reverse of $(LREF ticksToNSecs).
   +/
-long nsecsToTicks(long ticks) @safe pure nothrow
+long nsecsToTicks(long ticks) @safe pure nothrow @nogc
 {
     return convClockFreq(ticks, 1_000_000_000, MonoTime.ticksPerSecond);
 }
@@ -2436,22 +2443,25 @@ struct TickDuration
     static immutable TickDuration appOrigin;
 
 
+    static @property @safe pure nothrow @nogc
+    {
     /++
         It's the same as $(D TickDuration(0)), but it's provided to be
         consistent with $(D Duration) and $(D FracSec), which provide $(D zero)
         properties.
       +/
-    static @property @safe pure nothrow TickDuration zero() { return TickDuration(0); }
+    TickDuration zero() { return TickDuration(0); }
 
     /++
         Largest $(D TickDuration) possible.
       +/
-    static @property @safe pure nothrow TickDuration max() { return TickDuration(long.max); }
+    TickDuration max() { return TickDuration(long.max); }
 
     /++
         Most negative $(D TickDuration) possible.
       +/
-    static @property @safe pure nothrow TickDuration min() { return TickDuration(long.min); }
+    TickDuration min() { return TickDuration(long.min); }
+    }
 
     unittest
     {
@@ -2540,7 +2550,7 @@ struct TickDuration
             T     = The type to convert to (either an integral type or a
                     floating point type).
       +/
-    T to(string units, T)() @safe const pure nothrow
+    T to(string units, T)() @safe const pure nothrow @nogc
         if((units == "seconds" ||
             units == "msecs" ||
             units == "usecs" ||
@@ -2573,7 +2583,7 @@ struct TickDuration
     /++
         Returns the total number of seconds in this $(D TickDuration).
       +/
-    @property long seconds() @safe const pure nothrow
+    @property long seconds() @safe const pure nothrow @nogc
     {
         return to!("seconds", long)();
     }
@@ -2596,7 +2606,7 @@ struct TickDuration
     /++
         Returns the total number of milliseconds in this $(D TickDuration).
       +/
-    @property long msecs() @safe const pure nothrow
+    @property long msecs() @safe const pure nothrow @nogc
     {
         return to!("msecs", long)();
     }
@@ -2605,7 +2615,7 @@ struct TickDuration
     /++
         Returns the total number of microseconds in this $(D TickDuration).
       +/
-    @property long usecs() @safe const pure nothrow
+    @property long usecs() @safe const pure nothrow @nogc
     {
         return to!("usecs", long)();
     }
@@ -2614,7 +2624,7 @@ struct TickDuration
     /++
         Returns the total number of hecto-nanoseconds in this $(D TickDuration).
       +/
-    @property long hnsecs() @safe const pure nothrow
+    @property long hnsecs() @safe const pure nothrow @nogc
     {
         return to!("hnsecs", long)();
     }
@@ -2623,7 +2633,7 @@ struct TickDuration
     /++
         Returns the total number of nanoseconds in this $(D TickDuration).
       +/
-    @property long nsecs() @safe const pure nothrow
+    @property long nsecs() @safe const pure nothrow @nogc
     {
         return to!("nsecs", long)();
     }
@@ -2637,7 +2647,7 @@ struct TickDuration
             units  = The time units of the $(D TickDuration) (e.g. $(D "msecs")).
             length = The number of units in the $(D TickDuration).
       +/
-    static TickDuration from(string units)(long length) @safe pure nothrow
+    static TickDuration from(string units)(long length) @safe pure nothrow @nogc
         if(units == "seconds" ||
            units == "msecs" ||
            units == "usecs" ||
@@ -2673,7 +2683,7 @@ struct TickDuration
         and $(D Duration) is using $(XREF conv, to), e.g.:
         $(D tickDuration.to!Duration())
       +/
-    Duration opCast(T)() @safe const pure nothrow
+    Duration opCast(T)() @safe const pure nothrow @nogc
         if(is(_Unqual!T == Duration))
     {
         return Duration(hnsecs);
@@ -2699,7 +2709,7 @@ struct TickDuration
 
 
     //Temporary hack until bug http://d.puremagic.com/issues/show_bug.cgi?id=5747 is fixed.
-    TickDuration opCast(T)() @safe const pure nothrow
+    TickDuration opCast(T)() @safe const pure nothrow @nogc
         if(is(_Unqual!T == TickDuration))
     {
         return this;
@@ -2722,7 +2732,7 @@ struct TickDuration
             rhs = The $(D TickDuration) to add to or subtract from this
                   $(D $(D TickDuration)).
       +/
-    ref TickDuration opOpAssign(string op)(TickDuration rhs) @safe pure nothrow
+    ref TickDuration opOpAssign(string op)(TickDuration rhs) @safe pure nothrow @nogc
         if(op == "+" || op == "-")
     {
         mixin("length " ~ op ~ "= rhs.length;");
@@ -2768,7 +2778,7 @@ struct TickDuration
             rhs = The $(D TickDuration) to add to or subtract from this
                   $(D TickDuration).
       +/
-    TickDuration opBinary(string op)(TickDuration rhs) @safe const pure nothrow
+    TickDuration opBinary(string op)(TickDuration rhs) @safe const pure nothrow @nogc
         if(op == "+" || op == "-")
     {
         return TickDuration(mixin("length " ~ op ~ " rhs.length"));
@@ -2789,7 +2799,7 @@ struct TickDuration
     /++
         Returns the negation of this $(D TickDuration).
       +/
-    TickDuration opUnary(string op)() @safe const pure nothrow
+    TickDuration opUnary(string op)() @safe const pure nothrow @nogc
         if(op == "-")
     {
         return TickDuration(-length);
@@ -2811,7 +2821,7 @@ struct TickDuration
     /++
        operator overloading "<, >, <=, >="
       +/
-    int opCmp(TickDuration rhs) @safe const pure nothrow
+    int opCmp(TickDuration rhs) @safe const pure nothrow @nogc
     {
         return length < rhs.length ? -1 : (length == rhs.length ? 0 : 1);
     }
@@ -2867,7 +2877,7 @@ struct TickDuration
         Params:
             value = The value to divide from this duration.
       +/
-    void opOpAssign(string op, T)(T value) @safe pure nothrow
+    void opOpAssign(string op, T)(T value) @safe pure nothrow @nogc
         if(op == "*" &&
            (__traits(isIntegral, T) || __traits(isFloating, T)))
     {
@@ -2965,7 +2975,7 @@ struct TickDuration
         Params:
             value = The value to divide from this $(D TickDuration).
       +/
-    TickDuration opBinary(string op, T)(T value) @safe const pure nothrow
+    TickDuration opBinary(string op, T)(T value) @safe const pure nothrow @nogc
         if(op == "*" &&
            (__traits(isIntegral, T) || __traits(isFloating, T)))
     {
@@ -3031,7 +3041,7 @@ struct TickDuration
         Params:
             ticks = The number of ticks in the TickDuration.
       +/
-    @safe pure nothrow this(long ticks)
+    @safe pure nothrow @nogc this(long ticks)
     {
         this.length = ticks;
     }
@@ -3068,7 +3078,7 @@ struct TickDuration
         Throws:
             $(D TimeException) if it fails to get the time.
       +/
-    static @property TickDuration currSystemTick() @trusted nothrow
+    static @property TickDuration currSystemTick() @trusted nothrow @nogc
     {
         version(Windows)
         {
@@ -3151,7 +3161,7 @@ assert(convert!("nsecs", "seconds")(1) == 0);
 assert(convert!("seconds", "nsecs")(1) == 1_000_000_000);
 --------------------
   +/
-long convert(string from, string to)(long value) @safe pure nothrow
+long convert(string from, string to)(long value) @safe pure nothrow @nogc
     if(((from == "weeks" ||
          from == "days" ||
          from == "hours" ||
@@ -3311,13 +3321,15 @@ unittest
   +/
 struct FracSec
 {
+@safe pure:
+
 public:
 
     /++
         A $(D FracSec) of $(D 0). It's shorter than doing something like
         $(D FracSec.from!"msecs"(0)) and more explicit than $(D FracSec.init).
       +/
-    static @property @safe pure nothrow FracSec zero() { return FracSec(0); }
+    static @property nothrow @nogc FracSec zero() { return FracSec(0); }
 
     unittest
     {
@@ -3338,7 +3350,7 @@ public:
             greater than or equal to $(D 1) second or less than or equal to
             $(D -1) seconds.
       +/
-    static FracSec from(string units)(long value) @safe pure
+    static FracSec from(string units)(long value)
         if(units == "msecs" ||
            units == "usecs" ||
            units == "hnsecs" ||
@@ -3389,7 +3401,7 @@ public:
     /++
         Returns the negation of this $(D FracSec).
       +/
-    FracSec opUnary(string op)() @safe const pure nothrow
+    FracSec opUnary(string op)() const nothrow @nogc
         if(op == "-")
     {
         return FracSec(-_hnsecs);
@@ -3411,7 +3423,7 @@ public:
     /++
         The value of this $(D FracSec) as milliseconds.
       +/
-    @property int msecs() @safe const pure nothrow
+    @property int msecs() const nothrow @nogc
     {
         return cast(int)convert!("hnsecs", "msecs")(_hnsecs);
     }
@@ -3443,7 +3455,7 @@ public:
             $(D TimeException) if the given value is not less than $(D 1) second
             and greater than a $(D -1) seconds.
       +/
-    @property void msecs(int milliseconds) @safe pure
+    @property void msecs(int milliseconds)
     {
         immutable hnsecs = cast(int)convert!("msecs", "hnsecs")(milliseconds);
         _enforceValid(hnsecs);
@@ -3483,7 +3495,7 @@ public:
     /++
         The value of this $(D FracSec) as microseconds.
       +/
-    @property int usecs() @safe const pure nothrow
+    @property int usecs() const nothrow @nogc
     {
         return cast(int)convert!("hnsecs", "usecs")(_hnsecs);
     }
@@ -3515,7 +3527,7 @@ public:
             $(D TimeException) if the given value is not less than $(D 1) second
             and greater than a $(D -1) seconds.
       +/
-    @property void usecs(int microseconds) @safe pure
+    @property void usecs(int microseconds)
     {
         immutable hnsecs = cast(int)convert!("usecs", "hnsecs")(microseconds);
         _enforceValid(hnsecs);
@@ -3556,7 +3568,7 @@ public:
     /++
         The value of this $(D FracSec) as hnsecs.
       +/
-    @property int hnsecs() @safe const pure nothrow
+    @property int hnsecs() const nothrow @nogc
     {
         return _hnsecs;
     }
@@ -3588,7 +3600,7 @@ public:
             $(D TimeException) if the given value is not less than $(D 1) second
             and greater than a $(D -1) seconds.
       +/
-    @property void hnsecs(int hnsecs) @safe pure
+    @property void hnsecs(int hnsecs)
     {
         _enforceValid(hnsecs);
         _hnsecs = hnsecs;
@@ -3632,7 +3644,7 @@ public:
         Note that this does not give you any greater precision
         than getting the value of this $(D FracSec) as hnsecs.
       +/
-    @property int nsecs() @safe const pure nothrow
+    @property int nsecs() const nothrow @nogc
     {
         return cast(int)convert!("hnsecs", "nsecs")(_hnsecs);
     }
@@ -3667,7 +3679,7 @@ public:
             $(D TimeException) if the given value is not less than $(D 1) second
             and greater than a $(D -1) seconds.
       +/
-    @property void nsecs(long nsecs) @safe pure
+    @property void nsecs(long nsecs)
     {
         immutable hnsecs = cast(int)convert!("nsecs", "hnsecs")(nsecs);
         _enforceValid(hnsecs);
@@ -3726,7 +3738,7 @@ public:
     //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
     //have versions of toString() with extra modifiers, so we define one version
     //with modifiers and one without.
-    string toString() @safe const pure nothrow
+    string toString() const nothrow
     {
         return _toStringImpl();
     }
@@ -3748,7 +3760,7 @@ private:
         Since we have two versions of $(D toString), we have $(D _toStringImpl)
         so that they can share implementations.
       +/
-    string _toStringImpl() @safe const pure nothrow
+    string _toStringImpl() const nothrow
     {
         try
         {
@@ -3846,7 +3858,7 @@ private:
         Params:
             hnsecs = The number of hnsecs.
       +/
-    static bool _valid(int hnsecs) @safe pure
+    static bool _valid(int hnsecs) nothrow @nogc
     {
         immutable second = convert!("seconds", "hnsecs")(1);
         return hnsecs > -second && hnsecs < second;
@@ -3857,7 +3869,7 @@ private:
         Throws:
             $(D TimeException) if $(D valid(hnsecs)) is $(D false).
       +/
-    static void _enforceValid(int hnsecs) @safe pure
+    static void _enforceValid(int hnsecs)
     {
         if(!_valid(hnsecs))
             throw new TimeException("FracSec must be greater than equal to 0 and less than 1 second.");
@@ -3868,13 +3880,13 @@ private:
         Params:
             hnsecs = The number of hnsecs passed the second.
       +/
-    @safe pure nothrow this(int hnsecs)
+    this(int hnsecs) nothrow @nogc
     {
         _hnsecs = hnsecs;
     }
 
 
-    @safe pure invariant()
+    invariant()
     {
         if(!_valid(_hnsecs))
             throw new AssertError("Invaliant Failure: hnsecs [" ~ numToString(_hnsecs) ~ "]", __FILE__, __LINE__);
@@ -3940,13 +3952,13 @@ unittest
 /++
     Returns the absolute value of a duration.
   +/
-Duration abs(Duration duration) @safe pure nothrow
+Duration abs(Duration duration) @safe pure nothrow @nogc
 {
     return Duration(_abs(duration._hnsecs));
 }
 
 /++ Ditto +/
-TickDuration abs(TickDuration duration) @safe pure nothrow
+TickDuration abs(TickDuration duration) @safe pure nothrow @nogc
 {
     return TickDuration(_abs(duration.length));
 }
@@ -4025,7 +4037,7 @@ assert(minutes == 5);
 assert(hnsecs == 7);
 --------------------
   +/
-long splitUnitsFromHNSecs(string units)(ref long hnsecs) @safe pure nothrow
+long splitUnitsFromHNSecs(string units)(ref long hnsecs) @safe pure nothrow @nogc
     if(units == "weeks" ||
        units == "days" ||
        units == "hours" ||
@@ -4077,7 +4089,7 @@ assert(days == 3);
 assert(hnsecs == 2595000000007L);
 --------------------
   +/
-long getUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow
+long getUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow @nogc
     if(units == "weeks" ||
        units == "days" ||
        units == "hours" ||
@@ -4122,7 +4134,7 @@ assert(returned == 3000000007);
 assert(hnsecs == 2595000000007L);
 --------------------
   +/
-long removeUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow
+long removeUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow @nogc
     if(units == "weeks" ||
        units == "days" ||
        units == "hours" ||
@@ -4300,7 +4312,7 @@ unittest
 /+
     Local version of abs, since std.math.abs is in Phobos, not druntime.
   +/
-long _abs(long val) @safe pure nothrow
+long _abs(long val) @safe pure nothrow @nogc
 {
     return val >= 0 ? val : -val;
 }
