@@ -35,7 +35,7 @@ extern (C):
 
 /* Accorind to manual for msgctl this constants these two constants are linux specific.
 /* ipcs ctl commands */
-version(Linux) {	
+version(linux) {	
 	public enum MSG_STAT = 11;
 	public enum MSG_INFO = 12;
 }
