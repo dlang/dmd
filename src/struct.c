@@ -137,6 +137,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
     isdeprecated = false;
+    mutedeprecation = false;
     inv = NULL;
     aggNew = NULL;
     aggDelete = NULL;
@@ -238,6 +239,16 @@ void AggregateDeclaration::semantic3(Scope *sc)
         (!isDeprecated() || global.params.useDeprecated) &&
         (type && type->ty != Terror))
     {
+        // we do not want to report deprecated uses of this type during RTInfo
+        //  generation, so we disable reporting deprecation temporarily
+        // WARNING: Muting messages during analysis of RTInfo might silently instantiate
+        //  templates that use (other) deprecated types. If these template instances
+        //  are used in other parts of the program later, they will be reused without
+        //  ever producing the deprecation message. The implementation here restricts
+        //  muting to the types that RTInfo is currently generated for.
+        bool wasmuted = mutedeprecation;
+        mutedeprecation = true;
+
         // Evaluate: RTinfo!type
         Objects *tiargs = new Objects();
         tiargs->push(type);
@@ -255,6 +266,8 @@ void AggregateDeclaration::semantic3(Scope *sc)
 
         e = e->ctfeInterpret();
         getRTInfo = e;
+
+        mutedeprecation = wasmuted;
     }
 
     if (sd)
@@ -382,6 +395,11 @@ Type *AggregateDeclaration::getType()
 bool AggregateDeclaration::isDeprecated()
 {
     return isdeprecated;
+}
+
+bool AggregateDeclaration::muteDeprecationMessage()
+{
+    return mutedeprecation;
 }
 
 bool AggregateDeclaration::isExport()

@@ -567,6 +567,11 @@ bool Dsymbol::isDeprecated()
     return false;
 }
 
+bool Dsymbol::muteDeprecationMessage()
+{
+    return false;
+}
+
 bool Dsymbol::isOverloadable()
 {
     return false;
@@ -665,7 +670,7 @@ void Dsymbol::deprecation(const char *format, ...)
 
 void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 {
-    if (global.params.useDeprecated != 1 && isDeprecated())
+    if (global.params.useDeprecated != 1 && isDeprecated() && !muteDeprecationMessage())
     {
         // Don't complain if we're inside a deprecated symbol's scope
         for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
