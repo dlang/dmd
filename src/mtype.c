@@ -1892,7 +1892,7 @@ Type *Type::unqualify(unsigned m)
 {
     Type *t = mutableOf()->unSharedOf();
 
-    Type *tn = nextOf();
+    Type *tn = ty == Tenum ? NULL : nextOf();
     if (tn && tn->ty != Tfunction)
     {
         Type *utn = tn->unqualify(m);
