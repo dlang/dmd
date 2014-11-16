@@ -242,28 +242,7 @@ Lret:
  */
 inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valuesize, in void* pkey)
 {
-    //printf("_aaGetRvalue(valuesize = %u)\n", valuesize);
-    if (aa.impl is null)
-        return null;
-
-    if (immutable len = aa.impl.buckets.length)
-    {
-        immutable key_hash = keyti.getHash(pkey);
-        immutable i = key_hash % len;
-        //printf("hash = %d\n", key_hash);
-
-        inout(Entry)* e = aa.impl.buckets[i];
-        while (e !is null)
-        {
-            if (key_hash == e.hash)
-            {
-                if (keyti.equals(pkey, e + 1))
-                    return cast(inout void*)(e + 1) + aligntsize(keyti.tsize);
-            }
-            e = e.next;
-        }
-    }
-    return null;    // not found, caller will throw exception
+    return _aaInX(aa, keyti, pkey);
 }
 
 
