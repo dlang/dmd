@@ -173,25 +173,27 @@ out (result)
 }
 body
 {
-    size_t i;
-    Entry *e;
     //printf("keyti = %p\n", keyti);
     //printf("aa = %p\n", aa);
-    immutable keytitsize = keyti.tsize;
 
     if (aa.impl is null)
-    {   aa.impl = new Impl();
+    {
+        aa.impl = new Impl();
         aa.impl.buckets = aa.impl.binit[];
         aa.impl.firstUsedBucket = aa.impl.buckets.length;
+        aa.impl._keyti = cast() keyti;
     }
     //printf("aa = %p\n", aa);
     //printf("aa.a = %p\n", aa.a);
-    aa.impl._keyti = cast() keyti;
 
-    auto key_hash = keyti.getHash(pkey);
+    immutable keytitsize = keyti.tsize;
+
+    immutable key_hash = keyti.getHash(pkey);
+    immutable i = key_hash % aa.impl.buckets.length;
     //printf("hash = %d\n", key_hash);
-    i = key_hash % aa.impl.buckets.length;
-    auto pe = &aa.impl.buckets[i];
+
+    Entry** pe = &aa.impl.buckets[i];
+    Entry* e;
     while ((e = *pe) !is null)
     {
         if (key_hash == e.hash)
@@ -224,12 +226,13 @@ body
         else
         {
             // update cache if necessary
-            if (i < aa.impl.firstUsedBucket) aa.impl.firstUsedBucket = i;
+            if (i < aa.impl.firstUsedBucket)
+                aa.impl.firstUsedBucket = i;
         }
     }
 
 Lret:
-    return cast(void *)(e + 1) + aligntsize(keytitsize);
+    return cast(void*)(e + 1) + aligntsize(keytitsize);
 }
 
 
@@ -243,21 +246,19 @@ inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valuesize, 
     if (aa.impl is null)
         return null;
 
-    auto keysize = aligntsize(keyti.tsize);
-    auto len = aa.impl.buckets.length;
-
-    if (len)
+    if (immutable len = aa.impl.buckets.length)
     {
-        auto key_hash = keyti.getHash(pkey);
+        immutable key_hash = keyti.getHash(pkey);
+        immutable i = key_hash % len;
         //printf("hash = %d\n", key_hash);
-        size_t i = key_hash % len;
+
         inout(Entry)* e = aa.impl.buckets[i];
         while (e !is null)
         {
             if (key_hash == e.hash)
             {
                 if (keyti.equals(pkey, e + 1))
-                    return cast(inout void *)(e + 1) + keysize;
+                    return cast(inout void*)(e + 1) + aligntsize(keyti.tsize);
             }
             e = e.next;
         }
@@ -282,26 +283,25 @@ out (result)
 }
 body
 {
-    if (aa.impl)
-    {
-        //printf("_aaIn(), .length = %d, .ptr = %x\n", aa.a.length, cast(uint)aa.a.ptr);
-        auto len = aa.impl.buckets.length;
+    if (aa.impl is null)
+        return null;
 
-        if (len)
+    //printf("_aaIn(), .length = %d, .ptr = %x\n", aa.a.length, cast(uint)aa.a.ptr);
+    if (immutable len = aa.impl.buckets.length)
+    {
+        immutable key_hash = keyti.getHash(pkey);
+        immutable i = key_hash % len;
+        //printf("hash = %d\n", key_hash);
+
+        inout(Entry)* e = aa.impl.buckets[i];
+        while (e !is null)
         {
-            auto key_hash = keyti.getHash(pkey);
-            //printf("hash = %d\n", key_hash);
-            const i = key_hash % len;
-            inout(Entry)* e = aa.impl.buckets[i];
-            while (e !is null)
+            if (key_hash == e.hash)
             {
-                if (key_hash == e.hash)
-                {
-                    if (keyti.equals(pkey, e + 1))
-                        return cast(inout void *)(e + 1) + aligntsize(keyti.tsize);
-                }
-                e = e.next;
+                if (keyti.equals(pkey, e + 1))
+                    return cast(inout void*)(e + 1) + aligntsize(keyti.tsize);
             }
+            e = e.next;
         }
     }
 
