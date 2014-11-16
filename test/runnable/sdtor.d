@@ -3450,6 +3450,27 @@ void test13586()
 
 /**********************************/
 
+__gshared bool b13095 = false;
+
+void bar13095() { throw new Exception(""); }
+
+struct S13095
+{
+    this(int) { printf("ctor %p\n", &this); bar13095(); }
+
+    ~this() { b13095 = true; printf("dtor %p\n", &this); }
+}
+
+void test13095()
+{
+    try {
+        S13095(0);
+    } catch(Exception) { printf("catch\n"); }
+    assert(!b13095);
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -3555,6 +3576,7 @@ int main()
     test13303();
     test13673();
     test13586();
+    test13095();
 
     printf("Success\n");
     return 0;

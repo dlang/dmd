@@ -3379,11 +3379,13 @@ elem *toElem(Expression *e, IRState *irs)
             int directcall = 0;
             elem *ec;
             FuncDeclaration *fd = NULL;
+            bool dctor = false;
             if (ce->e1->op == TOKdotvar && t1->ty != Tdelegate)
             {
                 DotVarExp *dve = (DotVarExp *)ce->e1;
 
                 fd = dve->var->isFuncDeclaration();
+
                 Expression *ex = dve->e1;
                 while (1)
                 {
@@ -3413,7 +3415,46 @@ elem *toElem(Expression *e, IRState *irs)
                 ec = toElem(dve->e1, irs);
                 ectype = dve->e1->type->toBasetype();
 
-                if (ce->arguments && ce->arguments->dim && ec->Eoper != OPvar)
+                /* Recognize:
+                 *   [1]  ((S __ctmp = initializer),__ctmp).ctor(args)
+                 * where the left of the . was turned into:
+                 *   [2]  (dctor info ((__ctmp = initializer),__ctmp), __ctmp)
+                 * The trouble (Bugzilla 13095) is if ctor(args) throws, then __ctmp is destructed even though __ctmp
+                 * is not a fully constructed object yet. The solution is to move the ctor(args) itno the dctor tree.
+                 * But first, detect [1], then [2], then split up [2] into:
+                 *   eeq: (dctor info ((__ctmp = initializer),__ctmp))
+                 *   ec:  __ctmp
+                 */
+                if (fd && fd->isCtorDeclaration())
+                {
+                    //printf("test30 %s\n", dve->e1->toChars());
+                    if (dve->e1->op == TOKcomma)
+                    {
+                        //printf("test30a\n");
+                        if (((CommaExp *)dve->e1)->e1->op == TOKdeclaration && ((CommaExp *)dve->e1)->e2->op == TOKvar)
+                        {
+                            //printf("test30b\n");
+                            if (ec->Eoper == OPcomma &&
+                                ec->E1->Eoper == OPinfo &&
+                                ec->E1->E1->Eoper == OPdctor &&
+                                ec->E1->E2->Eoper == OPcomma)
+                            {
+                                //printf("test30c\n");
+                                dctor = true;                   // remember we detected it
+
+                                // Split ec into eeq and ec per comment above
+                                eeq = ec->E1;
+                                ec->E1 = NULL;
+                                ec = el_selecte2(ec);
+                            }
+                        }
+                    }
+                }
+
+
+                if (dctor)
+                { }
+                else if (ce->arguments && ce->arguments->dim && ec->Eoper != OPvar)
                 {
                     if (ec->Eoper == OPind && el_sideeffect(ec->E1))
                     {
@@ -3501,11 +3542,31 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                 }
             }
-            ec = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments);
-            el_setLoc(ec, ce->loc);
+            elem *ecall = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments);
+
+            if (dctor && ecall->Eoper == OPind)
+            {
+                /* Continuation of fix outlined above for moving constructor call into dctor tree.
+                 * Given:
+                 *   eeq:   (dctor info ((__ctmp = initializer),__ctmp))
+                 *   ecall: * call(ce, args)
+                 * Rewrite ecall as:
+                 *    * (dctor info ((__ctmp = initializer),call(ce, args)))
+                 */
+                assert(eeq->E2->Eoper == OPcomma);
+                elem *ea = ecall->E1;           // ea: call(ce,args)
+                ecall->E1 = eeq;
+                eeq->Ety = ea->Ety;
+                el_free(eeq->E2->E2);
+                eeq->E2->E2 = ea;               // replace ,__ctmp with ,call(ce,args)
+                eeq->E2->Ety = ea->Ety;
+                eeq = NULL;
+            }
+
+            el_setLoc(ecall, ce->loc);
             if (eeq)
-                ec = el_combine(eeq, ec);
-            result = ec;
+                ecall = el_combine(eeq, ecall);
+            result = ecall;
         }
 
         void visit(AddrExp *ae)
