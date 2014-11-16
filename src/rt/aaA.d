@@ -139,7 +139,8 @@ out (result)
         foreach (const(Entry)* e; aa.impl.buckets)
         {
             while (e)
-            {   len++;
+            {
+                len++;
                 e = e.next;
             }
         }
@@ -412,7 +413,8 @@ body
             foreach (e; oldImpl.buckets[oldImpl.firstUsedBucket..$])
             {
                 while (e)
-                {   auto enext = e.next;
+                {
+                    auto enext = e.next;
                     const j = e.hash % len;
                     e.next = newImpl.buckets[j];
                     newImpl.buckets[j] = e;
@@ -623,7 +625,8 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
         size_t keytsize = aligntsize(keysize);
 
         for (size_t j = 0; j < length; j++)
-        {   auto pkey = keys.ptr + j * keysize;
+        {
+            auto pkey = keys.ptr + j * keysize;
             auto pvalue = values.ptr + j * valuesize;
             Entry* e;
 
@@ -753,7 +756,8 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
                 {
                     //printf("hash equals\n");
                     if (keyti.equals(pkey, f + 1))
-                    {   // Found key in e2. Compare values
+                    {
+                        // Found key in e2. Compare values
                         //printf("key equals\n");
                         auto pvalue2 = cast(void *)(f + 1) + keysize;
                         if (valueti.equals(pvalue, pvalue2))
@@ -778,7 +782,8 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
     foreach (e; e1.impl.buckets[e1.impl.firstUsedBucket..$])
     {
         if (e)
-        {   if (_aaKeys_x(e) == 0)
+        {
+            if (_aaKeys_x(e) == 0)
                 return 0;
         }
     }
