@@ -4260,6 +4260,22 @@ void test13675()
 }
 
 /******************************************/
+// 13694
+
+auto foo13694(T)(string A,         T[] G ...) { return 1; }
+auto foo13694(T)(string A, long E, T[] G ...) { return 2; }
+
+void test13694()
+{
+    struct S {}
+
+    S v;
+    assert(foo13694("A", v) == 1);      // <- OK
+    assert(foo13694("A", 0, v) == 2);   // <- used to be OK but now fails
+    assert(foo13694!S("A", 0, v) == 2); // <- workaround solution
+}
+
+/******************************************/
 // 13714
 
 struct JSONValue13714
@@ -4394,6 +4410,7 @@ int main()
     test13378();
     test13379();
     test13484();
+    test13694();
 
     printf("Success\n");
     return 0;
