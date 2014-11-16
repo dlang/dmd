@@ -3941,12 +3941,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (tparam && tparam->ty == Tenum)
             {
                 TypeEnum *tp = (TypeEnum *)tparam;
-
-                if (t->sym != tp->sym)
-                {
+                if (t->sym == tp->sym)
+                    visit((Type *)t);
+                else
                     result = MATCHnomatch;
-                    return;
-                }
+                return;
             }
             Type *tb = t->toBasetype();
             if (tb->ty == tparam->ty ||
