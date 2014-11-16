@@ -673,6 +673,14 @@ void FuncDeclaration::semantic(Scope *sc)
             error("function body only allowed in final functions in interface %s", id->toChars());
     }
 
+    if (UnionDeclaration *ud = parent->isUnionDeclaration())
+    {
+        if (isPostBlitDeclaration() ||
+            isDtorDeclaration() ||
+            isInvariantDeclaration())
+            error("destructors, postblits and invariants are not allowed in union %s", ud->toChars());
+    }
+
     /* Contracts can only appear without a body when they are virtual interface functions
      */
     if (!fbody && (fensure || frequire) && !(id && isVirtual()))
