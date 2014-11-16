@@ -10493,7 +10493,7 @@ IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
 {
     //printf("IndexExp::IndexExp('%s')\n", toChars());
     lengthVar = NULL;
-    modifiable = 0;     // assume it is an rvalue
+    modifiable = false;     // assume it is an rvalue
     skipboundscheck = 0;
 }
 
@@ -10696,6 +10696,7 @@ Expression *IndexExp::toLvalue(Scope *sc, Expression *e)
 int IndexExp::checkModifiable(Scope *sc, int flag)
 {
     if (e1->type->ty == Tsarray ||
+        e1->type->ty == Taarray ||
         (e1->op == TOKindex && e1->type->ty != Tarray) ||
         e1->op == TOKslice)
     {
@@ -10707,18 +10708,34 @@ int IndexExp::checkModifiable(Scope *sc, int flag)
 Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("IndexExp::modifiableLvalue(%s)\n", toChars());
-    modifiable = 1;
-    Type *t1 = e1->type->toBasetype();
-    if (t1->ty == Taarray)
+    Expression *ex = markSettingAAElem();
+    if (ex->op == TOKerror)
+        return ex;
+
+    return Expression::modifiableLvalue(sc, e);
+}
+
+Expression *IndexExp::markSettingAAElem()
+{
+    if (e1->type->toBasetype()->ty == Taarray)
     {
         Type *t2b = e2->type->toBasetype();
         if (t2b->ty == Tarray && t2b->nextOf()->isMutable())
+        {
             error("associative arrays can only be assigned values with immutable keys, not %s", e2->type->toChars());
-        e1 = e1->modifiableLvalue(sc, e1);
-        return toLvalue(sc, e);
-    }
+            return new ErrorExp();
+        }
+        modifiable = true;
 
-    return Expression::modifiableLvalue(sc, e);
+        if (e1->op == TOKindex)
+        {
+            Expression *ex = ((IndexExp *)e1)->markSettingAAElem();
+            if (ex->op == TOKerror)
+                return ex;
+            assert(ex == e1);
+        }
+    }
+    return this;
 }
 
 /************************* PostExp ***********************************/
@@ -11181,13 +11198,11 @@ Expression *AssignExp::semantic(Scope *sc)
         op = TOKconstruct;
 
         // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
-        if (e1->op == TOKindex &&
-            ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+        if (e1->op == TOKindex)
         {
-            Expression *e1x = e1->modifiableLvalue(sc, e1old);
+            Expression *e1x = ((IndexExp *)e1)->markSettingAAElem();
             if (e1x->op == TOKerror)
                 return e1x;
-            e1 = e1x;
         }
     }
 
