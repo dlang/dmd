@@ -20,6 +20,7 @@
 #include "aggregate.h"
 #include "init.h"
 #include "enum.h"
+#include "ctfe.h"
 
 /*************************************
  * If variable has a const initializer,
@@ -392,7 +393,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (e->e1->op == TOKadd)
             {
                 Expression *ex = Ptr(e->type, e->e1);
-                if (ex != EXP_CANT_INTERPRET)
+                if (!CTFEExp::isCantExp(ex))
                 {
                     ret = ex;
                     return;
@@ -408,7 +409,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 {
                     StructLiteralExp *sle = (StructLiteralExp *)ex;
                     ex = sle->getField(e->type, (unsigned)se->offset);
-                    if (ex && ex != EXP_CANT_INTERPRET)
+                    if (ex && !CTFEExp::isCantExp(ex))
                     {
                         ret = ex;
                         return;
@@ -442,7 +443,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                     /* Bugzilla 13021: Prevent optimization if vf has overlapped fields.
                      */
                     ex = sle->getField(e->type, vf->offset);
-                    if (ex && ex != EXP_CANT_INTERPRET)
+                    if (ex && !CTFEExp::isCantExp(ex))
                     {
                         ret = ex;
                         return;
@@ -909,7 +910,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
             {
                 Expression *ex = Pow(e->type, e->e1, e->e2);
-                if (ex != EXP_CANT_INTERPRET)
+                if (!CTFEExp::isCantExp(ex))
                 {
                     ret = ex;
                     return;
@@ -1007,7 +1008,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
 
             ret = Equal(e->op, e->type, e->e1, e->e2);
-            if (ret == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(ret))
                 ret = e;
         }
 
@@ -1033,7 +1034,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 )
             {
                 ret = Identity(e->op, e->type, e->e1, e->e2);
-                if (ret == EXP_CANT_INTERPRET)
+                if (CTFEExp::isCantExp(ret))
                     ret = e;
             }
         }
@@ -1080,7 +1081,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (keepLvalue)
                 return;
             ret = Index(e->type, ex, e->e2);
-            if (ret == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(ret))
                 ret = e;
         }
 
@@ -1105,7 +1106,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             e->lwr = e->lwr->optimize(WANTvalue);
             e->upr = e->upr->optimize(WANTvalue);
             ret = Slice(e->type, e->e1, e->lwr, e->upr);
-            if (ret == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(ret))
                 ret = e;
             //printf("-SliceExp::optimize() %s\n", ret->toChars());
         }
@@ -1209,7 +1210,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             Expression *e2 = fromConstInitializer(result, e->e2);
 
             ret = Cmp(e->op, e->type, e1, e2);
-            if (ret == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(ret))
                 ret = e;
         }
 
@@ -1234,7 +1235,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
 
             ret = Cat(e->type, e->e1, e->e2);
-            if (ret == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(ret))
                 ret = e;
         }
 

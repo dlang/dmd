@@ -104,16 +104,19 @@ public:
     CTFEExp(TOK tok);
 
     // Handy instances to share
+    static CTFEExp* cantexp;
     static CTFEExp* voidexp;
     static CTFEExp* breakexp;
     static CTFEExp* continueexp;
     static CTFEExp* gotoexp;
+
+    static bool isCantExp(Expression *e) { return e && e->op == TOKcantexp; }
 };
 
 /****************************************************************/
 
 
-/// True if 'e' is EXP_CANT_INTERPRET, or an exception
+/// True if 'e' is TOKcantexp, or an exception
 bool exceptionOrCantInterpret(Expression *e);
 
 // Used for debugging only
@@ -224,7 +227,7 @@ TypeAArray *toBuiltinAAType(Type *t);
 
 /*  Given an AA literal 'ae', and a key 'e2':
  *  Return ae[e2] if present, or NULL if not found.
- *  Return EXP_CANT_INTERPRET on error.
+ *  Return TOKcantexp on error.
  */
 Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
 

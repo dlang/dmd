@@ -730,9 +730,9 @@ Expression *ctfeInterpret(Expression *e)
     ctfeCodeGlobal.onExpression(e);
 
     Expression *result = e->interpret(NULL);
-    if (result != EXP_CANT_INTERPRET)
+    if (!CTFEExp::isCantExp(result))
         result = scrubReturnValue(e->loc, result);
-    if (result == EXP_CANT_INTERPRET)
+    if (CTFEExp::isCantExp(result))
     {
         assert(global.errors != olderrors);
         result = new ErrorExp();
@@ -798,7 +798,7 @@ Expression *ctfeInterpretForPragmaMsg(Expression *e)
  *      arguments  function arguments
  *      thisarg    'this', if a needThis() function, NULL if not.
  *
- * Return result expression if successful, EXP_CANT_INTERPRET if not,
+ * Return result expression if successful, TOKcantexp if not,
  * or CTFEExp if function returned void.
  */
 
@@ -810,12 +810,12 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     if (fd->semanticRun == PASSsemantic3)
     {
         fd->error("circular dependency. Functions cannot be interpreted while being compiled");
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
     if (!fd->functionSemantic3())
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     if (fd->semanticRun < PASSsemantic3done)
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
 
     // CTFE-compile the function
     if (!fd->ctfeCode)
@@ -828,7 +828,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
         ((fd->parameters && arguments->dim != fd->parameters->dim) || (!fd->parameters && arguments->dim)))
     {
         fd->error("C-style variadic functions are not yet implemented in CTFE");
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
 
     // Nested functions always inherit the 'this' pointer from the parent,
@@ -843,13 +843,13 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     {
         // error, no this. Prevent segfault.
         fd->error("need 'this' to access member %s", fd->toChars());
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
     if (thisarg && !istate)
     {
         // Check that 'this' aleady has a value
-        if (thisarg->interpret(istate) == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (CTFEExp::isCantExp(thisarg->interpret(istate)))
+            return CTFEExp::cantexp;
     }
     static int evaluatingArgs = 0;
 
@@ -877,13 +877,13 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
                 {
                     // initializing an out parameter involves writing to it.
                     earg->error("global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
-                    return EXP_CANT_INTERPRET;
+                    return CTFEExp::cantexp;
                 }
                 // Convert all reference arguments into lvalue references
                 ++evaluatingArgs;
                 earg = earg->interpret(istate, ctfeNeedLvalueRef);
                 --evaluatingArgs;
-                if (earg == EXP_CANT_INTERPRET)
+                if (CTFEExp::isCantExp(earg))
                     return earg;
             }
             else if (arg->storageClass & STClazy)
@@ -904,7 +904,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
                 ++evaluatingArgs;
                 earg = earg->interpret(istate);
                 --evaluatingArgs;
-                if (earg == EXP_CANT_INTERPRET)
+                if (CTFEExp::isCantExp(earg))
                     return earg;
                 /* Struct literals are passed by value, but we don't need to
                  * copy them if they are passed as const
@@ -917,7 +917,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
                 if (istate)
                     return earg;
                 ((ThrownExceptionExp *)earg)->generateUncaughtError();
-                return EXP_CANT_INTERPRET;
+                return CTFEExp::cantexp;
             }
             eargs[i] = earg;
         }
@@ -949,7 +949,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
                 if (!v2)
                 {
                     fd->error("cannot interpret %s as a ref parameter", ve->toChars());
-                    return EXP_CANT_INTERPRET;
+                    return CTFEExp::cantexp;
                 }
                 /* The push() isn't a variable we'll use, it's just a place
                  * to save the old value of v.
@@ -990,11 +990,11 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
             // This is a compiler error. It must not be suppressed.
             global.gag = 0;
             fd->error("CTFE recursion limit exceeded");
-            e = EXP_CANT_INTERPRET;
+            e = CTFEExp::cantexp;
             break;
         }
         e = fd->fbody->interpret(&istatex);
-        if (e == EXP_CANT_INTERPRET)
+        if (CTFEExp::isCantExp(e))
         {
 #if LOG
             printf("function body failed to interpret\n");
@@ -1004,7 +1004,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
         if (istatex.start)
         {
             fd->error("CTFE internal error: failed to resume at statement %s", istatex.start->toChars());
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         }
 
         /* This is how we deal with a recursive statement AST
@@ -1060,10 +1060,10 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     // If it generated an exception, return it
     if (exceptionOrCantInterpret(e))
     {
-        if (istate || e == EXP_CANT_INTERPRET)
+        if (istate || CTFEExp::isCantExp(e))
             return e;
         ((ThrownExceptionExp *)e)->generateUncaughtError();
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
 
     return e;
@@ -1098,7 +1098,7 @@ public:
         }
 
         s->error("Statement %s cannot be interpreted at compile time", s->toChars());
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
     }
 
     void visit(ExpStatement *s)
@@ -1116,10 +1116,10 @@ public:
         if (s->exp)
         {
             Expression *e = s->exp->interpret(istate, ctfeNeedNothing);
-            if (e == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(e))
             {
                 //printf("-ExpStatement::interpret(): %p\n", e);
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             if (e && e->op == TOKthrownexception)
@@ -1172,7 +1172,7 @@ public:
                 Statement *sx = (*s->statements)[i];
 
                 e = sx->interpret(istate);
-                if (e == EXP_CANT_INTERPRET)
+                if (CTFEExp::isCantExp(e))
                     break;
                 if (e && e->op == TOKcontinue)
                 {
@@ -1224,8 +1224,8 @@ public:
 
         Expression *e = s->condition->interpret(istate);
         assert(e);
-        //if (e == EXP_CANT_INTERPRET) printf("cannot interpret\n");
-        if (e != EXP_CANT_INTERPRET && (e && e->op != TOKthrownexception))
+        //if (CTFEExp::isCantExp(e)) printf("cannot interpret\n");
+        if (!CTFEExp::isCantExp(e) && (e && e->op != TOKthrownexception))
         {
             if (isTrueBool(e))
                 e = s->ifbody ? s->ifbody->interpret(istate) : NULL;
@@ -1233,7 +1233,7 @@ public:
                 e = s->elsebody ? s->elsebody->interpret(istate) : NULL;
             else
             {
-                e = EXP_CANT_INTERPRET;
+                e = CTFEExp::cantexp;
             }
         }
         result = e;
@@ -1352,7 +1352,7 @@ public:
             {
                 // We need to return an lvalue
                 Expression *e = s->exp->interpret(istate, ctfeNeedLvalueRef);
-                if (e == EXP_CANT_INTERPRET)
+                if (CTFEExp::isCantExp(e))
                     s->error("ref return %s is not yet supported in CTFE", s->exp->toChars());
                 result = e;
                 return;
@@ -1362,7 +1362,7 @@ public:
                 // To support this, we need to copy all the closure vars
                 // into the delegate literal.
                 s->error("closures are not yet supported in CTFE");
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
         }
@@ -1393,7 +1393,7 @@ public:
 
         if (!stopPointersEscaping(s->loc, e))
         {
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
 
@@ -1502,7 +1502,7 @@ public:
         {
             bool wasGoto = !!istate->start;
             e = s->body ? s->body->interpret(istate) : NULL;
-            if (e == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(e))
                 break;
             if (wasGoto && istate->start)
                 return;
@@ -1526,7 +1526,7 @@ public:
                 break;
             if (!e->isConst())
             {
-                e = EXP_CANT_INTERPRET;
+                e = CTFEExp::cantexp;
                 break;
             }
             if (isTrueBool(e))
@@ -1579,7 +1579,7 @@ public:
 
             bool wasGoto = !!istate->start;
             e = s->body ? s->body->interpret(istate) : NULL;
-            if (e == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(e))
                 break;
             if (wasGoto && istate->start)
                 return;
@@ -1603,7 +1603,7 @@ public:
             if (s->increment)
             {
                 e = s->increment->interpret(istate);
-                if (e == EXP_CANT_INTERPRET)
+                if (CTFEExp::isCantExp(e))
                     break;
             }
         }
@@ -1634,7 +1634,7 @@ public:
             e = s->body ? s->body->interpret(istate) : NULL;
             if (istate->start)
                 return;
-            if (e == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(e))
             {
                 result = e;
                 return;
@@ -1809,7 +1809,7 @@ public:
         }
 
         Expression *e = s->body ? s->body->interpret(istate) : NULL;
-        if (e == EXP_CANT_INTERPRET)
+        if (CTFEExp::isCantExp(e))
         {
             result = e;
             return;
@@ -1910,13 +1910,13 @@ public:
         }
 
         Expression *e = s->body ? s->body->interpret(istate) : NULL;
-        if (e == EXP_CANT_INTERPRET)
+        if (CTFEExp::isCantExp(e))
         {
             result = e;
             return;
         }
         Expression *second = s->finalbody ? s->finalbody->interpret(istate) : NULL;
-        if (second == EXP_CANT_INTERPRET)
+        if (CTFEExp::isCantExp(second))
         {
             result = second;
             return;
@@ -2027,7 +2027,7 @@ public:
         }
 
         s->error("asm statements cannot be interpreted at compile time");
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
     }
 
     void visit(ImportStatement *s)
@@ -2053,7 +2053,7 @@ public:
         e->print();
     #endif
         e->error("Cannot interpret %s at compile time", e->toChars());
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
     }
 
     void visit(ThisExp *e)
@@ -2070,7 +2070,7 @@ public:
             return;
         }
         e->error("value of 'this' is not known at compile time");
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
     }
 
     void visit(NullExp *e)
@@ -2137,14 +2137,14 @@ public:
         {
             // Probably impossible
             e->error("Cannot interpret %s at compile time", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         Type *pointee = ((TypePointer *)e->type)->next;
         if (e->var->isThreadlocal())
         {
             e->error("cannot take address of thread-local variable %s at compile time", e->var->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         // Check for taking an address of a shared variable.
@@ -2162,7 +2162,7 @@ public:
             return;
         }
         Expression *val = getVarExp(e->loc, istate, e->var, goal);
-        if (val == EXP_CANT_INTERPRET)
+        if (CTFEExp::isCantExp(val))
         {
             result = val;
             return;
@@ -2191,7 +2191,7 @@ public:
                 }
                 e->error("reinterpreting cast from %s to %s is not supported in CTFE",
                     val->type->toChars(), e->type->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
 
@@ -2228,7 +2228,7 @@ public:
         }
 
         e->error("Cannot convert &%s to %s at compile time", e->var->type->toChars(), e->type->toChars());
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
     }
 
     void visit(AddrExp *e)
@@ -2338,7 +2338,7 @@ public:
 
     static Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal)
     {
-        Expression *e = EXP_CANT_INTERPRET;
+        Expression *e = CTFEExp::cantexp;
         VarDeclaration *v = d->isVarDeclaration();
         SymbolDeclaration *s = d->isSymbolDeclaration();
         if (v)
@@ -2352,7 +2352,7 @@ public:
             {
                 v->semantic (v->scope);
                 if (v->type->ty == Terror)
-                    return EXP_CANT_INTERPRET;
+                    return CTFEExp::cantexp;
             }
 
             if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
@@ -2367,7 +2367,7 @@ public:
                 if (v->inuse)
                 {
                     error(loc, "circular initialization of %s", v->toChars());
-                    return EXP_CANT_INTERPRET;
+                    return CTFEExp::cantexp;
                 }
 
                 if (e && (e->op == TOKconstruct || e->op == TOKblit))
@@ -2377,7 +2377,7 @@ public:
                     v->inuse++;
                     e = e->interpret(istate, ctfeNeedAnyValue);
                     v->inuse--;
-                    if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
+                    if (CTFEExp::isCantExp(e) && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
                         errorSupplemental(loc, "while evaluating %s.init", v->toChars());
                     if (exceptionOrCantInterpret(e))
                         return e;
@@ -2393,10 +2393,10 @@ public:
                         e = e->interpret(istate, ctfeNeedAnyValue);
                         v->inuse--;
                     }
-                    if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
+                    if (CTFEExp::isCantExp(e) && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
                         errorSupplemental(loc, "while evaluating %s.init", v->toChars());
                 }
-                if (e && e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
+                if (e && !CTFEExp::isCantExp(e) && e->op != TOKthrownexception)
                 {
                     e = copyLiteral(e);
                     if (v->isDataseg() || (v->storage_class & STCmanifest))
@@ -2412,7 +2412,7 @@ public:
                         // var should have been initialized when it was created
                         error(loc, "CTFE internal error - trying to access uninitialized var");
                         assert(0);
-                        e = EXP_CANT_INTERPRET;
+                        e = CTFEExp::cantexp;
                     }
                     else
                     {
@@ -2426,7 +2426,7 @@ public:
             else if (!(v->isDataseg() || v->storage_class & STCmanifest) && !v->isCTFE() && !istate)
             {
                 error(loc, "variable %s cannot be read at compile time", v->toChars());
-                return EXP_CANT_INTERPRET;
+                return CTFEExp::cantexp;
             }
             else
             {
@@ -2434,14 +2434,14 @@ public:
                 if (!e && !v->isCTFE() && v->isDataseg())
                 {
                     error(loc, "static variable %s cannot be read at compile time", v->toChars());
-                    return EXP_CANT_INTERPRET;
+                    return CTFEExp::cantexp;
                 }
                 if (!e)
                 {
                     assert(!(v->init && v->init->isVoidInitializer()));
                     // CTFE initiated from inside a function
                     error(loc, "variable %s cannot be read at compile time", v->toChars());
-                    return EXP_CANT_INTERPRET;
+                    return CTFEExp::cantexp;
                 }
                 if (exceptionOrCantInterpret(e))
                     return e;
@@ -2472,13 +2472,13 @@ public:
                     VoidInitExp *ve = (VoidInitExp *)e;
                     error(loc, "cannot read uninitialized variable %s in ctfe", v->toPrettyChars());
                     errorSupplemental(ve->var->loc, "%s was uninitialized and used before set", ve->var->toChars());
-                    return EXP_CANT_INTERPRET;
+                    return CTFEExp::cantexp;
                 }
 
                 e = e->interpret(istate, goal);
             }
             if (!e)
-                e = EXP_CANT_INTERPRET;
+                e = CTFEExp::cantexp;
         }
         else if (s)
         {
@@ -2488,7 +2488,7 @@ public:
                 error(loc, "CTFE failed because of previous errors in %s.init", s->toChars());
             e = e->semantic(NULL);
             if (e->op == TOKerror)
-                e = EXP_CANT_INTERPRET;
+                e = CTFEExp::cantexp;
             else // Convert NULL to CTFEExp
                 e = e->interpret(istate, goal);
         }
@@ -2508,7 +2508,7 @@ public:
             if (v && !v->isDataseg() && !v->isCTFE() && !istate)
             {
                 e->error("variable %s cannot be referenced at compile time", v->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             if (v && !hasValue(v))
@@ -2517,7 +2517,7 @@ public:
                     e->error("static variable %s cannot be referenced at compile time", v->toChars());
                 else     // CTFE initiated from inside a function
                     e->error("variable %s cannot be read at compile time", v->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             if (v && hasValue(v) && getValue(v)->op == TOKvar)
@@ -2531,7 +2531,7 @@ public:
         }
         result = getVarExp(e->loc, istate, e->var, goal);
         // A VarExp may include an implicit cast. It must be done explicitly.
-        if (result != EXP_CANT_INTERPRET && result->op != TOKthrownexception)
+        if (!CTFEExp::isCantExp(result) && result->op != TOKthrownexception)
             result = paintTypeOntoLiteral(e->type, result);
     }
 
@@ -2575,7 +2575,7 @@ public:
                             else
                             {
                                 e->error("Declaration %s is not yet implemented in CTFE", e->toChars());
-                                result = EXP_CANT_INTERPRET;
+                                result = CTFEExp::cantexp;
                             }
                         }
                     }
@@ -2600,7 +2600,7 @@ public:
                 else
                 {
                     e->error("Declaration %s is not yet implemented in CTFE", e->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                 }
             }
             else if (s == v && !v->init && v->type->size() == 0)
@@ -2612,7 +2612,7 @@ public:
             {
                 result = v->init->toExpression();
                 if (!result)
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                 else if (!result->type)
                     result->type = v->type;
             }
@@ -2623,7 +2623,7 @@ public:
             else
             {
                 e->error("Variable %s cannot be modified at compile time", v->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
             }
         }
         else if (e->declaration->isAttribDeclaration() ||
@@ -2645,7 +2645,7 @@ public:
 
             // These can be made to work, too lazy now
             e->error("Declaration %s is not yet implemented in CTFE", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
         }
         else
         {
@@ -2666,9 +2666,9 @@ public:
 
         if (e->e0)
         {
-            if (e->e0->interpret(istate) == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(e->e0->interpret(istate)))
             {
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
         }
@@ -2771,7 +2771,7 @@ public:
             if (expsx->dim != e->elements->dim)
             {
                 e->error("Internal Compiler Error: Invalid array literal");
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, expsx);
@@ -2845,7 +2845,7 @@ public:
         if (keysx->dim != valuesx->dim)
         {
             e->error("Internal Compiler Error: invalid AA");
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
 
@@ -2963,7 +2963,7 @@ public:
             if (expsx->dim != e->sd->fields.dim)
             {
                 e->error("Internal Compiler Error: invalid struct literal");
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             StructLiteralExp *se = new StructLiteralExp(e->loc, e->sd, expsx);
@@ -3019,7 +3019,7 @@ public:
         if (e->allocator)
         {
             e->error("member allocators not supported by CTFE");
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
 
@@ -3073,7 +3073,7 @@ public:
             }
             if (exceptionOrCantInterpret(result))
             {
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             result = new AddrExp(e->loc, copyLiteral(result));
@@ -3098,7 +3098,7 @@ public:
                     if (v->inuse)
                     {
                         e->error("circular reference to '%s'", v->toPrettyChars());
-                        result = EXP_CANT_INTERPRET;
+                        result = CTFEExp::cantexp;
                         return;
                     }
                     Expression *m;
@@ -3141,7 +3141,7 @@ public:
                         return;
                     }
                     e->member->error("%s cannot be constructed at compile time, because the constructor has no available source code", e->newtype->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 Expression *ctorfail = interpret(e->member, istate, e->arguments, eref);
@@ -3184,7 +3184,7 @@ public:
             return;
         }
         e->error("Cannot interpret %s at compile time", e->toChars());
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
     }
 
     void visit(UnaExp *e)
@@ -3195,7 +3195,7 @@ public:
         if (e->op == TOKdottype)
         {
             e->error("Internal Compiler Error: CTFE DotType: %s", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         Expression *e1 = e->e1->interpret(istate);
@@ -3274,7 +3274,7 @@ public:
         if (e->e1->type->ty == Tpointer || e->e2->type->ty == Tpointer)
         {
             e->error("pointer expression %s cannot be interpreted at compile time", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         Expression *e1 = e->e1->interpret(istate);
@@ -3286,7 +3286,7 @@ public:
         if (e1->isConst() != 1)
         {
             e->error("Internal Compiler Error: non-constant value %s", e->e1->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
 
@@ -3299,7 +3299,7 @@ public:
         if (e2->isConst() != 1)
         {
             e->error("Internal Compiler Error: non-constant value %s", e->e2->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
 
@@ -3310,12 +3310,12 @@ public:
             if (i2 < 0 || i2 >= sz)
             {
                 e->error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
         }
         result = (*fp)(e->type, e1, e2);
-        if (result == EXP_CANT_INTERPRET)
+        if (CTFEExp::isCantExp(result))
             e->error("%s cannot be interpreted at compile time", e->toChars());
     }
 
@@ -3349,7 +3349,7 @@ public:
                      " To check if they point to the same memory block, use both > and < inside && or ||, "
                      "eg (%s && %s %c= %s + 1)",
                      e->toChars(), e->e1->toChars(), dir, e->e2->toChars());
-              result = EXP_CANT_INTERPRET;
+              result = CTFEExp::cantexp;
               return;
             }
             result = new IntegerExp(e->loc, cmp, e->type);
@@ -3364,7 +3364,7 @@ public:
         if (!isCtfeComparable(e1))
         {
             e->error("cannot compare %s at compile time", e1->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         Expression *e2 = e->e2->interpret(istate);
@@ -3376,7 +3376,7 @@ public:
         if (!isCtfeComparable(e2))
         {
             e->error("cannot compare %s at compile time", e2->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         int cmp = (*fp)(e->loc, e->op, e1, e2);
@@ -3461,7 +3461,7 @@ public:
     #if LOG
         printf("%s BinExp::interpretAssignCommon() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
         Expression *e1 = e->e1;
         if (!istate)
         {
@@ -3587,7 +3587,7 @@ public:
             {
                 e->error("cannot dereference invalid pointer %s",
                     e->e1->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
         }
@@ -3596,7 +3596,7 @@ public:
               e1->op == TOKindex || e1->op == TOKslice || e1->op == TOKstructliteral))
         {
             e->error("CTFE internal error: unsupported assignment %s", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
 
@@ -3682,17 +3682,17 @@ public:
                 else if (e->e1->type->ty == Tpointer)
                 {
                     e->error("pointer expression %s cannot be interpreted at compile time", e->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 else
                 {
                     newval = (*fp)(e->type, oldval, newval);
                 }
-                if (newval == EXP_CANT_INTERPRET)
+                if (CTFEExp::isCantExp(newval))
                 {
                     e->error("Cannot interpret %s at compile time", e->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 if (exceptionOrCantInterpret(newval))
@@ -3747,7 +3747,7 @@ public:
                 else
                 {
                     e->error("%s is not yet supported at compile time", e->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
 
@@ -3763,7 +3763,7 @@ public:
                 if (newval->op != TOKstructliteral)
                 {
                     e->error("nested structs with constructors are not yet supported in CTFE (Bug 6419)");
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
             }
@@ -3791,7 +3791,7 @@ public:
         {
             // Can't modify global or static data
             e->error("%s cannot be modified at compile time", ultimateVar->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
 
@@ -3928,9 +3928,9 @@ public:
                     existingAA = newAA;
                     --depth;
                 }
-                if (assignAssocArrayElement(e->loc, existingAA, index, newval) == EXP_CANT_INTERPRET)
+                if (CTFEExp::isCantExp(assignAssocArrayElement(e->loc, existingAA, index, newval)))
                 {
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 return;
@@ -4018,7 +4018,7 @@ public:
                 if (newval->op != TOKstructliteral)
                 {
                     e->error("CTFE internal error assigning struct");
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 newval = copyLiteral(newval);
@@ -4085,14 +4085,14 @@ public:
             if (exx->op != TOKstructliteral && exx->op != TOKclassreference)
             {
                 e->error("CTFE internal error: Dotvar assignment");
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             VarDeclaration *member = ((DotVarExp *)e1)->var->isVarDeclaration();
             if (!member)
             {
                 e->error("CTFE internal error: Dotvar assignment");
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             StructLiteralExp *se = exx->op == TOKstructliteral
@@ -4104,7 +4104,7 @@ public:
             if (fieldi == -1)
             {
                 e->error("CTFE internal error: cannot find field %s in %s", member->toChars(), exx->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             assert(fieldi >= 0 && fieldi < se->elements->dim);
@@ -4135,7 +4135,7 @@ public:
             if (!interpretAssignToIndex(e->loc, (IndexExp *)e1, newval,
                 wantRef, e))
             {
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
             }
             return;
         }
@@ -4325,7 +4325,7 @@ public:
         if (!wantRef && newval->op == TOKslice)
         {
             newval = resolveSlice(newval);
-            if (newval == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(newval))
             {
                 originalExp->error("Compiler error: CTFE index assign %s", originalExp->toChars());
                 assert(0);
@@ -4383,7 +4383,7 @@ public:
      * This could be a slice assignment or a block assignment, and
      * dest could be either an array literal, or a string.
      *
-     * Returns EXP_CANT_INTERPRET on failure. If there are no errors,
+     * Returns TOKcantexp on failure. If there are no errors,
      * it returns aggregate[low..upp], except that as an optimisation,
      * if goal == ctfeNeedNothing, it will return NULL
      */
@@ -4422,7 +4422,7 @@ public:
             if (oldval->op == TOKsymoff)
             {
                 originalExp->error("pointer %s cannot be sliced at compile time (it points to a static variable)", sexp->e1->toChars());
-                return EXP_CANT_INTERPRET;
+                return CTFEExp::cantexp;
             }
             if (assignmentToSlicedPointer)
             {
@@ -4431,7 +4431,7 @@ public:
             }
             else
                 originalExp->error("CTFE ICE: cannot resolve array length");
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         }
         uinteger_t dollar = resolveArrayLength(oldval);
         if (sexp->lengthVar)
@@ -4466,7 +4466,7 @@ public:
         {
             originalExp->error("Array bounds [0..%d] exceeded in slice [%d..%d]",
                 dim, lowerbound, upperbound);
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         }
         if (upperbound == lowerbound)
             return newval;
@@ -4497,7 +4497,7 @@ public:
                 {
                     originalExp->error("key %s not found in associative array %s",
                         ix->e2->toChars(), ix->e1->toChars());
-                    return EXP_CANT_INTERPRET;
+                    return CTFEExp::cantexp;
                 }
                 if (exceptionOrCantInterpret(aggregate))
                     return aggregate;
@@ -4520,7 +4520,7 @@ public:
                 originalExp->error("slice [%d..%d] exceeds array bounds [0..%lld]",
                     lowerbound, upperbound,
                     sexpold->upr->toInteger() - sexpold->lwr->toInteger());
-                return EXP_CANT_INTERPRET;
+                return CTFEExp::cantexp;
             }
             aggregate = sexpold->e1;
         }
@@ -4533,7 +4533,7 @@ public:
             if (aggregate->op == TOKnull)
             {
                 originalExp->error("cannot slice null pointer %s", sexp->e1->toChars());
-                return EXP_CANT_INTERPRET;
+                return CTFEExp::cantexp;
             }
             sinteger_t hi = upperbound + ofs;
             firstIndex = lowerbound + ofs;
@@ -4541,7 +4541,7 @@ public:
             {
                originalExp->error("slice [lld..%lld] exceeds memory block bounds [0..%lld]",
                     firstIndex, hi,  dim);
-                return EXP_CANT_INTERPRET;
+                return CTFEExp::cantexp;
             }
         }
         if (aggregate->op == TOKarrayliteral)
@@ -4551,14 +4551,14 @@ public:
         if (existingSE && !existingSE->ownedByCtfe)
         {
             originalExp->error("cannot modify read-only string literal %s", sexp->e1->toChars());
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         }
 
         if (!wantRef && newval->op == TOKslice)
         {
             Expression *orignewval = newval;
             newval = resolveSlice(newval);
-            if (newval == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(newval))
             {
                 originalExp->error("Compiler error: CTFE slice %s", orignewval->toChars());
                 assert(0);
@@ -4580,7 +4580,7 @@ public:
         if (!isBlockAssignment && srclen != (upperbound - lowerbound))
         {
             originalExp->error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         }
 
         if (!isBlockAssignment && newval->op == TOKarrayliteral && existingAE)
@@ -4694,7 +4694,7 @@ public:
         else
         {
             originalExp->error("Slice operation %s = %s cannot be evaluated at compile time", sexp->toChars(), newval->toChars());
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         }
     }
 
@@ -4736,7 +4736,7 @@ public:
         else
             interpretAssignCommon(e, &Min, 1);
     #if LOG
-        if (result == EXP_CANT_INTERPRET)
+        if (CTFEExp::isCantExp(result))
             printf("PostExp::interpret() CANT\n");
     #endif
     }
@@ -4852,7 +4852,7 @@ public:
             // Here it is either CANT_INTERPRET,
             // or an IsInside comparison returning false.
             p3 = p3->interpret(istate);
-            if (p3 == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(p3))
             {
                 result = p3;
                 return;
@@ -4864,7 +4864,7 @@ public:
             else
             {
                 p4 = p4->interpret(istate);
-                if (p4 == EXP_CANT_INTERPRET)
+                if (CTFEExp::isCantExp(p4))
                 {
                     result = p4;
                     return;
@@ -4878,7 +4878,7 @@ public:
                      "indeterminate at compile time "
                      "because exception %s was thrown while evaluating %s",
                      e->e1->toChars(), except->toChars(), e->e2->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             dinteger_t ofs3,ofs4;
@@ -4902,7 +4902,7 @@ public:
             e->error("Comparison %s of pointers to unrelated memory blocks is "
                 "indeterminate at compile time, even when combined with %s.",
                 e->e1->toChars(), e->e2->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         // The first pointer expression didn't need special treatment, so we
@@ -4948,7 +4948,7 @@ public:
             return;
 
         int res;
-        if (result != EXP_CANT_INTERPRET)
+        if (!CTFEExp::isCantExp(result))
         {
             if (result->isBool(false))
                 res = 0;
@@ -4970,16 +4970,16 @@ public:
                 else
                 {
                     result->error("%s does not evaluate to a boolean", result->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                 }
             }
             else
             {
                 result->error("%s cannot be interpreted as a boolean", result->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
             }
         }
-        if (result != EXP_CANT_INTERPRET && goal != ctfeNeedNothing)
+        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
             result = new IntegerExp(e->loc, res, e->type);
     }
 
@@ -4999,7 +4999,7 @@ public:
             return;
 
         int res;
-        if (result != EXP_CANT_INTERPRET)
+        if (!CTFEExp::isCantExp(result))
         {
             if (isTrueBool(result))
                 res = 1;
@@ -5015,7 +5015,7 @@ public:
                     result = NULL;
                     return;
                 }
-                if (result != EXP_CANT_INTERPRET)
+                if (!CTFEExp::isCantExp(result))
                 {
                     if (result->isBool(false))
                         res = 0;
@@ -5024,17 +5024,17 @@ public:
                     else
                     {
                         result->error("%s cannot be interpreted as a boolean", result->toChars());
-                        result = EXP_CANT_INTERPRET;
+                        result = CTFEExp::cantexp;
                     }
                 }
             }
             else
             {
                 result->error("%s cannot be interpreted as a boolean", result->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
             }
         }
-        if (result != EXP_CANT_INTERPRET && goal != ctfeNeedNothing)
+        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
             result = new IntegerExp(e->loc, res, e->type);
     }
 
@@ -5193,7 +5193,7 @@ public:
         {
             // delegate.funcptr()
             e->error("cannot evaulate %s at compile time", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
 
@@ -5206,13 +5206,13 @@ public:
                 e->error("cannot evaluate %s at compile time. Circular reference?", e->toChars());
             else
                 e->error("CTFE internal error: cannot evaluate %s at compile time", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         if (!fd)
         {
             e->error("cannot evaluate %s at compile time", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         if (pthis)
@@ -5268,7 +5268,7 @@ public:
                 if (thisval && thisval->op == TOKnull)
                 {
                     e->error("function call through null class reference %s", pthis->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 ClassDeclaration *cd;
@@ -5292,7 +5292,7 @@ public:
         if (fd && fd->semanticRun >= PASSsemantic3done && fd->semantic3Errors)
         {
             e->error("CTFE failed because of previous errors in %s", fd->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         // Check for built-in functions
@@ -5304,11 +5304,11 @@ public:
         {
             e->error("%s cannot be interpreted at compile time,"
                 " because it has no available source code", fd->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         result = interpret(fd, istate, e->arguments, pthis);
-        if (result == EXP_CANT_INTERPRET)
+        if (CTFEExp::isCantExp(result))
         {
             // Print a stack trace.
             if (!global.gag)
@@ -5342,7 +5342,7 @@ public:
             istate = &istateComma;
         }
 
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
 
         // If the comma returns a temporary variable, it needs to be an lvalue
         // (this is particularly important for struct constructors)
@@ -5418,7 +5418,7 @@ public:
         {
             e->error("%s does not evaluate to boolean result at compile time",
                 e->econd->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
         }
     }
 
@@ -5442,7 +5442,7 @@ public:
         else
         {
             e->error("%s cannot be evaluated at compile time", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
         }
     }
 
@@ -5459,7 +5459,7 @@ public:
             return;
         }
         e->error("%s cannot be evaluated at compile time", e->toChars());
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
     }
 
     void visit(DelegateFuncptrExp *e)
@@ -5475,7 +5475,7 @@ public:
             return;
         }
         e->error("%s cannot be evaluated at compile time", e->toChars());
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
     }
 
     void visit(IndexExp *e)
@@ -5506,7 +5506,7 @@ public:
             if (agg->op == TOKnull)
             {
                 e->error("cannot index null pointer %s", e->e1->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             if (agg->op == TOKarrayliteral || agg->op == TOKstring)
@@ -5517,7 +5517,7 @@ public:
                 {
                     e->error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
                         indx+ofs, len);
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 if (goal == ctfeNeedLvalueRef)
@@ -5538,14 +5538,14 @@ public:
                 if (agg->op == TOKsymoff)
                 {
                     e->error("mutable variable %s cannot be read at compile time, even through a pointer", ((SymOffExp *)agg)->var->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 if ((indx + ofs) != 0)
                 {
                     e->error("pointer index [%lld] lies outside memory block [0..1]",
                         indx+ofs);
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 if (goal == ctfeNeedLvalueRef)
@@ -5575,7 +5575,7 @@ public:
                 return;
             }
             e->error("cannot index null array %s", e->e1->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         /* Set the $ variable.
@@ -5608,7 +5608,7 @@ public:
             if (indx > iup - ilo)
             {
                 e->error("index %llu exceeds array length %llu", indx, iup - ilo);
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             indx += ilo;
@@ -5635,7 +5635,7 @@ public:
             {
                 e->error("key %s not found in associative array %s",
                     e2->toChars(), e->e1->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
         }
@@ -5644,7 +5644,7 @@ public:
             if (e2->op != TOKint64)
             {
                 e1->error("CTFE internal error: non-integral index [%s]", e->e2->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             result = ctfeIndex(e->loc, e->type, e1, e2->toInteger());
@@ -5657,7 +5657,7 @@ public:
         {
             e->error("%s is used before initialized", e->toChars());
             errorSupplemental(result->loc, "originally uninitialized here");
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         result = paintTypeOntoLiteral(e->type, result);
@@ -5682,7 +5682,7 @@ public:
             {
                 e->error("cannot slice invalid pointer %s of value %s",
                     e->e1->toChars(), e1->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
 
@@ -5715,20 +5715,20 @@ public:
                     return;
                 }
                 e->error("cannot slice null pointer %s", e->e1->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             if (agg->op == TOKsymoff)
             {
                 e->error("slicing pointers to static variables is not supported in CTFE");
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             if (agg->op != TOKarrayliteral && agg->op != TOKstring)
             {
                 e->error("pointer %s cannot be sliced at compile time (it does not point to an array)",
                     e->e1->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             assert(agg->op == TOKarrayliteral || agg->op == TOKstring);
@@ -5738,7 +5738,7 @@ public:
             {
                 e->error("pointer slice [%lld..%lld] exceeds allocated memory block [0..%lld]",
                     ilwr, iupr, len);
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             if (ofs != 0)
@@ -5780,7 +5780,7 @@ public:
             e1->op != TOKnull && e1->op != TOKslice)
         {
             e->error("Cannot determine length of %s at compile time", e1->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         uinteger_t dollar = resolveArrayLength(e1);
@@ -5820,7 +5820,7 @@ public:
                 return;
             }
             e1->error("slice [%llu..%llu] is out of bounds", ilwr, iupr);
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         if (e1->op == TOKslice)
@@ -5834,7 +5834,7 @@ public:
             {
                 e->error("slice[%llu..%llu] exceeds array bounds[%llu..%llu]",
                     ilwr, iupr, lo1, up1);
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             ilwr += lo1;
@@ -5850,7 +5850,7 @@ public:
             if (iupr < ilwr || dollar < iupr)
             {
                 e->error("slice [%lld..%lld] exceeds array bounds [0..%lld]", ilwr, iupr, dollar);
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
         }
@@ -5883,7 +5883,7 @@ public:
         if (e2->op != TOKassocarrayliteral)
         {
             e->error(" %s cannot be interpreted at compile time", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         if (e1->op == TOKslice)
@@ -5924,7 +5924,7 @@ public:
         if (e2->op == TOKslice)
             e2 = resolveSlice(e2);
         result = ctfeCat(e->type, e1, e2);
-        if (result == EXP_CANT_INTERPRET)
+        if (CTFEExp::isCantExp(result))
         {
             e->error("%s cannot be interpreted at compile time", e->toChars());
             return;
@@ -5990,7 +5990,7 @@ public:
                 {
                     e->error("reinterpreting cast from %s* to %s* is not supported in CTFE",
                         elemtype->toChars(), pointee->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 if (ultimateSrc->ty == Tvoid)
@@ -6042,7 +6042,7 @@ public:
                     {
                         e->error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
                             origType->toChars(), pointee->toChars());
-                        result = EXP_CANT_INTERPRET;
+                        result = CTFEExp::cantexp;
                         return;
                     }
                 }
@@ -6068,7 +6068,7 @@ public:
                 {
                     e->error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
                         origType->toChars(), pointee->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 if (e1->op == TOKvar)
@@ -6085,7 +6085,7 @@ public:
             {
                 e->error("pointer cast from %s to %s is not supported at compile time",
                     e1->type->toChars(), e->to->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
         }
@@ -6098,7 +6098,7 @@ public:
             {
                 e->error("array cast from %s to %s is not supported at compile time",
                      se->e1->type->toChars(), e->to->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             e1 = new SliceExp(e1->loc, se->e1, se->lwr, se->upr);
@@ -6113,7 +6113,7 @@ public:
             !isSafePointerCast(e1->type->nextOf(), e->to->nextOf()))
         {
             e->error("array cast from %s to %s is not supported at compile time", e1->type->toChars(), e->to->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         if (e->to->ty == Tsarray && e1->op == TOKslice)
@@ -6151,13 +6151,13 @@ public:
             }
             else
                 e->error("%s failed", e->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         else
         {
             e->error("%s is not a compile time boolean expression", e1->toChars());
-            result = EXP_CANT_INTERPRET;
+            result = CTFEExp::cantexp;
             return;
         }
         result = e1;
@@ -6208,7 +6208,7 @@ public:
                     dinteger_t offset = ae->e2->toInteger();
                     result = se->getField(e->type, (unsigned)offset);
                     if (!result)
-                        result = EXP_CANT_INTERPRET;
+                        result = CTFEExp::cantexp;
                     return;
                 }
             }
@@ -6225,13 +6225,13 @@ public:
                 if (result->op == TOKnull)
                 {
                     e->error("Null pointer dereference evaluating typeid. '%s' is null", ((PtrExp *)e->e1)->e1->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 if (result->op != TOKclassreference)
                 {
                     e->error("CTFE internal error determining classinfo");
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 ClassDeclaration *cd = ((ClassReferenceExp *)result)->originalClass();
@@ -6262,7 +6262,7 @@ public:
                     e->error("cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)result)->var->toChars());
                 else
                     e->error("dereference of invalid pointer '%s'", result->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             if (goal != ctfeNeedLvalue && goal != ctfeNeedLvalueRef)
@@ -6291,7 +6291,7 @@ public:
                         {
                             e->error("dereference of pointer %s one past end of memory block limits [0..%lld]",
                                 e->toChars(), len);
-                            result = EXP_CANT_INTERPRET;
+                            result = CTFEExp::cantexp;
                             return;
                         }
                         result = ctfeIndex(e->loc, e->type, ie->e1, indx);
@@ -6307,7 +6307,7 @@ public:
                     if (ie->e1->op == TOKassocarrayliteral)
                     {
                         result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)ie->e1, ie->e2);
-                        assert(result != EXP_CANT_INTERPRET);
+                        assert(!CTFEExp::isCantExp(result));
                         result = paintTypeOntoLiteral(e->type, result);
                         if (isGenuineIndex)
                         {
@@ -6347,15 +6347,15 @@ public:
             else if (result->op == TOKnull)
             {
                 e->error("dereference of null pointer '%s'", e->e1->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             result = paintTypeOntoLiteral(e->type, result);
         }
 
     #if LOG
-        if (result == EXP_CANT_INTERPRET)
-            printf("PtrExp::interpret() %s = EXP_CANT_INTERPRET\n", e->toChars());
+        if (CTFEExp::isCantExp(result))
+            printf("PtrExp::interpret() %s = CTFEExp::cantexp\n", e->toChars());
     #endif
     }
 
@@ -6365,14 +6365,14 @@ public:
         printf("%s DotVarExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
 
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
         Expression *ex = e->e1->interpret(istate);
         if (exceptionOrCantInterpret(ex))
         {
             result = ex;
             return;
         }
-        if (ex != EXP_CANT_INTERPRET)
+        if (!CTFEExp::isCantExp(ex))
         {
             if (ex->op == TOKaddress)
                 ex = ((AddrExp *)ex)->e1;
@@ -6381,7 +6381,7 @@ public:
             if (!v)
             {
                 e->error("CTFE internal error: %s", e->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             if (ex->op == TOKnull)
@@ -6390,7 +6390,7 @@ public:
                     e->error("class '%s' is null and cannot be dereferenced", e->e1->toChars());
                 else
                     e->error("dereference of null pointer '%s'", e->e1->toChars());
-                result = EXP_CANT_INTERPRET;
+                result = CTFEExp::cantexp;
                 return;
             }
             if (ex->op == TOKstructliteral || ex->op == TOKclassreference)
@@ -6412,14 +6412,14 @@ public:
                 if (i == -1)
                 {
                     e->error("couldn't find field %s of type %s in %s", v->toChars(), e->type->toChars(), se->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 result = (*se->elements)[i];
                 if (!result)
                 {
                     e->error("Internal Compiler Error: Null field %s", v->toChars());
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
 
@@ -6459,11 +6459,11 @@ public:
                     if (v->overlapped)
                     {
                         e->error("Reinterpretation through overlapped field %s is not allowed in CTFE", s);
-                        result = EXP_CANT_INTERPRET;
+                        result = CTFEExp::cantexp;
                         return;
                     }
                     e->error("cannot read uninitialized variable %s in CTFE", s);
-                    result = EXP_CANT_INTERPRET;
+                    result = CTFEExp::cantexp;
                     return;
                 }
                 if (isPointer(e->type))
@@ -6475,7 +6475,7 @@ public:
                 {
                     // Don't typepaint twice, since that might cause an erroneous copy
                     result = getVarExp(e->loc, istate, ((VarExp *)result)->var, goal);
-                    if (result != EXP_CANT_INTERPRET && result->op != TOKthrownexception)
+                    if (!CTFEExp::isCantExp(result) && result->op != TOKthrownexception)
                         result = paintTypeOntoLiteral(e->type, result);
                     return;
                 }
@@ -6487,8 +6487,8 @@ public:
         }
 
     #if LOG
-        if (result == EXP_CANT_INTERPRET)
-            printf("DotVarExp::interpret() %s = EXP_CANT_INTERPRET\n", e->toChars());
+        if (CTFEExp::isCantExp(result))
+            printf("DotVarExp::interpret() %s = CTFEExp::cantexp\n", e->toChars());
     #endif
     }
 
@@ -6546,7 +6546,7 @@ public:
     {
         e->error("CTFE internal error: trying to read uninitialized variable");
         assert(0);
-        result = EXP_CANT_INTERPRET;
+        result = CTFEExp::cantexp;
     }
 
     void visit(ThrownExceptionExp *e)
@@ -6568,7 +6568,7 @@ Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal)
  * Interpret the statement.
  * Returns:
  *      NULL    continue to next statement
- *      EXP_CANT_INTERPRET      cannot interpret statement at compile time
+ *      TOKcantexp      cannot interpret statement at compile time
  *      !NULL   expression from return statement, or thrown exception
  */
 
@@ -6596,7 +6596,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
             int old = se->stageflags;
             se->stageflags |= stageScrub;
             if (!scrubArray(loc, se->elements, true))
-                return EXP_CANT_INTERPRET;
+                return CTFEExp::cantexp;
             se->stageflags = old;
         }
     }
@@ -6618,7 +6618,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
             int old = se->stageflags;
             se->stageflags |= stageScrub;
             if (!scrubArray(loc, se->elements, true))
-                return EXP_CANT_INTERPRET;
+                return CTFEExp::cantexp;
             se->stageflags = old;
         }
     }
@@ -6630,16 +6630,16 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     {
         ((ArrayLiteralExp *)e)->ownedByCtfe = false;
         if (!scrubArray(loc, ((ArrayLiteralExp *)e)->elements))
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
     }
     if (e->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
         aae->ownedByCtfe = false;
         if (!scrubArray(loc, aae->keys))
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         if (!scrubArray(loc, aae->values))
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         aae->type = toBuiltinAAType(aae->type);
     }
     return e;
@@ -6690,7 +6690,7 @@ bool scrubArray(Loc loc, Expressions *elems, bool structlit)
         else
         {
             m = scrubReturnValue(loc, m);
-            if (m == EXP_CANT_INTERPRET)
+            if (CTFEExp::isCantExp(m))
                 return false;
         }
         (*elems)[i] = m;
@@ -6865,7 +6865,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     else
     {
         str->error("CTFE internal error: cannot foreach %s", str->toChars());
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
     Expressions args;
     args.setDim(numParams);
@@ -7014,7 +7014,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
         if (errmsg)
         {
             deleg->error("%s", errmsg);
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         }
 
         // Step 2: encode the dchar in the target encoding
@@ -7104,7 +7104,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
             if (!e)
             {
                 error(loc, "cannot evaluate unimplemented builtin %s at compile time", fd->toChars());
-                e = EXP_CANT_INTERPRET;
+                e = CTFEExp::cantexp;
             }
         }
     }

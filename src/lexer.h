@@ -184,6 +184,7 @@ enum TOK
 
         TOKinterval,
         TOKvoidexp,
+        TOKcantexp,
 
         TOKMAX
 };

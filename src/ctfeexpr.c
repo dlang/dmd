@@ -153,25 +153,15 @@ void ThrownExceptionExp::generateUncaughtError()
 }
 
 
-// True if 'e' is EXP_CANT_INTERPRET, or an exception
+// True if 'e' is CTFEExp::cantexp, or an exception
 bool exceptionOrCantInterpret(Expression *e)
 {
-    assert(EXP_CANT_INTERPRET && "EXP_CANT_INTERPRET must be distinct from "
-        "null, Expression::init not called?");
-    if (e == EXP_CANT_INTERPRET)
-        return true;
-    if (!e ||
-        e->op == TOKgoto ||
-        e->op == TOKbreak ||
-        e->op == TOKcontinue)
-    {
-        return false;
-    }
-    return e->op == TOKthrownexception;
+    return e && (e->op == TOKcantexp || e->op == TOKthrownexception);
 }
 
 /********************** CTFEExp ******************************************/
 
+CTFEExp *CTFEExp::cantexp;
 CTFEExp *CTFEExp::voidexp;
 CTFEExp *CTFEExp::breakexp;
 CTFEExp *CTFEExp::continueexp;
@@ -692,7 +682,7 @@ Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e
     error(loc, "%s - %s cannot be interpreted at compile time: cannot subtract "
         "pointers to two different memory blocks",
         e1->toChars(), e2->toChars());
-    return EXP_CANT_INTERPRET;
+    return CTFEExp::cantexp;
 }
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
@@ -703,7 +693,7 @@ Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
     if (eptr->type->nextOf()->ty == Tvoid)
     {
         error(loc, "cannot perform arithmetic on void* pointers at compile time");
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
     dinteger_t ofs1, ofs2;
     if (eptr->op == TOKaddress)
@@ -714,13 +704,13 @@ Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
         if (((SymOffExp *)agg1)->var->type->ty != Tsarray)
         {
             error(loc, "cannot perform pointer arithmetic on arrays of unknown length at compile time");
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         }
     }
     else if (agg1->op != TOKstring && agg1->op != TOKarrayliteral)
     {
         error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
     ofs2 = e2->toInteger();
     Type *pointee = ((TypePointer *)agg1->type)->next;
@@ -735,7 +725,7 @@ Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
     else
     {
         dollar = ArrayLength(Type::tsize_t, agg1);
-        assert(dollar != EXP_CANT_INTERPRET);
+        assert(!CTFEExp::isCantExp(dollar));
     }
     dinteger_t len = dollar->toInteger();
 
@@ -746,13 +736,13 @@ Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
     else
     {
         error(loc, "CTFE Internal compiler error: bad pointer operation");
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
 
     if (indx < 0 || indx > len)
     {
         error(loc, "cannot assign pointer to index %lld inside memory block [0..%lld]", indx, len);
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
 
     if (agg1->op == TOKsymoff)
@@ -766,7 +756,7 @@ Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
     if (val->op != TOKarrayliteral && val->op != TOKstring)
     {
         error(loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
 
     IntegerExp *ofs = new IntegerExp(loc, indx, Type::tsize_t);
@@ -1594,7 +1584,7 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         {
             Expression *es2e = (*es2->elements)[i];
             if (es2e->op != TOKint64)
-                return EXP_CANT_INTERPRET;
+                return CTFEExp::cantexp;
             dinteger_t v = es2e->toInteger();
             memcpy((utf8_t *)s + i * sz, &v, sz);
         }
@@ -1625,7 +1615,7 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         {
             Expression *es2e = (*es2->elements)[i];
             if (es2e->op != TOKint64)
-                return EXP_CANT_INTERPRET;
+                return CTFEExp::cantexp;
             dinteger_t v = es2e->toInteger();
             memcpy((utf8_t *)s + (es1->len + i) * sz, &v, sz);
         }
@@ -1703,7 +1693,7 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
         if (indx >= es1->len)
         {
             error(loc, "string index %llu is out of bounds [0 .. %llu]", indx, (ulonglong)es1->len);
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         }
         else
             return new IntegerExp(loc, es1->charAt(indx), type);
@@ -1713,7 +1703,7 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
     if (indx >= ale->elements->dim)
     {
         error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1->toChars(), (ulonglong)ale->elements->dim);
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     }
     Expression *e = (*ale->elements)[(size_t)indx];
     return paintTypeOntoLiteral(type, e);
@@ -1741,7 +1731,7 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
         e->type->toBasetype()->castMod(0) == to->toBasetype()->castMod(0))
         return paintTypeOntoLiteral(to, e);
     Expression *r = Cast(type, to, e);
-    if (r == EXP_CANT_INTERPRET)
+    if (CTFEExp::isCantExp(r))
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
     if (e->op == TOKarrayliteral)
         ((ArrayLiteralExp *)e)->ownedByCtfe = true;
@@ -1863,7 +1853,7 @@ Expression * modifyStructField(Type *type, StructLiteralExp *se, size_t offset, 
 {
     int fieldi = se->getFieldIndex(newval->type, (unsigned)offset);
     if (fieldi == -1)
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     /* Create new struct literal reflecting updated fieldi
     */
     Expressions *expsx = changeOneElement(se->elements, fieldi, newval);
@@ -2083,8 +2073,8 @@ bool isCtfeValueValid(Expression *newval)
     if (newval->op == TOKslice)
     {
         SliceExp *se = (SliceExp *)newval;
-        assert(se->lwr && se->lwr != EXP_CANT_INTERPRET && se->lwr->op == TOKint64);
-        assert(se->upr && se->upr != EXP_CANT_INTERPRET && se->upr->op == TOKint64);
+        assert(se->lwr && se->lwr->op == TOKint64);
+        assert(se->upr && se->upr->op == TOKint64);
         assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
         return true;
     }

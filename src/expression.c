@@ -2001,12 +2001,9 @@ Expression::Expression(Loc loc, TOK op, int size)
     type = NULL;
 }
 
-Expression *EXP_CANT_INTERPRET;
-
 void Expression::init()
 {
-    EXP_CANT_INTERPRET = new ErrorExp();
-
+    CTFEExp::cantexp = new CTFEExp(TOKcantexp);
     CTFEExp::voidexp = new CTFEExp(TOKvoidexp);
     CTFEExp::breakexp = new CTFEExp(TOKbreak);
     CTFEExp::continueexp = new CTFEExp(TOKcontinue);
