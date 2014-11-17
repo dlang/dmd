@@ -139,7 +139,8 @@ out (result)
         foreach (const(Entry)* e; aa.impl.buckets)
         {
             while (e)
-            {   len++;
+            {
+                len++;
                 e = e.next;
             }
         }
@@ -172,25 +173,27 @@ out (result)
 }
 body
 {
-    size_t i;
-    Entry *e;
     //printf("keyti = %p\n", keyti);
     //printf("aa = %p\n", aa);
-    immutable keytitsize = keyti.tsize;
 
     if (aa.impl is null)
-    {   aa.impl = new Impl();
+    {
+        aa.impl = new Impl();
         aa.impl.buckets = aa.impl.binit[];
         aa.impl.firstUsedBucket = aa.impl.buckets.length;
+        aa.impl._keyti = cast() keyti;
     }
     //printf("aa = %p\n", aa);
     //printf("aa.a = %p\n", aa.a);
-    aa.impl._keyti = cast() keyti;
 
-    auto key_hash = keyti.getHash(pkey);
+    immutable keytitsize = keyti.tsize;
+
+    immutable key_hash = keyti.getHash(pkey);
+    immutable i = key_hash % aa.impl.buckets.length;
     //printf("hash = %d\n", key_hash);
-    i = key_hash % aa.impl.buckets.length;
-    auto pe = &aa.impl.buckets[i];
+
+    Entry** pe = &aa.impl.buckets[i];
+    Entry* e;
     while ((e = *pe) !is null)
     {
         if (key_hash == e.hash)
@@ -223,12 +226,13 @@ body
         else
         {
             // update cache if necessary
-            if (i < aa.impl.firstUsedBucket) aa.impl.firstUsedBucket = i;
+            if (i < aa.impl.firstUsedBucket)
+                aa.impl.firstUsedBucket = i;
         }
     }
 
 Lret:
-    return cast(void *)(e + 1) + aligntsize(keytitsize);
+    return cast(void*)(e + 1) + aligntsize(keytitsize);
 }
 
 
@@ -238,30 +242,7 @@ Lret:
  */
 inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valuesize, in void* pkey)
 {
-    //printf("_aaGetRvalue(valuesize = %u)\n", valuesize);
-    if (aa.impl is null)
-        return null;
-
-    auto keysize = aligntsize(keyti.tsize);
-    auto len = aa.impl.buckets.length;
-
-    if (len)
-    {
-        auto key_hash = keyti.getHash(pkey);
-        //printf("hash = %d\n", key_hash);
-        size_t i = key_hash % len;
-        inout(Entry)* e = aa.impl.buckets[i];
-        while (e !is null)
-        {
-            if (key_hash == e.hash)
-            {
-                if (keyti.equals(pkey, e + 1))
-                    return cast(inout void *)(e + 1) + keysize;
-            }
-            e = e.next;
-        }
-    }
-    return null;    // not found, caller will throw exception
+    return _aaInX(aa, keyti, pkey);
 }
 
 
@@ -281,26 +262,25 @@ out (result)
 }
 body
 {
-    if (aa.impl)
-    {
-        //printf("_aaIn(), .length = %d, .ptr = %x\n", aa.a.length, cast(uint)aa.a.ptr);
-        auto len = aa.impl.buckets.length;
+    if (aa.impl is null)
+        return null;
 
-        if (len)
+    //printf("_aaIn(), .length = %d, .ptr = %x\n", aa.a.length, cast(uint)aa.a.ptr);
+    if (immutable len = aa.impl.buckets.length)
+    {
+        immutable key_hash = keyti.getHash(pkey);
+        immutable i = key_hash % len;
+        //printf("hash = %d\n", key_hash);
+
+        inout(Entry)* e = aa.impl.buckets[i];
+        while (e !is null)
         {
-            auto key_hash = keyti.getHash(pkey);
-            //printf("hash = %d\n", key_hash);
-            const i = key_hash % len;
-            inout(Entry)* e = aa.impl.buckets[i];
-            while (e !is null)
+            if (key_hash == e.hash)
             {
-                if (key_hash == e.hash)
-                {
-                    if (keyti.equals(pkey, e + 1))
-                        return cast(inout void *)(e + 1) + aligntsize(keyti.tsize);
-                }
-                e = e.next;
+                if (keyti.equals(pkey, e + 1))
+                    return cast(inout void*)(e + 1) + aligntsize(keyti.tsize);
             }
+            e = e.next;
         }
     }
 
@@ -412,7 +392,8 @@ body
             foreach (e; oldImpl.buckets[oldImpl.firstUsedBucket..$])
             {
                 while (e)
-                {   auto enext = e.next;
+                {
+                    auto enext = e.next;
                     const j = e.hash % len;
                     e.next = newImpl.buckets[j];
                     newImpl.buckets[j] = e;
@@ -623,7 +604,8 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
         size_t keytsize = aligntsize(keysize);
 
         for (size_t j = 0; j < length; j++)
-        {   auto pkey = keys.ptr + j * keysize;
+        {
+            auto pkey = keys.ptr + j * keysize;
             auto pvalue = values.ptr + j * valuesize;
             Entry* e;
 
@@ -753,7 +735,8 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
                 {
                     //printf("hash equals\n");
                     if (keyti.equals(pkey, f + 1))
-                    {   // Found key in e2. Compare values
+                    {
+                        // Found key in e2. Compare values
                         //printf("key equals\n");
                         auto pvalue2 = cast(void *)(f + 1) + keysize;
                         if (valueti.equals(pvalue, pvalue2))
@@ -778,7 +761,8 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
     foreach (e; e1.impl.buckets[e1.impl.firstUsedBucket..$])
     {
         if (e)
-        {   if (_aaKeys_x(e) == 0)
+        {
+            if (_aaKeys_x(e) == 0)
                 return 0;
         }
     }
