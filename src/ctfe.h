@@ -263,7 +263,7 @@ int ctfeIdentity(Loc loc, TOK op, Expression *e1, Expression *e2);
 int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2);
 
 /// Returns e1 ~ e2. Resolves slices before concatenation.
-Expression *ctfeCat(Type *type, Expression *e1, Expression *e2);
+UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2);
 
 /// Same as for constfold.Index, except that it only works for static arrays,
 /// dynamic arrays, and strings.

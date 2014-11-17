@@ -48,6 +48,7 @@ class Initializer;
 class StringExp;
 class ArrayExp;
 class SliceExp;
+struct UnionExp;
 
 enum TOK;
 
@@ -258,6 +259,8 @@ public:
 
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
+
+    static ErrorExp *errorexp; // handy shared value
 };
 
 class RealExp : public Expression
@@ -751,7 +754,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-typedef Expression *(*fp_t)(Type *, Expression *, Expression *);
+typedef UnionExp (*fp_t)(Type *, Expression *, Expression *);
 typedef int (*fp2_t)(Loc loc, TOK, Expression *, Expression *);
 
 class BinExp : public Expression
@@ -1580,6 +1583,16 @@ struct UnionExp
         char errorexp  [sizeof(ErrorExp)];
         char realexp   [sizeof(RealExp)];
         char complexexp[sizeof(ComplexExp)];
+        char symoffexp [sizeof(SymOffExp)];
+        char stringexp [sizeof(StringExp)];
+        char arrayliteralexp [sizeof(ArrayLiteralExp)];
+        char assocarrayliteralexp [sizeof(AssocArrayLiteralExp)];
+        char structliteralexp [sizeof(StructLiteralExp)];
+        char nullexp   [sizeof(NullExp)];
+        char dotvarexp [sizeof(DotVarExp)];
+        char addrexp   [sizeof(AddrExp)];
+        char indexexp  [sizeof(IndexExp)];
+        char sliceexp  [sizeof(SliceExp)];
     };
     U u;
 };
@@ -1592,33 +1605,34 @@ struct UnionExp
 Expression *expType(Type *type, Expression *e);
 
 UnionExp Neg(Type *type, Expression *e1);
-Expression *Com(Type *type, Expression *e1);
-Expression *Not(Type *type, Expression *e1);
-Expression *Bool(Type *type, Expression *e1);
-Expression *Cast(Type *type, Type *to, Expression *e1);
+UnionExp Com(Type *type, Expression *e1);
+UnionExp Not(Type *type, Expression *e1);
+UnionExp Bool(Type *type, Expression *e1);
+UnionExp Cast(Type *type, Type *to, Expression *e1);
+Expression *Castx(Type *type, Type *to, Expression *e1);
 Expression *ArrayLength(Type *type, Expression *e1);
-Expression *Ptr(Type *type, Expression *e1);
+UnionExp Ptr(Type *type, Expression *e1);
 
-Expression *Add(Type *type, Expression *e1, Expression *e2);
-Expression *Min(Type *type, Expression *e1, Expression *e2);
-Expression *Mul(Type *type, Expression *e1, Expression *e2);
-Expression *Div(Type *type, Expression *e1, Expression *e2);
-Expression *Mod(Type *type, Expression *e1, Expression *e2);
-Expression *Pow(Type *type, Expression *e1, Expression *e2);
-Expression *Shl(Type *type, Expression *e1, Expression *e2);
-Expression *Shr(Type *type, Expression *e1, Expression *e2);
-Expression *Ushr(Type *type, Expression *e1, Expression *e2);
-Expression *And(Type *type, Expression *e1, Expression *e2);
-Expression *Or(Type *type, Expression *e1, Expression *e2);
-Expression *Xor(Type *type, Expression *e1, Expression *e2);
+UnionExp Add(Type *type, Expression *e1, Expression *e2);
+UnionExp Min(Type *type, Expression *e1, Expression *e2);
+UnionExp Mul(Type *type, Expression *e1, Expression *e2);
+UnionExp Div(Type *type, Expression *e1, Expression *e2);
+UnionExp Mod(Type *type, Expression *e1, Expression *e2);
+UnionExp Pow(Type *type, Expression *e1, Expression *e2);
+UnionExp Shl(Type *type, Expression *e1, Expression *e2);
+UnionExp Shr(Type *type, Expression *e1, Expression *e2);
+UnionExp Ushr(Type *type, Expression *e1, Expression *e2);
+UnionExp And(Type *type, Expression *e1, Expression *e2);
+UnionExp Or(Type *type, Expression *e1, Expression *e2);
+UnionExp Xor(Type *type, Expression *e1, Expression *e2);
 Expression *Index(Type *type, Expression *e1, Expression *e2);
-Expression *Cat(Type *type, Expression *e1, Expression *e2);
+UnionExp Cat(Type *type, Expression *e1, Expression *e2);
 
-Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2);
-Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2);
-Expression *Identity(TOK op, Type *type, Expression *e1, Expression *e2);
+UnionExp Equal(TOK op, Type *type, Expression *e1, Expression *e2);
+UnionExp Cmp(TOK op, Type *type, Expression *e1, Expression *e2);
+UnionExp Identity(TOK op, Type *type, Expression *e1, Expression *e2);
 
-Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr);
+UnionExp Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr);
 
 // Const-folding functions used by CTFE
 
