@@ -989,7 +989,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (e->e1->op == TOKstring || e->e1->op == TOKarrayliteral || e->e1->op == TOKassocarrayliteral ||
                 e->e1->type->toBasetype()->ty == Tsarray)
             {
-                ret = ArrayLength(e->type, e->e1);
+                ret = ArrayLength(e->type, e->e1).copy();
             }
         }
 
@@ -1085,7 +1085,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             e->e2 = e->e2->optimize(WANTvalue);
             if (keepLvalue)
                 return;
-            ret = Index(e->type, ex, e->e2);
+            ret = Index(e->type, ex, e->e2).copy();
             if (CTFEExp::isCantExp(ret))
                 ret = e;
         }
