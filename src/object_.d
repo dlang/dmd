@@ -1958,16 +1958,16 @@ extern (C)
     // from druntime/src/rt/aaA.d
 
     // size_t _aaLen(in void* p) pure nothrow @nogc;
-    // void* _aaGetX(void** pp, const TypeInfo keyti, in size_t valuesize, in void* pkey);
+    private void* _aaGetX(void** paa, const TypeInfo keyti, in size_t valuesize, in void* pkey) pure nothrow;
     // inout(void)* _aaGetRvalueX(inout void* p, in TypeInfo keyti, in size_t valuesize, in void* pkey);
     inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize) pure nothrow;
     inout(void)[] _aaKeys(inout void* p, in size_t keysize) pure nothrow;
     void* _aaRehash(void** pp, in TypeInfo keyti) pure nothrow;
 
-    // extern (D) alias scope int delegate(void *) _dg_t;
+    // alias _dg_t = extern(D) int delegate(void*);
     // int _aaApply(void* aa, size_t keysize, _dg_t dg);
 
-    // extern (D) alias scope int delegate(void *, void *) _dg2_t;
+    // alias _dg2_t = extern(D) int delegate(void*, void*);
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     private struct AARange { void* impl, current; }
@@ -2047,32 +2047,46 @@ T rehash(T : shared Value[Key], Value, Key)(T* aa)
     return *aa;
 }
 
-Value[Key] dup(T : Value[Key], Value, Key)(T aa) if (is(typeof({
-    ref Value get();    // pseudo lvalue of Value
-    Value[Key] r; r[Key.init] = get();
-    // bug 10720 - check whether Value is copyable
-    })))
+V[K] dup(T : V[K], K, V)(T aa)
 {
-    Value[Key] result;
-    foreach (k, v; aa)
+    //pragma(msg, "K = ", K, ", V = ", V);
+
+    // Bug10720 - check whether V is copyable
+    static assert(is(typeof({ V v = aa[K.init]; })),
+        "cannot call " ~ T.stringof ~ ".dup because " ~ V.stringof ~ " is not copyable");
+
+    V[K] result;
+
+    //foreach (k, ref v; aa)
+    //    result[k] = v;  // Bug13701 - won't work if V is not mutable
+
+    ref V duplicateElem(ref K k, ref const V v) @trusted pure nothrow
     {
-        result[k] = v;
+        import core.stdc.string : memcpy;
+
+        void* pv = _aaGetX(cast(void**)&result, typeid(K), V.sizeof, &k);
+        memcpy(pv, &v, V.sizeof);
+        return *cast(V*)pv;
     }
+
+    if (auto postblit = _getPostblit!V())
+    {
+        foreach (k, ref v; aa)
+            postblit(duplicateElem(k, v));
+    }
+    else
+    {
+        foreach (k, ref v; aa)
+            duplicateElem(k, v);
+    }
+
     return result;
 }
 
-Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (is(typeof((*aa).dup)))
+V[K] dup(T : V[K], K, V)(T* aa)
 {
     return (*aa).dup;
 }
-
-@disable Value[Key] dup(T : Value[Key], Value, Key)(T aa) if (!is(typeof({
-    ref Value get();    // pseudo lvalue of Value
-    Value[Key] r; r[Key.init] = get();
-    // bug 10720 - check whether Value is copyable
-    })));
-
-Value[Key] dup(T : Value[Key], Value, Key)(T* aa) if (!is(typeof((*aa).dup)));
 
 auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 {
@@ -2977,29 +2991,38 @@ private inout(T)[] _rawDup(T)(inout(T)[] a)
     return *cast(inout(T)[]*)&arr;
 }
 
-private void _doPostblit(T)(T[] ary)
+// Returns null, or a delegate to call postblit of T
+private auto _getPostblit(T)() @trusted pure nothrow @nogc
 {
     // infer static postblit type, run postblit if any
     static if (is(T == struct))
     {
         import core.internal.traits : Unqual;
 
-        alias PostBlitT = typeof(function(void*){T a = T.init, b = a;});
+        // assume that ref T and void* are equivalent in abi level.
+        alias PostBlitT = typeof(function (ref T t){ T a = t; });
+
         // use typeid(Unqual!T) here to skip TypeInfo_Const/Shared/...
-        auto postBlit = cast(PostBlitT)typeid(Unqual!T).xpostblit;
-        if (postBlit !is null)
-        {
-            foreach (ref el; ary)
-                postBlit(cast(void*)&el);
-        }
+        return cast(PostBlitT)typeid(Unqual!T).xpostblit;
     }
     else if ((&typeid(T).postblit).funcptr !is &TypeInfo.postblit)
     {
-        alias PostBlitT = typeof(delegate(void*){T a = T.init, b = a;});
-        auto postBlit = cast(PostBlitT)&typeid(T).postblit;
+        // assume that ref T and void* are equivalent in abi level.
+        alias PostBlitT = typeof(delegate (ref T t){ T a = t; });
 
-        foreach (ref el; ary)
-            postBlit(cast(void*)&el);
+        return cast(PostBlitT)&typeid(T).postblit;
+    }
+    else
+        return null;
+}
+
+private void _doPostblit(T)(T[] arr)
+{
+    // infer static postblit type, run postblit if any
+    if (auto postblit = _getPostblit!T())
+    {
+        foreach (ref elem; arr)
+            postblit(elem);
     }
 }
 
