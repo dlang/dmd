@@ -3204,15 +3204,17 @@ public:
             result = e1;
             return;
         }
+        UnionExp ue;
         switch (e->op)
         {
-            case TOKneg:    result = Neg(e->type, e1).copy(); break;
-            case TOKtilde:  result = Com(e->type, e1); break;
-            case TOKnot:    result = Not(e->type, e1); break;
-            case TOKtobool: result = Bool(e->type, e1); break;
-            case TOKvector: result = e; break; // do nothing
+            case TOKneg:    ue = Neg(e->type, e1); break;
+            case TOKtilde:  ue = Com(e->type, e1); break;
+            case TOKnot:    ue = Not(e->type, e1); break;
+            case TOKtobool: ue = Bool(e->type, e1); break;
+            case TOKvector: result = e; return; // do nothing
             default: assert(0);
         }
+        result = ue.copy();
     }
 
     void interpretCommon(BinExp *e, fp_t fp)
@@ -3314,7 +3316,7 @@ public:
                 return;
             }
         }
-        result = (*fp)(e->type, e1, e2);
+        result = (*fp)(e->type, e1, e2).copy();
         if (CTFEExp::isCantExp(result))
             e->error("%s cannot be interpreted at compile time", e->toChars());
     }
@@ -3687,7 +3689,7 @@ public:
                 }
                 else
                 {
-                    newval = (*fp)(e->type, oldval, newval);
+                    newval = (*fp)(e->type, oldval, newval).copy();
                 }
                 if (CTFEExp::isCantExp(newval))
                 {
@@ -5923,7 +5925,7 @@ public:
         }
         if (e2->op == TOKslice)
             e2 = resolveSlice(e2);
-        result = ctfeCat(e->type, e1, e2);
+        result = ctfeCat(e->type, e1, e2).copy();
         if (CTFEExp::isCantExp(result))
         {
             e->error("%s cannot be interpreted at compile time", e->toChars());
@@ -6212,7 +6214,7 @@ public:
                     return;
                 }
             }
-            result = Ptr(e->type, e->e1);
+            result = Ptr(e->type, e->e1).copy();
         }
         else
         {

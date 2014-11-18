@@ -270,7 +270,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             e->e1 = e->e1->optimize(result);
             if (e->e1->isConst() == 1)
             {
-                ret = Com(e->type, e->e1);
+                ret = Com(e->type, e->e1).copy();
             }
         }
 
@@ -279,7 +279,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             e->e1 = e->e1->optimize(result);
             if (e->e1->isConst() == 1)
             {
-                ret = Not(e->type, e->e1);
+                ret = Not(e->type, e->e1).copy();
             }
         }
 
@@ -288,7 +288,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             e->e1 = e->e1->optimize(result);
             if (e->e1->isConst() == 1)
             {
-                ret = Bool(e->type, e->e1);
+                ret = Bool(e->type, e->e1).copy();
             }
         }
 
@@ -392,7 +392,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             // Constant fold *(&structliteral + offset)
             if (e->e1->op == TOKadd)
             {
-                Expression *ex = Ptr(e->type, e->e1);
+                Expression *ex = Ptr(e->type, e->e1).copy();
                 if (!CTFEExp::isCantExp(ex))
                 {
                     ret = ex;
@@ -599,7 +599,12 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                     return;
                 }
                 if (e->to->toBasetype()->ty != Tvoid)
-                    ret = Cast(e->type, e->to, e->e1);
+                {
+                    if (e->e1->type->equals(e->type) && e->type->equals(e->to))
+                        ret = e->e1;
+                    else
+                        ret = Cast(e->type, e->to, e->e1).copy();
+                }
             }
             //printf(" returning6 %s\n", ret->toChars());
         }
@@ -645,7 +650,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 if (e->e1->op == TOKsymoff && e->e2->op == TOKsymoff)
                     return;
-                ret = Add(e->type, e->e1, e->e2);
+                ret = Add(e->type, e->e1, e->e2).copy();
             }
         }
 
@@ -667,7 +672,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 if (e->e2->op == TOKsymoff)
                     return;
-                ret = Min(e->type, e->e1, e->e2);
+                ret = Min(e->type, e->e1, e->e2).copy();
             }
         }
 
@@ -688,7 +693,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
             {
-                ret = Mul(e->type, e->e1, e->e2);
+                ret = Mul(e->type, e->e1, e->e2).copy();
             }
         }
 
@@ -709,7 +714,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
             {
-                ret = Div(e->type, e->e1, e->e2);
+                ret = Div(e->type, e->e1, e->e2).copy();
             }
         }
 
@@ -729,11 +734,11 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
             {
-                ret = Mod(e->type, e->e1, e->e2);
+                ret = Mod(e->type, e->e1, e->e2).copy();
             }
         }
 
-        void shift_optimize(BinExp *e, Expression *(*shift)(Type *, Expression *, Expression *))
+        void shift_optimize(BinExp *e, UnionExp (*shift)(Type *, Expression *, Expression *))
         {
             e->e1 = e->e1->optimize(result);
             e->e2 = e->e2->optimize(result);
@@ -758,7 +763,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                     return;
                 }
                 if (e->e1->isConst() == 1)
-                    ret = (*shift)(e->type, e->e1, e->e2);
+                    ret = (*shift)(e->type, e->e1, e->e2).copy();
             }
         }
 
@@ -795,7 +800,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
-                ret = And(e->type, e->e1, e->e2);
+                ret = And(e->type, e->e1, e->e2).copy();
         }
 
         void visit(OrExp *e)
@@ -813,7 +818,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
-                ret = Or(e->type, e->e1, e->e2);
+                ret = Or(e->type, e->e1, e->e2).copy();
         }
 
         void visit(XorExp *e)
@@ -831,7 +836,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
-                ret = Xor(e->type, e->e1, e->e2);
+                ret = Xor(e->type, e->e1, e->e2).copy();
         }
 
         void visit(PowExp *e)
@@ -909,7 +914,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
             {
-                Expression *ex = Pow(e->type, e->e1, e->e2);
+                Expression *ex = Pow(e->type, e->e1, e->e2).copy();
                 if (!CTFEExp::isCantExp(ex))
                 {
                     ret = ex;
@@ -1007,7 +1012,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
 
-            ret = Equal(e->op, e->type, e->e1, e->e2);
+            ret = Equal(e->op, e->type, e->e1, e->e2).copy();
             if (CTFEExp::isCantExp(ret))
                 ret = e;
         }
@@ -1033,7 +1038,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 (e->e1->op == TOKnull && e->e2->op == TOKnull)
                 )
             {
-                ret = Identity(e->op, e->type, e->e1, e->e2);
+                ret = Identity(e->op, e->type, e->e1, e->e2).copy();
                 if (CTFEExp::isCantExp(ret))
                     ret = e;
             }
@@ -1105,7 +1110,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             setLengthVarIfKnown(e->lengthVar, e->e1);
             e->lwr = e->lwr->optimize(WANTvalue);
             e->upr = e->upr->optimize(WANTvalue);
-            ret = Slice(e->type, e->e1, e->lwr, e->upr);
+            ret = Slice(e->type, e->e1, e->lwr, e->upr).copy();
             if (CTFEExp::isCantExp(ret))
                 ret = e;
             //printf("-SliceExp::optimize() %s\n", ret->toChars());
@@ -1209,7 +1214,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             Expression *e1 = fromConstInitializer(result, e->e1);
             Expression *e2 = fromConstInitializer(result, e->e2);
 
-            ret = Cmp(e->op, e->type, e1, e2);
+            ret = Cmp(e->op, e->type, e1, e2).copy();
             if (CTFEExp::isCantExp(ret))
                 ret = e;
         }
@@ -1234,7 +1239,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 }
             }
 
-            ret = Cat(e->type, e->e1, e->e2);
+            ret = Cat(e->type, e->e1, e->e2).copy();
             if (CTFEExp::isCantExp(ret))
                 ret = e;
         }

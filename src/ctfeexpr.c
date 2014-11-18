@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>                     // mem{cpy|set}()
+#include <new>
 
 #include "rmem.h"
 
@@ -413,7 +414,7 @@ Expression *resolveSlice(Expression *e)
     SliceExp *se = (SliceExp *)e;
     if (se->e1->op == TOKnull)
         return se->e1;
-    return Slice(e->type, se->e1, se->lwr, se->upr);
+    return Slice(e->type, se->e1, se->lwr, se->upr).copy();
 }
 
 /* Determine the array length, without interpreting it.
@@ -1563,12 +1564,13 @@ int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2)
 }
 
 
-Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
+UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
 {
     Loc loc = e1->loc;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
     Expression *e;
+    UnionExp ue;
     if (e2->op == TOKstring && e1->op == TOKarrayliteral &&
         t1->nextOf()->isintegral())
     {
@@ -1584,7 +1586,10 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         {
             Expression *es2e = (*es2->elements)[i];
             if (es2e->op != TOKint64)
-                return CTFEExp::cantexp;
+            {
+                new(&ue) CTFEExp(TOKcantexp);
+                return ue;
+            }
             dinteger_t v = es2e->toInteger();
             memcpy((utf8_t *)s + i * sz, &v, sz);
         }
@@ -1597,9 +1602,8 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         es->committed = 0;
         es->type = type;
         e = es;
-        return e;
     }
-    if (e1->op == TOKstring && e2->op == TOKarrayliteral &&
+    else if (e1->op == TOKstring && e2->op == TOKarrayliteral &&
         t2->nextOf()->isintegral())
     {
         // string ~ [chars] => string (only valid for CTFE)
@@ -1615,7 +1619,10 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         {
             Expression *es2e = (*es2->elements)[i];
             if (es2e->op != TOKint64)
-                return CTFEExp::cantexp;
+            {
+                new(&ue) CTFEExp(TOKcantexp);
+                return ue;
+            }
             dinteger_t v = es2e->toInteger();
             memcpy((utf8_t *)s + (es1->len + i) * sz, &v, sz);
         }
@@ -1628,9 +1635,8 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         es->committed = 0; //es1->committed;
         es->type = type;
         e = es;
-        return e;
     }
-    if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral &&
+    else if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  [ e1 ] ~ [ e2 ] ---> [ e1, e2 ]
@@ -1641,22 +1647,26 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         es1->elements->insert(es1->elements->dim, copyLiteralArray(es2->elements));
         e = es1;
         e->type = type;
-        return e;
     }
-    if (e1->op == TOKarrayliteral && e2->op == TOKnull &&
+    else if (e1->op == TOKarrayliteral && e2->op == TOKnull &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  [ e1 ] ~ null ----> [ e1 ].dup
-        return paintTypeOntoLiteral(type, copyLiteral(e1));
+        e = paintTypeOntoLiteral(type, copyLiteral(e1));
     }
-    if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
+    else if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  null ~ [ e2 ] ----> [ e2 ].dup
-        return paintTypeOntoLiteral(type, copyLiteral(e2));
+        e = paintTypeOntoLiteral(type, copyLiteral(e2));
     }
-
-    return Cat(type, e1, e2);
+    else
+    {
+        ue = Cat(type, e1, e2);
+        return ue;
+    }
+    memcpy(&ue, e, e->size);
+    return ue;
 }
 
 /*  Given an AA literal 'ae', and a key 'e2':
@@ -1730,7 +1740,11 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     if (e->op == TOKstructliteral &&
         e->type->toBasetype()->castMod(0) == to->toBasetype()->castMod(0))
         return paintTypeOntoLiteral(to, e);
-    Expression *r = Cast(type, to, e);
+    Expression *r;
+    if (e->type->equals(type) && type->equals(to))
+        r = e;          // necessary not to change e's address for pointer comparisons
+    else
+        r = Cast(type, to, e).copy();
     if (CTFEExp::isCantExp(r))
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
     if (e->op == TOKarrayliteral)
