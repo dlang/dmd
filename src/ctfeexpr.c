@@ -378,13 +378,13 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
     else if (lit->op == TOKarrayliteral)
     {
         e = new SliceExp(lit->loc, lit,
-            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
+            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit).copy());
     }
     else if (lit->op == TOKstring)
     {
         // For strings, we need to introduce another level of indirection
         e = new SliceExp(lit->loc, lit,
-            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
+            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit).copy());
     }
     else if (lit->op == TOKassocarrayliteral)
     {
@@ -725,7 +725,7 @@ Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
     }
     else
     {
-        dollar = ArrayLength(Type::tsize_t, agg1);
+        dollar = ArrayLength(Type::tsize_t, agg1).copy();
         assert(!CTFEExp::isCantExp(dollar));
     }
     dinteger_t len = dollar->toInteger();

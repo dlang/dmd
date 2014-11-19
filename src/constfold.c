@@ -411,7 +411,6 @@ UnionExp Div(Type *type, Expression *e1, Expression *e2)
         if (n2 == 0)
         {
             e2->error("divide by 0");
-            e2 = new IntegerExp(loc, 1, e2->type);
             n2 = 1;
         }
         if (e1->type->isunsigned() || e2->type->isunsigned())
@@ -467,7 +466,6 @@ UnionExp Mod(Type *type, Expression *e1, Expression *e2)
         if (n2 == 0)
         {
             e2->error("divide by 0");
-            e2 = new IntegerExp(loc, 1, e2->type);
             n2 = 1;
         }
         if (n2 == -1 && !type->isunsigned())
@@ -476,13 +474,11 @@ UnionExp Mod(Type *type, Expression *e1, Expression *e2)
             if (n1 == 0xFFFFFFFF80000000ULL && type->toBasetype()->ty != Tint64)
             {
                 e2->error("integer overflow: int.min % -1");
-                e2 = new IntegerExp(loc, 1, e2->type);
                 n2 = 1;
             }
             else if (n1 == 0x8000000000000000LL) // long.min % -1
             {
                 e2->error("integer overflow: long.min % -1");
-                e2 = new IntegerExp(loc, 1, e2->type);
                 n2 = 1;
             }
         }
@@ -503,8 +499,6 @@ UnionExp Pow(Type *type, Expression *e1, Expression *e2)
     // Handle integer power operations.
     if (e2->type->isintegral())
     {
-        Expression * r;
-        Expression * v;
         dinteger_t n = e2->toInteger();
         bool neg;
 
@@ -523,32 +517,44 @@ UnionExp Pow(Type *type, Expression *e1, Expression *e2)
         else
             neg = false;
 
+        UnionExp ur, uv;
         if (e1->type->iscomplex())
         {
-            r = new ComplexExp(loc, e1->toComplex(), e1->type);
-            v = new ComplexExp(loc, complex_t(1.0, 0.0), e1->type);
+            new(&ur) ComplexExp(loc, e1->toComplex(), e1->type);
+            new(&uv) ComplexExp(loc, complex_t(1.0, 0.0), e1->type);
         }
         else if (e1->type->isfloating())
         {
-            r = new RealExp(loc, e1->toReal(), e1->type);
-            v = new RealExp(loc, ldouble(1.0), e1->type);
+            new(&ur) RealExp(loc, e1->toReal(), e1->type);
+            new(&uv) RealExp(loc, ldouble(1.0), e1->type);
         }
         else
         {
-            r = new IntegerExp(loc, e1->toInteger(), e1->type);
-            v = new IntegerExp(loc, 1, e1->type);
+            new(&ur) IntegerExp(loc, e1->toInteger(), e1->type);
+            new(&uv) IntegerExp(loc, 1, e1->type);
         }
 
+        Expression* r = ur.exp();
+        Expression* v = uv.exp();
         while (n != 0)
         {
             if (n & 1)
-                v = Mul(v->type, v, r).copy();
+            {
+                // v = v * r;
+                uv = Mul(v->type, v, r);
+            }
             n >>= 1;
-            r = Mul(r->type, r, r).copy();
+            // r = r * r
+            ur = Mul(r->type, r, r);
         }
 
         if (neg)
-            v = Div(v->type, new RealExp(loc, ldouble(1.0), v->type), v).copy();
+        {
+            // ue = 1.0 / v
+            UnionExp one;
+            new(&one) RealExp(loc, ldouble(1.0), v->type);
+            uv = Div(v->type, one.exp(), v);
+        }
 
         if (type->iscomplex())
             new(&ue) ComplexExp(loc, v->toComplex(), type);
@@ -559,7 +565,7 @@ UnionExp Pow(Type *type, Expression *e1, Expression *e2)
     }
     else if (e2->type->isfloating())
     {
-        // x ^^ y for x < 0 and y not an integer is not defined
+        // x ^^ y for x < 0 and y not an integer is not defined; so set result as NaN
         if (e1->toReal() < 0.0)
         {
             new(&ue) RealExp(loc, Port::ldbl_nan, type);
@@ -1277,8 +1283,9 @@ L1:
         for (size_t i = 0; i < sd->fields.dim; i++)
         {
             VarDeclaration *v = sd->fields[i];
-            Expression *exp = new IntegerExp(0);
-            ue = Cast(v->type, v->type, exp);
+            UnionExp zero;
+            new(&zero) IntegerExp(0);
+            ue = Cast(v->type, v->type, zero.exp());
             if (ue.exp()->op == TOKcantexp)
                 return ue;
             elements->push(ue.exp()->copy());
@@ -1296,46 +1303,46 @@ L1:
 }
 
 
-Expression *ArrayLength(Type *type, Expression *e1)
+UnionExp ArrayLength(Type *type, Expression *e1)
 {
-    Expression *e;
+    UnionExp ue;
     Loc loc = e1->loc;
 
     if (e1->op == TOKstring)
     {
         StringExp *es1 = (StringExp *)e1;
 
-        e = new IntegerExp(loc, es1->len, type);
+        new(&ue) IntegerExp(loc, es1->len, type);
     }
     else if (e1->op == TOKarrayliteral)
     {
         ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
-        size_t dim;
+        size_t dim = ale->elements ? ale->elements->dim : 0;
 
-        dim = ale->elements ? ale->elements->dim : 0;
-        e = new IntegerExp(loc, dim, type);
+        new(&ue) IntegerExp(loc, dim, type);
     }
     else if (e1->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *ale = (AssocArrayLiteralExp *)e1;
         size_t dim = ale->keys->dim;
 
-        e = new IntegerExp(loc, dim, type);
+        new(&ue) IntegerExp(loc, dim, type);
     }
     else if (e1->type->toBasetype()->ty == Tsarray)
     {
-        e = ((TypeSArray *)e1->type->toBasetype())->dim;
+        Expression *e = ((TypeSArray *)e1->type->toBasetype())->dim;
+        memcpy(&ue, e, e->size);
     }
     else
-        e = CTFEExp::cantexp;
-    return e;
+        new(&ue) CTFEExp(TOKcantexp);
+    return ue;
 }
 
 /* Also return TOKcantexp if this fails
  */
-Expression *Index(Type *type, Expression *e1, Expression *e2)
+UnionExp Index(Type *type, Expression *e1, Expression *e2)
 {
-    Expression *e = CTFEExp::cantexp;
+    UnionExp ue;
     Loc loc = e1->loc;
 
     //printf("Index(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
@@ -1348,11 +1355,11 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         if (i >= es1->len)
         {
             e1->error("string index %llu is out of bounds [0 .. %llu]", i, (ulonglong)es1->len);
-            e = new ErrorExp();
+            new(&ue) ErrorExp();
         }
         else
         {
-            e = new IntegerExp(loc, es1->charAt(i), type);
+            new(&ue) IntegerExp(loc, es1->charAt(i), type);
         }
     }
     else if (e1->type->toBasetype()->ty == Tsarray && e2->op == TOKint64)
@@ -1364,17 +1371,21 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         if (i >= length)
         {
             e1->error("array index %llu is out of bounds %s[0 .. %llu]", i, e1->toChars(), length);
-            e = new ErrorExp();
+            new(&ue) ErrorExp();
         }
         else if (e1->op == TOKarrayliteral)
         {
             ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
-            e = (*ale->elements)[(size_t)i];
+            Expression *e = (*ale->elements)[(size_t)i];
             e->type = type;
             e->loc = loc;
             if (hasSideEffect(e))
-                e = CTFEExp::cantexp;
+                new(&ue) CTFEExp(TOKcantexp);
+            else
+                memcpy(&ue, e, e->size);
         }
+        else
+            new(&ue) CTFEExp(TOKcantexp);
     }
     else if (e1->type->toBasetype()->ty == Tarray && e2->op == TOKint64)
     {
@@ -1386,17 +1397,21 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             if (i >= ale->elements->dim)
             {
                 e1->error("array index %llu is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
-                e = new ErrorExp();
+                new(&ue) ErrorExp();
             }
             else
             {
-                e = (*ale->elements)[(size_t)i];
+                Expression *e = (*ale->elements)[(size_t)i];
                 e->type = type;
                 e->loc = loc;
                 if (hasSideEffect(e))
-                    e = CTFEExp::cantexp;
+                    new(&ue) CTFEExp(TOKcantexp);
+                else
+                    memcpy(&ue, e, e->size);
             }
         }
+        else
+            new(&ue) CTFEExp(TOKcantexp);
     }
     else if (e1->op == TOKassocarrayliteral)
     {
@@ -1407,21 +1422,26 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         {
             i--;
             Expression *ekey = (*ae->keys)[i];
-            Expression *ex = Equal(TOKequal, Type::tbool, ekey, e2).copy();
-            if (CTFEExp::isCantExp(ex))
-                return ex;
-            if (ex->isBool(true))
+            ue = Equal(TOKequal, Type::tbool, ekey, e2);
+            if (CTFEExp::isCantExp(ue.exp()))
+                return ue;
+            if (ue.exp()->isBool(true))
             {
-                e = (*ae->values)[i];
+                Expression *e = (*ae->values)[i];
                 e->type = type;
                 e->loc = loc;
                 if (hasSideEffect(e))
-                    e = CTFEExp::cantexp;
-                break;
+                    new(&ue) CTFEExp(TOKcantexp);
+                else
+                    memcpy(&ue, e, e->size);
+                return ue;;
             }
         }
+        new(&ue) CTFEExp(TOKcantexp);
     }
-    return e;
+    else
+        new(&ue) CTFEExp(TOKcantexp);
+    return ue;
 }
 
 /* Also return TOKcantexp if this fails

@@ -1571,6 +1571,7 @@ struct UnionExp
     Expression *copy()
     {
         Expression *e = exp();
+        //if (e->size > sizeof(u)) printf("%s\n", Token::toChars(e->op));
         assert(e->size <= sizeof(u));
         return e->copy();
     }
@@ -1609,8 +1610,7 @@ UnionExp Com(Type *type, Expression *e1);
 UnionExp Not(Type *type, Expression *e1);
 UnionExp Bool(Type *type, Expression *e1);
 UnionExp Cast(Type *type, Type *to, Expression *e1);
-Expression *Castx(Type *type, Type *to, Expression *e1);
-Expression *ArrayLength(Type *type, Expression *e1);
+UnionExp ArrayLength(Type *type, Expression *e1);
 UnionExp Ptr(Type *type, Expression *e1);
 
 UnionExp Add(Type *type, Expression *e1, Expression *e2);
@@ -1625,7 +1625,7 @@ UnionExp Ushr(Type *type, Expression *e1, Expression *e2);
 UnionExp And(Type *type, Expression *e1, Expression *e2);
 UnionExp Or(Type *type, Expression *e1, Expression *e2);
 UnionExp Xor(Type *type, Expression *e1, Expression *e2);
-Expression *Index(Type *type, Expression *e1, Expression *e2);
+UnionExp Index(Type *type, Expression *e1, Expression *e2);
 UnionExp Cat(Type *type, Expression *e1, Expression *e2);
 
 UnionExp Equal(TOK op, Type *type, Expression *e1, Expression *e2);

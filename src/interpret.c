@@ -3572,7 +3572,7 @@ public:
                 // Convert into arr[0..arr.length] = e2
                 e1 = new SliceExp(e->loc, e1,
                     new IntegerExp(e->loc, 0, Type::tsize_t),
-                    ArrayLength(Type::tsize_t, e1));
+                    ArrayLength(Type::tsize_t, e1).copy());
                 e1->type = e->type;
             }
         }
@@ -5513,7 +5513,7 @@ public:
             }
             if (agg->op == TOKarrayliteral || agg->op == TOKstring)
             {
-                dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
+                dinteger_t len = ArrayLength(Type::tsize_t, agg).exp()->toInteger();
                 //Type *pointee = ((TypePointer *)agg->type)->next;
                 if ((sinteger_t)(indx + ofs) < 0 || (indx+ofs) > len)
                 {
@@ -5734,7 +5734,7 @@ public:
                 return;
             }
             assert(agg->op == TOKarrayliteral || agg->op == TOKstring);
-            dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
+            dinteger_t len = ArrayLength(Type::tsize_t, agg).exp()->toInteger();
             //Type *pointee = ((TypePointer *)agg->type)->next;
             if (iupr > (len + 1) || iupr < ilwr)
             {
@@ -6285,7 +6285,7 @@ public:
                     if ((ie->e1->op == TOKarrayliteral || ie->e1->op == TOKstring) &&
                          ie->e2->op == TOKint64)
                     {
-                        Expression *dollar = ArrayLength(Type::tsize_t, ie->e1);
+                        Expression *dollar = ArrayLength(Type::tsize_t, ie->e1).copy();
                         dinteger_t len = dollar->toInteger();
                         dinteger_t indx = ie->e2->toInteger();
                         assert(indx >=0 && indx <= len); // invalid pointer
