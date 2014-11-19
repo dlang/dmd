@@ -37,11 +37,62 @@ struct msginfo {
 	ushort msgseg; 
 };
 
-/** 
-TODO: fix this in next commit.
-*/
-alias ushort msgqnum_t;	
-alias ushort msglen_t;
+version(Alpha) 
+{
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/alpha/bits/msq.h
+	alias c_ulong msgqnum_t;	
+	alias c_ulong msglen_t;
+}
+else version(HPPA) 
+{
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/hppa/bits/msq.h
+	alias c_ulong msgqnum_t;	
+	alias c_ulong msglen_t;
+}
+else version(MIPS) 
+{
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/mips/bits/msq.h
+	alias c_ulong msgqnum_t;	
+	alias c_ulong msglen_t;
+}
+else version (PPC) 
+{
+	//  https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/powerpc/bits/msq.h
+	alias c_ulong msgqnum_t;	
+	alias c_ulong msglen_t;
+}
+else version (S390) 
+{
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/s390/bits/msq.h
+	alias c_ulong msgqnum_t;	
+	alias c_ulong msglen_t;
+}
+else version (SPARC) 
+{
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/sparc/bits/msq.h
+	alias c_ulong msgqnum_t;	
+	alias c_ulong msglen_t;
+}
+else version (X86) 
+{
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/x86/bits/msq.h
+	alias c_ulong msgqnum_t;	
+	alias c_ulong msglen_t;
+} 
+else version (X86_64) 
+{
+	// Can't find adequate bits.h in https://sourceware.org/git/?p=glibc.git;a=tree;f=sysdeps/unix/sysv/linux/x86_64/bits;h=cd03a84463c9393dd751d78fba19e59aad3e0bb3;hb=HEAD
+	// Using the same as in X86 version
+	alias c_ulong msgqnum_t;	
+	alias c_ulong msglen_t;
+} 
+else version (ARM) 
+{
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
+	alias c_ulong msgqnum_t;	
+	alias c_ulong msglen_t;
+} else 
+	static assert(0, "unimplemented");
 
 struct msqid_ds {
 	ipc_perm msg_perm;
