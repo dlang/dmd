@@ -218,21 +218,35 @@ body
 
         auto nodes = ++aa.impl.nodes;
         //printf("length = %d, nodes = %d\n", aa.a.buckets.length, nodes);
+
+        // update cache if necessary
+        if (i < aa.impl.firstUsedBucket)
+                aa.impl.firstUsedBucket = i;
         if (nodes > aa.impl.buckets.length * 4)
         {
             //printf("rehash\n");
             _aaRehash(aa,keyti);
         }
-        else
-        {
-            // update cache if necessary
-            if (i < aa.impl.firstUsedBucket)
-                aa.impl.firstUsedBucket = i;
-        }
     }
 
 Lret:
     return cast(void*)(e + 1) + aligntsize(keytitsize);
+}
+
+// bug 13748
+pure nothrow unittest
+{
+    int[int] aa;
+    // make all values go into the last bucket (int hash is simply the int)
+    foreach(i; 0..16)
+    {
+        aa[3 + i * 4] = 1;
+        assert(aa.keys.length == i+1);
+    }
+
+    // now force a rehash, but with a different value
+    aa[0] = 1;
+    assert(aa.keys.length == 17);
 }
 
 
