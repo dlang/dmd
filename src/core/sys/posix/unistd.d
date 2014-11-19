@@ -136,7 +136,7 @@ else version( Solaris )
             off64_t lseek64(int, off64_t, int) @trusted;
             alias   lseek64 lseek;
 
-            int     ftruncate64(int, off64) @trusted;
+            int     ftruncate64(int, off64_t) @trusted;
             alias   ftruncate64 ftruncate;
         }
         else
