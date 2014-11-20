@@ -3320,8 +3320,9 @@ AggregateDeclaration *FuncDeclaration::isMember2()
  * Error if this cannot call fd.
  * Returns:
  *      0       same level
- *      -1      increase nesting by 1 (fd is nested within 'this')
  *      >0      decrease nesting by number
+ *      -1      increase nesting by 1 (fd is nested within 'this')
+ *      -2      error
  */
 
 int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
@@ -3381,6 +3382,7 @@ Lerr:
         // better diagnostics for static functions
         ::error(loc, "%s%s %s cannot access frame of function %s",
             xstatic, kind(), toPrettyChars(), fd->toPrettyChars());
+        return -2;
     }
     return 1;
 }
@@ -3963,7 +3965,7 @@ const char *FuncDeclaration::kind()
  *    then mark it as a delegate.
  */
 
-void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
+bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
     if (parent && parent != sc->parent && this->isNested() &&
@@ -4003,10 +4005,12 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
         if (fdv && fdthis && fdv != fdthis)
         {
             int lv = fdthis->getLevel(loc, sc, fdv);
+            if (lv == -2)
+                return false;   // error
             if (lv == -1)
-                return; // downlevel call
+                return true;    // downlevel call
             if (lv == 0)
-                return; // same level call
+                return true;    // same level call
 
             // Uplevel call
 
@@ -4017,6 +4021,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 fld->tok = TOKdelegate;
         }
     }
+    return true;
 }
 
 /* For all functions between outerFunc and f, mark them as needing

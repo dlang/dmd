@@ -1728,7 +1728,7 @@ void VarDeclaration::checkCtorConstInit()
  * rather than the current one.
  */
 
-void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
+bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
     if (parent && !isDataseg() && parent != sc->parent &&
@@ -1763,7 +1763,11 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 //printf("\tfdthis = %s\n", fdthis->toChars());
 
                 if (loc.filename)
-                    fdthis->getLevel(loc, sc, fdv);
+                {
+                    int lv = fdthis->getLevel(loc, sc, fdv);
+                    if (lv == -2)   // error
+                        return false;
+                }
 
                 // Function literals from fdthis to fdv must be delegates
                 for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
@@ -1806,10 +1810,14 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
                 // __dollar creates problems because it isn't a real variable Bugzilla 3326
                 if (ident == Id::dollar)
+                {
                     ::error(loc, "cannnot use $ inside a function literal");
+                    return false;
+                }
             }
         }
     }
+    return true;
 }
 
 /****************************

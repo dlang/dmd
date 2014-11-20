@@ -3439,7 +3439,8 @@ Expression *ThisExp::semantic(Scope *sc)
     var = fd->vthis;
     assert(var->parent);
     type = var->type;
-    var->isVarDeclaration()->checkNestedReference(sc, loc);
+    if (!var->isVarDeclaration()->checkNestedReference(sc, loc))
+        return new ErrorExp();
     if (!sc->intypeof)
         sc->callSuper |= CSXthis;
     return this;
@@ -3544,7 +3545,8 @@ Expression *SuperExp::semantic(Scope *sc)
         type = type->castMod(var->type->mod);
     }
 
-    var->isVarDeclaration()->checkNestedReference(sc, loc);
+    if (!var->isVarDeclaration()->checkNestedReference(sc, loc))
+        return new ErrorExp();
 
     if (!sc->intypeof)
         sc->callSuper |= CSXsuper;
@@ -5053,12 +5055,16 @@ Expression *SymOffExp::semantic(Scope *sc)
     //var->semantic(sc);
     if (!type)
         type = var->type->pointerTo();
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
-        v->checkNestedReference(sc, loc);
-    FuncDeclaration *f = var->isFuncDeclaration();
-    if (f)
-        f->checkNestedReference(sc, loc);
+    if (VarDeclaration *v = var->isVarDeclaration())
+    {
+        if (!v->checkNestedReference(sc, loc))
+            return new ErrorExp();
+    }
+    else if (FuncDeclaration *f = var->isFuncDeclaration())
+    {
+        if (!f->checkNestedReference(sc, loc))
+            return new ErrorExp();
+    }
     return this;
 }
 
@@ -5125,11 +5131,13 @@ Expression *VarExp::semantic(Scope *sc)
     if (VarDeclaration *vd = var->isVarDeclaration())
     {
         hasOverloads = 0;
-        vd->checkNestedReference(sc, loc);
+        if (!vd->checkNestedReference(sc, loc))
+            return new ErrorExp();
     }
     else if (FuncDeclaration *fd = var->isFuncDeclaration())
     {
-        fd->checkNestedReference(sc, loc);
+        if (!fd->checkNestedReference(sc, loc))
+            return new ErrorExp();
     }
     else if (OverDeclaration *od = var->isOverDeclaration())
     {
@@ -8733,7 +8741,8 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            f->checkNestedReference(sc, loc);
+            if (!f->checkNestedReference(sc, loc))
+                return new ErrorExp();
         }
         else if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
         {
@@ -8820,7 +8829,8 @@ Lagain:
         checkPurity(sc, f);
         checkSafety(sc, f);
         checkNogc(sc, f);
-        f->checkNestedReference(sc, loc);
+        if (!f->checkNestedReference(sc, loc))
+            return new ErrorExp();
         accessCheck(loc, sc, NULL, f);
 
         ethis = NULL;
