@@ -145,7 +145,7 @@ struct Scope
 
     Module *instantiatingModule();
 
-    Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym);
+    Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
     Dsymbol *search_correct(Identifier *ident);
     Dsymbol *insert(Dsymbol *s);
 

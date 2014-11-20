@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <limits.h>
 
 #if __sun || _MSC_VER
 #include <alloca.h>
@@ -21,21 +22,33 @@
 const char idchars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 
 /**************************************************
- * Looks for correct spelling.
- * Currently only looks a 'distance' of one from the seed[].
- * This does an exhaustive search, so can potentially be very slow.
+ * combine a new result from the spell checker to
+ * find the one with the closest symbol with
+ * respect to the cost defined by the search function
+ * Input/Output:
+ *      p       best found spelling (NULL if none found yet)
+ *      cost    cost of p (INT_MAX if none found yet)
  * Input:
- *      seed            wrongly spelled word
- *      fp              search function
- *      fparg           argument to search function
- *      charset         character set
+ *      np      new found spelling (NULL if none found)
+ *      ncost   cost of np if non-NULL
  * Returns:
- *      NULL            no correct spellings found
- *      void*           value returned by fp() for first possible correct spelling
+ *      true    if the cost is less or equal 0
+ *      false   otherwise
  */
+bool combineSpellerResult(void*& p, int& cost, void* np, int ncost)
+{
+    if (np && ncost < cost)
+    {
+        p = np;
+        cost = ncost;
+        if (cost <= 0)
+            return true;
+    }
+    return false;
+}
 
 void *spellerY(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
-        const char *charset, size_t index)
+        const char *charset, size_t index, int* cost)
 {
     if (!seedlen)
         return NULL;
@@ -53,14 +66,17 @@ void *spellerY(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
     }
 
     memcpy(buf, seed, index);
+    *cost = INT_MAX;
+    void* p = NULL;
+    int ncost;
 
     /* Delete at seed[index] */
     if (index < seedlen)
     {
         memcpy(buf + index, seed + index + 1, seedlen - index);
         assert(buf[seedlen - 1] == 0);
-        void *p = (*fp)(fparg, buf);
-        if (p)
+        void* np = (*fp)(fparg, buf, &ncost);
+        if (combineSpellerResult(p, *cost, np, ncost))
             return p;
     }
 
@@ -75,8 +91,8 @@ void *spellerY(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
                 buf[index] = *s;
 
                 //printf("sub buf = '%s'\n", buf);
-                void *p = (*fp)(fparg, buf);
-                if (p)
+                void* np = (*fp)(fparg, buf, &ncost);
+                if (combineSpellerResult(p, *cost, np, ncost))
                     return p;
             }
             assert(buf[seedlen] == 0);
@@ -90,14 +106,14 @@ void *spellerY(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
             buf[index] = *s;
 
             //printf("ins buf = '%s'\n", buf);
-            void *p = (*fp)(fparg, buf);
-            if (p)
+            void* np = (*fp)(fparg, buf, &ncost);
+            if (combineSpellerResult(p, *cost, np, ncost))
                 return p;
         }
         assert(buf[seedlen + 1] == 0);
     }
 
-    return NULL;                // didn't find any corrections
+    return p;                // return "best" result
 }
 
 void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
@@ -116,18 +132,19 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
         if (!buf)
             return NULL;                      // no matches
     }
+    int cost = INT_MAX, ncost;
+    void *p = NULL, *np;
 
     /* Deletions */
     memcpy(buf, seed + 1, seedlen);
     for (size_t i = 0; i < seedlen; i++)
     {
         //printf("del buf = '%s'\n", buf);
-        void *p;
         if (flag)
-            p = spellerY(buf, seedlen - 1, fp, fparg, charset, i);
+            np = spellerY(buf, seedlen - 1, fp, fparg, charset, i, &ncost);
         else
-            p = (*fp)(fparg, buf);
-        if (p)
+            np = (*fp)(fparg, buf, &ncost);
+        if (combineSpellerResult(p, cost, np, ncost))
             return p;
 
         buf[i] = seed[i];
@@ -144,8 +161,7 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
             buf[i + 1] = seed[i];
 
             //printf("tra buf = '%s'\n", buf);
-            void *p = (*fp)(fparg, buf);
-            if (p)
+            if (combineSpellerResult(p, cost, (*fp)(fparg, buf, &ncost), ncost))
                 return p;
 
             buf[i] = seed[i];
@@ -163,12 +179,11 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
                 buf[i] = *s;
 
                 //printf("sub buf = '%s'\n", buf);
-                void *p;
                 if (flag)
-                    p = spellerY(buf, seedlen, fp, fparg, charset, i + 1);
+                    np = spellerY(buf, seedlen, fp, fparg, charset, i + 1, &ncost);
                 else
-                    p = (*fp)(fparg, buf);
-                if (p)
+                    np = (*fp)(fparg, buf, &ncost);
+                if (combineSpellerResult(p, cost, np, ncost))
                     return p;
             }
             buf[i] = seed[i];
@@ -183,20 +198,33 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
                 buf[i] = *s;
 
                 //printf("ins buf = '%s'\n", buf);
-                void *p;
                 if (flag)
-                    p = spellerY(buf, seedlen + 1, fp, fparg, charset, i + 1);
+                    np = spellerY(buf, seedlen + 1, fp, fparg, charset, i + 1, &ncost);
                 else
-                    p = (*fp)(fparg, buf);
-                if (p)
+                    np = (*fp)(fparg, buf, &ncost);
+                if (combineSpellerResult(p, cost, np, ncost))
                     return p;
             }
             buf[i] = seed[i];   // going past end of seed[] is ok, as we hit the 0
         }
     }
 
-    return NULL;                // didn't find any corrections
+    return p;                // return "best" result
 }
+
+/**************************************************
+ * Looks for correct spelling.
+ * Currently only looks a 'distance' of one from the seed[].
+ * This does an exhaustive search, so can potentially be very slow.
+ * Input:
+ *      seed            wrongly spelled word
+ *      fp              search function
+ *      fparg           argument to search function
+ *      charset         character set
+ * Returns:
+ *      NULL            no correct spellings found
+ *      void*           value returned by fp() for first possible correct spelling
+ */
 
 void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charset)
 {
@@ -219,9 +247,10 @@ void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charse
 #include <string.h>
 #include <assert.h>
 
-void *speller_test(void *fparg, const char *s)
+void *speller_test(void *fparg, const char *s, int* cost)
 {
     //printf("speller_test(%s, %s)\n", fparg, s);
+    *cost = 0;
     if (strcmp((char *)fparg, s) == 0)
         return fparg;
     return NULL;
