@@ -2326,35 +2326,41 @@ Statement *ForeachStatement::semantic(Scope *sc)
             {
                 // Check types
                 Parameter *arg = (*arguments)[0];
+                bool isRef = (arg->storageClass & STCref) != 0;
+                Type *ta = arg->type;
                 if (dim == 2)
                 {
-                    if (arg->storageClass & STCref)
+                    Type *ti = (isRef ? taa->index->addMod(MODconst) : taa->index);
+                    if (isRef ? !ti->constConv(ta) : !ti->implicitConvTo(ta))
                     {
-                        error("foreach: index cannot be ref");
-                        goto Lerror2;
-                    }
-                    if (!taa->index->implicitConvTo(arg->type))
-                    {
-                        error("foreach: index must be type %s, not %s", taa->index->toChars(), arg->type->toChars());
+                        error("foreach: index must be type %s, not %s", ti->toChars(), ta->toChars());
                         goto Lerror2;
                     }
                     arg = (*arguments)[1];
+                    isRef = (arg->storageClass & STCref) != 0;
+                    ta = arg->type;
                 }
-                if ((!arg->type->equals(taa->nextOf()) && (arg->storageClass & STCref)) ||
-                    !taa->nextOf()->implicitConvTo(arg->type))
+                Type *tn = taa->nextOf();
+                if (isRef ? !tn->constConv(ta) : !tn->implicitConvTo(ta))
                 {
-                    error("foreach: value must be type %s, not %s", taa->nextOf()->toChars(), arg->type->toChars());
+                    error("foreach: value must be type %s, not %s", tn->toChars(), ta->toChars());
                     goto Lerror2;
                 }
+
                 /* Call:
+                 *  extern(C) int _aaApply(void*, in size_t, int delegate(void*))
                  *      _aaApply(aggr, keysize, flde)
+                 *
+                 *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
+                 *      _aaApply2(aggr, keysize, flde)
                  */
                 static const char *name[2] = { "_aaApply", "_aaApply2" };
                 static FuncDeclaration *fdapply[2] = { NULL, NULL };
                 static TypeDelegate *fldeTy[2] = { NULL, NULL };
 
-                unsigned char i = dim == 2;
-                if (!fdapply[i]) {
+                unsigned char i = (dim == 2 ? 1 : 0);
+                if (!fdapply[i])
+                {
                     args = new Parameters;
                     args->push(new Parameter(0, Type::tvoid->pointerTo(), NULL, NULL));
                     args->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
@@ -2373,7 +2379,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 size_t keysize = (size_t)taa->index->size();
                 keysize = (keysize + ((size_t)Target::ptrsize-1)) & ~((size_t)Target::ptrsize-1);
                 // paint delegate argument to the type runtime expects
-                if (!fldeTy[i]->equals(flde->type)) {
+                if (!fldeTy[i]->equals(flde->type))
+                {
                     flde = new CastExp(loc, flde, flde->type);
                     flde->type = fldeTy[i];
                 }
