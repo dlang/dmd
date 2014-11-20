@@ -2484,7 +2484,7 @@ struct Gcx
 
         if (GC.config.profile)
         {
-            start = currTime();
+            start = currTime;
         }
 
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
@@ -2532,7 +2532,7 @@ struct Gcx
 
         if (GC.config.profile)
         {
-            stop = currTime();
+            stop = currTime;
             prepTime += (stop - start);
             start = stop;
         }
@@ -2627,7 +2627,7 @@ struct Gcx
 
         if (GC.config.profile)
         {
-            stop = currTime();
+            stop = currTime;
             markTime += (stop - start);
             start = stop;
         }
@@ -2748,7 +2748,7 @@ struct Gcx
 
         if (GC.config.profile)
         {
-            stop = currTime();
+            stop = currTime;
             sweepTime += (stop - start);
             start = stop;
         }
@@ -2809,7 +2809,7 @@ struct Gcx
 
         if (GC.config.profile)
         {
-            stop = currTime();
+            stop = currTime;
             recoverTime += (stop - start);
         }
 
