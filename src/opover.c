@@ -1644,6 +1644,8 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
                 {
                     arg->type = taa->index;     // key type
                     arg->type = arg->type->addStorageClass(arg->storageClass);
+                    if (arg->storageClass & STCref) // key must not be mutated via ref
+                        arg->type = arg->type->addMod(MODconst);
                 }
                 arg = (*fes->arguments)[1];
             }
