@@ -2636,7 +2636,8 @@ public:
             {
                 Dsymbol *s = (*ad->decl)[0];
                 if (s->isAggregateDeclaration() ||
-                    s->isTemplateDeclaration())
+                    s->isTemplateDeclaration() ||
+                    s->isAliasDeclaration())
                 {
                     result = NULL;
                     return;         // static (template) struct declaration. Nothing to do.

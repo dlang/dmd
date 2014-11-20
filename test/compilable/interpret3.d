@@ -4830,6 +4830,16 @@ static assert({
 }());
 
 /**************************************************
+    13757 extern(C) alias declaration
+**************************************************/
+
+static assert({
+    alias FP1 = extern(C) int function();
+    alias extern(C) int function() FP2;
+    return true;
+}());
+
+/**************************************************
     6522 opAssign + foreach ref
 **************************************************/
 
