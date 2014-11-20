@@ -101,23 +101,23 @@ group* getgrgid(gid_t);
 //
 /*
 int getgrnam_r(in char*, group*, char*, size_t, group**);
-int getgruid_r(gid_t, group*, char*, size_t, group**);
+int getgrgid_r(gid_t, group*, char*, size_t, group**);
 */
 
 version( linux )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
-    int getgruid_r(gid_t, group*, char*, size_t, group**);
+    int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version( OSX )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
-    int getgruid_r(gid_t, group*, char*, size_t, group**);
+    int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version( FreeBSD )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
-    int getgruid_r(gid_t, group*, char*, size_t, group**);
+    int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version( Solaris )
 {
