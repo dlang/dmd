@@ -25,6 +25,7 @@ void usage()
           "\n"
           "   relevant environment variables:\n"
           "      ARGS:          arguments always passed to the compiler\n"
+          "      RUN_ARGS:      arguments always passed to the test\n"
           "      DMD:           compiler to use, ex: ../src/dmd\n"
           "      CC:            C++ compiler to use, ex: dmc, g++\n"
           "      OS:            win32, win64, linux, freebsd, osx\n"
@@ -65,6 +66,7 @@ struct EnvData
     string ccompiler;
     string model;
     string required_args;
+    string run_args;
 }
 
 bool findTestParameter(string file, string token, ref string result)
@@ -309,9 +311,7 @@ int main(string[] args)
     envData.ccompiler = environment.get("CC");
     envData.model = environment.get("MODEL", envData.os == "win32" ? "32" : "64");
     envData.required_args = environment.get("ARGS", "-O -release -inline");
-
-    if (std.file.exists("../src/gc/config.d"))
-        envData.required_args ~= " -version=initGCFromEnvironment ../src/gc/config.d";
+    envData.run_args = environment.get("RUN_ARGS", "");
 
     if (envData.ccompiler.empty)
     {
@@ -511,7 +511,8 @@ int runTest(const ref EnvData envData, string tst, string test_args)
                     command ~= " " ~ test_args;
                 else if (!testArgs.executeArgs.empty)
                     command ~= " " ~ testArgs.executeArgs;
-
+                if (!envData.run_args.empty)
+                    command ~= " " ~ envData.run_args;
                 removeIfExists("gcx.log");
 
                 StopWatch sw;
