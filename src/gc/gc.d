@@ -3126,6 +3126,8 @@ struct Pool
     bool oldChanges;  // Whether there were changes on the last mark.
     bool newChanges;  // Whether there were changes on the current mark.
 
+    uint shiftBy;    // shift count for the divisor used for determining bit indices.
+
     // This tracks how far back we have to go to find the nearest B_PAGE at
     // a smaller address than a B_PAGEPLUS.  To save space, we use a uint.
     // This limits individual allocations to 16 terabytes, assuming a 4k
@@ -3141,6 +3143,8 @@ struct Pool
     {
         this.isLargeObject = isLargeObject;
         size_t poolsize;
+
+        shiftBy = isLargeObject ? 12 : 4;
 
         //debug(PRINTF) printf("Pool::Pool(%u)\n", npages);
         poolsize = npages * PAGESIZE;
@@ -3160,8 +3164,7 @@ struct Pool
         }
         //assert(baseAddr);
         topAddr = baseAddr + poolsize;
-        auto div = this.divisor;
-        auto nbits = cast(size_t)poolsize / div;
+        auto nbits = cast(size_t)poolsize >> shiftBy;
 
         mark.alloc(nbits);
         scan.alloc(nbits);
@@ -3264,20 +3267,6 @@ struct Pool
                 assert(bin < B_MAX);
             }
         }
-    }
-
-    // The divisor used for determining bit indices.
-    @property private size_t divisor() nothrow
-    {
-        // NOTE: Since this is called by initialize it must be private or
-        //       invariant() will be called and fail.
-        return isLargeObject ? PAGESIZE : 16;
-    }
-
-    // Bit shift for fast division by divisor.
-    @property uint shiftBy() nothrow
-    {
-        return isLargeObject ? 12 : 4;
     }
 
     void updateOffsets(size_t fromWhere) nothrow
