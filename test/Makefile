@@ -96,6 +96,10 @@ else
 endif
 export OS
 
+ifeq (osx,$(OS))
+D_OBJC := 1
+endif
+
 ifeq (freebsd,$(OS))
     SHELL=/usr/local/bin/bash
 else
@@ -140,20 +144,26 @@ endif
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
+ifeq ($(D_OBJC),1)
 runnable_objc_tests=$(wildcard runnable/objc/*.d) $(wildcard runnable/objc/*.sh)
 runnable_objc_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_objc_tests)))
+endif
 
 compilable_tests=$(wildcard compilable/*.d) $(wildcard compilable/*.sh)
 compilable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(compilable_tests)))
 
+ifeq ($(D_OBJC),1)
 compilable_objc_tests=$(wildcard compilable/objc/*.d) $(wildcard compilable/objc/*.sh)
 compilable_objc_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(compilable_objc_tests)))
+endif
 
 fail_compilation_tests=$(wildcard fail_compilation/*.d) $(wildcard fail_compilation/*.html)
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
+ifeq ($(D_OBJC),1)
 fail_compilation_objc_tests=$(wildcard fail_compilation/objc/*.d) $(wildcard fail_compilation/objc/*.html)
 fail_compilation_objc_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_objc_tests)))
+endif
 
 all: run_tests
 
@@ -163,8 +173,10 @@ $(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_TESTS))): $(R
 $(addsuffix .sh.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_SH_TESTS))): $(RESULTS_DIR)/.created
 	$(QUIET) echo " ... $@ - disabled"
 
+ifeq ($(D_OBJC),1)
 $(RESULTS_DIR)/runnable/objc/%.d.out: runnable/objc/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
+endif
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
@@ -173,8 +185,10 @@ $(RESULTS_DIR)/runnable/%.sh.out: runnable/%.sh $(RESULTS_DIR)/.created $(RESULT
 	$(QUIET) echo " ... $(<D)/$*.sh"
 	$(QUIET) ./$(<D)/$*.sh
 
+ifeq ($(D_OBJC),1)
 $(RESULTS_DIR)/compilable/objc/%.d.out: compilable/objc/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
+endif
 
 $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
@@ -183,8 +197,10 @@ $(RESULTS_DIR)/compilable/%.sh.out: compilable/%.sh $(RESULTS_DIR)/.created $(RE
 	$(QUIET) echo " ... $(<D)/$*.sh"
 	$(QUIET) ./$(<D)/$*.sh
 
+ifeq ($(D_OBJC),1)
 $(RESULTS_DIR)/fail_compilation/objc/%.d.out: fail_compilation/objc/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
+endif
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
@@ -203,52 +219,78 @@ $(RESULTS_DIR)/.created:
 	@echo Creating output directory: $(RESULTS_DIR) 
 	$(QUIET)if [ ! -d $(RESULTS_DIR) ]; then mkdir $(RESULTS_DIR); fi
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/runnable ]; then mkdir $(RESULTS_DIR)/runnable; fi
+ifeq ($(D_OBJC),1)
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/runnable/objc ]; then mkdir $(RESULTS_DIR)/runnable/objc; fi
+endif
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/compilable ]; then mkdir $(RESULTS_DIR)/compilable; fi
+ifeq ($(D_OBJC),1)
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/compilable/objc ]; then mkdir $(RESULTS_DIR)/compilable/objc; fi
+endif
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/fail_compilation ]; then mkdir $(RESULTS_DIR)/fail_compilation; fi
+ifeq ($(D_OBJC),1)
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/fail_compilation/objc ]; then mkdir $(RESULTS_DIR)/fail_compilation/objc; fi
+endif
 	$(QUIET)touch $(RESULTS_DIR)/.created
 
-run_tests: start_runnable_tests start_compilable_tests start_fail_compilation_tests run_objc_tests
+run_shared_tests: start_runnable_tests start_compilable_tests start_fail_compilation_tests
 
+ifeq ($(D_OBJC),1)
+run_tests: run_shared_tests run_objc_tests
+else
+run_tests: run_shared_tests
+endif
+
+ifeq ($(D_OBJC),1)
 run_objc_tests: start_runnable_objc_tests start_compilable_objc_tests start_fail_compilation_objc_tests
+endif
 
 run_runnable_tests: $(runnable_test_results)
 
+ifeq ($(D_OBJC),1)
 run_runnable_objc_tests: $(runnable_objc_test_results)
+endif
 
 start_runnable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE)
 	@echo "Running runnable tests"
 	$(QUIET)$(MAKE) --no-print-directory run_runnable_tests
 
+ifeq ($(D_OBJC),1)
 start_runnable_objc_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE)
 	@echo "Running runnable Objective-C tests"
 	$(QUIET)$(MAKE) --no-print-directory run_runnable_objc_tests
+endif
 
 run_compilable_tests: $(compilable_test_results)
 
+ifeq ($(D_OBJC),1)
 run_compilable_objc_tests: $(compilable_objc_test_results)
+endif
 
 start_compilable_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE)
 	@echo "Running compilable tests"
 	$(QUIET)$(MAKE) --no-print-directory run_compilable_tests
 
+ifeq ($(D_OBJC),1)
 start_compilable_objc_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE)
 	@echo "Running compilable Objective-C tests"
 	$(QUIET)$(MAKE) --no-print-directory run_compilable_objc_tests
+endif
 
 run_fail_compilation_tests: $(fail_compilation_test_results)
 
+ifeq ($(D_OBJC),1)
 run_fail_compilation_objc_tests: $(fail_compilation_objc_test_results)
+endif
 
 start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE)
 	@echo "Running fail compilation tests"
 	$(QUIET)$(MAKE) --no-print-directory run_fail_compilation_tests
 
+ifeq ($(D_OBJC),1)
 start_fail_compilation_objc_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE)
 	@echo "Running fail compilation Objective-C tests"
 	$(QUIET)$(MAKE) --no-print-directory run_fail_compilation_objc_tests
+endif
 
 $(RESULTS_DIR)/d_do_test$(EXE): d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
