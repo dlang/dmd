@@ -4276,6 +4276,18 @@ void test13694()
 }
 
 /******************************************/
+// 13760
+
+void test13760()
+{
+    void func(K, V)(inout(V[K]) aa, inout(V) val) {}
+
+    class C {}
+    C[int] aa;
+    func(aa, new C);
+}
+
+/******************************************/
 // 13714
 
 struct JSONValue13714

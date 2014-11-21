@@ -4190,6 +4190,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             Type *tt;
             if (unsigned char wx = deduceWildHelper(et, &tt, tparam))
             {
+                *wm |= wx;
                 result = MATCHconst;
             }
             else if (MATCH m = deduceTypeHelper(et, &tt, tparam))
