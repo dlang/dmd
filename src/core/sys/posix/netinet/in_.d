@@ -199,6 +199,38 @@ else version( FreeBSD )
 
     //enum INET_ADDRSTRLEN       = 16;
 }
+else version( Solaris )
+{
+    struct sockaddr_in
+    {
+        sa_family_t sin_family;
+        in_port_t   sin_port;
+        in_addr     sin_addr;
+        ubyte[8]    sin_zero;
+    }
+
+    enum
+    {
+        IPPROTO_IP   = 0,
+        IPPROTO_ICMP = 1,
+        IPPROTO_IGMP = 2,
+        IPPROTO_GGP  = 3,
+        IPPROTO_TCP  = 6,
+        IPPROTO_PUP  = 12,
+        IPPROTO_UDP  = 17,
+        IPPROTO_IDP  = 22,
+        IPPROTO_ND   = 77,
+        IPPROTO_MAX  = 256
+    }
+
+    enum : uint
+    {
+        INADDR_ANY       = 0x00000000,
+        INADDR_BROADCAST = 0xffffffff,
+        INADDR_LOOPBACK  = 0x7f000001,
+        INADDR_NONE      = 0xffffffff
+    }
+}
 else version( Android )
 {
     private enum __SOCK_SIZE__ = 16;
@@ -676,6 +708,118 @@ else version( FreeBSD )
                __IPV6_ADDR_MC_SCOPE(a) == __IPV6_ADDR_SCOPE_GLOBAL;
     }
 }
+else version( Solaris )
+{
+    struct in6_addr
+    {
+        union
+        {
+            uint8_t[16] s6_addr;
+            uint8_t[16] s6_addr8;
+            uint32_t[4] s6_addr32;
+        }
+    }
+
+    struct sockaddr_in6
+    {
+        sa_family_t sin6_family;
+        in_port_t   sin6_port;
+        uint32_t    sin6_flowinfo;
+        in6_addr    sin6_addr;
+        uint32_t    sin6_scope_id;
+        uint32_t    __sin6_src_id;
+    }
+
+    extern __gshared immutable in6_addr in6addr_any;
+    extern __gshared immutable in6_addr in6addr_loopback;
+
+    struct ipv6_mreq
+    {
+        in6_addr    ipv6mr_multiaddr;
+        uint        ipv6mr_interface;
+    }
+
+    enum : uint
+    {
+        IPPROTO_IPV6        = 41,
+
+        //INET6_ADDRSTRLEN    = 46,
+
+        IPV6_JOIN_GROUP     = 9,
+        IPV6_LEAVE_GROUP    = 10,
+        IPV6_MULTICAST_HOPS = 7,
+        IPV6_MULTICAST_IF   = 6,
+        IPV6_MULTICAST_LOOP = 8,
+        IPV6_UNICAST_HOPS   = 5,
+        IPV6_V6ONLY         = 39,
+    }
+
+    // macros
+    extern (D) int IN6_IS_ADDR_UNSPECIFIED( in in6_addr* a ) pure
+    {
+        return (a.s6_addr32[0] == 0) && (a.s6_addr32[1] == 0) &&
+               (a.s6_addr32[2] == 0) && (a.s6_addr32[3] == 0);
+    }
+
+    extern (D) int IN6_IS_ADDR_LOOPBACK( in in6_addr* a ) pure
+    {
+        return (a.s6_addr32[0] == 0) && (a.s6_addr32[1] == 0) &&
+               (a.s6_addr32[2] == 0) && (a.s6_addr32[3] == ntohl(1));
+    }
+
+    extern (D) int IN6_IS_ADDR_V4COMPAT( in in6_addr* a ) pure
+    {
+        return (a.s6_addr32[0] == 0) && (a.s6_addr32[1] == 0) &&
+               (a.s6_addr32[2] == 0) && (a.s6_addr32[3] != 0) &&
+               (a.s6_addr32[3] != ntohl(1));
+    }
+
+    extern (D) int IN6_IS_ADDR_V4MAPPED( in in6_addr* a ) pure
+    {
+        return (a.s6_addr32[0] == 0) && (a.s6_addr32[1] == 0) &&
+               (a.s6_addr32[2] == ntohl(0x0000ffff));
+    }
+
+    extern (D) int IN6_IS_ADDR_LINKLOCAL( in in6_addr* a ) pure
+    {
+        return a.s6_addr8[0] == 0xfe && (a.s6_addr8[1] & 0xc0) == 0x80;
+    }
+
+    extern (D) int IN6_IS_ADDR_SITELOCAL( in in6_addr* a ) pure
+    {
+        return a.s6_addr8[0] == 0xfe && (a.s6_addr8[1] & 0xc0) == 0xc0;
+    }
+
+    extern (D) int IN6_IS_ADDR_MULTICAST( in in6_addr* a ) pure
+    {
+        return a.s6_addr8[0] == 0xff;
+    }
+
+    extern (D) int IN6_IS_ADDR_MC_NODELOCAL( in in6_addr* a ) pure
+    {
+        return a.s6_addr8[0] == 0xff && (a.s6_addr8[1] & 0x0f) == 0x01;
+    }
+
+    extern (D) int IN6_IS_ADDR_MC_LINKLOCAL( in in6_addr* a ) pure
+    {
+        return a.s6_addr8[0] == 0xff && (a.s6_addr8[1] & 0x0f) == 0x02;
+    }
+
+    extern (D) int IN6_IS_ADDR_MC_SITELOCAL( in in6_addr* a ) pure
+    {
+        return a.s6_addr8[0] == 0xff && (a.s6_addr8[1] & 0x0f) == 0x05;
+    }
+
+    extern (D) int IN6_IS_ADDR_MC_ORGLOCAL( in in6_addr* a ) pure
+    {
+        return a.s6_addr8[0] == 0xff && (a.s6_addr8[1] & 0x0f) == 0x08;
+    }
+
+    extern (D) int IN6_IS_ADDR_MC_GLOBAL( in in6_addr* a ) pure
+    {
+        return a.s6_addr8[0] == 0xff && (a.s6_addr8[1] & 0x0f) == 0x0e;
+    }
+}
 else version( Android )
 {
     struct in6_addr
@@ -837,6 +981,10 @@ else version( OSX )
     enum uint IPPROTO_RAW = 255;
 }
 else version( FreeBSD )
+{
+    enum uint IPPROTO_RAW = 255;
+}
+else version( Solaris )
 {
     enum uint IPPROTO_RAW = 255;
 }
