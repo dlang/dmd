@@ -1140,7 +1140,7 @@ class IndexExp : public BinExp
 {
 public:
     VarDeclaration *lengthVar;
-    int modifiable;
+    bool modifiable;
     bool skipboundscheck;
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
@@ -1150,6 +1150,8 @@ public:
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
+
+    Expression *markSettingAAElem();
 
     void accept(Visitor *v) { v->visit(this); }
 };

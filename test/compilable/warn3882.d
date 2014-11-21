@@ -51,7 +51,7 @@ struct K12760
 
 int f12909(immutable(int[])[int] aa) pure nothrow
 {
-    aa[0] = [];
+    //aa[0] = [];   // fix for issue 13701
     return 0;
 }
 
