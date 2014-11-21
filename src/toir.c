@@ -389,16 +389,6 @@ int intrinsic_op(char *name)
         "4simd6__simdFNaNbNiNfE4core4simd3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfE4core4simd3XMMNhG16vhZNhG16v",
 
-        "5bitop12volatileLoadFNbNiNfPhZh",
-        "5bitop12volatileLoadFNbNiNfPkZk",
-        "5bitop12volatileLoadFNbNiNfPmZm",
-        "5bitop12volatileLoadFNbNiNfPtZt",
-
-        "5bitop13volatileStoreFNbNiNfPhhZv",
-        "5bitop13volatileStoreFNbNiNfPkkZv",
-        "5bitop13volatileStoreFNbNiNfPmmZv",
-        "5bitop13volatileStoreFNbNiNfPttZv",
-
         "5bitop3bsfFNaNbNiNfkZi",
         "5bitop3bsrFNaNbNiNfkZi",
         "5bitop3btcFNaNbNiPkkZi",
@@ -415,6 +405,16 @@ int intrinsic_op(char *name)
         "5bitop7_popcntFNaNbNiNfkZi",
         "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
         "5bitop7_popcntFNaNbNiNftZt",
+
+        "9volatile_12volatileLoadFNbNiNfPhZh",
+        "9volatile_12volatileLoadFNbNiNfPkZk",
+        "9volatile_12volatileLoadFNbNiNfPmZm",
+        "9volatile_12volatileLoadFNbNiNfPtZt",
+
+        "9volatile_13volatileStoreFNbNiNfPhhZv",
+        "9volatile_13volatileStoreFNbNiNfPkkZv",
+        "9volatile_13volatileStoreFNbNiNfPmmZv",
+        "9volatile_13volatileStoreFNbNiNfPttZv",
     };
     static const char *core_namearray64[] =
     {
@@ -440,16 +440,6 @@ int intrinsic_op(char *name)
         "4simd6__simdFNaNbNiNfE4core4simd3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfE4core4simd3XMMNhG16vhZNhG16v",
 
-        "5bitop12volatileLoadFNbNiNfPhZh",
-        "5bitop12volatileLoadFNbNiNfPkZk",
-        "5bitop12volatileLoadFNbNiNfPmZm",
-        "5bitop12volatileLoadFNbNiNfPtZt",
-
-        "5bitop13volatileStoreFNbNiNfPhhZv",
-        "5bitop13volatileStoreFNbNiNfPkkZv",
-        "5bitop13volatileStoreFNbNiNfPmmZv",
-        "5bitop13volatileStoreFNbNiNfPttZv",
-
         "5bitop3bsfFNaNbNiNfmZi",
         "5bitop3bsrFNaNbNiNfmZi",
         "5bitop3btcFNaNbNiPmmZi",
@@ -466,6 +456,16 @@ int intrinsic_op(char *name)
         "5bitop7_popcntFNaNbNiNfkZi",
         "5bitop7_popcntFNaNbNiNfmZi",
         "5bitop7_popcntFNaNbNiNftZt",
+
+        "9volatile_12volatileLoadFNbNiNfPhZh",
+        "9volatile_12volatileLoadFNbNiNfPkZk",
+        "9volatile_12volatileLoadFNbNiNfPmZm",
+        "9volatile_12volatileLoadFNbNiNfPtZt",
+
+        "9volatile_13volatileStoreFNbNiNfPhhZv",
+        "9volatile_13volatileStoreFNbNiNfPkkZv",
+        "9volatile_13volatileStoreFNbNiNfPmmZv",
+        "9volatile_13volatileStoreFNbNiNfPttZv",
     };
     static unsigned char core_ioptab[] =
     {
@@ -491,16 +491,6 @@ int intrinsic_op(char *name)
         OPvector,
         OPvector,
 
-        OPind,
-        OPind,
-        OPind,
-        OPind,
-
-        OPeq,
-        OPeq,
-        OPeq,
-        OPeq,
-
         OPbsf,
         OPbsr,
         OPbtc,
@@ -518,6 +508,16 @@ int intrinsic_op(char *name)
         OPpopcnt,
         OPpopcnt,
         OPpopcnt,
+
+        OPind,
+        OPind,
+        OPind,
+        OPind,
+
+        OPeq,
+        OPeq,
+        OPeq,
+        OPeq,
     };
 
 #ifdef DEBUG
@@ -571,7 +571,7 @@ int intrinsic_op(char *name)
         return (i == -1) ? i : std_ioptab[i];
     }
     if (length > 12 &&
-        (name[8] == 'm' || name[8] == 'b' || name[8] == 's') &&
+        (name[8] == 'm' || name[8] == 'b' || name[8] == 's' || name[8] == 'v') &&
         !memcmp(name, "_D4core", 7))
     {
         int i = binary(name + 7, I64 ? core_namearray64 : core_namearray, sizeof(core_namearray) / sizeof(char *));
@@ -970,5 +970,3 @@ L2:
         return RETregs;
     }
 }
-
-
