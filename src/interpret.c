@@ -262,6 +262,7 @@ VarDeclaration *findParentVar(Expression *e);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 Expression *evaluatePostblits(InterState *istate, ArrayLiteralExp *ale, size_t lwr, size_t upr);
+Expression *evaluatePostblit(InterState *istate, Expression *e);
 Expression *scrubReturnValue(Loc loc, Expression *e);
 
 
@@ -6759,6 +6760,31 @@ Expression *interpret_values(InterState *istate, Expression *earg, Type *returnT
     return copyLiteral(ae);
 }
 
+Expression *interpret_dup(InterState *istate, Expression *earg)
+{
+#if LOG
+    printf("interpret_dup()\n");
+#endif
+    earg = earg->interpret(istate);
+    if (exceptionOrCantInterpret(earg))
+        return earg;
+    if (earg->op == TOKnull)
+        return new NullExp(earg->loc, earg->type);
+    if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
+        return NULL;
+    assert(earg->op == TOKassocarrayliteral);
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)copyLiteral(earg);
+    for (size_t i = 0; i < aae->keys->dim; i++)
+    {
+        if (Expression *e = evaluatePostblit(istate, (*aae->keys)[i]))
+            return e;
+        if (Expression *e = evaluatePostblit(istate, (*aae->values)[i]))
+            return e;
+    }
+    //printf("result is %s\n", aae->toChars());
+    return aae;
+}
+
 // signature is int delegate(ref Value) OR int delegate(ref Key, ref Value)
 Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *deleg)
 {
@@ -7113,22 +7139,24 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     }
     if (!pthis)
     {
-        Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
+        Expression *firstarg =  nargs > 0 ? (*arguments)[0] : NULL;
         if (firstarg && firstarg->type->toBasetype()->ty == Taarray)
         {
             TypeAArray *firstAAtype = (TypeAArray *)firstarg->type;
-            if (fd->ident == Id::aaLen && nargs == 1)
+            if (nargs == 1 &&fd->ident == Id::aaLen)
                 return interpret_length(istate, firstarg);
-            else if (nargs == 3 && !strcmp(fd->ident->string, "_aaApply"))
+            if (nargs == 3 && !strcmp(fd->ident->string, "_aaApply"))
                 return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-            else if (nargs == 3 && !strcmp(fd->ident->string, "_aaApply2"))
+            if (nargs == 3 && !strcmp(fd->ident->string, "_aaApply2"))
                 return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-            else if (nargs == 1 && !strcmp(fd->ident->string, "keys") && !strcmp(fd->toParent2()->ident->string, "object"))
+            if (nargs == 1 && !strcmp(fd->ident->string, "keys") && !strcmp(fd->toParent2()->ident->string, "object"))
                 return interpret_keys(istate, firstarg, firstAAtype->index->arrayOf());
-            else if (nargs == 1 && !strcmp(fd->ident->string, "values") && !strcmp(fd->toParent2()->ident->string, "object"))
+            if (nargs == 1 && !strcmp(fd->ident->string, "values") && !strcmp(fd->toParent2()->ident->string, "object"))
                 return interpret_values(istate, firstarg, firstAAtype->nextOf()->arrayOf());
-            else if (nargs == 1 && !strcmp(fd->ident->string, "rehash") && !strcmp(fd->toParent2()->ident->string, "object"))
+            if (nargs == 1 && !strcmp(fd->ident->string, "rehash") && !strcmp(fd->toParent2()->ident->string, "object"))
                 return firstarg->interpret(istate, ctfeNeedLvalue);
+            if (nargs == 1 && !strcmp(fd->ident->string, "dup") && !strcmp(fd->toParent2()->ident->string, "object"))
+                return interpret_dup(istate, firstarg);
         }
     }
     if (pthis && !fd->fbody && fd->isCtorDeclaration() && fd->parent && fd->parent->parent && fd->parent->parent->ident == Id::object)
@@ -7208,6 +7236,32 @@ Expression *evaluatePostblits(InterState *istate, ArrayLiteralExp *ale, size_t l
                 return e;
         }
     }
+    return NULL;
+}
+
+Expression *evaluatePostblit(InterState *istate, Expression *e)
+{
+    Type *tb = e->type->baseElemOf();
+    if (tb->ty != Tstruct)
+        return NULL;
+    StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+    if (!sd->postblit)
+        return NULL;
+
+    if (e->op == TOKarrayliteral)
+    {
+        ArrayLiteralExp *alex = (ArrayLiteralExp *)e;
+        e = evaluatePostblits(istate, alex, 0, alex->elements->dim);
+    }
+    else if (e->op == TOKstructliteral)
+    {
+        // e.__postblit()
+        e = interpret(sd->postblit, istate, NULL, e);
+    }
+    else
+        assert(0);
+    if (exceptionOrCantInterpret(e))
+        return e;
     return NULL;
 }
 
