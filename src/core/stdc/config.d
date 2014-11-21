@@ -116,6 +116,8 @@ version( DigitalMars )
             alias real c_long_double;
         else version( FreeBSD )
             alias real c_long_double;
+        else version( Solaris )
+            alias real c_long_double;
         else version( OSX )
             alias real c_long_double;
     }
