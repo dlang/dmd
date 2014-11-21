@@ -38,6 +38,10 @@ else version( FreeBSD )
 {
     enum TCP_NODELAY = 1;
 }
+else version( Solaris )
+{
+    enum TCP_NODELAY = 1;
+}
 else version( Android )
 {
     enum TCP_NODELAY = 1;

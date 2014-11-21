@@ -849,8 +849,13 @@ else version (Solaris)
 
     alias double sockaddr_maxalign_t;
 
-    private enum _SS_PAD1SIZE = sockaddr_maxalign_t.sizeof - sa_family_t.sizeof;
-    private enum _SS_PAD2SIZE = 256 - sa_family_t.sizeof + _SS_PAD1SIZE + sockaddr_maxalign_t.sizeof;
+    private
+    {
+        enum _SS_ALIGNSIZE  = sockaddr_maxalign_t.sizeof;
+        enum _SS_MAXSIZE    = 256;
+        enum _SS_PAD1SIZE   = _SS_ALIGNSIZE - sa_family_t.sizeof;
+        enum _SS_PAD2SIZE   = _SS_MAXSIZE - sa_family_t.sizeof + _SS_PAD1SIZE + _SS_ALIGNSIZE;
+    }
 
     struct sockaddr_storage
     {
@@ -880,8 +885,10 @@ else version (Solaris)
 
     enum : uint
     {
-        SCM_RIGHTS = 0x1011
+        SCM_RIGHTS = 0x1010
     }
+
+    // FIXME: CMSG_DATA, CMSG_NXTHDR, CMSG_FIRSTHDR missing
 
     struct linger
     {
@@ -904,22 +911,26 @@ else version (Solaris)
 
     enum : uint
     {
-        SO_ACCEPTCONN = 0x0002,
-        SO_BROADCAST = 0x0020,
-        SO_DEBUG = 0x0001,
-        SO_DONTROUTE = 0x0010,
-        SO_ERROR = 0x1007,
-        SO_KEEPALIVE = 0x0008,
-        SO_LINGER = 0x0080,
-        SO_OOBINLINE = 0x0100,
-        SO_RCVBUF = 0x1002,
-        SO_RCVLOWAT = 0x1004,
-        SO_RCVTIMEO = 0x1006,
-        SO_REUSEADDR = 0x0004,
-        SO_SNDBUF = 0x1001,
-        SO_SNDLOWAT = 0x1003,
-        SO_SNDTIMEO = 0x1005,
-        SO_TYPE = 0x1008
+        SO_ACCEPTCONN   = 0x0002,
+        SO_BROADCAST    = 0x0020,
+        SO_DEBUG        = 0x0001,
+        SO_DONTROUTE    = 0x0010,
+        SO_ERROR        = 0x1007,
+        SO_KEEPALIVE    = 0x0008,
+        SO_LINGER       = 0x0080,
+        SO_OOBINLINE    = 0x0100,
+        SO_RCVBUF       = 0x1002,
+        SO_RCVLOWAT     = 0x1004,
+        SO_RCVTIMEO     = 0x1006,
+        SO_REUSEADDR    = 0x0004,
+        SO_SNDBUF       = 0x1001,
+        SO_SNDLOWAT     = 0x1003,
+        SO_SNDTIMEO     = 0x1005,
+        SO_TYPE         = 0x1008,
+
+        SO_USELOOPBACK  = 0x0040, // non-standard
+        SO_DGRAM_ERRIND = 0x0200, // non-standard
+        SO_RECVUCRED    = 0x0400, // non-standard
     }
 
     enum
@@ -929,20 +940,22 @@ else version (Solaris)
 
     enum : uint
     {
-        MSG_CTRUNC = 0x10,
-        MSG_DONTROUTE = 0x4,
-        MSG_EOR = 0x8,
-        MSG_OOB = 0x1,
-        MSG_PEEK = 0x2,
-        MSG_TRUNC = 0x20,
-        MSG_WAITALL = 0x40
+        MSG_CTRUNC      = 0x10,
+        MSG_DONTROUTE   = 0x4,
+        MSG_EOR         = 0x8,
+        MSG_OOB         = 0x1,
+        MSG_PEEK        = 0x2,
+        MSG_TRUNC       = 0x20,
+        MSG_WAITALL     = 0x40
     }
 
     enum
     {
-        AF_INET = 2,
-        AF_UNIX = 1,
-        AF_UNSPEC = 0
+        AF_IPX          = 23,
+        AF_APPLETALK    = 16,
+        AF_INET         = 2,
+        AF_UNIX         = 1,
+        AF_UNSPEC       = 0
     }
 
     enum

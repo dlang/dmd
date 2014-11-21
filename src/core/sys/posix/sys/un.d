@@ -58,6 +58,14 @@ else version( FreeBSD )
         byte[104]   sun_path;
     }
 }
+else version( Solaris )
+{
+    struct sockaddr_un
+    {
+        sa_family_t  sun_family;
+        char[108]    sun_path;
+    }
+}
 else version( Android )
 {
     enum UNIX_PATH_MAX = 108;
