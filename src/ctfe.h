@@ -78,7 +78,7 @@ public:
 };
 
 // Create an appropriate void initializer
-Expression *voidInitLiteral(Type *t, VarDeclaration *var);
+UnionExp voidInitLiteral(Type *t, VarDeclaration *var);
 
 /** Fake class which holds the thrown exception.
     Used for implementing exception handling.

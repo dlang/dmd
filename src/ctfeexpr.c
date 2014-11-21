@@ -279,7 +279,7 @@ Expression *copyLiteral(Expression *e)
             VarDeclaration *v = sd->fields[i];
             // If it is a void assignment, use the default initializer
             if (!m)
-                m = voidInitLiteral(v->type, v);
+                m = voidInitLiteral(v->type, v).copy();
             if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
             {
                 // Block assignment from inside struct literals
@@ -2219,12 +2219,13 @@ void showCtfeExpr(Expression *e, int level)
 
 /*************************** Void initialization ***************************/
 
-Expression *voidInitLiteral(Type *t, VarDeclaration *var)
+UnionExp voidInitLiteral(Type *t, VarDeclaration *var)
 {
+    UnionExp ue;
     if (t->ty == Tsarray)
     {
         TypeSArray *tsa = (TypeSArray *)t;
-        Expression *elem = voidInitLiteral(tsa->next, var);
+        Expression *elem = voidInitLiteral(tsa->next, var).copy();
 
         // For aggregate value types (structs, static arrays) we must
         // create an a separate copy for each element.
@@ -2239,24 +2240,26 @@ Expression *voidInitLiteral(Type *t, VarDeclaration *var)
                 elem  = copyLiteral(elem);
             (*elements)[i] = elem;
         }
-        ArrayLiteralExp *ae = new ArrayLiteralExp(var->loc, elements);
+        new(&ue) ArrayLiteralExp(var->loc, elements);
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)ue.exp();
         ae->type = tsa;
         ae->ownedByCtfe = true;
-        return ae;
     }
-    if (t->ty == Tstruct)
+    else if (t->ty == Tstruct)
     {
         TypeStruct *ts = (TypeStruct *)t;
         Expressions *exps = new Expressions();
         exps->setDim(ts->sym->fields.dim);
         for (size_t i = 0; i < ts->sym->fields.dim; i++)
         {
-            (*exps)[i] = voidInitLiteral(ts->sym->fields[i]->type, ts->sym->fields[i]);
+            (*exps)[i] = voidInitLiteral(ts->sym->fields[i]->type, ts->sym->fields[i]).copy();
         }
-        StructLiteralExp *se = new StructLiteralExp(var->loc, ts->sym, exps);
+        new(&ue) StructLiteralExp(var->loc, ts->sym, exps);
+        StructLiteralExp *se = (StructLiteralExp *)ue.exp();
         se->type = ts;
         se->ownedByCtfe = true;
-        return se;
     }
-    return new VoidInitExp(var, t);
+    else
+        new(&ue) VoidInitExp(var, t);
+    return ue;
 }
