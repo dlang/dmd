@@ -65,6 +65,16 @@ else version( FreeBSD )
 
     int utime(in char*, in utimbuf*);
 }
+else version( Solaris )
+{
+    struct utimbuf
+    {
+        time_t  actime;
+        time_t  modtime;
+    }
+
+    int utime(in char*, in utimbuf*);
+}
 else version( Android )
 {
     struct utimbuf
