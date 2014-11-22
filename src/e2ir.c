@@ -4554,7 +4554,9 @@ elem *toElem(Expression *e, IRState *irs)
             if (t1->ty == Taarray)
             {
                 // set to:
-                //      *aaGetX(aa, keyti, valuesize, &key);
+                //      *aaGetY(aa, aati, valuesize, &key);
+                // or
+                //      *aaGetRvalueX(aa, keyti, valuesize, &key);
 
                 TypeAArray *taa = (TypeAArray *)t1;
                 unsigned vsize = taa->next->size();
@@ -4571,21 +4573,21 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *valuesize = el_long(TYsize_t, vsize);
                 //printf("valuesize: "); elem_print(valuesize);
                 Symbol *s;
+                elem* ti;
                 if (ie->modifiable)
                 {
                     n1 = el_una(OPaddr, TYnptr, n1);
-                    s = aaGetSymbol(taa, "GetX", 1);
+                    s = aaGetSymbol(taa, "GetY", 1);
+                    ti = toElem(getInternalTypeInfo(taa, NULL), irs);
                 }
                 else
                 {
                     s = aaGetSymbol(taa, "GetRvalueX", 1);
+                    ti = toElem(getInternalTypeInfo(taa->index, NULL), irs);
                 }
                 //printf("taa->index = %s\n", taa->index->toChars());
-                elem* keyti = toElem(getInternalTypeInfo(taa->index, NULL), irs);
-                //keyti = toElem(getTypeInfo(taa->index, NULL), irs);
-                //printf("keyti:\n");
-                //elem_print(keyti);
-                elem* ep = el_params(n2, valuesize, keyti, n1, NULL);
+                //printf("ti:\n"); elem_print(ti);
+                elem* ep = el_params(n2, valuesize, ti, n1, NULL);
                 e = el_bin(OPcall, TYnptr, el_var(s), ep);
                 if (irs->arrayBoundsCheck())
                 {
