@@ -31,34 +31,26 @@ struct Config
     size_t maxPoolSize = 64; // maximum pool size (MB)
     size_t incPoolSize = 3;  // pool size increment (MB)
 
-    bool initialize(...) // avoid inlining
+    bool initialize() @nogc
     {
-        foreach (a; rt_options)
+        import core.internal.traits : externDFunc;
+
+        alias rt_configCallBack = string delegate(string) @nogc nothrow;
+        alias fn_configOption = string function(string opt, scope rt_configCallBack dg, bool reverse) @nogc nothrow;
+
+        alias rt_configOption = externDFunc!("rt.config.rt_configOption", fn_configOption);
+
+        string parse(string opt) @nogc nothrow
         {
-            if(a.length >= 6 && a[0..6] == "gcopt=")
-                if (!parseOptions(a[6 .. $]))
-                    return false;
+            if (!parseOptions(opt))
+                return "err";
+            return null; // continue processing
         }
-        if(rt_envvars_enabled)
-        {
-            auto p = getenv("DRT_GCOPT");
-            if (p)
-                if (!parseOptions(p[0 .. strlen(p)]))
-                    return false;
-        }
-        if(rt_cmdline_enabled)
-        {
-            foreach (a; rt_args)
-            {
-                if(a.length >= 12 && a[0..12] == "--DRT-gcopt=")
-                    if (!parseOptions(a[12 .. $]))
-                        return false;
-            }
-        }
-        return true;
+        string s = rt_configOption("gcopt", &parse, true);
+        return s is null;
     }
 
-    void help() @nogc
+    void help() @nogc nothrow
     {
         string s = "GC options are specified as white space separated assignments:
     disable:0|1    - start disabled (%d)
@@ -75,7 +67,7 @@ struct Config
                cast(long)minPoolSize, cast(long)maxPoolSize, cast(long)incPoolSize);
     }
 
-    bool parseOptions(const(char)[] opt) @nogc
+    bool parseOptions(const(char)[] opt) @nogc nothrow
     {
         size_t p = 0;
         while(p < opt.length)

@@ -58,9 +58,16 @@ import core.stdc.string : strlen;
 
 extern extern(C) string[] rt_args() @nogc nothrow;
 
+alias rt_configCallBack = string delegate(string) @nogc nothrow;
+
 /**
 * get a druntime config option using standard configuration options
 *      opt             name of the option to retreive
+*      dg              if non-null, passes the option through this
+*                      delegate and only returns its return value if non-null
+*      reverse         reverse the default processing order cmdline/envvar/rt_options
+*                      to allow overwriting settings in the delegate with values
+*                      from higher priority
 *
 * returns the options' value if
 *  - set on the command line as "--DRT-<opt>=value" (rt_cmdline_enabled enabled)
@@ -68,7 +75,21 @@ extern extern(C) string[] rt_args() @nogc nothrow;
 *  - rt_options[] contains an entry "<opt>=value"
 *  - null otherwise
 */
-string rt_configOption(string opt) @nogc nothrow
+string rt_configOption(string opt, scope rt_configCallBack dg = null, bool reverse = false) @nogc nothrow
+{
+    if (!dg)
+        dg = (string s) => s;
+
+    if (string s = (reverse ? rt_linkOption(opt, dg) : rt_cmdlineOption(opt, dg)))
+        return s;
+    if (string s = rt_envvarsOption(opt, dg))
+        return s;
+    if (string s = (reverse ? rt_cmdlineOption(opt, dg) : rt_linkOption(opt, dg)))
+        return s;
+    return null;
+}
+
+string rt_cmdlineOption(string opt, rt_configCallBack dg) @nogc nothrow
 {
     if(rt_cmdline_enabled!())
     {
@@ -76,9 +97,15 @@ string rt_configOption(string opt) @nogc nothrow
         {
             if (a.length >= opt.length + 7 && a[0..6] == "--DRT-" &&
                 a[6 .. 6 + opt.length] == opt && a[6 + opt.length] == '=')
-                return a[7 + opt.length .. $];
+                if (string s = dg(a[7 + opt.length .. $]))
+                    return s;
         }
     }
+    return null;
+}
+
+string rt_envvarsOption(string opt, rt_configCallBack dg) @nogc nothrow
+{
     if(rt_envvars_enabled!())
     {
         if (opt.length >= 32)
@@ -92,13 +119,19 @@ string rt_configOption(string opt) @nogc nothrow
 
         auto p = getenv(var.ptr);
         if (p)
-            return cast(string) p[0 .. strlen(p)];
-    }
-    foreach (a; rt_options!())
-    {
-        if(a.length > opt.length && a[0..opt.length] == opt && a[opt.length] == '=')
-            return a[opt.length + 1 .. $];
+            if (string s = dg(cast(string) p[0 .. strlen(p)]))
+                return s;
     }
     return null;
 }
 
+string rt_linkOption(string opt, rt_configCallBack dg) @nogc nothrow
+{
+    foreach (a; rt_options!())
+    {
+        if(a.length > opt.length && a[0..opt.length] == opt && a[opt.length] == '=')
+            if (string s = dg(a[opt.length + 1 .. $]))
+                return s;
+    }
+    return null;
+}
