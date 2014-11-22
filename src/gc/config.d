@@ -7,18 +7,6 @@
 
 module gc.config;
 
-// to add the possiblity to configure the GC from the outside, add gc.config
-//  with one of these versions to the executable build command line, e.g.
-//      dmd -version=initGCFromEnvironment main.c /path/to/druntime/src/gc/config.d
-
-//version = initGCFromEnvironment; // read settings from environment variable D_GC
-version = initGCFromCommandLine; // read settings from command line argument "--DRT-gcopt=options"
-
-version(initGCFromEnvironment)
-    version = configurable;
-version(initGCFromCommandLine)
-    version = configurable;
-
 import core.stdc.stdlib;
 import core.stdc.stdio;
 import core.stdc.ctype;
@@ -26,6 +14,10 @@ import core.stdc.string;
 import core.vararg;
 
 extern extern(C) string[] rt_args();
+
+extern extern(C) __gshared bool rt_envvars_enabled;
+extern extern(C) __gshared bool rt_cmdline_enabled;
+extern extern(C) __gshared string[] rt_options;
 
 struct Config
 {
@@ -36,48 +28,46 @@ struct Config
 
     size_t initReserve;      // initial reserve (MB)
     size_t minPoolSize = 1;  // initial and minimum pool size (MB)
-    size_t maxPoolSize = 32; // maximum pool size (MB)
+    size_t maxPoolSize = 64; // maximum pool size (MB)
     size_t incPoolSize = 3;  // pool size increment (MB)
 
-    bool initialize(...) // avoid inlining
+    bool initialize() @nogc
     {
-        version(initGCFromEnvironment)
+        import core.internal.traits : externDFunc;
+
+        alias rt_configCallBack = string delegate(string) @nogc nothrow;
+        alias fn_configOption = string function(string opt, scope rt_configCallBack dg, bool reverse) @nogc nothrow;
+
+        alias rt_configOption = externDFunc!("rt.config.rt_configOption", fn_configOption);
+
+        string parse(string opt) @nogc nothrow
         {
-            auto p = getenv("D_GC");
-            if (p)
-                if (!parseOptions(p[0 .. strlen(p)]))
-                    return false;
+            if (!parseOptions(opt))
+                return "err";
+            return null; // continue processing
         }
-        version(initGCFromCommandLine)
-        {
-            foreach (a; rt_args)
-            {
-                if(a.length >= 12 && a[0..12] == "--DRT-gcopt=")
-                    if (!parseOptions(a[12 .. $]))
-                        return false;
-            }
-        }
-        return true;
+        string s = rt_configOption("gcopt", &parse, true);
+        return s is null;
     }
 
-    version (configurable):
-
-    string help() @nogc
+    void help() @nogc nothrow
     {
-        return "GC options are specified as white space separated assignments:
-    disable=0|1     - start disabled
-    profile=0|1     - enable profiling with summary when terminating program
-    precise=0|1     - enable precise scanning (not implemented yet)
-    concurrent=0|1  - enable concurrent collection (not implemented yet)
+        string s = "GC options are specified as white space separated assignments:
+    disable:0|1    - start disabled (%d)
+    profile:0|1    - enable profiling with summary when terminating program (%d)
+    precise:0|1    - enable precise scanning (not implemented yet)
+    concurrent:0|1 - enable concurrent collection (not implemented yet)
 
-    initReserve=N   - initial memory to reserve (MB), default 0
-    minPoolSize=N   - initial and minimum pool size (MB), default 1
-    maxPoolSize=N   - maximum pool size (MB), default 32
-    incPoolSize=N   - pool size increment (MB), defaut 3
+    initReserve:N  - initial memory to reserve in MB (%lld)
+    minPoolSize:N  - initial and minimum pool size in MB (%lld)
+    maxPoolSize:N  - maximum pool size in MB (%lld)
+    incPoolSize:N  - pool size increment MB (%lld)
 ";
+        printf(s.ptr, disable, profile, cast(long)initReserve,
+               cast(long)minPoolSize, cast(long)maxPoolSize, cast(long)incPoolSize);
     }
 
-    bool parseOptions(const(char)[] opt) @nogc
+    bool parseOptions(const(char)[] opt) @nogc nothrow
     {
         size_t p = 0;
         while(p < opt.length)
@@ -87,13 +77,13 @@ struct Config
             if (p >= opt.length)
                 break;
             auto q = p;
-            while (q < opt.length && opt[q] != '=' && !isspace(opt[q]))
+            while (q < opt.length && opt[q] != ':' && opt[q] != '=' && !isspace(opt[q]))
                 q++;
 
             auto s = opt[p .. q];
             if(s == "help")
             {
-                printf("%s", help().ptr);
+                help();
                 p = q;
             }
             else if (q < opt.length)
@@ -102,7 +92,11 @@ struct Config
                 size_t v = 0;
                 for ( ; r < opt.length && isdigit(opt[r]); r++)
                     v = v * 10 + opt[r] - '0';
-
+                if(r == q + 1)
+                {
+                    printf("numeric argument expected for GC option \"%.*s\"\n", cast(int) s.length, s.ptr);
+                    return false;
+                }
                 if(s == "disable")
                     disable = v != 0;
                 else if(s == "profile")
