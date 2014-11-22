@@ -1051,7 +1051,7 @@ class TypeInfo_Struct : TypeInfo
     size_t   function(in void*)           xtoHash;
     bool     function(in void*, in void*) xopEquals;
     int      function(in void*, in void*) xopCmp;
-    char[]   function(in void*)           xtoString;
+    string   function(in void*)           xtoString;
 
     enum StructFlags : uint
     {
