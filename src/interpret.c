@@ -3733,7 +3733,7 @@ public:
                 if (t->ty == Tarray)
                 {
                     newval = changeArrayLiteralLength(e->loc, (TypeArray *)t, oldval,
-                        oldlen,  newlen);
+                        oldlen,  newlen).copy();
                     // We have changed it into a reference assignment
                     // Note that returnValue is still the new length.
                     wantRef = true;
