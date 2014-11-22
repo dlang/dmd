@@ -54,7 +54,7 @@ else version( FreeBSD )
 }
 else version (Solaris)
 {
-    // Not supported.
+    time_t timegm(tm*); // non-standard
 }
 else version (Android)
 {
@@ -258,6 +258,7 @@ else version (Solaris)
         timespec it_value;
     }
 
+    enum CLOCK_REALTIME = 0; // <sys/time_impl.h>
     enum TIMER_ABSOLUTE = 0x1;
 
     alias int clockid_t;
