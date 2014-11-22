@@ -60,6 +60,7 @@ SRCS=\
 	src\core\sys\posix\netinet\in_.d \
 	src\core\sys\posix\arpa\inet.d \
 	\
+	src\core\sys\solaris\dlfcn.d \
 	src\core\sys\solaris\sys\priocntl.d \
 	src\core\sys\solaris\sys\types.d \
 	src\core\sys\solaris\sys\procset.d \

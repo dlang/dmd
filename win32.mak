@@ -480,6 +480,9 @@ $(IMPDIR)\core\sys\posix\unistd.d : src\core\sys\posix\unistd.d
 $(IMPDIR)\core\sys\posix\utime.d : src\core\sys\posix\utime.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\solaris\dlfcn.d : src\core\sys\solaris\dlfcn.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\solaris\execinfo.d : src\core\sys\solaris\execinfo.d
 	copy $** $@
 
