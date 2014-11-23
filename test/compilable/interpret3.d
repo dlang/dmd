@@ -6708,3 +6708,28 @@ struct S13630(T)
 }
 
 enum s13630 = S13630!float(1);
+
+/**************************************************
+    13669 - dtor call on static array variable
+**************************************************/
+
+bool test13669()
+{
+    string dtor;
+
+    struct S
+    {
+        char x = 'x';
+        ~this() { dtor ~= x; }
+    }
+
+    { S[2] a; }
+    assert(dtor == "xx");
+    dtor = "";
+
+    { S[2] a = [S('a'), S('b')]; }
+    assert(dtor == "ab");
+
+    return true;
+}
+static assert(test13669());
