@@ -26,10 +26,10 @@ SRCS=\
 	src\core\stdc\math.d \
 	src\core\stdc\signal.d \
 	src\core\stdc\stdarg.d \
+	src\core\stdc\stddef.d \
+	src\core\stdc\stdint.d \
 	src\core\stdc\stdio.d \
 	src\core\stdc\stdlib.d \
-	src\core\stdc\stdint.d \
-	src\core\stdc\stddef.d \
 	src\core\stdc\string.d \
 	src\core\stdc\time.d \
 	src\core\stdc\wchar_.d \
@@ -128,6 +128,7 @@ SRCS=\
 	src\rt\util\hash.d \
 	src\rt\util\random.d \
 	src\rt\util\string.d \
+	src\rt\util\typeinfo.d \
 	src\rt\util\utf.d \
 	src\rt\util\container\array.d \
 	src\rt\util\container\common.d \

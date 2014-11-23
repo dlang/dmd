@@ -19,10 +19,9 @@ private import rt.typeinfo.ti_double;
 
 class TypeInfo_p : TypeInfo_d
 {
-    @trusted:
-    const:
-    pure:
-    nothrow:
+  pure:
+  nothrow:
+  @safe:
 
-    override string toString() const pure nothrow @safe { return "idouble"; }
+    override string toString() const { return idouble.stringof; }
 }

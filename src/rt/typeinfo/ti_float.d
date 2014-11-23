@@ -13,72 +13,51 @@
  */
 module rt.typeinfo.ti_float;
 
+private import rt.util.typeinfo;
+
 // float
 
 class TypeInfo_f : TypeInfo
 {
-    @trusted:
-    pure:
-    nothrow:
+  pure:
+  nothrow:
+  @safe:
 
-    static bool _equals(float f1, float f2)
+    alias F = float;
+
+    override string toString() const { return F.stringof; }
+
+    override size_t getHash(in void* p) const @trusted
     {
-        return f1 == f2;
+        return Floating!F.hashOf(*cast(F*)p);
     }
 
-    static int _compare(float d1, float d2)
+    override bool equals(in void* p1, in void* p2) const @trusted
     {
-        if (d1 != d1 || d2 != d2)         // if either are NaN
-        {
-            if (d1 != d1)
-            {
-                if (d2 != d2)
-                    return 0;
-                return -1;
-            }
-            return 1;
-        }
-        return (d1 == d2) ? 0 : ((d1 < d2) ? -1 : 1);
+        return Floating!F.equals(*cast(F*)p1, *cast(F*)p2);
     }
 
-    const:
-
-    override string toString() const pure nothrow @safe { return "float"; }
-
-    override size_t getHash(in void* p)
+    override int compare(in void* p1, in void* p2) const @trusted
     {
-        return *cast(uint *)p;
+        return Floating!F.compare(*cast(F*)p1, *cast(F*)p2);
     }
 
-    override bool equals(in void* p1, in void* p2)
+    override @property size_t tsize() const
     {
-        return _equals(*cast(float *)p1, *cast(float *)p2);
+        return F.sizeof;
     }
 
-    override int compare(in void* p1, in void* p2)
+    override void swap(void *p1, void *p2) const @trusted
     {
-        return _compare(*cast(float *)p1, *cast(float *)p2);
+        F t = *cast(F*)p1;
+        *cast(F*)p1 = *cast(F*)p2;
+        *cast(F*)p2 = t;
     }
 
-    override @property size_t tsize() nothrow pure
+    override const(void)[] init() const @trusted
     {
-        return float.sizeof;
-    }
-
-    override void swap(void *p1, void *p2)
-    {
-        float t;
-
-        t = *cast(float *)p1;
-        *cast(float *)p1 = *cast(float *)p2;
-        *cast(float *)p2 = t;
-    }
-
-    override const(void)[] init() nothrow pure
-    {
-        static immutable float r;
-
-        return (cast(float *)&r)[0 .. 1];
+        static immutable F r;
+        return (&r)[0 .. 1];
     }
 
     version (Windows)
@@ -87,6 +66,6 @@ class TypeInfo_f : TypeInfo
     else version (X86_64)
     {
         // 2 means arg to function is passed in XMM registers
-        override @property uint flags() nothrow pure const @safe { return 2; }
+        override @property uint flags() const { return 2; }
     }
 }
