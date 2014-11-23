@@ -655,8 +655,9 @@ bool pointToSameMemoryBlock(Expression *agg1, Expression *agg2)
 }
 
 // return e1 - e2 as an integer, or error if not possible
-Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2)
+UnionExp pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2)
 {
+    UnionExp ue;
     dinteger_t ofs1, ofs2;
     Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
     Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
@@ -664,26 +665,30 @@ Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e
     {
         Type *pointee = ((TypePointer *)agg1->type)->next;
         dinteger_t sz = pointee->size();
-        return new IntegerExp(loc, (ofs1 - ofs2) * sz, type);
+        new(&ue) IntegerExp(loc, (ofs1 - ofs2) * sz, type);
     }
-    if (agg1->op == TOKstring && agg2->op == TOKstring)
+    else if (agg1->op == TOKstring && agg2->op == TOKstring)
     {
         if (((StringExp *)agg1)->string == ((StringExp *)agg2)->string)
         {
             Type *pointee = ((TypePointer *)agg1->type)->next;
             dinteger_t sz = pointee->size();
-            return new IntegerExp(loc, (ofs1 - ofs2) * sz, type);
+            new(&ue) IntegerExp(loc, (ofs1 - ofs2) * sz, type);
         }
     }
     else if (agg1->op == TOKsymoff && agg2->op == TOKsymoff &&
              ((SymOffExp *)agg1)->var == ((SymOffExp *)agg2)->var)
     {
-        return new IntegerExp(loc, ofs1 - ofs2, type);
+        new(&ue) IntegerExp(loc, ofs1 - ofs2, type);
     }
-    error(loc, "%s - %s cannot be interpreted at compile time: cannot subtract "
-        "pointers to two different memory blocks",
-        e1->toChars(), e2->toChars());
-    return CTFEExp::cantexp;
+    else
+    {
+        error(loc, "%s - %s cannot be interpreted at compile time: cannot subtract "
+            "pointers to two different memory blocks",
+            e1->toChars(), e2->toChars());
+        new(&ue) CTFEExp(TOKcantexp);
+    }
+    return ue;
 }
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
