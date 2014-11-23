@@ -1909,9 +1909,10 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
 /// Given array literal oldval of type ArrayLiteralExp or StringExp, of length
 /// oldlen, change its length to newlen. If the newlen is longer than oldlen,
 /// all new elements will be set to the default initializer for the element type.
-Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
+UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     Expression *oldval,  size_t oldlen, size_t newlen)
 {
+    UnionExp ue;
     Type *elemType = arrayType->next;
     assert(elemType);
     Expression *defaultElem = elemType->defaultInitLiteral(loc);
@@ -1942,12 +1943,12 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
                 default:    assert(0);
             }
         }
-        StringExp *se = new StringExp(loc, s, newlen);
+        new(&ue) StringExp(loc, s, newlen);
+        StringExp *se = (StringExp *)ue.exp();
         se->type = arrayType;
         se->sz = oldse->sz;
         se->committed = oldse->committed;
         se->ownedByCtfe = true;
-        return se;
     }
     else
     {
@@ -1969,11 +1970,12 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
             for (size_t i = copylen; i < newlen; i++)
                 (*elements)[i] = defaultElem;
         }
-        ArrayLiteralExp *aae = new ArrayLiteralExp(loc, elements);
+        new(&ue) ArrayLiteralExp(loc, elements);
+        ArrayLiteralExp *aae = (ArrayLiteralExp *)ue.exp();
         aae->type = arrayType;
         aae->ownedByCtfe = true;
-        return aae;
     }
+    return ue;
 }
 
 

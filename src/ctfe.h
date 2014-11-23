@@ -177,7 +177,7 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
 /// Given array literal oldval of type ArrayLiteralExp or StringExp, of length
 /// oldlen, change its length to newlen. If the newlen is longer than oldlen,
 /// all new elements will be set to the default initializer for the element type.
-Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
+UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     Expression *oldval,  size_t oldlen, size_t newlen);
 
 
