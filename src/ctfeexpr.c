@@ -688,13 +688,17 @@ Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
 // and op is TOKadd or TOKmin
-Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
+UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
     Expression *eptr, Expression *e2)
 {
+    UnionExp ue;
+
     if (eptr->type->nextOf()->ty == Tvoid)
     {
         error(loc, "cannot perform arithmetic on void* pointers at compile time");
-        return CTFEExp::cantexp;
+      Lcant:
+        new(&ue) CTFEExp(TOKcantexp);
+        return ue;
     }
     dinteger_t ofs1, ofs2;
     if (eptr->op == TOKaddress)
@@ -705,13 +709,13 @@ Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
         if (((SymOffExp *)agg1)->var->type->ty != Tsarray)
         {
             error(loc, "cannot perform pointer arithmetic on arrays of unknown length at compile time");
-            return CTFEExp::cantexp;
+            goto Lcant;
         }
     }
     else if (agg1->op != TOKstring && agg1->op != TOKarrayliteral)
     {
         error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
-        return CTFEExp::cantexp;
+        goto Lcant;
     }
     ofs2 = e2->toInteger();
     Type *pointee = ((TypePointer *)agg1->type)->next;
@@ -737,33 +741,36 @@ Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
     else
     {
         error(loc, "CTFE Internal compiler error: bad pointer operation");
-        return CTFEExp::cantexp;
+        goto Lcant;
     }
 
     if (indx < 0 || indx > len)
     {
         error(loc, "cannot assign pointer to index %lld inside memory block [0..%lld]", indx, len);
-        return CTFEExp::cantexp;
+        goto Lcant;
     }
 
     if (agg1->op == TOKsymoff)
     {
-        SymOffExp *se = new SymOffExp(loc, ((SymOffExp *)agg1)->var, indx*sz);
+        new(&ue) SymOffExp(loc, ((SymOffExp *)agg1)->var, indx*sz);
+        SymOffExp *se = (SymOffExp *)ue.exp();
         se->type = type;
-        return se;
+        return ue;
     }
 
     Expression *val = agg1;
     if (val->op != TOKarrayliteral && val->op != TOKstring)
     {
         error(loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
-        return CTFEExp::cantexp;
+        goto Lcant;
     }
 
     IntegerExp *ofs = new IntegerExp(loc, indx, Type::tsize_t);
-    IndexExp *ie = new IndexExp(loc, val, ofs);
+
+    new(&ue) IndexExp(loc, val, ofs);
+    IndexExp *ie = (IndexExp *)ue.exp();
     ie->type = type;
-    return ie;
+    return ue;
 }
 
 // Return 1 if true, 0 if false

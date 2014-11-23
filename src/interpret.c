@@ -3256,7 +3256,7 @@ public:
                 result = e2;
                 return;
             }
-            result = pointerArithmetic(e->loc, e->op, e->type, e1, e2);
+            result = pointerArithmetic(e->loc, e->op, e->type, e1, e2).copy();
             return;
         }
         if (e->e2->type->ty == Tpointer && e->e1->type->isintegral() && e->op == TOKadd)
@@ -3273,7 +3273,7 @@ public:
                 result = e2;
                 return;
             }
-            result = pointerArithmetic(e->loc, e->op, e->type, e2, e1);
+            result = pointerArithmetic(e->loc, e->op, e->type, e2, e1).copy();
             return;
         }
         if (e->e1->type->ty == Tpointer || e->e2->type->ty == Tpointer)
@@ -3682,7 +3682,7 @@ public:
                         result = newval;
                         return;
                     }
-                    newval = pointerArithmetic(e->loc, e->op, e->type, oldval, newval);
+                    newval = pointerArithmetic(e->loc, e->op, e->type, oldval, newval).copy();
                 }
                 else if (e->e1->type->ty == Tpointer)
                 {

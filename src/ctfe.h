@@ -209,7 +209,7 @@ int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t of
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
 // and op is TOKadd or TOKmin
-Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
+UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
     Expression *eptr, Expression *e2);
 
 // True if conversion from type 'from' to 'to' involves a reinterpret_cast
