@@ -912,7 +912,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
                  * copy them if they are passed as const
                  */
                 if (earg->op == TOKstructliteral && !(arg->storageClass & (STCconst | STCimmutable)))
-                    earg = copyLiteral(earg);
+                    earg = copyLiteral(earg).copy();
             }
             if (earg->op == TOKthrownexception)
             {
@@ -1403,7 +1403,7 @@ public:
         }
 
         if (needToCopyLiteral(e))
-            e = copyLiteral(e);
+            e = copyLiteral(e).copy();
     #if LOGASSIGN
         printf("RETURN %s\n", s->loc.toChars());
         showCtfeExpr(e);
@@ -2389,7 +2389,7 @@ public:
                 }
                 if (e && !CTFEExp::isCantExp(e) && e->op != TOKthrownexception)
                 {
-                    e = copyLiteral(e);
+                    e = copyLiteral(e).copy();
                     if (v->isDataseg() || (v->storage_class & STCmanifest))
                         ctfeStack.saveGlobalConstant(v, e);
                 }
@@ -2762,7 +2762,7 @@ public:
             }
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, expsx);
             ae->type = e->type;
-            result = copyLiteral(ae);
+            result = copyLiteral(ae).copy();
             return;
         }
         if (((TypeNext *)e->type)->next->mod & (MODconst | MODimmutable))
@@ -2771,7 +2771,7 @@ public:
             result = e;
             return;
         }
-        result = copyLiteral(e);
+        result = copyLiteral(e).copy();
     }
 
     void visit(AssocArrayLiteralExp *e)
@@ -2949,7 +2949,7 @@ public:
             result = se;
             return;
         }
-        result = copyLiteral(e);
+        result = copyLiteral(e).copy();
     }
 
     // Create an array literal of type 'newtype' with dimensions given by
@@ -2972,7 +2972,7 @@ public:
             Expressions *elements = new Expressions();
             elements->setDim(len);
             for (size_t i = 0; i < len; i++)
-                 (*elements)[i] = copyLiteral(elem);
+                 (*elements)[i] = copyLiteral(elem).copy();
             ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
             ae->type = newtype;
             ae->ownedByCtfe = true;
@@ -3050,7 +3050,7 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
-            result = new AddrExp(e->loc, copyLiteral(result));
+            result = new AddrExp(e->loc, copyLiteral(result).copy());
             result->type = e->type;
             return;
         }
@@ -3087,7 +3087,7 @@ public:
                         m = v->type->defaultInitLiteral(e->loc);
                     if (exceptionOrCant(m))
                         return;
-                    (*elems)[fieldsSoFar+i] = copyLiteral(m);
+                    (*elems)[fieldsSoFar+i] = copyLiteral(m).copy();
                 }
             }
             // Hack: we store a ClassDeclaration instead of a StructDeclaration.
@@ -3133,7 +3133,7 @@ public:
              */
             Expressions *elements = new Expressions();
             elements->setDim(1);
-            (*elements)[0] = copyLiteral(newval);
+            (*elements)[0] = copyLiteral(newval).copy();
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
             ae->type = e->newtype->arrayOf();
             ae->ownedByCtfe = true;
@@ -3560,7 +3560,7 @@ public:
                     // We need to dup it. We can skip this if it's a dynamic array,
                     // because it gets copied later anyway
                     if (newval->type->ty != Tarray)
-                        newval = copyLiteral(newval);
+                        newval = copyLiteral(newval).copy();
                     if (newval->op == TOKslice)
                         newval = resolveSlice(newval);
                     // It becomes a reference assignment
@@ -3690,7 +3690,7 @@ public:
         // only modifying part of the variable. So we need to make sure
         // that the parent variable exists.
         if (e1->op != TOKvar && ultimateVar && !getValue(ultimateVar))
-            setValue(ultimateVar, copyLiteral(ultimateVar->type->defaultInitLiteral(e->loc)));
+            setValue(ultimateVar, copyLiteral(ultimateVar->type->defaultInitLiteral(e->loc)).copy());
 
         // ---------------------------------------
         //      Deal with reference assignment
@@ -3722,7 +3722,7 @@ public:
                 newval->op == TOKarrayliteral)
             {
                 if (needToCopyLiteral(newval))
-                    newval = copyLiteral(newval);
+                    newval = copyLiteral(newval).copy();
             }
 
             // Get the value to return. Note that 'newval' is an Lvalue,
@@ -3890,7 +3890,7 @@ public:
                     result = CTFEExp::cantexp;
                     return;
                 }
-                newval = copyLiteral(newval);
+                newval = copyLiteral(newval).copy();
                 if (getValue(v))
                     assignInPlace(getValue(v), newval);
                 else
@@ -5248,7 +5248,7 @@ public:
             ctfeStack.push(v);
             if (!v->init && !getValue(v))
             {
-                setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)));
+                setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)).copy());
             }
             if (!getValue(v))
             {
@@ -5266,7 +5266,7 @@ public:
                 if (newval->op != TOKvoidexp)
                 {
                     // v isn't necessarily null.
-                    setValueWithoutChecking(v, copyLiteral(newval));
+                    setValueWithoutChecking(v, copyLiteral(newval).copy());
                 }
             }
             if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
@@ -6557,7 +6557,7 @@ Expression *interpret_keys(InterState *istate, Expression *earg, Type *returnTyp
     ArrayLiteralExp *ae = new ArrayLiteralExp(aae->loc, aae->keys);
     ae->ownedByCtfe = aae->ownedByCtfe;
     ae->type = returnType;
-    return copyLiteral(ae);
+    return copyLiteral(ae).copy();
 }
 
 Expression *interpret_values(InterState *istate, Expression *earg, Type *returnType)
@@ -6578,7 +6578,7 @@ Expression *interpret_values(InterState *istate, Expression *earg, Type *returnT
     ae->ownedByCtfe = aae->ownedByCtfe;
     ae->type = returnType;
     //printf("result is %s\n", e->toChars());
-    return copyLiteral(ae);
+    return copyLiteral(ae).copy();
 }
 
 Expression *interpret_dup(InterState *istate, Expression *earg)
@@ -6594,7 +6594,7 @@ Expression *interpret_dup(InterState *istate, Expression *earg)
     if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
         return NULL;
     assert(earg->op == TOKassocarrayliteral);
-    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)copyLiteral(earg);
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)copyLiteral(earg).copy();
     for (size_t i = 0; i < aae->keys->dim; i++)
     {
         if (Expression *e = evaluatePostblit(istate, (*aae->keys)[i]))
