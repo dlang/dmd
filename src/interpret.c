@@ -2879,6 +2879,7 @@ public:
             ae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
             ae->type = e->type;
             ae->ownedByCtfe = true;
+            ae->init = e->init;
             result = ae;
             return;
         }

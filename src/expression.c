@@ -4148,10 +4148,7 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 #endif
     assert(sc);
     if (type)
-    {
-        aaLiteralCreate(sc);
         return this;
-    }
 
     // Run semantic() on each element
     bool err_keys = arrayExpressionSemantic(keys, sc);
