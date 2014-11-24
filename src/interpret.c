@@ -840,7 +840,6 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     if (fd->isNested() && fd->toParent2()->isFuncDeclaration() && !thisarg && istate)
         thisarg = ctfeStack.getThis();
 
-    size_t dim = 0;
     if (fd->needThis() && !thisarg)
     {
         // error, no this. Prevent segfault.
@@ -857,118 +856,109 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     // Place to hold all the arguments to the function while
     // we are evaluating them.
     Expressions eargs;
+    size_t dim = arguments ? arguments->dim : 0;
+    assert((fd->parameters ? fd->parameters->dim : 0) == dim);
 
-    if (arguments)
+    /* Evaluate all the arguments to the function,
+     * store the results in eargs[]
+     */
+    eargs.setDim(dim);
+    for (size_t i = 0; i < dim; i++)
     {
-        dim = arguments->dim;
-        assert(!dim || (fd->parameters && (fd->parameters->dim == dim)));
+        Expression *earg = (*arguments)[i];
+        Parameter *fparam = Parameter::getNth(tf->parameters, i);
 
-        /* Evaluate all the arguments to the function,
-         * store the results in eargs[]
-         */
-        eargs.setDim(dim);
-        for (size_t i = 0; i < dim; i++)
+        if (fparam->storageClass & (STCout | STCref))
         {
-            Expression *earg = (*arguments)[i];
-            Parameter *arg = Parameter::getNth(tf->parameters, i);
-
-            if (arg->storageClass & (STCout | STCref))
+            if (!istate && (fparam->storageClass & STCout))
             {
-                if (!istate && (arg->storageClass & STCout))
-                {
-                    // initializing an out parameter involves writing to it.
-                    earg->error("global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
-                    return CTFEExp::cantexp;
-                }
-                // Convert all reference arguments into lvalue references
-                earg = earg->interpret(istate, ctfeNeedLvalueRef);
-                if (CTFEExp::isCantExp(earg))
-                    return earg;
-            }
-            else if (arg->storageClass & STClazy)
-            {
-            }
-            else
-            {
-                /* Value parameters
-                 */
-                Type *ta = arg->type->toBasetype();
-                if (ta->ty == Tsarray && earg->op == TOKaddress)
-                {
-                    /* Static arrays are passed by a simple pointer.
-                     * Skip past this to get at the actual arg.
-                     */
-                    earg = ((AddrExp *)earg)->e1;
-                }
-                earg = earg->interpret(istate);
-                if (CTFEExp::isCantExp(earg))
-                    return earg;
-                /* Struct literals are passed by value, but we don't need to
-                 * copy them if they are passed as const
-                 */
-                if (earg->op == TOKstructliteral && !(arg->storageClass & (STCconst | STCimmutable)))
-                    earg = copyLiteral(earg).copy();
-            }
-            if (earg->op == TOKthrownexception)
-            {
-                if (istate)
-                    return earg;
-                ((ThrownExceptionExp *)earg)->generateUncaughtError();
+                // initializing an out parameter involves writing to it.
+                earg->error("global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
                 return CTFEExp::cantexp;
             }
-            eargs[i] = earg;
+            // Convert all reference arguments into lvalue references
+            earg = earg->interpret(istate, ctfeNeedLvalueRef);
+            if (CTFEExp::isCantExp(earg))
+                return earg;
         }
+        else if (fparam->storageClass & STClazy)
+        {
+        }
+        else
+        {
+            /* Value parameters
+             */
+            Type *ta = fparam->type->toBasetype();
+            if (ta->ty == Tsarray && earg->op == TOKaddress)
+            {
+                /* Static arrays are passed by a simple pointer.
+                 * Skip past this to get at the actual arg.
+                 */
+                earg = ((AddrExp *)earg)->e1;
+            }
+            earg = earg->interpret(istate);
+            if (CTFEExp::isCantExp(earg))
+                return earg;
+            /* Struct literals are passed by value, but we don't need to
+             * copy them if they are passed as const
+             */
+            if (earg->op == TOKstructliteral && !(fparam->storageClass & (STCconst | STCimmutable)))
+                earg = copyLiteral(earg).copy();
+        }
+        if (earg->op == TOKthrownexception)
+        {
+            if (istate)
+                return earg;
+            ((ThrownExceptionExp *)earg)->generateUncaughtError();
+            return CTFEExp::cantexp;
+        }
+        eargs[i] = earg;
     }
 
     // Now that we've evaluated all the arguments, we can start the frame
     // (this is the moment when the 'call' actually takes place).
-
     InterState istatex;
     istatex.caller = istate;
     istatex.fd = fd;
     ctfeStack.startFrame(thisarg);
 
-    if (arguments)
+    for (size_t i = 0; i < dim; i++)
     {
-
-        for (size_t i = 0; i < dim; i++)
-        {
-            Expression *earg = eargs[i];
-            Parameter *arg = Parameter::getNth(tf->parameters, i);
-            VarDeclaration *v = (*fd->parameters)[i];
+        Expression *earg = eargs[i];
+        Parameter *fparam = Parameter::getNth(tf->parameters, i);
+        VarDeclaration *v = (*fd->parameters)[i];
 #if LOG
-            printf("arg[%d] = %s\n", i, earg->toChars());
+        printf("arg[%d] = %s\n", i, earg->toChars());
 #endif
-            if (arg->storageClass & (STCout | STCref) && earg->op == TOKvar)
+        if ((fparam->storageClass & (STCout | STCref)) && earg->op == TOKvar)
+        {
+            VarExp *ve = (VarExp *)earg;
+            VarDeclaration *v2 = ve->var->isVarDeclaration();
+            if (!v2)
             {
-                VarExp *ve = (VarExp *)earg;
-                VarDeclaration *v2 = ve->var->isVarDeclaration();
-                if (!v2)
-                {
-                    fd->error("cannot interpret %s as a ref parameter", ve->toChars());
-                    return CTFEExp::cantexp;
-                }
-                /* The push() isn't a variable we'll use, it's just a place
-                 * to save the old value of v.
-                 * Note that v might be v2! So we need to save v2's index
-                 * before pushing.
-                 */
-                int oldadr = v2->ctfeAdrOnStack;
-                ctfeStack.push(v);
-                v->ctfeAdrOnStack = oldadr;
-                assert(hasValue(v2));
+                fd->error("cannot interpret %s as a ref parameter", ve->toChars());
+                return CTFEExp::cantexp;
             }
-            else
-            {
-                // Value parameters and non-trivial references
-                ctfeStack.push(v);
-                setValueWithoutChecking(v, earg);
-            }
-#if LOG || LOGASSIGN
-            printf("interpreted arg[%d] = %s\n", i, earg->toChars());
-            showCtfeExpr(earg);
-#endif
+            /* The push() isn't a variable we'll use, it's just a place
+             * to save the old value of v.
+             * Note that v might be v2! So we need to save v2's index
+             * before pushing.
+             */
+            int oldadr = v2->ctfeAdrOnStack;
+            ctfeStack.push(v);
+            v->ctfeAdrOnStack = oldadr;
+            assert(hasValue(v2));
         }
+        else
+        {
+            // Value parameters and non-trivial references
+            ctfeStack.push(v);
+            setValueWithoutChecking(v, earg);
+        }
+#if LOG || LOGASSIGN
+        printf("interpreted arg[%d] = %s\n", i, earg->toChars());
+        showCtfeExpr(earg);
+#endif
     }
 
     if (fd->vresult)
@@ -1147,18 +1137,15 @@ public:
         if (istate->start == s)
             istate->start = NULL;
         Expression *e = NULL;
-        if (s->statements)
+        size_t dim = s->statements ? s->statements->dim : 0;
+        for (size_t i = 0; i < dim; i++)
         {
-            for (size_t i = 0; i < s->statements->dim; i++)
-            {
-                Statement *sx = (*s->statements)[i];
-                if (sx)
-                {
-                    e = sx->interpret(istate);
-                    if (e)
-                        break;
-                }
-            }
+            Statement *sx = (*s->statements)[i];
+            if (!sx)
+                continue;
+            e = sx->interpret(istate);
+            if (e)
+                break;
         }
     #if LOG
         printf("%s -CompoundStatement::interpret() %p\n", s->loc.toChars(), e);
@@ -1174,35 +1161,33 @@ public:
         if (istate->start == s)
             istate->start = NULL;
         Expression *e = NULL;
-        if (s->statements)
+        size_t dim = s->statements ? s->statements->dim : 0;
+        for (size_t i = 0; i < dim; i++)
         {
-            for (size_t i = 0; i < s->statements->dim; i++)
-            {
-                Statement *sx = (*s->statements)[i];
+            Statement *sx = (*s->statements)[i];
 
-                e = sx->interpret(istate);
-                if (CTFEExp::isCantExp(e))
-                    break;
-                if (e && e->op == TOKcontinue)
+            e = sx->interpret(istate);
+            if (CTFEExp::isCantExp(e))
+                break;
+            if (e && e->op == TOKcontinue)
+            {
+                if (istate->gotoTarget && istate->gotoTarget != s)
+                    break; // continue at higher level
+                istate->gotoTarget = NULL;
+                e = NULL;
+                continue;
+            }
+            if (e && e->op == TOKbreak)
+            {
+                if (!istate->gotoTarget || istate->gotoTarget == s)
                 {
-                    if (istate->gotoTarget && istate->gotoTarget != s)
-                        break; // continue at higher level
                     istate->gotoTarget = NULL;
                     e = NULL;
-                    continue;
-                }
-                if (e && e->op == TOKbreak)
-                {
-                    if (!istate->gotoTarget || istate->gotoTarget == s)
-                    {
-                        istate->gotoTarget = NULL;
-                        e = NULL;
-                    } // else break at a higher level
-                    break;
-                }
-                if (e)
-                    break;
+                } // else break at a higher level
+                break;
             }
+            if (e)
+                break;
         }
         result = e;
     }
@@ -1212,7 +1197,6 @@ public:
     #if LOG
         printf("%s IfStatement::interpret(%s)\n", s->loc.toChars(), s->condition->toChars());
     #endif
-
         if (istate->start == s)
             istate->start = NULL;
         if (istate->start)
@@ -1230,17 +1214,16 @@ public:
 
         Expression *e = s->condition->interpret(istate);
         assert(e);
-        //if (CTFEExp::isCantExp(e)) printf("cannot interpret\n");
-        if (!CTFEExp::isCantExp(e) && (e && e->op != TOKthrownexception))
+        if (exceptionOrCantInterpret(e))
+            return;
+
+        if (isTrueBool(e))
+            e = s->ifbody ? s->ifbody->interpret(istate) : NULL;
+        else if (e->isBool(false))
+            e = s->elsebody ? s->elsebody->interpret(istate) : NULL;
+        else
         {
-            if (isTrueBool(e))
-                e = s->ifbody ? s->ifbody->interpret(istate) : NULL;
-            else if (e->isBool(false))
-                e = s->elsebody ? s->elsebody->interpret(istate) : NULL;
-            else
-            {
-                e = CTFEExp::cantexp;
-            }
+            e = CTFEExp::cantexp;
         }
         result = e;
     }
@@ -1346,51 +1329,39 @@ public:
             result = CTFEExp::voidexp;
             return;
         }
-        assert(istate && istate->fd && istate->fd->type);
+
+        assert(istate && istate->fd && istate->fd->type && istate->fd->type->ty == Tfunction);
+        TypeFunction *tf = (TypeFunction *)istate->fd->type;
 
         /* If the function returns a ref AND it's been called from an assignment,
          * we need to return an lvalue. Otherwise, just do an (rvalue) interpret.
          */
-        if (istate->fd->type && istate->fd->type->ty == Tfunction)
+        if (tf->isref && istate->caller && istate->caller->awaitingLvalueReturn)
         {
-            TypeFunction *tf = (TypeFunction *)istate->fd->type;
-            if (tf->isref && istate->caller && istate->caller->awaitingLvalueReturn)
-            {
-                // We need to return an lvalue
-                Expression *e = s->exp->interpret(istate, ctfeNeedLvalueRef);
-                if (CTFEExp::isCantExp(e))
-                    s->error("ref return %s is not yet supported in CTFE", s->exp->toChars());
-                result = e;
-                return;
-            }
-            if (tf->next && (tf->next->ty == Tdelegate) && istate->fd->closureVars.dim > 0)
-            {
-                // To support this, we need to copy all the closure vars
-                // into the delegate literal.
-                s->error("closures are not yet supported in CTFE");
-                result = CTFEExp::cantexp;
-                return;
-            }
+            // We need to return an lvalue
+            Expression *e = s->exp->interpret(istate, ctfeNeedLvalueRef);
+            if (CTFEExp::isCantExp(e))
+                s->error("ref return %s is not yet supported in CTFE", s->exp->toChars());
+            result = e;
+            return;
+        }
+        if (tf->next && tf->next->ty == Tdelegate && istate->fd->closureVars.dim > 0)
+        {
+            // To support this, we need to copy all the closure vars
+            // into the delegate literal.
+            s->error("closures are not yet supported in CTFE");
+            result = CTFEExp::cantexp;
+            return;
         }
 
         // We need to treat pointers specially, because TOKsymoff can be used to
         // return a value OR a pointer
-        Expression *e;
-        if (isPointer(s->exp->type))
-        {
-            e = s->exp->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCant(e))
-                return;
-        }
-        else
-        {
-            e = s->exp->interpret(istate);
-            if (exceptionOrCant(e))
-                return;
-        }
+        CtfeGoal returnGoal = isPointer(s->exp->type) ? ctfeNeedLvalue : ctfeNeedRvalue;
+        Expression *e = s->exp->interpret(istate, returnGoal);
+        if (exceptionOrCant(e))
+            return;
 
         // Disallow returning pointers to stack-allocated variables (bug 7876)
-
         if (!stopPointersEscaping(s->loc, e))
         {
             result = CTFEExp::cantexp;
@@ -1701,8 +1672,8 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        if (s->statement)
-            result = s->statement->interpret(istate);
+
+        result = s->statement ? s->statement->interpret(istate) : NULL;
     }
 
     void visit(DefaultStatement *s)
@@ -1712,8 +1683,8 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        if (s->statement)
-            result = s->statement->interpret(istate);
+
+        result = s->statement ? s->statement->interpret(istate) : NULL;
     }
 
     void visit(GotoStatement *s)
@@ -1774,6 +1745,7 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
+
         result = s->statement ? s->statement->interpret(istate) : NULL;
     }
 
@@ -2716,40 +2688,38 @@ public:
             return;
         }
         Expressions *expsx = NULL;
-        if (e->elements)
+        size_t dim = e->elements ? e->elements->dim : 0;
+        for (size_t i = 0; i < dim; i++)
         {
-            for (size_t i = 0; i < e->elements->dim; i++)
+            Expression *exp = (*e->elements)[i];
+
+            if (exp->op == TOKindex)  // segfault bug 6250
+                assert(((IndexExp *)exp)->e1 != e);
+            Expression *ex = exp->interpret(istate);
+            if (exceptionOrCant(ex))
+                return;
+
+            /* If any changes, do Copy On Write
+             */
+            if (ex != exp)
             {
-                Expression *exp = (*e->elements)[i];
-
-                if (exp->op == TOKindex)  // segfault bug 6250
-                    assert(((IndexExp *)exp)->e1 != e);
-                Expression *ex = exp->interpret(istate);
-                if (exceptionOrCant(ex))
-                    return;
-
-                /* If any changes, do Copy On Write
-                 */
-                if (ex != exp)
+                if (!expsx)
                 {
-                    if (!expsx)
+                    expsx = new Expressions();
+                    ++CtfeStatus::numArrayAllocs;
+                    expsx->setDim(dim);
+                    for (size_t j = 0; j < dim; j++)
                     {
-                        expsx = new Expressions();
-                        ++CtfeStatus::numArrayAllocs;
-                        expsx->setDim(e->elements->dim);
-                        for (size_t j = 0; j < e->elements->dim; j++)
-                        {
-                            (*expsx)[j] = (*e->elements)[j];
-                        }
+                        (*expsx)[j] = (*e->elements)[j];
                     }
-                    (*expsx)[i] = ex;
                 }
+                (*expsx)[i] = ex;
             }
         }
-        if (e->elements && expsx)
+        if (dim && expsx)
         {
             expandTuples(expsx);
-            if (expsx->dim != e->elements->dim)
+            if (expsx->dim != dim)
             {
                 e->error("Internal Compiler Error: Invalid array literal");
                 result = CTFEExp::cantexp;
@@ -3353,7 +3323,7 @@ public:
 
     // Returns the variable which is eventually modified, or NULL if an rvalue.
     // thisval is the current value of 'this'.
-    static VarDeclaration * findParentVar(Expression *e)
+    static VarDeclaration *findParentVar(Expression *e)
     {
         for (;;)
         {
@@ -4233,7 +4203,7 @@ public:
             ((IndexExp *)newval)->e1 == aggregate)
         {
             // It's a circular reference, resolve it now
-                newval = newval->interpret(istate);
+            newval = newval->interpret(istate);
         }
 
         if (existingAE)
@@ -4837,36 +4807,33 @@ public:
             return;
 
         int res;
-        if (!CTFEExp::isCantExp(result))
+        if (result->isBool(false))
+            res = 0;
+        else if (isTrueBool(result))
         {
+            result = e->e2->interpret(istate);
+            if (exceptionOrCant(result))
+                return;
+            if (result->op == TOKvoidexp)
+            {
+                assert(e->type->ty == Tvoid);
+                result = NULL;
+                return;
+            }
             if (result->isBool(false))
                 res = 0;
             else if (isTrueBool(result))
-            {
-                result = e->e2->interpret(istate);
-                if (exceptionOrCant(result))
-                    return;
-                if (result->op == TOKvoidexp)
-                {
-                    assert(e->type->ty == Tvoid);
-                    result = NULL;
-                    return;
-                }
-                if (result->isBool(false))
-                    res = 0;
-                else if (isTrueBool(result))
-                    res = 1;
-                else
-                {
-                    result->error("%s does not evaluate to a boolean", result->toChars());
-                    result = CTFEExp::cantexp;
-                }
-            }
+                res = 1;
             else
             {
-                result->error("%s cannot be interpreted as a boolean", result->toChars());
+                result->error("%s does not evaluate to a boolean", result->toChars());
                 result = CTFEExp::cantexp;
             }
+        }
+        else
+        {
+            result->error("%s cannot be interpreted as a boolean", result->toChars());
+            result = CTFEExp::cantexp;
         }
         if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
             result = new IntegerExp(e->loc, res, e->type);
@@ -4888,40 +4855,37 @@ public:
             return;
 
         int res;
-        if (!CTFEExp::isCantExp(result))
+        if (isTrueBool(result))
+            res = 1;
+        else if (result->isBool(false))
         {
-            if (isTrueBool(result))
-                res = 1;
-            else if (result->isBool(false))
-            {
-                result = e->e2->interpret(istate);
-                if (exceptionOrCant(result))
-                    return;
+            result = e->e2->interpret(istate);
+            if (exceptionOrCant(result))
+                return;
 
-                if (result->op == TOKvoidexp)
-                {
-                    assert(e->type->ty == Tvoid);
-                    result = NULL;
-                    return;
-                }
-                if (!CTFEExp::isCantExp(result))
-                {
-                    if (result->isBool(false))
-                        res = 0;
-                    else if (isTrueBool(result))
-                        res = 1;
-                    else
-                    {
-                        result->error("%s cannot be interpreted as a boolean", result->toChars());
-                        result = CTFEExp::cantexp;
-                    }
-                }
-            }
-            else
+            if (result->op == TOKvoidexp)
             {
-                result->error("%s cannot be interpreted as a boolean", result->toChars());
-                result = CTFEExp::cantexp;
+                assert(e->type->ty == Tvoid);
+                result = NULL;
+                return;
             }
+            if (!CTFEExp::isCantExp(result))
+            {
+                if (result->isBool(false))
+                    res = 0;
+                else if (isTrueBool(result))
+                    res = 1;
+                else
+                {
+                    result->error("%s cannot be interpreted as a boolean", result->toChars());
+                    result = CTFEExp::cantexp;
+                }
+            }
+        }
+        else
+        {
+            result->error("%s cannot be interpreted as a boolean", result->toChars());
+            result = CTFEExp::cantexp;
         }
         if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
             result = new IntegerExp(e->loc, res, e->type);
@@ -6042,145 +6006,144 @@ public:
                 }
             }
             result = Ptr(e->type, e->e1).copy();
+            return;
         }
-        else
+
+        // Check for .classinfo, which is lowered in the semantic pass into **(class).
+        if (e->e1->op == TOKstar && e->e1->type->ty == Tpointer && isTypeInfo_Class(e->e1->type->nextOf()))
         {
-            // Check for .classinfo, which is lowered in the semantic pass into **(class).
-            if (e->e1->op == TOKstar && e->e1->type->ty == Tpointer && isTypeInfo_Class(e->e1->type->nextOf()))
-            {
-                result = (((PtrExp *)e->e1)->e1)->interpret(istate, ctfeNeedLvalue);
-                if (exceptionOrCant(result))
-                    return;
-                if (result->op == TOKnull)
-                {
-                    e->error("Null pointer dereference evaluating typeid. '%s' is null", ((PtrExp *)e->e1)->e1->toChars());
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-                if (result->op != TOKclassreference)
-                {
-                    e->error("CTFE internal error determining classinfo");
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-                ClassDeclaration *cd = ((ClassReferenceExp *)result)->originalClass();
-                assert(cd);
-
-                // Create the classinfo, if it doesn't yet exist.
-                // TODO: This belongs in semantic, CTFE should not have to do this.
-                if (!cd->vclassinfo)
-                    cd->vclassinfo = new TypeInfoClassDeclaration(cd->type);
-                result = new SymOffExp(e->loc, cd->vclassinfo, 0);
-                result->type = e->type;
-                return;
-            }
-
-            // It's possible we have an array bounds error. We need to make sure it
-            // errors with this line number, not the one where the pointer was set.
-            result = e->e1->interpret(istate);
+            result = (((PtrExp *)e->e1)->e1)->interpret(istate, ctfeNeedLvalue);
             if (exceptionOrCant(result))
                 return;
-
-            if (!(result->op == TOKvar ||
-                  result->op == TOKdotvar ||
-                  result->op == TOKindex ||
-                  result->op == TOKslice ||
-                  result->op == TOKaddress))
+            if (result->op == TOKnull)
             {
-                if (result->op == TOKsymoff)
-                    e->error("cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)result)->var->toChars());
-                else
-                    e->error("dereference of invalid pointer '%s'", result->toChars());
+                e->error("Null pointer dereference evaluating typeid. '%s' is null", ((PtrExp *)e->e1)->e1->toChars());
                 result = CTFEExp::cantexp;
                 return;
             }
-            if (goal != ctfeNeedLvalue && goal != ctfeNeedLvalueRef)
+            if (result->op != TOKclassreference)
             {
-                if (result->op == TOKindex && result->type->ty == Tpointer)
-                {
-                    IndexExp *ie = (IndexExp *)result;
-                    // Is this a real index to an array of pointers, or just a CTFE pointer?
-                    // If the index has the same levels of indirection, it's an index
-                    int srcLevels = 0;
-                    int destLevels = 0;
-                    for (Type *xx = ie->e1->type; xx->ty == Tpointer; xx = xx->nextOf())
-                        ++srcLevels;
-                    for (Type *xx = result->type->nextOf(); xx->ty == Tpointer; xx = xx->nextOf())
-                        ++destLevels;
-                    bool isGenuineIndex = (srcLevels == destLevels);
-
-                    if ((ie->e1->op == TOKarrayliteral || ie->e1->op == TOKstring) &&
-                         ie->e2->op == TOKint64)
-                    {
-                        Expression *dollar = ArrayLength(Type::tsize_t, ie->e1).copy();
-                        dinteger_t len = dollar->toInteger();
-                        dinteger_t indx = ie->e2->toInteger();
-                        assert(indx >=0 && indx <= len); // invalid pointer
-                        if (indx == len)
-                        {
-                            e->error("dereference of pointer %s one past end of memory block limits [0..%lld]",
-                                e->toChars(), len);
-                            result = CTFEExp::cantexp;
-                            return;
-                        }
-                        result = ctfeIndex(e->loc, e->type, ie->e1, indx);
-                        if (isGenuineIndex)
-                        {
-                            if (result->op == TOKindex)
-                                result = result->interpret(istate, goal);
-                            else if (result->op == TOKaddress)
-                                result = paintTypeOntoLiteral(e->type, ((AddrExp *)result)->e1);
-                        }
-                        return;
-                    }
-                    if (ie->e1->op == TOKassocarrayliteral)
-                    {
-                        result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)ie->e1, ie->e2);
-                        assert(!CTFEExp::isCantExp(result));
-                        result = paintTypeOntoLiteral(e->type, result);
-                        if (isGenuineIndex)
-                        {
-                            if (result->op == TOKindex)
-                                result = result->interpret(istate, goal);
-                            else if (result->op == TOKaddress)
-                                result = paintTypeOntoLiteral(e->type, ((AddrExp *)result)->e1);
-                        }
-                        return;
-                    }
-                }
-                if (result->op == TOKstructliteral)
-                    return;
-
-                if (result->op == TOKaddress)
-                {
-                    // We're changing *&e to e.
-                    result = ((AddrExp *)result)->e1;
-                }
-                result = result->interpret(istate, goal);
-                if (exceptionOrCant(result))
-                    return;
-            }
-            else if (result->op == TOKaddress)
-            {
-                result = ((AddrExp *)result)->e1;  // *(&x) ==> x
-
-                // Bugzilla 13630, convert *(&[1,2,3]) to [1,2,3][0]
-                if (result->op == TOKarrayliteral &&
-                    result->type->toBasetype()->nextOf()->toBasetype()->equivalent(e->type))
-                {
-                    IntegerExp *ofs = new IntegerExp(result->loc, 0, Type::tsize_t);
-                    result = new IndexExp(e->loc, result, ofs);
-                    result->type = e->type;
-                }
-            }
-            else if (result->op == TOKnull)
-            {
-                e->error("dereference of null pointer '%s'", e->e1->toChars());
+                e->error("CTFE internal error determining classinfo");
                 result = CTFEExp::cantexp;
                 return;
             }
-            result = paintTypeOntoLiteral(e->type, result);
+            ClassDeclaration *cd = ((ClassReferenceExp *)result)->originalClass();
+            assert(cd);
+
+            // Create the classinfo, if it doesn't yet exist.
+            // TODO: This belongs in semantic, CTFE should not have to do this.
+            if (!cd->vclassinfo)
+                cd->vclassinfo = new TypeInfoClassDeclaration(cd->type);
+            result = new SymOffExp(e->loc, cd->vclassinfo, 0);
+            result->type = e->type;
+            return;
         }
+
+        // It's possible we have an array bounds error. We need to make sure it
+        // errors with this line number, not the one where the pointer was set.
+        result = e->e1->interpret(istate);
+        if (exceptionOrCant(result))
+            return;
+
+        if (!(result->op == TOKvar ||
+              result->op == TOKdotvar ||
+              result->op == TOKindex ||
+              result->op == TOKslice ||
+              result->op == TOKaddress))
+        {
+            if (result->op == TOKsymoff)
+                e->error("cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)result)->var->toChars());
+            else
+                e->error("dereference of invalid pointer '%s'", result->toChars());
+            result = CTFEExp::cantexp;
+            return;
+        }
+        if (goal != ctfeNeedLvalue && goal != ctfeNeedLvalueRef)
+        {
+            if (result->op == TOKindex && result->type->ty == Tpointer)
+            {
+                IndexExp *ie = (IndexExp *)result;
+                // Is this a real index to an array of pointers, or just a CTFE pointer?
+                // If the index has the same levels of indirection, it's an index
+                int srcLevels = 0;
+                int destLevels = 0;
+                for (Type *xx = ie->e1->type; xx->ty == Tpointer; xx = xx->nextOf())
+                    ++srcLevels;
+                for (Type *xx = result->type->nextOf(); xx->ty == Tpointer; xx = xx->nextOf())
+                    ++destLevels;
+                bool isGenuineIndex = (srcLevels == destLevels);
+
+                if ((ie->e1->op == TOKarrayliteral || ie->e1->op == TOKstring) &&
+                     ie->e2->op == TOKint64)
+                {
+                    Expression *dollar = ArrayLength(Type::tsize_t, ie->e1).copy();
+                    dinteger_t len = dollar->toInteger();
+                    dinteger_t indx = ie->e2->toInteger();
+                    assert(indx >=0 && indx <= len); // invalid pointer
+                    if (indx == len)
+                    {
+                        e->error("dereference of pointer %s one past end of memory block limits [0..%lld]",
+                            e->toChars(), len);
+                        result = CTFEExp::cantexp;
+                        return;
+                    }
+                    result = ctfeIndex(e->loc, e->type, ie->e1, indx);
+                    if (isGenuineIndex)
+                    {
+                        if (result->op == TOKindex)
+                            result = result->interpret(istate, goal);
+                        else if (result->op == TOKaddress)
+                            result = paintTypeOntoLiteral(e->type, ((AddrExp *)result)->e1);
+                    }
+                    return;
+                }
+                if (ie->e1->op == TOKassocarrayliteral)
+                {
+                    result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)ie->e1, ie->e2);
+                    assert(!CTFEExp::isCantExp(result));
+                    result = paintTypeOntoLiteral(e->type, result);
+                    if (isGenuineIndex)
+                    {
+                        if (result->op == TOKindex)
+                            result = result->interpret(istate, goal);
+                        else if (result->op == TOKaddress)
+                            result = paintTypeOntoLiteral(e->type, ((AddrExp *)result)->e1);
+                    }
+                    return;
+                }
+            }
+            if (result->op == TOKstructliteral)
+                return;
+
+            if (result->op == TOKaddress)
+            {
+                // We're changing *&e to e.
+                result = ((AddrExp *)result)->e1;
+            }
+            result = result->interpret(istate, goal);
+            if (exceptionOrCant(result))
+                return;
+        }
+        else if (result->op == TOKaddress)
+        {
+            result = ((AddrExp *)result)->e1;  // *(&x) ==> x
+
+            // Bugzilla 13630, convert *(&[1,2,3]) to [1,2,3][0]
+            if (result->op == TOKarrayliteral &&
+                result->type->toBasetype()->nextOf()->toBasetype()->equivalent(e->type))
+            {
+                IntegerExp *ofs = new IntegerExp(result->loc, 0, Type::tsize_t);
+                result = new IndexExp(e->loc, result, ofs);
+                result->type = e->type;
+            }
+        }
+        else if (result->op == TOKnull)
+        {
+            e->error("dereference of null pointer '%s'", e->e1->toChars());
+            result = CTFEExp::cantexp;
+            return;
+        }
+        result = paintTypeOntoLiteral(e->type, result);
 
     #if LOG
         if (CTFEExp::isCantExp(result))
@@ -6194,123 +6157,123 @@ public:
         printf("%s DotVarExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
 
-        result = CTFEExp::cantexp;
         Expression *ex = e->e1->interpret(istate);
         if (exceptionOrCant(ex))
             return;
-        if (!CTFEExp::isCantExp(ex))
+
+        if (ex->op == TOKaddress)
+            ex = ((AddrExp *)ex)->e1;
+
+        VarDeclaration *v = e->var->isVarDeclaration();
+        if (!v)
         {
-            if (ex->op == TOKaddress)
-                ex = ((AddrExp *)ex)->e1;
-
-            VarDeclaration *v = e->var->isVarDeclaration();
-            if (!v)
-            {
-                e->error("CTFE internal error: %s", e->toChars());
-                result = CTFEExp::cantexp;
-                return;
-            }
-            if (ex->op == TOKnull)
-            {
-                if (ex->type->toBasetype()->ty == Tclass)
-                    e->error("class '%s' is null and cannot be dereferenced", e->e1->toChars());
-                else
-                    e->error("dereference of null pointer '%s'", e->e1->toChars());
-                result = CTFEExp::cantexp;
-                return;
-            }
-            if (ex->op == TOKstructliteral || ex->op == TOKclassreference)
-            {
-                StructLiteralExp *se;
-                int i;
-
-                // We can't use getField, because it makes a copy
-                if (ex->op == TOKclassreference)
-                {
-                    se = ((ClassReferenceExp *)ex)->value;
-                    i  = ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
-                }
-                else
-                {
-                    se = (StructLiteralExp *)ex;
-                    i  = findFieldIndexByName(se->sd, v);
-                }
-                if (i == -1)
-                {
-                    e->error("couldn't find field %s of type %s in %s", v->toChars(), e->type->toChars(), se->toChars());
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-                result = (*se->elements)[i];
-                if (!result)
-                {
-                    e->error("Internal Compiler Error: Null field %s", v->toChars());
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-
-                if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
-                {
-                    // If it is an lvalue literal, return it...
-                    if (result->op == TOKstructliteral)
-                        return;
-                    if ((e->type->ty == Tsarray || goal == ctfeNeedLvalue) && (
-                        result->op == TOKarrayliteral ||
-                        result->op == TOKassocarrayliteral || result->op == TOKstring ||
-                        result->op == TOKclassreference || result->op == TOKslice))
-                    {
-                        return;
-                    }
-                    /* Element is an allocated pointer, which was created in
-                     * CastExp.
-                     */
-                    if (goal == ctfeNeedLvalue && result->op == TOKindex &&
-                        result->type->equals(e->type) && isPointer(e->type))
-                    {
-                        return;
-                    }
-                    // ...Otherwise, just return the (simplified) dotvar expression
-                    result = new DotVarExp(e->loc, ex, v);
-                    result->type = e->type;
-                    return;
-                }
-                // If it is an rvalue literal, return it...
-                if (result->op == TOKstructliteral || result->op == TOKarrayliteral ||
-                    result->op == TOKassocarrayliteral || result->op == TOKstring)
-                        return;
-                if (result->op == TOKvoid)
-                {
-                    VoidInitExp *ve = (VoidInitExp *)result;
-                    const char *s = ve->var->toChars();
-                    if (v->overlapped)
-                    {
-                        e->error("Reinterpretation through overlapped field %s is not allowed in CTFE", s);
-                        result = CTFEExp::cantexp;
-                        return;
-                    }
-                    e->error("cannot read uninitialized variable %s in CTFE", s);
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-                if (isPointer(e->type))
-                {
-                    result = paintTypeOntoLiteral(e->type, result);
-                    return;
-                }
-                if (result->op == TOKvar)
-                {
-                    // Don't typepaint twice, since that might cause an erroneous copy
-                    result = getVarExp(e->loc, istate, ((VarExp *)result)->var, goal);
-                    if (!CTFEExp::isCantExp(result) && result->op != TOKthrownexception)
-                        result = paintTypeOntoLiteral(e->type, result);
-                    return;
-                }
-                result = result->interpret(istate, goal);
-                return;
-            }
-            else
-                e->error("%s.%s is not yet implemented at compile time", e->e1->toChars(), e->var->toChars());
+            e->error("CTFE internal error: %s", e->toChars());
+            result = CTFEExp::cantexp;
+            return;
         }
+        if (ex->op == TOKnull)
+        {
+            if (ex->type->toBasetype()->ty == Tclass)
+                e->error("class '%s' is null and cannot be dereferenced", e->e1->toChars());
+            else
+                e->error("dereference of null pointer '%s'", e->e1->toChars());
+            result = CTFEExp::cantexp;
+            return;
+        }
+        if (ex->op != TOKstructliteral && ex->op != TOKclassreference)
+        {
+            e->error("%s.%s is not yet implemented at compile time", e->e1->toChars(), e->var->toChars());
+            result = CTFEExp::cantexp;
+            return;
+        }
+
+        StructLiteralExp *se;
+        int i;
+
+        // We can't use getField, because it makes a copy
+        if (ex->op == TOKclassreference)
+        {
+            se = ((ClassReferenceExp *)ex)->value;
+            i  = ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
+        }
+        else
+        {
+            se = (StructLiteralExp *)ex;
+            i  = findFieldIndexByName(se->sd, v);
+        }
+        if (i == -1)
+        {
+            e->error("couldn't find field %s of type %s in %s", v->toChars(), e->type->toChars(), se->toChars());
+            result = CTFEExp::cantexp;
+            return;
+        }
+        result = (*se->elements)[i];
+        if (!result)
+        {
+            e->error("Internal Compiler Error: Null field %s", v->toChars());
+            result = CTFEExp::cantexp;
+            return;
+        }
+
+        if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
+        {
+            // If it is an lvalue literal, return it...
+            if (result->op == TOKstructliteral)
+                return;
+            if ((e->type->ty == Tsarray || goal == ctfeNeedLvalue) && (
+                result->op == TOKarrayliteral ||
+                result->op == TOKassocarrayliteral || result->op == TOKstring ||
+                result->op == TOKclassreference || result->op == TOKslice))
+            {
+                return;
+            }
+            /* Element is an allocated pointer, which was created in
+             * CastExp.
+             */
+            if (goal == ctfeNeedLvalue && result->op == TOKindex &&
+                result->type->equals(e->type) && isPointer(e->type))
+            {
+                return;
+            }
+            // ...Otherwise, just return the (simplified) dotvar expression
+            result = new DotVarExp(e->loc, ex, v);
+            result->type = e->type;
+            return;
+        }
+        // If it is an rvalue literal, return it...
+        if (result->op == TOKstructliteral || result->op == TOKarrayliteral ||
+            result->op == TOKassocarrayliteral || result->op == TOKstring)
+        {
+            return;
+        }
+        if (result->op == TOKvoid)
+        {
+            VoidInitExp *ve = (VoidInitExp *)result;
+            const char *s = ve->var->toChars();
+            if (v->overlapped)
+            {
+                e->error("Reinterpretation through overlapped field %s is not allowed in CTFE", s);
+                result = CTFEExp::cantexp;
+                return;
+            }
+            e->error("cannot read uninitialized variable %s in CTFE", s);
+            result = CTFEExp::cantexp;
+            return;
+        }
+        if (isPointer(e->type))
+        {
+            result = paintTypeOntoLiteral(e->type, result);
+            return;
+        }
+        if (result->op == TOKvar)
+        {
+            // Don't typepaint twice, since that might cause an erroneous copy
+            result = getVarExp(e->loc, istate, ((VarExp *)result)->var, goal);
+            if (!CTFEExp::isCantExp(result) && result->op != TOKthrownexception)
+                result = paintTypeOntoLiteral(e->type, result);
+            return;
+        }
+        result = result->interpret(istate, goal);
 
     #if LOG
         if (CTFEExp::isCantExp(result))
@@ -6530,7 +6493,8 @@ Expression *interpret_length(InterState *istate, Expression *earg)
     dinteger_t len = 0;
     if (earg->op == TOKassocarrayliteral)
         len = ((AssocArrayLiteralExp *)earg)->keys->dim;
-    else assert(earg->op == TOKnull);
+    else
+        assert(earg->op == TOKnull);
     Expression *e = new IntegerExp(earg->loc, len, Type::tsize_t);
     return e;
 }
@@ -6959,7 +6923,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
         if (firstarg && firstarg->type->toBasetype()->ty == Taarray)
         {
             TypeAArray *firstAAtype = (TypeAArray *)firstarg->type;
-            if (nargs == 1 &&fd->ident == Id::aaLen)
+            if (nargs == 1 && fd->ident == Id::aaLen)
                 return interpret_length(istate, firstarg);
             if (nargs == 3 && !strcmp(fd->ident->string, "_aaApply"))
                 return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
