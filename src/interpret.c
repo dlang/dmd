@@ -3239,7 +3239,7 @@ public:
                 result = e2;
                 return;
             }
-            result = pointerDifference(e->loc, e->type, e1, e2);
+            result = pointerDifference(e->loc, e->type, e1, e2).copy();
             return;
         }
         if (e->e1->type->ty == Tpointer && e->e2->type->isintegral())

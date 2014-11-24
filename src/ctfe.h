@@ -201,7 +201,7 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs);
 bool pointToSameMemoryBlock(Expression *agg1, Expression *agg2);
 
 // return e1 - e2 as an integer, or error if not possible
-Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2);
 
 /// Return 1 if true, 0 if false
 /// -1 if comparison is illegal because they point to non-comparable memory blocks
