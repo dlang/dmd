@@ -4137,7 +4137,7 @@ Expression *AssocArrayLiteralExp::syntaxCopy()
 {
     AssocArrayLiteralExp* ret = new AssocArrayLiteralExp(loc, arraySyntaxCopy(keys),
                                                          arraySyntaxCopy(values));
-    ret->init = init;
+    ret->init = init ? init->syntaxCopy() : NULL;
     return ret;
 }
 
@@ -4148,7 +4148,13 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 #endif
     assert(sc);
     if (type)
+    {
+        // type has been setted somewhere (inside interpreter, for example),
+        // but AssocArrayLiteralExp::semantic has not been called yet.
+        if (!init)
+            aaLiteralCreate(sc);
         return this;
+    }
 
     // Run semantic() on each element
     bool err_keys = arrayExpressionSemantic(keys, sc);
