@@ -1085,6 +1085,18 @@ public:
         result = NULL;
     }
 
+    // If e is TOKthrowexception or TOKcantexp,
+    // set it to 'result' and returns true.
+    bool exceptionOrCant(Expression *e)
+    {
+        if (exceptionOrCantInterpret(e))
+        {
+            result = e;
+            return true;
+        }
+        return false;
+    }
+
     /******************************** Statement ***************************/
 
     void visit(Statement *s)
@@ -1213,11 +1225,8 @@ public:
             Expression *e = NULL;
             if (s->ifbody)
                 e = s->ifbody->interpret(istate);
-            if (exceptionOrCantInterpret(e))
-            {
-                result = e;
+            if (exceptionOrCant(e))
                 return;
-            }
             if (istate->start && s->elsebody)
                 e = s->elsebody->interpret(istate);
             result = e;
@@ -1375,20 +1384,14 @@ public:
         if (isPointer(s->exp->type))
         {
             e = s->exp->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(e))
-            {
-                result = e;
+            if (exceptionOrCant(e))
                 return;
-            }
         }
         else
         {
             e = s->exp->interpret(istate);
-            if (exceptionOrCantInterpret(e))
-            {
-                result = e;
+            if (exceptionOrCant(e))
                 return;
-            }
         }
 
         // Disallow returning pointers to stack-allocated variables (bug 7876)
@@ -1524,8 +1527,8 @@ public:
 
             istate->gotoTarget = NULL;
             e = s->condition->interpret(istate);
-            if (exceptionOrCantInterpret(e))
-                break;
+            if (exceptionOrCant(e))
+                return;
             if (!e->isConst())
             {
                 e = CTFEExp::cantexp;
@@ -1557,11 +1560,8 @@ public:
         if (s->init)
         {
             e = s->init->interpret(istate);
-            if (exceptionOrCantInterpret(e))
-            {
-                result = e;
+            if (exceptionOrCant(e))
                 return;
-            }
             assert(!e);
         }
         while (1)
@@ -1569,8 +1569,8 @@ public:
             if (s->condition && !istate->start)
             {
                 e = s->condition->interpret(istate);
-                if (exceptionOrCantInterpret(e))
-                    break;
+                if (exceptionOrCant(e))
+                    return;
                 if (e->isBool(false))
                 {
                     e = NULL;
@@ -1656,11 +1656,8 @@ public:
 
 
         Expression *econdition = s->condition->interpret(istate);
-        if (exceptionOrCantInterpret(econdition))
-        {
-            result = econdition;
+        if (exceptionOrCant(econdition))
             return;
-        }
 
         Statement *scase = NULL;
         if (s->cases)
@@ -1669,11 +1666,8 @@ public:
             {
                 CaseStatement *cs = (*s->cases)[i];
                 Expression * caseExp = cs->exp->interpret(istate);
-                if (exceptionOrCantInterpret(caseExp))
-                {
-                    result = caseExp;
+                if (exceptionOrCant(caseExp))
                     return;
-                }
                 int eq = ctfeEqual(caseExp->loc, TOKequal, econdition, caseExp);
                 if (eq)
                 {
@@ -1816,7 +1810,7 @@ public:
             result = e;
             return;
         }
-        if (!exceptionOrCantInterpret(e))
+        if (!exceptionOrCant(e))
         {
             result = e;
             return;
@@ -1947,11 +1941,9 @@ public:
         }
 
         Expression *e = s->exp->interpret(istate);
-        if (exceptionOrCantInterpret(e))
-        {
-            result = e;
+        if (exceptionOrCant(e))
             return;
-        }
+
         assert(e->op == TOKclassreference);
         result = new ThrownExceptionExp(s->loc, (ClassReferenceExp *)e);
     }
@@ -1982,11 +1974,9 @@ public:
         }
 
         Expression *e = s->exp->interpret(istate);
-        if (exceptionOrCantInterpret(e))
-        {
-            result = e;
+        if (exceptionOrCant(e))
             return;
-        }
+
         if (s->wthis->type->ty == Tpointer && s->exp->type->ty != Tpointer)
         {
             e = new AddrExp(s->loc, e);
@@ -2250,7 +2240,7 @@ public:
         TY tb = e->e1->type->toBasetype()->ty;
         bool needRef = (tb == Tarray || tb == Taarray || tb == Tclass);
         result = e->e1->interpret(istate, needRef ? ctfeNeedLvalueRef : ctfeNeedLvalue);
-        if (exceptionOrCantInterpret(result))
+        if (exceptionOrCant(result))
             return;
         // Return a simplified address expression
         result = new AddrExp(e->loc, result);
@@ -2282,8 +2272,7 @@ public:
 
         // Else change it into &structliteral.func or &classref.func
         result = e->e1->interpret(istate, ctfeNeedLvalue);
-
-        if (exceptionOrCantInterpret(result))
+        if (exceptionOrCant(result))
             return;
 
         result = new DelegateExp(e->loc, result, e->func);
@@ -2680,11 +2669,8 @@ public:
         {
             Expression *exp = (*e->exps)[i];
             Expression *ex = exp->interpret(istate);
-            if (exceptionOrCantInterpret(ex))
-            {
-                result = ex;
+            if (exceptionOrCant(ex))
                 return;
-            }
 
             // A tuple of assignments can contain void (Bug 5676).
             if (goal == ctfeNeedNothing)
@@ -2744,11 +2730,8 @@ public:
                 if (exp->op == TOKindex)  // segfault bug 6250
                     assert(((IndexExp *)exp)->e1 != e);
                 Expression *ex = exp->interpret(istate);
-                if (exceptionOrCantInterpret(ex))
-                {
-                    result = ex;
+                if (exceptionOrCant(ex))
                     return;
-                }
 
                 /* If any changes, do Copy On Write
                  */
@@ -2810,11 +2793,8 @@ public:
             Expression *evalue = (*e->values)[i];
 
             Expression *ex = ekey->interpret(istate);
-            if (exceptionOrCantInterpret(ex))
-            {
-                result = ex;
+            if (exceptionOrCant(ex))
                 return;
-            }
 
             /* If any changes, do Copy On Write
              */
@@ -2826,11 +2806,8 @@ public:
             }
 
             ex = evalue->interpret(istate);
-            if (exceptionOrCantInterpret(ex))
-            {
-                result = ex;
+            if (exceptionOrCant(ex))
                 return;
-            }
 
             /* If any changes, do Copy On Write
              */
@@ -2934,11 +2911,8 @@ public:
                 else
                 {
                     ex = exp->interpret(istate);
-                    if (exceptionOrCantInterpret(ex))
-                    {
-                        result = ex;
+                    if (exceptionOrCant(ex))
                         return;
-                    }
                 }
             }
 
@@ -3029,7 +3003,7 @@ public:
         if (e->argprefix)
         {
             result = e->argprefix->interpret(istate, ctfeNeedNothing);
-            if (exceptionOrCantInterpret(result))
+            if (exceptionOrCant(result))
                 return;
         }
 
@@ -3059,11 +3033,8 @@ public:
                         Expression *ex = (*e->arguments)[i];
                         if (ex)
                             ex = ex->interpret(istate);
-                        if (exceptionOrCantInterpret(ex))
-                        {
-                            result = ex;
+                        if (exceptionOrCant(ex))
                             return;
-                        }
                         (*exps)[i] = ex;
                     }
                 }
@@ -3114,11 +3085,8 @@ public:
                     }
                     else
                         m = v->type->defaultInitLiteral(e->loc);
-                    if (exceptionOrCantInterpret(m))
-                    {
-                        result = m;
+                    if (exceptionOrCant(m))
                         return;
-                    }
                     (*elems)[fieldsSoFar+i] = copyLiteral(m);
                 }
             }
@@ -3133,11 +3101,8 @@ public:
                 if (!e->member->fbody)
                 {
                     Expression *ctorfail = evaluateIfBuiltin(istate, e->loc, e->member, e->arguments, eref);
-                    if (ctorfail && exceptionOrCantInterpret(ctorfail))
-                    {
-                        result = ctorfail;
+                    if (ctorfail && exceptionOrCant(ctorfail))
                         return;
-                    }
                     if (ctorfail)
                     {
                         result = eref;
@@ -3148,11 +3113,8 @@ public:
                     return;
                 }
                 Expression *ctorfail = interpret(e->member, istate, e->arguments, eref);
-                if (exceptionOrCantInterpret(ctorfail))
-                {
-                    result = ctorfail;
+                if (exceptionOrCant(ctorfail))
                     return;
-                }
             }
             result = eref;
             return;
@@ -3164,11 +3126,8 @@ public:
                 newval = (*e->arguments)[0]->interpret(istate);
             else
                 newval = e->newtype->defaultInitLiteral(e->loc);
-            if (exceptionOrCantInterpret(newval))
-            {
-                result = newval;
+            if (exceptionOrCant(newval))
                 return;
-            }
 
             /* Create &[newval][0]
              */
@@ -3202,11 +3161,8 @@ public:
             return;
         }
         Expression *e1 = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         UnionExp ue;
         switch (e->op)
         {
@@ -3228,51 +3184,33 @@ public:
         if (e->e1->type->ty == Tpointer && e->e2->type->ty == Tpointer && e->op == TOKmin)
         {
             Expression *e1 = e->e1->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(e1))
-            {
-                result = e1;
+            if (exceptionOrCant(e1))
                 return;
-            }
             Expression *e2 = e->e2->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(e2))
-            {
-                result = e2;
+            if (exceptionOrCant(e2))
                 return;
-            }
             result = pointerDifference(e->loc, e->type, e1, e2).copy();
             return;
         }
         if (e->e1->type->ty == Tpointer && e->e2->type->isintegral())
         {
             Expression *e1 = e->e1->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(e1))
-            {
-                result = e1;
+            if (exceptionOrCant(e1))
                 return;
-            }
             Expression *e2 = e->e2->interpret(istate);
-            if (exceptionOrCantInterpret(e2))
-            {
-                result = e2;
+            if (exceptionOrCant(e2))
                 return;
-            }
             result = pointerArithmetic(e->loc, e->op, e->type, e1, e2).copy();
             return;
         }
         if (e->e2->type->ty == Tpointer && e->e1->type->isintegral() && e->op == TOKadd)
         {
             Expression *e1 = e->e1->interpret(istate);
-            if (exceptionOrCantInterpret(e1))
-            {
-                result = e1;
+            if (exceptionOrCant(e1))
                 return;
-            }
             Expression *e2 = e->e2->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(e2))
-            {
-                result = e2;
+            if (exceptionOrCant(e2))
                 return;
-            }
             result = pointerArithmetic(e->loc, e->op, e->type, e2, e1).copy();
             return;
         }
@@ -3283,11 +3221,8 @@ public:
             return;
         }
         Expression *e1 = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         if (e1->isConst() != 1)
         {
             e->error("Internal Compiler Error: non-constant value %s", e->e1->toChars());
@@ -3296,11 +3231,8 @@ public:
         }
 
         Expression *e2 = e->e2->interpret(istate);
-        if (exceptionOrCantInterpret(e2))
-        {
-            result = e2;
+        if (exceptionOrCant(e2))
             return;
-        }
         if (e2->isConst() != 1)
         {
             e->error("Internal Compiler Error: non-constant value %s", e->e2->toChars());
@@ -3332,17 +3264,11 @@ public:
         if (e->e1->type->ty == Tpointer && e->e2->type->ty == Tpointer)
         {
             Expression *e1 = e->e1->interpret(istate);
-            if (exceptionOrCantInterpret(e1))
-            {
-                result = e1;
+            if (exceptionOrCant(e1))
                 return;
-            }
             Expression *e2 = e->e2->interpret(istate);
-            if (exceptionOrCantInterpret(e2))
-            {
-                result = e2;
+            if (exceptionOrCant(e2))
                 return;
-            }
             dinteger_t ofs1, ofs2;
             Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
             Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
@@ -3361,11 +3287,8 @@ public:
             return;
         }
         Expression *e1 = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         if (!isCtfeComparable(e1))
         {
             e->error("cannot compare %s at compile time", e1->toChars());
@@ -3373,11 +3296,8 @@ public:
             return;
         }
         Expression *e2 = e->e2->interpret(istate);
-        if (exceptionOrCantInterpret(e2))
-        {
-            result = e2;
+        if (exceptionOrCant(e2))
             return;
-        }
         if (!isCtfeComparable(e2))
         {
             e->error("cannot compare %s at compile time", e2->toChars());
@@ -3547,11 +3467,8 @@ public:
                 e1 = ce->e1;
             }
         }
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
 
         // First, deal with  this = e; and call() = e;
         if (e1->op == TOKthis)
@@ -3564,11 +3481,8 @@ public:
             istate->awaitingLvalueReturn = true;
             e1 = e1->interpret(istate);
             istate->awaitingLvalueReturn = oldWaiting;
-            if (exceptionOrCantInterpret(e1))
-            {
-                result = e1;
+            if (exceptionOrCant(e1))
                 return;
-            }
             if (e1->op == TOKarrayliteral || e1->op == TOKstring)
             {
                 // f() = e2, when f returns an array, is always a slice assignment.
@@ -3582,11 +3496,8 @@ public:
         if (e1->op == TOKstar)
         {
             e1 = e1->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(e1))
-            {
-                result = e1;
+            if (exceptionOrCant(e1))
                 return;
-            }
             if (!(e1->op == TOKvar || e1->op == TOKdotvar || e1->op == TOKindex ||
                   e1->op == TOKslice || e1->op == TOKstructliteral))
             {
@@ -3617,11 +3528,8 @@ public:
                 newval = e->e2->interpret(istate, ctfeNeedLvalue);
             else
                 newval = e->e2->interpret(istate);
-            if (exceptionOrCantInterpret(newval))
-            {
-                result = newval;
+            if (exceptionOrCant(newval))
                 return;
-            }
         }
         // ----------------------------------------------------
         //  Deal with read-modify-write assignments.
@@ -3634,20 +3542,14 @@ public:
         {
             // If it isn't a simple assignment, we need the existing value
             Expression * oldval = e1->interpret(istate);
-            if (exceptionOrCantInterpret(oldval))
-            {
-                result = oldval;
+            if (exceptionOrCant(oldval))
                 return;
-            }
             while (oldval->op == TOKvar)
             {
                 oldval = resolveReferences(oldval);
                 oldval = oldval->interpret(istate);
-                if (exceptionOrCantInterpret(oldval))
-                {
-                    result = oldval;
+                if (exceptionOrCant(oldval))
                     return;
-                }
             }
 
             if (fp)
@@ -3671,17 +3573,11 @@ public:
                      e->op == TOKplusplus || e->op == TOKminusminus))
                 {
                     oldval = e->e1->interpret(istate, ctfeNeedLvalue);
-                    if (exceptionOrCantInterpret(oldval))
-                    {
-                        result = oldval;
+                    if (exceptionOrCant(oldval))
                         return;
-                    }
                     newval = e->e2->interpret(istate);
-                    if (exceptionOrCantInterpret(newval))
-                    {
-                        result = newval;
+                    if (exceptionOrCant(newval))
                         return;
-                    }
                     newval = pointerArithmetic(e->loc, e->op, e->type, oldval, newval).copy();
                 }
                 else if (e->e1->type->ty == Tpointer)
@@ -3700,14 +3596,11 @@ public:
                     result = CTFEExp::cantexp;
                     return;
                 }
-                if (exceptionOrCantInterpret(newval))
-                {
-                    result = newval;
+                if (exceptionOrCant(newval))
                     return;
-                }
                 // Determine the return value
                 result = ctfeCast(e->loc, e->type, e->type, post ? oldval : newval);
-                if (exceptionOrCantInterpret(result))
+                if (exceptionOrCant(result))
                     return;
             }
             else
@@ -3742,11 +3635,8 @@ public:
                     {
                         // arr.length+=n becomes (t=&arr, *(t).length=*(t).length+n);
                         e1 = e1->interpret(istate, ctfeNeedLvalue);
-                        if (exceptionOrCantInterpret(e1))
-                        {
-                            result = e1;
+                        if (exceptionOrCant(e1))
                             return;
-                        }
                     }
                 }
                 else
@@ -3773,18 +3663,12 @@ public:
                 }
             }
             newval = ctfeCast(e->loc, e->type, e->type, newval);
-            if (exceptionOrCantInterpret(newval))
-            {
-                result = newval;
+            if (exceptionOrCant(newval))
                 return;
-            }
             result = newval;
         }
-        if (exceptionOrCantInterpret(newval))
-        {
-            result = newval;
+        if (exceptionOrCant(newval))
             return;
-        }
 
         // -------------------------------------------------
         //         Make sure destination can be modified
@@ -3822,11 +3706,8 @@ public:
             else
                 e2goal = ctfeNeedLvalue;    // other types
             newval = e->e2->interpret(istate, e2goal);
-            if (exceptionOrCantInterpret(newval))
-            {
-                result = newval;
+            if (exceptionOrCant(newval))
                 return;
-            }
 
             // If it is an assignment from a array function parameter passed by
             // reference, resolve the reference. (This should NOT happen for
@@ -3876,22 +3757,16 @@ public:
             // Get the AA to be modified. (We do an LvalueRef interpret, unless it
             // is a simple ref parameter -- in which case, we just want the value)
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(aggregate))
-            {
-                result = aggregate;
+            if (exceptionOrCant(aggregate))
                 return;
-            }
             if (aggregate->op == TOKassocarrayliteral)
             {
                 // Normal case, ultimate parent AA already exists
                 // We need to walk from the deepest index up, checking that an AA literal
                 // already exists on each level.
                 Expression *index = ((IndexExp *)e1)->e2->interpret(istate);
-                if (exceptionOrCantInterpret(index))
-                {
-                    result = index;
+                if (exceptionOrCant(index))
                     return;
-                }
                 if (index->op == TOKslice)  // only happens with AA assignment
                     index = resolveSlice(index);
                 AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
@@ -3903,21 +3778,15 @@ public:
                         xe = (IndexExp *)xe->e1;
 
                     Expression *indx = xe->e2->interpret(istate);
-                    if (exceptionOrCantInterpret(indx))
-                    {
-                        result = indx;
+                    if (exceptionOrCant(indx))
                         return;
-                    }
                     if (indx->op == TOKslice)  // only happens with AA assignment
                         indx = resolveSlice(indx);
 
                     // Look up this index in it up in the existing AA, to get the next level of AA.
                     AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(e->loc, existingAA, indx);
-                    if (exceptionOrCantInterpret(newAA))
-                    {
-                        result = newAA;
+                    if (exceptionOrCant(newAA))
                         return;
-                    }
                     if (!newAA)
                     {
                         // Doesn't exist yet, create an empty AA...
@@ -3950,11 +3819,8 @@ public:
                 while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
                 {
                     Expression *index = ((IndexExp *)e1)->e2->interpret(istate);
-                    if (exceptionOrCantInterpret(index))
-                    {
-                        result = index;
+                    if (exceptionOrCant(index))
                         return;
-                    }
                     if (index->op == TOKslice)  // only happens with AA assignment
                         index = resolveSlice(index);
                     Expressions *valuesx = new Expressions();
@@ -3990,11 +3856,8 @@ public:
             if (!isCtfePointer)
             {
                 e1 = e1->interpret(istate, isPointer(e->type) ? ctfeNeedLvalueRef : ctfeNeedLvalue);
-                if (exceptionOrCantInterpret(e1))
-                {
-                    result = e1;
+                if (exceptionOrCant(e1))
                     return;
-                }
             }
         }
     #if LOGASSIGN
@@ -4119,11 +3982,8 @@ public:
             if (wantRef && exx->op != TOKstructliteral)
             {
                 exx = exx->interpret(istate);
-                if (exceptionOrCantInterpret(exx))
-                {
-                    result = exx;
+                if (exceptionOrCant(exx))
                     return;
-                }
             }
             if (exx->op != TOKstructliteral && exx->op != TOKclassreference)
             {
@@ -4750,19 +4610,19 @@ public:
     {
         switch (e->op)
         {
-        case TOKaddass:  interpretAssignCommon(e, &Add); return;
-        case TOKminass:  interpretAssignCommon(e, &Min); return;
-        case TOKcatass:  interpretAssignCommon(e, &ctfeCat); return;
-        case TOKmulass:  interpretAssignCommon(e, &Mul); return;
-        case TOKdivass:  interpretAssignCommon(e, &Div); return;
-        case TOKmodass:  interpretAssignCommon(e, &Mod); return;
-        case TOKshlass:  interpretAssignCommon(e, &Shl); return;
-        case TOKshrass:  interpretAssignCommon(e, &Shr); return;
-        case TOKushrass: interpretAssignCommon(e, &Ushr); return;
-        case TOKandass:  interpretAssignCommon(e, &And); return;
-        case TOKorass:   interpretAssignCommon(e, &Or); return;
-        case TOKxorass:  interpretAssignCommon(e, &Xor); return;
-        case TOKpowass:  interpretAssignCommon(e, &Pow); return;
+        case TOKaddass:  interpretAssignCommon(e, &Add);        return;
+        case TOKminass:  interpretAssignCommon(e, &Min);        return;
+        case TOKcatass:  interpretAssignCommon(e, &ctfeCat);    return;
+        case TOKmulass:  interpretAssignCommon(e, &Mul);        return;
+        case TOKdivass:  interpretAssignCommon(e, &Div);        return;
+        case TOKmodass:  interpretAssignCommon(e, &Mod);        return;
+        case TOKshlass:  interpretAssignCommon(e, &Shl);        return;
+        case TOKshrass:  interpretAssignCommon(e, &Shr);        return;
+        case TOKushrass: interpretAssignCommon(e, &Ushr);       return;
+        case TOKandass:  interpretAssignCommon(e, &And);        return;
+        case TOKorass:   interpretAssignCommon(e, &Or);         return;
+        case TOKxorass:  interpretAssignCommon(e, &Xor);        return;
+        case TOKpowass:  interpretAssignCommon(e, &Pow);        return;
         default:
             assert(0);
             return;
@@ -4873,17 +4733,11 @@ public:
 
         // Evaluate the first two pointers
         p1 = p1->interpret(istate);
-        if (exceptionOrCantInterpret(p1))
-        {
-            result = p1;
+        if (exceptionOrCant(p1))
             return;
-        }
         p2 = p2->interpret(istate);
-        if (exceptionOrCantInterpret(p2))
-        {
-            result = p2;
+        if (exceptionOrCant(p2))
             return;
-        }
         dinteger_t ofs1, ofs2;
         Expression *agg1 = getAggregateFromPointer(p1, &ofs1);
         Expression *agg2 = getAggregateFromPointer(p2, &ofs2);
@@ -4896,10 +4750,7 @@ public:
             // or an IsInside comparison returning false.
             p3 = p3->interpret(istate);
             if (CTFEExp::isCantExp(p3))
-            {
-                result = p3;
                 return;
-            }
             // Note that it is NOT legal for it to throw an exception!
             Expression *except = NULL;
             if (exceptionOrCantInterpret(p3))
@@ -4987,7 +4838,7 @@ public:
             return;
 
         result = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(result))
+        if (exceptionOrCant(result))
             return;
 
         int res;
@@ -4998,7 +4849,7 @@ public:
             else if (isTrueBool(result))
             {
                 result = e->e2->interpret(istate);
-                if (exceptionOrCantInterpret(result))
+                if (exceptionOrCant(result))
                     return;
                 if (result->op == TOKvoidexp)
                 {
@@ -5038,7 +4889,7 @@ public:
             return;
 
         result = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(result))
+        if (exceptionOrCant(result))
             return;
 
         int res;
@@ -5049,7 +4900,7 @@ public:
             else if (result->isBool(false))
             {
                 result = e->e2->interpret(istate);
-                if (exceptionOrCantInterpret(result))
+                if (exceptionOrCant(result))
                     return;
 
                 if (result->op == TOKvoidexp)
@@ -5142,11 +4993,8 @@ public:
         if (ecall->op == TOKcall)
         {
             ecall = e->e1->interpret(istate);
-            if (exceptionOrCantInterpret(ecall))
-            {
-                result = ecall;
+            if (exceptionOrCant(ecall))
                 return;
-            }
         }
         if (ecall->op == TOKstar)
         {
@@ -5160,11 +5008,8 @@ public:
                 else
                 {
                     ecall = getVarExp(e->loc, istate, vd, goal);
-                    if (exceptionOrCantInterpret(ecall))
-                    {
-                        result = ecall;
+                    if (exceptionOrCant(ecall))
                         return;
-                    }
 
                     if (ecall->op == TOKsymoff)
                         fd = ((SymOffExp *)ecall)->var->isFuncDeclaration();
@@ -5176,30 +5021,21 @@ public:
                 ecall = ((PtrExp *)ecall)->e1->interpret(istate);
 
         }
-        if (exceptionOrCantInterpret(ecall))
-        {
-            result = ecall;
+        if (exceptionOrCant(ecall))
             return;
-        }
 
         if (ecall->op == TOKindex)
         {
             ecall = e->e1->interpret(istate);
-            if (exceptionOrCantInterpret(ecall))
-            {
-                result = ecall;
+            if (exceptionOrCant(ecall))
                 return;
-            }
         }
 
         if (ecall->op == TOKdotvar && !((DotVarExp *)ecall)->var->isFuncDeclaration())
         {
             ecall = e->e1->interpret(istate);
-            if (exceptionOrCantInterpret(ecall))
-            {
-                result = ecall;
+            if (exceptionOrCant(ecall))
                 return;
-            }
         }
 
         if (ecall->op == TOKdotvar)
@@ -5289,20 +5125,14 @@ public:
             // Member function call
             if (pthis->op == TOKcomma)
                 pthis = pthis->interpret(istate);
-            if (exceptionOrCantInterpret(pthis))
-            {
-                result = pthis;
+            if (exceptionOrCant(pthis))
                 return;
-            }
             // Evaluate 'this'
             Expression *oldpthis = pthis;
             if (pthis->op != TOKvar)
                 pthis = pthis->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(pthis))
-            {
-                result = pthis;
+            if (exceptionOrCant(pthis))
                 return;
-            }
             if (fd->isVirtual())
             {
                 // Make a virtual function call.
@@ -5312,11 +5142,8 @@ public:
                     VarDeclaration *vthis = ((VarExp*)thisval)->var->isVarDeclaration();
                     assert(vthis);
                     thisval = getVarExp(e->loc, istate, vthis, ctfeNeedLvalue);
-                    if (exceptionOrCantInterpret(thisval))
-                    {
-                        result = thisval;
+                    if (exceptionOrCant(thisval))
                         return;
-                    }
                     // If it is a reference, resolve it
                     if (thisval->op != TOKnull && thisval->op != TOKclassreference)
                         thisval = pthis->interpret(istate);
@@ -5326,11 +5153,8 @@ public:
                     VarDeclaration *vthis = ((SymOffExp*)thisval)->var->isVarDeclaration();
                     assert(vthis);
                     thisval = getVarExp(e->loc, istate, vthis, ctfeNeedLvalue);
-                    if (exceptionOrCantInterpret(thisval))
-                    {
-                        result = thisval;
+                    if (exceptionOrCant(thisval))
                         return;
-                    }
                 }
 
                 // Get the function from the vtable of the original class
@@ -5433,11 +5257,10 @@ public:
                 // initializer is a void function (the variable is modified
                 // through a reference parameter instead).
                 newval = newval->interpret(istate);
-                if (exceptionOrCantInterpret(newval))
+                if (exceptionOrCant(newval))
                 {
                     if (istate == &istateComma)
                         ctfeStack.endFrame();
-                    result = newval;
                     return;
                 }
                 if (newval->op != TOKvoidexp)
@@ -5470,14 +5293,14 @@ public:
         if (isPointer(e->econd->type))
         {
             result = e->econd->interpret(istate);
-            if (exceptionOrCantInterpret(result))
+            if (exceptionOrCant(result))
                 return;
             if (result->op != TOKnull)
                 result = new IntegerExp(e->loc, 1, Type::tbool);
         }
         else
             result = e->econd->interpret(istate);
-        if (exceptionOrCantInterpret(result))
+        if (exceptionOrCant(result))
             return;
         if (isTrueBool(result))
             result = e->e1->interpret(istate, goal);
@@ -5498,11 +5321,8 @@ public:
     #endif
         Expression *e1 = e->e1->interpret(istate);
         assert(e1);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKslice ||
             e1->op == TOKassocarrayliteral || e1->op == TOKnull)
         {
@@ -5522,11 +5342,8 @@ public:
     #endif
         Expression *e1 = e->e1->interpret(istate);
         assert(e1);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         e->error("%s cannot be evaluated at compile time", e->toChars());
         result = CTFEExp::cantexp;
     }
@@ -5538,11 +5355,8 @@ public:
     #endif
         Expression *e1 = e->e1->interpret(istate);
         assert(e1);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         e->error("%s cannot be evaluated at compile time", e->toChars());
         result = CTFEExp::cantexp;
     }
@@ -5556,17 +5370,11 @@ public:
         {
             // Indexing a pointer. Note that there is no $ in this case.
             Expression *e1 = e->e1->interpret(istate);
-            if (exceptionOrCantInterpret(e1))
-            {
-                result = e1;
+            if (exceptionOrCant(e1))
                 return;
-            }
             Expression *e2 = e->e2->interpret(istate);
-            if (exceptionOrCantInterpret(e2))
-            {
-                result = e2;
+            if (exceptionOrCant(e2))
                 return;
-            }
             sinteger_t indx = e2->toInteger();
 
             dinteger_t ofs;
@@ -5630,11 +5438,8 @@ public:
         if (!(e1->op == TOKarrayliteral && ((ArrayLiteralExp *)e1)->ownedByCtfe) &&
             !(e1->op == TOKassocarrayliteral && ((AssocArrayLiteralExp *)e1)->ownedByCtfe))
             e1 = e1->interpret(istate);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
 
         if (e1->op == TOKnull)
         {
@@ -5662,11 +5467,8 @@ public:
         Expression *e2 = e->e2->interpret(istate);
         if (e->lengthVar)
             ctfeStack.pop(e->lengthVar); // $ is defined only inside []
-        if (exceptionOrCantInterpret(e2))
-        {
-            result = e2;
+        if (exceptionOrCant(e2))
             return;
-        }
         if (e1->op == TOKslice && e2->op == TOKint64)
         {
             // Simplify index of slice:  agg[lwr..upr][indx] --> agg[indx']
@@ -5718,7 +5520,7 @@ public:
             }
             result = ctfeIndex(e->loc, e->type, e1, e2->toInteger());
         }
-        if (exceptionOrCantInterpret(result))
+        if (exceptionOrCant(result))
             return;
         if (goal == ctfeNeedRvalue && (result->op == TOKslice || e->op == TOKdotvar))
             result = result->interpret(istate);
@@ -5742,11 +5544,8 @@ public:
         {
             // Slicing a pointer. Note that there is no $ in this case.
             Expression *e1 = e->e1->interpret(istate);
-            if (exceptionOrCantInterpret(e1))
-            {
-                result = e1;
+            if (exceptionOrCant(e1))
                 return;
-            }
             if (e1->op == TOKint64)
             {
                 e->error("cannot slice invalid pointer %s of value %s",
@@ -5758,17 +5557,11 @@ public:
             /* Evaluate lower and upper bounds of slice
              */
             Expression *lwr = e->lwr->interpret(istate);
-            if (exceptionOrCantInterpret(lwr))
-            {
-                result = lwr;
+            if (exceptionOrCant(lwr))
                 return;
-            }
             Expression *upr = e->upr->interpret(istate);
-            if (exceptionOrCantInterpret(upr))
-            {
-                result = upr;
+            if (exceptionOrCant(upr))
                 return;
-            }
             uinteger_t ilwr = lwr->toInteger();
             uinteger_t iupr = upr->toInteger();
             dinteger_t ofs;
@@ -5824,11 +5617,8 @@ public:
             e1 = e->e1; // Will get duplicated anyway
         else
             e1 = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         if (e1->op == TOKvar)
             e1 = e1->interpret(istate);
 
@@ -5863,21 +5653,17 @@ public:
         /* Evaluate lower and upper bounds of slice
          */
         Expression *lwr = e->lwr->interpret(istate);
-        if (exceptionOrCantInterpret(lwr))
+        if (exceptionOrCant(lwr))
         {
             if (e->lengthVar)
                 ctfeStack.pop(e->lengthVar);; // $ is defined only inside [L..U]
-            result = lwr;
             return;
         }
         Expression *upr = e->upr->interpret(istate);
         if (e->lengthVar)
             ctfeStack.pop(e->lengthVar); // $ is defined only inside [L..U]
-        if (exceptionOrCantInterpret(upr))
-        {
-            result = upr;
+        if (exceptionOrCant(upr))
             return;
-        }
 
         uinteger_t ilwr = lwr->toInteger();
         uinteger_t iupr = upr->toInteger();
@@ -5933,17 +5719,11 @@ public:
         printf("%s InExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
         Expression *e1 = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         Expression *e2 = e->e2->interpret(istate);
-        if (exceptionOrCantInterpret(e2))
-        {
-            result = e2;
+        if (exceptionOrCant(e2))
             return;
-        }
         if (e2->op == TOKnull)
         {
             result = new NullExp(e->loc, e->type);
@@ -5958,7 +5738,7 @@ public:
         if (e1->op == TOKslice)
             e1 = resolveSlice(e1);
         result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)e2, e1);
-        if (exceptionOrCantInterpret(result))
+        if (exceptionOrCant(result))
             return;
         if (!result)
         {
@@ -5975,21 +5755,15 @@ public:
         printf("%s CatExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
         Expression *e1 = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         if (e1->op == TOKslice)
         {
             e1 = resolveSlice(e1);
         }
         Expression *e2 = e->e2->interpret(istate);
-        if (exceptionOrCantInterpret(e2))
-        {
-            result = e2;
+        if (exceptionOrCant(e2))
             return;
-        }
         if (e2->op == TOKslice)
             e2 = resolveSlice(e2);
         result = ctfeCat(e->type, e1, e2).copy();
@@ -6012,11 +5786,8 @@ public:
         printf("%s CastExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
         Expression *e1 = e->e1->interpret(istate, goal);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         // If the expression has been cast to void, do nothing.
         if (e->to->ty == Tvoid && goal == ctfeNeedNothing)
         {
@@ -6201,11 +5972,8 @@ public:
         printf("%s AssertExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
         Expression *e1 = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(e1))
-        {
-            result = e1;
+        if (exceptionOrCant(e1))
             return;
-        }
         if (isTrueBool(e1))
         {
         }
@@ -6214,7 +5982,7 @@ public:
             if (e->msg)
             {
                 result = e->msg->interpret(istate);
-                if (exceptionOrCantInterpret(result))
+                if (exceptionOrCant(result))
                     return;
                 e->error("%s", result->toChars());
             }
@@ -6266,11 +6034,8 @@ public:
             {
                 AddrExp *ade = (AddrExp *)ae->e1;
                 Expression *ex = ade->e1->interpret(istate);
-                if (exceptionOrCantInterpret(ex))
-                {
-                    result = ex;
+                if (exceptionOrCant(ex))
                     return;
-                }
                 if (ex->op == TOKstructliteral)
                 {
                     StructLiteralExp *se = (StructLiteralExp *)ex;
@@ -6289,7 +6054,7 @@ public:
             if (e->e1->op == TOKstar && e->e1->type->ty == Tpointer && isTypeInfo_Class(e->e1->type->nextOf()))
             {
                 result = (((PtrExp *)e->e1)->e1)->interpret(istate, ctfeNeedLvalue);
-                if (exceptionOrCantInterpret(result))
+                if (exceptionOrCant(result))
                     return;
                 if (result->op == TOKnull)
                 {
@@ -6318,7 +6083,7 @@ public:
             // It's possible we have an array bounds error. We need to make sure it
             // errors with this line number, not the one where the pointer was set.
             result = e->e1->interpret(istate);
-            if (exceptionOrCantInterpret(result))
+            if (exceptionOrCant(result))
                 return;
 
             if (!(result->op == TOKvar ||
@@ -6397,7 +6162,7 @@ public:
                     result = ((AddrExp *)result)->e1;
                 }
                 result = result->interpret(istate, goal);
-                if (exceptionOrCantInterpret(result))
+                if (exceptionOrCant(result))
                     return;
             }
             else if (result->op == TOKaddress)
@@ -6436,11 +6201,8 @@ public:
 
         result = CTFEExp::cantexp;
         Expression *ex = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(ex))
-        {
-            result = ex;
+        if (exceptionOrCant(ex))
             return;
-        }
         if (!CTFEExp::isCantExp(ex))
         {
             if (ex->op == TOKaddress)
@@ -6567,17 +6329,11 @@ public:
         printf("%s RemoveExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
         Expression *agg = e->e1->interpret(istate);
-        if (exceptionOrCantInterpret(agg))
-        {
-            result = agg;
+        if (exceptionOrCant(agg))
             return;
-        }
         Expression *index = e->e2->interpret(istate);
-        if (exceptionOrCantInterpret(index))
-        {
-            result = index;
+        if (exceptionOrCant(index))
             return;
-        }
         if (agg->op == TOKnull)
         {
             result = CTFEExp::voidexp;
