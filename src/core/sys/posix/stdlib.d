@@ -200,7 +200,7 @@ char*  ptsname(int);
 int    putenv(char*);
 c_long random();
 char*  realpath(in char*, char*);
-ushort seed48(ref ushort[3]);
+ushort *seed48(ref ushort[3]);
 void   setkey(in char*);
 char*  setstate(in char*);
 void   srand48(c_long);
@@ -241,7 +241,7 @@ version( linux )
     int    putenv(char*);
     c_long random();
     char*  realpath(in char*, char*);
-    ushort seed48(ref ushort[3]);
+    ushort *seed48(ref ushort[3]);
     void   setkey(in char*);
     char*  setstate(in char*);
     void   srand48(c_long);
@@ -291,7 +291,7 @@ else version( OSX )
     int    putenv(char*);
     c_long random();
     char*  realpath(in char*, char*);
-    ushort seed48(ref ushort[3]);
+    ushort *seed48(ref ushort[3]);
     void   setkey(in char*);
     char*  setstate(in char*);
     void   srand48(c_long);
@@ -331,7 +331,7 @@ else version( FreeBSD )
     int    putenv(char*);
     c_long random();
     char*  realpath(in char*, char*);
-    ushort seed48(ref ushort[3]);
+    ushort *seed48(ref ushort[3]);
     void   setkey(in char*);
     char*  setstate(in char*);
     void   srand48(c_long);
@@ -391,7 +391,7 @@ else version( Solaris )
     int    putenv(char*);
     c_long random();
     char*  realpath(in char*, char*);
-    ushort seed48(ref ushort[3]);
+    ushort *seed48(ref ushort[3]);
     void   setkey(in char*);
     char*  setstate(in char*);
     void   srand48(c_long);
