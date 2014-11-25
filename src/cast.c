@@ -1993,6 +1993,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     (*ae->keys)[i] = ex;
                 }
                 ae->type = t;
+                ae = ae->aaLiteralCreate(sc);
                 result = ae;
                 return;
             }

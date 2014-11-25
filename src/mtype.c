@@ -75,6 +75,7 @@ ClassDeclaration *Type::typeinfoshared;
 ClassDeclaration *Type::typeinfowild;
 
 TemplateDeclaration *Type::rtinfo;
+TemplateDeclaration *Type::aaLiteral;
 
 Type *Type::tvoid;
 Type *Type::tint8;
@@ -4452,6 +4453,7 @@ TypeAArray::TypeAArray(Type *t, Type *index)
     this->index = index;
     this->loc = Loc();
     this->sc = NULL;
+    this->aanew = NULL;
 }
 
 TypeAArray *TypeAArray::create(Type *t, Type *index)
@@ -4474,6 +4476,8 @@ Type *TypeAArray::syntaxCopy()
     {
         t = new TypeAArray(t, ti);
         t->mod = mod;
+        ((TypeAArray *)t)->aanew = aanew;
+        ((TypeAArray *)t)->sc = sc;
     }
     return t;
 }
@@ -4481,6 +4485,92 @@ Type *TypeAArray::syntaxCopy()
 d_uns64 TypeAArray::size(Loc loc)
 {
     return Target::ptrsize;
+}
+
+void aaNewCreate(Type *t, Scope *sc)
+{
+    if (!Type::aaLiteral)
+    {
+        ObjectNotFound(Id::aaLiteral);
+        assert(0);
+    }
+
+    class AANewVisitor : public Visitor
+    {
+        Scope *sc;
+    public:
+        AANewVisitor(Scope *sc)
+        {
+            this->sc = sc;
+        }
+
+        void visit(Type *t)
+        {
+        }
+
+        void visit(TypeNext *n)
+        {
+            n->next->accept(this);
+        }
+
+        void visit(TypeEnum *e)
+        {
+            if (e->sym->isforwardRef())
+                return;
+            e->toBasetype()->accept(this);
+        }
+
+        void visit(TypeAArray *aa)
+        {
+            if (!aa->aanew && aa->next->ty != Terror && aa->index->ty != Terror)
+            {
+                Scope *sc2 = sc;
+                assert(aa->sc);
+                if (sc2 && !sc2->module->isRoot() && (!sc2->tinst || !sc2->tinst->needsCodegen()))
+                    return;
+
+                if (!sc2)
+                {
+                    sc2 = aa->sc->copy();
+                    sc2->tinst = NULL;
+                    sc2->minst = Module::rootModule;
+                }
+
+                assert(aa->deco);
+                Objects *tiargs = new Objects();
+                Type *tkey = aa->index;
+                Type *tvalue = aa->next;
+
+                if ((tkey->ty == Tclass || tkey->ty == Tstruct || tkey->ty == Tenum) &&
+                    tkey->toDsymbol(NULL)->isforwardRef())
+                    return;
+
+                if ((tvalue->ty == Tclass || tvalue->ty == Tstruct || tvalue->ty == Tenum) &&
+                    tvalue->toDsymbol(NULL)->isforwardRef())
+                    return;
+
+                tiargs->push(tkey);
+                tiargs->push(tvalue);
+                assert(tkey && tkey->deco);
+                assert(tvalue && tvalue->deco);
+
+                FuncDeclaration *aanewfunc = resolveFuncCall(aa->loc, sc2, Type::aaLiteral, tiargs, NULL, NULL);
+                assert(aanewfunc);
+                if (!aanewfunc->isInstantiated()->needsCodegen())
+                    return;
+
+                aa->aanew = new SymOffExp(aa->loc, aanewfunc, 0);
+                aa->aanew = aa->aanew->semantic(sc2);
+                aa->aanew = aa->aanew->optimize(WANTvalue);
+
+                aa->index->accept(this);
+                aa->next->accept(this);
+            }
+        }
+    };
+
+    AANewVisitor v(sc);
+    t->accept(&v);
 }
 
 Type *TypeAArray::semantic(Loc loc, Scope *sc)
