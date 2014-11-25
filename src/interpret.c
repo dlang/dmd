@@ -853,7 +853,6 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
         if (CTFEExp::isCantExp(thisarg->interpret(istate)))
             return CTFEExp::cantexp;
     }
-    static int evaluatingArgs = 0;
 
     // Place to hold all the arguments to the function while
     // we are evaluating them.
@@ -882,9 +881,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
                     return CTFEExp::cantexp;
                 }
                 // Convert all reference arguments into lvalue references
-                ++evaluatingArgs;
                 earg = earg->interpret(istate, ctfeNeedLvalueRef);
-                --evaluatingArgs;
                 if (CTFEExp::isCantExp(earg))
                     return earg;
             }
@@ -903,9 +900,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
                      */
                     earg = ((AddrExp *)earg)->e1;
                 }
-                ++evaluatingArgs;
                 earg = earg->interpret(istate);
-                --evaluatingArgs;
                 if (CTFEExp::isCantExp(earg))
                     return earg;
                 /* Struct literals are passed by value, but we don't need to
