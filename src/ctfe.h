@@ -132,7 +132,7 @@ bool needToCopyLiteral(Expression *expr);
 
 /// Make a copy of the ArrayLiteral, AALiteral, String, or StructLiteral.
 /// This value will be used for in-place modification.
-Expression *copyLiteral(Expression *e);
+UnionExp copyLiteral(Expression *e);
 
 /// Set this literal to the given type, copying it if necessary
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
