@@ -63,7 +63,7 @@ else version( Solaris )
     struct sockaddr_un
     {
         sa_family_t  sun_family;
-        char[108]    sun_path;
+        byte[108]    sun_path;
     }
 }
 else version( Android )
