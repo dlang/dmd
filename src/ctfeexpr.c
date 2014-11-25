@@ -366,35 +366,46 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
 {
     if (lit->type->equals(type))
         return lit;
+    return paintTypeOntoLiteralCopy(type, lit).copy();
+}
+
+UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit)
+{
+    UnionExp ue;
+
+    if (lit->type->equals(type))
+    {
+        memcpy(&ue, lit, lit->size);
+        return ue;
+    }
 
     // If it is a cast to inout, retain the original type of the referenced part.
     if (type->hasWild() && type->hasPointers())
     {
-        lit = lit->copy();
-        lit->type = type;
-        return lit;
+        memcpy(&ue, lit, lit->size);
+        ue.exp()->type = type;
+        return ue;
     }
 
-    Expression *e;
     if (lit->op == TOKslice)
     {
         SliceExp *se = (SliceExp *)lit;
-        e = new SliceExp(lit->loc, se->e1, se->lwr, se->upr);
+        new(&ue) SliceExp(lit->loc, se->e1, se->lwr, se->upr);
     }
     else if (lit->op == TOKindex)
     {
         IndexExp *ie = (IndexExp *)lit;
-        e = new IndexExp(lit->loc, ie->e1, ie->e2);
+        new(&ue) IndexExp(lit->loc, ie->e1, ie->e2);
     }
     else if (lit->op == TOKarrayliteral)
     {
-        e = new SliceExp(lit->loc, lit,
+        new(&ue) SliceExp(lit->loc, lit,
             new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit).copy());
     }
     else if (lit->op == TOKstring)
     {
         // For strings, we need to introduce another level of indirection
-        e = new SliceExp(lit->loc, lit,
+        new(&ue) SliceExp(lit->loc, lit,
             new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit).copy());
     }
     else if (lit->op == TOKassocarrayliteral)
@@ -403,9 +414,9 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
         // TODO: we should be creating a reference to this AAExp, not
         // just a ref to the keys and values.
         bool wasOwned = aae->ownedByCtfe;
-        aae = new AssocArrayLiteralExp(lit->loc, aae->keys, aae->values);
+        new(&ue) AssocArrayLiteralExp(lit->loc, aae->keys, aae->values);
+        aae = (AssocArrayLiteralExp *)ue.exp();
         aae->ownedByCtfe = wasOwned;
-        e = aae;
     }
     else
     {
@@ -413,10 +424,10 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
         // level of indirection
         if (lit->op == TOKstructliteral && isPointer(type))
             lit->error("CTFE internal error painting %s", type->toChars());
-        e = copyLiteral(lit).copy();
+        ue = copyLiteral(lit);
     }
-    e->type = type;
-    return e;
+    ue.exp()->type = type;
+    return ue;
 }
 
 Expression *resolveSlice(Expression *e)
@@ -1675,13 +1686,15 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  [ e1 ] ~ null ----> [ e1 ].dup
-        e = paintTypeOntoLiteral(type, copyLiteral(e1).copy());
+        ue = paintTypeOntoLiteralCopy(type, copyLiteral(e1).exp());
+        return ue;
     }
     else if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  null ~ [ e2 ] ----> [ e2 ].dup
-        e = paintTypeOntoLiteral(type, copyLiteral(e2).copy());
+        ue = paintTypeOntoLiteralCopy(type, copyLiteral(e2).exp());
+        return ue;
     }
     else
     {

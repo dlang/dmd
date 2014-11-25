@@ -136,6 +136,7 @@ UnionExp copyLiteral(Expression *e);
 
 /// Set this literal to the given type, copying it if necessary
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
+UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit);
 
 /// Convert from a CTFE-internal slice, into a normal Expression
 Expression *resolveSlice(Expression *e);
