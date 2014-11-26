@@ -48,8 +48,6 @@ class TryFinallyStatement;
 class CaseStatement;
 class DefaultStatement;
 class LabelStatement;
-struct InterState;
-struct CompiledCtfeFunction;
 
 enum TOK;
 
@@ -61,7 +59,6 @@ struct block;
 #endif
 struct code;
 
-Expression *interpret(Statement *s, InterState *istate);
 bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
 bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
 
@@ -107,10 +104,6 @@ public:
     bool hasCode();
     virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Statements *flatten(Scope *sc);
-    Expression *interpret(InterState *istate)
-    {
-        return ::interpret(this, istate);
-    }
     virtual Statement *last();
 
     // Avoid dynamic_cast

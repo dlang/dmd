@@ -34,6 +34,7 @@
 #include "ctfe.h"
 
 bool walkPostorder(Expression *e, StoppableVisitor *v);
+Expression *interpret(Statement *s, InterState *istate);
 
 #define LOG     0
 #define LOGASSIGN 0
@@ -980,7 +981,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
             e = CTFEExp::cantexp;
             break;
         }
-        e = fd->fbody->interpret(&istatex);
+        e = interpret(fd->fbody, &istatex);
         if (CTFEExp::isCantExp(e))
         {
 #if LOG
@@ -1143,7 +1144,7 @@ public:
             Statement *sx = (*s->statements)[i];
             if (!sx)
                 continue;
-            e = sx->interpret(istate);
+            e = interpret(sx, istate);
             if (e)
                 break;
         }
@@ -1166,7 +1167,7 @@ public:
         {
             Statement *sx = (*s->statements)[i];
 
-            e = sx->interpret(istate);
+            e = interpret(sx, istate);
             if (CTFEExp::isCantExp(e))
                 break;
             if (e && e->op == TOKcontinue)
@@ -1203,11 +1204,11 @@ public:
         {
             Expression *e = NULL;
             if (s->ifbody)
-                e = s->ifbody->interpret(istate);
+                e = interpret(s->ifbody, istate);
             if (exceptionOrCant(e))
                 return;
             if (istate->start && s->elsebody)
-                e = s->elsebody->interpret(istate);
+                e = interpret(s->elsebody, istate);
             result = e;
             return;
         }
@@ -1218,9 +1219,9 @@ public:
             return;
 
         if (isTrueBool(e))
-            e = s->ifbody ? s->ifbody->interpret(istate) : NULL;
+            e = s->ifbody ? interpret(s->ifbody, istate) : NULL;
         else if (e->isBool(false))
-            e = s->elsebody ? s->elsebody->interpret(istate) : NULL;
+            e = s->elsebody ? interpret(s->elsebody, istate) : NULL;
         else
         {
             e = CTFEExp::cantexp;
@@ -1235,7 +1236,7 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        result = s->statement ? s->statement->interpret(istate) : NULL;
+        result = s->statement ? interpret(s->statement, istate) : NULL;
     }
 
     /**
@@ -1449,7 +1450,7 @@ public:
         while (1)
         {
             bool wasGoto = !!istate->start;
-            e = s->body ? s->body->interpret(istate) : NULL;
+            e = s->body ? interpret(s->body, istate) : NULL;
             if (CTFEExp::isCantExp(e))
                 break;
             if (wasGoto && istate->start)
@@ -1502,7 +1503,7 @@ public:
 
         if (s->init)
         {
-            e = s->init->interpret(istate);
+            e = interpret(s->init, istate);
             if (exceptionOrCant(e))
                 return;
             assert(!e);
@@ -1523,7 +1524,7 @@ public:
             }
 
             bool wasGoto = !!istate->start;
-            e = s->body ? s->body->interpret(istate) : NULL;
+            e = s->body ? interpret(s->body, istate) : NULL;
             if (CTFEExp::isCantExp(e))
                 break;
             if (wasGoto && istate->start)
@@ -1576,7 +1577,7 @@ public:
 
         if (istate->start)
         {
-            e = s->body ? s->body->interpret(istate) : NULL;
+            e = s->body ? interpret(s->body, istate) : NULL;
             if (istate->start)
                 return;
             if (CTFEExp::isCantExp(e))
@@ -1628,7 +1629,7 @@ public:
 
         assert(scase);
         istate->start = scase;
-        e = s->body ? s->body->interpret(istate) : NULL;
+        e = s->body ? interpret(s->body, istate) : NULL;
         assert(!istate->start);
         if (e && e->op == TOKbreak)
         {
@@ -1650,7 +1651,7 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        result = s->statement ? s->statement->interpret(istate) : NULL;
+        result = s->statement ? interpret(s->statement, istate) : NULL;
     }
 
     void visit(DefaultStatement *s)
@@ -1661,7 +1662,7 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        result = s->statement ? s->statement->interpret(istate) : NULL;
+        result = s->statement ? interpret(s->statement, istate) : NULL;
     }
 
     void visit(GotoStatement *s)
@@ -1723,7 +1724,7 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        result = s->statement ? s->statement->interpret(istate) : NULL;
+        result = s->statement ? interpret(s->statement, istate) : NULL;
     }
 
     void visit(TryCatchStatement *s)
@@ -1737,18 +1738,18 @@ public:
         {
             Expression *e = NULL;
             if (s->body)
-                e = s->body->interpret(istate);
+                e = interpret(s->body, istate);
             for (size_t i = 0; !e && istate->start && i < s->catches->dim; i++)
             {
                 Catch *ca = (*s->catches)[i];
                 if (ca->handler)
-                    e = ca->handler->interpret(istate);
+                    e = interpret(ca->handler, istate);
             }
             result = e;
             return;
         }
 
-        Expression *e = s->body ? s->body->interpret(istate) : NULL;
+        Expression *e = s->body ? interpret(s->body, istate) : NULL;
         if (CTFEExp::isCantExp(e))
         {
             result = e;
@@ -1778,13 +1779,13 @@ public:
                 }
                 if (ca->handler)
                 {
-                    e = ca->handler->interpret(istate);
+                    e = interpret(ca->handler, istate);
                     if (e && e->op == TOKgoto)
                     {
                         InterState istatex = *istate;
                         istatex.start = istate->gotoTarget; // set starting statement
                         istatex.gotoTarget = NULL;
-                        Expression *eh = ca->handler->interpret(&istatex);
+                        Expression *eh = interpret(ca->handler, &istatex);
                         if (!istatex.start)
                         {
                             istate->gotoTarget = NULL;
@@ -1842,20 +1843,20 @@ public:
         {
             Expression *e = NULL;
             if (s->body)
-                e = s->body->interpret(istate);
+                e = interpret(s->body, istate);
             // Jump into/out from finalbody is disabled in semantic analysis.
             // and jump inside will be handled by the ScopeStatement == finalbody.
             result = e;
             return;
         }
 
-        Expression *e = s->body ? s->body->interpret(istate) : NULL;
+        Expression *e = s->body ? interpret(s->body, istate) : NULL;
         if (CTFEExp::isCantExp(e))
         {
             result = e;
             return;
         }
-        Expression *second = s->finalbody ? s->finalbody->interpret(istate) : NULL;
+        Expression *second = s->finalbody ? interpret(s->finalbody, istate) : NULL;
         if (CTFEExp::isCantExp(second))
         {
             result = second;
@@ -1906,7 +1907,7 @@ public:
         // If it is with(Enum) {...}, just execute the body.
         if (s->exp->op == TOKimport || s->exp->op == TOKtype)
         {
-            result = s->body ? s->body->interpret(istate) : NULL;
+            result = s->body ? interpret(s->body, istate) : NULL;
             return;
         }
 
@@ -1930,13 +1931,13 @@ public:
         setValue(s->wthis, e);
         if (s->body)
         {
-            e = s->body->interpret(istate);
+            e = interpret(s->body, istate);
             if (e && e->op == TOKgoto)
             {
                 InterState istatex = *istate;
                 istatex.start = istate->gotoTarget; // set starting statement
                 istatex.gotoTarget = NULL;
-                Expression *ex = s->body->interpret(&istatex);
+                Expression *ex = interpret(s->body, &istatex);
                 if (!istatex.start)
                 {
                     istate->gotoTarget = NULL;
