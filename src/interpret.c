@@ -1125,21 +1125,9 @@ public:
             istate->start = NULL;
         }
 
-        if (s->exp)
-        {
-            Expression *e = interpret(s->exp, istate, ctfeNeedNothing);
-            if (CTFEExp::isCantExp(e))
-            {
-                //printf("-ExpStatement::interpret(): %p\n", e);
-                result = CTFEExp::cantexp;
-                return;
-            }
-            if (e && e->op == TOKthrownexception)
-            {
-                result = e;
-                return;
-            }
-        }
+        Expression *e = interpret(s->exp, istate, ctfeNeedNothing);
+        if (exceptionOrCant(e))
+            return;
     }
 
     void visit(CompoundStatement *s)
@@ -1154,8 +1142,6 @@ public:
         for (size_t i = 0; i < dim; i++)
         {
             Statement *sx = (*s->statements)[i];
-            if (!sx)
-                continue;
             e = interpret(sx, istate);
             if (e)
                 break;
@@ -1215,11 +1201,10 @@ public:
         if (istate->start)
         {
             Expression *e = NULL;
-            if (s->ifbody)
-                e = interpret(s->ifbody, istate);
+            e = interpret(s->ifbody, istate);
             if (exceptionOrCant(e))
                 return;
-            if (istate->start && s->elsebody)
+            if (istate->start)
                 e = interpret(s->elsebody, istate);
             result = e;
             return;
@@ -1231,9 +1216,9 @@ public:
             return;
 
         if (isTrueBool(e))
-            e = s->ifbody ? interpret(s->ifbody, istate) : NULL;
+            e = interpret(s->ifbody, istate);
         else if (e->isBool(false))
-            e = s->elsebody ? interpret(s->elsebody, istate) : NULL;
+            e = interpret(s->elsebody, istate);
         else
         {
             e = CTFEExp::cantexp;
@@ -1248,7 +1233,8 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        result = s->statement ? interpret(s->statement, istate) : NULL;
+
+        result = interpret(s->statement, istate);
     }
 
     /**
@@ -1462,7 +1448,7 @@ public:
         while (1)
         {
             bool wasGoto = !!istate->start;
-            e = s->body ? interpret(s->body, istate) : NULL;
+            e = interpret(s->body, istate);
             if (CTFEExp::isCantExp(e))
                 break;
             if (wasGoto && istate->start)
@@ -1513,13 +1499,11 @@ public:
             istate->start = NULL;
         Expression *e;
 
-        if (s->init)
-        {
-            e = interpret(s->init, istate);
-            if (exceptionOrCant(e))
-                return;
-            assert(!e);
-        }
+        e = interpret(s->init, istate);
+        if (exceptionOrCant(e))
+            return;
+        assert(!e);
+
         while (1)
         {
             if (s->condition && !istate->start)
@@ -1536,7 +1520,7 @@ public:
             }
 
             bool wasGoto = !!istate->start;
-            e = s->body ? interpret(s->body, istate) : NULL;
+            e = interpret(s->body, istate);
             if (CTFEExp::isCantExp(e))
                 break;
             if (wasGoto && istate->start)
@@ -1558,12 +1542,9 @@ public:
                 break; // continue at a higher level
             istate->gotoTarget = NULL;
 
-            if (s->increment)
-            {
-                e = interpret(s->increment, istate);
-                if (CTFEExp::isCantExp(e))
-                    break;
-            }
+            e = interpret(s->increment, istate);
+            if (CTFEExp::isCantExp(e))
+                break;
         }
         result = e;
     }
@@ -1589,7 +1570,7 @@ public:
 
         if (istate->start)
         {
-            e = s->body ? interpret(s->body, istate) : NULL;
+            e = interpret(s->body, istate);
             if (istate->start)
                 return;
             if (CTFEExp::isCantExp(e))
@@ -1641,7 +1622,7 @@ public:
 
         assert(scase);
         istate->start = scase;
-        e = s->body ? interpret(s->body, istate) : NULL;
+        e = interpret(s->body, istate);
         assert(!istate->start);
         if (e && e->op == TOKbreak)
         {
@@ -1663,7 +1644,7 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        result = s->statement ? interpret(s->statement, istate) : NULL;
+        result = interpret(s->statement, istate);
     }
 
     void visit(DefaultStatement *s)
@@ -1674,7 +1655,7 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        result = s->statement ? interpret(s->statement, istate) : NULL;
+        result = interpret(s->statement, istate);
     }
 
     void visit(GotoStatement *s)
@@ -1736,7 +1717,7 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        result = s->statement ? interpret(s->statement, istate) : NULL;
+        result = interpret(s->statement, istate);
     }
 
     void visit(TryCatchStatement *s)
@@ -1749,19 +1730,17 @@ public:
         if (istate->start)
         {
             Expression *e = NULL;
-            if (s->body)
-                e = interpret(s->body, istate);
+            e = interpret(s->body, istate);
             for (size_t i = 0; !e && istate->start && i < s->catches->dim; i++)
             {
                 Catch *ca = (*s->catches)[i];
-                if (ca->handler)
-                    e = interpret(ca->handler, istate);
+                e = interpret(ca->handler, istate);
             }
             result = e;
             return;
         }
 
-        Expression *e = s->body ? interpret(s->body, istate) : NULL;
+        Expression *e = interpret(s->body, istate);
         if (CTFEExp::isCantExp(e))
         {
             result = e;
@@ -1789,24 +1768,19 @@ public:
                     ctfeStack.push(ca->var);
                     setValue(ca->var, ex->thrown);
                 }
-                if (ca->handler)
+                e = interpret(ca->handler, istate);
+                if (e && e->op == TOKgoto)
                 {
-                    e = interpret(ca->handler, istate);
-                    if (e && e->op == TOKgoto)
+                    InterState istatex = *istate;
+                    istatex.start = istate->gotoTarget; // set starting statement
+                    istatex.gotoTarget = NULL;
+                    Expression *eh = interpret(ca->handler, &istatex);
+                    if (!istatex.start)
                     {
-                        InterState istatex = *istate;
-                        istatex.start = istate->gotoTarget; // set starting statement
-                        istatex.gotoTarget = NULL;
-                        Expression *eh = interpret(ca->handler, &istatex);
-                        if (!istatex.start)
-                        {
-                            istate->gotoTarget = NULL;
-                            e = eh;
-                        }
+                        istate->gotoTarget = NULL;
+                        e = eh;
                     }
                 }
-                else
-                    e = NULL;
                 result = e;
                 return;
             }
@@ -1854,21 +1828,20 @@ public:
         if (istate->start)
         {
             Expression *e = NULL;
-            if (s->body)
-                e = interpret(s->body, istate);
+            e = interpret(s->body, istate);
             // Jump into/out from finalbody is disabled in semantic analysis.
             // and jump inside will be handled by the ScopeStatement == finalbody.
             result = e;
             return;
         }
 
-        Expression *e = s->body ? interpret(s->body, istate) : NULL;
+        Expression *e = interpret(s->body, istate);
         if (CTFEExp::isCantExp(e))
         {
             result = e;
             return;
         }
-        Expression *second = s->finalbody ? interpret(s->finalbody, istate) : NULL;
+        Expression *second = interpret(s->finalbody, istate);
         if (CTFEExp::isCantExp(second))
         {
             result = second;
@@ -1919,7 +1892,7 @@ public:
         // If it is with(Enum) {...}, just execute the body.
         if (s->exp->op == TOKimport || s->exp->op == TOKtype)
         {
-            result = s->body ? interpret(s->body, istate) : NULL;
+            result = interpret(s->body, istate);
             return;
         }
 
@@ -1941,24 +1914,19 @@ public:
         }
         ctfeStack.push(s->wthis);
         setValue(s->wthis, e);
-        if (s->body)
+        e = interpret(s->body, istate);
+        if (e && e->op == TOKgoto)
         {
-            e = interpret(s->body, istate);
-            if (e && e->op == TOKgoto)
+            InterState istatex = *istate;
+            istatex.start = istate->gotoTarget; // set starting statement
+            istatex.gotoTarget = NULL;
+            Expression *ex = interpret(s->body, &istatex);
+            if (!istatex.start)
             {
-                InterState istatex = *istate;
-                istatex.start = istate->gotoTarget; // set starting statement
-                istatex.gotoTarget = NULL;
-                Expression *ex = interpret(s->body, &istatex);
-                if (!istatex.start)
-                {
-                    istate->gotoTarget = NULL;
-                    e = ex;
-                }
+                istate->gotoTarget = NULL;
+                e = ex;
             }
         }
-        else
-            e = NULL;
         ctfeStack.pop(s->wthis);
         result = e;
     }
@@ -2613,13 +2581,10 @@ public:
     #endif
         Expressions *expsx = NULL;
 
-        if (e->e0)
+        if (CTFEExp::isCantExp(interpret(e->e0, istate)))
         {
-            if (CTFEExp::isCantExp(interpret(e->e0, istate)))
-            {
-                result = CTFEExp::cantexp;
-                return;
-            }
+            result = CTFEExp::cantexp;
+            return;
         }
 
         for (size_t i = 0; i < e->exps->dim; i++)
@@ -2955,12 +2920,9 @@ public:
             return;
         }
 
-        if (e->argprefix)
-        {
-            result = interpret(e->argprefix, istate, ctfeNeedNothing);
-            if (exceptionOrCant(result))
-                return;
-        }
+        result = interpret(e->argprefix, istate, ctfeNeedNothing);
+        if (exceptionOrCant(result))
+            return;
 
         if (e->newtype->ty == Tarray && e->arguments)
         {
@@ -2986,8 +2948,7 @@ public:
                     for (size_t i = 0; i < exps->dim; i++)
                     {
                         Expression *ex = (*e->arguments)[i];
-                        if (ex)
-                            ex = interpret(ex, istate);
+                        ex = interpret(ex, istate);
                         if (exceptionOrCant(ex))
                             return;
                         (*exps)[i] = ex;
@@ -6332,6 +6293,8 @@ public:
 
 Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal)
 {
+    if (!e)
+        return NULL;
     Interpreter v(istate, goal);
     e->accept(&v);
     return v.result;
@@ -6347,6 +6310,8 @@ Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal)
 
 Expression *interpret(Statement *s, InterState *istate)
 {
+    if (!s)
+        return NULL;
     Interpreter v(istate, ctfeNeedNothing);
     s->accept(&v);
     return v.result;
