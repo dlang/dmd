@@ -1906,7 +1906,7 @@ public:
         // If it is with(Enum) {...}, just execute the body.
         if (s->exp->op == TOKimport || s->exp->op == TOKtype)
         {
-            result = s->body ? s->body->interpret(istate) : CTFEExp::voidexp;
+            result = s->body ? s->body->interpret(istate) : NULL;
             return;
         }
 
@@ -1945,7 +1945,7 @@ public:
             }
         }
         else
-            e = CTFEExp::voidexp;
+            e = NULL;
         ctfeStack.pop(s->wthis);
         result = e;
     }
