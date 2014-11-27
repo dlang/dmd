@@ -1213,10 +1213,21 @@ void dwarf_func_term(Symbol *sfunc)
         dwarf_appreladdr(infoseg, infobuf, seg, funcoffset);
         dwarf_appreladdr(infoseg, infobuf, seg, funcoffset + sfunc->Ssize);
 
+        // DW_AT_frame_base
 #if ELFOBJ
-        dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, 0);
+        if (I64)
+        {
+            dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, debug_loc_buf->size());
+            infobuf->write32(0);
+        }
+        else
+        {
+            dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, 0);
+            infobuf->write32(debug_loc_buf->size());
+        }
+#else
+        infobuf->write32(debug_loc_buf->size());
 #endif
-        infobuf->write32(debug_loc_buf->size()); // DW_AT_frame_base
 
         if (haveparameters)
         {
