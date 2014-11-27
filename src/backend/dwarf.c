@@ -110,16 +110,14 @@ void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 
 void dwarf_appreladdr(int seg, Outbuffer *buf, int targseg, targ_size_t val)
 {
-  if (I64)
-  {
-      dwarf_addrel64(seg, buf->size(), targseg, val);
-      buf->write64(0);
-  }
-  else
-  {
-      dwarf_addrel(seg, buf->size(), targseg, 0);
-      buf->write32(val);
-  }
+    dwarf_addrel64(seg, buf->size(), targseg, I64 ? val : 0);
+    buf->write64(I64 ? 0 : val);
+}
+
+void dwarf_apprel32(int seg, Outbuffer *buf, int targseg, targ_size_t val)
+{
+    dwarf_addrel(seg, buf->size(), targseg, I64 ? val : 0);
+    buf->write32(I64 ? 0 : val);
 }
 
 void append_addr(Outbuffer *buf, targ_size_t addr)
@@ -1215,16 +1213,7 @@ void dwarf_func_term(Symbol *sfunc)
 
         // DW_AT_frame_base
 #if ELFOBJ
-        if (I64)
-        {
-            dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, debug_loc_buf->size());
-            infobuf->write32(0);
-        }
-        else
-        {
-            dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, 0);
-            infobuf->write32(debug_loc_buf->size());
-        }
+        dwarf_apprel32(infoseg, infobuf, debug_loc_seg, debug_loc_buf->size());
 #else
         // 64-bit DWARF relocations don't work for OSX64 codegen
         infobuf->write32(debug_loc_buf->size());
