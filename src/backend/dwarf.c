@@ -1226,6 +1226,7 @@ void dwarf_func_term(Symbol *sfunc)
             infobuf->write32(debug_loc_buf->size());
         }
 #else
+        // 64-bit DWARF relocations don't work for OSX64 codegen
         infobuf->write32(debug_loc_buf->size());
 #endif
 
