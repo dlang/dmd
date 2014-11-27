@@ -309,7 +309,7 @@ UnionExp copyLiteral(Expression *e)
     {
         // Simple value types
         // Keep e1 for DelegateExp and DotVarExp
-        memcpy(&ue, e, e->size);
+        new(&ue) UnionExp(e);
         Expression *r = ue.exp();
         r->type = e->type;
         return ue;
@@ -348,7 +348,7 @@ UnionExp copyLiteral(Expression *e)
     }
     if (e->op == TOKerror)
     {
-        memcpy(&ue, e, e->size);
+        new(&ue) UnionExp(e);
         return ue;
     }
     e->error("Internal Compiler Error: CTFE literal %s", e->toChars());
@@ -375,14 +375,14 @@ UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit)
 
     if (lit->type->equals(type))
     {
-        memcpy(&ue, lit, lit->size);
+        new(&ue) UnionExp(lit);
         return ue;
     }
 
     // If it is a cast to inout, retain the original type of the referenced part.
     if (type->hasWild() && type->hasPointers())
     {
-        memcpy(&ue, lit, lit->size);
+        new(&ue) UnionExp(lit);
         ue.exp()->type = type;
         return ue;
     }
@@ -1701,7 +1701,7 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
         ue = Cat(type, e1, e2);
         return ue;
     }
-    memcpy(&ue, e, e->size);
+    new(&ue) UnionExp(e);
     return ue;
 }
 

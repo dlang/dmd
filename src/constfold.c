@@ -1171,7 +1171,7 @@ UnionExp Cast(Type *type, Type *to, Expression *e1)
     //printf("\te1->type = %s\n", e1->type->toChars());
     if (e1->type->equals(type) && type->equals(to))
     {
-        memcpy(&ue, e1, e1->size);
+        new(&ue) UnionExp(e1);
         return ue;
     }
 
@@ -1205,7 +1205,7 @@ UnionExp Cast(Type *type, Type *to, Expression *e1)
     {
 L1:
         Expression *ex = expType(to, e1);
-        memcpy(&ue, ex, ex->size);
+        new(&ue) UnionExp(ex);
         return ue;
     }
 
@@ -1331,7 +1331,7 @@ UnionExp ArrayLength(Type *type, Expression *e1)
     else if (e1->type->toBasetype()->ty == Tsarray)
     {
         Expression *e = ((TypeSArray *)e1->type->toBasetype())->dim;
-        memcpy(&ue, e, e->size);
+        new(&ue) UnionExp(e);
     }
     else
         new(&ue) CTFEExp(TOKcantexp);
@@ -1382,7 +1382,7 @@ UnionExp Index(Type *type, Expression *e1, Expression *e2)
             if (hasSideEffect(e))
                 new(&ue) CTFEExp(TOKcantexp);
             else
-                memcpy(&ue, e, e->size);
+                new(&ue) UnionExp(e);
         }
         else
             new(&ue) CTFEExp(TOKcantexp);
@@ -1407,7 +1407,7 @@ UnionExp Index(Type *type, Expression *e1, Expression *e2)
                 if (hasSideEffect(e))
                     new(&ue) CTFEExp(TOKcantexp);
                 else
-                    memcpy(&ue, e, e->size);
+                    new(&ue) UnionExp(e);
             }
         }
         else
@@ -1433,7 +1433,7 @@ UnionExp Index(Type *type, Expression *e1, Expression *e2)
                 if (hasSideEffect(e))
                     new(&ue) CTFEExp(TOKcantexp);
                 else
-                    memcpy(&ue, e, e->size);
+                    new(&ue) UnionExp(e);
                 return ue;;
             }
         }
@@ -1704,14 +1704,14 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
             }
             else
             {
-                memcpy(&ue, e1, e1->size);
+                new(&ue) UnionExp(e1);
                 assert(ue.exp()->type);
                 return ue;
             }
         }
         if (type == e2->type)
         {
-            memcpy(&ue, e2, e2->size);
+            new(&ue) UnionExp(e2);
             assert(ue.exp()->type);
             return ue;
         }
@@ -1967,14 +1967,14 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         }
         else
         {
-            memcpy(&ue, e, e->size);
+            new(&ue) UnionExp(e);
             e = ue.exp();
         }
         if (!e->type->equals(type))
         {
             StringExp *se = (StringExp *)e->copy();
             e = se->castTo(NULL, type);
-            memcpy(&ue, e, e->size);
+            new(&ue) UnionExp(e);
             e = ue.exp();
         }
     }
@@ -2001,7 +2001,7 @@ UnionExp Ptr(Type *type, Expression *e1)
                 Expression *e = se->getField(type, offset);
                 if (e)
                 {
-                    memcpy(&ue, e, e->size);
+                    new(&ue) UnionExp(e);
                     return ue;
                 }
             }

@@ -1564,6 +1564,13 @@ public:
  */
 struct UnionExp
 {
+    UnionExp() { }  // yes, default constructor does nothing
+
+    UnionExp(Expression *e)
+    {
+        memcpy(this, e, e->size);
+    }
+
     /* Extract pointer to Expression
      */
     Expression *exp() { return (Expression *)&u; }
