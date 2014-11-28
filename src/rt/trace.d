@@ -519,11 +519,12 @@ static void trace_pro(char[] id)
     timer_t starttime;
     timer_t t;
 
+    if (!trace_inited)
+        trace_init();                   // initialize package
+
     QueryPerformanceCounter(&starttime);
     if (id.length == 0)
         return;
-    if (!trace_inited)
-        trace_init();                   // initialize package
     n = stack_malloc();
     n.prev = trace_tos;
     trace_tos = n;
