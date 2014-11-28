@@ -3581,7 +3581,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
             else
             {
                 code *c2 = genc1(CNIL, sz == 1 ? 0x8A : 0x8B,
-									modregxrm(2, s->Sreglsw, BPRM), FLconst, Para.size + s->Soffset);
+                                    modregxrm(2, s->Sreglsw, BPRM), FLconst, Para.size + s->Soffset);
 
                 if (!I16 && sz == SHORTSIZE)
                     c2->Iflags |= CFopsize; // operand size

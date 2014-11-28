@@ -3237,7 +3237,7 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
     t = parseBasicType2(t);
 
     if(pdisable)
-		*pdisable = false;
+        *pdisable = false;
 
     Type *ts;
     switch (token.value)

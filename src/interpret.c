@@ -1053,7 +1053,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     if (!e && tf->next->ty == Tvoid)
         return CTFEExp::voidexp;
 
-	assert(e);
+    assert(e);
 
     // If result is void, return void
     if (e->op == TOKvoidexp)
@@ -4986,7 +4986,7 @@ public:
             }
         }
         if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing) {
-			assert(res >= 0);
+            assert(res >= 0);
             result = new IntegerExp(e->loc, res, e->type);
         }
     }
@@ -5043,7 +5043,7 @@ public:
             }
         }
         if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing) {
-			assert(res >= 0);
+            assert(res >= 0);
             result = new IntegerExp(e->loc, res, e->type);
         }
     }

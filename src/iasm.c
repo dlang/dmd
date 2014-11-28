@@ -1336,7 +1336,7 @@ static code *asm_emit(Loc loc,
                 else
                     amod2 = _addr32;
 
-				assert(popnd2);
+                assert(popnd2);
                 popnd2->usFlags &= ~CONSTRUCT_FLAGS(0,0,7,0);
                 popnd2->usFlags |= CONSTRUCT_FLAGS(0,0,amod2,0);
             }
@@ -1350,7 +1350,7 @@ static code *asm_emit(Loc loc,
          */
 
         case 1:
-        	assert(popnd1);
+            assert(popnd1);
 
             if ((I32 &&
                   (amod1 == _addr16 ||
@@ -1468,7 +1468,7 @@ static code *asm_emit(Loc loc,
             break;
 
         case VEX_NDD:
-			assert(popnd1);
+            assert(popnd1);
             pc->Ivex.vvvv = ~popnd1->base->val;
 
             asm_make_modrm_byte(
@@ -1502,7 +1502,7 @@ static code *asm_emit(Loc loc,
             break;
 
         case VEX_NDS:
-        	assert(popnd2);
+            assert(popnd2);
             pc->Ivex.vvvv = ~popnd2->base->val;
 
             if (aoptyTable1 == _m || aoptyTable1 == _rm)

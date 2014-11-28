@@ -8530,7 +8530,7 @@ Lagain:
             checkRightThis(sc, ue1old);
             if (e1->op == TOKdotvar)
             {
-            	assert(dve);
+                assert(dve);
                 dve->var = f;
                 e1->type = f->type;
             }
