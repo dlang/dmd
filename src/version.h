@@ -27,6 +27,7 @@ public:
     DebugSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
 
+    char *toChars();
     int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     void semantic(Scope *sc);
     const char *kind();
@@ -42,6 +43,7 @@ public:
     VersionSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
 
+    char *toChars();
     int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     void semantic(Scope *sc);
     const char *kind();
