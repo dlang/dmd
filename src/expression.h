@@ -41,7 +41,6 @@ class TemplateInstance;
 class TemplateDeclaration;
 class ClassDeclaration;
 class BinExp;
-struct InterState;
 struct Symbol;          // back end symbol
 class OverloadSet;
 class Initializer;
@@ -110,18 +109,6 @@ Expression *checkGC(Scope *sc, Expression *e);
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
  */
 Expression *ctfeInterpretForPragmaMsg(Expression *e);
-
-/* Interpreter: what form of return value expression is required?
- */
-enum CtfeGoal
-{   ctfeNeedRvalue,   // Must return an Rvalue
-    ctfeNeedLvalue,   // Must return an Lvalue
-    ctfeNeedAnyValue, // Can return either an Rvalue or an Lvalue
-    ctfeNeedLvalueRef,// Must return a reference to an Lvalue (for ref types)
-    ctfeNeedNothing   // The return value is not required
-};
-
-Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal);
 
 #define WANTflags   1
 #define WANTvalue   2
@@ -213,10 +200,6 @@ public:
     Expression *ctfeInterpret()
     {
         return ::ctfeInterpret(this);
-    }
-    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue)
-    {
-        return ::interpret(this, istate, goal);
     }
 
     int isConst() { return ::isConst(this); }
