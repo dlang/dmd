@@ -130,8 +130,8 @@ private
     {
         // to allow compilation of this module without access to the rt package,
         //  make these functions available from rt.lifetime
-		void rt_finalizeFromGC(void* p, size_t size, uint attr) nothrow;
-		int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, in void[] segment) nothrow;
+        void rt_finalizeFromGC(void* p, size_t size, uint attr) nothrow;
+        int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, in void[] segment) nothrow;
 
         // Declared as an extern instead of importing core.exception
         // to avoid inlining - see issue 13725.
@@ -471,7 +471,7 @@ class GC
     //
     //
     //
-    private void *mallocNoSync(size_t size, uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
+    private void *mallocNoSync(size_t size, uint bits, ref size_t alloc_size) nothrow
     {
         assert(size != 0);
 
@@ -482,7 +482,7 @@ class GC
         if (gcx.running)
             onInvalidMemoryOperationError();
 
-        auto p = gcx.alloc(size + SENTINEL_EXTRA, alloc_size, bits, ti);
+        auto p = gcx.alloc(size + SENTINEL_EXTRA, alloc_size, bits);
         if (!p)
             onOutOfMemoryError();
 
@@ -2075,14 +2075,14 @@ struct Gcx
     }
 
 
-	void* alloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti = null) nothrow
+	void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
     {
         immutable bin = findBin(size);
-        return bin < B_PAGE ? smallAlloc(bin, alloc_size, bits, ti) :
-            bigAlloc(size, alloc_size, bits, ti);
+        return bin < B_PAGE ? smallAlloc(bin, alloc_size, bits) :
+            bigAlloc(size, alloc_size, bits);
     }
 
-	void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits, const TypeInfo ti = null) nothrow
+	void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits) nothrow
     {
         alloc_size = binsize[bin];
 
@@ -2121,13 +2121,7 @@ struct Gcx
         // Return next item from free list
         bucket[bin] = (cast(List*)p).next;
         auto pool = (cast(List*)p).pool;
-        if (bits)
-		{
-			if (ti)
-				setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits, cast(TypeInfo_Struct)ti.next);
-			else
-				setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits);
-		}
+        if (bits) setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits);
         //debug(PRINTF) printf("\tmalloc => %p\n", p);
         debug (MEMSTOMP) memset(p, 0xF0, size);
         return p;
@@ -2208,13 +2202,7 @@ struct Gcx
         alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %p\n", p);
 
-		if (bits)
-		{
-			if (ti)
-				setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits, cast(TypeInfo_Struct)ti.next);
-			else
-				setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits);
-		}
+		if (bits) setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits);
         return p;
     }
 

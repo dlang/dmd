@@ -22,7 +22,7 @@ static import rt.tlsgc;
 
 alias BlkInfo = GC.BlkInfo;
 alias BlkAttr = GC.BlkAttr;
-import core.exception : onOutOfMemoryError, onFinalizeError, onStructFinalizeError;
+import core.exception : onOutOfMemoryError, onFinalizeError, onInvalidMemoryOperationError;
 
 private
 {
@@ -356,6 +356,20 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
 }
 
 /**
+  get the allocation size of the array for the given block (without padding or type info)
+  */
+size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo ti) pure nothrow
+{
+    if(info.size <= 256)
+        return *cast(ubyte *)(info.base + info.size - structTypeInfoSize(ti.next) - SMALLPAD);
+
+    if(info.size < PAGESIZE)
+        return *cast(ushort *)(info.base + info.size - structTypeInfoSize(ti.next) - MEDPAD);
+     
+    return *cast(size_t *)(info.base);
+}
+
+/**
   get the start of the array for the given block
   */
 void *__arrayStart(BlkInfo info) nothrow pure
@@ -607,20 +621,30 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
     // note, we do not care about shared.  We are setting the length no matter
     // what, so no lock is required.
     debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %d, arr.ptr = x%x arr.length = %d\n", ti.next.tsize, arr.ptr, arr.length);
-    auto size = ti.next.tsize;                  // array element size
+    auto tinext = ti.next;
+    auto size = tinext.tsize;                  // array element size
     auto cursize = arr.length * size;
-    auto   bic = __getBlkInfo(arr.ptr);
-    auto   info = bic ? *bic : GC.query(arr.ptr);
+    auto bic = __getBlkInfo(arr.ptr);
+    auto info = bic ? *bic : GC.query(arr.ptr);
     if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
-        if(info.size >= PAGESIZE)
-            // remove prefix from the current stored size
-            cursize -= LARGEPREFIX;
+        auto newsize = (arr.ptr - __arrayStart(info)) + cursize;
+        auto oldsize = __arrayAllocLength(info, ti);
+        if (newsize > oldsize)
+            onInvalidMemoryOperationError();
+
         debug(PRINTF) printf("setting allocated size to %d\n", (arr.ptr - info.base) + cursize);
 
+        // destroy structs that become unused memory when array size is shrinked
+        if (typeid(tinext) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
+        {
+            auto sti = cast(TypeInfo_Struct)cast(void*)tinext;
+            if (sti.xdtor)
+                finalize_array(arr.ptr + cursize, oldsize - cursize, sti);
+        }
         // Note: Since we "assume" the append is safe, it means it is not shared.
         // Since it is not shared, we also know it won't throw (no lock).
-        __setArrayAllocLength(info, (arr.ptr - info.base) + cursize, false, ti);
+        __setArrayAllocLength(info, newsize, false, ti);
     }
 }
 
@@ -1182,7 +1206,7 @@ extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct ti)
         if ((*p).ptr)
         {
             if (ti) // ti non-null only if ti is a struct with dtor
-                rt_finalize_array(p.ptr, p.length * ti.tsize, ti, false);
+                finalize_array(p.ptr, p.length * ti.tsize, ti, false);
 
             // if p is in the cache, clear it as well
             if(auto bic = __getBlkInfo((*p).ptr))
@@ -1259,8 +1283,8 @@ extern (C) int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, in void
     if (attr & BlkAttr.STRUCTFINAL)
     {
         if (attr & BlkAttr.APPENDABLE)
-            return rt_hasArrayFinalizerInSegment(p, size, segment);
-        return rt_hasStructFinalizerInSegment(p, size, segment);
+            return hasArrayFinalizerInSegment(p, size, segment);
+        return hasStructFinalizerInSegment(p, size, segment);
     }
 
     // otherwise class
@@ -1279,16 +1303,16 @@ extern (C) int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, in void
     return false;
 }
 
-extern (C) int rt_hasStructFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
+int hasStructFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
 {
     if(!p)
         return false;
 
-    auto inf = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
-    return cast(size_t)(cast(void*)inf.xdtor - segment.ptr) < segment.length;
+    auto ti = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
+    return cast(size_t)(cast(void*)ti.xdtor - segment.ptr) < segment.length;
 }
 
-extern (C) int rt_hasArrayFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
+int hasArrayFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
 {
     if(!p)
         return false;
@@ -1303,7 +1327,7 @@ extern (C) int rt_hasArrayFinalizerInSegment(void* p, size_t size, in void[] seg
 }
 
 // called by the GC
-extern (C) void rt_finalize_array2(void* p, size_t size, bool resetMemory = true) nothrow
+void finalize_array2(void* p, size_t size, bool resetMemory = true) nothrow
 {
     debug(PRINTF) printf("rt_finalize_array2(p = %p)\n", p);
 
@@ -1330,15 +1354,15 @@ extern (C) void rt_finalize_array2(void* p, size_t size, bool resetMemory = true
 
     try
     {
-        rt_finalize_array(p, size, si, resetMemory);
+        finalize_array(p, size, si, resetMemory);
     }
     catch (Throwable e)
     {
-        onStructFinalizeError(si, e);
+        onFinalizeError(si, e);
     }
 }
 
-extern (C) void rt_finalize_array(void* p, size_t size, const TypeInfo_Struct si, bool resetMemory = true)
+void finalize_array(void* p, size_t size, const TypeInfo_Struct si, bool resetMemory = true)
 {
     // Due to the fact that the delete operator calls destructors
     // for arrays from the last element to the first, we maintain
@@ -1360,22 +1384,22 @@ extern (C) void rt_finalize_array(void* p, size_t size, const TypeInfo_Struct si
 }
 
 // called by the GC
-extern (C) void rt_finalize_struct(void* p, size_t size, bool resetMemory = true) nothrow
+void finalize_struct(void* p, size_t size, bool resetMemory = true) nothrow
 {
-    debug(PRINTF) printf("rt_finalize_struct(p = %p)\n", p);
+    debug(PRINTF) printf("finalize_struct(p = %p)\n", p);
 
     if (!callStructDtorsDuringGC)
         return;
 
-    auto inf = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
+    auto ti = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
     try
     {
-        if (inf.xdtor)
-            inf.xdtor(p); // call destructor
+        if (ti.xdtor)
+            ti.xdtor(p); // call destructor
 
         if(resetMemory)
         {
-            ubyte[] w = cast(ubyte[])inf.m_init;
+            ubyte[] w = cast(ubyte[])ti.m_init;
             if (w.ptr is null)
                 (cast(ubyte*) p)[0 .. w.length] = 0;
             else
@@ -1384,7 +1408,7 @@ extern (C) void rt_finalize_struct(void* p, size_t size, bool resetMemory = true
     }
     catch (Throwable e)
     {
-        onStructFinalizeError(inf, e);
+        onFinalizeError(ti, e);
     }
 }
 
@@ -1443,9 +1467,9 @@ extern (C) void rt_finalizeFromGC(void* p, size_t size, uint attr)
     if (!(attr & BlkAttr.STRUCTFINAL))
         rt_finalize2(p, false, true); // class
     else if (attr & BlkAttr.APPENDABLE)
-        rt_finalize_array2(p, size, true); // array of structs
+        finalize_array2(p, size, true); // array of structs
     else
-        rt_finalize_struct(p, size, true); // struct
+        finalize_struct(p, size, true); // struct
 }
 
 
@@ -2695,4 +2719,73 @@ unittest
     assert(carr2.ptr !is carr.ptr); // reallocated
     info = GC.query(carr2.ptr);
     assert(!(info.attr & BlkAttr.NO_SCAN)); // ensure attribute sticks
+}
+
+// test struct finalizers
+unittest
+{
+    __gshared int dtorCount;
+    static struct S1
+    {
+        ~this()
+        {
+            dtorCount++;
+        }
+    }
+
+    dtorCount = 0;
+    S1* s1 = new S1;
+    delete s1;
+    assert(dtorCount == 1);
+
+    dtorCount = 0;
+    S1[] arr1 = new S1[7];
+    delete arr1;
+    assert(dtorCount == 7);
+
+    dtorCount = 0;
+    S1* s2 = new S1;
+    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    assert(dtorCount == 1);
+    GC.free(s2);
+
+    dtorCount = 0;
+    S1[] arr2 = new S1[10];
+    arr2.length = 6;
+    arr2.assumeSafeAppend;
+    assert(dtorCount == 4); // destructors run explicitely?
+
+    dtorCount = 0;
+    BlkInfo blkinf = GC.query(arr2.ptr);
+    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    assert(dtorCount == 6);
+    GC.free(blkinf.base);
+}
+
+// test struct finalizers exception handling
+unittest
+{
+    import core.exception;
+    static struct S1
+    {
+        // preallocate to not call new in destructor
+        __gshared Exception exc = new Exception("test onFinalizeError");
+        ~this()
+        {
+            throw exc;
+        }
+    }
+
+    bool caught = false;
+    S1* s = new S1;
+    try
+    {
+        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    }
+    catch(FinalizeError err)
+    {
+        caught = true;
+    }
+    assert(caught);
+    GC.free(s);
 }

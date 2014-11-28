@@ -120,14 +120,14 @@ unittest
  */
 class FinalizeError : Error
 {
-    ClassInfo   info;
+    TypeInfo   info;
 
-    @safe pure nothrow this( ClassInfo ci, Throwable next, string file = __FILE__, size_t line = __LINE__ )
+    @safe pure nothrow this( TypeInfo ci, Throwable next, string file = __FILE__, size_t line = __LINE__ )
     {
         this(ci, file, line, next);
     }
 
-    @safe pure nothrow this( ClassInfo ci, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    @safe pure nothrow this( TypeInfo ci, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
         super( "Finalization error", file, line, next );
         info = ci;
@@ -135,7 +135,7 @@ class FinalizeError : Error
 
     @safe override string toString() const
     {
-        return "An exception was thrown while finalizing an instance of class " ~ info.name;
+        return "An exception was thrown while finalizing an instance of " ~ info.toString();
     }
 }
 
@@ -177,72 +177,6 @@ unittest
         assert(fe.line == 42);
         assert(fe.next !is null);
         assert(fe.msg == "Finalization error");
-        assert(fe.info == info);
-    }
-}
-
-/**
- * Thrown on struct finalize error.
- */
-class StructFinalizeError : Error
-{
-    TypeInfo_Struct   info;
-    
-    @safe pure nothrow this( TypeInfo_Struct si, Throwable next, string file = __FILE__, size_t line = __LINE__ )
-    {
-        this(si, file, line, next);
-    }
-    
-    @safe pure nothrow this( TypeInfo_Struct si, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
-    {
-        super( "Struct finalization error", file, line, next );
-        info = si;
-    }
-    
-    @safe override const string toString()
-    {
-        return "An exception was thrown while finalizing an instance of struct " ~ info.name;
-    }
-}
-
-unittest
-{
-    TypeInfo_Struct info = new TypeInfo_Struct;
-    info.name = "testInfo";
-    
-    {
-        auto fe = new StructFinalizeError(info);
-        assert(fe.file == __FILE__);
-        assert(fe.line == __LINE__ - 2);
-        assert(fe.next is null);
-        assert(fe.msg == "Struct finalization error");
-        assert(fe.info == info);
-    }
-    
-    {
-        auto fe = new StructFinalizeError(info, new Exception("It's an Exception!"));
-        assert(fe.file == __FILE__);
-        assert(fe.line == __LINE__ - 2);
-        assert(fe.next !is null);
-        assert(fe.msg == "Struct finalization error");
-        assert(fe.info == info);
-    }
-    
-    {
-        auto fe = new StructFinalizeError(info, "hello", 42);
-        assert(fe.file == "hello");
-        assert(fe.line == 42);
-        assert(fe.next is null);
-        assert(fe.msg == "Struct finalization error");
-        assert(fe.info == info);
-    }
-    
-    {
-        auto fe = new StructFinalizeError(info, "hello", 42, new Exception("It's an Exception!"));
-        assert(fe.file == "hello");
-        assert(fe.line == 42);
-        assert(fe.next !is null);
-        assert(fe.msg == "Struct finalization error");
         assert(fe.info == info);
     }
 }
@@ -518,7 +452,6 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg ) nothr
 // Internal Error Callbacks
 ///////////////////////////////////////////////////////////////////////////////
 
-
 /**
  * A callback for array bounds errors in D.  A $(LREF RangeError) will be thrown.
  *
@@ -539,7 +472,7 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
  * A callback for finalize errors in D.  A $(LREF FinalizeError) will be thrown.
  *
  * Params:
- *  info = The ClassInfo instance for the object that failed finalization.
+ *  info = The TypeInfo instance for the object that failed finalization.
  *  e = The exception thrown during finalization.
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
@@ -547,27 +480,16 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
  * Throws:
  *  $(LREF FinalizeError).
  */
-extern (C) void onFinalizeError( ClassInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
+extern (C) void onFinalizeError( TypeInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @trusted nothrow
 {
-    throw new FinalizeError( info, file, line, e );
-}
-
-
-/**
- * A callback for struct finalize errors in D.  A StructFinalizeError will be thrown.
- *
- * Params:
- *  info = The TypeInfo_Struct instance for the object that failed finalization.
- *  e = The exception thrown during finalization.
- *  file = The name of the file that signaled this error.
- *  line = The line number on which this error occurred.
- *
- * Throws:
- *  FinalizeError.
- */
-extern (C) void onStructFinalizeError( TypeInfo_Struct info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
-{
-    throw new StructFinalizeError( info, file, line, e );
+    // This error is thrown during a garbage collection, so no allocation must occur while 
+    //  generating this object. So we use a preallocated instance
+    __gshared FinalizeError err = new FinalizeError( null );
+    err.info = info;
+    err.next = e;
+    err.file = file;
+    err.line = line;
+    throw err;
 }
 
 
