@@ -4953,7 +4953,7 @@ public:
         if (exceptionOrCantInterpret(result))
             return;
 
-        int res = -1;
+        int res;
         if (!CTFEExp::isCantExp(result))
         {
             if (result->isBool(false))
@@ -4977,18 +4977,18 @@ public:
                 {
                     result->error("%s does not evaluate to a boolean", result->toChars());
                     result = CTFEExp::cantexp;
+                    return;
                 }
             }
             else
             {
                 result->error("%s cannot be interpreted as a boolean", result->toChars());
                 result = CTFEExp::cantexp;
+                return;
             }
         }
-        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing) {
-            assert(res >= 0);
+        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
             result = new IntegerExp(e->loc, res, e->type);
-        }
     }
 
     void visit(OrOrExp *e)
@@ -5006,7 +5006,7 @@ public:
         if (exceptionOrCantInterpret(result))
             return;
 
-        int res = -1;
+        int res;
         if (!CTFEExp::isCantExp(result))
         {
             if (isTrueBool(result))
@@ -5033,6 +5033,7 @@ public:
                     {
                         result->error("%s cannot be interpreted as a boolean", result->toChars());
                         result = CTFEExp::cantexp;
+                        return;
                     }
                 }
             }
@@ -5040,12 +5041,11 @@ public:
             {
                 result->error("%s cannot be interpreted as a boolean", result->toChars());
                 result = CTFEExp::cantexp;
+                return;
             }
         }
-        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing) {
-            assert(res >= 0);
+        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
             result = new IntegerExp(e->loc, res, e->type);
-        }
     }
 
     // Print a stack trace, starting from callingExp which called fd.

@@ -1567,7 +1567,10 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             if (typeb->equals(tb))
             {
                 if (!copied)
+                {
                     se = (StringExp *)e->copy();
+                    copied = 1;
+                }
                 se->type = t;
                 result = se;
                 return;
@@ -1599,13 +1602,19 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
             {
                 if (!copied)
+                {
                     se = (StringExp *)e->copy();
+                    copied = 1;
+                }
                 goto Lcast;
             }
             if (typeb->ty != Tsarray && typeb->ty != Tarray && typeb->ty != Tpointer)
             {
                 if (!copied)
+                {
                     se = (StringExp *)e->copy();
+                    copied = 1;
+                }
                 goto Lcast;
             }
 

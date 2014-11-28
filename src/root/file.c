@@ -102,10 +102,12 @@ int File::read()
         goto err1;
     }
 
-    if (!ref) {
+    if (!ref)
+    {
         ::free(buffer);
         buffer = NULL;
     }
+
     ref = 0;       // we own the buffer now
 
     //printf("\tfile opened\n");
