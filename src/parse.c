@@ -4970,7 +4970,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 arg = new Parameter(0, NULL, token.ident, NULL);
                 nextToken();
                 nextToken();
-                error("if (v; e) is deprecated, use if (auto v = e)");
+                error("use 'if (auto v = e)' instead of 'if (v; e)'");
             }
             else if (isDeclaration(&token, 2, TOKassign, NULL))
             {
