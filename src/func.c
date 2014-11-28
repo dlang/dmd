@@ -2343,10 +2343,7 @@ void FuncDeclaration::buildResultVar(Scope *sc, Type *tret)
 {
     if (!vresult)
     {
-        Loc loc;
-
-        if(fensure)
-            loc = fensure->loc;
+        Loc loc = fensure ? fensure->loc : this->loc;
 
         /* If inferRetType is true, tret may not be a correct return type yet.
          * So, in here it may be a temporary type for vresult, and after
