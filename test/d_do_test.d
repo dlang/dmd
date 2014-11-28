@@ -11,6 +11,8 @@ import std.random;
 import std.regex;
 import std.stdio;
 import std.string;
+import std.utf;
+import std.uni;
 import core.sys.posix.sys.wait;
 
 void usage()
@@ -260,14 +262,96 @@ string genTempFilename(string result_path)
     return a.data;
 }
 
-int system(string command)
+size_t endofStringCStyle(string text, size_t pos, dchar term = '\"', dchar esc = '\\')
 {
-    if (!command) return core.stdc.stdlib.system(null);
-    const commandz = toStringz(command);
-    auto status = core.stdc.stdlib.system(commandz);
-    if (status == -1) return status;
-    version (Windows) status <<= 8;
-    return status;
+	while (pos < text.length)
+	{
+		dchar ch = decode(text, pos);
+		if (ch == esc)
+		{
+			if (pos >= text.length)
+				break;
+			ch = decode(text, pos);
+		}
+		else if (ch == term)
+			return pos;
+	}
+	return pos;
+}
+
+string[] tokenizeArgs(string text)
+{
+	string[] args;
+	size_t pos = 0;
+	while (pos < text.length)
+	{
+		size_t startpos = pos;
+		dchar ch = decode(text, pos);
+		if (isWhite(ch))
+			continue;
+
+		size_t endpos = pos;
+		while (pos < text.length)
+		{
+			if (ch == '\"')
+			{
+				pos = endofStringCStyle(text, pos, '\"', 0);
+				ch = 0;
+			}
+			else
+			{
+				ch = decode(text, pos);
+			}
+			if (isWhite(ch))
+				break;
+			endpos = pos;
+		}
+		args ~= text[startpos .. endpos];
+	}
+	return args;
+}
+
+int system(string command, string outfile = null, bool script = false)
+{
+    version (Windows)
+    {
+        if (script)
+            command = "bash " ~ command;
+        bool useSpawn = true;
+    }
+    else
+        bool useSpawn = false;
+    if (useSpawn)
+    {
+        File fout, ferr;
+        if (outfile)
+        {
+            ferr = File(outfile, "w");
+            fout = ferr;
+        }
+        else
+        {
+            fout = stdout;
+            ferr = stderr;
+        }
+        string[] args = tokenizeArgs(command);
+        auto pid = std.process.spawnProcess(args, stdin, fout, ferr);
+        auto status = wait(pid);
+        if (status == -1) return status;
+        version(Windows) status <<= 8;
+        return status;
+    }
+    else
+    {
+        if (!command) return core.stdc.stdlib.system(null);
+        if (outfile)
+             command ~= " > " ~ outfile ~ " 2>&1";
+        const commandz = toStringz(command);
+        auto status = core.stdc.stdlib.system(commandz);
+        if (status == -1) return status;
+        version(Windows) status <<= 8;
+        return status;
+    }
 }
 
 version(Windows)
@@ -287,12 +371,12 @@ void removeIfExists(in char[] filename)
         std.file.remove(filename);
 }
 
-string execute(ref File f, string command, bool expectpass, string result_path)
+string execute(ref File f, string command, bool expectpass, string result_path, bool script)
 {
     auto filename = genTempFilename(result_path);
     scope(exit) removeIfExists(filename);
 
-    auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
+    auto rc = system(command, filename, script);
 
     string output = readText(filename);
     f.writeln(command);
@@ -495,7 +579,7 @@ int main(string[] args)
                         join(testArgs.sources, " "));
                 version(Windows) command ~= " -map nul.map";
 
-                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path, false);
             }
             else
             {
@@ -506,7 +590,7 @@ int main(string[] args)
 
                     string command = format("%s -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, c, output_dir, filename);
-                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path, false);
                 }
 
                 if (testArgs.mode == TestMode.RUN)
@@ -516,7 +600,7 @@ int main(string[] args)
                             testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
                     version(Windows) command ~= " -map nul.map";
 
-                    execute(fThisRun, command, true, result_path);
+                    execute(fThisRun, command, true, result_path, false);
                 }
             }
 
@@ -546,7 +630,7 @@ int main(string[] args)
                 string command = test_app_dmd;
                 if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                execute(fThisRun, command, true, result_path);
+                execute(fThisRun, command, true, result_path, false);
             }
 
             fThisRun.close();
@@ -554,9 +638,7 @@ int main(string[] args)
             if (testArgs.postScript)
             {
                 f.write("Executing post-test script: ");
-                string prefix = "";
-                version (Windows) prefix = "bash ";
-                execute(f, prefix ~ testArgs.postScript ~ " " ~ thisRunName, true, result_path);
+                execute(f, testArgs.postScript ~ " " ~ thisRunName, true, result_path, true);
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
