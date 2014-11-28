@@ -295,6 +295,62 @@ void test11421()
 }
 
 /***************************************************/
+// 13776
+
+enum a13776(T) = __traits(compiles, { T; });
+
+enum b13776(A...) = 1;
+
+template x13776s()
+{
+    struct S;
+    alias x13776s = b13776!(a13776!S);
+}
+template y13776s()
+{
+    struct S;
+    alias x2 = b13776!(a13776!S);
+    alias y13776s = x2;
+}
+template z13776s()
+{
+    struct S;
+    alias x1 = a13776!S;
+    alias x2 = b13776!(x1);
+    alias z13776s = x2;
+}
+
+template x13776c()
+{
+    class C;
+    alias x13776c = b13776!(a13776!C);
+}
+template y13776c()
+{
+    class C;
+    alias x2 = b13776!(a13776!C);
+    alias y13776c = x2;
+}
+template z13776c()
+{
+    class C;
+    alias x1 = a13776!C;
+    alias x2 = b13776!(x1);
+    alias z13776c = x2;
+}
+
+void test13776()
+{
+    alias xs = x13776s!();  // ok <- ng
+    alias ys = y13776s!();  // ok <- ng
+    alias zs = z13776s!();  // ok
+
+    alias xc = x13776c!();  // ok <- ng
+    alias yc = y13776c!();  // ok <- ng
+    alias zc = z13776c!();  // ok
+}
+
+/***************************************************/
 
 int main()
 {
