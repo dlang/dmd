@@ -767,8 +767,7 @@ Expression *ctfeInterpretForPragmaMsg(Expression *e)
     for (size_t i = 0; i < tup->exps->dim; ++i)
     {
         Expression *g = (*tup->exps)[i];
-        Expression *h = g;
-        h = ctfeInterpretForPragmaMsg(g);
+        Expression *h = ctfeInterpretForPragmaMsg(g);
         if (h != g)
         {
             if (!expsx)
@@ -1053,6 +1052,8 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     // If fell off the end of a void function, return void
     if (!e && tf->next->ty == Tvoid)
         return CTFEExp::voidexp;
+
+	assert(e);
 
     // If result is void, return void
     if (e->op == TOKvoidexp)
@@ -2950,6 +2951,7 @@ public:
                     expsx = new Expressions();
                     ++CtfeStatus::numArrayAllocs;
                     expsx->setDim(e->sd->fields.dim);
+                    assert(e->elements);
                     for (size_t j = 0; j < e->elements->dim; j++)
                     {
                         (*expsx)[j] = (*e->elements)[j];
@@ -4951,7 +4953,7 @@ public:
         if (exceptionOrCantInterpret(result))
             return;
 
-        int res;
+        int res = -1;
         if (!CTFEExp::isCantExp(result))
         {
             if (result->isBool(false))
@@ -4983,8 +4985,10 @@ public:
                 result = CTFEExp::cantexp;
             }
         }
-        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
+        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing) {
+			assert(res >= 0);
             result = new IntegerExp(e->loc, res, e->type);
+        }
     }
 
     void visit(OrOrExp *e)
@@ -5002,7 +5006,7 @@ public:
         if (exceptionOrCantInterpret(result))
             return;
 
-        int res;
+        int res = -1;
         if (!CTFEExp::isCantExp(result))
         {
             if (isTrueBool(result))
@@ -5038,8 +5042,10 @@ public:
                 result = CTFEExp::cantexp;
             }
         }
-        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
+        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing) {
+			assert(res >= 0);
             result = new IntegerExp(e->loc, res, e->type);
+        }
     }
 
     // Print a stack trace, starting from callingExp which called fd.
@@ -6999,6 +7005,8 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
             // String literals
             size_t saveindx; // used for reverse iteration
 
+            assert(se);
+
             switch (se->sz)
             {
             case 1:
@@ -7166,7 +7174,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
             // At present, the constructors just copy their arguments into the struct.
             // But we might need some magic if stack tracing gets added to druntime.
             StructLiteralExp *se = ((ClassReferenceExp *)pthis)->value;
-            assert(arguments->dim <= se->elements->dim);
+            assert(arguments && arguments->dim <= se->elements->dim);
             for (size_t i = 0; i < arguments->dim; ++i)
             {
                 e = (*arguments)[i]->interpret(istate);

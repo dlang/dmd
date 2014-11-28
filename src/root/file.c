@@ -102,8 +102,10 @@ int File::read()
         goto err1;
     }
 
-    if (!ref)
+    if (!ref) {
         ::free(buffer);
+        buffer = NULL;
+    }
     ref = 0;       // we own the buffer now
 
     //printf("\tfile opened\n");
@@ -425,7 +427,7 @@ int File::exists()
 void File::remove()
 {
 #if POSIX
-    int dummy = ::remove(this->name->toChars());
+    ::remove(this->name->toChars());
 #elif _WIN32
     DeleteFileA(this->name->toChars());
 #else

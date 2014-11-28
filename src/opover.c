@@ -1133,10 +1133,7 @@ Expression *op_overload(Expression *e, Scope *sc)
 
                 // Set tiargs, the template argument list, which will be the operator string
                 if (s)
-                {
-                    id = Id::opOpAssign;
                     tiargs = opToArg(sc, e->op);
-                }
             }
 
             if (s)
@@ -1315,6 +1312,7 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id)
              */
             if (!(m.lastf == lastf && m.count == 2 && count == 1))
             {
+            	assert(m.lastf);
                 // Error, ambiguous
                 e->error("overloads %s and %s both match argument list for %s",
                     m.lastf->type->toChars(),

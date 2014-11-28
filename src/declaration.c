@@ -575,6 +575,8 @@ Dsymbol *AliasDeclaration::toAlias()
         return aliassym;
     }
 
+    assert(type);
+
     if (aliassym || type->deco)
         ;   // semantic is already done.
     else if (import && import->scope)

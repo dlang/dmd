@@ -1812,7 +1812,6 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
                 p = env;
                 slash = 0;
                 instring = 0;
-                c = 0;
 
                 while (1)
                 {

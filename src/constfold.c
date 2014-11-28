@@ -1161,7 +1161,6 @@ UnionExp Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
 UnionExp Cast(Type *type, Type *to, Expression *e1)
 {
     UnionExp ue;
-    Expression *e = CTFEExp::cantexp;
     Loc loc = e1->loc;
 
     Type *tb = to->toBasetype();
@@ -1975,7 +1974,6 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
             StringExp *se = (StringExp *)e->copy();
             e = se->castTo(NULL, type);
             memcpy(&ue, e, e->size);
-            e = ue.exp();
         }
     }
     else

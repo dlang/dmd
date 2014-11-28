@@ -548,8 +548,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     Expression *el = (*e->elements)[i];
                     if (!el)
                         continue;
-                    Type *te = el->type;
-                    te = e->sd->fields[i]->type->addMod(t->mod);
+                    Type *te = e->sd->fields[i]->type->addMod(t->mod);
                     MATCH m2 = el->implicitConvTo(te);
                     //printf("\t%s => %s, match = %d\n", el->toChars(), te->toChars(), m2);
                     if (m2 < result)
@@ -1568,10 +1567,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             if (typeb->equals(tb))
             {
                 if (!copied)
-                {
                     se = (StringExp *)e->copy();
-                    copied = 1;
-                }
                 se->type = t;
                 result = se;
                 return;
@@ -1603,19 +1599,13 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
             {
                 if (!copied)
-                {
                     se = (StringExp *)e->copy();
-                    copied = 1;
-                }
                 goto Lcast;
             }
             if (typeb->ty != Tsarray && typeb->ty != Tarray && typeb->ty != Tpointer)
             {
                 if (!copied)
-                {
                     se = (StringExp *)e->copy();
-                    copied = 1;
-                }
                 goto Lcast;
             }
 

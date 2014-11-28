@@ -3008,8 +3008,6 @@ void protectionToBuffer(OutBuffer *buf, Prot prot)
 
     if (prot.kind == PROTpackage && prot.pkg)
     {
-        Package *ppkg = prot.pkg;
-
         buf->writeByte('(');
         buf->writestring(prot.pkg->toPrettyChars(true));
         buf->writeByte(')');

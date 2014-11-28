@@ -784,7 +784,7 @@ Lagain:
                 {
                     type *t1 = evalue->ET->Ttag->Sstruct->Sarg1type;
                     type *t2 = evalue->ET->Ttag->Sstruct->Sarg2type;
-                    if (!t1 && !t2)
+                    if (!t1 || !t2)
                         r = RTLSYM_MEMSETN;
                     else if (config.exe != EX_WIN64 &&
                              r == RTLSYM_MEMSET128ii &&
@@ -1529,8 +1529,6 @@ elem *toElem(Expression *e, IRState *irs)
                 }
                 else
                 {
-                    d_uns64 elemsize = sd->size(ne->loc);
-
                     // call _d_newitemT(ti)
                     e = toElem(ne->newtype->getTypeInfo(NULL), irs);
 
@@ -1631,7 +1629,6 @@ elem *toElem(Expression *e, IRState *irs)
             else if (t->ty == Tpointer)
             {
                 TypePointer *tp = (TypePointer *)t;
-                Expression *di = tp->next->defaultInit();
                 elem *ezprefix = ne->argprefix ? toElem(ne->argprefix, irs) : NULL;
 
                 // call _d_newitemT(ti)
@@ -2382,7 +2379,6 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 SliceExp *are = (SliceExp *)ae->e1;
                 Type *t1 = t1b;
-                Type *t2 = ae->e2->type->toBasetype();
                 Type *ta = are->e1->type->toBasetype();
 
                 // which we do if the 'next' types match
