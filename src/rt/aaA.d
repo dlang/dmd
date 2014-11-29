@@ -233,6 +233,14 @@ Lret:
     return cast(void*)(e + 1) + aligntsize(keytitsize);
 }
 
+
+/// Same as above but with a function pointer to aaLiteral!(Key, Value) for creating a typed AA instance.
+void* _aaGetZ(AA* aa, const TypeInfo keyti, in size_t valuesize, in void* pkey,
+              void *function(void[], void[]) @trusted pure aaLiteral)
+{
+    return _aaGetX(aa, keyti, valuesize, pkey);
+}
+
 // bug 13748
 pure nothrow unittest
 {
