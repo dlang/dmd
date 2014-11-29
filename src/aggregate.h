@@ -56,7 +56,6 @@ FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXtoHash(StructDeclaration *ad, Scope *sc);
-FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc);
 FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc);
@@ -147,7 +146,6 @@ public:
     int zeroInit;               // !=0 if initialize with 0 fill
     bool hasIdentityAssign;     // true if has identity opAssign
     bool hasIdentityEquals;     // true if has identity opEquals
-    FuncDeclaration *cpctor;    // generated copy-constructor, if any
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
 

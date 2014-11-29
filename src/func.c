@@ -3807,8 +3807,7 @@ bool FuncDeclaration::addPreInvariant()
     return (ad && !(cd && cd->isCPPclass()) &&
             global.params.useInvariants &&
             (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
-            !naked &&
-            ident != Id::cpctor);
+            !naked);
 }
 
 bool FuncDeclaration::addPostInvariant()
@@ -3819,8 +3818,7 @@ bool FuncDeclaration::addPostInvariant()
             ad->inv &&
             global.params.useInvariants &&
             (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
-            !naked &&
-            ident != Id::cpctor);
+            !naked);
 }
 
 /********************************************************
