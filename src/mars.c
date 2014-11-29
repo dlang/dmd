@@ -135,6 +135,8 @@ void Global::init()
     main_d = "__main.d";
 
     memset(&params, 0, sizeof(Param));
+
+    errorLimit = 20;
 }
 
 unsigned Global::startGagging()
@@ -313,6 +315,7 @@ Usage:\n\
   -version=ident compile in version code identified by ident\n\
   -vtls          list all variables going into thread local storage\n\
   -vgc           list all gc allocations including hidden ones\n\
+  -verrors=num   limit the number of error messages (0 means unlimited)\n\
   -w             warnings as errors (compilation will halt)\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
@@ -633,6 +636,21 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.showColumns = true;
             else if (strcmp(p + 1, "vgc") == 0)
                 global.params.vgc = true;
+            else if (memcmp(p + 1, "verrors", 7) == 0)
+            {
+                if (p[8] == '=' && isdigit((utf8_t)p[9]))
+                {
+                    long num;
+                    errno = 0;
+                    num = strtol(p + 9, (char **)&p, 10);
+                    if (*p || errno || num > INT_MAX)
+                        goto Lerror;
+                    // Bugzilla issue number
+                    global.errorLimit = (unsigned) num;
+                }
+                else
+                    goto Lerror;
+            }
             else if (memcmp(p + 1, "transition", 10) == 0)
             {
                 // Parse:

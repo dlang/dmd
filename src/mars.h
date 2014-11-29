@@ -233,6 +233,8 @@ struct Global
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
 
+    unsigned errorLimit;
+
     /* Start gagging. Return the current number of gagged errors
      */
     unsigned startGagging();
