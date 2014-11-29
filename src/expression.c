@@ -9892,6 +9892,11 @@ Lagain:
     AggregateDeclaration *ad = isAggregate(t1b);
     if (t1b->ty == Tpointer)
     {
+        if (((TypePointer *)t1b)->next->ty == Tfunction)
+        {
+            error("cannot slice function pointer %s", e1->toChars());
+            return new ErrorExp();
+        }
         if (!lwr || !upr)
         {
             error("need upper and lower bound to slice pointer");
@@ -10562,6 +10567,11 @@ Expression *IndexExp::semantic(Scope *sc)
     switch (t1b->ty)
     {
         case Tpointer:
+            if (((TypePointer *)t1b)->next->ty == Tfunction)
+            {
+                error("cannot index function pointer %s", e1->toChars());
+                return new ErrorExp();
+            }
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
             if (e2->type == Type::terror)
                 return new ErrorExp();
