@@ -575,7 +575,7 @@ Dsymbol *AliasDeclaration::toAlias()
         return aliassym;
     }
 
-    assert(type);
+    assert(aliassym || type);
 
     if (aliassym || type->deco)
         ;   // semantic is already done.
