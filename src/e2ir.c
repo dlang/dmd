@@ -784,13 +784,15 @@ Lagain:
                 {
                     type *t1 = evalue->ET->Ttag->Sstruct->Sarg1type;
                     type *t2 = evalue->ET->Ttag->Sstruct->Sarg2type;
-                    if (!t1 || !t2)
+                    if (!t1 && !t2)
                         r = RTLSYM_MEMSETN;
-                    else if (config.exe != EX_WIN64 &&
-                             r == RTLSYM_MEMSET128ii &&
-                             t1->Tty == TYdouble &&
-                             t2->Tty == TYdouble)
-                        r = RTLSYM_MEMSET128;
+                    else if (config.exe != EX_WIN64 && r == RTLSYM_MEMSET128ii)
+                    {
+                        assert(t1 && t2);
+
+                        if(t1->Tty == TYdouble && t2->Tty == TYdouble)
+                            r = RTLSYM_MEMSET128;
+                    }
                 }
             }
 
