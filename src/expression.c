@@ -9989,14 +9989,13 @@ Lagain:
         if (t->ty == Ttuple) sc2 = sc2->endCTFE();
         upr = upr->implicitCastTo(sc2, Type::tsize_t);
     }
+    if (sc2 != sc)
+        sc2->pop();
     if (lwr && lwr->type == Type::terror ||
         upr && upr->type == Type::terror)
     {
         goto Lerr;
     }
-
-    if (sc2 != sc)
-        sc2->pop();
     }
 
     if (t->ty == Ttuple)
@@ -10549,16 +10548,15 @@ Expression *IndexExp::semantic(Scope *sc)
     e2 = e2->semantic(sc);
     e2 = resolveProperties(sc, e2);
     if (t1->ty == Ttuple) sc = sc->endCTFE();
-    if (e2->type == Type::terror)
-        return new ErrorExp();
     if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps &&
         ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
     {
         e2 = (*((TupleExp *)e2)->exps)[0];
     }
-
     if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
         sc = sc->pop();
+    if (e2->type == Type::terror)
+        return new ErrorExp();
 
     switch (t1->ty)
     {
