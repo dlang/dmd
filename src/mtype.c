@@ -5831,30 +5831,30 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         // Non-lvalues do not match ref or out parameters
         if (p->storageClass & STCref)
         {
-            Type *targb = targ->toBasetype();
-            Type *tprmb = tprm->toBasetype();
-            //printf("%s\n", targb->toChars());
-            //printf("%s\n", tprmb->toChars());
+            // Bugzilla 13783: Don't use toBasetype() to handle enum types.
+            Type *ta = targ;
+            Type *tp = tprm;
+            //printf("fparam[%d] ta = %s, tp = %s\n", u, ta->toChars(), tp->toChars());
 
             if (m && !arg->isLvalue())
             {
-                if (arg->op == TOKstring && tprmb->ty == Tsarray)
+                if (arg->op == TOKstring && tp->ty == Tsarray)
                 {
-                    if (targb->ty != Tsarray)
+                    if (ta->ty != Tsarray)
                     {
-                        Type *tn = tprmb->nextOf()->castMod(targb->nextOf()->mod);
+                        Type *tn = tp->nextOf()->castMod(ta->nextOf()->mod);
                         dinteger_t dim = ((StringExp *)arg)->len;
-                        targb = tn->sarrayOf(dim);
+                        ta = tn->sarrayOf(dim);
                     }
                 }
-                else if (arg->op == TOKslice && tprmb->ty == Tsarray)
+                else if (arg->op == TOKslice && tp->ty == Tsarray)
                 {
                     // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
-                    if (targb->ty != Tsarray)
+                    if (ta->ty != Tsarray)
                     {
-                        Type *tn = targb->nextOf();
-                        dinteger_t dim = ((TypeSArray *)tprmb)->dim->toUInteger();
-                        targb = tn->sarrayOf(dim);
+                        Type *tn = ta->nextOf();
+                        dinteger_t dim = ((TypeSArray *)tp)->dim->toUInteger();
+                        ta = tn->sarrayOf(dim);
                     }
                 }
                 else
@@ -5865,21 +5865,18 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
              */
             while (1)
             {
-                Type *tat = targb->aliasthisOf();
+                Type *tat = ta->toBasetype()->aliasthisOf();
                 if (!tat || !tat->implicitConvTo(tprm))
                     break;
-                targb = tat;
+                ta = tat;
             }
 
-            /* Don't allow static arrays to be passed to mutable references
-             * to static arrays if the argument cannot be modified.
+            /* A ref variable should work like a head-const reference.
+             * e.g. disallows:
+             *  ref T      <- an lvalue of const(T) argument
+             *  ref T[dim] <- an lvalue of const(T[dim]) argument
              */
-            if (targb->nextOf() && tprmb->ty == Tsarray &&
-                !MODimplicitConv(targb->nextOf()->mod, tprmb->nextOf()->mod))
-                goto Nomatch;
-
-            // ref variable behaves like head-const reference
-            if (!targb->constConv(tprmb))
+            if (!ta->constConv(tp))
                 goto Nomatch;
         }
         else if (p->storageClass & STCout)
