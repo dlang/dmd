@@ -40,6 +40,18 @@ DebugSymbol::DebugSymbol(Loc loc, unsigned level)
     this->loc = loc;
 }
 
+char *DebugSymbol::toChars()
+{
+    if (ident)
+        return ident->toChars();
+    else
+    {
+        OutBuffer buf;
+        buf.printf("%d", level);
+        return buf.extractString();
+    }
+}
+
 Dsymbol *DebugSymbol::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
@@ -115,6 +127,18 @@ VersionSymbol::VersionSymbol(Loc loc, unsigned level)
 {
     this->level = level;
     this->loc = loc;
+}
+
+char *VersionSymbol::toChars()
+{
+    if (ident)
+        return ident->toChars();
+    else
+    {
+        OutBuffer buf;
+        buf.printf("%d", level);
+        return buf.extractString();
+    }
 }
 
 Dsymbol *VersionSymbol::syntaxCopy(Dsymbol *s)
