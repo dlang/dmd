@@ -16,9 +16,9 @@ module core.sync.exception;
 
 
 /**
- * Base class for synchronization exceptions.
+ * Base class for synchronization errors.
  */
-class SyncException : Exception
+class SyncError : Error
 {
     @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
     {
