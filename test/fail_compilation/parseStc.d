@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc.d(10): Error: if (v; e) is deprecated, use if (auto v = e)
+fail_compilation/parseStc.d(10): Error: use 'if (auto v = e)' instead of 'if (v; e)'
 fail_compilation/parseStc.d(11): Error: redundant attribute 'const'
 ---
 */

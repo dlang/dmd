@@ -2300,6 +2300,7 @@ void g8335(lazy S8335[3] arr)
 {
     assert(S8335.postblit == 0);
     auto x = arr;
+    assert(S8335.postblit == 3);
 }
 
 void h8335(lazy S8335 s)
@@ -3449,6 +3450,51 @@ void test13586()
 }
 
 /**********************************/
+// 13661
+
+bool test13661()
+{
+    string postblit;
+    string dtor;
+
+    struct S
+    {
+        char x = 'x';
+
+        this(this) { postblit ~= x; }
+        ~this()    { dtor ~= x; }
+
+        ref auto opAssign(T)(T arg)
+        {
+            assert(0);
+            return this;
+        }
+    }
+
+    {
+        S[2] a;
+
+        a[0].x = 'a';
+        a[1].x = 'b';
+
+        a = a.init;
+        assert(dtor == "ab");
+        assert(a[0].x == 'x' && a[1].x == 'x');
+
+        a[0].x = 'c';
+        a[1].x = 'd';
+
+        a = [S(), S()];   // equivalent a = a.init
+        assert(dtor == "abcd");
+        assert(a[0].x == 'x' && a[1].x == 'x');
+    }
+    assert(dtor == "abcdxx");
+
+    return true;
+}
+static assert(test13661());     // CTFE
+
+/**********************************/
 
 __gshared bool b13095 = false;
 
@@ -3576,6 +3622,7 @@ int main()
     test13303();
     test13673();
     test13586();
+    test13661();
     test13095();
 
     printf("Success\n");

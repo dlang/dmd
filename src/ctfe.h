@@ -132,10 +132,11 @@ bool needToCopyLiteral(Expression *expr);
 
 /// Make a copy of the ArrayLiteral, AALiteral, String, or StructLiteral.
 /// This value will be used for in-place modification.
-Expression *copyLiteral(Expression *e);
+UnionExp copyLiteral(Expression *e);
 
 /// Set this literal to the given type, copying it if necessary
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
+UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit);
 
 /// Convert from a CTFE-internal slice, into a normal Expression
 Expression *resolveSlice(Expression *e);
@@ -177,7 +178,7 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
 /// Given array literal oldval of type ArrayLiteralExp or StringExp, of length
 /// oldlen, change its length to newlen. If the newlen is longer than oldlen,
 /// all new elements will be set to the default initializer for the element type.
-Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
+UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     Expression *oldval,  size_t oldlen, size_t newlen);
 
 
@@ -201,7 +202,7 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs);
 bool pointToSameMemoryBlock(Expression *agg1, Expression *agg2);
 
 // return e1 - e2 as an integer, or error if not possible
-Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2);
 
 /// Return 1 if true, 0 if false
 /// -1 if comparison is illegal because they point to non-comparable memory blocks
@@ -209,7 +210,7 @@ int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t of
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
 // and op is TOKadd or TOKmin
-Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
+UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
     Expression *eptr, Expression *e2);
 
 // True if conversion from type 'from' to 'to' involves a reinterpret_cast

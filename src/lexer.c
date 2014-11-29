@@ -2249,7 +2249,7 @@ TOK Lexer::inreal(Token *t)
             break;
 
         case 'l':
-            error("'l' suffix is deprecated, use 'L' instead");
+            error("use 'L' suffix instead of 'l'");
         case 'L':
             result = TOKfloat80v;
             p++;
@@ -2258,7 +2258,7 @@ TOK Lexer::inreal(Token *t)
     if (*p == 'i' || *p == 'I')
     {
         if (*p == 'I')
-            error("'I' suffix is deprecated, use 'i' instead");
+            error("use 'i' suffix instead of 'I'");
         p++;
         switch (result)
         {
