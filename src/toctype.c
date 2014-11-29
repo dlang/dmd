@@ -82,12 +82,13 @@ public:
 
         for (size_t i = 0; i < nparams; i++)
         {
-            Parameter *arg = Parameter::getNth(t->parameters, i);
-            type *tp = Type_toCtype(arg->type);
-            if (arg->storageClass & (STCout | STCref))
+            Parameter *p = Parameter::getNth(t->parameters, i);
+            type *tp = Type_toCtype(p->type);
+            if (p->storageClass & (STCout | STCref))
                 tp = type_allocn(TYref, tp);
-            else if (arg->storageClass & STClazy)
-            {   // Mangle as delegate
+            else if (p->storageClass & STClazy)
+            {
+                // Mangle as delegate
                 type *tf = type_function(TYnfunc, NULL, 0, false, tp);
                 tp = type_delegate(tf);
             }

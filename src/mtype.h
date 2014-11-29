@@ -943,13 +943,13 @@ public:
     int dyncast() { return DYNCAST_PARAMETER; }
     virtual void accept(Visitor *v) { v->visit(this); }
 
-    static Parameters *arraySyntaxCopy(Parameters *args);
-    static int isTPL(Parameters *arguments);
-    static size_t dim(Parameters *arguments);
-    static Parameter *getNth(Parameters *arguments, size_t nth, size_t *pn = NULL);
+    static Parameters *arraySyntaxCopy(Parameters *parameters);
+    static int isTPL(Parameters *parameters);
+    static size_t dim(Parameters *parameters);
+    static Parameter *getNth(Parameters *parameters, size_t nth, size_t *pn = NULL);
 
     typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
-    static int foreach(Parameters *args, ForeachDg dg, void *ctx, size_t *pn=NULL);
+    static int foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn=NULL);
 };
 
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);

@@ -1555,29 +1555,29 @@ Type *stripDefaultArgs(Type *t)
 {
   struct N
   {
-    static Parameters *stripParams(Parameters *arguments)
+    static Parameters *stripParams(Parameters *parameters)
     {
-        Parameters *args = arguments;
-        if (args && args->dim > 0)
+        Parameters *params = parameters;
+        if (params && params->dim > 0)
         {
-            for (size_t i = 0; i < args->dim; i++)
+            for (size_t i = 0; i < params->dim; i++)
             {
-                Parameter *a = (*args)[i];
-                Type *ta = stripDefaultArgs(a->type);
-                if (ta != a->type || a->defaultArg || a->ident)
+                Parameter *p = (*params)[i];
+                Type *ta = stripDefaultArgs(p->type);
+                if (ta != p->type || p->defaultArg || p->ident)
                 {
-                    if (args == arguments)
+                    if (params == parameters)
                     {
-                        args = new Parameters();
-                        args->setDim(arguments->dim);
-                        for (size_t j = 0; j < args->dim; j++)
-                            (*args)[j] = (*arguments)[j];
+                        params = new Parameters();
+                        params->setDim(parameters->dim);
+                        for (size_t j = 0; j < params->dim; j++)
+                            (*params)[j] = (*parameters)[j];
                     }
-                    (*args)[i] = new Parameter(a->storageClass, ta, NULL, NULL);
+                    (*params)[i] = new Parameter(p->storageClass, ta, NULL, NULL);
                 }
             }
         }
-        return args;
+        return params;
     }
   };
 
@@ -1588,11 +1588,11 @@ Type *stripDefaultArgs(Type *t)
     {
         TypeFunction *tf = (TypeFunction *)t;
         Type *tret = stripDefaultArgs(tf->next);
-        Parameters *args = N::stripParams(tf->parameters);
-        if (tret == tf->next && args == tf->parameters)
+        Parameters *params = N::stripParams(tf->parameters);
+        if (tret == tf->next && params == tf->parameters)
             goto Lnot;
         tf = (TypeFunction *)tf->copy();
-        tf->parameters = args;
+        tf->parameters = params;
         tf->next = tret;
         //printf("strip %s\n   <- %s\n", tf->toChars(), t->toChars());
         t = tf;
@@ -3623,10 +3623,13 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     }
 
     if (!n->isMutable())
+    {
         if (ident == Id::sort || ident == Id::reverse)
-        {   error(e->loc, "can only %s a mutable array", ident->toChars());
+        {
+            error(e->loc, "can only %s a mutable array", ident->toChars());
             goto Lerror;
         }
+    }
 
     if (ident == Id::reverse && (n->ty == Tchar || n->ty == Twchar))
     {
@@ -3635,12 +3638,13 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
 
         warning(e->loc, "use std.algorithm.reverse instead of .reverse property");
         int i = n->ty == Twchar;
-        if (!reverseFd[i]) {
-            Parameters *args = new Parameters;
+        if (!reverseFd[i])
+        {
+            Parameters *params = new Parameters;
             Type *next = n->ty == Twchar ? Type::twchar : Type::tchar;
             Type *arrty = next->arrayOf();
-            args->push(new Parameter(0, arrty, NULL, NULL));
-            reverseFd[i] = FuncDeclaration::genCfunc(args, arrty, reverseName[i]);
+            params->push(new Parameter(0, arrty, NULL, NULL));
+            reverseFd[i] = FuncDeclaration::genCfunc(params, arrty, reverseName[i]);
         }
 
         Expression *ec = new VarExp(Loc(), reverseFd[i]);
@@ -3657,12 +3661,13 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
 
         warning(e->loc, "use std.algorithm.sort instead of .sort property");
         int i = n->ty == Twchar;
-        if (!sortFd[i]) {
-            Parameters *args = new Parameters;
+        if (!sortFd[i])
+        {
+            Parameters *params = new Parameters;
             Type *next = n->ty == Twchar ? Type::twchar : Type::tchar;
             Type *arrty = next->arrayOf();
-            args->push(new Parameter(0, arrty, NULL, NULL));
-            sortFd[i] = FuncDeclaration::genCfunc(args, arrty, sortName[i]);
+            params->push(new Parameter(0, arrty, NULL, NULL));
+            sortFd[i] = FuncDeclaration::genCfunc(params, arrty, sortName[i]);
         }
 
         Expression *ec = new VarExp(Loc(), sortFd[i]);
@@ -3683,11 +3688,12 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         assert(size);
 
         static FuncDeclaration *adReverse_fd = NULL;
-        if (!adReverse_fd) {
-            Parameters* args = new Parameters;
-            args->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL));
-            args->push(new Parameter(0, Type::tsize_t, NULL, NULL));
-            adReverse_fd = FuncDeclaration::genCfunc(args, Type::tvoid->arrayOf(), Id::adReverse);
+        if (!adReverse_fd)
+        {
+            Parameters *params = new Parameters;
+            params->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL));
+            params->push(new Parameter(0, Type::tsize_t, NULL, NULL));
+            adReverse_fd = FuncDeclaration::genCfunc(params, Type::tvoid->arrayOf(), Id::adReverse);
         }
         fd = adReverse_fd;
 
@@ -3706,11 +3712,12 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expressions *arguments;
 
         warning(e->loc, "use std.algorithm.sort instead of .sort property");
-        if (!fd) {
-            Parameters* args = new Parameters;
-            args->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL));
-            args->push(new Parameter(0, Type::dtypeinfo->type, NULL, NULL));
-            fd = FuncDeclaration::genCfunc(args, Type::tvoid->arrayOf(), "_adSort");
+        if (!fd)
+        {
+            Parameters *params = new Parameters;
+            params->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL));
+            params->push(new Parameter(0, Type::dtypeinfo->type, NULL, NULL));
+            fd = FuncDeclaration::genCfunc(params, Type::tvoid->arrayOf(), "_adSort");
         }
         ec = new VarExp(Loc(), fd);
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
@@ -4015,8 +4022,8 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             {   error(loc, "tuple index %llu exceeds %u", d, tt->arguments->dim);
                 goto Lerror;
             }
-            Parameter *arg = (*tt->arguments)[(size_t)d];
-            return arg->type->addMod(this->mod);
+            Type *telem = (*tt->arguments)[(size_t)d]->type;
+            return telem->addMod(this->mod);
         }
         case Tfunction:
         case Tnone:
@@ -5164,18 +5171,19 @@ int Type::covariant(Type *t, StorageClass *pstc)
             goto Ldistinct;
 
         for (size_t i = 0; i < dim; i++)
-        {   Parameter *arg1 = Parameter::getNth(t1->parameters, i);
-            Parameter *arg2 = Parameter::getNth(t2->parameters, i);
+        {
+            Parameter *fparam1 = Parameter::getNth(t1->parameters, i);
+            Parameter *fparam2 = Parameter::getNth(t2->parameters, i);
 
-            if (!arg1->type->equals(arg2->type))
+            if (!fparam1->type->equals(fparam2->type))
             {
                 goto Ldistinct;
             }
             const StorageClass sc = STCref | STCin | STCout | STClazy;
-            if ((arg1->storageClass & sc) != (arg2->storageClass & sc))
+            if ((fparam1->storageClass & sc) != (fparam2->storageClass & sc))
                 inoutmismatch = 1;
             // We can add scope, but not subtract it
-            if (!(arg1->storageClass & STCscope) && (arg2->storageClass & STCscope))
+            if (!(fparam1->storageClass & STCscope) && (fparam2->storageClass & STCscope))
                 inoutmismatch = 1;
         }
     }
@@ -5309,13 +5317,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     TypeFunction *tf = (TypeFunction *)copy();
     if (parameters)
     {
-        tf->parameters = (Parameters *)parameters->copy();
+        tf->parameters = parameters->copy();
         for (size_t i = 0; i < parameters->dim; i++)
         {
-            Parameter *arg = (*parameters)[i];
-            Parameter *cpy = (Parameter *)mem.malloc(sizeof(Parameter));
-            memcpy((void*)cpy, (void*)arg, sizeof(Parameter));
-            (*tf->parameters)[i] = cpy;
+            Parameter *p = (Parameter *)mem.malloc(sizeof(Parameter));
+            memcpy((void *)p, (void *)(*parameters)[i], sizeof(Parameter));
+            (*tf->parameters)[i] = p;
         }
     }
 
@@ -8799,17 +8806,17 @@ Parameter *Parameter::syntaxCopy()
         defaultArg ? defaultArg->syntaxCopy() : NULL);
 }
 
-Parameters *Parameter::arraySyntaxCopy(Parameters *args)
+Parameters *Parameter::arraySyntaxCopy(Parameters *parameters)
 {
-    Parameters *a = NULL;
-    if (args)
+    Parameters *params = NULL;
+    if (parameters)
     {
-        a = new Parameters();
-        a->setDim(args->dim);
-        for (size_t i = 0; i < a->dim; i++)
-            (*a)[i] = (*args)[i]->syntaxCopy();
+        params = new Parameters();
+        params->setDim(parameters->dim);
+        for (size_t i = 0; i < params->dim; i++)
+            (*params)[i] = (*parameters)[i]->syntaxCopy();
     }
-    return a;
+    return params;
 }
 
 /****************************************
@@ -8817,17 +8824,17 @@ Parameters *Parameter::arraySyntaxCopy(Parameters *args)
  * (i.e. it has auto or alias parameters)
  */
 
-static int isTPLDg(void *ctx, size_t n, Parameter *arg)
+static int isTPLDg(void *ctx, size_t n, Parameter *p)
 {
-    if (arg->storageClass & (STCalias | STCauto | STCstatic))
+    if (p->storageClass & (STCalias | STCauto | STCstatic))
         return 1;
     return 0;
 }
 
-int Parameter::isTPL(Parameters *arguments)
+int Parameter::isTPL(Parameters *parameters)
 {
     //printf("Parameter::isTPL()\n");
-    return foreach(arguments, &isTPLDg, NULL);
+    return foreach(parameters, &isTPLDg, NULL);
 }
 
 /****************************************************
@@ -8870,10 +8877,10 @@ static int dimDg(void *ctx, size_t n, Parameter *)
     return 0;
 }
 
-size_t Parameter::dim(Parameters *args)
+size_t Parameter::dim(Parameters *parameters)
 {
     size_t n = 0;
-    foreach(args, &dimDg, &n);
+    foreach(parameters, &dimDg, &n);
     return n;
 }
 
@@ -8888,24 +8895,25 @@ size_t Parameter::dim(Parameters *args)
 struct GetNthParamCtx
 {
     size_t nth;
-    Parameter *arg;
+    Parameter *param;
 };
 
-static int getNthParamDg(void *ctx, size_t n, Parameter *arg)
+static int getNthParamDg(void *ctx, size_t n, Parameter *p)
 {
-    GetNthParamCtx *p = (GetNthParamCtx *)ctx;
-    if (n == p->nth)
-    {   p->arg = arg;
+    GetNthParamCtx *c = (GetNthParamCtx *)ctx;
+    if (n == c->nth)
+    {
+        c->param = p;
         return 1;
     }
     return 0;
 }
 
-Parameter *Parameter::getNth(Parameters *args, size_t nth, size_t *pn)
+Parameter *Parameter::getNth(Parameters *parameters, size_t nth, size_t *pn)
 {
     GetNthParamCtx ctx = { nth, NULL };
-    int res = foreach(args, &getNthParamDg, &ctx);
-    return res ? ctx.arg : NULL;
+    int res = foreach(parameters, &getNthParamDg, &ctx);
+    return res ? ctx.param : NULL;
 }
 
 /***************************************
@@ -8916,18 +8924,18 @@ Parameter *Parameter::getNth(Parameters *args, size_t nth, size_t *pn)
  * calculating dim and calling N times getNth.
  */
 
-int Parameter::foreach(Parameters *args, Parameter::ForeachDg dg, void *ctx, size_t *pn)
+int Parameter::foreach(Parameters *parameters, Parameter::ForeachDg dg, void *ctx, size_t *pn)
 {
     assert(dg);
-    if (!args)
+    if (!parameters)
         return 0;
 
     size_t n = pn ? *pn : 0; // take over index
     int result = 0;
-    for (size_t i = 0; i < args->dim; i++)
+    for (size_t i = 0; i < parameters->dim; i++)
     {
-        Parameter *arg = (*args)[i];
-        Type *t = arg->type->toBasetype();
+        Parameter *p = (*parameters)[i];
+        Type *t = p->type->toBasetype();
 
         if (t->ty == Ttuple)
         {
@@ -8935,7 +8943,7 @@ int Parameter::foreach(Parameters *args, Parameter::ForeachDg dg, void *ctx, siz
             result = foreach(tu->arguments, dg, ctx, &n);
         }
         else
-            result = dg(ctx, n++, arg);
+            result = dg(ctx, n++, p);
 
         if (result)
             break;

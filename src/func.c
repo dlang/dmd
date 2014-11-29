@@ -1057,11 +1057,11 @@ void FuncDeclaration::semantic(Scope *sc)
 
             case 1:
             {
-                Parameter *arg0 = Parameter::getNth(f->parameters, 0);
-                if (arg0->type->ty != Tarray ||
-                    arg0->type->nextOf()->ty != Tarray ||
-                    arg0->type->nextOf()->nextOf()->ty != Tchar ||
-                    arg0->storageClass & (STCout | STCref | STClazy))
+                Parameter *fparam0 = Parameter::getNth(f->parameters, 0);
+                if (fparam0->type->ty != Tarray ||
+                    fparam0->type->nextOf()->ty != Tarray ||
+                    fparam0->type->nextOf()->nextOf()->ty != Tchar ||
+                    fparam0->storageClass & (STCout | STCref | STClazy))
                     goto Lmainerr;
                 break;
             }
@@ -1121,13 +1121,14 @@ void FuncDeclaration::semantic(Scope *sc)
              *   __ensure(result);
              */
             Loc loc = fensure->loc;
-            Parameters *arguments = new Parameters();
-            Parameter *a = NULL;
+            Parameters *fparams = new Parameters();
+            Parameter *p = NULL;
             if (outId)
-            {   a = new Parameter(STCref | STCconst, f->nextOf(), outId, NULL);
-                arguments->push(a);
+            {
+                p = new Parameter(STCref | STCconst, f->nextOf(), outId, NULL);
+                fparams->push(p);
             }
-            TypeFunction *tf = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
+            TypeFunction *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd);
             tf->isnothrow = f->isnothrow;
             tf->isnogc = f->isnogc;
             tf->purity = f->purity;
@@ -1369,29 +1370,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
         }
 
-#if 0
-        // Propagate storage class from tuple parameters to their element-parameters.
-        if (f->parameters)
-        {
-            for (size_t i = 0; i < f->parameters->dim; i++)
-            {
-                Parameter *arg = (*f->parameters)[i];
-
-                //printf("[%d] arg->type->ty = %d %s\n", i, arg->type->ty, arg->type->toChars());
-                if (arg->type->ty == Ttuple)
-                {
-                    TypeTuple *t = (TypeTuple *)arg->type;
-                    size_t dim = Parameter::dim(t->arguments);
-                    for (size_t j = 0; j < dim; j++)
-                    {
-                        Parameter *narg = Parameter::getNth(t->arguments, j);
-                        narg->storageClass = arg->storageClass;
-                    }
-                }
-            }
-        }
-#endif
-
         /* Declare all the function parameters as variables
          * and install them in parameters[]
          */
@@ -1405,24 +1383,24 @@ void FuncDeclaration::semantic3(Scope *sc)
             parameters->reserve(nparams);
             for (size_t i = 0; i < nparams; i++)
             {
-                Parameter *arg = Parameter::getNth(f->parameters, i);
-                Identifier *id = arg->ident;
+                Parameter *fparam = Parameter::getNth(f->parameters, i);
+                Identifier *id = fparam->ident;
                 StorageClass stc = 0;
                 if (!id)
                 {
                     /* Generate identifier for un-named parameter,
                      * because we need it later on.
                      */
-                    arg->ident = id = Identifier::generateId("_param_", i);
+                    fparam->ident = id = Identifier::generateId("_param_", i);
                     stc |= STCtemp;
                 }
-                Type *vtype = arg->type;
+                Type *vtype = fparam->type;
                 VarDeclaration *v = new VarDeclaration(loc, vtype, id, NULL);
                 //printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
                 stc |= STCparameter;
                 if (f->varargs == 2 && i + 1 == nparams)
                     stc |= STCvariadic;
-                stc |= arg->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
+                stc |= fparam->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
                 v->storage_class = stc;
                 v->semantic(sc2);
                 if (!sc2->insert(v))
@@ -1440,13 +1418,13 @@ void FuncDeclaration::semantic3(Scope *sc)
         {
             for (size_t i = 0; i < f->parameters->dim; i++)
             {
-                Parameter *arg = (*f->parameters)[i];
+                Parameter *fparam = (*f->parameters)[i];
 
-                if (!arg->ident)
+                if (!fparam->ident)
                     continue;                   // never used, so ignore
-                if (arg->type->ty == Ttuple)
+                if (fparam->type->ty == Ttuple)
                 {
-                    TypeTuple *t = (TypeTuple *)arg->type;
+                    TypeTuple *t = (TypeTuple *)fparam->type;
                     size_t dim = Parameter::dim(t->arguments);
                     Objects *exps = new Objects();
                     exps->setDim(dim);
@@ -1459,8 +1437,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                         Expression *e = new VarExp(v->loc, v);
                         (*exps)[j] = e;
                     }
-                    assert(arg->ident);
-                    TupleDeclaration *v = new TupleDeclaration(loc, arg->ident, exps);
+                    assert(fparam->ident);
+                    TupleDeclaration *v = new TupleDeclaration(loc, fparam->ident, exps);
                     //printf("declaring tuple %s\n", v->toChars());
                     v->isexp = true;
                     if (!sc2->insert(v))
@@ -3918,12 +3896,12 @@ Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vt
  * Generate a FuncDeclaration for a runtime library function.
  */
 
-FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc)
+FuncDeclaration *FuncDeclaration::genCfunc(Parameters *fparams, Type *treturn, const char *name, StorageClass stc)
 {
-    return genCfunc(args, treturn, Lexer::idPool(name), stc);
+    return genCfunc(fparams, treturn, Lexer::idPool(name), stc);
 }
 
-FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc)
+FuncDeclaration *FuncDeclaration::genCfunc(Parameters *fparams, Type *treturn, Identifier *id, StorageClass stc)
 {
     FuncDeclaration *fd;
     TypeFunction *tf;
@@ -3945,7 +3923,7 @@ FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, Iden
     }
     else
     {
-        tf = new TypeFunction(args, treturn, 0, LINKc, stc);
+        tf = new TypeFunction(fparams, treturn, 0, LINKc, stc);
         fd = new FuncDeclaration(Loc(), Loc(), id, STCstatic, tf);
         fd->protection = Prot(PROTpublic);
         fd->linkage = LINKc;
@@ -4233,7 +4211,8 @@ bool FuncDeclaration::hasNestedFrameRefs()
  */
 
 Parameters *FuncDeclaration::getParameters(int *pvarargs)
-{   Parameters *fparameters = NULL;
+{
+    Parameters *fparameters = NULL;
     int fvarargs = 0;
 
     if (type)
@@ -5011,10 +4990,10 @@ bool UnitTestDeclaration::addPostInvariant()
 
 /********************************* NewDeclaration ****************************/
 
-NewDeclaration::NewDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments, int varargs)
+NewDeclaration::NewDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *fparams, int varargs)
     : FuncDeclaration(loc, endloc, Id::classNew, STCstatic | stc, NULL)
 {
-    this->arguments = arguments;
+    this->parameters = fparams;
     this->varargs = varargs;
 }
 
@@ -5022,7 +5001,7 @@ Dsymbol *NewDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
     NewDeclaration *f = new NewDeclaration(loc, endloc,
-        storage_class, Parameter::arraySyntaxCopy(arguments), varargs);
+        storage_class, Parameter::arraySyntaxCopy(parameters), varargs);
     return FuncDeclaration::syntaxCopy(f);
 }
 
@@ -5045,7 +5024,7 @@ void NewDeclaration::semantic(Scope *sc)
     }
     Type *tret = Type::tvoid->pointerTo();
     if (!type)
-        type = new TypeFunction(arguments, tret, varargs, LINKd, storage_class);
+        type = new TypeFunction(parameters, tret, varargs, LINKd, storage_class);
 
     type = type->semantic(loc, sc);
     assert(type->ty == Tfunction);
@@ -5058,9 +5037,9 @@ void NewDeclaration::semantic(Scope *sc)
     }
     else
     {
-        Parameter *a = Parameter::getNth(tf->parameters, 0);
-        if (!a->type->equals(Type::tsize_t))
-            error("first argument must be type size_t, not %s", a->type->toChars());
+        Parameter *p = Parameter::getNth(tf->parameters, 0);
+        if (!p->type->equals(Type::tsize_t))
+            error("first argument must be type size_t, not %s", p->type->toChars());
     }
 
     FuncDeclaration::semantic(sc);
@@ -5088,17 +5067,17 @@ bool NewDeclaration::addPostInvariant()
 
 /********************************* DeleteDeclaration ****************************/
 
-DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments)
+DeleteDeclaration::DeleteDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *fparams)
     : FuncDeclaration(loc, endloc, Id::classDelete, STCstatic | stc, NULL)
 {
-    this->arguments = arguments;
+    this->parameters = fparams;
 }
 
 Dsymbol *DeleteDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
     DeleteDeclaration *f = new DeleteDeclaration(loc, endloc,
-            storage_class, Parameter::arraySyntaxCopy(arguments));
+            storage_class, Parameter::arraySyntaxCopy(parameters));
     return FuncDeclaration::syntaxCopy(f);
 }
 
@@ -5120,7 +5099,7 @@ void DeleteDeclaration::semantic(Scope *sc)
         error("new allocators only are for class or struct definitions");
     }
     if (!type)
-        type = new TypeFunction(arguments, Type::tvoid, 0, LINKd, storage_class);
+        type = new TypeFunction(parameters, Type::tvoid, 0, LINKd, storage_class);
 
     type = type->semantic(loc, sc);
     assert(type->ty == Tfunction);
@@ -5133,9 +5112,9 @@ void DeleteDeclaration::semantic(Scope *sc)
     }
     else
     {
-        Parameter *a = Parameter::getNth(tf->parameters, 0);
-        if (!a->type->equals(Type::tvoid->pointerTo()))
-            error("one argument of type void* expected, not %s", a->type->toChars());
+        Parameter *p = Parameter::getNth(tf->parameters, 0);
+        if (!p->type->equals(Type::tvoid->pointerTo()))
+            error("one argument of type void* expected, not %s", p->type->toChars());
     }
 
     FuncDeclaration::semantic(sc);

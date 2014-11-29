@@ -856,7 +856,7 @@ public:
 class NewDeclaration : public FuncDeclaration
 {
 public:
-    Parameters *arguments;
+    Parameters *parameters;
     int varargs;
 
     NewDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments, int varargs);
@@ -875,7 +875,7 @@ public:
 class DeleteDeclaration : public FuncDeclaration
 {
 public:
-    Parameters *arguments;
+    Parameters *parameters;
 
     DeleteDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);

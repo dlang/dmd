@@ -262,8 +262,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         TOK tok = (t->ty == Tdelegate) ? TOKdelegate : TOKfunction;
         /* Rewrite as empty delegate literal { }
          */
-        Parameters *arguments = new Parameters;
-        Type *tf = new TypeFunction(arguments, NULL, 0, LINKd);
+        Parameters *parameters = new Parameters;
+        Type *tf = new TypeFunction(parameters, NULL, 0, LINKd);
         FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf, tok, NULL);
         fd->fbody = new CompoundStatement(loc, new Statements());
         fd->endloc = loc;

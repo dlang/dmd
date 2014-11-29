@@ -138,7 +138,7 @@ public:
         /* Can't declare variables inside ?: expressions, so
          * we cannot inline if a variable is declared.
          */
-        if (s->arg)
+        if (s->prm)
         {
             cost = COST_MAX;
             return;
@@ -479,7 +479,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
 
         void visit(IfStatement *s)
         {
-            assert(!s->arg);
+            assert(!s->prm);
 
             Expression *condition = s->condition ? doInline(s->condition, ids) : NULL;
             Statement *ifbody = s->ifbody ? inlineAsStatement(s->ifbody, ids) : NULL;
@@ -488,7 +488,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
             Statement *elsebody = s->elsebody ? inlineAsStatement(s->elsebody, ids) : NULL;
             ids->foundReturn = ids->foundReturn && bodyReturn;
 
-            result = new IfStatement(s->loc, s->arg, condition, ifbody, elsebody);
+            result = new IfStatement(s->loc, s->prm, condition, ifbody, elsebody);
         }
 
         void visit(ReturnStatement *s)
@@ -597,7 +597,7 @@ Expression *doInline(Statement *s, InlineDoState *ids)
 
         void visit(IfStatement *s)
         {
-            assert(!s->arg);
+            assert(!s->prm);
             Expression *econd = doInline(s->condition, ids);
             assert(econd);
             Expression *e1 = s->ifbody ? doInline(s->ifbody, ids) : NULL;

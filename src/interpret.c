@@ -6544,8 +6544,8 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
     size_t numParams = fd->parameters->dim;
     assert(numParams == 1 || numParams == 2);
 
-    Parameter *valueArg = Parameter::getNth(((TypeFunction *)fd->type)->parameters, numParams - 1);
-    bool wantRefValue = 0 != (valueArg->storageClass & (STCout | STCref));
+    Parameter *fparam = Parameter::getNth(((TypeFunction *)fd->type)->parameters, numParams - 1);
+    bool wantRefValue = 0 != (fparam->storageClass & (STCout | STCref));
 
     Expressions args;
     args.setDim(numParams);

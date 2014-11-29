@@ -1251,12 +1251,12 @@ FuncDeclaration *ScopeDsymbol::findGetMembers()
     if (!tfgetmembers)
     {
         Scope sc;
-        Parameters *arguments = new Parameters;
-        Parameters *arg = new Parameter(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
-        arguments->push(arg);
+        Parameters *parameters = new Parameters;
+        Parameters *p = new Parameter(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
+        parameters->push(p);
 
         Type *tret = NULL;
-        tfgetmembers = new TypeFunction(arguments, tret, 0, LINKd);
+        tfgetmembers = new TypeFunction(parameters, tret, 0, LINKd);
         tfgetmembers = (TypeFunction *)tfgetmembers->semantic(Loc(), &sc);
     }
     if (fdx)

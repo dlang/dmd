@@ -1830,7 +1830,7 @@ Dsymbol *Parser::parseUnitTest(PrefixAttributes *pAttrs)
 
 /*****************************************
  * Parse a new definition:
- *      new(arguments) { body }
+ *      new(parameters) { body }
  * Current token is 'new'.
  */
 
@@ -1842,8 +1842,8 @@ Dsymbol *Parser::parseNew(PrefixAttributes *pAttrs)
     nextToken();
 
     int varargs;
-    Parameters *arguments = parseParameters(&varargs);
-    NewDeclaration *f = new NewDeclaration(loc, Loc(), stc, arguments, varargs);
+    Parameters *parameters = parseParameters(&varargs);
+    NewDeclaration *f = new NewDeclaration(loc, Loc(), stc, parameters, varargs);
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
@@ -1852,7 +1852,7 @@ Dsymbol *Parser::parseNew(PrefixAttributes *pAttrs)
 
 /*****************************************
  * Parse a delete definition:
- *      delete(arguments) { body }
+ *      delete(parameters) { body }
  * Current token is 'delete'.
  */
 
@@ -1864,10 +1864,10 @@ Dsymbol *Parser::parseDelete(PrefixAttributes *pAttrs)
     nextToken();
 
     int varargs;
-    Parameters *arguments = parseParameters(&varargs);
+    Parameters *parameters = parseParameters(&varargs);
     if (varargs)
         error("... not allowed in delete function parameter list");
-    DeleteDeclaration *f = new DeleteDeclaration(loc, Loc(), stc, arguments);
+    DeleteDeclaration *f = new DeleteDeclaration(loc, Loc(), stc, parameters);
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
     Dsymbol *s = parseContracts(f);
@@ -1880,7 +1880,7 @@ Dsymbol *Parser::parseDelete(PrefixAttributes *pAttrs)
 
 Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
 {
-    Parameters *arguments = new Parameters();
+    Parameters *parameters = new Parameters();
     int varargs = 0;
     int hasdefault = 0;
 
@@ -1889,7 +1889,6 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
     {
         Identifier *ai = NULL;
         Type *at;
-        Parameter *a;
         StorageClass storageClass = 0;
         StorageClass stc;
         Expression *ae;
@@ -2017,13 +2016,11 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         if (storageClass & (STCout | STCref))
                             error("variadic argument cannot be out or ref");
                         varargs = 2;
-                        a = new Parameter(storageClass, at, ai, ae);
-                        arguments->push(a);
+                        parameters->push(new Parameter(storageClass, at, ai, ae));
                         nextToken();
                         break;
                     }
-                    a = new Parameter(storageClass, at, ai, ae);
-                    arguments->push(a);
+                    parameters->push(new Parameter(storageClass, at, ai, ae));
                     if (token.value == TOKcomma)
                     {   nextToken();
                         goto L1;
@@ -2039,7 +2036,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
     }
     check(TOKrparen);
     *pvarargs = varargs;
-    return arguments;
+    return parameters;
 }
 
 
@@ -3197,15 +3194,14 @@ Type *Parser::parseBasicType2(Type *t)
                 // Handle delegate declaration:
                 //      t delegate(parameter list) nothrow pure
                 //      t function(parameter list) nothrow pure
-                Parameters *arguments;
-                int varargs;
                 TOK save = token.value;
-
                 nextToken();
-                arguments = parseParameters(&varargs);
+
+                int varargs;
+                Parameters *parameters = parseParameters(&varargs);
 
                 StorageClass stc = parsePostfix(STCundefined, NULL);
-                TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
+                TypeFunction *tf = new TypeFunction(parameters, t, varargs, linkage, stc);
                 if (stc & (STCconst | STCimmutable | STCshared | STCwild))
                 {
                     if (save == TOKfunction)
@@ -3369,13 +3365,13 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
                 }
 
                 int varargs;
-                Parameters *arguments = parseParameters(&varargs);
+                Parameters *parameters = parseParameters(&varargs);
 
                 /* Parse const/immutable/shared/inout/nothrow/pure postfix
                  */
                 StorageClass stc = parsePostfix(storageClass, pudas);
                                         // merge prefix storage classes
-                Type *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
+                Type *tf = new TypeFunction(parameters, t, varargs, linkage, stc);
                 tf = tf->addSTC(stc);
                 if (pdisable)
                     *pdisable = stc & STCdisable ? 1 : 0;
@@ -4800,7 +4796,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             nextToken();
             check(TOKlparen);
 
-            Parameters *arguments = new Parameters();
+            Parameters *parameters = new Parameters();
 
             while (1)
             {
@@ -4866,8 +4862,8 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 if (!ai)
                     error("no identifier for declarator %s", at->toChars());
               Larg:
-                Parameter *a = new Parameter(storageClass, at, ai, NULL);
-                arguments->push(a);
+                Parameter *p = new Parameter(storageClass, at, ai, NULL);
+                parameters->push(p);
                 if (token.value == TOKcomma)
                 {   nextToken();
                     continue;
@@ -4877,28 +4873,28 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             check(TOKsemicolon);
 
             Expression *aggr = parseExpression();
-            if (token.value == TOKslice && arguments->dim == 1)
+            if (token.value == TOKslice && parameters->dim == 1)
             {
-                Parameter *a = (*arguments)[0];
-                delete arguments;
+                Parameter *p = (*parameters)[0];
+                delete parameters;
                 nextToken();
                 Expression *upr = parseExpression();
                 check(TOKrparen);
                 Statement *body = parseStatement(0);
-                s = new ForeachRangeStatement(loc, op, a, aggr, upr, body);
+                s = new ForeachRangeStatement(loc, op, p, aggr, upr, body);
             }
             else
             {
                 check(TOKrparen);
                 Statement *body = parseStatement(0);
-                s = new ForeachStatement(loc, op, arguments, aggr, body);
+                s = new ForeachStatement(loc, op, parameters, aggr, body);
             }
             break;
         }
 
         case TOKif:
         {
-            Parameter *arg = NULL;
+            Parameter *param = NULL;
             Expression *condition;
 
             nextToken();
@@ -4957,17 +4953,17 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 peek(&token)->value == TOKassign)
             {
                 Identifier *ai = token.ident;
-                Type *at = NULL;        // infer argument type
+                Type *at = NULL;        // infer parameter type
                 nextToken();
                 check(TOKassign);
-                arg = new Parameter(storageClass, at, ai, NULL);
+                param = new Parameter(storageClass, at, ai, NULL);
             }
             else if (storageClass == 0 &&
                      token.value == TOKidentifier &&
                      peek(&token)->value == TOKsemicolon)
             {
                 // Check for " ident;"
-                arg = new Parameter(0, NULL, token.ident, NULL);
+                param = new Parameter(0, NULL, token.ident, NULL);
                 nextToken();
                 nextToken();
                 error("use 'if (auto v = e)' instead of 'if (v; e)'");
@@ -4977,7 +4973,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 Identifier *ai;
                 Type *at = parseType(&ai);
                 check(TOKassign);
-                arg = new Parameter(storageClass, at, ai, NULL);
+                param = new Parameter(storageClass, at, ai, NULL);
             }
 
             condition = parseExpression();
@@ -5000,7 +4996,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             else
                 elsebody = NULL;
             if (condition && ifbody)
-                s = new IfStatement(loc, arg, condition, ifbody, elsebody);
+                s = new IfStatement(loc, param, condition, ifbody, elsebody);
             else
                 s = NULL;               // don't propagate parsing errors
             break;
