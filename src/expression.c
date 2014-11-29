@@ -9898,11 +9898,15 @@ Lagain:
     if (t->ty == Tpointer)
     {
         if (!lwr || !upr)
-        {   error("need upper and lower bound to slice pointer");
+        {
+            error("need upper and lower bound to slice pointer");
             return new ErrorExp();
         }
         if (sc->func && !sc->intypeof && sc->func->setUnsafe())
+        {
             error("pointer slicing not allowed in safe functions");
+            return new ErrorExp();
+        }
     }
     else if (t->ty == Tarray)
     {
@@ -9945,12 +9949,15 @@ Lagain:
         if (!lwr && !upr)
             return e1;
         if (!lwr || !upr)
-        {   error("need upper and lower bound to slice tuple");
-            goto Lerror;
+        {
+            error("need upper and lower bound to slice tuple");
+            return new ErrorExp();
         }
     }
     else if (t == Type::terror)
-        goto Lerr;
+    {
+        return new ErrorExp();
+    }
     else
     {
     Lerror:
@@ -9958,9 +9965,7 @@ Lagain:
             return e1;
         error("%s cannot be sliced with []",
             t->ty == Tvoid ? e1->toChars() : t->toChars());
-    Lerr:
-        e = new ErrorExp();
-        return e;
+        return new ErrorExp();
     }
 
     {
@@ -9994,7 +9999,7 @@ Lagain:
     if (lwr && lwr->type == Type::terror ||
         upr && upr->type == Type::terror)
     {
-        goto Lerr;
+        return new ErrorExp();
     }
     }
 
@@ -10023,35 +10028,36 @@ Lagain:
         else
             assert(0);
 
-        if (i1 <= i2 && i2 <= length)
-        {   size_t j1 = (size_t) i1;
-            size_t j2 = (size_t) i2;
+        if (i2 < i1 || length < i2)
+        {
+            error("string slice [%llu .. %llu] is out of bounds", i1, i2);
+            return new ErrorExp();
+        }
 
-            if (e1->op == TOKtuple)
-            {   Expressions *exps = new Expressions;
-                exps->setDim(j2 - j1);
-                for (size_t i = 0; i < j2 - j1; i++)
-                {
-                    (*exps)[i] = (*te->exps)[j1 + i];
-                }
-                e = new TupleExp(loc, te->e0, exps);
+        size_t j1 = (size_t) i1;
+        size_t j2 = (size_t) i2;
+        if (e1->op == TOKtuple)
+        {
+            Expressions *exps = new Expressions;
+            exps->setDim(j2 - j1);
+            for (size_t i = 0; i < j2 - j1; i++)
+            {
+                (*exps)[i] = (*te->exps)[j1 + i];
             }
-            else
-            {   Parameters *args = new Parameters;
-                args->reserve(j2 - j1);
-                for (size_t i = j1; i < j2; i++)
-                {   Parameter *arg = Parameter::getNth(tup->arguments, i);
-                    args->push(arg);
-                }
-                e = new TypeExp(e1->loc, new TypeTuple(args));
-            }
-            e = e->semantic(sc);
+            e = new TupleExp(loc, te->e0, exps);
         }
         else
         {
-            error("string slice [%llu .. %llu] is out of bounds", i1, i2);
-            goto Lerr;
+            Parameters *args = new Parameters;
+            args->reserve(j2 - j1);
+            for (size_t i = j1; i < j2; i++)
+            {
+                Parameter *arg = Parameter::getNth(tup->arguments, i);
+                args->push(arg);
+            }
+            e = new TypeExp(e1->loc, new TypeTuple(args));
         }
+        e = e->semantic(sc);
         return e;
     }
 
@@ -10528,6 +10534,8 @@ Expression *IndexExp::semantic(Scope *sc)
     }
     if (e1->op == TOKerror)
         return e1;
+    if (e1->type->ty == Terror)
+        return new ErrorExp();
 
     Expression *e = this;
 
@@ -10634,33 +10642,26 @@ Expression *IndexExp::semantic(Scope *sc)
             else
                 assert(0);
 
-            if (index < length)
-            {
-
-                if (e1->op == TOKtuple)
-                {
-                    e = (*te->exps)[(size_t)index];
-                    e = combine(te->e0, e);
-                }
-                else
-                    e = new TypeExp(e1->loc, Parameter::getNth(tup->arguments, (size_t)index)->type);
-            }
-            else
+            if (length <= index)
             {
                 error("array index [%llu] is outside array bounds [0 .. %llu]",
                         index, (ulonglong)length);
                 return new ErrorExp();
             }
-            break;
+
+            if (e1->op == TOKtuple)
+            {
+                e = (*te->exps)[(size_t)index];
+                e = combine(te->e0, e);
+            }
+            else
+                e = new TypeExp(e1->loc, Parameter::getNth(tup->arguments, (size_t)index)->type);
+            return e;
         }
 
         default:
-            if (e1->op == TOKerror)
-                return e1;
             error("%s must be an array or pointer type, not %s",
                 e1->toChars(), e1->type->toChars());
-        case Terror:
-        Lerror:
             return new ErrorExp();
     }
 
