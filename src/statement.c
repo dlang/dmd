@@ -4879,7 +4879,7 @@ bool GotoStatement::checkLabel()
                 error("cannot goto in to %s block", Token::toChars(label->statement->os->tok));
             else
             {
-                assert(0); // because of NULL in os
+                assert(os);
                 error("cannot goto out of %s block", Token::toChars(os->tok));
             }
             return true;
