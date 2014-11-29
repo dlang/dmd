@@ -412,6 +412,21 @@ void test8()
 }
 
 /**********************************************/
+// 13220
+
+enum E13220a;
+@(1) enum E13220b;
+
+void test13220()
+{
+    auto prot = __traits(getProtection, E13220a);
+    assert(prot == "public");
+
+    auto udas = __traits(getAttributes, E13220b);
+    assert(udas[0] == 1);
+}
+
+/**********************************************/
 
 int main()
 {
@@ -425,6 +440,7 @@ int main()
     test10113();
     test10561();
     test8();
+    test13220();
 
     printf("Success\n");
     return 0;

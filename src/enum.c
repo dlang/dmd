@@ -99,9 +99,6 @@ void EnumDeclaration::semantic(Scope *sc)
 {
     //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc->scopesym, sc->scopesym->toChars(), toChars());
     //printf("EnumDeclaration::semantic() %p %s\n", this, toChars());
-    if (!members && !memtype)               // enum ident;
-        return;
-
     if (semanticRun >= PASSsemanticdone)
         return;             // semantic() already completed
     if (semanticRun == PASSsemantic)
@@ -112,10 +109,7 @@ void EnumDeclaration::semantic(Scope *sc)
         semanticRun = PASSsemanticdone;
         return;
     }
-    semanticRun = PASSsemantic;
-
-    if (!symtab)
-        symtab = new DsymbolTable();
+    unsigned dprogress_save = Module::dprogress;
 
     Scope *scx = NULL;
     if (scope)
@@ -125,14 +119,24 @@ void EnumDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
-    unsigned dprogress_save = Module::dprogress;
+    parent = sc->parent;
+    type = type->semantic(loc, sc);
 
+    protection = sc->protection;
     if (sc->stc & STCdeprecated)
         isdeprecated = true;
     userAttribDecl = sc->userAttribDecl;
 
-    parent = sc->parent;
-    protection = sc->protection;
+    semanticRun = PASSsemantic;
+
+    if (!members && !memtype)               // enum ident;
+    {
+        semanticRun = PASSsemanticdone;
+        return;
+    }
+
+    if (!symtab)
+        symtab = new DsymbolTable();
 
     /* The separate, and distinct, cases are:
      *  1. enum { ... }
@@ -142,8 +146,6 @@ void EnumDeclaration::semantic(Scope *sc)
      *  5. enum ident : memtype;
      *  6. enum ident;
      */
-
-    type = type->semantic(loc, sc);
 
     if (memtype)
     {
@@ -244,8 +246,10 @@ void EnumDeclaration::semantic(Scope *sc)
             }
         }
         else
+        {
             // Otherwise enum members are in the EnumDeclaration's symbol table
             scopesym = this;
+        }
 
         for (size_t i = 0; i < members->dim; i++)
         {
