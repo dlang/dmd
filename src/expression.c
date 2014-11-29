@@ -9968,39 +9968,39 @@ Lagain:
         return new ErrorExp();
     }
 
-    {
-    Scope *sc2 = sc;
+    /* Run semantic on lwr and upr.
+     */
+    Scope *scx = sc;
     if (t->ty == Tsarray || t->ty == Tarray || t->ty == Ttuple)
     {
+        // Create scope for 'length' variable
         sym = new ArrayScopeSymbol(sc, this);
         sym->loc = loc;
         sym->parent = sc->scopesym;
-        sc2 = sc->push(sym);
+        sc = sc->push(sym);
     }
-
     if (lwr)
     {
-        if (t->ty == Ttuple) sc2 = sc2->startCTFE();
-        lwr = lwr->semantic(sc2);
-        lwr = resolveProperties(sc2, lwr);
-        if (t->ty == Ttuple) sc2 = sc2->endCTFE();
-        lwr = lwr->implicitCastTo(sc2, Type::tsize_t);
+        if (t->ty == Ttuple) sc = sc->startCTFE();
+        lwr = lwr->semantic(sc);
+        lwr = resolveProperties(sc, lwr);
+        if (t->ty == Ttuple) sc = sc->endCTFE();
+        lwr = lwr->implicitCastTo(sc, Type::tsize_t);
     }
     if (upr)
     {
-        if (t->ty == Ttuple) sc2 = sc2->startCTFE();
-        upr = upr->semantic(sc2);
-        upr = resolveProperties(sc2, upr);
-        if (t->ty == Ttuple) sc2 = sc2->endCTFE();
-        upr = upr->implicitCastTo(sc2, Type::tsize_t);
+        if (t->ty == Ttuple) sc = sc->startCTFE();
+        upr = upr->semantic(sc);
+        upr = resolveProperties(sc, upr);
+        if (t->ty == Ttuple) sc = sc->endCTFE();
+        upr = upr->implicitCastTo(sc, Type::tsize_t);
     }
-    if (sc2 != sc)
-        sc2->pop();
+    if (sc != scx)
+        sc = sc->pop();
     if (lwr && lwr->type == Type::terror ||
         upr && upr->type == Type::terror)
     {
         return new ErrorExp();
-    }
     }
 
     if (t->ty == Ttuple)
@@ -10543,6 +10543,9 @@ Expression *IndexExp::semantic(Scope *sc)
 
     Type *t1 = e1->type->toBasetype();
 
+    /* Run semantic on e2
+     */
+    Scope *scx = sc;
     if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
     {
         // Create scope for 'length' variable
@@ -10551,17 +10554,13 @@ Expression *IndexExp::semantic(Scope *sc)
         sym->parent = sc->scopesym;
         sc = sc->push(sym);
     }
-
     if (t1->ty == Ttuple) sc = sc->startCTFE();
     e2 = e2->semantic(sc);
     e2 = resolveProperties(sc, e2);
     if (t1->ty == Ttuple) sc = sc->endCTFE();
-    if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps &&
-        ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
-    {
-        e2 = (*((TupleExp *)e2)->exps)[0];
-    }
-    if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
+    if (e2->op == TOKtuple && ((TupleExp *)e2)->exps && ((TupleExp *)e2)->exps->dim == 1)
+        e2 = (*((TupleExp *)e2)->exps)[0];  // bug 4444 fix
+    if (sc != scx)
         sc = sc->pop();
     if (e2->type == Type::terror)
         return new ErrorExp();
