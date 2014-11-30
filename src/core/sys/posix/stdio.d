@@ -219,6 +219,16 @@ version( linux )
     int    putc_unlocked(int, FILE*);
     int    putchar_unlocked(int);
 }
+else version( Solaris )
+{
+    void   flockfile(FILE*);
+    int    ftrylockfile(FILE*);
+    void   funlockfile(FILE*);
+    int    getc_unlocked(FILE*);
+    int    getchar_unlocked();
+    int    putc_unlocked(int, FILE*);
+    int    putchar_unlocked(int);
+}
 
 //
 // XOpen (XSI)
@@ -241,6 +251,10 @@ version( OSX )
     enum P_tmpdir  = "/var/tmp";
 }
 version( FreeBSD )
+{
+    enum P_tmpdir  = "/var/tmp/";
+}
+version( Solaris )
 {
     enum P_tmpdir  = "/var/tmp/";
 }

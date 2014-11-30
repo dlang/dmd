@@ -791,6 +791,22 @@ version( OSX )
     int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int);
     int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int);
 }
+else version( Solaris )
+{
+    enum
+    {
+        PTHREAD_PRIO_NONE    = 0x00,
+        PTHREAD_PRIO_INHERIT = 0x10,
+        PTHREAD_PRIO_PROTECT = 0x20,
+    }
+
+    int pthread_mutex_getprioceiling(in pthread_mutex_t*, int*);
+    int pthread_mutex_setprioceiling(pthread_mutex_t*, int, int*);
+    int pthread_mutexattr_getprioceiling(in pthread_mutexattr_t*, int*);
+    int pthread_mutexattr_getprotocol(in pthread_mutexattr_t*, int*);
+    int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int);
+    int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int);
+}
 
 //
 // Scheduling (TPS)

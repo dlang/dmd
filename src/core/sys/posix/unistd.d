@@ -975,6 +975,10 @@ version( linux )
 {
     int fdatasync(int) @trusted;
 }
+else version( Solaris )
+{
+    int fdatasync(int) @trusted;
+}
 else version( Android )
 {
     int fdatasync(int) @trusted;

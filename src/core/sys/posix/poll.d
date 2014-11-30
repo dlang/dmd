@@ -143,6 +143,33 @@ else version( FreeBSD )
 
     int poll(pollfd*, nfds_t, int);
 }
+else version( Solaris )
+{
+    alias c_ulong nfds_t;
+
+    struct pollfd
+    {
+        int     fd;
+        short   events;
+        short   revents;
+    }
+
+    enum
+    {
+        POLLIN      = 0x0001,
+        POLLPRI     = 0x0002,
+        POLLOUT     = 0x0004,
+        POLLRDNORM  = 0x0040,
+        POLLWRNORM  = POLLOUT,
+        POLLRDBAND  = 0x0080,
+        POLLWRBAND  = 0x0100,
+        POLLERR     = 0x0008,
+        POLLHUP     = 0x0010,
+        POLLNVAL    = 0x0020,
+    }
+
+    int poll(pollfd*, nfds_t, int);
+}
 else version( Android )
 {
     struct pollfd
