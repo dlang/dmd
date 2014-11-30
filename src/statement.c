@@ -1552,12 +1552,12 @@ bool ForStatement::hasContinue()
 
 /******************************** ForeachStatement ***************************/
 
-ForeachStatement::ForeachStatement(Loc loc, TOK op, Parameters *arguments,
+ForeachStatement::ForeachStatement(Loc loc, TOK op, Parameters *parameters,
         Expression *aggr, Statement *body)
     : Statement(loc)
 {
     this->op = op;
-    this->arguments = arguments;
+    this->parameters = parameters;
     this->aggr = aggr;
     this->body = body;
 
@@ -1573,7 +1573,7 @@ ForeachStatement::ForeachStatement(Loc loc, TOK op, Parameters *arguments,
 Statement *ForeachStatement::syntaxCopy()
 {
     return new ForeachStatement(loc, op,
-        Parameter::arraySyntaxCopy(arguments),
+        Parameter::arraySyntaxCopy(parameters),
         aggr->syntaxCopy(),
         body ? body->syntaxCopy() : NULL);
 }
@@ -1583,7 +1583,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     //printf("ForeachStatement::semantic() %p\n", this);
     ScopeDsymbol *sym;
     Statement *s = this;
-    size_t dim = arguments->dim;
+    size_t dim = parameters->dim;
     TypeAArray *taa = NULL;
     Dsymbol *sapply = NULL;
 
@@ -1639,7 +1639,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             }
         }
 
-        //printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
+        //printf("dim = %d, parameters->dim = %d\n", dim, parameters->dim);
         if (foundMismatch && dim != foreachParamCount)
         {
             const char *plural = foreachParamCount > 1 ? "s" : "";
@@ -1662,11 +1662,11 @@ Statement *ForeachStatement::semantic(Scope *sc)
             return new ErrorStatement();
         }
 
-        Type *argtype = (*arguments)[dim-1]->type;
-        if (argtype)
+        Type *paramtype = (*parameters)[dim-1]->type;
+        if (paramtype)
         {
-            argtype = argtype->semantic(loc, sc);
-            if (argtype->ty == Terror)
+            paramtype = paramtype->semantic(loc, sc);
+            if (paramtype->ty == Terror)
                 return new ErrorStatement();
         }
 
@@ -1695,47 +1695,47 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 e = (*te->exps)[k];
             else
                 t = Parameter::getNth(tuple->arguments, k)->type;
-            Parameter *arg = (*arguments)[0];
+            Parameter *p = (*parameters)[0];
             Statements *st = new Statements();
 
             if (dim == 2)
             {
                 // Declare key
-                if (arg->storageClass & (STCout | STCref | STClazy))
+                if (p->storageClass & (STCout | STCref | STClazy))
                 {
-                    error("no storage class for key %s", arg->ident->toChars());
+                    error("no storage class for key %s", p->ident->toChars());
                     return new ErrorStatement();
                 }
-                arg->type = arg->type->semantic(loc, sc);
-                TY keyty = arg->type->ty;
+                p->type = p->type->semantic(loc, sc);
+                TY keyty = p->type->ty;
                 if (keyty != Tint32 && keyty != Tuns32)
                 {
                     if (global.params.is64bit)
                     {
                         if (keyty != Tint64 && keyty != Tuns64)
                         {
-                            error("foreach: key type must be int or uint, long or ulong, not %s", arg->type->toChars());
+                            error("foreach: key type must be int or uint, long or ulong, not %s", p->type->toChars());
                             return new ErrorStatement();
                         }
                     }
                     else
                     {
-                        error("foreach: key type must be int or uint, not %s", arg->type->toChars());
+                        error("foreach: key type must be int or uint, not %s", p->type->toChars());
                         return new ErrorStatement();
                     }
                 }
                 Initializer *ie = new ExpInitializer(Loc(), new IntegerExp(k));
-                VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, ie);
+                VarDeclaration *var = new VarDeclaration(loc, p->type, p->ident, ie);
                 var->storage_class |= STCmanifest;
                 DeclarationExp *de = new DeclarationExp(loc, var);
                 st->push(new ExpStatement(loc, de));
-                arg = (*arguments)[1];  // value
+                p = (*parameters)[1];  // value
             }
             // Declare value
-            if (arg->storageClass & (STCout | STClazy) ||
-                arg->storageClass & STCref && !te)
+            if (p->storageClass & (STCout | STClazy) ||
+                p->storageClass & STCref && !te)
             {
-                error("no storage class for value %s", arg->ident->toChars());
+                error("no storage class for value %s", p->ident->toChars());
                 return new ErrorStatement();
             }
             Dsymbol *var;
@@ -1757,13 +1757,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
                 if (ds)
                 {
-                    var = new AliasDeclaration(loc, arg->ident, ds);
-                    if (arg->storageClass & STCref)
+                    var = new AliasDeclaration(loc, p->ident, ds);
+                    if (p->storageClass & STCref)
                     {
                         error("symbol %s cannot be ref", s->toChars());
                         return new ErrorStatement();
                     }
-                    if (argtype)
+                    if (paramtype)
                     {
                         error("cannot specify element type for symbol %s", ds->toChars());
                         return new ErrorStatement();
@@ -1771,8 +1771,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 }
                 else if (e->op == TOKtype)
                 {
-                    var = new AliasDeclaration(loc, arg->ident, e->type);
-                    if (argtype)
+                    var = new AliasDeclaration(loc, p->ident, e->type);
+                    if (paramtype)
                     {
                         error("cannot specify element type for type %s", e->type->toChars());
                         return new ErrorStatement();
@@ -1780,12 +1780,12 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 }
                 else
                 {
-                    arg->type = e->type;
-                    if (argtype)
-                        arg->type = argtype;
+                    p->type = e->type;
+                    if (paramtype)
+                        p->type = paramtype;
                     Initializer *ie = new ExpInitializer(Loc(), e);
-                    VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
-                    if (arg->storageClass & STCref)
+                    VarDeclaration *v = new VarDeclaration(loc, p->type, p->ident, ie);
+                    if (p->storageClass & STCref)
                         v->storage_class |= STCref | STCforeach;
                     if (e->isConst() || e->op == TOKstring ||
                         e->op == TOKstructliteral || e->op == TOKarrayliteral)
@@ -1803,8 +1803,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
             }
             else
             {
-                var = new AliasDeclaration(loc, arg->ident, t);
-                if (argtype)
+                var = new AliasDeclaration(loc, p->ident, t);
+                if (paramtype)
                 {
                     error("cannot specify element type for symbol %s", s->toChars());
                     return new ErrorStatement();
@@ -1856,22 +1856,22 @@ Statement *ForeachStatement::semantic(Scope *sc)
             if (tn->ty == Tchar || tn->ty == Twchar || tn->ty == Tdchar)
             {
                 int i = (dim == 1) ? 0 : 1;     // index of value
-                Parameter *arg = (*arguments)[i];
-                arg->type = arg->type->semantic(loc, sc);
-                arg->type = arg->type->addStorageClass(arg->storageClass);
-                tnv = arg->type->toBasetype();
+                Parameter *p = (*parameters)[i];
+                p->type = p->type->semantic(loc, sc);
+                p->type = p->type->addStorageClass(p->storageClass);
+                tnv = p->type->toBasetype();
                 if (tnv->ty != tn->ty &&
                     (tnv->ty == Tchar || tnv->ty == Twchar || tnv->ty == Tdchar))
                 {
-                    if (arg->storageClass & STCref)
+                    if (p->storageClass & STCref)
                     {
                         error("foreach: value of UTF conversion cannot be ref");
                         goto Lerror2;
                     }
                     if (dim == 2)
                     {
-                        arg = (*arguments)[0];
-                        if (arg->storageClass & STCref)
+                        p = (*parameters)[0];
+                        if (p->storageClass & STCref)
                         {
                             error("foreach: key cannot be ref");
                             goto Lerror2;
@@ -1883,26 +1883,26 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
             for (size_t i = 0; i < dim; i++)
             {
-                // Declare args
-                Parameter *arg = (*arguments)[i];
-                arg->type = arg->type->semantic(loc, sc);
-                arg->type = arg->type->addStorageClass(arg->storageClass);
+                // Declare parameterss
+                Parameter *p = (*parameters)[i];
+                p->type = p->type->semantic(loc, sc);
+                p->type = p->type->addStorageClass(p->storageClass);
                 VarDeclaration *var;
 
                 if (dim == 2 && i == 0)
                 {
-                    var = new VarDeclaration(loc, arg->type->mutableOf(), Lexer::uniqueId("__key"), NULL);
+                    var = new VarDeclaration(loc, p->type->mutableOf(), Lexer::uniqueId("__key"), NULL);
                     var->storage_class |= STCtemp | STCforeach;
                     if (var->storage_class & (STCref | STCout))
                         var->storage_class |= STCnodtor;
 
                     key = var;
-                    if (arg->storageClass & STCref)
+                    if (p->storageClass & STCref)
                     {
-                        if (var->type->constConv(arg->type) <= MATCHnomatch)
+                        if (var->type->constConv(p->type) <= MATCHnomatch)
                         {
                             error("key type mismatch, %s to ref %s",
-                                  var->type->toChars(), arg->type->toChars());
+                                  var->type->toChars(), p->type->toChars());
                             goto Lerror2;
                         }
                     }
@@ -1912,7 +1912,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         IntRange dimrange = getIntRange(ta->dim);
                         if (!IntRange::fromType(var->type).contains(dimrange))
                         {
-                            error("index type '%s' cannot cover index range 0..%llu", arg->type->toChars(), ta->dim->toInteger());
+                            error("index type '%s' cannot cover index range 0..%llu", p->type->toChars(), ta->dim->toInteger());
                             goto Lerror2;
                         }
                         key->range = new IntRange(SignExtendedNumber(0), dimrange.imax);
@@ -1920,9 +1920,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 }
                 else
                 {
-                    var = new VarDeclaration(loc, arg->type, arg->ident, NULL);
+                    var = new VarDeclaration(loc, p->type, p->ident, NULL);
                     var->storage_class |= STCforeach;
-                    var->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
+                    var->storage_class |= p->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
                     if (var->storage_class & (STCref | STCout))
                         var->storage_class |= STCnodtor;
 
@@ -1933,10 +1933,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
                             var->storage_class |= STCctorinit;
 
                         Type *t = tab->nextOf();
-                        if (t->constConv(arg->type) <= MATCHnomatch)
+                        if (t->constConv(p->type) <= MATCHnomatch)
                         {
                             error("argument type mismatch, %s to ref %s",
-                                  t->toChars(), arg->type->toChars());
+                                  t->toChars(), p->type->toChars());
                             goto Lerror2;
                         }
                     }
@@ -1956,7 +1956,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             ExpInitializer *ie = new ExpInitializer(loc, new SliceExp(loc, aggr, NULL, NULL));
             VarDeclaration *tmp;
             if (aggr->op == TOKarrayliteral &&
-                !((*arguments)[dim - 1]->storageClass & STCref))
+                !((*parameters)[dim - 1]->storageClass & STCref))
             {
                 ArrayLiteralExp *ale = (ArrayLiteralExp *)aggr;
                 size_t edim = ale->elements ? ale->elements->dim : 0;
@@ -2012,20 +2012,20 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
             if (dim == 2)
             {
-                Parameter *arg = (*arguments)[0];
-                if ((arg->storageClass & STCref) && arg->type->equals(key->type))
+                Parameter *p = (*parameters)[0];
+                if ((p->storageClass & STCref) && p->type->equals(key->type))
                 {
                     key->range = NULL;
-                    AliasDeclaration *v = new AliasDeclaration(loc, arg->ident, key);
+                    AliasDeclaration *v = new AliasDeclaration(loc, p->ident, key);
                     body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
                 }
                 else
                 {
                     ExpInitializer *ei = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
-                    VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ei);
-                    v->storage_class |= STCforeach | (arg->storageClass & STCref);
+                    VarDeclaration *v = new VarDeclaration(loc, p->type, p->ident, ei);
+                    v->storage_class |= STCforeach | (p->storageClass & STCref);
                     body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
-                    if (key->range && !arg->type->isMutable())
+                    if (key->range && !p->type->isMutable())
                     {
                         /* Limit the range of the key to the specified range
                          */
@@ -2116,10 +2116,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
             Statement *makeargs, *forbody;
             if (dim == 1)
             {
-                Parameter *arg = (*arguments)[0];
-                VarDeclaration *ve = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, einit));
+                Parameter *p = (*parameters)[0];
+                VarDeclaration *ve = new VarDeclaration(loc, p->type, p->ident, new ExpInitializer(loc, einit));
                 ve->storage_class |= STCforeach;
-                ve->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
+                ve->storage_class |= p->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
 
                 DeclarationExp *de = new DeclarationExp(loc, ve);
                 makeargs = new ExpStatement(loc, de);
@@ -2168,20 +2168,20 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
                 for (size_t i = 0; i < dim; i++)
                 {
-                    Parameter *arg = (*arguments)[i];
+                    Parameter *p = (*parameters)[i];
                     Expression *exp = (*exps)[i];
                 #if 0
-                    printf("[%d] arg = %s %s, exp = %s %s\n", i,
-                            arg->type ? arg->type->toChars() : "?", arg->ident->toChars(),
+                    printf("[%d] p = %s %s, exp = %s %s\n", i,
+                            p->type ? p->type->toChars() : "?", p->ident->toChars(),
                             exp->type->toChars(), exp->toChars());
                 #endif
-                    if (!arg->type)
-                        arg->type = exp->type;
-                    arg->type = arg->type->addStorageClass(arg->storageClass)->semantic(loc, sc);
-                    if (!exp->implicitConvTo(arg->type))
+                    if (!p->type)
+                        p->type = exp->type;
+                    p->type = p->type->addStorageClass(p->storageClass)->semantic(loc, sc);
+                    if (!exp->implicitConvTo(p->type))
                         goto Lrangeerr;
 
-                    VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, exp));
+                    VarDeclaration *var = new VarDeclaration(loc, p->type, p->ident, new ExpInitializer(loc, exp));
                     var->storage_class |= STCctfe | STCref | STCforeach;
                     DeclarationExp *de = new DeclarationExp(loc, var);
                     makeargs = new CompoundStatement(loc, makeargs, new ExpStatement(loc, de));
@@ -2251,38 +2251,38 @@ Statement *ForeachStatement::semantic(Scope *sc)
             }
 
             /* Turn body into the function literal:
-             *  int delegate(ref T arg) { body }
+             *  int delegate(ref T param) { body }
              */
-            Parameters *args = new Parameters();
+            Parameters *params = new Parameters();
             for (size_t i = 0; i < dim; i++)
             {
-                Parameter *arg = (*arguments)[i];
+                Parameter *p = (*parameters)[i];
                 StorageClass stc = STCref;
                 Identifier *id;
 
-                arg->type = arg->type->semantic(loc, sc);
-                arg->type = arg->type->addStorageClass(arg->storageClass);
+                p->type = p->type->semantic(loc, sc);
+                p->type = p->type->addStorageClass(p->storageClass);
                 if (tfld)
                 {
                     Parameter *prm = Parameter::getNth(tfld->parameters, i);
                     //printf("\tprm = %s%s\n", (prm->storageClass&STCref?"ref ":""), prm->ident->toChars());
                     stc = prm->storageClass & STCref;
-                    id = arg->ident;    // argument copy is not need.
-                    if ((arg->storageClass & STCref) != stc)
+                    id = p->ident;    // argument copy is not need.
+                    if ((p->storageClass & STCref) != stc)
                     {
                         if (!stc)
                         {
-                            error("foreach: cannot make %s ref", arg->ident->toChars());
+                            error("foreach: cannot make %s ref", p->ident->toChars());
                             goto Lerror2;
                         }
                         goto LcopyArg;
                     }
                 }
-                else if (arg->storageClass & STCref)
+                else if (p->storageClass & STCref)
                 {
                     // default delegate parameters are marked as ref, then
                     // argument copy is not need.
-                    id = arg->ident;
+                    id = p->ident;
                 }
                 else
                 {
@@ -2292,15 +2292,15 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     id = Lexer::uniqueId("__applyArg", (int)i);
 
                     Initializer *ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
-                    VarDeclaration *v = new VarDeclaration(Loc(), arg->type, arg->ident, ie);
+                    VarDeclaration *v = new VarDeclaration(Loc(), p->type, p->ident, ie);
                     v->storage_class |= STCtemp;
                     s = new ExpStatement(Loc(), v);
                     body = new CompoundStatement(loc, s, body);
                 }
-                args->push(new Parameter(stc, arg->type, id, NULL));
+                params->push(new Parameter(stc, p->type, id, NULL));
             }
             StorageClass stc = mergeFuncAttrs(STCsafe | STCpure | STCnothrow | STCnogc, func);
-            tfld = new TypeFunction(args, Type::tint32, 0, LINKd, stc);
+            tfld = new TypeFunction(params, Type::tint32, 0, LINKd, stc);
             cases = new Statements();
             gotos = new ScopeStatements();
             FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, this);
@@ -2325,9 +2325,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
             if (taa)
             {
                 // Check types
-                Parameter *arg = (*arguments)[0];
-                bool isRef = (arg->storageClass & STCref) != 0;
-                Type *ta = arg->type;
+                Parameter *p = (*parameters)[0];
+                bool isRef = (p->storageClass & STCref) != 0;
+                Type *ta = p->type;
                 if (dim == 2)
                 {
                     Type *ti = (isRef ? taa->index->addMod(MODconst) : taa->index);
@@ -2336,9 +2336,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         error("foreach: index must be type %s, not %s", ti->toChars(), ta->toChars());
                         goto Lerror2;
                     }
-                    arg = (*arguments)[1];
-                    isRef = (arg->storageClass & STCref) != 0;
-                    ta = arg->type;
+                    p = (*parameters)[1];
+                    isRef = (p->storageClass & STCref) != 0;
+                    ta = p->type;
                 }
                 Type *tn = taa->nextOf();
                 if (isRef ? !tn->constConv(ta) : !tn->implicitConvTo(ta))
@@ -2361,16 +2361,16 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 unsigned char i = (dim == 2 ? 1 : 0);
                 if (!fdapply[i])
                 {
-                    args = new Parameters;
-                    args->push(new Parameter(0, Type::tvoid->pointerTo(), NULL, NULL));
-                    args->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
-                    Parameters* dgargs = new Parameters;
-                    dgargs->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
+                    params = new Parameters;
+                    params->push(new Parameter(0, Type::tvoid->pointerTo(), NULL, NULL));
+                    params->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
+                    Parameters* dgparams = new Parameters;
+                    dgparams->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
                     if (dim == 2)
-                        dgargs->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
-                    fldeTy[i] = new TypeDelegate(new TypeFunction(dgargs, Type::tint32, 0, LINKd));
-                    args->push(new Parameter(0, fldeTy[i], NULL, NULL));
-                    fdapply[i] = FuncDeclaration::genCfunc(args, Type::tint32, name[i]);
+                        dgparams->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
+                    fldeTy[i] = new TypeDelegate(new TypeFunction(dgparams, Type::tint32, 0, LINKd));
+                    params->push(new Parameter(0, fldeTy[i], NULL, NULL));
+                    fdapply[i] = FuncDeclaration::genCfunc(params, Type::tint32, name[i]);
                 }
 
                 ec = new VarExp(Loc(), fdapply[i]);
@@ -2423,15 +2423,15 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
                 FuncDeclaration *fdapply;
                 TypeDelegate *dgty;
-                args = new Parameters;
-                args->push(new Parameter(STCin, tn->arrayOf(), NULL, NULL));
-                Parameters* dgargs = new Parameters;
-                dgargs->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
+                params = new Parameters;
+                params->push(new Parameter(STCin, tn->arrayOf(), NULL, NULL));
+                Parameters* dgparams = new Parameters;
+                dgparams->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
                 if (dim == 2)
-                    dgargs->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
-                dgty = new TypeDelegate(new TypeFunction(dgargs, Type::tint32, 0, LINKd));
-                args->push(new Parameter(0, dgty, NULL, NULL));
-                fdapply = FuncDeclaration::genCfunc(args, Type::tint32, fdname);
+                    dgparams->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
+                dgty = new TypeDelegate(new TypeFunction(dgparams, Type::tint32, 0, LINKd));
+                params->push(new Parameter(0, dgty, NULL, NULL));
+                fdapply = FuncDeclaration::genCfunc(params, Type::tint32, fdname);
 
                 ec = new VarExp(Loc(), fdapply);
                 Expressions *exps = new Expressions();
@@ -2540,13 +2540,13 @@ bool ForeachStatement::checkForArgTypes()
 {
     bool result = true;
 
-    for (size_t i = 0; i < arguments->dim; i++)
+    for (size_t i = 0; i < parameters->dim; i++)
     {
-        Parameter *arg = (*arguments)[i];
-        if (!arg->type)
+        Parameter *p = (*parameters)[i];
+        if (!p->type)
         {
-            error("cannot infer type for %s", arg->ident->toChars());
-            arg->type = Type::terror;
+            error("cannot infer type for %s", p->ident->toChars());
+            p->type = Type::terror;
             result = false;
         }
     }
@@ -2566,12 +2566,12 @@ bool ForeachStatement::hasContinue()
 /**************************** ForeachRangeStatement ***************************/
 
 
-ForeachRangeStatement::ForeachRangeStatement(Loc loc, TOK op, Parameter *arg,
+ForeachRangeStatement::ForeachRangeStatement(Loc loc, TOK op, Parameter *prm,
         Expression *lwr, Expression *upr, Statement *body)
     : Statement(loc)
 {
     this->op = op;
-    this->arg = arg;
+    this->prm = prm;
     this->lwr = lwr;
     this->upr = upr;
     this->body = body;
@@ -2582,7 +2582,7 @@ ForeachRangeStatement::ForeachRangeStatement(Loc loc, TOK op, Parameter *arg,
 Statement *ForeachRangeStatement::syntaxCopy()
 {
     return new ForeachRangeStatement(loc, op,
-        arg->syntaxCopy(),
+        prm->syntaxCopy(),
         lwr->syntaxCopy(),
         upr->syntaxCopy(),
         body ? body->syntaxCopy() : NULL);
@@ -2610,25 +2610,25 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         goto Lerror;
     }
 
-    if (arg->type)
+    if (prm->type)
     {
-        arg->type = arg->type->semantic(loc, sc);
-        arg->type = arg->type->addStorageClass(arg->storageClass);
-        lwr = lwr->implicitCastTo(sc, arg->type);
+        prm->type = prm->type->semantic(loc, sc);
+        prm->type = prm->type->addStorageClass(prm->storageClass);
+        lwr = lwr->implicitCastTo(sc, prm->type);
 
-        if (upr->implicitConvTo(arg->type) || (arg->storageClass & STCref))
+        if (upr->implicitConvTo(prm->type) || (prm->storageClass & STCref))
         {
-            upr = upr->implicitCastTo(sc, arg->type);
+            upr = upr->implicitCastTo(sc, prm->type);
         }
         else
         {
-            // See if upr-1 fits in arg->type
+            // See if upr-1 fits in prm->type
             Expression *limit = new MinExp(loc, upr, new IntegerExp(1));
             limit = limit->semantic(sc);
             limit = limit->optimize(WANTvalue);
-            if (!limit->implicitConvTo(arg->type))
+            if (!limit->implicitConvTo(prm->type))
             {
-                upr = upr->implicitCastTo(sc, arg->type);
+                upr = upr->implicitCastTo(sc, prm->type);
             }
         }
     }
@@ -2641,29 +2641,31 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         {
             /* Just picking the first really isn't good enough.
              */
-            arg->type = lwr->type;
+            prm->type = lwr->type;
         }
         else if (lwr->type == upr->type)
         {
             /* Same logic as CondExp ?lwr:upr
              */
-            arg->type = lwr->type;
+            prm->type = lwr->type;
         }
         else
         {
             AddExp ea(loc, lwr, upr);
             if (typeCombine(&ea, sc))
                 return new ErrorStatement();
-            arg->type = ea.type;
+            prm->type = ea.type;
             lwr = ea.e1;
             upr = ea.e2;
         }
-        arg->type = arg->type->addStorageClass(arg->storageClass);
+        prm->type = prm->type->addStorageClass(prm->storageClass);
     }
-    if (arg->type->ty == Terror ||
-       lwr->op == TOKerror ||
-       upr->op == TOKerror)
-       return new ErrorStatement();
+    if (prm->type->ty == Terror ||
+        lwr->op == TOKerror ||
+        upr->op == TOKerror)
+    {
+        return new ErrorStatement();
+    }
 
     /* Convert to a for loop:
      *  foreach (key; lwr .. upr) =>
@@ -2705,7 +2707,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     if (op == TOKforeach_reverse)
     {
         cond = new PostExp(TOKminusminus, loc, new VarExp(loc, key));
-        if (arg->type->isscalar())
+        if (prm->type->isscalar())
         {
             // key-- > tmp
             cond = new CmpExp(TOKgt, loc, cond, new VarExp(loc, tmp));
@@ -2718,7 +2720,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     }
     else
     {
-        if (arg->type->isscalar())
+        if (prm->type->isscalar())
         {
             // key < tmp
             cond = new CmpExp(TOKlt, loc, new VarExp(loc, key), new VarExp(loc, tmp));
@@ -2736,31 +2738,31 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         //increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(1));
         increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, key));
 
-    if ((arg->storageClass & STCref) && arg->type->equals(key->type))
+    if ((prm->storageClass & STCref) && prm->type->equals(key->type))
     {
         key->range = NULL;
-        AliasDeclaration *v = new AliasDeclaration(loc, arg->ident, key);
+        AliasDeclaration *v = new AliasDeclaration(loc, prm->ident, key);
         body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
     }
     else
     {
-        ie = new ExpInitializer(loc, new CastExp(loc, new VarExp(loc, key), arg->type));
-        VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
-        v->storage_class |= STCtemp | STCforeach | (arg->storageClass & STCref);
+        ie = new ExpInitializer(loc, new CastExp(loc, new VarExp(loc, key), prm->type));
+        VarDeclaration *v = new VarDeclaration(loc, prm->type, prm->ident, ie);
+        v->storage_class |= STCtemp | STCforeach | (prm->storageClass & STCref);
         body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
-        if (key->range && !arg->type->isMutable())
+        if (key->range && !prm->type->isMutable())
         {
             /* Limit the range of the key to the specified range
              */
             v->range = new IntRange(key->range->imin, key->range->imax - SignExtendedNumber(1));
         }
     }
-    if (arg->storageClass & STCref)
+    if (prm->storageClass & STCref)
     {
-        if (key->type->constConv(arg->type) <= MATCHnomatch)
+        if (key->type->constConv(prm->type) <= MATCHnomatch)
         {
-            error("argument type mismatch, %s to ref %s",
-                  key->type->toChars(), arg->type->toChars());
+            error("prmument type mismatch, %s to ref %s",
+                  key->type->toChars(), prm->type->toChars());
             goto Lerror;
         }
     }
@@ -2783,10 +2785,10 @@ bool ForeachRangeStatement::hasContinue()
 
 /******************************** IfStatement ***************************/
 
-IfStatement::IfStatement(Loc loc, Parameter *arg, Expression *condition, Statement *ifbody, Statement *elsebody)
+IfStatement::IfStatement(Loc loc, Parameter *prm, Expression *condition, Statement *ifbody, Statement *elsebody)
     : Statement(loc)
 {
-    this->arg = arg;
+    this->prm = prm;
     this->condition = condition;
     this->ifbody = ifbody;
     this->elsebody = elsebody;
@@ -2796,7 +2798,7 @@ IfStatement::IfStatement(Loc loc, Parameter *arg, Expression *condition, Stateme
 Statement *IfStatement::syntaxCopy()
 {
     return new IfStatement(loc,
-        arg ? arg->syntaxCopy() : NULL,
+        prm ? prm->syntaxCopy() : NULL,
         condition->syntaxCopy(),
         ifbody ? ifbody->syntaxCopy() : NULL,
         elsebody ? elsebody->syntaxCopy() : NULL);
@@ -2813,15 +2815,15 @@ Statement *IfStatement::semantic(Scope *sc)
     ScopeDsymbol *sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
     Scope *scd = sc->push(sym);
-    if (arg)
+    if (prm)
     {
-        /* Declare arg, which we will set to be the
+        /* Declare prm, which we will set to be the
          * result of condition.
          */
 
-        match = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, condition));
+        match = new VarDeclaration(loc, prm->type, prm->ident, new ExpInitializer(loc, condition));
         match->parent = sc->func;
-        match->storage_class |= arg->storageClass;
+        match->storage_class |= prm->storageClass;
 
         DeclarationExp *de = new DeclarationExp(loc, match);
         VarExp *ve = new VarExp(Loc(), match);
@@ -2844,8 +2846,8 @@ Statement *IfStatement::semantic(Scope *sc)
     }
     condition = checkGC(sc, condition);
 
-    // Convert to boolean after declaring arg so this works:
-    //  if (S arg = S()) {}
+    // Convert to boolean after declaring prm so this works:
+    //  if (S prm = S()) {}
     // where S is a struct that defines opCast!bool.
     condition = condition->checkToBoolean(sc);
 

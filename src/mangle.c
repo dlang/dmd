@@ -257,7 +257,7 @@ public:
         }
 
         // Write argument types
-        argsToDecoBuffer(t->parameters);
+        paramsToDecoBuffer(t->parameters);
         //if (buf->data[buf->offset - 1] == '@') halt();
         buf->writeByte('Z' - t->varargs);   // mark end of arg list
         if (tret != NULL)
@@ -302,7 +302,7 @@ public:
         OutBuffer buf2;
         buf2.reserve(32);
         Mangler v(&buf2);
-        v.argsToDecoBuffer(t->arguments);
+        v.paramsToDecoBuffer(t->arguments);
         int len = (int)buf2.offset;
         buf->printf("%d%.*s", len, len, buf2.extractData());
     }
@@ -810,15 +810,15 @@ public:
 
     ////////////////////////////////////////////////////////////////////////////
 
-    void argsToDecoBuffer(Parameters *arguments)
+    void paramsToDecoBuffer(Parameters *parameters)
     {
-        //printf("Parameter::argsToDecoBuffer()\n");
-        Parameter::foreach(arguments, &argsToDecoBufferDg, (void *)this);
+        //printf("Parameter::paramsToDecoBuffer()\n");
+        Parameter::foreach(parameters, &paramsToDecoBufferDg, (void *)this);
     }
 
-    static int argsToDecoBufferDg(void *ctx, size_t n, Parameter *arg)
+    static int paramsToDecoBufferDg(void *ctx, size_t n, Parameter *p)
     {
-        arg->accept((Visitor *)ctx);
+        p->accept((Visitor *)ctx);
         return 0;
     }
 

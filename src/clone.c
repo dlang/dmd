@@ -115,8 +115,8 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
             Parameters *fparams = f->getParameters(&varargs);
             if (fparams->dim >= 1)
             {
-                Parameter *arg0 = Parameter::getNth(fparams, 0);
-                if (arg0->type->toDsymbol(NULL) != ad)
+                Parameter *fparam0 = Parameter::getNth(fparams, 0);
+                if (fparam0->type->toDsymbol(NULL) != ad)
                     f = NULL;
             }
         }

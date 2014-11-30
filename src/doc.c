@@ -1603,7 +1603,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
     size_t textlen = 0;
 
     size_t o, paramcount = 0;
-    Parameter *arg = NULL;
+    Parameter *fparam = NULL;
 
     buf->writestring("$(DDOC_PARAMS ");
     while (p < pend)
@@ -1661,15 +1661,15 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
             buf->writestring("$(DDOC_PARAM_ROW ");
                 buf->writestring("$(DDOC_PARAM_ID ");
                     o = buf->offset;
-                    arg = isFunctionParameter(s, namestart, namelen);
+                    fparam = isFunctionParameter(s, namestart, namelen);
                     bool isCVariadic = isCVariadicParameter(s, namestart, namelen);
                     if (isCVariadic)
                     {
                         buf->writestring("...");
                     }
-                    else if (arg && arg->type && arg->ident)
+                    else if (fparam && fparam->type && fparam->ident)
                     {
-                        ::toCBuffer(arg->type, buf, arg->ident, &hgs);
+                        ::toCBuffer(fparam->type, buf, fparam->ident, &hgs);
                     }
                     else
                     {
@@ -1678,7 +1678,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                             // 10236: Don't count template parameters for params check
                             --paramcount;
                         }
-                        else if (!arg)
+                        else if (!fparam)
                         {
                             warning(s->loc, "Ddoc: function declaration has no parameter '%.*s'", namelen, namestart);
                         }
@@ -2142,10 +2142,10 @@ Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len)
     {
         for (size_t k = 0; k < tf->parameters->dim; k++)
         {
-            Parameter *arg = (*tf->parameters)[k];
-            if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
+            Parameter *fparam = (*tf->parameters)[k];
+            if (fparam->ident && cmp(fparam->ident->toChars(), p, len) == 0)
             {
-                return arg;
+                return fparam;
             }
         }
     }
@@ -2162,10 +2162,10 @@ TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len)
     {
         for (size_t k = 0; k < td->origParameters->dim; k++)
         {
-            TemplateParameter *arg = (*td->origParameters)[k];
-            if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
+            TemplateParameter *tp = (*td->origParameters)[k];
+            if (tp->ident && cmp(tp->ident->toChars(), p, len) == 0)
             {
-                return arg;
+                return tp;
             }
         }
     }

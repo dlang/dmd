@@ -492,21 +492,23 @@ class CppMangleVisitor : public Visitor
         }
     }
 
-    static int argsCppMangleDg(void *ctx, size_t n, Parameter *arg)
+    static int paramsCppMangleDg(void *ctx, size_t n, Parameter *fparam)
     {
         CppMangleVisitor *mangler = (CppMangleVisitor *)ctx;
 
-        Type *t = arg->type->merge2();
-        if (arg->storageClass & (STCout | STCref))
+        Type *t = fparam->type->merge2();
+        if (fparam->storageClass & (STCout | STCref))
             t = t->referenceTo();
-        else if (arg->storageClass & STClazy)
-        {   // Mangle as delegate
+        else if (fparam->storageClass & STClazy)
+        {
+            // Mangle as delegate
             Type *td = new TypeFunction(NULL, t, 0, LINKd);
             td = new TypeDelegate(td);
             t = t->merge();
         }
         if (t->ty == Tsarray)
-        {   // Mangle static arrays as pointers
+        {
+            // Mangle static arrays as pointers
             t->error(Loc(), "ICE: Unable to pass static array to extern(C++) function.");
             t->error(Loc(), "Use pointer instead.");
             assert(0);
@@ -525,15 +527,15 @@ class CppMangleVisitor : public Visitor
         return 0;
     }
 
-    void argsCppMangle(Parameters *arguments, int varargs)
+    void argsCppMangle(Parameters *parameters, int varargs)
     {
-        if (arguments)
-            Parameter::foreach(arguments, &argsCppMangleDg, (void*)this);
+        if (parameters)
+            Parameter::foreach(parameters, &paramsCppMangleDg, (void*)this);
 
         if (varargs)
             buf.writestring("z");
-        else if (!arguments || !arguments->dim)
-            buf.writeByte('v');            // encode ( ) arguments
+        else if (!parameters || !parameters->dim)
+            buf.writeByte('v');            // encode ( ) parameters
     }
 
 public:

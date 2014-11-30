@@ -304,8 +304,8 @@ public:
 class ForeachStatement : public Statement
 {
 public:
-    TOK op;                // TOKforeach or TOKforeach_reverse
-    Parameters *arguments;      // array of Parameter*'s
+    TOK op;                     // TOKforeach or TOKforeach_reverse
+    Parameters *parameters;     // array of Parameter*'s
     Expression *aggr;
     Statement *body;
 
@@ -317,7 +317,7 @@ public:
     Statements *cases;          // put breaks, continues, gotos and returns here
     ScopeStatements *gotos;     // forward referenced goto's go here
 
-    ForeachStatement(Loc loc, TOK op, Parameters *arguments, Expression *aggr, Statement *body);
+    ForeachStatement(Loc loc, TOK op, Parameters *parameters, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool checkForArgTypes();
@@ -330,15 +330,15 @@ public:
 class ForeachRangeStatement : public Statement
 {
 public:
-    TOK op;                // TOKforeach or TOKforeach_reverse
-    Parameter *arg;             // loop index variable
+    TOK op;                     // TOKforeach or TOKforeach_reverse
+    Parameter *prm;             // loop index variable
     Expression *lwr;
     Expression *upr;
     Statement *body;
 
     VarDeclaration *key;
 
-    ForeachRangeStatement(Loc loc, TOK op, Parameter *arg,
+    ForeachRangeStatement(Loc loc, TOK op, Parameter *prm,
         Expression *lwr, Expression *upr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
@@ -351,14 +351,14 @@ public:
 class IfStatement : public Statement
 {
 public:
-    Parameter *arg;
+    Parameter *prm;
     Expression *condition;
     Statement *ifbody;
     Statement *elsebody;
 
     VarDeclaration *match;      // for MatchExpression results
 
-    IfStatement(Loc loc, Parameter *arg, Expression *condition, Statement *ifbody, Statement *elsebody);
+    IfStatement(Loc loc, Parameter *prm, Expression *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     IfStatement *isIfStatement() { return this; }
