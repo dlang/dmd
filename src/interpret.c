@@ -2326,7 +2326,7 @@ public:
                     if (v->init->isVoidInitializer())
                     {
                         // var should have been initialized when it was created
-                        error(loc, "CTFE internal error - trying to access uninitialized var");
+                        error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
                         e = CTFEExp::cantexp;
                     }
@@ -2599,7 +2599,7 @@ public:
                 continue;
             if (ex->op == TOKvoidexp)
             {
-                e->error("Internal Compiler Error: void element %s in tuple", exp->toChars());
+                e->error("CTFE internal error: void element %s in tuple", exp->toChars());
                 assert(0);
             }
 
@@ -2676,7 +2676,7 @@ public:
             expandTuples(expsx);
             if (expsx->dim != dim)
             {
-                e->error("Internal Compiler Error: invalid array literal");
+                e->error("CTFE internal error: invalid array literal");
                 result = CTFEExp::cantexp;
                 return;
             }
@@ -2744,7 +2744,7 @@ public:
             expandTuples(valuesx);
         if (keysx->dim != valuesx->dim)
         {
-            e->error("Internal Compiler Error: invalid AA");
+            e->error("CTFE internal error: invalid AA");
             result = CTFEExp::cantexp;
             return;
         }
@@ -2859,7 +2859,7 @@ public:
             expandTuples(expsx);
             if (expsx->dim != e->sd->fields.dim)
             {
-                e->error("Internal Compiler Error: invalid struct literal");
+                e->error("CTFE internal error: invalid struct literal");
                 result = CTFEExp::cantexp;
                 return;
             }
@@ -3072,7 +3072,7 @@ public:
     #endif
         if (e->op == TOKdottype)
         {
-            e->error("Internal Compiler Error: CTFE DotType: %s", e->toChars());
+            e->error("CTFE internal error: dottype: %s", e->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -3141,7 +3141,7 @@ public:
             return;
         if (e1->isConst() != 1)
         {
-            e->error("Internal Compiler Error: non-constant value %s", e->e1->toChars());
+            e->error("CTFE internal error: non-constant value %s", e->e1->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -3151,7 +3151,7 @@ public:
             return;
         if (e2->isConst() != 1)
         {
-            e->error("Internal Compiler Error: non-constant value %s", e->e2->toChars());
+            e->error("CTFE internal error: non-constant value %s", e->e2->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -3802,7 +3802,7 @@ public:
                 // In-place modification
                 if (newval->op != TOKstructliteral)
                 {
-                    e->error("CTFE internal error assigning struct");
+                    e->error("CTFE internal error: assigning struct");
                     result = CTFEExp::cantexp;
                     return;
                 }
@@ -3903,14 +3903,14 @@ public:
             }
             if (exx->op != TOKstructliteral && exx->op != TOKclassreference)
             {
-                e->error("CTFE internal error: Dotvar assignment");
+                e->error("CTFE internal error: dotvar assignment");
                 result = CTFEExp::cantexp;
                 return;
             }
             VarDeclaration *member = ((DotVarExp *)e1)->var->isVarDeclaration();
             if (!member)
             {
-                e->error("CTFE internal error: Dotvar assignment");
+                e->error("CTFE internal error: dotvar assignment");
                 result = CTFEExp::cantexp;
                 return;
             }
@@ -4138,7 +4138,7 @@ public:
             existingSE = (StringExp *)aggregate;
         else
         {
-            originalExp->error("CTFE internal compiler error %s", aggregate->toChars());
+            originalExp->error("CTFE internal error: %s", aggregate->toChars());
             return false;
         }
         if (!wantRef && newval->op == TOKslice)
@@ -4146,7 +4146,7 @@ public:
             newval = resolveSlice(newval);
             if (CTFEExp::isCantExp(newval))
             {
-                originalExp->error("Compiler error: CTFE index assign %s", originalExp->toChars());
+                originalExp->error("CTFE internal error: index assignment %s", originalExp->toChars());
                 assert(0);
             }
         }
@@ -4249,7 +4249,7 @@ public:
                     sexp->e1->toChars());
             }
             else
-                originalExp->error("CTFE ICE: cannot resolve array length");
+                originalExp->error("CTFE internal error: cannot resolve array length");
             return CTFEExp::cantexp;
         }
         uinteger_t dollar = resolveArrayLength(oldval);
@@ -4379,7 +4379,7 @@ public:
             newval = resolveSlice(newval);
             if (CTFEExp::isCantExp(newval))
             {
-                originalExp->error("Compiler error: CTFE slice %s", orignewval->toChars());
+                originalExp->error("CTFE internal error: slice %s", orignewval->toChars());
                 assert(0);
             }
         }
@@ -5974,7 +5974,7 @@ public:
             }
             if (result->op != TOKclassreference)
             {
-                e->error("CTFE internal error determining classinfo");
+                e->error("CTFE internal error: determining classinfo");
                 result = CTFEExp::cantexp;
                 return;
             }
