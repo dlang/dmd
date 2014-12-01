@@ -1660,7 +1660,7 @@ elem *toElem(Expression *e, IRState *irs)
             }
             else
             {
-                ne->error("ICE: cannot new type %s\n", t->toChars());
+                ne->error("Internal Compiler Error: cannot new type %s\n", t->toChars());
                 assert(0);
             }
 
@@ -2999,7 +2999,7 @@ elem *toElem(Expression *e, IRState *irs)
                 }
                 else
                 {
-                    ce->error("ICE: cannot append '%s' to '%s'", tb2->toChars(), tb1->toChars());
+                    ce->error("Internal Compiler Error: cannot append '%s' to '%s'", tb2->toChars(), tb1->toChars());
                     assert(0);
                 }
 

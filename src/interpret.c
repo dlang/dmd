@@ -2599,7 +2599,7 @@ public:
                 continue;
             if (ex->op == TOKvoidexp)
             {
-                e->error("ICE: void element %s in tuple", exp->toChars());
+                e->error("Internal Compiler Error: void element %s in tuple", exp->toChars());
                 assert(0);
             }
 
