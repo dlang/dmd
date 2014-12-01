@@ -357,6 +357,12 @@ template Foo10334(T) if (Bar10334!int)
 template Foo10334(T) if (Bar10334!string)
 {
 }
+template Foo10334(T) if (Bar10334!wstring)
+{
+}
+template Foo10334(T) if (Bar10334!dstring)
+{
+}
 template Foo10334(T) if (Bar10334!this)
 {
 }

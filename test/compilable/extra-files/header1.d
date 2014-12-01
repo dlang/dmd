@@ -409,6 +409,8 @@ template Foo10334(T) if (Bar10334!false) {}             ///
 template Foo10334(T) if (Bar10334!'A') {}               ///
 template Foo10334(T) if (Bar10334!int) {}               ///
 template Foo10334(T) if (Bar10334!string) {}            ///
+template Foo10334(T) if (Bar10334!wstring) {}           ///
+template Foo10334(T) if (Bar10334!dstring) {}           ///
 template Foo10334(T) if (Bar10334!this) {}              ///
 template Foo10334(T) if (Bar10334!([1,2,3])) {}         ///
 template Foo10334(T) if (Bar10334!(Baz10334!())) {}     ///
