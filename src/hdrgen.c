@@ -761,7 +761,8 @@ public:
 
     void visit(TypeDArray *t)
     {
-        if (t->equals(t->tstring))
+        Type *ut = t->castMod(0);
+        if (ut->equals(Type::tstring))
             buf->writestring("string");
         else
         {

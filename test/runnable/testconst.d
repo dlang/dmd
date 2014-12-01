@@ -1490,7 +1490,7 @@ void test84()
     string s;
     auto r = foo84(s);
     pragma(msg, typeof(r).stringof);
-    static assert(typeof(r).stringof == "immutable(char[])");
+    static assert(typeof(r).stringof == "immutable(string)");
 
     pragma(msg, typeof(foo84(c)).stringof);
     static assert(typeof(foo84(c)).stringof == "const(char[])");
@@ -3651,6 +3651,30 @@ void func13030(int delegate(int n) a)
 {
     va13030(a);
 }
+
+/************************************/
+// 13802
+
+static assert((              string     ).stringof ==               "string"       );
+static assert((              string[]   ).stringof ==               "string[]"     );
+static assert((              string[1]  ).stringof ==               "string[1]"    );
+static assert((              string[int]).stringof ==               "string[int]"  );
+static assert((       const  string     ).stringof ==         "const(string)"      );
+static assert((       const  string[]   ).stringof ==         "const(string[])"    );
+static assert((       const  string[1]  ).stringof ==         "const(string[1])"   );
+static assert((       const  string[int]).stringof ==         "const(string[int])" );
+static assert((shared        string     ).stringof ==        "shared(string)"      );
+static assert((shared        string[]   ).stringof ==        "shared(string[])"    );
+static assert((shared        string[1]  ).stringof ==        "shared(string[1])"   );
+static assert((shared        string[int]).stringof ==        "shared(string[int])" );
+static assert((shared const  string     ).stringof ==  "shared(const(string))"     );
+static assert((shared const  string[]   ).stringof ==  "shared(const(string[]))"   );
+static assert((shared const  string[1]  ).stringof ==  "shared(const(string[1]))"  );
+static assert((shared const  string[int]).stringof ==  "shared(const(string[int]))");
+static assert((   immutable  string     ).stringof ==     "immutable(string)"      );
+static assert((   immutable  string[]   ).stringof ==     "immutable(string[])"    );
+static assert((   immutable  string[1]  ).stringof ==     "immutable(string[1])"   );
+static assert((   immutable  string[int]).stringof ==     "immutable(string[int])" );
 
 /************************************/
 
