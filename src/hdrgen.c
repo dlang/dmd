@@ -761,8 +761,13 @@ public:
 
     void visit(TypeDArray *t)
     {
-        if (t->equals(t->tstring))
+        Type *ut = t->castMod(0);
+        if (ut->equals(Type::tstring))
             buf->writestring("string");
+        else if (ut->equals(Type::twstring))
+            buf->writestring("wstring");
+        else if (ut->equals(Type::tdstring))
+            buf->writestring("dstring");
         else
         {
             visitWithMask(t->next, t->mod);
@@ -1443,6 +1448,8 @@ public:
             if (Type *t = isType(oarg))
             {
                 if (t->equals(Type::tstring) ||
+                    t->equals(Type::twstring) ||
+                    t->equals(Type::tdstring) ||
                     t->mod == 0 &&
                     (t->isTypeBasic() ||
                      t->ty == Tident && ((TypeIdentifier *)t)->idents.dim == 0))

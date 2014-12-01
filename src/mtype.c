@@ -116,6 +116,8 @@ Type *Type::tindex;
 
 Type *Type::tvoidptr;
 Type *Type::tstring;
+Type *Type::twstring;
+Type *Type::tdstring;
 Type *Type::tvalist;
 Type *Type::basic[TMAX];
 unsigned char Type::sizeTy[TMAX];
@@ -274,6 +276,8 @@ void Type::init()
 
     tvoidptr = tvoid->pointerTo();
     tstring = tchar->immutableOf()->arrayOf();
+    twstring = twchar->immutableOf()->arrayOf();
+    tdstring = tdchar->immutableOf()->arrayOf();
     tvalist = Target::va_listType();
 
     if (global.params.isLP64)

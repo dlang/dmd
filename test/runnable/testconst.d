@@ -1490,7 +1490,7 @@ void test84()
     string s;
     auto r = foo84(s);
     pragma(msg, typeof(r).stringof);
-    static assert(typeof(r).stringof == "immutable(char[])");
+    static assert(typeof(r).stringof == "immutable(string)");
 
     pragma(msg, typeof(foo84(c)).stringof);
     static assert(typeof(foo84(c)).stringof == "const(char[])");
@@ -3651,6 +3651,72 @@ void func13030(int delegate(int n) a)
 {
     va13030(a);
 }
+
+/************************************/
+// 13802 & 13803
+
+static assert((              string     ).stringof ==               "string"       );
+static assert((              string[]   ).stringof ==               "string[]"     );
+static assert((              string[1]  ).stringof ==               "string[1]"    );
+static assert((              string[int]).stringof ==               "string[int]"  );
+static assert((       const  string     ).stringof ==         "const(string)"      );
+static assert((       const  string[]   ).stringof ==         "const(string[])"    );
+static assert((       const  string[1]  ).stringof ==         "const(string[1])"   );
+static assert((       const  string[int]).stringof ==         "const(string[int])" );
+static assert((shared        string     ).stringof ==        "shared(string)"      );
+static assert((shared        string[]   ).stringof ==        "shared(string[])"    );
+static assert((shared        string[1]  ).stringof ==        "shared(string[1])"   );
+static assert((shared        string[int]).stringof ==        "shared(string[int])" );
+static assert((shared const  string     ).stringof ==  "shared(const(string))"     );
+static assert((shared const  string[]   ).stringof ==  "shared(const(string[]))"   );
+static assert((shared const  string[1]  ).stringof ==  "shared(const(string[1]))"  );
+static assert((shared const  string[int]).stringof ==  "shared(const(string[int]))");
+static assert((   immutable  string     ).stringof ==     "immutable(string)"      );
+static assert((   immutable  string[]   ).stringof ==     "immutable(string[])"    );
+static assert((   immutable  string[1]  ).stringof ==     "immutable(string[1])"   );
+static assert((   immutable  string[int]).stringof ==     "immutable(string[int])" );
+
+static assert((             wstring     ).stringof ==              "wstring"       );
+static assert((             wstring[]   ).stringof ==              "wstring[]"     );
+static assert((             wstring[1]  ).stringof ==              "wstring[1]"    );
+static assert((             wstring[int]).stringof ==              "wstring[int]"  );
+static assert((       const wstring     ).stringof ==        "const(wstring)"      );
+static assert((       const wstring[]   ).stringof ==        "const(wstring[])"    );
+static assert((       const wstring[1]  ).stringof ==        "const(wstring[1])"   );
+static assert((       const wstring[int]).stringof ==        "const(wstring[int])" );
+static assert((shared       wstring     ).stringof ==       "shared(wstring)"      );
+static assert((shared       wstring[]   ).stringof ==       "shared(wstring[])"    );
+static assert((shared       wstring[1]  ).stringof ==       "shared(wstring[1])"   );
+static assert((shared       wstring[int]).stringof ==       "shared(wstring[int])" );
+static assert((shared const wstring     ).stringof == "shared(const(wstring))"     );
+static assert((shared const wstring[]   ).stringof == "shared(const(wstring[]))"   );
+static assert((shared const wstring[1]  ).stringof == "shared(const(wstring[1]))"  );
+static assert((shared const wstring[int]).stringof == "shared(const(wstring[int]))");
+static assert((   immutable wstring     ).stringof ==    "immutable(wstring)"      );
+static assert((   immutable wstring[]   ).stringof ==    "immutable(wstring[])"    );
+static assert((   immutable wstring[1]  ).stringof ==    "immutable(wstring[1])"   );
+static assert((   immutable wstring[int]).stringof ==    "immutable(wstring[int])" );
+
+static assert((             dstring     ).stringof ==              "dstring"       );
+static assert((             dstring[]   ).stringof ==              "dstring[]"     );
+static assert((             dstring[1]  ).stringof ==              "dstring[1]"    );
+static assert((             dstring[int]).stringof ==              "dstring[int]"  );
+static assert((       const dstring     ).stringof ==        "const(dstring)"      );
+static assert((       const dstring[]   ).stringof ==        "const(dstring[])"    );
+static assert((       const dstring[1]  ).stringof ==        "const(dstring[1])"   );
+static assert((       const dstring[int]).stringof ==        "const(dstring[int])" );
+static assert((shared       dstring     ).stringof ==       "shared(dstring)"      );
+static assert((shared       dstring[]   ).stringof ==       "shared(dstring[])"    );
+static assert((shared       dstring[1]  ).stringof ==       "shared(dstring[1])"   );
+static assert((shared       dstring[int]).stringof ==       "shared(dstring[int])" );
+static assert((shared const dstring     ).stringof == "shared(const(dstring))"     );
+static assert((shared const dstring[]   ).stringof == "shared(const(dstring[]))"   );
+static assert((shared const dstring[1]  ).stringof == "shared(const(dstring[1]))"  );
+static assert((shared const dstring[int]).stringof == "shared(const(dstring[int]))");
+static assert((   immutable dstring     ).stringof ==    "immutable(dstring)"      );
+static assert((   immutable dstring[]   ).stringof ==    "immutable(dstring[])"    );
+static assert((   immutable dstring[1]  ).stringof ==    "immutable(dstring[1])"   );
+static assert((   immutable dstring[int]).stringof ==    "immutable(dstring[int])" );
 
 /************************************/
 
