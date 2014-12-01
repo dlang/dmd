@@ -174,7 +174,8 @@ File *Module::setOutfile(const char *name, const char *dir, const char *arg, con
     }
 
     if (FileName::equals(docfilename, srcfile->name->str))
-    {   error("Source file and output file have same name '%s'", srcfile->name->str);
+    {
+        error("source file and output file have same name '%s'", srcfile->name->str);
         fatal();
     }
 
