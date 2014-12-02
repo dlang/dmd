@@ -143,7 +143,7 @@ void ThrownExceptionExp::generateUncaughtError()
 {
     Expression *e = (*thrown->value->elements)[0];
     StringExp *se = e->toStringExp();
-    thrown->error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(), se ? se->toChars() : e->toChars());
+    thrown->error("uncaught CTFE exception %s(%s)", thrown->type->toChars(), se ? se->toChars() : e->toChars());
 
     /* Also give the line where the throw statement was. We won't have it
      * in the case where the ThrowStatement is generated internally
@@ -351,7 +351,7 @@ UnionExp copyLiteral(Expression *e)
         new(&ue) UnionExp(e);
         return ue;
     }
-    e->error("Internal Compiler Error: CTFE literal %s", e->toChars());
+    e->error("CTFE internal error: literal %s", e->toChars());
     assert(0);
     return ue;
 }
@@ -423,7 +423,7 @@ UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit)
         // Can't type paint from struct to struct*; this needs another
         // level of indirection
         if (lit->op == TOKstructliteral && isPointer(type))
-            lit->error("CTFE internal error painting %s", type->toChars());
+            lit->error("CTFE internal error: painting %s", type->toChars());
         ue = copyLiteral(lit);
     }
     ue.exp()->type = type;
@@ -767,7 +767,7 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
         indx -= ofs2/sz;
     else
     {
-        error(loc, "CTFE Internal compiler error: bad pointer operation");
+        error(loc, "CTFE internal error: bad pointer operation");
         goto Lcant;
     }
 
@@ -788,7 +788,7 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
     Expression *val = agg1;
     if (val->op != TOKarrayliteral && val->op != TOKstring)
     {
-        error(loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
+        error(loc, "CTFE internal error: pointer arithmetic %s", val->toChars());
         goto Lcant;
     }
 

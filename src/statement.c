@@ -4948,7 +4948,7 @@ Statement *LabelStatement::semantic(Scope *sc)
     LabelDsymbol *ls = fd->searchLabel(ident);
     if (ls->statement)
     {
-        error("Label '%s' already defined", ls->toChars());
+        error("label '%s' already defined", ls->toChars());
         return new ErrorStatement();
     }
     else

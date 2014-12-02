@@ -668,7 +668,7 @@ int runLINK()
 
     if (pipe(fds) == -1)
     {
-        perror("Unable to create pipe to linker");
+        perror("unable to create pipe to linker");
         return -1;
     }
 
@@ -685,7 +685,7 @@ int runLINK()
     }
     else if (childpid == -1)
     {
-        perror("Unable to fork");
+        perror("unable to fork");
         return -1;
     }
     close(fds[1]);
@@ -699,7 +699,7 @@ int runLINK()
         {
             if (nme == -1)
             {
-                perror("Error with the linker pipe");
+                perror("error with the linker pipe");
                 return -1;
             }
             else

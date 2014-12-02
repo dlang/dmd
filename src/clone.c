@@ -502,7 +502,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
         Dsymbol *s = getDsymbol(e);
         if (!s)
         {
-            ::error(Loc(), "ICE: %s not found in object module. You must update druntime", id->toChars());
+            ::error(Loc(), "Internal Compiler Error: %s not found in object module. You must update druntime", id->toChars());
             fatal();
         }
         assert(s);
@@ -628,7 +628,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
         Dsymbol *s = getDsymbol(e);
         if (!s)
         {
-            ::error(Loc(), "ICE: %s not found in object module. You must update druntime", id->toChars());
+            ::error(Loc(), "Internal Compiler Error: %s not found in object module. You must update druntime", id->toChars());
             fatal();
         }
         assert(s);

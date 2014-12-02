@@ -2194,7 +2194,7 @@ Expression *Expression::extractLast(Expression *e, Expression **pe0)
 dinteger_t Expression::toInteger()
 {
     //printf("Expression %s\n", Token::toChars(op));
-    error("Integer constant expression expected instead of %s", toChars());
+    error("integer constant expression expected instead of %s", toChars());
     return 0;
 }
 
@@ -2206,19 +2206,19 @@ uinteger_t Expression::toUInteger()
 
 real_t Expression::toReal()
 {
-    error("Floating point constant expression expected instead of %s", toChars());
+    error("floating point constant expression expected instead of %s", toChars());
     return ldouble(0);
 }
 
 real_t Expression::toImaginary()
 {
-    error("Floating point constant expression expected instead of %s", toChars());
+    error("floating point constant expression expected instead of %s", toChars());
     return ldouble(0);
 }
 
 complex_t Expression::toComplex()
 {
-    error("Floating point constant expression expected instead of %s", toChars());
+    error("floating point constant expression expected instead of %s", toChars());
     return (complex_t)0.0;
 }
 
@@ -2320,7 +2320,7 @@ Expression *Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
             break;
     }
 
-    deprecation("Read-modify-write operations are not allowed for shared variables. "
+    deprecation("read-modify-write operations are not allowed for shared variables. "
                 "Use core.atomic.atomicOp!\"%s\"(%s, %s) instead.",
                 Token::tochars[rmwOp], toChars(), ex ? ex->toChars() : "1");
     return NULL;

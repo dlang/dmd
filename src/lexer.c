@@ -2026,7 +2026,7 @@ Ldone:
 
             case 'l':
                 f = FLAGS_long;
-                error("Lower case integer suffix 'l' is not allowed. Please use 'L' instead");
+                error("lower case integer suffix 'l' is not allowed. Please use 'L' instead");
                 goto L1;
 
             case 'L':
