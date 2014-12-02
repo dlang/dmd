@@ -2964,6 +2964,15 @@ private inout(T)[] _rawDup(T)(inout(T)[] a)
     return *cast(inout(T)[]*)&arr;
 }
 
+template _PostBlitType(T)
+{
+    // assume that ref T and void* are equivalent in abi level.
+    static if (is(T == struct))
+        alias _PostBlitType = typeof(function (ref T t){ T a = t; });
+    else
+        alias _PostBlitType = typeof(delegate (ref T t){ T a = t; });
+}
+
 // Returns null, or a delegate to call postblit of T
 private auto _getPostblit(T)() @trusted pure nothrow @nogc
 {
@@ -2971,19 +2980,12 @@ private auto _getPostblit(T)() @trusted pure nothrow @nogc
     static if (is(T == struct))
     {
         import core.internal.traits : Unqual;
-
-        // assume that ref T and void* are equivalent in abi level.
-        alias PostBlitT = typeof(function (ref T t){ T a = t; });
-
         // use typeid(Unqual!T) here to skip TypeInfo_Const/Shared/...
-        return cast(PostBlitT)typeid(Unqual!T).xpostblit;
+        return cast(_PostBlitType!T)typeid(Unqual!T).xpostblit;
     }
     else if ((&typeid(T).postblit).funcptr !is &TypeInfo.postblit)
     {
-        // assume that ref T and void* are equivalent in abi level.
-        alias PostBlitT = typeof(delegate (ref T t){ T a = t; });
-
-        return cast(PostBlitT)&typeid(T).postblit;
+        return cast(_PostBlitType!T)&typeid(T).postblit;
     }
     else
         return null;
