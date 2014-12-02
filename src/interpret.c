@@ -805,7 +805,6 @@ Expression *ctfeInterpretForPragmaMsg(Expression *e)
     return e;
 }
 
-
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
@@ -4445,17 +4444,15 @@ public:
         {
             // String literal block slice assign
             dinteger_t value = newval->toInteger();
-            utf8_t *s = (utf8_t *)existingSE->string;
-            for (size_t j = 0; j < upperbound-lowerbound; j++)
+            void *s = existingSE->string;
+            for (size_t j = 0; j < upperbound - lowerbound; j++)
             {
                 switch (existingSE->sz)
                 {
-                    case 1: s[(size_t)(j+firstIndex)] = (utf8_t)value; break;
-                    case 2: ((unsigned short *)s)[(size_t)(j+firstIndex)] = (unsigned short)value; break;
-                    case 4: ((unsigned *)s)[(size_t)(j+firstIndex)] = (unsigned)value; break;
-                    default:
-                        assert(0);
-                        break;
+                    case 1:     (( utf8_t *)s)[(size_t)(j + firstIndex)] = ( utf8_t)value;  break;
+                    case 2:     ((utf16_t *)s)[(size_t)(j + firstIndex)] = (utf16_t)value;  break;
+                    case 4:     ((utf32_t *)s)[(size_t)(j + firstIndex)] = (utf32_t)value;  break;
+                    default:    assert(0);                                                  break;
                 }
             }
             if (goal == ctfeNeedNothing)
@@ -4473,32 +4470,34 @@ public:
              *  x may be a multidimensional static array. (Note that this
              *  only happens with array literals, never with strings).
              */
-            Expressions * w = existingAE->elements;
-            assert( existingAE->type->ty == Tsarray ||
-                    existingAE->type->ty == Tarray);
+            Expressions *w = existingAE->elements;
+            assert(existingAE->type->ty == Tsarray ||
+                   existingAE->type->ty == Tarray);
             Type *desttype = ((TypeArray *)existingAE->type)->next->toBasetype()->castMod(0);
             bool directblk = (e2->type->toBasetype()->castMod(0))->equals(desttype);
             bool cow = !(newval->op == TOKstructliteral ||
                          newval->op == TOKarrayliteral ||
                          newval->op == TOKstring);
-            for (size_t j = 0; j < upperbound-lowerbound; j++)
+            for (size_t j = 0; j < upperbound - lowerbound; j++)
             {
                 if (!directblk)
                 {
                     // Multidimensional array block assign
-                    recursiveBlockAssign((ArrayLiteralExp *)(*w)[(size_t)(j+firstIndex)], newval, wantRef);
+                    recursiveBlockAssign((ArrayLiteralExp *)(*w)[(size_t)(j + firstIndex)], newval, wantRef);
                 }
                 else
                 {
                     if (wantRef || cow)
-                        (*existingAE->elements)[(size_t)(j+firstIndex)] = newval;
+                        (*existingAE->elements)[(size_t)(j + firstIndex)] = newval;
                     else
-                        assignInPlace((*existingAE->elements)[(size_t)(j+firstIndex)], newval);
+                        assignInPlace((*existingAE->elements)[(size_t)(j + firstIndex)], newval);
                 }
             }
             if (!wantRef && !cow && originalExp->op != TOKblit && originalExp->e2->isLvalue())
             {
-                Expression *x = evaluatePostblits(istate, existingAE, (size_t)firstIndex, (size_t)(firstIndex+upperbound-lowerbound));
+                size_t lwr = (size_t)(firstIndex);
+                size_t upr = (size_t)(firstIndex + upperbound - lowerbound);
+                Expression *x = evaluatePostblits(istate, existingAE, lwr, upr);
                 if (exceptionOrCantInterpret(x))
                     return x;
             }
@@ -5545,8 +5544,10 @@ public:
 
         /* Set the $ variable
          */
-        if (e1->op != TOKarrayliteral && e1->op != TOKstring &&
-            e1->op != TOKnull && e1->op != TOKslice)
+        if (e1->op != TOKarrayliteral &&
+            e1->op != TOKstring &&
+            e1->op != TOKnull &&
+            e1->op != TOKslice)
         {
             e->error("cannot determine length of %s at compile time", e1->toChars());
             result = CTFEExp::cantexp;
@@ -5812,8 +5813,7 @@ public:
             if (e1->op == TOKvar || e1->op == TOKsymoff)
             {
                 // type painting operation
-                Type *origType = (e1->op == TOKvar) ? ((VarExp *)e1)->var->type :
-                        ((SymOffExp *)e1)->var->type;
+                Type *origType = ((SymbolExp *)e1)->var->type;
                 if (castBackFromVoid && !isSafePointerCast(origType, pointee))
                 {
                     e->error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
