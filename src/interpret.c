@@ -4778,14 +4778,16 @@ public:
             {
                 result->error("%s does not evaluate to a boolean", result->toChars());
                 result = CTFEExp::cantexp;
+                return;
             }
         }
         else
         {
             result->error("%s cannot be interpreted as a boolean", result->toChars());
             result = CTFEExp::cantexp;
+            return;
         }
-        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
+        if (goal != ctfeNeedNothing)
             result = new IntegerExp(e->loc, res, e->type);
     }
 
@@ -4812,32 +4814,30 @@ public:
             result = interpret(e->e2, istate);
             if (exceptionOrCant(result))
                 return;
-
             if (result->op == TOKvoidexp)
             {
                 assert(e->type->ty == Tvoid);
                 result = NULL;
                 return;
             }
-            if (!CTFEExp::isCantExp(result))
+            if (result->isBool(false))
+                res = 0;
+            else if (isTrueBool(result))
+                res = 1;
+            else
             {
-                if (result->isBool(false))
-                    res = 0;
-                else if (isTrueBool(result))
-                    res = 1;
-                else
-                {
-                    result->error("%s cannot be interpreted as a boolean", result->toChars());
-                    result = CTFEExp::cantexp;
-                }
+                result->error("%s cannot be interpreted as a boolean", result->toChars());
+                result = CTFEExp::cantexp;
+                return;
             }
         }
         else
         {
             result->error("%s cannot be interpreted as a boolean", result->toChars());
             result = CTFEExp::cantexp;
+            return;
         }
-        if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
+        if (goal != ctfeNeedNothing)
             result = new IntegerExp(e->loc, res, e->type);
     }
 
