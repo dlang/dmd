@@ -3117,3 +3117,16 @@ unittest
     i = s.dup;
     static assert(!__traits(compiles, m = s.dup));
 }
+
+unittest
+{
+    // Bugzilla 13809
+    static struct S
+    {
+        this(this) {}
+        ~this() {}
+    }
+
+    S[] arr;
+    auto a = arr.dup;
+}
