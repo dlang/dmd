@@ -2214,8 +2214,7 @@ bool cse_simple(code *c, elem *e)
 
 code* gen_testcse(code *c, unsigned sz, targ_uns i)
 {
-    bool byte = sz == 1;
-    c = genc(c,0x81 ^ byte,modregrm(2,7,BPRM),
+    c = genc(c, sz == 1 ? 0x80 : 0x81, modregrm(2, 7, BPRM),
                 FLcs,i, FLconst,(targ_uns) 0);
     if ((I64 || I32) && sz == 2)
         c->Iflags |= CFopsize;
@@ -3581,8 +3580,9 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
             }
             else
             {
-                code *c2 = genc1(CNIL,0x8B ^ (sz == 1),
-                    modregxrm(2,s->Sreglsw,BPRM),FLconst,Para.size + s->Soffset);
+                code *c2 = genc1(CNIL, sz == 1 ? 0x8A : 0x8B,
+                                    modregxrm(2, s->Sreglsw, BPRM), FLconst, Para.size + s->Soffset);
+
                 if (!I16 && sz == SHORTSIZE)
                     c2->Iflags |= CFopsize; // operand size
                 if (I64 && sz >= REGSIZE)

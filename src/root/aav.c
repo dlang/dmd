@@ -153,8 +153,8 @@ void dmd_aaRehash(AA** paa)
                 len = 32;
             else
                 len *= 4;
-            aaA** newb = (aaA**)mem.malloc(sizeof(aaA)*len);
-            memset(newb, 0, len * sizeof(aaA*));
+            aaA **newb = (aaA **)mem.malloc(sizeof(aaA *) * len);
+            memset(newb, 0, len * sizeof(aaA *));
 
             for (size_t k = 0; k < aa->b_length; k++)
             {   aaA *e = aa->b[k];

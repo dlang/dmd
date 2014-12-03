@@ -743,11 +743,10 @@ void InterfaceDeclaration::toObjFile(bool multiobj)
     dtsize_t(&dt, 0);
 
     // (*vtblInterfaces)[]
-    unsigned offset;
     dtsize_t(&dt, vtblInterfaces->dim);
     if (vtblInterfaces->dim)
     {
-        offset = global.params.isLP64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
+        unsigned offset = global.params.isLP64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
         if (Type::typeinfoclass)
         {
             if (Type::typeinfoclass->structsize != offset)
@@ -759,9 +758,7 @@ void InterfaceDeclaration::toObjFile(bool multiobj)
         dtxoff(&dt, csym, offset, TYnptr);      // (*)
     }
     else
-    {   offset = 0;
         dtsize_t(&dt, 0);
-    }
 
     // base
     assert(!baseClass);
@@ -805,7 +802,6 @@ void InterfaceDeclaration::toObjFile(bool multiobj)
     // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += vtblInterfaces->dim * (4 * Target::ptrsize);
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {   BaseClass *b = (*vtblInterfaces)[i];
         ClassDeclaration *id = b->base;

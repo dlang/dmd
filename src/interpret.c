@@ -4779,13 +4779,16 @@ public:
             {
                 result->error("%s does not evaluate to a boolean", result->toChars());
                 result = CTFEExp::cantexp;
+                return;
             }
         }
         else
         {
             result->error("%s cannot be interpreted as a boolean", result->toChars());
             result = CTFEExp::cantexp;
+            return;
         }
+
         if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
             result = new IntegerExp(e->loc, res, e->type);
     }
@@ -4830,6 +4833,7 @@ public:
                 {
                     result->error("%s cannot be interpreted as a boolean", result->toChars());
                     result = CTFEExp::cantexp;
+                    return;
                 }
             }
         }
@@ -4837,7 +4841,9 @@ public:
         {
             result->error("%s cannot be interpreted as a boolean", result->toChars());
             result = CTFEExp::cantexp;
+            return;
         }
+
         if (!CTFEExp::isCantExp(result) && goal != ctfeNeedNothing)
             result = new IntegerExp(e->loc, res, e->type);
     }

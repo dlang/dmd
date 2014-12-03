@@ -8530,6 +8530,7 @@ Lagain:
             checkRightThis(sc, ue1old);
             if (e1->op == TOKdotvar)
             {
+                assert(dve);
                 dve->var = f;
                 e1->type = f->type;
             }
@@ -11480,7 +11481,6 @@ Expression *AssignExp::semantic(Scope *sc)
 
         Expression *e1x = e1;
         Expression *e2x = e2;
-        Type *t2 = e2x->type->toBasetype();
 
         if (e2x->implicitConvTo(e1x->type))
         {
@@ -11859,7 +11859,6 @@ Expression *CatAssignExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb1next = tb1->nextOf();
     Type *tb2 = e2->type->toBasetype();
-    Type *tb2next = tb2->nextOf();
 
     if ((tb1->ty == Tarray) &&
         (tb2->ty == Tarray || tb2->ty == Tsarray) &&

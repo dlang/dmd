@@ -350,6 +350,8 @@ Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
 Ldone:
   {
     Expression *e = *pval;
+    assert(e);
+
     if (e->op != TOKerror)
     {
         e = e->copy();

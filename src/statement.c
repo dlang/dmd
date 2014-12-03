@@ -3874,6 +3874,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (inferRef)               // deduce 'auto ref'
             tf->isref = false;
 
+        assert(tbret);
         if (tbret->ty != Tvoid)     // if non-void return
         {
             error("return expression expected");
@@ -4879,7 +4880,10 @@ bool GotoStatement::checkLabel()
             if (label->statement->os)
                 error("cannot goto in to %s block", Token::toChars(label->statement->os->tok));
             else
+            {
+                assert(os);
                 error("cannot goto out of %s block", Token::toChars(os->tok));
+            }
             return true;
         }
     }

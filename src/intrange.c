@@ -60,7 +60,7 @@ SignExtendedNumber SignExtendedNumber::max()
 SignExtendedNumber SignExtendedNumber::operator-() const
 {
     if (value == 0)
-        return SignExtendedNumber(-negative);
+        return SignExtendedNumber(-(int)negative);
     else
         return SignExtendedNumber(-value, !negative);
 }
@@ -239,9 +239,9 @@ SignExtendedNumber SignExtendedNumber::operator>>(const SignExtendedNumber& a) c
     else if (isMinimum())
         return a.value == 0 ? *this : SignExtendedNumber(-1ULL << (64-a.value), true);
 
-    uinteger_t x = value ^ -negative;
+    uinteger_t x = value ^ -(int)negative;
     x >>= a.value;
-    return SignExtendedNumber(x ^ -negative, negative);
+    return SignExtendedNumber(x ^ -(int)negative, negative);
 }
 
 

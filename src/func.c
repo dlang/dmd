@@ -2321,7 +2321,7 @@ void FuncDeclaration::buildResultVar(Scope *sc, Type *tret)
 {
     if (!vresult)
     {
-        Loc loc = fensure ? fensure->loc : loc;
+        Loc loc = fensure ? fensure->loc : this->loc;
 
         /* If inferRetType is true, tret may not be a correct return type yet.
          * So, in here it may be a temporary type for vresult, and after
@@ -3224,6 +3224,8 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     }
     else if (m.nextf)
     {
+        assert(m.lastf);
+
         TypeFunction *tf1 = (TypeFunction *)m.lastf->type;
         TypeFunction *tf2 = (TypeFunction *)m.nextf->type;
         const char *lastprms = parametersTypeToChars(tf1->parameters, tf1->varargs);

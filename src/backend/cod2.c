@@ -1711,7 +1711,7 @@ code *cdnot(elem *e,regm_t *pretregs)
         c = codelem(e->E1,&retregs,FALSE);
         reg = findreg(retregs);
         c1 = getregs(retregs);
-        c1 = gen2(c1,0xF7 ^ (sz == 1),grex | modregrmx(3,3,reg));   // NEG reg
+        c1 = gen2(c1, sz == 1 ? 0xF6 : 0xF7, grex | modregrmx(3 ,3, reg));   // NEG reg
         code_orflag(c1,CFpsw);
         if (!I16 && sz == SHORTSIZE)
             code_orflag(c1,CFopsize);

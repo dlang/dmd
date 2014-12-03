@@ -5340,6 +5340,8 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
     //printf("ei: %s, ei->type: %s\n", ei->toChars(), ei->type->toChars());
     //printf("vt = %s\n", vt->toChars());
 
+    assert(ei);
+
     if (ei->type)
     {
         m = ei->implicitConvTo(vt);
@@ -8098,7 +8100,6 @@ void TemplateMixin::semantic(Scope *sc)
     printf("\tdo semantic() on template instance members '%s'\n", toChars());
 #endif
     Scope *sc2 = argscope->push(this);
-    size_t deferred_dim = Module::deferred.dim;
 
     static int nest;
     //printf("%d\n", nest);

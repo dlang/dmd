@@ -3232,7 +3232,7 @@ Type *Parser::parseBasicType2(Type *t)
 }
 
 Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
-        TemplateParameters **tpl, StorageClass storageClass, int* pdisable, Expressions **pudas)
+        TemplateParameters **tpl, StorageClass storageClass, bool *pdisable, Expressions **pudas)
 {
     //printf("parseDeclarator(tpl = %p)\n", tpl);
     t = parseBasicType2(t);
@@ -3378,8 +3378,9 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
                                         // merge prefix storage classes
                 Type *tf = new TypeFunction(parameters, t, varargs, linkage, stc);
                 tf = tf->addSTC(stc);
+
                 if (pdisable)
-                    *pdisable = stc & STCdisable ? 1 : 0;
+                    *pdisable = (stc & STCdisable) != 0;
 
                 /* Insert tf into
                  *   ts -> ... -> t
@@ -3754,7 +3755,7 @@ L2:
     while (1)
     {
         TemplateParameters *tpl = NULL;
-        int disable;
+        bool disable = false;
         int alt = 0;
 
         loc = token.loc;
