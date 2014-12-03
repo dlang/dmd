@@ -1580,6 +1580,28 @@ Lretry:
 
                 oarg = argtype;
             }
+            else if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
+                     templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND &&
+                     ((TypeIdentifier *)prmtype)->idents.dim == 0)
+            {
+                /* The farg passing to the prmtype always make a copy. Therefore,
+                 * we can shrink the set of the deduced type arguments for prmtype
+                 * by adjusting top-qualifier of the argtype.
+                 *
+                 *  prmtype         argtype     ta
+                 *  T            <- const(E)[]  const(E)[]
+                 *  T            <- const(E[])  const(E)[]
+                 *  qualifier(T) <- const(E)[]  const(E[])
+                 *  qualifier(T) <- const(E[])  const(E[])
+                 */
+                Type *ta = argtype->castMod(prmtype->mod ? argtype->nextOf()->mod : 0);
+                if (ta != argtype)
+                {
+                    Expression *ea = farg->copy();
+                    ea->type = ta;
+                    oarg = ea;
+                }
+            }
 
             if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
                 goto Lvarargs;
@@ -1777,19 +1799,7 @@ Lmatch:
         if (at && at->ty == Tnone)
         {
             TypeDeduced *xt = (TypeDeduced *)at;
-            Type *tt = xt->tded;    // 'unbox'
-
-            bool iswild = true;
-            for (size_t j = 0; iswild && j < xt->tparams.dim; j++)
-                iswild = iswild && xt->tparams[j]->isWild();
-            if (iswild)
-                tt = tt->unqualify(MODimmutable | MODconst);
-
-            // Remove top-const
-            if (tt->ty == Tarray || tt->ty == Tpointer)
-                tt = tt->mutableOf();
-
-            (*dedtypes)[i] = tt;
+            (*dedtypes)[i] = xt->tded;  // 'unbox'
             delete xt;
         }
     }
@@ -4177,23 +4187,13 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
 
             Type *at = (Type *)(*dedtypes)[i];
-            Type *et = e->type;
-            if ((tparam->mod & MODwild) && (et->ty == Tarray || et->ty == Tpointer))
-            {
-                /* The match from e to tparam is always a copy conversion.
-                 * So, if tparam == inout(T), T can be deduced to int[] for
-                 * both when t == const(int)[] and t == const(int[]).
-                 * In order to do it, adjust top qualifier of et.
-                 */
-                et = et->addMod(et->nextOf()->mod);
-            }
             Type *tt;
-            if (unsigned char wx = deduceWildHelper(et, &tt, tparam))
+            if (unsigned char wx = deduceWildHelper(e->type, &tt, tparam))
             {
                 *wm |= wx;
                 result = MATCHconst;
             }
-            else if (MATCH m = deduceTypeHelper(et, &tt, tparam))
+            else if (MATCH m = deduceTypeHelper(e->type, &tt, tparam))
             {
                 result = m;
             }

@@ -4317,6 +4317,21 @@ void test13714()
 }
 
 /******************************************/
+// 13807
+
+T f13807(T)(inout(T)[] arr)
+{
+    return T.init;
+}
+
+void test13807()
+{
+    static assert(is(typeof(f13807([1, 2, 3])) == int));    // OK
+    static assert(is(typeof(f13807(["a", "b"])) == string));    // OK <- Error
+    static assert(is(typeof(f13807!string(["a", "b"])) == string)); // OK
+}
+
+/******************************************/
 
 int main()
 {
