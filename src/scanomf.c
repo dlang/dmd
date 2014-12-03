@@ -248,7 +248,7 @@ void scanOmfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, const char* nam
                     parseName(&p, name);
                     parseIdx(&p);               // type index
                     skipDataType(&p);           // data type
-                    (*pAddSymbol)(pctx, name, 0);
+                    (*pAddSymbol)(pctx, name, 1);
                 }
                 break;
             }
@@ -423,5 +423,3 @@ void writeOMFObj(OutBuffer *buf, const void *base, unsigned length, const char *
     }
     buf->write(base, length);
 }
-
-
