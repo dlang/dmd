@@ -3245,7 +3245,8 @@ Statement *SwitchStatement::semantic(Scope *sc)
     }
 
     if (!sc->sw->sdefault && (!isFinal || needswitcherror || global.params.useAssert))
-    {   hasNoDefault = 1;
+    {
+        hasNoDefault = 1;
 
         if (!isFinal && !body->isErrorStatement())
            deprecation("switch statement without a default is deprecated; use 'final switch' or add 'default: assert(0);' or add 'default: break;'");
@@ -3258,9 +3259,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         if (global.params.useSwitchError)
             s = new SwitchErrorStatement(loc);
         else
-        {   Expression *e = new HaltExp(loc);
-            s = new ExpStatement(loc, e);
-        }
+            s = new ExpStatement(loc, new HaltExp(loc));
 
         a->reserve(2);
         sc->sw->sdefault = new DefaultStatement(loc, s);
