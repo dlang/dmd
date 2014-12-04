@@ -464,7 +464,7 @@ int main(string[] args)
 
     auto f = File(output_file, "a");
 
-    foreach(i, c; combinations(testArgs.permuteArgs))
+    foreach (i, c; combinations(testArgs.permuteArgs))
     {
         string test_app_dmd = test_app_dmd_base ~ to!string(i) ~ envData.exe;
 
@@ -482,6 +482,11 @@ int main(string[] args)
                 removeIfExists(thisRunName);
             }
 
+            // can override -verrors by using REQUIRED_ARGS
+            auto reqArgs =
+                (testArgs.mode == TestMode.FAIL_COMPILE ? "-verrors=0 " : null) ~
+                testArgs.requiredArgs;
+
             string compile_output;
             if (!testArgs.compileSeparately)
             {
@@ -489,7 +494,7 @@ int main(string[] args)
                 toCleanup ~= objfile;
 
                 string command = format("%s -m%s -I%s %s %s -od%s -of%s %s%s", envData.dmd, envData.model, input_dir,
-                        testArgs.requiredArgs, c, output_dir,
+                        reqArgs, c, output_dir,
                         (testArgs.mode == TestMode.RUN ? test_app_dmd : objfile),
                         (testArgs.mode == TestMode.RUN ? "" : "-c "),
                         join(testArgs.sources, " "));
@@ -505,7 +510,7 @@ int main(string[] args)
                     toCleanup ~= newo;
 
                     string command = format("%s -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
-                        testArgs.requiredArgs, c, output_dir, filename);
+                        reqArgs, c, output_dir, filename);
                     compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
 
