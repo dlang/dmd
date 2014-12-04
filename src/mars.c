@@ -315,7 +315,6 @@ Usage:\n\
   -version=ident compile in version code identified by ident\n\
   -vtls          list all variables going into thread local storage\n\
   -vgc           list all gc allocations including hidden ones\n\
-  -verrors=num   limit the number of error messages (0 means unlimited)\n\
   -w             warnings as errors (compilation will halt)\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
