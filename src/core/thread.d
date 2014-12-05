@@ -4895,8 +4895,9 @@ unittest
 
 
 // Test exception handling inside fibers.
-unittest
-{
+version (Win32) {
+    // broken on win32 under windows server 2012: bug 13821
+} else unittest {
     enum MSG = "Test message.";
     string caughtMsg;
     (new Fiber({
@@ -4940,8 +4941,9 @@ deprecated unittest
     new Fiber({}).call(false);
 }
 
-unittest
-{
+version (Win32) {
+    // broken on win32 under windows server 2012: bug 13821
+} else unittest {
     enum MSG = "Test message.";
 
     try
