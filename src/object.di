@@ -741,7 +741,7 @@ private inout(T)[] _rawDup(T)(inout(T)[] a)
     return *cast(inout(T)[]*)&arr;
 }
 
-template _PostBlitType(T)
+private template _PostBlitType(T)
 {
     // assume that ref T and void* are equivalent in abi level.
     static if (is(T == struct))
