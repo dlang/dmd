@@ -345,6 +345,7 @@ Msgtable msgtable[] =
     { "getFunctionAttributes" },
     { "getUnitTests" },
     { "getVirtualIndex" },
+    { "getPointerBitmap" },
 
     // For C++ mangling
     { "allocator" },
