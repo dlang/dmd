@@ -1054,6 +1054,20 @@ void test11916()
 }
 
 /***************************************************/
+// 13783
+
+enum E13783 { a = 5 }
+
+    inout(int) f(    inout(int) t) { return t * 2; }
+ref inout(int) f(ref inout(int) t) { return t; }
+
+void test13783()
+{
+    const E13783 e = E13783.a;
+    assert(f(e) == 10);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1086,6 +1100,7 @@ int main()
     test11785();
     test11915();
     test11916();
+    test13783();
 
     printf("Success\n");
     return 0;
