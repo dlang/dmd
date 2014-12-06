@@ -2157,23 +2157,74 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e->toChars(), e->type->toChars(), t->toChars());
             Type *typeb = e->type->toBasetype();
             Type *tb = t->toBasetype();
-
-            if (typeb->ty == Tarray && (tb->ty == Tarray || tb->ty == Tsarray) &&
-                typeb->nextOf()->equivalent(tb->nextOf()))
+            if (e->type->equals(t) || typeb->ty != Tarray ||
+                (tb->ty != Tarray && tb->ty != Tsarray))
             {
-                // T[] to const(T)[]
-                // T[] to const(T)[dim]
+                visit((Expression *)e);
+                return;
+            }
 
-                /* If a SliceExp has Tsarray, it will become lvalue.
+            if (tb->ty == Tarray)
+            {
+                if (typeb->nextOf()->equivalent(tb->nextOf()))
+                {
+                    // T[] to const(T)[]
+                    result = e->copy();
+                    result->type = t;
+                }
+                else
+                {
+                    visit((Expression *)e);
+                }
+                return;
+            }
+
+            // Handle the cast from Tarray to Tsarray with CT-known slicing
+
+            TypeSArray *tsa = (TypeSArray *)toStaticArrayType(e);
+            if (tsa && tsa->size(e->loc) == tb->size(e->loc))
+            {
+                /* Match if the sarray sizes are equal:
+                 *  T[a .. b] to const(T)[b-a]
+                 *  T[a .. b] to U[dim] if (T.sizeof*(b-a) == U.sizeof*dim)
+                 *
+                 * If a SliceExp has Tsarray, it will become lvalue.
                  * That's handled in SliceExp::isLvalue and toLvalue
                  */
                 result = e->copy();
                 result->type = t;
+                return;
             }
-            else
+            if (tsa && tsa->dim->equals(((TypeSArray *)tb)->dim))
             {
-                visit((Expression *)e);
+                /* Match if the dimensions are equal
+                 * with the implicit conversion of e->e1:
+                 *  cast(float[2]) [2.0, 1.0, 0.0][0..2];
+                 */
+                Type *t1b = e->e1->type->toBasetype();
+                if (t1b->ty == Tsarray)
+                    t1b = tb->nextOf()->sarrayOf(((TypeSArray *)t1b)->dim->toInteger());
+                else if (t1b->ty == Tarray)
+                    t1b = tb->nextOf()->arrayOf();
+                else if (t1b->ty == Tpointer)
+                    t1b = tb->nextOf()->pointerTo();
+                else
+                    assert(0);
+                if (e->e1->implicitConvTo(t1b) > MATCHnomatch)
+                {
+                    Expression *e1x = e->e1->implicitCastTo(sc, t1b);
+                    assert(e1x->op != TOKerror);
+                    e = (SliceExp *)e->copy();
+                    e->e1 = e1x;
+                    e->type = t;
+                    result = e;
+                    return;
+                }
             }
+            e->error("cannot cast expression %s of type %s to %s",
+                e->toChars(), tsa ? tsa->toChars() : e->type->toChars(),
+                t->toChars());
+            result = new ErrorExp();
         }
     };
 
