@@ -1175,6 +1175,13 @@ UnionExp Cast(Type *type, Type *to, Expression *e1)
         return ue;
     }
 
+    if (e1->op == TOKvector && ((TypeVector *)e1->type)->basetype->equals(type) && type->equals(to))
+    {
+        Expression *ex = ((VectorExp *)e1)->e1;
+        memcpy(&ue, ex, ex->size);
+        return ue;
+    }
+
     if (e1->type->implicitConvTo(to) >= MATCHconst ||
         to->implicitConvTo(e1->type) >= MATCHconst)
     {

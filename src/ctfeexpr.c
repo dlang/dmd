@@ -446,6 +446,9 @@ Expression *resolveSlice(Expression *e)
  */
 uinteger_t resolveArrayLength(Expression *e)
 {
+    if (e->op == TOKvector)
+        e = ((VectorExp *)e)->e1;
+
     if (e->op == TOKnull)
         return 0;
     if (e->op == TOKslice)

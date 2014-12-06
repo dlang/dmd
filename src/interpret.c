@@ -3795,6 +3795,8 @@ public:
         /* Assignment to variable of the form:
          *  v = newval
          */
+        if (e1->op == TOKvector)
+            e1 = ((VectorExp *)e1)->e1;
         if (e1->op == TOKvar)
         {
             VarExp *ve = (VarExp *)e1;
@@ -4017,6 +4019,7 @@ public:
                 return false;
             }
             if (oldval->op != TOKarrayliteral &&
+                oldval->op != TOKvector &&
                 oldval->op != TOKstring &&
                 oldval->op != TOKslice)
             {
@@ -4142,6 +4145,8 @@ public:
         }
         if (aggregate->op == TOKarrayliteral)
             existingAE = (ArrayLiteralExp *)aggregate;
+        else if (aggregate->op == TOKvector)
+            existingAE = (ArrayLiteralExp *)((VectorExp *)aggregate)->e1;
         else if (aggregate->op == TOKstring)
             existingSE = (StringExp *)aggregate;
         else
@@ -6181,7 +6186,7 @@ public:
             if (result->op == TOKstructliteral)
                 return;
             if ((e->type->ty == Tsarray || goal == ctfeNeedLvalue) && (
-                result->op == TOKarrayliteral ||
+                result->op == TOKarrayliteral || result->op == TOKvector ||
                 result->op == TOKassocarrayliteral || result->op == TOKstring ||
                 result->op == TOKclassreference || result->op == TOKslice))
             {

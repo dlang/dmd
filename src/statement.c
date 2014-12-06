@@ -4905,7 +4905,7 @@ bool GotoStatement::checkLabel()
         error("goto skips declaration of with temporary at %s", vd->loc.toChars());
         return true;
     }
-    else if (!(vd->storage_class & STCtemp))
+    else
     {
         error("goto skips declaration of variable %s at %s", vd->toPrettyChars(), vd->loc.toChars());
         return true;
