@@ -153,10 +153,21 @@ MANIFEST=\
 	src\core\sys\posix\sys\wait.d \
 	\
 	src\core\sys\solaris\dlfcn.d \
+	src\core\sys\solaris\elf.d \
+	src\core\sys\solaris\execinfo.d \
+	src\core\sys\solaris\libelf.d \
+	src\core\sys\solaris\link.d \
+	\
+	src\core\sys\solaris\sys\elf.d \
+	src\core\sys\solaris\sys\elf_386.d \
+	src\core\sys\solaris\sys\elf_amd64.d \
+	src\core\sys\solaris\sys\elf_notes.d \
+	src\core\sys\solaris\sys\elf_SPARC.d \
+	src\core\sys\solaris\sys\elftypes.d \
+	src\core\sys\solaris\sys\link.d \
 	src\core\sys\solaris\sys\priocntl.d \
 	src\core\sys\solaris\sys\procset.d \
 	src\core\sys\solaris\sys\types.d \
-	src\core\sys\solaris\execinfo.d \
 	\
 	src\core\sys\windows\com.d \
 	src\core\sys\windows\dbghelp.d \

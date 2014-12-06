@@ -122,10 +122,20 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\sys\utsname.d \
 	\
 	$(IMPDIR)\core\sys\solaris\dlfcn.d \
+	$(IMPDIR)\core\sys\solaris\elf.d \
+	$(IMPDIR)\core\sys\solaris\execinfo.d \
+	$(IMPDIR)\core\sys\solaris\libelf.d \
+	$(IMPDIR)\core\sys\solaris\link.d \
+	$(IMPDIR)\core\sys\solaris\sys\elf.d \
+	$(IMPDIR)\core\sys\solaris\sys\elf_386.d \
+	$(IMPDIR)\core\sys\solaris\sys\elf_amd64.d \
+	$(IMPDIR)\core\sys\solaris\sys\elf_notes.d \
+	$(IMPDIR)\core\sys\solaris\sys\elf_SPARC.d \
+	$(IMPDIR)\core\sys\solaris\sys\elftypes.d \
+	$(IMPDIR)\core\sys\solaris\sys\link.d \
 	$(IMPDIR)\core\sys\solaris\sys\procset.d \
 	$(IMPDIR)\core\sys\solaris\sys\types.d \
 	$(IMPDIR)\core\sys\solaris\sys\priocntl.d \
-	$(IMPDIR)\core\sys\solaris\execinfo.d \
 	\
 	$(IMPDIR)\core\sys\windows\com.d \
 	$(IMPDIR)\core\sys\windows\dbghelp.d \
