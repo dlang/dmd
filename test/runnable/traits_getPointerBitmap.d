@@ -1,4 +1,3 @@
-// REQUIRED_ARGS: -unittest
 
 module traits_getPointerBitmap;
 
@@ -162,6 +161,46 @@ struct Large
     size_t[15] val3;
 }
 
+class N
+{
+    struct Nested
+    {
+        // no outer for structs
+        size_t x;
+        void* p1;
+        Large* s;
+
+        void foo() {} // need member fnction to not be POD
+    }
+    class CNested
+    {
+        // implicit vtptr,monitor
+        size_t x;
+        void* p1;
+        size_t y;
+        // implicit outer
+    }
+    class CNestedDerived : CNested
+    {
+        size_t[3] z;
+        void* p;
+    }
+}
+
+union U
+{
+    size_t data[4];
+    Large*[] arr; // { length, ptr }
+
+    struct
+    {
+        size_t d1;
+        size_t d2;
+        size_t d3;
+        void* p;
+    }
+}
+
 void testRTInfo()
 {
     testType!(bool)         ([ 0b0 ]);
@@ -187,18 +226,41 @@ void testRTInfo()
     testType!(sint3)          ([ 0b101010 ]);
     testType!(sint3_2)        ([ 0b101010101010 ]);
     testType!(void2)          ([ 0b11 ]);
+    testType!(U)              ([ 0b1010 ]);
 
     version(D_LP64)
         _testType!(Large)          ([ 0x1000_0000__4000_0000, 0x0001_0000 ]);
     else
         _testType!(Large)          ([ 0x4000_0000, 0x1000_0000, 0x0001_0000 ]);
-}
 
-unittest
-{
-    testRTInfo();
+    _testType!(N.CNested)     ([ 0b101000 ]);
+    _testType!(N.CNestedDerived) ([ 0b1000101000 ]);
+
+    testType!(N.Nested)       ([ 0b110 ]);
+
+    struct SFNested
+    {
+        size_t[2] d;
+        void* p1;
+        fn f;
+        // implicite outer
+
+        void foo() {} // need member fnction to not be POD
+    }
+
+    class CFNested
+    {
+        // implicit vtptr,monitor
+        size_t[2] d;
+        void* p1;
+        // implicite outer
+    }
+
+    testType!(SFNested)      ([ 0b10100 ]);
+    _testType!(CFNested)     ([ 0b110000 ]);
 }
 
 void main() 
 {
+    testRTInfo();
 }
