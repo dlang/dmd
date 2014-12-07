@@ -178,6 +178,28 @@ extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf)
     }
 }
 
+// strip const/immutable/shared/inout from type info
+inout(TypeInfo) unqualify(inout(TypeInfo) cti) pure nothrow @nogc
+{
+    TypeInfo ti = cast() cti;
+    while (ti)
+    {
+        // avoid dynamic type casts
+        auto tti = typeid(ti);
+        if (tti is typeid(TypeInfo_Const))
+            ti = (cast(TypeInfo_Const)cast(void*)ti).base;
+        else if (tti is typeid(TypeInfo_Invariant))
+            ti = (cast(TypeInfo_Invariant)cast(void*)ti).base;
+        else if (tti is typeid(TypeInfo_Shared))
+            ti = (cast(TypeInfo_Shared)cast(void*)ti).base;
+        else if (tti is typeid(TypeInfo_Inout))
+            ti = (cast(TypeInfo_Inout)cast(void*)ti).base;
+        else
+            break;
+    }
+    return ti;
+}
+
 // size used to store the TypeInfo at the end of an allocation for structs that have a destructor
 size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
 {
@@ -230,9 +252,8 @@ private class ArrayAllocLengthLock
 
   where elem0 starts 16 bytes after the first byte.
   */
-bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo ti, size_t oldlength = ~0) pure nothrow
+bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength = ~0) pure nothrow
 {
-    const TypeInfo tinext = ti.next;
     size_t typeInfoSize = structTypeInfoSize(tinext);
 
     if(info.size <= 256)
@@ -358,13 +379,13 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
 /**
   get the allocation size of the array for the given block (without padding or type info)
   */
-size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo ti) pure nothrow
+size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo tinext) pure nothrow
 {
     if(info.size <= 256)
-        return *cast(ubyte *)(info.base + info.size - structTypeInfoSize(ti.next) - SMALLPAD);
+        return *cast(ubyte *)(info.base + info.size - structTypeInfoSize(tinext) - SMALLPAD);
 
     if(info.size < PAGESIZE)
-        return *cast(ushort *)(info.base + info.size - structTypeInfoSize(ti.next) - MEDPAD);
+        return *cast(ushort *)(info.base + info.size - structTypeInfoSize(tinext) - MEDPAD);
      
     return *cast(size_t *)(info.base);
 }
@@ -382,18 +403,17 @@ void *__arrayStart(BlkInfo info) nothrow pure
   NOT included in the passed in size.  Therefore, do NOT call this function
   with the size of an allocated block.
   */
-size_t __arrayPad(size_t size, const TypeInfo ti) nothrow pure @trusted
+size_t __arrayPad(size_t size, const TypeInfo tinext) nothrow pure @trusted
 {
-    return size > MAXMEDSIZE ? LARGEPAD : ((size > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + structTypeInfoSize(ti.next));
+    return size > MAXMEDSIZE ? LARGEPAD : ((size > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + structTypeInfoSize(tinext));
 }
 
 /**
   allocate an array memory block by applying the proper padding and
   assigning block attributes if not inherited from the existing block
   */
-BlkInfo __arrayAlloc(size_t arrsize, const TypeInfo ti) nothrow pure
+BlkInfo __arrayAlloc(size_t arrsize, const TypeInfo ti, const TypeInfo tinext) nothrow pure
 {
-    const TypeInfo tinext = ti.next;
     size_t typeInfoSize = structTypeInfoSize(tinext);
     size_t padsize = arrsize > MAXMEDSIZE ? LARGEPAD : ((arrsize > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + typeInfoSize);
 
@@ -406,12 +426,12 @@ BlkInfo __arrayAlloc(size_t arrsize, const TypeInfo ti) nothrow pure
     return GC.qalloc(arrsize + padsize, attr, ti);
 }
 
-BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const TypeInfo ti)
+BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const TypeInfo ti, const TypeInfo tinext)
 {
     if (!info.base)
-        return __arrayAlloc(arrsize, ti);
+        return __arrayAlloc(arrsize, ti, tinext);
 
-    return GC.qalloc(arrsize + __arrayPad(arrsize, ti), info.attr, ti);
+    return GC.qalloc(arrsize + __arrayPad(arrsize, tinext), info.attr, ti);
 }
 
 /**
@@ -621,7 +641,7 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
     // note, we do not care about shared.  We are setting the length no matter
     // what, so no lock is required.
     debug(PRINTF) printf("_d_arrayshrinkfit, elemsize = %d, arr.ptr = x%x arr.length = %d\n", ti.next.tsize, arr.ptr, arr.length);
-    auto tinext = ti.next;
+    auto tinext = unqualify(ti.next);
     auto size = tinext.tsize;                  // array element size
     auto cursize = arr.length * size;
     auto bic = __getBlkInfo(arr.ptr);
@@ -629,7 +649,7 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
     if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         auto newsize = (arr.ptr - __arrayStart(info)) + cursize;
-        auto oldsize = __arrayAllocLength(info, ti);
+        auto oldsize = __arrayAllocLength(info, tinext);
         if (newsize > oldsize)
             onInvalidMemoryOperationError();
 
@@ -644,7 +664,7 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
         }
         // Note: Since we "assume" the append is safe, it means it is not shared.
         // Since it is not shared, we also know it won't throw (no lock).
-        __setArrayAllocLength(info, newsize, false, ti);
+        __setArrayAllocLength(info, newsize, false, tinext);
     }
 }
 
@@ -701,7 +721,8 @@ body
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
     auto bic = !isshared ? __getBlkInfo((*p).ptr) : null;
     auto info = bic ? *bic : GC.query((*p).ptr);
-    auto size = ti.next.tsize;
+    auto tinext = unqualify(ti.next);
+    auto size = tinext.tsize;
     version (D_InlineAsm_X86)
     {
         size_t reqsize = void;
@@ -750,12 +771,12 @@ Lcontinue:
     {
         if(info.size <= 256)
         {
-            arraypad = SMALLPAD + structTypeInfoSize(ti.next);
+            arraypad = SMALLPAD + structTypeInfoSize(tinext);
             curallocsize = *(cast(ubyte *)(info.base + info.size - arraypad));
         }
         else if(info.size < PAGESIZE)
         {
-            arraypad = MEDPAD + structTypeInfoSize(ti.next);
+            arraypad = MEDPAD + structTypeInfoSize(tinext);
             curallocsize = *(cast(ushort *)(info.base + info.size - arraypad));
         }
         else
@@ -808,7 +829,7 @@ Lcontinue:
     auto datasize = (*p).length * size;
     // copy attributes from original block, or from the typeinfo if the
     // original block doesn't exist.
-    info = __arrayAlloc(reqsize, info, ti);
+    info = __arrayAlloc(reqsize, info, ti, tinext);
     if(info.base is null)
         goto Loverflow;
     // copy the data over.
@@ -817,7 +838,7 @@ Lcontinue:
     memcpy(tgt, (*p).ptr, datasize);
 
     // handle postblit
-    __doPostblit(tgt, datasize, ti.next);
+    __doPostblit(tgt, datasize, tinext);
 
     if(!(info.attr & BlkAttr.NO_SCAN))
     {
@@ -832,7 +853,7 @@ Lcontinue:
     }
 
     // set up the correct length
-    __setArrayAllocLength(info, datasize, isshared, ti);
+    __setArrayAllocLength(info, datasize, isshared, tinext);
     if(!isshared)
         __insertBlkInfoCache(info, bic);
 
@@ -842,9 +863,9 @@ Lcontinue:
     // assumes you are not counting the pad size, and info.size does include
     // the pad.
     if(info.size <= 256)
-        arraypad = SMALLPAD + structTypeInfoSize(ti.next);
+        arraypad = SMALLPAD + structTypeInfoSize(tinext);
     else if(info.size < PAGESIZE)
-        arraypad = MEDPAD + structTypeInfoSize(ti.next);
+        arraypad = MEDPAD + structTypeInfoSize(tinext);
     else
         arraypad = LARGEPAD;
 
@@ -858,7 +879,8 @@ Lcontinue:
  */
 extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow
 {
-    auto size = ti.next.tsize;
+    auto tinext = unqualify(ti.next);
+    auto size = tinext.tsize;
 
     debug(PRINTF) printf("_d_newarrayU(length = x%x, size = %d)\n", length, size);
     if (length == 0 || size == 0)
@@ -898,14 +920,14 @@ Loverflow:
     assert(0);
 Lcontinue:
 
-    auto info = __arrayAlloc(size, ti);
+    auto info = __arrayAlloc(size, ti, tinext);
     if (!info.base)
         goto Loverflow;
     debug(PRINTF) printf(" p = %p\n", info.base);
     // update the length of the array
     auto arrstart = __arrayStart(info);
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-    __setArrayAllocLength(info, size, isshared, ti);
+    __setArrayAllocLength(info, size, isshared, tinext);
     return arrstart[0..length];
 }
 
@@ -917,7 +939,8 @@ Lcontinue:
 extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length) pure nothrow
 {
     void[] result = _d_newarrayU(ti, length);
-    auto size = ti.next.tsize;
+    auto tinext = unqualify(ti.next);
+    auto size = tinext.tsize;
 
     memset(result.ptr, 0, size * length);
     return result;
@@ -931,9 +954,10 @@ extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length) pure nothrow
     import core.internal.traits : TypeTuple;
 
     void[] result = _d_newarrayU(ti, length);
-    auto size = ti.next.tsize;
+    auto tinext = unqualify(ti.next);
+    auto size = tinext.tsize;
 
-    auto init = ti.next.init();
+    auto init = tinext.init();
 
     switch (init.length)
     {
@@ -967,6 +991,7 @@ void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t ndims, va_list q)
     {
         void[] foo(const TypeInfo ti, va_list ap, size_t ndims)
         {
+            auto tinext = unqualify(ti.next);
             size_t dim;
             va_arg(ap, dim);
 
@@ -979,9 +1004,9 @@ void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t ndims, va_list q)
             else
             {
                 auto allocsize = (void[]).sizeof * dim;
-                auto info = GC.qalloc(allocsize + __arrayPad(allocsize, ti), 0, ti);
+                auto info = GC.qalloc(allocsize + __arrayPad(allocsize, tinext), 0, ti);
                 auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-                __setArrayAllocLength(info, allocsize, isshared, ti);
+                __setArrayAllocLength(info, allocsize, isshared, tinext);
                 auto p = __arrayStart(info)[0 .. dim];
 
                 version(X86)
@@ -1004,7 +1029,7 @@ void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t ndims, va_list q)
                         __va_list argsave = *cast(__va_list*)ap;
                         va_list ap2 = &argsave;
                     }
-                    (cast(void[]*)p.ptr)[i] = foo(ti.next, ap2, ndims - 1);
+                    (cast(void[]*)p.ptr)[i] = foo(tinext, ap2, ndims - 1);
                 }
                 return p;
             }
@@ -1084,8 +1109,9 @@ extern (C) void[] _d_newarraymiT(const TypeInfo ti, size_t ndims, ...)
  * This is an optimization to avoid things needed for arrays like the __arrayPad(size).
  */
 
-extern (C) void* _d_newitemT(TypeInfo ti)
+extern (C) void* _d_newitemT(TypeInfo _ti)
 {
+    auto ti = unqualify(_ti);
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
     size_t typeInfoSize = structTypeInfoSize(ti);
@@ -1120,8 +1146,9 @@ extern (C) void* _d_newitemT(TypeInfo ti)
 
 }
 
-extern (C) void* _d_newitemiT(TypeInfo ti)
+extern (C) void* _d_newitemiT(TypeInfo _ti)
 {
+    auto ti = unqualify(_ti);
     auto size = ti.tsize;                  // array element size
     auto baseFlags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
     size_t typeInfoSize = structTypeInfoSize(ti);
@@ -1500,7 +1527,8 @@ body
             newdata = (*p).ptr;
             return newdata[0 .. newlength];
         }
-        size_t sizeelem = ti.next.tsize;
+        auto tinext = unqualify(ti.next);
+        size_t sizeelem = tinext.tsize;
         version (D_InlineAsm_X86)
         {
             size_t newsize = void;
@@ -1552,7 +1580,7 @@ body
                     if(info.size >= PAGESIZE)
                     {
                         // size of array is at the front of the block
-                        if(!__setArrayAllocLength(info, newsize + offset, isshared, ti, size + offset))
+                        if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
                         {
                             // check to see if it failed because there is not
                             // enough space
@@ -1566,7 +1594,7 @@ body
                                     // extend worked, now try setting the length
                                     // again.
                                     info.size = u;
-                                    if(__setArrayAllocLength(info, newsize + offset, isshared, ti, size + offset))
+                                    if(__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
                                     {
                                         if(!isshared)
                                             __insertBlkInfoCache(info, bic);
@@ -1584,7 +1612,7 @@ body
                             __insertBlkInfoCache(info, null);
                         }
                     }
-                    else if(!__setArrayAllocLength(info, newsize + offset, isshared, ti, size + offset))
+                    else if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
                     {
                         // could not resize in place
                         goto L2;
@@ -1605,20 +1633,20 @@ body
                             // a chance that flags have changed since this was cached, we should fetch the most recent flags
                             info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
                         }
-                        info = GC.qalloc(newsize + __arrayPad(newsize, ti), info.attr, ti);
+						info = GC.qalloc(newsize + __arrayPad(newsize, tinext), info.attr, ti);
                     }
                     else
                     {
-                        info = GC.qalloc(newsize + __arrayPad(newsize, ti), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
+						info = GC.qalloc(newsize + __arrayPad(newsize, tinext), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
                     }
-                    __setArrayAllocLength(info, newsize, isshared, ti);
+					__setArrayAllocLength(info, newsize, isshared, tinext);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
                     newdata = cast(byte *)__arrayStart(info);
                     newdata[0 .. size] = (*p).ptr[0 .. size];
 
                     // do postblit processing
-                    __doPostblit(newdata, size, ti.next);
+                    __doPostblit(newdata, size, tinext);
                 }
              L1:
                 memset(newdata + size, 0, newsize - size);
@@ -1627,8 +1655,8 @@ body
         else
         {
             // pointer was null, need to allocate
-            auto info = __arrayAlloc(newsize, ti);
-            __setArrayAllocLength(info, newsize, isshared, ti);
+            auto info = __arrayAlloc(newsize, ti, tinext);
+            __setArrayAllocLength(info, newsize, isshared, tinext);
             if(!isshared)
                 __insertBlkInfoCache(info, null);
             newdata = cast(byte *)__arrayStart(info);
@@ -1665,8 +1693,9 @@ in
 body
 {
     void* newdata;
-    auto sizeelem = ti.next.tsize;
-    auto initializer = ti.next.init();
+    auto tinext = unqualify(ti.next);
+    auto sizeelem = tinext.tsize;
+    auto initializer = tinext.init();
     auto initsize = initializer.length;
 
     assert(sizeelem);
@@ -1734,7 +1763,7 @@ body
                     if(info.size >= PAGESIZE)
                     {
                         // size of array is at the front of the block
-                        if(!__setArrayAllocLength(info, newsize + offset, isshared, ti, size + offset))
+                        if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
                         {
                             // check to see if it failed because there is not
                             // enough space
@@ -1748,7 +1777,7 @@ body
                                     // extend worked, now try setting the length
                                     // again.
                                     info.size = u;
-                                    if(__setArrayAllocLength(info, newsize + offset, isshared, ti, size + offset))
+                                    if(__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
                                     {
                                         if(!isshared)
                                             __insertBlkInfoCache(info, bic);
@@ -1766,7 +1795,7 @@ body
                             __insertBlkInfoCache(info, null);
                         }
                     }
-                    else if(!__setArrayAllocLength(info, newsize + offset, isshared, ti, size + offset))
+                    else if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
                     {
                         // could not resize in place
                         goto L2;
@@ -1788,20 +1817,20 @@ body
                             // a chance that flags have changed since this was cached, we should fetch the most recent flags
                             info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
                         }
-                        info = GC.qalloc(newsize + __arrayPad(newsize, ti), info.attr, ti);
+						info = GC.qalloc(newsize + __arrayPad(newsize, tinext), info.attr, ti);
                     }
                     else
                     {
-                        info = GC.qalloc(newsize + __arrayPad(newsize, ti), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
+						info = GC.qalloc(newsize + __arrayPad(newsize, tinext), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
                     }
-                    __setArrayAllocLength(info, newsize, isshared, ti);
+					__setArrayAllocLength(info, newsize, isshared, tinext);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
                     newdata = cast(byte *)__arrayStart(info);
                     newdata[0 .. size] = (*p).ptr[0 .. size];
 
                     // do postblit processing
-                    __doPostblit(newdata, size, ti.next);
+                    __doPostblit(newdata, size, tinext);
                 }
                 L1: ;
             }
@@ -1809,8 +1838,8 @@ body
         else
         {
             // length was zero, need to allocate
-            auto info = __arrayAlloc(newsize, ti);
-            __setArrayAllocLength(info, newsize, isshared, ti);
+            auto info = __arrayAlloc(newsize, ti, tinext);
+            __setArrayAllocLength(info, newsize, isshared, tinext);
             if(!isshared)
                 __insertBlkInfoCache(info, null);
             newdata = cast(byte *)__arrayStart(info);
@@ -1854,12 +1883,13 @@ Loverflow:
 extern (C) void[] _d_arrayappendT(const TypeInfo ti, ref byte[] x, byte[] y)
 {
     auto length = x.length;
-    auto sizeelem = ti.next.tsize;              // array element size
+    auto tinext = unqualify(ti.next);
+    auto sizeelem = tinext.tsize;              // array element size
     _d_arrayappendcTX(ti, x, y.length);
     memcpy(x.ptr + length * sizeelem, y.ptr, y.length * sizeelem);
 
     // do postblit
-    __doPostblit(x.ptr + length * sizeelem, y.length * sizeelem, ti.next);
+    __doPostblit(x.ptr + length * sizeelem, y.length * sizeelem, tinext);
     return x;
 }
 
@@ -1967,11 +1997,12 @@ extern (C) void[] _d_arrayappendcT(const TypeInfo ti, ref byte[] x, ...)
         //   #2 is in _d_arrayappendT is copyinb b into the end of x
         // to fix this, we need a form of _d_arrayappendT that just grows
         // the array and leaves the copy to be done here by va_arg.
-        byte[] b = (cast(byte*)alloca(ti.next.tsize))[0 .. ti.next.tsize];
+        auto tinext = unqualify(ti.next);
+        byte[] b = (cast(byte*)alloca(tinext.tsize))[0 .. tinext.tsize];
 
         va_list ap;
         va_start(ap, __va_argsave);
-        va_arg(ap, cast()ti.next, cast(void*)b.ptr);
+        va_arg(ap, cast()tinext, cast(void*)b.ptr);
         va_end(ap);
 
         // The 0..1 here is strange.  Inside _d_arrayappendT, it ends up copying
@@ -1999,7 +2030,8 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
     // This is a cut&paste job from _d_arrayappendT(). Should be refactored.
 
     // only optimize array append where ti is not a shared type
-    auto sizeelem = ti.next.tsize;              // array element size
+    auto tinext = unqualify(ti.next);
+    auto sizeelem = tinext.tsize;              // array element size
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
     auto bic = !isshared ? __getBlkInfo(px.ptr) : null;
     auto info = bic ? *bic : GC.query(px.ptr);
@@ -2016,7 +2048,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
         if(info.size >= PAGESIZE)
         {
             // size of array is at the front of the block
-            if(!__setArrayAllocLength(info, newsize + offset, isshared, ti, size + offset))
+            if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
             {
                 // check to see if it failed because there is not
                 // enough space
@@ -2031,7 +2063,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
                         // extend worked, now try setting the length
                         // again.
                         info.size = u;
-                        if(__setArrayAllocLength(info, newsize + offset, isshared, ti, size + offset))
+                        if(__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
                         {
                             if(!isshared)
                                 __insertBlkInfoCache(info, bic);
@@ -2048,7 +2080,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
                 __insertBlkInfoCache(info, null);
             }
         }
-        else if(!__setArrayAllocLength(info, newsize + offset, isshared, ti, size + offset))
+        else if(!__setArrayAllocLength(info, newsize + offset, isshared, tinext, size + offset))
         {
             // could not resize in place
             newcap = newCapacity(newlength, sizeelem);
@@ -2071,19 +2103,19 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
                 // a chance that flags have changed since this was cached, we should fetch the most recent flags
                 info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
             }
-			info = GC.qalloc(newcap + __arrayPad(newcap, ti), info.attr, ti);
+			info = GC.qalloc(newcap + __arrayPad(newcap, tinext), info.attr, ti);
         }
         else
         {
-			info = GC.qalloc(newcap + __arrayPad(newcap, ti), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
+			info = GC.qalloc(newcap + __arrayPad(newcap, tinext), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
         }
-		__setArrayAllocLength(info, newsize, isshared, ti);
+		__setArrayAllocLength(info, newsize, isshared, tinext);
         if(!isshared)
             __insertBlkInfoCache(info, bic);
         auto newdata = cast(byte *)__arrayStart(info);
         memcpy(newdata, px.ptr, length * sizeelem);
         // do postblit processing
-        __doPostblit(newdata, length * sizeelem, ti.next);
+        __doPostblit(newdata, length * sizeelem, tinext);
         (cast(void **)(&px))[1] = newdata;
     }
 
@@ -2178,13 +2210,14 @@ extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c)
 extern (C) byte[] _d_arraycatT(const TypeInfo ti, byte[] x, byte[] y)
 out (result)
 {
-    auto sizeelem = ti.next.tsize;              // array element size
+    auto tinext = unqualify(ti.next);
+    auto sizeelem = tinext.tsize;              // array element size
     debug(PRINTF) printf("_d_arraycatT(%d,%p ~ %d,%p sizeelem = %d => %d,%p)\n", x.length, x.ptr, y.length, y.ptr, sizeelem, result.length, result.ptr);
     assert(result.length == x.length + y.length);
 
     // If a postblit is involved, the contents of result might rightly differ
     // from the bitwise concatenation of x and y.
-    auto pb = &ti.next.postblit;
+    auto pb = &tinext.postblit;
     if (pb.funcptr is &TypeInfo.postblit)
     {
         for (size_t i = 0; i < x.length * sizeelem; i++)
@@ -2213,7 +2246,8 @@ body
             return y;
     }
 
-    auto sizeelem = ti.next.tsize;              // array element size
+    auto tinext = unqualify(ti.next);
+    auto sizeelem = tinext.tsize;              // array element size
     debug(PRINTF) printf("_d_arraycatT(%d,%p ~ %d,%p sizeelem = %d)\n", x.length, x.ptr, y.length, y.ptr, sizeelem);
     size_t xlen = x.length * sizeelem;
     size_t ylen = y.length * sizeelem;
@@ -2222,16 +2256,16 @@ body
     if (!len)
         return null;
 
-    auto info = __arrayAlloc(len, ti);
+    auto info = __arrayAlloc(len, ti, tinext);
     byte* p = cast(byte*)__arrayStart(info);
     p[len] = 0; // guessing this is to optimize for null-terminated arrays?
     memcpy(p, x.ptr, xlen);
     memcpy(p + xlen, y.ptr, ylen);
     // do postblit processing
-    __doPostblit(p, xlen + ylen, ti.next);
+    __doPostblit(p, xlen + ylen, tinext);
 
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-    __setArrayAllocLength(info, len, isshared, ti);
+    __setArrayAllocLength(info, len, isshared, tinext);
     return p[0 .. x.length + y.length];
 }
 
@@ -2242,7 +2276,8 @@ body
 extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
 {
     size_t length;
-    auto size = ti.next.tsize;   // array element size
+    auto tinext = unqualify(ti.next);
+    auto size = tinext.tsize;   // array element size
 
     version(X86)
     {
@@ -2281,9 +2316,9 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
         return null;
 
     auto allocsize = length * size;
-    auto info = __arrayAlloc(allocsize, ti);
+    auto info = __arrayAlloc(allocsize, ti, tinext);
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-    __setArrayAllocLength(info, allocsize, isshared, ti);
+    __setArrayAllocLength(info, allocsize, isshared, tinext);
     void *a = __arrayStart (info);
 
     version(X86)
@@ -2334,7 +2369,7 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
     }
 
     // do postblit processing
-    __doPostblit(a, j, ti.next);
+    __doPostblit(a, j, tinext);
 
     return a[0..length];
 }
@@ -2346,7 +2381,8 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
 extern (C)
 void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
 {
-    auto sizeelem = ti.next.tsize;              // array element size
+    auto tinext = unqualify(ti.next);
+    auto sizeelem = tinext.tsize;              // array element size
     void* result;
 
     debug(PRINTF) printf("_d_arrayliteralTX(sizeelem = %d, length = %d)\n", sizeelem, length);
@@ -2355,9 +2391,9 @@ void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
     else
     {
         auto allocsize = length * sizeelem;
-        auto info = __arrayAlloc(allocsize, ti);
+        auto info = __arrayAlloc(allocsize, ti, tinext);
         auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-        __setArrayAllocLength(info, allocsize, isshared, ti);
+        __setArrayAllocLength(info, allocsize, isshared, tinext);
         result = __arrayStart(info);
     }
     return result;
@@ -2368,7 +2404,8 @@ void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
  */
 extern (C) void* _d_arrayliteralT(const TypeInfo ti, size_t length, ...)
 {
-    auto sizeelem = ti.next.tsize;              // array element size
+    auto tinext = unqualify(ti.next);
+    auto sizeelem = tinext.tsize;              // array element size
     void* result;
 
     debug(PRINTF) printf("_d_arrayliteralT(sizeelem = %d, length = %d)\n", sizeelem, length);
@@ -2377,9 +2414,9 @@ extern (C) void* _d_arrayliteralT(const TypeInfo ti, size_t length, ...)
     else
     {
         auto allocsize = length * sizeelem;
-        auto info = __arrayAlloc(allocsize, ti);
+        auto info = __arrayAlloc(allocsize, ti, tinext);
         auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-        __setArrayAllocLength(info, allocsize, isshared, ti);
+        __setArrayAllocLength(info, allocsize, isshared, tinext);
         result = __arrayStart(info);
 
         version(X86)
@@ -2410,7 +2447,7 @@ extern (C) void* _d_arrayliteralT(const TypeInfo ti, size_t length, ...)
             va_start(q, length);
             for (size_t i = 0; i < length; i++)
             {
-                va_arg(q, cast()ti.next, result + i * sizeelem);
+                va_arg(q, cast()tinext, result + i * sizeelem);
             }
             va_end(q);
         }
@@ -2420,7 +2457,7 @@ extern (C) void* _d_arrayliteralT(const TypeInfo ti, size_t length, ...)
             va_start(q, __va_argsave);
             for (size_t i = 0; i < length; i++)
             {
-                va_arg(q, cast()ti.next, result + i * sizeelem);
+                va_arg(q, cast()tinext, result + i * sizeelem);
             }
             va_end(q);
         }
@@ -2455,17 +2492,18 @@ body
 
     if (a.length)
     {
-        auto sizeelem = ti.next.tsize;                  // array element size
+        auto tinext = unqualify(ti.next);
+        auto sizeelem = tinext.tsize;                  // array element size
         auto size = a.length * sizeelem;
-        auto info = __arrayAlloc(size, ti);
+        auto info = __arrayAlloc(size, ti, tinext);
         auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-        __setArrayAllocLength(info, size, isshared, ti);
+        __setArrayAllocLength(info, size, isshared, tinext);
         r.ptr = __arrayStart(info);
         r.length = a.length;
         memcpy(r.ptr, a.ptr, size);
 
         // do postblit processing
-        __doPostblit(r.ptr, size, ti.next);
+        __doPostblit(r.ptr, size, tinext);
     }
     return *cast(void[]*)(&r);
 }
@@ -2748,6 +2786,25 @@ unittest
     GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
     assert(dtorCount == 1);
     GC.free(s2);
+
+    dtorCount = 0;
+    const(S1)* s3 = new const(S1);
+    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    assert(dtorCount == 1);
+    GC.free(cast(void*)s3);
+
+    dtorCount = 0;
+    shared(S1)* s4 = new shared(S1);
+    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    assert(dtorCount == 1);
+    GC.free(cast(void*)s4);
+
+    dtorCount = 0;
+    const(S1)[] carr1 = new const(S1)[5];
+    BlkInfo blkinf1 = GC.query(carr1.ptr);
+    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+    assert(dtorCount == 5);
+    GC.free(blkinf1.base);
 
     dtorCount = 0;
     S1[] arr2 = new S1[10];
