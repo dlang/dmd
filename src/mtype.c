@@ -2041,6 +2041,8 @@ Type *TypeFunction::substWildTo(unsigned)
     t->purity = purity;
     t->isproperty = isproperty;
     t->isref = isref;
+    t->isscoperet = isscoperet;
+    t->isscopethis = isscopethis;
     t->iswild = 0;
     t->trust = trust;
     t->fargs = fargs;
@@ -5093,6 +5095,8 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, L
     this->purity = PUREimpure;
     this->isproperty = false;
     this->isref = false;
+    this->isscoperet = false;
+    this->isscopethis = false;
     this->iswild = 0;
     this->fargs = NULL;
 
@@ -5107,6 +5111,10 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, L
 
     if (stc & STCref)
         this->isref = true;
+    if (stc & STCscoperet)
+        this->isscoperet = true;
+    if (stc & STCscope)
+        this->isscopethis = true;
 
     this->trust = TRUSTdefault;
     if (stc & STCsafe)
@@ -5138,6 +5146,8 @@ Type *TypeFunction::syntaxCopy()
     t->purity = purity;
     t->isproperty = isproperty;
     t->isref = isref;
+    t->isscoperet = isscoperet;
+    t->isscopethis = isscopethis;
     t->iswild = iswild;
     t->trust = trust;
     t->fargs = fargs;
@@ -5270,6 +5280,13 @@ Lcovariant:
     if (t1->isref != t2->isref)
         goto Lnotcovariant;
 
+    // We can add scope to 'this', but not subtract it
+    if (!t1->isscopethis && t2->isscopethis)
+        goto Lnotcovariant;
+
+    if (t1->isscoperet && !t2->isscoperet)   // cannot convert from scope return to not-scope return
+        goto Lnotcovariant;
+
     /* Can convert mutable to const
      */
     if (!MODimplicitConv(t2->mod, t1->mod))
@@ -5366,6 +5383,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
     if (sc->stc & STCproperty)
         tf->isproperty = true;
+
+    if (sc->stc & STCscope)
+        tf->isscopethis = true;
+    if (sc->stc & STCscoperet)
+        tf->isscoperet = true;
 
     tf->linkage = sc->linkage;
 #if 0
@@ -6067,6 +6089,8 @@ Type *TypeFunction::addStorageClass(StorageClass stc)
         tf->isnogc = t->isnogc;
         tf->isproperty = t->isproperty;
         tf->isref = t->isref;
+        tf->isscoperet = t->isscoperet;
+        tf->isscopethis = t->isscopethis;
         tf->trust = t->trust;
         tf->iswild = t->iswild;
 

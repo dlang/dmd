@@ -626,9 +626,11 @@ public:
     bool isnogc;        // true: is @nogc
     bool isproperty;    // can be called without parentheses
     bool isref;         // true: returns a reference
-    LINK linkage;  // calling convention
-    TRUST trust;   // level of trust
-    PURE purity;   // PURExxxx
+    bool isscoperet;    // true: scope return value
+    bool isscopethis;   // true: scope this
+    LINK linkage;       // calling convention
+    TRUST trust;        // level of trust
+    PURE purity;        // PURExxxx
     unsigned char iswild;   // bit0: inout on params, bit1: inout on qualifier
     Expressions *fargs; // function arguments
 

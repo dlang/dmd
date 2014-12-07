@@ -849,6 +849,9 @@ public:
             buf->writeByte(' ');
         }
 
+        if (t->isscoperet)
+            buf->writestring("scope ");
+
         if (t->next)
         {
             typeToBuffer(t->next, NULL);
@@ -871,6 +874,9 @@ public:
             MODtoBuffer(buf, t->mod);
         }
         t->attributesApply(&pas, &PrePostAppendStrings::fp);
+
+        if (t->isscopethis)
+            buf->writestring(" scope");
 
         t->inuse--;
     }
@@ -907,14 +913,19 @@ public:
         {
             // Don't print return type for ctor, dtor, unittest, etc
         }
-        else if (t->next)
+        else
         {
-            typeToBuffer(t->next, NULL);
-            if (ident)
-                buf->writeByte(' ');
+            if (t->isscoperet)
+                buf->writestring("scope ");
+            if (t->next)
+            {
+                typeToBuffer(t->next, NULL);
+                if (ident)
+                    buf->writeByte(' ');
+            }
+            else if (hgs->ddoc)
+                buf->writestring("auto ");
         }
-        else if (hgs->ddoc)
-            buf->writestring("auto ");
 
         if (ident)
             buf->writestring(ident->toHChars2());
@@ -931,6 +942,9 @@ public:
             buf->writeByte(')');
         }
         parametersToBuffer(t->parameters, t->varargs);
+
+        if (t->isscopethis)
+            buf->writestring("scope ");
 
         t->inuse--;
     }
@@ -1345,7 +1359,7 @@ public:
         if (FuncDeclaration *fd = onemember->isFuncDeclaration())
         {
             assert(fd->type);
-            StorageClassDeclaration::stcToCBuffer(buf, fd->storage_class);
+            StorageClassDeclaration::stcToCBuffer(buf, fd->storage_class & ~STCscope);
             functionToBufferFull((TypeFunction *)fd->type, buf, d->ident, hgs, d);
             visitTemplateConstraint(d->constraint);
 
@@ -1710,9 +1724,9 @@ public:
 
     void visit(FuncDeclaration *f)
     {
-        //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
+        //printf("FuncDeclaration::toCBuffer() '%s'\n", f->toChars());
 
-        StorageClassDeclaration::stcToCBuffer(buf, f->storage_class);
+        StorageClassDeclaration::stcToCBuffer(buf, f->storage_class & ~STCscope);
         typeToBuffer(f->type, f->ident);
         if (hgs->hdrgen == 1)
         {

@@ -394,6 +394,7 @@ void FuncDeclaration::semantic(Scope *sc)
     foverrides.setDim(0);       // reset in case semantic() is being retried for this function
 
     storage_class |= sc->stc & ~STCref;
+
     ad = isThis();
     if (ad)
     {
@@ -408,7 +409,7 @@ void FuncDeclaration::semantic(Scope *sc)
     if ((storage_class & STC_TYPECTOR) && !(ad || isNested()))
         storage_class &= ~STC_TYPECTOR;
 
-    //printf("function storage_class = x%llx, sc->stc = x%llx, %x\n", storage_class, sc->stc, Declaration::isFinal());
+    //printf("function %s storage_class = x%llx, sc->stc = x%llx, %x\n", toChars(), storage_class, sc->stc, Declaration::isFinal());
 
     FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
     if (fld && fld->treq)
@@ -616,8 +617,7 @@ void FuncDeclaration::semantic(Scope *sc)
     f = (TypeFunction *)type;
     size_t nparams = Parameter::dim(f->parameters);
 
-    if (storage_class & STCscope)
-        error("functions cannot be scope");
+    storage_class &= ~(STCscoperet | STCscope);
 
     if (isAbstract() && !isVirtual())
     {

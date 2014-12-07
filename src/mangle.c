@@ -208,6 +208,7 @@ public:
 
     void mangleFuncType(TypeFunction *t, TypeFunction *ta, unsigned char modMask, Type *tret)
     {
+        //printf("mangleFuncType() %s\n", t->toChars());
         if (t->inuse)
         {
             t->inuse = 2;       // flag error to caller
@@ -231,7 +232,7 @@ public:
         }
         buf->writeByte(mc);
 
-        if (ta->purity || ta->isnothrow || ta->isnogc || ta->isproperty || ta->isref || ta->trust)
+        if (ta->purity || ta->isnothrow || ta->isnogc || ta->isproperty || ta->isref || ta->trust || ta->isscoperet || ta->isscopethis)
         {
             if (ta->purity)
                 buf->writestring("Na");
@@ -243,6 +244,10 @@ public:
                 buf->writestring("Nd");
             if (ta->isnogc)
                 buf->writestring("Ni");
+            if (ta->isscoperet)
+                buf->writestring("Nj");
+            if (ta->isscopethis)
+                buf->writestring("Nk");
             switch (ta->trust)
             {
                 case TRUSTtrusted:
