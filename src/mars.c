@@ -304,6 +304,7 @@ Usage:\n\
   -property      enforce property syntax\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
+  -scope         diagnose scope errors (experimental)\n\
   -shared        generate shared library (DLL)\n\
   -transition=id show additional info about language change identified by 'id'\n\
   -transition=?  list all language changes\n\
@@ -816,6 +817,8 @@ Language changes listed by -transition=id:\n\
                 global.params.enforcePropertySyntax = true;
             else if (strcmp(p + 1, "inline") == 0)
                 global.params.useInline = true;
+            else if (strcmp(p + 1, "scope") == 0)
+                global.params.useScope = true;
             else if (strcmp(p + 1, "lib") == 0)
                 global.params.lib = true;
             else if (strcmp(p + 1, "nofloat") == 0)

@@ -124,6 +124,7 @@ struct Param
     bool useSwitchError; // check for switches without a default
     bool useUnitTests;  // generate unittest code
     bool useInline;     // inline expand functions
+    bool useScope;      // diagnose 'scope' errors
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
     char warnings;      // 0: enable warnings
