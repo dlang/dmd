@@ -428,6 +428,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         case Tstruct:   // consider implicit constructor call
         {
             Expression *e;
+            // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
             if (t->ty == Taarray || isAssociativeArray())
                 e = toAssocArrayLiteral();
             else
