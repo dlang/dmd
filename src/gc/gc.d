@@ -374,7 +374,7 @@ class GC
     /**
      *
      */
-    uint setAttr(void* p, uint mask, const TypeInfo inf = null) nothrow
+    uint setAttr(void* p, uint mask) nothrow
     {
         if (!p)
         {
@@ -392,7 +392,7 @@ class GC
                 auto biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
                 oldb = gcx.getBits(pool, biti);
-                gcx.setBits(pool, biti, mask, inf);
+                gcx.setBits(pool, biti, mask);
             }
             return oldb;
         }
@@ -662,7 +662,7 @@ class GC
                             if (bits)
                             {
                                 gcx.clrBits(pool, biti, ~BlkAttr.NONE);
-                                gcx.setBits(pool, biti, bits, ti);
+                                gcx.setBits(pool, biti, bits);
                             }
                             else
                             {
@@ -714,7 +714,7 @@ class GC
                     {
                         immutable biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
                         gcx.clrBits(pool, biti, ~BlkAttr.NONE);
-                        gcx.setBits(pool, biti, bits, ti);
+                        gcx.setBits(pool, biti, bits);
                     }
                     alloc_size = newsz * PAGESIZE;
                     return p;
@@ -731,7 +731,7 @@ class GC
                         if (bits)
                         {
                             gcx.clrBits(pool, biti, ~BlkAttr.NONE);
-                            gcx.setBits(pool, biti, bits, ti);
+                            gcx.setBits(pool, biti, bits);
                         }
                         else
                         {
@@ -2910,7 +2910,7 @@ struct Gcx
     /**
      *
      */
-    void setBits(Pool* pool, size_t biti, uint mask, const TypeInfo inf = null) nothrow
+    void setBits(Pool* pool, size_t biti, uint mask) nothrow
     in
     {
         assert(pool);
