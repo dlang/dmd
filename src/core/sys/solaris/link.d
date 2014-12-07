@@ -120,7 +120,7 @@ version(D_LP64)
 else
 {
     alias _la_sparc_regs La_sparcv8_regs;
-    typedef struct La_i86_regs
+    struct La_i86_regs
     {
         lagreg_t  lr_esp;
         lagreg_t  lr_ebp;
