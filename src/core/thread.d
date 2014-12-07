@@ -418,6 +418,7 @@ else version( Posix )
                 status = sigdelset( &sigres, resumeSignalNumber );
                 assert( status == 0 );
 
+                version (FreeBSD) Thread.sm_suspendagain = false;
                 status = sem_post( &suspendCount );
                 assert( status == 0 );
 
@@ -426,6 +427,17 @@ else version( Posix )
                 if( obj && !obj.m_lock )
                 {
                     obj.m_curr.tstack = obj.m_curr.bstack;
+                }
+            }
+
+            // avoid deadlocks on FreeBSD, see Issue 13416
+            version (FreeBSD)
+            {
+                if (THR_IN_CRITICAL(pthread_self()))
+                {
+                    Thread.sm_suspendagain = true;
+                    if (sem_post(&suspendCount)) assert(0);
+                    return;
                 }
             }
 
@@ -441,6 +453,24 @@ else version( Posix )
         body
         {
 
+        }
+
+        // HACK to avoid deadlocks on FreeBSD, see Issue 13416
+        version (FreeBSD) bool THR_IN_CRITICAL(pthread_t p) nothrow @nogc
+        {
+            import core.sys.posix.sys.types : c_long, lwpid_t;
+            static struct pthread
+            {
+                c_long tid;
+                static struct umutex { lwpid_t owner; uint flags; uint[2] ceilings; uint[4] spare; }
+                umutex lock;
+                uint cycle;
+                int locklevel;
+                int critical_count;
+                // ...
+            }
+            auto priv = cast(pthread*)p;
+            return priv.locklevel > 0 || priv.critical_count > 0;
         }
     }
 }
@@ -1349,6 +1379,12 @@ private:
     // Main process thread
     //
     __gshared Thread    sm_main;
+
+    version (FreeBSD)
+    {
+        // set when suspend failed and should be retried, see Issue 13416
+        static shared bool sm_suspendagain;
+    }
 
 
     //
@@ -2466,6 +2502,7 @@ private void suspend( Thread t ) nothrow
     {
         if( t.m_addr != pthread_self() )
         {
+        Lagain:
             if( pthread_kill( t.m_addr, suspendSignalNumber ) != 0 )
             {
                 if( !t.isRunning )
@@ -2480,6 +2517,11 @@ private void suspend( Thread t ) nothrow
                 if (errno != EINTR)
                     onThreadError( "Unable to wait for semaphore" );
                 errno = 0;
+            }
+            version (FreeBSD)
+            {
+                // avoid deadlocks, see Issue 13416
+                if (Thread.sm_suspendagain) goto Lagain;
             }
         }
         else if( !t.m_lock )
