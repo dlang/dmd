@@ -76,9 +76,6 @@ void unittests();
 #define DMDV1   0
 #define DMDV2   1       // Version 2.0 features
 
-// Objective-C Support
-#define DMD_OBJC (DMDV2 && TARGET_OSX && D_OBJC)
-
 struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.

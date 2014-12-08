@@ -412,13 +412,8 @@ void objc_toElem_visit_NewExp_Tclass(IRState *irs, NewExp *ne, Type *&ectype, Ty
 
 bool objc_toElem_visit_NewExp_Tclass_isDirectCall(bool isObjc)
 {
-#if DMD_OBJC
     // Call Objective-C constructor (not a direct call)
     return !isObjc;
-#else
-    // Call constructor
-    return true;
-#endif
 }
 
 void objc_toElem_visit_AssertExp_callInvariant(symbol *&ts, elem *&einv, Type *t1)

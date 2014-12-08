@@ -97,12 +97,8 @@ bool Objc_ClassDeclaration::isRootClass()
 
 void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration *self)
 {
-#if DMD_OBJC
     self->objc.objc = true;
     self->objc.extern_ = true;
-#else
-    self->error("Objective-C classes not supported");
-#endif
 }
 
 void objc_ClassDeclaration_semantic_SIZEOKnone(ClassDeclaration *self, Scope *sc)
@@ -254,7 +250,6 @@ void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration *self, S
 {
     if (sc->linkage == LINKobjc)
     {
-#if DMD_OBJC
         self->objc.objc = true;
         // In the abscense of a better solution, classes with Objective-C linkage
         // are only a declaration. A class that derives from one with Objective-C
@@ -264,9 +259,6 @@ void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration *self, S
 
         if (!self->objc.ident)
             self->objc.ident = self->ident;
-#else
-        self->error("Objective-C interfaces not supported");
-#endif
     }
 }
 

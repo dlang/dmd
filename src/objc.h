@@ -7,8 +7,8 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
-#ifndef OBJC_H
-#define OBJC_H
+#ifndef DMD_OBJC_H
+#define DMD_OBJC_H
 
 #include "root.h"
 #include "mtype.h"
@@ -619,4 +619,4 @@ void objc_Module_genmoduleinfo_classes(Module *self);
 
 void objc_TypeInfo_toDt_visit_TypeInfoObjcSelectorDeclaration(dt_t **pdt, TypeInfoObjcSelectorDeclaration *d);
 
-#endif
+#endif /* DMD_OBJC_H */
