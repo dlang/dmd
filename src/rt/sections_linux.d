@@ -88,7 +88,7 @@ private:
     {
         Array!(void[]) _codeSegments; // array of code segments
         Array!(DSO*) _deps; // D libraries needed by this DSO
-        link_map* _linkMap; // corresponding link_map*
+        void* _handle; // corresponding handle
     }
 }
 
@@ -149,7 +149,7 @@ version (Shared)
             if (tdso._addCnt)
             {
                 // Increment the dlopen ref for explicitly loaded libraries to pin them.
-                .dlopen(tdso._pdso._linkMap.l_name, RTLD_LAZY) !is null || assert(0);
+                .dlopen(linkMapForHandle(tdso._pdso._handle).l_name, RTLD_LAZY) !is null || assert(0);
                 (*res)[i]._addCnt = 1; // new array takes over the additional ref count
             }
         }
@@ -164,7 +164,7 @@ version (Shared)
         {
             if (tdso._addCnt)
             {
-                auto handle = handleForName(tdso._pdso._linkMap.l_name);
+                auto handle = tdso._pdso._handle;
                 handle !is null || assert(0);
                 .dlclose(handle);
             }
@@ -189,7 +189,7 @@ version (Shared)
         {
             if (tdso._addCnt == 0) continue;
 
-            auto handle = handleForName(tdso._pdso._linkMap.l_name);
+            auto handle = tdso._pdso._handle;
             handle !is null || assert(0);
             for (; tdso._addCnt > 0; --tdso._addCnt)
                 .dlclose(handle);
@@ -256,8 +256,8 @@ version (Shared)
      * Hash table to map link_map* to corresponding DSO*.
      * The hash table is protected by a Mutex.
      */
-    __gshared pthread_mutex_t _linkMapToDSOMutex;
-    __gshared HashTab!(void*, DSO*) _linkMapToDSO;
+    __gshared pthread_mutex_t _handleToDSOMutex;
+    __gshared HashTab!(void*, DSO*) _handleToDSO;
 }
 else
 {
@@ -328,11 +328,11 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         {
             // the first loaded DSO is druntime itself
             assert(!_loadedDSOs.empty ||
-                   linkMapForAddr(&_d_dso_registry) == linkMapForAddr(data._slot));
+                   handleForAddr(&_d_dso_registry) == handleForAddr(data._slot));
 
             getDependencies(info, pdso._deps);
-            pdso._linkMap = linkMapForAddr(data._slot);
-            setDSOForLinkMap(pdso, pdso._linkMap);
+            pdso._handle = handleForAddr(data._slot);
+            setDSOForHandle(pdso, pdso._handle);
 
             if (!_rtLoading)
             {
@@ -397,9 +397,9 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
                 }
             }
 
-            assert(pdso._linkMap == linkMapForAddr(data._slot));
-            unsetDSOForLinkMap(pdso, pdso._linkMap);
-            pdso._linkMap = null;
+            assert(pdso._handle == handleForAddr(data._slot));
+            unsetDSOForHandle(pdso, pdso._handle);
+            pdso._handle = null;
         }
         else
         {
@@ -475,7 +475,7 @@ version (Shared)
         if (handle is null) return null;
 
         // if it's a D library
-        if (auto pdso = dsoForLinkMap(linkMapForHandle(handle)))
+        if (auto pdso = dsoForHandle(handle))
             incThreadRef(pdso, true);
         return handle;
     }
@@ -489,7 +489,7 @@ version (Shared)
         scope (exit) _rtLoading = save;
 
         // if it's a D library
-        if (auto pdso = dsoForLinkMap(linkMapForHandle(handle)))
+        if (auto pdso = dsoForHandle(handle))
             decThreadRef(pdso, true);
         return .dlclose(handle) == 0;
     }
@@ -502,13 +502,13 @@ version (Shared)
 void initLocks()
 {
     version (Shared)
-        !pthread_mutex_init(&_linkMapToDSOMutex, null) || assert(0);
+        !pthread_mutex_init(&_handleToDSOMutex, null) || assert(0);
 }
 
 void finiLocks()
 {
     version (Shared)
-        !pthread_mutex_destroy(&_linkMapToDSOMutex) || assert(0);
+        !pthread_mutex_destroy(&_handleToDSOMutex) || assert(0);
 }
 
 void runModuleConstructors(DSO* pdso, bool runTlsCtors)
@@ -558,30 +558,30 @@ version (Shared)
         return map;
     }
 
-    DSO* dsoForLinkMap(link_map* map)
+    DSO* dsoForHandle(void* handle)
     {
         DSO* pdso;
-        !pthread_mutex_lock(&_linkMapToDSOMutex) || assert(0);
-        if (auto ppdso = map in _linkMapToDSO)
+        !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
+        if (auto ppdso = handle in _handleToDSO)
             pdso = *ppdso;
-        !pthread_mutex_unlock(&_linkMapToDSOMutex) || assert(0);
+        !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
         return pdso;
     }
 
-    void setDSOForLinkMap(DSO* pdso, link_map* map)
+    void setDSOForHandle(DSO* pdso, void* handle)
     {
-        !pthread_mutex_lock(&_linkMapToDSOMutex) || assert(0);
-        assert(map !in _linkMapToDSO);
-        _linkMapToDSO[map] = pdso;
-        !pthread_mutex_unlock(&_linkMapToDSOMutex) || assert(0);
+        !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
+        assert(handle !in _handleToDSO);
+        _handleToDSO[handle] = pdso;
+        !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
     }
 
-    void unsetDSOForLinkMap(DSO* pdso, link_map* map)
+    void unsetDSOForHandle(DSO* pdso, void* handle)
     {
-        !pthread_mutex_lock(&_linkMapToDSOMutex) || assert(0);
-        assert(_linkMapToDSO[map] == pdso);
-        _linkMapToDSO.remove(map);
-        !pthread_mutex_unlock(&_linkMapToDSOMutex) || assert(0);
+        !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
+        assert(_handleToDSO[handle] == pdso);
+        _handleToDSO.remove(handle);
+        !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
     }
 
     void getDependencies(in ref dl_phdr_info info, ref Array!(DSO*) deps)
@@ -620,7 +620,7 @@ version (Shared)
             // the runtime linker has already loaded all dependencies
             if (handle is null) assert(0);
             // if it's a D library
-            if (auto pdso = dsoForLinkMap(linkMapForHandle(handle)))
+            if (auto pdso = dsoForHandle(handle))
                 deps.insertBack(pdso); // append it to the dependencies
         }
     }
@@ -791,14 +791,12 @@ body
  * Returns:
  *      the dlopen handle for that DSO or null if addr is not within a loaded DSO
  */
-version (Shared) link_map* linkMapForAddr(void* addr)
+version (Shared) void* handleForAddr(void* addr)
 {
     Dl_info info = void;
-    link_map* map;
-    if (dladdr1(addr, &info, cast(void**)&map, RTLD_DL_LINKMAP) != 0)
-        return map;
-    else
-        return null;
+    if (dladdr(addr, &info) != 0)
+        return handleForName(info.dli_fname);
+    return null;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
