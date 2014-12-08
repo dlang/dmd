@@ -23,4 +23,5 @@ void main() {
 	NSObject a = new TestObject;
     TestObject b = cast(TestObject)a;
     TestInterface c = cast(TestInterface)a;
+    TestObject d = cast(TestObject)c;
 }

@@ -504,7 +504,7 @@ ControlFlow objc_toElem_visit_CastExp_Tclass_toObjcCall(elem *&e, int rtl, Class
     {
         elem *esym;
         if (cdto->isInterfaceDeclaration())
-            esym = el_ptr(ObjcSymbols::getProtocolSymbol(cdto));
+            esym = el_var(ObjcSymbols::getProtocolSymbol(cdto));
         else
             esym = el_var(ObjcSymbols::getClassReference(cdto));
 
