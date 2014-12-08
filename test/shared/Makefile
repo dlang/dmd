@@ -5,6 +5,8 @@ DMD:=
 DRUNTIME:=
 DRUNTIMESO:=
 QUIET:=
+LINKDL:= # -L-ldl
+LDL:=$(subst -L,,$(LINKDL)) # -ldl
 
 SRC:=src
 ROOT:=./obj/$(OS)/$(MODEL)
@@ -34,31 +36,31 @@ $(ROOT)/link_linkdep: $(SRC)/link_linkdep.d $(ROOT)/lib.so $(ROOT)/liblinkdep.so
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) -L$(ROOT)/liblinkdep.so -L$(ROOT)/lib.so
 
 $(ROOT)/load_linkdep: $(SRC)/load_linkdep.d $(ROOT)/lib.so $(ROOT)/liblinkdep.so $(DRUNTIMESO)
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) -L-ldl
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) $(LINKDL)
 
 $(ROOT)/link_loaddep: $(SRC)/link_loaddep.d $(ROOT)/lib.so $(ROOT)/libloaddep.so $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) -L$(ROOT)/libloaddep.so
 
 $(ROOT)/load_loaddep: $(SRC)/load_loaddep.d $(ROOT)/lib.so $(ROOT)/libloaddep.so $(DRUNTIMESO)
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) -L-ldl
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) $(LINKDL)
 
 $(ROOT)/load $(ROOT)/finalize: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -L-ldl
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKDL)
 
 $(ROOT)/load_13414: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib_13414.so $(DRUNTIMESO)
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -L-ldl
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKDL)
 
 $(ROOT)/linkD: $(SRC)/linkD.c $(ROOT)/lib.so $(DRUNTIMESO)
-	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(ROOT)/lib.so -ldl
+	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(ROOT)/lib.so $(LDL)
 
 $(ROOT)/linkDR: $(SRC)/linkDR.c $(ROOT)/lib.so $(DRUNTIMESO)
-	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(DRUNTIMESO) -ldl
+	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(DRUNTIMESO) $(LDL)
 
 $(ROOT)/loadDR: $(SRC)/loadDR.c $(ROOT)/lib.so $(DRUNTIMESO)
-	$(QUIET)$(CC) $(CFLAGS) -o $@ $< -ldl
+	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(LDL)
 
 $(ROOT)/host: $(SRC)/host.c $(ROOT)/plugin1.so $(ROOT)/plugin2.so
-	$(QUIET)$(CC) $(CFLAGS) -o $@ $< -ldl
+	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(LDL)
 
 $(ROOT)/liblinkdep.so: $(ROOT)/lib.so
 $(ROOT)/liblinkdep.so: DFLAGS+=-L$(ROOT)/lib.so
@@ -67,7 +69,7 @@ $(ROOT)/plugin1.so $(ROOT)/plugin2.so: $(SRC)/plugin.d $(DRUNTIMESO)
 	$(QUIET)$(DMD) -fPIC -shared $(DFLAGS) -of$@ $<
 
 $(ROOT)/%.so: $(SRC)/%.d $(DRUNTIMESO)
-	$(QUIET)$(DMD) -fPIC -shared $(DFLAGS) -of$@ $< -L-ldl
+	$(QUIET)$(DMD) -fPIC -shared $(DFLAGS) -of$@ $< $(LINKDL)
 
 clean:
 	rm -rf obj

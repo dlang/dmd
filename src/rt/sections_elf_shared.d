@@ -1,6 +1,6 @@
 /**
  * Written in the D programming language.
- * This module provides linux-specific support for sections.
+ * This module provides ELF-specific support for sections with shared libraries.
  *
  * Copyright: Copyright Martin Nowak 2012-2013.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
@@ -8,18 +8,34 @@
  * Source: $(DRUNTIMESRC src/rt/_sections_linux.d)
  */
 
-module rt.sections_linux;
+module rt.sections_elf_shared;
 
-version (linux):
+version (linux) enum SharedELF = true;
+else version (FreeBSD) enum SharedELF = true;
+else enum SharedELF = false;
+static if (SharedELF):
 
 // debug = PRINTF;
 import core.memory;
 import core.stdc.stdio;
 import core.stdc.stdlib : calloc, exit, free, malloc, EXIT_FAILURE;
 import core.stdc.string : strlen;
-import core.sys.linux.dlfcn;
-import core.sys.linux.elf;
-import core.sys.linux.link;
+version (linux)
+{
+    import core.sys.linux.dlfcn;
+    import core.sys.linux.elf;
+    import core.sys.linux.link;
+}
+else version (FreeBSD)
+{
+    import core.sys.freebsd.dlfcn;
+    import core.sys.freebsd.sys.elf;
+    import core.sys.freebsd.sys.link_elf;
+}
+else
+{
+    static assert(0, "unimplemented");
+}
 import core.sys.posix.pthread;
 import rt.deh;
 import rt.dmain2;
@@ -221,6 +237,9 @@ else
 
 private:
 
+// start of linked list for ModuleInfo references
+version (FreeBSD) deprecated extern (C) __gshared void* _Dmodule_ref;
+
 version (Shared)
 {
     /*
@@ -328,7 +347,11 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         {
             // the first loaded DSO is druntime itself
             assert(!_loadedDSOs.empty ||
-                   handleForAddr(&_d_dso_registry) == handleForAddr(data._slot));
+                   /* We need a local symbol (rt_get_bss_start) or the function
+                    * pointer might be a PLT address in the executable.
+                    * data._slot is already local in the shared library
+                    */
+                   handleForAddr(&rt_get_bss_start) == handleForAddr(data._slot));
 
             getDependencies(info, pdso._deps);
             pdso._handle = handleForAddr(data._slot);
@@ -603,7 +626,12 @@ version (Shared)
         {
             if (dyn.d_tag == DT_STRTAB)
             {
-                strtab = cast(const(char)*)dyn.d_un.d_ptr;
+                version (linux)
+                    strtab = cast(const(char)*)dyn.d_un.d_ptr;
+                else version (FreeBSD)
+                    strtab = cast(const(char)*)(info.dlpi_addr + dyn.d_un.d_ptr); // relocate
+                else
+                    static assert(0, "unimplemented");
                 break;
             }
         }
@@ -728,12 +756,21 @@ bool findSegmentForAddr(in ref dl_phdr_info info, in void* addr, ElfW!"Phdr"* re
     return false;
 }
 
+version (linux) import core.sys.linux.errno : program_invocation_name;
+// should be in core.sys.freebsd.stdlib
+version (FreeBSD) extern(C) const(char)* getprogname() nothrow @nogc;
+
+@property const(char)* progname() nothrow @nogc
+{
+    version (linux) return program_invocation_name;
+    version (FreeBSD) return getprogname();
+}
+
 nothrow
 const(char)[] dsoName(const char* dlpi_name)
 {
-    import core.sys.linux.errno;
     // the main executable doesn't have a name in its dlpi_name field
-    const char* p = dlpi_name[0] != 0 ? dlpi_name : program_invocation_name;
+    const char* p = dlpi_name[0] != 0 ? dlpi_name : progname;
     return p[0 .. strlen(p)];
 }
 

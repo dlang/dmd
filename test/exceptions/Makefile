@@ -5,6 +5,7 @@ DMD:=
 DRUNTIME:=
 DRUNTIMESO:=
 QUIET:=
+LINKDL:=
 
 SRC:=src
 ROOT:=./obj/$(OS)/$(MODEL)

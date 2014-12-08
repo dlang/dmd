@@ -10,10 +10,12 @@
 /* These symbols are defined in the linker script and bracket the
  * .bss, .lbss, .lrodata and .ldata sections.
  */
-#if __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
 // Need to use weak linkage to workaround a bug in ld.bfd (Bugzilla 13025).
 extern int __attribute__((weak)) __bss_start, _end;
 
+__attribute__ ((visibility ("hidden"))) void* rt_get_bss_start();
+__attribute__ ((visibility ("hidden"))) void* rt_get_end();
 void* rt_get_bss_start() { return (void*)&__bss_start; }
 void* rt_get_end() { return (void*)&_end; }
 #endif
