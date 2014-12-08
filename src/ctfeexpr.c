@@ -1848,7 +1848,8 @@ void assignInPlace(Expression *dest, Expression *src)
             assert(o->op == e->op);
             assignInPlace(o, e);
         }
-        else if (e->type->ty == Tsarray && o->type->ty == Tsarray && e->op != TOKvoid)
+        else if (e->type->ty == Tsarray && e->op != TOKvoid &&
+                 o->type->ty == Tsarray)
         {
             assignInPlace(o, e);
         }
