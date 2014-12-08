@@ -47,11 +47,11 @@ struct Foo2 {
 }
 
 struct Foo3 {
-  @property {
-    @safe pure long foo1() { return 0; }
-    @safe long foo2() { return 0; }
-    pure long foo2() { return 0; }
-  };
+    @property {
+        @safe pure long foo1() { return 0; }
+        @safe long foo2() { return 0; }
+        pure long foo2() { return 0; }
+    };
 };
 
 /++
