@@ -149,9 +149,10 @@ struct dl_phdr_info
     void *dlpi_tls_data;
 }
 
-private alias extern(C) int function(dl_phdr_info*, size_t, void *) __Callback;
-extern int dl_iterate_phdr(__Callback __callback, void*__data);
-
+private alias extern(C) int function(dl_phdr_info*, size_t, void *) dl_iterate_phdr_cb;
+private alias extern(C) int function(dl_phdr_info*, size_t, void *) @nogc dl_iterate_phdr_cb_ngc;
+extern int dl_iterate_phdr(dl_iterate_phdr_cb __callback, void*__data);
+extern int dl_iterate_phdr(dl_iterate_phdr_cb_ngc __callback, void*__data) @nogc;
 
 // ld.so auditing interfaces prototypes have to be defined by the auditing DSO.
 extern uint la_version(uint __version);

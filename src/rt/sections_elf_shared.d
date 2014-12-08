@@ -708,13 +708,11 @@ void scanSegments(in ref dl_phdr_info info, DSO* pdso)
  * References:
  *      http://linux.die.net/man/3/dl_iterate_phdr
  */
-nothrow
-bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null)
+version (linux) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
 {
     static struct DG { const(void)* addr; dl_phdr_info* result; }
 
-    extern(C) nothrow
-    int callback(dl_phdr_info* info, size_t sz, void* arg)
+    extern(C) int callback(dl_phdr_info* info, size_t sz, void* arg) nothrow @nogc
     {
         auto p = cast(DG*)arg;
         if (findSegmentForAddr(*info, p.addr))
@@ -733,13 +731,16 @@ bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null)
      */
     return dl_iterate_phdr(&callback, &dg) != 0;
 }
+else version (FreeBSD) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
+{
+    return !!_rtld_addr_phdr(addr, result);
+}
 
 /*********************************
  * Determine if 'addr' lies within shared object 'info'.
  * If so, return true and fill in 'result' with the corresponding ELF program header.
  */
-nothrow
-bool findSegmentForAddr(in ref dl_phdr_info info, in void* addr, ElfW!"Phdr"* result=null)
+bool findSegmentForAddr(in ref dl_phdr_info info, in void* addr, ElfW!"Phdr"* result=null) nothrow @nogc
 {
     if (addr < cast(void*)info.dlpi_addr) // less than base address of object means quick reject
         return false;
