@@ -2543,44 +2543,49 @@ unittest
             ++x;
         }
     }
-    auto sarr = new S[1];
-    debug(SENTINEL) {} else
-        assert(sarr.capacity == 1);
+    void testPostBlit(T)()
+    {
+        auto sarr = new T[1];
+        debug(SENTINEL) {} else
+            assert(sarr.capacity == 1);
 
-    // length extend
-    auto sarr2 = sarr;
-    assert(sarr[0].x == 0);
-    sarr2.length += 1;
-    assert(sarr2[0].x == 1);
-    assert(sarr[0].x == 0);
+        // length extend
+        auto sarr2 = sarr;
+        assert(sarr[0].x == 0);
+        sarr2.length += 1;
+        assert(sarr2[0].x == 1);
+        assert(sarr[0].x == 0);
 
-    // append
-    S s;
-    sarr2 = sarr;
-    sarr2 ~= s;
-    assert(sarr2[0].x == 1);
-    assert(sarr2[1].x == 1);
-    assert(sarr[0].x == 0);
-    assert(s.x == 0);
+        // append
+        T s;
+        sarr2 = sarr;
+        sarr2 ~= s;
+        assert(sarr2[0].x == 1);
+        assert(sarr2[1].x == 1);
+        assert(sarr[0].x == 0);
+        assert(s.x == 0);
 
-    // concat
-    sarr2 = sarr ~ sarr;
-    assert(sarr2[0].x == 1);
-    assert(sarr2[1].x == 1);
-    assert(sarr[0].x == 0);
+        // concat
+        sarr2 = sarr ~ sarr;
+        assert(sarr2[0].x == 1);
+        assert(sarr2[1].x == 1);
+        assert(sarr[0].x == 0);
 
-    // concat multiple (calls different method)
-    sarr2 = sarr ~ sarr ~ sarr;
-    assert(sarr2[0].x == 1);
-    assert(sarr2[1].x == 1);
-    assert(sarr2[2].x == 1);
-    assert(sarr[0].x == 0);
+        // concat multiple (calls different method)
+        sarr2 = sarr ~ sarr ~ sarr;
+        assert(sarr2[0].x == 1);
+        assert(sarr2[1].x == 1);
+        assert(sarr2[2].x == 1);
+        assert(sarr[0].x == 0);
 
-    // reserve capacity
-    sarr2 = sarr;
-    sarr2.reserve(2);
-    assert(sarr2[0].x == 1);
-    assert(sarr[0].x == 0);
+        // reserve capacity
+        sarr2 = sarr;
+        sarr2.reserve(2);
+        assert(sarr2[0].x == 1);
+        assert(sarr[0].x == 0);
+    }
+    testPostBlit!(S)();
+    testPostBlit!(const(S))();
 }
 
 // cannot define structs inside unit test block, or they become nested structs.
