@@ -185,21 +185,42 @@ version( linux )
 
     static if( false /* (!is( __STRICT_ANSI__ ) && __GNUC__ >= 2) || __STDC_VERSION__ >= 199901L */ )
     {
-        extern (D) ubyte[1] CMSG_DATA( cmsghdr* cmsg ) { return cmsg.__cmsg_data; }
+        extern (D) ubyte[1] CMSG_DATA( cmsghdr* cmsg ) pure nothrow @nogc { return cmsg.__cmsg_data; }
     }
     else
     {
-        extern (D) ubyte*   CMSG_DATA( cmsghdr* cmsg ) { return cast(ubyte*)( cmsg + 1 ); }
+        extern (D) inout(ubyte)*   CMSG_DATA( inout(cmsghdr)* cmsg ) pure nothrow @nogc { return cast(ubyte*)( cmsg + 1 ); }
     }
 
-    private cmsghdr* __cmsg_nxthdr(msghdr*, cmsghdr*);
-    alias            __cmsg_nxthdr CMSG_NXTHDR;
-
-    extern (D) size_t CMSG_FIRSTHDR( msghdr* mhdr )
+    private inout(cmsghdr)* __cmsg_nxthdr(inout(msghdr)*, inout(cmsghdr)*) pure nothrow @nogc;
+    extern (D)  inout(cmsghdr)* CMSG_NXTHDR(inout(msghdr)* msg, inout(cmsghdr)* cmsg) pure nothrow @nogc
     {
-        return cast(size_t)( mhdr.msg_controllen >= cmsghdr.sizeof
-                             ? cast(cmsghdr*) mhdr.msg_control
-                             : cast(cmsghdr*) null );
+        return __cmsg_nxthdr(msg, cmsg);
+    }
+
+    extern (D) inout(cmsghdr)* CMSG_FIRSTHDR( inout(msghdr)* mhdr ) pure nothrow @nogc
+    {
+        return ( cast(size_t)mhdr.msg_controllen >= cmsghdr.sizeof
+                             ? cast(inout(cmsghdr)*) mhdr.msg_control
+                             : cast(inout(cmsghdr)*) null );
+    }
+
+    extern (D)
+    {
+        size_t CMSG_ALIGN( size_t len ) pure nothrow @nogc
+        {
+            return (len + size_t.sizeof - 1) & cast(size_t) (~(size_t.sizeof - 1));
+        }
+
+        size_t CMSG_LEN( size_t len ) pure nothrow @nogc
+        {
+            return CMSG_ALIGN(cmsghdr.sizeof) + len;
+        }
+    }
+
+    extern (D) size_t CMSG_SPACE(size_t len) pure nothrow @nogc
+    {
+        return CMSG_ALIGN(len) + CMSG_ALIGN(cmsghdr.sizeof);
     }
 
     struct linger
