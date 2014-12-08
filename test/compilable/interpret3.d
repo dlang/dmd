@@ -7018,3 +7018,31 @@ bool test13669()
     return true;
 }
 static assert(test13669());
+
+/**************************************************
+    13827
+**************************************************/
+
+struct Matrix13827(T, uint N)
+{
+    private static defaultMatrix()
+    {
+        T arr[N];
+        return arr;
+    }
+
+    union
+    {
+        T[N] A = defaultMatrix;
+        T[N] flat;
+    }
+
+    this(A...)(auto ref in A args)
+    {
+        uint k;
+
+        foreach (ref v; args)
+            flat[k++] = cast(T)v;
+    }
+}
+enum m13827 = Matrix13827!(int, 3)(1, 2, 3);
