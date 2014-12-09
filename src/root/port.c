@@ -961,7 +961,7 @@ void Port::yl2xp1_impl(long double* x, long double* y, long double* res)
                      "movl %2, %%ecx;"
                      "fldt (%%ebx);"      // push *y and *x to the FPU stack
                      "fldt (%%eax);"      // "t" suffix means tbyte
-                     "yl2xp1;"            // do operation and wait
+                     "fyl2xp1;"            // do operation and wait
                      "fstpt (%%ecx)"      // pop result to a *res
                      :                          // output: empty
                      :"r"(x), "r"(y), "r"(res)  // input: x => %0, y => %1, res => %2
@@ -988,7 +988,7 @@ void Port::yl2xp1_impl(long double* x, long double* y, long double* res)
                      "movq %2, %%r8;"
                      "fldt (%%rdx);"      // push *y and *x to the FPU stack
                      "fldt (%%rcx);"      // "t" suffix means tbyte
-                     "yl2xp1;"            // do operation and wait
+                     "fyl2xp1;"            // do operation and wait
                      "fstpt (%%r8)"       // pop result to a *res
                      :                          // output: empty
                      :"r"(x), "r"(y), "r"(res)  // input: x => %0, y => %1, res => %2

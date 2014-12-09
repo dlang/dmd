@@ -1021,7 +1021,7 @@ Lnomatch:
             Parameter *arg = Parameter::getNth(tt->arguments, i);
 
             OutBuffer buf;
-            buf.printf("_%s_field_%llu", ident->toChars(), (ulonglong)i);
+            buf.printf("__%s_field_%llu", ident->toChars(), (ulonglong)i);
             const char *name = buf.extractString();
             Identifier *id = Lexer::idPool(name);
 
@@ -1112,22 +1112,18 @@ Lnomatch:
         AggregateDeclaration *aad = parent->isAggregateDeclaration();
         if (aad)
         {
-            if (storage_class & (STCconst | STCimmutable) && init && !init->isVoidInitializer())
+            if (global.params.vfield &&
+                storage_class & (STCconst | STCimmutable) && init && !init->isVoidInitializer())
             {
-                StorageClass stc = storage_class & (STCconst | STCimmutable);
-                deprecation(loc, "%s field with initializer should be static, __gshared, or an enum",
-                    StorageClassDeclaration::stcToChars(NULL, stc));
-                if (!tb->isTypeBasic())
-                    storage_class |= STCstatic;
+                const char *p = loc.toChars();
+                const char *s = (storage_class & STCimmutable) ? "immutable" : "const";
+                fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
             }
-            else
+            storage_class |= STCfield;
+            if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor)
             {
-                storage_class |= STCfield;
-                if ((tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor))
-                {
-                    if (!isThisDeclaration() && !init)
-                        aad->noDefaultCtor = true;
-                }
+                if (!isThisDeclaration() && !init)
+                    aad->noDefaultCtor = true;
             }
         }
 
@@ -1318,7 +1314,7 @@ Lnomatch:
                 {
                     ArrayInitializer *ai = init->isArrayInitializer();
                     Expression *e;
-                    if (ai && (tb->ty == Taarray || tb->ty == Tstruct && ai->isAssociativeArray()))
+                    if (ai && tb->ty == Taarray)
                         e = ai->toAssocArrayLiteral();
                     else
                         e = init->toExpression();
@@ -1581,11 +1577,13 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad->toChars(), toChars());
 
     if (aliassym)
-    {   // If this variable was really a tuple, set the offsets for the tuple fields
+    {
+        // If this variable was really a tuple, set the offsets for the tuple fields
         TupleDeclaration *v2 = aliassym->isTupleDeclaration();
         assert(v2);
         for (size_t i = 0; i < v2->objects->dim; i++)
-        {   RootObject *o = (*v2->objects)[i];
+        {
+            RootObject *o = (*v2->objects)[i];
             assert(o->dyncast() == DYNCAST_EXPRESSION);
             Expression *e = (Expression *)o;
             assert(e->op == TOKdsymbol);
@@ -1603,17 +1601,26 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
      * as members. That means ignore them if they are already a field.
      */
     if (offset)
-        return;         // already a field
+    {
+        // already a field
+        *poffset = ad->structsize;  // Bugzilla 13613
+        return;
+    }
     for (size_t i = 0; i < ad->fields.dim; i++)
     {
         if (ad->fields[i] == this)
-            return;     // already a field
+        {
+            // already a field
+            *poffset = ad->structsize;  // Bugzilla 13613
+            return;
+        }
     }
 
     // Check for forward referenced types which will fail the size() call
     Type *t = type->toBasetype();
     if (storage_class & STCref)
-    {   // References are the size of a pointer
+    {
+        // References are the size of a pointer
         t = Type::tvoidptr;
     }
     if (t->ty == Tstruct || t->ty == Tsarray)
@@ -1651,7 +1658,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     offset = AggregateDeclaration::placeField(poffset, memsize, memalignsize, alignment,
                 &ad->structsize, &ad->alignsize, isunion);
 
-    //printf("\t%s: alignsize = %d\n", toChars(), alignsize);
+    //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
 
     //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad->toChars(), offset, memsize);
     ad->fields.push(this);
@@ -1677,8 +1684,6 @@ AggregateDeclaration *VarDeclaration::isThis()
     if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter |
                            STCtls | STCgshared | STCctfe)))
     {
-        if ((storage_class & (STCconst | STCimmutable | STCwild)) && init)
-            return NULL;
         for (Dsymbol *s = this; s; s = s->parent)
         {
             ad = s->isMember();
@@ -1766,7 +1771,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
                     {
                         fld->tok = TOKdelegate;
-
+#if 0
                         /* This is necessary to avoid breaking tests for 8751 & 8793.
                          * See: compilable/testInference.d
                          */
@@ -1779,6 +1784,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                         {
                             fld->setImpure();   // Bugzilla 9415
                         }
+#endif
                     }
                 }
 

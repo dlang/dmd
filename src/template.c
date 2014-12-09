@@ -949,10 +949,15 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
 
             // Resolve parameter types and 'auto ref's.
             tf->fargs = fargs;
+            unsigned olderrors = global.startGagging();
             fd->type = tf->semantic(loc, paramscope);
-            fd->originalType = fd->type;    // for mangling
-            if (fd->type->ty != Tfunction)
+            if (global.endGagging(olderrors))
+            {
+                assert(fd->type->ty != Tfunction);
                 goto Lnomatch;
+            }
+            assert(fd->type->ty == Tfunction);
+            fd->originalType = fd->type;    // for mangling
         }
 
         // TODO: dedtypes => ti->tiargs ?
@@ -1070,6 +1075,8 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
     return MATCHnomatch;
 }
 
+static Expression *emptyArrayElement = NULL;
+
 class TypeDeduced : public Type
 {
 public:
@@ -1094,6 +1101,26 @@ public:
         tded = tt;
         argexps.push(e);
         tparams.push(tparam);
+    }
+    MATCH matchAll(Type *tt)
+    {
+        MATCH match = MATCHexact;
+        for (size_t j = 0; j < argexps.dim; j++)
+        {
+            Expression *e = argexps[j];
+            assert(e);
+            if (e == emptyArrayElement)
+                continue;
+
+            Type *t = tt->addMod(tparams[j]->mod)->substWildTo(MODconst);
+
+            MATCH m = e->implicitConvTo(t);
+            if (match > m)
+                match = m;
+            if (match <= MATCHnomatch)
+                break;
+        }
+        return match;
     }
 };
 
@@ -1553,6 +1580,28 @@ Lretry:
 
                 oarg = argtype;
             }
+            else if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
+                     templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND &&
+                     ((TypeIdentifier *)prmtype)->idents.dim == 0)
+            {
+                /* The farg passing to the prmtype always make a copy. Therefore,
+                 * we can shrink the set of the deduced type arguments for prmtype
+                 * by adjusting top-qualifier of the argtype.
+                 *
+                 *  prmtype         argtype     ta
+                 *  T            <- const(E)[]  const(E)[]
+                 *  T            <- const(E[])  const(E)[]
+                 *  qualifier(T) <- const(E)[]  const(E[])
+                 *  qualifier(T) <- const(E[])  const(E[])
+                 */
+                Type *ta = argtype->castMod(prmtype->mod ? argtype->nextOf()->mod : 0);
+                if (ta != argtype)
+                {
+                    Expression *ea = farg->copy();
+                    ea->type = ta;
+                    oarg = ea;
+                }
+            }
 
             if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
                 goto Lvarargs;
@@ -1750,19 +1799,7 @@ Lmatch:
         if (at && at->ty == Tnone)
         {
             TypeDeduced *xt = (TypeDeduced *)at;
-            Type *tt = xt->tded;    // 'unbox'
-
-            bool iswild = true;
-            for (size_t j = 0; iswild && j < xt->tparams.dim; j++)
-                iswild = iswild && xt->tparams[j]->isWild();
-            if (iswild)
-                tt = tt->unqualify(MODimmutable | MODconst);
-
-            // Remove top-const
-            if (tt->ty == Tarray || tt->ty == Tpointer)
-                tt = tt->mutableOf();
-
-            (*dedtypes)[i] = tt;
+            (*dedtypes)[i] = xt->tded;  // 'unbox'
             delete xt;
         }
     }
@@ -2049,7 +2086,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         if (tiargs && tiargs->dim > 0)
             return 0;
 
-        //printf("fd = %s %s\n", fd->toChars(), fd->type->toChars());
+        //printf("fd = %s %s, fargs = %s\n", fd->toChars(), fd->type->toChars(), fargs->toChars());
         m->anyf = fd;
         TypeFunction *tf = (TypeFunction *)fd->type;
 
@@ -2294,9 +2331,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             MATCH mta = (MATCH)(x >> 4);
             MATCH mfa = (MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
-            if (!fd)
-                goto Lerror;
-            if (mfa == MATCHnomatch)
+            if (!fd || mfa == MATCHnomatch)
                 continue;
 
             Type *tthis_fd = fd->needThis() ? tthis : NULL;
@@ -2576,14 +2611,23 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
         tf->next = NULL;
     fd->type = tf;
     fd->type = fd->type->addSTC(scx->stc);
+
+    unsigned olderrors = global.startGagging();
     fd->type = fd->type->semantic(fd->loc, scx);
+    scx = scx->pop();
+
+    if (global.endGagging(olderrors))
+    {
+        assert(fd->type->ty != Tfunction);
+        return NULL;
+    }
+    assert(fd->type->ty == Tfunction);
+
     fd->originalType = fd->type;    // for mangling
     //printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
     //printf("fd->needThis() = %d\n", fd->needThis());
 
-    scx = scx->pop();
-
-    return fd->type->ty == Tfunction ? fd : NULL;
+    return fd;
 }
 
 bool TemplateDeclaration::hasStaticCtorOrDtor()
@@ -3056,9 +3100,6 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
  * Output:
  *      dedtypes = [ int ]      // Array of Expression/Type's
  */
-
-static Expression *emptyArrayElement = NULL;
-
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters,
         Objects *dedtypes, unsigned *wm, size_t inferStart)
 {
@@ -3188,20 +3229,31 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 Type *tt;
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
+                    // type vs (none)
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
                         *wm |= wx;
-                        goto Lconst;
+                        result = MATCHconst;
+                        return;
                     }
 
-                    if (at && at->ty == Tnone)  // type vs expressions
+                    // type vs expressions
+                    if (at->ty == Tnone)
                     {
                         TypeDeduced *xt = (TypeDeduced *)at;
-                        at = xt->tded;
+                        result = xt->matchAll(tt);
+                        if (result > MATCHnomatch)
+                        {
+                            (*dedtypes)[i] = tt;
+                            if (result > MATCHconst)
+                                result = MATCHconst;    // limit level for inout matches
+                        }
                         delete xt;
+                        return;
                     }
 
+                    // type vs type
                     if (tt->equals(at))
                     {
                         (*dedtypes)[i] = tt;    // Prefer current type match
@@ -3227,35 +3279,21 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
-                        if (m == MATCHexact)
-                            goto Lexact;
-                        else
-                            goto Lconst;
+                        result = m;
+                        return;
                     }
 
                     // type vs expressions
                     if (at->ty == Tnone)
                     {
                         TypeDeduced *xt = (TypeDeduced *)at;
-                        result = MATCHexact;
-                        for (size_t j = 0; j < xt->argexps.dim; j++)
-                        {
-                            Expression *e = xt->argexps[j];
-                            if (e == emptyArrayElement)
-                                continue;
-                            m = e->implicitConvTo(tt->addMod(xt->tparams[j]->mod));
-                            if (result > m)
-                                result = m;
-                            if (result <= MATCHnomatch)
-                                break;
-                        }
+                        result = xt->matchAll(tt);
                         if (result > MATCHnomatch)
                         {
                             (*dedtypes)[i] = tt;
-                            return;
                         }
-
-                        at = xt->tded;
+                        delete xt;
+                        return;
                     }
 
                     // type vs type
@@ -3276,7 +3314,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 }
                 goto Lnomatch;
             }
-            else if (tparam->ty == Ttypeof)
+
+            if (tparam->ty == Ttypeof)
             {
                 /* Need a loc to go with the semantic routine.
                  */
@@ -3289,7 +3328,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
                 tparam = tparam->semantic(loc, sc);
             }
-
             if (t->ty != tparam->ty)
             {
                 if (Dsymbol *sym = t->toDsymbol(sc))
@@ -3864,9 +3902,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(TypeStruct *t)
         {
-            //printf("TypeStruct::deduceType()\n");
-            //printf("\tthis->parent   = %s, ", sym->parent->toChars()); t->print();
-            //printf("\ttparam = %d, ", tparam->ty); tparam->print();
+#if 0
+            printf("TypeStruct::deduceType()\n");
+            printf("\tthis->parent   = %s, ", t->sym->parent->toChars()); t->print();
+            printf("\ttparam = %d, ", tparam->ty); tparam->print();
+#endif
 
             /* If this struct is a template struct, and we're matching
              * it against a template instance, convert the struct type
@@ -3929,12 +3969,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (tparam && tparam->ty == Tenum)
             {
                 TypeEnum *tp = (TypeEnum *)tparam;
-
-                if (t->sym != tp->sym)
-                {
+                if (t->sym == tp->sym)
+                    visit((Type *)t);
+                else
                     result = MATCHnomatch;
-                    return;
-                }
+                return;
             }
             Type *tb = t->toBasetype();
             if (tb->ty == tparam->ty ||
@@ -4149,8 +4188,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
             Type *at = (Type *)(*dedtypes)[i];
             Type *tt;
-            if (unsigned char wx = wm ? deduceWildHelper(e->type, &tt, tparam) : 0)
+            if (unsigned char wx = deduceWildHelper(e->type, &tt, tparam))
             {
+                *wm |= wx;
                 result = MATCHconst;
             }
             else if (MATCH m = deduceTypeHelper(e->type, &tt, tparam))
@@ -4177,26 +4217,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             // From previous matched expressions to current deduced type
             MATCH match1 = MATCHnomatch;
             if (xt)
-            {
-                match1 = MATCHexact;
-                for (size_t j = 0; j < xt->argexps.dim; j++)
-                {
-                    Expression *ex = xt->argexps[j];
-                    if (ex == emptyArrayElement)
-                        continue;
-                    Type *pt = tt->addMod(xt->tparams[j]->mod);
-                    if (wm && *wm)
-                        pt = pt->substWildTo(*wm);
-                    MATCH m = ex->implicitConvTo(pt);
-                    if (match1 > m)
-                        match1 = m;
-                    if (match1 <= MATCHnomatch)
-                        break;
-                }
-            }
+                match1 = xt->matchAll(tt);
+
             // From current expresssion to previous deduced type
             Type *pt = at->addMod(tparam->mod);
-            if (wm && *wm)
+            if (*wm)
                 pt = pt->substWildTo(*wm);
             MATCH match2 = e->implicitConvTo(pt);
 
@@ -4237,7 +4262,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 result = match1;
                 return;
             }
-            else if (match2 > MATCHnomatch)
+            if (match2 > MATCHnomatch)
             {
                 // Prefer previous match: (*dedtypes)[i]
                 if (xt)
@@ -4246,7 +4271,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             }
 
-            // todo?
+            result = MATCHnomatch;
         }
 
         MATCH deduceEmptyArrayElement()
@@ -4464,7 +4489,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         t->accept(&v);
     else
     {
-        assert(isExpression(o));
+        assert(isExpression(o) && wm);
         ((Expression *)o)->accept(&v);
     }
     return v.result;

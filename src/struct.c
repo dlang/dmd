@@ -137,6 +137,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
     isdeprecated = false;
+    mutedeprecation = false;
     inv = NULL;
     aggNew = NULL;
     aggDelete = NULL;
@@ -238,6 +239,16 @@ void AggregateDeclaration::semantic3(Scope *sc)
         (!isDeprecated() || global.params.useDeprecated) &&
         (type && type->ty != Terror))
     {
+        // we do not want to report deprecated uses of this type during RTInfo
+        //  generation, so we disable reporting deprecation temporarily
+        // WARNING: Muting messages during analysis of RTInfo might silently instantiate
+        //  templates that use (other) deprecated types. If these template instances
+        //  are used in other parts of the program later, they will be reused without
+        //  ever producing the deprecation message. The implementation here restricts
+        //  muting to the types that RTInfo is currently generated for.
+        bool wasmuted = mutedeprecation;
+        mutedeprecation = true;
+
         // Evaluate: RTinfo!type
         Objects *tiargs = new Objects();
         tiargs->push(type);
@@ -255,6 +266,8 @@ void AggregateDeclaration::semantic3(Scope *sc)
 
         e = e->ctfeInterpret();
         getRTInfo = e;
+
+        mutedeprecation = wasmuted;
     }
 
     if (sd)
@@ -382,6 +395,11 @@ Type *AggregateDeclaration::getType()
 bool AggregateDeclaration::isDeprecated()
 {
     return isdeprecated;
+}
+
+bool AggregateDeclaration::muteDeprecationMessage()
+{
+    return mutedeprecation;
 }
 
 bool AggregateDeclaration::isExport()
@@ -1046,8 +1064,10 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
  */
 bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
 {
+    //printf("StructDeclaration::fill() %s\n", toChars());
     assert(sizeok == SIZEOKdone);
     size_t nfields = fields.dim - isNested();
+    bool errors = false;
 
     if (elements)
     {
@@ -1077,6 +1097,26 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                             v2->offset < vd->offset + vd->type->size());
             if (!overlap)
                 continue;
+
+            // vd and v2 are overlapping. If either has destructors, postblits, etc., then error
+            //printf("overlapping fields %s and %s\n", vd->toChars(), v2->toChars());
+
+            VarDeclaration *v = vd;
+            for (int k = 0; k < 2; ++k, v = v2)
+            {
+                Type *tv = v->type->baseElemOf();
+                Dsymbol *sv = tv->toDsymbol(NULL);
+                if (sv && !errors)
+                {
+                    StructDeclaration *sd = sv->isStructDeclaration();
+                    if (sd && (sd->dtor || sd->inv || sd->postblit))
+                    {
+                        error("destructors, postblits and invariants are not allowed in overlapping fields %s and %s", vd->toChars(), v2->toChars());
+                        errors = true;
+                        break;
+                    }
+                }
+            }
 
             if (elements)
             {
@@ -1175,7 +1215,7 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                 return false;
         }
     }
-    return true;
+    return !errors;
 }
 
 /***************************************

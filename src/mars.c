@@ -80,6 +80,7 @@ Global global;
 
 void Global::init()
 {
+    inifilename = NULL;
     mars_ext = "d";
     hdr_ext  = "di";
     doc_ext  = "html";
@@ -139,6 +140,8 @@ void Global::init()
     main_d = "__main.d";
 
     memset(&params, 0, sizeof(Param));
+
+    errorLimit = 20;
 }
 
 unsigned Global::startGagging()
@@ -233,7 +236,14 @@ void ensurePathToNameExists(Loc loc, const char *name)
 extern void backend_init();
 extern void backend_term();
 
-void usage()
+static void logo()
+{
+    printf("DMD%llu D Compiler %s\n%s %s\n",
+           (unsigned long long) sizeof(size_t) * 8,
+        global.version, global.copyright, global.written);
+}
+
+static void usage()
 {
 #if TARGET_LINUX
     const char fpic[] ="\
@@ -242,11 +252,10 @@ void usage()
 #else
     const char fpic[] = "";
 #endif
-    printf("DMD%llu D Compiler %s\n%s %s\n",
-           (unsigned long long) sizeof(size_t) * 8,
-        global.version, global.copyright, global.written);
+    logo();
     printf("\
 Documentation: http://dlang.org/\n\
+Config file: %s\n\
 Usage:\n\
   dmd files.d ... { -switch }\n\
 \n\
@@ -277,7 +286,7 @@ Usage:\n\
   -H             generate 'header' file\n\
   -Hddirectory   write 'header' file to directory\n\
   -Hffilename    write 'header' file to filename\n\
-  --help         print help\n\
+  --help         print help and exit\n\
   -Ipath         where to look for imports\n\
   -ignore        ignore unsupported pragmas\n\
   -inline        do function inlining\n\
@@ -300,21 +309,24 @@ Usage:\n\
   -property      enforce property syntax\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
+  -scope         diagnose scope errors (experimental)\n\
   -shared        generate shared library (DLL)\n\
   -transition=id show additional info about language change identified by 'id'\n\
   -transition=?  list all language changes\n\
   -unittest      compile in unit tests\n\
   -v             verbose\n\
   -vcolumns      print character (column) numbers in diagnostics\n\
+  --version      print compiler version and exit\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -vtls          list all variables going into thread local storage\n\
   -vgc           list all gc allocations including hidden ones\n\
+  -verrors=num   limit the number of error messages (0 means unlimited)\n\
   -w             warnings as errors (compilation will halt)\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
-", fpic);
+", FileName::canonicalName(global.inifilename), fpic);
 }
 
 extern signed char tyalignsize[];
@@ -353,6 +365,7 @@ void genCmain(Scope *sc)
     p.nextToken();
     m->members = p.parseModule();
     assert(p.token.value == TOKeof);
+    assert(!p.errors);                  // shouldn't have failed to parse it
 
     bool v = global.params.verbose;
     global.params.verbose = false;
@@ -378,7 +391,6 @@ int tryMain(size_t argc, const char *argv[])
 #if TARGET_WINDOS
     bool setdefaultlib = false;
 #endif
-    const char *inifilename = NULL;
     global.init();
 
 #ifdef DEBUG
@@ -449,10 +461,12 @@ int tryMain(size_t argc, const char *argv[])
 #elif TARGET_LINUX
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("linux");
+    VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isLinux = true;
 #elif TARGET_OSX
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("OSX");
+    VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isOSX = true;
 
     // For legacy compatibility
@@ -460,14 +474,17 @@ int tryMain(size_t argc, const char *argv[])
 #elif TARGET_FREEBSD
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("FreeBSD");
+    VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isFreeBSD = true;
 #elif TARGET_OPENBSD
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("OpenBSD");
+    VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isFreeBSD = true;
 #elif TARGET_SOLARIS
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("Solaris");
+    VersionCondition::addPredefinedGlobalIdent("ELFv1");
     global.params.isSolaris = true;
 #else
 #error "fix this"
@@ -478,9 +495,9 @@ int tryMain(size_t argc, const char *argv[])
     VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
-    inifilename = inifile(argv[0], "sc.ini", "Environment");
+    global.inifilename = inifile(argv[0], "sc.ini", "Environment");
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    inifilename = inifile(argv[0], "dmd.conf", "Environment");
+    global.inifilename = inifile(argv[0], "dmd.conf", "Environment");
 #else
 #error "fix this"
 #endif
@@ -496,7 +513,7 @@ int tryMain(size_t argc, const char *argv[])
 
     char envsection[80];
     sprintf(envsection, "Environment%s", arch);
-    inifile(argv[0], inifilename, envsection);
+    inifile(argv[0], global.inifilename, envsection);
 
     getenv_setargv("DFLAGS", &argc, &argv);
 
@@ -625,6 +642,21 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.showColumns = true;
             else if (strcmp(p + 1, "vgc") == 0)
                 global.params.vgc = true;
+            else if (memcmp(p + 1, "verrors", 7) == 0)
+            {
+                if (p[8] == '=' && isdigit((utf8_t)p[9]))
+                {
+                    long num;
+                    errno = 0;
+                    num = strtol(p + 9, (char **)&p, 10);
+                    if (*p || errno || num > INT_MAX)
+                        goto Lerror;
+                    // Bugzilla issue number
+                    global.errorLimit = (unsigned) num;
+                }
+                else
+                    goto Lerror;
+            }
             else if (memcmp(p + 1, "transition", 10) == 0)
             {
                 // Parse:
@@ -635,7 +667,8 @@ int tryMain(size_t argc, const char *argv[])
                     {
                         printf("\
 Language changes listed by -transition=id:\n\
-  =tls           do list all variables going into thread local storage\n\
+  =field,3449    list all non-mutable fields which occupy an object instance\n\
+  =tls           list all variables going into thread local storage\n\
 ");
                         return EXIT_FAILURE;
                     }
@@ -660,6 +693,8 @@ Language changes listed by -transition=id:\n\
                     {
                         if (strcmp(p + 12, "tls") == 0)
                             global.params.vtls = 1;
+                        if (strcmp(p + 12, "field") == 0)
+                            global.params.vfield = 1;
                     }
                     else
                         goto Lerror;
@@ -787,6 +822,8 @@ Language changes listed by -transition=id:\n\
                 global.params.enforcePropertySyntax = true;
             else if (strcmp(p + 1, "inline") == 0)
                 global.params.useInline = true;
+            else if (strcmp(p + 1, "scope") == 0)
+                global.params.useScope = true;
             else if (strcmp(p + 1, "lib") == 0)
                 global.params.lib = true;
             else if (strcmp(p + 1, "nofloat") == 0)
@@ -908,6 +945,10 @@ Language changes listed by -transition=id:\n\
             }
             else if (strcmp(p + 1, "-r") == 0)
                 global.params.debugr = true;
+            else if (strcmp(p + 1, "-version") == 0)
+            {   logo();
+                exit(EXIT_SUCCESS);
+            }
             else if (strcmp(p + 1, "-x") == 0)
                 global.params.debugx = true;
             else if (strcmp(p + 1, "-y") == 0)
@@ -1023,7 +1064,7 @@ Language changes listed by -transition=id:\n\
 
     if(global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s",
-              envsection, inifilename);
+              envsection, global.inifilename);
 
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;
@@ -1126,7 +1167,7 @@ Language changes listed by -transition=id:\n\
     }
     else
     {
-        VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
+        VersionCondition::addPredefinedGlobalIdent("D_InlineAsm"); //legacy
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition::addPredefinedGlobalIdent("X86");
 #if TARGET_OSX
@@ -1147,8 +1188,8 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("CRuntime_Microsoft");
     else
         VersionCondition::addPredefinedGlobalIdent("CRuntime_DigitalMars");
-#else
-    VersionCondition::addPredefinedGlobalIdent("CRuntime_GNU");
+#elif TARGET_LINUX
+    VersionCondition::addPredefinedGlobalIdent("CRuntime_Glibc");
 #endif
     if (global.params.isLP64)
         VersionCondition::addPredefinedGlobalIdent("D_LP64");
@@ -1184,7 +1225,8 @@ Language changes listed by -transition=id:\n\
     if (global.params.verbose)
     {   fprintf(global.stdmsg, "binary    %s\n", argv[0]);
         fprintf(global.stdmsg, "version   %s\n", global.version);
-        fprintf(global.stdmsg, "config    %s\n", inifilename ? inifilename : "(none)");
+        fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename
+                                                                    : "(none)");
     }
 
     //printf("%d source files\n",files.dim);

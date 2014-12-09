@@ -115,6 +115,8 @@ SYMBOL_MARS(ARRAYSETLENGTHT,FLfunc,FREGSAVED,"_d_arraysetlengthT", 0, t) \
 SYMBOL_MARS(ARRAYSETLENGTHIT,FLfunc,FREGSAVED,"_d_arraysetlengthiT", 0, t) \
 SYMBOL_MARS(ARRAYCOPY,     FLfunc,FREGSAVED,"_d_arraycopy", 0, t) \
 SYMBOL_MARS(ARRAYASSIGN,   FLfunc,FREGSAVED,"_d_arrayassign", 0, t) \
+SYMBOL_MARS(ARRAYASSIGN_R, FLfunc,FREGSAVED,"_d_arrayassign_r", 0, t) \
+SYMBOL_MARS(ARRAYASSIGN_L, FLfunc,FREGSAVED,"_d_arrayassign_l", 0, t) \
 SYMBOL_MARS(ARRAYCTOR,     FLfunc,FREGSAVED,"_d_arrayctor", 0, t) \
 SYMBOL_MARS(ARRAYSETASSIGN, FLfunc,FREGSAVED,"_d_arraysetassign", 0, t) \
 SYMBOL_MARS(ARRAYSETCTOR,  FLfunc,FREGSAVED,"_d_arraysetctor", 0, t) \

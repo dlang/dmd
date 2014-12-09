@@ -393,7 +393,7 @@ void test7288()
         return () => { return x; };
     }
     pragma(msg, typeof(&foo));
-    alias int delegate() nothrow @nogc @safe delegate() nothrow @nogc @safe delegate() Dg;
+    alias int delegate() pure nothrow @nogc @safe delegate() pure nothrow @nogc @safe delegate() Dg;
     pragma(msg, Dg);
     static assert(is(typeof(&foo) == Dg));  // should pass
 }
@@ -534,10 +534,10 @@ auto foo7743b()
 }
 void test7743()
 {
-    static assert(is(typeof(&foo7743a) == int delegate() nothrow @nogc @safe function()));
+    static assert(is(typeof(&foo7743a) == int delegate() pure nothrow @nogc @safe function()));
     assert(foo7743a()() == 10);
 
-    static assert(is(typeof(&foo7743b) == int delegate() nothrow @nogc @safe function()));
+    static assert(is(typeof(&foo7743b) == int delegate() pure nothrow @nogc @safe function()));
     assert(foo7743b()() == 10);
 }
 

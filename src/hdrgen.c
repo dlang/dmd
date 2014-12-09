@@ -249,16 +249,16 @@ public:
     {
         buf->writestring(Token::toChars(s->op));
         buf->writestring(" (");
-        for (size_t i = 0; i < s->arguments->dim; i++)
+        for (size_t i = 0; i < s->parameters->dim; i++)
         {
-            Parameter *a = (*s->arguments)[i];
+            Parameter *p = (*s->parameters)[i];
             if (i)
                 buf->writestring(", ");
-            StorageClassDeclaration::stcToCBuffer(buf, a->storageClass);
-            if (a->type)
-                typeToBuffer(a->type, a->ident);
+            StorageClassDeclaration::stcToCBuffer(buf, p->storageClass);
+            if (p->type)
+                typeToBuffer(p->type, p->ident);
             else
-                buf->writestring(a->ident->toChars());
+                buf->writestring(p->ident->toChars());
         }
         buf->writestring("; ");
         s->aggr->accept(this);
@@ -279,10 +279,10 @@ public:
         buf->writestring(Token::toChars(s->op));
         buf->writestring(" (");
 
-        if (s->arg->type)
-            typeToBuffer(s->arg->type, s->arg->ident);
+        if (s->prm->type)
+            typeToBuffer(s->prm->type, s->prm->ident);
         else
-            buf->writestring(s->arg->ident->toChars());
+            buf->writestring(s->prm->ident->toChars());
 
         buf->writestring("; ");
         s->lwr->accept(this);
@@ -303,16 +303,16 @@ public:
     void visit(IfStatement *s)
     {
         buf->writestring("if (");
-        if (Parameter *a = s->arg)
+        if (Parameter *p = s->prm)
         {
-            StorageClass stc = a->storageClass;
-            if (!a->type && !stc)
+            StorageClass stc = p->storageClass;
+            if (!p->type && !stc)
                 stc = STCauto;
             StorageClassDeclaration::stcToCBuffer(buf, stc);
-            if (a->type)
-                typeToBuffer(a->type, a->ident);
+            if (p->type)
+                typeToBuffer(p->type, p->ident);
             else
-                buf->writestring(a->ident->toChars());
+                buf->writestring(p->ident->toChars());
             buf->writestring(" = ");
         }
         s->condition->accept(this);
@@ -769,8 +769,13 @@ public:
 
     void visit(TypeDArray *t)
     {
-        if (t->equals(t->tstring))
+        Type *ut = t->castMod(0);
+        if (ut->equals(Type::tstring))
             buf->writestring("string");
+        else if (ut->equals(Type::twstring))
+            buf->writestring("wstring");
+        else if (ut->equals(Type::tdstring))
+            buf->writestring("dstring");
         else
         {
             visitWithMask(t->next, t->mod);
@@ -1459,6 +1464,8 @@ public:
             if (Type *t = isType(oarg))
             {
                 if (t->equals(Type::tstring) ||
+                    t->equals(Type::twstring) ||
+                    t->equals(Type::tdstring) ||
                     t->mod == 0 &&
                     (t->isTypeBasic() ||
                      t->ty == Tident && ((TypeIdentifier *)t)->idents.dim == 0))
@@ -1664,12 +1671,20 @@ public:
         buf->writestring("alias ");
         if (d->aliassym)
         {
-            d->aliassym->accept(this);
-            buf->writeByte(' ');
             buf->writestring(d->ident->toChars());
+            buf->writestring(" = ");
+            d->aliassym->accept(this);
+        }
+        else if (d->type->ty == Tfunction)
+        {
+            typeToBuffer(d->type, d->ident);
         }
         else
-            typeToBuffer(d->type, d->ident);
+        {
+            buf->writestring(d->ident->toChars());
+            buf->writestring(" = ");
+            typeToBuffer(d->type, NULL);
+        }
         buf->writeByte(';');
         buf->writenl();
     }
@@ -1890,7 +1905,7 @@ public:
     {
         StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         buf->writestring("new");
-        parametersToBuffer(d->arguments, d->varargs);
+        parametersToBuffer(d->parameters, d->varargs);
         bodyToBuffer(d);
     }
 
@@ -1898,7 +1913,7 @@ public:
     {
         StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         buf->writestring("delete");
-        parametersToBuffer(d->arguments, 0);
+        parametersToBuffer(d->parameters, 0);
         bodyToBuffer(d);
     }
 

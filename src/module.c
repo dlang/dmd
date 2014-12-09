@@ -174,7 +174,8 @@ File *Module::setOutfile(const char *name, const char *dir, const char *arg, con
     }
 
     if (FileName::equals(docfilename, srcfile->name->str))
-    {   error("Source file and output file have same name '%s'", srcfile->name->str);
+    {
+        error("source file and output file have same name '%s'", srcfile->name->str);
         fatal();
     }
 
@@ -266,6 +267,7 @@ bool Module::read(Loc loc)
         {
             ::error(loc, "cannot find source code for runtime library file 'object.d'");
             errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
+            errorSupplemental(loc, "config file: %s", FileName::canonicalName(global.inifilename));
         }
         else
         {
@@ -516,6 +518,8 @@ void Module::parse()
         members = p.parseModule();
         md = p.md;
         numlines = p.scanloc.linnum;
+        if (p.errors)
+            ++global.errors;
     }
 
     if (srcfile->ref == 0)
@@ -596,12 +600,15 @@ void Module::parse()
         assert(prev);
         if (Module *mprev = prev->isModule())
         {
-            if (strcmp(srcname, mprev->srcfile->toChars()) == 0)
-                error(loc, "from file %s must be imported with 'import %s;'",
-                    srcname, toPrettyChars());
-            else
+            if (FileName::compare(srcname, mprev->srcfile->toChars()) != 0)
                 error(loc, "from file %s conflicts with another module %s from file %s",
                     srcname, mprev->toChars(), mprev->srcfile->toChars());
+            else if (isRoot() && mprev->isRoot())
+                error(loc, "from file %s is specified twice on the command line",
+                    srcname);
+            else
+                error(loc, "from file %s must be imported with 'import %s;'",
+                    srcname, toPrettyChars());
         }
         else if (Package *pkg = prev->isPackage())
         {

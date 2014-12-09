@@ -22,6 +22,7 @@ fail_compilation/diag1730.d(83): Error: non-shared mutable method diag1730.S.fun
 fail_compilation/diag1730.d(84): Error: non-shared const method diag1730.S.cFunc is not callable using a shared const object
 fail_compilation/diag1730.d(85): Error: immutable method diag1730.S.iFunc is not callable using a shared const object
 fail_compilation/diag1730.d(86): Error: shared mutable method diag1730.S.sFunc is not callable using a shared const object
+fail_compilation/diag1730.d(88): Error: non-shared inout method diag1730.S.wFunc is not callable using a shared const object
 ---
 */
 struct S
@@ -32,7 +33,6 @@ struct S
     void sFunc() shared { }
     void scFunc() shared const { }
     void wFunc() inout { }
-
     static void test(inout(S) s)
     {
         s.func();   // ng

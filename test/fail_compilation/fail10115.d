@@ -14,8 +14,8 @@ struct S
 {
     int a;
     @disable this();
-    this(int) { a = 1; }
-    ~this() { assert(a !is 0); }
+    //this(int) { a = 1; }
+    //~this() { assert(a !is 0); }
 }
 
 enum E : S
@@ -26,8 +26,8 @@ enum E : S
 union U
 {
     S s;
-    this(this) { assert (s.a !is 0); }
-    ~this() { assert (s.a !is 0); }
+    //this(this) { assert (s.a !is 0); }
+    //~this() { assert (s.a !is 0); }
 }
 
 void main()

@@ -110,16 +110,14 @@ void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 
 void dwarf_appreladdr(int seg, Outbuffer *buf, int targseg, targ_size_t val)
 {
-  if (I64)
-  {
-      dwarf_addrel64(seg, buf->size(), targseg, val);
-      buf->write64(0);
-  }
-  else
-  {
-      dwarf_addrel(seg, buf->size(), targseg, 0);
-      buf->write32(val);
-  }
+    dwarf_addrel64(seg, buf->size(), targseg, I64 ? val : 0);
+    buf->write64(I64 ? 0 : val);
+}
+
+void dwarf_apprel32(int seg, Outbuffer *buf, int targseg, targ_size_t val)
+{
+    dwarf_addrel(seg, buf->size(), targseg, I64 ? val : 0);
+    buf->write32(I64 ? 0 : val);
 }
 
 void append_addr(Outbuffer *buf, targ_size_t addr)
@@ -1213,10 +1211,13 @@ void dwarf_func_term(Symbol *sfunc)
         dwarf_appreladdr(infoseg, infobuf, seg, funcoffset);
         dwarf_appreladdr(infoseg, infobuf, seg, funcoffset + sfunc->Ssize);
 
+        // DW_AT_frame_base
 #if ELFOBJ
-        dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, 0);
+        dwarf_apprel32(infoseg, infobuf, debug_loc_seg, debug_loc_buf->size());
+#else
+        // 64-bit DWARF relocations don't work for OSX64 codegen
+        infobuf->write32(debug_loc_buf->size());
 #endif
-        infobuf->write32(debug_loc_buf->size()); // DW_AT_frame_base
 
         if (haveparameters)
         {
@@ -1255,6 +1256,36 @@ void dwarf_func_term(Symbol *sfunc)
                         if (sa->Sfl == FLreg || sa->Sclass == SCpseudo)
                         {   // BUG: register pairs not supported in Dwarf?
                             infobuf->writeByte(DW_OP_reg0 + sa->Sreglsw);
+                        }
+                        else if (sa->Sscope && vcode == autocode)
+                        {
+                            assert(sa->Sscope->Stype->Tnext && sa->Sscope->Stype->Tnext->Tty == TYstruct);
+
+                            /* find member offset in closure */
+                            targ_size_t memb_off = 0;
+                            struct_t *st = sa->Sscope->Stype->Tnext->Ttag->Sstruct; // Sscope is __closptr
+                            for (symlist_t sl = st->Sfldlst; sl; sl = list_next(sl))
+                            {
+                                symbol *sf = list_symbol(sl);
+                                if (sf->Sclass == SCmember)
+                                {
+                                    if(strcmp(sa->Sident, sf->Sident) == 0)
+                                    {
+                                        memb_off = sf->Smemoff;
+                                        goto L2;
+                                    }
+                                }
+                            }
+                            L2:
+                            targ_size_t closptr_off = sa->Sscope->Soffset; // __closptr offset
+                            //printf("dwarf closure: sym: %s, closptr: %s, ptr_off: %lli, memb_off: %lli\n",
+                            //    sa->Sident, sa->Sscope->Sident, closptr_off, memb_off);
+
+                            infobuf->writeByte(DW_OP_fbreg);
+                            infobuf->writesLEB128(Auto.size + BPoff - Para.size + closptr_off); // closure pointer offset from frame base
+                            infobuf->writeByte(DW_OP_deref);
+                            infobuf->writeByte(DW_OP_plus_uconst);
+                            infobuf->writeuLEB128(memb_off); // closure variable offset
                         }
                         else
                         {

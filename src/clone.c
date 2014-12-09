@@ -26,7 +26,7 @@
 
 
 /*******************************************
- * Merge function attributes pure, nothrow, @safe, and @disable
+ * Merge function attributes pure, nothrow, @safe, @nogc, and @disable
  */
 StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f)
 {
@@ -115,8 +115,8 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
             Parameters *fparams = f->getParameters(&varargs);
             if (fparams->dim >= 1)
             {
-                Parameter *arg0 = Parameter::getNth(fparams, 0);
-                if (arg0->type->toDsymbol(NULL) != ad)
+                Parameter *fparam0 = Parameter::getNth(fparams, 0);
+                if (fparam0->type->toDsymbol(NULL) != ad)
                     f = NULL;
             }
         }
@@ -502,7 +502,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
         Dsymbol *s = getDsymbol(e);
         if (!s)
         {
-            ::error(Loc(), "ICE: %s not found in object module. You must update druntime", id->toChars());
+            ::error(Loc(), "Internal Compiler Error: %s not found in object module. You must update druntime", id->toChars());
             fatal();
         }
         assert(s);
@@ -628,7 +628,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
         Dsymbol *s = getDsymbol(e);
         if (!s)
         {
-            ::error(Loc(), "ICE: %s not found in object module. You must update druntime", id->toChars());
+            ::error(Loc(), "Internal Compiler Error: %s not found in object module. You must update druntime", id->toChars());
             fatal();
         }
         assert(s);

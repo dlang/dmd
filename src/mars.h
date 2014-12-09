@@ -127,6 +127,7 @@ struct Param
     bool useSwitchError; // check for switches without a default
     bool useUnitTests;  // generate unittest code
     bool useInline;     // inline expand functions
+    bool useScope;      // diagnose 'scope' errors
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
     char warnings;      // 0: enable warnings
@@ -208,6 +209,7 @@ typedef unsigned structalign_t;
 
 struct Global
 {
+    const char *inifilename;
     const char *mars_ext;
     const char *obj_ext;
     const char *lib_ext;
@@ -234,6 +236,8 @@ struct Global
     FILE *stdmsg;          // where to send verbose messages
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
+
+    unsigned errorLimit;
 
     /* Start gagging. Return the current number of gagged errors
      */
@@ -348,7 +352,7 @@ enum MATCH
     MATCHexact          // exact match
 };
 
-typedef uint64_t StorageClass;
+typedef uinteger_t StorageClass;
 
 #include "errors.h"
 

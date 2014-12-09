@@ -1473,6 +1473,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *ex = NULL;
                 elem *ey = NULL;
+                elem *ezprefix = NULL;
                 elem *ez = NULL;
 #if DMD_OBJC
                 if (cd->objc)
@@ -1628,11 +1629,14 @@ elem *toElem(Expression *e, IRState *irs)
 #endif
                 if (ne->member)
                 {
+                    if (ne->argprefix)
+                        ezprefix = toElem(ne->argprefix, irs);
                     // Call constructor
                     ez = callfunc(ne->loc, irs, 1, ne->type, ez, ectype, ne->member, ne->member->type, NULL, ne->arguments);
                 }
 
                 e = el_combine(ex, ey);
+                e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }
             else if (t->ty == Tpointer && t->nextOf()->toBasetype()->ty == Tstruct)
@@ -1650,6 +1654,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *ex = NULL;
                 elem *ey = NULL;
+                elem *ezprefix = NULL;
                 elem *ez = NULL;
 
                 if (ne->allocator)
@@ -1676,6 +1681,8 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *ev = el_same(&ex);
 
+                if (ne->argprefix)
+                        ezprefix = toElem(ne->argprefix, irs);
                 if (ne->member)
                 {
                     if (sd->isNested())
@@ -1718,11 +1725,14 @@ elem *toElem(Expression *e, IRState *irs)
                 //elem_print(ez);
 
                 e = el_combine(ex, ey);
+                e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }
             else if (t->ty == Tarray)
             {
                 TypeDArray *tda = (TypeDArray *)t;
+
+                elem *ezprefix = ne->argprefix ? toElem(ne->argprefix, irs) : NULL;
 
                 assert(ne->arguments && ne->arguments->dim >= 1);
                 if (ne->arguments->dim == 1)
@@ -1755,11 +1765,13 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
                     e->Eflags |= EFLAGS_variadic;
                 }
+                e = el_combine(ezprefix, e);
             }
             else if (t->ty == Tpointer)
             {
                 TypePointer *tp = (TypePointer *)t;
                 Expression *di = tp->next->defaultInit();
+                elem *ezprefix = ne->argprefix ? toElem(ne->argprefix, irs) : NULL;
 
                 // call _d_newitemT(ti)
                 e = toElem(ne->newtype->getTypeInfo(NULL), irs);
@@ -1769,6 +1781,8 @@ elem *toElem(Expression *e, IRState *irs)
 
                 if (ne->arguments && ne->arguments->dim == 1)
                 {
+                    /* ezprefix, ts=_d_newitemT(ti), *ts=arguments[0], ts
+                     */
                     elem *e2 = toElem((*ne->arguments)[0], irs);
 
                     symbol *ts = symbol_genauto(Type_toCtype(tp));
@@ -1781,10 +1795,11 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_combine(e, el_var(ts));
                     //elem_print(e);
                 }
+                e = el_combine(ezprefix, e);
             }
             else
             {
-                ne->error("ICE: cannot new type %s\n", t->toChars());
+                ne->error("Internal Compiler Error: cannot new type %s\n", t->toChars());
                 assert(0);
             }
 
@@ -2934,46 +2949,66 @@ elem *toElem(Expression *e, IRState *irs)
                     goto Lret;
                 }
 
-                /* Determine if we need to do postblit
+                /* Bugzilla 13661: Even if the elements in rhs are all rvalues and
+                 * don't have to call postblits, this assignment should call
+                 * destructors on old assigned elements.
                  */
-                if (postblit &&
-                    !(ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                      ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                      ae->e2->op != TOKslice && ae->e2->isLvalue()))
+                bool lvalueElem = false;
+                if (ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
+                    ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
+                    ae->e2->op != TOKslice && ae->e2->isLvalue())
                 {
-                    postblit = false;
+                    lvalueElem = true;
                 }
 
                 elem *e2 = toElem(ae->e2, irs);
 
-                if (!postblit || ae->op == TOKblit || type_size(e1->ET) == 0)
+                if (!postblit || (!lvalueElem && ae->op == TOKconstruct) ||
+                    ae->op == TOKblit || type_size(e1->ET) == 0)
                 {
                     e = el_bin(OPstreq, tym, e1, e2);
                     e->ET = Type_toCtype(ae->e1->type);
                     if (type_size(e->ET) == 0)
                         e->Eoper = OPcomma;
                 }
-                else
+                else if (ae->op == TOKconstruct)
                 {
-                    elem *eto = e1;
-                    elem *efrom = e2;
-
-                    eto   = sarray_toDarray(ae->e1->loc, ae->e1->type, NULL, eto);
-                    efrom = sarray_toDarray(ae->e2->loc, ae->e2->type, NULL, efrom);
+                    e1 = sarray_toDarray(ae->e1->loc, ae->e1->type, NULL, e1);
+                    e2 = sarray_toDarray(ae->e2->loc, ae->e2->type, NULL, e2);
 
                     /* Generate:
-                     *      _d_arrayassign(ti, efrom, eto)
-                     * or:
-                     *      _d_arrayctor(ti, efrom, eto)
+                     *      _d_arrayctor(ti, e2, e1)
                      */
                     Expression *ti = t1b->nextOf()->toBasetype()->getTypeInfo(NULL);
                     if (config.exe == EX_WIN64)
                     {
-                        eto   = addressElem(eto,   Type::tvoid->arrayOf());
-                        efrom = addressElem(efrom, Type::tvoid->arrayOf());
+                        e1 = addressElem(e1, Type::tvoid->arrayOf());
+                        e2 = addressElem(e2, Type::tvoid->arrayOf());
                     }
-                    elem *ep = el_params(eto, efrom, toElem(ti, irs), NULL);
-                    int rtl = (ae->op == TOKconstruct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
+                    elem *ep = el_params(e1, e2, toElem(ti, irs), NULL);
+                    e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCTOR]), ep);
+                }
+                else
+                {
+                    e1 = sarray_toDarray(ae->e1->loc, ae->e1->type, NULL, e1);
+                    e2 = sarray_toDarray(ae->e2->loc, ae->e2->type, NULL, e2);
+
+                    symbol *stmp = symbol_genauto(Type_toCtype(t1b->nextOf()));
+                    elem *etmp = el_una(OPaddr, TYnptr, el_var(stmp));
+
+                    /* Generate:
+                     *      _d_arrayassign_r(ti, e2, e1, etmp)
+                     * or:
+                     *      _d_arrayassign_r(ti, e2, e1, etmp)
+                     */
+                    Expression *ti = t1b->nextOf()->toBasetype()->getTypeInfo(NULL);
+                    if (config.exe == EX_WIN64)
+                    {
+                        e1 = addressElem(e1, Type::tvoid->arrayOf());
+                        e2 = addressElem(e2, Type::tvoid->arrayOf());
+                    }
+                    elem *ep = el_params(etmp, e1, e2, toElem(ti, irs), NULL);
+                    int rtl = lvalueElem ? RTLSYM_ARRAYASSIGN_L : RTLSYM_ARRAYASSIGN_R;
                     e = el_bin(OPcall, TYdarray, el_var(rtlsym[rtl]), ep);
                 }
             }
@@ -3113,7 +3148,7 @@ elem *toElem(Expression *e, IRState *irs)
                 }
                 else
                 {
-                    ce->error("ICE: cannot append '%s' to '%s'", tb2->toChars(), tb1->toChars());
+                    ce->error("Internal Compiler Error: cannot append '%s' to '%s'", tb2->toChars(), tb1->toChars());
                     assert(0);
                 }
 
@@ -3525,6 +3560,7 @@ elem *toElem(Expression *e, IRState *irs)
             int directcall = 0;
             elem *ec;
             FuncDeclaration *fd = NULL;
+            bool dctor = false;
 #if DMD_OBJC
             elem *esel = NULL;
             if (t1->ty == Tobjcselector)
@@ -3540,6 +3576,7 @@ elem *toElem(Expression *e, IRState *irs)
                 DotVarExp *dve = (DotVarExp *)ce->e1;
 
                 fd = dve->var->isFuncDeclaration();
+
                 Expression *ex = dve->e1;
                 while (1)
                 {
@@ -3569,7 +3606,46 @@ elem *toElem(Expression *e, IRState *irs)
                 ec = toElem(dve->e1, irs);
                 ectype = dve->e1->type->toBasetype();
 
-                if (ce->arguments && ce->arguments->dim && ec->Eoper != OPvar)
+                /* Recognize:
+                 *   [1]  ((S __ctmp = initializer),__ctmp).ctor(args)
+                 * where the left of the . was turned into:
+                 *   [2]  (dctor info ((__ctmp = initializer),__ctmp), __ctmp)
+                 * The trouble (Bugzilla 13095) is if ctor(args) throws, then __ctmp is destructed even though __ctmp
+                 * is not a fully constructed object yet. The solution is to move the ctor(args) itno the dctor tree.
+                 * But first, detect [1], then [2], then split up [2] into:
+                 *   eeq: (dctor info ((__ctmp = initializer),__ctmp))
+                 *   ec:  __ctmp
+                 */
+                if (fd && fd->isCtorDeclaration())
+                {
+                    //printf("test30 %s\n", dve->e1->toChars());
+                    if (dve->e1->op == TOKcomma)
+                    {
+                        //printf("test30a\n");
+                        if (((CommaExp *)dve->e1)->e1->op == TOKdeclaration && ((CommaExp *)dve->e1)->e2->op == TOKvar)
+                        {
+                            //printf("test30b\n");
+                            if (ec->Eoper == OPcomma &&
+                                ec->E1->Eoper == OPinfo &&
+                                ec->E1->E1->Eoper == OPdctor &&
+                                ec->E1->E2->Eoper == OPcomma)
+                            {
+                                //printf("test30c\n");
+                                dctor = true;                   // remember we detected it
+
+                                // Split ec into eeq and ec per comment above
+                                eeq = ec->E1;
+                                ec->E1 = NULL;
+                                ec = el_selecte2(ec);
+                            }
+                        }
+                    }
+                }
+
+
+                if (dctor)
+                { }
+                else if (ce->arguments && ce->arguments->dim && ec->Eoper != OPvar)
                 {
                     if (ec->Eoper == OPind && el_sideeffect(ec->E1))
                     {
@@ -3658,14 +3734,34 @@ elem *toElem(Expression *e, IRState *irs)
                 }
             }
 #if DMD_OBJC
-            ec = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments, esel);
+            elem *ecall = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments, esel);
 #else
-            ec = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments);
+            elem *ecall = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments);
 #endif
-            el_setLoc(ec, ce->loc);
+
+            if (dctor && ecall->Eoper == OPind)
+            {
+                /* Continuation of fix outlined above for moving constructor call into dctor tree.
+                 * Given:
+                 *   eeq:   (dctor info ((__ctmp = initializer),__ctmp))
+                 *   ecall: * call(ce, args)
+                 * Rewrite ecall as:
+                 *    * (dctor info ((__ctmp = initializer),call(ce, args)))
+                 */
+                assert(eeq->E2->Eoper == OPcomma);
+                elem *ea = ecall->E1;           // ea: call(ce,args)
+                ecall->E1 = eeq;
+                eeq->Ety = ea->Ety;
+                el_free(eeq->E2->E2);
+                eeq->E2->E2 = ea;               // replace ,__ctmp with ,call(ce,args)
+                eeq->E2->Ety = ea->Ety;
+                eeq = NULL;
+            }
+
+            el_setLoc(ecall, ce->loc);
             if (eeq)
-                ec = el_combine(eeq, ec);
-            result = ec;
+                ecall = el_combine(eeq, ecall);
+            result = ecall;
         }
 
         void visit(AddrExp *ae)

@@ -188,12 +188,12 @@ void verrorPrint(Loc loc, COLOR headerColor, const char *header, const char *for
 void verror(Loc loc, const char *format, va_list ap,
                 const char *p1, const char *p2, const char *header)
 {
+    global.errors++;
     if (!global.gag)
     {
         verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
-        if (global.errors >= 20)        // moderate blizzard of cascading messages
-                fatal();
-//halt();
+        if (global.errorLimit && global.errors >= global.errorLimit)
+            fatal();    // moderate blizzard of cascading messages
     }
     else
     {
@@ -201,7 +201,6 @@ void verror(Loc loc, const char *format, va_list ap,
         //verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
         global.gaggedErrors++;
     }
-    global.errors++;
 }
 
 // Doesn't increase error count, doesn't print "Error:".

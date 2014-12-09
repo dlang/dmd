@@ -114,23 +114,11 @@ export SEP=/
 endif
 
 ifeq ($(OS),freebsd)
-DISABLED_TESTS += a20
-DISABLED_TESTS += cov2
-# coverage issues, see bug 5619
-
-DISABLED_TESTS += builtin
-# precision related bug: Error: static assert  (0x1.f9f8d9aea10fb28ep-2L == 0x1.f9f8d9aea10fdf1cp-2L) is false
-
 DISABLED_TESTS += dhry
 # runnable/dhry.d(488): Error: undefined identifier dtime
-
-# 64 bit test failures
-DISABLED_TESTS += test17
-DISABLED_SH_TESTS += test39
 endif
 
 ifeq ($(OS),win64)
-DISABLED_TESTS += testargtypes
 DISABLED_TESTS += testxmm
 endif
 

@@ -192,16 +192,15 @@ StringValue *StringTable::insert(const char *s, size_t length)
 {
     const hash_t hash = calcHash(s, length);
     size_t i = findSlot(hash, s, length);
-    if (!table[i].vptr)
+    if (table[i].vptr)
+        return NULL; // already in table
+    if (++count > tabledim * loadFactor)
     {
-        if (++count > tabledim * loadFactor)
-        {
-            grow();
-            i = findSlot(hash, s, length);
-        }
-        table[i].hash = hash;
-        table[i].vptr = allocValue(s, length);
+        grow();
+        i = findSlot(hash, s, length);
     }
+    table[i].hash = hash;
+    table[i].vptr = allocValue(s, length);
     // printf("insert %.*s %p\n", (int)length, s, table[i].value ?: NULL);
     return getValue(table[i].vptr);
 }

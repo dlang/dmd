@@ -19,7 +19,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import std.string;
 import core.sys.windows.windows;
-import std.c.windows.com;
+import core.sys.windows.com;
 
 import chello;
 

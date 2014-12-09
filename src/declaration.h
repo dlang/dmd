@@ -86,7 +86,8 @@ enum PURE;
 #define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
 #define STCtemp          0x10000000000LL // temporary variable
 #define STCrvalue        0x20000000000LL // force rvalue for variables
-#define STCnogc          0x40000000000LL  // @nogc
+#define STCnogc          0x40000000000LL // @nogc
+#define STCvolatile      0x80000000000LL // destined for volatile in the back end
 
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |
@@ -679,9 +680,9 @@ public:
     void createObjCSelector();
 #endif
 
-    static FuncDeclaration *genCfunc(Type *treturn, const char *name, Type *param);
-    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name);
-    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id);
+    static FuncDeclaration *genCfunc(Type *treturn, const char *name, Type *param, StorageClass stc=0);
+    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
+    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
 
     Symbol *toThunkSymbol(int offset);  // thunk version
     void toObjFile(bool multiobj);                       // compile to .obj file
@@ -877,7 +878,7 @@ public:
 class NewDeclaration : public FuncDeclaration
 {
 public:
-    Parameters *arguments;
+    Parameters *parameters;
     int varargs;
 
     NewDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments, int varargs);
@@ -896,7 +897,7 @@ public:
 class DeleteDeclaration : public FuncDeclaration
 {
 public:
-    Parameters *arguments;
+    Parameters *parameters;
 
     DeleteDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);

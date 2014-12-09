@@ -731,7 +731,6 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
         for (size_t i = 0; i < decl->dim; i++)
         {
             Dsymbol *s = (*decl)[i];
-
             s->setFieldOffset(ad, &offset, this->isunion);
             if (this->isunion)
                 offset = 0;
@@ -742,7 +741,18 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
         ad->structsize = savestructsize;
         ad->alignsize  = savealignsize;
 
+        if (fieldstart == ad->fields.dim)
+        {
+            /* Bugzilla 13613: If the fields in this->members had been already
+             * added in ad->fields, just update *poffset for the subsequent
+             * field offset calculation.
+             */
+            *poffset = ad->structsize;
+            return;
+        }
+
         // 0 sized structs are set to 1 byte
+        // TODO: is this corect hebavior?
         if (anonstructsize == 0)
         {
             anonstructsize = 1;
@@ -1054,74 +1064,80 @@ void PragmaDeclaration::semantic(Scope *sc)
 #endif
     else if (ident == Id::mangle)
     {
-        if (!args || args->dim != 1)
-            error("string expected for mangled name");
-        else
+        if (!args)
+            args = new Expressions();
+        if (args->dim != 1)
         {
-            Expression *e = (*args)[0];
+            error("string expected for mangled name");
+            args->setDim(1);
+            (*args)[0] = new ErrorExp();    // error recovery
+            goto Ldecl;
+        }
 
-            e = e->semantic(sc);
-            e = e->ctfeInterpret();
-            (*args)[0] = e;
+        Expression *e = (*args)[0];
+        e = e->semantic(sc);
+        e = e->ctfeInterpret();
+        (*args)[0] = e;
+        if (e->op == TOKerror)
+            goto Ldecl;
 
-            if (e->op == TOKerror)
-                goto Lnodecl;
-
-            StringExp *se = e->toStringExp();
-
-            if (!se)
-            {
-                error("string expected for mangled name, not '%s'", e->toChars());
-                return;
-            }
-
-            if (!se->len)
-                error("zero-length string not allowed for mangled name");
-
-            if (se->sz != 1)
-                error("mangled name characters can only be of type char");
+        StringExp *se = e->toStringExp();
+        if (!se)
+        {
+            error("string expected for mangled name, not '%s'", e->toChars());
+            goto Ldecl;
+        }
+        if (!se->len)
+        {
+            error("zero-length string not allowed for mangled name");
+            goto Ldecl;
+        }
+        if (se->sz != 1)
+        {
+            error("mangled name characters can only be of type char");
+            goto Ldecl;
+        }
 
 #if 1
-            /* Note: D language specification should not have any assumption about backend
-             * implementation. Ideally pragma(mangle) can accept a string of any content.
-             *
-             * Therefore, this validation is compiler implementation specific.
-             */
-            for (size_t i = 0; i < se->len; )
+        /* Note: D language specification should not have any assumption about backend
+         * implementation. Ideally pragma(mangle) can accept a string of any content.
+         *
+         * Therefore, this validation is compiler implementation specific.
+         */
+        for (size_t i = 0; i < se->len; )
+        {
+            utf8_t *p = (utf8_t *)se->string;
+            dchar_t c = p[i];
+            if (c < 0x80)
             {
-                utf8_t *p = (utf8_t *)se->string;
-                dchar_t c = p[i];
-                if (c < 0x80)
+                if (c >= 'A' && c <= 'Z' ||
+                    c >= 'a' && c <= 'z' ||
+                    c >= '0' && c <= '9' ||
+                    c != 0 && strchr("$%().:?@[]_", c))
                 {
-                    if (c >= 'A' && c <= 'Z' ||
-                        c >= 'a' && c <= 'z' ||
-                        c >= '0' && c <= '9' ||
-                        c != 0 && strchr("$%().:?@[]_", c))
-                    {
-                        ++i;
-                        continue;
-                    }
-                    else
-                    {
-                        error("char 0x%02x not allowed in mangled name", c);
-                        break;
-                    }
+                    ++i;
+                    continue;
                 }
-
-                if (const char* msg = utf_decodeChar((utf8_t *)se->string, se->len, &i, &c))
+                else
                 {
-                    error("%s", msg);
-                    break;
-                }
-
-                if (!isUniAlpha(c))
-                {
-                    error("char 0x%04x not allowed in mangled name", c);
+                    error("char 0x%02x not allowed in mangled name", c);
                     break;
                 }
             }
-#endif
+
+            if (const char* msg = utf_decodeChar((utf8_t *)se->string, se->len, &i, &c))
+            {
+                error("%s", msg);
+                break;
+            }
+
+            if (!isUniAlpha(c))
+            {
+                error("char 0x%04x not allowed in mangled name", c);
+                break;
+            }
         }
+#endif
     }
     else if (global.params.ignoreUnsupportedPragmas)
     {
@@ -1169,16 +1185,17 @@ Ldecl:
 
             if (ident == Id::mangle)
             {
-                StringExp *e = (*args)[0]->toStringExp();
+                assert(args && args->dim == 1);
+                if (StringExp *se = (*args)[0]->toStringExp())
+                {
+                    char *name = (char *)mem.malloc(se->len + 1);
+                    memcpy(name, se->string, se->len);
+                    name[se->len] = 0;
 
-                char *name = (char *)mem.malloc(e->len + 1);
-                memcpy(name, e->string, e->len);
-                name[e->len] = 0;
-
-                unsigned cnt = setMangleOverride(s, name);
-
-                if (cnt > 1)
-                    error("can only apply to a single declaration");
+                    unsigned cnt = setMangleOverride(s, name);
+                    if (cnt > 1)
+                        error("can only apply to a single declaration");
+                }
             }
         }
     }
@@ -1459,15 +1476,18 @@ void CompileDeclaration::compileIt(Scope *sc)
         else
         {
             se = se->toUTF8(sc);
+            unsigned errors = global.errors;
             Parser p(loc, sc->module, (utf8_t *)se->string, se->len, 0);
             p.nextToken();
 
-            unsigned errors = global.errors;
             decl = p.parseDeclDefs(0);
             if (p.token.value != TOKeof)
                 exp->error("incomplete mixin declaration (%s)", se->toChars());
-            if (global.errors != errors)
+            if (p.errors)
+            {
+                assert(global.errors != errors);
                 decl = NULL;
+            }
         }
     }
 }

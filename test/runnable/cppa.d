@@ -609,6 +609,28 @@ void test16()
 
 /****************************************/
 
+struct S13707
+{
+    void* a;
+    void* b;
+    this(void* a, void* b)
+    {
+        this.a = a;
+        this.b = b;
+    }
+}
+
+extern(C++) S13707 func13707();
+
+void test13707()
+{
+    auto p = func13707();
+    assert(p.a == null);
+    assert(p.b == null);
+}
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -631,6 +653,7 @@ void main()
     test13289();
     test15();
     test16();
+    func13707();
 
     printf("Success\n");
 }

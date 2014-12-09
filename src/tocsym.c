@@ -210,7 +210,7 @@ Symbol *toSymbol(Dsymbol *s)
                     }
                 }
 
-                if (vd->ident == Id::va_argsave)
+                if (vd->ident == Id::va_argsave || vd->storage_class & STCvolatile)
                 {
                     /* __va_argsave is set outside of the realm of the optimizer,
                      * so we tell the optimizer to leave it alone

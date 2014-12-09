@@ -3389,6 +3389,21 @@ void test12376()
 }
 
 /******************************************/
+// 12447
+
+enum   test12447(string str) = str; // [1]
+string test12447(T...)(T args) if (T.length) { return args[0]; }    // [2]
+
+// With [1]: The template parameter str cannot be be deduced -> no match
+// With [2]: T is deduced to a type tuple (string), then match to the function call.
+static assert(test12447("foo") == "foo");
+
+// With [1]: template parameter str is deduced to "bar", then match.
+// With [2]: T is deduced to an expression tuple ("bar"), but it will make invalid the function signature (T args).
+//           The failure should be masked silently and prefer the 1st version.
+static assert(test12447!("bar") == "bar");
+
+/******************************************/
 // 12651
 
 alias TemplateArgsOf12651(alias T : Base!Args, alias Base, Args...) = Args;
@@ -4229,6 +4244,94 @@ void test13484()
 }
 
 /******************************************/
+// 13675
+
+enum E13675;
+
+bool foo13675(T : E13675)()
+{
+    return false;
+}
+
+void test13675()
+{
+    if (foo13675!E13675)
+    {}
+}
+
+/******************************************/
+// 13694
+
+auto foo13694(T)(string A,         T[] G ...) { return 1; }
+auto foo13694(T)(string A, long E, T[] G ...) { return 2; }
+
+void test13694()
+{
+    struct S {}
+
+    S v;
+    assert(foo13694("A", v) == 1);      // <- OK
+    assert(foo13694("A", 0, v) == 2);   // <- used to be OK but now fails
+    assert(foo13694!S("A", 0, v) == 2); // <- workaround solution
+}
+
+/******************************************/
+// 13760
+
+void test13760()
+{
+    void func(K, V)(inout(V[K]) aa, inout(V) val) {}
+
+    class C {}
+    C[int] aa;
+    func(aa, new C);
+}
+
+/******************************************/
+// 13714
+
+struct JSONValue13714
+{
+    this(T)(T arg)
+    {
+    }
+    this(T : JSONValue13714)(inout T arg) inout
+    {
+        //store = arg.store;
+    }
+
+    void opAssign(T)(T arg)
+    {
+    }
+}
+
+void test13714()
+{
+    enum DummyStringEnum
+    {
+        foo = "bar"
+    }
+
+    JSONValue13714[string] aa;
+    aa["A"] = DummyStringEnum.foo;
+}
+
+/******************************************/
+// 13807
+
+T f13807(T)(inout(T)[] arr)
+{
+    return T.init;
+}
+
+void test13807()
+{
+    static assert(is(typeof(f13807([1, 2, 3])) == int));    // OK
+    static assert(is(typeof(f13807(["a", "b"])) == string));    // OK <- Error
+    static assert(is(typeof(f13807!string(["a", "b"])) == string)); // OK
+}
+
+/******************************************/
 
 int main()
 {
@@ -4334,6 +4437,7 @@ int main()
     test13378();
     test13379();
     test13484();
+    test13694();
 
     printf("Success\n");
     return 0;

@@ -177,6 +177,8 @@ void scanMachObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, in
                     switch (s->n_type & N_TYPE)
                     {
                         case N_UNDF:
+                            if (s->n_type & N_EXT && s->n_value != 0) // comdef
+                                (*pAddSymbol)(pctx, name, 1);
                             break;
                         case N_ABS:
                             break;
@@ -220,6 +222,8 @@ void scanMachObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, in
                     switch (s->n_type & N_TYPE)
                     {
                         case N_UNDF:
+                            if (s->n_type & N_EXT && s->n_value != 0) // comdef
+                                (*pAddSymbol)(pctx, name, 1);
                             break;
                         case N_ABS:
                             break;

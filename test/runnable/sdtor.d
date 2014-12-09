@@ -2300,6 +2300,7 @@ void g8335(lazy S8335[3] arr)
 {
     assert(S8335.postblit == 0);
     auto x = arr;
+    assert(S8335.postblit == 3);
 }
 
 void h8335(lazy S8335 s)
@@ -2395,7 +2396,7 @@ Foo9320 test9320(Foo9320 a, Foo9320 b, Foo9320 c) {
 struct Test9386
 {
     string name;
-    static char[21] op;
+    static char[25] op;
     static size_t i;
 
     static @property string sop() { return cast(string)op[0..i]; }
@@ -2474,7 +2475,6 @@ void test9386()
               Test9386("3") : Test9386("three"),
               Test9386("4") : Test9386("four") ];
 
-        assert(Test9386.sop == "aaaaaaaa");
         Test9386.op[] = 0;
         Test9386.i = 0;
 
@@ -3315,21 +3315,21 @@ void test13089() nothrow
 
 /**********************************/
 
-struct NoDtortest11763 {} 
- 
-struct HasDtortest11763 
-{ 
-    NoDtortest11763 func() 
-    { 
-        return NoDtortest11763(); 
-    } 
-    ~this() {} 
-} 
- 
-void test11763() 
-{ 
-    HasDtortest11763().func(); 
-} 
+struct NoDtortest11763 {}
+
+struct HasDtortest11763
+{
+    NoDtortest11763 func()
+    {
+        return NoDtortest11763();
+    }
+    ~this() {}
+}
+
+void test11763()
+{
+    HasDtortest11763().func();
+}
 
 /**********************************/
 
@@ -3347,6 +3347,172 @@ Variant value() { Variant v; return v; }
 void test13303()
 {
     value.get();
+}
+
+/**********************************/
+
+struct S13673
+{
+    string _name;
+    ~this() {}
+}
+
+string name13673;
+
+void test13673()
+{
+    S13673(name13673);
+    S13673(name13673);
+}
+
+/**********************************/
+
+void test13586()
+{
+    static struct S {
+        __gshared int count;
+        ~this() { ++count; printf("~S\n"); }
+    }
+
+    static struct T {
+        __gshared int count;
+        ~this() { ++count; printf("~T\n"); }
+    }
+
+    static int foo(bool flag)
+    {
+        if (flag)
+            throw new Exception("hello");
+        return 1;
+    }
+
+    static void func(S s, int f, T t)
+    {
+        printf("func()\n");
+    }
+
+    static class C
+    {
+        this(S s, int f, T t)
+        {
+            printf("C()\n");
+        }
+    }
+
+  {
+    bool threw = false;
+    try
+    {
+        func(S(), foo(true), T());
+        printf("not reach\n");
+    }
+    catch (Exception e)
+    {
+        threw = true;
+    }
+    printf("threw %d S %d T %d\n", threw, S.count, T.count);
+    assert(threw && S.count == 1 && T.count == 0);
+    S.count = 0;
+    T.count = 0;
+  }
+  {
+    bool threw = false;
+    try
+    {
+        func(S(), foo(false), T());
+        printf("reached\n");
+    }
+    catch (Exception e)
+    {
+        threw = true;
+    }
+    printf("threw %d S %d T %d\n", threw, S.count, T.count);
+    assert(!threw && S.count == 1 && T.count == 1);
+    S.count = 0;
+    T.count = 0;
+  }
+  {
+    bool threw = false;
+    try
+    {
+        new C(S(), foo(true), T());
+        printf("not reach\n");
+    }
+    catch (Exception e)
+    {
+        threw = true;
+    }
+    printf("threw %d S %d T %d\n", threw, S.count, T.count);
+    assert(threw && S.count == 1 && T.count == 0);
+    S.count = 0;
+    T.count = 0;
+  }
+}
+
+/**********************************/
+// 13661
+
+bool test13661()
+{
+    string postblit;
+    string dtor;
+
+    struct S
+    {
+        char x = 'x';
+
+        this(this) { postblit ~= x; }
+        ~this()    { dtor ~= x; }
+
+        ref auto opAssign(T)(T arg)
+        {
+            assert(0);
+            return this;
+        }
+    }
+
+    {
+        S[2] a;
+
+        a[0].x = 'a';
+        a[1].x = 'b';
+
+        a = a.init;
+        assert(dtor == "ab");
+        assert(a[0].x == 'x' && a[1].x == 'x');
+
+        a[0].x = 'c';
+        a[1].x = 'd';
+
+        a = [S(), S()];   // equivalent a = a.init
+        assert(dtor == "abcd");
+        assert(a[0].x == 'x' && a[1].x == 'x');
+    }
+    assert(dtor == "abcdxx");
+
+    return true;
+}
+static assert(test13661());     // CTFE
+
+/**********************************/
+
+__gshared bool b13095 = false;
+
+void bar13095() { throw new Exception(""); }
+
+struct S13095
+{
+    this(int) { printf("ctor %p\n", &this); bar13095(); }
+
+    ~this() { b13095 = true; printf("dtor %p\n", &this); }
+}
+
+void test13095()
+{
+    try {
+        S13095(0);
+    } catch(Exception) { printf("catch\n"); }
+    assert(!b13095);
 }
 
 /**********************************/
@@ -3454,6 +3620,10 @@ int main()
     test13089();
     test11763();
     test13303();
+    test13673();
+    test13586();
+    test13661();
+    test13095();
 
     printf("Success\n");
     return 0;

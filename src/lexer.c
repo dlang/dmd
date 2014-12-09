@@ -162,10 +162,13 @@ const char *Token::toChars()
                     case '\\':
                         buf.writeByte('\\');
                     default:
-                        if (isprint(c))
-                            buf.writeByte(c);
-                        else if (c <= 0x7F)
-                            buf.printf("\\x%02x", c);
+                        if (c <= 0x7F)
+                        {
+                            if (isprint(c))
+                                buf.writeByte(c);
+                            else
+                                buf.printf("\\x%02x", c);
+                        }
                         else if (c <= 0xFFFF)
                             buf.printf("\\u%04x", c);
                         else
@@ -259,6 +262,7 @@ Lexer::Lexer(Module *mod,
     this->doDocComment = doDocComment;
     this->anyToken = 0;
     this->commentToken = commentToken;
+    this->errors = false;
     //initKeywords();
 
     /* If first line starts with '#!', ignore the line
@@ -319,6 +323,7 @@ void Lexer::error(const char *format, ...)
     va_start(ap, format);
     ::verror(token.loc, format, ap);
     va_end(ap);
+    errors = true;
 }
 
 void Lexer::error(Loc loc, const char *format, ...)
@@ -327,6 +332,7 @@ void Lexer::error(Loc loc, const char *format, ...)
     va_start(ap, format);
     ::verror(loc, format, ap);
     va_end(ap);
+    errors = true;
 }
 
 void Lexer::deprecation(const char *format, ...)
@@ -335,6 +341,8 @@ void Lexer::deprecation(const char *format, ...)
     va_start(ap, format);
     ::vdeprecation(token.loc, format, ap);
     va_end(ap);
+    if (global.params.useDeprecated == 0)
+        errors = true;
 }
 
 TOK Lexer::nextToken()
@@ -1258,9 +1266,9 @@ unsigned Lexer::escapeSequence()
 
                         default:
                             if (isalpha(*p) ||
-                                (p != idstart + 1 && isdigit(*p)))
+                                (p != idstart && isdigit(*p)))
                                 continue;
-                            error("unterminated named entity");
+                            error("unterminated named entity &%.*s;", (int)(p - idstart + 1), idstart);
                             break;
                     }
                     break;
@@ -1285,7 +1293,7 @@ unsigned Lexer::escapeSequence()
                     } while (++n < 3 && isoctal((utf8_t)c));
                     c = v;
                     if (c > 0xFF)
-                        error("0%03o is larger than a byte", c);
+                        error("escape octal sequence \\%03o is larger than \\377", c);
                 }
                 else
                     error("undefined escape sequence \\%c",c);
@@ -1424,10 +1432,10 @@ TOK Lexer::hexStringConstant(Token *t)
                     if (u == PS || u == LS)
                         endOfLine();
                     else
-                        error("non-hex character \\u%04x", u);
+                        error("non-hex character \\u%04x in hex string", u);
                 }
                 else
-                    error("non-hex character '%c'", c);
+                    error("non-hex character '%c' in hex string", c);
                 if (n & 1)
                 {   v = (v << 4) | c;
                     stringbuffer.writeByte(v);
@@ -1496,7 +1504,11 @@ TOK Lexer::delimitedStringConstant(Token *t)
 
             case 0:
             case 0x1A:
-                goto Lerror;
+                error("unterminated delimited string constant starting at %s", start.toChars());
+                t->ustring = (utf8_t *)"";
+                t->len = 0;
+                t->postfix = 0;
+                return TOKstring;
 
             default:
                 if (c & 0x80)
@@ -1593,13 +1605,6 @@ Ldone:
     memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
     stringPostfix(t);
     return TOKstring;
-
-Lerror:
-    error("unterminated string constant starting at %s", start.toChars());
-    t->ustring = (utf8_t *)"";
-    t->len = 0;
-    t->postfix = 0;
-    return TOKstring;
 }
 
 /**************************************
@@ -1629,31 +1634,27 @@ TOK Lexer::tokenStringConstant(Token *t)
 
             case TOKrcurly:
                 if (--nest == 0)
-                    goto Ldone;
+                {
+                    t->len = (unsigned)(p - 1 - pstart);
+                    t->ustring = (utf8_t *)mem.malloc(t->len + 1);
+                    memcpy(t->ustring, pstart, t->len);
+                    t->ustring[t->len] = 0;
+                    stringPostfix(t);
+                    return TOKstring;
+                }
                 continue;
 
             case TOKeof:
-                goto Lerror;
+                error("unterminated token string constant starting at %s", start.toChars());
+                t->ustring = (utf8_t *)"";
+                t->len = 0;
+                t->postfix = 0;
+                return TOKstring;
 
             default:
                 continue;
         }
     }
-
-Ldone:
-    t->len = (unsigned)(p - 1 - pstart);
-    t->ustring = (utf8_t *)mem.malloc(t->len + 1);
-    memcpy(t->ustring, pstart, t->len);
-    t->ustring[t->len] = 0;
-    stringPostfix(t);
-    return TOKstring;
-
-Lerror:
-    error("unterminated token string constant starting at %s", start.toChars());
-    t->ustring = (utf8_t *)"";
-    t->len = 0;
-    t->postfix = 0;
-    return TOKstring;
 }
 
 
@@ -1775,6 +1776,7 @@ TOK Lexer::charConstant(Token *t, int wide)
         case 0x1A:
         case '\'':
             error("unterminated character constant");
+            t->uns64value = '?';
             return tk;
 
         default:
@@ -1795,7 +1797,9 @@ TOK Lexer::charConstant(Token *t, int wide)
     }
 
     if (*p != '\'')
-    {   error("unterminated character constant");
+    {
+        error("unterminated character constant");
+        t->uns64value = '?';
         return tk;
     }
     p++;
@@ -1922,7 +1926,7 @@ TOK Lexer::number(Token *t)
                 ++p;
                 if (base < 10 && !err)
                 {
-                    error("radix %d digit expected", base);
+                    error("radix %d digit expected, not '%c'", base, c);
                     err = true;
                 }
                 d = c - '0';
@@ -1937,7 +1941,7 @@ TOK Lexer::number(Token *t)
                         goto Lreal;
                     if (!err)
                     {
-                        error("radix %d digit expected", base);
+                        error("radix %d digit expected, not '%c'", base, c);
                         err = true;
                     }
                 }
@@ -2021,7 +2025,7 @@ Ldone:
 
             case 'l':
                 f = FLAGS_long;
-                error("Lower case integer suffix 'l' is not allowed. Please use 'L' instead");
+                error("lower case integer suffix 'l' is not allowed. Please use 'L' instead");
                 goto L1;
 
             case 'L':
@@ -2244,7 +2248,7 @@ TOK Lexer::inreal(Token *t)
             break;
 
         case 'l':
-            error("'l' suffix is deprecated, use 'L' instead");
+            error("use 'L' suffix instead of 'l'");
         case 'L':
             result = TOKfloat80v;
             p++;
@@ -2253,7 +2257,7 @@ TOK Lexer::inreal(Token *t)
     if (*p == 'i' || *p == 'I')
     {
         if (*p == 'I')
-            error("'I' suffix is deprecated, use 'i' instead");
+            error("use 'i' suffix instead of 'I'");
         p++;
         switch (result)
         {
@@ -2298,19 +2302,21 @@ TOK Lexer::inreal(Token *t)
 void Lexer::poundLine()
 {
     Token tok;
-    int linnum;
+    int linnum = this->scanloc.linnum;
     char *filespec = NULL;
     Loc loc = this->loc();
 
     scan(&tok);
     if (tok.value == TOKint32v || tok.value == TOKint64v)
-    {   linnum = (int)(tok.uns64value - 1);
-        if (linnum != tok.uns64value - 1)
-            error("line number out of range");
+    {
+        int lin = (int)(tok.uns64value - 1);
+        if (lin != tok.uns64value - 1)
+            error("line number %lld out of range", (unsigned long long)tok.uns64value);
+        else
+            linnum = lin;
     }
     else if (tok.value == TOKline)
     {
-        linnum = this->scanloc.linnum;
     }
     else
         goto Lerr;

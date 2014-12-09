@@ -175,7 +175,7 @@ class CppMangleVisitor : public Visitor
                     }
                     else
                     {
-                        s->error("ICE: C++ %s template value parameter is not supported", tv->valType->toChars());
+                        s->error("Internal Compiler Error: C++ %s template value parameter is not supported", tv->valType->toChars());
                         assert(0);
                     }
                 }
@@ -191,7 +191,7 @@ class CppMangleVisitor : public Visitor
                     Expression *e = isExpression(o);
                     if (!d && !e)
                     {
-                        s->error("ICE: %s is unsupported parameter for C++ template: (%s)", o->toChars());
+                        s->error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o->toChars());
                         assert(0);
                     }
                     if (d && d->isFuncDeclaration())
@@ -219,14 +219,14 @@ class CppMangleVisitor : public Visitor
                     }
                     else
                     {
-                        s->error("ICE: %s is unsupported parameter for C++ template", o->toChars());
+                        s->error("Internal Compiler Error: %s is unsupported parameter for C++ template", o->toChars());
                         assert(0);
                     }
 
                 }
                 else
                 {
-                    s->error("ICE: C++ templates support only integral value , type parameters, alias templates and alias function parameters");
+                    s->error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
                     assert(0);
                 }
             }
@@ -360,14 +360,14 @@ class CppMangleVisitor : public Visitor
                         memcmp(buf.data + off, "IcSt11char_traitsIcEE", 21) == 0)
                     {
                         buf.remove(off, 21);
-                        char p[2];
-                        p[0] = 'S';
-                        p[1] = 'i';
+                        char mbuf[2];
+                        mbuf[0] = 'S';
+                        mbuf[1] = 'i';
                         if (s->ident == Id::basic_ostream)
-                            p[1] = 'o';
+                            mbuf[1] = 'o';
                         else if(s->ident == Id::basic_iostream)
-                            p[1] = 'd';
-                        buf.insert(off, p, 2);
+                            mbuf[1] = 'd';
+                        buf.insert(off, mbuf, 2);
                         return;
                     }
                     buf.setsize(off);
@@ -399,7 +399,7 @@ class CppMangleVisitor : public Visitor
 
         if (!(d->storage_class & (STCextern | STCgshared)))
         {
-            d->error("ICE: C++ static non- __gshared non-extern variables not supported");
+            d->error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
             assert(0);
         }
 
@@ -492,22 +492,24 @@ class CppMangleVisitor : public Visitor
         }
     }
 
-    static int argsCppMangleDg(void *ctx, size_t n, Parameter *arg)
+    static int paramsCppMangleDg(void *ctx, size_t n, Parameter *fparam)
     {
         CppMangleVisitor *mangler = (CppMangleVisitor *)ctx;
 
-        Type *t = arg->type->merge2();
-        if (arg->storageClass & (STCout | STCref))
+        Type *t = fparam->type->merge2();
+        if (fparam->storageClass & (STCout | STCref))
             t = t->referenceTo();
-        else if (arg->storageClass & STClazy)
-        {   // Mangle as delegate
+        else if (fparam->storageClass & STClazy)
+        {
+            // Mangle as delegate
             Type *td = new TypeFunction(NULL, t, 0, LINKd);
             td = new TypeDelegate(td);
             t = t->merge();
         }
         if (t->ty == Tsarray)
-        {   // Mangle static arrays as pointers
-            t->error(Loc(), "ICE: Unable to pass static array to extern(C++) function.");
+        {
+            // Mangle static arrays as pointers
+            t->error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
             t->error(Loc(), "Use pointer instead.");
             assert(0);
             //t = t->nextOf()->pointerTo();
@@ -525,15 +527,15 @@ class CppMangleVisitor : public Visitor
         return 0;
     }
 
-    void argsCppMangle(Parameters *arguments, int varargs)
+    void argsCppMangle(Parameters *parameters, int varargs)
     {
-        if (arguments)
-            Parameter::foreach(arguments, &argsCppMangleDg, (void*)this);
+        if (parameters)
+            Parameter::foreach(parameters, &paramsCppMangleDg, (void*)this);
 
         if (varargs)
             buf.writestring("z");
-        else if (!arguments || !arguments->dim)
-            buf.writeByte('v');            // encode ( ) arguments
+        else if (!parameters || !parameters->dim)
+            buf.writeByte('v');            // encode ( ) parameters
     }
 
 public:
@@ -565,11 +567,11 @@ public:
     {
         if (t->isImmutable() || t->isShared())
         {
-            t->error(Loc(), "ICE: shared or immutable types can not be mapped to C++ (%s)", t->toChars());
+            t->error(Loc(), "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", t->toChars());
         }
         else
         {
-            t->error(Loc(), "ICE: Unsupported type %s\n", t->toChars());
+            t->error(Loc(), "Internal Compiler Error: unsupported type %s\n", t->toChars());
         }
         assert(0); //Assert, because this error should be handled in frontend
     }
@@ -943,11 +945,11 @@ public:
     {
         if (type->isImmutable() || type->isShared())
         {
-            type->error(Loc(), "ICE: shared or immutable types can not be mapped to C++ (%s)", type->toChars());
+            type->error(Loc(), "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", type->toChars());
         }
         else
         {
-            type->error(Loc(), "ICE: Unsupported type %s\n", type->toChars());
+            type->error(Loc(), "Internal Compiler Error: unsupported type %s\n", type->toChars());
         }
         assert(0); // Assert, because this error should be handled in frontend
     }
@@ -1363,7 +1365,7 @@ private:
         assert(d);
         if (!(d->storage_class & (STCextern | STCgshared)))
         {
-            d->error("ICE: C++ static non- __gshared non-extern variables not supported");
+            d->error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
             assert(0);
         }
         buf.writeByte('?');
@@ -1495,7 +1497,7 @@ private:
                     }
                     else
                     {
-                        sym->error("ICE: C++ %s template value parameter is not supported", tv->valType->toChars());
+                        sym->error("Internal Compiler Error: C++ %s template value parameter is not supported", tv->valType->toChars());
                         assert(0);
                     }
                 }
@@ -1511,7 +1513,7 @@ private:
                     Expression *e = isExpression(o);
                     if (!d && !e)
                     {
-                        sym->error("ICE: %s is unsupported parameter for C++ template", o->toChars());
+                        sym->error("Internal Compiler Error: %s is unsupported parameter for C++ template", o->toChars());
                         assert(0);
                     }
                     if (d && d->isFuncDeclaration())
@@ -1553,7 +1555,7 @@ private:
                             }
                             else
                             {
-                                sym->error("ICE: C++ templates support only integral value , type parameters, alias templates and alias function parameters");
+                                sym->error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
                                 assert(0);
                             }
                         }
@@ -1561,14 +1563,14 @@ private:
                     }
                     else
                     {
-                        sym->error("ICE: %s is unsupported parameter for C++ template: (%s)", o->toChars());
+                        sym->error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o->toChars());
                         assert(0);
                     }
 
                 }
                 else
                 {
-                    sym->error("ICE: C++ templates support only integral value , type parameters, alias templates and alias function parameters");
+                    sym->error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
                     assert(0);
                 }
             }
@@ -1865,7 +1867,7 @@ private:
         }
         if (t->ty == Tsarray)
         {
-            t->error(Loc(), "ICE: Unable to pass static array to extern(C++) function.");
+            t->error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
             t->error(Loc(), "Use pointer instead.");
             assert(0);
         }

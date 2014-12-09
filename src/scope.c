@@ -363,7 +363,7 @@ Module *Scope::instantiatingModule()
     return minst ? minst : module;
 }
 
-Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
+Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags)
 {
     //printf("Scope::search(%p, '%s')\n", this, ident->toChars());
     if (ident == Id::empty)
@@ -393,12 +393,12 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
             continue;
 
         //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
-        if (Dsymbol *s = sc->scopesym->search(loc, ident))
+        if (Dsymbol *s = sc->scopesym->search(loc, ident, flags))
         {
             if (ident == Id::length &&
                 sc->scopesym->isArrayScopeSymbol() &&
                 sc->enclosing &&
-                sc->enclosing->search(loc, ident, NULL))
+                sc->enclosing->search(loc, ident, NULL, flags))
             {
                 warning(s->loc, "array 'length' hides other 'length' name in outer scope");
             }
@@ -514,7 +514,7 @@ void Scope::setNoFree()
  * one with a close spelling.
  */
 
-void *scope_search_fp(void *arg, const char *seed)
+void *scope_search_fp(void *arg, const char *seed, int* cost)
 {
     //printf("scope_search_fp('%s')\n", seed);
 
@@ -532,7 +532,20 @@ void *scope_search_fp(void *arg, const char *seed)
 
     Scope *sc = (Scope *)arg;
     Module::clearCache();
-    Dsymbol *s = sc->search(Loc(), id, NULL);
+    Dsymbol *scopesym = NULL;
+    Dsymbol *s = sc->search(Loc(), id, &scopesym, IgnoreErrors);
+    if (s)
+    {
+        for (*cost = 0; sc; sc = sc->enclosing, (*cost)++)
+            if (sc->scopesym == scopesym)
+                break;
+        if (scopesym != s->parent)
+        {
+            (*cost)++; // got to the symbol through an import
+            if (s->prot().kind == PROTprivate)
+                return NULL;
+        }
+    }
     return (void*)s;
 }
 

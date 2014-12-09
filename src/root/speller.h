@@ -7,7 +7,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/root/speller.h
  */
 
-typedef void *(fp_speller_t)(void *, const char *);
+typedef void *(fp_speller_t)(void *, const char *, int*);
 
 extern const char idchars[];
 
