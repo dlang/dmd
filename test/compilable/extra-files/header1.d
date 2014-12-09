@@ -233,6 +233,8 @@ class Test
     alias A!(ushort) getHUShort;
     alias A!(real) getHReal;
 
+    alias void F();
+
     pure nothrow @safe @nogc unittest {}
     pure nothrow @safe @nogc invariant {}
 

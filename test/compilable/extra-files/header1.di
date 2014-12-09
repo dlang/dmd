@@ -4,7 +4,7 @@ import std.stdio;
 pragma (lib, "test");
 pragma (msg, "Hello World");
 static assert(true, "message");
-alias double mydbl;
+alias mydbl = double;
 int testmain();
 struct S
 {
@@ -154,7 +154,7 @@ class Foo3
 	this(int a, ...);
 	this(int* a);
 }
-alias int myint;
+alias myint = int;
 static notquit = 1;
 class Test
 {
@@ -192,17 +192,18 @@ class Test
 	template A(T)
 	{
 	}
-	alias A!uint getHUint;
-	alias A!int getHInt;
-	alias A!float getHFloat;
-	alias A!ulong getHUlong;
-	alias A!long getHLong;
-	alias A!double getHDouble;
-	alias A!byte getHByte;
-	alias A!ubyte getHUbyte;
-	alias A!short getHShort;
-	alias A!ushort getHUShort;
-	alias A!real getHReal;
+	alias getHUint = A!uint;
+	alias getHInt = A!int;
+	alias getHFloat = A!float;
+	alias getHUlong = A!ulong;
+	alias getHLong = A!long;
+	alias getHDouble = A!double;
+	alias getHByte = A!byte;
+	alias getHUbyte = A!ubyte;
+	alias getHShort = A!short;
+	alias getHUShort = A!ushort;
+	alias getHReal = A!real;
+	alias void F();
 	nothrow pure @nogc @safe new(size_t sz);
 	nothrow pure @nogc @safe delete(void* p);
 }
@@ -248,7 +249,7 @@ class Baz4
 {
 	mixin Foo4!() foo;
 	mixin Foo4x!(int, "str") foox;
-	alias foo.bar baz;
+	alias baz = foo.bar;
 }
 int test(T)(T t)
 {

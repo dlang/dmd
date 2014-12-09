@@ -1655,12 +1655,20 @@ public:
         buf->writestring("alias ");
         if (d->aliassym)
         {
-            d->aliassym->accept(this);
-            buf->writeByte(' ');
             buf->writestring(d->ident->toChars());
+            buf->writestring(" = ");
+            d->aliassym->accept(this);
+        }
+        else if (d->type->ty == Tfunction)
+        {
+            typeToBuffer(d->type, d->ident);
         }
         else
-            typeToBuffer(d->type, d->ident);
+        {
+            buf->writestring(d->ident->toChars());
+            buf->writestring(" = ");
+            typeToBuffer(d->type, NULL);
+        }
         buf->writeByte(';');
         buf->writenl();
     }
