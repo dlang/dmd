@@ -5965,13 +5965,10 @@ public:
                     StructLiteralExp *se = (StructLiteralExp *)ex;
                     dinteger_t offset = ae->e2->toInteger();
                     result = se->getField(e->type, (unsigned)offset);
-                    if (!result)
-                        result = CTFEExp::cantexp;
-                    return;
+                    if (result)
+                        return;
                 }
             }
-            result = Ptr(e->type, e->e1).copy();
-            return;
         }
 
         // Check for .classinfo, which is lowered in the semantic pass into **(class).
