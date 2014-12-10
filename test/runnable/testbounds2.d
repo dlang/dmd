@@ -21,20 +21,24 @@ void test3652()
     // simple case
     foo(xs[0 .. 4]);
 
-  version(none)
-  {
-    // Need deformation of formula and detection of base point
     int x = 0;
     int y = 0;
     foreach (i; 0 .. 4)
     {
         x += foo(xs[i .. i + 4]);
+
+      version(none)
+      {
+        // Need deformation of formula and detection of base point
         y += foo(xs[(i*4+10)/2 .. (i*8>>1)/2+9]);
         // lwr = (i*4 + 10)/2 = i*4/2 + 10/2            = (i*2+5)
         // upr = (i*8>>1)/2 + 5 = (i*4/2) + 5 = i*2 + 9 = (i*2+5) + 4
+      }
     }
-    assert(x == (0,1,2,3) + (1,2,3, 4) + (2, 3, 4, 5) + ( 3, 4, 5, 6));
-    assert(y == (5,6,7,8) + (7,8,9,10) + (9,10,11,12) + (11,12,13,14));
+    assert(x == (0+1*2-3) + (1+2*3-4) + (2+3*4-5) + (3+4*5-6));
+  version(none)
+  {
+    assert(y == (5+6*7-8) + (7+8*9-10) + (9+10*11-12) + (11+12*13-14));
   }
 }
 
@@ -258,6 +262,39 @@ void test12876()
 }
 
 /******************************************/
+// 13700
+
+void test13700()
+{
+    string str = "hello";
+    void foo(ref const char[2] a)
+    {
+        assert(a == "lo");
+        assert(a.ptr == str.ptr + 3);
+    }
+
+    immutable c = 3;
+    foo(str[c .. c + 2]); // OK
+
+    size_t i = 3;  foo(str[i     .. i + 2]); // OK <- Error
+    size_t j = 5;  foo(str[j - 2 .. j    ]); // OK <- Error
+    size_t m = 2;  foo(str[m + 1 .. m + 3]); // OK <- Error
+    size_t n = 4;  foo(str[n - 1 .. n + 1]); // OK <- Error
+
+    size_t[] a = [9, 4];
+    struct S { size_t x = 10; }
+    S s;
+    foo(str[2*i-3      .. 2*i-3  + 2]); // OK <- Error
+    foo(str[a[j%2] - 1 .. a[j%2] + 1]); // OK <- Error
+    foo(str[s.x/2  - 2 .. s.x/2     ]); // OK <- Error
+
+    int[char[2]] aa;
+    int x = 1;  // int != size_t
+    aa[str[x .. x + 2]] = 1; // OK <- Error
+    assert(aa["el"] == 1);
+}
+
+/******************************************/
 // 13775
 
 void test13775()
@@ -292,6 +329,7 @@ int main()
     test3652b();
     test9743();
     test9747();
+    test13700();
     test13775();
 
     printf("Success\n");

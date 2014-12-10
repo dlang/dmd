@@ -33,6 +33,7 @@ import ddmd.opover;
 import ddmd.root.longdouble;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
+import ddmd.sideeffect;
 import ddmd.tokens;
 import ddmd.utf;
 import ddmd.visitor;
@@ -1390,6 +1391,95 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
     return v.result;
 }
 
+extern (C++) bool isEquivalentExps(Expression e1, Expression e2)
+{
+    if (e1.op != e2.op)
+        return false;
+
+    //printf("eq e1 = %s, e2 = %s\n", e1.toChars(), e2.toChars());
+    switch (e1.op)
+    {
+        case TOKint64:
+        case TOKfloat64:
+        case TOKcomplex80:
+        case TOKnull:
+        case TOKstring:
+        case TOKarrayliteral:
+        case TOKassocarrayliteral:
+        case TOKstructliteral:
+        case TOKvar:
+        case TOKtuple:
+            return e1.equals(e2);
+
+        case TOKdotvar:
+        {
+            auto dve1 = cast(DotVarExp)e1;
+            auto dve2 = cast(DotVarExp)e2;
+            return dve1.var == dve2.var &&
+                   isEquivalentExps(dve1.e1, dve2.e1);
+        }
+        case TOKslice:
+        {
+            auto se1 = cast(SliceExp)e1;
+            auto se2 = cast(SliceExp)e2;
+            if (!se1.lwr && !se1.upr)
+                return isEquivalentExps(se1.e1, se2.e1);
+            if (se1.lwr && se1.upr)
+            {
+                return isEquivalentExps(se1.e1,  se2.e1) &&
+                       isEquivalentExps(se1.lwr, se2.lwr) &&
+                       isEquivalentExps(se1.upr, se2.upr);
+            }
+            return false;
+        }
+        case TOKuadd:
+        case TOKneg:
+        {
+            auto ue1 = cast(UnaExp)e1;
+            auto ue2 = cast(UnaExp)e2;
+            return isEquivalentExps(ue1.e1, ue2.e1);
+        }
+        case TOKadd:
+        case TOKmin:
+        case TOKmul:
+        case TOKdiv:
+        case TOKmod:
+        case TOKpow:
+        case TOKand:
+        case TOKor:
+        case TOKxor:
+        case TOKshl:
+        case TOKshr:
+        case TOKushr:
+        case TOKoror:
+        case TOKandand:
+        case TOKlt:
+        case TOKle:
+        case TOKgt:
+        case TOKge:
+        case TOKunord:
+        case TOKlg:
+        case TOKleg:
+        case TOKule:
+        case TOKul:
+        case TOKuge:
+        case TOKug:
+        case TOKue:
+        case TOKin:
+        case TOKindex:
+        {
+            auto be1 = cast(BinExp)e1;
+            auto be2 = cast(BinExp)e2;
+            return isEquivalentExps(be1.e1, be2.e1) &&
+                   isEquivalentExps(be1.e2, be2.e2);
+        }
+
+        default:
+            break;
+    }
+    return false;
+}
+
 extern (C++) Type toStaticArrayType(SliceExp e)
 {
     if (e.lwr && e.upr)
@@ -1401,6 +1491,65 @@ extern (C++) Type toStaticArrayType(SliceExp e)
         if (lwr.isConst() && upr.isConst())
         {
             size_t len = cast(size_t)(upr.toUInteger() - lwr.toUInteger());
+            return e.type.toBasetype().nextOf().sarrayOf(len);
+        }
+
+        if (hasSideEffect(lwr) || hasSideEffect(upr))
+            return null;
+
+        //printf("check lwr = %s, upr = %s\n", lwr.toChars(), upr.toChars());
+
+        // a[cast(size_t)subLwr .. cast(size_t)subUpr]
+        // Narrowing cast doesn't change the difference (subUpr - subLwr).
+        if (lwr.op == TOKcast) lwr = (cast(CastExp)lwr).e1;
+        if (upr.op == TOKcast) upr = (cast(CastExp)upr).e1;
+
+        // Bugzilla 13700, heuristic check.
+        if ((lwr.op == TOKadd || lwr.op == TOKmin) &&
+            (upr.op == TOKadd || upr.op == TOKmin) &&
+            (cast(BinExp)lwr).e2.isConst() &&
+            (cast(BinExp)upr).e2.isConst() &&
+            isEquivalentExps((cast(BinExp)lwr).e1, (cast(BinExp)upr).e1))
+        {
+            if (lwr.op == TOKadd && upr.op == TOKadd)
+            {
+                // a[e+a .. e+b]
+                uinteger_t a = (cast(BinExp)lwr).e2.toUInteger();
+                uinteger_t b = (cast(BinExp)upr).e2.toUInteger();
+                if (a <= b)
+                    return e.type.toBasetype().nextOf().sarrayOf(b - a);
+            }
+            else if (lwr.op == TOKmin && upr.op == TOKmin)
+            {
+                // a[e-a .. e-b]
+                uinteger_t a = (cast(BinExp)lwr).e2.toUInteger();
+                uinteger_t b = (cast(BinExp)upr).e2.toUInteger();
+                if (a >= b)
+                    return e.type.toBasetype().nextOf().sarrayOf(a - b);
+            }
+            else if (lwr.op == TOKmin && upr.op == TOKadd)
+            {
+                // a[e-a .. e+b]
+                uinteger_t a = (cast(BinExp)lwr).e2.toUInteger();
+                uinteger_t b = (cast(BinExp)upr).e2.toUInteger();
+                return e.type.toBasetype().nextOf().sarrayOf(a + b);
+            }
+            return null;
+        }
+        if (upr.op == TOKadd &&
+            (cast(BinExp)upr).e2.isConst() &&
+            isEquivalentExps(lwr, (cast(BinExp)upr).e1))
+        {
+            // a[e .. e+n]
+            uinteger_t len = (cast(BinExp)upr).e2.toUInteger();
+            return e.type.toBasetype().nextOf().sarrayOf(len);
+        }
+        if (lwr.op == TOKmin &&
+            (cast(BinExp)lwr).e2.isConst() &&
+            isEquivalentExps((cast(BinExp)lwr).e1, upr))
+        {
+            // a[e-n .. e]
+            uinteger_t len = (cast(BinExp)lwr).e2.toUInteger();
             return e.type.toBasetype().nextOf().sarrayOf(len);
         }
     }
