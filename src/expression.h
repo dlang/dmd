@@ -1586,6 +1586,9 @@ struct UnionExp
         char addrexp   [sizeof(AddrExp)];
         char indexexp  [sizeof(IndexExp)];
         char sliceexp  [sizeof(SliceExp)];
+
+        // Ensure that the union is suitably aligned.
+        longdouble for_alignment_only;
     };
     U u;
 };
