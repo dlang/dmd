@@ -2934,6 +2934,12 @@ Lcc:
         e1 = e1->castTo(sc, t);
         e2 = e2->castTo(sc, t);
     }
+    else if (t1->ty == Tvector && t2->ty == Tvector)
+    {
+        // Bugzilla 13841, all vector types should have no common types between
+        // different vectors, even though their sizes are same.
+        goto Lincompatible;
+    }
     else if (t1->ty == Tvector && t2->ty != Tvector &&
              e2->implicitConvTo(t1))
     {
