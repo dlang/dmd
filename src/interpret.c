@@ -1983,15 +1983,14 @@ public:
 
     void visit(ThisExp *e)
     {
-        Expression *localThis = ctfeStack.getThis();
-        if (localThis && localThis->op == TOKstructliteral)
+    #if LOG
+        printf("%s ThisExp::interpret() %s\n", e->loc.toChars(), e->toChars());
+    #endif
+        result = ctfeStack.getThis();
+        if (result)
         {
-            result = localThis;
-            return;
-        }
-        if (localThis)
-        {
-            result = interpret(localThis, istate, goal);
+            assert(result->op == TOKstructliteral ||
+                   result->op == TOKclassreference);
             return;
         }
         e->error("value of 'this' is not known at compile time");
@@ -2426,6 +2425,12 @@ public:
     #if LOG
         printf("%s VarExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
+        if (e->var->isFuncDeclaration())
+        {
+            result = e;
+            return;
+        }
+
         if (goal == ctfeNeedLvalueRef)
         {
             VarDeclaration *v = e->var->isVarDeclaration();
@@ -3079,12 +3084,6 @@ public:
     #if LOG
         printf("%s UnaExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        if (e->op == TOKdottype)
-        {
-            e->error("CTFE internal error: dottype: %s", e->toChars());
-            result = CTFEExp::cantexp;
-            return;
-        }
         Expression *e1 = interpret(e->e1, istate);
         if (exceptionOrCant(e1))
             return;
@@ -3096,9 +3095,27 @@ public:
             case TOKnot:    ue = Not(e->type, e1); break;
             case TOKtobool: ue = Bool(e->type, e1); break;
             case TOKvector: result = e; return; // do nothing
-            default: assert(0);
+            default:        assert(0);
         }
         result = ue.copy();
+    }
+
+    void visit(DotTypeExp *e)
+    {
+    #if LOG
+        printf("%s DotTypeExp::interpret() %s\n", e->loc.toChars(), e->toChars());
+    #endif
+        Expression *e1 = interpret(e->e1, istate);
+        if (exceptionOrCant(e1))
+            return;
+
+        if (e1 == e->e1)
+            result = e;  // optimize: reuse this CTFE reference
+        else
+        {
+            result = e->copy();
+            ((DotTypeExp *)result)->e1 = e1;
+        }
     }
 
     void interpretCommon(BinExp *e, fp_t fp)
@@ -4911,64 +4928,44 @@ public:
         printf("%s CallExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
 
-        Expression * pthis = NULL;
+        Expression *pthis = NULL;
         FuncDeclaration *fd = NULL;
+        bool directcall = false;
+
         Expression *ecall = e->e1;
-        if (ecall->op == TOKcall)
+        if (ecall->op == TOKdotvar)
         {
-            ecall = interpret(e->e1, istate);
-            if (exceptionOrCant(ecall))
-                return;
-        }
-        if (ecall->op == TOKstar)
-        {
-            // Calling a function pointer
-            Expression * pe = ((PtrExp *)ecall)->e1;
-            if (pe->op == TOKvar)
+            // Check that is a direct call
+            DotVarExp *dve = (DotVarExp *)ecall;
+            Expression *ex = dve->e1;
+            while (ex->op == TOKcast)
+                ex = ((CastExp *)ex)->e1;
+            directcall = (ex->op == TOKsuper || ex->op == TOKdottype);
+
+            // Special handling for the __cpctor call
+            if (dve->e1->op == TOKvar && dve->var->ident == Id::cpctor)
             {
-                VarDeclaration *vd = ((VarExp *)((PtrExp *)ecall)->e1)->var->isVarDeclaration();
-                if (vd && hasValue(vd) && getValue(vd)->op == TOKsymoff)
-                    fd = ((SymOffExp *)getValue(vd))->var->isFuncDeclaration();
-                else
-                {
-                    ecall = getVarExp(e->loc, istate, vd, goal);
-                    if (exceptionOrCant(ecall))
-                        return;
-
-                    if (ecall->op == TOKsymoff)
-                        fd = ((SymOffExp *)ecall)->var->isFuncDeclaration();
-                }
+                // In v.__cpctor(rhs), the variable v is not yet initialized.
+                VarDeclaration *v = ((VarExp *)dve->e1)->var->isVarDeclaration();
+                assert(v && dve->var->isFuncDeclaration());
+                setValue(v, voidInitLiteral(dve->e1->type, v).copy());
             }
-            else if (pe->op == TOKsymoff)
-                fd = ((SymOffExp *)pe)->var->isFuncDeclaration();
-            else
-                ecall = interpret(((PtrExp *)ecall)->e1, istate);
-
         }
+        ecall = interpret(ecall, istate);
         if (exceptionOrCant(ecall))
             return;
 
-        if (ecall->op == TOKindex)
-        {
-            ecall = interpret(e->e1, istate);
-            if (exceptionOrCant(ecall))
-                return;
-        }
-
-        if (ecall->op == TOKdotvar && !((DotVarExp *)ecall)->var->isFuncDeclaration())
-        {
-            ecall = interpret(e->e1, istate);
-            if (exceptionOrCant(ecall))
-                return;
-        }
-
         if (ecall->op == TOKdotvar)
         {
-            DotVarExp *dve = (DotVarExp *)e->e1;
+            DotVarExp *dve = (DotVarExp *)ecall;
 
             // Calling a member function
             pthis = dve->e1;
             fd = dve->var->isFuncDeclaration();
+            assert(fd);
+
+            if (pthis->op == TOKdottype)
+                pthis = ((DotTypeExp *)dve->e1)->e1;
 
             // Special handling for: typeid(T[n]).destroy(cast(void*)&v)
             TypeInfoDeclaration *tid;
@@ -4996,122 +4993,98 @@ public:
         }
         else if (ecall->op == TOKvar)
         {
-            VarDeclaration *vd = ((VarExp *)ecall)->var->isVarDeclaration();
-            if (vd && hasValue(vd))
-                ecall = getValue(vd);
-            else // Calling a function
-                fd = ((VarExp *)e->e1)->var->isFuncDeclaration();
+            fd = ((VarExp *)ecall)->var->isFuncDeclaration();
+            assert(fd);
         }
-        if (ecall->op == TOKdelegate)
+        else if (ecall->op == TOKsymoff)
+        {
+            SymOffExp *soe = (SymOffExp *)ecall;
+            fd = soe->var->isFuncDeclaration();
+            assert(fd && soe->offset == 0);
+        }
+        else if (ecall->op == TOKdelegate)
         {
             // Calling a delegate
             fd = ((DelegateExp *)ecall)->func;
             pthis = ((DelegateExp *)ecall)->e1;
+
+            // Special handling for: &nestedfunc --> DelegateExp(VarExp(nestedfunc), nestedfunc)
+            if (pthis->op == TOKvar && ((VarExp *)pthis)->var == fd)
+                pthis = NULL;   // context is not necessary for CTFE
         }
         else if (ecall->op == TOKfunction)
         {
             // Calling a delegate literal
             fd = ((FuncExp *)ecall)->fd;
         }
-        else if (ecall->op == TOKstar && ((PtrExp *)ecall)->e1->op == TOKfunction)
-        {
-            // Calling a function literal
-            fd = ((FuncExp *)((PtrExp*)ecall)->e1)->fd;
-        }
-        else if (ecall->op == TOKdelegatefuncptr)
+        else
         {
             // delegate.funcptr()
-            e->error("cannot evaulate %s at compile time", e->toChars());
+            // others
+            e->error("cannot call %s at compile time", e->toChars());
             result = CTFEExp::cantexp;
             return;
         }
 
-        TypeFunction *tf = fd ? (TypeFunction *)(fd->type) : NULL;
-        if (!tf)
-        {
-            // This should never happen, it's an internal compiler error.
-            //printf("ecall=%s %d %d\n", ecall->toChars(), ecall->op, TOKcall);
-            if (ecall->op == TOKidentifier)
-                e->error("cannot evaluate %s at compile time. Circular reference?", e->toChars());
-            else
-                e->error("CTFE internal error: cannot evaluate %s at compile time", e->toChars());
-            result = CTFEExp::cantexp;
-            return;
-        }
         if (!fd)
         {
-            e->error("cannot evaluate %s at compile time", e->toChars());
+            e->error("CTFE internal error: cannot evaluate %s at compile time", e->toChars());
             result = CTFEExp::cantexp;
             return;
         }
         if (pthis)
         {
             // Member function call
-            if (pthis->op == TOKcomma)
-                pthis = interpret(pthis, istate);
-            if (exceptionOrCant(pthis))
+
+            // Currently this is satisfied because closure is not yet supported.
+            assert(!fd->isNested());
+
+            // 'typeid(T)' for the class type T is kept as SymOffExp.
+            // Therefore try to resolve it here and report CTFE error.
+            // TODO: Using a dummy ClassReferenceExp for the typeid object would be better?
+            if (pthis->op == TOKsymoff)
+            {
+                VarDeclaration *vthis = ((SymOffExp *)pthis)->var->isVarDeclaration();
+                assert(vthis);
+                pthis = getVarExp(e->loc, istate, vthis, ctfeNeedLvalue/*ctfeNeedRvalue?*/);
+                if (exceptionOrCant(pthis))
+                    return;
+            }
+            assert(pthis);
+
+            if (pthis->op == TOKnull)
+            {
+                assert(pthis->type->toBasetype()->ty == Tclass);
+                e->error("function call through null class reference %s", pthis->toChars());
+                result = CTFEExp::cantexp;
                 return;
-            // Evaluate 'this'
-            Expression *oldpthis = pthis;
-            if (pthis->op != TOKvar)
-                pthis = interpret(pthis, istate, ctfeNeedLvalue);
-            if (exceptionOrCant(pthis))
-                return;
-            if (fd->isVirtual())
+            }
+
+            //if (!(pthis->op == TOKstructliteral || pthis->op == TOKclassreference))
+            //    printf("L%d [%s] e = %s, pthis = %s\n", __LINE__, e->loc.toChars(), e->toChars(), pthis->toChars());
+            assert(pthis->op == TOKstructliteral || pthis->op == TOKclassreference);
+
+            if (fd->isVirtual() && !directcall)
             {
                 // Make a virtual function call.
-                Expression *thisval = pthis;
-                if (pthis->op == TOKvar)
-                {
-                    VarDeclaration *vthis = ((VarExp*)thisval)->var->isVarDeclaration();
-                    assert(vthis);
-                    thisval = getVarExp(e->loc, istate, vthis, ctfeNeedLvalue);
-                    if (exceptionOrCant(thisval))
-                        return;
-                    // If it is a reference, resolve it
-                    if (thisval->op != TOKnull && thisval->op != TOKclassreference)
-                        thisval = interpret(pthis, istate);
-                }
-                else if (pthis->op == TOKsymoff)
-                {
-                    VarDeclaration *vthis = ((SymOffExp*)thisval)->var->isVarDeclaration();
-                    assert(vthis);
-                    thisval = getVarExp(e->loc, istate, vthis, ctfeNeedLvalue);
-                    if (exceptionOrCant(thisval))
-                        return;
-                }
-
                 // Get the function from the vtable of the original class
-                if (thisval && thisval->op == TOKnull)
-                {
-                    e->error("function call through null class reference %s", pthis->toChars());
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-                ClassDeclaration *cd;
-                if (oldpthis->op == TOKsuper)
-                {
-                    assert(oldpthis->type->ty == Tclass);
-                    cd = ((TypeClass *)oldpthis->type)->sym;
-                }
-                else
-                {
-                    assert(thisval && thisval->op == TOKclassreference);
-                    cd = ((ClassReferenceExp *)thisval)->originalClass();
-                }
+                assert(pthis->op == TOKclassreference);
+                ClassDeclaration *cd = ((ClassReferenceExp *)pthis)->originalClass();
+
                 // We can't just use the vtable index to look it up, because
                 // vtables for interfaces don't get populated until the glue layer.
                 fd = cd->findFunc(fd->ident, (TypeFunction *)fd->type);
-
                 assert(fd);
             }
         }
+
         if (fd && fd->semanticRun >= PASSsemantic3done && fd->semantic3Errors)
         {
             e->error("CTFE failed because of previous errors in %s", fd->toChars());
             result = CTFEExp::cantexp;
             return;
         }
+
         // Check for built-in functions
         result = evaluateIfBuiltin(istate, e->loc, fd, e->arguments, pthis);
         if (result)
@@ -5125,19 +5098,15 @@ public:
             return;
         }
         result = interpret(fd, istate, e->arguments, pthis);
-        if (CTFEExp::isCantExp(result))
+        if (exceptionOrCant(result))
         {
             // Print a stack trace.
-            if (!global.gag)
+            if (CTFEExp::isCantExp(result) && !global.gag)
                 showCtfeBackTrace(e, fd);
+            return;
         }
-        else if (result->op == TOKvoidexp)
-            ;
-        else if (result->op != TOKthrownexception)
-        {
-            result = paintTypeOntoLiteral(e->type, result);
-            result->loc = e->loc;
-        }
+        result = paintTypeOntoLiteral(e->type, result);
+        result->loc = e->loc;
     }
 
     void visit(CommaExp *e)
@@ -5934,6 +5903,7 @@ public:
 
         // Check for int<->float and long<->double casts.
         if (e->e1->op == TOKsymoff && ((SymOffExp *)e->e1)->offset == 0 &&
+            ((SymOffExp *)e->e1)->var->isVarDeclaration() &&
             isFloatIntPaint(e->type, ((SymOffExp *)e->e1)->var->type))
         {
             // *(cast(int*)&v, where v is a float variable
@@ -6008,16 +5978,29 @@ public:
         if (exceptionOrCant(result))
             return;
 
+        if (result->op == TOKfunction)
+            return;
+        if (result->op == TOKsymoff)
+        {
+            SymOffExp *soe = (SymOffExp *)result;
+            if (soe->offset == 0 && soe->var->isFuncDeclaration())
+            {
+                //result = new VarExp(e->loc, soe->var);
+                //result->type = soe->var->type;
+                return;
+            }
+            e->error("cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)result)->var->toChars());
+            result = CTFEExp::cantexp;
+            return;
+        }
+
         if (!(result->op == TOKvar ||
               result->op == TOKdotvar ||
               result->op == TOKindex ||
               result->op == TOKslice ||
               result->op == TOKaddress))
         {
-            if (result->op == TOKsymoff)
-                e->error("cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)result)->var->toChars());
-            else
-                e->error("dereference of invalid pointer '%s'", result->toChars());
+            e->error("dereference of invalid pointer '%s'", result->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -6123,6 +6106,18 @@ public:
         Expression *ex = interpret(e->e1, istate);
         if (exceptionOrCant(ex))
             return;
+
+        if (FuncDeclaration *f = e->var->isFuncDeclaration())
+        {
+            if (ex == e->e1)
+                result = e; // optimize: reuse this CTFE reference
+            else
+            {
+                result = new DotVarExp(e->loc, ex, f);
+                result->type = e->type;
+            }
+            return;
+        }
 
         if (ex->op == TOKaddress)
             ex = ((AddrExp *)ex)->e1;
