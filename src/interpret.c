@@ -2796,7 +2796,7 @@ public:
     void visit(StructLiteralExp *e)
     {
     #if LOG
-        printf("%s StructLiteralExp::interpret() %s\n", e->loc.toChars(), e->toChars());
+        printf("%s StructLiteralExp::interpret() %s ownedByCtfe = %d\n", e->loc.toChars(), e->toChars(), e->ownedByCtfe);
     #endif
         if (e->ownedByCtfe)
         {
@@ -2944,6 +2944,9 @@ public:
             if (e->member)
             {
                 Expression *se = e->newtype->defaultInitLiteral(e->loc);
+                se = interpret(se, istate);
+                if (exceptionOrCant(se))
+                    return;
                 result = interpret(e->member, istate, e->arguments, se);
             }
             else
