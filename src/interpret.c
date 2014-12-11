@@ -2808,6 +2808,7 @@ public:
         Expressions *expsx = NULL;
         for (size_t i = 0; i < e->sd->fields.dim; i++)
         {
+            VarDeclaration *v = e->sd->fields[i];
             Expression *ex = NULL;
             Expression *exp = NULL;
             if (i >= elemdim)
@@ -2819,7 +2820,7 @@ public:
                 {
                     // Context field has not been filled
                     ex = new NullExp(e->loc);
-                    ex->type = e->sd->fields[i]->type;
+                    ex->type = v->type;
                 }
             }
             else
@@ -2827,20 +2828,20 @@ public:
                 exp = (*e->elements)[i];
                 if (!exp)
                 {
-                    /* Ideally, we'd convert NULL members into void expressions.
-                    * The problem is that the CTFEExp will be removed when we
-                    * leave CTFE, causing another memory allocation if we use this
-                    * same struct literal again.
-                    *
-                    * ex = voidInitLiteral(sd->fields[i]->type, sd->fields[i]).copy();
-                    */
-                    ex = NULL;
+                    ex = voidInitLiteral(v->type, v).copy();
                 }
                 else
                 {
                     ex = interpret(exp, istate);
                     if (exceptionOrCant(ex))
                         return;
+                    if ((v->type->ty != ex->type->ty) && v->type->ty == Tsarray)
+                    {
+                        // Block assignment from inside struct literals
+                        TypeSArray *tsa = (TypeSArray *)v->type;
+                        size_t len = (size_t)tsa->dim->toInteger();
+                        ex = createBlockDuplicatedArrayLiteral(ex->loc, v->type, ex, len);
+                    }
                 }
             }
 
