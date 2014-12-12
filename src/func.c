@@ -386,9 +386,10 @@ void FuncDeclaration::semantic(Scope *sc)
                 // This function is covariant with fdv
                 if (fdv->isFinal())
                     error("cannot override final function %s", fdv->toPrettyChars());
-
+                
                 if (!isOverride() &&
-                    global.params.Dversion >= 3 && sc->module && sc->module->isRoot())
+                        (global.params.enabledV2hints & V2MODEoverride) &&
+                        sc->module && sc->module->isRoot())
                     warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
 
                 FuncDeclaration *fdc = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();

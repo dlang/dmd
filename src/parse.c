@@ -220,7 +220,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 if (t->value == TOKlparen && peek(t)->value == TOKrparen)
                 {
                 }
-                else if (global.params.Dversion >= 3 &&
+                else if ((global.params.enabledV2hints & V2MODEsyntax) &&
                     mod && mod->isRoot()
                     )
                 {
@@ -3073,7 +3073,7 @@ Statement *Parser::parseStatement(int flags)
             check(TOKrparen);
             if (token.value == TOKsemicolon)
                 nextToken();
-            else if (global.params.Dversion >= 3 &&
+            else if ((global.params.enabledV2hints & V2MODEsyntax) &&
                 mod && mod->isRoot()
                 )
                 warning(loc, "D2 requires that 'do { ... } while(...)' end with a ;");
@@ -3591,7 +3591,7 @@ Statement *Parser::parseStatement(int flags)
         case TOKvolatile:
             nextToken();
             s = parseStatement(PSsemi | PScurlyscope);
-            if (global.params.Dversion >= 3 && mod && mod->isRoot())
+            if ((global.params.enabledV2hints & V2MODEvolatile) && mod && mod->isRoot())
             {
                 warning(loc, "'volatile' is deprecated in D2, consult with module maintainer for appropriate replacement");
             }

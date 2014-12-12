@@ -374,7 +374,9 @@ Usage:\n\
 "  -unittest      compile in unit tests\n\
   -v             verbose\n\
   -v1            D language version 1\n\
-  -v2            give hints for converting to D2\n\
+  -v2            give hints for converting to D2 (default hint set)\n\
+  -v2=XXX        enable specific conversion hint type\n\
+  -v2-list       list all available conversion hint types\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -w             warnings as errors (compilation will halt)\n\
@@ -446,6 +448,7 @@ int main(int iargc, char *argv[])
     global.params.useInline = 0;
     global.params.obj = 1;
     global.params.Dversion = 2;
+    global.params.enabledV2hints = V2MODEnone;
     global.params.quiet = 1;
 
     global.params.linkswitches = new Strings();
@@ -609,10 +612,14 @@ int main(int iargc, char *argv[])
             else if (strcmp(p + 1, "v1") == 0)
                 global.params.Dversion = 1;
             else if (strcmp(p + 1, "v2") == 0)
+                global.params.enabledV2hints |= V2MODEdefault;
+            else if (strcmp(p + 1, "v2-list") == 0)
             {
-                global.params.Dversion = 3;     // 2 was already taken
-                global.params.warnings = 2;     // make -v2 messages informational
+                printf("%s\n", V2MODE_all_descriptions()); 
+                return 0;
             }
+            else if (memcmp(p + 1, "v2=", 3) == 0)
+                global.params.enabledV2hints |= V2MODE_from_name(p + 1 + 3);
             else if (strcmp(p + 1, "w") == 0)
                 global.params.warnings = 1;
             else if (strcmp(p + 1, "wi") == 0)
@@ -1680,3 +1687,45 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep)
 }
 
 #endif
+
+V2MODE V2MODE_from_name(const char* name)
+{
+    if (strcmp(name, "explicit-override") == 0)
+        return V2MODEoverride;
+
+    if (strcmp(name, "syntax") == 0)
+        return V2MODEsyntax;
+
+    if (strcmp(name, "octal") == 0)
+        return V2MODEoctal;
+
+    if (strcmp(name, "const") == 0)
+        return V2MODEconst;
+
+    if (strcmp(name, "switch") == 0)
+        return V2MODEswitch;
+
+    if (strcmp(name, "volatile") == 0)
+        return V2MODEvolatile;
+
+    if (strcmp(name, "static-arr-params") == 0)
+        return V2MODEstaticarr;
+
+    printf("-v2 mode '%s' unknown, aborting\n", name);
+    exit(1);
+}
+
+const char* V2MODE_all_descriptions()
+{
+    return "\
+List of available hints for -v2 flags:\n\
+    explicit-override : overriding methods need to be explicitly annonatted with 'override'\n\
+    syntax            : basic syntax differences (reserved keywords, loop syntax etc)'\n\
+    const             : const storage class can't be used'\n\
+    switch            : implicit switch case fall-through is not allowed\n\
+                        switch must have default statament\n\
+    volatile          : volatile statements\n\
+    static-arr-params : static array parameter will become passed by value\n\
+    octal             : octal numeric literals need to be replaced'\
+";
+}

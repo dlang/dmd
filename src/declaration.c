@@ -780,7 +780,7 @@ void VarDeclaration::semantic(Scope *sc)
 
     storage_class |= sc->stc;
 
-    if (global.params.Dversion >= 3)
+    if (global.params.enabledV2hints & V2MODEconst)
     {
         if (storage_class & STCconst && !init)
         {
