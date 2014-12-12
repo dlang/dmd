@@ -71,7 +71,7 @@ debug(PRINTF_TO_FILE)
             gcx_fh = fopen("gcx.log", "w");
         if (!gcx_fh)
             return 0;
-        
+
         int len;
         if (MonoTime.ticksPerSecond == 0)
         {
@@ -256,11 +256,6 @@ const uint GCVERSION = 1;       // increment every time we change interface
 // This just makes Mutex final to de-virtualize member function calls.
 final class GCMutex : Mutex
 {
-    // it doesn't make sense to use Exception throwing functions here, because allocating
-    //  the exception will try to lock the mutex again, probably resulting in stack overflow
-    // instead we use the Error throwing functions
-    alias lock = lock_nothrow;
-    alias unlock = unlock_nothrow;
 }
 
 class GC
@@ -1470,7 +1465,7 @@ struct Gcx
             long gcTime = (recoverTime + sweepTime + markTime + prepTime).total!("msecs");
             printf("\tGrand total GC time:  %lld milliseconds\n", gcTime);
             long pauseTime = (markTime + prepTime).total!("msecs");
-            printf("maxPoolMemory = %lld MB, pause time = %lld ms\n", 
+            printf("maxPoolMemory = %lld MB, pause time = %lld ms\n",
                    cast(long) maxPoolMemory >> 20, pauseTime);
         }
 

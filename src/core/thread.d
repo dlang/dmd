@@ -1724,7 +1724,7 @@ private:
     }
     body
     {
-        slock.lock_nothrow(); // this is called from within the GC, so it cannot allocate an exception
+        slock.lock();
         {
             // NOTE: When a thread is removed from the global thread list its
             //       main context is invalid and should be removed as well.
@@ -1751,7 +1751,7 @@ private:
         //       function, however, a thread should never be re-added to the
         //       list anyway and having next and prev be non-null is a good way
         //       to ensure that.
-        slock.unlock_nothrow();
+        slock.unlock();
     }
 }
 
@@ -2521,7 +2521,7 @@ extern (C) void thread_suspendAll() nothrow
         return;
     }
 
-    Thread.slock.lock_nothrow();
+    Thread.slock.lock();
     {
         if( ++suspendDepth > 1 )
             return;
@@ -2534,7 +2534,7 @@ extern (C) void thread_suspendAll() nothrow
         //       cause the second suspend to fail, the garbage collection to
         //       abort, and Bad Things to occur.
 
-        Thread.criticalRegionLock.lock_nothrow();
+        Thread.criticalRegionLock.lock();
         for (Thread t = Thread.sm_tbeg; t !is null; t = t.next)
         {
             Duration waittime = dur!"usecs"(10);
@@ -2545,7 +2545,7 @@ extern (C) void thread_suspendAll() nothrow
             }
             else if (t.m_isInCriticalRegion)
             {
-                Thread.criticalRegionLock.unlock_nothrow();
+                Thread.criticalRegionLock.unlock();
                 try
                 {
                     Thread.sleep(waittime);
@@ -2557,7 +2557,7 @@ extern (C) void thread_suspendAll() nothrow
                     //  reach this point, but we have to convince the compiler, too
                 }
                 if (waittime < dur!"msecs"(10)) waittime *= 2;
-                Thread.criticalRegionLock.lock_nothrow();
+                Thread.criticalRegionLock.lock();
                 goto Lagain;
             }
             else
@@ -2565,7 +2565,7 @@ extern (C) void thread_suspendAll() nothrow
                 suspend(t);
             }
         }
-        Thread.criticalRegionLock.unlock_nothrow();
+        Thread.criticalRegionLock.unlock();
     }
 }
 
@@ -2664,7 +2664,7 @@ body
         return;
     }
 
-    scope(exit) Thread.slock.unlock_nothrow();
+    scope(exit) Thread.slock.unlock();
     {
         if( --suspendDepth > 0 )
             return;

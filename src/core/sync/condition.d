@@ -55,6 +55,7 @@ else
  */
 class Condition
 {
+nothrow:
     ////////////////////////////////////////////////////////////////////////////
     // Initialization
     ////////////////////////////////////////////////////////////////////////////
@@ -67,7 +68,7 @@ class Condition
      *  m = The mutex with which this condition will be associated.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      */
     this( Mutex m ) @safe
     {
@@ -75,12 +76,12 @@ class Condition
         {
             m_blockLock = CreateSemaphoreA( null, 1, 1, null );
             if( m_blockLock == m_blockLock.init )
-                throw new SyncException( "Unable to initialize condition" );
+                throw new SyncError( "Unable to initialize condition" );
             scope(failure) CloseHandle( m_blockLock );
 
             m_blockQueue = CreateSemaphoreA( null, 0, int.max, null );
             if( m_blockQueue == m_blockQueue.init )
-                throw new SyncException( "Unable to initialize condition" );
+                throw new SyncError( "Unable to initialize condition" );
             scope(failure) CloseHandle( m_blockQueue );
 
             InitializeCriticalSection( &m_unblockLock );
@@ -91,7 +92,7 @@ class Condition
             m_assocMutex = m;
             int rc = pthread_cond_init( &m_hndl, null );
             if( rc )
-                throw new SyncException( "Unable to initialize condition" );
+                throw new SyncError( "Unable to initialize condition" );
         }
     }
 
@@ -140,7 +141,7 @@ class Condition
      * Wait until notified.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      */
     void wait()
     {
@@ -152,7 +153,7 @@ class Condition
         {
             int rc = pthread_cond_wait( &m_hndl, m_assocMutex.handleAddr() );
             if( rc )
-                throw new SyncException( "Unable to wait for condition" );
+                throw new SyncError( "Unable to wait for condition" );
         }
     }
 
@@ -168,7 +169,7 @@ class Condition
      *  val must be non-negative.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      *
      * Returns:
      *  true if notified before the timeout and false if not.
@@ -205,7 +206,7 @@ class Condition
                 return true;
             if( rc == ETIMEDOUT )
                 return false;
-            throw new SyncException( "Unable to wait for condition" );
+            throw new SyncError( "Unable to wait for condition" );
         }
     }
 
@@ -214,7 +215,7 @@ class Condition
      * Notifies one waiter.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      */
     void notify()
     {
@@ -226,7 +227,7 @@ class Condition
         {
             int rc = pthread_cond_signal( &m_hndl );
             if( rc )
-                throw new SyncException( "Unable to notify condition" );
+                throw new SyncError( "Unable to notify condition" );
         }
     }
 
@@ -235,7 +236,7 @@ class Condition
      * Notifies all waiters.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      */
     void notifyAll()
     {
@@ -247,7 +248,7 @@ class Condition
         {
             int rc = pthread_cond_broadcast( &m_hndl );
             if( rc )
-                throw new SyncException( "Unable to notify condition" );
+                throw new SyncError( "Unable to notify condition" );
         }
     }
 

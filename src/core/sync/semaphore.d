@@ -59,6 +59,7 @@ else
  */
 class Semaphore
 {
+nothrow:
     ////////////////////////////////////////////////////////////////////////////
     // Initialization
     ////////////////////////////////////////////////////////////////////////////
@@ -71,7 +72,7 @@ class Semaphore
      *  count = The initial count for the semaphore.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      */
     this( uint count = 0 )
     {
@@ -79,19 +80,19 @@ class Semaphore
         {
             m_hndl = CreateSemaphoreA( null, count, int.max, null );
             if( m_hndl == m_hndl.init )
-                throw new SyncException( "Unable to create semaphore" );
+                throw new SyncError( "Unable to create semaphore" );
         }
         else version( OSX )
         {
             auto rc = semaphore_create( mach_task_self(), &m_hndl, SYNC_POLICY_FIFO, count );
             if( rc )
-                throw new SyncException( "Unable to create semaphore" );
+                throw new SyncError( "Unable to create semaphore" );
         }
         else version( Posix )
         {
             int rc = sem_init( &m_hndl, 0, count );
             if( rc )
-                throw new SyncException( "Unable to create semaphore" );
+                throw new SyncError( "Unable to create semaphore" );
         }
     }
 
@@ -126,7 +127,7 @@ class Semaphore
      * the count by one and return.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      */
     void wait()
     {
@@ -134,7 +135,7 @@ class Semaphore
         {
             DWORD rc = WaitForSingleObject( m_hndl, INFINITE );
             if( rc != WAIT_OBJECT_0 )
-                throw new SyncException( "Unable to wait for semaphore" );
+                throw new SyncError( "Unable to wait for semaphore" );
         }
         else version( OSX )
         {
@@ -145,7 +146,7 @@ class Semaphore
                     return;
                 if( rc == KERN_ABORTED && errno == EINTR )
                     continue;
-                throw new SyncException( "Unable to wait for semaphore" );
+                throw new SyncError( "Unable to wait for semaphore" );
             }
         }
         else version( Posix )
@@ -155,7 +156,7 @@ class Semaphore
                 if( !sem_wait( &m_hndl ) )
                     return;
                 if( errno != EINTR )
-                    throw new SyncException( "Unable to wait for semaphore" );
+                    throw new SyncError( "Unable to wait for semaphore" );
             }
         }
     }
@@ -174,7 +175,7 @@ class Semaphore
      *  period must be non-negative.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      *
      * Returns:
      *  true if notified before the timeout and false if not.
@@ -202,7 +203,7 @@ class Semaphore
                     period -= maxWaitMillis;
                     continue;
                 default:
-                    throw new SyncException( "Unable to wait for semaphore" );
+                    throw new SyncError( "Unable to wait for semaphore" );
                 }
             }
             switch( WaitForSingleObject( m_hndl, cast(uint) period.total!"msecs" ) )
@@ -212,7 +213,7 @@ class Semaphore
             case WAIT_TIMEOUT:
                 return false;
             default:
-                throw new SyncException( "Unable to wait for semaphore" );
+                throw new SyncError( "Unable to wait for semaphore" );
             }
         }
         else version( OSX )
@@ -235,7 +236,7 @@ class Semaphore
                 if( rc == KERN_OPERATION_TIMED_OUT )
                     return false;
                 if( rc != KERN_ABORTED || errno != EINTR )
-                    throw new SyncException( "Unable to wait for semaphore" );
+                    throw new SyncError( "Unable to wait for semaphore" );
             }
         }
         else version( Posix )
@@ -250,7 +251,7 @@ class Semaphore
                 if( errno == ETIMEDOUT )
                     return false;
                 if( errno != EINTR )
-                    throw new SyncException( "Unable to wait for semaphore" );
+                    throw new SyncError( "Unable to wait for semaphore" );
             }
         }
     }
@@ -261,26 +262,26 @@ class Semaphore
      * waiter, if there are any in the queue.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      */
     void notify()
     {
         version( Windows )
         {
             if( !ReleaseSemaphore( m_hndl, 1, null ) )
-                throw new SyncException( "Unable to notify semaphore" );
+                throw new SyncError( "Unable to notify semaphore" );
         }
         else version( OSX )
         {
             auto rc = semaphore_signal( m_hndl );
             if( rc )
-                throw new SyncException( "Unable to notify semaphore" );
+                throw new SyncError( "Unable to notify semaphore" );
         }
         else version( Posix )
         {
             int rc = sem_post( &m_hndl );
             if( rc )
-                throw new SyncException( "Unable to notify semaphore" );
+                throw new SyncError( "Unable to notify semaphore" );
         }
     }
 
@@ -290,7 +291,7 @@ class Semaphore
      * decrement the count by one and return true.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      *
      * Returns:
      *  true if the count was above zero and false if not.
@@ -306,7 +307,7 @@ class Semaphore
             case WAIT_TIMEOUT:
                 return false;
             default:
-                throw new SyncException( "Unable to wait for semaphore" );
+                throw new SyncError( "Unable to wait for semaphore" );
             }
         }
         else version( OSX )
@@ -322,7 +323,7 @@ class Semaphore
                 if( errno == EAGAIN )
                     return false;
                 if( errno != EINTR )
-                    throw new SyncException( "Unable to wait for semaphore" );
+                    throw new SyncError( "Unable to wait for semaphore" );
             }
         }
     }

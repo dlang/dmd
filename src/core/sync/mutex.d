@@ -47,6 +47,7 @@ else
 class Mutex :
     Object.Monitor
 {
+nothrow:
     ////////////////////////////////////////////////////////////////////////////
     // Initialization
     ////////////////////////////////////////////////////////////////////////////
@@ -56,7 +57,7 @@ class Mutex :
      * Initializes a mutex object.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      */
     this() @trusted
     {
@@ -69,14 +70,14 @@ class Mutex :
             pthread_mutexattr_t attr = void;
 
             if( pthread_mutexattr_init( &attr ) )
-                throw new SyncException( "Unable to initialize mutex" );
+                throw new SyncError( "Unable to initialize mutex" );
             scope(exit) pthread_mutexattr_destroy( &attr );
 
             if( pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE ) )
-                throw new SyncException( "Unable to initialize mutex" );
+                throw new SyncError( "Unable to initialize mutex" );
 
             if( pthread_mutex_init( &m_hndl, &attr ) )
-                throw new SyncException( "Unable to initialize mutex" );
+                throw new SyncError( "Unable to initialize mutex" );
         }
         m_proxy.link = this;
         this.__monitor = &m_proxy;
@@ -126,11 +127,11 @@ class Mutex :
      * then the internal counter is incremented by one.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      */
     @trusted void lock()
     {
-        lock_impl!SyncException();
+        lock_impl!SyncError();
     }
 
     @trusted void lock_nothrow() nothrow
@@ -156,11 +157,11 @@ class Mutex :
      * zero, the lock is released.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      */
     @trusted void unlock()
     {
-        unlock_impl!SyncException();
+        unlock_impl!SyncError();
     }
 
     @trusted void unlock_nothrow() nothrow
@@ -188,7 +189,7 @@ class Mutex :
      * counter is incremented by one.
      *
      * Throws:
-     *  SyncException on error.
+     *  SyncError on error.
      *
      * Returns:
      *  true if the lock was acquired and false if not.
