@@ -130,6 +130,25 @@ template <typename TYPE> struct ArrayBase;
 typedef ArrayBase<struct Identifier> Identifiers;
 typedef ArrayBase<char> Strings;
 
+// -v2 hint support
+
+enum V2MODE
+{
+   V2MODEnone        = 0, 
+   V2MODEoverride    = 1 << 0,
+   V2MODEsyntax      = 1 << 1,
+   V2MODEoctal       = 1 << 2,
+   V2MODEconst       = 1 << 3,
+   V2MODEswitch      = 1 << 4,
+   V2MODEvolatile    = 1 << 5,
+   V2MODEstaticarr   = 1 << 6,
+   V2MODEall         = 0xFFFFFFFF,
+   V2MODEdefault     = V2MODEall,
+};
+
+V2MODE V2MODE_from_name(const char* name);
+const char* V2MODE_all_descriptions();
+
 // Put command line switches in here
 struct Param
 {
@@ -180,6 +199,7 @@ struct Param
     char cov;           // generate code coverage data
     bool nofloat;       // code should not pull in floating point support
     char Dversion;      // D version number
+    unsigned enabledV2hints; // bitflags for enabled hints for -v2
     char ignoreUnsupportedPragmas;      // rather than error on them
     char safe;          // enforce safe memory model
     char betterC;       // be a "better C" compiler; no dependency on D runtime

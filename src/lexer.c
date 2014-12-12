@@ -657,7 +657,7 @@ void Lexer::scan(Token *t)
                 t->value = (enum TOK) id->value;
                 if (t->value == TOKD2kwd)
                 {
-                    if (global.params.Dversion >= 3 && mod && mod->isRoot())
+                    if ((global.params.enabledV2hints & V2MODEsyntax) && mod && mod->isRoot())
                         warning(loc, "%s is a D2 keyword", id->toChars());
                     t->value = TOKidentifier;
                 }
@@ -2163,7 +2163,7 @@ Ldone:
         break;
     }
 
-    if (global.params.Dversion >= 3 &&
+    if ((global.params.enabledV2hints & V2MODEoctal) &&
         base == 8 && n >= 8 &&
         mod && mod->isRoot()
         )
