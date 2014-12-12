@@ -662,7 +662,7 @@ int CompoundStatement::blockExit(bool mustNotThrow)
         {
             //printf("result = x%x\n", result);
             //printf("%s\n", s->toChars());
-            if (global.params.Dversion >= 3 && // sc->module && sc->module->isRoot() && /* doesn't have sc */
+            if ((global.params.enabledV2hints & V2MODEswitch) &&
                 result & BEfallthru && slast)
             {
                 slast = slast->last();
@@ -2665,7 +2665,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     if (!sc->sw->sdefault)
     {   hasNoDefault = 1;
 
-        if (global.params.Dversion >= 3 &&
+        if ((global.params.enabledV2hints & V2MODEswitch) &&
             sc->module && sc->module->isRoot()
             )
             warning("switch statement without a default is not allowed in D2; add 'default: assert(0);'");

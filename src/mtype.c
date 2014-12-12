@@ -3038,7 +3038,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 continue;
             }
 
-            if (global.params.Dversion >= 3 && sc->module && sc->module->isRoot() &&
+            if ((global.params.enabledV2hints & V2MODEstaticarr) && sc->module && sc->module->isRoot() &&
                 t->ty == Tsarray)
             {
                 // ignore ref storage class for extern(C) static arrays
