@@ -2090,7 +2090,7 @@ version( Windows )
  *
  *       $(D extern(C) void rt_moduleTlsCtor();)
  */
-extern (C) void thread_detachThis()
+extern (C) void thread_detachThis() nothrow
 {
     if (auto t = Thread.getThis())
         Thread.remove(t);
