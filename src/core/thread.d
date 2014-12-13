@@ -2088,7 +2088,7 @@ version( Windows )
  *       must be called after thread_detachThis, particularly if the thread is
  *       being detached at some indeterminate time before program termination:
  *
- *       $(D extern(C) void rt_moduleTlsCtor();)
+ *       $(D extern(C) void rt_moduleTlsDtor();)
  */
 extern (C) void thread_detachThis() nothrow
 {
