@@ -932,7 +932,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 while ((i >>= 1) > 1)
                     mul++;
                 Expression *shift = new MulExp(e->loc, e->e2, new IntegerExp(e->loc, mul, e->e2->type));
-                shift->type = Type::tshiftcnt;
+                shift->type = e->e2->type;
+                shift = shift->castTo(NULL, Type::tshiftcnt);
                 ret = new ShlExp(e->loc, new IntegerExp(e->loc, 1, e->e1->type), shift);
                 ret->type = e->type;
                 return;
