@@ -106,9 +106,9 @@ private
     //
     // from core.memory
     //
-    extern (C) void  gc_enable();
-    extern (C) void  gc_disable();
-    extern (C) void* gc_malloc(size_t sz, uint ba = 0);
+    extern (C) void  gc_enable() nothrow;
+    extern (C) void  gc_disable() nothrow;
+    extern (C) void* gc_malloc(size_t sz, uint ba = 0, const TypeInfo = null) pure nothrow;
 
     //
     // from core.stdc.string
