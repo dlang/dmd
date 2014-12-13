@@ -5217,4 +5217,5 @@ version (FreeBSD) unittest
         thread_suspendAll();
         thread_resumeAll();
     }
+    thr.join();
 }
