@@ -100,29 +100,13 @@ class ThreadError : Error
 
 private
 {
-    import core.sync.mutex;
-    import core.atomic;
-
-    //
-    // from core.memory
-    //
-    extern (C) void  gc_enable() nothrow;
-    extern (C) void  gc_disable() nothrow;
-    extern (C) void* gc_malloc(size_t sz, uint ba = 0, const TypeInfo = null) pure nothrow;
-
-    //
-    // from core.stdc.string
-    //
-    extern (C) void* memcpy(void*, const void*, size_t);
+    import core.atomic, core.memory, core.sync.mutex;
 
     //
     // exposed by compiler runtime
     //
     extern (C) void  rt_moduleTlsCtor();
     extern (C) void  rt_moduleTlsDtor();
-
-    alias void delegate() gc_atom;
-    extern (C) void function(scope gc_atom) gc_atomic;
 }
 
 
@@ -1975,7 +1959,7 @@ extern (C) bool thread_isMainThread()
  */
 extern (C) Thread thread_attachThis()
 {
-    gc_disable(); scope(exit) gc_enable();
+    GC.disable(); scope(exit) GC.enable();
 
     if (auto t = Thread.getThis())
         return t;
@@ -2039,7 +2023,7 @@ version( Windows )
     /// ditto
     extern (C) Thread thread_attachByAddrB( Thread.ThreadAddr addr, void* bstack )
     {
-        gc_disable(); scope(exit) gc_enable();
+        GC.disable(); scope(exit) GC.enable();
 
         if (auto t = thread_findByAddr(addr))
             return t;
