@@ -2274,7 +2274,10 @@ TOK Lexer::inreal(Token *t)
         }
     }
     if (errno == ERANGE)
-        error("number is not representable");
+    {
+        const char *suffix = (result == TOKfloat32v || result == TOKimaginary32v) ? "f" : "";
+        error(scanloc, "number '%s%s' is not representable", (char *)stringbuffer.data, suffix);
+    }
 #ifdef DEBUG
     switch (result)
     {
