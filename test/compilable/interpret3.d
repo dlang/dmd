@@ -7075,3 +7075,50 @@ struct Matrix13827(T, uint N)
     }
 }
 enum m13827 = Matrix13827!(int, 3)(1, 2, 3);
+
+/**************************************************
+    13847 - support DotTypeExp
+**************************************************/
+
+class B13847
+{
+    int foo() { return 1; }
+}
+
+class C13847 : B13847
+{
+    override int foo() { return 2; }
+
+    final void test(int n)
+    {
+        assert(foo() == n);
+        assert(B13847.foo() == 1);
+        assert(C13847.foo() == 2);
+        assert(this.B13847.foo() == 1);
+        assert(this.C13847.foo() == 2);
+    }
+}
+
+class D13847 : C13847
+{
+    override int foo() { return 3; }
+}
+
+static assert({
+    C13847 c = new C13847();
+    c.test(2);
+    assert(c.B13847.foo() == 1);
+    assert(c.C13847.foo() == 2);
+
+    D13847 d = new D13847();
+    d.test(3);
+    assert(d.B13847.foo() == 1);
+    assert(d.C13847.foo() == 2);
+    assert(d.D13847.foo() == 3);
+
+    c = d;
+    c.test(3);
+    assert(c.B13847.foo() == 1);
+    assert(c.C13847.foo() == 2);
+    return true;
+}());
