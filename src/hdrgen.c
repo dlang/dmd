@@ -1657,16 +1657,19 @@ public:
         {
             buf->writestring(d->ident->toChars());
             buf->writestring(" = ");
+            StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
             d->aliassym->accept(this);
         }
         else if (d->type->ty == Tfunction)
         {
+            StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
             typeToBuffer(d->type, d->ident);
         }
         else
         {
             buf->writestring(d->ident->toChars());
             buf->writestring(" = ");
+            StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
             typeToBuffer(d->type, NULL);
         }
         buf->writeByte(';');
