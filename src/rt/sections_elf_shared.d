@@ -114,12 +114,16 @@ private:
 __gshared bool _isRuntimeInitialized;
 
 
+version (FreeBSD) private __gshared void* dummy_ref;
+
 /****
  * Gets called on program startup just before GC is initialized.
  */
 void initSections()
 {
     _isRuntimeInitialized = true;
+    // reference symbol to support weak linkage
+    version (FreeBSD) dummy_ref = &_d_dso_registry;
 }
 
 
