@@ -11,9 +11,9 @@
 module rt.sections;
 
 version (linux)
-    public import rt.sections_linux;
+    public import rt.sections_elf_shared;
 else version (FreeBSD)
-    public import rt.sections_freebsd;
+    public import rt.sections_elf_shared;
 else version (Solaris)
     public import rt.sections_solaris;
 else version (OSX)

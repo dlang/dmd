@@ -104,9 +104,12 @@ SRCS:=$(subst \,/,$(SRCS))
 
 OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/bss_section.o $(OBJDIR)/threadasm.o
 
+# build with shared library support
+SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+
 ######################## All of'em ##############################
 
-ifeq (linux,$(OS))
+ifneq (,$(SHARED))
 target : import copy dll $(DRUNTIME)
 else
 target : import copy $(DRUNTIME)
@@ -181,7 +184,7 @@ UT_MODULES:=$(patsubst src/%.d,$(OBJDIR)/%,$(SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
 	ADDITIONAL_TESTS:=test/init_fini test/exceptions
-	ADDITIONAL_TESTS+=$(if $(findstring $(OS),linux),test/shared,)
+	ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
 endif
 
 unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
@@ -196,7 +199,7 @@ endif
 $(addprefix $(OBJDIR)/,$(DISABLED_TESTS)) :
 	@echo $@ - disabled
 
-ifneq (linux,$(OS))
+ifeq (,$(SHARED))
 
 $(OBJDIR)/test_runner: $(OBJS) $(SRCS) src/test_runner.d
 	$(DMD) $(UDFLAGS) -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib=
