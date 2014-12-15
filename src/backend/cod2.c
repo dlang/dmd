@@ -1066,6 +1066,8 @@ code *cdmul(elem *e,regm_t *pretregs)
             cg = gen2(cg,0xF7,grex | modregrmx(3,5,reg));           // IMUL R1
             if (mgt)
                 gen2(cg,0x03,grex | modregrmx(3,DX,reg));           // ADD EDX,R1
+            code *ct = getregs(mAX);                                // EAX no longer contains 'm'
+            assert(ct == NULL);
             genmovreg(cg, AX, reg);                                 // MOV EAX,R1
             genc2(cg,0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);      // SAR EAX,31
             if (shpost)
@@ -1095,6 +1097,8 @@ code *cdmul(elem *e,regm_t *pretregs)
                     {
                         cg = movregconst(cg,AX,d,(sz == 8) ? 0x40 : 0); // MOV EAX,d
                         cg = gen2(cg,0x0FAF,grex | modregrmx(3,AX,DX)); // IMUL EAX,EDX
+                        code *ct = getregs(mAX);                        // EAX no longer contains 'd'
+                        assert(ct == NULL);
                     }
                     gen2(cg,0x2B,grex | modregxrm(3,reg,AX));           // SUB R1,EAX
                     resreg = regm;
