@@ -83,51 +83,48 @@ int raise(int sig);                    (defined in core.stdc.signal)
 
 //sig_atomic_t (defined in core.stdc.signal)
 
-version( Posix )
+private alias void function(int) sigfn_t;
+private alias void function(int, siginfo_t*, void*) sigactfn_t;
+
+// nothrow versions
+nothrow @nogc
 {
-    private alias void function(int) sigfn_t;
-    private alias void function(int, siginfo_t*, void*) sigactfn_t;
+    private alias void function(int) sigfn_t2;
+    private alias void function(int, siginfo_t*, void*) sigactfn_t2;
+}
 
-    // nothrow versions
-    nothrow @nogc
+enum
+{
+  SIGEV_SIGNAL,
+  SIGEV_NONE,
+  SIGEV_THREAD
+}
+
+union sigval
+{
+    int     sival_int;
+    void*   sival_ptr;
+}
+
+version( Solaris )
+{
+    import core.sys.posix.unistd;
+    private int _sigrtmin() { return cast(int) sysconf(_SC_SIGRT_MIN); }
+    private int _sigrtmax() { return cast(int) sysconf(_SC_SIGRT_MAX); }
+
+    alias _sigrtmin SIGRTMIN;
+    alias _sigrtmax SIGRTMAX;
+}
+else version( Posix )
+{
+    private extern (C) nothrow @nogc
     {
-        private alias void function(int) sigfn_t2;
-        private alias void function(int, siginfo_t*, void*) sigactfn_t2;
+        int __libc_current_sigrtmin();
+        int __libc_current_sigrtmax();
     }
 
-    enum
-    {
-      SIGEV_SIGNAL,
-      SIGEV_NONE,
-      SIGEV_THREAD
-    }
-
-    union sigval
-    {
-        int     sival_int;
-        void*   sival_ptr;
-    }
-
-    version( Solaris )
-    {
-        import core.sys.posix.unistd;
-        private int _sigrtmin() { return cast(int) sysconf(_SC_SIGRT_MIN); }
-        private int _sigrtmax() { return cast(int) sysconf(_SC_SIGRT_MAX); }
-
-        alias _sigrtmin SIGRTMIN;
-        alias _sigrtmax SIGRTMAX;
-    }
-    else
-    {
-        private extern (C) nothrow @nogc
-        {
-            int __libc_current_sigrtmin();
-            int __libc_current_sigrtmax();
-        }
-
-        alias __libc_current_sigrtmin SIGRTMIN;
-        alias __libc_current_sigrtmax SIGRTMAX;
-    }
+    alias __libc_current_sigrtmin SIGRTMIN;
+    alias __libc_current_sigrtmax SIGRTMAX;
 }
 
 version( linux )
@@ -423,7 +420,29 @@ else
     static assert(false, "Unsupported platform");
 }
 
-version( FreeBSD )
+version( CRuntime_Glibc )
+{
+    struct sigaction_t
+    {
+        static if( true /* __USE_POSIX199309 */ )
+        {
+            union
+            {
+                sigfn_t     sa_handler;
+                sigactfn_t  sa_sigaction;
+            }
+        }
+        else
+        {
+            sigfn_t     sa_handler;
+        }
+        sigset_t        sa_mask;
+        int             sa_flags;
+
+        void function() sa_restorer;
+    }
+}
+else version( FreeBSD )
 {
     struct sigaction_t
     {
@@ -454,7 +473,7 @@ else version (Solaris)
             int[2] sa_resv;
     }
 }
-else version (Android)
+else version (linux)
 {
     version (X86)
     {
@@ -476,7 +495,7 @@ else version (Android)
         static assert(false, "Architecture not supported.");
     }
 }
-else version( Posix )
+else version( OSX )
 {
     struct sigaction_t
     {
@@ -494,10 +513,6 @@ else version( Posix )
         }
         sigset_t        sa_mask;
         int             sa_flags;
-
-        version( OSX ) {} else {
-        void function() sa_restorer;
-        }
     }
 }
 else

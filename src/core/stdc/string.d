@@ -69,12 +69,20 @@ pure char*  strstr(in char* s1, in char* s2);
 char*  strtok(char* s1, in char* s2);
 ///
 char*  strerror(int errnum);
-version (linux)
+version (CRuntime_Glibc)
 {
     ///
     const(char)* strerror_r(int errnum, char* buf, size_t buflen);
 }
-else version (Posix)
+else version (OSX)
+{
+    int strerror_r(int errnum, char* buf, size_t buflen);
+}
+else version (FreeBSD)
+{
+    int strerror_r(int errnum, char* buf, size_t buflen);
+}
+else version (CRuntime_Bionic)
 {
     ///
     int strerror_r(int errnum, char* buf, size_t buflen);

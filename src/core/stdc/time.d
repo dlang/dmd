@@ -39,7 +39,7 @@ version( Windows )
         int     tm_isdst;   /// Daylight Saving Time flag
     }
 }
-else
+else version( Posix )
 {
     ///
     struct tm
@@ -62,7 +62,7 @@ version ( Posix )
 {
     public import core.sys.posix.sys.types : time_t, clock_t;
 }
-else
+else version ( Windows )
 {
     ///
     alias c_long time_t;

@@ -24,74 +24,71 @@ extern (C):
 nothrow:
 @nogc:
 
-version( Posix )
-{
-    enum STDIN_FILENO  = 0;
-    enum STDOUT_FILENO = 1;
-    enum STDERR_FILENO = 2;
+enum STDIN_FILENO  = 0;
+enum STDOUT_FILENO = 1;
+enum STDERR_FILENO = 2;
 
-    extern __gshared char*   optarg;
-    extern __gshared int     optind;
-    extern __gshared int     opterr;
-    extern __gshared int     optopt;
+extern __gshared char*   optarg;
+extern __gshared int     optind;
+extern __gshared int     opterr;
+extern __gshared int     optopt;
 
-    int     access(in char*, int);
-    uint    alarm(uint) @trusted;
-    int     chdir(in char*);
-    int     chown(in char*, uid_t, gid_t);
-    int     close(int) @trusted;
-    size_t  confstr(int, char*, size_t);
-    int     dup(int) @trusted;
-    int     dup2(int, int) @trusted;
-    int     execl(in char*, in char*, ...);
-    int     execle(in char*, in char*, ...);
-    int     execlp(in char*, in char*, ...);
-    int     execv(in char*, in char**);
-    int     execve(in char*, in char**, in char**);
-    int     execvp(in char*, in char**);
-    void    _exit(int) @trusted;
-    int     fchown(int, uid_t, gid_t) @trusted;
-    pid_t   fork() @trusted;
-    c_long  fpathconf(int, int) @trusted;
-    //int     ftruncate(int, off_t);
-    char*   getcwd(char*, size_t);
-    gid_t   getegid() @trusted;
-    uid_t   geteuid() @trusted;
-    gid_t   getgid() @trusted;
-    int     getgroups(int, gid_t *);
-    int     gethostname(char*, size_t);
-    char*   getlogin() @trusted;
-    int     getlogin_r(char*, size_t);
-    int     getopt(int, in char**, in char*);
-    pid_t   getpgrp() @trusted;
-    pid_t   getpid() @trusted;
-    pid_t   getppid() @trusted;
-    uid_t   getuid() @trusted;
-    int     isatty(int) @trusted;
-    int     link(in char*, in char*);
-    //off_t   lseek(int, off_t, int);
-    c_long  pathconf(in char*, int);
-    int     pause() @trusted;
-    int     pipe(ref int[2]) @trusted;
-    ssize_t read(int, void*, size_t);
-    ssize_t readlink(in char*, char*, size_t);
-    int     rmdir(in char*);
-    int     setegid(gid_t) @trusted;
-    int     seteuid(uid_t) @trusted;
-    int     setgid(gid_t) @trusted;
-    int     setpgid(pid_t, pid_t) @trusted;
-    pid_t   setsid() @trusted;
-    int     setuid(uid_t) @trusted;
-    uint    sleep(uint) @trusted;
-    int     symlink(in char*, in char*);
-    c_long  sysconf(int) @trusted;
-    pid_t   tcgetpgrp(int) @trusted;
-    int     tcsetpgrp(int, pid_t) @trusted;
-    char*   ttyname(int) @trusted;
-    int     ttyname_r(int, char*, size_t);
-    int     unlink(in char*);
-    ssize_t write(int, in void*, size_t);
-}
+int     access(in char*, int);
+uint    alarm(uint) @trusted;
+int     chdir(in char*);
+int     chown(in char*, uid_t, gid_t);
+int     close(int) @trusted;
+size_t  confstr(int, char*, size_t);
+int     dup(int) @trusted;
+int     dup2(int, int) @trusted;
+int     execl(in char*, in char*, ...);
+int     execle(in char*, in char*, ...);
+int     execlp(in char*, in char*, ...);
+int     execv(in char*, in char**);
+int     execve(in char*, in char**, in char**);
+int     execvp(in char*, in char**);
+void    _exit(int) @trusted;
+int     fchown(int, uid_t, gid_t) @trusted;
+pid_t   fork() @trusted;
+c_long  fpathconf(int, int) @trusted;
+//int     ftruncate(int, off_t);
+char*   getcwd(char*, size_t);
+gid_t   getegid() @trusted;
+uid_t   geteuid() @trusted;
+gid_t   getgid() @trusted;
+int     getgroups(int, gid_t *);
+int     gethostname(char*, size_t);
+char*   getlogin() @trusted;
+int     getlogin_r(char*, size_t);
+int     getopt(int, in char**, in char*);
+pid_t   getpgrp() @trusted;
+pid_t   getpid() @trusted;
+pid_t   getppid() @trusted;
+uid_t   getuid() @trusted;
+int     isatty(int) @trusted;
+int     link(in char*, in char*);
+//off_t   lseek(int, off_t, int);
+c_long  pathconf(in char*, int);
+int     pause() @trusted;
+int     pipe(ref int[2]) @trusted;
+ssize_t read(int, void*, size_t);
+ssize_t readlink(in char*, char*, size_t);
+int     rmdir(in char*);
+int     setegid(gid_t) @trusted;
+int     seteuid(uid_t) @trusted;
+int     setgid(gid_t) @trusted;
+int     setpgid(pid_t, pid_t) @trusted;
+pid_t   setsid() @trusted;
+int     setuid(uid_t) @trusted;
+uint    sleep(uint) @trusted;
+int     symlink(in char*, in char*);
+c_long  sysconf(int) @trusted;
+pid_t   tcgetpgrp(int) @trusted;
+int     tcsetpgrp(int, pid_t) @trusted;
+char*   ttyname(int) @trusted;
+int     ttyname_r(int, char*, size_t);
+int     unlink(in char*);
+ssize_t write(int, in void*, size_t);
 
 version( linux )
 {
@@ -146,7 +143,12 @@ else version( Solaris )
         }
     }
 }
-else version( Posix )
+else version( OSX )
+{
+    off_t lseek(int, off_t, int) @trusted;
+    int   ftruncate(int, off_t) @trusted;
+}
+else version( CRuntime_Bionic )
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
@@ -815,6 +817,7 @@ else version( Android )
 
     enum _SC_PAGESIZE         = 0x0027;
     enum _SC_NPROCESSORS_ONLN = 0x0061;
+    enum _SC_THREAD_STACK_MIN = 0x004c;
 }
 else version( Solaris )
 {

@@ -952,7 +952,7 @@ int    mkfifo(in char*, mode_t);
 //int    stat(in char*, stat_t*);
 mode_t umask(mode_t);
 
-version( linux )
+version( CRuntime_Glibc )
 {
   static if( __USE_LARGEFILE64 )
   {
@@ -1008,7 +1008,19 @@ else version (Solaris)
         }
     }
 }
-else version( Posix )
+else version( OSX )
+{
+    int   fstat(int, stat_t*);
+    int   lstat(in char*, stat_t*);
+    int   stat(in char*, stat_t*);
+}
+else version( FreeBSD )
+{
+    int   fstat(int, stat_t*);
+    int   lstat(in char*, stat_t*);
+    int   stat(in char*, stat_t*);
+}
+else version( CRuntime_Bionic )
 {
     int   fstat(int, stat_t*) @trusted;
     int   lstat(in char*, stat_t*);

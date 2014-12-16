@@ -493,7 +493,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     //       mangled function names.
                     static enum FIRSTFRAME = 5;
                 }
-                else
+                else version( Windows )
                 {
                     // NOTE: On Windows, the number of frames to exclude is based on
                     //       whether the exception is user or system-generated, so
@@ -646,7 +646,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
         {
             static enum FIRSTFRAME = 4;
         }
-        else
+        else version (Win32)
         {
             static enum FIRSTFRAME = 0;
         }

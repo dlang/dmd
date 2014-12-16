@@ -261,17 +261,14 @@ else
     static assert(false, "Unsupported platform");
 }
 
-version( Posix )
-{
-    int pthread_atfork(void function(), void function(), void function());
-    int pthread_attr_destroy(pthread_attr_t*);
-    int pthread_attr_getdetachstate(in pthread_attr_t*, int*);
-    int pthread_attr_getschedparam(in pthread_attr_t*, sched_param*);
-    int pthread_attr_init(pthread_attr_t*);
-    int pthread_attr_setdetachstate(pthread_attr_t*, int);
-    int pthread_attr_setschedparam(in pthread_attr_t*, sched_param*);
-    int pthread_cancel(pthread_t);
-}
+int pthread_atfork(void function(), void function(), void function());
+int pthread_attr_destroy(pthread_attr_t*);
+int pthread_attr_getdetachstate(in pthread_attr_t*, int*);
+int pthread_attr_getschedparam(in pthread_attr_t*, sched_param*);
+int pthread_attr_init(pthread_attr_t*);
+int pthread_attr_setdetachstate(pthread_attr_t*, int);
+int pthread_attr_setschedparam(in pthread_attr_t*, sched_param*);
+int pthread_cancel(pthread_t);
 
 version( linux )
 {
@@ -424,15 +421,13 @@ else version( Android )
         }
     }
 }
-else version( Posix )
+else
 {
-    void pthread_cleanup_push(void function(void*), void*);
-    void pthread_cleanup_pop(int);
+    static assert(false, "Unsupported platform");
 }
 
-version( Posix )
+@nogc
 {
-@nogc:
     int pthread_cond_broadcast(pthread_cond_t*);
     int pthread_cond_destroy(pthread_cond_t*);
     int pthread_cond_init(in pthread_cond_t*, pthread_condattr_t*) @trusted;
