@@ -369,9 +369,9 @@ Usage:\n\
   -profile       profile runtime performance of generated code\n\
   -quiet         suppress unnecessary messages\n\
   -release       compile release version\n\
-  -run srcfile args...   run resulting program, passing args\n"
-"  -shared        generate shared library (DLL)\n"
-"  -unittest      compile in unit tests\n\
+  -run srcfile args...   run resulting program, passing args\n\
+  -shared        generate shared library (DLL)\n\
+  -unittest      compile in unit tests\n\
   -v             verbose\n\
   -v1            D language version 1\n\
   -v2            give hints for converting to D2 (default hint set)\n\
@@ -1720,12 +1720,12 @@ const char* V2MODE_all_descriptions()
     return "\
 List of available hints for -v2 flags:\n\
     explicit-override : overriding methods need to be explicitly annonatted with 'override'\n\
-    syntax            : basic syntax differences (reserved keywords, loop syntax etc)'\n\
-    const             : const storage class can't be used'\n\
+    syntax            : basic syntax differences (reserved keywords, loop syntax, etc.)\n\
+    const             : const storage class can't be used\n\
     switch            : implicit switch case fall-through is not allowed\n\
                         switch must have default statament\n\
     volatile          : volatile statements\n\
     static-arr-params : static array parameter will become passed by value\n\
-    octal             : octal numeric literals need to be replaced'\
+    octal             : octal numeric literals need to be replaced\
 ";
 }

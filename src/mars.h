@@ -134,7 +134,7 @@ typedef ArrayBase<char> Strings;
 
 enum V2MODE
 {
-   V2MODEnone        = 0, 
+   V2MODEnone        = 0,
    V2MODEoverride    = 1 << 0,
    V2MODEsyntax      = 1 << 1,
    V2MODEoctal       = 1 << 2,
