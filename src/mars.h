@@ -146,8 +146,6 @@ enum V2MODE
    V2MODEdefault     = V2MODEall,
 };
 
-V2MODE V2MODE_from_name(const char* name);
-const char* V2MODE_all_descriptions();
 
 // Put command line switches in here
 struct Param

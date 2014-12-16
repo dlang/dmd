@@ -53,6 +53,15 @@ static bool parse_arch(size_t argc, char** argv, bool is64bit);
 
 FILE *stdmsg;
 
+// -v2 hint support
+struct V2MODE_Opt
+{
+    const char *name;
+    const char *desc;
+};
+V2MODE V2MODE_from_name(const char* name);
+void V2MODE_print_all_descriptions(FILE* stream);
+
 Global global;
 
 Global::Global()
@@ -615,7 +624,7 @@ int main(int iargc, char *argv[])
                 global.params.enabledV2hints |= V2MODEdefault;
             else if (strcmp(p + 1, "v2-list") == 0)
             {
-                printf("%s\n", V2MODE_all_descriptions()); 
+                V2MODE_print_all_descriptions(stdout);
                 return 0;
             }
             else if (memcmp(p + 1, "v2=", 3) == 0)
@@ -1688,44 +1697,49 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep)
 
 #endif
 
+const V2MODE_Opt V2MODE_OPTS[] = {
+    { "explicit-override", "overriding methods need to be explicitly "
+        "annonatted with 'override'" },
+    { "syntax", "basic syntax differences (reserved keywords, loop "
+        "syntax, etc)" },
+    { "octal", "octal numeric literals need to be replaced" },
+    { "const", "const storage class can't be used" },
+    { "switch", "implicit case fall-through is not allowed, "
+        "default statament is mandatory" },
+    { "volatile", "volatile statements are not supported anymore" },
+    { "static-arr-params", "static array parameter will become passed "
+        "by value" },
+    { NULL, NULL }
+};
+
 V2MODE V2MODE_from_name(const char* name)
 {
-    if (strcmp(name, "explicit-override") == 0)
-        return V2MODEoverride;
+    for (size_t i = 0; V2MODE_OPTS[i].name != NULL; i++)
+    {
+        const struct V2MODE_Opt *opt = V2MODE_OPTS + i;
 
-    if (strcmp(name, "syntax") == 0)
-        return V2MODEsyntax;
+        if (strcmp(name, opt->name) == 0)
+            return (V2MODE) (1 << i);
+    }
 
-    if (strcmp(name, "octal") == 0)
-        return V2MODEoctal;
-
-    if (strcmp(name, "const") == 0)
-        return V2MODEconst;
-
-    if (strcmp(name, "switch") == 0)
-        return V2MODEswitch;
-
-    if (strcmp(name, "volatile") == 0)
-        return V2MODEvolatile;
-
-    if (strcmp(name, "static-arr-params") == 0)
-        return V2MODEstaticarr;
-
-    printf("-v2 mode '%s' unknown, aborting\n", name);
-    exit(1);
+    error(0, "-v2 mode '%s' unknown, aborting", name);
+    exit(2);
 }
 
-const char* V2MODE_all_descriptions()
+void V2MODE_print_all_descriptions(FILE* stream)
 {
-    return "\
-List of available hints for -v2 flags:\n\
-    explicit-override : overriding methods need to be explicitly annonatted with 'override'\n\
-    syntax            : basic syntax differences (reserved keywords, loop syntax, etc.)\n\
-    const             : const storage class can't be used\n\
-    switch            : implicit switch case fall-through is not allowed\n\
-                        switch must have default statament\n\
-    volatile          : volatile statements\n\
-    static-arr-params : static array parameter will become passed by value\n\
-    octal             : octal numeric literals need to be replaced\
-";
+    const struct V2MODE_Opt *opt;
+
+    fprintf(stream, "Available hints for -v2 flags:\n");
+
+    // Calculate width
+    int width = 0;
+    for (opt = V2MODE_OPTS; opt->name != NULL; opt++)
+    {
+        if (strlen(opt->name) > width)
+            width = strlen(opt->name);
+    }
+
+    for (opt = V2MODE_OPTS; opt->name != NULL; opt++)
+        fprintf(stream, "  %-*s    %s\n", width, opt->name, opt->desc);
 }
