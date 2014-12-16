@@ -61,6 +61,9 @@ struct V2MODE_Opt
 };
 V2MODE V2MODE_from_name(const char* name);
 void V2MODE_print_all_descriptions(FILE* stream);
+#ifdef DEBUG
+void V2MODE_print_used();
+#endif
 
 Global global;
 
@@ -938,6 +941,10 @@ int main(int iargc, char *argv[])
         }
     }
 
+#ifdef DEBUG
+    V2MODE_print_used();
+#endif
+
     if(global.params.is64bit != is64bit)
         error(0, "the architecture must not be changed in the %s section of %s",
               is64bit ? "Environment64" : "Environment32", inifilename);
@@ -1754,3 +1761,16 @@ void V2MODE_print_all_descriptions(FILE* stream)
     for (opt = V2MODE_OPTS; opt->name != NULL; opt++)
         fprintf(stream, "  %-*s    %s\n", width, opt->name, opt->desc);
 }
+
+#ifdef DEBUG
+void V2MODE_print_used()
+{
+    printf("Enabled -v2 hints:\n");
+    for (size_t i = 0; V2MODE_OPTS[i].name != NULL; i++)
+    {
+        if (global.params.enabledV2hints & (1 << i))
+            printf("  %s\n", V2MODE_OPTS[i].name);
+    }
+}
+#endif
+
