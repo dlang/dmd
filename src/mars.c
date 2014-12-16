@@ -39,7 +39,6 @@
 long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 #endif
 
-
 int response_expand(size_t *pargc, char ***pargv);
 void browse(const char *url);
 void getenv_setargv(const char *envvar, size_t *pargc, char** *pargv);

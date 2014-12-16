@@ -187,6 +187,16 @@ compile in version code identified by
 .IP -w
 Enable warnings
 
+.IP -v2[=\fIhint\fR]
+Give hints for converting to D2. If no \fIhint\fR is specified the default
+hint set is used. If \fIhint\fR begins with a minus (-), then that particular
+hint is disabled instead (if when the first -v2=-\fIhint\fR is found, no other
+-v2 option were used, first the default set of hints is enabled, and then the
+specified \fIhint\fR is disabled from that set).
+
+.IP -v2-list
+List all available conversion hint types.
+
 .SH LINKING
 Linking is done directly by the
 .B dmd
