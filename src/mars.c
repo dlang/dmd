@@ -387,7 +387,9 @@ Usage:\n\
   -v             verbose\n\
   -v1            D language version 1\n\
   -v2            give hints for converting to D2 (default hint set)\n\
-  -v2=XXX        enable specific conversion hint type\n\
+  -v2=XXX        enable the specific XXX conversion hint type\n\
+  -v2=-XXX       disable the specific XXX conversion hint type\n\
+                 (if -v2 wasn't enable already, the defaults are enabled first)\n\
   -v2-list       list all available conversion hint types\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
@@ -629,6 +631,13 @@ int main(int iargc, char *argv[])
             {
                 V2MODE_print_all_descriptions(stdout);
                 return 0;
+            }
+            else if (memcmp(p + 1, "v2=-", 4) == 0)
+            {
+                // Implicitly enable -v2 if it was disabled
+                if (global.params.enabledV2hints == V2MODEnone)
+                    global.params.enabledV2hints = V2MODEdefault;
+                global.params.enabledV2hints &= ~V2MODE_from_name(p + 1 + 4);
             }
             else if (memcmp(p + 1, "v2=", 3) == 0)
                 global.params.enabledV2hints |= V2MODE_from_name(p + 1 + 3);
