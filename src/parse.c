@@ -224,7 +224,8 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     mod && mod->isRoot()
                     )
                 {
-                    warning(loc, "D2 requires () after invariant");
+                    warning(loc, "D2 requires () after invariant [-v2=%s]",
+                            V2MODE_name(V2MODEsyntax));
                 }
                 s = parseInvariant();
                 break;
@@ -3074,9 +3075,11 @@ Statement *Parser::parseStatement(int flags)
             if (token.value == TOKsemicolon)
                 nextToken();
             else if ((global.params.enabledV2hints & V2MODEsyntax) &&
-                mod && mod->isRoot()
-                )
-                warning(loc, "D2 requires that 'do { ... } while(...)' end with a ;");
+                    mod && mod->isRoot())
+            {
+                warning(loc, "D2 requires that 'do { ... } while(...)' "
+                        "end with a ';' [-v2=%s]", V2MODE_name(V2MODEsyntax));
+            }
             s = new DoStatement(loc, body, condition);
             break;
         }
@@ -3593,7 +3596,9 @@ Statement *Parser::parseStatement(int flags)
             s = parseStatement(PSsemi | PScurlyscope);
             if ((global.params.enabledV2hints & V2MODEvolatile) && mod && mod->isRoot())
             {
-                warning(loc, "'volatile' is deprecated in D2, consult with module maintainer for appropriate replacement");
+                warning(loc, "'volatile' is deprecated in D2, consult with "
+                        "module maintainer for appropriate replacement [-v2=%s]",
+                        V2MODE_name(V2MODEvolatile));
             }
             s = new VolatileStatement(loc, s);
             break;

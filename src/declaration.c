@@ -784,8 +784,9 @@ void VarDeclaration::semantic(Scope *sc)
     {
         if (storage_class & STCconst && !init)
         {
-            warning(loc, "There is no const storage class in D2, make variable '%s'' non-const",
-                toChars());
+            warning(loc, "There is no const storage class in D2, make "
+                    "variable '%s'' non-const [-v2=%s]", toChars(),
+                    V2MODE_name(V2MODEconst));
         }
     }
 

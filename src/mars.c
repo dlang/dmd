@@ -1726,6 +1726,17 @@ V2MODE V2MODE_from_name(const char* name)
     exit(2);
 }
 
+const char* V2MODE_name(V2MODE mode)
+{
+    for (size_t i = 0; V2MODE_OPTS[i].name != NULL; i++)
+    {
+        if ((1 << i) == mode)
+            return V2MODE_OPTS[i].name;
+    }
+
+    return "<?>";
+}
+
 void V2MODE_print_all_descriptions(FILE* stream)
 {
     const struct V2MODE_Opt *opt;
