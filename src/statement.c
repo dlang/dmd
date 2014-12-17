@@ -679,7 +679,9 @@ int CompoundStatement::blockExit(bool mustNotThrow)
                     else
                     {
                         const char *gototype = s->isCaseStatement() ? "case" : "default";
-                        s->warning("switch case fallthrough not allowed in D2, insert 'goto %s;'", gototype);
+                        s->warning("switch case fallthrough not allowed in "
+                                "D2, insert 'goto %s;' [-v2=%s]", gototype,
+                                V2MODE_name(V2MODEswitch));
                     }
                 }
             }
@@ -2668,7 +2670,9 @@ Statement *SwitchStatement::semantic(Scope *sc)
         if ((global.params.enabledV2hints & V2MODEswitch) &&
             sc->module && sc->module->isRoot()
             )
-            warning("switch statement without a default is not allowed in D2; add 'default: assert(0);'");
+            warning("switch statement without a default is not allowed "
+                    "in D2; add 'default: assert(0);' [-v2=%s]",
+                    V2MODE_name(V2MODEswitch));
         else
             warning("switch statement has no default");
 

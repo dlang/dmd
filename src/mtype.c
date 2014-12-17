@@ -3048,7 +3048,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
                 if ((tf->linkage != LINKc) || !d2_compatibility_ref_cleared)
                 {
-                    warning(loc, "D2 passes static arrays by value, use %s[] instead", t->next->toChars());
+                    warning(loc, "D2 passes static arrays by value, "
+                            "use %s[] instead [-v2=%s]", t->next->toChars(),
+                            V2MODE_name(V2MODEstaticarr));
                 }
             }
         }

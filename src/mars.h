@@ -134,7 +134,7 @@ typedef ArrayBase<char> Strings;
 
 enum V2MODE
 {
-   V2MODEnone        = 0, 
+   V2MODEnone        = 0,
    V2MODEoverride    = 1 << 0,
    V2MODEsyntax      = 1 << 1,
    V2MODEoctal       = 1 << 2,
@@ -146,8 +146,7 @@ enum V2MODE
    V2MODEdefault     = V2MODEall,
 };
 
-V2MODE V2MODE_from_name(const char* name);
-const char* V2MODE_all_descriptions();
+const char* V2MODE_name(V2MODE mode);
 
 // Put command line switches in here
 struct Param

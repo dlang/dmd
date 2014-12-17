@@ -390,7 +390,9 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (!isOverride() &&
                         (global.params.enabledV2hints & V2MODEoverride) &&
                         sc->module && sc->module->isRoot())
-                    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+                    warning(loc, "overrides base class function %s, but is "
+                            "not marked with 'override' [-v2=%s]", fdv->toPrettyChars(),
+                            V2MODE_name(V2MODEoverride));
 
                 FuncDeclaration *fdc = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();
                 if (fdc->toParent() == parent)

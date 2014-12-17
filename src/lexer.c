@@ -658,7 +658,8 @@ void Lexer::scan(Token *t)
                 if (t->value == TOKD2kwd)
                 {
                     if ((global.params.enabledV2hints & V2MODEsyntax) && mod && mod->isRoot())
-                        warning(loc, "%s is a D2 keyword", id->toChars());
+                        warning(loc, "%s is a D2 keyword [-v2=%s]", id->toChars(),
+                                V2MODE_name(V2MODEsyntax));
                     t->value = TOKidentifier;
                 }
                 anyToken = 1;
@@ -2168,10 +2169,12 @@ Ldone:
         mod && mod->isRoot()
         )
     {
-        warning(loc, "octal literals 0%llo%.*s are not in D2, use std.conv.octal!%llo%.*s instead or hex 0x%llx%.*s",
+        warning(loc, "octal literals 0%llo%.*s are not in D2, use "
+                "std.conv.octal!%llo%.*s instead or hex 0x%llx%.*s [-v2=%s]",
                 n, p - psuffix, psuffix,
                 n, p - psuffix, psuffix,
-                n, p - psuffix, psuffix);
+                n, p - psuffix, psuffix,
+                V2MODE_name(V2MODEoctal));
     }
 
     switch (flags)
