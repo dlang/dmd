@@ -1354,6 +1354,26 @@ void test4444()
 }
 
 /***************************************/
+// 13864
+
+struct Tuple13864(T...)
+{
+    T expand;
+    alias expand this;
+}
+auto tuple13864(T...)(T args)
+{
+    return Tuple13864!T(args);
+}
+
+void test13864()
+{
+    int[] x = [2,3,4];
+    auto y = x[tuple13864(0).expand];
+    assert(y == 2);
+}
+
+/***************************************/
 // 4884
 
 struct A4884(T...)
@@ -1678,6 +1698,7 @@ int main()
     test63();
     test1411();
     test4444();
+    test13864();
     test4884();
     test4920();
     test4940();
