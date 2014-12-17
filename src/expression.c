@@ -10549,8 +10549,12 @@ Expression *IndexExp::semantic(Scope *sc)
     e2 = e2->semantic(sc);
     e2 = resolveProperties(sc, e2);
     if (t1b->ty == Ttuple) sc = sc->endCTFE();
-    if (e2->op == TOKtuple && ((TupleExp *)e2)->exps && ((TupleExp *)e2)->exps->dim == 1)
-        e2 = (*((TupleExp *)e2)->exps)[0];  // bug 4444 fix
+    if (e2->op == TOKtuple)
+    {
+        TupleExp *te = (TupleExp *)e2;
+        if (te->exps && te->exps->dim == 1)
+            e2 = Expression::combine(te->e0, (*te->exps)[0]);  // bug 4444 fix
+    }
     if (sc != scx)
         sc = sc->pop();
     if (e2->type == Type::terror)
