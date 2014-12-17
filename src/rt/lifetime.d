@@ -649,9 +649,6 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
     if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         auto newsize = (arr.ptr - __arrayStart(info)) + cursize;
-        auto oldsize = __arrayAllocLength(info, tinext);
-        if (newsize > oldsize)
-            onInvalidMemoryOperationError();
 
         debug(PRINTF) printf("setting allocated size to %d\n", (arr.ptr - info.base) + cursize);
 
@@ -660,11 +657,16 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
         {
             auto sti = cast(TypeInfo_Struct)cast(void*)tinext;
             if (sti.xdtor)
-                finalize_array(arr.ptr + cursize, oldsize - cursize, sti);
+            {
+                auto oldsize = __arrayAllocLength(info, tinext);
+                if (oldsize > cursize)
+                    finalize_array(arr.ptr + cursize, oldsize - cursize, sti);
+            }
         }
         // Note: Since we "assume" the append is safe, it means it is not shared.
         // Since it is not shared, we also know it won't throw (no lock).
-        __setArrayAllocLength(info, newsize, false, tinext);
+        if (!__setArrayAllocLength(info, newsize, false, tinext))
+            onInvalidMemoryOperationError();
     }
 }
 
