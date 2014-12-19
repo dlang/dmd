@@ -2996,19 +2996,58 @@ Lcc:
     {
         goto Lt2;
     }
-    else if (t1->ty == Tarray && isBinArrayOp(e->op) &&
-             isArrayOpOperand(e1) && e2->implicitConvTo(t1->nextOf()))
+    else if (t1->ty == Tarray && isBinArrayOp(e->op) && isArrayOpOperand(e1))
     {
-        // T[] op T
-        e2 = e2->castTo(sc, t1->nextOf());
-        t = t1->nextOf()->arrayOf();
+        if (e2->implicitConvTo(t1->nextOf()))
+        {
+            // T[] op T
+            // T[] op cast(T)U
+            e2 = e2->castTo(sc, t1->nextOf());
+            t = t1->nextOf()->arrayOf();
+        }
+        else if (t1->nextOf()->implicitConvTo(e2->type))
+        {
+            // (cast(T)U)[] op T    (Bugzilla 12780)
+            // e1 is left as U[], it will be handled in arrayOp() later.
+            t = e2->type->arrayOf();
+        }
+        else if (t2->ty == Tarray && isArrayOpOperand(e2))
+        {
+            if (t1->nextOf()->implicitConvTo(t2->nextOf()))
+            {
+                // (cast(T)U)[] op T[]  (Bugzilla 12780)
+                // e1 is left as U[], it will be handled in arrayOp() later.
+                t = t2->nextOf()->arrayOf();
+            }
+            else if (t2->nextOf()->implicitConvTo(t1->nextOf()))
+            {
+                // T[] op (cast(T)U)[]  (Bugzilla 12780)
+                // e2 is left as U[], it will be handled in arrayOp() later.
+                t = t1->nextOf()->arrayOf();
+            }
+            else
+                goto Lincompatible;
+        }
+        else
+            goto Lincompatible;
     }
-    else if (t2->ty == Tarray && isBinArrayOp(e->op) &&
-             isArrayOpOperand(e2) && e1->implicitConvTo(t2->nextOf()))
+    else if (t2->ty == Tarray && isBinArrayOp(e->op) && isArrayOpOperand(e2))
     {
-        // T op T[]
-        e1 = e1->castTo(sc, t2->nextOf());
-        t = t2->nextOf()->arrayOf();
+        if (e1->implicitConvTo(t2->nextOf()))
+        {
+            // T op T[]
+            // cast(T)U op T[]
+            e1 = e1->castTo(sc, t2->nextOf());
+            t = t2->nextOf()->arrayOf();
+        }
+        else if (t2->nextOf()->implicitConvTo(e1->type))
+        {
+            // T op (cast(T)U)[]    (Bugzilla 12780)
+            // e2 is left as U[], it will be handled in arrayOp() later.
+            t = e1->type->arrayOf();
+        }
+        else
+            goto Lincompatible;
 
         //printf("test %s\n", e->toChars());
         e1 = e1->optimize(WANTvalue);
