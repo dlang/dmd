@@ -1357,18 +1357,20 @@ bool ScopeStatement::hasContinue()
 
 /******************************** WhileStatement ***************************/
 
-WhileStatement::WhileStatement(Loc loc, Expression *c, Statement *b)
+WhileStatement::WhileStatement(Loc loc, Expression *c, Statement *b, Loc endloc)
     : Statement(loc)
 {
     condition = c;
     body = b;
+    this->endloc = endloc;
 }
 
 Statement *WhileStatement::syntaxCopy()
 {
     return new WhileStatement(loc,
         condition->syntaxCopy(),
-        body ? body->syntaxCopy() : NULL);
+        body ? body->syntaxCopy() : NULL,
+        endloc);
 }
 
 Statement *WhileStatement::semantic(Scope *sc)
@@ -1376,7 +1378,7 @@ Statement *WhileStatement::semantic(Scope *sc)
     /* Rewrite as a for(;condition;) loop
      */
 
-    Statement *s = new ForStatement(loc, NULL, condition, NULL, body);
+    Statement *s = new ForStatement(loc, NULL, condition, NULL, body, endloc);
     s = s->semantic(sc);
     return s;
 }
@@ -1441,13 +1443,14 @@ bool DoStatement::hasContinue()
 
 /******************************** ForStatement ***************************/
 
-ForStatement::ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body)
+ForStatement::ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body, Loc endloc)
     : Statement(loc)
 {
     this->init = init;
     this->condition = condition;
     this->increment = increment;
     this->body = body;
+    this->endloc = endloc;
     this->relatedLabeled = NULL;
 }
 
@@ -1457,7 +1460,8 @@ Statement *ForStatement::syntaxCopy()
         init ? init->syntaxCopy() : NULL,
         condition ? condition->syntaxCopy() : NULL,
         increment ? increment->syntaxCopy() : NULL,
-        body->syntaxCopy());
+        body->syntaxCopy(),
+        endloc);
 }
 
 Statement *ForStatement::semantic(Scope *sc)
@@ -1553,13 +1557,14 @@ bool ForStatement::hasContinue()
 /******************************** ForeachStatement ***************************/
 
 ForeachStatement::ForeachStatement(Loc loc, TOK op, Parameters *parameters,
-        Expression *aggr, Statement *body)
+        Expression *aggr, Statement *body, Loc endloc)
     : Statement(loc)
 {
     this->op = op;
     this->parameters = parameters;
     this->aggr = aggr;
     this->body = body;
+    this->endloc = endloc;
 
     this->key = NULL;
     this->value = NULL;
@@ -1575,7 +1580,8 @@ Statement *ForeachStatement::syntaxCopy()
     return new ForeachStatement(loc, op,
         Parameter::arraySyntaxCopy(parameters),
         aggr->syntaxCopy(),
-        body ? body->syntaxCopy() : NULL);
+        body ? body->syntaxCopy() : NULL,
+        endloc);
 }
 
 Statement *ForeachStatement::semantic(Scope *sc)
@@ -2035,7 +2041,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             }
             body = new CompoundStatement(loc, ds, body);
 
-            s = new ForStatement(loc, forinit, cond, increment, body);
+            s = new ForStatement(loc, forinit, cond, increment, body, endloc);
             if (LabelStatement *ls = checkLabeledLoop(sc, this))
                 ls->gotoTarget = s;
             s = s->semantic(sc);
@@ -2192,7 +2198,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             forbody = new CompoundStatement(loc,
                 makeargs, this->body);
 
-            s = new ForStatement(loc, init, condition, increment, forbody);
+            s = new ForStatement(loc, init, condition, increment, forbody, endloc);
             if (LabelStatement *ls = checkLabeledLoop(sc, this))
                 ls->gotoTarget = s;
 #if 0
@@ -2567,7 +2573,7 @@ bool ForeachStatement::hasContinue()
 
 
 ForeachRangeStatement::ForeachRangeStatement(Loc loc, TOK op, Parameter *prm,
-        Expression *lwr, Expression *upr, Statement *body)
+        Expression *lwr, Expression *upr, Statement *body, Loc endloc)
     : Statement(loc)
 {
     this->op = op;
@@ -2575,6 +2581,7 @@ ForeachRangeStatement::ForeachRangeStatement(Loc loc, TOK op, Parameter *prm,
     this->lwr = lwr;
     this->upr = upr;
     this->body = body;
+    this->endloc = endloc;
 
     this->key = NULL;
 }
@@ -2585,7 +2592,8 @@ Statement *ForeachRangeStatement::syntaxCopy()
         prm->syntaxCopy(),
         lwr->syntaxCopy(),
         upr->syntaxCopy(),
-        body ? body->syntaxCopy() : NULL);
+        body ? body->syntaxCopy() : NULL,
+        endloc);
 }
 
 Statement *ForeachRangeStatement::semantic(Scope *sc)
@@ -2767,7 +2775,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         }
     }
 
-    ForStatement *s = new ForStatement(loc, forinit, cond, increment, body);
+    ForStatement *s = new ForStatement(loc, forinit, cond, increment, body, endloc);
     if (LabelStatement *ls = checkLabeledLoop(sc, this))
         ls->gotoTarget = s;
     return s->semantic(sc);

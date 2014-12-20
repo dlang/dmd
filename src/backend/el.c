@@ -3053,7 +3053,12 @@ void elem_print(elem *e)
   elem_debug(e);
   if (configv.addlinenumbers)
   {
+#if MARS
+        if (e->Esrcpos.Sfilename)
+            printf("%s(%u) ", e->Esrcpos.Sfilename, e->Esrcpos.Slinnum);
+#else
         e->Esrcpos.print("elem_print");
+#endif
   }
   if (!PARSER)
   {     dbg_printf("cnt=%d ",e->Ecount);

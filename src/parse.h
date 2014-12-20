@@ -123,7 +123,7 @@ public:
     void checkDanglingElse(Loc elseloc);
     void checkCstyleTypeSyntax(Loc loc, Type *t, int alt, Identifier *ident);
     /** endPtr used for documented unittests */
-    Statement *parseStatement(int flags, const utf8_t** endPtr = NULL);
+    Statement *parseStatement(int flags, const utf8_t** endPtr = NULL, Loc *pEndloc = NULL);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
     void check(Loc loc, TOK value);
