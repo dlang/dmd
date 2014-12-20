@@ -2063,7 +2063,8 @@ Type *Type::toHeadMutable()
  * If flag == 1, don't report "not a property" error and just return NULL.
  */
 Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
-{   Expression *e;
+{
+    Expression *e;
 
 #if LOGDOTEXP
     printf("Type::getProperty(type = '%s', ident = '%s')\n", toChars(), ident->toChars());
@@ -2104,7 +2105,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         }
     }
     else if (ident == Id::stringof)
-    {   char *s = toChars();
+    {
+        char *s = toChars();
         e = new StringExp(loc, s, strlen(s), 'c');
         Scope sc;
         e = e->semantic(&sc);
@@ -2138,7 +2140,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
  * If flag == 1, don't report "not a property" error and just return NULL.
  */
 Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
-{   VarDeclaration *v = NULL;
+{
+    VarDeclaration *v = NULL;
 
 #if LOGDOTEXP
     printf("Type::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
@@ -2179,7 +2182,8 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
         }
     }
     if (ident == Id::stringof)
-    {   /* Bugzilla 3796: this should demangle e->type->deco rather than
+    {
+        /* Bugzilla 3796: this should demangle e->type->deco rather than
          * pretty-printing the type.
          */
         char *s = e->toChars();
@@ -3476,7 +3480,8 @@ Type *TypeVector::semantic(Loc loc, Scope *sc)
         return terror;
     basetype = basetype->toBasetype()->mutableOf();
     if (basetype->ty != Tsarray)
-    {   error(loc, "T in __vector(T) must be a static array, not %s", basetype->toChars());
+    {
+        error(loc, "T in __vector(T) must be a static array, not %s", basetype->toChars());
         return terror;
     }
     TypeSArray *t = (TypeSArray *)basetype;
@@ -3531,7 +3536,7 @@ unsigned TypeVector::alignsize()
 
 Expression *TypeVector::getProperty(Loc loc, Identifier *ident, int flag)
 {
-    return basetype->getProperty(loc, ident, flag);
+    return Type::getProperty(loc, ident, flag);
 }
 
 Expression *TypeVector::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -3547,23 +3552,36 @@ Expression *TypeVector::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         e->type = basetype;
         return e;
     }
-    if (ident == Id::offsetof || ident == Id::offset || ident == Id::stringof)
+    if (ident == Id::init || ident == Id::offsetof || ident == Id::stringof)
     {
-        // offsetof does not work on a cast expression, so use the basetype directly
+        // init should return a new VectorExp (Bugzilla 12776)
+        // offsetof does not work on a cast expression, so use e directly
         // stringof should not add a cast to the output
-        return basetype->dotExp(sc, e, ident, flag);
+        return Type::dotExp(sc, e, ident, flag);
     }
     return basetype->dotExp(sc, e->castTo(sc, basetype), ident, flag);
 }
 
 Expression *TypeVector::defaultInit(Loc loc)
 {
-    return basetype->defaultInit(loc);
+    //printf("TypeVector::defaultInit()\n");
+    assert(basetype->ty == Tsarray);
+    Expression *e = basetype->defaultInit(loc);
+    VectorExp *ve = new VectorExp(loc, e, this);
+    ve->type = this;
+    ve->dim = (int)(basetype->size(loc) / elementType()->size(loc));
+    return ve;
 }
 
 Expression *TypeVector::defaultInitLiteral(Loc loc)
 {
-    return basetype->defaultInitLiteral(loc);
+    //printf("TypeVector::defaultInitLiteral()\n");
+    assert(basetype->ty == Tsarray);
+    Expression *e = basetype->defaultInitLiteral(loc);
+    VectorExp *ve = new VectorExp(loc, e, this);
+    ve->type = this;
+    ve->dim = (int)(basetype->size(loc) / elementType()->size(loc));
+    return ve;
 }
 
 bool TypeVector::isZeroInit(Loc loc)
