@@ -510,7 +510,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
             Expression *condition = s->condition ? doInline(s->condition, ids) : NULL;
             Expression *increment = s->increment ? doInline(s->increment, ids) : NULL;
             Statement *body = s->body ? inlineAsStatement(s->body, ids) : NULL;
-            result = new ForStatement(s->loc, init, condition, increment, body);
+            result = new ForStatement(s->loc, init, condition, increment, body, s->endloc);
         }
 
         void visit(ThrowStatement *s)

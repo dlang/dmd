@@ -754,10 +754,14 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             nextb = bs2;
             bl->Bcode = NULL;
         L2:
+            if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
+                !(funcsym_p->ty() & mTYnaked))
+            {
+                //printf("BCiftrue: %s(%u)\n", bl->Bsrcpos.Sfilename ? bl->Bsrcpos.Sfilename : "", bl->Bsrcpos.Slinnum);
+                cgen_linnum(&c,bl->Bsrcpos);
+            }
             if (nextb != bl->Bnext)
-            {   if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
-                    !(funcsym_p->ty() & mTYnaked))
-                    cgen_linnum(&c,bl->Bsrcpos);
+            {
                 assert(!(bl->Bflags & BFLepilog));
                 c = cat(c,genjmp(CNIL,JMP,FLblock,nextb));
             }

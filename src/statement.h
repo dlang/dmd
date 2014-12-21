@@ -252,8 +252,9 @@ class WhileStatement : public Statement
 public:
     Expression *condition;
     Statement *body;
+    Loc endloc;                 // location of closing curly bracket
 
-    WhileStatement(Loc loc, Expression *c, Statement *b);
+    WhileStatement(Loc loc, Expression *c, Statement *b, Loc endloc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool hasBreak();
@@ -284,13 +285,14 @@ public:
     Expression *condition;
     Expression *increment;
     Statement *body;
+    Loc endloc;                 // location of closing curly bracket
 
     // When wrapped in try/finally clauses, this points to the outermost one,
     // which may have an associated label. Internal break/continue statements
     // treat that label as referring to this loop.
     Statement *relatedLabeled;
 
-    ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
+    ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body, Loc endloc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
@@ -308,6 +310,7 @@ public:
     Parameters *parameters;     // array of Parameter*'s
     Expression *aggr;
     Statement *body;
+    Loc endloc;                 // location of closing curly bracket
 
     VarDeclaration *key;
     VarDeclaration *value;
@@ -317,7 +320,7 @@ public:
     Statements *cases;          // put breaks, continues, gotos and returns here
     ScopeStatements *gotos;     // forward referenced goto's go here
 
-    ForeachStatement(Loc loc, TOK op, Parameters *parameters, Expression *aggr, Statement *body);
+    ForeachStatement(Loc loc, TOK op, Parameters *parameters, Expression *aggr, Statement *body, Loc endloc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool checkForArgTypes();
@@ -335,11 +338,12 @@ public:
     Expression *lwr;
     Expression *upr;
     Statement *body;
+    Loc endloc;                 // location of closing curly bracket
 
     VarDeclaration *key;
 
     ForeachRangeStatement(Loc loc, TOK op, Parameter *prm,
-        Expression *lwr, Expression *upr, Statement *body);
+        Expression *lwr, Expression *upr, Statement *body, Loc endloc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool hasBreak();

@@ -1996,7 +1996,6 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                     }
                     else
                         at = parseType(&ai);
-
                     ae = NULL;
                     if (token.value == TOKassign)       // = defaultArg
                     {   nextToken();
@@ -4435,9 +4434,11 @@ void Parser::checkCstyleTypeSyntax(Loc loc, Type *t, int alt, Identifier *ident)
 /*****************************************
  * Input:
  *      flags   PSxxxx
+ * Output:
+ *      pEndloc if { ... statements ... }, store location of closing brace
  */
 
-Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
+Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc)
 {
     Statement *s;
     Condition *cond;
@@ -4696,6 +4697,8 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             }
             if (endPtr) *endPtr = token.ptr;
             endloc = token.loc;
+            if (pEndloc)
+                *pEndloc = token.loc;
             s = new CompoundStatement(loc, statements);
             if (flags & (PSscope | PScurlyscope))
                 s = new ScopeStatement(loc, s);
@@ -4705,15 +4708,14 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         }
 
         case TOKwhile:
-        {   Expression *condition;
-            Statement *body;
-
+        {
             nextToken();
             check(TOKlparen);
-            condition = parseExpression();
+            Expression *condition = parseExpression();
             check(TOKrparen);
-            body = parseStatement(PSscope);
-            s = new WhileStatement(loc, condition, body);
+            Loc endloc;
+            Statement *body = parseStatement(PSscope, NULL, &endloc);
+            s = new WhileStatement(loc, condition, body, endloc);
             break;
         }
 
@@ -4755,7 +4757,6 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             Statement *init;
             Expression *condition;
             Expression *increment;
-            Statement *body;
 
             nextToken();
             check(TOKlparen);
@@ -4788,8 +4789,9 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             {   increment = parseExpression();
                 check(TOKrparen);
             }
-            body = parseStatement(PSscope);
-            s = new ForStatement(loc, init, condition, increment, body);
+            Loc endloc;
+            Statement *body = parseStatement(PSscope, NULL, &endloc);
+            s = new ForStatement(loc, init, condition, increment, body, endloc);
             break;
         }
 
@@ -4885,14 +4887,16 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 nextToken();
                 Expression *upr = parseExpression();
                 check(TOKrparen);
-                Statement *body = parseStatement(0);
-                s = new ForeachRangeStatement(loc, op, p, aggr, upr, body);
+                Loc endloc;
+                Statement *body = parseStatement(0, NULL, &endloc);
+                s = new ForeachRangeStatement(loc, op, p, aggr, upr, body, endloc);
             }
             else
             {
                 check(TOKrparen);
-                Statement *body = parseStatement(0);
-                s = new ForeachStatement(loc, op, parameters, aggr, body);
+                Loc endloc;
+                Statement *body = parseStatement(0, NULL, &endloc);
+                s = new ForeachStatement(loc, op, parameters, aggr, body, endloc);
             }
             break;
         }
