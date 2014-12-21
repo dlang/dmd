@@ -2129,7 +2129,7 @@ extern (C) void thread_detachThis() nothrow
  *       must be called by the detached thread, particularly if the thread is
  *       being detached at some indeterminate time before program termination:
  *
- *       $(D extern(C) void rt_moduleTlsCtor();)
+ *       $(D extern(C) void rt_moduleTlsDtor();)
  */
 extern (C) void thread_detachByAddr( Thread.ThreadAddr addr )
 {
