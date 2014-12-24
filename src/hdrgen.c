@@ -1031,6 +1031,11 @@ public:
         buf->writestring("typeof(null)");
     }
 
+    void visit(TypeObjcSelector *t)
+    {
+        visitFuncIdentWithPostfix((TypeFunction *)t->next, "__selector");
+    }
+
     ////////////////////////////////////////////////////////////////////////////
 
     void visit(Dsymbol *s)
@@ -1195,6 +1200,7 @@ public:
             case LINKcpp:           p = "C++";              break;
             case LINKwindows:       p = "Windows";          break;
             case LINKpascal:        p = "Pascal";           break;
+            case LINKobjc:          p = "Objective-C";      break;
             default:
                 assert(0);
                 break;
@@ -2750,6 +2756,26 @@ public:
         buf->writestring(e->value->toChars());
     }
 
+    void visit(ObjcSelectorExp *e)
+    {
+        objc_toCBuffer_visit_ObjcSelectorExp(buf, e);
+    }
+
+    void visit(ObjcDotClassExp *e)
+    {
+        objc_toCBuffer_visit_ObjcDotClassExp(buf, hgs, e);
+    }
+
+    void visit(ObjcClassRefExp *e)
+    {
+        objc_toCBuffer_visit_ObjcClassRefExp(buf, e);
+    }
+
+    void visit(ObjcProtocolOfExp *e)
+    {
+        objc_toCBuffer_visit_ObjcProtocolOfExp(buf, hgs, e);
+    }
+
     ////////////////////////////////////////////////////////////////////////////
 
     void visit(TemplateTypeParameter *tp)
@@ -3017,6 +3043,7 @@ const char *linkageToChars(LINK linkage)
         case LINKcpp:       return "C++";
         case LINKwindows:   return "Windows";
         case LINKpascal:    return "Pascal";
+        case LINKobjc:      return "Objective-C";
         default:            assert(0);
     }
     return NULL;    // never reached

@@ -266,6 +266,11 @@ TypeTuple *toArgTypes(Type *t)
             return t;
         }
 
+        void visit(TypeObjcSelector *tos)
+        {
+            result = objc_toArgTypesVisit(tos);
+        }
+
         void visit(TypeDArray *)
         {
             /* Should be done as if it were:

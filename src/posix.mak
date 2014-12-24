@@ -116,6 +116,9 @@ GLUE_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C)
 BACK_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C) -I.
 ROOT_FLAGS := -DDMDV2=1 -I$(ROOT)
 
+ifeq (osx,$(OS))
+D_OBJC := 1
+endif
 
 DMD_OBJS = \
 	access.o attrib.o \
@@ -138,6 +141,16 @@ DMD_OBJS = \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o nspace.o errors.o
 
+ifeq ($(D_OBJC),1)
+	DMD_OBJS += objc_argtypes.o objc_attrib.o objc_cast.o objc_class.o \
+		objc_cppmangle.o objc_declaration.o objc_dsymbol.o objc_expression.o \
+		objc_func_selector.o objc_func.o objc_hdrgen.o objc_inline.o \
+		objc_interpret.o objc_mars.o objc_mtype.o objc_optimize.o \
+		objc_parse.o objc_selector.o objc_sideeffect.o objc_struct.o
+else
+	DMD_OBJS += objc_func_selector.o objc_stubs.o
+endif
+
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o object.o \
@@ -147,6 +160,11 @@ GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
 	toobj.o toctype.o toelfdebug.o toir.o \
 	irstate.o typinf.o iasm.o
+
+ifeq ($(D_OBJC),1)
+	GLUE_OBJS += objc_e2ir.o objc_glue.o objc_symbols_common.o \
+		objc_toctype.o objc_todt.o objc_toobj.o objc_typinf.o
+endif
 
 ifeq (osx,$(OS))
     GLUE_OBJS += libmach.o scanmach.o
@@ -196,6 +214,16 @@ SRC = win32.mak posix.mak osmodel.mak \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c
 
+ifeq ($(D_OBJC),1)
+	SRC += objc_argtypes.c objc_attrib.c objc_cast.c objc_class.c \
+		objc_cppmangle.c objc_declaration.c objc_dsymbol.c objc_expression.c \
+		objc_func.c objc_func_selector.c objc_hdrgen.c objc_inline.c \
+		objc_interpret.c objc_mars.c objc_mtype.c objc_optimize.c \
+		objc_parse.c objc_selector.c objc_sideeffect.c objc_struct.c
+else
+	SRC += objc_func_selector.c objc_stubs.c
+endif
+
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
@@ -216,6 +244,11 @@ GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
 	tk.c eh.c gluestub.c
+
+ifeq ($(D_OBJC),1)
+	GLUE_SRC += objc_e2ir.c objc_glue.h objc_glue.c objc_symbols_common.c \
+		objc_toctype.c objc_todt.c objc_toobj.c objc_typinf.c
+endif
 
 BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
@@ -243,6 +276,12 @@ BACK_SRC = \
 TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
+
+ifeq ($(D_OBJC),1)
+	# Flags to add for Objective-C support
+	GLUE_FLAGS:=$(GLUE_FLAGS) -DD_OBJC=1
+	CFLAGS:=$(CFLAGS) -DD_OBJC=1
+endif
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
@@ -466,7 +505,36 @@ endif
 	gcov version.c
 	gcov intrange.c
 	gcov target.c
-
+ifeq ($(D_OBJC),1)
+	gcov objc_argtypes.c
+	gcov objc_attrib.c
+	gcov objc_cast.c
+	gcov objc_class.c
+	gcov objc_cppmangle.c
+	gcov objc_declaration.c
+	gcov objc_dsymbol.c
+	gcov objc_e2ir.c
+	gcov objc_expression.c
+	gcov objc_func.c
+	gcov objc_func_selector.c
+	gcov objc_glue.c
+	gcov objc_hdrgen.c
+	gcov objc_inline.c
+	gcov objc_interpret.c
+	gcov objc_mars.c
+	gcov objc_mtype.c
+	gcov objc_optimize.c
+	gcov objc_parse.c
+	gcov objc_selector.c
+	gcov objc_sideeffect.c
+	gcov objc_stubs.c
+	gcov objc_struct.c
+	gcov objc_symbols_common.c
+	gcov objc_toctype.c
+	gcov objc_todt.c
+	gcov objc_toobj.c
+	gcov objc_typinf.c
+endif
 #	gcov hdrgen.c
 #	gcov tocvdebug.c
 

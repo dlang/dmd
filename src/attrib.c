@@ -328,6 +328,11 @@ void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
     }
 }
 
+void AttribDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    objc_AttribDeclaration_addObjcSymbols(this, classes, categories);
+}
+
 /************************* StorageClassDeclaration ****************************/
 
 StorageClassDeclaration::StorageClassDeclaration(StorageClass stc, Dsymbols *decl)
@@ -813,7 +818,12 @@ static unsigned setMangleOverride(Dsymbol *s, char *sym)
         return 1;
     }
     else
+    {
+        if (objc_setMangleOverride_ClassDeclaration(s, sym) == CFreturn)
+            return 1;
+
         return 0;
+    }
 }
 
 void PragmaDeclaration::semantic(Scope *sc)
@@ -920,6 +930,20 @@ void PragmaDeclaration::semantic(Scope *sc)
         }
         goto Lnodecl;
     }
+
+    else if (ident == Id::objc_takestringliteral)
+    {
+        objc_PragmaDeclaration_semantic_objcTakesStringLiteral(this, sc);
+    }
+    else if (ident == Id::objc_selectortarget)
+    {
+        objc_PragmaDeclaration_semantic_objcSelectorTarget(this, sc);
+    }
+    else if (ident == Id::objc_isselector)
+    {
+        objc_PragmaDeclaration_semantic_objcSelector(this, sc);
+    }
+
     else if (ident == Id::mangle)
     {
         if (!args)
@@ -1432,7 +1456,7 @@ void UserAttributeDeclaration::semantic2(Scope *sc)
         if (atts && atts->dim && scope)
         {
             scope = NULL;
-            arrayExpressionSemantic(atts, sc);  // run semantic
+            arrayExpressionSemantic(atts, sc, true);  // run semantic
         }
     }
 

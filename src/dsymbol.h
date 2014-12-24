@@ -230,6 +230,8 @@ public:
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(ClassDeclarations *) { }
+    virtual void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories) { }
+    
     virtual void checkCtorConstInit() { }
 
     virtual void addComment(const utf8_t *comment);

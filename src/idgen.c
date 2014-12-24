@@ -107,6 +107,11 @@ Msgtable msgtable[] =
     { "xopEquals", "__xopEquals" },
     { "xopCmp", "__xopCmp" },
     { "xtoHash", "__xtoHash" },
+    // DMD_OBJC
+    { "_cmd" },
+    { "Class" },
+    { "Protocol" },
+    { "protocolof" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
@@ -138,6 +143,7 @@ Msgtable msgtable[] =
     { "Windows" },
     { "Pascal" },
     { "System" },
+    { "Objective" },
 
     { "exit" },
     { "success" },
@@ -259,12 +265,21 @@ Msgtable msgtable[] =
     { "criticalenter", "_d_criticalenter" },
     { "criticalexit", "_d_criticalexit" },
     { "_ArrayEq" },
+    // DMD_OBJC
+    { "_dobjc_preinit" },
+    { "_dobjc_invariant" },
+    { "objc_sync_enter" },
+    { "objc_sync_exit" },
 
     // For pragma's
     { "lib" },
     { "msg" },
     { "startaddress" },
-    { "mangle" },
+	{ "mangle" },
+    // DMD_OBJC
+    { "objc_takestringliteral" },
+	{ "objc_selectortarget" },
+	{ "objc_isselector" },
 
     // For special functions
     { "tohash", "toHash" },
@@ -303,6 +318,9 @@ Msgtable msgtable[] =
     { "bsf" },
     { "bsr" },
     { "bswap" },
+
+    // Builtin Objective-C selectors
+    { "alloc" },
 
     // Traits
     { "isAbstractClass" },
@@ -354,6 +372,9 @@ Msgtable msgtable[] =
     { "basic_ostream" },
     { "basic_iostream" },
     { "char_traits" },
+
+    // Compiler recognized UDA's
+    { "udaSelector", "core.attribute.selector" },
 };
 
 

@@ -496,6 +496,11 @@ public:
         dtabytes(pdt, 0, namelen + 1, name);
     }
 
+    void visit(TypeInfoObjcSelectorDeclaration *d)
+    {
+        objc_TypeInfo_toDt_visit_TypeInfoObjcSelectorDeclaration(pdt, d);
+    }
+
     void visit(TypeInfoStructDeclaration *d)
     {
         //printf("TypeInfoStructDeclaration::toDt() '%s'\n", toChars());

@@ -2815,6 +2815,8 @@ static Keyword keywords[] =
     {   "__PRETTY_FUNCTION__", TOKprettyfunc   },
     {   "shared",       TOKshared       },
     {   "immutable",    TOKimmutable    },
+    {   "__selector",   TOKobjcselector },
+
     {   NULL,           TOKreserved     }
 };
 
@@ -2955,6 +2957,9 @@ void Lexer::initKeywords()
     Token::tochars[TOKon_scope_exit]    = "scope(exit)";
     Token::tochars[TOKon_scope_success] = "scope(success)";
     Token::tochars[TOKon_scope_failure] = "scope(failure)";
+    Token::tochars[TOKobjcclsref] = "objcclsref";
+    Token::tochars[TOKobjc_dotclass] = ".class";
+    Token::tochars[TOKobjc_dotprotocolof] = ".protocolof";
 
 #if UNITTEST
     unittest_lexer();

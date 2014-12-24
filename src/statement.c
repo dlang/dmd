@@ -598,7 +598,8 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 }
                 catchresult |= cresult;
             }
-            if (mustNotThrow && (result & BEthrow))
+            int isThrow = result & BEthrow;
+            if (mustNotThrow && isThrow)
             {
                 // now explain why this is nothrow
                 s->body->blockExit(func, mustNotThrow);
@@ -4170,6 +4171,10 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
             error("can only synchronize on class objects, not '%s'", exp->type->toChars());
             return new ErrorStatement();
         }
+        else if (cd && cd->objc.objc)
+        {
+            /* interface declaration not a special case in Objective-C */
+        }
         else if (cd->isInterfaceDeclaration())
         {   /* Cast the interface to an object, as the object has the monitor,
              * not the interface.
@@ -4206,11 +4211,13 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         args->push(new Parameter(0, ClassDeclaration::object->type, NULL, NULL));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorenter, STCnothrow);
+        objc_SynchronizedStatement_semantic_sync_enter(cd, args, fdenter);
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         cs->push(new ExpStatement(loc, e));
 
         FuncDeclaration *fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorexit, STCnothrow);
+        objc_SynchronizedStatement_semantic_sync_exit(cd, args, fdexit);
         e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         Statement *s = new ExpStatement(loc, e);

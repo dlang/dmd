@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7A81B2231A02D37E0092B6AF /* objc_mars.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A81B2221A02D37E0092B6AF /* objc_mars.c */; };
 		7A8F58EE173E8680002091B3 /* access.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F589B173E8680002091B3 /* access.c */; };
 		7A8F58EF173E8680002091B3 /* aliasthis.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F589C173E8680002091B3 /* aliasthis.c */; };
 		7A8F58F0173E8680002091B3 /* apply.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F589D173E8680002091B3 /* apply.c */; };
@@ -143,6 +144,33 @@
 		7A8F5AAF173E8704002091B3 /* type.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A75173E8704002091B3 /* type.c */; };
 		7A8F5AB0173E8704002091B3 /* util2.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A76173E8704002091B3 /* util2.c */; };
 		7A8F5AB1173E8704002091B3 /* var.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A77173E8704002091B3 /* var.c */; };
+		7AD1A2331A17B031004A996E /* objc_stubs.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AD1A2321A17B031004A996E /* objc_stubs.c */; };
+		7AD1A2351A17BBCF004A996E /* objc_func_selector.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AD1A2341A17BBCF004A996E /* objc_func_selector.c */; };
+		7AE59E3B19FD3CFF003AB12D /* objc_todt.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E3919FD3CFF003AB12D /* objc_todt.c */; };
+		7AE59E4219FD4242003AB12D /* objc_glue.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E4019FD4242003AB12D /* objc_glue.c */; };
+		7AE59E4719FD4AFF003AB12D /* objc_toobj.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E4519FD4AFF003AB12D /* objc_toobj.c */; };
+		7AE59E4919FD8976003AB12D /* objc_attrib.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E4819FD8976003AB12D /* objc_attrib.c */; };
+		7AE59E4B19FD8BDD003AB12D /* objc_argtypes.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E4A19FD8BDD003AB12D /* objc_argtypes.c */; };
+		7AE59E4D19FD8D2F003AB12D /* objc_class.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E4C19FD8D2F003AB12D /* objc_class.c */; };
+		7AE59E5119FD8ED7003AB12D /* objc_expression.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5019FD8ED7003AB12D /* objc_expression.c */; };
+		7AE59E5319FD9047003AB12D /* objc_func.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5219FD9047003AB12D /* objc_func.c */; };
+		7AE59E5519FD9298003AB12D /* objc_cast.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5419FD9298003AB12D /* objc_cast.c */; };
+		7AE59E5719FD93B9003AB12D /* objc_cppmangle.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5619FD93B9003AB12D /* objc_cppmangle.c */; };
+		7AE59E5919FD94A5003AB12D /* objc_dsymbol.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5819FD94A5003AB12D /* objc_dsymbol.c */; };
+		7AE59E5B19FD9579003AB12D /* objc_e2ir.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5A19FD9579003AB12D /* objc_e2ir.c */; };
+		7AE59E5D19FED7E7003AB12D /* objc_hdrgen.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5C19FED7E7003AB12D /* objc_hdrgen.c */; };
+		7AE59E5F19FED973003AB12D /* objc_inline.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E5E19FED973003AB12D /* objc_inline.c */; };
+		7AE59E6119FEDBA3003AB12D /* objc_interpret.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E6019FEDBA3003AB12D /* objc_interpret.c */; };
+		7AE59E631A002E55003AB12D /* objc_mtype.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E621A002E55003AB12D /* objc_mtype.c */; };
+		7AE59E651A00300B003AB12D /* objc_optimize.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E641A00300B003AB12D /* objc_optimize.c */; };
+		7AE59E671A0031BD003AB12D /* objc_parse.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E661A0031BD003AB12D /* objc_parse.c */; };
+		7AE59E6B1A0037C1003AB12D /* objc_sideeffect.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E6A1A0037C1003AB12D /* objc_sideeffect.c */; };
+		7AE59E6F1A017F8E003AB12D /* objc_typinf.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E6E1A017F8E003AB12D /* objc_typinf.c */; };
+		7AE59E711A01850F003AB12D /* objc_declaration.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E701A01850F003AB12D /* objc_declaration.c */; };
+		7AE59E731A018782003AB12D /* objc_toctype.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E721A018782003AB12D /* objc_toctype.c */; };
+		7AE59E771A02CB45003AB12D /* objc_selector.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E761A02CB45003AB12D /* objc_selector.c */; };
+		7AE59E791A02D0AA003AB12D /* objc_symbols_common.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E781A02D0AA003AB12D /* objc_symbols_common.c */; };
+		7AE59E7B1A02D27C003AB12D /* objc_struct.c in Sources */ = {isa = PBXBuildFile; fileRef = 7AE59E7A1A02D27C003AB12D /* objc_struct.c */; };
 		7B226337196FEC14003C9F1D /* color.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226335196FEC14003C9F1D /* color.c */; };
 		7B22633B196FEC56003C9F1D /* nogc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226338196FEC56003C9F1D /* nogc.c */; };
 		7B22633C196FEC56003C9F1D /* nspace.c in Sources */ = {isa = PBXBuildFile; fileRef = 7B226339196FEC56003C9F1D /* nspace.c */; };
@@ -168,6 +196,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7A588DE7177238B300C6E503 /* objc.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; name = objc.h; path = src/objc.h; sourceTree = "<group>"; };
+		7A81B2221A02D37E0092B6AF /* objc_mars.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_mars.c; path = src/objc_mars.c; sourceTree = "<group>"; };
 		7A8F5891173E8613002091B3 /* dummy */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = dummy; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A8F589B173E8680002091B3 /* access.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = access.c; path = src/access.c; sourceTree = "<group>"; };
 		7A8F589C173E8680002091B3 /* aliasthis.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = aliasthis.c; path = src/aliasthis.c; sourceTree = "<group>"; };
@@ -392,6 +422,34 @@
 		7A8F5ACF173E870F002091B3 /* ty.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = ty.h; sourceTree = "<group>"; };
 		7A8F5AD0173E870F002091B3 /* type.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = type.h; sourceTree = "<group>"; };
 		7A8F5AD1173E870F002091B3 /* xmm.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = xmm.h; sourceTree = "<group>"; };
+		7AD1A2321A17B031004A996E /* objc_stubs.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_stubs.c; path = src/objc_stubs.c; sourceTree = "<group>"; };
+		7AD1A2341A17BBCF004A996E /* objc_func_selector.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_func_selector.c; path = src/objc_func_selector.c; sourceTree = "<group>"; };
+		7AE59E3919FD3CFF003AB12D /* objc_todt.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_todt.c; path = src/objc_todt.c; sourceTree = "<group>"; };
+		7AE59E4019FD4242003AB12D /* objc_glue.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_glue.c; path = src/objc_glue.c; sourceTree = "<group>"; };
+		7AE59E4119FD4242003AB12D /* objc_glue.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; name = objc_glue.h; path = src/objc_glue.h; sourceTree = "<group>"; };
+		7AE59E4519FD4AFF003AB12D /* objc_toobj.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_toobj.c; path = src/objc_toobj.c; sourceTree = "<group>"; };
+		7AE59E4819FD8976003AB12D /* objc_attrib.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_attrib.c; path = src/objc_attrib.c; sourceTree = "<group>"; };
+		7AE59E4A19FD8BDD003AB12D /* objc_argtypes.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_argtypes.c; path = src/objc_argtypes.c; sourceTree = "<group>"; };
+		7AE59E4C19FD8D2F003AB12D /* objc_class.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_class.c; path = src/objc_class.c; sourceTree = "<group>"; };
+		7AE59E5019FD8ED7003AB12D /* objc_expression.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_expression.c; path = src/objc_expression.c; sourceTree = "<group>"; };
+		7AE59E5219FD9047003AB12D /* objc_func.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_func.c; path = src/objc_func.c; sourceTree = "<group>"; };
+		7AE59E5419FD9298003AB12D /* objc_cast.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_cast.c; path = src/objc_cast.c; sourceTree = "<group>"; };
+		7AE59E5619FD93B9003AB12D /* objc_cppmangle.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_cppmangle.c; path = src/objc_cppmangle.c; sourceTree = "<group>"; };
+		7AE59E5819FD94A5003AB12D /* objc_dsymbol.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_dsymbol.c; path = src/objc_dsymbol.c; sourceTree = "<group>"; };
+		7AE59E5A19FD9579003AB12D /* objc_e2ir.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_e2ir.c; path = src/objc_e2ir.c; sourceTree = "<group>"; };
+		7AE59E5C19FED7E7003AB12D /* objc_hdrgen.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_hdrgen.c; path = src/objc_hdrgen.c; sourceTree = "<group>"; };
+		7AE59E5E19FED973003AB12D /* objc_inline.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_inline.c; path = src/objc_inline.c; sourceTree = "<group>"; };
+		7AE59E6019FEDBA3003AB12D /* objc_interpret.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_interpret.c; path = src/objc_interpret.c; sourceTree = "<group>"; };
+		7AE59E621A002E55003AB12D /* objc_mtype.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_mtype.c; path = src/objc_mtype.c; sourceTree = "<group>"; };
+		7AE59E641A00300B003AB12D /* objc_optimize.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_optimize.c; path = src/objc_optimize.c; sourceTree = "<group>"; };
+		7AE59E661A0031BD003AB12D /* objc_parse.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = objc_parse.c; path = src/objc_parse.c; sourceTree = "<group>"; };
+		7AE59E6A1A0037C1003AB12D /* objc_sideeffect.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_sideeffect.c; path = src/objc_sideeffect.c; sourceTree = "<group>"; };
+		7AE59E6E1A017F8E003AB12D /* objc_typinf.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_typinf.c; path = src/objc_typinf.c; sourceTree = "<group>"; };
+		7AE59E701A01850F003AB12D /* objc_declaration.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_declaration.c; path = src/objc_declaration.c; sourceTree = "<group>"; };
+		7AE59E721A018782003AB12D /* objc_toctype.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_toctype.c; path = src/objc_toctype.c; sourceTree = "<group>"; };
+		7AE59E761A02CB45003AB12D /* objc_selector.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_selector.c; path = src/objc_selector.c; sourceTree = "<group>"; };
+		7AE59E781A02D0AA003AB12D /* objc_symbols_common.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc_symbols_common.c; path = src/objc_symbols_common.c; sourceTree = "<group>"; };
+		7AE59E7A1A02D27C003AB12D /* objc_struct.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = objc_struct.c; path = src/objc_struct.c; sourceTree = "<group>"; };
 		7B226335196FEC14003C9F1D /* color.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = color.c; path = src/color.c; sourceTree = "<group>"; };
 		7B226336196FEC14003C9F1D /* color.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = color.h; path = src/color.h; sourceTree = "<group>"; };
 		7B226338196FEC56003C9F1D /* nogc.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = nogc.c; path = src/nogc.c; sourceTree = "<group>"; };
@@ -478,6 +536,8 @@
 				7A8F5957173E8692002091B3 /* mars.h */,
 				7A8F5958173E8692002091B3 /* module.h */,
 				7A8F5959173E8692002091B3 /* mtype.h */,
+				7A588DE7177238B300C6E503 /* objc.h */,
+				7AE59E4119FD4242003AB12D /* objc_glue.h */,
 				7A8F595B173E8692002091B3 /* parse.h */,
 				7A8F595C173E8692002091B3 /* scope.h */,
 				7A8F595D173E8692002091B3 /* statement.h */,
@@ -539,6 +599,34 @@
 				7A8F58CE173E8680002091B3 /* module.c */,
 				7A8F58CF173E8680002091B3 /* msc.c */,
 				7A8F58D0173E8680002091B3 /* mtype.c */,
+				7AE59E4A19FD8BDD003AB12D /* objc_argtypes.c */,
+				7AE59E4819FD8976003AB12D /* objc_attrib.c */,
+				7AE59E5419FD9298003AB12D /* objc_cast.c */,
+				7AE59E4C19FD8D2F003AB12D /* objc_class.c */,
+				7AE59E5619FD93B9003AB12D /* objc_cppmangle.c */,
+				7AE59E701A01850F003AB12D /* objc_declaration.c */,
+				7AE59E5819FD94A5003AB12D /* objc_dsymbol.c */,
+				7AE59E5A19FD9579003AB12D /* objc_e2ir.c */,
+				7AE59E5019FD8ED7003AB12D /* objc_expression.c */,
+				7AE59E5219FD9047003AB12D /* objc_func.c */,
+				7AD1A2341A17BBCF004A996E /* objc_func_selector.c */,
+				7AE59E4019FD4242003AB12D /* objc_glue.c */,
+				7AE59E5C19FED7E7003AB12D /* objc_hdrgen.c */,
+				7AE59E5E19FED973003AB12D /* objc_inline.c */,
+				7AE59E6019FEDBA3003AB12D /* objc_interpret.c */,
+				7A81B2221A02D37E0092B6AF /* objc_mars.c */,
+				7AE59E621A002E55003AB12D /* objc_mtype.c */,
+				7AE59E641A00300B003AB12D /* objc_optimize.c */,
+				7AE59E661A0031BD003AB12D /* objc_parse.c */,
+				7AE59E761A02CB45003AB12D /* objc_selector.c */,
+				7AE59E6A1A0037C1003AB12D /* objc_sideeffect.c */,
+				7AD1A2321A17B031004A996E /* objc_stubs.c */,
+				7AE59E7A1A02D27C003AB12D /* objc_struct.c */,
+				7AE59E781A02D0AA003AB12D /* objc_symbols_common.c */,
+				7AE59E721A018782003AB12D /* objc_toctype.c */,
+				7AE59E3919FD3CFF003AB12D /* objc_todt.c */,
+				7AE59E4519FD4AFF003AB12D /* objc_toobj.c */,
+				7AE59E6E1A017F8E003AB12D /* objc_typinf.c */,
 				7A8F58D1173E8680002091B3 /* opover.c */,
 				7A8F58D2173E8680002091B3 /* optimize.c */,
 				7A8F58D3173E8680002091B3 /* parse.c */,
@@ -807,6 +895,7 @@
 				7A8F58FC173E8680002091B3 /* ctfeexpr.c in Sources */,
 				7BA9FB2618D9AFEA002A15A5 /* file.c in Sources */,
 				7A8F58FD173E8680002091B3 /* declaration.c in Sources */,
+				7AE59E6B1A0037C1003AB12D /* objc_sideeffect.c in Sources */,
 				7A8F58FE173E8680002091B3 /* delegatize.c in Sources */,
 				7A8F58FF173E8680002091B3 /* doc.c in Sources */,
 				7A8F5900173E8680002091B3 /* dsymbol.c in Sources */,
@@ -830,10 +919,14 @@
 				7A8F5915173E8680002091B3 /* intrange.c in Sources */,
 				7A8F5916173E8680002091B3 /* irstate.c in Sources */,
 				7A8F5917173E8680002091B3 /* json.c in Sources */,
+				7AE59E5519FD9298003AB12D /* objc_cast.c in Sources */,
 				7A8F5918173E8680002091B3 /* lexer.c in Sources */,
+				7AE59E5B19FD9579003AB12D /* objc_e2ir.c in Sources */,
+				7AE59E5319FD9047003AB12D /* objc_func.c in Sources */,
 				7A8F591A173E8680002091B3 /* libmach.c in Sources */,
 				7A8F591D173E8680002091B3 /* link.c in Sources */,
 				7A8F591E173E8680002091B3 /* macro.c in Sources */,
+				7AE59E7B1A02D27C003AB12D /* objc_struct.c in Sources */,
 				7A8F591F173E8680002091B3 /* mangle.c in Sources */,
 				7A8F5920173E8680002091B3 /* mars.c in Sources */,
 				7BA9FB2418D9AF78002A15A5 /* object.c in Sources */,
@@ -850,12 +943,15 @@
 				7A8F592A173E8680002091B3 /* scanmach.c in Sources */,
 				7A8F592B173E8680002091B3 /* scanmscoff.c in Sources */,
 				7A8F592C173E8680002091B3 /* scanomf.c in Sources */,
+				7AE59E5F19FED973003AB12D /* objc_inline.c in Sources */,
+				7AE59E4D19FD8D2F003AB12D /* objc_class.c in Sources */,
 				7A8F592D173E8680002091B3 /* scope.c in Sources */,
 				7A8F592E173E8680002091B3 /* sideeffect.c in Sources */,
 				7A8F592F173E8680002091B3 /* statement.c in Sources */,
 				7A8F5930173E8680002091B3 /* staticassert.c in Sources */,
 				7BA9FB3D18D9B0CE002A15A5 /* id.c in Sources */,
 				7A8F5931173E8680002091B3 /* struct.c in Sources */,
+				7AE59E6119FEDBA3003AB12D /* objc_interpret.c in Sources */,
 				7A8F5932173E8680002091B3 /* target.c in Sources */,
 				7A8F5933173E8680002091B3 /* template.c in Sources */,
 				7A8F5934173E8680002091B3 /* tk.c in Sources */,
@@ -863,8 +959,10 @@
 				7BA9FB2818D9B006002A15A5 /* cg87.c in Sources */,
 				7A8F5936173E8680002091B3 /* toctype.c in Sources */,
 				7A8F5938173E8680002091B3 /* todt.c in Sources */,
+				7AE59E4919FD8976003AB12D /* objc_attrib.c in Sources */,
 				7A8F5939173E8680002091B3 /* toelfdebug.c in Sources */,
 				7A8F593A173E8680002091B3 /* toir.c in Sources */,
+				7AE59E4B19FD8BDD003AB12D /* objc_argtypes.c in Sources */,
 				7A8F593B173E8680002091B3 /* toobj.c in Sources */,
 				7A8F593C173E8680002091B3 /* traits.c in Sources */,
 				7A8F593D173E8680002091B3 /* typinf.c in Sources */,
@@ -873,9 +971,12 @@
 				7A8F5940173E8680002091B3 /* version.c in Sources */,
 				7A8F5993173E86C7002091B3 /* aav.c in Sources */,
 				7A8F5995173E86C7002091B3 /* async.c in Sources */,
+				7AE59E5719FD93B9003AB12D /* objc_cppmangle.c in Sources */,
 				7A8F5997173E86C7002091B3 /* longdouble.c in Sources */,
+				7AE59E5919FD94A5003AB12D /* objc_dsymbol.c in Sources */,
 				7A8F5998173E86C7002091B3 /* man.c in Sources */,
 				7A8F5999173E86C7002091B3 /* port.c in Sources */,
+				7AE59E731A018782003AB12D /* objc_toctype.c in Sources */,
 				7A8F599A173E86C7002091B3 /* response.c in Sources */,
 				7B226337196FEC14003C9F1D /* color.c in Sources */,
 				7A8F599B173E86C7002091B3 /* rmem.c in Sources */,
@@ -888,13 +989,18 @@
 				7A8F5A7B173E8704002091B3 /* blockopt.c in Sources */,
 				7A8F5A7C173E8704002091B3 /* cg.c in Sources */,
 				7A8F5A7E173E8704002091B3 /* cgcod.c in Sources */,
+				7AE59E6F1A017F8E003AB12D /* objc_typinf.c in Sources */,
 				7A8F5A7F173E8704002091B3 /* cgcs.c in Sources */,
 				7A8F5A81173E8704002091B3 /* cgelem.c in Sources */,
 				7A8F5A82173E8704002091B3 /* cgen.c in Sources */,
 				7A8F5A84173E8704002091B3 /* cgreg.c in Sources */,
 				7A8F5A85173E8704002091B3 /* cgsched.c in Sources */,
+				7AE59E791A02D0AA003AB12D /* objc_symbols_common.c in Sources */,
 				7A8F5A86173E8704002091B3 /* cgxmm.c in Sources */,
+				7AE59E3B19FD3CFF003AB12D /* objc_todt.c in Sources */,
 				7A8F5A87173E8704002091B3 /* cod1.c in Sources */,
+				7AE59E711A01850F003AB12D /* objc_declaration.c in Sources */,
+				7AE59E5119FD8ED7003AB12D /* objc_expression.c in Sources */,
 				7A8F5A88173E8704002091B3 /* cod2.c in Sources */,
 				7A8F5A89173E8704002091B3 /* cod3.c in Sources */,
 				7A8F5A8A173E8704002091B3 /* cod4.c in Sources */,
@@ -906,6 +1012,7 @@
 				7A8F5A90173E8704002091B3 /* divcoeff.c in Sources */,
 				7A8F5A91173E8704002091B3 /* dt.c in Sources */,
 				7A8F5A92173E8704002091B3 /* dwarf.c in Sources */,
+				7AE59E651A00300B003AB12D /* objc_optimize.c in Sources */,
 				7A8F5A93173E8704002091B3 /* ee.c in Sources */,
 				7A8F5A94173E8704002091B3 /* el.c in Sources */,
 				7A8F5A95173E8704002091B3 /* elfobj.c in Sources */,
@@ -913,6 +1020,7 @@
 				7A8F5A97173E8704002091B3 /* gdag.c in Sources */,
 				7A8F5A98173E8704002091B3 /* gflow.c in Sources */,
 				7A8F5A99173E8704002091B3 /* glocal.c in Sources */,
+				7AE59E771A02CB45003AB12D /* objc_selector.c in Sources */,
 				7A8F5A9A173E8704002091B3 /* gloop.c in Sources */,
 				7A8F5A9B173E8704002091B3 /* go.c in Sources */,
 				7A8F5A9C173E8704002091B3 /* gother.c in Sources */,
@@ -920,22 +1028,30 @@
 				7A8F5A9E173E8704002091B3 /* md5.c in Sources */,
 				7A8F5A9F173E8704002091B3 /* mscoffobj.c in Sources */,
 				7A8F5AA0173E8704002091B3 /* newman.c in Sources */,
+				7AE59E4219FD4242003AB12D /* objc_glue.c in Sources */,
 				7A8F5AA1173E8704002091B3 /* nteh.c in Sources */,
 				7A8F5AA3173E8704002091B3 /* os.c in Sources */,
 				7A8F5AA4173E8704002091B3 /* out.c in Sources */,
 				7A8F5AA5173E8704002091B3 /* outbuf.c in Sources */,
 				7A8F5AA6173E8704002091B3 /* pdata.c in Sources */,
 				7A8F5AA7173E8704002091B3 /* ph2.c in Sources */,
+				7AE59E5D19FED7E7003AB12D /* objc_hdrgen.c in Sources */,
 				7A8F5AA9173E8704002091B3 /* ptrntab.c in Sources */,
+				7AD1A2331A17B031004A996E /* objc_stubs.c in Sources */,
 				7A8F5AAA173E8704002091B3 /* rtlsym.c in Sources */,
 				7A8F5AAB173E8704002091B3 /* strtold.c in Sources */,
 				7A8F5AAC173E8704002091B3 /* symbol.c in Sources */,
+				7AE59E671A0031BD003AB12D /* objc_parse.c in Sources */,
 				7A8F5AAD173E8704002091B3 /* ti_achar.c in Sources */,
 				7B22633C196FEC56003C9F1D /* nspace.c in Sources */,
 				7A8F5AAE173E8704002091B3 /* ti_pvoid.c in Sources */,
+				7AE59E631A002E55003AB12D /* objc_mtype.c in Sources */,
+				7AD1A2351A17BBCF004A996E /* objc_func_selector.c in Sources */,
 				7A8F5AAF173E8704002091B3 /* type.c in Sources */,
+				7A81B2231A02D37E0092B6AF /* objc_mars.c in Sources */,
 				7A8F5AB0173E8704002091B3 /* util2.c in Sources */,
 				7A8F5AB1173E8704002091B3 /* var.c in Sources */,
+				7AE59E4719FD4AFF003AB12D /* objc_toobj.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

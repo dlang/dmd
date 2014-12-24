@@ -117,6 +117,8 @@ int callSideEffectLevel(Type *t)
     TypeFunction *tf;
     if (t->ty == Tdelegate)
         tf = (TypeFunction *)((TypeDelegate *)t)->next;
+    else if (t->ty == Tobjcselector)
+        objc_callSideEffectLevel_Tobjcselector(t, tf);
     else
     {
         assert(t->ty == Tfunction);
@@ -187,6 +189,8 @@ bool lambdaHasSideEffect(Expression *e)
                 Type *t = ce->e1->type->toBasetype();
                 if (t->ty == Tdelegate)
                     t = ((TypeDelegate *)t)->next;
+                if (t->ty == Tobjcselector)
+                    objc_lambdaHasSideEffect_TOKcall_Tobjcselector(t);
                 if (t->ty == Tfunction &&
                     (ce->f ? callSideEffectLevel(ce->f)
                            : callSideEffectLevel(ce->e1->type)) > 0)

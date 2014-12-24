@@ -63,7 +63,7 @@ TupleDeclaration *isAliasThisTuple(Expression *e);
 int expandAliasThisTuples(Expressions *exps, size_t starti = 0);
 FuncDeclaration *hasThis(Scope *sc);
 Expression *fromConstInitializer(int result, Expression *e);
-bool arrayExpressionSemantic(Expressions *exps, Scope *sc);
+bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors = false);
 int arrayExpressionCanThrow(Expressions *exps, FuncDeclaration *func, bool mustNotThrow);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 Expression *valueNoDtor(Expression *e);
@@ -544,6 +544,7 @@ public:
 
     CtorDeclaration *member;    // constructor function
     NewDeclaration *allocator;  // allocator function
+    FuncDeclaration *objcalloc; // allocator function (for Objective-C classes)
     int onstack;                // allocate on stack
 
     NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
@@ -889,6 +890,7 @@ class CallExp : public UnaExp
 public:
     Expressions *arguments;     // function arguments
     FuncDeclaration *f;         // symbol to call
+    Expression *argument0;      // this argument for Objective-C selector
 
     CallExp(Loc loc, Expression *e, Expressions *exps);
     CallExp(Loc loc, Expression *e);

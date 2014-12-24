@@ -318,6 +318,7 @@ void Module::genobjfile(bool multiobj)
     lastmname = srcfile->toChars();
 
     objmod->initfile(lastmname, NULL, toPrettyChars());
+    objc_Module_genobjfile_initSymbols();
 
     eictor = NULL;
     ictorlocalgot = NULL;
@@ -1043,7 +1044,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
     size_t pi = (v_arguments != NULL);
     if (parameters)
         pi += parameters->dim;
-
+    objc_FuncDeclaration_toObjFile_extraArgument(this, pi);
     // Create a temporary buffer, params[], to hold function parameters
     Symbol *paramsbuf[10];
     Symbol **params = paramsbuf;    // allocate on stack if possible
@@ -1096,6 +1097,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         pi++;
     }
 
+    objc_FuncDeclaration_toObjFile_selfCmd(this, params, pi);
 
     if (sthis)
     {
@@ -1392,6 +1394,7 @@ unsigned totym(Type *tx)
         case Tdelegate: t = TYdelegate; break;
         case Tarray:    t = TYdarray;   break;
         case Tsarray:   t = TYstruct;   break;
+        case Tobjcselector: t = TYnptr; break;
 
         case Tstruct:
             t = TYstruct;
@@ -1458,6 +1461,7 @@ unsigned totym(Type *tx)
 
                 case LINKc:
                 case LINKcpp:
+                case LINKobjc:
                 Lc:
                     t = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS

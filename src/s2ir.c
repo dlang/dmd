@@ -1272,7 +1272,6 @@ public:
     void visit(ImportStatement *s)
     {
     }
-
 };
 
 void Statement_toIR(Statement *s, IRState *irs)

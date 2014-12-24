@@ -19,6 +19,7 @@
 #include "dsymbol.h"
 #include "lexer.h"
 #include "mtype.h"
+#include "objc.h"
 
 class Expression;
 class Statement;
@@ -423,6 +424,15 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class TypeInfoObjcSelectorDeclaration : public TypeInfoDeclaration
+{
+public:
+    TypeInfoObjcSelectorDeclaration(Type *tinfo);
+    static TypeInfoObjcSelectorDeclaration *create(Type *tinfo);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class TypeInfoTupleDeclaration : public TypeInfoDeclaration
 {
 public:
@@ -536,6 +546,7 @@ public:
                                         // scopes from having the same name
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
+    Ojbc_FuncDeclaration objc;
 #ifdef IN_GCC
     VarDeclaration *v_arguments_var;    // '_arguments' variable
     VarDeclaration *v_argptr;           // '_argptr' variable
@@ -602,7 +613,7 @@ public:
     bool functionSemantic();
     bool functionSemantic3();
     // called from semantic3
-    VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
+    VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad, VarDeclaration** vobjccmd = NULL);
     bool equals(RootObject *o);
 
     int overrides(FuncDeclaration *fd);
@@ -659,6 +670,7 @@ public:
     Statement *mergeFensure(Statement *, Identifier *oid);
     Parameters *getParameters(int *pvarargs);
 
+    static FuncDeclaration *genCfunc(Type *treturn, const char *name, Type *param, StorageClass stc=0);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
 

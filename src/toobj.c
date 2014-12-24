@@ -40,6 +40,7 @@
 #include "cgcv.h"
 #include "outbuf.h"
 #include "irstate.h"
+#include "objc.h"
 
 extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
@@ -191,6 +192,7 @@ void Module::genmoduleinfo()
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
+    objc_Module_genmoduleinfo_classes(this);
     csym->Sdt = dt;
     out_readonly(csym);
     outdata(csym);
@@ -226,7 +228,12 @@ void ClassDeclaration::toObjFile(bool multiobj)
     if (!members)
         return;
 
-    if (multiobj && !hasStaticCtorOrDtor())
+    if (objc.objc)
+    {
+        // Objective-C classes and protocols must belong to the same object file
+        // as their corresponding Objective-C module info.
+    }
+    else if (multiobj && !hasStaticCtorOrDtor())
     {   obj_append(this);
         return;
     }
@@ -249,6 +256,9 @@ void ClassDeclaration::toObjFile(bool multiobj)
          */
         member->toObjFile(multiobj);
     }
+
+    if (objc_ClassDeclaration_toObjFile(this, multiobj) == CFreturn)
+        return;
 
     // Generate C symbols
     toSymbol(this);

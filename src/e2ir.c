@@ -110,7 +110,8 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Expressions *arguments)
+        Expressions *arguments,
+        elem *esel = NULL)      // selector for Objective-C methods (when not provided by fd)
 {
     elem *ep;
     elem *e;
@@ -133,7 +134,6 @@ elem *callfunc(Loc loc,
     if (ehidden)
     {   printf("ehidden: "); elem_print(ehidden); }
 #endif
-
     t = t->toBasetype();
     if (t->ty == Tdelegate)
     {
@@ -147,6 +147,10 @@ elem *callfunc(Loc loc,
         ethis = el_una(I64 ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
         ec = el_una(OPind, totym(tf), ec);
+    }
+    else if (t->ty == Tobjcselector)
+    {
+        objc_callfunc_setupSelector(ec, fd, esel, t, tf, ethis);
     }
     else
     {
@@ -224,6 +228,9 @@ elem *callfunc(Loc loc,
         }
     }
 
+    objc_callfunc_setupMethodSelector(tret, fd, t, ehidden, esel);
+    objc_callfunc_setupEp(esel, ep, reverse);
+
     if (retmethod == RETstack)
     {
         if (!ehidden)
@@ -280,10 +287,15 @@ elem *callfunc(Loc loc,
         {
             // Evaluate ec for side effects
             eside = el_combine(ec, eside);
+            objc_callfunc_checkThisForSelector(esel, ethis);
         }
         Symbol *sfunc = toSymbol(fd);
 
-        if (!fd->isVirtual() ||
+        if (esel)
+        {
+            objc_callfunc_setupMethodCall(directcall, ec, fd, t, ehidden, ethis, tf, sfunc);
+        }
+        else if (!fd->isVirtual() ||
             directcall ||               // BUG: fix
             fd->isFinalFunc()
            /* Future optimization: || (whole program analysis && not overridden)
@@ -313,6 +325,10 @@ if (I32) assert(tysize[TYnptr] == 4);
     {
         assert(!ethis);
         ethis = getEthis(loc, irs, fd);
+    }
+    else if (esel)
+    {
+        objc_callfunc_setupSelectorCall(ec, ehidden, ethis, tf);
     }
 
     ep = el_param(ep, ethis);
@@ -1350,6 +1366,10 @@ elem *toElem(Expression *e, IRState *irs)
                 e->EV.ss.Vstrlen = (se->len + 1) * se->sz;
                 e->Ety = TYnptr;
             }
+            else if (tb->ty == Tclass)
+            {
+                objc_toElem_visit_StringExp_Tclass(se, e);
+            }
             else
             {
                 printf("type is %s\n", se->type->toChars());
@@ -1386,7 +1406,11 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ezprefix = NULL;
                 elem *ez = NULL;
 
-                if (ne->allocator || ne->onstack)
+                if (cd->objc.objc)
+                {
+                    objc_toElem_visit_NewExp_Tclass(irs, ne, ectype, tclass, cd, ex, ey, ez);
+                }
+                else if (ne->allocator || ne->onstack)
                 {
                     if (ne->onstack)
                     {
@@ -1492,8 +1516,8 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     if (ne->argprefix)
                         ezprefix = toElem(ne->argprefix, irs);
-                    // Call constructor
-                    ez = callfunc(ne->loc, irs, 1, ne->type, ez, ectype, ne->member, ne->member->type, NULL, ne->arguments);
+                    bool isDirectCall = objc_toElem_visit_NewExp_Tclass_isDirectCall(cd->objc.objc);
+                    ez = callfunc(ne->loc, irs, isDirectCall, ne->type, ez, ectype, ne->member, ne->member->type, NULL, ne->arguments);
                 }
 
                 e = el_combine(ex, ey);
@@ -1782,8 +1806,13 @@ elem *toElem(Expression *e, IRState *irs)
 
                 FuncDeclaration *inv;
 
-                // If e1 is a class object, call the class invariant on it
                 if (global.params.useInvariants && t1->ty == Tclass &&
+                    ((TypeClass *)t1)->sym->objc.objc)
+                {
+                    objc_toElem_visit_AssertExp_callInvariant(ts, einv, t1);
+                }
+                // If e1 is a class object, call the class invariant on it
+                else if (global.params.useInvariants && t1->ty == Tclass &&
                     !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
                     !((TypeClass *)t1)->sym->isCPPclass())
                 {
@@ -3286,7 +3315,11 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb1 = dve->e1->type->toBasetype();
             if (tb1->ty != Tclass && tb1->ty != Tpointer)
                 e = addressElem(e, tb1);
-            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v ? v->offset : 0));
+
+            elem *offset = el_long(TYsize_t, v ? v->offset : 0);
+            objc_toElem_visit_DotVarExp_nonFragileAbiOffset(v, tb1, offset);
+
+            e = el_bin(OPadd, TYnptr, e, offset);
             e = el_una(OPind, totym(dve->type), e);
             if (tybasic(e->Ety) == TYstruct)
             {
@@ -3385,6 +3418,11 @@ elem *toElem(Expression *e, IRState *irs)
             result = e;
         }
 
+        void visit(ObjcSelectorExp *ose)
+        {
+            result = objc_toElem_visit_ObjcSelectorExp(ose);
+        }
+
         void visit(CallExp *ce)
         {
             //printf("CallExp::toElem('%s')\n", ce->toChars());
@@ -3400,7 +3438,12 @@ elem *toElem(Expression *e, IRState *irs)
             elem *ec;
             FuncDeclaration *fd = NULL;
             bool dctor = false;
-            if (ce->e1->op == TOKdotvar && t1->ty != Tdelegate)
+            elem *esel = NULL;
+            if (t1->ty == Tobjcselector)
+            {
+                objc_toElem_visit_CallExp_selector(irs, ce, ec, esel);
+            }
+            else if (ce->e1->op == TOKdotvar && t1->ty != Tdelegate)
             {
                 DotVarExp *dve = (DotVarExp *)ce->e1;
 
@@ -3562,7 +3605,7 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                 }
             }
-            elem *ecall = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments);
+            elem *ecall = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments, esel);
 
             if (dctor && ecall->Eoper == OPind)
             {
@@ -3893,7 +3936,19 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
                     goto Lret;
                 }
-                if (cdfrom->isInterfaceDeclaration())
+                else if (cdfrom->objc.objc)
+                {
+                    if (objc_toElem_visit_CastExp_Tclass_fromObjc(rtl, cdfrom, cdto) == CFgoto)
+                        goto Lzero;
+                }
+                else if (cdto->objc.objc)
+                {
+                    if (objc_toElem_visit_CastExp_Tclass_toObjc() == CFgoto)
+                        goto Lzero;
+                }
+                if (cdfrom->objc.objc && cdto->objc.objc && cdto->isInterfaceDeclaration())
+                    objc_toElem_visit_CastExp_Tclass_fromObjcToObjcInterface(rtl);
+                else if (cdfrom->isInterfaceDeclaration())
                 {
                     rtl = RTLSYM_INTERFACE_CAST;
                 }
@@ -3903,6 +3958,7 @@ elem *toElem(Expression *e, IRState *irs)
                      */
 
                     //printf("offset = %d\n", offset);
+                    objc_toElem_visit_CastExp_Tclass_assertNoOffset(offset, cdfrom);
                     if (offset)
                     {
                         /* Rewrite cast as (e ? e + offset : null)
@@ -3922,7 +3978,8 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                     goto Lret;                  // no-op
                 }
-
+                if (objc_toElem_visit_CastExp_Tclass_toObjcCall(e, rtl, cdto) == CFgoto)
+                    goto Lret;
                 /* The offset from cdfrom=>cdto can only be determined at runtime.
                  */
                 elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
@@ -5227,6 +5284,21 @@ elem *toElem(Expression *e, IRState *irs)
             e = el_combine(e, ev);
             el_setLoc(e, sle->loc);
             result = e;
+        }
+
+        void visit(ObjcDotClassExp *odce)
+        {
+            result = objc_toElem_visit_ObjcDotClassExp(irs, odce);
+        }
+
+        void visit(ObjcClassRefExp *ocre)
+        {
+            result = objc_toElem_visit_ObjcClassRefExp(ocre);
+        }
+
+        void visit(ObjcProtocolOfExp *e)
+        {
+            result = objc_toElem_visit_ObjcProtocolOfExp(e);
         }
 
         /*****************************************************/

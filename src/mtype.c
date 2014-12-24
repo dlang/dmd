@@ -44,6 +44,7 @@
 #include "import.h"
 #include "aggregate.h"
 #include "hdrgen.h"
+#include "objc.h"
 
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
@@ -218,6 +219,7 @@ void Type::init()
     sizeTy[Treturn] = sizeof(TypeReturn);
     sizeTy[Terror] = sizeof(TypeError);
     sizeTy[Tnull] = sizeof(TypeNull);
+    objc_Type_init(sizeTy);
 
     initTypeMangle();
 
@@ -821,7 +823,9 @@ void Type::check()
     }
 
     Type *tn = nextOf();
-    if (tn && ty != Tfunction && tn->ty != Tfunction && ty != Tenum)
+    if (tn && ty != Tfunction && tn->ty != Tfunction &&
+        ty != Tenum &&
+        ty != Tobjcselector && tn->ty != Tobjcselector)
     {
         // Verify transitivity
         switch (mod)
@@ -2147,22 +2151,28 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
     printf("Type::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
     Expression *ex = e;
+    ClassDeclaration *receiver = NULL;
+
     while (ex->op == TOKcomma)
         ex = ((CommaExp *)ex)->e2;
     if (ex->op == TOKdotvar)
     {
         DotVarExp *dv = (DotVarExp *)ex;
         v = dv->var->isVarDeclaration();
+        objc_Type_dotExp_TOKdotvar_setReceiver(receiver, dv);
     }
     else if (ex->op == TOKvar)
     {
         VarExp *ve = (VarExp *)ex;
         v = ve->var->isVarDeclaration();
+        assert(v && "v is not an VarDeclaration");
+        objc_Type_dotExp_TOKvar_setReceiver(v, receiver);
     }
     if (v)
     {
         if (ident == Id::offsetof)
         {
+            objc_Type_dotExp_offsetof(this, e, receiver);
             if (v->isField())
             {
                 e = new IntegerExp(e->loc, v->offset, Type::tsize_t);
@@ -2492,6 +2502,7 @@ Type *TypeNext::makeConst()
     }
     TypeNext *t = (TypeNext *)Type::makeConst();
     if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
         !next->isImmutable())
     {
         if (next->isShared())
@@ -2523,6 +2534,7 @@ Type *TypeNext::makeImmutable()
     }
     TypeNext *t = (TypeNext *)Type::makeImmutable();
     if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
         !next->isImmutable())
     {
         t->next = next->immutableOf();
@@ -2540,6 +2552,7 @@ Type *TypeNext::makeShared()
     }
     TypeNext *t = (TypeNext *)Type::makeShared();
     if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
         !next->isImmutable())
     {
         if (next->isWild())
@@ -2571,6 +2584,7 @@ Type *TypeNext::makeSharedConst()
     }
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
     if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
         !next->isImmutable())
     {
         if (next->isWild())
@@ -2592,6 +2606,7 @@ Type *TypeNext::makeWild()
     }
     TypeNext *t = (TypeNext *)Type::makeWild();
     if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
         !next->isImmutable())
     {
         if (next->isShared())
@@ -2644,6 +2659,7 @@ Type *TypeNext::makeSharedWild()
     }
     TypeNext *t = (TypeNext *)Type::makeSharedWild();
     if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
         !next->isImmutable())
     {
         if (next->isConst())
@@ -5363,7 +5379,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         tf->trust = TRUSTsystem;
     if (sc->stc & STCtrusted)
         tf->trust = TRUSTtrusted;
-
     if (sc->stc & STCproperty)
         tf->isproperty = true;
 
@@ -7937,6 +7952,8 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
 
     if (ident == Id::tupleof)
     {
+        objc_TypeClass_dotExp_tupleof(this, e);
+
         /* Create a TupleExp
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
@@ -8089,6 +8106,9 @@ L1:
             return e;
         }
 
+        if (objc_TypeClass_dotExp_protocolof(sc, e, ident) == CFreturn)
+            return e;
+
         if (ident == Id::outer && sym->vthis)
         {
             if (sym->vthis->scope)
@@ -8216,7 +8236,14 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-        if (d->needThis() && sc->intypeof != 1)
+
+        if (sym->objc.objc && d->isFuncDeclaration() &&
+            d->isStatic() && ((FuncDeclaration *)d)->objc.selector)
+        {
+            objc_TypeClass_dotExp_TOKtype(this, sc, e, d);
+            return e;
+        }
+        else if (d->needThis() && sc->intypeof != 1)
         {
             /* Rewrite as:
              *  this.d
@@ -8787,7 +8814,7 @@ MATCH TypeNull::implicitConvTo(Type *to)
         if (tb->ty == Tnull ||
             tb->ty == Tpointer || tb->ty == Tarray ||
             tb->ty == Taarray  || tb->ty == Tclass ||
-            tb->ty == Tdelegate)
+            tb->ty == Tobjcselector || tb->ty == Tdelegate)
             return MATCHconst;
     }
 

@@ -79,6 +79,7 @@ class TypeClass;
 class TypeTuple;
 class TypeSlice;
 class TypeNull;
+class TypeObjcSelector;
 
 class Dsymbol;
 
@@ -281,6 +282,10 @@ class PrettyFuncInitExp;
 class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
+class ObjcSelectorExp;
+class ObjcDotClassExp;
+class ObjcClassRefExp;
+class ObjcProtocolOfExp;
 
 class TemplateParameter;
 class TemplateTypeParameter;
@@ -366,6 +371,7 @@ public:
     virtual void visit(TypeTuple *t) { visit((Type *)t); }
     virtual void visit(TypeSlice *t) { visit((TypeNext *)t); }
     virtual void visit(TypeNull *t) { visit((Type *)t); }
+    virtual void visit(TypeObjcSelector *t) { visit((TypeNext *)t); }
 
     virtual void visit(Dsymbol *) { assert(0); }
 
@@ -583,6 +589,11 @@ public:
     virtual void visit(StaticIfCondition *c) { visit((Condition *)c); }
 
     virtual void visit(Parameter *) { assert(0); }
+
+    virtual void visit(ObjcSelectorExp *e) { visit((Expression *)e); }
+    virtual void visit(ObjcDotClassExp *e) { visit((UnaExp *)e); }
+    virtual void visit(ObjcClassRefExp *e) { visit((Expression *)e); }
+    virtual void visit(ObjcProtocolOfExp *e) { visit((UnaExp *)e); }
 };
 
 class StoppableVisitor : public Visitor

@@ -753,7 +753,7 @@ public:
          */
         if (substitute(t)) return;
         buf.writeByte('F');
-        if (t->linkage == LINKc)
+        if (t->linkage == LINKc || t->linkage == LINKobjc)
             buf.writeByte('Y');
         Type *tn = t->next;
         if (t->isref)
@@ -767,6 +767,11 @@ public:
     void visit(TypeDelegate *t)
     {
         visit((Type *)t);
+    }
+
+    void visit (TypeObjcSelector *t)
+    {
+        objc_CppMangleVisitor_visit_TypeObjcSelector(buf, t);
     }
 
     void visit(TypeStruct *t)

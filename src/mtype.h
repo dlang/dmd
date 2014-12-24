@@ -101,6 +101,7 @@ enum ENUMTY
     Tvector,
     Tint128,
     Tuns128,
+    Tobjcselector,
     TMAX
 };
 typedef unsigned char TY;       // ENUMTY

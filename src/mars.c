@@ -38,6 +38,7 @@
 #include "declaration.h"
 #include "hdrgen.h"
 #include "doc.h"
+#include "objc.h"
 
 bool response_expand(size_t *pargc, const char ***pargv);
 
@@ -1201,6 +1202,7 @@ Language changes listed by -transition=id:\n\
     if (boundscheck == 0)
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 
+    objc_tryMain_dObjc();
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
 
     // Initialization
@@ -1209,6 +1211,7 @@ Language changes listed by -transition=id:\n\
     Module::init();
     Target::init();
     Expression::init();
+    objc_tryMain_init();
     initPrecedence();
     builtin_init();
     initTraitsStringTable();

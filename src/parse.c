@@ -37,6 +37,7 @@
 #include "aliasthis.h"
 #include "nspace.h"
 #include "hdrgen.h"
+#include "objc.h"
 
 // How multiple declarations are parsed.
 // If 1, treat as C.
@@ -1299,13 +1300,28 @@ LINK Parser::parseLinkage(Identifiers **pidents)
                 }
             }
         }
+        else if (id == Id::Objective) // Looking for tokens "Objective-C"
+        {
+            if (token.value == TOKmin)
+            {   nextToken();
+                if (token.ident == Id::C)
+                {   link = LINKobjc;
+                    nextToken();
+                }
+                else
+                    goto LinvalidLinkage;
+            }
+            else
+                goto LinvalidLinkage;
+        }
         else if (id == Id::System)
         {
             link = global.params.isWindows ? LINKwindows : LINKc;
         }
         else
         {
-            error("valid linkage identifiers are D, C, C++, Pascal, Windows, System");
+        LinvalidLinkage:
+            error("valid linkage identifiers are D, C, C++, Objective-C, Pascal, Windows, System");
             link = LINKd;
         }
     }
@@ -3142,6 +3158,7 @@ Type *Parser::parseBasicType()
  *      t [expression .. expression]
  *      t function
  *      t delegate
+ *      t __selector  (Objective-C)
  */
 
 Type *Parser::parseBasicType2(Type *t)
@@ -3194,10 +3211,12 @@ Type *Parser::parseBasicType2(Type *t)
 
             case TOKdelegate:
             case TOKfunction:
+            case TOKobjcselector:
             {
                 // Handle delegate declaration:
                 //      t delegate(parameter list) nothrow pure
                 //      t function(parameter list) nothrow pure
+                //      t __selector(parameter list) nothrow pure
                 TOK save = token.value;
                 nextToken();
 
@@ -3216,6 +3235,8 @@ Type *Parser::parseBasicType2(Type *t)
 
                 if (save == TOKdelegate)
                     t = new TypeDelegate(tf);
+                else if (save == TOKobjcselector)
+                    objc_Parser_parseBasicType2_selector(t, tf);
                 else
                     t = new TypePointer(tf);    // pointer to function
                 continue;
@@ -3771,6 +3792,7 @@ L2:
         else if (!isThis)
             error("no identifier for declarator %s", t->toChars());
 
+        objc_Parser_parseDeclarations_Tobjcselector(t, link);
         if (tok == TOKtypedef || tok == TOKalias)
         {
             Declaration *v;
@@ -3860,6 +3882,7 @@ L2:
             //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t->toChars(), storage_class);
             FuncDeclaration *f =
                 new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
+            addComment(f, comment);
             if (pAttrs)
                 pAttrs->storageClass = STCundefined;
             if (tpl)
@@ -4528,6 +4551,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
         case TOKmodulestring:
         case TOKfuncstring:
         case TOKprettyfunc:
+        case TOKobjcselector:
         Lexp:
         {
             Expression *exp = parseExpression();
@@ -5838,6 +5862,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
 
             case TOKdelegate:
             case TOKfunction:
+            case TOKobjcselector:
                 t = peek(t);
                 if (!isParameters(&t))
                     return false;
@@ -6621,6 +6646,7 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKwild && peek(&token)->value == TOKrparen ||
                          token.value == TOKfunction ||
                          token.value == TOKdelegate ||
+                         token.value == TOKobjcselector ||
                          token.value == TOKreturn))
                     {
                         tok2 = token.value;
@@ -6879,6 +6905,7 @@ Expression *Parser::parsePostExp(Expression *e)
         switch (token.value)
         {
             case TOKdot:
+            {
                 nextToken();
                 if (token.value == TOKidentifier)
                 {   Identifier *id = token.ident;
@@ -6898,9 +6925,16 @@ Expression *Parser::parsePostExp(Expression *e)
                     e = parseNewExp(e);
                     continue;
                 }
+
+                else if (token.value == TOKclass)
+                {
+                    if (objc_Parser_parsePostExp_TOKclass(this, e, loc) == CFcontinue)
+                        continue;
+                }
                 else
                     error("identifier expected following '.', not '%s'", token.toChars());
                 break;
+            }
 
             case TOKplusplus:
                 e = new PostExp(TOKplusplus, loc, e);
@@ -7179,6 +7213,7 @@ Expression *Parser::parseUnaryExp()
                     case TOKimaginary32: case TOKimaginary64: case TOKimaginary80:
                     case TOKcomplex32: case TOKcomplex64: case TOKcomplex80:
                     case TOKvoid:
+                    case TOKobjcselector:
                     {   // (type) una_exp
                         Type *t;
 
@@ -7673,6 +7708,7 @@ void initPrecedence()
 
     precedence[TOKtype] = PREC_expr;
     precedence[TOKerror] = PREC_expr;
+    precedence[TOKobjcclsref] = PREC_expr; // Objective-C class reference, same as TOKtype
 
     precedence[TOKtypeof] = PREC_primary;
     precedence[TOKmixin] = PREC_primary;
@@ -7743,6 +7779,7 @@ void initPrecedence()
     precedence[TOKnew] = PREC_unary;
     precedence[TOKnewanonclass] = PREC_unary;
     precedence[TOKcast] = PREC_unary;
+    precedence[TOKobjcselector] = PREC_unary; // same as delegate
 
     precedence[TOKvector] = PREC_unary;
     precedence[TOKpow] = PREC_pow;

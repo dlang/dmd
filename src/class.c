@@ -38,11 +38,11 @@ ClassDeclaration *ClassDeclaration::throwable;
 ClassDeclaration *ClassDeclaration::exception;
 ClassDeclaration *ClassDeclaration::errorException;
 
-ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject)
-    : AggregateDeclaration(loc, id)
-{
-    static const char msg[] = "only object.d can define this reserved class name";
+static const char msg[] = "only object.d can define this reserved class name";
 
+ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject)
+    : AggregateDeclaration(loc, id), objc(this, msg)
+{
     if (baseclasses)
     {
         // Actually, this is a transfer
@@ -320,6 +320,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
         if (sc->linkage == LINKcpp)
             cpp = true;
+        if (sc->linkage == LINKobjc)
+            objc_ClassDeclaration_semantic_PASSinit_LINKobjc(this);
     }
     else if (symtab)
     {
@@ -494,8 +496,13 @@ void ClassDeclaration::semantic(Scope *sc)
         }
         doAncestorsSemantic = SemanticDone;
 
-        // If no base class, and this is not an Object, use Object as base class
-        if (!baseClass && ident != Id::Object && !cpp)
+        if (objc.objc || (baseClass && baseClass->objc.objc))
+        {
+            // Objective-C classes do not inherit from Object
+            objc.objc = true;
+        }
+
+        else if (!baseClass && ident != Id::Object && !cpp) // If no base class, and this is not an Object, use Object as base class
         {
             if (!object)
             {
@@ -515,6 +522,7 @@ void ClassDeclaration::semantic(Scope *sc)
             assert(!baseClass->isInterfaceDeclaration());
             b->base = baseClass;
         }
+
         if (baseClass)
         {
             if (baseClass->storage_class & STCfinal)
@@ -579,6 +587,8 @@ Lancestorsdone:
 
     if (sizeok == SIZEOKnone)
     {
+        objc_ClassDeclaration_semantic_SIZEOKnone(this, sc);
+
         // initialize vtbl
         if (baseClass)
         {
@@ -654,6 +664,12 @@ Lancestorsdone:
             sc2->linkage = LINKc;
         }
     }
+
+    else if (objc.objc)
+    {
+        sc2->linkage = LINKobjc;
+    }
+
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
@@ -666,6 +682,12 @@ Lancestorsdone:
         if (cpp && global.params.isWindows)
             structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
     }
+
+    else if (objc.objc)
+    {
+        structsize = 0; // no hidden member for an Objective-C class
+    }
+
     else
     {
         alignsize = Target::ptrsize;
@@ -676,6 +698,8 @@ Lancestorsdone:
     }
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
+    if (objc.metaclass)
+        objc.metaclass->members = new Dsymbols();
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -729,6 +753,8 @@ Lancestorsdone:
         fields.setDim(0);
         structsize = 0;
         alignsize = 0;
+        if (objc.metaclass)
+            objc.metaclass->members = NULL;
 
         sc2->pop();
 
@@ -746,6 +772,11 @@ Lancestorsdone:
 
     //members->print();
 
+    inv = buildInv(this, sc2);
+
+    objc_ClassDeclaration_semantic_staticInitializers(this, sc2, members_dim);
+    objc_ClassDeclaration_semantic_invariant(this, sc2);
+
     /* Look for special member functions.
      * They must be in this class, not in a base class.
      */
@@ -762,8 +793,6 @@ Lancestorsdone:
                 ::error(v->loc, "field %s must be initialized in constructor", v->toChars());
         }
     }
-
-    inv = buildInv(this, sc2);
 
     // Can be in base class
     aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
@@ -1198,8 +1227,16 @@ const char *ClassDeclaration::kind()
 
 void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {
+    if (objc.objc)
+        return;
     aclasses->push(this);
 }
+
+void ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    objc.addObjcSymbols(classes, categories);
+}
+
 
 /********************************* InterfaceDeclaration ****************************/
 
@@ -1320,6 +1357,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         if (!baseclasses->dim && sc->linkage == LINKcpp)
             cpp = true;
+        objc_InterfaceDeclaration_semantic_objcExtern(this, sc);
 
         // Check for errors, handle forward references
         for (size_t i = 0; i < baseclasses->dim; )
@@ -1334,6 +1372,10 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 baseclasses->remove(i);
                 continue;
             }
+
+            ControlFlow cf = objc_InterfaceDeclaration_semantic_mixingObjc(this, sc, i, tc);
+            if (cf == CFcontinue)
+                continue;
 
             // Check for duplicate interfaces
             for (size_t j = 0; j < i; j++)
@@ -1431,6 +1473,8 @@ Lancestorsdone:
         }
     }
 
+    objc_InterfaceDeclaration_semantic_createMetaclass(this, sc);
+
     {
         // initialize vtbl
         interfaceSemantic(sc);
@@ -1485,6 +1529,8 @@ Lancestorsdone:
         sc2->linkage = LINKwindows;
     else if (cpp)
         sc2->linkage = LINKcpp;
+    else if (this->objc.isInterface())
+        sc->linkage = LINKobjc;
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
@@ -1492,6 +1538,9 @@ Lancestorsdone:
 
     structsize = Target::ptrsize * 2;
     inuse++;
+
+    if (objc.metaclass)
+        objc.metaclass->members = new Dsymbols();
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -1558,6 +1607,14 @@ Lancestorsdone:
 
 bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
+    if (poffset && objc.objc && cd->objc.objc)
+    {
+        // Objective-C interfaces inside Objective-C classes have no offset.
+        // Set offset to zero then set poffset to null to avoid it being changed.
+        *poffset = 0;
+        poffset = NULL;
+    }
+
     //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
     assert(!baseClass);
     for (size_t j = 0; j < cd->interfaces_dim; j++)
@@ -1596,6 +1653,13 @@ bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
+    if (poffset && objc.objc && bc->base && bc->base->objc.objc)
+    {
+        // Objective-C interfaces inside Objective-C classes have no offset.
+        // Set offset to zero then set poffset to null to avoid it being changed.
+        *poffset = 0;
+        poffset = NULL;
+    }
     for (size_t j = 0; j < bc->baseInterfaces_dim; j++)
     {
         BaseClass *b = &bc->baseInterfaces[j];
@@ -1644,6 +1708,11 @@ bool InterfaceDeclaration::isCOMinterface()
 bool InterfaceDeclaration::isCPPinterface()
 {
     return cpp;
+}
+
+void InterfaceDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    // nothing to do
 }
 
 /*******************************************

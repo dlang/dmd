@@ -186,6 +186,12 @@ enum TOK
         TOKvoidexp,
         TOKcantexp,
 
+        TOKobjcclsref, // Objective-C class reference
+        TOKobjc_dotclass,
+        TOKobjc_dotprotocolof,
+        
+        TOKobjcselector, // selector keyword
+
         TOKMAX
 };
 

@@ -611,6 +611,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             }
                         case Tarray:
                         case Tpointer:
+                        {
                             Type *tn = t->nextOf();
                             MATCH m = MATCHexact;
                             if (e->type->nextOf()->mod != tn->mod)
@@ -641,6 +642,16 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                 }
                             }
                             break;
+                        }
+
+                        case Tclass:
+                        {
+                            ControlFlow cf = objc_implicitConvTo_visit_StringExp_Tclass(t, &result);
+                            if (cf == CFreturn)
+                                return;
+                            else if (cf == CFbreak)
+                                break;
+                        }
                     }
                 }
             }
@@ -885,7 +896,8 @@ MATCH implicitConvTo(Expression *e, Type *t)
             t = t->toBasetype();
 
             if (e->e1->op == TOKoverloadset &&
-                (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
+                (t->ty == Tpointer || t->ty == Tdelegate ||
+                 t->ty == Tobjcselector) && t->nextOf()->ty == Tfunction)
             {
                 OverExp *eo = (OverExp *)e->e1;
                 FuncDeclaration *f = NULL;
@@ -938,7 +950,8 @@ MATCH implicitConvTo(Expression *e, Type *t)
             // Look for pointers to functions where the functions are overloaded.
             t = t->toBasetype();
             if (e->type->ty == Tpointer && e->type->nextOf()->ty == Tfunction &&
-                (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
+                (t->ty == Tpointer || t->ty == Tdelegate ||
+                 t->ty == Tobjcselector) && t->nextOf()->ty == Tfunction)
             {
                 if (FuncDeclaration *f = e->var->isFuncDeclaration())
                 {
@@ -946,6 +959,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     if (f)
                     {
                         if ((t->ty == Tdelegate && (f->needThis() || f->isNested())) ||
+                            (t->ty == Tobjcselector && (f->needThis() || f->isNested())) ||
                             (t->ty == Tpointer && !(f->needThis() || f->isNested())))
                         {
                             result = MATCHexact;
@@ -974,6 +988,12 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 if (e->func && e->func->overloadExactMatch(t->nextOf()))
                     result = MATCHexact;
             }
+
+            else if (t->ty == Tobjcselector && t->nextOf()->ty == Tfunction)
+            {
+                if (e->func && e->func->overloadExactMatch(t->nextOf()))
+                    result = MATCHexact;
+            }
         }
 
         void visit(FuncExp *e)
@@ -986,6 +1006,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 return;
             }
             visit((Expression *)e);
+        }
+
+        void visit(ObjcSelectorExp *e)
+        {
+            result = objc_implicitConvTo_visit_ObjcSelectorExp(t, e);
         }
 
         void visit(OrExp *e)
@@ -1564,6 +1589,12 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
+            if (objc_castTo_visit_StringExp_Tclass(sc, t, result, e, tb) == CFreturn)
+                return;
+
+            if (objc_castTo_visit_StringExp_isSelector(t, result, e, tb) == CFreturn)
+                return;
+
             Type *typeb = e->type->toBasetype();
             if (typeb->equals(tb))
             {
@@ -1803,7 +1834,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 // Look for pointers to functions where the functions are overloaded.
 
                 if (e->e1->op == TOKoverloadset &&
-                    (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
+                    (t->ty == Tpointer || t->ty == Tdelegate ||
+                     t->ty == Tobjcselector) && t->nextOf()->ty == Tfunction)
                 {
                     OverExp *eo = (OverExp *)e->e1;
                     FuncDeclaration *f = NULL;
@@ -2024,7 +2056,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             // Look for pointers to functions where the functions are overloaded.
             if (e->hasOverloads &&
                 typeb->ty == Tpointer && typeb->nextOf()->ty == Tfunction &&
-                (tb->ty == Tpointer || tb->ty == Tdelegate) && tb->nextOf()->ty == Tfunction)
+                (tb->ty == Tpointer || tb->ty == Tdelegate ||
+                 tb->ty == Tobjcselector) && tb->nextOf()->ty == Tfunction)
             {
                 FuncDeclaration *f = e->var->isFuncDeclaration();
                 f = f ? f->overloadExactMatch(tb->nextOf()) : NULL;
@@ -2055,12 +2088,20 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             return;
                         }
                     }
+
+                    else if (tb->ty == Tobjcselector)
+                    {
+                        if (objc_castTo_visit_SymOffExp_Tobjcselector(sc, result, e, f) == CFreturn)
+                            return;
+                    }
+
                     else
                     {
                         result = new SymOffExp(e->loc, f, 0);
                         result->type = t;
                     }
-                    f->tookAddressOf++;
+                    if (tb->ty != Tobjcselector)
+                        f->tookAddressOf++;
                     return;
                 }
             }
@@ -2100,6 +2141,13 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             e->error("%s", msg);
                     }
                 }
+
+                else if (tb->ty == Tobjcselector && tb->nextOf()->ty == Tfunction)
+                {
+                    if (objc_castTo_visit_DelegateExp_Tobjcselector(t, result, e, tb) == CFreturn)
+                        return;
+                }
+
                 visit((Expression *)e);
             }
             else
@@ -2123,6 +2171,12 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
             visit((Expression *)e);
+        }
+
+        void visit(ObjcSelectorExp *e)
+        {
+            if (objc_castTo_visit_ObjcSelectorExp(t, result, e) == CFvisit)
+                visit((Expression *)e);
         }
 
         void visit(CondExp *e)

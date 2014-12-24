@@ -382,7 +382,11 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
 void outfilename(char *name,int linnum);
 void outcsegname(char *csegname);
 void outthunk(Symbol *sthunk, Symbol *sfunc, unsigned p, tym_t thisty, targ_size_t d, int i, targ_size_t d2);
+#if MACHOBJ
+void outdata(Symbol *s, int noalign = 0);
+#else
 void outdata(Symbol *s);
+#endif
 void outcommon(Symbol *s, targ_size_t n);
 void out_readonly(Symbol *s);
 void out_regcand(symtab_t *);

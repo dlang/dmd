@@ -271,7 +271,7 @@ public:
 /********************************* FuncDeclaration ****************************/
 
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
-    : Declaration(id)
+    : Declaration(id), objc(this)
 {
     //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
     //printf("storage_class = x%x\n", storage_class);
@@ -647,6 +647,8 @@ void FuncDeclaration::semantic(Scope *sc)
         error("abstract functions cannot have bodies");
 #endif
 
+    objc_FuncDeclaration_semantic_checkAbstractStatic(this);
+
 #if 0
     if (isStaticConstructor() || isStaticDestructor())
     {
@@ -663,7 +665,12 @@ void FuncDeclaration::semantic(Scope *sc)
     {
         storage_class |= STCabstract;
 
-        if (isCtorDeclaration() ||
+        if (id->objc.objc && (isCtorDeclaration() || isDtorDeclaration()))
+        {
+            // constructors and destructor allowed in Objective-C interfaces
+            // to map them to selectors.
+        }
+        else if (isCtorDeclaration() ||
             isPostBlitDeclaration() ||
             isDtorDeclaration() ||
             isInvariantDeclaration() ||
@@ -1201,6 +1208,21 @@ Ldone:
 
 void FuncDeclaration::semantic2(Scope *sc)
 {
+    if (semanticRun >= PASSsemantic2done)
+        return;
+    assert(semanticRun <= PASSsemantic2);
+    semanticRun = PASSsemantic2;
+
+    objc_FuncDeclaration_semantic_setSelector(this, sc);
+    objc_FuncDeclaration_semantic_validateSelector(this);
+
+    if (ClassDeclaration *cd = parent->isClassDeclaration())
+    {
+        objc_FuncDeclaration_semantic_parentForStaticMethod(this, cd);
+        objc_FuncDeclaration_semantic_checkInheritedSelector(this, cd);
+        objc_FuncDeclaration_semantic_addClassMethodList(this, cd);
+        objc_FuncDeclaration_semantic_checkLinkage(this);
+    }
 }
 
 // Do the semantic analysis on the internals of the function.
@@ -1314,7 +1336,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
         // Declare 'this'
         AggregateDeclaration *ad = isThis();
-        vthis = declareThis(sc2, ad);
+        vthis = declareThis(sc2, ad, &objc.vcmd);
 
         // Declare hidden variable _arguments[] and _argptr
         if (f->varargs == 1)
@@ -2240,7 +2262,7 @@ bool FuncDeclaration::functionSemantic3()
     return true;
 }
 
-VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad)
+VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad, VarDeclaration** vobjccmd)
 {
     if (ad && !isFuncLiteralDeclaration())
     {
@@ -2258,6 +2280,7 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
             if (!sc->insert(v))
                 assert(0);
             v->parent = this;
+            objc_FuncDeclaration_declareThis(this, sc, vobjccmd, v);
             return v;
         }
     }
@@ -3271,6 +3294,10 @@ AggregateDeclaration *FuncDeclaration::isThis()
     {
         ad = isMember2();
     }
+    else if (objc.selector) // static Objective-C functions
+    {
+        objc_FuncDeclaration_isThis(this, ad);
+    }
     //printf("-FuncDeclaration::isThis() %p\n", ad);
     return ad;
 }
@@ -3438,6 +3465,11 @@ bool FuncDeclaration::isVirtual()
         p->isClassDeclaration() &&
         !(p->isInterfaceDeclaration() && isFinalFunc()));
 #endif
+
+    bool result;
+    if (objc_FuncDeclaration_isVirtual(this, p, result) == CFreturn)
+        return result;
+
     return isMember() &&
         !(isStatic() || protection.kind == PROTprivate || protection.kind == PROTpackage) &&
         p->isClassDeclaration() &&
@@ -3804,23 +3836,27 @@ bool FuncDeclaration::addPreInvariant()
 {
     AggregateDeclaration *ad = isThis();
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
+
+    bool objcCond = objc_FuncDeclaration_objcPreinitInvariant(this);
+
     return (ad && !(cd && cd->isCPPclass()) &&
             global.params.useInvariants &&
             (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
-            !naked &&
-            ident != Id::cpctor);
+            !naked && objcCond && ident != Id::cpctor);
 }
 
 bool FuncDeclaration::addPostInvariant()
 {
     AggregateDeclaration *ad = isThis();
     ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
+
+    bool objcCond = objc_FuncDeclaration_objcPreinitInvariant(this);
+
     return (ad && !(cd && cd->isCPPclass()) &&
             ad->inv &&
             global.params.useInvariants &&
             (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
-            !naked &&
-            ident != Id::cpctor);
+            !naked && objcCond && ident != Id::cpctor);
 }
 
 /********************************************************
@@ -3895,6 +3931,13 @@ Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vt
 /**********************************
  * Generate a FuncDeclaration for a runtime library function.
  */
+
+FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, const char *name, Type *param1, StorageClass stc)
+{
+    Parameters *fparams = new Parameters();
+    fparams->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+    return genCfunc(fparams, treturn, name, stc);
+}
 
 FuncDeclaration *FuncDeclaration::genCfunc(Parameters *fparams, Type *treturn, const char *name, StorageClass stc)
 {
@@ -4226,7 +4269,6 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
         *pvarargs = fvarargs;
     return fparameters;
 }
-
 
 /****************************** FuncAliasDeclaration ************************/
 

@@ -44,7 +44,7 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
 
     public:
         CanThrow(FuncDeclaration *func, bool mustNotThrow)
-            : func(func), mustNotThrow(mustNotThrow)
+        : func(func), mustNotThrow(mustNotThrow)
         {
         }
 

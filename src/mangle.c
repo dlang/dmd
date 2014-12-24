@@ -46,6 +46,7 @@ void initTypeMangle()
     mangleChar[Tstruct] = 'S';
     mangleChar[Tenum] = 'E';
     mangleChar[Tdelegate] = 'D';
+    mangleChar[Tobjcselector] = '@';
 
     mangleChar[Tnone] = 'n';
     mangleChar[Tvoid] = 'v';
@@ -226,6 +227,7 @@ public:
             case LINKwindows:       mc = 'W';       break;
             case LINKpascal:        mc = 'V';       break;
             case LINKcpp:           mc = 'R';       break;
+            case LINKobjc:          mc = 'Y';       break;
             default:
                 assert(0);
         }
@@ -411,6 +413,7 @@ public:
                 case LINKc:
                 case LINKwindows:
                 case LINKpascal:
+                case LINKobjc:
                     buf->writestring(d->ident->toChars());
                     return;
 

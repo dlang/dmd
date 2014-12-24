@@ -2211,6 +2211,10 @@ public:
         result->type = e->type;
     }
 
+    void visit(ObjcSelectorExp *e)
+    {
+        objc_interpret_visit_ObjcSelectorExp(e, result);
+    }
 
     // -------------------------------------------------------------
     //         Remove out, ref, and this

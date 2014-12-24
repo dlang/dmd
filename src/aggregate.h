@@ -159,6 +159,7 @@ public:
 
     structalign_t alignment;    // alignment applied outside of the struct
     StructPOD ispod;            // if struct is POD
+    Objc_StructDeclaration objc;
 
     // For 64 bit Efl function call/return ABI
     Type *arg1type;
@@ -267,6 +268,7 @@ public:
     Semantic doAncestorsSemantic;       // Before searching symbol, whole ancestors should finish
                                         // calling semantic() at least once, due to fill symtab
                                         // and do addMember(). [== Semantic(Start,In,Done)]
+    Objc_ClassDeclaration objc;
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject = false);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -291,6 +293,7 @@ public:
     const char *kind();
 
     void addLocalClass(ClassDeclarations *);
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
 
     // Back end
     void toObjFile(bool multiobj);                       // compile to .obj file
@@ -315,6 +318,8 @@ public:
     int vtblOffset();
     bool isCPPinterface();
     bool isCOMinterface();
+
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
 
     void toObjFile(bool multiobj);                       // compile to .obj file
 

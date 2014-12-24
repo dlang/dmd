@@ -313,6 +313,11 @@ public:
         cost = COST_MAX;
     }
 
+    void visit(ObjcSelectorExp *e)
+    {
+        objc_inline_visit_ObjcSelectorExp(cost);
+    }
+
     void visit(DeclarationExp *e)
     {
         //printf("DeclarationExp::inlineCost3()\n");

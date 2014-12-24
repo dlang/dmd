@@ -143,3 +143,4 @@ bool walkPostorder(Expression *e, StoppableVisitor *v)
     e->accept(&pv);
     return v->stop;
 }
+

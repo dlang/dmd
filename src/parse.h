@@ -19,6 +19,7 @@
 #include "arraytypes.h"
 #include "lexer.h"
 #include "enum.h"
+#include "objc.h"
 
 class Type;
 class TypeQualified;

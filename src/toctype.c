@@ -106,6 +106,11 @@ public:
         t->ctype = type_delegate(Type_toCtype(t->next));
     }
 
+    void visit(TypeObjcSelector *t)
+    {
+        objc_Type_toCtype_visit_TypeObjcSelector(t);
+    }
+
     void visit(TypeStruct *t)
     {
         //printf("TypeStruct::toCtype() '%s'\n", t->sym->toChars());

@@ -80,7 +80,11 @@ void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
  *      s               symbol to be initialized
  */
 
+#if MACHOBJ
+void outdata(symbol *s, int noalign)
+#else
 void outdata(symbol *s)
+#endif
 {
 #if HTOD
     return;
@@ -187,7 +191,11 @@ void outdata(symbol *s)
                         case mTYthread:
                         {   seg_data *pseg = objmod->tlsseg_bss();
                             s->Sseg = pseg->SDseg;
+#if MACHOBJ
+                            objmod->data_start(s, datasize, pseg->SDseg, noalign);
+#else
                             objmod->data_start(s, datasize, pseg->SDseg);
+#endif
 #if ELFOBJ || MACHOBJ
                             objmod->lidata(pseg->SDseg, pseg->SDoffset, datasize);
 #endif
@@ -202,7 +210,11 @@ void outdata(symbol *s)
                         }
                         default:
                             s->Sseg = UDATA;
+#if MACHOBJ
+                            objmod->data_start(s,datasize,UDATA,noalign);
+#else
                             objmod->data_start(s,datasize,UDATA);
+#endif
                             objmod->lidata(s->Sseg,s->Soffset,datasize);
                             s->Sfl = FLudata;           // uninitialized data
                             break;
@@ -302,7 +314,11 @@ void outdata(symbol *s)
         {
             seg_data *pseg = objmod->tlsseg();
             s->Sseg = pseg->SDseg;
+#if MACHOBJ
+            objmod->data_start(s, datasize, s->Sseg, noalign);
+#else
             objmod->data_start(s, datasize, s->Sseg);
+#endif
             seg = pseg->SDseg;
             s->Sfl = FLtlsdata;
             break;
@@ -313,7 +329,11 @@ void outdata(symbol *s)
                 s->Sseg == 0 ||
                 s->Sseg == UNKNOWN)
                 s->Sseg = DATA;
+#if MACHOBJ
+            seg = objmod->data_start(s,datasize,DATA,noalign);
+#else
             seg = objmod->data_start(s,datasize,DATA);
+#endif
             s->Sfl = FLdata;            // initialized data
             break;
         default:

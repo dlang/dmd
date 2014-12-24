@@ -69,6 +69,9 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
     Type *t = e1->type->toBasetype();
     //printf("e1->type = %s, var->type = %s\n", e1->type->toChars(), var->type->toChars());
 
+    if (objc_getRightThis(ad, e1, var) == CFgoto)
+        goto Lend;
+
     /* If e1 is not the 'this' pointer for ad
      */
     if (ad &&
@@ -148,6 +151,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
             return new ErrorExp();
         }
     }
+Lend:
     return e1;
 }
 
@@ -941,7 +945,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
  * Perform semantic() on an array of Expressions.
  */
 
-bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
+bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors)
 {
     bool err = false;
     if (exps)
@@ -954,7 +958,7 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
                 e = e->semantic(sc);
                 if (e->op == TOKerror)
                     err = true;
-                else
+                if (preserveErrors || e->op != TOKerror)
                     (*exps)[i] = e;
             }
         }
@@ -3694,78 +3698,84 @@ Expression *StringExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("StringExp::semantic() %s\n", toChars());
 #endif
-    if (type)
-        return this;
-
-    OutBuffer buffer;
-    size_t newlen = 0;
-    const char *p;
-    size_t u;
-    unsigned c;
-
-    switch (postfix)
+    if (!type)
     {
-        case 'd':
-            for (u = 0; u < len;)
-            {
-                p = utf_decodeChar((utf8_t *)string, len, &u, &c);
-                if (p)
-                {
-                    error("%s", p);
-                    return new ErrorExp();
-                }
-                else
-                {
-                    buffer.write4(c);
-                    newlen++;
-                }
-            }
-            buffer.write4(0);
-            string = buffer.extractData();
-            len = newlen;
-            sz = 4;
-            //type = new TypeSArray(Type::tdchar, new IntegerExp(loc, len, Type::tindex));
-            type = new TypeDArray(Type::tdchar->immutableOf());
-            committed = 1;
-            break;
+        OutBuffer buffer;
+        size_t newlen = 0;
+        const char *p;
+        size_t u;
+        unsigned c;
 
-        case 'w':
-            for (u = 0; u < len;)
-            {
-                p = utf_decodeChar((utf8_t *)string, len, &u, &c);
-                if (p)
+        switch (postfix)
+        {
+            case 'd':
+                for (u = 0; u < len;)
                 {
-                    error("%s", p);
-                    return new ErrorExp();
-                }
-                else
-                {
-                    buffer.writeUTF16(c);
-                    newlen++;
-                    if (c >= 0x10000)
+                    p = utf_decodeChar((utf8_t *)string, len, &u, &c);
+                    if (p)
+                    {
+                        error("%s", p);
+                        return new ErrorExp();
+                    }
+                    else
+                    {
+                        buffer.write4(c);
                         newlen++;
+                    }
                 }
-            }
-            buffer.writeUTF16(0);
-            string = buffer.extractData();
-            len = newlen;
-            sz = 2;
-            //type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
-            type = new TypeDArray(Type::twchar->immutableOf());
-            committed = 1;
-            break;
+                buffer.write4(0);
+                string = buffer.extractData();
+                len = newlen;
+                sz = 4;
+                //type = new TypeSArray(Type::tdchar, new IntegerExp(loc, len, Type::tindex));
+                type = new TypeDArray(Type::tdchar->immutableOf());
+                committed = 1;
+                break;
 
-        case 'c':
-            committed = 1;
-        default:
-            //type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
-            type = new TypeDArray(Type::tchar->immutableOf());
-            break;
+            case 'w':
+                for (u = 0; u < len;)
+                {
+                    p = utf_decodeChar((utf8_t *)string, len, &u, &c);
+                    if (p)
+                    {
+                        error("%s", p);
+                        return new ErrorExp();
+                    }
+                    else
+                    {
+                        buffer.writeUTF16(c);
+                        newlen++;
+                        if (c >= 0x10000)
+                            newlen++;
+                    }
+                }
+                buffer.writeUTF16(0);
+                string = buffer.extractData();
+                len = newlen;
+                sz = 2;
+                //type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
+                type = new TypeDArray(Type::twchar->immutableOf());
+                committed = 1;
+                break;
+
+            case 'c':
+                committed = 1;
+            default:
+                //type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
+                type = new TypeDArray(Type::tchar->immutableOf());
+                break;
+        }
+
+        type = type->semantic(loc, sc);
+        //type = type->immutableOf();
+        //printf("type = %s\n", type->toChars());
     }
-    type = type->semantic(loc, sc);
-    //type = type->immutableOf();
-    //printf("type = %s\n", type->toChars());
-
+    else if (type && type->ty == Tclass && !committed)
+    {
+        Expression* error;
+        if (objc_StringExp_semantic(this, error) == CFreturn)
+            return error;
+    }
     return this;
 }
 
@@ -4619,6 +4629,7 @@ NewExp::NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
     argprefix = NULL;
     member = NULL;
     allocator = NULL;
+    objcalloc = NULL;
     onstack = 0;
 }
 
@@ -4837,7 +4848,12 @@ Lagain:
             }
         }
 
-        if (cd->aggNew)
+        if (cd->objc.objc)
+        {
+            if (objc_NewExp_semantic_alloc(this, sc, cd) == CFgoto)
+                goto Lerr;
+        }
+        else if (cd->aggNew)
         {
             // Prepend the size argument to newargs[]
             Expression *e = new IntegerExp(loc, cd->size(loc), Type::tsize_t);
@@ -6217,6 +6233,15 @@ Expression *IsExp::semantic(Scope *sc)
                 tded = ((TypeDelegate *)targ)->next;    // the underlying function type
                 break;
 
+            case TOKobjcselector:
+            {
+                ControlFlow cf = objc_IsExp_semantic_TOKobjcselector(this, tded);
+                if (cf == CFgoto)
+                    goto Lno;
+                else if (cf == CFbreak)
+                    break;
+            }
+
             case TOKfunction:
             case TOKparameters:
             {
@@ -6249,6 +6274,7 @@ Expression *IsExp::semantic(Scope *sc)
                 break;
             }
             case TOKreturn:
+            {
                 /* Get the 'return type' for the function,
                  * delegate, or pointer to function.
                  */
@@ -6259,6 +6285,10 @@ Expression *IsExp::semantic(Scope *sc)
                     tded = ((TypeDelegate *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
+                else if (targ->ty == Tobjcselector)
+                {
+                    objc_IsExp_semantic_TOKreturn_selector(this, tded);
+                }
                 else if (targ->ty == Tpointer &&
                          ((TypePointer *)targ)->next->ty == Tfunction)
                 {
@@ -6268,6 +6298,7 @@ Expression *IsExp::semantic(Scope *sc)
                 else
                     goto Lno;
                 break;
+            }
 
             case TOKargTypes:
                 /* Generate a type tuple of the equivalent types used to determine if a
@@ -8008,6 +8039,7 @@ CallExp::CallExp(Loc loc, Expression *e, Expressions *exps)
 {
     this->arguments = exps;
     this->f = NULL;
+    this->argument0 = NULL;
 }
 
 CallExp::CallExp(Loc loc, Expression *e)
@@ -8441,6 +8473,10 @@ Lagain:
             e = e->semantic(sc);
             return e;
         }
+        else if (t1->ty == Tobjcselector)
+        {
+            objc_CallExp_semantic_opOverload_selector(this, sc, t1);
+        }
     }
 
     if (e1->op == TOKdotvar && t1->ty == Tfunction ||
@@ -8544,6 +8580,7 @@ Lagain:
             // See if we need to adjust the 'this' pointer
             AggregateDeclaration *ad = f->isThis();
             ClassDeclaration *cd = ue->e1->type->isClassHandle();
+
             if (ad && cd && ad->isClassDeclaration() && ad != cd &&
                 ue->e1->op != TOKsuper)
             {
@@ -8710,6 +8747,10 @@ Lagain:
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
             p = "delegate";
+        }
+        else if (t1->ty == Tobjcselector)
+        {
+            objc_CallExp_semantic_noFunction_selector(t1, tf, p);
         }
         else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
         {
@@ -9088,8 +9129,15 @@ Expression *AddrExp::semantic(Scope *sc)
                 f->tookAddressOf++;
 
             Expression *e;
-            if ( f->needThis())
-                e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
+            if (f->needThis())
+            {
+                if (f->objc.selector)
+                {
+                    e = objc_AddrExp_semantic_TOKdotvar_selector(this, dve, f);
+                }
+                else
+                    e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
+            }
             else // It is a function pointer. Convert &v.f() --> (v, &V.f())
                 e = new CommaExp(loc, dve->e1, new AddrExp(loc, new VarExp(loc, f)));
             e = e->semantic(sc);
@@ -9148,7 +9196,11 @@ Expression *AddrExp::semantic(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
-            if (f->needThis() && hasThis(sc))
+            if (f->needThis() && f->objc.selector)
+            {
+                return objc_AddrExp_semantic_TOKvar_selector(this, sc, ve, f);
+            }
+            else if (f->needThis() && hasThis(sc))
             {
                 /* Should probably supply 'this' after overload resolution,
                  * not before.
@@ -9646,8 +9698,10 @@ Expression *CastExp::semantic(Scope *sc)
                 goto Lfail;
         }
 
-        if ((t1b->ty == Tarray || t1b->ty == Tsarray) && tob->ty == Tclass)
-            goto Lfail;
+        if ((t1b->ty == Tarray || t1b->ty == Tsarray) && tob->ty == Tclass &&
+            !(((TypeClass *)tob)->sym->objc.objc &&
+            ((TypeClass *)tob)->sym->objc.takesStringLiteral))
+                goto Lfail;
 
         // Look for casting to a vector type
         if (tob->ty == Tvector && t1b->ty != Tvector)
