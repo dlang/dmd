@@ -5044,7 +5044,7 @@ public:
             {
                 VarDeclaration *vthis = ((SymOffExp *)pthis)->var->isVarDeclaration();
                 assert(vthis);
-                pthis = getVarExp(e->loc, istate, vthis, ctfeNeedLvalue/*ctfeNeedRvalue?*/);
+                pthis = getVarExp(e->loc, istate, vthis, ctfeNeedLvalue);
                 if (exceptionOrCant(pthis))
                     return;
             }
