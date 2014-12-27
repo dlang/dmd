@@ -69,7 +69,7 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc
     /* Construct the function
      */
     TypeFunction *ftype = new TypeFunction(fparams, exp->type, 0, LINKc, stc);
-    //printf("ftype: %s\n", ftype->toChars());
+    //printf("fd: %s %s\n", ident->toChars(), ftype->toChars());
     FuncDeclaration *fd = new FuncDeclaration(Loc(), Loc(), ident, STCundefined, ftype);
     fd->fbody = fbody;
     fd->protection = Prot(PROTpublic);
@@ -367,8 +367,31 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
             }
             if (s)
             {
+                Type *tb = e->type->toBasetype();
+                Type *t1 = e->e1->type->toBasetype();
+                Type *t2 = e->e2->type->toBasetype();
                 e->e1->accept(this);
+                if (t1->ty == Tarray &&
+                    (t2->ty == Tarray && !t1->equivalent(tb) ||
+                     t2->ty != Tarray && !t1->nextOf()->equivalent(e->e2->type)))
+                {
+                    // Bugzilla 12780: if A is narrower than B
+                    //  A[] op B[]
+                    //  A[] op B
+                    buf->writestring("Of");
+                    buf->writestring(t1->nextOf()->mutableOf()->deco);
+                }
                 e->e2->accept(this);
+                if (t2->ty == Tarray &&
+                    (t1->ty == Tarray && !t2->equivalent(tb) ||
+                     t1->ty != Tarray && !t2->nextOf()->equivalent(e->e1->type)))
+                {
+                    // Bugzilla 12780: if B is narrower than A:
+                    //  A[] op B[]
+                    //  A op B[]
+                    buf->writestring("Of");
+                    buf->writestring(t2->nextOf()->mutableOf()->deco);
+                }
                 buf->writestring(s);
             }
             else

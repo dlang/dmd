@@ -781,6 +781,60 @@ void test12179()
 }
 
 /************************************************************************/
+// 12780
+
+void test12780()
+{
+    int ival = 2;
+    int[] iarr = [1, 2, 3];
+    double dval = 2.0;
+    double[] darr = [4, 5, 6];
+
+    double[] oarr = [0, 0, 0];
+
+    // multiply array operations
+    oarr[] = dval * iarr[];
+    assert(oarr == [dval * iarr[0],
+                    dval * iarr[1],
+                    dval * iarr[2]]);
+
+    oarr[] = iarr[] / dval;
+    assert(oarr == [iarr[0] / dval,
+                    iarr[1] / dval,
+                    iarr[2] / dval]);
+
+    oarr[] = dval * (ival + iarr[]);
+    assert(oarr == [dval * (ival + iarr[0]),
+                    dval * (ival + iarr[1]),
+                    dval * (ival + iarr[2])]);
+
+    oarr[] = (iarr[] & ival) / dval;
+    assert(oarr == [(iarr[0] & ival) / dval,
+                    (iarr[1] & ival) / dval,
+                    (iarr[2] & ival) / dval]);
+
+    oarr[] = darr[] + iarr[];
+    assert(oarr == [darr[0] + iarr[0],
+                    darr[1] + iarr[1],
+                    darr[2] + iarr[2]]);
+
+    oarr[] = iarr[] - darr[];
+    assert(oarr == [iarr[0] - darr[0],
+                    iarr[1] - darr[1],
+                    iarr[2] - darr[2]]);
+
+    oarr[] = darr[] * (ival & iarr[]);
+    assert(oarr == [darr[0] * (ival & iarr[0]),
+                    darr[1] * (ival & iarr[1]),
+                    darr[2] * (ival & iarr[2])]);
+
+    oarr[] = (iarr[] ^ ival) / darr[];
+    assert(oarr == [(iarr[0] ^ ival) / darr[0],
+                    (iarr[1] ^ ival) / darr[1],
+                    (iarr[2] ^ ival) / darr[2]]);
+}
+
+/************************************************************************/
 // 13497
 
 void test13497()
@@ -810,6 +864,7 @@ int main()
     test10684b();
     test11525();
     test12250();
+    test12780();
     test13497();
 
     printf("Success\n");
