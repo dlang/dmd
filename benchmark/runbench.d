@@ -5,7 +5,7 @@
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Martin Nowak
  */
-import std.ascii, std.datetime, std.exception, std.file, std.path,
+import std.ascii, std.exception, std.file, std.path,
     std.process, std.regex, std.stdio, std.string, std.typecons;
 
 // cmdline flags
@@ -32,10 +32,12 @@ void runTest(string pattern, string dmd, string dflags)
         }
     }
 
+    immutable bindir = absolutePath("bin");
+
     foreach(ref src; sources)
     {
         writeln("COMPILING ", src);
-        auto bin = buildPath(absolutePath("bin"), src.chompPrefix("./").chomp(".d"));
+        auto bin = buildPath(bindir, src.chompPrefix("./").chomp(".d"));
         auto cmd = std.string.format("%s %s -op -odobj -of%s %s", dmd, dflags, bin, src);
         runCmd(cmd);
         src = bin;
@@ -43,16 +45,20 @@ void runTest(string pattern, string dmd, string dflags)
 
     foreach(bin; sources)
     {
-        StopWatch sw;
+        import std.datetime, std.algorithm : min;
+        auto sw = StopWatch(AutoStart.yes);
+        auto dur = Duration.max;
 
-        writeln("RUNNING ", baseName(bin));
-        sw.start;
-        runCmd(bin);
-        sw.stop;
-
-        auto p = sw.peek;
-        writefln("  took %s.%s sec.", p.seconds, p.msecs % 1000);
-        sw.reset;
+        stdout.writef("RUNNING %-20s", bin.relativePath(bindir));
+        stdout.flush();
+        foreach (_; 0 .. 10)
+        {
+            sw.reset;
+            runCmd(bin);
+            dur = min(dur, cast(Duration)sw.peek);
+        }
+        auto res = dur.split!("seconds", "msecs");
+        writefln(" %s.%03s s", res.seconds, res.msecs);
     }
 }
 
