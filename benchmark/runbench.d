@@ -5,14 +5,15 @@
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Martin Nowak
  */
-import std.ascii, std.exception, std.file, std.path,
-    std.process, std.regex, std.stdio, std.string, std.typecons;
+import std.stdio;
 
 // cmdline flags
 bool verbose;
 
 void runCmd(string cmd)
 {
+    import std.exception : enforce;
+    import std.process : system;
     if (verbose)
         writeln(cmd);
     enforce(!system(cmd));
@@ -20,6 +21,8 @@ void runCmd(string cmd)
 
 void runTest(string pattern, string dmd, string dflags)
 {
+    import std.file, std.path, std.regex, std.string;
+
     string[] sources;
     auto re = regex(pattern, "g");
     auto self = buildPath(".", "runbench.d");
@@ -64,6 +67,7 @@ void runTest(string pattern, string dmd, string dflags)
 
 void printHelp()
 {
+    import std.ascii : newline;
     auto helpString =
         "usage: runbench [<tests>] [<dflags>] [-v|--verbose]"~newline~newline~
 
@@ -101,8 +105,8 @@ void main(string[] args)
     if (!dflags.length)
         dflags = "-O -release -inline";
 
-    auto dmd = getenv("DMD");
-    if (!dmd.length) dmd = "dmd";
+    import std.process : env=environment;
+    auto dmd = env.get("DMD", "dmd");
 
     foreach(p; patterns)
         runTest(p, dmd, dflags);
