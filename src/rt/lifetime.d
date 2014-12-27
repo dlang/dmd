@@ -1364,15 +1364,7 @@ body
                             }
 
                             // couldn't do it, reallocate
-                            info = GC.qalloc(newsize + LARGEPAD, info.attr);
-                            __setArrayAllocLength(info, newsize, isshared);
-                            if(!isshared)
-                                __insertBlkInfoCache(info, bic);
-                            newdata = cast(byte *)(info.base + LARGEPREFIX);
-                            newdata[0 .. size] = (*p).ptr[0 .. size];
-
-                            // do postblit processing
-                            __doPostblit(newdata, size, ti.next);
+                            goto L2;
                         }
                         else if(!isshared && !bic)
                         {
@@ -1383,7 +1375,6 @@ body
                     else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
                     {
                         // could not resize in place
-                        info = GC.qalloc(newsize + __arrayPad(newsize), info.attr);
                         goto L2;
                     }
                     else if(!isshared && !bic)
@@ -1394,8 +1385,15 @@ body
                 }
                 else
                 {
-                    info = GC.qalloc(newsize + __arrayPad(newsize), (info.base ? info.attr : !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE);
+                    if(info.base)
+                    {
                 L2:
+                        info = GC.qalloc(newsize + __arrayPad(newsize), info.attr);
+                    }
+                    else
+                    {
+                        info = GC.qalloc(newsize + __arrayPad(newsize), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE);
+                    }
                     __setArrayAllocLength(info, newsize, isshared);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
@@ -1543,15 +1541,7 @@ body
                             }
 
                             // couldn't do it, reallocate
-                            info = GC.qalloc(newsize + LARGEPAD, info.attr);
-                            __setArrayAllocLength(info, newsize, isshared);
-                            if(!isshared)
-                                __insertBlkInfoCache(info, bic);
-                            newdata = cast(byte *)(info.base + LARGEPREFIX);
-                            newdata[0 .. size] = (*p).ptr[0 .. size];
-
-                            // do postblit processing
-                            __doPostblit(newdata, size, ti.next);
+                            goto L2;
                         }
                         else if(!isshared && !bic)
                         {
@@ -1562,8 +1552,6 @@ body
                     else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
                     {
                         // could not resize in place
-                        info = GC.qalloc(newsize + __arrayPad(newsize), info.attr);
-                        // goto sucks, but this is for optimization.
                         goto L2;
                     }
                     else if(!isshared && !bic)
@@ -1575,8 +1563,15 @@ body
                 else
                 {
                     // not appendable or not part of the heap yet.
-                    info = GC.qalloc(newsize + __arrayPad(newsize), (info.base ? info.attr : !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE);
+                    if(info.base)
+                    {
                 L2:
+                        info = GC.qalloc(newsize + __arrayPad(newsize), info.attr);
+                    }
+                    else
+                    {
+                        info = GC.qalloc(newsize + __arrayPad(newsize), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE);
+                    }
                     __setArrayAllocLength(info, newsize, isshared);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
@@ -1790,6 +1785,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
     auto newlength = length + n;
     auto newsize = newlength * sizeelem;
     auto size = length * sizeelem;
+    size_t newcap = void; // for scratch space
 
     // calculate the extent of the array given the base.
     size_t offset = px.ptr - __arrayStart(info);
@@ -1802,7 +1798,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
             {
                 // check to see if it failed because there is not
                 // enough space
-                auto newcap = newCapacity(newlength, sizeelem);
+                newcap = newCapacity(newlength, sizeelem);
                 if(*(cast(size_t*)info.base) == size + offset)
                 {
                     // not enough space, try extending
@@ -1823,15 +1819,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
                 }
 
                 // couldn't do it, reallocate
-                info = GC.qalloc(newcap + LARGEPAD, info.attr);
-                __setArrayAllocLength(info, newsize, isshared);
-                if(!isshared)
-                    __insertBlkInfoCache(info, bic);
-                auto newdata = cast(byte *)info.base + LARGEPREFIX;
-                memcpy(newdata, px.ptr, length * sizeelem);
-                // do postblit processing
-                __doPostblit(newdata, length * sizeelem, ti.next);
-                (cast(void **)(&px))[1] = newdata;
+                goto L2;
             }
             else if(!isshared && !bic)
             {
@@ -1841,8 +1829,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
         else if(!__setArrayAllocLength(info, newsize + offset, isshared, size + offset))
         {
             // could not resize in place
-            auto allocsize = newCapacity(newlength, sizeelem);
-            info = GC.qalloc(allocsize + __arrayPad(allocsize), info.attr);
+            newcap = newCapacity(newlength, sizeelem);
             goto L2;
         }
         else if(!isshared && !bic)
@@ -1853,11 +1840,16 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
     else
     {
         // not appendable or is null
+        newcap = newCapacity(newlength, sizeelem);
+        if(info.base)
         {
-            auto allocsize = newCapacity(newlength, sizeelem);
-            info = GC.qalloc(allocsize + __arrayPad(allocsize), (info.base ? info.attr : !(ti.next.flags & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE);
-        }
     L2:
+            info = GC.qalloc(newcap + __arrayPad(newcap), info.attr);
+        }
+        else
+        {
+            info = GC.qalloc(newcap + __arrayPad(newcap), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE);
+        }
         __setArrayAllocLength(info, newsize, isshared);
         if(!isshared)
             __insertBlkInfoCache(info, bic);
@@ -2404,4 +2396,49 @@ unittest
     catch(OutOfMemoryError)
     {
     }
+}
+
+unittest
+{
+    // bugzilla 13854
+    auto arr = new ubyte[PAGESIZE]; // ensure page size
+    auto info1 = GC.query(arr.ptr);
+    assert(info1.base !is arr.ptr); // offset is required for page size or larger
+
+    auto arr2 = arr[0..1];
+    assert(arr2.capacity == 0); // cannot append
+    arr2 ~= 0; // add a byte
+    assert(arr2.ptr !is arr.ptr); // reallocated
+    auto info2 = GC.query(arr2.ptr);
+    assert(info2.base is arr2.ptr); // no offset, the capacity is small.
+
+    // do the same via setting length
+    arr2 = arr[0..1];
+    assert(arr2.capacity == 0);
+    arr2.length += 1;
+    assert(arr2.ptr !is arr.ptr); // reallocated
+    info2 = GC.query(arr2.ptr);
+    assert(info2.base is arr2.ptr); // no offset, the capacity is small.
+
+    // do the same for char[] since we need a type with an initializer to test certain runtime functions
+    auto carr = new char[PAGESIZE];
+    info1 = GC.query(carr.ptr);
+    assert(info1.base !is carr.ptr); // offset is required for page size or larger
+
+    auto carr2 = carr[0..1];
+    assert(carr2.capacity == 0); // cannot append
+    carr2 ~= 0; // add a byte
+    assert(carr2.ptr !is carr.ptr); // reallocated
+    info2 = GC.query(carr2.ptr);
+    assert(info2.base is carr2.ptr); // no offset, the capacity is small.
+
+    // do the same via setting length
+    carr2 = carr[0..1];
+    assert(carr2.capacity == 0);
+    carr2.length += 1;
+    assert(carr2.ptr !is carr.ptr); // reallocated
+    info2 = GC.query(carr2.ptr);
+    assert(info2.base is carr2.ptr); // no offset, the capacity is small.
+
+
 }
