@@ -1426,7 +1426,7 @@ Lnomatch:
                          */
                          // there is a copy constructor
                          // and exp is the same struct
-                        if (sd->cpctor &&
+                        if (sd->postblit &&
                             tb2->toDsymbol(NULL) == sd)
                         {
                             // The only allowable initializer is a (non-copy) constructor

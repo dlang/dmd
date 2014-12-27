@@ -1368,7 +1368,7 @@ Expression *callCpCtor(Scope *sc, Expression *e)
     if (tv->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)tv)->sym;
-        if (sd->cpctor)
+        if (sd->postblit)
         {
             /* Create a variable tmp, and replace the argument e with:
              *      (tmp = e),tmp
@@ -1376,7 +1376,7 @@ Expression *callCpCtor(Scope *sc, Expression *e)
              * This is not the most efficent, ideally tmp would be constructed
              * directly onto the stack.
              */
-            Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
+            Identifier *idtmp = Lexer::uniqueId("__copytmp");
             VarDeclaration *tmp = new VarDeclaration(e->loc, e->type, idtmp, new ExpInitializer(e->loc, e));
             tmp->storage_class |= STCtemp | STCctfe;
             tmp->noscope = 1;
@@ -11264,7 +11264,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     e = e->semantic(sc);
                     return e;
                 }
-                if (sd->cpctor)
+                if (sd->postblit)
                 {
                     /* We have a copy constructor for this
                      */
@@ -11282,19 +11282,23 @@ Expression *AssignExp::semantic(Scope *sc)
 
                     if (e2x->isLvalue())
                     {
-                        /* Rewrite as:
-                         *  e1.cpctor(e2);
-                         */
                         if (!e2x->type->implicitConvTo(e1x->type))
                         {
                             error("conversion error from %s to %s", e2x->type->toChars(), e1x->type->toChars());
                             return new ErrorExp();
                         }
 
-                        e1x = e1x->copy();
-                        e1x->type = e1x->type->mutableOf();
-                        Expression *e = new DotVarExp(loc, e1x, sd->cpctor, 0);
-                        e = new CallExp(loc, e, e2x);
+                        /* Rewrite as:
+                         *  (e1 = e2).postblit();
+                         *
+                         * Blit assignment e1 = e2 returns a reference to the original e1,
+                         * then call the postblit on it.
+                         */
+                        Expression *e = e1x->copy();
+                        e->type = e->type->mutableOf();
+                        e = new BlitExp(loc, e, e2x);
+                        e = new DotVarExp(loc, e, sd->postblit, 0);
+                        e = new CallExp(loc, e);
                         return e->semantic(sc);
                     }
                     else

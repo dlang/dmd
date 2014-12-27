@@ -2176,7 +2176,7 @@ TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len)
 bool isReservedName(utf8_t *str, size_t len)
 {
     static const char *table[] = {
-        "__ctor", "__dtor", "__cpctor", "__postblit", "__invariant", "__unitTest",
+        "__ctor", "__dtor", "__postblit", "__invariant", "__unitTest",
         "__require", "__ensure", "__dollar", "__ctfe", "__withSym", "__result",
         "__returnLabel", "__vptr", "__monitor", "__gate", "__xopEquals", "__xopCmp",
         "__LINE__", "__FILE__", "__MODULE__", "__FUNCTION__", "__PRETTY_FUNCTION__",

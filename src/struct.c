@@ -640,7 +640,6 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     zeroInit = 0;       // assume false until we do semantic processing
     hasIdentityAssign = false;
     hasIdentityEquals = false;
-    cpctor = NULL;
     postblit = NULL;
 
     xeq = NULL;
@@ -842,7 +841,6 @@ void StructDeclaration::semantic(Scope *sc)
 
     dtor = buildDtor(this, sc2);
     postblit = buildPostBlit(this, sc2);
-    cpctor = buildCpCtor(this, sc2);
 
     buildOpAssign(this, sc2);
     buildOpEquals(this, sc2);
@@ -1230,7 +1228,7 @@ bool StructDeclaration::isPOD()
 
     ispod = ISPODyes;
 
-    if (enclosing || cpctor || postblit || dtor)
+    if (enclosing || postblit || dtor)
         ispod = ISPODno;
 
     // Recursively check all fields are POD.

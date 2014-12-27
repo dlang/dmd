@@ -37,7 +37,6 @@ Msgtable msgtable[] =
     { "super" },
     { "ctor", "__ctor" },
     { "dtor", "__dtor" },
-    { "cpctor", "__cpctor" },
     { "_postblit", "__postblit" },
     { "classInvariant", "__invariant" },
     { "unitTest", "__unitTest" },

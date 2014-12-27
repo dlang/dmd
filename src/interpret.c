@@ -3842,6 +3842,9 @@ public:
                     assignInPlace(getValue(v), newval);
                 else
                     setValue(v, newval);
+
+                // Blit assignment should return the newly created value.
+                result = newval;
             }
             else if (t1b->ty == Tsarray)
             {
@@ -4944,15 +4947,6 @@ public:
             while (ex->op == TOKcast)
                 ex = ((CastExp *)ex)->e1;
             directcall = (ex->op == TOKsuper || ex->op == TOKdottype);
-
-            // Special handling for the __cpctor call
-            if (dve->e1->op == TOKvar && dve->var->ident == Id::cpctor)
-            {
-                // In v.__cpctor(rhs), the variable v is not yet initialized.
-                VarDeclaration *v = ((VarExp *)dve->e1)->var->isVarDeclaration();
-                assert(v && dve->var->isFuncDeclaration());
-                setValue(v, voidInitLiteral(dve->e1->type, v).copy());
-            }
         }
         ecall = interpret(ecall, istate);
         if (exceptionOrCant(ecall))
