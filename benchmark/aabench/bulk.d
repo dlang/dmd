@@ -49,7 +49,7 @@ void runTest(V)(ref V v)
         aa[k] = v;
     }
     stop();
-    aa.clear();
+    aa.destroy();
 
     start();
     foreach_reverse(k; 0 .. Size / V.sizeof)
@@ -57,7 +57,7 @@ void runTest(V)(ref V v)
         aa[k] = v;
     }
     stop();
-    aa.clear();
+    aa.destroy();
 
     start();
     foreach(ref k; 0 .. trot * (Size / V.sizeof))

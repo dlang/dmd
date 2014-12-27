@@ -13,10 +13,11 @@ bool verbose;
 void runCmd(string cmd)
 {
     import std.exception : enforce;
-    import std.process : system;
-    if (verbose)
-        writeln(cmd);
-    enforce(!system(cmd));
+    import std.process : executeShell;
+
+    if (verbose) writeln(cmd);
+    auto res = executeShell(cmd);
+    enforce(res.status == 0, res.output);
 }
 
 void runTest(string pattern, string dmd, string dflags)
