@@ -108,6 +108,7 @@ void main(string[] args)
 
     import std.process : env=environment;
     auto dmd = env.get("DMD", "dmd");
+    writeln("compiler: "~dmd~' '~dflags);
 
     foreach(p; patterns)
         runTest(p, dmd, dflags);
