@@ -5,9 +5,6 @@
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:    Martin Nowak
  */
-
-// EXECUTE_ARGS: 20
-
 import std.random, std.typetuple, std.conv;
 
 version (VERBOSE) import std.datetime, std.stdio;
@@ -16,7 +13,7 @@ alias TypeTuple!(ubyte, short, uint, long, void*, Object, ubyte[16], ubyte[64],
                  ubyte[256], ubyte[1024], ubyte[4096], ubyte[16384]
 ) ValueTuple;
 
-size_t Size = 2 ^^ 24;
+size_t Size = 2 ^^ 20;
 size_t trot;
 
 void runTest(V)(ref V v)

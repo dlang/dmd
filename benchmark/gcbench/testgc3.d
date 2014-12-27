@@ -6,16 +6,14 @@
  * A 32-bit process can be sensitive to false pointers as hash values
  * in the AAs can reference arbitrary addresses.
  */
-// EXECUTE_ARGS: 4 200
-
 import std.c.stdio;
 import std.conv;
 import std.exception;
 
 int main(string[] args)
 {
-    int cnt = 1;
-    int num = 1000;
+    int cnt = 4;
+    int num = 200;
     if (args.length > 1)
         cnt = to!int(args[1]);
     if (args.length > 2)
@@ -36,10 +34,8 @@ int main(string[] args)
         sum = 0;
         foreach(s; aa[4711])
             sum += s;
-        printf("finished %lld\n", sum);
         enforce(sum == 4711 * num + 10000 * num * (num - 1) / 2);
         aa[] = null;
     }
     return 0;
 }
-

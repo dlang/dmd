@@ -7,8 +7,6 @@
  * The result is a single linked list of strings referencing the full text.
  * Regarding GC activity, this test probes collection of linked lists.
  */
-// EXECUTE_ARGS: extra-files/dante.txt 100 9767600
-
 import std.stdio;
 import std.conv;
 import std.file;
@@ -23,9 +21,8 @@ struct Node
 
 void main(string[] args)
 {
-    enforce(args.length > 2, "usage: slist <file-name> <iterations> [expected-result]");
-    string txt = cast(string) std.file.read(args[1]);
-    uint cnt = to!uint(args[2]);
+    string txt = cast(string) std.file.read(args.length > 1 ? args[1] : "extra-files/dante.txt");
+    uint cnt = args.length > 2 ? to!uint(args[2]) : 100;
     uint allwords = 0;
     for(uint i = 0; i < cnt; i++)
     {
@@ -42,8 +39,5 @@ void main(string[] args)
         for(Node* p = firstNode; p; p = p.next)
             allwords++;
     }
-    writeln("words: ", allwords);
-
-    if(args.length > 3)
-        enforce(allwords == to!size_t(args[3]));
+    enforce(allwords == (args.length > 3 ? to!size_t(args[3]) : 9767600));
 }
