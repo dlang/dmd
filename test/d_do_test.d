@@ -52,6 +52,7 @@ struct TestArgs
     string   executeArgs;
     string[] sources;
     string[] cppSources;
+    string[] objcSources;
     string   permuteArgs;
     string   compileOutput;
     string   postScript;
@@ -76,6 +77,7 @@ struct EnvData
     string ccompiler;
     string model;
     string required_args;
+    bool dobjc;
 }
 
 bool findTestParameter(string file, string token, ref string result)
@@ -155,7 +157,7 @@ void replaceResultsDir(ref string arguments, const ref EnvData envData)
     arguments = replace(arguments, "${RESULTS_DIR}", envData.results_dir);
 }
 
-void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, const ref EnvData envData)
+bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, const ref EnvData envData)
 {
     string file = cast(string)std.file.read(input_file);
 
@@ -203,6 +205,17 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     foreach(s; split(extraCppSourcesStr))
         testArgs.cppSources ~= s;
 
+    string extraObjcSourcesStr;
+    auto objc = findTestParameter(file, "EXTRA_OBJC_SOURCES", extraObjcSourcesStr);
+
+    if (objc && !envData.dobjc)
+        return false;
+
+    testArgs.objcSources = [];
+    // prepend input_dir to each extra source file
+    foreach(s; split(extraObjcSourcesStr))
+        testArgs.objcSources ~= s;
+
     // swap / with $SEP
     if (envData.sep && envData.sep != "/")
         foreach (ref s; testArgs.sources)
@@ -218,6 +231,8 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     if (findTestParameter(file, "POST_SCRIPT", testArgs.postScript))
         testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
+
+    return true;
 }
 
 string[] combinations(string argstr)
@@ -337,6 +352,45 @@ unittest
         == `fail_compilation\diag.d(2): Error: fail_compilation\imports\fail.d must be imported`);
 }
 
+bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources, ref string[] sources, bool msc, in EnvData envData, in string compiler)
+{
+    foreach (cur; extraSources)
+    {
+        auto curSrc = input_dir ~ envData.sep ~"extra-files" ~ envData.sep ~ cur;
+        auto curObj = output_dir ~ envData.sep ~ cur ~ envData.obj;
+        string command = compiler;
+        if (envData.compiler == "dmd")
+        {
+            if (msc)
+            {
+                command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
+            }
+            else if (envData.os == "win32")
+            {
+                command ~= " -c "~curSrc~" -o"~curObj;
+            }
+            else
+            {
+                command ~= " -m"~envData.model~" -c "~curSrc~" -o "~curObj;
+            }
+        }
+        else
+        {
+            command ~= " -m"~envData.model~" -c "~curSrc~" -o "~curObj;
+        }
+
+        auto rc = system(command);
+        if(rc)
+        {
+            writeln("failed to execute '"~command~"'");
+            return false;
+        }
+        sources ~= curObj;
+    }
+
+    return true;
+}
+
 int main(string[] args)
 {
     if (args.length != 4)
@@ -364,6 +418,7 @@ int main(string[] args)
     envData.ccompiler     = environment.get("CC");
     envData.model         = environment.get("MODEL");
     envData.required_args = environment.get("REQUIRED_ARGS");
+    envData.dobjc         = environment.get("D_OBJC") == "1";
 
     string result_path    = envData.results_dir ~ envData.sep;
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
@@ -375,9 +430,9 @@ int main(string[] args)
 
     switch (input_dir)
     {
-        case "compilable":       testArgs.mode = TestMode.COMPILE;      break;
-        case "fail_compilation": testArgs.mode = TestMode.FAIL_COMPILE; break;
-        case "runnable":         testArgs.mode = TestMode.RUN;          break;
+        case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
+        case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
+        case "runnable":                testArgs.mode = TestMode.RUN;          break;
         default:
             writeln("input_dir must be one of 'compilable', 'fail_compilation', or 'runnable'");
             return 1;
@@ -394,7 +449,8 @@ int main(string[] args)
     }
     bool msc = envData.ccompiler.toLower.endsWith("cl.exe");
 
-    gatherTestParameters(testArgs, input_dir, input_file, envData);
+    if (!gatherTestParameters(testArgs, input_dir, input_file, envData))
+        return 0;
 
     //prepare cpp extra sources
     if (testArgs.cppSources.length)
@@ -415,40 +471,13 @@ int main(string[] args)
                 writeln("unknown compiler: "~envData.compiler);
                 return 1;
         }
-        foreach (cur; testArgs.cppSources)
-        {
-            auto curSrc = input_dir ~ envData.sep ~"extra-files" ~ envData.sep ~ cur;
-            auto curObj = output_dir ~ envData.sep ~ cur ~ envData.obj;
-            string command = envData.ccompiler;
-            if (envData.compiler == "dmd")
-            {
-                if (msc)
-                {
-                    command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
-                }
-                else if (envData.os == "win32")
-                {
-                    command ~= " -c "~curSrc~" -o"~curObj;
-                }
-                else
-                {
-                    command ~= " -m"~envData.model~" -c "~curSrc~" -o "~curObj;
-                }
-            }
-            else
-            {
-                command ~= " -m"~envData.model~" -c "~curSrc~" -o "~curObj;
-            }
-
-            auto rc = system(command);
-            if(rc)
-            {
-                writeln("failed to execute '"~command~"'");
-                return 1;
-            }
-            testArgs.sources ~= curObj;
-        }
+        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, msc, envData, envData.ccompiler))
+            return 1;
     }
+    //prepare objc extra sources
+    if (!collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, msc, envData, "clang"))
+        return 1;
+
     writef(" ... %-30s %s%s(%s)",
             input_file,
             testArgs.requiredArgs,
