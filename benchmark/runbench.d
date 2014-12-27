@@ -95,9 +95,6 @@ void main(string[] args)
     if (!dflags.length)
         dflags = "-O -release -inline";
 
-    if (verbose)
-        dflags ~= " -version=VERBOSE";
-
     auto dmd = getenv("DMD");
     if (!dmd.length) dmd = "dmd";
 
