@@ -21,7 +21,7 @@ string runCmd(string cmd)
     return res.output;
 }
 
-void runTest(string pattern, string dmd, string dflags, string runArgs)
+void runTest(string pattern, string dmd, string dflags, string runArgs, uint repeat)
 {
     import std.algorithm, std.file, std.path, std.regex, std.string;
 
@@ -59,7 +59,7 @@ void runTest(string pattern, string dmd, string dflags, string runArgs)
 
         auto cmd = bin ~ " " ~ runArgs;
         string gcprof;
-        foreach (_; 0 .. 10)
+        foreach (_; 0 .. repeat)
         {
             sw.reset;
             auto output = runCmd(cmd);
@@ -84,7 +84,7 @@ void printHelp()
 {
     import std.ascii : nl=newline;
     auto helpString =
-        "usage: runbench [<test_regex>] [<dflags>] [-h|--help] [-v|--verbose] [-- <runargs>]"~nl~nl~
+        "usage: runbench [<test_regex>] [<dflags>] [-h|--help] [-v|--verbose] [-r n|--repeat=n] [-- <runargs>]"~nl~nl~
 
         "   tests   - Regular expressions to select tests. Default: '.*\\.d'"~nl~
         "   dflags  - Flags passed to compiler. Default: '-O -release -inline'"~nl~
@@ -110,10 +110,11 @@ void main(string[] args)
     }
 
     import std.getopt;
-    bool help;
+    bool help; uint repeat = 10;
     getopt(args, config.passThrough,
            "h|help", &help,
-           "v|verbose", &verbose);
+           "v|verbose", &verbose,
+           "r|repeat", &repeat);
 
     string pattern = r".*\.d";
     if (args.length >= 2)
@@ -132,5 +133,5 @@ void main(string[] args)
     auto dmd = env.get("DMD", "dmd");
     writeln("compiler: "~dmd~' '~dflags);
 
-    runTest(pattern, dmd, dflags, runArgs);
+    runTest(pattern, dmd, dflags, runArgs, repeat);
 }
