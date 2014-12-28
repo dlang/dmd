@@ -55,6 +55,7 @@ void runTest(string pattern, string dmd, string dflags, string runArgs, uint rep
         auto minDur = Duration.max;
 
         stdout.writef("RUNNING %-20s", bin.relativePath(bindir));
+        if (verbose) stdout.writeln();
         stdout.flush();
 
         auto cmd = bin ~ " " ~ runArgs;
@@ -64,6 +65,7 @@ void runTest(string pattern, string dmd, string dflags, string runArgs, uint rep
             sw.reset;
             auto output = runCmd(cmd);
             auto dur = cast(Duration)sw.peek;
+            if (verbose) stdout.write(output);
 
             if (dur >= minDur) continue;
             minDur = dur;
