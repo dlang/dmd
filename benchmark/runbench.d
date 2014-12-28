@@ -10,7 +10,7 @@ import std.stdio;
 // cmdline flags
 bool verbose;
 
-void runCmd(string cmd)
+string runCmd(string cmd)
 {
     import std.exception : enforce;
     import std.process : executeShell;
@@ -18,11 +18,12 @@ void runCmd(string cmd)
     if (verbose) writeln(cmd);
     auto res = executeShell(cmd);
     enforce(res.status == 0, res.output);
+    return res.output;
 }
 
-void runTest(string pattern, string dmd, string dflags)
+void runTest(string pattern, string dmd, string dflags, string runArgs)
 {
-    import std.file, std.path, std.regex, std.string;
+    import std.algorithm, std.file, std.path, std.regex, std.string;
 
     string[] sources;
     auto re = regex(pattern, "g");
@@ -51,29 +52,43 @@ void runTest(string pattern, string dmd, string dflags)
     {
         import std.datetime, std.algorithm : min;
         auto sw = StopWatch(AutoStart.yes);
-        auto dur = Duration.max;
+        auto minDur = Duration.max;
 
         stdout.writef("RUNNING %-20s", bin.relativePath(bindir));
         stdout.flush();
+
+        auto cmd = bin ~ " " ~ runArgs;
+        string gcprof;
         foreach (_; 0 .. 10)
         {
             sw.reset;
-            runCmd(bin);
-            dur = min(dur, cast(Duration)sw.peek);
+            auto output = runCmd(cmd);
+            auto dur = cast(Duration)sw.peek;
+
+            if (dur >= minDur) continue;
+            minDur = dur;
+
+            auto lines = output.splitter(ctRegex!`\r\n|\r|\n`)
+                .find!(ln => ln.startsWith("maxPoolMemory"));
+            if (!lines.empty) gcprof = lines.front;
         }
-        auto res = dur.split!("seconds", "msecs");
-        writefln(" %s.%03s s", res.seconds, res.msecs);
+        auto res = minDur.split!("seconds", "msecs");
+        if (gcprof.length)
+            writefln(" %s.%03s s, %s", res.seconds, res.msecs, gcprof);
+        else
+            writefln(" %s.%03s s", res.seconds, res.msecs, gcprof);
     }
 }
 
 void printHelp()
 {
-    import std.ascii : newline;
+    import std.ascii : nl=newline;
     auto helpString =
-        "usage: runbench [<tests>] [<dflags>] [-v|--verbose]"~newline~newline~
+        "usage: runbench [<test_regex>] [<dflags>] [-h|--help] [-v|--verbose] [-- <runargs>]"~nl~nl~
 
-        "   tests  - List of regular expressions to select tests. Default: '.*\\.d'"~newline~
-        "   dflags - Flags passed to compiler. Default: '-O -release -inline'"~newline~newline~
+        "   tests   - Regular expressions to select tests. Default: '.*\\.d'"~nl~
+        "   dflags  - Flags passed to compiler. Default: '-O -release -inline'"~nl~
+        "   runargs - Arguments passed to each test, e.g. '--DRT-gcopt=profile=1'"~nl~nl~
         "Don't pass any argument to run all tests with optimized builds.";
 
     writeln(helpString);
@@ -81,28 +96,35 @@ void printHelp()
 
 void main(string[] args)
 {
-    string[] patterns;
-    string[] flags;
+    import std.algorithm;
 
-    foreach(arg; args[1 .. $])
+    string runArgs;
     {
-        if (arg == "-v" || arg == "--verbose")
-            verbose = true;
-        else if (arg == "--help")
+        import std.range : only;
+        string[] tmp = args;
+        if (findSkip(tmp, only("--")))
         {
-            printHelp();
-            return;
+            runArgs = std.string.join(tmp, " ");
+            args = args[0 .. $ - 1 - tmp.length];
         }
-        else if (arg.length && arg[0] == '-') // DFLAGS
-            flags ~= arg;
-        else
-            patterns ~= arg;
     }
 
-    if (!patterns.length)
-        patterns ~= r".*\.d";
+    import std.getopt;
+    bool help;
+    getopt(args, config.passThrough,
+           "h|help", &help,
+           "v|verbose", &verbose);
 
-    auto dflags = std.string.join(flags, " ");
+    string pattern = r".*\.d";
+    if (args.length >= 2)
+    {
+        pattern = args[1];
+        args = args.remove(1);
+    }
+
+    if (help) return printHelp();
+
+    auto dflags = std.string.join(args[1 .. $], " ");
     if (!dflags.length)
         dflags = "-O -release -inline";
 
@@ -110,6 +132,5 @@ void main(string[] args)
     auto dmd = env.get("DMD", "dmd");
     writeln("compiler: "~dmd~' '~dflags);
 
-    foreach(p; patterns)
-        runTest(p, dmd, dflags);
+    runTest(pattern, dmd, dflags, runArgs);
 }
