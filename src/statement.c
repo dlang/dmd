@@ -2501,6 +2501,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             if (!cases->dim)
             {
                 // Easy case, a clean exit from the loop
+                e = new CastExp(loc, e, Type::tvoid);   // Bugzilla 13899
                 s = new ExpStatement(loc, e);
             }
             else
