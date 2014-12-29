@@ -29,6 +29,8 @@ void runTests(Config cfg)
 {
     import std.algorithm, std.file, std.path, std.regex, std.string;
 
+    if (exists("gcx.log")) remove("gcx.log");
+
     string[] sources;
     auto re = regex(cfg.pattern, "g");
     auto self = buildPath(".", "runbench.d");
@@ -75,9 +77,19 @@ void runTests(Config cfg)
             if (dur >= minDur) continue;
             minDur = dur;
 
-            auto lines = output.splitter(ctRegex!`\r\n|\r|\n`)
-                .find!(ln => ln.startsWith("maxPoolMemory"));
-            if (!lines.empty) gcprof = lines.front;
+            if (exists("gcx.log"))
+            {
+                auto lines = File("gcx.log", "r").byLine()
+                    .find!(ln => ln.canFind("maxPoolMemory"));
+                if (!lines.empty) gcprof = lines.front.find("maxPoolMemory").idup;
+                rename("gcx.log", bin.setExtension("gcx.log"));
+            }
+            else
+            {
+                auto lines = output.splitter(ctRegex!`\r\n|\r|\n`)
+                    .find!(ln => ln.startsWith("maxPoolMemory"));
+                if (!lines.empty) gcprof = lines.front;
+            }
         }
         auto res = minDur.split!("seconds", "msecs");
         if (gcprof.length)
