@@ -7,10 +7,14 @@
  */
 import std.stdio;
 
-// cmdline flags
-bool verbose;
+struct Config
+{
+    string pattern = r".*\.d", dmd = "dmd", dflags = "-O -release -inline", args;
+    bool help, verbose;
+    uint repeat = 10;
+}
 
-string runCmd(string cmd)
+string runCmd(string cmd, bool verbose)
 {
     import std.exception : enforce;
     import std.process : executeShell;
@@ -21,12 +25,12 @@ string runCmd(string cmd)
     return res.output;
 }
 
-void runTest(string pattern, string dmd, string dflags, string runArgs, uint repeat)
+void runTests(Config cfg)
 {
     import std.algorithm, std.file, std.path, std.regex, std.string;
 
     string[] sources;
-    auto re = regex(pattern, "g");
+    auto re = regex(cfg.pattern, "g");
     auto self = buildPath(".", "runbench.d");
     foreach(DirEntry src; dirEntries(".", SpanMode.depth))
     {
@@ -44,8 +48,8 @@ void runTest(string pattern, string dmd, string dflags, string runArgs, uint rep
         writeln("COMPILING ", src);
         version (Windows) enum exe = "exe"; else enum exe = "";
         auto bin = buildPath(bindir, src.chompPrefix("./").setExtension(exe));
-        auto cmd = std.string.format("%s %s -op -odobj -of%s %s", dmd, dflags, bin, src);
-        runCmd(cmd);
+        auto cmd = std.string.format("%s %s -op -odobj -of%s %s", cfg.dmd, cfg.dflags, bin, src);
+        runCmd(cmd, cfg.verbose);
         src = bin;
     }
 
@@ -56,17 +60,17 @@ void runTest(string pattern, string dmd, string dflags, string runArgs, uint rep
         auto minDur = Duration.max;
 
         stdout.writef("RUNNING %-20s", bin.relativePath(bindir));
-        if (verbose) stdout.writeln();
+        if (cfg.verbose) stdout.writeln();
         stdout.flush();
 
-        auto cmd = bin ~ " " ~ runArgs;
+        auto cmd = bin ~ " " ~ cfg.args;
         string gcprof;
-        foreach (_; 0 .. repeat)
+        foreach (_; 0 .. cfg.repeat)
         {
             sw.reset;
-            auto output = runCmd(cmd);
+            auto output = runCmd(cmd, cfg.verbose);
             auto dur = cast(Duration)sw.peek;
-            if (verbose) stdout.write(output);
+            if (cfg.verbose) stdout.write(output);
 
             if (dur >= minDur) continue;
             minDur = dur;
@@ -87,7 +91,7 @@ void printHelp()
 {
     import std.ascii : nl=newline;
     auto helpString =
-        "usage: runbench [<test_regex>] [<dflags>] [-h|--help] [-v|--verbose] [-r n|--repeat=n] [-- <runargs>]"~nl~nl~
+        "usage: runbench [-h|--help] [-v|--verbose] [-r n|--repeat=n] [<test_regex>] [<dflags>] [-- <runargs>]"~nl~nl~
 
         "   tests   - Regular expressions to select tests. Default: '.*\\.d'"~nl~
         "   dflags  - Flags passed to compiler. Default: '-O -release -inline'"~nl~
@@ -97,44 +101,81 @@ void printHelp()
     writeln(helpString);
 }
 
-void main(string[] args)
+Config parseArgs(string[] args)
 {
-    import std.algorithm;
+    import std.algorithm, std.string : join;
 
-    string runArgs;
+    Config cfg;
     {
         import std.range : only;
         string[] tmp = args;
         if (findSkip(tmp, only("--")))
         {
-            runArgs = std.string.join(tmp, " ");
+            cfg.args = join(tmp, " ");
             args = args[0 .. $ - 1 - tmp.length];
         }
     }
 
     import std.getopt;
-    bool help; uint repeat = 10;
-    getopt(args, config.passThrough,
-           "h|help", &help,
-           "v|verbose", &verbose,
-           "r|repeat", &repeat);
+    getopt(args, config.stopOnFirstNonOption,
+           config.passThrough,
+           "h|help", &cfg.help,
+           "v|verbose", &cfg.verbose,
+           "r|repeat", &cfg.repeat);
 
-    string pattern = r".*\.d";
-    if (args.length >= 2)
+    if (args.length >= 2 && !args[1].startsWith("-"))
     {
-        pattern = args[1];
+        cfg.pattern = args[1];
         args = args.remove(1);
     }
 
-    if (help) return printHelp();
+    if (args.length > 1)
+        cfg.dflags = join(args[1 .. $], " ");
 
-    auto dflags = std.string.join(args[1 .. $], " ");
-    if (!dflags.length)
-        dflags = "-O -release -inline";
+    return cfg;
+}
+
+unittest
+{
+    template cfg(N...)
+    {
+        static Config cfg(T...)(T vals) if (T.length == N.length)
+        {
+            Config res;
+            foreach (i, ref v; vals) __traits(getMember, res, N[i]) = v;
+            return res;
+        }
+    }
+
+    import std.typecons : t=tuple;
+    auto check = [
+        t(["bin"], cfg),
+        t(["bin", "-h"], cfg!("help")(true)),
+        t(["bin", "-v"], cfg!("verbose")(true)),
+        t(["bin", "-h", "-v"], cfg!("help", "verbose")(true, true)),
+        t(["bin", "gcbench"], cfg!("pattern")("gcbench")),
+        t(["bin", "-v", "gcbench"], cfg!("pattern", "verbose")("gcbench", true)),
+        t(["bin", "-r", "4", "gcbench"], cfg!("pattern", "repeat")("gcbench", 4)),
+        t(["bin", "-g"], cfg!("dflags")("-g")),
+        t(["bin", "gcbench", "-g"], cfg!("pattern", "dflags")("gcbench", "-g")),
+        t(["bin", "-r", "2", "gcbench", "-g"], cfg!("pattern", "dflags", "repeat")("gcbench", "-g", 2)),
+        t(["bin", "--", "--DRT-gcopt=profile:1"], cfg!("args")("--DRT-gcopt=profile:1")),
+        t(["bin", "--", "foo", "bar"], cfg!("args")("foo bar")),
+        t(["bin", "gcbench", "--", "args"], cfg!("pattern", "args")("gcbench", "args")),
+        t(["bin", "--repeat=5", "gcbench", "--", "args"], cfg!("pattern", "args", "repeat")("gcbench", "args", 5)),
+    ];
+    foreach (pair; check)
+        assert(parseArgs(pair[0]) == pair[1]);
+}
+
+void main(string[] args)
+{
+    auto cfg = parseArgs(args);
+    if (cfg.help) return printHelp();
 
     import std.process : env=environment;
-    auto dmd = env.get("DMD", "dmd");
-    writeln("compiler: "~dmd~' '~dflags);
+    cfg.dmd = env.get("DMD", "dmd");
+    writeln("compiler: "~cfg.dmd~' '~cfg.dflags);
 
-    runTest(pattern, dmd, dflags, runArgs, repeat);
+    runTests(cfg);
 }
