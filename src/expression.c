@@ -3770,45 +3770,53 @@ Expression *StringExp::semantic(Scope *sc)
 }
 
 /**********************************
- * Return length of string.
+ * Return the code unit count of string.
+ * Input:
+ *      encSize     code unit size of the target encoding.
  */
 
-size_t StringExp::length()
+size_t StringExp::length(int encSize)
 {
+    assert(encSize == 1 || encSize == 2 || encSize == 4);
+    if (sz == encSize)
+        return len;
+
     size_t result = 0;
     dchar_t c;
-    const char *p;
 
     switch (sz)
     {
         case 1:
             for (size_t u = 0; u < len;)
             {
-                p = utf_decodeChar((utf8_t *)string, len, &u, &c);
-                if (p)
-                {   error("%s", p);
+                if (const char *p = utf_decodeChar((utf8_t *)string, len, &u, &c))
+                {
+                    error("%s", p);
                     return 0;
                 }
-                else
-                    result++;
+                result += utf_codeLength(encSize, c);
             }
             break;
 
         case 2:
             for (size_t u = 0; u < len;)
             {
-                p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
-                if (p)
-                {   error("%s", p);
+                if (const char *p = utf_decodeWchar((utf16_t *)string, len, &u, &c))
+                {
+                    error("%s", p);
                     return 0;
                 }
-                else
-                    result++;
+                result += utf_codeLength(encSize, c);
             }
             break;
 
         case 4:
-            result = len;
+            for (size_t u = 0; u < len;)
+            {
+                c = *((utf32_t *)((char *)string + u));
+                u += 4;
+                result += utf_codeLength(encSize, c);
+            }
             break;
 
         default:
