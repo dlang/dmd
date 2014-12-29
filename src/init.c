@@ -873,12 +873,15 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
      * Allow this by doing an explicit cast, which will lengthen the string
      * literal.
      */
-    if (exp->op == TOKstring && tb->ty == Tsarray && ti->ty == Tsarray)
+    if (exp->op == TOKstring && tb->ty == Tsarray)
     {
         StringExp *se = (StringExp *)exp;
-        if (!se->committed && se->type->ty == Tsarray &&
-            ((TypeSArray *)se->type)->dim->toInteger() <
-            ((TypeSArray *)t)->dim->toInteger())
+        Type *typeb = se->type->toBasetype();
+        TY tynto = tb->nextOf()->ty;
+        if (!se->committed &&
+            (typeb->ty == Tarray || typeb->ty == Tsarray) &&
+            (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+            se->length(tb->nextOf()->size()) < ((TypeSArray *)tb)->dim->toInteger())
         {
             exp = se->castTo(sc, t);
             goto L1;
@@ -951,9 +954,9 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         }
         exp = exp->implicitCastTo(sc, t);
     }
+L1:
     if (exp->op == TOKerror)
         return this;
-L1:
     if (needInterpret)
         exp = exp->ctfeInterpret();
     else
