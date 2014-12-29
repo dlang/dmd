@@ -577,15 +577,19 @@ MATCH implicitConvTo(Expression *e, Type *t)
                         case Tsarray:
                             if (e->type->ty == Tsarray)
                             {
-                                if (((TypeSArray *)e->type)->dim->toInteger() !=
-                                    ((TypeSArray *)t)->dim->toInteger())
-                                    return;
                                 TY tynto = t->nextOf()->ty;
                                 if (tynto == tyn)
                                 {
-                                    result = MATCHexact;
+                                    if (((TypeSArray *)e->type)->dim->toInteger() ==
+                                        ((TypeSArray *)t)->dim->toInteger())
+                                    {
+                                        result = MATCHexact;
+                                    }
                                     return;
                                 }
+                                int szto = t->nextOf()->size();
+                                if (e->length(szto) != ((TypeSArray *)t)->dim->toInteger())
+                                    return;
                                 if (!e->committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                                 {
                                     result = MATCHexact;
@@ -594,10 +598,10 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             }
                             else if (e->type->ty == Tarray)
                             {
-                                if (e->length() >
-                                    ((TypeSArray *)t)->dim->toInteger())
-                                    return;
                                 TY tynto = t->nextOf()->ty;
+                                int sznto = t->nextOf()->size();
+                                if (e->length(sznto) != ((TypeSArray *)t)->dim->toInteger())
+                                    return;
                                 if (tynto == tyn)
                                 {
                                     result = MATCHexact;
@@ -609,6 +613,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                     return;
                                 }
                             }
+                            /* fall through */
                         case Tarray:
                         case Tpointer:
                             Type *tn = t->nextOf();
