@@ -42,7 +42,8 @@ void runTest(string pattern, string dmd, string dflags, string runArgs, uint rep
     foreach(ref src; sources)
     {
         writeln("COMPILING ", src);
-        auto bin = buildPath(bindir, src.chompPrefix("./").chomp(".d"));
+        version (Windows) enum exe = "exe"; else enum exe = "";
+        auto bin = buildPath(bindir, src.chompPrefix("./").setExtension(exe));
         auto cmd = std.string.format("%s %s -op -odobj -of%s %s", dmd, dflags, bin, src);
         runCmd(cmd);
         src = bin;
