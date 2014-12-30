@@ -1388,6 +1388,11 @@ body
                     if(info.base)
                     {
                 L2:
+                        if(bic)
+                        {
+                            // a chance that flags have changed since this was cached, we should fetch the most recent flags
+                            info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
+                        }
                         info = GC.qalloc(newsize + __arrayPad(newsize), info.attr);
                     }
                     else
@@ -1566,6 +1571,11 @@ body
                     if(info.base)
                     {
                 L2:
+                        if(bic)
+                        {
+                            // a chance that flags have changed since this was cached, we should fetch the most recent flags
+                            info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
+                        }
                         info = GC.qalloc(newsize + __arrayPad(newsize), info.attr);
                     }
                     else
@@ -1844,6 +1854,11 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
         if(info.base)
         {
     L2:
+            if(bic)
+            {
+                // a chance that flags have changed since this was cached, we should fetch the most recent flags
+                info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
+            }
             info = GC.qalloc(newcap + __arrayPad(newcap), info.attr);
         }
         else
@@ -2439,6 +2454,57 @@ unittest
     assert(carr2.ptr !is carr.ptr); // reallocated
     info2 = GC.query(carr2.ptr);
     assert(info2.base is carr2.ptr); // no offset, the capacity is small.
+}
 
+unittest
+{
+    // bugzilla 13878
+    auto arr = new ubyte[1];
+    auto info = GC.query(arr.ptr);
+    assert(info.attr & BlkAttr.NO_SCAN); // should be NO_SCAN
+    arr ~= 0; // ensure array is inserted into cache
+    assert(arr.ptr is info.base);
+    GC.clrAttr(arr.ptr, BlkAttr.NO_SCAN); // remove the attribute
+    auto arr2 = arr[0..1];
+    assert(arr2.capacity == 0); // cannot append
+    arr2 ~= 0;
+    assert(arr2.ptr !is arr.ptr);
+    info = GC.query(arr2.ptr);
+    assert(!(info.attr & BlkAttr.NO_SCAN)); // ensure attribute sticks
 
+    // do the same via setting length
+    arr = new ubyte[1];
+    arr ~= 0; // ensure array is inserted into cache
+    GC.clrAttr(arr.ptr, BlkAttr.NO_SCAN); // remove the attribute
+    arr2 = arr[0..1];
+    assert(arr2.capacity == 0);
+    arr2.length += 1;
+    assert(arr2.ptr !is arr.ptr); // reallocated
+    info = GC.query(arr2.ptr);
+    assert(!(info.attr & BlkAttr.NO_SCAN)); // ensure attribute sticks
+
+    // do the same for char[] since we need a type with an initializer to test certain runtime functions
+    auto carr = new char[1];
+    info = GC.query(carr.ptr);
+    assert(info.attr & BlkAttr.NO_SCAN); // should be NO_SCAN
+    carr ~= 0; // ensure array is inserted into cache
+    assert(carr.ptr is info.base);
+    GC.clrAttr(carr.ptr, BlkAttr.NO_SCAN); // remove the attribute
+    auto carr2 = carr[0..1];
+    assert(carr2.capacity == 0); // cannot append
+    carr2 ~= 0;
+    assert(carr2.ptr !is carr.ptr);
+    info = GC.query(carr2.ptr);
+    assert(!(info.attr & BlkAttr.NO_SCAN)); // ensure attribute sticks
+
+    // do the same via setting length
+    carr = new char[1];
+    carr ~= 0; // ensure array is inserted into cache
+    GC.clrAttr(carr.ptr, BlkAttr.NO_SCAN); // remove the attribute
+    carr2 = carr[0..1];
+    assert(carr2.capacity == 0);
+    carr2.length += 1;
+    assert(carr2.ptr !is carr.ptr); // reallocated
+    info = GC.query(carr2.ptr);
+    assert(!(info.attr & BlkAttr.NO_SCAN)); // ensure attribute sticks
 }
