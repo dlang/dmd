@@ -432,7 +432,8 @@ UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit)
 
 Expression *resolveSlice(Expression *e)
 {
-    assert(e->op == TOKslice);
+    if (e->op != TOKslice)
+        return e;
     SliceExp *se = (SliceExp *)e;
     if (se->e1->op == TOKnull)
         return se->e1;

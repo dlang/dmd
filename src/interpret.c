@@ -3508,13 +3508,11 @@ public:
                     // because it gets copied later anyway
                     if (newval->type->ty != Tarray)
                         newval = copyLiteral(newval).copy();
-                    if (newval->op == TOKslice)
-                        newval = resolveSlice(newval);
+                    newval = resolveSlice(newval);
                     // It becomes a reference assignment
                     wantRef = true;
                 }
-                if (oldval->op == TOKslice)
-                    oldval = resolveSlice(oldval);
+                oldval = resolveSlice(oldval);
                 if (e->e1->type->ty == Tpointer && e->e2->type->isintegral() &&
                     (e->op == TOKaddass || e->op == TOKminass ||
                      e->op == TOKplusplus || e->op == TOKminusminus))
@@ -3714,8 +3712,7 @@ public:
                 Expression *index = interpret(((IndexExp *)e1)->e2, istate);
                 if (exceptionOrCant(index))
                     return;
-                if (index->op == TOKslice)  // only happens with AA assignment
-                    index = resolveSlice(index);
+                index = resolveSlice(index);    // only happens with AA assignment
                 AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
                 while (depth > 0)
                 {
@@ -3727,8 +3724,7 @@ public:
                     Expression *indx = interpret(xe->e2, istate);
                     if (exceptionOrCant(indx))
                         return;
-                    if (indx->op == TOKslice)  // only happens with AA assignment
-                        indx = resolveSlice(indx);
+                    indx = resolveSlice(indx);  // only happens with AA assignment
 
                     // Look up this index in it up in the existing AA, to get the next level of AA.
                     AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(e->loc, existingAA, indx);
@@ -3768,8 +3764,7 @@ public:
                     Expression *index = interpret(((IndexExp *)e1)->e2, istate);
                     if (exceptionOrCant(index))
                         return;
-                    if (index->op == TOKslice)  // only happens with AA assignment
-                        index = resolveSlice(index);
+                    index = resolveSlice(index);    // only happens with AA assignment
                     Expressions *valuesx = new Expressions();
                     Expressions *keysx = new Expressions();
                     valuesx->push(newval);
@@ -4180,7 +4175,7 @@ public:
             originalExp->error("CTFE internal error: %s", aggregate->toChars());
             return false;
         }
-        if (!wantRef && newval->op == TOKslice)
+        if (!wantRef)
         {
             newval = resolveSlice(newval);
             if (CTFEExp::isCantExp(newval))
@@ -4412,7 +4407,7 @@ public:
             return CTFEExp::cantexp;
         }
 
-        if (!wantRef && newval->op == TOKslice)
+        if (!wantRef)
         {
             Expression *orignewval = newval;
             newval = resolveSlice(newval);
@@ -5395,8 +5390,7 @@ public:
         }
         if (e1->op == TOKassocarrayliteral)
         {
-            if (e2->op == TOKslice)
-                e2 = resolveSlice(e2);
+            e2 = resolveSlice(e2);
             result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)e1, e2);
             if (!result)
             {
@@ -5633,8 +5627,7 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
-        if (e1->op == TOKslice)
-            e1 = resolveSlice(e1);
+        e1 = resolveSlice(e1);
         result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)e2, e1);
         if (exceptionOrCant(result))
             return;
@@ -5655,15 +5648,11 @@ public:
         Expression *e1 = interpret(e->e1, istate);
         if (exceptionOrCant(e1))
             return;
-        if (e1->op == TOKslice)
-        {
-            e1 = resolveSlice(e1);
-        }
         Expression *e2 = interpret(e->e2, istate);
         if (exceptionOrCant(e2))
             return;
-        if (e2->op == TOKslice)
-            e2 = resolveSlice(e2);
+        e1 = resolveSlice(e1);
+        e2 = resolveSlice(e2);
         result = ctfeCat(e->type, e1, e2).copy();
         if (CTFEExp::isCantExp(result))
         {
@@ -5853,7 +5842,7 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
-        if (e->to->ty == Tsarray && e1->op == TOKslice)
+        if (e->to->ty == Tsarray)
             e1 = resolveSlice(e1);
         if (e->to->toBasetype()->ty == Tbool && e1->type->ty == Tpointer)
         {
@@ -6355,10 +6344,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
         error(loc, "uninitialized variable '%s' cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
         e = new ErrorExp();
     }
-    if (e->op == TOKslice)
-    {
-        e = resolveSlice(e);
-    }
+    e = resolveSlice(e);
     if (e->op == TOKstructliteral)
     {
         StructLiteralExp *se = (StructLiteralExp *)e;
@@ -6629,8 +6615,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     if (len == 0)
         return new IntegerExp(deleg->loc, 0, indexType);
 
-    if (str->op == TOKslice)
-        str = resolveSlice(str);
+    str = resolveSlice(str);
 
     StringExp *se = NULL;
     ArrayLiteralExp *ale = NULL;
