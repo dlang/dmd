@@ -2480,7 +2480,7 @@ public:
                 TupleDeclaration *td = v->toAlias()->isTupleDeclaration();
                 if (!td->objects)
                     return;
-                for (size_t i= 0; i < td->objects->dim; ++i)
+                for (size_t i = 0; i < td->objects->dim; ++i)
                 {
                     RootObject * o = (*td->objects)[i];
                     Expression *ex = isExpression(o);
@@ -2914,9 +2914,11 @@ public:
         }
         assert(argnum == arguments->dim - 1);
         if (elemType->ty == Tchar || elemType->ty == Twchar || elemType->ty == Tdchar)
+        {
             return createBlockDuplicatedStringLiteral(loc, newtype,
                 (unsigned)(elemType->defaultInitLiteral(loc)->toInteger()),
                 len, (unsigned char)elemType->size());
+        }
         return createBlockDuplicatedArrayLiteral(loc, newtype,
             elemType->defaultInitLiteral(loc), len);
     }
@@ -3093,11 +3095,11 @@ public:
         UnionExp ue;
         switch (e->op)
         {
-            case TOKneg:    ue = Neg(e->type, e1); break;
-            case TOKtilde:  ue = Com(e->type, e1); break;
-            case TOKnot:    ue = Not(e->type, e1); break;
+            case TOKneg:    ue = Neg(e->type, e1);  break;
+            case TOKtilde:  ue = Com(e->type, e1);  break;
+            case TOKnot:    ue = Not(e->type, e1);  break;
             case TOKtobool: ue = Bool(e->type, e1); break;
-            case TOKvector: result = e; return; // do nothing
+            case TOKvector: result = e;             return; // do nothing
             default:        assert(0);
         }
         result = ue.copy();
@@ -3506,13 +3508,11 @@ public:
                     // because it gets copied later anyway
                     if (newval->type->ty != Tarray)
                         newval = copyLiteral(newval).copy();
-                    if (newval->op == TOKslice)
-                        newval = resolveSlice(newval);
+                    newval = resolveSlice(newval);
                     // It becomes a reference assignment
                     wantRef = true;
                 }
-                if (oldval->op == TOKslice)
-                    oldval = resolveSlice(oldval);
+                oldval = resolveSlice(oldval);
                 if (e->e1->type->ty == Tpointer && e->e2->type->isintegral() &&
                     (e->op == TOKaddass || e->op == TOKminass ||
                      e->op == TOKplusplus || e->op == TOKminusminus))
@@ -3712,8 +3712,7 @@ public:
                 Expression *index = interpret(((IndexExp *)e1)->e2, istate);
                 if (exceptionOrCant(index))
                     return;
-                if (index->op == TOKslice)  // only happens with AA assignment
-                    index = resolveSlice(index);
+                index = resolveSlice(index);    // only happens with AA assignment
                 AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
                 while (depth > 0)
                 {
@@ -3725,8 +3724,7 @@ public:
                     Expression *indx = interpret(xe->e2, istate);
                     if (exceptionOrCant(indx))
                         return;
-                    if (indx->op == TOKslice)  // only happens with AA assignment
-                        indx = resolveSlice(indx);
+                    indx = resolveSlice(indx);  // only happens with AA assignment
 
                     // Look up this index in it up in the existing AA, to get the next level of AA.
                     AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(e->loc, existingAA, indx);
@@ -3766,8 +3764,7 @@ public:
                     Expression *index = interpret(((IndexExp *)e1)->e2, istate);
                     if (exceptionOrCant(index))
                         return;
-                    if (index->op == TOKslice)  // only happens with AA assignment
-                        index = resolveSlice(index);
+                    index = resolveSlice(index);    // only happens with AA assignment
                     Expressions *valuesx = new Expressions();
                     Expressions *keysx = new Expressions();
                     valuesx->push(newval);
@@ -4178,7 +4175,7 @@ public:
             originalExp->error("CTFE internal error: %s", aggregate->toChars());
             return false;
         }
-        if (!wantRef && newval->op == TOKslice)
+        if (!wantRef)
         {
             newval = resolveSlice(newval);
             if (CTFEExp::isCantExp(newval))
@@ -4410,7 +4407,7 @@ public:
             return CTFEExp::cantexp;
         }
 
-        if (!wantRef && newval->op == TOKslice)
+        if (!wantRef)
         {
             Expression *orignewval = newval;
             newval = resolveSlice(newval);
@@ -4673,7 +4670,10 @@ public:
 
         // Save the pointer expressions and the comparison directions,
         // so we can use them later.
-        Expression *p1 = NULL, *p2 = NULL, *p3 = NULL, *p4 = NULL;
+        Expression *p1 = NULL;
+        Expression *p2 = NULL;
+        Expression *p3 = NULL;
+        Expression *p4 = NULL;
         int dir1 = isPointerCmpExp(e->e1, &p1, &p2);
         int dir2 = isPointerCmpExp(e->e2, &p3, &p4);
         if (dir1 == 0 || dir2 == 0)
@@ -4696,8 +4696,8 @@ public:
         Expression *agg2 = getAggregateFromPointer(p2, &ofs2);
 
         if (!pointToSameMemoryBlock(agg1, agg2) &&
-             agg1->op != TOKnull &&
-             agg2->op != TOKnull)
+            agg1->op != TOKnull &&
+            agg2->op != TOKnull)
         {
             // Here it is either CANT_INTERPRET,
             // or an IsInside comparison returning false.
@@ -4728,7 +4728,7 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
-            dinteger_t ofs3,ofs4;
+            dinteger_t ofs3, ofs4;
             Expression *agg3 = getAggregateFromPointer(p3, &ofs3);
             Expression *agg4 = getAggregateFromPointer(p4, &ofs4);
             // The valid cases are:
@@ -4771,7 +4771,8 @@ public:
         int cmp = comparePointers(e->loc, cmpop, e->e1->type, agg1, ofs1, agg2, ofs2);
         // We already know this is a valid comparison.
         assert(cmp >= 0);
-        if ((e->op == TOKandand && cmp == 1) || (e->op == TOKoror && cmp == 0))
+        if (e->op == TOKandand && cmp == 1 ||
+            e->op == TOKoror   && cmp == 0)
         {
             result = interpret(e->e2, istate);
             return;
@@ -4919,7 +4920,7 @@ public:
         // We probably didn't enter the recursion in this function.
         // Go deeper to find the real beginning.
         InterState * cur = istate;
-        while (lastRecurse->caller && cur->fd ==  lastRecurse->caller->fd)
+        while (lastRecurse->caller && cur->fd == lastRecurse->caller->fd)
         {
             cur = cur->caller;
             lastRecurse = lastRecurse->caller;
@@ -5112,14 +5113,14 @@ public:
         printf("%s CommaExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
 
-        CommaExp * firstComma = e;
+        CommaExp *firstComma = e;
         while (firstComma->e1->op == TOKcomma)
             firstComma = (CommaExp *)firstComma->e1;
 
         // If it creates a variable, and there's no context for
         // the variable to be created in, we need to create one now.
         InterState istateComma;
-        if (!istate &&  firstComma->e1->op == TOKdeclaration)
+        if (!istate && firstComma->e1->op == TOKdeclaration)
         {
             ctfeStack.startFrame(NULL);
             istate = &istateComma;
@@ -5389,8 +5390,7 @@ public:
         }
         if (e1->op == TOKassocarrayliteral)
         {
-            if (e2->op == TOKslice)
-                e2 = resolveSlice(e2);
+            e2 = resolveSlice(e2);
             result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)e1, e2);
             if (!result)
             {
@@ -5627,8 +5627,7 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
-        if (e1->op == TOKslice)
-            e1 = resolveSlice(e1);
+        e1 = resolveSlice(e1);
         result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)e2, e1);
         if (exceptionOrCant(result))
             return;
@@ -5649,15 +5648,11 @@ public:
         Expression *e1 = interpret(e->e1, istate);
         if (exceptionOrCant(e1))
             return;
-        if (e1->op == TOKslice)
-        {
-            e1 = resolveSlice(e1);
-        }
         Expression *e2 = interpret(e->e2, istate);
         if (exceptionOrCant(e2))
             return;
-        if (e2->op == TOKslice)
-            e2 = resolveSlice(e2);
+        e1 = resolveSlice(e1);
+        e2 = resolveSlice(e2);
         result = ctfeCat(e->type, e1, e2).copy();
         if (CTFEExp::isCantExp(result))
         {
@@ -5847,7 +5842,7 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
-        if (e->to->ty == Tsarray && e1->op == TOKslice)
+        if (e->to->ty == Tsarray)
             e1 = resolveSlice(e1);
         if (e->to->toBasetype()->ty == Tbool && e1->type->ty == Tpointer)
         {
@@ -6349,10 +6344,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
         error(loc, "uninitialized variable '%s' cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
         e = new ErrorExp();
     }
-    if (e->op == TOKslice)
-    {
-        e = resolveSlice(e);
-    }
+    e = resolveSlice(e);
     if (e->op == TOKstructliteral)
     {
         StructLiteralExp *se = (StructLiteralExp *)e;
@@ -6623,8 +6615,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     if (len == 0)
         return new IntegerExp(deleg->loc, 0, indexType);
 
-    if (str->op == TOKslice)
-        str = resolveSlice(str);
+    str = resolveSlice(str);
 
     StringExp *se = NULL;
     ArrayLiteralExp *ale = NULL;

@@ -174,6 +174,19 @@ CTFEExp::CTFEExp(TOK tok)
     type = Type::tvoid;
 }
 
+Expression *UnionExp::copy()
+{
+    Expression *e = exp();
+    //if (e->size > sizeof(u)) printf("%s\n", Token::toChars(e->op));
+    assert(e->size <= sizeof(u));
+    if (e->op == TOKcantexp)    return CTFEExp::cantexp;
+    if (e->op == TOKvoidexp)    return CTFEExp::voidexp;
+    if (e->op == TOKbreak)      return CTFEExp::breakexp;
+    if (e->op == TOKcontinue)   return CTFEExp::continueexp;
+    if (e->op == TOKgoto)       return CTFEExp::gotoexp;
+    return e->copy();
+}
+
 /************** Aggregate literals (AA/string/array/struct) ******************/
 
 // Given expr, which evaluates to an array/AA/string literal,
@@ -432,7 +445,8 @@ UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit)
 
 Expression *resolveSlice(Expression *e)
 {
-    assert(e->op == TOKslice);
+    if (e->op != TOKslice)
+        return e;
     SliceExp *se = (SliceExp *)e;
     if (se->e1->op == TOKnull)
         return se->e1;
@@ -637,8 +651,10 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
     {
         IndexExp *ie = (IndexExp *)e;
         // Note that each AA element is part of its own memory block
-        if ((ie->e1->type->ty == Tarray || ie->e1->type->ty == Tsarray ||
-             ie->e1->op == TOKstring || ie->e1->op==TOKarrayliteral) &&
+        if ((ie->e1->type->ty == Tarray ||
+             ie->e1->type->ty == Tsarray ||
+             ie->e1->op == TOKstring ||
+             ie->e1->op == TOKarrayliteral) &&
             ie->e2->op == TOKint64)
         {
             *ofs = ie->e2->toInteger();
@@ -1629,13 +1645,14 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
         // Add terminating 0
         memset((utf8_t *)s + len * sz, 0, sz);
 
-        StringExp *es = new StringExp(loc, s, len);
+        new(&ue) StringExp(loc, s, len);
+        StringExp *es = (StringExp *)ue.exp();
         es->sz = sz;
         es->committed = 0;
         es->type = type;
-        e = es;
+        return ue;
     }
-    else if (e1->op == TOKstring && e2->op == TOKarrayliteral &&
+    if (e1->op == TOKstring && e2->op == TOKarrayliteral &&
         t2->nextOf()->isintegral())
     {
         // string ~ [chars] => string (only valid for CTFE)
@@ -1662,44 +1679,41 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
         // Add terminating 0
         memset((utf8_t *)s + len * sz, 0, sz);
 
-        StringExp *es = new StringExp(loc, s, len);
+        new(&ue) StringExp(loc, s, len);
+        StringExp *es = (StringExp *)ue.exp();
         es->sz = sz;
         es->committed = 0; //es1->committed;
         es->type = type;
-        e = es;
+        return ue;
     }
-    else if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral &&
+    if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  [ e1 ] ~ [ e2 ] ---> [ e1, e2 ]
         ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
         ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
 
-        es1 = new ArrayLiteralExp(es1->loc, copyLiteralArray(es1->elements));
+        new(&ue) ArrayLiteralExp(es1->loc, copyLiteralArray(es1->elements));
+        es1 = (ArrayLiteralExp *)ue.exp();
         es1->elements->insert(es1->elements->dim, copyLiteralArray(es2->elements));
-        e = es1;
-        e->type = type;
+        es1->type = type;
+        return ue;
     }
-    else if (e1->op == TOKarrayliteral && e2->op == TOKnull &&
+    if (e1->op == TOKarrayliteral && e2->op == TOKnull &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  [ e1 ] ~ null ----> [ e1 ].dup
         ue = paintTypeOntoLiteralCopy(type, copyLiteral(e1).exp());
         return ue;
     }
-    else if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
+    if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  null ~ [ e2 ] ----> [ e2 ].dup
         ue = paintTypeOntoLiteralCopy(type, copyLiteral(e2).exp());
         return ue;
     }
-    else
-    {
-        ue = Cat(type, e1, e2);
-        return ue;
-    }
-    new(&ue) UnionExp(e);
+    ue = Cat(type, e1, e2);
     return ue;
 }
 

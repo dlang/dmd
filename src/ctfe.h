@@ -104,11 +104,11 @@ public:
     CTFEExp(TOK tok);
 
     // Handy instances to share
-    static CTFEExp* cantexp;
-    static CTFEExp* voidexp;
-    static CTFEExp* breakexp;
-    static CTFEExp* continueexp;
-    static CTFEExp* gotoexp;
+    static CTFEExp *cantexp;
+    static CTFEExp *voidexp;
+    static CTFEExp *breakexp;
+    static CTFEExp *continueexp;
+    static CTFEExp *gotoexp;
 
     static bool isCantExp(Expression *e) { return e && e->op == TOKcantexp; }
 };
