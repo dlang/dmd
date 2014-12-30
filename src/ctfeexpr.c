@@ -174,6 +174,19 @@ CTFEExp::CTFEExp(TOK tok)
     type = Type::tvoid;
 }
 
+Expression *UnionExp::copy()
+{
+    Expression *e = exp();
+    //if (e->size > sizeof(u)) printf("%s\n", Token::toChars(e->op));
+    assert(e->size <= sizeof(u));
+    if (e->op == TOKcantexp)    return CTFEExp::cantexp;
+    if (e->op == TOKvoidexp)    return CTFEExp::voidexp;
+    if (e->op == TOKbreak)      return CTFEExp::breakexp;
+    if (e->op == TOKcontinue)   return CTFEExp::continueexp;
+    if (e->op == TOKgoto)       return CTFEExp::gotoexp;
+    return e->copy();
+}
+
 /************** Aggregate literals (AA/string/array/struct) ******************/
 
 // Given expr, which evaluates to an array/AA/string literal,

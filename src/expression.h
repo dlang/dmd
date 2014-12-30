@@ -1560,13 +1560,7 @@ struct UnionExp
 
     /* Convert to an allocated Expression
      */
-    Expression *copy()
-    {
-        Expression *e = exp();
-        //if (e->size > sizeof(u)) printf("%s\n", Token::toChars(e->op));
-        assert(e->size <= sizeof(u));
-        return e->copy();
-    }
+    Expression *copy();
 
   private:
     union U
