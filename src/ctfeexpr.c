@@ -637,8 +637,10 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
     {
         IndexExp *ie = (IndexExp *)e;
         // Note that each AA element is part of its own memory block
-        if ((ie->e1->type->ty == Tarray || ie->e1->type->ty == Tsarray ||
-             ie->e1->op == TOKstring || ie->e1->op==TOKarrayliteral) &&
+        if ((ie->e1->type->ty == Tarray ||
+             ie->e1->type->ty == Tsarray ||
+             ie->e1->op == TOKstring ||
+             ie->e1->op == TOKarrayliteral) &&
             ie->e2->op == TOKint64)
         {
             *ofs = ie->e2->toInteger();
