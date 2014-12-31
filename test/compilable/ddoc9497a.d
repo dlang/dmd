@@ -1,7 +1,7 @@
-// EXTRA_SOURCES: extra-files/ddoc1653a.ddoc
+// EXTRA_SOURCES: extra-files/ddoc9497a.ddoc
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh 1653a
+// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh 9497a
 
 /**
     foo function.
