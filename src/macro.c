@@ -376,7 +376,19 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                     continue;
                 }
 
+                bool macroWasUndefined = false;
                 Macro *m = search(name, namelen);
+
+                if (!m)
+                {
+                    m = search((const utf8_t*)"DDOC_UNDEFINED_MACRO",
+                        20 /* strlen("DDOC_UNDEFINED_MACRO") */);
+                    if (m)
+                    {
+                        macroWasUndefined = true;
+                    }
+                }
+
                 if (m)
                 {
 #if 0
@@ -398,7 +410,21 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                     {
                         //printf("\tmacro '%.*s'(%.*s) = '%.*s'\n", m->namelen, m->name, marglen, marg, m->textlen, m->text);
 #if 1
-                        marg = memdup(marg, marglen);
+                        if (macroWasUndefined)
+                        {
+                            // Macro was not defined, so this is an expansion of
+                            //   DDOC_UNDEFINED_MACRO. Prepend macro name to args.
+                            unsigned char* p = (unsigned char*)malloc(namelen + 1 + marglen);
+                            memcpy(p, name, namelen);
+                            p[namelen] = ',';
+                            memcpy(p + namelen + 1, marg, marglen);
+                            marg = p;
+                            marglen += namelen + 1;
+                        }
+                        else
+                        {
+                            marg = memdup(marg, marglen);
+                        }
                         // Insert replacement text
                         buf->spread(v + 1, 2 + m->textlen + 2);
                         buf->data[v + 1] = 0xFF;
