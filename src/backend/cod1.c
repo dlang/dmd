@@ -2298,7 +2298,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             {
                 cgot = load_localgot();     // EBX gets set to this value
             }
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD
             switch (clib)
             {
                 case CLIBldiv:
@@ -2349,7 +2349,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         }
         if (pushebx)
         {
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD
             c = gen1(c, 0x50 + CX);                             // PUSH ECX
             c = gen1(c, 0x50 + BX);                             // PUSH EBX
             c = gen1(c, 0x50 + DX);                             // PUSH EDX
