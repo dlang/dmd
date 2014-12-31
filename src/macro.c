@@ -376,7 +376,6 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                     continue;
                 }
 
-                bool macroWasUndefined = false;
                 Macro *m = search(name, namelen);
 
                 if (!m)
@@ -385,7 +384,24 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                     m = search((const utf8_t *)undef, sizeof(undef) - 1);
                     if (m)
                     {
-                        macroWasUndefined = true;
+                        // Macro was not defined, so this is an expansion of
+                        //   DDOC_UNDEFINED_MACRO. Prepend macro name to args.
+                        // marg = name[ ] ~ "," ~ marg[ ];
+                        if (marglen)
+                        {
+                            unsigned char* p = (unsigned char*)malloc(namelen + 1 + marglen);
+                            assert(p);
+                            memcpy(p, name, namelen);
+                            p[namelen] = ',';
+                            memcpy(p + namelen + 1, marg, marglen);
+                            marg = p;
+                            marglen += namelen + 1;
+                        }
+                        else
+                        {
+                            marg = name;
+                            marglen = namelen;
+                        }
                     }
                 }
 
@@ -410,23 +426,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                     {
                         //printf("\tmacro '%.*s'(%.*s) = '%.*s'\n", m->namelen, m->name, marglen, marg, m->textlen, m->text);
 #if 1
-                        if (macroWasUndefined)
-                        {
-                            // Macro was not defined, so this is an expansion of
-                            //   DDOC_UNDEFINED_MACRO. Prepend macro name to args.
-                            // marg = name[ ] ~ "," ~ marg[ ];
-                            unsigned char* p = (unsigned char*)malloc(namelen + 1 + marglen);
-                            assert(p);
-                            memcpy(p, name, namelen);
-                            p[namelen] = ',';
-                            memcpy(p + namelen + 1, marg, marglen);
-                            marg = p;
-                            marglen += namelen + 1;
-                        }
-                        else
-                        {
-                            marg = memdup(marg, marglen);
-                        }
+                        marg = memdup(marg, marglen);
                         // Insert replacement text
                         buf->spread(v + 1, 2 + m->textlen + 2);
                         buf->data[v + 1] = 0xFF;
