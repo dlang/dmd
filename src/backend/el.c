@@ -1302,7 +1302,7 @@ elem *el_picvar(symbol *s)
      *      MOV  EAX,s@GOT32[EBX]
      *      MOV  reg,[EAX]
      * For TLS var locals and globals:
-     *      MOV  EAX,s@TLS_GD[EBX]
+     *      LEA  EAX,s@TLS_GD[1*EBX+0] // must use SIB addressing
      *      CALL ___tls_get_addr@PLT32
      *      MOV  reg,[EAX]
      *****************************************
@@ -1411,14 +1411,13 @@ elem *el_picvar(symbol *s)
             tym_t tym = e->Ety;
             e->Eoper = OPrelconst;
             e->Ety = TYnptr;
-            e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
 
             if (s->Stype->Tty & mTYthread)
             {
                 /* Add "volatile" to prevent e from being common subexpressioned.
                  * This is so we can preserve the magic sequence of instructions
                  * that the gnu linker patches:
-                 *   lea EAX,x@tlsgd[EBX], call __tls_get_addr@plt
+                 *   lea EAX,x@tlsgd[1*EBX+0], call __tls_get_addr@plt
                  *      =>
                  *   mov EAX,gs[0], sub EAX,x@tpoff
                  * elf32-i386.c
@@ -1433,6 +1432,10 @@ elem *el_picvar(symbol *s)
                     symbol_keep(tls_get_addr_sym);
                 }
                 e = el_bin(OPcall, TYnptr, el_var(tls_get_addr_sym), e);
+            }
+            else
+            {
+                e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
             }
 
             switch (op * 2 + x)
@@ -1472,11 +1475,7 @@ elem * el_var(symbol *s)
     //printf("el_var(s = '%s')\n", s->Sident);
     //printf("%x\n", s->Stype->Tty);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    // OSX is currently always pic
     if (config.flags3 & CFG3pic &&
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        (!(s->Stype->Tty & mTYthread) || I64) &&
-#endif
         !tyfunc(s->ty()))
         // Position Independent Code
         return el_picvar(s);
