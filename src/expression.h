@@ -366,7 +366,7 @@ public:
     static StringExp *create(Loc loc, char *s);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    size_t length();
+    size_t length(int encSize = 4);
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
     int compare(RootObject *obj);

@@ -1,8 +1,5 @@
-// REQUIRED_ARGS: -d
-// PERMUTE_ARGS: -dw
 
-import std.stdio;
-import core.stdc.stdlib;
+extern(C) int printf(const char*, ...);
 
 enum
 {
@@ -167,10 +164,48 @@ void test2()
         assert(e == 2_463_534_242UL);
 }
 
+/***************************************************/
+// 13907
+
+void f13907_1(wchar[1] a) {}
+void f13907_2(wchar[2] a) {}
+void f13907_3(wchar[3] a) {}
+
+auto f13907_12(char[1]) { return 1; }
+auto f13907_12(char[2]) { return 2; }
+
+void test13907()
+{
+    static assert(!__traits(compiles, { f13907_1("\U00010000"w); }));
+    static assert(!__traits(compiles, { f13907_1("\U00010000" ); }));
+    f13907_2("\U00010000"w);
+    f13907_2("\U00010000");
+    static assert(!__traits(compiles, { f13907_3("\U00010000"w); }));
+    static assert(!__traits(compiles, { f13907_3("\U00010000" ); }));
+
+    assert(f13907_12("a") == 1);
+
+    // regression tests for the lengthen behavior in initializer
+    enum const(char*) p = "hello world";
+    static assert(!__traits(compiles, { static   char[5] a = "hello world"; }));  // truncation is not allowed
+    static assert(!__traits(compiles, { static  void[20] a = "hello world"; }));
+    static assert(!__traits(compiles, { static   int[20] a = "hello world"; }));
+    static assert(!__traits(compiles, { static  char[20] a = "hello world"w; }));
+    static assert(!__traits(compiles, { static wchar[20] a = "hello world"d; }));
+    static assert(!__traits(compiles, { static dchar[20] a = "hello world"c; }));
+    static assert(!__traits(compiles, { static  char[20] a = p; }));
+    static  char[20] csa = "hello world";  // extending is allowed
+    static wchar[20] wsa = "hello world";  // ok
+    static dchar[20] dsa = "hello world";  // ok
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
     test2();
+    test13907();
 
     printf("Success\n");
     return 0;

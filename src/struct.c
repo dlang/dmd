@@ -1023,22 +1023,46 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
         }
         offset = (unsigned)(v->offset + v->type->size());
 
-        Type *telem = v->type;
+        Type *t = v->type;
         if (stype)
-            telem = telem->addMod(stype->mod);
-        Type *origType = telem;
-        while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
+            t = t->addMod(stype->mod);
+        Type *origType = t;
+        Type *tb = t->toBasetype();
+
+        /* Look for case of initializing a static array with a too-short
+         * string literal, such as:
+         *  char[5] foo = "abc";
+         * Allow this by doing an explicit cast, which will lengthen the string
+         * literal.
+         */
+        if (e->op == TOKstring && tb->ty == Tsarray)
+        {
+            StringExp *se = (StringExp *)e;
+            Type *typeb = se->type->toBasetype();
+            TY tynto = tb->nextOf()->ty;
+            if (!se->committed &&
+                (typeb->ty == Tarray || typeb->ty == Tsarray) &&
+                (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                se->length(tb->nextOf()->size()) < ((TypeSArray *)tb)->dim->toInteger())
+            {
+                e = se->castTo(sc, t);
+                goto L1;
+            }
+        }
+
+        while (!e->implicitConvTo(t) && tb->ty == Tsarray)
         {
             /* Static array initialization, as in:
              *  T[3][5] = e;
              */
-            telem = telem->toBasetype()->nextOf();
+            t = tb->nextOf();
+            tb = t->toBasetype();
         }
+        if (!e->implicitConvTo(t))
+            t = origType;  // restore type for better diagnostic
 
-        if (!e->implicitConvTo(telem))
-            telem = origType;  // restore type for better diagnostic
-
-        e = e->implicitCastTo(sc, telem);
+        e = e->implicitCastTo(sc, t);
+    L1:
         if (e->op == TOKerror)
             return false;
 
