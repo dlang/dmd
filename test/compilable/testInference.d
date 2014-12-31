@@ -676,7 +676,7 @@ int logOf12542(T)(T n)
     return 0;
 }
 
-void test12542() @safe nothrow pure 
+void test12542() @safe nothrow pure
 {
     int log = logOf12542(9);
 }
@@ -763,6 +763,34 @@ nothrow void a13217(T)(T x)
 void test13217()
 {
     a13217(1);
+}
+
+/***************************************************/
+// 13840
+
+struct Foo13840
+{
+    int opApply(int delegate(int))
+    {
+        return 0;
+    }
+}
+
+void func13840()
+{
+}
+
+void test13840() nothrow
+{
+    try
+    {
+        foreach (i; Foo13840()) // generated delegate is throwable
+        {
+            func13840();        // throwable function call
+        }
+    }
+    catch
+    {}
 }
 
 // Add more tests regarding inferences later.

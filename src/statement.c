@@ -2305,7 +2305,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 }
                 params->push(new Parameter(stc, p->type, id, NULL));
             }
-            StorageClass stc = mergeFuncAttrs(STCsafe | STCpure | STCnothrow | STCnogc, func);
+            // Bugzilla 13840: Throwable nested function inside nothrow function is acceptable.
+            StorageClass stc = mergeFuncAttrs(STCsafe | STCpure | STCnogc, func);
             tfld = new TypeFunction(params, Type::tint32, 0, LINKd, stc);
             cases = new Statements();
             gotos = new ScopeStatements();
