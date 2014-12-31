@@ -8,7 +8,7 @@ TEST_OUTPUT:
 @safe pure nothrow void strictVoidReturn(T)(T x) {}
 @safe pure nothrow void nonstrictVoidReturn(T)(ref T x) {}
 
-void main()
+void test3882()
 {
     int x = 3;
     strictVoidReturn(x);
@@ -63,4 +63,22 @@ void test12909()
     // from 12910
     const(int[])[int] makeAA() { return null; }  // to make r-value
     makeAA().rehash();
+}
+
+/******************************************/
+// 13899
+
+const struct Foo13899
+{
+    int opApply(immutable int delegate(in ref int) pure nothrow dg) pure nothrow
+    {
+        return 1;
+    }
+}
+
+void test13899()
+{
+    foreach (x; Foo13899())
+    {
+    }
 }
