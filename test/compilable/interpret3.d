@@ -5164,6 +5164,26 @@ int bug8539()
 static assert(bug8539());
 
 /**************************************************
+    13740
+**************************************************/
+
+class R13740
+{
+    int e;
+    bool empty = false;
+    @property ref front() { return e; }
+    void popFront() { empty = true; }
+}
+static assert({
+    auto r = new R13740();
+    foreach (ref e; r)
+        e = 42;
+    assert(r.e == 42); /* fails in CTFE */
+
+    return true;
+}());
+
+/**************************************************
     6919
 **************************************************/
 
