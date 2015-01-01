@@ -3789,70 +3789,27 @@ public:
     }
 
     /*************
-     *  Deal with assignments of the form
-     *  aggregate[ie] = newval
-     *  where aggregate and newval have already been interpreted
+     * Deal with assignment to array element of the form:
+     *  aggregate[i] = newval
+     * aggregate is not AA (AAs were dealt with already).
      *
-     *  Return true if OK, false if error occured
+     * Return true if OK, false if error occured
      */
     bool interpretAssignToIndex(Loc loc,
         IndexExp *ie, Expression *newval, bool wantRef,
         BinExp *originalExp)
     {
-        /* Assignment to array element of the form:
-         *   aggregate[i] = newval
-         *   aggregate is not AA (AAs were dealt with already).
-         */
         assert(ie->e1->type->toBasetype()->ty != Taarray);
-        uinteger_t destarraylen = 0;
 
-        // Set the $ variable, and find the array literal to modify
-        if (ie->e1->type->toBasetype()->ty != Tpointer)
-        {
-            Expression *oldval = interpret(ie->e1, istate);
-            if (oldval->op == TOKnull)
-            {
-                originalExp->error("cannot index null array %s", ie->e1->toChars());
-                return false;
-            }
-            if (oldval->op != TOKarrayliteral &&
-                oldval->op != TOKvector &&
-                oldval->op != TOKstring &&
-                oldval->op != TOKslice)
-            {
-                originalExp->error("cannot determine length of %s at compile time",
-                    ie->e1->toChars());
-                return false;
-            }
-            destarraylen = resolveArrayLength(oldval);
-            if (ie->lengthVar)
-            {
-                IntegerExp *dollarExp = new IntegerExp(loc, destarraylen, Type::tsize_t);
-                ctfeStack.push(ie->lengthVar);
-                setValue(ie->lengthVar, dollarExp);
-            }
-        }
-        Expression *index = interpret(ie->e2, istate);
-        if (ie->lengthVar)
-            ctfeStack.pop(ie->lengthVar); // $ is defined only inside []
-        if (exceptionOrCantInterpret(index))
+        Expression *aggregate = interpret(ie->e1, istate);
+        if (exceptionOrCantInterpret(aggregate))
             return false;
 
-        assert (index->op != TOKslice);  // only happens with AA assignment
-
-        ArrayLiteralExp *existingAE = NULL;
-        StringExp *existingSE = NULL;
-
-        Expression *aggregate = ie->e1;
-
-        // Set the index to modify, and check that it is in range
-        dinteger_t indexToModify = index->toInteger();
+        uinteger_t destarraylen = 0;
+        dinteger_t indexToModify;
         if (ie->e1->type->toBasetype()->ty == Tpointer)
         {
-            dinteger_t ofs;
-            aggregate = interpret(aggregate, istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(aggregate))
-                return false;
+            // Set the index to modify, and check that it is in range
             if (aggregate->op == TOKnull)
             {
                 originalExp->error("cannot index through null pointer %s", ie->e1->toChars());
@@ -3864,19 +3821,30 @@ public:
                     ie->e1->toChars(), aggregate->toChars());
                 return false;
             }
+            dinteger_t ofs;
             aggregate = getAggregateFromPointer(aggregate, &ofs);
-            indexToModify += ofs;
-            if (aggregate->op != TOKslice && aggregate->op != TOKstring &&
-                aggregate->op != TOKarrayliteral && aggregate->op != TOKassocarrayliteral)
+
+            Expression *index = interpret(ie->e2, istate);
+            if (exceptionOrCantInterpret(index))
+                return false;
+
+            indexToModify = ofs + index->toInteger();
+
+            if (aggregate->op != TOKslice &&
+                aggregate->op != TOKstring &&
+                aggregate->op != TOKarrayliteral &&
+                aggregate->op != TOKassocarrayliteral)
             {
                 if (aggregate->op == TOKsymoff)
                 {
-                    originalExp->error("mutable variable %s cannot be modified at compile time, even through a pointer", ((SymOffExp *)aggregate)->var->toChars());
+                    originalExp->error("mutable variable %s cannot be modified at compile time, even through a pointer",
+                        ((SymOffExp *)aggregate)->var->toChars());
                     return false;
                 }
                 if (indexToModify != 0)
                 {
-                    originalExp->error("pointer index [%lld] lies outside memory block [0..1]", indexToModify);
+                    originalExp->error("pointer index [%lld] lies outside memory block [0..1]",
+                        indexToModify);
                     return false;
                 }
                 // It is equivalent to *aggregate = newval.
@@ -3888,6 +3856,38 @@ public:
             }
             destarraylen = resolveArrayLength(aggregate);
         }
+        else
+        {
+            // Set the $ variable, and find the array literal to modify
+            if (aggregate->op == TOKnull)
+            {
+                originalExp->error("cannot index null array %s", ie->e1->toChars());
+                return false;
+            }
+            if (aggregate->op != TOKarrayliteral &&
+                aggregate->op != TOKvector &&
+                aggregate->op != TOKstring &&
+                aggregate->op != TOKslice)
+            {
+                originalExp->error("cannot determine length of %s at compile time",
+                    ie->e1->toChars());
+                return false;
+            }
+            destarraylen = resolveArrayLength(aggregate);
+            if (ie->lengthVar)
+            {
+                IntegerExp *dollarExp = new IntegerExp(loc, destarraylen, Type::tsize_t);
+                ctfeStack.push(ie->lengthVar);
+                setValue(ie->lengthVar, dollarExp);
+            }
+            Expression *index = interpret(ie->e2, istate);
+            if (ie->lengthVar)
+                ctfeStack.pop(ie->lengthVar); // $ is defined only inside []
+            if (exceptionOrCantInterpret(index))
+                return false;
+
+            indexToModify = index->toInteger();
+        }
         if (indexToModify >= destarraylen)
         {
             originalExp->error("array index %lld is out of bounds [0..%lld]", indexToModify,
@@ -3895,47 +3895,6 @@ public:
             return false;
         }
 
-        /* The only possible indexable LValue aggregates are array literals, and
-         * slices of array literals.
-         */
-        if (aggregate->op == TOKindex ||
-            aggregate->op == TOKdotvar ||
-            aggregate->op == TOKslice ||
-            aggregate->op == TOKcall ||
-            aggregate->op == TOKstar ||
-            aggregate->op == TOKcast)
-        {
-            aggregate = interpret(aggregate, istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(aggregate))
-                return false;
-            // The array could be an index of an AA. Resolve it if so.
-            if (aggregate->op == TOKindex &&
-                ((IndexExp *)aggregate)->e1->op == TOKassocarrayliteral)
-            {
-                IndexExp *ix = (IndexExp *)aggregate;
-                aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
-                if (!aggregate)
-                {
-                    originalExp->error("key %s not found in associative array %s",
-                        ix->e2->toChars(), ix->e1->toChars());
-                    return false;
-                }
-                if (exceptionOrCantInterpret(aggregate))
-                    return false;
-            }
-        }
-        if (aggregate->op == TOKvar)
-        {
-            VarExp *ve = (VarExp *)aggregate;
-            VarDeclaration *v = ve->var->isVarDeclaration();
-            aggregate = getValue(v);
-            if (aggregate->op == TOKnull)
-            {
-                // This would be a runtime segfault
-                originalExp->error("cannot index null array %s", v->toChars());
-                return false;
-            }
-        }
         if (aggregate->op == TOKslice)
         {
             SliceExp *sexp = (SliceExp *)aggregate;
@@ -3943,67 +3902,64 @@ public:
             Expression *lwr = interpret(sexp->lwr, istate);
             indexToModify += lwr->toInteger();
         }
-        if (aggregate->op == TOKarrayliteral)
-            existingAE = (ArrayLiteralExp *)aggregate;
-        else if (aggregate->op == TOKvector)
-            existingAE = (ArrayLiteralExp *)((VectorExp *)aggregate)->e1;
-        else if (aggregate->op == TOKstring)
-            existingSE = (StringExp *)aggregate;
-        else
-        {
-            originalExp->error("CTFE internal error: %s", aggregate->toChars());
-            return false;
-        }
-        if (!wantRef)
-        {
-            newval = resolveSlice(newval);
-            if (CTFEExp::isCantExp(newval))
-            {
-                originalExp->error("CTFE internal error: index assignment %s", originalExp->toChars());
-                assert(0);
-            }
-        }
-        if (wantRef && newval->op == TOKindex &&
-            ((IndexExp *)newval)->e1 == aggregate)
-        {
-            // It's a circular reference, resolve it now
-            newval = interpret(newval, istate);
-        }
 
-        if (existingAE)
+        if (aggregate->op == TOKvector)
+            aggregate = ((VectorExp *)aggregate)->e1;
+        if (aggregate->op == TOKarrayliteral)
         {
+            ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
+
+            if (!wantRef)
+            {
+                newval = resolveSlice(newval);
+                if (CTFEExp::isCantExp(newval))
+                {
+                    originalExp->error("CTFE internal error: index assignment %s",
+                        originalExp->toChars());
+                    assert(0);
+                }
+            }
+
             if (newval->op == TOKstructliteral)
                 assignInPlace((*existingAE->elements)[(size_t)indexToModify], newval);
             else
                 (*existingAE->elements)[(size_t)indexToModify] = newval;
             return true;
         }
-        if (existingSE)
+        if (aggregate->op == TOKstring)
         {
-            utf8_t *s = (utf8_t *)existingSE->string;
+            StringExp *existingSE = (StringExp *)aggregate;
+
+            if (!wantRef)
+            {
+                newval = resolveSlice(newval);
+                if (CTFEExp::isCantExp(newval))
+                {
+                    originalExp->error("CTFE internal error: index assignment %s",
+                        originalExp->toChars());
+                    return false;
+                }
+            }
+
             if (!existingSE->ownedByCtfe)
             {
                 originalExp->error("cannot modify read-only string literal %s", ie->e1->toChars());
                 return false;
             }
+            void *s = existingSE->string;
             dinteger_t value = newval->toInteger();
             switch (existingSE->sz)
             {
-                case 1: s[(size_t)indexToModify] = (utf8_t)value; break;
-                case 2: ((unsigned short *)s)[(size_t)indexToModify] = (unsigned short)value; break;
-                case 4: ((unsigned *)s)[(size_t)indexToModify] = (unsigned)value; break;
-                default:
-                    assert(0);
-                    break;
+                case 1:     (( utf8_t *)s)[(size_t)indexToModify] = ( utf8_t)value; break;
+                case 2:     ((utf16_t *)s)[(size_t)indexToModify] = (utf16_t)value; break;
+                case 4:     ((utf32_t *)s)[(size_t)indexToModify] = (utf32_t)value; break;
+                default:    assert(0);                                              break;
             }
             return true;
         }
-        else
-        {
-            originalExp->error("index assignment %s is not yet supported in CTFE ", originalExp->toChars());
-            return false;
-        }
-        return true;
+
+        originalExp->error("index assignment %s is not yet supported in CTFE ", originalExp->toChars());
+        return false;
     }
 
     /*************
