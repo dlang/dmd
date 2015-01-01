@@ -2850,7 +2850,8 @@ int ptrSlice()
     x[1 .. 3] = 14;
     assert(arr[1] == 6);
     assert(arr[2] == 14);
-    x[-1 .. 4] = 5;
+    //x[-1 .. 4] = 5;   // problematic because negative lower boundary will throw RangeError in runtime
+    (x - 1)[0 .. 3] = 5;
     int[] z = arr[1 .. 2];
     z.length = 4;
     z[$ - 1] = 17;
@@ -6262,7 +6263,6 @@ static assert(bug8865());
 
 /******************************************************/
 
-
 struct Test75
 {
     this(int) pure {}
@@ -7122,3 +7122,116 @@ static assert({
     assert(c.C13847.foo() == 2);
     return true;
 }());
+
+// =============================================
+
+struct Tregex
+{
+    int val;
+    this(this) {}
+}
+struct Sregex
+{
+    Tregex t;
+    this(this) {}
+}
+static assert({
+    Sregex s;
+    Sregex s2 = s;
+    return 1;
+}());
+
+// =============================================
+
+struct S12382
+{
+    size_t opDollar() { return 0; }
+    size_t opIndex(size_t) { return 0; }
+}
+
+S12382 func12382() { return S12382(); }
+
+static assert(S12382.init[$] == 0);
+static assert(func12382()[$] == 0);
+
+enum e12382a = S12382.init[$];
+enum e12382b = func12382()[$];
+static v12382a = S12382.init[$];
+static v12382b = func12382()[$];
+
+// ----
+
+// Reduced test case for Phobos breaking (runnable/test12.d)
+struct Sxxx1
+{
+    this(int n)
+    out
+    {
+        // moved out of the body as a workaround for Issue 12661
+        //dbgVerifySorted();
+    }
+    body
+    {
+        //this._input = input;
+    }
+}
+auto fooxxx1()
+{
+    return Sxxx1(1);
+}
+static assert({ auto s = fooxxx1(); return 1; }());
+
+
+
+
+static assert({
+    auto p = Parser("ab");
+    return 1;
+}());
+
+struct Parser
+{
+    @trusted this(string pattern)
+    {
+        InversionList set;
+        set.data.data.length = 2;
+
+        // The issue doesn't happen
+        //auto set2 = set;
+        //assert(set.data.data.length == 2);
+
+        // The issue doesn't happen
+        //void foo(InversionList set) { assert(set.data.data.length > 0); }
+        //assert(set.data.data.length > 0);
+        //foo(set);
+
+        // happen!
+        auto r = set.byCodepoint(); // member function call
+        assert(1, "ok");
+    }
+}
+
+struct CowArray
+{
+    this(this) {}   // requires!
+
+    uint[] data;
+}
+
+struct InversionList
+{
+    CowArray data;
+
+    @property auto byCodepoint()
+    {
+        void foo(InversionList set)
+        {
+            assert(set.data.data.length > 0);   // difference!
+        }
+
+        assert(data.data.length > 0);       // no difference
+        foo(this);                          // problem in the copying 'this'?
+        return 1;
+    }
+}
+

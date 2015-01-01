@@ -125,7 +125,7 @@ void showCtfeExpr(Expression *e, int level = 0);
 
 /// Return true if this is a valid CTFE expression
 bool isCtfeValueValid(Expression *newval);
-
+bool isCtfeReferenceValid(Expression *newval);
 
 /// Given expr, which evaluates to an array/AA/string literal,
 /// return true if it needs to be copied
