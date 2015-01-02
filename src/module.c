@@ -90,7 +90,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
 
     macrotable = NULL;
     escapetable = NULL;
-    safe = false;
     doppelganger = 0;
     cov = NULL;
     covb = NULL;
@@ -538,7 +537,6 @@ void Module::parse()
          * the name of this module.
          */
         this->ident = md->id;
-        this->safe = md->safe;
         Package *ppack = NULL;
         dst = Package::resolve(md->packages, &this->parent, &ppack);
         assert(dst);
@@ -1055,12 +1053,11 @@ bool Module::rootImports()
 
 /* =========================== ModuleDeclaration ===================== */
 
-ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id, bool safe)
+ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id)
 {
     this->loc = loc;
     this->packages = packages;
     this->id = id;
-    this->safe = safe;
     this->isdeprecated = false;
     this->msg = NULL;
 }
