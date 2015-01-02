@@ -527,6 +527,34 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
     return (*aa).values;
 }
 
+auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc @property
+{
+    static struct Result
+    {
+        AARange r;
+
+      pure nothrow @nogc:
+        @property bool empty() { return _aaRangeEmpty(r); }
+        @property auto front() @trusted
+        {
+            static struct Pair
+            {
+                private Key* keyp;
+                private Value* valp;
+
+                @property ref Key key() { return *keyp; }
+                @property ref Value value() { return *valp; }
+            }
+            return Pair(cast(Key*)_aaRangeFrontKey(r),
+                        cast(Value*)_aaRangeFrontValue(r));
+        }
+        void popFront() { _aaRangePopFront(r); }
+        Result save() { return this; }
+    }
+
+    return Result(_aaRange(p));
+}
+
 inout(V) get(K, V)(inout(V[K]) aa, K key, lazy inout(V) defaultValue)
 {
     auto p = key in aa;
