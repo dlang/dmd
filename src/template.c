@@ -2618,8 +2618,8 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
 
     if (global.endGagging(olderrors))
     {
-        assert(fd->type->ty != Tfunction);
-        return NULL;
+        if (fd->type->ty != Tfunction)
+            return NULL;
     }
     assert(fd->type->ty == Tfunction);
 

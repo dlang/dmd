@@ -6729,6 +6729,11 @@ void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymb
     {
         //printf("s = %s\n", s->toChars());
         s->semantic(sc);
+        if (!global.gag && tempinst->errors)
+        {
+            *pt = terror;
+            return;
+        }
     }
     resolveHelper(loc, sc, s, NULL, pe, pt, ps, intypeid);
     if (*pt)
@@ -6754,7 +6759,8 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
     if (!t)
     {
         if (!e && s && s->errors)
-        {   // if there was an error evaluating the symbol, it might actually
+        {
+            // if there was an error evaluating the symbol, it might actually
             // be a type. Avoid misleading error messages.
             error(loc, "%s had previous errors", toChars());
         }
