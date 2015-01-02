@@ -881,7 +881,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         if (!se->committed &&
             (typeb->ty == Tarray || typeb->ty == Tsarray) &&
             (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
-            se->length(tb->nextOf()->size()) < ((TypeSArray *)tb)->dim->toInteger())
+            se->length((int)tb->nextOf()->size()) < ((TypeSArray *)tb)->dim->toInteger())
         {
             exp = se->castTo(sc, t);
             goto L1;
