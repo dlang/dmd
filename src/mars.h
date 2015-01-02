@@ -313,7 +313,7 @@ struct Loc
         filename = NULL;
     }
 
-    Loc(Module *mod, unsigned linnum, unsigned charnum);
+    Loc(const char *filename, unsigned linnum, unsigned charnum);
 
     char *toChars();
     bool equals(const Loc& loc);

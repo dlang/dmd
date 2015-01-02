@@ -56,9 +56,10 @@
 #define CARRAYDECL      1
 
 Parser::Parser(Module *module, const utf8_t *base, size_t length, int doDocComment)
-    : Lexer(module, base, 0, length, doDocComment, 0)
+    : Lexer(module ? module->srcfile->toChars() : NULL, base, 0, length, doDocComment, 0)
 {
     //printf("Parser::Parser()\n");
+    mod = module;
     md = NULL;
     linkage = LINKd;
     endloc = Loc();
@@ -73,7 +74,7 @@ Parser::Parser(Module *module, const utf8_t *base, size_t length, int doDocComme
  *      loc     location in source file of mixin
  */
 Parser::Parser(Loc loc, Module *module, const utf8_t *base, size_t length, int doDocComment)
-    : Lexer(module, base, 0, length, doDocComment, 0)
+    : Lexer(module ? module->srcfile->toChars() : NULL, base, 0, length, doDocComment, 0)
 {
     //printf("Parser::Parser()\n");
     scanloc = loc;
@@ -88,6 +89,7 @@ Parser::Parser(Loc loc, Module *module, const utf8_t *base, size_t length, int d
         scanloc.filename = filename;
     }
 
+    mod = module;
     md = NULL;
     linkage = LINKd;
     endloc = Loc();

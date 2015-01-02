@@ -65,6 +65,7 @@ enum ParseStatementFlags
 class Parser : public Lexer
 {
 public:
+    Module *mod;
     ModuleDeclaration *md;
     LINK linkage;
     Loc endloc;                 // set to location of last right curly
