@@ -110,7 +110,6 @@ public:
 
     Macro *macrotable;          // document comment macros
     Escape *escapetable;        // document comment escapes
-    bool safe;                  // true if module is marked as 'safe'
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
@@ -182,11 +181,10 @@ struct ModuleDeclaration
     Loc loc;
     Identifier *id;
     Identifiers *packages;            // array of Identifier's representing packages
-    bool safe;
     bool isdeprecated;  // if it is a deprecated module
     Expression *msg;
 
-    ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id, bool safe);
+    ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id);
 
     char *toChars();
 };

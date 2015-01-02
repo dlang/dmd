@@ -170,29 +170,8 @@ Dsymbols *Parser::parseModule()
     if (token.value == TOKmodule)
     {
         Loc loc = token.loc;
-        bool safe = false;
 
         nextToken();
-#if 0
-        if (token.value == TOKlparen)
-        {
-            nextToken();
-            if (token.value != TOKidentifier)
-            {
-                error("module (system) identifier expected");
-                goto Lerr;
-            }
-            Identifier *id = token.ident;
-
-            if (id == Id::system)
-                safe = true;
-            else
-                error("(safe) expected, not %s", id->toChars());
-            nextToken();
-            check(TOKrparen);
-        }
-#endif
-
         if (token.value != TOKidentifier)
         {
             error("identifier expected following module");
@@ -218,7 +197,7 @@ Dsymbols *Parser::parseModule()
                 id = token.ident;
             }
 
-            md = new ModuleDeclaration(loc, a, id, safe);
+            md = new ModuleDeclaration(loc, a, id);
             md->isdeprecated = isdeprecated;
             md->msg = msg;
 
