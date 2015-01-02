@@ -349,20 +349,21 @@ Expression *pointerBitmap(TraitsExp *e)
     d_uns64 bitsPerWord = sz_size_t * 8;
     d_uns64 cntptr = (sz + sz_size_t - 1) / sz_size_t;
     d_uns64 cntdata = (cntptr + bitsPerWord - 1) / bitsPerWord;
-    d_uns64* data = new d_uns64[cntdata];
-    memset(data, 0, cntdata * sizeof(d_uns64));
+    Array<d_uns64> data;
+    data.setDim((size_t)cntdata);
+    data.zero();
 
     class PointerBitmapVisitor : public Visitor
     {
     public:
-        PointerBitmapVisitor(d_uns64* _data, d_uns64 _sz_size_t) 
+        PointerBitmapVisitor(Array<d_uns64>* _data, d_uns64 _sz_size_t)
             : data(_data), offset(0), sz_size_t(_sz_size_t) 
         {}
         
         void setpointer(d_uns64 off)
         {
             d_uns64 ptroff = off / sz_size_t;
-            data[ptroff / (8 * sz_size_t)] |= 1LL << (ptroff % (8 * sz_size_t));
+            (*data)[(size_t)(ptroff / (8 * sz_size_t))] |= 1LL << (ptroff % (8 * sz_size_t));
         }
         virtual void visit(Type *t) 
         {
@@ -445,12 +446,12 @@ Expression *pointerBitmap(TraitsExp *e)
             offset = classoff;
         }
 
-        d_uns64* data;
+        Array<d_uns64>* data;
         d_uns64 offset;
         d_uns64 sz_size_t;
     };
 
-    PointerBitmapVisitor pbv(data, sz_size_t);
+    PointerBitmapVisitor pbv(&data, sz_size_t);
     if (t->ty == Tclass)
         pbv.visitClass((TypeClass*)t);
     else
@@ -459,7 +460,7 @@ Expression *pointerBitmap(TraitsExp *e)
     Expressions* exps = new Expressions;
     exps->push(new IntegerExp(e->loc, sz, Type::tsize_t));
     for (d_uns64 i = 0; i < cntdata; i++)
-        exps->push(new IntegerExp(e->loc, data[i], Type::tsize_t));
+        exps->push(new IntegerExp(e->loc, data[(size_t)i], Type::tsize_t));
 
     ArrayLiteralExp* ale = new ArrayLiteralExp(e->loc, exps);
     ale->type = Type::tsize_t->sarrayOf(cntdata + 1);
