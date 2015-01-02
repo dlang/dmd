@@ -460,9 +460,9 @@ void FuncDeclaration::semantic(Scope *sc)
                 FuncDeclaration *fd = NULL;
                 for (Dsymbol *p = toParent2(); p; p = p->toParent2())
                 {
-                    if (AggregateDeclaration *ad = p->isAggregateDeclaration())
+                    if (AggregateDeclaration *adx = p->isAggregateDeclaration())
                     {
-                        if (ad->isNested())
+                        if (adx->isNested())
                             continue;
                         break;
                     }
