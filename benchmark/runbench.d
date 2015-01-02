@@ -79,10 +79,11 @@ void runTests(Config cfg)
 
             if (exists("gcx.log"))
             {
-                auto lines = File("gcx.log", "r").byLine()
+                auto tgt = bin.setExtension("gcx.log");
+                rename("gcx.log", tgt);
+                auto lines = File(tgt, "r").byLine()
                     .find!(ln => ln.canFind("maxPoolMemory"));
                 if (!lines.empty) gcprof = lines.front.find("maxPoolMemory").idup;
-                rename("gcx.log", bin.setExtension("gcx.log"));
             }
             else
             {
