@@ -1551,7 +1551,7 @@ struct UnionExp
 
     UnionExp(Expression *e)
     {
-        memcpy(this, e, e->size);
+        memcpy(this, (void *)e, e->size);
     }
 
     /* Extract pointer to Expression
@@ -1562,8 +1562,8 @@ struct UnionExp
      */
     Expression *copy();
 
-  private:
-    union U
+private:
+    union
     {
         char exp       [sizeof(Expression)];
         char integerexp[sizeof(IntegerExp)];
@@ -1583,8 +1583,7 @@ struct UnionExp
 
         // Ensure that the union is suitably aligned.
         longdouble for_alignment_only;
-    };
-    U u;
+    } u;
 };
 
 /****************************************************************/
