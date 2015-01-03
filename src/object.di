@@ -552,7 +552,7 @@ auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc @property
         Result save() { return this; }
     }
 
-    return Result(_aaRange(p));
+    return Result(_aaRange(cast(void*)aa));
 }
 
 inout(V) get(K, V)(inout(V[K]) aa, K key, lazy inout(V) defaultValue)
