@@ -7,6 +7,8 @@
  */
 import std.stdio;
 
+extern(C) __gshared bool rt_cmdline_enabled = false;
+
 struct Config
 {
     string pattern = r".*\.d", dmd = "dmd", dflags = "-O -release -inline", args;
@@ -181,9 +183,11 @@ unittest
         assert(parseArgs(pair[0]) == pair[1]);
 }
 
-void main(string[] args)
+void main()
 {
-    auto cfg = parseArgs(args);
+    import core.runtime;
+    // use Runtime.args for --DRT-gcopt
+    auto cfg = parseArgs(Runtime.args);
     if (cfg.help) return printHelp();
 
     import std.process : env=environment;
