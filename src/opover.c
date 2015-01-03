@@ -1800,7 +1800,7 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *parameters, int fla
 
     for (size_t u = 0; u < nparams; u++)
     {
-        Parameter *p = (*parameters)[u];
+        p = (*parameters)[u];
         Parameter *param = Parameter::getNth(tf->parameters, u);
         if (p->type)
         {

@@ -2347,10 +2347,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     isRef = (p->storageClass & STCref) != 0;
                     ta = p->type;
                 }
-                Type *tn = taa->nextOf();
-                if (isRef ? !tn->constConv(ta) : !tn->implicitConvTo(ta))
+                Type *taav = taa->nextOf();
+                if (isRef ? !taav->constConv(ta) : !taav->implicitConvTo(ta))
                 {
-                    error("foreach: value must be type %s, not %s", tn->toChars(), ta->toChars());
+                    error("foreach: value must be type %s, not %s", taav->toChars(), ta->toChars());
                     goto Lerror2;
                 }
 

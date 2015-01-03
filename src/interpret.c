@@ -1497,10 +1497,10 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        Expression *e = interpret(s->init, istate);
-        if (exceptionOrCant(e))
+        Expression *ei = interpret(s->init, istate);
+        if (exceptionOrCant(ei))
             return;
-        assert(!e); // s->init never returns from function, or jumps out from it
+        assert(!ei); // s->init never returns from function, or jumps out from it
 
         while (1)
         {
