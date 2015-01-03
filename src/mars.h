@@ -73,9 +73,6 @@ the target object file format:
 
 void unittests();
 
-#define DMDV1   0
-#define DMDV2   1       // Version 2.0 features
-
 struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
