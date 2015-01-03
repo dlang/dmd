@@ -2844,22 +2844,26 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     if (v ^ (preg != mreg))
                     {
                         if (preg != lreg)
+                        {
                             if (mask[preg] & XMMREGS)
                             {   unsigned op = xmmload(ty1);            // MOVSS/D preg,lreg
                                 c1 = gen2(c1,op,modregxrmx(3,preg-XMM0,lreg-XMM0));
                             }
                             else
                                 c1 = genmovreg(c1, preg, lreg);
+                        }
                     }
                     else
                     {
                         if (preg2 != mreg)
+                        {
                             if (mask[preg2] & XMMREGS)
                             {   unsigned op = xmmload(ty2);            // MOVSS/D preg2,mreg
                                 c1 = gen2(c1,op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
                             }
                             else
                                 c1 = genmovreg(c1, preg2, mreg);
+                        }
                     }
                 }
 

@@ -796,8 +796,8 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 #endif
         case BCgoto:
             nextb = list_block(bl->Bsucc);
-            if ((funcsym_p->Sfunc->Fflags3 & Fnteh ||
-                 (MARS /*&& config.flags2 & CFG2seh*/)) &&
+            if (((MARS /*&& config.flags2 & CFG2seh*/) ||
+                 funcsym_p->Sfunc->Fflags3 & Fnteh) &&
                 bl->Btry != nextb->Btry &&
                 nextb->BC != BC_finally)
             {   int toindex;
@@ -1367,7 +1367,7 @@ void doswitch(block *b)
         if (I32 && config.flags3 & CFG3pic)
             retregs &= ~mBX;                            // need EBX for GOT
 #endif
-        bool modify = (vmin || I16 || I64);
+        bool modify = (I16 || I64 || vmin);
         c = scodelem(e,&retregs,0,!modify);
         unsigned reg = findreg(retregs & IDXREGS); // reg that result is in
         unsigned reg2;
@@ -4068,7 +4068,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
         if (config.wflags & WFssneds ||
             // If DS needs reloading from SS,
             // then assume SS != DS on thunk entry
-            (config.wflags & WFss && LARGEDATA))
+            (LARGEDATA && config.wflags & WFss))
             c1->Iflags |= CFss;                         /* SS:          */
         c = cat(c,c1);
     }
@@ -4120,7 +4120,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
             if (config.wflags & WFssneds ||
                 // If DS needs reloading from SS,
                 // then assume SS != DS on thunk entry
-                (config.wflags & WFss && LARGEDATA))
+                (LARGEDATA && config.wflags & WFss))
                 c1->Iflags |= CFss;                     /* SS:          */
 
             /* MOV/LES BX,[ES:]d2[BX] */
@@ -5397,7 +5397,7 @@ void simplify_code(code* c)
         (c->Iop == 0x81 || c->Iop == 0x80) &&
         c->IFL2 == FLconst &&
         reghasvalue((c->Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c->IEV2.Vsize_t : c->IEV2.Vlong,&reg) &&
-        !(c->Iflags & CFopsize && I16)
+        !(I16 && c->Iflags & CFopsize)
        )
     {
         // See if we can replace immediate instruction with register instruction

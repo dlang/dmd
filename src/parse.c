@@ -4440,7 +4440,7 @@ void Parser::checkCstyleTypeSyntax(Loc loc, Type *t, int alt, Identifier *ident)
 
 Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc)
 {
-    Statement *s;
+    Statement *s = NULL;
     Condition *cond;
     Statement *ifbody;
     Statement *elsebody;

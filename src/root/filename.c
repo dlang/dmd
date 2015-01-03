@@ -660,7 +660,7 @@ const char *FileName::canonicalName(const char *name)
 void FileName::free(const char *str)
 {
     if (str)
-    {   assert(str[0] != 0xAB);
+    {   assert(str[0] != (char)0xAB);
         memset((void *)str, 0xAB, strlen(str) + 1);     // stomp
     }
     mem.free((void *)str);
