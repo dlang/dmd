@@ -29,7 +29,6 @@
 #include "utf.h"
 #include "identifier.h"
 #include "id.h"
-#include "module.h"
 
 extern int HtmlNamedEntity(const utf8_t *p, size_t length);
 
@@ -246,19 +245,18 @@ Token *Lexer::freelist = NULL;
 StringTable Lexer::stringtable;
 OutBuffer Lexer::stringbuffer;
 
-Lexer::Lexer(Module *mod,
+Lexer::Lexer(const char *filename,
         const utf8_t *base, size_t begoffset, size_t endoffset,
         int doDocComment, int commentToken)
 {
-    scanloc = Loc(mod, 1, 1);
+    scanloc = Loc(filename, 1, 1);
     //printf("Lexer::Lexer(%p,%d)\n",base,length);
-    //printf("lexer.mod = %p, %p\n", mod, this->loc.mod);
+    //printf("lexer.filename = %s\n", filename);
     memset(&token,0,sizeof(token));
     this->base = base;
     this->end  = base + endoffset;
     p = base + begoffset;
     line = p;
-    this->mod = mod;
     this->doDocComment = doDocComment;
     this->anyToken = 0;
     this->commentToken = commentToken;
@@ -2353,10 +2351,10 @@ void Lexer::poundLine()
                 continue;                       // skip white space
 
             case '_':
-                if (mod && memcmp(p, "__FILE__", 8) == 0)
+                if (memcmp(p, "__FILE__", 8) == 0)
                 {
                     p += 8;
-                    filespec = mem.strdup(scanloc.filename ? scanloc.filename : mod->ident->toChars());
+                    filespec = mem.strdup(scanloc.filename);
                     continue;
                 }
                 goto Lerr;

@@ -183,11 +183,11 @@ char *Loc::toChars()
     return buf.extractString();
 }
 
-Loc::Loc(Module *mod, unsigned linnum, unsigned charnum)
+Loc::Loc(const char *filename, unsigned linnum, unsigned charnum)
 {
     this->linnum = linnum;
     this->charnum = charnum;
-    this->filename = mod ? mod->srcfile->toChars() : NULL;
+    this->filename = filename;
 }
 
 bool Loc::equals(const Loc& loc)
