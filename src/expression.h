@@ -152,7 +152,7 @@ public:
     virtual real_t toImaginary();
     virtual complex_t toComplex();
     virtual StringExp *toStringExp();
-    virtual int isLvalue();
+    virtual bool isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *implicitCastTo(Scope *sc, Type *t)
@@ -287,7 +287,7 @@ public:
     IdentifierExp(Loc loc, Identifier *ident);
     static IdentifierExp *create(Loc loc, Identifier *ident);
     Expression *semantic(Scope *sc);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -307,7 +307,7 @@ public:
 
     DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -320,7 +320,7 @@ public:
     ThisExp(Loc loc);
     Expression *semantic(Scope *sc);
     int isBool(int result);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -369,7 +369,7 @@ public:
     StringExp *toUTF8(Scope *sc);
     int compare(RootObject *obj);
     int isBool(int result);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     unsigned charAt(uinteger_t i);
@@ -523,7 +523,7 @@ public:
 
     TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd = NULL);
     bool rvalue();
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -608,7 +608,7 @@ public:
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     bool checkReadModifyWrite();
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
@@ -623,7 +623,7 @@ public:
     OverloadSet *vars;
 
     OverExp(Loc loc, OverloadSet *s);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -771,7 +771,7 @@ public:
 
     Expression *semantic(Scope *sc);
 
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -840,7 +840,7 @@ public:
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool checkReadModifyWrite();
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -899,7 +899,7 @@ public:
 
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *addDtorHook(Scope *sc);
 
@@ -923,7 +923,7 @@ public:
     Expression *semantic(Scope *sc);
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
@@ -1023,7 +1023,7 @@ public:
     void checkEscape();
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
@@ -1058,7 +1058,7 @@ class DelegatePtrExp : public UnaExp
 public:
     DelegatePtrExp(Loc loc, Expression *e1);
     Expression *semantic(Scope *sc);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1068,7 +1068,7 @@ class DelegateFuncptrExp : public UnaExp
 public:
     DelegateFuncptrExp(Loc loc, Expression *e1);
     Expression *semantic(Scope *sc);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1085,7 +1085,7 @@ public:
     ArrayExp(Loc loc, Expression *e1, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -1109,7 +1109,7 @@ public:
     void checkEscape();
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
@@ -1128,7 +1128,7 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
@@ -1164,7 +1164,7 @@ public:
 
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
     Expression *checkToBoolean(Scope *sc);
 
@@ -1473,7 +1473,7 @@ public:
     void checkEscape();
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
-    int isLvalue();
+    bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean(Scope *sc);
