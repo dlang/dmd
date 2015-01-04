@@ -2149,7 +2149,7 @@ auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc @property
                         cast(Value*)_aaRangeFrontValue(r));
         }
         void popFront() { _aaRangePopFront(r); }
-        Result save() { return this; }
+        @property Result save() { return this; }
     }
 
     return Result(_aaRange(cast(void*)aa));
