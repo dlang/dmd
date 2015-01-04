@@ -105,7 +105,7 @@ struct DocComment
 
 int cmp(const char *stringz, const void *s, size_t slen);
 int icmp(const char *stringz, const void *s, size_t slen);
-int isDitto(const utf8_t *comment);
+bool isDitto(const utf8_t *comment);
 const utf8_t *skipwhitespace(const utf8_t *p);
 size_t skiptoident(OutBuffer *buf, size_t i);
 size_t skippastident(OutBuffer *buf, size_t i);
@@ -1944,19 +1944,19 @@ int icmp(const char *stringz, const void *s, size_t slen)
 }
 
 /*****************************************
- * Return !=0 if comment consists entirely of "ditto".
+ * Return true if comment consists entirely of "ditto".
  */
 
-int isDitto(const utf8_t *comment)
+bool isDitto(const utf8_t *comment)
 {
     if (comment)
     {
         const utf8_t *p = skipwhitespace(comment);
 
         if (Port::memicmp((const char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /**********************************************
