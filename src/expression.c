@@ -962,25 +962,6 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
     return err;
 }
 
-
-/******************************
- * Perform canThrow() on an array of Expressions.
- */
-
-int arrayExpressionCanThrow(Expressions *exps, FuncDeclaration *func, bool mustNotThrow)
-{
-    if (exps)
-    {
-        for (size_t i = 0; i < exps->dim; i++)
-        {
-            Expression *e = (*exps)[i];
-            if (e && canThrow(e, func, mustNotThrow))
-                return 1;
-        }
-    }
-    return 0;
-}
-
 /****************************************
  * Expand tuples.
  * Input:

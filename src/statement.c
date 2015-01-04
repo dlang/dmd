@@ -471,12 +471,6 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         void visit(PragmaStatement *s)
         {
             result = BEfallthru;
-        #if 0 // currently, no code is generated for Pragma's, so it's just fallthru
-            if (arrayExpressionCanThrow(s->args, func, mustNotThrow))
-                result |= BEthrow;
-            if (s->body)
-                result |= s->body->blockExit(func, mustNotThrow);
-        #endif
         }
 
         void visit(StaticAssertStatement *s)
