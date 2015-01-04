@@ -5546,7 +5546,7 @@ void Parser::checkParens(TOK value, Expression *e)
  *      if *pt is not NULL, it is set to the ending token, which would be endtok
  */
 
-int Parser::isDeclaration(Token *t, int needId, TOK endtok, Token **pt)
+bool Parser::isDeclaration(Token *t, int needId, TOK endtok, Token **pt)
 {
     //printf("isDeclaration(needId = %d)\n", needId);
     int haveId = 0;
@@ -5597,7 +5597,7 @@ Lisnot:
     return false;
 }
 
-int Parser::isBasicType(Token **pt)
+bool Parser::isBasicType(Token **pt)
 {
     // This code parallels parseBasicType()
     Token *t = *pt;
@@ -5738,7 +5738,7 @@ Lfalse:
     return false;
 }
 
-int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
+bool Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
 {   // This code parallels parseDeclarator()
     Token *t = *pt;
     int parens;
@@ -5927,7 +5927,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
 }
 
 
-int Parser::isParameters(Token **pt)
+bool Parser::isParameters(Token **pt)
 {   // This code parallels parseParameters()
     Token *t = *pt;
 
@@ -6022,7 +6022,7 @@ int Parser::isParameters(Token **pt)
     return true;
 }
 
-int Parser::isExpression(Token **pt)
+bool Parser::isExpression(Token **pt)
 {
     // This is supposed to determine if something is an expression.
     // What it actually does is scan until a closing right bracket
@@ -6099,14 +6099,14 @@ int Parser::isExpression(Token **pt)
  * Output:
  *      *pt is set to closing token, which is ')' on success
  * Returns:
- *      !=0     successful
- *      0       some parsing error
+ *      true    successful
+ *      false   some parsing error
  */
 
-int Parser::skipParens(Token *t, Token **pt)
+bool Parser::skipParens(Token *t, Token **pt)
 {
     if (t->value != TOKlparen)
-        return 0;
+        return false;
 
     int parens = 0;
 
@@ -6138,19 +6138,19 @@ int Parser::skipParens(Token *t, Token **pt)
   Ldone:
     if (pt)
         *pt = peek(t);  // skip found rparen
-    return 1;
+    return true;
 
   Lfalse:
-    return 0;
+    return false;
 }
 
-int Parser::skipParensIf(Token *t, Token **pt)
+bool Parser::skipParensIf(Token *t, Token **pt)
 {
     if (t->value != TOKlparen)
     {
         if (pt)
             *pt = t;
-        return 1;
+        return true;
     }
     return skipParens(t, pt);
 }
@@ -6162,11 +6162,11 @@ int Parser::skipParensIf(Token *t, Token **pt)
  * Output:
  *      *pt is set to first non-attribute token on success
  * Returns:
- *      !=0     successful
- *      0       some parsing error
+ *      true    successful
+ *      false   some parsing error
  */
 
-int Parser::skipAttributes(Token *t, Token **pt)
+bool Parser::skipAttributes(Token *t, Token **pt)
 {
     while (1)
     {
@@ -6269,10 +6269,10 @@ int Parser::skipAttributes(Token *t, Token **pt)
   Ldone:
     if (pt)
         *pt = t;
-    return 1;
+    return true;
 
   Lerror:
-    return 0;
+    return false;
 }
 
 /********************************* Expression Parser ***************************/

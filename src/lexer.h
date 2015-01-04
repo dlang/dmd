@@ -73,7 +73,7 @@ public:
     unsigned decodeUTF();
     void getDocComment(Token *t, unsigned lineComment);
 
-    static int isValidIdentifier(const char *p);
+    static bool isValidIdentifier(const char *p);
     static const utf8_t *combineComments(const utf8_t *c1, const utf8_t *c2);
 
 private:

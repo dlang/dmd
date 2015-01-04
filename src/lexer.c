@@ -271,7 +271,7 @@ Token *Lexer::peekPastParen(Token *tk)
  *      0       invalid
  */
 
-int Lexer::isValidIdentifier(const char *p)
+bool Lexer::isValidIdentifier(const char *p)
 {
     size_t len;
     size_t idx;
@@ -294,10 +294,10 @@ int Lexer::isValidIdentifier(const char *p)
         if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
             goto Linvalid;
     }
-    return 1;
+    return true;
 
 Linvalid:
-    return 0;
+    return false;
 }
 
 /****************************

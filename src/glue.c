@@ -555,7 +555,7 @@ void Module::genhelpers(bool iscomdat)
 /**************************************
  * Search for a druntime array op
  */
-int isDruntimeArrayOp(Identifier *ident)
+bool isDruntimeArrayOp(Identifier *ident)
 {
     /* Some of the array op functions are written as library functions,
      * presumably to optimize them with special CPU vector instructions.
@@ -726,7 +726,7 @@ int isDruntimeArrayOp(Identifier *ident)
     char *name = ident->toChars();
     int i = binary(name, libArrayopFuncs, sizeof(libArrayopFuncs) / sizeof(char *));
     if (i != -1)
-        return 1;
+        return true;
 
 #ifdef DEBUG    // Make sure our array is alphabetized
     for (i = 0; i < sizeof(libArrayopFuncs) / sizeof(char *); i++)
@@ -735,7 +735,7 @@ int isDruntimeArrayOp(Identifier *ident)
             assert(0);
     }
 #endif
-    return 0;
+    return false;
 }
 
 /* ================================================================== */
