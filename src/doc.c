@@ -117,10 +117,10 @@ TypeFunction *isTypeFunction(Dsymbol *s);
 Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len);
 TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len);
 
-int isIdStart(const utf8_t *p);
+bool isIdStart(const utf8_t *p);
 bool isCVariadicArg(const utf8_t *p, size_t len);
-int isIdTail(const utf8_t *p);
-int isIndentWS(const utf8_t *p);
+bool isIdTail(const utf8_t *p);
+bool isIndentWS(const utf8_t *p);
 int utfStride(const utf8_t *p);
 
 // Workaround for missing Parameter instance for variadic params. (it's unnecessary to instantiate one).
@@ -2677,45 +2677,45 @@ bool isCVariadicArg(const utf8_t *p, size_t len)
  * Determine if p points to the start of an identifier.
  */
 
-int isIdStart(const utf8_t *p)
+bool isIdStart(const utf8_t *p)
 {
     unsigned c = *p;
     if (isalpha(c) || c == '_')
-        return 1;
+        return true;
     if (c >= 0x80)
     {   size_t i = 0;
         if (utf_decodeChar(p, 4, &i, &c))
-            return 0;   // ignore errors
+            return false;   // ignore errors
         if (isUniAlpha(c))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /****************************************
  * Determine if p points to the rest of an identifier.
  */
 
-int isIdTail(const utf8_t *p)
+bool isIdTail(const utf8_t *p)
 {
     unsigned c = *p;
     if (isalnum(c) || c == '_')
-        return 1;
+        return true;
     if (c >= 0x80)
     {   size_t i = 0;
         if (utf_decodeChar(p, 4, &i, &c))
-            return 0;   // ignore errors
+            return false;   // ignore errors
         if (isUniAlpha(c))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /****************************************
  * Determine if p points to the indentation space.
  */
 
-int isIndentWS(const utf8_t *p)
+bool isIndentWS(const utf8_t *p)
 {
     return (*p == ' ') || (*p == '\t');
 }
