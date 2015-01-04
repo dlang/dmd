@@ -34,7 +34,7 @@
 static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
     Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps);
 bool walkPostorder(Expression *e, StoppableVisitor *v);
-int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo);
+bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo);
 
 /* ========== Compute cost of inlining =============== */
 
@@ -1613,7 +1613,7 @@ void inlineScan(Module *m)
     m->semanticRun = PASSinlinedone;
 }
 
-int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
+bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
 {
     int cost;
 
@@ -1624,14 +1624,14 @@ int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
 #endif
 
     if (fd->needThis() && !hasthis)
-        return 0;
+        return false;
 
     if (fd->inlineNest || (fd->semanticRun < PASSsemantic3 && !hdrscan))
     {
 #if CANINLINE_LOG
         printf("\t1: no, inlineNest = %d, semanticRun = %d\n", fd->inlineNest, fd->semanticRun);
 #endif
-        return 0;
+        return false;
     }
 
     switch (statementsToo ? fd->inlineStatusStmt : fd->inlineStatusExp)
@@ -1640,13 +1640,13 @@ int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
 #if CANINLINE_LOG
             printf("\t1: yes %s\n", fd->toChars());
 #endif
-            return 1;
+            return true;
 
         case ILSno:
 #if CANINLINE_LOG
             printf("\t1: no %s\n", fd->toChars());
 #endif
-            return 0;
+            return false;
 
         case ILSuninitialized:
             break;
@@ -1749,7 +1749,7 @@ int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
 #if CANINLINE_LOG
     printf("\t2: yes %s\n", fd->toChars());
 #endif
-    return 1;
+    return true;
 
 Lno:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
@@ -1762,7 +1762,7 @@ Lno:
 #if CANINLINE_LOG
     printf("\t2: no %s\n", fd->toChars());
 #endif
-    return 0;
+    return false;
 }
 
 static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,

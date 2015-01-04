@@ -1819,7 +1819,7 @@ bool Type::isZeroInit(Loc loc)
     return false;           // assume not
 }
 
-int Type::isBaseOf(Type *t, int *poffset)
+bool Type::isBaseOf(Type *t, int *poffset)
 {
     return 0;           // assume not
 }
@@ -8328,15 +8328,15 @@ bool TypeClass::isscope()
     return sym->isscope;
 }
 
-int TypeClass::isBaseOf(Type *t, int *poffset)
+bool TypeClass::isBaseOf(Type *t, int *poffset)
 {
     if (t && t->ty == Tclass)
     {
         ClassDeclaration *cd = ((TypeClass *)t)->sym;
         if (sym->isBaseOf(cd, poffset))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 MATCH TypeClass::implicitConvTo(Type *to)

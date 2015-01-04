@@ -131,14 +131,14 @@ public:
     void check(TOK value);
     void check(TOK value, const char *string);
     void checkParens(TOK value, Expression *e);
-    int isDeclaration(Token *t, int needId, TOK endtok, Token **pt);
-    int isBasicType(Token **pt);
-    int isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok);
-    int isParameters(Token **pt);
-    int isExpression(Token **pt);
-    int skipParens(Token *t, Token **pt);
-    int skipParensIf(Token *t, Token **pt);
-    int skipAttributes(Token *t, Token **pt);
+    bool isDeclaration(Token *t, int needId, TOK endtok, Token **pt);
+    bool isBasicType(Token **pt);
+    bool isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok);
+    bool isParameters(Token **pt);
+    bool isExpression(Token **pt);
+    bool skipParens(Token *t, Token **pt);
+    bool skipParensIf(Token *t, Token **pt);
+    bool skipAttributes(Token *t, Token **pt);
 
     Expression *parseExpression();
     Expression *parsePrimaryExp();
