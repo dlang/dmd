@@ -1479,7 +1479,7 @@ private:
                         }
                         else
                         {
-                            dinteger_t val = e->toInteger();
+                            sinteger_t val = e->toInteger();
                             if (val < 0)
                             {
                                 val = -val;
