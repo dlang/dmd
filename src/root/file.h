@@ -27,7 +27,6 @@ struct File
     int ref;                    // != 0 if this is a reference to someone else's buffer
     unsigned char *buffer;      // data for our file
     size_t len;                 // amount of data in buffer[]
-    void *touchtime;            // system time to use for file
 
     FileName *name;             // name of our file
 
@@ -38,55 +37,15 @@ struct File
 
     char *toChars();
 
-    /* Read file, return !=0 if error
+    /* Read file, return true if error
      */
 
-    int read();
+    bool read();
 
-    /* Read file, return !=0 if error
+    /* Write file, return true if error
      */
 
-    int mmread();
-
-    /* Write file, return !=0 if error
-     */
-
-    int write();
-
-    /* Return !=0 if file exists.
-     *  0:      file doesn't exist
-     *  1:      normal file
-     *  2:      directory
-     */
-
-    /* Append to file, return !=0 if error
-     */
-
-    int append();
-
-    /* Return !=0 if file exists.
-     *  0:      file doesn't exist
-     *  1:      normal file
-     *  2:      directory
-     */
-
-    int exists();
-
-    /* Given wildcard filespec, return an array of
-     * matching File's.
-     */
-
-    static Files *match(char *);
-    static Files *match(FileName *);
-
-    // Compare file times.
-    // Return   <0      this < f
-    //          =0      this == f
-    //          >0      this > f
-    int compareTime(File *f);
-
-    // Read system file statistics
-    void stat();
+    bool write();
 
     /* Set buffer
      */
