@@ -28,7 +28,6 @@
 #include "aggregate.h"
 #include "module.h"
 #include "id.h"
-#include "lexer.h"
 #include "template.h"
 
 Scope *Scope::freelist = NULL;
@@ -524,11 +523,9 @@ void *scope_search_fp(void *arg, const char *seed, int* cost)
     size_t len = strlen(seed);
     if (!len)
         return NULL;
-    StringValue *sv = Lexer::stringtable.lookup(seed, len);
-    if (!sv)
+    Identifier *id = Identifier::lookup(seed, len);
+    if (!id)
         return NULL;
-    Identifier *id = (Identifier *)sv->ptrvalue;
-    assert(id);
 
     Scope *sc = (Scope *)arg;
     Module::clearCache();

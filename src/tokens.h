@@ -16,6 +16,7 @@
 #pragma once
 #endif /* __DMC__ */
 
+#include "port.h"
 #include "mars.h"
 
 class Identifier;
@@ -217,6 +218,7 @@ struct Token
     };
 
     static const char *tochars[TOKMAX];
+    static void initTokens();
 
     static Token *freelist;
     static Token *alloc();

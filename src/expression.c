@@ -1376,7 +1376,7 @@ Expression *callCpCtor(Scope *sc, Expression *e)
              * This is not the most efficent, ideally tmp would be constructed
              * directly onto the stack.
              */
-            Identifier *idtmp = Lexer::uniqueId("__copytmp");
+            Identifier *idtmp = Identifier::generateId("__copytmp");
             VarDeclaration *tmp = new VarDeclaration(e->loc, e->type, idtmp, new ExpInitializer(e->loc, e));
             tmp->storage_class |= STCtemp | STCctfe;
             tmp->noscope = 1;
@@ -1547,7 +1547,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         ArrayLiteralExp *ale = new ArrayLiteralExp(loc, elements);
                         ale->type = tsa;
 
-                        Identifier *id = Lexer::uniqueId("__arrayArg");
+                        Identifier *id = Identifier::generateId("__arrayArg");
                         VarDeclaration *v = new VarDeclaration(loc, tsa, id, new ExpInitializer(loc, ale));
                         v->storage_class |= STCtemp | STCctfe;
                         v->semantic(sc);
@@ -1867,7 +1867,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     // Need the gate because throws may occur after this arg is constructed
                     if (!gate)
                     {
-                        Identifier *idtmp = Lexer::uniqueId("__gate");
+                        Identifier *idtmp = Identifier::generateId("__gate");
                         gate = new VarDeclaration(loc, Type::tbool, idtmp, NULL);
                         gate->storage_class |= STCtemp | STCctfe | STCvolatile;
                         gate->semantic(sc);
@@ -1884,7 +1884,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (appendToPrefix) // don't need to add to prefix until there's something to destruct
             {
-                Identifier *idtmp = Lexer::uniqueId("__pfx");
+                Identifier *idtmp = Identifier::generateId("__pfx");
                 VarDeclaration *tmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(loc, arg));
                 tmp->storage_class |= STCtemp | STCctfe;
                 tmp->semantic(sc);
@@ -1913,7 +1913,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             else if (anythrow && firstthrow <= i && i <= lastthrow && gate)
             {
-                Identifier *id = Lexer::uniqueId("__pfy");
+                Identifier *id = Identifier::generateId("__pfy");
                 VarDeclaration *tmp = new VarDeclaration(loc, arg->type, id, new ExpInitializer(loc, arg));
                 tmp->storage_class |= STCtemp | STCctfe;
                 tmp->semantic(sc);
@@ -4298,7 +4298,7 @@ Expression *StructLiteralExp::addDtorHook(Scope *sc)
         strcpy(buf, "__sl");
         strncat(buf, sd->ident->toChars(), len - 4 - 1);
         assert(buf[len] == 0);
-        Identifier *idtmp = Lexer::uniqueId(buf);
+        Identifier *idtmp = Identifier::generateId(buf);
 
         VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
         tmp->storage_class |= STCtemp | STCctfe;
@@ -5467,7 +5467,7 @@ void FuncExp::genIdent(Scope *sc)
         }
         assert(symtab);
         int num = (int)dmd_aaLen(symtab->tab) + 1;
-        Identifier *id = Lexer::uniqueId(s, num);
+        Identifier *id = Identifier::generateId(s, num);
         fd->ident = id;
         if (td) td->ident = id;
         symtab->insert(td ? (Dsymbol *)td : (Dsymbol *)fd);
@@ -6329,7 +6329,7 @@ Expression *IsExp::semantic(Scope *sc)
          * is(targ id : tspec, tpl)
          */
 
-        Identifier *tid = id ? id : Lexer::uniqueId("__isexp_id");
+        Identifier *tid = id ? id : Identifier::generateId("__isexp_id");
         parameters->insert(0, new TemplateTypeParameter(loc, tid, NULL, NULL));
 
         Objects dedtypes;
@@ -6793,7 +6793,7 @@ Expression *BinAssignExp::toLvalue(Scope *sc, Expression *ex)
          */
 
         // ref v = e1;
-        Identifier *id = Lexer::uniqueId("__assignop");
+        Identifier *id = Identifier::generateId("__assignop");
         ExpInitializer *ei = new ExpInitializer(loc, e1);
         VarDeclaration *v = new VarDeclaration(loc, e1->type, id, ei);
         v->storage_class |= STCtemp | STCref | STCforeach;
@@ -7438,7 +7438,7 @@ Expression *DotVarExp::semantic(Scope *sc)
         Expression *ev = e1;
         if (sc->func && !isTrivialExp(e1))
         {
-            Identifier *id = Lexer::uniqueId("__tup");
+            Identifier *id = Identifier::generateId("__tup");
             ExpInitializer *ei = new ExpInitializer(e1->loc, e1);
             VarDeclaration *v = new VarDeclaration(e1->loc, NULL, id, ei);
             v->storage_class |= STCtemp | STCctfe
@@ -8988,7 +8988,7 @@ Expression *CallExp::addDtorHook(Scope *sc)
             /* Type needs destruction, so declare a tmp
              * which the back end will recognize and call dtor on
              */
-            Identifier *idtmp = Lexer::uniqueId("__tmpfordtor");
+            Identifier *idtmp = Identifier::generateId("__tmpfordtor");
             VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
             tmp->storage_class |= STCtemp | STCctfe;
             Expression *ae = new DeclarationExp(loc, tmp);
@@ -9483,7 +9483,7 @@ Expression *DeleteExp::semantic(Scope *sc)
                 VarDeclaration *v;
 
                 if (fd && f)
-                {   Identifier *id = Lexer::idPool("__tmpea");
+                {   Identifier *id = Identifier::idPool("__tmpea");
                     v = new VarDeclaration(loc, e1->type, id, new ExpInitializer(loc, e1));
                     v->storage_class |= STCtemp;
                     v->semantic(sc);
@@ -10186,7 +10186,7 @@ Expression *ArrayLengthExp::rewriteOpAssign(BinExp *exp)
         /*    auto tmp = &array;
          *    (*tmp).length = (*tmp).length op e2
          */
-        Identifier *id = Lexer::uniqueId("__arraylength");
+        Identifier *id = Identifier::generateId("__arraylength");
         ExpInitializer *ei = new ExpInitializer(ale->loc, new AddrExp(ale->loc, ale->e1));
         VarDeclaration *tmp = new VarDeclaration(ale->loc, ale->e1->type->pointerTo(), id, ei);
         tmp->storage_class |= STCtemp;
@@ -10800,7 +10800,7 @@ Expression *PostExp::semantic(Scope *sc)
         if (e1->op != TOKvar && e1->op != TOKarraylength)
         {
             // ref v = e1;
-            Identifier *id = Lexer::uniqueId("__postref");
+            Identifier *id = Identifier::generateId("__postref");
             ExpInitializer *ei = new ExpInitializer(loc, e1);
             VarDeclaration *v = new VarDeclaration(loc, e1->type, id, ei);
             v->storage_class |= STCtemp | STCref | STCforeach;
@@ -10811,7 +10811,7 @@ Expression *PostExp::semantic(Scope *sc)
         /* Rewrite as:
          * auto tmp = e1; ++e1; tmp
          */
-        Identifier *id = Lexer::uniqueId("__pitmp");
+        Identifier *id = Identifier::generateId("__pitmp");
         ExpInitializer *ei = new ExpInitializer(loc, e1);
         VarDeclaration *tmp = new VarDeclaration(loc, e1->type, id, ei);
         tmp->storage_class |= STCtemp;
@@ -11150,7 +11150,7 @@ Expression *AssignExp::semantic(Scope *sc)
             assert(e1->type->ty == Ttuple);
             TypeTuple *tt = (TypeTuple *)e1->type;
 
-            Identifier *id = Lexer::uniqueId("__tup");
+            Identifier *id = Identifier::generateId("__tup");
             ExpInitializer *ei = new ExpInitializer(e2x->loc, e2x);
             VarDeclaration *v = new VarDeclaration(e2x->loc, NULL, id, ei);
             v->storage_class |= STCtemp | STCctfe;
@@ -11388,7 +11388,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (!isTrivialExp(ea))
                 {
                     VarDeclaration *v = new VarDeclaration(loc, ie->e1->type,
-                        Lexer::uniqueId("__aatmp"), new ExpInitializer(loc, ie->e1));
+                        Identifier::generateId("__aatmp"), new ExpInitializer(loc, ie->e1));
                     v->storage_class |= STCtemp | STCctfe
                                      | (ea->isLvalue() ? STCforeach | STCref : STCrvalue);
                     v->semantic(sc);
@@ -11398,7 +11398,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (!isTrivialExp(ek))
                 {
                     VarDeclaration *v = new VarDeclaration(loc, ie->e2->type,
-                        Lexer::uniqueId("__aakey"), new ExpInitializer(loc, ie->e2));
+                        Identifier::generateId("__aakey"), new ExpInitializer(loc, ie->e2));
                     v->storage_class |= STCtemp | STCctfe
                                      | (ek->isLvalue() ? STCforeach | STCref : STCrvalue);
                     v->semantic(sc);
@@ -11408,7 +11408,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (!isTrivialExp(ev))
                 {
                     VarDeclaration *v = new VarDeclaration(loc, e2x->type,
-                        Lexer::uniqueId("__aaval"), new ExpInitializer(loc, e2x));
+                        Identifier::generateId("__aaval"), new ExpInitializer(loc, e2x));
                     v->storage_class |= STCtemp | STCctfe
                                      | (ev->isLvalue() ? STCforeach | STCref : STCrvalue);
                     v->semantic(sc);
@@ -12044,7 +12044,7 @@ Expression *PowAssignExp::semantic(Scope *sc)
         else
         {
             // Rewrite: ref tmp = e1; tmp = tmp ^^ e2
-            Identifier *id = Lexer::uniqueId("__powtmp");
+            Identifier *id = Identifier::generateId("__powtmp");
             VarDeclaration *v = new VarDeclaration(e1->loc, e1->type, id, new ExpInitializer(loc, e1));
             v->storage_class |= STCtemp | STCref | STCforeach;
             Expression *de = new DeclarationExp(e1->loc, v);
@@ -12735,7 +12735,7 @@ Expression *PowExp::semantic(Scope *sc)
     {
         // Replace x^^2 with (tmp = x, tmp*tmp)
         // Replace x^^3 with (tmp = x, tmp*tmp*tmp)
-        Identifier *idtmp = Lexer::uniqueId("__powtmp");
+        Identifier *idtmp = Identifier::generateId("__powtmp");
         VarDeclaration *tmp = new VarDeclaration(loc, e1->type->toBasetype(), idtmp, new ExpInitializer(Loc(), e1));
         tmp->storage_class |= STCtemp | STCctfe;
         Expression *ve = new VarExp(loc, tmp);
@@ -13883,7 +13883,7 @@ Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
          *      (ref __dop = e1, __dop).opIndex( ... __dop.opDollar ...)
          *      (ref __dop = e1, __dop).opSlice( ... __dop.opDollar ...)
          */
-        Identifier *id = Lexer::uniqueId("__dop");
+        Identifier *id = Identifier::generateId("__dop");
         ExpInitializer *ei = new ExpInitializer(ue->loc, e1);
         VarDeclaration *v = new VarDeclaration(ue->loc, e1->type, id, ei);
         v->storage_class |= STCtemp | STCctfe
@@ -14060,7 +14060,7 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     {
         if (!isTrivialExp(ie->e2))
         {
-            Identifier *id = Lexer::uniqueId("__aakey");
+            Identifier *id = Identifier::generateId("__aakey");
             VarDeclaration *vd = new VarDeclaration(ie->e2->loc, ie->e2->type, id, new ExpInitializer(ie->e2->loc, ie->e2));
             vd->storage_class |= STCtemp
                               | (ie->e2->isLvalue() ? STCref | STCforeach : STCrvalue);
@@ -14082,7 +14082,7 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
 
     if (!isTrivialExp(ie->e1))
     {
-        Identifier *id = Lexer::uniqueId("__aatmp");
+        Identifier *id = Identifier::generateId("__aatmp");
         VarDeclaration *vd = new VarDeclaration(ie->e1->loc, ie->e1->type, id, new ExpInitializer(ie->e1->loc, ie->e1));
         vd->storage_class |= STCtemp
                           | (ie->e1->isLvalue() ? STCref | STCforeach : STCrvalue);
@@ -14093,7 +14093,7 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     }
 
     {
-        Identifier *id = Lexer::uniqueId("__aaval");
+        Identifier *id = Identifier::generateId("__aaval");
         VarDeclaration *vd = new VarDeclaration(be->loc, be->e2->type, id, new ExpInitializer(be->e2->loc, be->e2));
         vd->storage_class |= STCtemp
                           | (be->e2->isLvalue() ? STCref | STCforeach : STCrvalue);

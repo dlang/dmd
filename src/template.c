@@ -34,6 +34,7 @@
 #include "hdrgen.h"
 #include "id.h"
 #include "attrib.h"
+#include "tokens.h"
 
 #define LOG     0
 
@@ -7308,7 +7309,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
     buf.writeByte('Z');
     id = buf.peekString();
     //printf("\tgenIdent = %s\n", id);
-    return Lexer::idPool(id);
+    return Identifier::idPool(id);
 }
 
 /*************************************
@@ -7993,7 +7994,7 @@ void TemplateMixin::semantic(Scope *sc)
         L1:
             assert(symtab);
             int num = (int)dmd_aaLen(symtab->tab) + 1;
-            ident = Lexer::uniqueId(s, num);
+            ident = Identifier::generateId(s, num);
             symtab->insert(this);
         }
     }

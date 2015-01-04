@@ -953,7 +953,7 @@ void VarDeclaration::semantic(Scope *sc)
                 }
                 else if (isAliasThisTuple(e))
                 {
-                    Identifier *id = Lexer::uniqueId("__tup");
+                    Identifier *id = Identifier::generateId("__tup");
                     ExpInitializer *ei = new ExpInitializer(e->loc, e);
                     VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
                     v->storage_class = STCtemp | STCctfe | STCref | STCforeach;
@@ -1024,7 +1024,7 @@ Lnomatch:
             OutBuffer buf;
             buf.printf("__%s_field_%llu", ident->toChars(), (ulonglong)i);
             const char *name = buf.extractString();
-            Identifier *id = Lexer::idPool(name);
+            Identifier *id = Identifier::idPool(name);
 
             Initializer *ti;
             if (ie)

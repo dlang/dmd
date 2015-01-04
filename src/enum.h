@@ -18,6 +18,7 @@
 
 #include "root.h"
 #include "dsymbol.h"
+#include "tokens.h"
 
 class Identifier;
 class Type;

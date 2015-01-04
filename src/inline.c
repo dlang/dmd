@@ -29,6 +29,7 @@
 #include "attrib.h"
 #include "template.h"
 #include "module.h"
+#include "tokens.h"
 
 static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
     Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps);
@@ -1796,7 +1797,7 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
             /* Inlining:
              *   this.field = foo();   // inside constructor
              */
-            vret = new VarDeclaration(fd->loc, eret->type, Lexer::uniqueId("_satmp"), NULL);
+            vret = new VarDeclaration(fd->loc, eret->type, Identifier::generateId("_satmp"), NULL);
             vret->storage_class |= STCtemp | STCforeach | STCref;
             vret->linkage = LINKd;
             vret->parent = parent;

@@ -20,6 +20,7 @@
 #include "dsymbol.h"
 #include "mtype.h"
 #include "declaration.h"
+#include "tokens.h"
 
 Expression *resolveAliasThis(Scope *sc, Expression *e)
 {

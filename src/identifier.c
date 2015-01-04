@@ -15,8 +15,8 @@
 #include "root.h"
 #include "identifier.h"
 #include "mars.h"
-#include "lexer.h"
 #include "id.h"
+#include "tokens.h"
 
 Identifier::Identifier(const char *string, int value)
 {
@@ -83,7 +83,7 @@ int Identifier::dyncast()
     return DYNCAST_IDENTIFIER;
 }
 
-// BUG: these are redundant with Lexer::uniqueId()
+StringTable Identifier::stringtable;
 
 Identifier *Identifier::generateId(const char *prefix)
 {
@@ -99,5 +99,39 @@ Identifier *Identifier::generateId(const char *prefix, size_t i)
     buf.printf("%llu", (ulonglong)i);
 
     char *id = buf.peekString();
-    return Lexer::idPool(id);
+    return idPool(id);
+}
+
+/********************************************
+ * Create an identifier in the string table.
+ */
+
+Identifier *Identifier::idPool(const char *s)
+{
+    return idPool(s, strlen(s));
+}
+
+Identifier *Identifier::idPool(const char *s, size_t len)
+{
+    StringValue *sv = stringtable.update(s, len);
+    Identifier *id = (Identifier *) sv->ptrvalue;
+    if (!id)
+    {
+        id = new Identifier(sv->toDchars(), TOKidentifier);
+        sv->ptrvalue = (char *)id;
+    }
+    return id;
+}
+
+Identifier *Identifier::lookup(const char *s, size_t len)
+{
+    StringValue *sv = stringtable.lookup(s, len);
+    if (!sv)
+        return NULL;
+    return (Identifier *)sv->ptrvalue;
+}
+
+void Identifier::initTable()
+{
+    stringtable._init(28000);
 }

@@ -14,10 +14,10 @@
 
 #include "mars.h"
 #include "identifier.h"
-#include "lexer.h"
 #include "arraytypes.h"
 #include "intrange.h"
 #include "visitor.h"
+#include "tokens.h"
 
 class Type;
 class TypeVector;
@@ -48,8 +48,6 @@ class StringExp;
 class ArrayExp;
 class SliceExp;
 struct UnionExp;
-
-enum TOK;
 
 void initPrecedence();
 

@@ -21,10 +21,10 @@
 #include "cond.h"
 #include "module.h"
 #include "template.h"
-#include "lexer.h"
 #include "mtype.h"
 #include "scope.h"
 #include "arraytypes.h"
+#include "tokens.h"
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -293,7 +293,7 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *sds)
         }
         else if (level <= global.params.versionlevel || level <= mod->versionlevel)
             inc = 1;
-        if (!definedInModule && (!ident || (!isPredefined(ident->toChars()) && ident != Lexer::idPool(Token::toChars(TOKunittest)) && ident != Lexer::idPool(Token::toChars(TOKassert)))))
+        if (!definedInModule && (!ident || (!isPredefined(ident->toChars()) && ident != Identifier::idPool(Token::toChars(TOKunittest)) && ident != Identifier::idPool(Token::toChars(TOKassert)))))
             printDepsConditional(sc, this, "depsVersion ");
     }
     return (inc == 1);

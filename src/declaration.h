@@ -17,7 +17,6 @@
 #endif /* __DMC__ */
 
 #include "dsymbol.h"
-#include "lexer.h"
 #include "mtype.h"
 
 class Expression;

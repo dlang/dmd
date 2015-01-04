@@ -17,7 +17,6 @@
 #include        <string.h>
 #include        <time.h>
 
-#include        "lexer.h"
 #include        "expression.h"
 #include        "mtype.h"
 #include        "dsymbol.h"

@@ -17,6 +17,7 @@
 #endif /* __DMC__ */
 
 #include "arraytypes.h"
+#include "tokens.h"
 
 /**
    Global status of the CTFE engine. Mostly used for performance diagnostics

@@ -23,6 +23,7 @@
 #include "aggregate.h"
 #include "scope.h"
 #include "attrib.h"
+#include "tokens.h"
 
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 bool lambdaHasSideEffect(Expression *e);

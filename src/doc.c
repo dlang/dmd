@@ -566,7 +566,7 @@ static void emitAnchor(OutBuffer *buf, Dsymbol *s, Scope *sc)
     {
         OutBuffer anc;
         emitAnchorName(&anc, s, skipNonQualScopes(sc));
-        ident = Lexer::idPool(anc.peekString());
+        ident = Identifier::idPool(anc.peekString());
     }
     size_t *count = (size_t*)dmd_aaGet(&sc->anchorCounts, (void *)ident);
     TemplateDeclaration *td = getEponymousParentTemplate(s);

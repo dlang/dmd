@@ -20,8 +20,8 @@
 
 #include "arraytypes.h"
 #include "dsymbol.h"
-#include "lexer.h"
 #include "visitor.h"
+#include "tokens.h"
 
 struct OutBuffer;
 struct Scope;
@@ -48,8 +48,6 @@ class TryFinallyStatement;
 class CaseStatement;
 class DefaultStatement;
 class LabelStatement;
-
-enum TOK;
 
 // Back end
 #ifdef IN_GCC

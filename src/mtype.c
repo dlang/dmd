@@ -196,7 +196,6 @@ char Type::needThisPrefix()
 void Type::init()
 {
     stringtable._init(14000);
-    Lexer::initKeywords();
 
     for (size_t i = 0; i < TMAX; i++)
         sizeTy[i] = sizeof(TypeBasic);
@@ -2326,7 +2325,7 @@ Identifier *Type::getTypeInfoIdent(int internal)
     size_t off = 0;
     if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
         ++off;                 // C mangling will add '_' back in
-    Identifier *id = Lexer::idPool(name + off);
+    Identifier *id = Identifier::idPool(name + off);
 
     if (name != namebuf)
         free(name);
@@ -7403,7 +7402,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         Expression *ev = e->op == TOKtype ? NULL : e;
         if (sc->func && ev && !isTrivialExp(ev))
         {
-            Identifier *id = Lexer::uniqueId("__tup");
+            Identifier *id = Identifier::generateId("__tup");
             ExpInitializer *ei = new ExpInitializer(e->loc, ev);
             VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
             vd->storage_class |= STCtemp | STCctfe
@@ -7965,7 +7964,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expression *ev = e->op == TOKtype ? NULL : e;
         if (sc->func && ev && !isTrivialExp(ev))
         {
-            Identifier *id = Lexer::uniqueId("__tup");
+            Identifier *id = Identifier::generateId("__tup");
             ExpInitializer *ei = new ExpInitializer(e->loc, ev);
             VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
             vd->storage_class |= STCtemp | STCctfe
