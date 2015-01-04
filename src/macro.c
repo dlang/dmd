@@ -381,7 +381,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                 if (!m)
                 {
                     static const char undef[] = "DDOC_UNDEFINED_MACRO";
-                    m = search((const utf8_t *)undef, sizeof(undef) - 1);
+                    m = search((const utf8_t *)undef, strlen(undef));
                     if (m)
                     {
                         // Macro was not defined, so this is an expansion of
