@@ -105,7 +105,7 @@ struct DocComment
 
 int cmp(const char *stringz, const void *s, size_t slen);
 int icmp(const char *stringz, const void *s, size_t slen);
-int isDitto(const utf8_t *comment);
+bool isDitto(const utf8_t *comment);
 const utf8_t *skipwhitespace(const utf8_t *p);
 size_t skiptoident(OutBuffer *buf, size_t i);
 size_t skippastident(OutBuffer *buf, size_t i);
@@ -117,10 +117,10 @@ TypeFunction *isTypeFunction(Dsymbol *s);
 Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len);
 TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len);
 
-int isIdStart(const utf8_t *p);
+bool isIdStart(const utf8_t *p);
 bool isCVariadicArg(const utf8_t *p, size_t len);
-int isIdTail(const utf8_t *p);
-int isIndentWS(const utf8_t *p);
+bool isIdTail(const utf8_t *p);
+bool isIndentWS(const utf8_t *p);
 int utfStride(const utf8_t *p);
 
 // Workaround for missing Parameter instance for variadic params. (it's unnecessary to instantiate one).
@@ -1944,19 +1944,19 @@ int icmp(const char *stringz, const void *s, size_t slen)
 }
 
 /*****************************************
- * Return !=0 if comment consists entirely of "ditto".
+ * Return true if comment consists entirely of "ditto".
  */
 
-int isDitto(const utf8_t *comment)
+bool isDitto(const utf8_t *comment)
 {
     if (comment)
     {
         const utf8_t *p = skipwhitespace(comment);
 
         if (Port::memicmp((const char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /**********************************************
@@ -2089,16 +2089,16 @@ Lno:
 /****************************************************
  */
 
-int isKeyword(utf8_t *p, size_t len)
+bool isKeyword(utf8_t *p, size_t len)
 {
     static const char *table[] = { "true", "false", "null", NULL };
 
     for (int i = 0; table[i]; i++)
     {
         if (cmp(table[i], p, len) == 0)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /****************************************************
@@ -2677,45 +2677,45 @@ bool isCVariadicArg(const utf8_t *p, size_t len)
  * Determine if p points to the start of an identifier.
  */
 
-int isIdStart(const utf8_t *p)
+bool isIdStart(const utf8_t *p)
 {
     unsigned c = *p;
     if (isalpha(c) || c == '_')
-        return 1;
+        return true;
     if (c >= 0x80)
     {   size_t i = 0;
         if (utf_decodeChar(p, 4, &i, &c))
-            return 0;   // ignore errors
+            return false;   // ignore errors
         if (isUniAlpha(c))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /****************************************
  * Determine if p points to the rest of an identifier.
  */
 
-int isIdTail(const utf8_t *p)
+bool isIdTail(const utf8_t *p)
 {
     unsigned c = *p;
     if (isalnum(c) || c == '_')
-        return 1;
+        return true;
     if (c >= 0x80)
     {   size_t i = 0;
         if (utf_decodeChar(p, 4, &i, &c))
-            return 0;   // ignore errors
+            return false;   // ignore errors
         if (isUniAlpha(c))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /****************************************
  * Determine if p points to the indentation space.
  */
 
-int isIndentWS(const utf8_t *p)
+bool isIndentWS(const utf8_t *p)
 {
     return (*p == ' ') || (*p == '\t');
 }

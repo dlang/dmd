@@ -954,8 +954,8 @@ public:
     static int foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn=NULL);
 };
 
-int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
-int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
+bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
+bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
 void MODtoBuffer(OutBuffer *buf, MOD mod);
 char *MODtoChars(MOD mod);
 bool MODimplicitConv(MOD modfrom, MOD modto);

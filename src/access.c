@@ -103,11 +103,11 @@ Prot getAccess(AggregateDeclaration *ad, Dsymbol *smember)
 /********************************************************
  * Helper function for ClassDeclaration::accessCheck()
  * Returns:
- *      0       no access
- *      1       access
+ *      false   no access
+ *      true    access
  */
 
-static int accessCheckX(
+static bool accessCheckX(
         Dsymbol *smember,
         Dsymbol *sfunc,
         AggregateDeclaration *dthis,
@@ -125,7 +125,7 @@ static int accessCheckX(
         isFriendOf(dthis, cdscope))
     {
         if (smember->toParent() == dthis)
-            return 1;
+            return true;
         else
         {
             ClassDeclaration *cdthis = dthis->isClassDeclaration();
@@ -137,7 +137,7 @@ static int accessCheckX(
                     if (access.kind >= PROTprotected ||
                         accessCheckX(smember, sfunc, b->base, cdscope)
                        )
-                        return 1;
+                        return true;
 
                 }
             }
@@ -154,12 +154,12 @@ static int accessCheckX(
                 {   BaseClass *b = (*cdthis->baseclasses)[i];
 
                     if (accessCheckX(smember, sfunc, b->base, cdscope))
-                        return 1;
+                        return true;
                 }
             }
         }
     }
-    return 0;
+    return false;
 }
 
 /*******************************
@@ -169,11 +169,8 @@ static int accessCheckX(
 
 void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
 {
-    int result;
-
     FuncDeclaration *f = sc->func;
     AggregateDeclaration *cdscope = sc->getStructClassScope();
-    Prot access;
 
 #if LOG
     printf("AggregateDeclaration::accessCheck() for %s.%s in function %s() in scope %s\n",
@@ -194,6 +191,8 @@ void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
     // BUG: should enable this check
     //assert(smember->parent->isBaseOf(this, NULL));
 
+    bool result;
+    Prot access;
     if (smemberparent == ad)
     {
         Prot access2 = smember->prot();
@@ -208,14 +207,14 @@ void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
     }
     else if ((access = getAccess(ad, smember)).kind >= PROTpublic)
     {
-        result = 1;
+        result = true;
 #if LOG
         printf("result2 = %d\n", result);
 #endif
     }
     else if (access.kind == PROTpackage && hasPackageAccess(sc, ad))
     {
-        result = 1;
+        result = true;
 #if LOG
         printf("result3 = %d\n", result);
 #endif

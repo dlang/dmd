@@ -66,7 +66,7 @@ class CppMangleVisitor : public Visitor
             assert(0);
     }
 
-    int substitute(RootObject *p)
+    bool substitute(RootObject *p)
     {
         //printf("substitute %s\n", p ? p->toChars() : NULL);
         if (components_on)
@@ -80,13 +80,13 @@ class CppMangleVisitor : public Visitor
                     if (i)
                         writeBase36(i - 1);
                     buf.writeByte('_');
-                    return 1;
+                    return true;
                 }
             }
-        return 0;
+        return false;
     }
 
-    int exist(RootObject *p)
+    bool exist(RootObject *p)
     {
         //printf("exist %s\n", p ? p->toChars() : NULL);
         if (components_on)
@@ -94,10 +94,10 @@ class CppMangleVisitor : public Visitor
             {
                 if (p == components[i])
                 {
-                    return 1;
+                    return true;
                 }
             }
-        return 0;
+        return false;
     }
 
     void store(RootObject *p)

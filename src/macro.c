@@ -23,8 +23,8 @@
 
 #include "macro.h"
 
-int isIdStart(const utf8_t *p);
-int isIdTail(const utf8_t *p);
+bool isIdStart(const utf8_t *p);
+bool isIdTail(const utf8_t *p);
 int utfStride(const utf8_t *p);
 
 utf8_t *memdup(const utf8_t *p, size_t len)
