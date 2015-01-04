@@ -41,11 +41,7 @@ static uint32_t calcHash(const char *key, size_t len)
 
     while(len >= 4)
     {
-#if defined _M_I86 || defined _M_AMD64 || defined __i386 || defined __x86_64
-        uint32_t k = *(uint32_t *)data; // possibly unaligned load
-#else
         uint32_t k = data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
-#endif
 
         k *= m;
         k ^= k >> r;
@@ -80,7 +76,8 @@ static uint32_t calcHash(const char *key, size_t len)
 
 struct StringEntry
 {
-    uint32_t hash, vptr;
+    uint32_t hash;
+    uint32_t vptr;
 };
 
 uint32_t StringTable::allocValue(const char *s, size_t length)
@@ -97,8 +94,8 @@ uint32_t StringTable::allocValue(const char *s, size_t length)
     StringValue *sv = (StringValue *)&pools[npools - 1][nfill];
     sv->ptrvalue = NULL;
     sv->length = length;
-    ::memcpy(sv->lstring, s, length);
-    sv->lstring[length] = 0;
+    ::memcpy((char *)sv->lstring, s, length);
+    ((char *)sv->lstring)[length] = 0;
 
     const uint32_t vptr = npools << POOL_BITS | nfill;
     nfill += nbytes + (-nbytes & 7); // align to 8 bytes
@@ -156,7 +153,7 @@ size_t StringTable::findSlot(hash_t hash, const char *s, size_t length)
         if (!table[i].vptr ||
             table[i].hash == hash &&
             (sv = getValue(table[i].vptr))->length == length &&
-            ::memcmp(s, sv->lstring, length) == 0)
+            ::memcmp(s, (char *)sv->lstring, length) == 0)
             return i;
         i = (i + j) & (tabledim - 1);
     }
@@ -214,10 +211,10 @@ void StringTable::grow()
 
     for (size_t i = 0; i < odim; ++i)
     {
-        StringEntry &se = otab[i];
-        if (!se.vptr) continue;
-        StringValue *sv = getValue(se.vptr);
-        table[findSlot(se.hash, sv->lstring, sv->length)] = se;
+        StringEntry *se = &otab[i];
+        if (!se->vptr) continue;
+        StringValue *sv = getValue(se->vptr);
+        table[findSlot(se->hash, (char *)sv->lstring, sv->length)] = *se;
     }
     mem.free(otab);
 }
