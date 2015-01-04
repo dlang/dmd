@@ -232,9 +232,7 @@ typedef d_uns32                 d_dchar;
 
 typedef longdouble real_t;
 
-class Module;
-
-//typedef unsigned Loc;         // file location
+// file location
 struct Loc
 {
     const char *filename;
