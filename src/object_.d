@@ -2142,8 +2142,8 @@ auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc @property
                 private Key* keyp;
                 private Value* valp;
 
-                @property ref Key key() { return *keyp; }
-                @property ref Value value() { return *valp; }
+                @property ref inout(Key) key() inout { return *keyp; }
+                @property ref inout(Value) value() inout { return *valp; }
             }
             return Pair(cast(Key*)_aaRangeFrontKey(r),
                         cast(Value*)_aaRangeFrontValue(r));
@@ -2417,6 +2417,17 @@ unittest
         savedPairs.popFront();
     }
     assert(count == aa.length);
+}
+
+unittest
+{
+    // Verify iteration with const.
+    auto aa = [1:2, 3:4];
+    foreach (const t; aa.byKeyValue)
+    {
+        auto k = t.key;
+        auto v = t.value;
+    }
 }
 
 // Explicitly undocumented. It will be removed in March 2015.

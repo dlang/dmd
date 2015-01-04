@@ -542,8 +542,8 @@ auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc @property
                 private Key* keyp;
                 private Value* valp;
 
-                @property ref Key key() { return *keyp; }
-                @property ref Value value() { return *valp; }
+                @property ref inout(Key) key() inout { return *keyp; }
+                @property ref inout(Value) value() inout { return *valp; }
             }
             return Pair(cast(Key*)_aaRangeFrontKey(r),
                         cast(Value*)_aaRangeFrontValue(r));
