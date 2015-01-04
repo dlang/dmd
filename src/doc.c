@@ -2089,16 +2089,16 @@ Lno:
 /****************************************************
  */
 
-int isKeyword(utf8_t *p, size_t len)
+bool isKeyword(utf8_t *p, size_t len)
 {
     static const char *table[] = { "true", "false", "null", NULL };
 
     for (int i = 0; table[i]; i++)
     {
         if (cmp(table[i], p, len) == 0)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /****************************************************
