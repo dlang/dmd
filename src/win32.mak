@@ -141,7 +141,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
 	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj \
-	errors.obj tokens.obj
+	errors.obj tokens.obj globals.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
@@ -190,7 +190,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
 	intrange.h intrange.c canthrow.c target.c target.h visitor.h \
-	tokens.h tokens.c
+	tokens.h tokens.c globals.h globals.c
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -693,6 +693,7 @@ doc.obj : $(TOTALH) doc.h doc.c
 enum.obj : $(TOTALH) dsymbol.h identifier.h enum.h enum.c
 expression.obj : $(TOTALH) expression.h expression.c
 func.obj : $(TOTALH) identifier.h attrib.h declaration.h func.c
+globals.obj : $(TOTALH) globals.h globals.c
 hdrgen.obj : $(TOTALH) hdrgen.h hdrgen.c
 id.obj : $(TOTALH) id.h id.c
 identifier.obj : $(TOTALH) identifier.h identifier.c

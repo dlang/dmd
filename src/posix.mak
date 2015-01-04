@@ -137,7 +137,7 @@ DMD_OBJS = \
 	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o nspace.o errors.o \
-	tokens.o
+	tokens.o globals.o
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
@@ -196,7 +196,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 	intrange.h intrange.c canthrow.c target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c \
-	tokens.h tokens.c
+	tokens.h tokens.c globals.h globals.c
 
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
