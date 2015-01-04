@@ -314,7 +314,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                 buf->data[u] = 0xFF;
                 buf->data[u + 1] = '{';
                 buf->insert(u + 2, marg, marglen);
-                buf->insert(u + 2 + marglen, "\xFF}", 2);
+                buf->insert(u + 2 + marglen, (const char *)"\xFF}", 2);
                 end += -2 + 2 + marglen + 2;
 
                 // Scan replaced text for further expansion

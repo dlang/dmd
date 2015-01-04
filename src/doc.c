@@ -420,19 +420,19 @@ void escapeDdocString(OutBuffer *buf, size_t start)
         {
             case '$':
                 buf->remove(u, 1);
-                buf->insert(u, "$(DOLLAR)", 9);
+                buf->insert(u, (const char *)"$(DOLLAR)", 9);
                 u += 8;
                 break;
 
             case '(':
                 buf->remove(u, 1); //remove the (
-                buf->insert(u, "$(LPAREN)", 9); //insert this instead
+                buf->insert(u, (const char *)"$(LPAREN)", 9); //insert this instead
                 u += 8; //skip over newly inserted macro
                 break;
 
             case ')':
                 buf->remove(u, 1); //remove the )
-                buf->insert(u, "$(RPAREN)", 9); //insert this instead
+                buf->insert(u, (const char *)"$(RPAREN)", 9); //insert this instead
                 u += 8; //skip over newly inserted macro
                 break;
         }
@@ -472,7 +472,7 @@ void escapeStrayParenthesis(OutBuffer *buf, size_t start, Dsymbol *s)
                     warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output."
                         " Use $(RPAREN) instead for unpaired right parentheses.");
                     buf->remove(u, 1); //remove the )
-                    buf->insert(u, "$(RPAREN)", 9); //insert this instead
+                    buf->insert(u, (const char *)"$(RPAREN)", 9); //insert this instead
                     u += 8; //skip over newly inserted macro
                 }
                 else
@@ -507,7 +507,7 @@ void escapeStrayParenthesis(OutBuffer *buf, size_t start, Dsymbol *s)
                         warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output."
                             " Use $(LPAREN) instead for unpaired left parentheses.");
                         buf->remove(u, 1); //remove the (
-                        buf->insert(u, "$(LPAREN)", 9); //insert this instead
+                        buf->insert(u, (const char *)"$(LPAREN)", 9); //insert this instead
                     }
                     else
                         par_open--;
@@ -2408,7 +2408,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                         highlightCode2(sc, s, &codebuf, 0);
                         buf->remove(iCodeStart, i - iCodeStart);
                         i = buf->insert(iCodeStart, codebuf.data, codebuf.offset);
-                        i = buf->insert(i, ")\n", 2);
+                        i = buf->insert(i, (const char *)")\n", 2);
                         i -= 2; // in next loop, c should be '\n'
                     }
                     else
