@@ -163,9 +163,8 @@ class CppMangleVisitor : public Visitor
                         }
                         else
                         {
-                            dinteger_t val = e->toInteger();
-                            // TODO: try and do this without knowing what dinteger_t type is
-                            if ((long)val < 0)
+                            sinteger_t val = e->toInteger();
+                            if (val < 0)
                             {
                                 val = -val;
                                 buf.writeByte('n');

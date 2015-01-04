@@ -631,6 +631,15 @@ void test13707()
 
 /****************************************/
 
+struct S13932(int x)
+{
+        int member;
+}
+
+extern(C++) void func13932(S13932!(-1) s);
+
+/****************************************/
+
 void main()
 {
     test1();
@@ -654,6 +663,7 @@ void main()
     test15();
     test16();
     func13707();
+    func13932(S13932!(-1)(0));
 
     printf("Success\n");
 }
