@@ -22,6 +22,7 @@
 #include "id.h"
 #include "statement.h"
 #include "template.h"
+#include "tokens.h"
 
 TypeTuple *toArgTypes(Type *t);
 

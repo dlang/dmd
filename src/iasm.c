@@ -27,7 +27,6 @@
 
 // D compiler
 #include        "mars.h"
-#include        "lexer.h"
 #include        "mtype.h"
 #include        "statement.h"
 #include        "id.h"

@@ -27,7 +27,6 @@
 #include "aggregate.h"
 #include "init.h"
 #include "attrib.h"
-#include "lexer.h"
 #include "dsymbol.h"
 #include "id.h"
 #include "ctfe.h"
@@ -583,7 +582,7 @@ Symbol *EnumDeclaration::toInitializer()
         Classsym *stag = fake_classsym(Id::ClassInfo);
         Identifier *ident_save = ident;
         if (!ident)
-            ident = Lexer::uniqueId("__enum");
+            ident = Identifier::generateId("__enum");
         Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
         ident = ident_save;
         s->Sfl = FLextern;

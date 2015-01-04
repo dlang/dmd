@@ -50,7 +50,7 @@ Identifier *fixupLabelName(Scope *sc, Identifier *ident)
         buf.printf("%s%s", prefix, ident->toChars());
 
         const char *name = buf.extractString();
-        ident = Lexer::idPool(name);
+        ident = Identifier::idPool(name);
     }
     return ident;
 }
@@ -865,7 +865,7 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
                     {   /* Need a 'gate' to turn on/off destruction,
                          * in case v gets moved elsewhere.
                          */
-                        Identifier *id = Lexer::uniqueId("__runDtor");
+                        Identifier *id = Identifier::generateId("__runDtor");
                         ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(1));
                         VarDeclaration *rd = new VarDeclaration(loc, Type::tint32, id, ie);
                         rd->storage_class |= STCtemp;
@@ -1072,7 +1072,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
                         Statement *body = new CompoundStatement(Loc(), a);
                         body = new ScopeStatement(Loc(), body);
 
-                        Identifier *id = Lexer::uniqueId("__o");
+                        Identifier *id = Identifier::generateId("__o");
 
                         Statement *handler = new PeelStatement(sexception);
                         if (sexception->blockExit(sc->func, false) & BEfallthru)
@@ -1897,7 +1897,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
                 if (dim == 2 && i == 0)
                 {
-                    var = new VarDeclaration(loc, p->type->mutableOf(), Lexer::uniqueId("__key"), NULL);
+                    var = new VarDeclaration(loc, p->type->mutableOf(), Identifier::generateId("__key"), NULL);
                     var->storage_class |= STCtemp | STCforeach;
                     if (var->storage_class & (STCref | STCout))
                         var->storage_class |= STCnodtor;
@@ -1958,7 +1958,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
               *   for (T[] tmp = a[], size_t key = tmp.length; key--; )
               *   { T value = tmp[k]; body }
               */
-            Identifier *id = Lexer::uniqueId("__aggr");
+            Identifier *id = Identifier::generateId("__aggr");
             ExpInitializer *ie = new ExpInitializer(loc, new SliceExp(loc, aggr, NULL, NULL));
             VarDeclaration *tmp;
             if (aggr->op == TOKarrayliteral &&
@@ -1979,7 +1979,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
             if (!key)
             {
-                Identifier *idkey = Lexer::uniqueId("__key");
+                Identifier *idkey = Identifier::generateId("__key");
                 key = new VarDeclaration(loc, Type::tsize_t, idkey, NULL);
                 key->storage_class |= STCtemp;
             }
@@ -2132,7 +2132,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             }
             else
             {
-                Identifier *id = Lexer::uniqueId("__front");
+                Identifier *id = Identifier::generateId("__front");
                 ExpInitializer *ei = new ExpInitializer(loc, einit);
                 VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
                 vd->storage_class |= STCtemp | STCctfe | STCref | STCforeach;
@@ -2295,7 +2295,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     // Make a copy of the ref argument so it isn't
                     // a reference.
                 LcopyArg:
-                    id = Lexer::uniqueId("__applyArg", (int)i);
+                    id = Identifier::generateId("__applyArg", (int)i);
 
                     Initializer *ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
                     VarDeclaration *v = new VarDeclaration(Loc(), p->type, p->ident, ie);
@@ -2685,7 +2685,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
      *  for (auto tmp = lwr, auto key = upr; key-- > tmp;)
      */
     ExpInitializer *ie = new ExpInitializer(loc, (op == TOKforeach) ? lwr : upr);
-    key = new VarDeclaration(loc, upr->type->mutableOf(), Lexer::uniqueId("__key"), ie);
+    key = new VarDeclaration(loc, upr->type->mutableOf(), Identifier::generateId("__key"), ie);
     key->storage_class |= STCtemp;
     SignExtendedNumber lower = getIntRange(lwr).imin;
     SignExtendedNumber upper = getIntRange(upr).imax;
@@ -2694,7 +2694,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         key->range = new IntRange(lower, upper);
     }
 
-    Identifier *id = Lexer::uniqueId("__limit");
+    Identifier *id = Identifier::generateId("__limit");
     ie = new ExpInitializer(loc, (op == TOKforeach) ? upr : lwr);
     VarDeclaration *tmp = new VarDeclaration(loc, upr->type, id, ie);
     tmp->storage_class |= STCtemp;
@@ -4196,7 +4196,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
          *  _d_monitorenter(tmp);
          *  try { body } finally { _d_monitorexit(tmp); }
          */
-        Identifier *id = Lexer::uniqueId("__sync");
+        Identifier *id = Identifier::generateId("__sync");
         ExpInitializer *ie = new ExpInitializer(loc, exp);
         VarDeclaration *tmp = new VarDeclaration(loc, exp->type, id, ie);
         tmp->storage_class |= STCtemp;
@@ -4230,7 +4230,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
          *  _d_criticalenter(critsec.ptr);
          *  try { body } finally { _d_criticalexit(critsec.ptr); }
          */
-        Identifier *id = Lexer::uniqueId("__critsec");
+        Identifier *id = Identifier::generateId("__critsec");
         Type *t = new TypeSArray(Type::tint8, new IntegerExp(Target::ptrsize + Target::critsecsize()));
         VarDeclaration *tmp = new VarDeclaration(loc, t, id, NULL);
         tmp->storage_class |= STCtemp | STCgshared | STCstatic;
@@ -4241,7 +4241,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         /* This is just a dummy variable for "goto skips declaration" error.
          * Backend optimizer could remove this unused variable.
          */
-        VarDeclaration *v = new VarDeclaration(loc, Type::tvoidptr, Lexer::uniqueId("__sync"), NULL);
+        VarDeclaration *v = new VarDeclaration(loc, Type::tvoidptr, Identifier::generateId("__sync"), NULL);
         v->semantic(sc);
         cs->push(new ExpStatement(loc, v));
 
@@ -4367,7 +4367,7 @@ Statement *WithStatement::semantic(Scope *sc)
                  * }
                  */
                 init = new ExpInitializer(loc, exp);
-                wthis = new VarDeclaration(loc, exp->type, Lexer::uniqueId("__withtmp"), init);
+                wthis = new VarDeclaration(loc, exp->type, Identifier::generateId("__withtmp"), init);
                 wthis->storage_class |= STCtemp;
                 ExpStatement *es = new ExpStatement(loc, new DeclarationExp(loc, wthis));
                 exp = new VarExp(loc, wthis);
@@ -4711,7 +4711,7 @@ Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement 
              *  sexception:    x = true;
              *  sfinally: if (!x) statement;
              */
-            Identifier *id = Lexer::uniqueId("__os");
+            Identifier *id = Identifier::generateId("__os");
 
             ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(Loc(), 0, Type::tbool));
             VarDeclaration *v = new VarDeclaration(loc, Type::tbool, id, ie);

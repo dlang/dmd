@@ -243,7 +243,7 @@ public:
              *      //    s->body; scope(failure) nrvo_var->edtor;
              */
             Statement *sexception = new DtorExpStatement(Loc(), fd->nrvo_var->edtor, fd->nrvo_var);
-            Identifier *id = Lexer::uniqueId("__o");
+            Identifier *id = Identifier::generateId("__o");
 
             Statement *handler = new PeelStatement(sexception);
             if (sexception->blockExit(fd, false) & BEfallthru)
@@ -2486,7 +2486,7 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf, Identifier *oid)
                      * See bugzilla 5204 and 10479.
                      */
                     ExpInitializer *ei = new ExpInitializer(Loc(), eresult);
-                    VarDeclaration *v = new VarDeclaration(Loc(), t1, Lexer::uniqueId("__covres"), ei);
+                    VarDeclaration *v = new VarDeclaration(Loc(), t1, Identifier::generateId("__covres"), ei);
                     v->storage_class |= STCtemp;
                     DeclarationExp *de = new DeclarationExp(Loc(), v);
                     VarExp *ve = new VarExp(Loc(), v);
@@ -3896,7 +3896,7 @@ Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vt
 
 FuncDeclaration *FuncDeclaration::genCfunc(Parameters *fparams, Type *treturn, const char *name, StorageClass stc)
 {
-    return genCfunc(fparams, treturn, Lexer::idPool(name), stc);
+    return genCfunc(fparams, treturn, Identifier::idPool(name), stc);
 }
 
 FuncDeclaration *FuncDeclaration::genCfunc(Parameters *fparams, Type *treturn, Identifier *id, StorageClass stc)
@@ -4911,7 +4911,7 @@ static Identifier *unitTestId(Loc loc)
 {
     OutBuffer buf;
     buf.printf("__unittestL%u_", loc.linnum);
-    return Lexer::uniqueId(buf.peekString());
+    return Identifier::generateId(buf.peekString());
 }
 
 UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, StorageClass stc, char *codedoc)

@@ -18,6 +18,7 @@
 #include "id.h"
 #include "module.h"
 #include "scope.h"
+#include "tokens.h"
 
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 

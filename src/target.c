@@ -188,7 +188,7 @@ Type *Target::va_listType()
     {
         if (global.params.is64bit)
         {
-            return (new TypeIdentifier(Loc(), Lexer::idPool("__va_list_tag")))->pointerTo();
+            return (new TypeIdentifier(Loc(), Identifier::idPool("__va_list_tag")))->pointerTo();
         }
         else
         {

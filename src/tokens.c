@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include "lexer.h"
+#include "tokens.h"
 #include "rmem.h"
 #include "outbuffer.h"
 #include "id.h"
@@ -200,4 +200,279 @@ const char *Token::toChars(TOK value)
         p = &buffer[0];
     }
     return p;
+}
+
+/****************************************
+ */
+
+struct Keyword
+{
+    const char *name;
+    TOK value;
+};
+
+static size_t nkeywords;
+static Keyword keywords[] =
+{
+    {   "this",         TOKthis         },
+    {   "super",        TOKsuper        },
+    {   "assert",       TOKassert       },
+    {   "null",         TOKnull         },
+    {   "true",         TOKtrue         },
+    {   "false",        TOKfalse        },
+    {   "cast",         TOKcast         },
+    {   "new",          TOKnew          },
+    {   "delete",       TOKdelete       },
+    {   "throw",        TOKthrow        },
+    {   "module",       TOKmodule       },
+    {   "pragma",       TOKpragma       },
+    {   "typeof",       TOKtypeof       },
+    {   "typeid",       TOKtypeid       },
+
+    {   "template",     TOKtemplate     },
+
+    {   "void",         TOKvoid         },
+    {   "byte",         TOKint8         },
+    {   "ubyte",        TOKuns8         },
+    {   "short",        TOKint16        },
+    {   "ushort",       TOKuns16        },
+    {   "int",          TOKint32        },
+    {   "uint",         TOKuns32        },
+    {   "long",         TOKint64        },
+    {   "ulong",        TOKuns64        },
+    {   "cent",         TOKint128,      },
+    {   "ucent",        TOKuns128,      },
+    {   "float",        TOKfloat32      },
+    {   "double",       TOKfloat64      },
+    {   "real",         TOKfloat80      },
+
+    {   "bool",         TOKbool         },
+    {   "char",         TOKchar         },
+    {   "wchar",        TOKwchar        },
+    {   "dchar",        TOKdchar        },
+
+    {   "ifloat",       TOKimaginary32  },
+    {   "idouble",      TOKimaginary64  },
+    {   "ireal",        TOKimaginary80  },
+
+    {   "cfloat",       TOKcomplex32    },
+    {   "cdouble",      TOKcomplex64    },
+    {   "creal",        TOKcomplex80    },
+
+    {   "delegate",     TOKdelegate     },
+    {   "function",     TOKfunction     },
+
+    {   "is",           TOKis           },
+    {   "if",           TOKif           },
+    {   "else",         TOKelse         },
+    {   "while",        TOKwhile        },
+    {   "for",          TOKfor          },
+    {   "do",           TOKdo           },
+    {   "switch",       TOKswitch       },
+    {   "case",         TOKcase         },
+    {   "default",      TOKdefault      },
+    {   "break",        TOKbreak        },
+    {   "continue",     TOKcontinue     },
+    {   "synchronized", TOKsynchronized },
+    {   "return",       TOKreturn       },
+    {   "goto",         TOKgoto         },
+    {   "try",          TOKtry          },
+    {   "catch",        TOKcatch        },
+    {   "finally",      TOKfinally      },
+    {   "with",         TOKwith         },
+    {   "asm",          TOKasm          },
+    {   "foreach",      TOKforeach      },
+    {   "foreach_reverse",      TOKforeach_reverse      },
+    {   "scope",        TOKscope        },
+
+    {   "struct",       TOKstruct       },
+    {   "class",        TOKclass        },
+    {   "interface",    TOKinterface    },
+    {   "union",        TOKunion        },
+    {   "enum",         TOKenum         },
+    {   "import",       TOKimport       },
+    {   "mixin",        TOKmixin        },
+    {   "static",       TOKstatic       },
+    {   "final",        TOKfinal        },
+    {   "const",        TOKconst        },
+    {   "typedef",      TOKtypedef      },
+    {   "alias",        TOKalias        },
+    {   "override",     TOKoverride     },
+    {   "abstract",     TOKabstract     },
+    {   "volatile",     TOKvolatile     },
+    {   "debug",        TOKdebug        },
+    {   "deprecated",   TOKdeprecated   },
+    {   "in",           TOKin           },
+    {   "out",          TOKout          },
+    {   "inout",        TOKinout        },
+    {   "lazy",         TOKlazy         },
+    {   "auto",         TOKauto         },
+
+    {   "align",        TOKalign        },
+    {   "extern",       TOKextern       },
+    {   "private",      TOKprivate      },
+    {   "package",      TOKpackage      },
+    {   "protected",    TOKprotected    },
+    {   "public",       TOKpublic       },
+    {   "export",       TOKexport       },
+
+    {   "body",         TOKbody         },
+    {   "invariant",    TOKinvariant    },
+    {   "unittest",     TOKunittest     },
+    {   "version",      TOKversion      },
+
+    {   "__argTypes",   TOKargTypes     },
+    {   "__parameters", TOKparameters   },
+    {   "ref",          TOKref          },
+    {   "macro",        TOKmacro        },
+
+    {   "pure",         TOKpure         },
+    {   "nothrow",      TOKnothrow      },
+    {   "__gshared",    TOKgshared      },
+    {   "__traits",     TOKtraits       },
+    {   "__vector",     TOKvector       },
+    {   "__overloadset", TOKoverloadset },
+    {   "__FILE__",     TOKfile         },
+    {   "__LINE__",     TOKline         },
+    {   "__MODULE__",   TOKmodulestring },
+    {   "__FUNCTION__", TOKfuncstring   },
+    {   "__PRETTY_FUNCTION__", TOKprettyfunc   },
+    {   "shared",       TOKshared       },
+    {   "immutable",    TOKimmutable    },
+    {   NULL,           TOKreserved     }
+};
+
+int Token::isKeyword()
+{
+    for (size_t u = 0; u < nkeywords; u++)
+    {
+        if (keywords[u].value == value)
+            return 1;
+    }
+    return 0;
+}
+
+void Token::initTokens()
+{
+    for (nkeywords = 0; keywords[nkeywords].name; nkeywords++)
+    {
+        //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
+        const char *s = keywords[nkeywords].name;
+        TOK v = keywords[nkeywords].value;
+        Identifier *id = Identifier::idPool(s);
+        id->value = v;
+
+        //printf("tochars[%d] = '%s'\n",v, s);
+        Token::tochars[v] = s;
+    }
+
+    Token::tochars[TOKeof]              = "EOF";
+    Token::tochars[TOKlcurly]           = "{";
+    Token::tochars[TOKrcurly]           = "}";
+    Token::tochars[TOKlparen]           = "(";
+    Token::tochars[TOKrparen]           = ")";
+    Token::tochars[TOKlbracket]         = "[";
+    Token::tochars[TOKrbracket]         = "]";
+    Token::tochars[TOKsemicolon]        = ";";
+    Token::tochars[TOKcolon]            = ":";
+    Token::tochars[TOKcomma]            = ",";
+    Token::tochars[TOKdot]              = ".";
+    Token::tochars[TOKxor]              = "^";
+    Token::tochars[TOKxorass]           = "^=";
+    Token::tochars[TOKassign]           = "=";
+    Token::tochars[TOKconstruct]        = "=";
+    Token::tochars[TOKblit]             = "=";
+    Token::tochars[TOKlt]               = "<";
+    Token::tochars[TOKgt]               = ">";
+    Token::tochars[TOKle]               = "<=";
+    Token::tochars[TOKge]               = ">=";
+    Token::tochars[TOKequal]            = "==";
+    Token::tochars[TOKnotequal]         = "!=";
+    Token::tochars[TOKnotidentity]      = "!is";
+    Token::tochars[TOKtobool]           = "!!";
+
+    Token::tochars[TOKunord]            = "!<>=";
+    Token::tochars[TOKue]               = "!<>";
+    Token::tochars[TOKlg]               = "<>";
+    Token::tochars[TOKleg]              = "<>=";
+    Token::tochars[TOKule]              = "!>";
+    Token::tochars[TOKul]               = "!>=";
+    Token::tochars[TOKuge]              = "!<";
+    Token::tochars[TOKug]               = "!<=";
+
+    Token::tochars[TOKnot]              = "!";
+    Token::tochars[TOKtobool]           = "!!";
+    Token::tochars[TOKshl]              = "<<";
+    Token::tochars[TOKshr]              = ">>";
+    Token::tochars[TOKushr]             = ">>>";
+    Token::tochars[TOKadd]              = "+";
+    Token::tochars[TOKmin]              = "-";
+    Token::tochars[TOKmul]              = "*";
+    Token::tochars[TOKdiv]              = "/";
+    Token::tochars[TOKmod]              = "%";
+    Token::tochars[TOKslice]            = "..";
+    Token::tochars[TOKdotdotdot]        = "...";
+    Token::tochars[TOKand]              = "&";
+    Token::tochars[TOKandand]           = "&&";
+    Token::tochars[TOKor]               = "|";
+    Token::tochars[TOKoror]             = "||";
+    Token::tochars[TOKarray]            = "[]";
+    Token::tochars[TOKindex]            = "[i]";
+    Token::tochars[TOKaddress]          = "&";
+    Token::tochars[TOKstar]             = "*";
+    Token::tochars[TOKtilde]            = "~";
+    Token::tochars[TOKdollar]           = "$";
+    Token::tochars[TOKcast]             = "cast";
+    Token::tochars[TOKplusplus]         = "++";
+    Token::tochars[TOKminusminus]       = "--";
+    Token::tochars[TOKpreplusplus]      = "++";
+    Token::tochars[TOKpreminusminus]    = "--";
+    Token::tochars[TOKtype]             = "type";
+    Token::tochars[TOKquestion]         = "?";
+    Token::tochars[TOKneg]              = "-";
+    Token::tochars[TOKuadd]             = "+";
+    Token::tochars[TOKvar]              = "var";
+    Token::tochars[TOKaddass]           = "+=";
+    Token::tochars[TOKminass]           = "-=";
+    Token::tochars[TOKmulass]           = "*=";
+    Token::tochars[TOKdivass]           = "/=";
+    Token::tochars[TOKmodass]           = "%=";
+    Token::tochars[TOKshlass]           = "<<=";
+    Token::tochars[TOKshrass]           = ">>=";
+    Token::tochars[TOKushrass]          = ">>>=";
+    Token::tochars[TOKandass]           = "&=";
+    Token::tochars[TOKorass]            = "|=";
+    Token::tochars[TOKcatass]           = "~=";
+    Token::tochars[TOKcat]              = "~";
+    Token::tochars[TOKcall]             = "call";
+    Token::tochars[TOKidentity]         = "is";
+    Token::tochars[TOKnotidentity]      = "!is";
+
+    Token::tochars[TOKorass]            = "|=";
+    Token::tochars[TOKidentifier]       = "identifier";
+    Token::tochars[TOKat]               = "@";
+    Token::tochars[TOKpow]              = "^^";
+    Token::tochars[TOKpowass]           = "^^=";
+    Token::tochars[TOKgoesto]           = "=>";
+    Token::tochars[TOKpound]            = "#";
+
+     // For debugging
+    Token::tochars[TOKerror]            = "error";
+    Token::tochars[TOKdotexp]           = "dotexp";
+    Token::tochars[TOKdotti]            = "dotti";
+    Token::tochars[TOKdotvar]           = "dotvar";
+    Token::tochars[TOKdottype]          = "dottype";
+    Token::tochars[TOKsymoff]           = "symoff";
+    Token::tochars[TOKarraylength]      = "arraylength";
+    Token::tochars[TOKarrayliteral]     = "arrayliteral";
+    Token::tochars[TOKassocarrayliteral] = "assocarrayliteral";
+    Token::tochars[TOKstructliteral]    = "structliteral";
+    Token::tochars[TOKstring]           = "string";
+    Token::tochars[TOKdsymbol]          = "symbol";
+    Token::tochars[TOKtuple]            = "tuple";
+    Token::tochars[TOKdeclaration]      = "declaration";
+    Token::tochars[TOKdottd]            = "dottd";
+    Token::tochars[TOKon_scope_exit]    = "scope(exit)";
+    Token::tochars[TOKon_scope_success] = "scope(success)";
+    Token::tochars[TOKon_scope_failure] = "scope(failure)";
 }

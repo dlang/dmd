@@ -22,7 +22,6 @@
 #include        <time.h>
 #include        <assert.h>
 
-#include        "lexer.h"
 #include        "mtype.h"
 #include        "expression.h"
 #include        "init.h"

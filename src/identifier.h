@@ -17,6 +17,7 @@
 #endif /* __DMC__ */
 
 #include "root.h"
+#include "stringtable.h"
 
 class Identifier : public RootObject
 {
@@ -34,8 +35,13 @@ public:
     const char *toHChars2();
     int dyncast();
 
+    static StringTable stringtable;
     static Identifier *generateId(const char *prefix);
     static Identifier *generateId(const char *prefix, size_t i);
+    static Identifier *idPool(const char *s);
+    static Identifier *idPool(const char *s, size_t len);
+    static Identifier *lookup(const char *s, size_t len);
+    static void initTable();
 };
 
 #endif /* DMD_IDENTIFIER_H */

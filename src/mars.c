@@ -1204,6 +1204,7 @@ Language changes listed by -transition=id:\n\
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
 
     // Initialization
+    Lexer::initLexer();
     Type::init();
     Id::initialize();
     Module::init();
@@ -1380,7 +1381,7 @@ Language changes listed by -transition=id:\n\
          * its path and extension.
          */
 
-        Identifier *id = Lexer::idPool(name);
+        Identifier *id = Identifier::idPool(name);
         Module *m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
 

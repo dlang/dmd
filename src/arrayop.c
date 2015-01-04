@@ -25,6 +25,7 @@
 #include "id.h"
 #include "module.h"
 #include "init.h"
+#include "tokens.h"
 
 void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments);
 Expression *buildArrayLoop(Expression *e, Parameters *fparams);
@@ -206,7 +207,7 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     buf.writestring(e->type->toBasetype()->nextOf()->toBasetype()->mutableOf()->deco);
 
     char *name = buf.peekString();
-    Identifier *ident = Lexer::idPool(name);
+    Identifier *ident = Identifier::idPool(name);
 
     FuncDeclaration **pFd = (FuncDeclaration **)dmd_aaGet(&arrayfuncs, (void *)ident);
     FuncDeclaration *fd = *pFd;

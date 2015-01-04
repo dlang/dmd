@@ -26,7 +26,6 @@ class Identifier;
 class Lexer
 {
 public:
-    static StringTable stringtable;
     static OutBuffer stringbuffer;
 
     Loc scanloc;                // for error messages
@@ -45,7 +44,7 @@ public:
         const utf8_t *base, size_t begoffset, size_t endoffset,
         int doDocComment, int commentToken);
 
-    static void initKeywords();
+    static void initLexer();
     static Identifier *idPool(const char *s);
     static Identifier *uniqueId(const char *s);
     static Identifier *uniqueId(const char *s, int num);

@@ -24,6 +24,7 @@
 #include "scope.h"
 #include "id.h"
 #include "init.h"
+#include "tokens.h"
 
 bool isCommutative(Expression *e);
 

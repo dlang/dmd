@@ -23,6 +23,7 @@
 #include "statement.h"
 #include "init.h"
 #include "template.h"
+#include "tokens.h"
 
 
 /*******************************************
@@ -250,7 +251,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
          *    tmp = this; this = s; tmp.dtor();
          */
         //printf("\tswap copy\n");
-        Identifier *idtmp = Lexer::uniqueId("__swap");
+        Identifier *idtmp = Identifier::generateId("__swap");
         VarDeclaration *tmp = NULL;
         AssignExp *ec = NULL;
         if (sd->dtor)
@@ -494,7 +495,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
     if (!sd->xerreq)
     {
         // object._xopEquals
-        Identifier *id = Lexer::idPool("_xopEquals");
+        Identifier *id = Identifier::idPool("_xopEquals");
         Expression *e = new IdentifierExp(sd->loc, Id::empty);
         e = new DotIdExp(sd->loc, e, Id::object);
         e = new DotIdExp(sd->loc, e, id);
@@ -620,7 +621,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
     if (!sd->xerrcmp)
     {
         // object._xopCmp
-        Identifier *id = Lexer::idPool("_xopCmp");
+        Identifier *id = Identifier::idPool("_xopCmp");
         Expression *e = new IdentifierExp(sd->loc, Id::empty);
         e = new DotIdExp(sd->loc, e, Id::object);
         e = new DotIdExp(sd->loc, e, id);
@@ -857,7 +858,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
     if (e || (stc & STCdisable))
     {
         //printf("Building __fieldPostBlit()\n");
-        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldPostBlit"));
+        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Identifier::idPool("__fieldPostBlit"));
         dd->fbody = new ExpStatement(loc, e);
         sd->postblits.shift(dd);
         sd->members->push(dd);
@@ -889,7 +890,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(e, ex);
             }
-            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrPostBlit"));
+            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Identifier::idPool("__aggrPostBlit"));
             dd->fbody = new ExpStatement(loc, e);
             sd->members->push(dd);
             dd->semantic(sc);
@@ -970,7 +971,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
     if (e || (stc & STCdisable))
     {
         //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Identifier::idPool("__fieldDtor"));
         dd->fbody = new ExpStatement(loc, e);
         ad->dtors.shift(dd);
         ad->members->push(dd);
@@ -1002,7 +1003,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Identifier::idPool("__aggrDtor"));
             dd->fbody = new ExpStatement(loc, e);
             ad->members->push(dd);
             dd->semantic(sc);

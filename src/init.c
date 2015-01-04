@@ -24,6 +24,7 @@
 #include "hdrgen.h"
 #include "template.h"
 #include "id.h"
+#include "tokens.h"
 
 /********************************** Initializer *******************************/
 

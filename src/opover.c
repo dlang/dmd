@@ -26,6 +26,7 @@
 #include "declaration.h"
 #include "aggregate.h"
 #include "template.h"
+#include "tokens.h"
 
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *parameters);
 static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *parameters);

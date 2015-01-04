@@ -1387,9 +1387,9 @@ Condition *Parser::parseVersionCondition()
         else if (token.value == TOKint32v || token.value == TOKint64v)
             level = (unsigned)token.uns64value;
         else if (token.value == TOKunittest)
-            id = Lexer::idPool(Token::toChars(TOKunittest));
+            id = Identifier::idPool(Token::toChars(TOKunittest));
         else if (token.value == TOKassert)
-            id = Lexer::idPool(Token::toChars(TOKassert));
+            id = Identifier::idPool(Token::toChars(TOKassert));
         else
             error("identifier or integer expected, not %s", token.toChars());
         nextToken();
@@ -1964,7 +1964,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                                             t->value == TOKrparen ||
                                             t->value == TOKdotdotdot)))
                     {
-                        Identifier *id = Lexer::uniqueId("__T");
+                        Identifier *id = Identifier::generateId("__T");
                         Loc loc = token.loc;
                         at = new TypeIdentifier(loc, id);
                         if (!*tpl)
@@ -6793,7 +6793,7 @@ Expression *Parser::parsePrimaryExp()
                 {
                     // identifier => expression
                     parameters = new Parameters();
-                    id = Lexer::uniqueId("__T");
+                    id = Identifier::generateId("__T");
                     t = new TypeIdentifier(loc, id);
                     parameters->push(new Parameter(0, t, token.ident, NULL));
 

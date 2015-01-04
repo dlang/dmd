@@ -21,6 +21,7 @@
 #include "aggregate.h"
 #include "scope.h"
 #include "init.h"
+#include "tokens.h"
 
 /********************************************
  * Convert from expression to delegate that returns the expression,

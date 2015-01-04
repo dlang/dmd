@@ -33,6 +33,7 @@
 #include "template.h"
 #include "attrib.h"
 #include "enum.h"
+#include "lexer.h"
 
 
 /****************************** Dsymbol ******************************/
@@ -423,11 +424,9 @@ void *symbol_search_fp(void *arg, const char *seed, int* cost)
     size_t len = strlen(seed);
     if (!len)
         return NULL;
-    StringValue *sv = Lexer::stringtable.lookup(seed, len);
-    if (!sv)
+    Identifier *id = Identifier::lookup(seed, len);
+    if (!id)
         return NULL;
-    Identifier *id = (Identifier *)sv->ptrvalue;
-    assert(id);
 
     *cost = 0;
     Dsymbol *s = (Dsymbol *)arg;
