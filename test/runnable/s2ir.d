@@ -5,7 +5,7 @@ import std.stdio;
 
 void test1()
 {   int i;
-    static int j;
+    __gshared int j;
 
     version (D_InlineAsm_X86)
     {
