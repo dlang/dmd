@@ -107,6 +107,7 @@ __gshared Duration prepTime;
 __gshared Duration markTime;
 __gshared Duration sweepTime;
 __gshared Duration recoverTime;
+__gshared size_t numCollections;
 __gshared size_t maxPoolMemory;
 
 private
@@ -1454,6 +1455,7 @@ struct Gcx
     {
         if (GC.config.profile)
         {
+            printf("\tNumber of collections:  %llu\n", numCollections);
             printf("\tTotal GC prep time:  %lld milliseconds\n",
                    prepTime.total!("msecs"));
             printf("\tTotal mark time:  %lld milliseconds\n",
@@ -2806,6 +2808,7 @@ struct Gcx
         {
             stop = currTime;
             recoverTime += (stop - start);
+            ++numCollections;
         }
 
         debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", recoveredpages);
