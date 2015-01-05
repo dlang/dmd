@@ -126,7 +126,8 @@ Config parseArgs(string[] args)
         string[] tmp = args;
         if (findSkip(tmp, only("--")))
         {
-            cfg.args = join(tmp, " ");
+            import std.process : escapeShellCommand;
+            cfg.args = escapeShellCommand(tmp);
             args = args[0 .. $ - 1 - tmp.length];
         }
     }
