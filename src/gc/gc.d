@@ -482,9 +482,7 @@ class GC
         if (gcx.running)
             onInvalidMemoryOperationError();
 
-        Pool *pool;
-
-        auto p = gcx.alloc(size + SENTINEL_EXTRA, &pool, alloc_size);
+        auto p = gcx.alloc(size + SENTINEL_EXTRA, alloc_size, bits);
         if (!p)
             onOutOfMemoryError();
 
@@ -496,10 +494,6 @@ class GC
         }
         gcx.log_malloc(p, size);
 
-        if (bits)
-        {
-            gcx.setBits(pool, cast(size_t)(sentinel_sub(p) - pool.baseAddr) >> pool.shiftBy, bits);
-        }
         return p;
     }
 
@@ -2068,14 +2062,14 @@ struct Gcx
     }
 
 
-    void* alloc(size_t size, Pool **ppool, ref size_t alloc_size) nothrow
+    void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
     {
         immutable bin = findBin(size);
-        return bin < B_PAGE ? smallAlloc(bin, ppool, alloc_size) :
-            bigAlloc(size, ppool, alloc_size);
+        return bin < B_PAGE ? smallAlloc(bin, alloc_size, bits) :
+            bigAlloc(size, alloc_size, bits);
     }
 
-    void* smallAlloc(Bins bin, Pool **ppool, ref size_t alloc_size) nothrow
+    void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits) nothrow
     {
         alloc_size = binsize[bin];
 
@@ -2110,7 +2104,8 @@ struct Gcx
 
         // Return next item from free list
         bucket[bin] = (cast(List*)p).next;
-        *ppool = (cast(List*)p).pool;
+        auto pool = (cast(List*)p).pool;
+        if (bits) setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits);
         //debug(PRINTF) printf("\tmalloc => %p\n", p);
         debug (MEMSTOMP) memset(p, 0xF0, size);
         return p;
@@ -2120,7 +2115,7 @@ struct Gcx
      * Allocate a chunk of memory that is larger than a page.
      * Return null if out of memory.
      */
-    void* bigAlloc(size_t size, Pool **ppool, ref size_t alloc_size) nothrow
+    void* bigAlloc(size_t size, ref size_t alloc_size, uint bits) nothrow
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %d\n", size);
 
@@ -2188,7 +2183,7 @@ struct Gcx
         alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %p\n", p);
 
-        *ppool = pool;
+        if (bits) setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits);
         return p;
     }
 
