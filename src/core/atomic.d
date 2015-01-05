@@ -20,16 +20,19 @@ version( D_InlineAsm_X86 )
     version = AsmX86;
     version = AsmX86_32;
     enum has64BitCAS = true;
+    enum has128BitCAS = false;
 }
 else version( D_InlineAsm_X86_64 )
 {
     version = AsmX86;
     version = AsmX86_64;
     enum has64BitCAS = true;
+    enum has128BitCAS = true;
 }
 else
 {
     enum has64BitCAS = false;
+    enum has128BitCAS = false;
 }
 
 private
@@ -688,7 +691,7 @@ else version( AsmX86_64 )
     }
 
     bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) nothrow
-        if( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
+        if( is(T U : U*) && __traits( compliles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
@@ -767,6 +770,30 @@ else version( AsmX86_64 )
                 lock; // lock always needed to make this op atomic
                 cmpxchg [RCX], RDX;
                 setz AL;
+            }
+        }
+        else static if( T.sizeof == long.sizeof*2 && has128BitCAS)
+        {
+            //////////////////////////////////////////////////////////////////
+            // 16 Byte CAS on a 64-Bit Processor
+            //////////////////////////////////////////////////////////////////
+
+            asm pure nothrow @nogc
+            {
+                push RDI; 
+                push RBX;
+                lea RDI, writeThis;
+                mov RBX, [RDI];
+                mov RCX, 8[RDI];
+                lea RDI, ifThis;
+                mov RAX, [RDI];
+                mov RDX, 8[RDI];
+                mov RDI, here;
+                lock; // lock always needed to make this op atomic
+                cmpxchg16b [RDI];
+                setz AL;
+                pop RBX;
+                pop RDI;
             }
         }
         else
@@ -929,6 +956,27 @@ else version( AsmX86_64 )
                 }
             }
         }
+        else static if( T.sizeof == long.sizeof*2 && has128BitCAS )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 16 Byte Load on a 64-Bit Processor
+            //////////////////////////////////////////////////////////////////
+
+            asm pure nothrow @nogc
+            {
+                push RDI;
+                push RBX;
+                mov RBX, 0;
+                mov RCX, 0;
+                mov RAX, 0;
+                mov RDX, 0;
+                mov RDI, val;
+                lock; // lock always needed to make this op atomic
+                cmpxchg16b [RDI];
+                pop RBX;
+                pop RDI;
+            }
+        }
         else
         {
             static assert( false, "Invalid template type specified." );
@@ -1041,6 +1089,29 @@ else version( AsmX86_64 )
                     mov RDX, newval;
                     mov [RAX], RDX;
                 }
+            }
+        }
+        else static if( T.sizeof == long.sizeof*2 && has128BitCAS )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 16 Byte Store on a 64-Bit Processor
+            //////////////////////////////////////////////////////////////////
+
+            asm pure nothrow @nogc
+            {
+                push RDI;
+                push RBX;
+                lea RDI, newval;
+                mov RBX, [RDI];
+                mov RCX, 8[RDI];
+                mov RDI, val;
+                mov RAX, [RDI];
+                mov RDX, 8[RDI];
+            L1: lock; // lock always needed to make this op atomic
+                cmpxchg16b [RDI];
+                jne L1;
+                pop RBX;
+                pop RDI;
             }
         }
         else
