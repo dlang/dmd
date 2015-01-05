@@ -63,7 +63,7 @@ void runTests(Config cfg)
         auto sw = StopWatch(AutoStart.yes);
         auto minDur = Duration.max;
 
-        stdout.writef("RUNNING %-20s", bin.relativePath(bindir));
+        stdout.writef("R %-16s", bin.baseName.stripExtension);
         if (cfg.verbose) stdout.writeln();
         stdout.flush();
 
