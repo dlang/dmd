@@ -5027,8 +5027,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
                 error("debug conditions can only be declared at module scope");
                 nextToken();
                 nextToken();
-                check(TOKsemicolon);
-                break;
+                goto Lerror;
             }
             cond = parseDebugCondition();
             goto Lcondition;
@@ -5040,8 +5039,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
                 error("version conditions can only be declared at module scope");
                 nextToken();
                 nextToken();
-                check(TOKsemicolon);
-                break;
+                goto Lerror;
             }
             cond = parseVersionCondition();
             goto Lcondition;

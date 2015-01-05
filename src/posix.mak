@@ -83,6 +83,12 @@ endif
 else
 # Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing
+ifeq ($(HOST_CC), clang++)
+WARNINGS := $(WARNINGS) \
+    -Wno-logical-op-parentheses \
+    -Wno-dynamic-class-memaccess \
+    -Wno-switch
+endif
 endif
 
 OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
