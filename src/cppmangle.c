@@ -335,7 +335,7 @@ class CppMangleVisitor : public Visitor
                         memcmp(buf.data + off, "IcSt11char_traitsIcESaIcEE", 26) == 0)
                     {
                         buf.remove(off - 2, 28);
-                        buf.insert(off - 2, "Ss", 2);
+                        buf.insert(off - 2, (const char *)"Ss", 2);
                         return;
                     }
                     buf.setsize(off);
@@ -453,21 +453,21 @@ class CppMangleVisitor : public Visitor
             if (buf.offset >= 17 && memcmp(buf.data, "_ZN3std9allocator", 17) == 0)
             {
                 buf.remove(3, 14);
-                buf.insert(3, "Sa", 2);
+                buf.insert(3, (const char *)"Sa", 2);
             }
 
             // Replace ::std::basic_string with Sb
             if (buf.offset >= 21 && memcmp(buf.data, "_ZN3std12basic_string", 21) == 0)
             {
                 buf.remove(3, 18);
-                buf.insert(3, "Sb", 2);
+                buf.insert(3, (const char *)"Sb", 2);
             }
 
             // Replace ::std with St
             if (buf.offset >= 7 && memcmp(buf.data, "_ZN3std", 7) == 0)
             {
                 buf.remove(3, 4);
-                buf.insert(3, "St", 2);
+                buf.insert(3, (const char *)"St", 2);
             }
 
             if (d->isDtorDeclaration())

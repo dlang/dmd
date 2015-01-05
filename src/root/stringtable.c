@@ -33,7 +33,7 @@ static uint32_t calcHash(const char *key, size_t len)
 
     // Initialize the hash to a 'random' value
 
-    uint32_t h = len;
+    uint32_t h = (uint32_t)len;
 
     // Mix 4 bytes at a time into the hash
 
@@ -97,7 +97,7 @@ uint32_t StringTable::allocValue(const char *s, size_t length)
     ::memcpy((char *)sv->lstring, s, length);
     ((char *)sv->lstring)[length] = 0;
 
-    const uint32_t vptr = npools << POOL_BITS | nfill;
+    const uint32_t vptr = (uint32_t)(npools << POOL_BITS | nfill);
     nfill += nbytes + (-nbytes & 7); // align to 8 bytes
     return vptr;
 }
