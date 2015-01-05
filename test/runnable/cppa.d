@@ -5,14 +5,6 @@ import core.stdc.stdio;
 import core.stdc.stdarg;
 import core.stdc.config;
 
-// BUG: fix for 13932 doesn't work on Win32 for some reason. Therefore
-// it is disabled on Windows 32-bit, but enabled on all other platforms.
-version(Win32) {}
-else
-{
-    version = doTest13932;
-}
-
 extern (C++)
         int foob(int i, int j, int k);
 
@@ -639,15 +631,12 @@ void test13707()
 
 /****************************************/
 
-version(doTest13932)
-{
 struct S13932(int x)
 {
         int member;
 }
 
 extern(C++) void func13932(S13932!(-1) s);
-}
 
 /****************************************/
 
@@ -674,8 +663,7 @@ void main()
     test15();
     test16();
     func13707();
-    version(doTest13932)
-        func13932(S13932!(-1)(0));
+    func13932(S13932!(-1)(0));
 
     printf("Success\n");
 }

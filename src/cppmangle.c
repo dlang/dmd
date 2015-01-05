@@ -1477,6 +1477,12 @@ private:
                         {
                             tmp.mangleNumber(e->toUInteger());
                         }
+                        else if(is_dmc_template)
+                        {
+                            // NOTE: DMC mangles everything based on
+                            // unsigned int
+                            tmp.mangleNumber(e->toInteger());
+                        }
                         else
                         {
                             sinteger_t val = e->toInteger();
