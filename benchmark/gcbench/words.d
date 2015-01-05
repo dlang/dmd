@@ -9,8 +9,6 @@
  * Regarding GC activity, this test probes concatenation of long strings and appending
  * to a large array of strings.
  */
-// EXECUTE_ARGS: extra-files/dante.txt 100 9767600
-
 import std.stdio;
 import std.conv;
 import std.file;
@@ -19,9 +17,8 @@ import std.exception;
 
 void main(string[] args)
 {
-    enforce(args.length > 2, "usage: words <file-name> <duplicates> [expected-result]");
-    string txt = cast(string) std.file.read(args[1]);
-    uint cnt = to!uint(args[2]);
+    string txt = cast(string)std.file.read(args.length > 1 ? args[1] : "extra-files/dante.txt");
+    uint cnt = args.length > 2 ? to!uint(args[2]) : 100;
 
     string data;
     for(int b = 31; b >= 0; b--)
@@ -32,8 +29,5 @@ void main(string[] args)
     }
 
     auto words = data.split().length;
-    writeln("words: ", words);
-
-    if(args.length > 3)
-        enforce(words == to!size_t(args[3]));
+    enforce(words == (args.length > 3 ? to!size_t(args[3]) : 9767600));
 }

@@ -11,15 +11,12 @@
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-// EXECUTE_ARGS: 7000000 100
-
 import std.stdio, std.container, std.range, std.conv, std.exception;
 
 void main(string[] args)
 {
-    enforce(args.length > 2, "usage: tree2 <n> <range>");
-    int n = to!int(args[1]);
-    int range = to!int(args[2]);
+    int n = args.length > 1 ? to!int(args[1]) : 7000000;
+    int range = args.length > 2 ? to!int(args[2]) : 100;
 
     auto t = redBlackTree!int();
 
@@ -29,4 +26,3 @@ void main(string[] args)
         t.insert(i);
     }
 }
-

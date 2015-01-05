@@ -5,29 +5,27 @@
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Leandro Lucarella
  */
-// EXECUTE_ARGS: 50 4 extra-files/dante.txt
-
 import core.thread;
 import core.atomic;
 import std.conv;
 import std.file;
 import std.digest.sha;
 
-auto N = 100;
-auto NT = 2;
+auto N = 50;
+auto NT = 4;
 
 __gshared ubyte[] BYTES;
 shared(int) running; // Atomic
 
-void main(char[][] args)
+void main(string[] args)
 {
-    auto fname = args[0];
+    auto fname = "extra-files/dante.txt";
     if (args.length > 3)
         fname = args[3];
     if (args.length > 2)
-        NT = to!(int)(args[2]);
+        NT = to!int(args[2]);
     if (args.length > 1)
-        N = to!(int)(args[1]);
+        N = to!int(args[1]);
     N /= NT;
 
     atomicStore(running, NT);
@@ -57,4 +55,3 @@ void doSha()
     }
     running += -1;
 }
-
