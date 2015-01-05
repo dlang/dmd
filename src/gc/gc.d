@@ -475,8 +475,6 @@ class GC
     {
         assert(size != 0);
 
-        Bins bin;
-
         //debug(PRINTF) printf("GC::malloc(size = %d, gcx = %p)\n", size, gcx);
         assert(gcx);
         //debug(PRINTF) printf("gcx.self = %x, pthread_self() = %x\n", gcx.self, pthread_self());
@@ -484,59 +482,14 @@ class GC
         if (gcx.running)
             onInvalidMemoryOperationError();
 
-        size += SENTINEL_EXTRA;
-        bin = gcx.findBin(size);
         Pool *pool;
 
-        void *p;
+        auto p = gcx.alloc(size + SENTINEL_EXTRA, &pool, alloc_size);
+        if (!p)
+            onOutOfMemoryError();
 
-        if (bin < B_PAGE)
-        {
-            bool tryAlloc() nothrow
-            {
-                if (!gcx.bucket[bin] && !gcx.allocPage(bin))
-                    return false;
-                p = gcx.bucket[bin];
-                return true;
-            }
-
-            alloc_size = binsize[bin];
-
-            if (!tryAlloc())
-            {
-                // disabled => allocate a new pool instead of collecting
-                if (gcx.disabled && !gcx.newPool(1, false))
-                {
-                    // disabled but out of memory => try to free some memory
-                    gcx.fullcollect();
-                }
-                else if (gcx.fullcollect() < gcx.npools * ((POOLSIZE / PAGESIZE) / 8))
-                {
-                    // very little memory was freed => allocate a new pool for anticipated heap growth
-                    gcx.newPool(1, false);
-                }
-                // tryAlloc will succeed if a new pool was allocated above, if it fails allocate a new pool now
-                if (!tryAlloc() && (!gcx.newPool(1, false) || !tryAlloc()))
-                    // out of luck or memory
-                    onOutOfMemoryError();
-            }
-            assert(p !is null);
-
-            // Return next item from free list
-            gcx.bucket[bin] = (cast(List*)p).next;
-            pool = (cast(List*)p).pool;
-            //debug(PRINTF) printf("\tmalloc => %p\n", p);
-            debug (MEMSTOMP) memset(p, 0xF0, size);
-        }
-        else
-        {
-            p = gcx.bigAlloc(size, &pool, alloc_size);
-            if (!p)
-                onOutOfMemoryError();
-        }
         debug (SENTINEL)
         {
-            size -= SENTINEL_EXTRA;
             p = sentinel_add(p);
             sentinel_init(p, size);
             alloc_size = size;
@@ -2115,11 +2068,59 @@ struct Gcx
     }
 
 
+    void* alloc(size_t size, Pool **ppool, ref size_t alloc_size) nothrow
+    {
+        immutable bin = findBin(size);
+        return bin < B_PAGE ? smallAlloc(bin, ppool, alloc_size) :
+            bigAlloc(size, ppool, alloc_size);
+    }
+
+    void* smallAlloc(Bins bin, Pool **ppool, ref size_t alloc_size) nothrow
+    {
+        alloc_size = binsize[bin];
+
+        void* p;
+        bool tryAlloc() nothrow
+        {
+            if (!bucket[bin] && !allocPage(bin))
+                return false;
+            p = bucket[bin];
+            return true;
+        }
+
+        if (!tryAlloc())
+        {
+            // disabled => allocate a new pool instead of collecting
+            if (disabled && !newPool(1, false))
+            {
+                // disabled but out of memory => try to free some memory
+                fullcollect();
+            }
+            else if (fullcollect() < npools * ((POOLSIZE / PAGESIZE) / 8))
+            {
+                // very little memory was freed => allocate a new pool for anticipated heap growth
+                newPool(1, false);
+            }
+            // tryAlloc will succeed if a new pool was allocated above, if it fails allocate a new pool now
+            if (!tryAlloc() && (!newPool(1, false) || !tryAlloc()))
+                // out of luck or memory
+                onOutOfMemoryError();
+        }
+        assert(p !is null);
+
+        // Return next item from free list
+        bucket[bin] = (cast(List*)p).next;
+        *ppool = (cast(List*)p).pool;
+        //debug(PRINTF) printf("\tmalloc => %p\n", p);
+        debug (MEMSTOMP) memset(p, 0xF0, size);
+        return p;
+    }
+
     /**
      * Allocate a chunk of memory that is larger than a page.
      * Return null if out of memory.
      */
-    void *bigAlloc(size_t size, Pool **poolPtr, ref size_t alloc_size) nothrow
+    void* bigAlloc(size_t size, Pool **ppool, ref size_t alloc_size) nothrow
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %d\n", size);
 
@@ -2187,7 +2188,7 @@ struct Gcx
         alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %p\n", p);
 
-        *poolPtr = pool;
+        *ppool = pool;
         return p;
     }
 
