@@ -1455,7 +1455,7 @@ struct Gcx
     {
         if (GC.config.profile)
         {
-            printf("\tNumber of collections:  %llu\n", numCollections);
+            printf("\tNumber of collections:  %llu\n", cast(ulong)numCollections);
             printf("\tTotal GC prep time:  %lld milliseconds\n",
                    prepTime.total!("msecs"));
             printf("\tTotal mark time:  %lld milliseconds\n",
