@@ -691,7 +691,7 @@ else version( AsmX86_64 )
     }
 
     bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) nothrow
-        if( is(T U : U*) && __traits( compliles, { *here = writeThis; } ) )
+        if( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
