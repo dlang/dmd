@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2015 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -36,19 +36,11 @@ Macro::Macro(const utf8_t *name, size_t namelen, const utf8_t *text, size_t text
 {
     next = NULL;
 
-#if 1
     this->name = name;
     this->namelen = namelen;
 
     this->text = text;
     this->textlen = textlen;
-#else
-    this->name = name;
-    this->namelen = namelen;
-
-    this->text = text;
-    this->textlen = textlen;
-#endif
     inuse = 0;
 }
 
@@ -104,7 +96,6 @@ size_t extractArgN(const utf8_t *p, size_t end, const utf8_t **pmarg, size_t *pm
 {
     /* Scan forward for matching right parenthesis.
      * Nest parentheses.
-     * Skip over $( and $)
      * Skip over "..." and '...' strings inside HTML tags.
      * Skip over <!-- ... --> comments.
      * Skip over previous macro insertions
@@ -120,15 +111,9 @@ size_t extractArgN(const utf8_t *p, size_t end, const utf8_t **pmarg, size_t *pm
     size_t v = 0;
 
   Largstart:
-#if 1
     // Skip first space, if any, to find the start of the macro argument
     if (n != 1 && v < end && isspace(p[v]))
         v++;
-#else
-    // Skip past spaces to find the start of the macro argument
-    for (; v < end && isspace(p[v]); v++)
-        ;
-#endif
     *pmarg = p + v;
 
     for (; v < end; v++)
@@ -379,25 +364,31 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                 Macro *m = search(name, namelen);
                 if (m)
                 {
-#if 0
-                    if (m->textlen && m->text[0] == ' ')
-                    {   m->text++;
-                        m->textlen--;
-                    }
-#endif
                     if (m->inuse && marglen == 0)
                     {   // Remove macro invocation
                         buf->remove(u, v + 1 - u);
                         end -= v + 1 - u;
                     }
-                    else if (m->inuse && arglen == marglen && memcmp(arg, marg, arglen) == 0)
-                    {   // Recursive expansion; just leave in place
-
+                    else if (m->inuse &&
+                             ((arglen == marglen && memcmp(arg, marg, arglen) == 0) ||
+                              (arglen + 4 == marglen &&
+                               marg[0] == 0xFF &&
+                               marg[1] == '{' &&
+                               memcmp(arg, marg + 2, arglen) == 0 &&
+                               marg[marglen - 2] == 0xFF &&
+                               marg[marglen - 1] == '}'
+                              )
+                             )
+                            )
+                    {
+                        /* Recursive expansion:
+                         *   marg is same as arg (with blue paint added)
+                         * Just leave in place.
+                         */
                     }
                     else
                     {
                         //printf("\tmacro '%.*s'(%.*s) = '%.*s'\n", m->namelen, m->name, marglen, marg, m->textlen, m->text);
-#if 1
                         marg = memdup(marg, marglen);
                         // Insert replacement text
                         buf->spread(v + 1, 2 + m->textlen + 2);
@@ -419,22 +410,6 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                         buf->remove(u, v + 1 - u);
                         end -= v + 1 - u;
                         u += mend - (v + 1);
-#else
-                        // Insert replacement text
-                        buf->insert(v + 1, m->text, m->textlen);
-                        end += m->textlen;
-
-                        // Scan replaced text for further expansion
-                        m->inuse++;
-                        size_t mend = v + 1 + m->textlen;
-                        expand(buf, v + 1, &mend, marg, marglen);
-                        end += mend - (v + 1 + m->textlen);
-                        m->inuse--;
-
-                        buf->remove(u, v + 1 - u);
-                        end -= v + 1 - u;
-                        u += mend - (v + 1);
-#endif
                         mem.free((utf8_t *)marg);
                         //printf("u = %d, end = %d\n", u, end);
                         //printf("#%.*s#\n", end - u, &buf->data[u]);
