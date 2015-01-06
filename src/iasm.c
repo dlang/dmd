@@ -2364,6 +2364,8 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
                 return;
             }
         }
+        if (v->isThreadlocal())
+            error(asmstate.loc, "cannot directly load TLS variable '%s'", v->toChars());
     }
     em = s->isEnumMember();
     if (em)
