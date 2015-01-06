@@ -443,7 +443,9 @@ else version( Posix )
         // avoid deadlocks in signal handler, see Issue 13416
         version (FreeBSD) bool THR_IN_CRITICAL(pthread_t p) nothrow @nogc
         {
-            import core.sys.posix.sys.types : c_long, lwpid_t;
+            import core.sys.posix.config : c_long;
+            import core.sys.posix.sys.types : lwpid_t;
+
             // If the begin of pthread would be changed in libthr (unlikely)
             // we'll run into undefined behavior, compare with thr_private.h.
             static struct pthread
