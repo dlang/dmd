@@ -457,6 +457,71 @@ void test2579()
 }
 
 /**********************************/
+// 2803
+
+auto foo2803(T)(T t = 0) { return t; }
+
+struct S2803 {}
+S2803 s2803;
+ref S2803 getS2803() { return s2803; }
+auto fun2803(T, U)(T t, ref U u = getS2803)
+{
+    static assert(is(U == S2803));
+    return &u;
+}
+
+// from the past version of std.conv
+template to2803(T) { T to2803(S)(S src) { return T.init; } }
+auto toImpl2803a(T, S)(S s, in T left, in T sep = ", ", in T right = "]") {}
+auto toImpl2803b(T, S)(S s, in T left = to2803!T(S.stringof~"("), in T right = ")") {}
+auto toImpl2803c(T, S)(S s, in T left =          S.stringof~"(" , in T right = ")") {}  // combination with enh 13944
+
+// from std.range.package in 2.067a.
+auto enumerate2803(En = size_t, R)(R r, En start = 0)
+{
+    // The type of 'start' should be size_t, it's the defaultArg of En,
+    // rather than the deduced type from its defualtArg '0'.
+    static assert(is(typeof(start) == size_t));
+    return start;
+}
+
+// from std.numeric.
+alias ElementType2803(R) = typeof(R.init[0].init);
+void normalize2803(R)(R range, ElementType2803!R sum = 1)
+{
+    // The type of 'sum' should be determined to ElementType!(double[]) == double
+    // before the type deduction from its defaultArg '1'.
+    static assert(is(typeof(sum) == double));
+}
+
+void test2803()
+{
+    assert(foo2803() == 0);
+    assert(foo2803(1) == 1);
+
+    S2803 s;
+    assert(fun2803(1)    is &s2803);
+    assert(fun2803(1, s) is &s);
+
+    // regression cases
+
+    toImpl2803a!string(1, "[");
+
+    toImpl2803b! string(1);
+    toImpl2803b!wstring(1);
+    toImpl2803b!dstring(1);
+
+    toImpl2803c! string(1);
+    toImpl2803c!wstring(1); // requires enhancement 13944
+    toImpl2803c!dstring(1); // requires enhancement 13944
+
+    enumerate2803([1]);
+
+    double[] a = [];
+    normalize2803(a);
+}
+
+/**********************************/
 // 4953
 
 void bug4953(T = void)(short x) {}
@@ -4432,6 +4497,7 @@ int main()
     test2296();
     bug4984();
     test2579();
+    test2803();
     test5886();
     test5393();
     test5896();
