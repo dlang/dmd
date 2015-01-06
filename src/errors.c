@@ -128,18 +128,6 @@ void error(const char *filename, unsigned linnum, unsigned charnum, const char *
     va_end( ap );
 }
 
-void warning(Loc loc, const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    vwarning(loc, format, ap);
-    va_end( ap );
-}
-
-/**************************************
- * Print supplementary message about the last error
- * Used for backtraces, etc
- */
 void errorSupplemental(Loc loc, const char *format, ...)
 {
     va_list ap;
@@ -148,12 +136,35 @@ void errorSupplemental(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
+void warning(Loc loc, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vwarning(loc, format, ap);
+    va_end( ap );
+}
+
+void warningSupplemental(Loc loc, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vwarningSupplemental(loc, format, ap);
+    va_end( ap );
+}
+
 void deprecation(Loc loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
     vdeprecation(loc, format, ap);
+    va_end( ap );
+}
 
+void deprecationSupplemental(Loc loc, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vdeprecation(loc, format, ap);
     va_end( ap );
 }
 
@@ -221,6 +232,12 @@ void vwarning(Loc loc, const char *format, va_list ap)
     }
 }
 
+void vwarningSupplemental(Loc loc, const char *format, va_list ap)
+{
+    if (global.params.warnings && !global.gag)
+        verrorPrint(loc, COLOR_YELLOW, "       ", format, ap);
+}
+
 void vdeprecation(Loc loc, const char *format, va_list ap,
                 const char *p1, const char *p2)
 {
@@ -229,6 +246,14 @@ void vdeprecation(Loc loc, const char *format, va_list ap,
         verror(loc, format, ap, p1, p2, header);
     else if (global.params.useDeprecated == 2 && !global.gag)
         verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
+}
+
+void vdeprecationSupplemental(Loc loc, const char *format, va_list ap)
+{
+    if (global.params.useDeprecated == 0)
+        verrorSupplemental(loc, format, ap);
+    else if (global.params.useDeprecated == 2 && !global.gag)
+        verrorPrint(loc, COLOR_BLUE, "       ", format, ap);
 }
 
 /***************************************

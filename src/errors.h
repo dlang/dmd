@@ -21,13 +21,17 @@
 bool isConsoleColorSupported();
 
 void warning(Loc loc, const char *format, ...);
+void warningSupplemental(Loc loc, const char *format, ...);
 void deprecation(Loc loc, const char *format, ...);
+void deprecationSupplemental(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
 void errorSupplemental(Loc loc, const char *format, ...);
 void verror(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL, const char *header = "Error: ");
-void vwarning(Loc loc, const char *format, va_list);
 void verrorSupplemental(Loc loc, const char *format, va_list ap);
+void vwarning(Loc loc, const char *format, va_list);
+void vwarningSupplemental(Loc loc, const char *format, va_list ap);
 void vdeprecation(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
+void vdeprecationSupplemental(Loc loc, const char *format, va_list ap);
 
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((noreturn))
