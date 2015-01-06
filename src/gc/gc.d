@@ -107,6 +107,7 @@ __gshared Duration prepTime;
 __gshared Duration markTime;
 __gshared Duration sweepTime;
 __gshared Duration recoverTime;
+__gshared Duration maxPauseTime;
 __gshared size_t numCollections;
 __gshared size_t maxPoolMemory;
 
@@ -1464,11 +1465,14 @@ struct Gcx
                    sweepTime.total!("msecs"));
             printf("\tTotal page recovery time:  %lld milliseconds\n",
                    recoverTime.total!("msecs"));
+            long maxPause = maxPauseTime.total!("msecs");
+            printf("\tMax Pause Time:  %lld milliseconds\n", maxPause);
             long gcTime = (recoverTime + sweepTime + markTime + prepTime).total!("msecs");
             printf("\tGrand total GC time:  %lld milliseconds\n", gcTime);
             long pauseTime = (markTime + prepTime).total!("msecs");
-            printf("maxPoolMemory = %lld MB, pause time = %lld ms\n",
-                   cast(long) maxPoolMemory >> 20, pauseTime);
+            printf("GC summary:%5lld MB,%5lld GC%5lld ms, Pauses%5lld ms <%5lld ms\n",
+                   cast(long) maxPoolMemory >> 20, cast(ulong)numCollections, gcTime,
+                   pauseTime, maxPause);
         }
 
         debug(CACHE_HITRATE)
@@ -2477,11 +2481,11 @@ struct Gcx
     {
         size_t n;
         Pool*  pool;
-        MonoTime start, stop;
+        MonoTime start, stop, begin;
 
         if (GC.config.profile)
         {
-            start = currTime;
+            begin = start = currTime;
         }
 
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
@@ -2626,6 +2630,9 @@ struct Gcx
         {
             stop = currTime;
             markTime += (stop - start);
+            Duration pause = stop - begin;
+            if (pause > maxPauseTime)
+                maxPauseTime = pause;
             start = stop;
         }
 
