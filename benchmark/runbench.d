@@ -85,13 +85,13 @@ void runTests(Config cfg)
                 rename("gcx.log", tgt);
                 auto lines = File(tgt, "r").byLine()
                     .find!(ln => ln.canFind("maxPoolMemory"));
-                if (!lines.empty) gcprof = lines.front.find("maxPoolMemory").idup;
+                if (!lines.empty) gcprof = lines.front.find("GC summary:")[11..$].idup;
             }
             else
             {
                 auto lines = output.splitter(ctRegex!`\r\n|\r|\n`)
-                    .find!(ln => ln.startsWith("maxPoolMemory"));
-                if (!lines.empty) gcprof = lines.front;
+                    .find!(ln => ln.startsWith("GC summary:"));
+                if (!lines.empty) gcprof = lines.front[11..$];
             }
         }
         auto res = minDur.split!("seconds", "msecs");
