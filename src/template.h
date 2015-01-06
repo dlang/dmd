@@ -140,8 +140,6 @@ public:
      */
     bool dependent;
 
-    Declaration *sparam;
-
     TemplateParameter(Loc loc, Identifier *ident);
 
     virtual TemplateTypeParameter  *isTemplateTypeParameter();

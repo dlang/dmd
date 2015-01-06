@@ -549,13 +549,8 @@ void TemplateDeclaration::semantic(Scope *sc)
         TemplateParameter *tp = (*parameters)[i];
 
         tp->declareParameter(paramscope);
-    }
-
-    for (size_t i = 0; i < parameters->dim; i++)
-    {
-        TemplateParameter *tp = (*parameters)[i];
-
         tp->semantic(paramscope, parameters);
+
         if (i + 1 != parameters->dim && tp->isTemplateTupleParameter())
         {
             error("template tuple parameter must be last one");
@@ -4609,7 +4604,6 @@ TemplateParameter::TemplateParameter(Loc loc, Identifier *ident)
     this->loc = loc;
     this->ident = ident;
     this->dependent = false;
-    this->sparam = NULL;
 }
 
 TemplateTypeParameter  *TemplateParameter::isTemplateTypeParameter()
@@ -4707,8 +4701,8 @@ void TemplateTypeParameter::declareParameter(Scope *sc)
 {
     //printf("TemplateTypeParameter::declareParameter('%s')\n", ident->toChars());
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
-    sparam = new AliasDeclaration(loc, ident, ti);
-    if (!sc->insert(sparam))
+    Declaration *ad = new AliasDeclaration(loc, ident, ti);
+    if (!sc->insert(ad))
         error(loc, "parameter '%s' multiply defined", ident->toChars());
 }
 
@@ -4901,8 +4895,8 @@ TemplateParameter *TemplateAliasParameter::syntaxCopy()
 void TemplateAliasParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
-    sparam = new AliasDeclaration(loc, ident, ti);
-    if (!sc->insert(sparam))
+    Declaration *ad = new AliasDeclaration(loc, ident, ti);
+    if (!sc->insert(ad))
         error(loc, "parameter '%s' multiply defined", ident->toChars());
 }
 
@@ -5159,22 +5153,10 @@ void TemplateValueParameter::declareParameter(Scope *sc)
     v->storage_class = STCtemplateparameter;
     if (!sc->insert(v))
         error(loc, "parameter '%s' multiply defined", ident->toChars());
-    sparam = v;
 }
 
 void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
-    bool wasSame = (sparam->type == valType);
-    sparam->semantic(sc);
-    if (sparam->type == Type::terror && wasSame)
-    {
-        /* If sparam has a type error, avoid duplicate errors
-         * The simple solution of leaving that function if sparam->type == Type::terror
-         * doesn't quite work because it causes failures in xtest46 for bug 6295
-         */
-        valType = Type::terror;
-        return;
-    }
     valType = valType->semantic(loc, sc);
 
 #if 0   // defer semantic analysis to arg match
@@ -5389,8 +5371,8 @@ TemplateParameter *TemplateTupleParameter::syntaxCopy()
 void TemplateTupleParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
-    sparam = new AliasDeclaration(loc, ident, ti);
-    if (!sc->insert(sparam))
+    Declaration *ad = new AliasDeclaration(loc, ident, ti);
+    if (!sc->insert(ad))
         error(loc, "parameter '%s' multiply defined", ident->toChars());
 }
 
