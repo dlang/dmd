@@ -2366,6 +2366,8 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
         }
         if (v->isThreadlocal())
             error(asmstate.loc, "cannot directly load TLS variable '%s'", v->toChars());
+        else if (v->isDataseg() && global.params.pic)
+            error(asmstate.loc, "cannot directly load global variable '%s' with PIC code", v->toChars());
     }
     em = s->isEnumMember();
     if (em)

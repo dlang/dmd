@@ -118,8 +118,13 @@ DISABLED_TESTS += dhry
 # runnable/dhry.d(488): Error: undefined identifier dtime
 endif
 
+ifeq ($(OS),win32)
+DISABLED_FAIL_TESTS += fail13939
+endif
+
 ifeq ($(OS),win64)
 DISABLED_TESTS += testxmm
+DISABLED_FAIL_TESTS += fail13939
 endif
 
 ifeq ($(OS),osx)
@@ -158,6 +163,9 @@ $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESU
 $(RESULTS_DIR)/compilable/%.sh.out: compilable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) echo " ... $(<D)/$*.sh"
 	$(QUIET) ./$(<D)/$*.sh
+
+$(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/fail_compilation/,$(DISABLED_FAIL_TESTS))): $(RESULTS_DIR)/.created
+	$(QUIET) echo " ... $@ - disabled"
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
