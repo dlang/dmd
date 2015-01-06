@@ -995,20 +995,41 @@ else version( AsmX86_64 )
             //////////////////////////////////////////////////////////////////
             // 16 Byte Load on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc
-            {
-                push RDI;
-                push RBX;
-                mov RBX, 0;
-                mov RCX, 0;
-                mov RAX, 0;
-                mov RDX, 0;
-                mov RDI, val;
-                lock; // lock always needed to make this op atomic
-                cmpxchg16b [RDI];
-                pop RBX;
-                pop RDI;
+            version(Win64){
+                size_t[2] retVal;
+                asm 
+                {
+                    push RDI;
+                    push RBX;
+                    mov RDI, val;
+                    mov RBX, 0;
+                    mov RCX, 0;
+                    mov RAX, 0;
+                    mov RDX, 0;
+                    lock; // lock always needed to make this op atomic
+                    cmpxchg16b [RDI];
+                    lea RDI, retVal;
+                    mov [RDI], RAX;
+                    mov 8[RDI], RDX;
+                    pop RBX;
+                    pop RDI;
+                }
+                return cast(T) retVal;
+            }else{
+                asm pure nothrow @nogc
+                {
+                    push RDI;
+                    push RBX;
+                    mov RBX, 0;
+                    mov RCX, 0;
+                    mov RAX, 0;
+                    mov RDX, 0;
+                    mov RDI, val;
+                    lock; // lock always needed to make this op atomic
+                    cmpxchg16b [RDI];
+                    pop RBX;
+                    pop RDI;
+                }
             }
         }
         else
@@ -1130,22 +1151,46 @@ else version( AsmX86_64 )
             //////////////////////////////////////////////////////////////////
             // 16 Byte Store on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
+            version(Win64){
+                asm 
+                {
+                    push RDI;
+                    push RBX;
+                    mov R9, val;
+                    mov R10, newval;
 
-            asm pure nothrow @nogc
-            {
-                push RDI;
-                push RBX;
-                lea RDI, newval;
-                mov RBX, [RDI];
-                mov RCX, 8[RDI];
-                mov RDI, val;
-                mov RAX, [RDI];
-                mov RDX, 8[RDI];
-            L1: lock; // lock always needed to make this op atomic
-                cmpxchg16b [RDI];
-                jne L1;
-                pop RBX;
-                pop RDI;
+                    mov RDI, R10;
+                    mov RBX, [RDI];
+                    mov RCX, 8[RDI];
+
+                    
+                    mov RDI, R9;
+                    mov RAX, [RDI];
+                    mov RDX, 8[RDI];
+                            
+                    L1: lock; // lock always needed to make this op atomic
+                    cmpxchg16b [RDI];
+                    jne L1;
+                    pop RBX;
+                    pop RDI;
+                }
+            }else{
+                asm pure nothrow @nogc
+                {
+                    push RDI;
+                    push RBX;
+                    lea RDI, newval;
+                    mov RBX, [RDI];
+                    mov RCX, 8[RDI];
+                    mov RDI, val;
+                    mov RAX, [RDI];
+                    mov RDX, 8[RDI];
+                    L1: lock; // lock always needed to make this op atomic
+                    cmpxchg16b [RDI];
+                    jne L1;
+                    pop RBX;
+                    pop RDI;
+                }
             }
         }
         else
