@@ -1280,7 +1280,7 @@ version( unittest )
                 long value2;
             }
             
-            shared DoubleValue a;
+            align(16) shared DoubleValue a;
             atomicStore(a, DoubleValue(1,2));
             assert(a.value1 == 1 && a.value2 ==2);
             
