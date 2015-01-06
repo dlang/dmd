@@ -1237,6 +1237,25 @@ version( unittest )
             testType!(long)();
             testType!(ulong)();
         }
+        
+        static if (has128BitCAS)
+        {
+            struct DoubleValue
+            {
+                long value1;
+                long value2;
+            }
+            
+            shared DoubleValue a;
+            atomicStore(a, DoubleValue(1,2));
+            assert(a.value1 == 1 && a.value2 ==2);
+            
+            while(!cas(&a, DoubleValue(1,2), DoubleValue(3,4))){}
+            assert(a.value1 == 3 && a.value2 ==4);
+            
+            DoubleValue b = atomicLoad(a);
+            assert(b.value1 == 3 && b.value2 ==4);
+        }
 
         shared(size_t) i;
 
