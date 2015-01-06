@@ -2098,7 +2098,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         }
         else
         {
-            e = new StringExp(loc, (char *)deco, strlen(deco), 'c');
+            e = new StringExp(loc, (char *)deco, strlen(deco));
             Scope sc;
             e = e->semantic(&sc);
         }
@@ -2106,7 +2106,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
     else if (ident == Id::stringof)
     {
         char *s = toChars();
-        e = new StringExp(loc, s, strlen(s), 'c');
+        e = new StringExp(loc, s, strlen(s));
         Scope sc;
         e = e->semantic(&sc);
     }
@@ -2186,7 +2186,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
          * pretty-printing the type.
          */
         char *s = e->toChars();
-        e = new StringExp(e->loc, s, strlen(s), 'c');
+        e = new StringExp(e->loc, s, strlen(s));
     }
     else
         e = getProperty(e->loc, ident, flag);
@@ -7184,7 +7184,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
     else if (ident == Id::stringof)
     {
         char *s = toChars();
-        e = new StringExp(loc, s, strlen(s), 'c');
+        e = new StringExp(loc, s, strlen(s));
         Scope sc;
         e = e->semantic(&sc);
     }
