@@ -7061,7 +7061,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
                     }
                 }
                 const char* s = mangle(ds);
-                Expression *e = new StringExp(loc, (void*)s, strlen(s), 'c');
+                Expression *e = new StringExp(loc, (void*)s, strlen(s));
                 e = e->semantic(sc);
                 return e;
             }
@@ -7311,8 +7311,9 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             assert(0);
         }
         else if (ident == Id::stringof)
-        {   char *p = ie->toChars();
-            e = new StringExp(loc, p, strlen(p), 'c');
+        {
+            char *p = ie->toChars();
+            e = new StringExp(loc, p, strlen(p));
             e = e->semantic(sc);
             return e;
         }
