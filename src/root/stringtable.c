@@ -82,7 +82,8 @@ struct StringEntry
 
 uint32_t StringTable::allocValue(const char *s, size_t length)
 {
-    const size_t nbytes = sizeof(StringValue) + length + 1;
+    enum { offset_lstring = sizeof(StringValue().ptrvalue) + sizeof(StringValue().length) };
+    const size_t nbytes = offset_lstring + length + 1;
 
     if (!npools || nfill + nbytes > POOL_SIZE)
     {
