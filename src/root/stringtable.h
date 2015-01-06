@@ -18,14 +18,13 @@
 
 struct StringEntry;
 
-// StringValue is a variable-length structure as indicated by the last array
-// member with unspecified size.  It has neither proper c'tors nor a factory
-// method because the only thing which should be creating these is StringTable.
+// StringValue is a variable-length structure. It has neither proper c'tors nor a
+// factory method because the only thing which should be creating these is StringTable.
 struct StringValue
 {
     void *ptrvalue;
     size_t length;
-    char lstring[];
+    char lstring[1]; // variable length
 
     size_t len() const { return length; }
     const char *toDchars() const { return (char *)lstring; }
