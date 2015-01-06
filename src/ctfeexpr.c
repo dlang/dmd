@@ -142,7 +142,7 @@ char *ThrownExceptionExp::toChars()
 // Generate an error message when this exception is not caught
 void ThrownExceptionExp::generateUncaughtError()
 {
-    Expression *e = (*thrown->value->elements)[0];
+    Expression *e = resolveSlice((*thrown->value->elements)[0]);
     StringExp *se = e->toStringExp();
     thrown->error("uncaught CTFE exception %s(%s)", thrown->type->toChars(), se ? se->toChars() : e->toChars());
 
