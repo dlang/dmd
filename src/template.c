@@ -553,8 +553,10 @@ void TemplateDeclaration::semantic(Scope *sc)
             error(tp->loc, "parameter '%s' multiply defined", tp->ident->toChars());
             errors = true;
         }
-        tp->semantic(paramscope, parameters);
-
+        if (!tp->semantic(paramscope, parameters))
+        {
+            errors = true;
+        }
         if (i + 1 != parameters->dim && tp->isTemplateTupleParameter())
         {
             error("template tuple parameter must be last one");
@@ -4709,7 +4711,7 @@ bool TemplateTypeParameter::declareParameter(Scope *sc)
     return sc->insert(ad);
 }
 
-void TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
+bool TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
     //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
     if (specType && !reliesOnTident(specType, parameters))
@@ -4722,6 +4724,7 @@ void TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
         defaultType = defaultType->semantic(loc, sc);
     }
 #endif
+    return !(specType && isError(specType));
 }
 
 MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
@@ -4927,7 +4930,7 @@ RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplatePa
     return o;
 }
 
-void TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
+bool TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
     if (specType && !reliesOnTident(specType, parameters))
     {
@@ -4938,6 +4941,8 @@ void TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
     if (defaultAlias)
         defaultAlias = defaultAlias->semantic(loc, sc);
 #endif
+    return !(specType  && isError(specType)) &&
+           !(specAlias && isError(specAlias));
 }
 
 MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
@@ -5156,7 +5161,7 @@ bool TemplateValueParameter::declareParameter(Scope *sc)
     return sc->insert(v);
 }
 
-void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
+bool TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
     valType = valType->semantic(loc, sc);
 
@@ -5188,6 +5193,7 @@ void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
         //e->toInteger();
     }
 #endif
+    return !isError(valType);
 }
 
 MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
@@ -5376,8 +5382,9 @@ bool TemplateTupleParameter::declareParameter(Scope *sc)
     return sc->insert(ad);
 }
 
-void TemplateTupleParameter::semantic(Scope *sc, TemplateParameters *parameters)
+bool TemplateTupleParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
+    return true;
 }
 
 MATCH TemplateTupleParameter::matchArg(Loc loc, Scope *sc, Objects *tiargs,

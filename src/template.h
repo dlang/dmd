@@ -150,7 +150,7 @@ public:
 
     virtual TemplateParameter *syntaxCopy() = 0;
     virtual bool declareParameter(Scope *sc) = 0;
-    virtual void semantic(Scope *sc, TemplateParameters *parameters) = 0;
+    virtual bool semantic(Scope *sc, TemplateParameters *parameters) = 0;
     virtual void print(RootObject *oarg, RootObject *oded) = 0;
     virtual RootObject *specialization() = 0;
     virtual RootObject *defaultArg(Loc loc, Scope *sc) = 0;
@@ -183,7 +183,7 @@ public:
     TemplateTypeParameter *isTemplateTypeParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
-    void semantic(Scope *sc, TemplateParameters *parameters);
+    bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
@@ -223,7 +223,7 @@ public:
     TemplateValueParameter *isTemplateValueParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
-    void semantic(Scope *sc, TemplateParameters *parameters);
+    bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
@@ -250,7 +250,7 @@ public:
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
-    void semantic(Scope *sc, TemplateParameters *parameters);
+    bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
@@ -271,7 +271,7 @@ public:
     TemplateTupleParameter *isTemplateTupleParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
-    void semantic(Scope *sc, TemplateParameters *parameters);
+    bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
