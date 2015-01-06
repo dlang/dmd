@@ -289,6 +289,7 @@ else version( AsmX86_32 )
         }
         else static if( T.sizeof == long.sizeof && has64BitCAS )
         {
+            
             //////////////////////////////////////////////////////////////////
             // 8 Byte CAS on a 32-Bit Processor
             //////////////////////////////////////////////////////////////////
@@ -309,7 +310,9 @@ else version( AsmX86_32 )
                 setz AL;
                 pop EBX;
                 pop EDI;
+                
             }
+            
         }
         else
         {
@@ -774,26 +777,57 @@ else version( AsmX86_64 )
         }
         else static if( T.sizeof == long.sizeof*2 && has128BitCAS)
         {
+            
+            
             //////////////////////////////////////////////////////////////////
             // 16 Byte CAS on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
+            version(Win64){
+                //Windows 64 calling convention uses different registers.
+                //DMD appears to reverse the register order. 
+                asm pure nothrow @nogc
+                {
+                    push RDI;
+                    push RBX;
+                    mov R9, writeThis;
+                    mov R10, ifThis;
+                    mov R11, here;
 
-            asm pure nothrow @nogc
-            {
-                push RDI; 
-                push RBX;
-                lea RDI, writeThis;
-                mov RBX, [RDI];
-                mov RCX, 8[RDI];
-                lea RDI, ifThis;
-                mov RAX, [RDI];
-                mov RDX, 8[RDI];
-                mov RDI, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg16b [RDI];
-                setz AL;
-                pop RBX;
-                pop RDI;
+                    mov RDI, R9;
+                    mov RBX, [RDI];
+                    mov RCX, 8[RDI];
+
+                    mov RDI, R10;
+                    mov RAX, [RDI];
+                    mov RDX, 8[RDI];
+
+                    mov RDI, R11;
+                    lock; 
+                    cmpxchg16b [RDI];
+                    setz AL;
+                    pop RBX;
+                    pop RDI;
+                }
+                
+            }else{
+
+                asm pure nothrow @nogc
+                {
+                    push RDI; 
+                    push RBX;
+                    lea RDI, writeThis;
+                    mov RBX, [RDI];
+                    mov RCX, 8[RDI];
+                    lea RDI, ifThis;
+                    mov RAX, [RDI];
+                    mov RDX, 8[RDI];
+                    mov RDI, here;
+                    lock; // lock always needed to make this op atomic
+                    cmpxchg16b [RDI];
+                    setz AL;
+                    pop RBX;
+                    pop RDI;
+                }
             }
         }
         else
@@ -1253,7 +1287,7 @@ version( unittest )
             while(!cas(&a, DoubleValue(1,2), DoubleValue(3,4))){}
             assert(a.value1 == 3 && a.value2 ==4);
             
-            DoubleValue b = atomicLoad(a);
+            align(16) DoubleValue b = atomicLoad(a);
             assert(b.value1 == 3 && b.value2 ==4);
         }
 
