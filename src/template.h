@@ -149,7 +149,7 @@ public:
     virtual TemplateTupleParameter *isTemplateTupleParameter();
 
     virtual TemplateParameter *syntaxCopy() = 0;
-    virtual void declareParameter(Scope *sc) = 0;
+    virtual bool declareParameter(Scope *sc) = 0;
     virtual void semantic(Scope *sc, TemplateParameters *parameters) = 0;
     virtual void print(RootObject *oarg, RootObject *oded) = 0;
     virtual RootObject *specialization() = 0;
@@ -182,7 +182,7 @@ public:
 
     TemplateTypeParameter *isTemplateTypeParameter();
     TemplateParameter *syntaxCopy();
-    void declareParameter(Scope *sc);
+    bool declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -222,7 +222,7 @@ public:
 
     TemplateValueParameter *isTemplateValueParameter();
     TemplateParameter *syntaxCopy();
-    void declareParameter(Scope *sc);
+    bool declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -249,7 +249,7 @@ public:
 
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();
-    void declareParameter(Scope *sc);
+    bool declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
@@ -270,7 +270,7 @@ public:
 
     TemplateTupleParameter *isTemplateTupleParameter();
     TemplateParameter *syntaxCopy();
-    void declareParameter(Scope *sc);
+    bool declareParameter(Scope *sc);
     void semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();

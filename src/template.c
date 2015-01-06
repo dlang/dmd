@@ -548,7 +548,11 @@ void TemplateDeclaration::semantic(Scope *sc)
     {
         TemplateParameter *tp = (*parameters)[i];
 
-        tp->declareParameter(paramscope);
+        if (!tp->declareParameter(paramscope))
+        {
+            error(tp->loc, "parameter '%s' multiply defined", tp->ident->toChars());
+            errors = true;
+        }
         tp->semantic(paramscope, parameters);
 
         if (i + 1 != parameters->dim && tp->isTemplateTupleParameter())
@@ -4697,13 +4701,12 @@ TemplateParameter *TemplateTypeParameter::syntaxCopy()
         defaultType ? defaultType->syntaxCopy() : NULL);
 }
 
-void TemplateTypeParameter::declareParameter(Scope *sc)
+bool TemplateTypeParameter::declareParameter(Scope *sc)
 {
     //printf("TemplateTypeParameter::declareParameter('%s')\n", ident->toChars());
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     Declaration *ad = new AliasDeclaration(loc, ident, ti);
-    if (!sc->insert(ad))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+    return sc->insert(ad);
 }
 
 void TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
@@ -4892,12 +4895,11 @@ TemplateParameter *TemplateAliasParameter::syntaxCopy()
         objectSyntaxCopy(defaultAlias));
 }
 
-void TemplateAliasParameter::declareParameter(Scope *sc)
+bool TemplateAliasParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     Declaration *ad = new AliasDeclaration(loc, ident, ti);
-    if (!sc->insert(ad))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+    return sc->insert(ad);
 }
 
 RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplateParameters *parameters)
@@ -5147,12 +5149,11 @@ TemplateParameter *TemplateValueParameter::syntaxCopy()
         defaultValue ? defaultValue->syntaxCopy() : NULL);
 }
 
-void TemplateValueParameter::declareParameter(Scope *sc)
+bool TemplateValueParameter::declareParameter(Scope *sc)
 {
     VarDeclaration *v = new VarDeclaration(loc, valType, ident, NULL);
     v->storage_class = STCtemplateparameter;
-    if (!sc->insert(v))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+    return sc->insert(v);
 }
 
 void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
@@ -5368,12 +5369,11 @@ TemplateParameter *TemplateTupleParameter::syntaxCopy()
     return new TemplateTupleParameter(loc, ident);
 }
 
-void TemplateTupleParameter::declareParameter(Scope *sc)
+bool TemplateTupleParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     Declaration *ad = new AliasDeclaration(loc, ident, ti);
-    if (!sc->insert(ad))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+    return sc->insert(ad);
 }
 
 void TemplateTupleParameter::semantic(Scope *sc, TemplateParameters *parameters)
