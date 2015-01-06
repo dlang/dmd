@@ -103,6 +103,7 @@
     <ClCompile Include="errors.c" />
     <ClCompile Include="expression.c" />
     <ClCompile Include="func.c" />
+    <ClCompile Include="globals.c" />
     <ClCompile Include="glue.c" />
     <ClCompile Include="hdrgen.c" />
     <ClCompile Include="iasm.c" />
@@ -151,6 +152,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="toir.c" />
+    <ClCompile Include="tokens.c" />
     <ClCompile Include="toobj.c" />
     <ClCompile Include="traits.c" />
     <ClCompile Include="typinf.c" />
@@ -223,9 +225,6 @@
     <ClCompile Include="root\aav.c" />
     <ClCompile Include="root\async.c" />
     <ClCompile Include="root\checkedint.c" />
-    <ClCompile Include="root\dmgcmem.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="root\longdouble.c" />
     <ClCompile Include="root\man.c" />
     <ClCompile Include="root\port.c" />
@@ -295,6 +294,7 @@
     <ClInclude Include="enum.h" />
     <ClInclude Include="errors.h" />
     <ClInclude Include="expression.h" />
+    <ClInclude Include="globals.h" />
     <ClInclude Include="hdrgen.h" />
     <ClInclude Include="identifier.h" />
     <ClInclude Include="import.h" />
@@ -317,6 +317,7 @@
     <ClInclude Include="target.h" />
     <ClInclude Include="template.h" />
     <ClInclude Include="toir.h" />
+    <ClInclude Include="tokens.h" />
     <ClInclude Include="total.h" />
     <ClInclude Include="utf.h" />
     <ClInclude Include="version.h" />

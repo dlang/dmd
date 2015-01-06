@@ -486,6 +486,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\globals.c"
+				>
+			</File>
+			<File
+				RelativePath=".\globals.h"
+				>
+			</File>
+			<File
 				RelativePath=".\glue.c"
 				>
 			</File>
@@ -787,6 +795,14 @@
 			</File>
 			<File
 				RelativePath=".\toir.h"
+				>
+			</File>
+			<File
+				RelativePath=".\tokens.c"
+				>
+			</File>
+			<File
+				RelativePath=".\tokens.h"
 				>
 			</File>
 			<File

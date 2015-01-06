@@ -516,6 +516,15 @@
     <ClCompile Include="sapply.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="nspace.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="tokens.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="globals.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aggregate.h">
@@ -762,6 +771,18 @@
       <Filter>src\vcbuild</Filter>
     </ClInclude>
     <ClInclude Include="target.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="nspace.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\obj.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="tokens.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="globals.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
