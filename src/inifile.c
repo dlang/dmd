@@ -36,7 +36,16 @@
 
 char *skipspace(char *p);
 
-const char *findinifile(const char *argv0, const char *inifile)
+/*****************************
+ * Find the config file
+ * Input:
+ *      argv0           program name (argv[0])
+ *      inifile         .ini file name
+ * Returns:
+ *      file path of the config file or NULL
+ *      Note: this is a memory leak
+ */
+const char *findConfFile(const char *argv0, const char *inifile)
 {
 #if LOG
     printf("findinifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
@@ -111,17 +120,11 @@ const char *findinifile(const char *argv0, const char *inifile)
  * Read and analyze .ini file, i.e. write the entries of the specified section
  *  into the process environment
  * Input:
- *      argv0           program name (argv[0])
- *      inifile         .ini file name
+ *      filename path to config file
  *      envsectionname  name of the section to process
- * Returns:
- *      file name of ini file
- *      Note: this is a memory leak
  */
-
-const char *inifile(const char *argv0, const char *inifile, const char *envsectionname)
+void parseConfFile(const char *filename, const char *envsectionname)
 {
-    const char *filename = findinifile(argv0, inifile);
     const char *path = FileName::path(filename); // need path for @P macro
 #if LOG
     printf("\tpath = '%s', filename = '%s'\n", path, filename);
@@ -130,7 +133,7 @@ const char *inifile(const char *argv0, const char *inifile, const char *envsecti
     File file(filename);
 
     if (file.read())
-        return filename;                        // error reading file
+        return; // error reading file
 
     // Parse into lines
     bool envsection = true;
@@ -296,7 +299,7 @@ const char *inifile(const char *argv0, const char *inifile, const char *envsecti
                 break;
         }
     }
-    return filename;
+    return;
 }
 
 /********************
