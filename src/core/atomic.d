@@ -1014,7 +1014,7 @@ else version( AsmX86_64 )
                     pop RBX;
                     pop RDI;
                 }
-                return cast(T) retVal;
+                return cast(typeof(return)) retVal;
             }else{
                 asm pure nothrow @nogc
                 {
