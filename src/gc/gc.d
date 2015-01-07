@@ -475,7 +475,6 @@ class GC
     {
         assert(size != 0);
 
-        void *p = null;
         Bins bin;
 
         //debug(PRINTF) printf("GC::malloc(size = %d, gcx = %p)\n", size, gcx);
@@ -489,45 +488,39 @@ class GC
         bin = gcx.findBin(size);
         Pool *pool;
 
+        void *p;
+
         if (bin < B_PAGE)
         {
-            alloc_size = binsize[bin];
-            int  state     = gcx.disabled ? 1 : 0;
-            bool collected = false;
-
-            while (!gcx.bucket[bin] && !gcx.allocPage(bin))
+            bool tryAlloc() nothrow
             {
-                switch (state)
-                {
-                case 0:
-                    auto freedpages = gcx.fullcollect();
-                    collected = true;
-                    if (freedpages < gcx.npools * ((POOLSIZE / PAGESIZE) / 8))
-                    {   /* Didn't free much, so try allocating more anyway.
-                         * Note: freedpages is not the amount of memory freed, it's the amount
-                         * of full pages freed. Perhaps this should instead be the amount of
-                         * memory freed.
-                         */
-                        gcx.newPool(1,false);
-                        state = 2;
-                    }
-                    else
-                        state = 1;
-                    continue;
-                case 1:
-                    gcx.newPool(1, false);
-                    state = 2;
-                    continue;
-                case 2:
-                    if (collected)
-                        onOutOfMemoryError();
-                    state = 0;
-                    continue;
-                default:
-                    assert(false);
-                }
+                if (!gcx.bucket[bin] && !gcx.allocPage(bin))
+                    return false;
+                p = gcx.bucket[bin];
+                return true;
             }
-            p = gcx.bucket[bin];
+
+            alloc_size = binsize[bin];
+
+            if (!tryAlloc())
+            {
+                // disabled => allocate a new pool instead of collecting
+                if (gcx.disabled && !gcx.newPool(1, false))
+                {
+                    // disabled but out of memory => try to free some memory
+                    gcx.fullcollect();
+                }
+                else if (gcx.fullcollect() < gcx.npools * ((POOLSIZE / PAGESIZE) / 8))
+                {
+                    // very little memory was freed => allocate a new pool for anticipated heap growth
+                    gcx.newPool(1, false);
+                }
+                // tryAlloc will succeed if a new pool was allocated above, if it fails allocate a new pool now
+                if (!tryAlloc() && (!gcx.newPool(1, false) || !tryAlloc()))
+                    // out of luck or memory
+                    onOutOfMemoryError();
+            }
+            assert(p !is null);
 
             // Return next item from free list
             gcx.bucket[bin] = (cast(List*)p).next;
