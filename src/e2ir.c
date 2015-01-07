@@ -2130,7 +2130,12 @@ elem *toElem(Expression *e, IRState *irs)
 
             //printf("EqualExp::toElem()\n");
             elem *e;
-            if (t1->ty == Tstruct)
+            if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->fields.dim == 0)
+            {
+                // we can skip the compare if the structs are empty
+                e = el_long(TYbool, ee->op == TOKequal);
+            }
+            else if (t1->ty == Tstruct)
             {
                 // Do bit compare of struct's
                 elem *es1 = toElem(ee->e1, irs);
@@ -2265,7 +2270,12 @@ elem *toElem(Expression *e, IRState *irs)
             //printf("IdentityExp::toElem() %s\n", toChars());
 
             elem *e;
-            if (t1->ty == Tstruct || t1->isfloating())
+            if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->fields.dim == 0)
+            {
+                // we can skip the compare if the structs are empty
+                e = el_long(TYbool, ie->op == TOKidentity);
+            }
+            else if (t1->ty == Tstruct || t1->isfloating())
             {
                 // Do bit compare of struct's
                 elem *es1 = toElem(ie->e1, irs);
