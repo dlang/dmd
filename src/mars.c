@@ -375,7 +375,8 @@ int tryMain(size_t argc, const char *argv[])
     global.inifilename = parse_conf_arg(argc, argv);
     if (global.inifilename)
     {
-        if (!FileName::exists(global.inifilename))
+        // can be empty as in -conf=
+        if (strlen(global.inifilename) && !FileName::exists(global.inifilename))
             error(Loc(), "Config file '%s' does not exist.", global.inifilename);
     }
     else
