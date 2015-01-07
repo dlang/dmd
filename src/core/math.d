@@ -93,7 +93,7 @@ extern (C) real rndtonl(real x);
 }
 
 /*******************************************
- * Compute n * 2$(SUP exp)
+ * Compute n * 2$(SUPERSCRIPT exp)
  * References: frexp
  */
 
