@@ -5373,6 +5373,27 @@ void test2856()
 }
 
 /***************************************************/
+
+void test13947()
+{
+    struct S {}
+    static assert(S.sizeof == 1);
+
+    S a;
+    S b;
+    *cast(ubyte*)&a = 1;
+    *cast(ubyte*)&b = 2;
+    assert(a == b);
+    assert(a is b);
+    assert(!(a != b));
+    assert(!(a !is b));
+    static assert(S() == S());
+    static assert(S() is S());
+    static assert(!(S() != S()));
+    static assert(!(S() !is S()));
+}
+
+/***************************************************/
 // 3091
 
 void test3091(inout int = 0)
@@ -7507,6 +7528,7 @@ int main()
     test9538();
     test9700();
     test9834();
+    test13947();
     test9883();
     test10091();
     test9130();
