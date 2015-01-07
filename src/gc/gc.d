@@ -2123,76 +2123,55 @@ struct Gcx
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %d\n", size);
 
-        Pool*  pool;
-        size_t npages;
-        size_t n;
+        Pool* pool;
         size_t pn;
-        size_t freedpages;
-        void*  p;
-        int    state;
-        bool   collected = false;
+        immutable npages = (size + PAGESIZE - 1) / PAGESIZE;
 
-        npages = (size + PAGESIZE - 1) / PAGESIZE;
-
-        for (state = disabled ? 1 : 0; ; )
+        bool tryAlloc() nothrow
         {
-            // This code could use some refinement when repeatedly
-            // allocating very large arrays.
-
-            for (n = 0; n < npools; n++)
+            foreach (p; pooltable[0 .. npools])
             {
-                pool = pooltable[n];
-                if(!pool.isLargeObject || pool.freepages < npages) continue;
-                pn = pool.allocPages(npages);
-                if (pn != OPFAIL)
-                    goto L1;
+                if (!p.isLargeObject || p.freepages < npages ||
+                    (pn = p.allocPages(npages)) == OPFAIL) continue;
+                pool = p;
+                return true;
             }
-
-            // Failed
-            switch (state)
-            {
-            case 0:
-                // Try collecting
-                collected = true;
-                freedpages = fullcollect();
-                if (freedpages >= npools * ((POOLSIZE / PAGESIZE) / 4))
-                {   state = 1;
-                    continue;
-                }
-                // Release empty pools to prevent bloat
-                minimize();
-                // Allocate new pool
-                pool = newPool(npages, true);
-                if (!pool)
-                {   state = 2;
-                    continue;
-                }
-                pn = pool.allocPages(npages);
-                assert(pn != OPFAIL);
-                goto L1;
-            case 1:
-                // Release empty pools to prevent bloat
-                minimize();
-                // Allocate new pool
-                pool = newPool(npages, true);
-                if (!pool)
-                {
-                    if (collected)
-                        goto Lnomemory;
-                    state = 0;
-                    continue;
-                }
-                pn = pool.allocPages(npages);
-                assert(pn != OPFAIL);
-                goto L1;
-            case 2:
-                goto Lnomemory;
-            default:
-                assert(false);
-            }
+            return false;
         }
 
-      L1:
+        bool tryAllocNewPool() nothrow
+        {
+            pool = newPool(npages, true);
+            if (!pool) return false;
+            pn = pool.allocPages(npages);
+            assert(pn != OPFAIL);
+            return true;
+        }
+
+        if (!tryAlloc())
+        {
+            // disabled => allocate a new pool instead of collecting
+            if (disabled && !tryAllocNewPool())
+            {
+                // disabled but out of memory => try to free some memory
+                fullcollect();
+                minimize();
+            }
+            else
+            {
+                immutable nfreed = fullcollect();
+                minimize();
+                // very little memory was freed => allocate a new pool for anticipated heap growth
+                if (nfreed < npools * ((POOLSIZE / PAGESIZE) / 4))
+                    tryAllocNewPool();
+            }
+            // If alloc didn't yet succeed retry now that we collected/minimized
+            if (!pool && !tryAlloc() && !tryAllocNewPool())
+                // out of luck or memory
+                return null;
+        }
+        assert(pool);
+
         debug(PRINTF) printFreeInfo(pool);
         pool.pagetable[pn] = B_PAGE;
         if (npages > 1)
@@ -2202,7 +2181,7 @@ struct Gcx
 
         debug(PRINTF) printFreeInfo(pool);
 
-        p = pool.baseAddr + pn * PAGESIZE;
+        auto p = pool.baseAddr + pn * PAGESIZE;
         debug(PRINTF) printf("Got large alloc:  %p, pt = %d, np = %d\n", p, pool.pagetable[pn], npages);
         debug (MEMSTOMP) memset(p, 0xF1, size);
         alloc_size = npages * PAGESIZE;
@@ -2210,9 +2189,6 @@ struct Gcx
 
         *poolPtr = pool;
         return p;
-
-      Lnomemory:
-        return null; // let caller handle the error
     }
 
 
