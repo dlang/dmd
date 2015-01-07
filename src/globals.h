@@ -67,7 +67,7 @@ struct Param
     bool useScope;      // diagnose 'scope' errors
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
-    char warnings;      // 0: enable warnings
+    char warnings;      // 0: disable warnings
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
     bool pic;           // generate position-independent-code for shared libs

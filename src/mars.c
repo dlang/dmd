@@ -47,7 +47,8 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
 
 void printCtfePerformanceStats();
 
-static const char* parse_arch(size_t argc, const char** argv, const char* arch);
+static const char* parse_arch_arg(size_t argc, const char** argv, const char* arch);
+static const char* parse_conf_arg(size_t argc, const char** argv);
 
 void inlineScan(Module *m);
 
@@ -57,7 +58,8 @@ void initTraitsStringTable();
 int runLINK();
 void deleteExeFile();
 int runProgram();
-const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
+const char *findConfFile(const char *argv0, const char *inifile);
+void parseConfFile(const char *filename, const char* envsectionname);
 
 /** Normalize path by turning forward slashes into backslashes */
 const char * toWinPath(const char *src)
@@ -139,6 +141,7 @@ Usage:\n\
   -allinst       generate code for all template instantiations\n\
   -c             do not link\n\
   -color[=on|off]   force colored console output on or off\n\
+  -conf=path     use config file at path\n\
   -cov           do code coverage analysis\n\
   -cov=nnn       require at least nnn%% code coverage\n\
   -D             generate documentation\n\
@@ -369,26 +372,37 @@ int tryMain(size_t argc, const char *argv[])
     VersionCondition::addPredefinedGlobalIdent("D_Version2");
     VersionCondition::addPredefinedGlobalIdent("all");
 
+    global.inifilename = parse_conf_arg(argc, argv);
+    if (global.inifilename)
+    {
+        // can be empty as in -conf=
+        if (strlen(global.inifilename) && !FileName::exists(global.inifilename))
+            error(Loc(), "Config file '%s' does not exist.", global.inifilename);
+    }
+    else
+    {
 #if _WIN32
-    global.inifilename = inifile(argv[0], "sc.ini", "Environment");
+        global.inifilename = findConfFile(argv[0], "sc.ini");
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    global.inifilename = inifile(argv[0], "dmd.conf", "Environment");
+        global.inifilename = findConfFile(argv[0], "dmd.conf");
 #else
 #error "fix this"
 #endif
+    }
+    parseConfFile(global.inifilename, "Environment");
 
     size_t dflags_argc = 0;
     const char** dflags_argv = NULL;
     getenv_setargv("DFLAGS", &dflags_argc, &dflags_argv);
 
     const char *arch = global.params.is64bit ? "64" : "32"; // use default
-    arch = parse_arch(argc, argv, arch);
-    arch = parse_arch(dflags_argc, dflags_argv, arch);
+    arch = parse_arch_arg(argc, argv, arch);
+    arch = parse_arch_arg(dflags_argc, dflags_argv, arch);
     bool is64bit = arch[0] == '6';
 
     char envsection[80];
     sprintf(envsection, "Environment%s", arch);
-    inifile(argv[0], global.inifilename, envsection);
+    parseConfFile(global.inifilename, envsection);
 
     getenv_setargv("DFLAGS", &argc, &argv);
 
@@ -429,6 +443,10 @@ int tryMain(size_t argc, const char *argv[])
                 }
                 else if (p[6])
                     goto Lerror;
+            }
+            else if (memcmp(p + 1, "conf=", 5) == 0)
+            {
+                // ignore, already handled above
             }
             else if (memcmp(p + 1, "cov", 3) == 0)
             {
@@ -1793,10 +1811,11 @@ void escapePath(OutBuffer *buf, const char *fname)
  * to detect the desired architecture.
  */
 
-static const char* parse_arch(size_t argc, const char** argv, const char* arch)
+static const char* parse_arch_arg(size_t argc, const char** argv, const char* arch)
 {
     for (size_t i = 0; i < argc; ++i)
-    {   const char* p = argv[i];
+    {
+        const char* p = argv[i];
         if (p[0] == '-')
         {
             if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
@@ -1806,6 +1825,27 @@ static const char* parse_arch(size_t argc, const char** argv, const char* arch)
         }
     }
     return arch;
+}
+
+/***********************************
+ * Parse command line arguments for -conf=path.
+ */
+
+static const char* parse_conf_arg(size_t argc, const char** argv)
+{
+    const char *conf=NULL;
+    for (size_t i = 0; i < argc; ++i)
+    {
+        const char* p = argv[i];
+        if (p[0] == '-')
+        {
+            if (strncmp(p + 1, "conf=", 5) == 0)
+                conf = p + 6;
+            else if (strcmp(p + 1, "run") == 0)
+                break;
+        }
+    }
+    return conf;
 }
 
 Dsymbols *Dsymbols_create() { return new Dsymbols(); }
