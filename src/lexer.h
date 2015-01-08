@@ -45,9 +45,6 @@ public:
         int doDocComment, int commentToken);
 
     static void initLexer();
-    static Identifier *idPool(const char *s);
-    static Identifier *uniqueId(const char *s);
-    static Identifier *uniqueId(const char *s, int num);
 
     TOK nextToken();
     TOK peekNext();
