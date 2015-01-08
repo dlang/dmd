@@ -289,7 +289,7 @@ else version( AsmX86_32 )
         }
         else static if( T.sizeof == long.sizeof && has64BitCAS )
         {
-            
+
             //////////////////////////////////////////////////////////////////
             // 8 Byte CAS on a 32-Bit Processor
             //////////////////////////////////////////////////////////////////
@@ -310,9 +310,9 @@ else version( AsmX86_32 )
                 setz AL;
                 pop EBX;
                 pop EDI;
-                
+
             }
-            
+
         }
         else
         {
@@ -777,14 +777,12 @@ else version( AsmX86_64 )
         }
         else static if( T.sizeof == long.sizeof*2 && has128BitCAS)
         {
-            
-            
             //////////////////////////////////////////////////////////////////
             // 16 Byte CAS on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
             version(Win64){
                 //Windows 64 calling convention uses different registers.
-                //DMD appears to reverse the register order. 
+                //DMD appears to reverse the register order.
                 asm pure nothrow @nogc
                 {
                     push RDI;
@@ -802,18 +800,18 @@ else version( AsmX86_64 )
                     mov RDX, 8[RDI];
 
                     mov RDI, R11;
-                    lock; 
+                    lock;
                     cmpxchg16b [RDI];
                     setz AL;
                     pop RBX;
                     pop RDI;
                 }
-                
+
             }else{
 
                 asm pure nothrow @nogc
                 {
-                    push RDI; 
+                    push RDI;
                     push RBX;
                     lea RDI, writeThis;
                     mov RBX, [RDI];
@@ -997,7 +995,7 @@ else version( AsmX86_64 )
             //////////////////////////////////////////////////////////////////
             version(Win64){
                 size_t[2] retVal;
-                asm 
+                asm pure nothrow @nogc
                 {
                     push RDI;
                     push RBX;
@@ -1152,7 +1150,7 @@ else version( AsmX86_64 )
             // 16 Byte Store on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
             version(Win64){
-                asm 
+                asm pure nothrow @nogc
                 {
                     push RDI;
                     push RBX;
@@ -1163,11 +1161,10 @@ else version( AsmX86_64 )
                     mov RBX, [RDI];
                     mov RCX, 8[RDI];
 
-                    
                     mov RDI, R9;
                     mov RAX, [RDI];
                     mov RDX, 8[RDI];
-                            
+
                     L1: lock; // lock always needed to make this op atomic
                     cmpxchg16b [RDI];
                     jne L1;
@@ -1316,7 +1313,7 @@ version( unittest )
             testType!(long)();
             testType!(ulong)();
         }
-        
+
         static if (has128BitCAS)
         {
             struct DoubleValue
@@ -1324,14 +1321,14 @@ version( unittest )
                 long value1;
                 long value2;
             }
-            
+
             align(16) shared DoubleValue a;
             atomicStore(a, DoubleValue(1,2));
             assert(a.value1 == 1 && a.value2 ==2);
-            
+
             while(!cas(&a, DoubleValue(1,2), DoubleValue(3,4))){}
             assert(a.value1 == 3 && a.value2 ==4);
-            
+
             align(16) DoubleValue b = atomicLoad(a);
             assert(b.value1 == 3 && b.value2 ==4);
         }
