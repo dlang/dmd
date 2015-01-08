@@ -182,6 +182,39 @@ extern "C" { int foo7()
 
 /**************************************/
 
+struct S13955a
+{
+    float a;
+    double b;
+};
+
+struct S13955b
+{
+    double a;
+    float b;
+};
+
+struct S13955c
+{
+    float a;
+    float b;
+};
+
+struct S13955d
+{
+    double a;
+    double b;
+};
+
+void check13955(S13955a a, S13955b b, S13955c c, S13955d d);
+
+void func13955(S13955a a, S13955b b, S13955c c, S13955d d)
+{
+    check13955(a, b, c, d);
+}
+
+/**************************************/
+
 struct Struct10071
 {
     void *p;

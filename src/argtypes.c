@@ -429,7 +429,8 @@ TypeTuple *toArgTypes(Type *t)
                 {
                     if (t1->isfloating() && t2->isfloating())
                     {
-                        if (t1->ty == Tfloat64 && t2->ty == Tfloat64)
+                        if ((t1->ty == Tfloat32 || t1->ty == Tfloat64) &&
+                            (t2->ty == Tfloat32 || t2->ty == Tfloat64))
                             ;
                         else
                             goto Lmemory;
