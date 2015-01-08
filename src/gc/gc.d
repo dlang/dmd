@@ -475,9 +475,6 @@ class GC
     {
         assert(size != 0);
 
-        void *p = null;
-        Bins bin;
-
         //debug(PRINTF) printf("GC::malloc(size = %d, gcx = %p)\n", size, gcx);
         assert(gcx);
         //debug(PRINTF) printf("gcx.self = %x, pthread_self() = %x\n", gcx.self, pthread_self());
@@ -485,75 +482,18 @@ class GC
         if (gcx.running)
             onInvalidMemoryOperationError();
 
-        size += SENTINEL_EXTRA;
-        bin = gcx.findBin(size);
-        Pool *pool;
+        auto p = gcx.alloc(size + SENTINEL_EXTRA, alloc_size, bits);
+        if (!p)
+            onOutOfMemoryError();
 
-        if (bin < B_PAGE)
-        {
-            alloc_size = binsize[bin];
-            int  state     = gcx.disabled ? 1 : 0;
-            bool collected = false;
-
-            while (!gcx.bucket[bin] && !gcx.allocPage(bin))
-            {
-                switch (state)
-                {
-                case 0:
-                    auto freedpages = gcx.fullcollect();
-                    collected = true;
-                    if (freedpages < gcx.npools * ((POOLSIZE / PAGESIZE) / 8))
-                    {   /* Didn't free much, so try allocating more anyway.
-                         * Note: freedpages is not the amount of memory freed, it's the amount
-                         * of full pages freed. Perhaps this should instead be the amount of
-                         * memory freed.
-                         */
-                        gcx.newPool(1,false);
-                        state = 2;
-                    }
-                    else
-                        state = 1;
-                    continue;
-                case 1:
-                    gcx.newPool(1, false);
-                    state = 2;
-                    continue;
-                case 2:
-                    if (collected)
-                        onOutOfMemoryError();
-                    state = 0;
-                    continue;
-                default:
-                    assert(false);
-                }
-            }
-            p = gcx.bucket[bin];
-
-            // Return next item from free list
-            gcx.bucket[bin] = (cast(List*)p).next;
-            pool = (cast(List*)p).pool;
-            //debug(PRINTF) printf("\tmalloc => %p\n", p);
-            debug (MEMSTOMP) memset(p, 0xF0, size);
-        }
-        else
-        {
-            p = gcx.bigAlloc(size, &pool, alloc_size);
-            if (!p)
-                onOutOfMemoryError();
-        }
         debug (SENTINEL)
         {
-            size -= SENTINEL_EXTRA;
             p = sentinel_add(p);
             sentinel_init(p, size);
             alloc_size = size;
         }
         gcx.log_malloc(p, size);
 
-        if (bits)
-        {
-            gcx.setBits(pool, cast(size_t)(sentinel_sub(p) - pool.baseAddr) >> pool.shiftBy, bits);
-        }
         return p;
     }
 
@@ -2122,84 +2062,112 @@ struct Gcx
     }
 
 
+    void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
+    {
+        immutable bin = findBin(size);
+        return bin < B_PAGE ? smallAlloc(bin, alloc_size, bits) :
+            bigAlloc(size, alloc_size, bits);
+    }
+
+    void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits) nothrow
+    {
+        alloc_size = binsize[bin];
+
+        void* p;
+        bool tryAlloc() nothrow
+        {
+            if (!bucket[bin] && !allocPage(bin))
+                return false;
+            p = bucket[bin];
+            return true;
+        }
+
+        if (!tryAlloc())
+        {
+            // disabled => allocate a new pool instead of collecting
+            if (disabled && !newPool(1, false))
+            {
+                // disabled but out of memory => try to free some memory
+                fullcollect();
+            }
+            else if (fullcollect() < npools * ((POOLSIZE / PAGESIZE) / 8))
+            {
+                // very little memory was freed => allocate a new pool for anticipated heap growth
+                newPool(1, false);
+            }
+            // tryAlloc will succeed if a new pool was allocated above, if it fails allocate a new pool now
+            if (!tryAlloc() && (!newPool(1, false) || !tryAlloc()))
+                // out of luck or memory
+                onOutOfMemoryError();
+        }
+        assert(p !is null);
+
+        // Return next item from free list
+        bucket[bin] = (cast(List*)p).next;
+        auto pool = (cast(List*)p).pool;
+        if (bits) setBits(pool, (p - pool.baseAddr) >> pool.shiftBy, bits);
+        //debug(PRINTF) printf("\tmalloc => %p\n", p);
+        debug (MEMSTOMP) memset(p, 0xF0, size);
+        return p;
+    }
+
     /**
      * Allocate a chunk of memory that is larger than a page.
      * Return null if out of memory.
      */
-    void *bigAlloc(size_t size, Pool **poolPtr, ref size_t alloc_size) nothrow
+    void* bigAlloc(size_t size, ref size_t alloc_size, uint bits) nothrow
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %d\n", size);
 
-        Pool*  pool;
-        size_t npages;
-        size_t n;
+        Pool* pool;
         size_t pn;
-        size_t freedpages;
-        void*  p;
-        int    state;
-        bool   collected = false;
+        immutable npages = (size + PAGESIZE - 1) / PAGESIZE;
 
-        npages = (size + PAGESIZE - 1) / PAGESIZE;
-
-        for (state = disabled ? 1 : 0; ; )
+        bool tryAlloc() nothrow
         {
-            // This code could use some refinement when repeatedly
-            // allocating very large arrays.
-
-            for (n = 0; n < npools; n++)
+            foreach (p; pooltable[0 .. npools])
             {
-                pool = pooltable[n];
-                if(!pool.isLargeObject || pool.freepages < npages) continue;
-                pn = pool.allocPages(npages);
-                if (pn != OPFAIL)
-                    goto L1;
+                if (!p.isLargeObject || p.freepages < npages ||
+                    (pn = p.allocPages(npages)) == OPFAIL) continue;
+                pool = p;
+                return true;
             }
-
-            // Failed
-            switch (state)
-            {
-            case 0:
-                // Try collecting
-                collected = true;
-                freedpages = fullcollect();
-                if (freedpages >= npools * ((POOLSIZE / PAGESIZE) / 4))
-                {   state = 1;
-                    continue;
-                }
-                // Release empty pools to prevent bloat
-                minimize();
-                // Allocate new pool
-                pool = newPool(npages, true);
-                if (!pool)
-                {   state = 2;
-                    continue;
-                }
-                pn = pool.allocPages(npages);
-                assert(pn != OPFAIL);
-                goto L1;
-            case 1:
-                // Release empty pools to prevent bloat
-                minimize();
-                // Allocate new pool
-                pool = newPool(npages, true);
-                if (!pool)
-                {
-                    if (collected)
-                        goto Lnomemory;
-                    state = 0;
-                    continue;
-                }
-                pn = pool.allocPages(npages);
-                assert(pn != OPFAIL);
-                goto L1;
-            case 2:
-                goto Lnomemory;
-            default:
-                assert(false);
-            }
+            return false;
         }
 
-      L1:
+        bool tryAllocNewPool() nothrow
+        {
+            pool = newPool(npages, true);
+            if (!pool) return false;
+            pn = pool.allocPages(npages);
+            assert(pn != OPFAIL);
+            return true;
+        }
+
+        if (!tryAlloc())
+        {
+            // disabled => allocate a new pool instead of collecting
+            if (disabled && !tryAllocNewPool())
+            {
+                // disabled but out of memory => try to free some memory
+                fullcollect();
+                minimize();
+            }
+            else
+            {
+                immutable nfreed = fullcollect();
+                minimize();
+                // very little memory was freed => allocate a new pool for anticipated heap growth
+                if (nfreed < npools * ((POOLSIZE / PAGESIZE) / 4))
+                    tryAllocNewPool();
+            }
+            // If alloc didn't yet succeed retry now that we collected/minimized
+            if (!pool && !tryAlloc() && !tryAllocNewPool())
+                // out of luck or memory
+                return null;
+        }
+        assert(pool);
+
         debug(PRINTF) printFreeInfo(pool);
         pool.pagetable[pn] = B_PAGE;
         if (npages > 1)
@@ -2209,17 +2177,14 @@ struct Gcx
 
         debug(PRINTF) printFreeInfo(pool);
 
-        p = pool.baseAddr + pn * PAGESIZE;
+        auto p = pool.baseAddr + pn * PAGESIZE;
         debug(PRINTF) printf("Got large alloc:  %p, pt = %d, np = %d\n", p, pool.pagetable[pn], npages);
         debug (MEMSTOMP) memset(p, 0xF1, size);
         alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %p\n", p);
 
-        *poolPtr = pool;
+        if (bits) setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits);
         return p;
-
-      Lnomemory:
-        return null; // let caller handle the error
     }
 
 
