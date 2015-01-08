@@ -351,6 +351,22 @@ void test13776()
 }
 
 /***************************************************/
+// 13950
+
+template Tuple13950(T...) { alias T Tuple13950; }
+
+void f13950(int x = 0, Tuple13950!() xs = Tuple13950!())
+{
+    assert(x == 0);
+    assert(xs.length == 0);
+}
+
+void test13950()
+{
+    f13950();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -364,6 +380,7 @@ int main()
     test8942();
     test10142();
     test11421();
+    test13950();
 
     printf("Success\n");
     return 0;

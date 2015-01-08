@@ -849,6 +849,12 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     if (!global.gag && olderrors != global.errors)
         return this; // Failed, suppress duplicate error messages
 
+    if (exp->type->ty == Ttuple && ((TypeTuple *)exp->type)->arguments->dim == 0)
+    {
+        Type *t = exp->type;
+        exp = new TupleExp(exp->loc, new Expressions());
+        exp->type = t;
+    }
     if (exp->op == TOKtype)
     {
         exp->error("initializer must be an expression, not '%s'", exp->toChars());
