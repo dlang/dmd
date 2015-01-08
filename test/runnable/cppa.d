@@ -339,6 +339,51 @@ void test12825()
 
 /****************************************/
 
+struct S13955a
+{
+    float a;
+    double b;
+}
+
+struct S13955b
+{
+    double a;
+    float b;
+}
+
+struct S13955c
+{
+    float a;
+    float b;
+}
+
+struct S13955d
+{
+    double a;
+    double b;
+}
+
+extern(C++) void check13955(S13955a a, S13955b b, S13955c c, S13955d d)
+{
+    assert(a.a == 2);
+    assert(a.b == 4);
+    assert(b.a == 8);
+    assert(b.b == 16);
+    assert(c.a == 32);
+    assert(c.b == 64);
+    assert(d.a == 128);
+    assert(d.b == 256);
+}
+
+extern(C++) void func13955(S13955a a, S13955b b, S13955c c, S13955d d);
+
+void test13955()
+{
+    func13955(S13955a(2, 4), S13955b(8, 16), S13955c(32, 64), S13955d(128, 256));
+}
+
+/****************************************/
+
 extern(C++) class C13161
 {
     void dummyfunc() {}
@@ -654,6 +699,7 @@ void main()
     test11802();
     test9();
     test10();
+    test13955();
     test11();
     testvalist();
     test12825();
