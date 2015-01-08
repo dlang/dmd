@@ -522,6 +522,22 @@ void test2803()
 }
 
 /**********************************/
+// 6613
+
+alias Tuple6613(T...) = T;
+
+void f6613(T...)(int x = 0, T xs = Tuple6613!())
+{
+    assert(x == 0);
+    static assert(T.length == 0);
+}
+
+void test6613()
+{
+    f6613();
+}
+
+/**********************************/
 // 4953
 
 void bug4953(T = void)(short x) {}
@@ -4498,6 +4514,7 @@ int main()
     bug4984();
     test2579();
     test2803();
+    test6613();
     test5886();
     test5393();
     test5896();
