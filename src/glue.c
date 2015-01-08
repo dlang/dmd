@@ -1533,23 +1533,43 @@ Symbol *toSymbol(Type *t)
 
 elem *toEfilename(Module *m)
 {
+    //printf("toEfilename(%s)\n", m->toChars());
     elem *efilename;
+
+    const char *id = m->srcfile->toChars();
+    size_t len = strlen(id);
+
     if (!m->sfilename)
     {
         dt_t *dt = NULL;
-        char *id = m->srcfile->toChars();
-        size_t len = strlen(id);
-        dtsize_t(&dt, len);
-        dtabytes(&dt,TYnptr, 0, len + 1, id);
 
-        m->sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
+        if (config.exe == EX_WIN64)
+        {
+            // Put out as a dynamic array
+            dtsize_t(&dt, len);
+            dtabytes(&dt,TYnptr, 0, len + 1, id);
+
+            m->sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
+        }
+        else
+        {
+            // Put out as a static array
+            dtnbytes(&dt, len + 1, id);
+
+            m->sfilename = symbol_generate(SCstatic,type_static_array(len + 1, type_fake(TYchar)));
+            m->sfilename->Salignment = 1;
+        }
         m->sfilename->Sdt = dt;
         m->sfilename->Sfl = FLdata;
         out_readonly(m->sfilename);
         outdata(m->sfilename);
     }
 
-    efilename = (config.exe == EX_WIN64) ? el_ptr(m->sfilename) : el_var(m->sfilename);
+    if (config.exe == EX_WIN64)
+        efilename = el_ptr(m->sfilename);
+    else
+        // Turn static array into dynamic array
+        efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m->sfilename));
     return efilename;
 }
 
