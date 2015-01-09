@@ -24,10 +24,10 @@ struct StringValue
 {
     void *ptrvalue;
     size_t length;
-    char lstring[1]; // variable length
+    char *lstring() { return (char *)(this + 1); }
 
     size_t len() const { return length; }
-    const char *toDchars() const { return (char *)lstring; }
+    const char *toDchars() const { return (char *)(this + 1); }
 
     StringValue();  // not constructible
 };
