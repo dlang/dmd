@@ -1,6 +1,8 @@
 /**
  * D header file for C99.
  *
+ * $(C_HEADER_DESCRIPTION pubs.opengroup.org/onlinepubs/009695399/basedefs/stddef.h.html, stddef.h)
+ *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
@@ -21,9 +23,11 @@ nothrow:
 
 version( Windows )
 {
+    ///
     alias wchar wchar_t;
 }
 else
 {
+    ///
     alias dchar wchar_t;
 }
