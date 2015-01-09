@@ -240,6 +240,30 @@ void test11802()
 
 
 /****************************************/
+
+struct S13956
+{
+}
+
+extern(C++) void func13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6);
+
+extern(C++) void check13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
+{
+    assert(arg0 == S13956());
+    assert(arg1 == 1);
+    assert(arg2 == 2);
+    assert(arg3 == 3);
+    assert(arg4 == 4);
+    assert(arg5 == 5);
+    assert(arg6 == 6);
+}
+
+void test13956()
+{
+    func13956(S13956(), 1, 2, 3, 4, 5, 6);
+}
+
+/****************************************/
 // 5148
 
 extern (C++)
@@ -646,6 +670,7 @@ void main()
     test2();
     test3();
     test4();
+    test13956();
     test5();
     test6();
     test10071();
