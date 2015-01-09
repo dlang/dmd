@@ -1,6 +1,8 @@
 /**
  * D header file for C99.
  *
+ * $(C_HEADER_DESCRIPTION pubs.opengroup.org/onlinepubs/009695399/basedefs/wctype.h.html, wctype.h)
+ *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).

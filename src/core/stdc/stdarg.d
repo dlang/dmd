@@ -1,10 +1,7 @@
 /**
  * D header file for C99.
  *
- * This contains bindings to selected types and functions from the standard C
- * header $(LINK2 http://pubs.opengroup.org/onlinepubs/009695399/basedefs/stdarg.h.html, <stdarg.h>). Note
- * that this is not automatically generated, and may omit some types/functions
- * from the original C header.
+ * $(C_HEADER_DESCRIPTION pubs.opengroup.org/onlinepubs/009695399/basedefs/stdarg.h.html, stdarg.h)
  *
  * Copyright: Copyright Digital Mars 2000 - 2009.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).

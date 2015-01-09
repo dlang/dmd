@@ -1,10 +1,7 @@
 /**
  * D header file for C99.
  *
- * This contains bindings to selected types and functions from the standard C
- * header $(LINK2 http://pubs.opengroup.org/onlinepubs/009695399/basedefs/math.h.html, <math.h>). Note
- * that this is not automatically generated, and may omit some types/functions
- * from the original C header.
+ * $(C_HEADER_DESCRIPTION pubs.opengroup.org/onlinepubs/009695399/basedefs/math.h.html, math.h)
  *
  * Copyright: Copyright Sean Kelly 2005 - 2012.
  * License: Distributed under the
