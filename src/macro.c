@@ -362,6 +362,34 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                 }
 
                 Macro *m = search(name, namelen);
+
+                if (!m)
+                {
+                    static const char undef[] = "DDOC_UNDEFINED_MACRO";
+                    m = search((const utf8_t *)undef, strlen(undef));
+                    if (m)
+                    {
+                        // Macro was not defined, so this is an expansion of
+                        //   DDOC_UNDEFINED_MACRO. Prepend macro name to args.
+                        // marg = name[ ] ~ "," ~ marg[ ];
+                        if (marglen)
+                        {
+                            unsigned char* p = (unsigned char*)malloc(namelen + 1 + marglen);
+                            assert(p);
+                            memcpy(p, name, namelen);
+                            p[namelen] = ',';
+                            memcpy(p + namelen + 1, marg, marglen);
+                            marg = p;
+                            marglen += namelen + 1;
+                        }
+                        else
+                        {
+                            marg = name;
+                            marglen = namelen;
+                        }
+                    }
+                }
+
                 if (m)
                 {
                     if (m->inuse && marglen == 0)
