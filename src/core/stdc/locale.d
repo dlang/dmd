@@ -1,6 +1,11 @@
 /**
  * D header file for C99.
  *
+ * This contains bindings to selected types and functions from the standard C
+ * header $(LINK2 http://pubs.opengroup.org/onlinepubs/009695399/basedefs/complex.h.html, <complex.h>). Note
+ * that this is not automatically generated, and may omit some types/functions
+ * from the original C header.
+ *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
@@ -17,6 +22,7 @@ extern (C):
 nothrow:
 @nogc:
 
+///
 struct lconv
 {
     char* decimal_point;
@@ -47,76 +53,129 @@ struct lconv
 
 version(linux)
 {
+    ///
     enum LC_CTYPE          = 0;
+    ///
     enum LC_NUMERIC        = 1;
+    ///
     enum LC_TIME           = 2;
+    ///
     enum LC_COLLATE        = 3;
+    ///
     enum LC_MONETARY       = 4;
+    ///
     enum LC_MESSAGES       = 5;
+    ///
     enum LC_ALL            = 6;
+    ///
     enum LC_PAPER          = 7;  // non-standard
+    ///
     enum LC_NAME           = 8;  // non-standard
+    ///
     enum LC_ADDRESS        = 9;  // non-standard
+    ///
     enum LC_TELEPHONE      = 10; // non-standard
+    ///
     enum LC_MEASUREMENT    = 11; // non-standard
+    ///
     enum LC_IDENTIFICATION = 12; // non-standard
 }
 else version(Windows)
 {
+    ///
     enum LC_ALL            = 0;
+    ///
     enum LC_COLLATE        = 1;
+    ///
     enum LC_CTYPE          = 2;
+    ///
     enum LC_MONETARY       = 3;
+    ///
     enum LC_NUMERIC        = 4;
+    ///
     enum LC_TIME           = 5;
 }
 else version(OSX)
 {
+    ///
     enum LC_ALL            = 0;
+    ///
     enum LC_COLLATE        = 1;
+    ///
     enum LC_CTYPE          = 2;
+    ///
     enum LC_MONETARY       = 3;
+    ///
     enum LC_NUMERIC        = 4;
+    ///
     enum LC_TIME           = 5;
+    ///
     enum LC_MESSAGES       = 6;
 }
 else version(FreeBSD)
 {
+    ///
     enum LC_ALL            = 0;
+    ///
     enum LC_COLLATE        = 1;
+    ///
     enum LC_CTYPE          = 2;
+    ///
     enum LC_MONETARY       = 3;
+    ///
     enum LC_NUMERIC        = 4;
+    ///
     enum LC_TIME           = 5;
+    ///
     enum LC_MESSAGES       = 6;
 }
 else version(Android)
 {
     enum
     {
+        ///
         LC_CTYPE          = 0,
+        ///
         LC_NUMERIC        = 1,
+        ///
         LC_TIME           = 2,
+        ///
         LC_COLLATE        = 3,
+        ///
         LC_MONETARY       = 4,
+        ///
         LC_MESSAGES       = 5,
+        ///
         LC_ALL            = 6,
+        ///
         LC_PAPER          = 7,
+        ///
         LC_NAME           = 8,
+        ///
         LC_ADDRESS        = 9,
+        ///
         LC_TELEPHONE      = 10,
+        ///
         LC_MEASUREMENT    = 11,
+        ///
         LC_IDENTIFICATION = 12,
     }
 }
 else version(Solaris)
 {
+    ///
     enum LC_CTYPE       = 0;
+    ///
     enum LC_NUMERIC     = 1;
+    ///
     enum LC_TIME        = 2;
+    ///
     enum LC_COLLATE     = 3;
+    ///
     enum LC_MONETARY    = 4;
+    ///
     enum LC_MESSAGES    = 5;
+    ///
     enum LC_ALL         = 6;
 }
 else
@@ -124,5 +183,7 @@ else
     static assert(false, "Unsupported platform");
 }
 
+///
 @system char*  setlocale(int category, in char* locale);
+///
 lconv* localeconv();

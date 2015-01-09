@@ -1,6 +1,11 @@
 /**
  * D header file for C99.
  *
+ * This contains bindings to selected types and functions from the standard C
+ * header $(LINK2 http://pubs.opengroup.org/onlinepubs/009695399/basedefs/stdarg.h.html, <stdarg.h>). Note
+ * that this is not automatically generated, and may omit some types/functions
+ * from the original C header.
+ *
  * Copyright: Copyright Digital Mars 2000 - 2009.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Hauke Duden
@@ -73,6 +78,7 @@ version( X86 )
     {
     }
 
+    ///
     void va_copy(out va_list dest, va_list src)
     {
         dest = src;
@@ -147,6 +153,7 @@ else version (Windows) // Win64
     {
     }
 
+    ///
     void va_copy(out va_list dest, va_list src)
     {
         dest = src;
@@ -188,17 +195,20 @@ else version (X86_64)
      */
     alias va_list = __va_list*;
 
+    ///
     void va_start(T)(out va_list ap, ref T parmn)
     {
         ap = &parmn.va;
     }
 
+    ///
     T va_arg(T)(va_list ap)
     {   T a;
         va_arg(ap, a);
         return a;
     }
 
+    ///
     void va_arg(T)(va_list apx, ref T parmn)
     {
         __va_list* ap = cast(__va_list*)apx;
@@ -340,6 +350,7 @@ else version (X86_64)
         }
     }
 
+    ///
     void va_arg()(va_list apx, TypeInfo ti, void* parmn)
     {
         __va_list* ap = cast(__va_list*)apx;
@@ -452,10 +463,12 @@ else version (X86_64)
         }
     }
 
+    ///
     void va_end(va_list ap)
     {
     }
 
+    ///
     void va_copy(out va_list dest, va_list src)
     {
         dest = src;

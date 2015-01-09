@@ -1,6 +1,11 @@
 /**
  * D header file for C99.
  *
+ * This contains bindings to selected types and functions from the standard C
+ * header $(LINK2 http://pubs.opengroup.org/onlinepubs/009695399/basedefs/fenv.h.html, <fenv.h>). Note
+ * that this is not automatically generated, and may omit some types/functions
+ * from the original C header.
+ *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
@@ -216,56 +221,64 @@ else
 
 enum
 {
-    FE_INVALID      = 1,
-    FE_DENORMAL     = 2, // non-standard
-    FE_DIVBYZERO    = 4,
-    FE_OVERFLOW     = 8,
-    FE_UNDERFLOW    = 0x10,
-    FE_INEXACT      = 0x20,
-    FE_ALL_EXCEPT   = 0x3F,
-    FE_TONEAREST    = 0,
-    FE_UPWARD       = 0x800,
-    FE_DOWNWARD     = 0x400,
-    FE_TOWARDZERO   = 0xC00,
+    FE_INVALID      = 1, ///
+    FE_DENORMAL     = 2, /// non-standard
+    FE_DIVBYZERO    = 4, ///
+    FE_OVERFLOW     = 8, ///
+    FE_UNDERFLOW    = 0x10, ///
+    FE_INEXACT      = 0x20, ///
+    FE_ALL_EXCEPT   = 0x3F, ///
+    FE_TONEAREST    = 0, ///
+    FE_UPWARD       = 0x800, ///
+    FE_DOWNWARD     = 0x400, ///
+    FE_TOWARDZERO   = 0xC00, ///
 }
 
 version( DMC_RUNTIME )
 {
     private extern __gshared fenv_t _FE_DFL_ENV;
+    ///
     enum fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version( Windows )
 {
     version( MinGW )
+        ///
         enum FE_DFL_ENV = cast(fenv_t*)(-1);
     else
     {
         private immutable fenv_t _Fenv0 = {0, 0};
+        ///
         enum FE_DFL_ENV = &_Fenv0;
     }
 }
 else version( linux )
 {
+    ///
     enum FE_DFL_ENV = cast(fenv_t*)(-1);
 }
 else version( OSX )
 {
     private extern __gshared fenv_t _FE_DFL_ENV;
+    ///
     enum FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version( FreeBSD )
 {
     private extern const fenv_t __fe_dfl_env;
+    ///
     enum FE_DFL_ENV = &__fe_dfl_env;
 }
 else version( Android )
 {
     private extern const fenv_t __fe_dfl_env;
+    ///
     enum FE_DFL_ENV = &__fe_dfl_env;
 }
 else version( Solaris )
 {
     private extern const fenv_t __fenv_def_env;
+    ///
     enum FE_DFL_ENV = &__fenv_def_env;
 }
 else
@@ -273,18 +286,29 @@ else
     static assert( false, "Unsupported platform" );
 }
 
+///
 void feraiseexcept(int excepts);
+///
 void feclearexcept(int excepts);
 
+///
 int fetestexcept(int excepts);
+///
 int feholdexcept(fenv_t* envp);
 
+///
 void fegetexceptflag(fexcept_t* flagp, int excepts);
+///
 void fesetexceptflag(in fexcept_t* flagp, int excepts);
 
+///
 int fegetround();
+///
 int fesetround(int round);
 
+///
 void fegetenv(fenv_t* envp);
+///
 void fesetenv(in fenv_t* envp);
+///
 void feupdateenv(in fenv_t* envp);
