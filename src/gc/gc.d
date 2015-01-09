@@ -2084,11 +2084,14 @@ struct Gcx
 
         if (!tryAlloc())
         {
-            // disabled => allocate a new pool instead of collecting
-            if (disabled && !newPool(1, false))
+            if (disabled)
             {
-                // disabled but out of memory => try to free some memory
-                fullcollect();
+                // disabled => allocate a new pool instead of collecting
+                if (!newPool(1, false))
+                {
+                    // disabled but out of memory => try to free some memory
+                    fullcollect();
+                }
             }
             else if (fullcollect() < npools * ((POOLSIZE / PAGESIZE) / 8))
             {
@@ -2146,12 +2149,15 @@ struct Gcx
 
         if (!tryAlloc())
         {
-            // disabled => allocate a new pool instead of collecting
-            if (disabled && !tryAllocNewPool())
+            if (disabled)
             {
-                // disabled but out of memory => try to free some memory
-                fullcollect();
-                minimize();
+                // disabled => allocate a new pool instead of collecting
+                if (!tryAllocNewPool())
+                {
+                    // disabled but out of memory => try to free some memory
+                    fullcollect();
+                    minimize();
+                }
             }
             else
             {
