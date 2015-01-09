@@ -295,6 +295,35 @@ void test11421()
 }
 
 /***************************************************/
+// 12529
+
+pure nothrow ref @safe @nogc @property { alias int function() FP12529x1; }
+pure nothrow ref @safe @nogc @property { alias FP12529x2 = int function(); }
+static assert(FP12529x1.stringof == "int function()");
+static assert(FP12529x2.stringof == "int function()");
+
+alias pure nothrow @nogc @property ref @safe int function() FP12529y1;
+alias FP12529y2 = pure nothrow @nogc @property ref @safe int function();
+static assert(FP12529y1.stringof == "int function() pure nothrow @nogc @property ref @safe");
+static assert(FP12529y2.stringof == "int function() pure nothrow @nogc @property ref @safe");
+
+ref immutable(int) test12529() pure nothrow @safe @nogc @property
+{
+    alias int delegate() DG12529x1;
+    alias DG12529x2 = int delegate();
+    static assert(DG12529x1.stringof == "int delegate()");
+    static assert(DG12529x2.stringof == "int delegate()");
+
+    alias pure nothrow @nogc @property ref @safe int delegate() DG12529y1;
+    alias DG12529y2 = pure nothrow @nogc @property ref @safe int delegate();
+    static assert(DG12529y1.stringof == "int delegate() pure nothrow @nogc @property ref @safe");
+    static assert(DG12529y2.stringof == "int delegate() pure nothrow @nogc @property ref @safe");
+
+    immutable static int x = 10;
+    return x;
+}
+
+/***************************************************/
 // 13776
 
 enum a13776(T) = __traits(compiles, { T; });

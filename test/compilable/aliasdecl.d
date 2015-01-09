@@ -11,10 +11,10 @@ alias X4 = void delegate() const, X5 = Test!int;
 static assert(is(X4 == void delegate() const));
 static assert(is(X5.Type == int));
 
-alias FP5 = extern(C) pure nothrow @safe @nogc void function(),
-      DG5 = extern(D) pure nothrow @safe @nogc void delegate();
-static assert(FP5.stringof == "extern (C) void function() pure nothrow " /* ~ "@safe " */ ~ "@nogc");
-static assert(DG5.stringof ==            "void delegate() pure nothrow " /* ~ "@safe " */ ~ "@nogc");
+alias FP5 = extern(C) pure nothrow @nogc @safe void function(),
+      DG5 = extern(D) pure nothrow @nogc @safe void delegate();
+static assert(FP5.stringof == "extern (C) void function() pure nothrow @nogc @safe");
+static assert(DG5.stringof ==            "void delegate() pure nothrow @nogc @safe");
 
 void main()
 {

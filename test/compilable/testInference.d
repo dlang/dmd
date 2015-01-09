@@ -743,7 +743,7 @@ static assert(typeof(prefix_qualified_fp_array1).stringof
 alias @safe void function() AliasDecl_FP2;    // is not @safe
 alias void function() @safe AliasDecl_FP3;
 static assert(AliasDecl_FP1.stringof == "void function() @safe");
-static assert(AliasDecl_FP2.stringof == "void function()");
+static assert(AliasDecl_FP2.stringof == "void function() @safe");
 static assert(AliasDecl_FP3.stringof == "void function() @safe");
 
 /***************************************************/
