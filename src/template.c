@@ -7199,6 +7199,7 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
 
 Identifier *TemplateInstance::genIdent(Objects *args)
 {
+    TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
     assert(tempdecl);
 
     //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
@@ -7211,6 +7212,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
     }
     else
         buf.printf("__T%llu%s", (ulonglong)strlen(id), id);
+    size_t nparams = tempdecl->parameters->dim - (tempdecl->isVariadic() ? 1 : 0);
     for (size_t i = 0; i < args->dim; i++)
     {
         RootObject *o = (*args)[i];
@@ -7219,6 +7221,8 @@ Identifier *TemplateInstance::genIdent(Objects *args)
         Dsymbol *sa = isDsymbol(o);
         Tuple *va = isTuple(o);
         //printf("\to [%d] %p ta %p ea %p sa %p va %p\n", i, o, ta, ea, sa, va);
+        if (i < nparams && (*tempdecl->parameters)[i]->specialization())
+            buf.writeByte('H');     // Bugzilla 6574
         if (ta)
         {
             buf.writeByte('T');
