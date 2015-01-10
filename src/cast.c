@@ -589,8 +589,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                     return;
                                 }
                                 int szto = (int)t->nextOf()->size();
-                                if (e->length(szto) != ((TypeSArray *)t)->dim->toInteger())
+                                if ((tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                                    e->length(szto) != ((TypeSArray *)t)->dim->toInteger())
+                                {
                                     return;
+                                }
                                 if (!e->committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                                 {
                                     result = MATCHexact;
@@ -601,8 +604,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             {
                                 TY tynto = t->nextOf()->ty;
                                 int sznto = (int)t->nextOf()->size();
-                                if (e->length(sznto) != ((TypeSArray *)t)->dim->toInteger())
+                                if ((tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                                    e->length(sznto) != ((TypeSArray *)t)->dim->toInteger())
+                                {
                                     return;
+                                }
                                 if (tynto == tyn)
                                 {
                                     result = MATCHexact;
