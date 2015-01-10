@@ -1367,8 +1367,8 @@ struct Gcx
     byte *minAddr;      // min(baseAddr)
     byte *maxAddr;      // max(topAddr)
 
-    size_t npools;
-    Pool **pooltable;
+    @property size_t npools() pure const nothrow { return pooltable.length; }
+    PoolTable pooltable;
 
     List*[B_MAX]bucket;        // free list for each size
 
@@ -1421,11 +1421,7 @@ struct Gcx
             pool.Dtor();
             cstdlib.free(pool);
         }
-        if (pooltable)
-        {
-            cstdlib.free(pooltable);
-            pooltable = null;
-        }
+        pooltable.reset();
 
         roots.removeAll();
         ranges.removeAll();
@@ -1926,7 +1922,7 @@ struct Gcx
                 pool.Dtor();
                 cstdlib.free(pool);
             }
-            npools = i;
+            pooltable.length = i;
         }
 
         if (npools)
@@ -1959,15 +1955,12 @@ struct Gcx
             gcx.minimize();
             assert(gcx.npools == 0);
 
-            if (gcx.pooltable is null)
-                gcx.pooltable = cast(Pool**)cstdlib.malloc(NPOOLS * (Pool*).sizeof);
             foreach(i; 0 .. NPOOLS)
             {
                 auto pool = cast(Pool*)cstdlib.malloc(Pool.sizeof);
                 *pool = Pool.init;
-                gcx.pooltable[i] = pool;
+                assert(gcx.pooltable.insert(pool));
             }
-            gcx.npools = NPOOLS;
         }
 
         void usePools()
@@ -2062,8 +2055,7 @@ struct Gcx
             pool.freepages = NPAGES;
         gcx.minimize();
         assert(gcx.npools == 0);
-        cstdlib.free(gcx.pooltable);
-        gcx.pooltable = null;
+        gcx.pooltable.reset();
     }
 
 
@@ -2206,11 +2198,6 @@ struct Gcx
      */
     Pool *newPool(size_t npages, bool isLargeObject) nothrow
     {
-        Pool*  pool;
-        Pool** newpooltable;
-        size_t newnpools;
-        size_t i;
-
         //debug(PRINTF) printf("************Gcx::newPool(npages = %d)****************\n", npages);
 
         // Minimum of POOLSIZE
@@ -2238,29 +2225,16 @@ struct Gcx
 
         //printf("npages = %d\n", npages);
 
-        pool = cast(Pool *)cstdlib.calloc(1, Pool.sizeof);
+        auto pool = cast(Pool *)cstdlib.calloc(1, Pool.sizeof);
         if (pool)
         {
             pool.initialize(npages, isLargeObject);
-            if (!pool.baseAddr)
-                goto Lerr;
-
-            newnpools = npools + 1;
-            newpooltable = cast(Pool **)cstdlib.realloc(pooltable, newnpools * (Pool *).sizeof);
-            if (!newpooltable)
-                goto Lerr;
-
-            // Sort pool into newpooltable[]
-            for (i = 0; i < npools; i++)
+            if (!pool.baseAddr || !pooltable.insert(pool))
             {
-                if (pool.opCmp(newpooltable[i]) < 0)
-                     break;
+                pool.Dtor();
+                cstdlib.free(pool);
+                return null;
             }
-            memmove(newpooltable + i + 1, newpooltable + i, (npools - i) * (Pool *).sizeof);
-            newpooltable[i] = pool;
-
-            pooltable = newpooltable;
-            npools = newnpools;
 
             minAddr = pooltable[0].baseAddr;
             maxAddr = pooltable[npools - 1].topAddr;
@@ -2269,17 +2243,12 @@ struct Gcx
         if (GC.config.profile)
         {
             size_t gcmem = 0;
-            for(i = 0; i < npools; i++)
+            foreach (i; 0 .. npools)
                 gcmem += pooltable[i].topAddr - pooltable[i].baseAddr;
             if(gcmem > maxPoolMemory)
                 maxPoolMemory = gcmem;
         }
         return pool;
-
-      Lerr:
-        pool.Dtor();
-        cstdlib.free(pool);
-        return null;
     }
 
 
@@ -3112,6 +3081,74 @@ struct Gcx
     }
 }
 
+/* ========================= PoolTable ============================ */
+
+struct PoolTable
+{
+nothrow:
+    void reset()
+    {
+        cstdlib.free(pools);
+        pools = null;
+        npools = 0;
+    }
+
+    bool insert(Pool* pool)
+    {
+        auto newpools = cast(Pool **)cstdlib.realloc(pools, (npools + 1) * pools[0].sizeof);
+        if (!newpools)
+            return false;
+
+        pools = newpools;
+
+        // Sort pool into newpooltable[]
+        size_t i;
+        for (; i < npools; ++i)
+        {
+            if (pool.opCmp(pools[i]) < 0)
+                break;
+        }
+        if (i != npools)
+            memmove(pools + i + 1, pools + i, (npools - i) * pools[0].sizeof);
+        pools[i] = pool;
+
+        ++npools;
+        return true;
+    }
+
+    @property size_t length() pure const
+    {
+        return npools;
+    }
+
+    // TODO: move minimize into PoolTable
+    @property void length(size_t nlen) pure
+    in { assert(nlen < length); }
+    body
+    {
+        npools = nlen;
+    }
+
+    ref Pool* opIndex(size_t idx) pure
+    in { assert(idx < length); }
+    body
+    {
+        return pools[idx];
+    }
+
+    Pool*[] opSlice(size_t a, size_t b) pure
+    in { assert(a <= length && b <= length); }
+    body
+    {
+        return pools[a .. b];
+    }
+
+    alias opDollar = length;
+
+private:
+    Pool** pools;
+    size_t npools;
+}
 
 /* ============================ Pool  =============================== */
 
