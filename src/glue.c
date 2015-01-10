@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2015 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -423,11 +423,15 @@ void Module::genobjfile(bool multiobj)
             ebcov = addressElem(ebcov, Type::tvoid->arrayOf(), false);
         }
 
+        elem *efilename = toEfilename(this);
+        if (config.exe == EX_WIN64)
+            efilename = addressElem(efilename, Type::tstring, true);
+
         elem *e = el_params(
                       el_long(TYuchar, global.params.covPercent),
                       ecov,
                       ebcov,
-                      toEfilename(this),
+                      efilename,
                       NULL);
         e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER2]), e);
         eictor = el_combine(e, eictor);
@@ -535,6 +539,8 @@ void Module::genhelpers(bool iscomdat)
             }
 
             elem *efilename = toEfilename(this);
+            if (config.exe == EX_WIN64)
+                efilename = addressElem(efilename, Type::tstring, true);
 
             elem *e = el_var(rtlsym[rt]);
             e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
@@ -1528,49 +1534,31 @@ Symbol *toSymbol(Type *t)
 }
 
 /**************************************
- * Generate elem that is a pointer to the module file name.
+ * Generate elem that is a dynamic array slice of the module file name.
  */
 
 elem *toEfilename(Module *m)
 {
     //printf("toEfilename(%s)\n", m->toChars());
-    elem *efilename;
-
     const char *id = m->srcfile->toChars();
     size_t len = strlen(id);
 
     if (!m->sfilename)
     {
+        // Put out as a static array
         dt_t *dt = NULL;
+        dtnbytes(&dt, len + 1, id);
 
-        if (config.exe == EX_WIN64)
-        {
-            // Put out as a dynamic array
-            dtsize_t(&dt, len);
-            dtabytes(&dt,TYnptr, 0, len + 1, id);
-
-            m->sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
-        }
-        else
-        {
-            // Put out as a static array
-            dtnbytes(&dt, len + 1, id);
-
-            m->sfilename = symbol_generate(SCstatic,type_static_array(len + 1, type_fake(TYchar)));
-            m->sfilename->Salignment = 1;
-        }
+        m->sfilename = symbol_generate(SCstatic,type_static_array(len + 1, type_fake(TYchar)));
+        m->sfilename->Salignment = 1;
         m->sfilename->Sdt = dt;
         m->sfilename->Sfl = FLdata;
         out_readonly(m->sfilename);
         outdata(m->sfilename);
     }
 
-    if (config.exe == EX_WIN64)
-        efilename = el_ptr(m->sfilename);
-    else
-        // Turn static array into dynamic array
-        efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m->sfilename));
-    return efilename;
+    // Turn static array into dynamic array
+    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m->sfilename));
 }
 
 
