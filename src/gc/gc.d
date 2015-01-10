@@ -1877,41 +1877,12 @@ struct Gcx
     {
         debug(PRINTF) printf("Minimizing.\n");
 
-        static bool isUsed(Pool *pool) nothrow
+        static bool isFree(Pool* p) pure nothrow { return p.freepages == p.npages; }
+        foreach (pool; pooltable.minimize!isFree())
         {
-            return pool.freepages < pool.npages;
-        }
-
-        // semi-stable partition
-        for (size_t i = 0; i < npools; ++i)
-        {
-            auto pool = pooltable[i];
-            // find first unused pool
-            if (isUsed(pool)) continue;
-
-            // move used pools before unused ones
-            size_t j = i + 1;
-            for (; j < npools; ++j)
-            {
-                pool = pooltable[j];
-                if (!isUsed(pool)) continue;
-                // swap
-                pooltable[j] = pooltable[i];
-                pooltable[i] = pool;
-                ++i;
-            }
-            // npooltable[0 .. i]      => used
-            // npooltable[i .. npools] => free
-
-            // free unused pools
-            for (j = i; j < npools; ++j)
-            {
-                pool = pooltable[j];
-                debug(PRINTF) printFreeInfo(pool);
-                pool.Dtor();
-                cstdlib.free(pool);
-            }
-            pooltable.length = i;
+            debug(PRINTF) printFreeInfo(pool);
+            pool.Dtor();
+            cstdlib.free(pool);
         }
 
         if (npools)
@@ -3110,14 +3081,6 @@ nothrow:
         return npools;
     }
 
-    // TODO: move minimize into PoolTable
-    @property void length(size_t nlen) pure
-    in { assert(nlen < length); }
-    body
-    {
-        npools = nlen;
-    }
-
     ref inout(Pool*) opIndex(size_t idx) inout pure
     in { assert(idx < length); }
     body
@@ -3133,6 +3096,34 @@ nothrow:
     }
 
     alias opDollar = length;
+
+    // semi-stable partition, returns right half for which pred is false
+    Pool*[] minimize(alias isFree)() pure
+    {
+        static void swap(ref Pool* a, ref Pool* b)
+        {
+            auto c = a; a = b; b = c;
+        }
+
+        size_t i;
+        // find first bad entry
+        for (; i < npools; ++i)
+            if (isFree(pools[i])) break;
+
+        // move good in front of bad entries
+        size_t j = i + 1;
+        for (; j < npools; ++j)
+        {
+            if (!isFree(pools[j])) // keep
+                swap(pools[i++], pools[j]);
+        }
+        // npooltable[0 .. i]      => used pools
+        // npooltable[i .. npools] => free pools
+
+        immutable len = npools;
+        npools = i;
+        return pools[npools .. len];
+    }
 
     debug (INVARIANT)
     void Invariant() const
