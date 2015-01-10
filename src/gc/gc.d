@@ -1364,8 +1364,8 @@ struct Gcx
     uint running;
     int disabled;       // turn off collections if >0
 
-    byte *minAddr;      // min(baseAddr)
-    byte *maxAddr;      // max(topAddr)
+    @property byte* minAddr() pure nothrow { return pooltable.minAddr; }
+    @property byte* maxAddr() pure nothrow { return pooltable.maxAddr; }
 
     @property size_t npools() pure const nothrow { return pooltable.length; }
     PoolTable pooltable;
@@ -1885,16 +1885,6 @@ struct Gcx
             cstdlib.free(pool);
         }
 
-        if (npools)
-        {
-            minAddr = pooltable[0].baseAddr;
-            maxAddr = pooltable[npools - 1].topAddr;
-        }
-        else
-        {
-            minAddr = maxAddr = null;
-        }
-
         static if (USE_CACHE){
             resetPoolCache();
         }
@@ -2195,9 +2185,6 @@ struct Gcx
                 cstdlib.free(pool);
                 return null;
             }
-
-            minAddr = pooltable[0].baseAddr;
-            maxAddr = pooltable[npools - 1].topAddr;
         }
 
         if (GC.config.profile)
@@ -3073,6 +3060,10 @@ nothrow:
         pools[i] = pool;
 
         ++npools;
+
+        minAddr = pools[0].baseAddr;
+        maxAddr = pools[npools - 1].topAddr;
+
         return true;
     }
 
@@ -3120,8 +3111,19 @@ nothrow:
         // npooltable[0 .. i]      => used pools
         // npooltable[i .. npools] => free pools
 
+        if (i)
+        {
+            minAddr = pools[0].baseAddr;
+            maxAddr = pools[i - 1].topAddr;
+        }
+        else
+        {
+            minAddr = maxAddr = null;
+        }
+
         immutable len = npools;
         npools = i;
+        // return freed pools to the caller
         return pools[npools .. len];
     }
 
@@ -3137,6 +3139,7 @@ nothrow:
 private:
     Pool** pools;
     size_t npools;
+    byte* minAddr, maxAddr;
 }
 
 /* ============================ Pool  =============================== */
