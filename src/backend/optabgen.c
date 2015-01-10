@@ -872,11 +872,19 @@ void dotytab()
     static tym_t _farfunc[] = { TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc };
 #endif
 #endif
-    static tym_t _pasfunc[] = { TYnpfunc,TYnsfunc,TYmfunc,TYjfunc };
+    static tym_t _pasfunc[] = {
+#if TARGET_WINDOS
+        TYnpfunc,TYnsfunc,TYmfunc,TYjfunc
+#endif
+    };
 #if TARGET_SEGMENTED
     static tym_t _pasfunc_nf[] = { TYfpfunc,TYf16func,TYfsfunc, };
 #endif
-    static tym_t _revfunc[] = { TYnpfunc,TYjfunc };
+    static tym_t _revfunc[] = {
+#if TARGET_WINDOS
+        TYnpfunc,TYjfunc
+#endif
+    };
 #if TARGET_SEGMENTED
     static tym_t _revfunc_nf[] = { TYfpfunc,TYf16func, };
 #endif

@@ -1008,7 +1008,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
 
     tyf = tybasic(s->Stype->Tty);
     //printf("linkage = %d, tyf = x%x\n", linkage, tyf);
-    reverse = tyrevfunc(s->Stype->Tty);
+    reverse = tyrevfunc(s->Stype->Tty) && !global.params.is64bit;
 
     assert(type->ty == Tfunction);
     tf = (TypeFunction *)(type);
