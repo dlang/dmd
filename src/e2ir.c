@@ -55,6 +55,8 @@ unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 elem *toElem(Expression *e, IRState *irs);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
+Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
+Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -1302,14 +1304,7 @@ elem *toElem(Expression *e, IRState *irs)
                 stidx = (stidx + 1) % STSIZE;
                 st = &stringTab[stidx];
 
-                dt = NULL;
-                Expression_toDt(se, &dt);
-
-                si = symbol_generate(SCstatic,type_fake(TYdarray));
-                si->Sdt = dt;
-                si->Sfl = FLdata;
-                out_readonly(si);
-                outdata(si);
+                si = toStringDarraySymbol((const char *)se->string, se->len, se->sz);
 
                 st->m = irs->m;
                 st->si = si;
@@ -1321,23 +1316,12 @@ elem *toElem(Expression *e, IRState *irs)
             }
             else if (tb->ty == Tsarray)
             {
-                dt_t *dt = NULL;
-
-                Expression_toDt(se, &dt);
-                dtnzeros(&dt, se->sz);              // leave terminating 0
-
-                ::type *t = type_static_array(se->sz * se->len, tschar);
-                Symbol *si = symbol_generate(SCstatic, t);
-                si->Sdt = dt;
-                si->Sfl = FLdata;
-                out_readonly(si);
-                outdata(si);
-
+                Symbol *si = toStringSymbol((const char *)se->string, se->len, se->sz);
                 e = el_var(si);
 
                 e->Ejty = e->Ety = TYstruct;
-                e->ET = t;
-                t->Tcount++;
+                e->ET = si->Stype;
+                e->ET->Tcount++;
             }
             else if (tb->ty == Tpointer)
             {
@@ -1831,19 +1815,8 @@ elem *toElem(Expression *e, IRState *irs)
 
                     if (!assertexp_sfilename || strcmp(ae->loc.filename, assertexp_name) != 0 || assertexp_mn != m)
                     {
-
                         const char *id = ae->loc.filename;
-                        int len = strlen(id);
-                        dt_t *dt = NULL;
-                        dtsize_t(&dt, len);
-                        dtabytes(&dt,TYnptr, 0, len + 1, id);
-
-                        assertexp_sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
-                        assertexp_sfilename->Sdt = dt;
-                        assertexp_sfilename->Sfl = FLdata;
-                        out_readonly(assertexp_sfilename);
-                        outdata(assertexp_sfilename);
-
+                        assertexp_sfilename = toStringDarraySymbol(id, strlen(id), 1);
                         assertexp_mn = m;
                         assertexp_name = id;
                     }
@@ -5352,4 +5325,42 @@ elem *toElemDtor(Expression *e, IRState *irs)
     // Add destructors
     er = appendDtors(irs, er, starti, endi);
     return er;
+}
+
+
+/*******************************************************
+ * Write read-only string to object file, create a local symbol for it.
+ * str[len] must be 0.
+ */
+
+Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
+{
+    Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tschar));
+    si->Salignment = 1;
+    si->Sdt = NULL;
+    dtnbytes(&si->Sdt, (len + 1) * sz, str);
+    si->Sfl = FLdata;
+    out_readonly(si);
+    outdata(si);
+    return si;
+}
+
+/*******************************************************
+ * Write read-only string to object file as a darray, create a local symbol for it.
+ */
+
+Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz)
+{
+    Symbol *si = toStringSymbol(str, len, sz);
+
+    dt_t *dt = NULL;
+    dtsize_t(&dt, len);
+    dtxoff(&dt, si, 0);
+
+    Symbol *sida = symbol_generate(SCstatic,type_fake(TYdarray));
+    sida->Sdt = dt;
+    sida->Sfl = FLdata;
+    out_readonly(sida);
+    outdata(sida);
+    return sida;
 }

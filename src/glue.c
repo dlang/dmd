@@ -47,6 +47,7 @@ void Statement_toIR(Statement *s, IRState *irs);
 elem *toEfilename(Module *m);
 Symbol *toSymbol(Dsymbol *s);
 void buildClosure(FuncDeclaration *fd, IRState *irs);
+Symbol *toStringSymbol(const char *str, size_t len, size_t pad);
 
 typedef Array<symbol *> symbols;
 Dsymbols *Dsymbols_create();
@@ -1546,15 +1547,7 @@ elem *toEfilename(Module *m)
     if (!m->sfilename)
     {
         // Put out as a static array
-        dt_t *dt = NULL;
-        dtnbytes(&dt, len + 1, id);
-
-        m->sfilename = symbol_generate(SCstatic,type_static_array(len + 1, type_fake(TYchar)));
-        m->sfilename->Salignment = 1;
-        m->sfilename->Sdt = dt;
-        m->sfilename->Sfl = FLdata;
-        out_readonly(m->sfilename);
-        outdata(m->sfilename);
+        m->sfilename = toStringSymbol(id, len, 1);
     }
 
     // Turn static array into dynamic array
