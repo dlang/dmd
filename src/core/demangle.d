@@ -1304,6 +1304,10 @@ private struct Demangle
         TemplateArg TemplateArgs
 
     TemplateArg:
+        TemplateArgX
+        H TemplateArgX
+
+    TemplateArgX:
         T Type
         V Type Value
         S LName
@@ -1315,6 +1319,9 @@ private struct Demangle
 
         for( size_t n = 0; true; n++ )
         {
+            if( tok() == 'H' )
+                next();
+
             switch( tok() )
             {
             case 'T':
@@ -1909,6 +1916,8 @@ version(unittest)
         ["_D3foo3Bar6__vtblZ", "foo.Bar.__vtbl"],
         ["_D3foo3Bar11__interfaceZ", "foo.Bar.__interface"],
         ["_D3foo7__arrayZ", "foo.__array"],
+        ["_D8link657428__T3fooVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
+        ["_D8link657429__T3fooHVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
     ];
 
     template staticIota(int x)
