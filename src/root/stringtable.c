@@ -82,8 +82,7 @@ struct StringEntry
 
 uint32_t StringTable::allocValue(const char *s, size_t length)
 {
-    enum { offset_lstring = sizeof(StringValue().ptrvalue) + sizeof(StringValue().length) };
-    const size_t nbytes = offset_lstring + length + 1;
+    const size_t nbytes = sizeof(StringValue) + length + 1;
 
     if (!npools || nfill + nbytes > POOL_SIZE)
     {
@@ -95,8 +94,8 @@ uint32_t StringTable::allocValue(const char *s, size_t length)
     StringValue *sv = (StringValue *)&pools[npools - 1][nfill];
     sv->ptrvalue = NULL;
     sv->length = length;
-    ::memcpy((char *)sv->lstring, s, length);
-    ((char *)sv->lstring)[length] = 0;
+    ::memcpy(sv->lstring(), s, length);
+    sv->lstring()[length] = 0;
 
     const uint32_t vptr = (uint32_t)(npools << POOL_BITS | nfill);
     nfill += nbytes + (-nbytes & 7); // align to 8 bytes
@@ -154,7 +153,7 @@ size_t StringTable::findSlot(hash_t hash, const char *s, size_t length)
         if (!table[i].vptr ||
             table[i].hash == hash &&
             (sv = getValue(table[i].vptr))->length == length &&
-            ::memcmp(s, (char *)sv->lstring, length) == 0)
+            ::memcmp(s, sv->lstring(), length) == 0)
             return i;
         i = (i + j) & (tabledim - 1);
     }
@@ -215,7 +214,7 @@ void StringTable::grow()
         StringEntry *se = &otab[i];
         if (!se->vptr) continue;
         StringValue *sv = getValue(se->vptr);
-        table[findSlot(se->hash, (char *)sv->lstring, sv->length)] = *se;
+        table[findSlot(se->hash, sv->lstring(), sv->length)] = *se;
     }
     mem.free(otab);
 }
