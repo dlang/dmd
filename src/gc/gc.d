@@ -2387,15 +2387,16 @@ struct Gcx
         void **p1 = cast(void **)pbot;
         void **p2 = cast(void **)ptop;
 
-    Lagain:
-        size_t pcache = 0;
         // limit the amount of ranges added to the toscan stack
         enum FANOUT_LIMIT = 32;
-        size_t fanoutPos;
-        Range[FANOUT_LIMIT] fanout = void;
+        size_t stackPos;
+        Range[FANOUT_LIMIT] stack = void;
+
+    Lagain:
+        size_t pcache = 0;
 
         //printf("marking range: [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
-        for (; p1 < p2 && fanoutPos != fanout.length; p1++)
+        for (; p1 < p2 && stackPos != stack.length; p1++)
         {
             auto p = cast(byte *)(*p1);
 
@@ -2467,7 +2468,7 @@ struct Gcx
                         if (!pool.noscan.test(biti))
                         {
                             immutable sz = bin < B_PAGE ? binsize[bin] : pool.bPageOffsets[pn] * PAGESIZE;
-                            fanout[fanoutPos++] = Range(base, base + sz);
+                            stack[stackPos++] = Range(base, base + sz);
                         }
 
                         debug (LOGGING) log_parent(sentinel_add(pool.baseAddr + (biti << pool.shiftBy)), sentinel_add(pbot));
@@ -2475,22 +2476,38 @@ struct Gcx
                 }
             }
         }
-        // The current range has a broad fanout (e.g. array), stash
-        // it away to avoid growing the toscan stack too much.
-        assert(p1 >= p2 || fanoutPos == fanout.length);
+
+        Range next=void;
         if (p1 < p2)
+        {
+            // local stack is full, push it to the global stack
+            assert(stackPos == stack.length);
             toscan.push(Range(p1, p2));
-        foreach_reverse (ref rng; fanout[0 .. fanoutPos])
-            toscan.push(rng);
-        if (!toscan.empty)
+            // reverse order for depth-first-order traversal
+            foreach_reverse (ref rng; stack[0 .. $ - 1])
+                toscan.push(rng);
+            stackPos = 0;
+            next = stack[$-1];
+        }
+        else if (stackPos)
+        {
+            // pop range from local stack and recurse
+            next = stack[--stackPos];
+        }
+        else if (!toscan.empty)
         {
             // pop range from global stack and recurse
-            auto rng = toscan.pop();
-            p1 = cast(void**)rng.pbot;
-            p2 = cast(void**)rng.ptop;
-            // printf("  pop [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
-            goto Lagain;
+            next = toscan.pop();
         }
+        else
+        {
+            // nothing more to do
+            return;
+        }
+        p1 = cast(void**)next.pbot;
+        p2 = cast(void**)next.ptop;
+        // printf("  pop [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
+        goto Lagain;
     }
 
 
