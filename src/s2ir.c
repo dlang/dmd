@@ -43,6 +43,7 @@
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
+Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
@@ -553,9 +554,9 @@ public:
                 else
                 {
                     StringExp *se = (StringExp *)(cs->exp);
-                    unsigned len = se->len;
-                    dtsize_t(&dt, len);
-                    dtabytes(&dt, TYnptr, 0, se->len * se->sz, (char *)se->string);
+                    Symbol *si = toStringSymbol((char *)se->string, se->len, se->sz);
+                    dtsize_t(&dt, se->len);
+                    dtxoff(&dt, si, 0);
                 }
             }
 
