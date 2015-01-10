@@ -3094,7 +3094,7 @@ nothrow:
         size_t i;
         for (; i < npools; ++i)
         {
-            if (pool.opCmp(pools[i]) < 0)
+            if (pool.baseAddr < pools[i].baseAddr)
                 break;
         }
         if (i != npools)
@@ -3140,7 +3140,7 @@ nothrow:
         if (!npools) return;
 
         foreach (i, pool; pools[0 .. npools - 1])
-            assert(pool.opCmp(pools[i + 1]) < 0);
+            assert(pool.baseAddr < pools[i + 1].baseAddr);
     }
 
 private:
@@ -3425,17 +3425,6 @@ struct Pool
             size = bPageOffsets[pagenum] * PAGESIZE;
         }
         return size;
-    }
-
-    /**
-     * Used for sorting pooltable[]
-     */
-    int opCmp(const Pool *p2) const nothrow
-    {
-        if (baseAddr < p2.baseAddr)
-            return -1;
-        else
-            return cast(int)(baseAddr > p2.baseAddr);
     }
 }
 
