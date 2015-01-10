@@ -1354,9 +1354,6 @@ struct Gcx
     uint running;
     int disabled;       // turn off collections if >0
 
-    @property byte* minAddr() pure nothrow { return pooltable.minAddr; }
-    @property byte* maxAddr() pure nothrow { return pooltable.maxAddr; }
-
     @property size_t npools() pure const nothrow { return pooltable.length; }
     PoolTable!Pool pooltable;
 
@@ -1428,12 +1425,6 @@ struct Gcx
         {
             //printf("Gcx.invariant(): this = %p\n", &this);
             pooltable.Invariant();
-
-            if (pooltable.length)
-            {
-                assert(minAddr == pooltable[0].baseAddr);
-                assert(maxAddr == pooltable[$ - 1].topAddr);
-            }
 
             foreach (range; ranges)
             {
@@ -2134,7 +2125,7 @@ struct Gcx
             auto p = cast(byte *)(*p1);
 
             //if (log) debug(PRINTF) printf("\tmark %p\n", p);
-            if (p >= minAddr && p < maxAddr)
+            if (p >= pooltable.minAddr && p < pooltable.maxAddr)
             {
                 if ((cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) == pcache)
                     continue;
@@ -3007,6 +2998,9 @@ nothrow:
 
         foreach (i, pool; pools[0 .. npools - 1])
             assert(pool.baseAddr < pools[i + 1].baseAddr);
+
+        assert(minAddr == pools[0].baseAddr);
+        assert(maxAddr == pools[npools - 1].topAddr);
     }
 
 private:
