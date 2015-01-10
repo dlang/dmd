@@ -1345,16 +1345,6 @@ immutable size_t[B_MAX] notbinsize = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1)
 
 struct Gcx
 {
-    static if (USE_CACHE){
-        byte *cached_pool_topAddr;
-        byte *cached_pool_baseAddr;
-        Pool *cached_pool;
-        debug (CACHE_HITRATE)
-        {
-            ulong cached_pool_queries;
-            ulong cached_pool_hits;
-        }
-    }
     Treap!Root roots;
     Treap!Range ranges;
 
@@ -1612,59 +1602,10 @@ struct Gcx
         }
     }
 
-
-    /**
-     * Find Pool that pointer is in.
-     * Return null if not in a Pool.
-     * Assume pooltable[] is sorted.
-     */
-    Pool *findPool(bool bypassCache = !USE_CACHE)(void *p) nothrow
+    Pool* findPool(bool bypassCache = !USE_CACHE)(void* p) pure nothrow
     {
-        static if (!bypassCache && USE_CACHE)
-        {
-            debug (CACHE_HITRATE) cached_pool_queries++;
-            if (p < cached_pool_topAddr
-                && p >= cached_pool_baseAddr)
-            {
-                debug (CACHE_HITRATE) cached_pool_hits++;
-                return cached_pool;
-            }
-        }
-        if (p >= minAddr && p < maxAddr)
-        {
-            if (npools <= 1)
-            {
-                return npools == 0 ? null : pooltable[0];
-            }
-
-            /* The pooltable[] is sorted by address, so do a binary search
-             */
-            auto pt = pooltable;
-            size_t low = 0;
-            size_t high = npools - 1;
-            while (low <= high)
-            {
-                size_t mid = (low + high) >> 1;
-                auto pool = pt[mid];
-                if (p < pool.baseAddr)
-                    high = mid - 1;
-                else if (p >= pool.topAddr)
-                    low = mid + 1;
-                else
-                {
-                    static if (!bypassCache && USE_CACHE)
-                    {
-                        cached_pool_topAddr = pool.topAddr;
-                        cached_pool_baseAddr = pool.baseAddr;
-                        cached_pool = pool;
-                    }
-                    return pool;
-                }
-            }
-        }
-        return null;
+        return pooltable.findPool!bypassCache(p);
     }
-
 
     /**
      * Find base address of block containing pointer p.
@@ -1773,15 +1714,6 @@ struct Gcx
         return info;
     }
 
-    void resetPoolCache() nothrow
-    {
-        static if (USE_CACHE){
-            cached_pool_topAddr = cached_pool_topAddr.init;
-            cached_pool_baseAddr = cached_pool_baseAddr.init;
-            cached_pool = cached_pool.init;
-        }
-    }
-
     /**
      * Compute bin for size.
      */
@@ -1883,10 +1815,6 @@ struct Gcx
             debug(PRINTF) printFreeInfo(pool);
             pool.Dtor();
             cstdlib.free(pool);
-        }
-
-        static if (USE_CACHE){
-            resetPoolCache();
         }
 
         debug(PRINTF) printf("Done minimizing.\n");
@@ -3088,6 +3016,57 @@ nothrow:
 
     alias opDollar = length;
 
+    /**
+     * Find Pool that pointer is in.
+     * Return null if not in a Pool.
+     * Assume pooltable[] is sorted.
+     */
+    Pool *findPool(bool bypassCache = !USE_CACHE)(void *p) nothrow
+    {
+        static if (!bypassCache && USE_CACHE)
+        {
+            debug (CACHE_HITRATE) cached_pool_queries++;
+            if (p < cached_pool_topAddr
+                && p >= cached_pool_baseAddr)
+            {
+                debug (CACHE_HITRATE) cached_pool_hits++;
+                return cached_pool;
+            }
+        }
+        if (p >= minAddr && p < maxAddr)
+        {
+            if (npools <= 1)
+            {
+                return npools == 0 ? null : pools[0];
+            }
+
+            /* The pooltable[] is sorted by address, so do a binary search
+             */
+            size_t low = 0;
+            size_t high = npools - 1;
+            while (low <= high)
+            {
+                size_t mid = (low + high) >> 1;
+                auto pool = pools[mid];
+                if (p < pool.baseAddr)
+                    high = mid - 1;
+                else if (p >= pool.topAddr)
+                    low = mid + 1;
+                else
+                {
+                    static if (!bypassCache && USE_CACHE)
+                    {
+                        cached_pool_topAddr = pool.topAddr;
+                        cached_pool_baseAddr = pool.baseAddr;
+                        cached_pool = pool;
+                    }
+                    return pool;
+                }
+            }
+        }
+        return null;
+    }
+
     // semi-stable partition, returns right half for which pred is false
     Pool*[] minimize(alias isFree)() pure
     {
@@ -3121,6 +3100,17 @@ nothrow:
             minAddr = maxAddr = null;
         }
 
+        static if (USE_CACHE)
+        {
+            if (cached_pool && isFree(cached_pool))
+            {
+                // reset pool cache
+                cached_pool_topAddr = cached_pool_topAddr.init;
+                cached_pool_baseAddr = cached_pool_baseAddr.init;
+                cached_pool = cached_pool.init;
+            }
+        }
+
         immutable len = npools;
         npools = i;
         // return freed pools to the caller
@@ -3140,6 +3130,17 @@ private:
     Pool** pools;
     size_t npools;
     byte* minAddr, maxAddr;
+
+    static if (USE_CACHE){
+        byte *cached_pool_topAddr;
+        byte *cached_pool_baseAddr;
+        Pool *cached_pool;
+        debug (CACHE_HITRATE)
+        {
+            ulong cached_pool_queries;
+            ulong cached_pool_hits;
+        }
+    }
 }
 
 /* ============================ Pool  =============================== */
