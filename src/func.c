@@ -1733,7 +1733,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     {
                         // Function returns a reference
                         exp = exp->toLvalue(sc2, exp);
-                        exp->checkEscapeRef();
+                        checkEscapeRef(sc2, exp);
                     }
                     else
                     {
@@ -1745,7 +1745,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         if (!nrvo_can && exp->isLvalue())
                             exp = callCpCtor(sc2, exp);
 
-                        exp->checkEscape();
+                        checkEscape(sc2, exp);
                     }
 
                     exp = checkGC(sc2, exp);
