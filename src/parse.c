@@ -1319,13 +1319,30 @@ LINK Parser::parseLinkage(Identifiers **pidents)
                 }
             }
         }
+        else if (id == Id::Objective) // Looking for tokens "Objective-C"
+        {
+            if (token.value == TOKmin)
+            {
+                nextToken();
+                if (token.ident == Id::C)
+                {
+                    link = LINKobjc;
+                    nextToken();
+                }
+                else
+                    goto LinvalidLinkage;
+            }
+            else
+                goto LinvalidLinkage;
+        }
         else if (id == Id::System)
         {
             link = global.params.isWindows ? LINKwindows : LINKc;
         }
         else
         {
-            error("valid linkage identifiers are D, C, C++, Pascal, Windows, System");
+        LinvalidLinkage:
+            error("valid linkage identifiers are D, C, C++, Objective-C, Pascal, Windows, System");
             link = LINKd;
         }
     }

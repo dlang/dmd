@@ -18,6 +18,7 @@
 
 #include "dsymbol.h"
 #include "mtype.h"
+#include "objc.h"
 
 class Expression;
 class Statement;
@@ -526,6 +527,7 @@ public:
                                         // scopes from having the same name
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
+    Objc_FuncDeclaration objc;
 #ifdef IN_GCC
     VarDeclaration *v_argptr;           // '_argptr' variable
 #endif

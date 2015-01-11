@@ -21,6 +21,7 @@
         "tokens.c", "tokens.h",
         "globals.c", "globals.h",
         "escape.c",
+        "objc.c", "objc.h",
         "root/aav.h", "root/aav.c",
         "root/filename.h", "root/filename.c",
         "root/file.h", "root/file.c",
@@ -110,6 +111,43 @@
             ]
         },
         {
+          "module" : "objc",
+          "package" : "",
+          "imports" : [
+            "arraytypes",
+            "cond",
+            "dclass",
+            "dmangle",
+            "dmodule",
+            "dscope",
+            "dstruct",
+            "expression",
+            "func",
+            "globals",
+            "id",
+            "identifier",
+            "mtype",
+            "root.outbuffer",
+            "root.stringtable"
+          ],
+          "members" : [
+            "struct ObjcSelector",
+            "struct Objc_ClassDeclaration",
+            "struct Objc_FuncDeclaration",
+            "function objc_ClassDeclaration_semantic_PASSinit_LINKobjc",
+            "function objc_InterfaceDeclaration_semantic_objcExtern",
+            "function objc_FuncDeclaration_semantic_setSelector",
+            "function objc_isUdaSelector",
+            "function objc_FuncDeclaration_semantic_validateSelector",
+            "function objc_FuncDeclaration_semantic_checkLinkage",
+            "function objc_tryMain_dObjc",
+            "function objc_tryMain_init"
+          ],
+          "extra" : [
+            "extern(C++) void objc_initSymbols();"
+          ]
+        },
+        {
             "module" : "dclass",
             "package" : "",
             "imports" :
@@ -132,6 +170,7 @@
                 "identifier",
                 "globals",
                 "mtype",
+                "objc",
                 "root.outbuffer",
                 "root.rmem",
                 "root.rootobject",
@@ -1443,6 +1482,7 @@
                 "globals",
                 "mtype",
                 "nogc",
+                "objc",
                 "opover",
                 "root.filename",
                 "root.outbuffer",
@@ -2519,6 +2559,7 @@
                 "lib",
                 "link",
                 "mtype",
+                "objc",
                 "parse",
                 "root.file",
                 "root.filename",
