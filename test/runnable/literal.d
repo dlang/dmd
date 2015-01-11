@@ -197,6 +197,12 @@ void test13907()
     static  char[20] csa = "hello world";  // extending is allowed
     static wchar[20] wsa = "hello world";  // ok
     static dchar[20] dsa = "hello world";  // ok
+
+    // Bugzilla 13966
+    string[1][] arr;
+    arr ~= ["class"];
+    enum immutable(char[5]) sarrstr = "class";
+    arr ~= [sarrstr];
 }
 
 /***************************************************/
