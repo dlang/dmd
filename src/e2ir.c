@@ -834,32 +834,18 @@ Lagain:
     return e;
 }
 
-struct StringTab
-{
-    Module *m;          // module we're generating code for
-    Symbol *si;
-    void *string;
-    size_t sz;
-    size_t len;
-};
 
-#define STSIZE 16
-StringTab stringTab[STSIZE];
-size_t stidx;
+StringTable *stringTab;
 
-static Symbol *assertexp_sfilename = NULL;
-static const char *assertexp_name = NULL;
-static Module *assertexp_mn = NULL;
-
+/********************************
+ * Reset stringTab[] between object files being emitted, because the symbols are local.
+ */
 void clearStringTab()
 {
     //printf("clearStringTab()\n");
-    memset(stringTab, 0, sizeof(stringTab));
-    stidx = 0;
-
-    assertexp_sfilename = NULL;
-    assertexp_name = NULL;
-    assertexp_mn = NULL;
+    delete stringTab;
+    stringTab = new StringTable;
+    stringTab->_init(1000);             // 1000 is arbitrary guess
 }
 
 elem *toElem(Expression *e, IRState *irs)
@@ -1272,46 +1258,7 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb = se->type->toBasetype();
             if (tb->ty == Tarray)
             {
-                Symbol *si;
-                dt_t *dt;
-                StringTab *st;
-
-        #if 0
-                printf("irs->m = %p\n", irs->m);
-                printf(" m   = %s\n", irs->m->toChars());
-                printf(" len = %d\n", se->len);
-                printf(" sz  = %d\n", se->sz);
-        #endif
-                for (size_t i = 0; i < STSIZE; i++)
-                {
-                    st = &stringTab[(stidx + i) % STSIZE];
-                    //if (!st->m) continue;
-                    //printf(" st.m   = %s\n", st->m->toChars());
-                    //printf(" st.len = %d\n", st->len);
-                    //printf(" st.sz  = %d\n", st->sz);
-                    if (st->m == irs->m &&
-                        st->si &&
-                        st->len == se->len &&
-                        st->sz == se->sz &&
-                        memcmp(st->string, se->string, se->sz * se->len) == 0)
-                    {
-                        //printf("use cached value\n");
-                        si = st->si;    // use cached value
-                        goto L1;
-                    }
-                }
-
-                stidx = (stidx + 1) % STSIZE;
-                st = &stringTab[stidx];
-
-                si = toStringDarraySymbol((const char *)se->string, se->len, se->sz);
-
-                st->m = irs->m;
-                st->si = si;
-                st->string = se->string;
-                st->len = se->len;
-                st->sz = se->sz;
-            L1:
+                Symbol *si = toStringDarraySymbol((const char *)se->string, se->len, se->sz);
                 e = el_var(si);
             }
             else if (tb->ty == Tsarray)
@@ -1807,22 +1754,12 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ea;
                 if (ae->loc.filename && (ae->msg || strcmp(ae->loc.filename, mname) != 0))
                 {
-                    /* Cache values.
-                     */
-                    //static Symbol *assertexp_sfilename = NULL;
-                    //static char *assertexp_name = NULL;
-                    //static Module *assertexp_mn = NULL;
-
-                    if (!assertexp_sfilename || strcmp(ae->loc.filename, assertexp_name) != 0 || assertexp_mn != m)
-                    {
-                        const char *id = ae->loc.filename;
-                        assertexp_sfilename = toStringDarraySymbol(id, strlen(id), 1);
-                        assertexp_mn = m;
-                        assertexp_name = id;
-                    }
-
-                    elem *efilename = (config.exe == EX_WIN64) ? el_ptr(assertexp_sfilename)
-                                                               : el_var(assertexp_sfilename);
+                    const char *id = ae->loc.filename;
+                    size_t len = strlen(id);
+                    Symbol *si = toStringSymbol(id, len, 1);
+                    elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
+                    if (config.exe == EX_WIN64)
+                        efilename = addressElem(efilename, Type::tstring, true);
 
                     if (ae->msg)
                     {
@@ -5335,14 +5272,21 @@ elem *toElemDtor(Expression *e, IRState *irs)
 
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
 {
-    Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tschar));
-    si->Salignment = 1;
-    si->Sdt = NULL;
-    dtnbytes(&si->Sdt, (len + 1) * sz, str);
-    si->Sfl = FLdata;
-    out_readonly(si);
-    outdata(si);
-    return si;
+    //printf("toStringSymbol() %p\n", stringTab);
+    assert(str[len * sz] == 0);
+    StringValue *sv = stringTab->update(str, len * sz);
+    if (!sv->ptrvalue)
+    {
+        Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tschar));
+        si->Salignment = 1;
+        si->Sdt = NULL;
+        dtnbytes(&si->Sdt, (len + 1) * sz, str);
+        si->Sfl = FLdata;
+        out_readonly(si);
+        outdata(si);
+        sv->ptrvalue = (void *)si;
+    }
+    return (Symbol *)sv->ptrvalue;
 }
 
 /*******************************************************
@@ -5353,6 +5297,9 @@ Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz)
 {
     Symbol *si = toStringSymbol(str, len, sz);
 
+    /* sida shold be cached along with si, but currently StringTable only gives us one
+     * slot, 'ptrvalue'.
+     */
     dt_t *dt = NULL;
     dtsize_t(&dt, len);
     dtxoff(&dt, si, 0);
