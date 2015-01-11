@@ -337,12 +337,26 @@ int Port::stricmp(const char *s1, const char *s2)
 
 float Port::strtof(const char *p, char **endp)
 {
-    return static_cast<float>(::strtod(p, endp));
+    if(endp)
+        return static_cast<float>(::strtod(p, endp)); // does not set errno for underflows, but unused
+
+    _CRT_FLOAT flt;
+    int res = _atoflt(&flt, p);
+    if (res == _UNDERFLOW)
+        errno = ERANGE;
+    return flt.f;
 }
 
 double Port::strtod(const char *p, char **endp)
 {
-    return ::strtod(p, endp);
+    if(endp)
+        return ::strtod(p, endp); // does not set errno for underflows, but unused
+
+    _CRT_DOUBLE dbl;
+    int res = _atodbl(&dbl, const_cast<char*> (p));
+    if (res == _UNDERFLOW)
+        errno = ERANGE;
+    return dbl.x;
 }
 
 // from backend/strtold.c, renamed to avoid clash with decl in stdlib.h
