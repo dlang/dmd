@@ -15,7 +15,7 @@ void test1()
             naked       ;
             mov EAX, i  ;
         }
-      version(OSX)
+      version(D_PIC)
       {}
       else
       {
