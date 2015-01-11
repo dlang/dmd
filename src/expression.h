@@ -102,8 +102,8 @@ Type *getIndirection(Type *t);
 
 Expression *checkGC(Scope *sc, Expression *e);
 
-void checkEscape(Expression *e);
-void checkEscapeRef(Expression *e);
+void checkEscape(Scope *sc, Expression *e);
+void checkEscapeRef(Scope *sc, Expression *e);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).

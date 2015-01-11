@@ -9,6 +9,7 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/escape.c
  */
 
+#include "scope.h"
 #include "expression.h"
 #include "declaration.h"
 
@@ -17,13 +18,19 @@
  * lifetime of the stack frame.
  */
 
-void checkEscape(Expression *e)
+void checkEscape(Scope *sc, Expression *e)
 {
     //printf("[%s] checkEscape, e = %s\n", e->loc.toChars(), e->toChars());
 
     class EscapeVisitor : public Visitor
     {
     public:
+        Scope *sc;
+
+        EscapeVisitor(Scope *sc)
+            : sc(sc)
+        {
+        }
 
         void visit(Expression *e)
         {
@@ -68,13 +75,13 @@ void checkEscape(Expression *e)
         {
             for (size_t i = 0; i < e->exps->dim; i++)
             {
-                checkEscape((*e->exps)[i]);
+                checkEscape(sc, (*e->exps)[i]);
             }
         }
 
         void visit(AddrExp *e)
         {
-            checkEscapeRef(e->e1);
+            checkEscapeRef(sc, e->e1);
         }
 
         void visit(CastExp *e)
@@ -96,32 +103,38 @@ void checkEscape(Expression *e)
 
         void visit(SliceExp *e)
         {
-            checkEscape(e->e1);
+            checkEscape(sc, e->e1);
         }
 
         void visit(CommaExp *e)
         {
-            checkEscape(e->e2);
+            checkEscape(sc, e->e2);
         }
 
         void visit(CondExp *e)
         {
-            checkEscape(e->e1);
-            checkEscape(e->e2);
+            checkEscape(sc, e->e1);
+            checkEscape(sc, e->e2);
         }
     };
 
-    EscapeVisitor v;
+    EscapeVisitor v(sc);
     e->accept(&v);
 }
 
-void checkEscapeRef(Expression *e)
+void checkEscapeRef(Scope *sc, Expression *e)
 {
     //printf("[%s] checkEscapeRef, e = %s\n", e->loc.toChars(), e->toChars());
 
     class EscapeRefVisitor : public Visitor
     {
     public:
+        Scope *sc;
+
+        EscapeRefVisitor(Scope *sc)
+            : sc(sc)
+        {
+        }
 
         void visit(Expression *e)
         {
@@ -139,25 +152,25 @@ void checkEscapeRef(Expression *e)
 
         void visit(PtrExp *e)
         {
-            checkEscape(e->e1);
+            checkEscape(sc, e->e1);
         }
 
         void visit(SliceExp *e)
         {
-            checkEscapeRef(e->e1);
+            checkEscapeRef(sc, e->e1);
         }
 
         void visit(CommaExp *e)
         {
-            checkEscapeRef(e->e2);
+            checkEscapeRef(sc, e->e2);
         }
 
         void visit(CondExp *e)
         {
-            checkEscapeRef(e->e1);
-            checkEscapeRef(e->e2);
+            checkEscapeRef(sc, e->e1);
+            checkEscapeRef(sc, e->e2);
         }
     };
-    EscapeRefVisitor v;
+    EscapeRefVisitor v(sc);
     e->accept(&v);
 }
