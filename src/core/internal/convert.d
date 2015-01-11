@@ -479,7 +479,7 @@ const(ubyte)[] toUbyte(T)(T[] arr) if (T.sizeof == 1)
 }
 
 @trusted pure nothrow
-const(ubyte)[] toUbyte(T)(T[] arr) if ((is(typeof(toUbyte(arr[0])) == const(ubyte)[]))&&(T.sizeof > 1))
+const(ubyte)[] toUbyte(T)(T[] arr) if ((is(typeof(toUbyte(arr[0])) == const(ubyte)[])) && (T.sizeof > 1))
 {
     if (__ctfe)
     {
@@ -514,7 +514,7 @@ const(ubyte)[] toUbyte(T)(ref T val) if (__traits(isIntegral, T) && !is(T == enu
     {
         ubyte[T.sizeof] tmp;
         Unqual!T val_ = val;
-        for (size_t i=0; i<T.sizeof; ++i)
+        for (size_t i = 0; i < T.sizeof; ++i)
         {
             size_t idx;
             version(LittleEndian) idx = i;
@@ -522,9 +522,7 @@ const(ubyte)[] toUbyte(T)(ref T val) if (__traits(isIntegral, T) && !is(T == enu
             tmp[idx] = cast(ubyte)(val_&0xff);
             val_ >>= 8;
         }
-
-        return tmp[];
-
+        return tmp[].dup;
     }
     else
     {
@@ -628,7 +626,7 @@ const(ubyte)[] toUbyte(T)(ref T val) if (is(T == struct) || is(T == union))
                 assert(0, "Unable to compute byte representation of "~typeof(CUR_TYPE).stringof~" field at compile time");
             }
         }
-        return bytes[];
+        return bytes[].dup;
     }
     else
     {
