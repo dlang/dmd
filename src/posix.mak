@@ -147,6 +147,11 @@ GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
 BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I. -DDMDV2=1
 ROOT_FLAGS := -I$(ROOT)
 
+ifeq ($(OS), osx)
+ifeq ($(MODEL), 64)
+D_OBJC := 1
+endif
+endif
 
 DMD_OBJS = \
 	access.o attrib.o \
@@ -170,6 +175,12 @@ DMD_OBJS = \
 	intrange.o canthrow.o target.o nspace.o errors.o \
 	escape.o tokens.o globals.o
 
+ifeq ($(D_OBJC),1)
+	DMD_OBJS += objc.o
+else
+	DMD_OBJS += objc_stubs.o
+endif
+
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o object.o \
@@ -180,6 +191,13 @@ GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
 	toobj.o toctype.o toelfdebug.o toir.o \
 	irstate.o typinf.o iasm.o
+
+
+ifeq ($(D_OBJC),1)
+	GLUE_OBJS += objc_glue.o
+else
+	GLUE_OBJS += objc_glue_stubs.o
+endif
 
 ifeq (osx,$(OS))
     GLUE_OBJS += libmach.o scanmach.o
@@ -228,7 +246,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 	intrange.h intrange.c canthrow.c target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c errors.h errors.c \
-	escape.c tokens.h tokens.c globals.h globals.c
+	escape.c tokens.h tokens.c globals.h globals.c objc.c objc.h objc_stubs.c
 
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
@@ -249,7 +267,7 @@ GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
-	tk.c eh.c gluestub.c
+	tk.c eh.c gluestub.c objc_glue.c objc_glue_stubs.c
 
 BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
@@ -500,6 +518,13 @@ endif
 	gcov msc.c
 	gcov mtype.c
 	gcov nspace.c
+ifeq ($(D_OBJC),1)
+	gcov objc.c
+	gcov objc_glue.c
+else
+	gcov objc_stubs.c
+	gcov objc_glue_stubs.c
+endif
 	gcov opover.c
 	gcov optimize.c
 	gcov parse.c
@@ -579,6 +604,12 @@ MANUALSRC= \
 	$(ROOT)/array.d $(ROOT)/longdouble.d \
 	$(ROOT)/rootobject.d $(ROOT)/port.d \
 	$(ROOT)/rmem.d
+
+ifeq ($(D_OBJC),1)
+	GENSRC += objc.d
+else
+	MANUALSRC += objc.di objc_stubs.d
+endif
 
 mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
 	$(MAGICPORT) . .

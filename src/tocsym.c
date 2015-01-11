@@ -330,6 +330,7 @@ Symbol *toSymbol(Dsymbol *s)
                             break;
 
                         case LINKc:
+                        case LINKobjc:
                             t->Tmangle = mTYman_c;
                             break;
 

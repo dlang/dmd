@@ -271,6 +271,7 @@ enum LINK
     LINKcpp,
     LINKwindows,
     LINKpascal,
+    LINKobjc,
 };
 
 enum DYNCAST

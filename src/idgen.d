@@ -144,6 +144,7 @@ Msgtable[] msgtable =
     { "Windows" },
     { "Pascal" },
     { "System" },
+    { "Objective" },
 
     { "exit" },
     { "success" },
@@ -296,6 +297,7 @@ Msgtable[] msgtable =
     // Builtin functions
     { "std" },
     { "core" },
+    { "attribute" },
     { "math" },
     { "sin" },
     { "cos" },
@@ -364,6 +366,9 @@ Msgtable[] msgtable =
     { "basic_ostream" },
     { "basic_iostream" },
     { "char_traits" },
+
+    // Compiler recognized UDA's
+    { "udaSelector", "selector" },
 ];
 
 
