@@ -865,6 +865,8 @@ RET retStyle(TypeFunction *tf)
                 return RETregs;
             if (!sd->isPOD() || sz >= 8)
                 return RETstack;
+            if (sd->fields.dim == 0)
+                return RETstack;
         }
         if (sz <= 16 && !(sz & (sz - 1)))
             return RETregs;

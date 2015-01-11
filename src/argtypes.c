@@ -307,7 +307,7 @@ TypeTuple *toArgTypes(Type *t)
         void visit(TypeStruct *t)
         {
             //printf("TypeStruct::toArgTypes() %s\n", t->toChars());
-            if (!t->sym->isPOD())
+            if (!t->sym->isPOD() || t->sym->fields.dim == 0)
             {
             Lmemory:
                 //printf("\ttoArgTypes() %s => [ ]\n", t->toChars());

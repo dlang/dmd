@@ -345,6 +345,19 @@ void foo14f(std::char_traits<char>* x, std::basic_string<char> *p, std::basic_st
 
 /**************************************/
 
+struct S13956
+{
+};
+
+void check13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6);
+
+void func13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
+{
+    check13956(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+/**************************************/
+
 wchar_t f13289_cpp_wchar_t(wchar_t ch)
 {
     if (ch <= L'z' && ch >= L'a')
