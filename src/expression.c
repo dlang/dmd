@@ -7475,6 +7475,17 @@ Expression *DotVarExp::semantic(Scope *sc)
         if (!fd->functionSemantic())
             return new ErrorExp();
 
+        /* Bugzilla 13843: If fd obviously has no overloads, we should
+         * normalize AST, and it will give a chance to wrap fd with FuncExp.
+         */
+        if (fd->isNested() || fd->isFuncLiteralDeclaration())
+        {
+            // (e1, fd)
+            Expression *e = new DsymbolExp(loc, fd);
+            e = e->semantic(sc);
+            return Expression::combine(e1, e);
+        }
+
         type = fd->type;
         assert(type);
     }
