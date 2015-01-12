@@ -9575,9 +9575,10 @@ Expression *CastExp::semantic(Scope *sc)
                 goto Lfail;
         }
 
+        // Bugzilla 9178: Tsarray <--> typeof(null)
         // Bugzilla 9904: Tstruct <--> typeof(null)
-        if (t1b->ty == Tnull && tob->ty == Tstruct ||
-            tob->ty == Tnull && t1b->ty == Tstruct)
+        if (t1b->ty == Tnull && (tob->ty == Tsarray || tob->ty == Tstruct) ||
+            tob->ty == Tnull && (t1b->ty == Tsarray || t1b->ty == Tstruct))
         {
             goto Lfail;
         }

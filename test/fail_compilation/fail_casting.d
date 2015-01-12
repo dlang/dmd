@@ -101,3 +101,16 @@ void test11485()
     { C x; auto y = cast(int)x; }
     { I x; auto y = cast(int)x; }
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_casting.d(114): Error: cannot cast expression x of type typeof(null) to int[2]
+fail_compilation/fail_casting.d(115): Error: cannot cast expression x of type int[2] to typeof(null)
+---
+*/
+void test8179()
+{
+    { typeof(null) x; auto y = cast(int[2])x; }
+    { int[2] x;       auto y = cast(typeof(null))x; }
+}
