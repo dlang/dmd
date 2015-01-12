@@ -402,6 +402,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\escape.c"
+				>
+			</File>
+			<File
 				RelativePath=".\complex_t.h"
 				>
 			</File>

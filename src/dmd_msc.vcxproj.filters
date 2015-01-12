@@ -96,6 +96,9 @@
     <ClCompile Include="errors.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="escape.c">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="expression.c">
       <Filter>src</Filter>
     </ClCompile>
