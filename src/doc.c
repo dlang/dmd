@@ -113,6 +113,7 @@ size_t skippastURL(OutBuffer *buf, size_t i);
 void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
 void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool anchor = true);
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
+void highlightCode3(Scope *sc, OutBuffer *buf, const utf8_t *p, const utf8_t *pend);
 TypeFunction *isTypeFunction(Dsymbol *s);
 Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len);
 TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len);
@@ -169,6 +170,7 @@ LINK =  <a href=\"$0\">$0</a>\n\
 LINK2 = <a href=\"$1\">$+</a>\n\
 LPAREN= (\n\
 RPAREN= )\n\
+BACKTICK= `\n\
 DOLLAR= $\n\
 DEPRECATED= $0\n\
 \n\
@@ -180,6 +182,8 @@ BLACK = <font color=black>$0</font>\n\
 WHITE = <font color=white>$0</font>\n\
 \n\
 D_CODE = <pre class=\"d_code\">$0</pre>\n\
+DDOC_BACKQUOTED = $(D_INLINECODE $0)\n\
+D_INLINECODE = <pre style=\"display:inline;\" class=\"d_inline_code\">$0</pre>\n\
 D_COMMENT = $(GREEN $0)\n\
 D_STRING  = $(RED $0)\n\
 D_KEYWORD = $(BLUE $0)\n\
@@ -2206,6 +2210,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
     int leadingBlank = 1;
     int inCode = 0;
+    int inBacktick = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
     size_t iCodeStart = 0;                    // start of code section
     size_t codeIndent = 0;
@@ -2323,6 +2328,39 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     i = buf->insert(i, se, len);
                     i--;        // point to ';'
                 }
+                break;
+
+            case '`':
+                if (inBacktick)
+                {
+                    inBacktick = 0;
+                    inCode = 0;
+
+                    OutBuffer codebuf;
+
+                    // escape the contents, but do not perform highlighting
+                    highlightCode3(sc, &codebuf, buf->data + iCodeStart + 1, buf->data + i);
+
+                    buf->remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
+                    i = buf->insert(iCodeStart, codebuf.data, codebuf.offset);
+                    i = buf->insert(i, ")", 1);
+
+                    break;
+                }
+
+                if (inCode)
+                    break;
+
+                inCode = 1;
+                inBacktick = 1;
+
+                static const char pre[] = "$(DDOC_BACKQUOTED ";
+
+                inCode = 1;
+                codeIndent = 0; // inline code is not indented
+                i = buf->insert(i, pre, strlen(pre));
+                iCodeStart = i;
+
                 break;
 
             case '-':
