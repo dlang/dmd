@@ -79,7 +79,7 @@ const char *findinifile(const char *argv0, const char *inifile)
     printf("\tPATH='%s'\n", p);
 #endif
     Strings *paths = FileName::splitPath(p);
-    const char *abspath = FileName::searchPath(paths, argv0, 0);
+    const char *abspath = FileName::searchPath(paths, argv0, false);
     if (abspath)
     {
         const char *absname = FileName::replaceName(abspath, inifile);

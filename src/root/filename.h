@@ -26,10 +26,10 @@ struct FileName
     const char *str;
     FileName(const char *str);
     bool equals(RootObject *obj);
-    static int equals(const char *name1, const char *name2);
+    static bool equals(const char *name1, const char *name2);
     int compare(RootObject *obj);
     static int compare(const char *name1, const char *name2);
-    static int absolute(const char *name);
+    static bool absolute(const char *name);
     static const char *ext(const char *);
     const char *ext();
     static const char *removeExt(const char *str);
@@ -42,14 +42,14 @@ struct FileName
     static Strings *splitPath(const char *path);
     static const char *defaultExt(const char *name, const char *ext);
     static const char *forceExt(const char *name, const char *ext);
-    static int equalsExt(const char *name, const char *ext);
+    static bool equalsExt(const char *name, const char *ext);
 
-    int equalsExt(const char *ext);
+    bool equalsExt(const char *ext);
 
-    static const char *searchPath(Strings *path, const char *name, int cwd);
+    static const char *searchPath(Strings *path, const char *name, bool cwd);
     static const char *safeSearchPath(Strings *path, const char *name);
     static int exists(const char *name);
-    static int ensurePathExists(const char *path);
+    static bool ensurePathExists(const char *path);
     static const char *canonicalName(const char *name);
 
     static void free(const char *str);
