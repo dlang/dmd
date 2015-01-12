@@ -392,8 +392,8 @@ Dsymbol *isDsymbol(RootObject *o);
 Type *isType(RootObject *o);
 Tuple *isTuple(RootObject *o);
 Parameter *isParameter(RootObject *o);
-int arrayObjectIsError(Objects *args);
-int isError(RootObject *o);
+bool arrayObjectIsError(Objects *args);
+bool isError(RootObject *o);
 Type *getType(RootObject *o);
 Dsymbol *getDsymbol(RootObject *o);
 

@@ -1188,7 +1188,7 @@ Ldone:
         if (type && mod)
         {
             printedMain = true;
-            const char *name = FileName::searchPath(global.path, mod->srcfile->toChars(), 1);
+            const char *name = FileName::searchPath(global.path, mod->srcfile->toChars(), true);
             fprintf(global.stdmsg, "entry     %-10s\t%s\n", type, name);
         }
     }

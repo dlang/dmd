@@ -94,7 +94,7 @@ Parameter *isParameter(RootObject *o)
 /**************************************
  * Is this Object an error?
  */
-int isError(RootObject *o)
+bool isError(RootObject *o)
 {
     Type *t = isType(o);
     if (t)
@@ -108,22 +108,22 @@ int isError(RootObject *o)
     Dsymbol *s = isDsymbol(o);
     assert(s);
     if (s->errors)
-        return 1;
-    return s->parent ? isError(s->parent) : 0;
+        return true;
+    return s->parent ? isError(s->parent) : false;
 }
 
 /**************************************
  * Are any of the Objects an error?
  */
-int arrayObjectIsError(Objects *args)
+bool arrayObjectIsError(Objects *args)
 {
     for (size_t i = 0; i < args->dim; i++)
     {
         RootObject *o = (*args)[i];
         if (isError(o))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /***********************
@@ -263,11 +263,11 @@ bool definitelyValueParameter(Expression *e)
 }
 
 /******************************
- * If o1 matches o2, return 1.
- * Else, return 0.
+ * If o1 matches o2, return true.
+ * Else, return false.
  */
 
-int match(RootObject *o1, RootObject *o2)
+bool match(RootObject *o1, RootObject *o2)
 {
     Type *t1 = isType(o1);
     Type *t2 = isType(o2);
@@ -334,11 +334,11 @@ int match(RootObject *o1, RootObject *o2)
             goto Lnomatch;
     }
     //printf("match\n");
-    return 1;   // match
+    return true;   // match
 
 Lnomatch:
     //printf("nomatch\n");
-    return 0;   // nomatch;
+    return false;   // nomatch;
 }
 
 
