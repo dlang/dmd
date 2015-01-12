@@ -213,16 +213,6 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
                 ethis = el_una(OPind, TYnptr, ethis);
                 if (fdparent == ad->toParent2())
                     break;
-                if (fd == ad->toParent2())
-                {
-                    /* Remember that frames for functions that have no
-                     * nested references are skipped in the linked list
-                     * of frames.
-                     */
-                    if (ad->toParent2()->isFuncDeclaration()->hasNestedFrameRefs())
-                        ethis = el_una(OPind, TYnptr, ethis);
-                    break;
-                }
                 if (ad->toParent2()->isFuncDeclaration())
                 {
                     /* Remember that frames for functions that have no
