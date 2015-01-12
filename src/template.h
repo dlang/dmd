@@ -158,10 +158,6 @@ public:
     virtual RootObject *defaultArg(Loc loc, Scope *sc) = 0;
     virtual bool hasDefaultArg() = 0;
 
-    /* If TemplateParameter's match as far as overloading goes.
-     */
-    virtual int overloadMatch(TemplateParameter *) = 0;
-
     /* Match actual argument against parameter.
      */
     virtual MATCH matchArg(Loc loc, Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
@@ -194,7 +190,6 @@ public:
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
-    int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
@@ -235,7 +230,6 @@ public:
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
-    int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
@@ -263,7 +257,6 @@ public:
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
-    int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
@@ -285,7 +278,6 @@ public:
     RootObject *specialization();
     RootObject *defaultArg(Loc loc, Scope *sc);
     bool hasDefaultArg();
-    int overloadMatch(TemplateParameter *);
     MATCH matchArg(Loc loc, Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
