@@ -4831,18 +4831,6 @@ void test6084()
 }
 
 /***************************************************/
-// 3133
-
-void test3133()
-{
-    short[2] x = [1,2];
-    int[1] y = cast(int[1])x;
-
-    short[1] z = [1];
-    static assert(!__traits(compiles, y = cast(int[1])z));
-}
-
-/***************************************************/
 // 6763
 
 template TypeTuple6763(TList...)
@@ -7387,7 +7375,6 @@ int main()
     test123();
     test124();
     test125();
-    test3133();
     test6763();
 
     test127();

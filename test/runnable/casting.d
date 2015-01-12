@@ -3,6 +3,15 @@ extern(C) int printf(const char*, ...);
 template Seq(T...) { alias T Seq; }
 
 /***************************************************/
+// 3133
+
+void test3133()
+{
+    short[2] x = [1, 2];
+    auto y = cast(int[1])x;     // no error
+}
+
+/***************************************************/
 // 7504
 
 void test7504() pure nothrow @safe
@@ -87,20 +96,6 @@ void test10497(S10497** s)
 {
     void* ptr;
     *s = cast(S10497*)ptr;
-}
-
-/***************************************************/
-// 10646
-
-void test10646()
-{
-    class C { }
-
-    C[] csd;
-    C[2] css;
-
-    static assert(!__traits(compiles, { auto c1 = cast(C)csd; }));
-    static assert(!__traits(compiles, { auto c2 = cast(C)css; }));
 }
 
 /***************************************************/
@@ -207,10 +202,10 @@ void test11722()
 
 int main()
 {
+    test3133();
     test7504();
     test8119();
     test8645();
-    test10646();
     test10793();
     test10834();
     test10842();
