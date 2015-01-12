@@ -47,6 +47,9 @@ $(DOCDIR)\object.html : src\object.d
 $(DOCDIR)\core_atomic.html : src\core\atomic.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
+$(DOCDIR)\core_attribute.html : src\core\attribute.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
 $(DOCDIR)\core_bitop.html : src\core\bitop.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
@@ -212,6 +215,9 @@ $(IMPDIR)\object.d : src\object.d
 	if exist $(IMPDIR)\object.di del $(IMPDIR)\object.di
 
 $(IMPDIR)\core\atomic.d : src\core\atomic.d
+	copy $** $@
+
+$(IMPDIR)\core\attribute.d : src\core\attribute.d
 	copy $** $@
 
 $(IMPDIR)\core\bitop.d : src\core\bitop.d

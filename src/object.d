@@ -49,6 +49,8 @@ alias immutable(char)[]  string;
 alias immutable(wchar)[] wstring;
 alias immutable(dchar)[] dstring;
 
+version (D_ObjectiveC) public import core.attribute : selector;
+
 /**
  * All D class objects inherit from Object.
  */
