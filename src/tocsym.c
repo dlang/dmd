@@ -504,7 +504,7 @@ Classsym *fake_classsym(Identifier *id)
 {
     TYPE *t = type_struct_class(id->toChars(),8,0,
         NULL,NULL,
-        false, false, true);
+        false, false, true, NULL);
 
     t->Ttag->Sstruct->Sflags = STRglobal;
     t->Tflags |= TFsizeunknown | TFforward;
@@ -541,7 +541,7 @@ Symbol *toVtblSymbol(ClassDeclaration *cd)
 
 Symbol *toInitializer(AggregateDeclaration *ad)
 {
-    if (!ad->sinit)
+    if (!ad->sinit && !ad->isInterfaceDeclaration()) // an interface does not have an initializer
     {
         Classsym *stag = fake_classsym(Id::ClassInfo);
         Symbol *s = toSymbolX(ad, "__init", SCextern, stag->Stype, "Z");

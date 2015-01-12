@@ -1459,6 +1459,8 @@ elem *toElem(Expression *e, IRState *irs)
 
                 if (ne->allocator || ne->onstack)
                 {
+                    Symbol *si = toInitializer(tclass->sym);
+
                     if (ne->onstack)
                     {
                         /* Create an instance of the class on the stack,
@@ -1468,7 +1470,7 @@ elem *toElem(Expression *e, IRState *irs)
                         ::type *tc = type_struct_class(tclass->sym->toChars(),
                                 tclass->sym->alignsize, tclass->sym->structsize,
                                 NULL, NULL,
-                                false, false, true);
+                                false, false, true, si);
                         tc->Tcount--;
                         Symbol *stmp = symbol_genauto(tc);
                         ex = el_ptr(stmp);
@@ -1480,7 +1482,6 @@ elem *toElem(Expression *e, IRState *irs)
                                 ne->allocator, ne->allocator->type, NULL, ne->newargs);
                     }
 
-                    Symbol *si = toInitializer(tclass->sym);
                     elem *ei = el_var(si);
 
                     if (cd->isNested())

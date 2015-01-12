@@ -778,6 +778,31 @@ STATIC char * cv4_prettyident(symbol *s)
 
 #endif
 
+/*********************************************
+ * debug info for a struct/class/union is built with
+ * the initializer, so make sure it is dragged in by the linker
+ * by adding an debug record with a relocation to the init symbol
+ */
+void cv4_initref(Classsym *s)
+{
+    if (s->Sstruct->Sinit && s->Sstruct->Sstructsize > 0) // no reference for empty/forward referenced structs
+    {
+        const int length = 12;
+        unsigned char debsym[12];
+
+        TOWORD(debsym, length - 2);
+        TOWORD(debsym + 2, S_LABEL32);
+        TOLONG(debsym + 4, 0); // offset
+        TOWORD(debsym + 8, 0); // seg
+        debsym[10] = 0;     // flags
+        debsym[11] = 0;     // name-length
+
+        unsigned soffset = Offset(DEBSYM);
+        objmod->write_bytes(SegData[DEBSYM],length,debsym);
+        objmod->reftoident(DEBSYM, soffset + 4, s->Sstruct->Sinit, 0, CFseg | CFoff);
+    }
+}
+
 /****************************
  * Return type index of struct.
  * Input:
@@ -1031,6 +1056,9 @@ printf("fwd struct ref\n");
         {   TOLONG(d->data + 6,0);              // field list is 0
             TOWORD(d->data + 4,property);
         }
+#if MARS
+        cv4_initref(s);
+#endif
         return s->Stypidx;
     }
 

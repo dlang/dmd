@@ -68,6 +68,8 @@ struct F1_Fixups
 
 static Outbuffer *F1fixup;      // array of F1_Fixups
 
+static Outbuffer *initFixup;    // array of init symbols to reference
+
 /* Struct in which to collect per-function data, for later emission
  * into .debug$S.
  */
@@ -91,6 +93,7 @@ static Outbuffer *linepair;     // array of offset/line pairs
 
 unsigned cv8_addfile(const char *filename);
 void cv8_writesection(int seg, unsigned type, Outbuffer *buf);
+void cv8_flushinitref();
 
 void cv8_writename(Outbuffer *buf, const char* name, size_t len)
 {
@@ -160,6 +163,10 @@ void cv8_initfile(const char *filename)
         linepair = new Outbuffer(1024);
     linepair->setsize(0);
 
+    if (!initFixup)
+        initFixup = new Outbuffer(1024);
+    initFixup->setsize(0);
+
     memset(&currentfuncdata, 0, sizeof(currentfuncdata));
     currentfuncdata.f1buf = F1_buf;
     currentfuncdata.f1fixup = F1fixup;
@@ -173,6 +180,9 @@ void cv8_termfile(const char *objfilename)
 
     /* Write out the debug info sections.
      */
+
+    // flush init symbol references for globals
+    cv8_flushinitref();
 
     int seg = MsCoffObj::seg_debugS();
 
@@ -257,6 +267,8 @@ void cv8_termfile(const char *objfilename)
 
     // Write out .debug$T section
     cv_term();
+
+    outfixlist();
 }
 
 /************************************************
@@ -285,6 +297,9 @@ void cv8_termmodule()
  */
 void cv8_func_start(Symbol *sfunc)
 {
+    // flush init symbol references for globals
+    cv8_flushinitref();
+
     //printf("cv8_func_start(%s)\n", sfunc->Sident);
     currentfuncdata.sfunc = sfunc;
     currentfuncdata.section_length = 0;
@@ -403,6 +418,10 @@ void cv8_func_term(Symbol *sfunc)
     /* Put out function return record S_RETURN
      * (VC doesn't, so we won't bother, either.)
      */
+
+    // if this function is written to a COMDAT, append init symbol references
+    if (currentfuncdata.f1buf != F1_buf)
+        cv8_flushinitref();
 
     // Write function end symbol
     buf->writeWord(2);
@@ -762,11 +781,40 @@ int cv8_regnum(Symbol *s)
     return reg;
 }
 
+/*********************************************
+ * flush collected init symbol references
+ * debug info for a struct/class/union is built with
+ * the initializer, so make sure it is dragged in by the linker
+ */
+void cv8_flushinitref()
+{
+    for(unsigned u = 0; u < initFixup->size(); u += sizeof(Symbol*))
+    {
+        Classsym* s = *(Classsym**)(initFixup->buf + u);
+
+        Outbuffer *buf = currentfuncdata.f1buf;
+        buf->reserve(2 + 2 + 2 + 4 + 1 + 1);
+        buf->writeWordn( 2 + 2 + 4 + 1 + 1);
+        buf->writeWordn(S_LABEL32);
+
+        F1_Fixups f1f;
+        f1f.s = s->Sstruct->Sinit;
+        f1f.offset = buf->size();
+        currentfuncdata.f1fixup->write(&f1f, sizeof(f1f));
+
+        buf->write32(0);            // offset
+        buf->writeWordn(0);         // seg
+        buf->writeByten(0);         // flags
+        buf->writeByten(0);         // name.length
+    }
+    initFixup->reset();
+}
+
 /***************************************
  * Put out a forward ref for structs, unions, and classes.
  * Only put out the real definitions with toDebug().
  */
-idx_t cv8_fwdref(Symbol *s)
+idx_t cv8_fwdref(Classsym *s)
 {
     assert(config.fulltypes == CV8);
 //    if (s->Stypidx && !global.params.multiobj)
@@ -810,6 +858,9 @@ idx_t cv8_fwdref(Symbol *s)
     d->data[len + idlen] = 0;
     idx_t typidx = cv_debtyp(d);
     s->Stypidx = typidx;
+
+    if (s->Sstruct->Sinit && s->Sstruct->Sstructsize > 0)
+        initFixup->write(&s, sizeof(s));
 
     return typidx;
 }
