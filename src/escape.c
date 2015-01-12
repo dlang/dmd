@@ -110,9 +110,14 @@ void checkEscape(Scope *sc, Expression *e)
 
         void visit(StructLiteralExp *e)
         {
-            for (size_t i = 0; i < e->elements->dim; i++)
+            if (e->elements)
             {
-                checkEscape(sc, (*e->elements)[i]);
+                for (size_t i = 0; i < e->elements->dim; i++)
+                {
+                    Expression *ex = (*e->elements)[i];
+                    if (ex)
+                        checkEscape(sc, ex);
+                }
             }
         }
 
@@ -123,7 +128,9 @@ void checkEscape(Scope *sc, Expression *e)
             {
                 for (size_t i = 0; i < e->arguments->dim; i++)
                 {
-                    checkEscape(sc, (*e->arguments)[i]);
+                    Expression *ex = (*e->arguments)[i];
+                    if (ex)
+                        checkEscape(sc, ex);
                 }
             }
         }
