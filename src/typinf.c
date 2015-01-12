@@ -33,6 +33,7 @@
 
 Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
+void toObjFile(Dsymbol *ds, bool multiobj);
 
 /*******************************************
  * Get a canonicalized form of the TypeInfo for use with the internal
@@ -147,7 +148,7 @@ void Type::genTypeInfo(Scope *sc)
             }
             else                        // if in obj generation pass
             {
-                t->vtinfo->toObjFile(global.params.multiobj);
+                toObjFile(t->vtinfo, global.params.multiobj);
             }
         }
     }

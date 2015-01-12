@@ -53,6 +53,7 @@ typedef Array<symbol *> symbols;
 Dsymbols *Dsymbols_create();
 Expressions *Expressions_create();
 type *Type_toCtype(Type *t);
+void toObjFile(Dsymbol *ds, bool multiobj);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -121,7 +122,7 @@ void obj_write_deferred(Library *library)
             // it doesn't make sense to make up a module if we don't know where to put the symbol
             //  so output it into it's own object file without ModuleInfo
             objmod->initfile(idstr, NULL, mname);
-            s->toObjFile(0);
+            toObjFile(s, false);
             objmod->termfile();
         }
         else
@@ -309,7 +310,7 @@ void Module::genobjfile(bool multiobj)
         {
             Dsymbol *member = (*members)[i];
             //printf("toObjFile %s %s\n", member->kind(), member->toChars());
-            member->toObjFile(global.params.multiobj);
+            toObjFile(member, global.params.multiobj);
         }
 
         global.params.verbose = v;
@@ -381,7 +382,7 @@ void Module::genobjfile(bool multiobj)
     {
         Dsymbol *member = (*members)[i];
         //printf("toObjFile %s %s\n", member->kind(), member->toChars());
-        member->toObjFile(multiobj);
+        toObjFile(member, multiobj);
     }
 
     if (global.params.cov)
@@ -747,11 +748,9 @@ bool isDruntimeArrayOp(Identifier *ident)
 
 /* ================================================================== */
 
-void FuncDeclaration::toObjFile(bool multiobj)
+void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 {
-    ClassDeclaration *cd = parent->isClassDeclaration();
-    int reverse;
-
+    ClassDeclaration *cd = fd->parent->isClassDeclaration();
     //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", this, parent->toChars(), toChars());
 
     //if (type) printf("type = %s\n", type->toChars());
@@ -768,56 +767,56 @@ void FuncDeclaration::toObjFile(bool multiobj)
     }
 #endif
 
-    if (semanticRun >= PASSobj) // if toObjFile() already run
+    if (fd->semanticRun >= PASSobj) // if toObjFile() already run
         return;
 
-    if (type && type->ty == Tfunction && ((TypeFunction *)type)->next == NULL)
+    if (fd->type && fd->type->ty == Tfunction && ((TypeFunction *)fd->type)->next == NULL)
         return;
 
     // If errors occurred compiling it, such as bugzilla 6118
-    if (type && type->ty == Tfunction && ((TypeFunction *)type)->next->ty == Terror)
+    if (fd->type && fd->type->ty == Tfunction && ((TypeFunction *)fd->type)->next->ty == Terror)
         return;
 
     if (global.errors)
         return;
 
-    if (!fbody)
+    if (!fd->fbody)
         return;
 
-    UnitTestDeclaration *ud = isUnitTestDeclaration();
+    UnitTestDeclaration *ud = fd->isUnitTestDeclaration();
     if (ud && !global.params.useUnitTests)
         return;
 
-    if (multiobj && !isStaticDtorDeclaration() && !isStaticCtorDeclaration())
+    if (multiobj && !fd->isStaticDtorDeclaration() && !fd->isStaticCtorDeclaration())
     {
-        obj_append(this);
+        obj_append(fd);
         return;
     }
 
-    if (semanticRun == PASSsemanticdone)
+    if (fd->semanticRun == PASSsemanticdone)
     {
         /* What happened is this function failed semantic3() with errors,
          * but the errors were gagged.
          * Try to reproduce those errors, and then fail.
          */
-        error("errors compiling the function");
+        fd->error("errors compiling the function");
         return;
     }
-    assert(semanticRun == PASSsemantic3done);
-    assert(ident != Id::empty);
+    assert(fd->semanticRun == PASSsemantic3done);
+    assert(fd->ident != Id::empty);
 
-    for (FuncDeclaration *fd = this; fd; )
+    for (FuncDeclaration *fd2 = fd; fd2; )
     {
-        if (!fd->isInstantiated() && fd->inNonRoot())
+        if (!fd2->isInstantiated() && fd2->inNonRoot())
             return;
-        if (fd->isNested())
-            fd = fd->toParent2()->isFuncDeclaration();
+        if (fd2->isNested())
+            fd2 = fd2->toParent2()->isFuncDeclaration();
         else
             break;
     }
 
-    FuncDeclaration *fdp = toParent2()->isFuncDeclaration();
-    if (isNested())
+    FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
+    if (fd->isNested())
     {
         if (fdp && fdp->semanticRun < PASSobj)
         {
@@ -829,32 +828,32 @@ void FuncDeclaration::toObjFile(bool multiobj)
              */
             if (UnitTestDeclaration *udp = fdp->isUnitTestDeclaration())
             {
-                udp->deferredNested.push(this);
+                udp->deferredNested.push(fd);
                 return;
             }
         }
     }
 
-    if (isArrayOp && isDruntimeArrayOp(ident))
+    if (fd->isArrayOp && isDruntimeArrayOp(fd->ident))
     {
         // Implementation is in druntime
         return;
     }
 
     // start code generation
-    semanticRun = PASSobj;
+    fd->semanticRun = PASSobj;
 
     if (global.params.verbose)
-        fprintf(global.stdmsg, "function  %s\n", toPrettyChars());
+        fprintf(global.stdmsg, "function  %s\n", fd->toPrettyChars());
 
-    Symbol *s = toSymbol(this);
+    Symbol *s = toSymbol(fd);
     func_t *f = s->Sfunc;
 
     // tunnel type of "this" to debug info generation
-    if (AggregateDeclaration* ad = parent->isAggregateDeclaration())
+    if (AggregateDeclaration* ad = fd->parent->isAggregateDeclaration())
     {
         ::type* t = Type_toCtype(ad->getType());
-        if(cd)
+        if (cd)
             t = t->Tnext; // skip reference
         f->Fclass = (Classsym *)t;
     }
@@ -865,7 +864,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
      * function can call the nested fdensure or fdrequire of its overridden function
      * and the stack offsets are the same.
      */
-    if (isVirtual() && (fensure || frequire))
+    if (fd->isVirtual() && (fd->fensure || fd->frequire))
         f->Fflags3 |= Ffakeeh;
 #endif
 
@@ -874,7 +873,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
 #else
     s->Sclass = SCglobal;
 #endif
-    for (Dsymbol *p = parent; p; p = p->parent)
+    for (Dsymbol *p = fd->parent; p; p = p->parent)
     {
         if (p->isTemplateInstance())
         {
@@ -885,10 +884,10 @@ void FuncDeclaration::toObjFile(bool multiobj)
 
     /* Vector operations should be comdat's
      */
-    if (isArrayOp)
+    if (fd->isArrayOp)
         s->Sclass = SCcomdat;
 
-    if (isNested())
+    if (fd->isNested())
     {
         //if (!(config.flags3 & CFG3pic))
         //    s->Sclass = SCstatic;
@@ -899,7 +898,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
          */
         if (fdp && fdp->semanticRun < PASSobj)
         {
-            fdp->toObjFile(multiobj);
+            toObjFile(fdp, multiobj);
         }
     }
     else
@@ -909,7 +908,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
                                 : global.params.defaultlibname;
 
         // Pull in RTL startup code (but only once)
-        if (isMain() && onlyOneMain(loc))
+        if (fd->isMain() && onlyOneMain(fd->loc))
         {
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             objmod->external_def("_main");
@@ -930,7 +929,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
             objmod->includelib(libname);
             s->Sclass = SCglobal;
         }
-        else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc)
+        else if (strcmp(s->Sident, "main") == 0 && fd->linkage == LINKc)
         {
 #if TARGET_WINDOS
             if (global.params.mscoff)
@@ -947,7 +946,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
             s->Sclass = SCglobal;
         }
 #if TARGET_WINDOS
-        else if (isWinMain() && onlyOneMain(loc))
+        else if (fd->isWinMain() && onlyOneMain(fd->loc))
         {
             if (global.params.mscoff)
             {
@@ -965,7 +964,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         }
 
         // Pull in RTL startup code
-        else if (isDllMain() && onlyOneMain(loc))
+        else if (fd->isDllMain() && onlyOneMain(fd->loc))
         {
             if (global.params.mscoff)
             {
@@ -989,30 +988,26 @@ void FuncDeclaration::toObjFile(bool multiobj)
 
     // Find module m for this function
     Module *m = NULL;
-    for (Dsymbol *p = parent; p; p = p->parent)
+    for (Dsymbol *p = fd->parent; p; p = p->parent)
     {
         m = p->isModule();
         if (m)
             break;
     }
 
-    IRState irs(m, this);
+    IRState irs(m, fd);
     Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
 
-    TypeFunction *tf;
-    RET retmethod;
     symbol *shidden = NULL;
     Symbol *sthis = NULL;
-    tym_t tyf;
-
-    tyf = tybasic(s->Stype->Tty);
+    tym_t tyf = tybasic(s->Stype->Tty);
     //printf("linkage = %d, tyf = x%x\n", linkage, tyf);
-    reverse = tyrevfunc(s->Stype->Tty);
+    int reverse = tyrevfunc(s->Stype->Tty);
 
-    assert(type->ty == Tfunction);
-    tf = (TypeFunction *)(type);
-    retmethod = retStyle(tf);
+    assert(fd->type->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)fd->type;
+    RET retmethod = retStyle(tf);
     if (retmethod == RETstack)
     {
         // If function returns a struct, put a pointer to that
@@ -1024,32 +1019,32 @@ void FuncDeclaration::toObjFile(bool multiobj)
         sprintf(hiddenparam,"__HID%d",++hiddenparami);
         shidden = symbol_name(hiddenparam,SCparameter,thidden);
         shidden->Sflags |= SFLtrue | SFLfree;
-        if (nrvo_can && nrvo_var && nrvo_var->nestedrefs.dim)
+        if (fd->nrvo_can && fd->nrvo_var && fd->nrvo_var->nestedrefs.dim)
             type_setcv(&shidden->Stype, shidden->Stype->Tty | mTYvolatile);
         irs.shidden = shidden;
-        this->shidden = shidden;
+        fd->shidden = shidden;
     }
     else
     {
         // Register return style cannot make nrvo.
         // Auto functions keep the nrvo_can flag up to here,
         // so we should eliminate it before entering backend.
-        nrvo_can = 0;
+        fd->nrvo_can = 0;
     }
 
-    if (vthis)
+    if (fd->vthis)
     {
-        assert(!vthis->csym);
-        sthis = toSymbol(vthis);
+        assert(!fd->vthis->csym);
+        sthis = toSymbol(fd->vthis);
         irs.sthis = sthis;
         if (!(f->Fflags3 & Fnested))
             f->Fflags3 |= Fmember;
     }
 
     // Estimate number of parameters, pi
-    size_t pi = (v_arguments != NULL);
-    if (parameters)
-        pi += parameters->dim;
+    size_t pi = (fd->v_arguments != NULL);
+    if (fd->parameters)
+        pi += fd->parameters->dim;
 
     // Create a temporary buffer, params[], to hold function parameters
     Symbol *paramsbuf[10];
@@ -1062,21 +1057,21 @@ void FuncDeclaration::toObjFile(bool multiobj)
 
     // Get the actual number of parameters, pi, and fill in the params[]
     pi = 0;
-    if (v_arguments)
+    if (fd->v_arguments)
     {
-        params[pi] = toSymbol(v_arguments);
+        params[pi] = toSymbol(fd->v_arguments);
         pi += 1;
     }
-    if (parameters)
+    if (fd->parameters)
     {
-        for (size_t i = 0; i < parameters->dim; i++)
+        for (size_t i = 0; i < fd->parameters->dim; i++)
         {
-            VarDeclaration *v = (*parameters)[i];
+            VarDeclaration *v = (*fd->parameters)[i];
             //printf("param[%d] = %p, %s\n", i, v, v->toChars());
             assert(!v->csym);
             params[pi + i] = toSymbol(v);
         }
-        pi += parameters->dim;
+        pi += fd->parameters->dim;
     }
 
     if (reverse)
@@ -1118,7 +1113,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
     }
 
     if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
-         linkage != LINKd && shidden && sthis)
+         fd->linkage != LINKd && shidden && sthis)
     {
         /* swap shidden and sthis
          */
@@ -1157,11 +1152,11 @@ void FuncDeclaration::toObjFile(bool multiobj)
         free(params);
     params = NULL;
 
-    if (fbody)
+    if (fd->fbody)
     {
         localgot = NULL;
 
-        Statement *sbody = fbody;
+        Statement *sbody = fd->fbody;
 
         Blockx bx;
         memset(&bx,0,sizeof(bx));
@@ -1170,8 +1165,8 @@ void FuncDeclaration::toObjFile(bool multiobj)
         bx.funcsym = s;
         bx.scope_index = -1;
         bx.classdec = cd;
-        bx.member = this;
-        bx.module = getModule();
+        bx.member = fd;
+        bx.module = fd->getModule();
         irs.blx = &bx;
 
         /* Doing this in semantic3() caused all kinds of problems:
@@ -1197,27 +1192,27 @@ void FuncDeclaration::toObjFile(bool multiobj)
             Expression *ec = VarExp::create(Loc(), fdpro);
             Expression *e = CallExp::create(Loc(), ec, exps);
             e->type = Type::tvoid;
-            Statement *sp = ExpStatement::create(loc, e);
+            Statement *sp = ExpStatement::create(fd->loc, e);
 
             FuncDeclaration *fdepi = FuncDeclaration::genCfunc(NULL, Type::tvoid, "_c_trace_epi");
             ec = VarExp::create(Loc(), fdepi);
             e = CallExp::create(Loc(), ec);
             e->type = Type::tvoid;
-            Statement *sf = ExpStatement::create(loc, e);
+            Statement *sf = ExpStatement::create(fd->loc, e);
 
             Statement *stf;
-            if (sbody->blockExit(this, false) == BEfallthru)
+            if (sbody->blockExit(fd, false) == BEfallthru)
                 stf = CompoundStatement::create(Loc(), sbody, sf);
             else
                 stf = TryFinallyStatement::create(Loc(), sbody, sf);
             sbody = CompoundStatement::create(Loc(), sp, stf);
         }
 
-        buildClosure(this, &irs);
+        buildClosure(fd, &irs);
 
 #if TARGET_WINDOS
-        if (isSynchronized() && cd && config.flags2 & CFG2seh &&
-            !isStatic() && !sbody->usesEH() && !global.params.trace)
+        if (fd->isSynchronized() && cd && config.flags2 & CFG2seh &&
+            !fd->isStatic() && !sbody->usesEH() && !global.params.trace)
         {
             /* The "jmonitor" hack uses an optimized exception handling frame
              * which is a little shorter than the more general EH frame.
@@ -1232,7 +1227,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
         f->Fstartblock = bx.startblock;
 //      einit = el_combine(einit,bx.init);
 
-        if (isCtorDeclaration())
+        if (fd->isCtorDeclaration())
         {
             assert(sthis);
             for (block *b = f->Fstartblock; b; b = b->Bnext)
@@ -1247,19 +1242,19 @@ void FuncDeclaration::toObjFile(bool multiobj)
     }
 
     // If static constructor
-    if (isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
+    if (fd->isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
     {
         ssharedctors.push(s);
     }
-    else if (isStaticCtorDeclaration())
+    else if (fd->isStaticCtorDeclaration())
     {
         sctors.push(s);
     }
 
     // If static destructor
-    if (isSharedStaticDtorDeclaration())        // must come first because it derives from StaticDtorDeclaration
+    if (fd->isSharedStaticDtorDeclaration())        // must come first because it derives from StaticDtorDeclaration
     {
-        SharedStaticDtorDeclaration *f = isSharedStaticDtorDeclaration();
+        SharedStaticDtorDeclaration *f = fd->isSharedStaticDtorDeclaration();
         assert(f);
         if (f->vgate)
         {
@@ -1270,9 +1265,9 @@ void FuncDeclaration::toObjFile(bool multiobj)
 
         sshareddtors.shift(s);
     }
-    else if (isStaticDtorDeclaration())
+    else if (fd->isStaticDtorDeclaration())
     {
-        StaticDtorDeclaration *f = isStaticDtorDeclaration();
+        StaticDtorDeclaration *f = fd->isStaticDtorDeclaration();
         assert(f);
         if (f->vgate)
         {
@@ -1301,13 +1296,13 @@ void FuncDeclaration::toObjFile(bool multiobj)
     // Restore symbol table
     cstate.CSpsymtab = symtabsave;
 
-    if (isExport())
+    if (fd->isExport())
         objmod->export_symbol(s, Para.offset);
 
     for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
         Dsymbol *s = (*irs.deferToObj)[i];
-        s->toObjFile(0);
+        toObjFile(s, false);
     }
 
     if (ud)
@@ -1315,13 +1310,13 @@ void FuncDeclaration::toObjFile(bool multiobj)
         for (size_t i = 0; i < ud->deferredNested.dim; i++)
         {
             FuncDeclaration *fd = ud->deferredNested[i];
-            fd->toObjFile(0);
+            toObjFile(fd, false);
         }
     }
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // A hack to get a pointer to this function put in the .dtors segment
-    if (ident && memcmp(ident->toChars(), "_STD", 4) == 0)
+    if (fd->ident && memcmp(fd->ident->toChars(), "_STD", 4) == 0)
         objmod->staticdtor(s);
 #endif
     if (irs.startaddress)

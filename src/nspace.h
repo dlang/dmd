@@ -31,7 +31,6 @@ class Nspace : public ScopeDsymbol
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind();
-    void toObjFile(bool multiobj);
     Nspace *isNspace() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };

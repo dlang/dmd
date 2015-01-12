@@ -40,12 +40,10 @@ public:
     Type *memtype;              // type of the members
     Prot protection;
 
-private:
     Expression *maxval;
     Expression *minval;
     Expression *defaultval;     // default initializer
 
-public:
     bool isdeprecated;
     bool added;
     int inuse;
@@ -66,8 +64,6 @@ public:
     Type *getMemtype(Loc loc);
 
     EnumDeclaration *isEnumDeclaration() { return this; }
-
-    void toObjFile(bool multiobj);                       // compile to .obj file
 
     Symbol *sinit;
     Symbol *toInitializer();

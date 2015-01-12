@@ -57,6 +57,7 @@ elem *toElem(Expression *e, IRState *irs);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
 Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz);
+void toObjFile(Dsymbol *ds, bool multiobj);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -4771,7 +4772,7 @@ elem *toElem(Expression *e, IRState *irs)
                 if (vd->storage_class & STCmanifest)
                     return NULL;
                 else if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
-                    vd->toObjFile(0);
+                    toObjFile(vd, false);
                 else
                 {
                     Symbol *sp = toSymbol(s);

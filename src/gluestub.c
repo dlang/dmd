@@ -102,72 +102,6 @@ void Module::genmoduleinfo()
     assert(0);
 }
 
-void Dsymbol::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void ClassDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
-{
-    assert(0);
-    return 0;
-}
-
-void InterfaceDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void StructDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void VarDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void EnumDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void TypeInfoDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void AttribDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void PragmaDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void TemplateInstance::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void TemplateMixin::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void Nspace::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
 // glue
 
 void obj_write_deferred(Library *library)
@@ -184,11 +118,6 @@ void obj_end(Library *library, File *objfile)
 
 void Module::genobjfile(bool multiobj)
 {
-}
-
-void FuncDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
 }
 
 void Module::genhelpers(bool iscomdat)

@@ -237,8 +237,6 @@ public:
     bool inNonRoot();
 
     // Backend
-    virtual void toObjFile(bool multiobj);                       // compile to .obj file
-
     Symbol *toImport();                         // to backend import symbol
     static Symbol *toImport(Symbol *s);         // to backend import symbol
 
