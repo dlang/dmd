@@ -647,32 +647,6 @@ bool TemplateDeclaration::overloadInsert(Dsymbol *s)
     TemplateDeclaration **ptd;
     for (ptd = &pthis; *ptd; ptd = &(*ptd)->overnext)
     {
-#if 0
-        // Conflict if TemplateParameter's match
-        // Will get caught anyway later with TemplateInstance, but
-        // should check it now.
-        TemplateDeclaration *f2 = *ptd;
-
-        if (td->parameters->dim != f2->parameters->dim)
-            goto Lcontinue;
-
-        for (size_t i = 0; i < td->parameters->dim; i++)
-        {
-            TemplateParameter *p1 = (*td->parameters)[i];
-            TemplateParameter *p2 = (*f2->parameters)[i];
-
-            if (!p1->overloadMatch(p2))
-                goto Lcontinue;
-        }
-
-#if LOG
-        printf("\tfalse: conflict\n");
-#endif
-        return false;
-
-     Lcontinue:
-        ;
-#endif
     }
 
     td->overroot = this;
@@ -4753,33 +4727,6 @@ void TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
 #endif
 }
 
-/****************************************
- * Determine if two TemplateParameters are the same
- * as far as TemplateDeclaration overloading goes.
- * Returns:
- *      1       match
- *      0       no match
- */
-
-int TemplateTypeParameter::overloadMatch(TemplateParameter *tp)
-{
-    TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
-
-    if (ttp)
-    {
-        if (specType != ttp->specType)
-            goto Lnomatch;
-
-        if (specType && !specType->equals(ttp->specType))
-            goto Lnomatch;
-
-        return 1;                       // match
-    }
-
-Lnomatch:
-    return 0;
-}
-
 MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
@@ -4995,22 +4942,6 @@ void TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
     if (defaultAlias)
         defaultAlias = defaultAlias->semantic(loc, sc);
 #endif
-}
-
-int TemplateAliasParameter::overloadMatch(TemplateParameter *tp)
-{
-    TemplateAliasParameter *tap = tp->isTemplateAliasParameter();
-
-    if (tap)
-    {
-        if (specAlias != tap->specAlias)
-            goto Lnomatch;
-
-        return 1;                       // match
-    }
-
-Lnomatch:
-    return 0;
 }
 
 MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
@@ -5276,28 +5207,6 @@ void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
 #endif
 }
 
-int TemplateValueParameter::overloadMatch(TemplateParameter *tp)
-{
-    TemplateValueParameter *tvp = tp->isTemplateValueParameter();
-
-    if (tvp)
-    {
-        if (valType != tvp->valType)
-            goto Lnomatch;
-
-        if (valType && !valType->equals(tvp->valType))
-            goto Lnomatch;
-
-        if (specValue != tvp->specValue)
-            goto Lnomatch;
-
-        return 1;                       // match
-    }
-
-Lnomatch:
-    return 0;
-}
-
 MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
@@ -5487,18 +5396,6 @@ void TemplateTupleParameter::declareParameter(Scope *sc)
 
 void TemplateTupleParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
-}
-
-int TemplateTupleParameter::overloadMatch(TemplateParameter *tp)
-{
-    TemplateTupleParameter *tvp = tp->isTemplateTupleParameter();
-
-    if (tvp)
-    {
-        return 1;                       // match
-    }
-
-    return 0;
 }
 
 MATCH TemplateTupleParameter::matchArg(Loc loc, Scope *sc, Objects *tiargs,
