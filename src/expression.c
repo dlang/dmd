@@ -9582,8 +9582,9 @@ Expression *CastExp::semantic(Scope *sc)
             goto Lfail;
         }
 
-        // Bugzilla 10646: Tclass <-- (T[] or T[n])
-        if (tob->ty == Tclass && (t1b->ty == Tarray || t1b->ty == Tsarray))
+        // Bugzilla 10646: Tclass <--> (T[] or T[n])
+        if (tob->ty == Tclass && (t1b->ty == Tarray || t1b->ty == Tsarray) ||
+            t1b->ty == Tclass && (tob->ty == Tarray || tob->ty == Tsarray))
         {
             goto Lfail;
         }

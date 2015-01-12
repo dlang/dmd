@@ -34,21 +34,21 @@ void test9904()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(47): Error: cannot cast expression csd of type Object[] to object.Object
-fail_compilation/fail_casting.d(48): Error: cannot cast expression css of type Object[2] to object.Object
+fail_compilation/fail_casting.d(46): Error: cannot cast expression x of type Object[] to object.Object
+fail_compilation/fail_casting.d(47): Error: cannot cast expression x of type Object[2] to object.Object
+fail_compilation/fail_casting.d(49): Error: cannot cast expression x of type object.Object to Object[]
+fail_compilation/fail_casting.d(50): Error: cannot cast expression x of type object.Object to Object[2]
 ---
 */
-
-
 void test10646()
 {
-    Object[] csd;
-    Object[2] css;
-    { auto c1 = cast(Object)csd; }
-    { auto c2 = cast(Object)css; }
+    // T[] or T[n] --> Tclass
+    { Object[]  x; auto y = cast(Object)x; }
+    { Object[2] x; auto y = cast(Object)x; }
+    // T[] or T[n] <-- Tclass
+    { Object x; auto y = cast(Object[] )x; }
+    { Object x; auto y = cast(Object[2])x; }
 }
-
-
 
 /*
 TEST_OUTPUT:
