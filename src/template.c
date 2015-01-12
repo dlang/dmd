@@ -4713,7 +4713,7 @@ bool TemplateTypeParameter::declareParameter(Scope *sc)
     //printf("TemplateTypeParameter::declareParameter('%s')\n", ident->toChars());
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     Declaration *ad = new AliasDeclaration(loc, ident, ti);
-    return sc->insert(ad);
+    return sc->insert(ad) != NULL;
 }
 
 bool TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
@@ -4907,7 +4907,7 @@ bool TemplateAliasParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     Declaration *ad = new AliasDeclaration(loc, ident, ti);
-    return sc->insert(ad);
+    return sc->insert(ad) != NULL;
 }
 
 RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplateParameters *parameters)
@@ -5163,7 +5163,7 @@ bool TemplateValueParameter::declareParameter(Scope *sc)
 {
     VarDeclaration *v = new VarDeclaration(loc, valType, ident, NULL);
     v->storage_class = STCtemplateparameter;
-    return sc->insert(v);
+    return sc->insert(v) != NULL;
 }
 
 bool TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
@@ -5384,7 +5384,7 @@ bool TemplateTupleParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     Declaration *ad = new AliasDeclaration(loc, ident, ti);
-    return sc->insert(ad);
+    return sc->insert(ad) != NULL;
 }
 
 bool TemplateTupleParameter::semantic(Scope *sc, TemplateParameters *parameters)

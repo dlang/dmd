@@ -851,9 +851,9 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
 
     if (exp->type->ty == Ttuple && ((TypeTuple *)exp->type)->arguments->dim == 0)
     {
-        Type *t = exp->type;
+        Type *et = exp->type;
         exp = new TupleExp(exp->loc, new Expressions());
-        exp->type = t;
+        exp->type = et;
     }
     if (exp->op == TOKtype)
     {
