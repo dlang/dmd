@@ -114,3 +114,18 @@ void test8179()
     { typeof(null) x; auto y = cast(int[2])x; }
     { int[2] x;       auto y = cast(typeof(null))x; }
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_casting.d(128): Error: cannot cast expression x of type S to int*
+fail_compilation/fail_casting.d(130): Error: cannot cast expression x of type void* to S
+---
+*/
+void test13959()
+{
+    struct S { int* p; }
+    { S     x; auto y = cast(int*)x; }
+    { int*  x; auto y = cast(S)x; }     // no error so it's rewritten as: S(x)
+    { void* x; auto y = cast(S)x; }
+}

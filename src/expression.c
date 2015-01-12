@@ -9583,6 +9583,13 @@ Expression *CastExp::semantic(Scope *sc)
             goto Lfail;
         }
 
+        // Bugzilla 13959: Tstruct <--> Tpointer
+        if ((tob->ty == Tstruct && t1b->ty == Tpointer) ||
+            (t1b->ty == Tstruct && tob->ty == Tpointer))
+        {
+            goto Lfail;
+        }
+
         // Bugzilla 10646: Tclass <--> (T[] or T[n])
         if (tob->ty == Tclass && (t1b->ty == Tarray || t1b->ty == Tsarray) ||
             t1b->ty == Tclass && (tob->ty == Tarray || tob->ty == Tsarray))
