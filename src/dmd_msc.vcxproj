@@ -101,6 +101,7 @@
     <ClCompile Include="entity.c" />
     <ClCompile Include="enum.c" />
     <ClCompile Include="errors.c" />
+    <ClCompile Include="escape.c" />
     <ClCompile Include="expression.c" />
     <ClCompile Include="func.c" />
     <ClCompile Include="globals.c" />

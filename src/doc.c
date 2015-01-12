@@ -2331,6 +2331,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 break;
 
             case '`':
+            {
                 if (inBacktick)
                 {
                     inBacktick = 0;
@@ -2362,7 +2363,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 iCodeStart = i;
 
                 break;
-
+            }
             case '-':
                 /* A line beginning with --- delimits a code section.
                  * inCode tells us if it is start or end of a code section.
