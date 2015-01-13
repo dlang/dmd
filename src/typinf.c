@@ -46,14 +46,12 @@ Symbol *toInitializer(EnumDeclaration *ed);
  * so we can use the custom internal ones more.
  */
 
-Expression *Type::getInternalTypeInfo(Scope *sc)
-{   TypeInfoDeclaration *tid;
-    Expression *e;
-    Type *t;
+Expression *getInternalTypeInfo(Type *t, Scope *sc)
+{
     static TypeInfoDeclaration *internalTI[TMAX];
 
-    //printf("Type::getInternalTypeInfo() %s\n", toChars());
-    t = toBasetype();
+    //printf("Type::getInternalTypeInfo() %s\n", t->toChars());
+    t = t->toBasetype();
     switch (t->ty)
     {
         case Tsarray:
@@ -79,16 +77,18 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
         case Tdelegate:
         case Tpointer:
         Linternal:
-            tid = internalTI[t->ty];
+        {
+            TypeInfoDeclaration *tid = internalTI[t->ty];
             if (!tid)
-            {   tid = TypeInfoDeclaration::create(t, 1);
+            {
+                tid = TypeInfoDeclaration::create(t, 1);
                 internalTI[t->ty] = tid;
             }
-            e = VarExp::create(Loc(), tid);
+            Expression *e = VarExp::create(Loc(), tid);
             e = e->addressOf();
             e->type = tid->type;        // do this so we don't get redundant dereference
             return e;
-
+        }
         default:
             break;
     }

@@ -66,6 +66,7 @@ Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags);
 Symbol* toSymbol(StructLiteralExp *sle);
 Symbol* toSymbol(ClassReferenceExp *cre);
+Expression *getInternalTypeInfo(Type *t, Scope *sc);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -2007,7 +2008,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ea1 = eval_Darray(ce->e1);
                 elem *ea2 = eval_Darray(ce->e2);
 
-                elem *ep = el_params(toElem(telement->arrayOf()->getInternalTypeInfo(NULL), irs),
+                elem *ep = el_params(toElem(getInternalTypeInfo(telement->arrayOf(), NULL), irs),
                         ea2, ea1, NULL);
                 int rtlfunc = RTLSYM_ARRAYCMP2;
                 e = el_bin(OPcall, TYint, el_var(rtlsym[rtlfunc]), ep);
@@ -2142,7 +2143,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ea1 = eval_Darray(ee->e1);
                 elem *ea2 = eval_Darray(ee->e2);
 
-                elem *ep = el_params(toElem(telement->arrayOf()->getInternalTypeInfo(NULL), irs),
+                elem *ep = el_params(toElem(getInternalTypeInfo(telement->arrayOf(), NULL), irs),
                         ea2, ea1, NULL);
                 int rtlfunc = RTLSYM_ARRAYEQ2;
                 e = el_bin(OPcall, TYint, el_var(rtlsym[rtlfunc]), ep);
@@ -2237,7 +2238,7 @@ elem *toElem(Expression *e, IRState *irs)
             // aaInX(aa, keyti, key);
             key = addressElem(key, ie->e1->type);
             Symbol *s = aaGetSymbol(taa, "InX", 0);
-            elem *keyti = toElem(taa->index->getInternalTypeInfo(NULL), irs);
+            elem *keyti = toElem(getInternalTypeInfo(taa->index, NULL), irs);
             elem *ep = el_params(key, keyti, aa, NULL);
             elem *e = el_bin(OPcall, totym(ie->type), el_var(s), ep);
 
@@ -2258,7 +2259,7 @@ elem *toElem(Expression *e, IRState *irs)
 
             ekey = addressElem(ekey, re->e1->type);
             Symbol *s = aaGetSymbol(taa, "DelX", 0);
-            elem *keyti = toElem(taa->index->getInternalTypeInfo(NULL), irs);
+            elem *keyti = toElem(getInternalTypeInfo(taa->index, NULL), irs);
             elem *ep = el_params(ekey, keyti, ea, NULL);
             elem *e = el_bin(OPcall, TYnptr, el_var(s), ep);
 
@@ -4564,7 +4565,7 @@ elem *toElem(Expression *e, IRState *irs)
                     s = aaGetSymbol(taa, "GetRvalueX", 1);
                 }
                 //printf("taa->index = %s\n", taa->index->toChars());
-                elem* keyti = toElem(taa->index->getInternalTypeInfo(NULL), irs);
+                elem* keyti = toElem(getInternalTypeInfo(taa->index, NULL), irs);
                 //keyti = toElem(taa->index->getTypeInfo(NULL), irs);
                 //printf("keyti:\n");
                 //elem_print(keyti);

@@ -77,7 +77,7 @@ void backend_term()
 
 // typinf
 
-Expression *Type::getInternalTypeInfo(Scope *sc)
+Expression *getInternalTypeInfo(Type *t, Scope *sc)
 {
     assert(0);
     return NULL;

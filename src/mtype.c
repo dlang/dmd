@@ -55,6 +55,7 @@ int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
 
 Symbol *toInitializer(AggregateDeclaration *ad);
+Expression *getInternalTypeInfo(Type *t, Scope *sc);
 
 /***************************** Type *****************************/
 
@@ -3749,7 +3750,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         // don't convert to dynamic array
         arguments->push(n->ty == Tsarray
                     ? n->getTypeInfo(sc)
-                    : n->getInternalTypeInfo(sc));
+                    : getInternalTypeInfo(n, sc));
         e = new CallExp(e->loc, ec, arguments);
         e->type = next->arrayOf();
     }
