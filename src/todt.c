@@ -48,6 +48,8 @@ dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts 
 dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
 Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
+unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc);
+void toObjFile(Dsymbol *ds, bool multiobj);
 
 /* ================================================================ */
 
@@ -548,7 +550,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 pdt = NULL;
                 return;
             }
-            e->fd->toObjFile(0);
+            toObjFile(e->fd, false);
             pdt = dtxoff(pdt, s, 0);
         }
 
@@ -677,7 +679,7 @@ void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteTyp
         for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
         {
             assert(cd2);
-            unsigned csymoffset = cd2->baseVtblOffset(b);
+            unsigned csymoffset = baseVtblOffset(cd2, b);
             if (csymoffset != ~0)
             {
                 if (offset < b->offset)
@@ -948,7 +950,7 @@ dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts 
         for (ClassDeclaration *cd2 = ce->originalClass(); 1; cd2 = cd2->baseClass)
         {
             assert(cd2);
-            unsigned csymoffset = cd2->baseVtblOffset(b);
+            unsigned csymoffset = baseVtblOffset(cd2, b);
             if (csymoffset != ~0)
             {
                 if (offset < b->offset)

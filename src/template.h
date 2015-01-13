@@ -342,7 +342,6 @@ public:
     hash_t hashCode();
 
     bool needsCodegen();
-    void toObjFile(bool multiobj);                       // compile to .obj file
 
     // Internal
     bool findTempDecl(Scope *sc, WithScopeSymbol **pwithsym);
@@ -378,8 +377,6 @@ public:
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
-
-    void toObjFile(bool multiobj);                       // compile to .obj file
 
     bool findTempDecl(Scope *sc);
 

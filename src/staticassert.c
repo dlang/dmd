@@ -115,10 +115,6 @@ bool StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
     return true;
 }
 
-void StaticAssert::toObjFile(bool multiobj)
-{
-}
-
 const char *StaticAssert::kind()
 {
     return "static assert";

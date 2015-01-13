@@ -55,7 +55,6 @@ public:
     void addLocalClass(ClassDeclarations *);
     AttribDeclaration *isAttribDeclaration() { return this; }
 
-    void toObjFile(bool multiobj);                       // compile to .obj file
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -150,7 +149,6 @@ public:
     void semantic(Scope *sc);
     void setScope(Scope *sc);
     const char *kind();
-    void toObjFile(bool multiobj);                       // compile to .obj file
     void accept(Visitor *v) { v->visit(this); }
 };
 
