@@ -1096,23 +1096,20 @@ class GC
     }
 
 
+    private auto rootIterImpl(scope int delegate(ref Root) nothrow dg) nothrow
+    {
+        gcLock.lock();
+        auto res = gcx.roots.opApply(dg);
+        gcLock.unlock();
+        return res;
+    }
+
     /**
      *
      */
     @property auto rootIter() @nogc
     {
-        static struct Iter
-        {
-            private GC gc;
-            auto opApply(scope int delegate(ref Root) nothrow dg)
-            {
-                gc.gcLock.lock();
-                auto res = gc.gcx.roots.opApply(dg);
-                gc.gcLock.unlock();
-                return res;
-            }
-        }
-        return Iter(this);
+        return &rootIterImpl;
     }
 
 
@@ -1161,23 +1158,20 @@ class GC
         gcLock.unlock();
     }
 
+    private auto rangeIterImpl(scope int delegate(ref Range) nothrow dg) nothrow
+    {
+        gcLock.lock();
+        auto res = gcx.ranges.opApply(dg);
+        gcLock.unlock();
+        return res;
+    }
+
     /**
      *
      */
     @property auto rangeIter() @nogc
     {
-        static struct Iter
-        {
-            private GC gc;
-            auto opApply(scope int delegate(ref Range) nothrow dg)
-            {
-                gc.gcLock.lock();
-                auto res = gc.gcx.ranges.opApply(dg);
-                gc.gcLock.unlock();
-                return res;
-            }
-        }
-        return Iter(this);
+        return &rangeIterImpl;
     }
 
 
