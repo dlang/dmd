@@ -44,7 +44,7 @@ Expression *expandVar(int result, VarDeclaration *v)
             return e;
         }
         Type *tb = v->type->toBasetype();
-        if ( v->storage_class & STCmanifest ||
+        if (v->storage_class & STCmanifest ||
             v->type->toBasetype()->isscalar() ||
             ((result & WANTexpand) && (tb->ty != Tsarray && tb->ty != Tstruct))
            )
@@ -52,7 +52,8 @@ Expression *expandVar(int result, VarDeclaration *v)
             if (v->init)
             {
                 if (v->inuse)
-                {   if (v->storage_class & STCmanifest)
+                {
+                    if (v->storage_class & STCmanifest)
                     {
                         v->error("recursive initialization of constant");
                         goto Lerror;
@@ -61,7 +62,8 @@ Expression *expandVar(int result, VarDeclaration *v)
                 }
                 Expression *ei = v->getConstInitializer();
                 if (!ei)
-                {   if (v->storage_class & STCmanifest)
+                {
+                    if (v->storage_class & STCmanifest)
                     {
                         v->error("enum cannot be initialized with %s", v->init->toChars());
                         goto Lerror;
@@ -69,16 +71,19 @@ Expression *expandVar(int result, VarDeclaration *v)
                     goto L1;
                 }
                 if (ei->op == TOKconstruct || ei->op == TOKblit)
-                {   AssignExp *ae = (AssignExp *)ei;
+                {
+                    AssignExp *ae = (AssignExp *)ei;
                     ei = ae->e2;
                     if (ei->isConst() != 1 && ei->op != TOKstring)
                         goto L1;
 
                     if (ei->type == v->type)
-                    {   // const variable initialized with const expression
+                    {
+                        // const variable initialized with const expression
                     }
                     else if (ei->implicitConvTo(v->type) >= MATCHconst)
-                    {   // const var initialized with non-const expression
+                    {
+                        // const var initialized with non-const expression
                         ei = ei->implicitCastTo(NULL, v->type);
                         ei = ei->semantic(NULL);
                     }
@@ -134,7 +139,8 @@ Expression *fromConstInitializer(int result, Expression *e1)
     //static int xx; if (xx++ == 10) assert(0);
     Expression *e = e1;
     if (e1->op == TOKvar)
-    {   VarExp *ve = (VarExp *)e1;
+    {
+        VarExp *ve = (VarExp *)e1;
         VarDeclaration *v = ve->var->isVarDeclaration();
         e = expandVar(result, v);
         if (e)
@@ -147,7 +153,8 @@ Expression *fromConstInitializer(int result, Expression *e1)
             else
 
             if (e->type != e1->type && e1->type && e1->type->ty != Tident)
-            {   // Type 'paint' operation
+            {
+                // Type 'paint' operation
                 e = e->copy();
                 e->type = e1->type;
             }
