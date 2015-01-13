@@ -217,6 +217,7 @@ public:
     static ClassDeclaration *typeinfowild;
 
     static TemplateDeclaration *rtinfo;
+    static TemplateDeclaration *aaLiteral;
 
     static Type *basic[TMAX];
     static unsigned char sizeTy[TMAX];
@@ -520,6 +521,7 @@ class TypeAArray : public TypeArray
 {
 public:
     Type *index;                // key type
+    FuncDeclaration *aaLiteral;
     Loc loc;
     Scope *sc;
 

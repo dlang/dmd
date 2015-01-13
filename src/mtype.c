@@ -75,6 +75,7 @@ ClassDeclaration *Type::typeinfoshared;
 ClassDeclaration *Type::typeinfowild;
 
 TemplateDeclaration *Type::rtinfo;
+TemplateDeclaration *Type::aaLiteral;
 
 Type *Type::tvoid;
 Type *Type::tint8;
@@ -4480,6 +4481,7 @@ TypeAArray::TypeAArray(Type *t, Type *index)
     this->index = index;
     this->loc = Loc();
     this->sc = NULL;
+    this->aaLiteral = NULL;
 }
 
 TypeAArray *TypeAArray::create(Type *t, Type *index)
@@ -4502,6 +4504,7 @@ Type *TypeAArray::syntaxCopy()
     {
         t = new TypeAArray(t, ti);
         t->mod = mod;
+        ((TypeAArray *)t)->aaLiteral = aaLiteral;
     }
     return t;
 }
@@ -4700,7 +4703,19 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
     {   error(loc, "cannot have array of scope %s", next->toChars());
         return Type::terror;
     }
-    return merge();
+    TypeAArray *res = (TypeAArray *)merge();
+    if (!res->aaLiteral)
+    {
+        // resolve aaLiteral!(Key, Value)(Key[] keys, Value[] values)
+        Objects *tiargs = new Objects();
+        tiargs->push(index);
+        tiargs->push(next);
+        Expressions *fargs = new Expressions();
+        fargs->push(new NullExp(loc, index->arrayOf()));
+        fargs->push(new NullExp(loc, next->arrayOf()));
+        res->aaLiteral = resolveFuncCall(loc, sc, Type::aaLiteral, tiargs, NULL, fargs);
+    }
+    return res;
 }
 
 void TypeAArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
