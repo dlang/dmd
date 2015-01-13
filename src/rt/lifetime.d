@@ -216,7 +216,7 @@ size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
 {
     if (!callStructDtorsDuringGC)
         return 0;
-		
+        
     if (ti && typeid(ti) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
     {
         auto sti = cast(TypeInfo_Struct)cast(void*)ti;
@@ -1643,13 +1643,13 @@ body
                             // a chance that flags have changed since this was cached, we should fetch the most recent flags
                             info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
                         }
-						info = GC.qalloc(newsize + __arrayPad(newsize, tinext), info.attr, ti);
+                        info = GC.qalloc(newsize + __arrayPad(newsize, tinext), info.attr, ti);
                     }
                     else
                     {
-						info = GC.qalloc(newsize + __arrayPad(newsize, tinext), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
+                        info = GC.qalloc(newsize + __arrayPad(newsize, tinext), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
                     }
-					__setArrayAllocLength(info, newsize, isshared, tinext);
+                    __setArrayAllocLength(info, newsize, isshared, tinext);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
                     newdata = cast(byte *)__arrayStart(info);
@@ -1827,13 +1827,13 @@ body
                             // a chance that flags have changed since this was cached, we should fetch the most recent flags
                             info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
                         }
-						info = GC.qalloc(newsize + __arrayPad(newsize, tinext), info.attr, ti);
+                        info = GC.qalloc(newsize + __arrayPad(newsize, tinext), info.attr, ti);
                     }
                     else
                     {
-						info = GC.qalloc(newsize + __arrayPad(newsize, tinext), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
+                        info = GC.qalloc(newsize + __arrayPad(newsize, tinext), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
                     }
-					__setArrayAllocLength(info, newsize, isshared, tinext);
+                    __setArrayAllocLength(info, newsize, isshared, tinext);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
                     newdata = cast(byte *)__arrayStart(info);
@@ -2113,13 +2113,13 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
                 // a chance that flags have changed since this was cached, we should fetch the most recent flags
                 info.attr = GC.getAttr(info.base) | BlkAttr.APPENDABLE;
             }
-			info = GC.qalloc(newcap + __arrayPad(newcap, tinext), info.attr, ti);
+            info = GC.qalloc(newcap + __arrayPad(newcap, tinext), info.attr, ti);
         }
         else
         {
-			info = GC.qalloc(newcap + __arrayPad(newcap, tinext), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
+            info = GC.qalloc(newcap + __arrayPad(newcap, tinext), !(ti.next.flags & 1) ? (BlkAttr.NO_SCAN | BlkAttr.APPENDABLE) : BlkAttr.APPENDABLE, ti);
         }
-		__setArrayAllocLength(info, newsize, isshared, tinext);
+        __setArrayAllocLength(info, newsize, isshared, tinext);
         if(!isshared)
             __insertBlkInfoCache(info, bic);
         auto newdata = cast(byte *)__arrayStart(info);

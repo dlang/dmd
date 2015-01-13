@@ -2075,14 +2075,14 @@ struct Gcx
     }
 
 
-	void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
+    void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
     {
         immutable bin = findBin(size);
         return bin < B_PAGE ? smallAlloc(bin, alloc_size, bits) :
             bigAlloc(size, alloc_size, bits);
     }
 
-	void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits) nothrow
+    void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits) nothrow
     {
         alloc_size = binsize[bin];
 
@@ -2131,7 +2131,7 @@ struct Gcx
      * Allocate a chunk of memory that is larger than a page.
      * Return null if out of memory.
      */
-	void* bigAlloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti = null) nothrow
+    void* bigAlloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti = null) nothrow
     {
         debug(PRINTF) printf("In bigAlloc.  Size:  %d\n", size);
 
@@ -2202,7 +2202,7 @@ struct Gcx
         alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %p\n", p);
 
-		if (bits) setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits);
+        if (bits) setBits(pool, pn * PAGESIZE >> pool.shiftBy, bits);
         return p;
     }
 
