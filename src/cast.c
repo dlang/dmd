@@ -134,6 +134,13 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             visit((Expression *)e);
         }
 
+        void visit(AssocArrayLiteralExp *e)
+        {
+            //printf("AssocArrayLiteralExp::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
+            visit((Expression *)e);
+            aaLiteralCreate(sc, t);
+        }
+
         void visit(ArrayLiteralExp *e)
         {
             visit((Expression *)e);
@@ -2005,6 +2012,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     (*ae->keys)[i] = ex;
                 }
                 ae->type = t;
+                aaLiteralCreate(sc, t);
                 result = ae;
                 return;
             }

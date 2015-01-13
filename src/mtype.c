@@ -75,6 +75,7 @@ ClassDeclaration *Type::typeinfoshared;
 ClassDeclaration *Type::typeinfowild;
 
 TemplateDeclaration *Type::rtinfo;
+TemplateDeclaration *Type::aaLiteral;
 
 Type *Type::tvoid;
 Type *Type::tint8;
@@ -4480,6 +4481,7 @@ TypeAArray::TypeAArray(Type *t, Type *index)
     this->index = index;
     this->loc = Loc();
     this->sc = NULL;
+    this->aaLiteral = NULL;
 }
 
 TypeAArray *TypeAArray::create(Type *t, Type *index)
@@ -4502,6 +4504,8 @@ Type *TypeAArray::syntaxCopy()
     {
         t = new TypeAArray(t, ti);
         t->mod = mod;
+        ((TypeAArray *)t)->aaLiteral = aaLiteral;
+        ((TypeAArray *)t)->sc = sc;
     }
     return t;
 }
@@ -4509,6 +4513,82 @@ Type *TypeAArray::syntaxCopy()
 d_uns64 TypeAArray::size(Loc loc)
 {
     return Target::ptrsize;
+}
+
+void aaLiteralCreate(Scope *sc, Type *t)
+{
+    if (!Type::aaLiteral)
+    {
+        ObjectNotFound(Id::aaLiteral);
+        assert(0);
+    }
+
+    class AALiteralVisitor : public Visitor
+    {
+        Scope *sc;
+    public:
+        AALiteralVisitor(Scope *sc)
+        {
+            this->sc = sc;
+        }
+
+        void visit(Type *t)
+        {
+        }
+
+        void visit(TypeNext *n)
+        {
+            n->next->accept(this);
+        }
+
+        void visit(TypeEnum *e)
+        {
+            if (e->sym->isforwardRef())
+                return;
+            e->toBasetype()->accept(this);
+        }
+
+        void visit(TypeAArray *aa)
+        {
+            if (!aa->aaLiteral && aa->next->ty != Terror && aa->index->ty != Terror)
+            {
+                //printf("TypeAArray::aaLiteralCreate() %s; %p\n", aa->toChars(), aa);
+                assert(sc);
+
+                if (sc && !sc->module->isRoot() && (!sc->tinst || !sc->tinst->needsCodegen()))
+                    return;
+
+                assert(aa->deco);
+                Objects *tiargs = new Objects();
+                Type *tkey = aa->index;
+                Type *tvalue = aa->next;
+
+                if ((tkey->ty == Tclass || tkey->ty == Tstruct || tkey->ty == Tenum) &&
+                    tkey->toDsymbol(NULL)->isforwardRef())
+                    return;
+
+                if ((tvalue->ty == Tclass || tvalue->ty == Tstruct || tvalue->ty == Tenum) &&
+                    tvalue->toDsymbol(NULL)->isforwardRef())
+                    return;
+
+                tiargs->push(tkey);
+                tiargs->push(tvalue);
+                assert(tkey && tkey->deco);
+                assert(tvalue && tvalue->deco);
+                Expressions *fargs = new Expressions();
+                fargs->push(new NullExp(aa->loc, tkey->arrayOf()));
+                fargs->push(new NullExp(aa->loc, tvalue->arrayOf()));
+                FuncDeclaration *aaliteralfunc = resolveFuncCall(aa->loc, sc, Type::aaLiteral, tiargs, NULL, fargs);
+                assert(aaliteralfunc);
+                if (!aaliteralfunc->isInstantiated()->needsCodegen())
+                    return;
+                aa->aaLiteral = aaliteralfunc;
+            }
+        }
+    };
+
+    AALiteralVisitor v(sc);
+    t->accept(&v);
 }
 
 Type *TypeAArray::semantic(Loc loc, Scope *sc)
