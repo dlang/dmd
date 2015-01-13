@@ -111,7 +111,7 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 Expression *ctfeInterpretForPragmaMsg(Expression *e);
 
 #define WANTvalue   0   // default
-#define WANTexpand  8   // expand const/immutable variables if possible
+#define WANTexpand  1   // expand const/immutable variables if possible
 
 class Expression : public RootObject
 {
