@@ -30,6 +30,7 @@ struct Config
     size_t minPoolSize = 1;  // initial and minimum pool size (MB)
     size_t maxPoolSize = 64; // maximum pool size (MB)
     size_t incPoolSize = 3;  // pool size increment (MB)
+    float heapSizeFactor = 2.0;
 
     bool initialize() @nogc
     {
@@ -62,9 +63,10 @@ struct Config
     minPoolSize:N  - initial and minimum pool size in MB (%lld)
     maxPoolSize:N  - maximum pool size in MB (%lld)
     incPoolSize:N  - pool size increment MB (%lld)
+    heapSizeFactor:N - targeted heap size to used memory ratio (%f)
 ";
-        printf(s.ptr, disable, profile, cast(long)initReserve,
-               cast(long)minPoolSize, cast(long)maxPoolSize, cast(long)incPoolSize);
+        printf(s.ptr, disable, profile, cast(long)initReserve, cast(long)minPoolSize,
+               cast(long)maxPoolSize, cast(long)incPoolSize, heapSizeFactor);
     }
 
     bool parseOptions(const(char)[] opt) @nogc nothrow
@@ -90,6 +92,7 @@ struct Config
             {
                 auto r = q + 1;
                 size_t v = 0;
+                // TODO: scanf
                 for ( ; r < opt.length && isdigit(opt[r]); r++)
                     v = v * 10 + opt[r] - '0';
                 if(r == q + 1)
@@ -113,6 +116,8 @@ struct Config
                     maxPoolSize = v;
                 else if(s == "incPoolSize")
                     incPoolSize = v;
+                else if(s == "heapSizeFactor")
+                    heapSizeFactor = v;
                 else
                 {
                     printf("Unknown GC option \"%.*s\"\n", cast(int) s.length, s.ptr);
