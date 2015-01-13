@@ -334,7 +334,6 @@ public:
     virtual bool isZeroInit(Loc loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent(int internal);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    virtual int builtinTypeInfo();
     virtual int hasWild();
     virtual Expression *toExpression();
     virtual int hasPointers();
@@ -414,7 +413,6 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    int builtinTypeInfo();
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic();
@@ -503,7 +501,6 @@ public:
     bool checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
-    int builtinTypeInfo();
     int hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -852,7 +849,6 @@ public:
     bool isscope();
     bool checkBoolean();
     int hasPointers();
-    int builtinTypeInfo();
 
     void accept(Visitor *v) { v->visit(this); }
 };
