@@ -2163,7 +2163,7 @@ public:
         if (e->e1->op == TOKvar && ((VarExp *)e->e1)->var->isDataseg())
         {
             // Normally this is already done by optimize()
-            // Do it here in case optimize(0) wasn't run before CTFE
+            // Do it here in case optimize(WANTvalue) wasn't run before CTFE
             result = new SymOffExp(e->loc, ((VarExp *)e->e1)->var, 0);
             result->type = e->type;
             return;

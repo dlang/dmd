@@ -12934,7 +12934,7 @@ Expression *OrOrExp::semantic(Scope *sc)
     {
         /* If in static if, don't evaluate e2 if we don't have to.
          */
-        e1 = e1->optimize(0);
+        e1 = e1->optimize(WANTvalue);
         if (e1->isBool(true))
         {
             return new IntegerExp(loc, 1, Type::tboolean);
@@ -12992,7 +12992,7 @@ Expression *AndAndExp::semantic(Scope *sc)
     {
         /* If in static if, don't evaluate e2 if we don't have to.
          */
-        e1 = e1->optimize(0);
+        e1 = e1->optimize(WANTvalue);
         if (e1->isBool(false))
         {
             return new IntegerExp(loc, 0, Type::tboolean);

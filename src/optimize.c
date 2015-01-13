@@ -210,7 +210,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 for (size_t i = 0; i < e->elements->dim; i++)
                 {
                     Expression *el = (*e->elements)[i];
-                    el = el->optimize(WANTvalue | (result & WANTexpand));
+                    el = el->optimize(result & WANTexpand);
                     (*e->elements)[i] = el;
                 }
             }
@@ -222,11 +222,11 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             for (size_t i = 0; i < e->keys->dim; i++)
             {
                 Expression *key = (*e->keys)[i];
-                key = key->optimize(WANTvalue | (result & WANTexpand));
+                key = key->optimize(result & WANTexpand);
                 (*e->keys)[i] = key;
 
                 Expression *value = (*e->values)[i];
-                value = value->optimize(WANTvalue | (result & WANTexpand));
+                value = value->optimize(result & WANTexpand);
                 (*e->values)[i] = value;
             }
         }
@@ -243,7 +243,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                     Expression *el = (*e->elements)[i];
                     if (!el)
                         continue;
-                    el = el->optimize(WANTvalue | (result & WANTexpand));
+                    el = el->optimize(result & WANTexpand);
                     (*e->elements)[i] = el;
                 }
             }
@@ -949,7 +949,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             // In particular, if the comma returns a temporary variable, it needs
             // to be an lvalue (this is particularly important for struct constructors)
 
-            e->e1 = e->e1->optimize(0);
+            e->e1 = e->e1->optimize(WANTvalue);
             e->e2 = e->e2->optimize(result, keepLvalue);
             if (e->e1->op == TOKerror)
             {
@@ -969,7 +969,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(ArrayLengthExp *e)
         {
             //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(WANTvalue | WANTexpand);
+            e->e1 = e->e1->optimize(WANTexpand);
             if (e->e1->op == TOKerror)
             {
                 ret = e->e1;
@@ -1077,7 +1077,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(IndexExp *e)
         {
             //printf("IndexExp::optimize(result = %d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(WANTvalue | (result & WANTexpand));
+            e->e1 = e->e1->optimize(result & WANTexpand);
 
             Expression *ex = fromConstInitializer(result, e->e1);
 
@@ -1094,7 +1094,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(SliceExp *e)
         {
             //printf("SliceExp::optimize(result = %d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(WANTvalue | (result & WANTexpand));
+            e->e1 = e->e1->optimize(result & WANTexpand);
             if (!e->lwr)
             {
                 if (e->e1->op == TOKstring)
@@ -1120,7 +1120,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(AndAndExp *e)
         {
             //printf("AndAndExp::optimize(%d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(0);
+            e->e1 = e->e1->optimize(WANTvalue);
             if (e->e1->op == TOKerror)
             {
                 ret = e->e1;
@@ -1140,13 +1140,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
 
-            e->e2 = e->e2->optimize(0);
-            if (result && e->e2->type->toBasetype()->ty == Tvoid && !global.errors)
-            {
-                e->error("void has no value");
-                ret = new ErrorExp();
-                return;
-            }
+            e->e2 = e->e2->optimize(WANTvalue);
 
             if (e->e1->isConst())
             {
@@ -1169,7 +1163,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(OrOrExp *e)
         {
             //printf("OrOrExp::optimize(%d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(0);
+            e->e1 = e->e1->optimize(WANTvalue);
             if (e->e1->op == TOKerror)
             {
                 ret = e->e1;
@@ -1189,13 +1183,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
 
-            e->e2 = e->e2->optimize(0);
-            if (result && e->e2->type->toBasetype()->ty == Tvoid && !global.errors)
-            {
-                e->error("void has no value");
-                ret = new ErrorExp();
-                return;
-            }
+            e->e2 = e->e2->optimize(WANTvalue);
 
             if (e->e1->isConst())
             {
@@ -1256,7 +1244,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(CondExp *e)
         {
-            e->econd = e->econd->optimize(0);
+            e->econd = e->econd->optimize(WANTvalue);
             if (e->econd->isBool(true))
                 ret = e->e1->optimize(result, keepLvalue);
             else if (e->econd->isBool(false))
