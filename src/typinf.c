@@ -104,16 +104,16 @@ FuncDeclaration *search_toString(StructDeclaration *sd);
  * Get the exact TypeInfo.
  */
 
-void Type::genTypeInfo(Scope *sc)
+void genTypeInfo(Type *torig, Scope *sc)
 {
     //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
     if (!Type::dtypeinfo)
     {
-        error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
+        torig->error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
         fatal();
     }
 
-    Type *t = merge2(); // do this since not all Type's are merge'd
+    Type *t = torig->merge2(); // do this since not all Type's are merge'd
     if (!t->vtinfo)
     {
         if (t->isShared())      // does both 'shared' and 'shared const'
@@ -156,15 +156,15 @@ void Type::genTypeInfo(Scope *sc)
             }
         }
     }
-    if (!vtinfo)
-        vtinfo = t->vtinfo;     // Types aren't merged, but we can share the vtinfo's
-    assert(vtinfo);
+    if (!torig->vtinfo)
+        torig->vtinfo = t->vtinfo;     // Types aren't merged, but we can share the vtinfo's
+    assert(torig->vtinfo);
 }
 
 Expression *getTypeInfo(Type *t, Scope *sc)
 {
     assert(t->ty != Terror);
-    t->genTypeInfo(sc);
+    genTypeInfo(t, sc);
     Expression *e = VarExp::create(Loc(), t->vtinfo);
     e = e->addressOf();
     e->type = t->vtinfo->type;     // do this so we don't get redundant dereference
@@ -283,7 +283,7 @@ public:
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        tm->genTypeInfo(NULL);
+        genTypeInfo(tm, NULL);
         dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
@@ -296,7 +296,7 @@ public:
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        tm->genTypeInfo(NULL);
+        genTypeInfo(tm, NULL);
         dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
@@ -309,7 +309,7 @@ public:
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->unSharedOf();
         tm = tm->merge();
-        tm->genTypeInfo(NULL);
+        genTypeInfo(tm, NULL);
         dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
@@ -322,7 +322,7 @@ public:
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        tm->genTypeInfo(NULL);
+        genTypeInfo(tm, NULL);
         dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
@@ -347,7 +347,7 @@ public:
 
         if (sd->memtype)
         {
-            sd->memtype->genTypeInfo(NULL);
+            genTypeInfo(sd->memtype, NULL);
             dtxoff(pdt, toSymbol(sd->memtype->vtinfo), 0);        // TypeInfo for enum members
         }
         else
@@ -384,7 +384,7 @@ public:
 
         TypePointer *tc = (TypePointer *)d->tinfo;
 
-        tc->next->genTypeInfo(NULL);
+        genTypeInfo(tc->next, NULL);
         dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for type being pointed to
     }
 
@@ -400,7 +400,7 @@ public:
 
         TypeDArray *tc = (TypeDArray *)d->tinfo;
 
-        tc->next->genTypeInfo(NULL);
+        genTypeInfo(tc->next, NULL);
         dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
     }
 
@@ -416,7 +416,7 @@ public:
 
         TypeSArray *tc = (TypeSArray *)d->tinfo;
 
-        tc->next->genTypeInfo(NULL);
+        genTypeInfo(tc->next, NULL);
         dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
 
         dtsize_t(pdt, tc->dim->toInteger());         // length
@@ -434,7 +434,7 @@ public:
 
         TypeVector *tc = (TypeVector *)d->tinfo;
 
-        tc->basetype->genTypeInfo(NULL);
+        genTypeInfo(tc->basetype, NULL);
         dtxoff(pdt, toSymbol(tc->basetype->vtinfo), 0); // TypeInfo for equivalent static array
     }
 
@@ -450,10 +450,10 @@ public:
 
         TypeAArray *tc = (TypeAArray *)d->tinfo;
 
-        tc->next->genTypeInfo(NULL);
+        genTypeInfo(tc->next, NULL);
         dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
 
-        tc->index->genTypeInfo(NULL);
+        genTypeInfo(tc->index, NULL);
         dtxoff(pdt, toSymbol(tc->index->vtinfo), 0); // TypeInfo for array of type
     }
 
@@ -469,7 +469,7 @@ public:
 
         TypeFunction *tc = (TypeFunction *)d->tinfo;
 
-        tc->next->genTypeInfo(NULL);
+        genTypeInfo(tc->next, NULL);
         dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for function return value
 
         const char *name = d->tinfo->deco;
@@ -491,7 +491,7 @@ public:
 
         TypeDelegate *tc = (TypeDelegate *)d->tinfo;
 
-        tc->next->nextOf()->genTypeInfo(NULL);
+        genTypeInfo(tc->next->nextOf(), NULL);
         dtxoff(pdt, toSymbol(tc->next->nextOf()->vtinfo), 0); // TypeInfo for delegate return value
 
         const char *name = d->tinfo->deco;
@@ -622,7 +622,7 @@ public:
                 // m_argi
                 if (t)
                 {
-                    t->genTypeInfo(NULL);
+                    genTypeInfo(t, NULL);
                     dtxoff(pdt, toSymbol(t->vtinfo), 0);
                 }
                 else

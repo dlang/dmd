@@ -57,6 +57,7 @@ Symbol *toThunkSymbol(FuncDeclaration *fd, int offset);
 Symbol *toVtblSymbol(ClassDeclaration *cd);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *toInitializer(EnumDeclaration *ed);
+void genTypeInfo(Type *t, Scope *sc);
 
 void toDebug(EnumDeclaration *ed);
 void toDebug(StructDeclaration *sd);
@@ -295,7 +296,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            cd->type->genTypeInfo(NULL);
+            genTypeInfo(cd->type, NULL);
             //toObjFile(cd->type->vtinfo, multiobj);
 
             //////////////////////////////////////////////
@@ -671,7 +672,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            id->type->genTypeInfo(NULL);
+            genTypeInfo(id->type, NULL);
             id->type->vtinfo->accept(this);
 
             //////////////////////////////////////////////
@@ -833,7 +834,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 if (global.params.symdebug)
                     toDebug(sd);
 
-                sd->type->genTypeInfo(NULL);
+                genTypeInfo(sd->type, NULL);
 
                 // Generate static initializer
                 toInitializer(sd);
@@ -988,7 +989,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (global.params.symdebug)
                 toDebug(ed);
 
-            ed->type->genTypeInfo(NULL);
+            genTypeInfo(ed->type, NULL);
 
             TypeEnum *tc = (TypeEnum *)ed->type;
             if (!tc->sym->members || ed->type->isZeroInit())
