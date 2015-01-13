@@ -22,18 +22,6 @@
 
 // tocsym
 
-Symbol *Dsymbol::toImport()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Dsymbol::toImport(Symbol *sym)
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol *FuncDeclaration::toThunkSymbol(int offset)
 {
     assert(0);

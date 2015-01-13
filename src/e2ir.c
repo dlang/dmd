@@ -61,6 +61,7 @@ void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
+Symbol *toImport(Dsymbol *ds);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -1001,7 +1002,7 @@ elem *toElem(Expression *e, IRState *irs)
             if (se->var->isImportedSymbol())
             {
                 assert(se->op == TOKvar);
-                e = el_var(se->var->toImport());
+                e = el_var(toImport(se->var));
                 e = el_una(OPind,s->ty(),e);
             }
             else if (ISREF(se->var, tb))

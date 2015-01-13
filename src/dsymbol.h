@@ -236,10 +236,6 @@ public:
 
     bool inNonRoot();
 
-    // Backend
-    Symbol *toImport();                         // to backend import symbol
-    static Symbol *toImport(Symbol *s);         // to backend import symbol
-
     // Eliminate need for dynamic_cast
     virtual Package *isPackage() { return NULL; }
     virtual Module *isModule() { return NULL; }

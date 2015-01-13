@@ -441,34 +441,14 @@ Symbol *toSymbol(Dsymbol *s)
     return v.result;
 }
 
-/*********************************
- * Generate import symbol from symbol.
- */
-
-Symbol *Dsymbol::toImport()
-{
-    if (!isym)
-    {
-        if (!csym)
-            csym = toSymbol(this);
-        isym = toImport(csym);
-    }
-    return isym;
-}
-
 /*************************************
  */
 
-Symbol *Dsymbol::toImport(Symbol *sym)
+static Symbol *toImport(Symbol *sym)
 {
-    char *id;
-    char *n;
-    Symbol *s;
-    type *t;
-
     //printf("Dsymbol::toImport('%s')\n", sym->Sident);
-    n = sym->Sident;
-    id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
+    char *n = sym->Sident;
+    char *id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
     if (sym->Stype->Tmangle == mTYman_std && tyfunc(sym->Stype->Tty))
     {
         if (config.exe == EX_WIN64)
@@ -484,17 +464,32 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     {
         sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
     }
-    t = type_alloc(TYnptr | mTYconst);
+    type *t = type_alloc(TYnptr | mTYconst);
     t->Tnext = sym->Stype;
     t->Tnext->Tcount++;
     t->Tmangle = mTYman_c;
     t->Tcount++;
-    s = symbol_calloc(id);
+    Symbol *s = symbol_calloc(id);
     s->Stype = t;
     s->Sclass = SCextern;
     s->Sfl = FLextern;
     slist_add(s);
     return s;
+}
+
+/*********************************
+ * Generate import symbol from symbol.
+ */
+
+Symbol *toImport(Dsymbol *ds)
+{
+    if (!ds->isym)
+    {
+        if (!ds->csym)
+            ds->csym = toSymbol(ds);
+        ds->isym = toImport(ds->csym);
+    }
+    return ds->isym;
 }
 
 /*************************************
