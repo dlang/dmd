@@ -64,6 +64,8 @@ Symbol *toModuleArray(Module *m);
 Symbol *toImport(Dsymbol *ds);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags);
+Symbol* toSymbol(StructLiteralExp *sle);
+Symbol* toSymbol(ClassReferenceExp *cre);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -3524,7 +3526,7 @@ elem *toElem(Expression *e, IRState *irs)
                 //printf("AddrExp::toElem('%s') %d\n", ae->toChars(), ae);
                 //printf("StructLiteralExp(%p); origin:%p\n", sl, sl->origin);
                 //printf("sl->toSymbol() (%p)\n", sl->toSymbol());
-                elem *e = el_ptr(sl->origin->toSymbol());
+                elem *e = el_ptr(toSymbol(sl->origin));
                 e->ET = Type_toCtype(ae->type);
                 el_setLoc(e, ae->loc);
                 result = e;
@@ -5165,7 +5167,7 @@ elem *toElem(Expression *e, IRState *irs)
         #if 0
             printf("ClassReferenceExp::toElem() %p, value=%p, %s\n", e, e->value, e->toChars());
         #endif
-            result = el_ptr(e->toSymbol());
+            result = el_ptr(toSymbol(e));
         }
 
     };

@@ -694,9 +694,9 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
 /*                   CTFE stuff                      */
 /*****************************************************/
 
-Symbol* StructLiteralExp::toSymbol()
+Symbol* toSymbol(StructLiteralExp *sle)
 {
-    if (sym) return sym;
+    if (sle->sym) return sle->sym;
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
     Symbol *s = symbol_calloc("internal");
@@ -704,18 +704,18 @@ Symbol* StructLiteralExp::toSymbol()
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-    sym = s;
+    sle->sym = s;
     dt_t *d = NULL;
-    Expression_toDt(this, &d);
+    Expression_toDt(sle, &d);
     s->Sdt = d;
     slist_add(s);
     outdata(s);
-    return sym;
+    return sle->sym;
 }
 
-Symbol* ClassReferenceExp::toSymbol()
+Symbol* toSymbol(ClassReferenceExp *cre)
 {
-    if (value->sym) return value->sym;
+    if (cre->value->sym) return cre->value->sym;
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
     Symbol *s = symbol_calloc("internal");
@@ -723,11 +723,11 @@ Symbol* ClassReferenceExp::toSymbol()
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-    value->sym = s;
+    cre->value->sym = s;
     dt_t *d = NULL;
-    ClassReferenceExp_toInstanceDt(this, &d);
+    ClassReferenceExp_toInstanceDt(cre, &d);
     s->Sdt = d;
     slist_add(s);
     outdata(s);
-    return value->sym;
+    return cre->value->sym;
 }

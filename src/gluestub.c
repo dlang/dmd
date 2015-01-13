@@ -42,18 +42,6 @@ Symbol *toModuleArray(Module *m)
     return NULL;
 }
 
-Symbol* StructLiteralExp::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol* ClassReferenceExp::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
 // glue
 
 void obj_write_deferred(Library *library)
