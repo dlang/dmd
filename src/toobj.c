@@ -53,6 +53,7 @@ void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj);
+Symbol *toThunkSymbol(FuncDeclaration *fd, int offset);
 
 void toDebug(EnumDeclaration *ed);
 void toDebug(StructDeclaration *sd);
@@ -517,7 +518,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
         #endif
                     FuncDeclaration *fd = b->vtbl[j];
                     if (fd)
-                        dtxoff(&dt, fd->toThunkSymbol(b->offset), 0, TYnptr);
+                        dtxoff(&dt, toThunkSymbol(fd, b->offset), 0, TYnptr);
                     else
                         dtsize_t(&dt, 0);
                 }
@@ -554,7 +555,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                             assert(j < bvtbl.dim);
                             FuncDeclaration *fd = bvtbl[j];
                             if (fd)
-                                dtxoff(&dt, fd->toThunkSymbol(bs->offset), 0, TYnptr);
+                                dtxoff(&dt, toThunkSymbol(fd, bs->offset), 0, TYnptr);
                             else
                                 dtsize_t(&dt, 0);
                         }

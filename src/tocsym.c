@@ -495,13 +495,13 @@ Symbol *toImport(Dsymbol *ds)
 /*************************************
  */
 
-Symbol *FuncDeclaration::toThunkSymbol(int offset)
+Symbol *toThunkSymbol(FuncDeclaration *fd, int offset)
 {
-    toSymbol(this);
+    toSymbol(fd);
 
-    Symbol *sthunk = symbol_generate(SCstatic, csym->Stype);
+    Symbol *sthunk = symbol_generate(SCstatic, fd->csym->Stype);
     sthunk->Sflags |= SFLimplem;
-    cod3_thunk(sthunk, csym, 0, TYnptr, -offset, -1, 0);
+    cod3_thunk(sthunk, fd->csym, 0, TYnptr, -offset, -1, 0);
     return sthunk;
 }
 

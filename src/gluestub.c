@@ -22,12 +22,6 @@
 
 // tocsym
 
-Symbol *FuncDeclaration::toThunkSymbol(int offset)
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol *ClassDeclaration::toVtblSymbol()
 {
     assert(0);
