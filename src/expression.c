@@ -9319,6 +9319,10 @@ Expression *NotExp::semantic(Scope *sc)
     if (e1->type == Type::terror)
         return e1;
 
+    // Bugzilla 13910: Today NotExp can take an array as its operand.
+    if (checkNonAssignmentArrayOp(e1))
+        return new ErrorExp();
+
     type = Type::tboolean;
     return this;
 }

@@ -81,3 +81,20 @@ void test13208()
 
     auto n = int(a[] - a[]);
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/ice12179.d(98): Error: array operation data[segmentId][28..29] & cast(ubyte)(1 << 0) without destination memory not allowed
+---
+*/
+void test13910()
+{
+    ubyte[][] data;
+    size_t segmentId;
+
+    bool isGroup()
+    {
+        return !!((data[segmentId][28..29]) & (1 << 0));
+    }
+}
