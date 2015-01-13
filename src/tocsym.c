@@ -646,7 +646,7 @@ Symbol *toModuleArray(Module *m)
  *              1       add value signature
  */
 
-Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
+Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
 {
 #ifdef DEBUG
         assert((flags & ~1) == 0);
@@ -682,7 +682,7 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
         s->Ssymnum = -1;
         symbol_func(s);
 
-        type *t = type_function(TYnfunc, NULL, 0, false, Type_toCtype(next));
+        type *t = type_function(TYnfunc, NULL, 0, false, Type_toCtype(taa->next));
         t->Tmangle = mTYman_c;
         s->Stype = t;
 

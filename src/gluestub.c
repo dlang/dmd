@@ -42,12 +42,6 @@ Symbol *toModuleArray(Module *m)
     return NULL;
 }
 
-Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol* StructLiteralExp::toSymbol()
 {
     assert(0);

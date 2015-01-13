@@ -63,6 +63,7 @@ Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
 Symbol *toImport(Dsymbol *ds);
 Symbol *toInitializer(AggregateDeclaration *ad);
+Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -2150,7 +2151,7 @@ elem *toElem(Expression *e, IRState *irs)
             else if (t1->ty == Taarray && t2->ty == Taarray)
             {
                 TypeAArray *taa = (TypeAArray *)t1;
-                Symbol *s = taa->aaGetSymbol("Equal", 0);
+                Symbol *s = aaGetSymbol(taa, "Equal", 0);
                 elem *ti = toElem(taa->getTypeInfo(NULL), irs);
                 elem *ea1 = toElem(ee->e1, irs);
                 elem *ea2 = toElem(ee->e2, irs);
@@ -2233,7 +2234,7 @@ elem *toElem(Expression *e, IRState *irs)
 
             // aaInX(aa, keyti, key);
             key = addressElem(key, ie->e1->type);
-            Symbol *s = taa->aaGetSymbol("InX", 0);
+            Symbol *s = aaGetSymbol(taa, "InX", 0);
             elem *keyti = toElem(taa->index->getInternalTypeInfo(NULL), irs);
             elem *ep = el_params(key, keyti, aa, NULL);
             elem *e = el_bin(OPcall, totym(ie->type), el_var(s), ep);
@@ -2254,7 +2255,7 @@ elem *toElem(Expression *e, IRState *irs)
             elem *ekey = toElem(re->e2, irs);
 
             ekey = addressElem(ekey, re->e1->type);
-            Symbol *s = taa->aaGetSymbol("DelX", 0);
+            Symbol *s = aaGetSymbol(taa, "DelX", 0);
             elem *keyti = toElem(taa->index->getInternalTypeInfo(NULL), irs);
             elem *ep = el_params(ekey, keyti, ea, NULL);
             elem *e = el_bin(OPcall, TYnptr, el_var(s), ep);
@@ -4554,11 +4555,11 @@ elem *toElem(Expression *e, IRState *irs)
                 if (ie->modifiable)
                 {
                     n1 = el_una(OPaddr, TYnptr, n1);
-                    s = taa->aaGetSymbol("GetX", 1);
+                    s = aaGetSymbol(taa, "GetX", 1);
                 }
                 else
                 {
-                    s = taa->aaGetSymbol("GetRvalueX", 1);
+                    s = aaGetSymbol(taa, "GetRvalueX", 1);
                 }
                 //printf("taa->index = %s\n", taa->index->toChars());
                 elem* keyti = toElem(taa->index->getInternalTypeInfo(NULL), irs);
