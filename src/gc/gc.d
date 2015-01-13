@@ -471,7 +471,7 @@ class GC
     //
     //
     //
-    private void *mallocNoSync(size_t size, uint bits, ref size_t alloc_size) nothrow
+    private void *mallocNoSync(size_t size, uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
     {
         assert(size != 0);
 
