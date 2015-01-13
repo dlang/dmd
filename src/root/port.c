@@ -341,7 +341,7 @@ float Port::strtof(const char *p, char **endp)
         return static_cast<float>(::strtod(p, endp)); // does not set errno for underflows, but unused
 
     _CRT_FLOAT flt;
-    int res = _atoflt(&flt, p);
+    int res = _atoflt(&flt, (char*)p);
     if (res == _UNDERFLOW)
         errno = ERANGE;
     return flt.f;
