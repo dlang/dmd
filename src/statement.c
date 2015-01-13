@@ -3809,9 +3809,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             {
                 /* May return by ref
                  */
-                unsigned olderrors = global.startGagging();
-                checkEscapeRef(sc, exp);
-                if (global.endGagging(olderrors))
+                if (checkEscapeRef(sc, exp, true))
                     tf->isref = false;  // return by value
             }
             else

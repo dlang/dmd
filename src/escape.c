@@ -17,9 +17,13 @@
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
  * lifetime of the stack frame.
+ * Params:
+ *      gag     do not print error messages
+ * Returns:
+ *      true    errors occured
  */
 
-void checkEscape(Scope *sc, Expression *e)
+bool checkEscape(Scope *sc, Expression *e, bool gag)
 {
     //printf("[%s] checkEscape, e = %s\n", e->loc.toChars(), e->toChars());
 
@@ -27,10 +31,19 @@ void checkEscape(Scope *sc, Expression *e)
     {
     public:
         Scope *sc;
+        bool gag;
+        bool result;
 
-        EscapeVisitor(Scope *sc)
-            : sc(sc)
+        EscapeVisitor(Scope *sc, bool gag)
+            : sc(sc), gag(gag), result(false)
         {
+        }
+
+        void error(Loc loc, const char *format, Dsymbol *s)
+        {
+            if (!gag)
+                ::error(loc, format, s->toChars());
+            result = true;
         }
 
         void check(Loc loc, Declaration *d)
@@ -41,7 +54,7 @@ void checkEscape(Scope *sc, Expression *e)
                 if (v->isDataseg())
                     return;
                 if ((v->storage_class & (STCref | STCout)) == 0)
-                    error(loc, "escaping reference to local %s", v->toChars());
+                    error(loc, "escaping reference to local %s", v);
             }
         }
 
@@ -51,7 +64,7 @@ void checkEscape(Scope *sc, Expression *e)
 
         void visit(AddrExp *e)
         {
-            checkEscapeRef(sc, e->e1);
+            result |= checkEscapeRef(sc, e->e1, gag);
         }
 
         void visit(SymOffExp *e)
@@ -75,7 +88,7 @@ void checkEscape(Scope *sc, Expression *e)
                     {
                         if ((!v->noscope || tb->ty == Tclass))
                         {
-                            e->error("escaping reference to scope local %s", v->toChars());
+                            error(e->loc, "escaping reference to scope local %s", v);
                             return;
                         }
                     }
@@ -83,7 +96,7 @@ void checkEscape(Scope *sc, Expression *e)
                 if (v->storage_class & STCvariadic)
                 {
                     if (tb->ty == Tarray || tb->ty == Tsarray)
-                        e->error("escaping reference to variadic parameter %s", v->toChars());
+                        error(e->loc, "escaping reference to variadic parameter %s", v);
                 }
             }
         }
@@ -92,7 +105,7 @@ void checkEscape(Scope *sc, Expression *e)
         {
             for (size_t i = 0; i < e->exps->dim; i++)
             {
-                checkEscape(sc, (*e->exps)[i]);
+                (*e->exps)[i]->accept(this);
             }
         }
 
@@ -103,7 +116,7 @@ void checkEscape(Scope *sc, Expression *e)
             {
                 for (size_t i = 0; i < e->elements->dim; i++)
                 {
-                    checkEscape(sc, (*e->elements)[i]);
+                    (*e->elements)[i]->accept(this);
                 }
             }
         }
@@ -116,7 +129,7 @@ void checkEscape(Scope *sc, Expression *e)
                 {
                     Expression *ex = (*e->elements)[i];
                     if (ex)
-                        checkEscape(sc, ex);
+                        ex->accept(this);
                 }
             }
         }
@@ -130,7 +143,7 @@ void checkEscape(Scope *sc, Expression *e)
                 {
                     Expression *ex = (*e->arguments)[i];
                     if (ex)
-                        checkEscape(sc, ex);
+                        ex->accept(this);
                 }
             }
         }
@@ -147,7 +160,7 @@ void checkEscape(Scope *sc, Expression *e)
                 if (v && v->toParent2() == sc->func)
                 {
                     if (!v->isDataseg() && !v->isParameter())
-                        e->error("escaping reference to local %s", v->toChars());
+                        error(e->loc, "escaping reference to local %s", v);
                 }
             }
         }
@@ -164,16 +177,16 @@ void checkEscape(Scope *sc, Expression *e)
                         return;
                     if (v->storage_class & STCvariadic)
                     {
-                        e->error("escaping reference to the payload of variadic parameter %s", v->toChars());
+                        error(e->loc, "escaping reference to the payload of variadic parameter %s", v);
                         return;
                     }
                 }
             }
             Type *t1b = e->e1->type->toBasetype();
             if (t1b->ty == Tsarray)
-                checkEscapeRef(sc, e->e1);
+                result |= checkEscapeRef(sc, e->e1, gag);
             else
-                checkEscape(sc, e->e1);
+                e->e1->accept(this);
         }
 
         void visit(BinExp *e)
@@ -181,38 +194,48 @@ void checkEscape(Scope *sc, Expression *e)
             Type *tb = e->type->toBasetype();
             if (tb->ty == Tpointer)
             {
-                checkEscape(sc, e->e1);
-                checkEscape(sc, e->e2);
+                e->e1->accept(this);
+                e->e2->accept(this);
             }
         }
 
         void visit(BinAssignExp *e)
         {
-            checkEscape(sc, e->e2);
+            e->e2->accept(this);
         }
 
         void visit(AssignExp *e)
         {
-            checkEscape(sc, e->e2);
+            e->e2->accept(this);
         }
 
         void visit(CommaExp *e)
         {
-            checkEscape(sc, e->e2);
+            e->e2->accept(this);
         }
 
         void visit(CondExp *e)
         {
-            checkEscape(sc, e->e1);
-            checkEscape(sc, e->e2);
+            e->e1->accept(this);
+            e->e2->accept(this);
         }
     };
 
-    EscapeVisitor v(sc);
+    EscapeVisitor v(sc, gag);
     e->accept(&v);
+    return v.result;
 }
 
-void checkEscapeRef(Scope *sc, Expression *e)
+/************************************
+ * Detect cases where returning 'e' by ref can result in a reference to the stack
+ * being returned.
+ * Params:
+ *      gag     do not print error messages
+ * Returns:
+ *      true    errors occured
+ */
+
+bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
 {
     //printf("[%s] checkEscapeRef, e = %s\n", e->loc.toChars(), e->toChars());
 
@@ -220,10 +243,19 @@ void checkEscapeRef(Scope *sc, Expression *e)
     {
     public:
         Scope *sc;
+        bool gag;
+        bool result;
 
-        EscapeRefVisitor(Scope *sc)
-            : sc(sc)
+        EscapeRefVisitor(Scope *sc, bool gag)
+            : sc(sc), gag(gag), result(false)
         {
+        }
+
+        void error(Loc loc, const char *format, Dsymbol *s)
+        {
+            if (!gag)
+                ::error(loc, format, s->toChars());
+            result = true;
         }
 
         void check(Loc loc, Declaration *d)
@@ -235,7 +267,7 @@ void checkEscapeRef(Scope *sc, Expression *e)
                     return;
                 if ((v->storage_class & (STCref | STCout)) == 0)
                 {
-                    error(loc, "escaping reference to local variable %s", v->toChars());
+                    error(loc, "escaping reference to local variable %s", v);
                     return;
                 }
                 if ((v->storage_class & (STCref | STCtemp)) == (STCref | STCtemp) &&
@@ -246,7 +278,7 @@ void checkEscapeRef(Scope *sc, Expression *e)
                     {
                         assert(ez->exp && ez->exp->op == TOKconstruct);
                         Expression *ex = ((ConstructExp *)ez->exp)->e2;
-                        checkEscapeRef(sc, ex);
+                        ex->accept(this);
                         return;
                     }
                 }
@@ -264,7 +296,7 @@ void checkEscapeRef(Scope *sc, Expression *e)
 
         void visit(PtrExp *e)
         {
-            checkEscape(sc, e->e1);
+            result |= checkEscape(sc, e->e1, gag);
         }
 
         void visit(IndexExp *e)
@@ -279,7 +311,7 @@ void checkEscapeRef(Scope *sc, Expression *e)
                     {
                         if (v->storage_class & STCvariadic)
                         {
-                            e->error("escaping reference to the payload of variadic parameter %s", v->toChars());
+                            error(e->loc, "escaping reference to the payload of variadic parameter %s", v);
                             return;
                         }
                     }
@@ -289,7 +321,7 @@ void checkEscapeRef(Scope *sc, Expression *e)
             Type *tb = e->e1->type->toBasetype();
             if (tb->ty == Tsarray)
             {
-                checkEscapeRef(sc, e->e1);
+                e->e1->accept(this);
             }
         }
 
@@ -297,32 +329,33 @@ void checkEscapeRef(Scope *sc, Expression *e)
         {
             Type *t1b = e->e1->type->toBasetype();
             if (t1b->ty == Tclass)
-                checkEscape(sc, e->e1);
+                result |= checkEscape(sc, e->e1, gag);
             else
-                checkEscapeRef(sc, e->e1);
+                e->e1->accept(this);
         }
 
         void visit(BinAssignExp *e)
         {
-            checkEscapeRef(sc, e->e1);
+            e->e1->accept(this);
         }
 
         void visit(AssignExp *e)
         {
-            checkEscapeRef(sc, e->e1);
+            e->e1->accept(this);
         }
 
         void visit(CommaExp *e)
         {
-            checkEscapeRef(sc, e->e2);
+            e->e2->accept(this);
         }
 
         void visit(CondExp *e)
         {
-            checkEscapeRef(sc, e->e1);
-            checkEscapeRef(sc, e->e2);
+            e->e1->accept(this);
+            e->e2->accept(this);
         }
     };
-    EscapeRefVisitor v(sc);
+    EscapeRefVisitor v(sc, gag);
     e->accept(&v);
+    return v.result;
 }
