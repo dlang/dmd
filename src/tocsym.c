@@ -597,52 +597,52 @@ Symbol *EnumDeclaration::toInitializer()
 /******************************************
  */
 
-Symbol *Module::toModuleAssert()
+Symbol *toModuleAssert(Module *m)
 {
-    if (!massert)
+    if (!m->massert)
     {
         type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
 
-        massert = toSymbolX("__assert", SCextern, t, "FiZv");
-        massert->Sfl = FLextern;
-        massert->Sflags |= SFLnodebug | SFLexit;
-        slist_add(massert);
+        m->massert = m->toSymbolX("__assert", SCextern, t, "FiZv");
+        m->massert->Sfl = FLextern;
+        m->massert->Sflags |= SFLnodebug | SFLexit;
+        slist_add(m->massert);
     }
-    return massert;
+    return m->massert;
 }
 
-Symbol *Module::toModuleUnittest()
+Symbol *toModuleUnittest(Module *m)
 {
-    if (!munittest)
+    if (!m->munittest)
     {
         type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
 
-        munittest = toSymbolX("__unittest_fail", SCextern, t, "FiZv");
-        munittest->Sfl = FLextern;
-        munittest->Sflags |= SFLnodebug;
-        slist_add(munittest);
+        m->munittest = m->toSymbolX("__unittest_fail", SCextern, t, "FiZv");
+        m->munittest->Sfl = FLextern;
+        m->munittest->Sflags |= SFLnodebug;
+        slist_add(m->munittest);
     }
-    return munittest;
+    return m->munittest;
 }
 
 /******************************************
  */
 
-Symbol *Module::toModuleArray()
+Symbol *toModuleArray(Module *m)
 {
-    if (!marray)
+    if (!m->marray)
     {
         type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
 
-        marray = toSymbolX("__array", SCextern, t, "Z");
-        marray->Sfl = FLextern;
-        marray->Sflags |= SFLnodebug | SFLexit;
-        slist_add(marray);
+        m->marray = m->toSymbolX("__array", SCextern, t, "Z");
+        m->marray->Sfl = FLextern;
+        m->marray->Sflags |= SFLnodebug | SFLexit;
+        slist_add(m->marray);
     }
-    return marray;
+    return m->marray;
 }
 
 /********************************************

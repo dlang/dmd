@@ -62,17 +62,17 @@ Symbol *EnumDeclaration::toInitializer()
     return NULL;
 }
 
-Symbol *Module::toModuleAssert()
+Symbol *toModuleAssert(Module *m)
 {
     return NULL;
 }
 
-Symbol *Module::toModuleUnittest()
+Symbol *toModuleUnittest(Module *m)
 {
     return NULL;
 }
 
-Symbol *Module::toModuleArray()
+Symbol *toModuleArray(Module *m)
 {
     return NULL;
 }

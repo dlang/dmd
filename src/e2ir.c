@@ -58,6 +58,9 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
 Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz);
 void toObjFile(Dsymbol *ds, bool multiobj);
+Symbol *toModuleAssert(Module *m);
+Symbol *toModuleUnittest(Module *m);
+Symbol *toModuleArray(Module *m);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -1784,7 +1787,7 @@ elem *toElem(Expression *e, IRState *irs)
                 }
                 else
                 {
-                    Symbol *sassert = ud ? m->toModuleUnittest() : m->toModuleAssert();
+                    Symbol *sassert = ud ? toModuleUnittest(m) : toModuleAssert(m);
                     ea = el_bin(OPcall,TYvoid,el_var(sassert),
                         el_long(TYint, ae->loc.linnum));
                 }
@@ -2384,7 +2387,7 @@ elem *toElem(Expression *e, IRState *irs)
                         c1 = el_bin(OPandand, TYint, c1, c2);
 
                         // Construct: (c1 || ModuleArray(line))
-                        Symbol *sassert = irs->blx->module->toModuleArray();
+                        Symbol *sassert = toModuleArray(irs->blx->module);
                         elem *ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, ae->loc.linnum));
                         elem *eb = el_bin(OPoror,TYvoid,c1,ea);
                         einit = el_combine(einit, eb);
@@ -4472,7 +4475,7 @@ elem *toElem(Expression *e, IRState *irs)
                     if (c1)
                     {
                         // Construct: (c1 || ModuleArray(line))
-                        Symbol *sassert = irs->blx->module->toModuleArray();
+                        Symbol *sassert = toModuleArray(irs->blx->module);
                         elem *ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, se->loc.linnum));
                         elem *eb = el_bin(OPoror, TYvoid, c1, ea);
 
@@ -4567,7 +4570,7 @@ elem *toElem(Expression *e, IRState *irs)
                     elem *n = el_same(&e);
 
                     // Construct: ((e || ModuleArray(line)), n)
-                    Symbol *sassert = irs->blx->module->toModuleArray();
+                    Symbol *sassert = toModuleArray(irs->blx->module);
                     elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
                         el_long(TYint, ie->loc.linnum));
                     e = el_bin(OPoror,TYvoid,e,ea);
@@ -4605,7 +4608,7 @@ elem *toElem(Expression *e, IRState *irs)
                         n2x = el_bin(OPlt, TYint, n2x, elength);
 
                         // Construct: (n2x || ModuleArray(line))
-                        Symbol *sassert = irs->blx->module->toModuleArray();
+                        Symbol *sassert = toModuleArray(irs->blx->module);
                         elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
                             el_long(TYint, ie->loc.linnum));
                         eb = el_bin(OPoror,TYvoid,n2x,ea);

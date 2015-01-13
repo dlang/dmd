@@ -56,6 +56,9 @@ type *Type_toCtype(Type *t);
 void toObjFile(Dsymbol *ds, bool multiobj);
 void genModuleInfo(Module *m);
 void genObjFile(Module *m, bool multiobj);
+Symbol *toModuleAssert(Module *m);
+Symbol *toModuleUnittest(Module *m);
+Symbol *toModuleArray(Module *m);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -477,9 +480,9 @@ void genObjFile(Module *m, bool multiobj)
          * possibly later in the doppelganger modules.
          * Another way to fix it is do the main one last.
          */
-        m->toModuleAssert();
-        m->toModuleUnittest();
-        m->toModuleArray();
+        toModuleAssert(m);
+        toModuleUnittest(m);
+        toModuleArray(m);
     }
 
     /* Always generate module info, because of templates and -cov.

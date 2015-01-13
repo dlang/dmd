@@ -160,13 +160,8 @@ public:
     Symbol *sfilename;          // symbol for filename
 
     Symbol *massert;            // module assert function
-    Symbol *toModuleAssert();   // get module assert function
-
     Symbol *munittest;          // module unittest failure function
-    Symbol *toModuleUnittest(); // get module unittest failure function
-
     Symbol *marray;             // module array bounds function
-    Symbol *toModuleArray();    // get module array bounds function
 
     Module *isModule() { return this; }
     void accept(Visitor *v) { v->visit(this); }
