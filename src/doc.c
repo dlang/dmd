@@ -2228,6 +2228,22 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 break;
 
             case '\n':
+                if (inBacktick)
+                {
+                    // `inline code` is only valid if contained on a single line
+                    // otherwise, the backticks should be output literally.
+                    //
+                    // This lets things like `output from the linker' display
+                    // unmolested while keeping the feature consistent with GitHub.
+
+                    inBacktick = false;
+                    inCode = false; // the backtick also assumes we're in code
+
+                    // Nothing else is necessary since the DDOC_BACKQUOTED macro is
+                    // inserted lazily at the close quote, meaning the rest of the
+                    // text is already OK.
+                }
+
                 if (!sc->module->isDocFile &&
                     !inCode && i == iLineStart && i + 1 < buf->offset)    // if "\n\n"
                 {
@@ -2342,7 +2358,10 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     highlightCode3(sc, &codebuf, buf->data + iCodeStart + 1, buf->data + i);
 
                     buf->remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
-                    i = buf->insert(iCodeStart, codebuf.data, codebuf.offset);
+
+                    static const char pre[] = "$(DDOC_BACKQUOTED ";
+                    i = buf->insert(iCodeStart, pre, strlen(pre));
+                    i = buf->insert(i, codebuf.data, codebuf.offset);
                     i = buf->insert(i, ")", 1);
 
                     break;
@@ -2353,12 +2372,12 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
                 inCode = 1;
                 inBacktick = 1;
-
-                static const char pre[] = "$(DDOC_BACKQUOTED ";
-
-                inCode = 1;
                 codeIndent = 0; // inline code is not indented
-                i = buf->insert(i, pre, strlen(pre));
+
+                // All we do here is set the code flags and record
+                // the location. The macro will be inserted lazily
+                // so we can easily cancel the inBacktick if we come
+                // across a newline character.
                 iCodeStart = i;
 
                 break;
