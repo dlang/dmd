@@ -2360,7 +2360,8 @@ struct Gcx
     private:
         void grow()
         {
-            immutable ncap = _cap ? 2 * _cap : PAGESIZE / Range.sizeof;
+            enum initSize = 64 * 1024; // Windows VirtualAlloc granularity
+            immutable ncap = _cap ? 2 * _cap : initSize / Range.sizeof;
             auto p = cast(Range*)os_mem_map(ncap * Range.sizeof);
             if (p is null) onOutOfMemoryError();
             if (_p !is null)
