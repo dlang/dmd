@@ -49,6 +49,7 @@ TypeTuple *toArgTypes(Type *t);
 void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 Symbol *toInitializer(AggregateDeclaration *ad);
+Expression *getTypeInfo(Type *t, Scope *sc);
 
 #define LOGSEMANTIC     0
 
@@ -5937,7 +5938,7 @@ Expression *TypeidExp::semantic(Scope *sc)
     {
         /* Get the static type
          */
-        e = ta->getTypeInfo(sc);
+        e = getTypeInfo(ta, sc);
         if (e->loc.linnum == 0)
             e->loc = loc;               // so there's at least some line number info
         if (ea)
@@ -14060,7 +14061,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
         (*args)[i] = arg;
     }
     TypeTuple *tup = new TypeTuple(args);
-    Expression *e = tup->getTypeInfo(sc);
+    Expression *e = getTypeInfo(tup, sc);
     e = e->optimize(WANTvalue);
     assert(e->op == TOKsymoff);         // should be SymOffExp
 

@@ -83,9 +83,9 @@ Expression *getInternalTypeInfo(Type *t, Scope *sc)
     return NULL;
 }
 
-Expression *Type::getTypeInfo(Scope *sc)
+Expression *getTypeInfo(Type *t, Scope *sc)
 {
-    Declaration *ti = new TypeInfoDeclaration(this, 1);
+    Declaration *ti = new TypeInfoDeclaration(t, 1);
     Expression *e = new VarExp(Loc(), ti);
     e = e->addressOf();
     e->type = ti->type;

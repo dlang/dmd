@@ -37,6 +37,7 @@ void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toVtblSymbol(ClassDeclaration *cd);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *toInitializer(EnumDeclaration *ed);
+Expression *getTypeInfo(Type *t, Scope *sc);
 
 /*******************************************
  * Get a canonicalized form of the TypeInfo for use with the internal
@@ -93,7 +94,7 @@ Expression *getInternalTypeInfo(Type *t, Scope *sc)
             break;
     }
     //printf("\tcalling getTypeInfo() %s\n", t->toChars());
-    return t->getTypeInfo(sc);
+    return getTypeInfo(t, sc);
 }
 
 
@@ -160,13 +161,13 @@ void Type::genTypeInfo(Scope *sc)
     assert(vtinfo);
 }
 
-Expression *Type::getTypeInfo(Scope *sc)
+Expression *getTypeInfo(Type *t, Scope *sc)
 {
-    assert(ty != Terror);
-    genTypeInfo(sc);
-    Expression *e = VarExp::create(Loc(), vtinfo);
+    assert(t->ty != Terror);
+    t->genTypeInfo(sc);
+    Expression *e = VarExp::create(Loc(), t->vtinfo);
     e = e->addressOf();
-    e->type = vtinfo->type;     // do this so we don't get redundant dereference
+    e->type = t->vtinfo->type;     // do this so we don't get redundant dereference
     return e;
 }
 
@@ -682,8 +683,9 @@ public:
 
         dt_t *dt = NULL;
         for (size_t i = 0; i < dim; i++)
-        {   Parameter *arg = (*tu->arguments)[i];
-            Expression *e = arg->type->getTypeInfo(NULL);
+        {
+            Parameter *arg = (*tu->arguments)[i];
+            Expression *e = getTypeInfo(arg->type, NULL);
             e = e->optimize(WANTvalue);
             Expression_toDt(e, &dt);
         }

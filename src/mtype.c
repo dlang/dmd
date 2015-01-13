@@ -56,6 +56,7 @@ int Tptrdiff_t = Tint32;
 
 Symbol *toInitializer(AggregateDeclaration *ad);
 Expression *getInternalTypeInfo(Type *t, Scope *sc);
+Expression *getTypeInfo(Type *t, Scope *sc);
 
 /***************************** Type *****************************/
 
@@ -3749,7 +3750,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         arguments->push(e);
         // don't convert to dynamic array
         arguments->push(n->ty == Tsarray
-                    ? n->getTypeInfo(sc)
+                    ? getTypeInfo(n, sc)
                     : getInternalTypeInfo(n, sc));
         e = new CallExp(e->loc, ec, arguments);
         e->type = next->arrayOf();
