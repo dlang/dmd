@@ -152,92 +152,89 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
         if (!irs->sthis)                // if no frame pointer for this function
         {
             fd->error(loc, "is a nested function and cannot be accessed from %s", irs->getFunc()->toPrettyChars());
-            ethis = el_long(TYnptr, 0); // error recovery
+            return el_long(TYnptr, 0); // error recovery
         }
-        else
-        {
-            ethis = el_var(irs->sthis);
-            Dsymbol *s = thisfd;
-            while (fd != s)
-            {
-                /* Go up a nesting level, i.e. we need to find the 'this'
-                 * of an enclosing function.
-                 * Our 'enclosing function' may also be an inner class.
-                 */
 
-                //printf("\ts = '%s'\n", s->toChars());
-                thisfd = s->isFuncDeclaration();
-                if (thisfd)
+        ethis = el_var(irs->sthis);
+        Dsymbol *s = thisfd;
+        while (fd != s)
+        {
+            /* Go up a nesting level, i.e. we need to find the 'this'
+             * of an enclosing function.
+             * Our 'enclosing function' may also be an inner class.
+             */
+
+            //printf("\ts = '%s'\n", s->toChars());
+            thisfd = s->isFuncDeclaration();
+            if (thisfd)
+            {
+                /* Enclosing function is a function.
+                 */
+                if (fdparent == s->toParent2())
+                    break;
+                if (thisfd->isNested())
                 {
-                    /* Enclosing function is a function.
-                     */
-                    if (fdparent == s->toParent2())
-                        break;
-                    if (thisfd->isNested())
-                    {
-                        FuncDeclaration *p = s->toParent2()->isFuncDeclaration();
-                        if (!p || p->hasNestedFrameRefs())
-                            ethis = el_una(OPind, TYnptr, ethis);
-                    }
-                    else if (thisfd->vthis)
-                    {
-                    }
-                    else
-                    {
-                        // Error should have been caught by front end
-                        assert(0);
-                    }
+                    FuncDeclaration *p = s->toParent2()->isFuncDeclaration();
+                    if (!p || p->hasNestedFrameRefs())
+                        ethis = el_una(OPind, TYnptr, ethis);
+                }
+                else if (thisfd->vthis)
+                {
                 }
                 else
                 {
-                    /* Enclosed by an aggregate. That means the current
-                     * function must be a member function of that aggregate.
-                     */
-                    ClassDeclaration *cd;
-                    StructDeclaration *sd;
-                    AggregateDeclaration *ad = s->isAggregateDeclaration();
-                    if (!ad)
-                        goto Lnoframe;
-                    cd = s->isClassDeclaration();
-                    if (cd && fd->isClassDeclaration() &&
-                        fd->isClassDeclaration()->isBaseOf(cd, NULL))
-                        break;
-                    sd = s->isStructDeclaration();
-                    if (fd == sd)
-                        break;
-                    if (!ad->isNested() || !ad->vthis)
-                    {
-                      Lnoframe:
-                        irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toChars());
-                        return el_long(TYnptr, 0);      // error recovery
-                    }
-                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, ad->vthis->offset));
-                    ethis = el_una(OPind, TYnptr, ethis);
-                    if (fdparent == s->toParent2())
-                        break;
-                    if (fd == s->toParent2())
-                    {
-                        /* Remember that frames for functions that have no
-                         * nested references are skipped in the linked list
-                         * of frames.
-                         */
-                        if (s->toParent2()->isFuncDeclaration()->hasNestedFrameRefs())
-                            ethis = el_una(OPind, TYnptr, ethis);
-                        break;
-                    }
-                    if (s->toParent2()->isFuncDeclaration())
-                    {
-                        /* Remember that frames for functions that have no
-                         * nested references are skipped in the linked list
-                         * of frames.
-                         */
-                        if (s->toParent2()->isFuncDeclaration()->hasNestedFrameRefs())
-                            ethis = el_una(OPind, TYnptr, ethis);
-                    }
+                    // Error should have been caught by front end
+                    assert(0);
                 }
-                s = s->toParent2();
-                assert(s);
             }
+            else
+            {
+                /* Enclosed by an aggregate. That means the current
+                 * function must be a member function of that aggregate.
+                 */
+                AggregateDeclaration *ad = s->isAggregateDeclaration();
+                if (!ad)
+                {
+                  Lnoframe:
+                    irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toChars());
+                    return el_long(TYnptr, 0);      // error recovery
+                }
+                ClassDeclaration *cd = ad->isClassDeclaration();
+                ClassDeclaration *cdx = fd->isClassDeclaration();
+                if (cd && cdx && cdx->isBaseOf(cd, NULL))
+                    break;
+                StructDeclaration *sd = ad->isStructDeclaration();
+                if (fd == sd)
+                    break;
+                if (!ad->isNested() || !ad->vthis)
+                    goto Lnoframe;
+
+                ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, ad->vthis->offset));
+                ethis = el_una(OPind, TYnptr, ethis);
+                if (fdparent == ad->toParent2())
+                    break;
+                if (fd == ad->toParent2())
+                {
+                    /* Remember that frames for functions that have no
+                     * nested references are skipped in the linked list
+                     * of frames.
+                     */
+                    if (ad->toParent2()->isFuncDeclaration()->hasNestedFrameRefs())
+                        ethis = el_una(OPind, TYnptr, ethis);
+                    break;
+                }
+                if (ad->toParent2()->isFuncDeclaration())
+                {
+                    /* Remember that frames for functions that have no
+                     * nested references are skipped in the linked list
+                     * of frames.
+                     */
+                    if (ad->toParent2()->isFuncDeclaration()->hasNestedFrameRefs())
+                        ethis = el_una(OPind, TYnptr, ethis);
+                }
+            }
+            s = s->toParent2();
+            assert(s);
         }
     }
 #if 0
