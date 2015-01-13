@@ -109,7 +109,7 @@ void obj_end(Library *library, File *objfile)
 {
 }
 
-void Module::genobjfile(bool multiobj)
+void genObjFile(Module *m, bool multiobj)
 {
 }
 

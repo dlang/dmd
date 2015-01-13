@@ -61,6 +61,8 @@ int runProgram();
 const char *findConfFile(const char *argv0, const char *inifile);
 void parseConfFile(const char *filename, const char* envsectionname);
 
+void genObjFile(Module *m, bool multiobj);
+
 /** Normalize path by turning forward slashes into backslashes */
 const char * toWinPath(const char *src)
 {
@@ -1593,9 +1595,9 @@ Language changes listed by -transition=id:\n\
             Module *m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
-            m->genobjfile(0);
+            genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
-                entrypoint->genobjfile(0);
+                genObjFile(entrypoint, false);
         }
         for (size_t i = 0; i < Module::amodules.dim; i++)
         {
@@ -1617,9 +1619,9 @@ Language changes listed by -transition=id:\n\
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
 
             obj_start(m->srcfile->toChars());
-            m->genobjfile(global.params.multiobj);
+            genObjFile(m, global.params.multiobj);
             if (entrypoint && m == rootHasMain)
-                entrypoint->genobjfile(global.params.multiobj);
+                genObjFile(entrypoint, global.params.multiobj);
             for (size_t j = 0; j < Module::amodules.dim; j++)
             {
                 Module *mx = Module::amodules[j];
