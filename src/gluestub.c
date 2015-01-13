@@ -60,7 +60,7 @@ void genObjFile(Module *m, bool multiobj)
 {
 }
 
-void Module::genhelpers(bool iscomdat)
+void genhelpers(Module *m, bool iscomdat)
 {
     assert(0);
 }
@@ -90,30 +90,6 @@ Expression *getTypeInfo(Type *t, Scope *sc)
     e = e->addressOf();
     e->type = ti->type;
     return e;
-}
-
-int Type::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
-}
-
-int TypeBasic::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
-}
-
-int TypeDArray::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
-}
-
-int TypeClass::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
 }
 
 // lib

@@ -60,6 +60,7 @@ Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
+void genhelpers(Module *m, bool iscomdat);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -492,12 +493,12 @@ void genObjFile(Module *m, bool multiobj)
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
-    m->genhelpers(false);
+    genhelpers(m, false);
 
     objmod->termfile();
 }
 
-void Module::genhelpers(bool iscomdat)
+void genhelpers(Module *m, bool iscomdat)
 {
     if (global.params.betterC)
         return;
@@ -510,54 +511,52 @@ void Module::genhelpers(bool iscomdat)
         unsigned bc;
         switch (i)
         {
-            case 0:     ma = marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
-            case 1:     ma = massert;   rt = RTLSYM_DASSERT;    bc = BCexit; break;
-            case 2:     ma = munittest; rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
+            case 0:     ma = m->marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
+            case 1:     ma = m->massert;   rt = RTLSYM_DASSERT;    bc = BCexit; break;
+            case 2:     ma = m->munittest; rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
             default:    assert(0);
         }
 
-        if (ma)
-        {
-            elem *elinnum;
+        if (!ma)
+            continue;
 
-            localgot = NULL;
 
-            // Call dassert(filename, line)
-            // Get sole parameter, linnum
-            {
-                Symbol *sp = symbol_calloc("linnum");
-                sp->Stype = type_fake(TYint);
-                sp->Stype->Tcount++;
-                sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
+        localgot = NULL;
 
-                FuncParamRegs fpr(TYjfunc);
-                fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
+        // Call dassert(filename, line)
+        // Get sole parameter, linnum
+        Symbol *sp = symbol_calloc("linnum");
+        sp->Stype = type_fake(TYint);
+        sp->Stype->Tcount++;
+        sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
 
-                sp->Sflags &= ~SFLspill;
-                sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
-                cstate.CSpsymtab = &ma->Sfunc->Flocsym;
-                symbol_add(sp);
+        FuncParamRegs fpr(TYjfunc);
+        fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
 
-                elinnum = el_var(sp);
-            }
+        sp->Sflags &= ~SFLspill;
+        sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
+        cstate.CSpsymtab = &ma->Sfunc->Flocsym;
+        symbol_add(sp);
 
-            elem *efilename = toEfilename(this);
-            if (config.exe == EX_WIN64)
-                efilename = addressElem(efilename, Type::tstring, true);
+        elem *elinnum = el_var(sp);
 
-            elem *e = el_var(rtlsym[rt]);
-            e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
-            block *b = block_calloc();
-            b->BC = bc;
-            b->Belem = e;
-            ma->Sfunc->Fstartline.Sfilename = arg;
-            ma->Sfunc->Fstartblock = b;
-            ma->Sclass = iscomdat ? SCcomdat : SCglobal;
-            ma->Sfl = 0;
-            ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
-            writefunc(ma);
-        }
+        elem *efilename = toEfilename(m);
+        if (config.exe == EX_WIN64)
+            efilename = addressElem(efilename, Type::tstring, true);
+
+        elem *e = el_var(rtlsym[rt]);
+        e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
+
+        block *b = block_calloc();
+        b->BC = bc;
+        b->Belem = e;
+        ma->Sfunc->Fstartline.Sfilename = m->arg;
+        ma->Sfunc->Fstartblock = b;
+        ma->Sclass = iscomdat ? SCcomdat : SCglobal;
+        ma->Sfl = 0;
+        ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
+        writefunc(ma);
     }
 }
 

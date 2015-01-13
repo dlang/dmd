@@ -128,7 +128,6 @@ public:
     void semantic();    // semantic analysis
     void semantic2();   // pass 2 semantic analysis
     void semantic3();   // pass 3 semantic analysis
-    void genhelpers(bool iscomdat);
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     Dsymbol *symtabInsert(Dsymbol *s);
