@@ -334,7 +334,6 @@ public:
     virtual bool isZeroInit(Loc loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent(int internal);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    virtual TypeInfoDeclaration *getTypeInfoDeclaration();
     virtual int builtinTypeInfo();
     virtual int hasWild();
     virtual Expression *toExpression();
@@ -446,7 +445,6 @@ public:
     Expression *defaultInitLiteral(Loc loc);
     TypeBasic *elementType();
     bool isZeroInit(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -480,7 +478,6 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
     int hasPointers();
     bool needsDestruction();
@@ -507,7 +504,6 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     int builtinTypeInfo();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -531,7 +527,6 @@ public:
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
     bool checkBoolean();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
     int hasPointers();
     MATCH implicitConvTo(Type *to);
@@ -553,7 +548,6 @@ public:
     bool isscalar();
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -634,7 +628,6 @@ public:
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void purityLevel();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     bool hasLazyParameters();
     bool parameterEscapes(Parameter *p);
     Type *addStorageClass(StorageClass stc);
@@ -665,7 +658,6 @@ public:
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
     bool checkBoolean();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int hasPointers();
 
@@ -788,7 +780,6 @@ public:
     bool checkBoolean();
     bool needsDestruction();
     bool needsNested();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
@@ -830,7 +821,6 @@ public:
     Type *toBasetype();
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     Type *nextOf();
 
@@ -861,7 +851,6 @@ public:
     bool isZeroInit(Loc loc);
     bool isscope();
     bool checkBoolean();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     int builtinTypeInfo();
 
@@ -885,7 +874,6 @@ public:
     bool equals(RootObject *o);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     void accept(Visitor *v) { v->visit(this); }
 };
 

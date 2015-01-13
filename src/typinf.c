@@ -38,6 +38,7 @@ Symbol *toVtblSymbol(ClassDeclaration *cd);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *toInitializer(EnumDeclaration *ed);
 Expression *getTypeInfo(Type *t, Scope *sc);
+TypeInfoDeclaration *getTypeInfoDeclaration(Type *t);
 
 /*******************************************
  * Get a canonicalized form of the TypeInfo for use with the internal
@@ -125,7 +126,7 @@ void genTypeInfo(Type *torig, Scope *sc)
         else if (t->isWild())
             t->vtinfo = TypeInfoWildDeclaration::create(t);
         else
-            t->vtinfo = t->getTypeInfoDeclaration();
+            t->vtinfo = getTypeInfoDeclaration(t);
         assert(t->vtinfo);
 
         /* If this has a custom implementation in std/typeinfo, then
@@ -171,68 +172,29 @@ Expression *getTypeInfo(Type *t, Scope *sc)
     return e;
 }
 
-TypeInfoDeclaration *Type::getTypeInfoDeclaration()
+TypeInfoDeclaration *getTypeInfoDeclaration(Type *t)
 {
-    //printf("Type::getTypeInfoDeclaration() %s\n", toChars());
-    return TypeInfoDeclaration::create(this, 0);
-}
-
-TypeInfoDeclaration *TypePointer::getTypeInfoDeclaration()
-{
-    return TypeInfoPointerDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeDArray::getTypeInfoDeclaration()
-{
-    return TypeInfoArrayDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeSArray::getTypeInfoDeclaration()
-{
-    return TypeInfoStaticArrayDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeAArray::getTypeInfoDeclaration()
-{
-    return TypeInfoAssociativeArrayDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeStruct::getTypeInfoDeclaration()
-{
-    return TypeInfoStructDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeClass::getTypeInfoDeclaration()
-{
-    if (sym->isInterfaceDeclaration())
-        return TypeInfoInterfaceDeclaration::create(this);
-    else
-        return TypeInfoClassDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeVector::getTypeInfoDeclaration()
-{
-    return TypeInfoVectorDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeEnum::getTypeInfoDeclaration()
-{
-    return TypeInfoEnumDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeFunction::getTypeInfoDeclaration()
-{
-    return TypeInfoFunctionDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeDelegate::getTypeInfoDeclaration()
-{
-    return TypeInfoDelegateDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
-{
-    return TypeInfoTupleDeclaration::create(this);
+    //printf("Type::getTypeInfoDeclaration() %s\n", t->toChars());
+    switch(t->ty)
+    {
+    case Tpointer:  return TypeInfoPointerDeclaration::create(t);
+    case Tarray:    return TypeInfoArrayDeclaration::create(t);
+    case Tsarray:   return TypeInfoStaticArrayDeclaration::create(t);
+    case Taarray:   return TypeInfoAssociativeArrayDeclaration::create(t);
+    case Tstruct:   return TypeInfoStructDeclaration::create(t);
+    case Tvector:   return TypeInfoVectorDeclaration::create(t);
+    case Tenum:     return TypeInfoEnumDeclaration::create(t);
+    case Tfunction: return TypeInfoFunctionDeclaration::create(t);
+    case Tdelegate: return TypeInfoDelegateDeclaration::create(t);
+    case Ttuple:    return TypeInfoTupleDeclaration::create(t);
+    case Tclass:
+        if (((TypeClass *)t)->sym->isInterfaceDeclaration())
+            return TypeInfoInterfaceDeclaration::create(t);
+        else
+            return TypeInfoClassDeclaration::create(t);
+    default:
+        return TypeInfoDeclaration::create(t, 0);
+    }
 }
 
 /****************************************************
