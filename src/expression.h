@@ -1112,7 +1112,7 @@ class IndexExp : public BinExp
 public:
     VarDeclaration *lengthVar;
     bool modifiable;
-    bool skipboundscheck;
+    bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *syntaxCopy();

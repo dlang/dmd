@@ -4582,7 +4582,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *einit = resolveLengthVar(ie->lengthVar, &n1, t1);
                 elem *n2 = toElem(ie->e2, irs);
 
-                if (irs->arrayBoundsCheck() && !ie->skipboundscheck)
+                if (irs->arrayBoundsCheck() && !ie->indexIsInBounds)
                 {
                     elem *elength;
 

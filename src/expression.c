@@ -10424,7 +10424,7 @@ IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
     //printf("IndexExp::IndexExp('%s')\n", toChars());
     lengthVar = NULL;
     modifiable = false;     // assume it is an rvalue
-    skipboundscheck = 0;
+    indexIsInBounds = false;
 }
 
 Expression *IndexExp::syntaxCopy()
@@ -10607,7 +10607,10 @@ Expression *IndexExp::semantic(Scope *sc)
             e2 = e2->optimize(WANTvalue);
             dinteger_t length = el->toInteger();
             if (length)
-                skipboundscheck = IntRange(SignExtendedNumber(0), SignExtendedNumber(length-1)).contains(getIntRange(e2));
+            {
+                IntRange bounds(SignExtendedNumber(0), SignExtendedNumber(length - 1));
+                indexIsInBounds = bounds.contains(getIntRange(e2));
+            }
         }
     }
 
