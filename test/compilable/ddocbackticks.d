@@ -6,3 +6,8 @@ module ddocbackticks;
 
 /// This should produce `inline code`.
 void test() {}
+
+/// But `this should NOT be inline'
+///
+/// However, restarting on a new line should be `inline again`.
+void test2() {}
