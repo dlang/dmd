@@ -507,57 +507,55 @@ bool AggregateDeclaration::isNested()
 
 void AggregateDeclaration::makeNested()
 {
-    if (!enclosing && sizeok != SIZEOKdone && !isUnionDeclaration() && !isInterfaceDeclaration())
-    {
-        // If nested struct, add in hidden 'this' pointer to outer scope
-        if (!(storage_class & STCstatic))
-        {
-            Dsymbol *s = toParent2();
-            if (s)
-            {
-                AggregateDeclaration *ad = s->isAggregateDeclaration();
-                FuncDeclaration *fd = s->isFuncDeclaration();
+    if (enclosing)  // if already nested
+        return;
+    if (sizeok == SIZEOKdone)
+        return;
+    if (isUnionDeclaration() || isInterfaceDeclaration())
+        return;
+    if (storage_class & STCstatic)
+        return;
 
-                if (fd)
-                {
-                    enclosing = fd;
-                }
-                else if (isClassDeclaration() && ad && ad->isClassDeclaration())
-                {
-                    enclosing = ad;
-                }
-                else if (isStructDeclaration() && ad)
-                {
-                    if (TemplateInstance *ti = ad->parent->isTemplateInstance())
-                    {
-                        enclosing = ti->enclosing;
-                    }
-                }
-                if (enclosing)
-                {
-                    //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing->toChars());
-                    Type *t;
-                    if (ad)
-                        t = ad->handleType();
-                    else if (fd)
-                    {
-                        AggregateDeclaration *ad2 = fd->isMember2();
-                        if (ad2)
-                            t = ad2->handleType();
-                        else
-                            t = Type::tvoidptr;
-                    }
-                    else
-                        assert(0);
-                    if (t->ty == Tstruct)
-                        t = Type::tvoidptr;     // t should not be a ref type
-                    assert(!vthis);
-                    vthis = new ThisDeclaration(loc, t);
-                    //vthis->storage_class |= STCref;
-                    members->push(vthis);
-                }
+    // If nested struct, add in hidden 'this' pointer to outer scope
+    Dsymbol *s = toParent2();
+    if (!s)
+        return;
+    AggregateDeclaration *ad = s->isAggregateDeclaration();
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    Type *t = NULL;
+    if (fd)
+    {
+        enclosing = fd;
+
+        AggregateDeclaration *ad = fd->isMember2();
+        t = ad ? ad->handleType() : Type::tvoidptr;
+    }
+    else if (ad)
+    {
+        if (isClassDeclaration() && ad->isClassDeclaration())
+        {
+            enclosing = ad;
+        }
+        else if (isStructDeclaration())
+        {
+            if (TemplateInstance *ti = ad->parent->isTemplateInstance())
+            {
+                enclosing = ti->enclosing;
             }
         }
+
+        t = ad->handleType();
+    }
+    if (enclosing)
+    {
+        //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing->toChars());
+        assert(t);
+        if (t->ty == Tstruct)
+            t = Type::tvoidptr;     // t should not be a ref type
+        assert(!vthis);
+        vthis = new ThisDeclaration(loc, t);
+        //vthis->storage_class |= STCref;
+        members->push(vthis);
     }
 }
 

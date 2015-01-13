@@ -2402,6 +2402,25 @@ class B12981
 }
 
 /*******************************************/
+// 13861
+
+struct Foo13861(alias f)
+{
+    struct Bar
+    {
+        Bar func()
+        {
+            return Bar();   // OK <- Segfault
+        }
+    }
+}
+
+void test13861()
+{
+    Foo13861!(n => n) a;
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2490,6 +2509,7 @@ int main()
     test11385();
     test11297();
     test12234();
+    test13861();
 
     printf("Success\n");
     return 0;
