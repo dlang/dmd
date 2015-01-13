@@ -2858,7 +2858,7 @@ Statement *IfStatement::semantic(Scope *sc)
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
     // This feature allows a limited form of conditional compilation.
-    condition = condition->optimize(WANTflags);
+    condition = condition->optimize(0);
     ifbody = ifbody->semanticNoScope(scd);
     scd->pop();
 

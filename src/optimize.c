@@ -567,7 +567,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 goto L1;
             }
 
-            if (result & WANTflags && e->type->ty == Tclass && e->e1->type->ty == Tclass)
+            if (e->type->ty == Tclass && e->e1->type->ty == Tclass)
             {
                 // See if we can remove an unnecessary cast
                 ClassDeclaration *cdfrom = e->e1->type->isClassHandle();
@@ -1120,7 +1120,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(AndAndExp *e)
         {
             //printf("AndAndExp::optimize(%d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(WANTflags);
+            e->e1 = e->e1->optimize(0);
             if (e->e1->op == TOKerror)
             {
                 ret = e->e1;
@@ -1140,7 +1140,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
 
-            e->e2 = e->e2->optimize(WANTflags);
+            e->e2 = e->e2->optimize(0);
             if (result && e->e2->type->toBasetype()->ty == Tvoid && !global.errors)
             {
                 e->error("void has no value");
@@ -1169,7 +1169,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(OrOrExp *e)
         {
             //printf("OrOrExp::optimize(%d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(WANTflags);
+            e->e1 = e->e1->optimize(0);
             if (e->e1->op == TOKerror)
             {
                 ret = e->e1;
@@ -1189,7 +1189,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
 
-            e->e2 = e->e2->optimize(WANTflags);
+            e->e2 = e->e2->optimize(0);
             if (result && e->e2->type->toBasetype()->ty == Tvoid && !global.errors)
             {
                 e->error("void has no value");
@@ -1256,7 +1256,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(CondExp *e)
         {
-            e->econd = e->econd->optimize(WANTflags);
+            e->econd = e->econd->optimize(0);
             if (e->econd->isBool(true))
                 ret = e->e1->optimize(result, keepLvalue);
             else if (e->econd->isBool(false))

@@ -110,7 +110,6 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
  */
 Expression *ctfeInterpretForPragmaMsg(Expression *e);
 
-#define WANTflags   1
 #define WANTvalue   2
 // Same as WANTvalue, but also expand variables as far as possible
 #define WANTexpand  8
