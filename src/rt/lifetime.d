@@ -44,6 +44,17 @@ private
     }
 }
 
+private immutable bool callStructDtorsDuringGC;
+
+extern (C) void lifetime_init()
+{
+    // this is run before static ctors, so it is safe to modify immutables
+    import rt.config;
+    if (string s = rt_configOption("callStructDtorsDuringGC"))
+        cast() callStructDtorsDuringGC = s[0] == '1' || s[0] == 'y' || s[0] == 'Y';
+    else
+        cast() callStructDtorsDuringGC = true;
+}
 
 /**
  *
@@ -203,6 +214,9 @@ inout(TypeInfo) unqualify(inout(TypeInfo) cti) pure nothrow @nogc
 // size used to store the TypeInfo at the end of an allocation for structs that have a destructor
 size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
 {
+    if (!callStructDtorsDuringGC)
+        return 0;
+		
     if (ti && typeid(ti) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
     {
         auto sti = cast(TypeInfo_Struct)cast(void*)ti;
@@ -1358,9 +1372,6 @@ void finalize_array2(void* p, size_t size, bool resetMemory = true) nothrow
 {
     debug(PRINTF) printf("rt_finalize_array2(p = %p)\n", p);
 
-    if (!callStructDtorsDuringGC)
-        return;
-
     TypeInfo_Struct si = void;
     if(size <= 256)
     {
@@ -1414,9 +1425,6 @@ void finalize_array(void* p, size_t size, const TypeInfo_Struct si, bool resetMe
 void finalize_struct(void* p, size_t size, bool resetMemory = true) nothrow
 {
     debug(PRINTF) printf("finalize_struct(p = %p)\n", p);
-
-    if (!callStructDtorsDuringGC)
-        return;
 
     auto ti = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
     try
@@ -2786,30 +2794,33 @@ unittest
     delete arr1;
     assert(dtorCount == 7);
 
-    dtorCount = 0;
-    S1* s2 = new S1;
-    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-    assert(dtorCount == 1);
-    GC.free(s2);
+    if (callStructDtorsDuringGC)
+    {
+        dtorCount = 0;
+        S1* s2 = new S1;
+        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+        assert(dtorCount == 1);
+        GC.free(s2);
 
-    dtorCount = 0;
-    const(S1)* s3 = new const(S1);
-    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-    assert(dtorCount == 1);
-    GC.free(cast(void*)s3);
+        dtorCount = 0;
+        const(S1)* s3 = new const(S1);
+        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+        assert(dtorCount == 1);
+        GC.free(cast(void*)s3);
 
-    dtorCount = 0;
-    shared(S1)* s4 = new shared(S1);
-    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-    assert(dtorCount == 1);
-    GC.free(cast(void*)s4);
+        dtorCount = 0;
+        shared(S1)* s4 = new shared(S1);
+        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+        assert(dtorCount == 1);
+        GC.free(cast(void*)s4);
 
-    dtorCount = 0;
-    const(S1)[] carr1 = new const(S1)[5];
-    BlkInfo blkinf1 = GC.query(carr1.ptr);
-    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-    assert(dtorCount == 5);
-    GC.free(blkinf1.base);
+        dtorCount = 0;
+        const(S1)[] carr1 = new const(S1)[5];
+        BlkInfo blkinf1 = GC.query(carr1.ptr);
+        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+        assert(dtorCount == 5);
+        GC.free(blkinf1.base);
+    }
 
     dtorCount = 0;
     S1[] arr2 = new S1[10];
@@ -2817,16 +2828,22 @@ unittest
     arr2.assumeSafeAppend;
     assert(dtorCount == 4); // destructors run explicitely?
 
-    dtorCount = 0;
-    BlkInfo blkinf = GC.query(arr2.ptr);
-    GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-    assert(dtorCount == 6);
-    GC.free(blkinf.base);
+    if (callStructDtorsDuringGC)
+    {
+        dtorCount = 0;
+        BlkInfo blkinf = GC.query(arr2.ptr);
+        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+        assert(dtorCount == 6);
+        GC.free(blkinf.base);
+    }
 }
 
 // test struct finalizers exception handling
 unittest
 {
+    if (!callStructDtorsDuringGC)
+        return;
+
     import core.exception;
     static struct S1
     {
