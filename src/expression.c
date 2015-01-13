@@ -2591,7 +2591,8 @@ Expression *Expression::checkToBoolean(Scope *sc)
 Lagain:
     // Structs can be converted to bool using opCast(bool)()
     if (tb->ty == Tstruct)
-    {   AggregateDeclaration *ad = ((TypeStruct *)tb)->sym;
+    {
+        AggregateDeclaration *ad = ((TypeStruct *)tb)->sym;
         /* Don't really need to check for opCast first, but by doing so we
          * get better error messages if it isn't there.
          */
@@ -2616,7 +2617,8 @@ Lagain:
     }
 
     if (!t->checkBoolean())
-    {   if (tb != Type::terror)
+    {
+        if (tb != Type::terror)
             error("expression %s of type %s does not have a boolean value", toChars(), t->toChars());
         return new ErrorExp();
     }

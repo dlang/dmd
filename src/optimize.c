@@ -1128,11 +1128,12 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
             if (e->e1->isBool(false))
             {
+                // Replace with (e1, false)
+                ret = new IntegerExp(e->loc, 0, Type::tbool);
+                ret = Expression::combine(e->e1, ret);
                 if (e->type->toBasetype()->ty == Tvoid)
-                    ret = e->e2;
-                else
                 {
-                    ret = new CommaExp(e->loc, e->e1, new IntegerExp(e->loc, 0, e->type));
+                    ret = new CastExp(e->loc, ret, Type::tvoid);
                     ret->type = e->type;
                 }
                 ret = ret->optimize(result);
