@@ -22,12 +22,6 @@
 
 // tocsym
 
-Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, TYPE *t, const char *suffix)
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol *Dsymbol::toImport()
 {
     assert(0);

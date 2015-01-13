@@ -59,6 +59,7 @@ void genObjFile(Module *m, bool multiobj);
 Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
+Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -187,7 +188,7 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
         }
 
         localgot = NULL;
-        sctor = m->toSymbolX(id, SCglobal, t, "FZv");
+        sctor = toSymbolX(m, id, SCglobal, t, "FZv");
         cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
         elem *ector = NULL;
 
@@ -412,7 +413,7 @@ void genObjFile(Module *m, bool multiobj)
         type *t = type_function(TYnfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_c;
 
-        m->sictor = m->toSymbolX("__modictor", SCglobal, t, "FZv");
+        m->sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
         cstate.CSpsymtab = &m->sictor->Sfunc->Flocsym;
         localgot = ictorlocalgot;
 

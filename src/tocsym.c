@@ -56,10 +56,10 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt);
  * Helper
  */
 
-Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *suffix)
+Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
-    const char *n = mangle(this);
+    const char *n = mangle(ds);
     assert(n);
     size_t nlen = strlen(n);
     size_t prefixlen = strlen(prefix);
@@ -385,7 +385,7 @@ Symbol *toSymbol(Dsymbol *s)
                 if (!scc)
                     scc = fake_classsym(Id::ClassInfo);
 
-                Symbol *s = cd->toSymbolX("__Class", SCextern, scc->Stype, "Z");
+                Symbol *s = toSymbolX(cd, "__Class", SCextern, scc->Stype, "Z");
                 s->Sfl = FLextern;
                 s->Sflags |= SFLnodebug;
                 cd->csym = s;
@@ -406,7 +406,7 @@ Symbol *toSymbol(Dsymbol *s)
                 if (!scc)
                     scc = fake_classsym(Id::ClassInfo);
 
-                Symbol *s = id->toSymbolX("__Interface", SCextern, scc->Stype, "Z");
+                Symbol *s = toSymbolX(id, "__Interface", SCextern, scc->Stype, "Z");
                 s->Sfl = FLextern;
                 s->Sflags |= SFLnodebug;
                 id->csym = s;
@@ -426,7 +426,7 @@ Symbol *toSymbol(Dsymbol *s)
                 if (!scc)
                     scc = fake_classsym(Id::ClassInfo);
 
-                Symbol *s = m->toSymbolX("__ModuleInfo", SCextern, scc->Stype, "Z");
+                Symbol *s = toSymbolX(m, "__ModuleInfo", SCextern, scc->Stype, "Z");
                 s->Sfl = FLextern;
                 s->Sflags |= SFLnodebug;
                 m->csym = s;
@@ -545,7 +545,7 @@ Symbol *ClassDeclaration::toVtblSymbol()
 
         t = type_allocn(TYnptr | mTYconst, tsvoid);
         t->Tmangle = mTYman_d;
-        s = toSymbolX("__vtbl", SCextern, t, "Z");
+        s = toSymbolX(this, "__vtbl", SCextern, t, "Z");
         s->Sflags |= SFLnodebug;
         s->Sfl = FLextern;
         vtblsym = s;
@@ -563,7 +563,7 @@ Symbol *AggregateDeclaration::toInitializer()
     if (!sinit)
     {
         Classsym *stag = fake_classsym(Id::ClassInfo);
-        Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
+        Symbol *s = toSymbolX(this, "__init", SCextern, stag->Stype, "Z");
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
         StructDeclaration *sd = isStructDeclaration();
@@ -583,7 +583,7 @@ Symbol *EnumDeclaration::toInitializer()
         Identifier *ident_save = ident;
         if (!ident)
             ident = Identifier::generateId("__enum");
-        Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
+        Symbol *s = toSymbolX(this, "__init", SCextern, stag->Stype, "Z");
         ident = ident_save;
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
@@ -604,7 +604,7 @@ Symbol *toModuleAssert(Module *m)
         type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
 
-        m->massert = m->toSymbolX("__assert", SCextern, t, "FiZv");
+        m->massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
         m->massert->Sfl = FLextern;
         m->massert->Sflags |= SFLnodebug | SFLexit;
         slist_add(m->massert);
@@ -619,7 +619,7 @@ Symbol *toModuleUnittest(Module *m)
         type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
 
-        m->munittest = m->toSymbolX("__unittest_fail", SCextern, t, "FiZv");
+        m->munittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
         m->munittest->Sfl = FLextern;
         m->munittest->Sflags |= SFLnodebug;
         slist_add(m->munittest);
@@ -637,7 +637,7 @@ Symbol *toModuleArray(Module *m)
         type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
 
-        m->marray = m->toSymbolX("__array", SCextern, t, "Z");
+        m->marray = toSymbolX(m, "__array", SCextern, t, "Z");
         m->marray->Sfl = FLextern;
         m->marray->Sflags |= SFLnodebug | SFLexit;
         slist_add(m->marray);
