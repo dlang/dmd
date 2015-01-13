@@ -50,6 +50,7 @@ Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc);
 void toObjFile(Dsymbol *ds, bool multiobj);
+Symbol *toVtblSymbol(ClassDeclaration *cd);
 
 /* ================================================================ */
 
@@ -602,7 +603,7 @@ void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt)
     //printf("ClassDeclaration::toDt(this = '%s')\n", cd->toChars());
 
     // Put in first two members, the vtbl[] and the monitor
-    dtxoff(pdt, cd->toVtblSymbol(), 0);
+    dtxoff(pdt, toVtblSymbol(cd), 0);
     if (!cd->cpp)
         dtsize_t(pdt, 0);                    // monitor
 
@@ -822,7 +823,7 @@ dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt)
         Expression_toDt(e, &dt);           // convert e to an initializer dt
         dts[i] = dt;
     }
-    dtxoff(pdtend, ce->originalClass()->toVtblSymbol(), 0);
+    dtxoff(pdtend, toVtblSymbol(ce->originalClass()), 0);
     dtsize_t(pdtend, 0);                    // monitor
     // Put in the rest
     membersToDt(ce, &d, ce->originalClass(), &dts);

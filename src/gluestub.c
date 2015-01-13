@@ -22,12 +22,6 @@
 
 // tocsym
 
-Symbol *ClassDeclaration::toVtblSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol *AggregateDeclaration::toInitializer()
 {
     return NULL;

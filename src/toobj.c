@@ -54,6 +54,7 @@ Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj);
 Symbol *toThunkSymbol(FuncDeclaration *fd, int offset);
+Symbol *toVtblSymbol(ClassDeclaration *cd);
 
 void toDebug(EnumDeclaration *ed);
 void toDebug(StructDeclaration *sd);
@@ -277,7 +278,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             // Generate C symbols
             toSymbol(cd);
-            cd->toVtblSymbol();
+            toVtblSymbol(cd);
             Symbol *sinit = cd->toInitializer();
 
             //////////////////////////////////////////////
@@ -337,7 +338,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             }
 
             if (Type::typeinfoclass)
-                dtxoff(&dt, Type::typeinfoclass->toVtblSymbol(), 0, TYnptr); // vtbl for ClassInfo
+                dtxoff(&dt, toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
             else
                 dtsize_t(&dt, 0);                // BUG: should be an assert()
             dtsize_t(&dt, 0);                    // monitor
@@ -700,7 +701,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             dt_t *dt = NULL;
 
             if (Type::typeinfoclass)
-                dtxoff(&dt, Type::typeinfoclass->toVtblSymbol(), 0, TYnptr); // vtbl for ClassInfo
+                dtxoff(&dt, toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
             else
                 dtsize_t(&dt, 0);                // BUG: should be an assert()
             dtsize_t(&dt, 0);                    // monitor

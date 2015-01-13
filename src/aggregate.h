@@ -289,8 +289,6 @@ public:
     void addLocalClass(ClassDeclarations *);
 
     // Back end
-    Symbol *toVtblSymbol();
-
     Symbol *vtblsym;
 
     ClassDeclaration *isClassDeclaration() { return (ClassDeclaration *)this; }

@@ -528,25 +528,22 @@ Classsym *fake_classsym(Identifier *id)
  * needed directly (like for rtti comparisons), make it directly accessible.
  */
 
-Symbol *ClassDeclaration::toVtblSymbol()
+Symbol *toVtblSymbol(ClassDeclaration *cd)
 {
-    if (!vtblsym)
+    if (!cd->vtblsym)
     {
-        Symbol *s;
-        TYPE *t;
+        if (!cd->csym)
+            toSymbol(cd);
 
-        if (!csym)
-            toSymbol(this);
-
-        t = type_allocn(TYnptr | mTYconst, tsvoid);
+        TYPE *t = type_allocn(TYnptr | mTYconst, tsvoid);
         t->Tmangle = mTYman_d;
-        s = toSymbolX(this, "__vtbl", SCextern, t, "Z");
+        Symbol *s = toSymbolX(cd, "__vtbl", SCextern, t, "Z");
         s->Sflags |= SFLnodebug;
         s->Sfl = FLextern;
-        vtblsym = s;
+        cd->vtblsym = s;
         slist_add(s);
     }
-    return vtblsym;
+    return cd->vtblsym;
 }
 
 /**********************************
