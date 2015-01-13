@@ -55,6 +55,8 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj);
 Symbol *toThunkSymbol(FuncDeclaration *fd, int offset);
 Symbol *toVtblSymbol(ClassDeclaration *cd);
+Symbol *toInitializer(AggregateDeclaration *ad);
+Symbol *toInitializer(EnumDeclaration *ed);
 
 void toDebug(EnumDeclaration *ed);
 void toDebug(StructDeclaration *sd);
@@ -279,7 +281,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             // Generate C symbols
             toSymbol(cd);
             toVtblSymbol(cd);
-            Symbol *sinit = cd->toInitializer();
+            Symbol *sinit = toInitializer(cd);
 
             //////////////////////////////////////////////
 
@@ -834,7 +836,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 sd->type->genTypeInfo(NULL);
 
                 // Generate static initializer
-                sd->toInitializer();
+                toInitializer(sd);
                 if (sd->isInstantiated())
                 {
                     sd->sinit->Sclass = SCcomdat;
@@ -998,7 +1000,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     scclass = SCcomdat;
 
                 // Generate static initializer
-                ed->toInitializer();
+                toInitializer(ed);
                 ed->sinit->Sclass = scclass;
                 ed->sinit->Sfl = FLdata;
                 Expression_toDt(tc->sym->defaultval, &ed->sinit->Sdt);

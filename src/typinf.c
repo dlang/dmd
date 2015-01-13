@@ -35,6 +35,8 @@ Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toVtblSymbol(ClassDeclaration *cd);
+Symbol *toInitializer(AggregateDeclaration *ad);
+Symbol *toInitializer(EnumDeclaration *ed);
 
 /*******************************************
  * Get a canonicalized form of the TypeInfo for use with the internal
@@ -365,7 +367,7 @@ public:
         else
         {
             dtsize_t(pdt, sd->type->size()); // init.length
-            dtxoff(pdt, sd->toInitializer(), 0);    // init.ptr
+            dtxoff(pdt, toInitializer(sd), 0);    // init.ptr
         }
     }
 
@@ -545,7 +547,7 @@ public:
         if (sd->zeroInit)
             dtsize_t(pdt, 0);                // NULL for 0 initialization
         else
-            dtxoff(pdt, sd->toInitializer(), 0);    // init.ptr
+            dtxoff(pdt, toInitializer(sd), 0);    // init.ptr
 
         if (FuncDeclaration *fd = sd->xhash)
         {

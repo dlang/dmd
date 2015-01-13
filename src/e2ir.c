@@ -62,6 +62,7 @@ Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
 Symbol *toImport(Dsymbol *ds);
+Symbol *toInitializer(AggregateDeclaration *ad);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -1344,7 +1345,7 @@ elem *toElem(Expression *e, IRState *irs)
                                 ne->allocator, ne->allocator->type, NULL, ne->newargs);
                     }
 
-                    Symbol *si = tclass->sym->toInitializer();
+                    Symbol *si = toInitializer(tclass->sym);
                     elem *ei = el_var(si);
 
                     if (cd->isNested())

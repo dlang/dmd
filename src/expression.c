@@ -48,6 +48,7 @@ Expression *expandVar(int result, VarDeclaration *v);
 TypeTuple *toArgTypes(Type *t);
 void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
+Symbol *toInitializer(AggregateDeclaration *ad);
 
 #define LOGSEMANTIC     0
 
@@ -4326,7 +4327,7 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
                 e->type->needsNested())
             {
                 StructLiteralExp *se = (StructLiteralExp *)e;
-                se->sinit = se->sd->toInitializer();
+                se->sinit = toInitializer(se->sd);
             }
         }
     }
@@ -8303,7 +8304,7 @@ Lagain:
                  * otherwise the literals expressed as code get excessively large.
                  */
                 if (sd->size(loc) > Target::ptrsize * 4 && !t1->needsNested())
-                    sle->sinit = sd->toInitializer();
+                    sle->sinit = toInitializer(sd);
 
                 sle->type = type;
 

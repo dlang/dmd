@@ -51,6 +51,7 @@ Symbols *Symbols_create();
 type *Type_toCtype(Type *t);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
+Symbol *toInitializer(AggregateDeclaration *ad);
 
 /*************************************
  * Helper
@@ -111,7 +112,7 @@ Symbol *toSymbol(Dsymbol *s)
 
         void visit(SymbolDeclaration *sd)
         {
-            result = sd->dsym->toInitializer();
+            result = toInitializer(sd->dsym);
         }
 
         void visit(VarDeclaration *vd)
@@ -550,39 +551,39 @@ Symbol *toVtblSymbol(ClassDeclaration *cd)
  * Create the static initializer for the struct/class.
  */
 
-Symbol *AggregateDeclaration::toInitializer()
+Symbol *toInitializer(AggregateDeclaration *ad)
 {
-    if (!sinit)
+    if (!ad->sinit)
     {
         Classsym *stag = fake_classsym(Id::ClassInfo);
-        Symbol *s = toSymbolX(this, "__init", SCextern, stag->Stype, "Z");
+        Symbol *s = toSymbolX(ad, "__init", SCextern, stag->Stype, "Z");
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
-        StructDeclaration *sd = isStructDeclaration();
+        StructDeclaration *sd = ad->isStructDeclaration();
         if (sd)
             s->Salignment = sd->alignment;
         slist_add(s);
-        sinit = s;
+        ad->sinit = s;
     }
-    return sinit;
+    return ad->sinit;
 }
 
-Symbol *EnumDeclaration::toInitializer()
+Symbol *toInitializer(EnumDeclaration *ed)
 {
-    if (!sinit)
+    if (!ed->sinit)
     {
         Classsym *stag = fake_classsym(Id::ClassInfo);
-        Identifier *ident_save = ident;
-        if (!ident)
-            ident = Identifier::generateId("__enum");
-        Symbol *s = toSymbolX(this, "__init", SCextern, stag->Stype, "Z");
-        ident = ident_save;
+        Identifier *ident_save = ed->ident;
+        if (!ed->ident)
+            ed->ident = Identifier::generateId("__enum");
+        Symbol *s = toSymbolX(ed, "__init", SCextern, stag->Stype, "Z");
+        ed->ident = ident_save;
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
         slist_add(s);
-        sinit = s;
+        ed->sinit = s;
     }
-    return sinit;
+    return ed->sinit;
 }
 
 

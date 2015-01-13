@@ -22,12 +22,7 @@
 
 // tocsym
 
-Symbol *AggregateDeclaration::toInitializer()
-{
-    return NULL;
-}
-
-Symbol *EnumDeclaration::toInitializer()
+Symbol *toInitializer(AggregateDeclaration *ad)
 {
     return NULL;
 }
