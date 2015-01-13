@@ -699,6 +699,35 @@ void test13977()
 }
 
 /************************************/
+// 13978
+
+void test13978()
+{
+    bool cond(bool b) { return b; }
+    int x = 0;
+    void check(int n = 1) { x = n; }
+
+    cond(true) || check();
+    assert(x == 0); x = 0;
+
+    cond(false) || check();
+    assert(x == 1); x = 0;
+
+    true || check();
+    assert(x == 0); x = 0;
+
+    false || check();
+    assert(x == 1); x = 0;
+    (int[]).init || check();
+    assert(x == 1); x = 0;
+    Object.init || check();
+    assert(x == 1); x = 0;
+
+    (check(2), true) || check();
+    assert(x == 2); x = 0;
+}
+
+/************************************/
 
 int main()
 {
@@ -711,6 +740,7 @@ int main()
     test9058();
     test11159();
     test13977();
+    test13978();
 
     printf("Success\n");
     return 0;
