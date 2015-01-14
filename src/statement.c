@@ -825,7 +825,7 @@ Statement *ExpStatement::semantic(Scope *sc)
         exp = exp->addDtorHook(sc);
         exp = resolveProperties(sc, exp);
         discardValue(exp);
-        exp = exp->optimize(0);
+        exp = exp->optimize(WANTvalue);
         exp = checkGC(sc, exp);
         if (exp->op == TOKerror)
             return new ErrorStatement();
@@ -1510,7 +1510,7 @@ Statement *ForStatement::semantic(Scope *sc)
     {
         increment = increment->semantic(sc);
         increment = resolveProperties(sc, increment);
-        increment = increment->optimize(0);
+        increment = increment->optimize(WANTvalue);
         increment = checkGC(sc, increment);
     }
 
@@ -2858,7 +2858,7 @@ Statement *IfStatement::semantic(Scope *sc)
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
     // This feature allows a limited form of conditional compilation.
-    condition = condition->optimize(WANTflags);
+    condition = condition->optimize(WANTvalue);
     ifbody = ifbody->semanticNoScope(scd);
     scd->pop();
 
@@ -4154,7 +4154,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
     {
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
-        // exp = exp->optimize(0);  //?
+        exp = exp->optimize(WANTvalue);
         exp = checkGC(sc, exp);
         if (exp->op == TOKerror)
             goto Lbody;
@@ -4302,7 +4302,7 @@ Statement *WithStatement::semantic(Scope *sc)
     //printf("WithStatement::semantic()\n");
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    // exp = exp_>optimize(0);  //?
+    exp = exp->optimize(WANTvalue);
     exp = checkGC(sc, exp);
     if (exp->op == TOKerror)
         return new ErrorStatement();

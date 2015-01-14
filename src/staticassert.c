@@ -63,7 +63,7 @@ void StaticAssert::semantic2(Scope *sc)
     sc = sc->pop();
 
     // Simplify expression, to make error messages nicer if CTFE fails
-    e = e->optimize(0);
+    e = e->optimize(WANTvalue);
 
     if (!e->type->checkBoolean())
     {

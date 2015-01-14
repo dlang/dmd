@@ -327,7 +327,7 @@
      {
       "name" : "foo",
       "deco" : "C4json4Bar2",
-      "default" : "cast(Bar2)new Bar3(7)"
+      "default" : "new Bar3(7)"
      }
     ],
     "endline" : 55,

@@ -73,7 +73,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
-            result = e->optimize(WANTflags | WANTvalue);
+            result = e->optimize(WANTvalue);
             if (result != e)
             {
                 result->accept(this);
@@ -202,7 +202,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 e->error("%s is not an expression", e->toChars());
                 e->type = Type::terror;
             }
-            Expression *ex = e->optimize(WANTvalue | WANTflags);
+            Expression *ex = e->optimize(WANTvalue);
             if (ex->type->equals(t))
             {
                 result = MATCHexact;
