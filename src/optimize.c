@@ -1128,11 +1128,12 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
             if (e->e1->isBool(false))
             {
+                // Replace with (e1, false)
+                ret = new IntegerExp(e->loc, 0, Type::tbool);
+                ret = Expression::combine(e->e1, ret);
                 if (e->type->toBasetype()->ty == Tvoid)
-                    ret = e->e2;
-                else
                 {
-                    ret = new CommaExp(e->loc, e->e1, new IntegerExp(e->loc, 0, e->type));
+                    ret = new CastExp(e->loc, ret, Type::tvoid);
                     ret->type = e->type;
                 }
                 ret = ret->optimize(result);
@@ -1167,6 +1168,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(OrOrExp *e)
         {
+            //printf("OrOrExp::optimize(%d) %s\n", result, e->toChars());
             e->e1 = e->e1->optimize(WANTflags);
             if (e->e1->op == TOKerror)
             {
@@ -1175,12 +1177,18 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
             if (e->e1->isBool(true))
             {
-                // Replace with (e1, 1)
-                ret = new CommaExp(e->loc, e->e1, new IntegerExp(e->loc, 1, e->type));
-                ret->type = e->type;
+                // Replace with (e1, true)
+                ret = new IntegerExp(e->loc, 1, Type::tbool);
+                ret = Expression::combine(e->e1, ret);
+                if (e->type->toBasetype()->ty == Tvoid)
+                {
+                    ret = new CastExp(e->loc, ret, Type::tvoid);
+                    ret->type = e->type;
+                }
                 ret = ret->optimize(result);
                 return;
             }
+
             e->e2 = e->e2->optimize(WANTflags);
             if (result && e->e2->type->toBasetype()->ty == Tvoid && !global.errors)
             {
@@ -1188,6 +1196,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 ret = new ErrorExp();
                 return;
             }
+
             if (e->e1->isConst())
             {
                 if (e->e2->isConst())
