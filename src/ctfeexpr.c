@@ -813,10 +813,12 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
         goto Lcant;
     }
 
+    // Create a CTFE pointer &agg1[indx]
     IntegerExp *ofs = new IntegerExp(loc, indx, Type::tsize_t);
-    new(&ue) IndexExp(loc, agg1, ofs);
-    IndexExp *ie = (IndexExp *)ue.exp();
-    ie->type = type;
+    Expression *ie = new IndexExp(loc, agg1, ofs);
+    ie->type = pointee;
+    new(&ue) AddrExp(loc, ie);
+    ue.exp()->type = type;
     return ue;
 }
 
@@ -2006,7 +2008,7 @@ UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     }
     else
     {
-        if (oldlen !=0)
+        if (oldlen != 0)
             assert(oldval->op == TOKarrayliteral);
         ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
         for (size_t i = 0; i < copylen; i++)
@@ -2036,122 +2038,112 @@ UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
 
 bool isCtfeValueValid(Expression *newval)
 {
-    if (newval->type->ty == Tnull || isPointer(newval->type))
+    Type *tb = newval->type->toBasetype();
+
+    if (newval->op == TOKint64 ||
+        newval->op == TOKfloat64 ||
+        newval->op == TOKchar ||
+        newval->op == TOKcomplex80)
     {
-        if (newval->op == TOKaddress || newval->op == TOKnull ||
-            newval->op == TOKstring)
-            return true;
-        if (newval->op == TOKindex)
-        {
-            Expression *g = ((IndexExp *)newval)->e1;
-            if (g->op == TOKarrayliteral || g->op == TOKstring ||
-                g->op == TOKassocarrayliteral)
-            return true;
-        }
-        if (newval->op == TOKvar)
-            return true;
-        if (newval->type->nextOf()->ty == Tarray && newval->op == TOKslice)
-            return true;
-        if (newval->op == TOKint64)
-            return true; // Result of a cast, but cannot be dereferenced
-        // else it must be a reference
+        return tb->isscalar();
     }
-    if (newval->op == TOKclassreference || (newval->op == TOKnull && newval->type->ty == Tclass))
-        return true;
-    if (newval->op == TOKvar)
+    if (newval->op == TOKnull)
     {
-        VarExp *ve = (VarExp *)newval;
-        VarDeclaration *vv = ve->var->isVarDeclaration();
-        // Must not be a reference to a reference
-        if (!(vv && getValue(vv) && getValue(vv)->op == TOKvar))
-            return true;
-    }
-    if (newval->op == TOKdotvar)
-    {
-        if (((DotVarExp *)newval)->e1->op == TOKstructliteral)
-        {
-            assert(((StructLiteralExp *)((DotVarExp *)newval)->e1)->ownedByCtfe);
-            return true;
-        }
-    }
-    if (newval->op == TOKindex)
-    {
-        IndexExp *ie = (IndexExp *)newval;
-        if (ie->e2->op == TOKint64)
-        {
-            if (ie->e1->op == TOKarrayliteral || ie->e1->op == TOKstring)
-                return true;
-        }
-        if (ie->e1->op == TOKassocarrayliteral)
-            return true;
-        // BUG: Happens ONLY in ref foreach. Should tighten this.
-        if (ie->e2->op == TOKvar)
-            return true;
+        return tb->ty == Tnull ||
+               tb->ty == Tpointer ||
+               tb->ty == Tarray ||
+               tb->ty == Taarray ||
+               tb->ty == Tclass;
     }
 
-    if (newval->op == TOKfunction)
-        return true; // function literal or delegate literal
+    if (newval->op == TOKstring)
+        return true;    // CTFE would directly use the StringExp in AST.
+    if (newval->op == TOKarrayliteral)
+        return ((ArrayLiteralExp *)newval)->ownedByCtfe;
+    if (newval->op == TOKassocarrayliteral)
+        return ((AssocArrayLiteralExp *)newval)->ownedByCtfe;
+    if (newval->op == TOKstructliteral)
+        return ((StructLiteralExp *)newval)->ownedByCtfe;
+    if (newval->op == TOKclassreference)
+        return true;
 
     if (newval->op == TOKvector)
-        return true; // vector literal
+        return true;    // vector literal
 
+    if (newval->op == TOKfunction)
+        return true;    // function literal or delegate literal
     if (newval->op == TOKdelegate)
     {
-        Expression *dge = ((DelegateExp *)newval)->e1;
-        if (dge->op == TOKvar && ((VarExp *)dge)->var->isFuncDeclaration())
-            return true;        // &nestedfunc
-
-        if (dge->op == TOKstructliteral || dge->op == TOKclassreference)
-            return true;       // &struct.func or &clasinst.func
+        // &struct.func or &clasinst.func
+        // &nestedfunc
+        Expression *ethis = ((DelegateExp *)newval)->e1;
+        return (ethis->op == TOKstructliteral ||
+                ethis->op == TOKclassreference ||
+                ethis->op == TOKvar && ((VarExp *)ethis)->var == ((DelegateExp *)newval)->func);
     }
-    if (newval->op == TOKsymoff)  // function pointer
+    if (newval->op == TOKsymoff)
     {
-        if (((SymOffExp *)newval)->var->isFuncDeclaration())
-            return true;
-        if (((SymOffExp *)newval)->var->isDataseg())
-            return true;    // pointer to static variable
+        // function pointer, or pointer to static variable
+        Declaration *d = ((SymOffExp *)newval)->var;
+        return d->isFuncDeclaration() || d->isDataseg();
     }
-
-    if (newval->op == TOKint64 || newval->op == TOKfloat64 ||
-        newval->op == TOKchar || newval->op == TOKcomplex80)
-        return true;
-
-    // References
-
-    if (newval->op == TOKstructliteral)
-        assert(((StructLiteralExp *)newval)->ownedByCtfe);
-    if (newval->op == TOKarrayliteral)
-        assert(((ArrayLiteralExp *)newval)->ownedByCtfe);
-    if (newval->op == TOKassocarrayliteral)
-        assert(((AssocArrayLiteralExp *)newval)->ownedByCtfe);
-
-    if (newval->op == TOKarrayliteral || newval->op == TOKstructliteral ||
-        newval->op == TOKstring || newval->op == TOKassocarrayliteral ||
-        newval->op == TOKnull)
+    if (newval->op == TOKaddress)
     {
-        return true;
-    }
-    // Dynamic arrays passed by ref may be null. When this happens
-    // they may originate from an index or dotvar expression.
-    if (newval->type->ty == Tarray || newval->type->ty == Taarray)
-    {
-        if (newval->op == TOKdotvar || newval->op == TOKindex)
-            return true; // actually must be null
+        // e1 should be a CTFE reference
+        Expression *e1 = ((AddrExp *)newval)->e1;
+        return tb->ty == Tpointer &&
+               (e1->op == TOKstructliteral && isCtfeValueValid(e1) ||
+                e1->op == TOKvar ||
+                e1->op == TOKdotvar && isCtfeReferenceValid(e1) ||
+                e1->op == TOKindex && isCtfeReferenceValid(e1));
     }
     if (newval->op == TOKslice)
     {
+        // e1 should be an array aggregate
         SliceExp *se = (SliceExp *)newval;
         assert(se->lwr && se->lwr->op == TOKint64);
         assert(se->upr && se->upr->op == TOKint64);
-        assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
-        return true;
+        return (tb->ty == Tarray ||
+                tb->ty == Tsarray) &&
+               (se->e1->op == TOKstring ||
+                se->e1->op == TOKarrayliteral);
     }
+
     if (newval->op == TOKvoid)
+        return true;    // uninitialized value
+
+    newval->error("CTFE internal error: illegal CTFE value %s", newval->toChars());
+    return false;
+}
+
+bool isCtfeReferenceValid(Expression *newval)
+{
+    if (newval->op == TOKthis)
+        return true;
+    if (newval->op == TOKvar)
     {
+        VarDeclaration *v = ((VarExp *)newval)->var->isVarDeclaration();
+        assert(v);
+        // Must not be a reference to a reference
         return true;
     }
-    newval->error("CTFE internal error: illegal value %s", newval->toChars());
-    return false;
+    if (newval->op == TOKindex)
+    {
+        Expression *eagg = ((IndexExp *)newval)->e1;
+        return eagg->op == TOKstring ||
+               eagg->op == TOKarrayliteral ||
+               eagg->op == TOKassocarrayliteral;
+    }
+    if (newval->op == TOKdotvar)
+    {
+        Expression *eagg = ((DotVarExp *)newval)->e1;
+        return  (eagg->op == TOKstructliteral || eagg->op == TOKclassreference) &&
+                isCtfeValueValid(eagg);
+    }
+
+    // Internally a ref variable may directly point a stack memory.
+    // e.g. ref int v = 1;
+    return isCtfeValueValid(newval);
 }
 
 // Used for debugging only
@@ -2204,15 +2196,10 @@ void showCtfeExpr(Expression *e, int level)
         if (v && getValue(v))
             showCtfeExpr(getValue(v), level + 1);
     }
-    else if (isPointer(e->type))
+    else if (e->op == TOKaddress)
     {
         // This is potentially recursive. We mustn't try to print the thing we're pointing to.
-        if (e->op == TOKindex)
-            printf("POINTER %p into %p [%s]\n", e, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2->toChars());
-        else if (e->op == TOKdotvar)
-            printf("POINTER %p to %p .%s\n", e, ((DotVarExp *)e)->e1, ((DotVarExp *)e)->var->toChars());
-        else
-            printf("POINTER %p: %s\n", e, e->toChars());
+        printf("POINTER %p to %p: %s\n", e, ((AddrExp *)e)->e1, e->toChars());
     }
     else
         printf("VALUE %p: %s\n", e, e->toChars());
