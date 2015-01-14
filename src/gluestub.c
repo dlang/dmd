@@ -95,13 +95,6 @@ Symbol* ClassReferenceExp::toSymbol()
     return NULL;
 }
 
-// toobj
-
-void Module::genmoduleinfo()
-{
-    assert(0);
-}
-
 // glue
 
 void obj_write_deferred(Library *library)

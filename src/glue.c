@@ -54,6 +54,7 @@ Dsymbols *Dsymbols_create();
 Expressions *Expressions_create();
 type *Type_toCtype(Type *t);
 void toObjFile(Dsymbol *ds, bool multiobj);
+void genModuleInfo(Module *m);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -464,7 +465,7 @@ void Module::genobjfile(bool multiobj)
         stest = callFuncsAndGates(this, &stests, NULL, "__modtest");
 
         if (doppelganger)
-            genmoduleinfo();
+            genModuleInfo(this);
     }
 
     if (doppelganger)
@@ -489,7 +490,7 @@ void Module::genobjfile(bool multiobj)
      * But module info needs the runtime library, so disable it for betterC.
      */
     if (!global.params.betterC /*|| needModuleInfo()*/)
-        genmoduleinfo();
+        genModuleInfo(this);
 
     genhelpers(false);
 

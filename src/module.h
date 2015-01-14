@@ -169,8 +169,6 @@ public:
     Symbol *marray;             // module array bounds function
     Symbol *toModuleArray();    // get module array bounds function
 
-    void genmoduleinfo();
-
     Module *isModule() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };

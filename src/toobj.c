@@ -62,44 +62,44 @@ void toDebug(ClassDeclaration *cd);
 
 // Put out instance of ModuleInfo for this Module
 
-void Module::genmoduleinfo()
+void genModuleInfo(Module *m)
 {
-    //printf("Module::genmoduleinfo() %s\n", toChars());
+    //printf("Module::genmoduleinfo() %s\n", m->toChars());
 
-    if (! Module::moduleinfo)
+    if (!Module::moduleinfo)
     {
         ObjectNotFound(Id::ModuleInfo);
     }
 
-    Symbol *msym = toSymbol(this);
+    Symbol *msym = toSymbol(m);
 
     //////////////////////////////////////////////
 
-    csym->Sclass = SCglobal;
-    csym->Sfl = FLdata;
+    m->csym->Sclass = SCglobal;
+    m->csym->Sfl = FLdata;
 
     dt_t *dt = NULL;
     ClassDeclarations aclasses;
 
     //printf("members->dim = %d\n", members->dim);
-    for (size_t i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < m->members->dim; i++)
     {
-        Dsymbol *member = (*members)[i];
+        Dsymbol *member = (*m->members)[i];
 
         //printf("\tmember '%s'\n", member->toChars());
         member->addLocalClass(&aclasses);
     }
 
     // importedModules[]
-    size_t aimports_dim = aimports.dim;
-    for (size_t i = 0; i < aimports.dim; i++)
+    size_t aimports_dim = m->aimports.dim;
+    for (size_t i = 0; i < m->aimports.dim; i++)
     {
-        Module *m = aimports[i];
-        if (!m->needmoduleinfo)
+        Module *mod = m->aimports[i];
+        if (!mod->needmoduleinfo)
             aimports_dim--;
     }
 
-    FuncDeclaration *sgetmembers = findGetMembers();
+    FuncDeclaration *sgetmembers = m->findGetMembers();
 
     // These must match the values in druntime/src/object_.d
     #define MIstandalone      0x4
@@ -115,21 +115,21 @@ void Module::genmoduleinfo()
     #define MIname            0x1000
 
     unsigned flags = 0;
-    if (!needmoduleinfo)
+    if (!m->needmoduleinfo)
         flags |= MIstandalone;
-    if (sctor)
+    if (m->sctor)
         flags |= MItlsctor;
-    if (sdtor)
+    if (m->sdtor)
         flags |= MItlsdtor;
-    if (ssharedctor)
+    if (m->ssharedctor)
         flags |= MIctor;
-    if (sshareddtor)
+    if (m->sshareddtor)
         flags |= MIdtor;
     if (sgetmembers)
         flags |= MIxgetMembers;
-    if (sictor)
+    if (m->sictor)
         flags |= MIictor;
-    if (stest)
+    if (m->stest)
         flags |= MIunitTest;
     if (aimports_dim)
         flags |= MIimportedModules;
@@ -141,36 +141,37 @@ void Module::genmoduleinfo()
     dtdword(&dt, 0);            // _index
 
     if (flags & MItlsctor)
-        dtxoff(&dt, sctor, 0, TYnptr);
+        dtxoff(&dt, m->sctor, 0, TYnptr);
     if (flags & MItlsdtor)
-        dtxoff(&dt, sdtor, 0, TYnptr);
+        dtxoff(&dt, m->sdtor, 0, TYnptr);
     if (flags & MIctor)
-        dtxoff(&dt, ssharedctor, 0, TYnptr);
+        dtxoff(&dt, m->ssharedctor, 0, TYnptr);
     if (flags & MIdtor)
-        dtxoff(&dt, sshareddtor, 0, TYnptr);
+        dtxoff(&dt, m->sshareddtor, 0, TYnptr);
     if (flags & MIxgetMembers)
         dtxoff(&dt, toSymbol(sgetmembers), 0, TYnptr);
     if (flags & MIictor)
-        dtxoff(&dt, sictor, 0, TYnptr);
+        dtxoff(&dt, m->sictor, 0, TYnptr);
     if (flags & MIunitTest)
-        dtxoff(&dt, stest, 0, TYnptr);
+        dtxoff(&dt, m->stest, 0, TYnptr);
     if (flags & MIimportedModules)
     {
         dtsize_t(&dt, aimports_dim);
-        for (size_t i = 0; i < aimports.dim; i++)
-        {   Module *m = aimports[i];
+        for (size_t i = 0; i < m->aimports.dim; i++)
+        {
+            Module *mod = m->aimports[i];
 
-            if (m->needmoduleinfo)
-            {
-                Symbol *s = toSymbol(m);
+            if (!mod->needmoduleinfo)
+                continue;
 
-                /* Weak references don't pull objects in from the library,
-                 * they resolve to 0 if not pulled in by something else.
-                 * Don't pull in a module just because it was imported.
-                 */
-                s->Sflags |= SFLweak;
-                dtxoff(&dt, s, 0, TYnptr);
-            }
+            Symbol *s = toSymbol(mod);
+
+            /* Weak references don't pull objects in from the library,
+             * they resolve to 0 if not pulled in by something else.
+             * Don't pull in a module just because it was imported.
+             */
+            s->Sflags |= SFLweak;
+            dtxoff(&dt, s, 0, TYnptr);
         }
     }
     if (flags & MIlocalClasses)
@@ -185,16 +186,16 @@ void Module::genmoduleinfo()
     if (flags & MIname)
     {
         // Put out module name as a 0-terminated string, to save bytes
-        nameoffset = dt_size(dt);
-        const char *name = toPrettyChars();
-        namelen = strlen(name);
-        dtnbytes(&dt, namelen + 1, name);
+        m->nameoffset = dt_size(dt);
+        const char *name = m->toPrettyChars();
+        m->namelen = strlen(name);
+        dtnbytes(&dt, m->namelen + 1, name);
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
-    csym->Sdt = dt;
-    out_readonly(csym);
-    outdata(csym);
+    m->csym->Sdt = dt;
+    out_readonly(m->csym);
+    outdata(m->csym);
 
     //////////////////////////////////////////////
 
