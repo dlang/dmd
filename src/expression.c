@@ -9546,9 +9546,7 @@ Expression *CastExp::semantic(Scope *sc)
         Type *t1b = e1->type->toBasetype();
         Type *tob = to->toBasetype();
 
-        if (tob->ty == Tstruct &&
-            !tob->equals(t1b)
-           )
+        if (tob->ty == Tstruct && !tob->equals(t1b))
         {
             /* Look to replace:
              *  cast(S)t
@@ -9570,17 +9568,36 @@ Expression *CastExp::semantic(Scope *sc)
                 return new ErrorExp;
         }
 
-        // Struct casts are possible only when the sizes match
+        // Bugzlla 3133: Struct casts are possible only when the sizes match
         // Same with static array -> static array
-        if (tob->ty == Tstruct || t1b->ty == Tstruct ||
-            (tob->ty == Tsarray && t1b->ty == Tsarray))
+        if ((t1b->ty == Tsarray || t1b->ty == Tstruct) &&
+            (tob->ty == Tsarray || tob->ty == Tstruct))
         {
-            if (t1b->ty == Tnull || tob->ty == Tnull || t1b->size(loc) != tob->size(loc))
+            if (t1b->size(loc) != tob->size(loc))
                 goto Lfail;
         }
 
-        if ((t1b->ty == Tarray || t1b->ty == Tsarray) && tob->ty == Tclass)
+        // Bugzilla 9178: Tsarray <--> typeof(null)
+        // Bugzilla 9904: Tstruct <--> typeof(null)
+        if (t1b->ty == Tnull && (tob->ty == Tsarray || tob->ty == Tstruct) ||
+            tob->ty == Tnull && (t1b->ty == Tsarray || t1b->ty == Tstruct))
+        {
             goto Lfail;
+        }
+
+        // Bugzilla 13959: Tstruct <--> Tpointer
+        if ((tob->ty == Tstruct && t1b->ty == Tpointer) ||
+            (t1b->ty == Tstruct && tob->ty == Tpointer))
+        {
+            goto Lfail;
+        }
+
+        // Bugzilla 10646: Tclass <--> (T[] or T[n])
+        if (tob->ty == Tclass && (t1b->ty == Tarray || t1b->ty == Tsarray) ||
+            t1b->ty == Tclass && (tob->ty == Tarray || tob->ty == Tsarray))
+        {
+            goto Lfail;
+        }
 
         // Look for casting to a vector type
         if (tob->ty == Tvector && t1b->ty != Tvector)
@@ -9588,36 +9605,36 @@ Expression *CastExp::semantic(Scope *sc)
             return new VectorExp(loc, e1, to);
         }
 
-        if ((tob->ty == Tarray || tob->ty == Tsarray) && t1b->isTypeBasic())
+        // Bugzilla 11484: (T[] or T[n]) <--> TypeBasic
+        // Bugzilla 11485, 7472: Tclass <--> TypeBasic
+        if (t1b->isTypeBasic() && (tob->ty == Tarray || tob->ty == Tsarray || tob->ty == Tclass) ||
+            tob->isTypeBasic() && (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Tclass))
+        {
             goto Lfail;
-
-        if (tob->isTypeBasic() && (t1b->ty == Tarray || t1b->ty == Tsarray))
-            goto Lfail;
+        }
 
         if (tob->ty == Tpointer && t1b->ty == Tdelegate)
             deprecation("casting from %s to %s is deprecated", e1->type->toChars(), to->toChars());
 
         if (t1b->ty == Tvoid && tob->ty != Tvoid && e1->op != TOKfunction)
             goto Lfail;
-
-        if (tob->ty == Tclass && t1b->isTypeBasic())
-            goto Lfail;
-        if (tob->isTypeBasic() && t1b->ty == Tclass)
-            goto Lfail;
     }
     else if (!to)
-    {   error("cannot cast tuple");
+    {
+        error("cannot cast tuple");
         return new ErrorExp();
     }
 
     if (!e1->type)
-    {   error("cannot cast %s", e1->toChars());
+    {
+        error("cannot cast %s", e1->toChars());
         return new ErrorExp();
     }
 
     // Check for unsafe casts
     if (sc->func && !sc->intypeof)
-    {   // Disallow unsafe casts
+    {
+        // Disallow unsafe casts
         Type *tob = to->toBasetype();
         Type *t1b = e1->type->toBasetype();
 
@@ -9664,28 +9681,26 @@ Expression *CastExp::semantic(Scope *sc)
                 tobn->ty != Tfunction && t1bn->ty != Tfunction &&
                 tobn->size() <= t1bn->size() &&
                 MODimplicitConv(t1bn->mod, tobn->mod))
+            {
                 goto Lsafe;
+            }
         }
 
     Lunsafe:
         if (sc->func->setUnsafe())
-        {   error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
+        {
+            error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
             return new ErrorExp();
         }
     }
 
 Lsafe:
+    if (to->ty == Tvoid)
     {
-        if (to->ty == Tvoid)
-        {
-            type = to;
-            return this;
-        }
-        else
-        {
-            return e1->castTo(sc, to);
-        }
+        type = to;
+        return this;
     }
+    return e1->castTo(sc, to);
 
 Lfail:
     error("cannot cast expression %s of type %s to %s", e1->toChars(), e1->type->toChars(), to->toChars());

@@ -1348,7 +1348,6 @@ Type *toStaticArrayType(SliceExp *e)
 
 Expression *castTo(Expression *e, Scope *sc, Type *t)
 {
-
     class CastTo : public Visitor
     {
     public:
@@ -1505,29 +1504,13 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
         void visit(NullExp *e)
         {
             //printf("NullExp::castTo(t = %s) %s\n", t->toChars(), toChars());
-            if (e->type->equals(t))
+            visit((Expression *)e);
+            if (result->op == TOKnull)
             {
+                NullExp *e = (NullExp *)result;
                 e->committed = 1;
-                result = e;
                 return;
             }
-
-            NullExp *ex = (NullExp *)e->copy();
-            ex->committed = 1;
-            Type *tb = t->toBasetype();
-
-            if (tb->ty == Tvoid)
-            {
-                ex->type = e->type->toBasetype();
-                visit((Expression *)ex);
-                return;
-            }
-            if (tb->ty == Tsarray || tb->ty == Tstruct)
-            {
-                e->error("cannot cast null to %s", t->toChars());
-            }
-            ex->type = t;
-            result = ex;
         }
 
         void visit(StructLiteralExp *e)
