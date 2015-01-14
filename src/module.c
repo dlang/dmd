@@ -24,10 +24,7 @@
 #include "expression.h"
 #include "lexer.h"
 #include "attrib.h"
-
-#ifdef IN_GCC
-#include "d-dmd-gcc.h"
-#endif
+#include "target.h"
 
 AggregateDeclaration *Module::moduleinfo;
 
@@ -250,9 +247,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     m->parse();
 
-#ifdef IN_GCC
-    d_gcc_magic_module(m);
-#endif
+    Target::loadModule(m);
 
     return m;
 }

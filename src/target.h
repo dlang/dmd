@@ -18,6 +18,7 @@
 
 class Expression;
 class Type;
+class Module;
 
 struct Target
 {
@@ -36,6 +37,7 @@ struct Target
     static Type *va_listType();  // get type of va_list
     static Expression *paintAsType(Expression *e, Type *type);
     static int checkVectorType(int sz, Type *type);
+    static void loadModule(Module *m);
 };
 
 #endif
