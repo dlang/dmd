@@ -181,9 +181,9 @@ extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf)
     if (*p)
     {
         debug(PRINTF) printf("_d_delstruct(%p, %p)\n", *p, cast(void*)inf);
-        
+
         inf.xdtor(*p);
-        
+
         GC.free(*p);
         *p = null;
     }
@@ -216,7 +216,7 @@ size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
 {
     if (!callStructDtorsDuringGC)
         return 0;
-        
+
     if (ti && typeid(ti) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
     {
         auto sti = cast(TypeInfo_Struct)cast(void*)ti;
@@ -400,7 +400,7 @@ size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo tinext) pure nothrow
 
     if(info.size < PAGESIZE)
         return *cast(ushort *)(info.base + info.size - structTypeInfoSize(tinext) - MEDPAD);
-     
+
     return *cast(size_t *)(info.base);
 }
 

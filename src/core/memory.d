@@ -763,5 +763,3 @@ struct GC
         gc_runFinalizers( segment );
     }
 }
-
-__gshared bool callStructDtorsDuringGC = true;
