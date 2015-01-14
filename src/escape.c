@@ -13,6 +13,7 @@
 #include "expression.h"
 #include "scope.h"
 #include "declaration.h"
+#include "module.h"
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
@@ -260,6 +261,7 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
 
         void check(Loc loc, Declaration *d)
         {
+            assert(d);
             VarDeclaration *v = d->isVarDeclaration();
             if (v && v->toParent2() == sc->func)
             {
@@ -270,6 +272,17 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
                     error(loc, "escaping reference to local variable %s", v);
                     return;
                 }
+
+                if (global.params.useDIP25 &&
+                    (v->storage_class & (STCref | STCout)) && !(v->storage_class & STCreturn))
+                {
+                    if (sc->func->flags & FUNCFLAGreturnInprocess)
+                        v->storage_class |= STCreturn;
+                    else if (sc->module && sc->module->isRoot())
+                        error(loc, "escaping reference to local ref variable %s", v);
+                    return;
+                }
+
                 if ((v->storage_class & (STCref | STCtemp)) == (STCref | STCtemp) &&
                     v->init)
                 {
@@ -292,6 +305,12 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
         void visit(VarExp *e)
         {
             check(e->loc, e->var);
+        }
+
+        void visit(ThisExp *e)
+        {
+            if (e->var)
+                check(e->loc, e->var);
         }
 
         void visit(PtrExp *e)

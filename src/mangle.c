@@ -208,6 +208,7 @@ public:
 
     void mangleFuncType(TypeFunction *t, TypeFunction *ta, unsigned char modMask, Type *tret)
     {
+        //printf("mangleFuncType() %s\n", t->toChars());
         if (t->inuse)
         {
             t->inuse = 2;       // flag error to caller
@@ -231,7 +232,7 @@ public:
         }
         buf->writeByte(mc);
 
-        if (ta->purity || ta->isnothrow || ta->isnogc || ta->isproperty || ta->isref || ta->trust)
+        if (ta->purity || ta->isnothrow || ta->isnogc || ta->isproperty || ta->isref || ta->trust || ta->isreturn)
         {
             if (ta->purity)
                 buf->writestring("Na");
@@ -243,6 +244,8 @@ public:
                 buf->writestring("Nd");
             if (ta->isnogc)
                 buf->writestring("Ni");
+            if (ta->isreturn)
+                buf->writestring("Nj");
             switch (ta->trust)
             {
                 case TRUSTtrusted:
@@ -826,6 +829,9 @@ public:
     {
         if (p->storageClass & STCscope)
             buf->writeByte('M');
+        // 'return inout ref' is the same as 'inout ref'
+        if ((p->storageClass & (STCreturn | STCwild)) == STCreturn)
+            buf->writestring("Nk");
         switch (p->storageClass & (STCin | STCout | STCref | STClazy))
         {
             case 0:
