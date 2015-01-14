@@ -9737,6 +9737,8 @@ SliceExp::SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr)
     this->upr = upr;
     this->lwr = lwr;
     lengthVar = NULL;
+    upperIsInBounds = false;
+    lowerIsLessThanUpper = false;
 }
 
 Expression *SliceExp::syntaxCopy()
@@ -9976,6 +9978,38 @@ Lagain:
     // Allow typedef[] -> typedef[]
     if (type->equals(t1b))
         type = e1->type;
+
+    if (lwr && upr)
+    {
+        lwr = lwr->optimize(WANTvalue);
+        upr = upr->optimize(WANTvalue);
+
+        IntRange lwrRange = getIntRange(lwr);
+        IntRange uprRange = getIntRange(upr);
+
+        if (t1b->ty == Tsarray || t1b->ty == Tarray)
+        {
+            Expression *el = new ArrayLengthExp(loc, e1);
+            el = el->semantic(sc);
+            el = el->optimize(WANTvalue);
+            if (el->op == TOKint64)
+            {
+                dinteger_t length = el->toInteger();
+                IntRange bounds(SignExtendedNumber(0), SignExtendedNumber(length));
+                this->upperIsInBounds = bounds.contains(uprRange);
+            }
+        }
+        else if (t1b->ty == Tpointer)
+        {
+            this->upperIsInBounds = true;
+        }
+        else
+            assert(0);
+
+        this->lowerIsLessThanUpper = (lwrRange.imax <= uprRange.imin);
+
+        //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", upperIsInBounds, lowerIsLessThanUpper);
+    }
 
     return this;
 }
@@ -10390,7 +10424,7 @@ IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
     //printf("IndexExp::IndexExp('%s')\n", toChars());
     lengthVar = NULL;
     modifiable = false;     // assume it is an rvalue
-    skipboundscheck = 0;
+    indexIsInBounds = false;
 }
 
 Expression *IndexExp::syntaxCopy()
@@ -10573,7 +10607,10 @@ Expression *IndexExp::semantic(Scope *sc)
             e2 = e2->optimize(WANTvalue);
             dinteger_t length = el->toInteger();
             if (length)
-                skipboundscheck = IntRange(SignExtendedNumber(0), SignExtendedNumber(length-1)).contains(getIntRange(e2));
+            {
+                IntRange bounds(SignExtendedNumber(0), SignExtendedNumber(length - 1));
+                indexIsInBounds = bounds.contains(getIntRange(e2));
+            }
         }
     }
 

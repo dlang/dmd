@@ -177,10 +177,48 @@ void test1()
 }
 
 /******************************************/
+// 13976
+
+void test13976()
+{
+    int[] da = new int[](10);
+    int[10] sa;
+    size_t l = 0;               // upperInRange
+    size_t u = 9;               // | lowerLessThan
+                                // | |  check code
+    { auto s = da[l .. u];   }  // 0 0  (u <= 10 && l <= u  )
+    { auto s = da[1 .. u];   }  // 0 0  (u <= 10 && l <= u  )
+    { auto s = da[l .. 10];  }  // 0 0  (u <= 10 && l <= u  )
+    { auto s = da[1 .. u%5]; }  // 0 0  (u <= 10 && l <= u%5)
+
+    { auto s = da[l .. u];   }  // 0 0  (u   <= 10 && l <= u)
+    { auto s = da[0 .. u];   }  // 0 1  (u   <= 10          )
+    { auto s = da[l .. 10];  }  // 0 0  (u   <= 10 && l <= u)
+    { auto s = da[0 .. u%5]; }  // 0 1  (u%5 <= 10          )
+
+    { auto s = sa[l .. u];   }  // 0 0  (u <= 10 && l <= u  )
+    { auto s = sa[1 .. u];   }  // 0 0  (u <= 10 && l <= u  )
+    { auto s = sa[l .. 10];  }  // 1 0  (           l <= u  )
+    { auto s = sa[1 .. u%5]; }  // 1 0  (           l <= u%5)
+
+    { auto s = sa[l .. u];   }  // 0 0  (u <= 10 && l <= u )
+    { auto s = sa[0 .. u];   }  // 0 1  (u <= 10           )
+    { auto s = sa[l .. 10];  }  // 1 0  (           l <= 10)
+    { auto s = sa[0 .. u%5]; }  // 1 1  NULL
+
+    int* p = new int[](10).ptr;
+    { auto s = p[0 .. u];    }  // 1 1  NULL
+    { auto s = p[l .. u];    }  // 1 0  (l <= u)
+    { auto s = p[0 .. u%5];  }  // 1 1  NULL
+    { auto s = p[1 .. u%5];  }  // 1 0  (l <= u%5)
+}
+
+/******************************************/
 
 int main()
 {
     test1();
+    test13976();
 
     printf("Success\n");
     return 0;

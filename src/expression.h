@@ -1008,6 +1008,8 @@ public:
     Expression *upr;            // NULL if implicit 0
     Expression *lwr;            // NULL if implicit [length - 1]
     VarDeclaration *lengthVar;
+    bool upperIsInBounds;       // true if upr <= e1.length
+    bool lowerIsLessThanUpper;  // true if lwr <= upr
 
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
@@ -1110,7 +1112,7 @@ class IndexExp : public BinExp
 public:
     VarDeclaration *lengthVar;
     bool modifiable;
-    bool skipboundscheck;
+    bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
