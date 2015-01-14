@@ -548,14 +548,15 @@ void TemplateDeclaration::semantic(Scope *sc)
     {
         TemplateParameter *tp = (*parameters)[i];
 
-        tp->declareParameter(paramscope);
-    }
-
-    for (size_t i = 0; i < parameters->dim; i++)
-    {
-        TemplateParameter *tp = (*parameters)[i];
-
-        tp->semantic(paramscope, parameters);
+        if (!tp->declareParameter(paramscope))
+        {
+            error(tp->loc, "parameter '%s' multiply defined", tp->ident->toChars());
+            errors = true;
+        }
+        if (!tp->semantic(paramscope, parameters))
+        {
+            errors = true;
+        }
         if (i + 1 != parameters->dim && tp->isTemplateTupleParameter())
         {
             error("template tuple parameter must be last one");
@@ -4609,7 +4610,6 @@ TemplateParameter::TemplateParameter(Loc loc, Identifier *ident)
     this->loc = loc;
     this->ident = ident;
     this->dependent = false;
-    this->sparam = NULL;
 }
 
 TemplateTypeParameter  *TemplateParameter::isTemplateTypeParameter()
@@ -4703,16 +4703,15 @@ TemplateParameter *TemplateTypeParameter::syntaxCopy()
         defaultType ? defaultType->syntaxCopy() : NULL);
 }
 
-void TemplateTypeParameter::declareParameter(Scope *sc)
+bool TemplateTypeParameter::declareParameter(Scope *sc)
 {
     //printf("TemplateTypeParameter::declareParameter('%s')\n", ident->toChars());
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
-    sparam = new AliasDeclaration(loc, ident, ti);
-    if (!sc->insert(sparam))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+    Declaration *ad = new AliasDeclaration(loc, ident, ti);
+    return sc->insert(ad);
 }
 
-void TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
+bool TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
     //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
     if (specType && !reliesOnTident(specType, parameters))
@@ -4725,6 +4724,7 @@ void TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
         defaultType = defaultType->semantic(loc, sc);
     }
 #endif
+    return !(specType && isError(specType));
 }
 
 MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
@@ -4898,12 +4898,11 @@ TemplateParameter *TemplateAliasParameter::syntaxCopy()
         objectSyntaxCopy(defaultAlias));
 }
 
-void TemplateAliasParameter::declareParameter(Scope *sc)
+bool TemplateAliasParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
-    sparam = new AliasDeclaration(loc, ident, ti);
-    if (!sc->insert(sparam))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+    Declaration *ad = new AliasDeclaration(loc, ident, ti);
+    return sc->insert(ad);
 }
 
 RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplateParameters *parameters)
@@ -4931,7 +4930,7 @@ RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplatePa
     return o;
 }
 
-void TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
+bool TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
     if (specType && !reliesOnTident(specType, parameters))
     {
@@ -4942,6 +4941,8 @@ void TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
     if (defaultAlias)
         defaultAlias = defaultAlias->semantic(loc, sc);
 #endif
+    return !(specType  && isError(specType)) &&
+           !(specAlias && isError(specAlias));
 }
 
 MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
@@ -5153,28 +5154,15 @@ TemplateParameter *TemplateValueParameter::syntaxCopy()
         defaultValue ? defaultValue->syntaxCopy() : NULL);
 }
 
-void TemplateValueParameter::declareParameter(Scope *sc)
+bool TemplateValueParameter::declareParameter(Scope *sc)
 {
     VarDeclaration *v = new VarDeclaration(loc, valType, ident, NULL);
     v->storage_class = STCtemplateparameter;
-    if (!sc->insert(v))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
-    sparam = v;
+    return sc->insert(v);
 }
 
-void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
+bool TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
-    bool wasSame = (sparam->type == valType);
-    sparam->semantic(sc);
-    if (sparam->type == Type::terror && wasSame)
-    {
-        /* If sparam has a type error, avoid duplicate errors
-         * The simple solution of leaving that function if sparam->type == Type::terror
-         * doesn't quite work because it causes failures in xtest46 for bug 6295
-         */
-        valType = Type::terror;
-        return;
-    }
     valType = valType->semantic(loc, sc);
 
 #if 0   // defer semantic analysis to arg match
@@ -5205,6 +5193,7 @@ void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
         //e->toInteger();
     }
 #endif
+    return !isError(valType);
 }
 
 MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
@@ -5386,16 +5375,16 @@ TemplateParameter *TemplateTupleParameter::syntaxCopy()
     return new TemplateTupleParameter(loc, ident);
 }
 
-void TemplateTupleParameter::declareParameter(Scope *sc)
+bool TemplateTupleParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
-    sparam = new AliasDeclaration(loc, ident, ti);
-    if (!sc->insert(sparam))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+    Declaration *ad = new AliasDeclaration(loc, ident, ti);
+    return sc->insert(ad);
 }
 
-void TemplateTupleParameter::semantic(Scope *sc, TemplateParameters *parameters)
+bool TemplateTupleParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
+    return true;
 }
 
 MATCH TemplateTupleParameter::matchArg(Loc loc, Scope *sc, Objects *tiargs,
