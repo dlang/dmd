@@ -1249,7 +1249,7 @@ extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct ti)
         if ((*p).ptr)
         {
             if (ti) // ti non-null only if ti is a struct with dtor
-                finalize_array(p.ptr, p.length * ti.tsize, ti, false);
+                finalize_array(p.ptr, p.length * ti.tsize, ti);
 
             // if p is in the cache, clear it as well
             if(auto bic = __getBlkInfo((*p).ptr))
@@ -1370,7 +1370,7 @@ int hasArrayFinalizerInSegment(void* p, size_t size, in void[] segment) nothrow
 }
 
 // called by the GC
-void finalize_array2(void* p, size_t size, bool resetMemory = true) nothrow
+void finalize_array2(void* p, size_t size) nothrow
 {
     debug(PRINTF) printf("rt_finalize_array2(p = %p)\n", p);
 
@@ -1394,7 +1394,7 @@ void finalize_array2(void* p, size_t size, bool resetMemory = true) nothrow
 
     try
     {
-        finalize_array(p, size, si, resetMemory);
+        finalize_array(p, size, si);
     }
     catch (Throwable e)
     {
@@ -1402,7 +1402,7 @@ void finalize_array2(void* p, size_t size, bool resetMemory = true) nothrow
     }
 }
 
-void finalize_array(void* p, size_t size, const TypeInfo_Struct si, bool resetMemory = true)
+void finalize_array(void* p, size_t size, const TypeInfo_Struct si)
 {
     // Due to the fact that the delete operator calls destructors
     // for arrays from the last element to the first, we maintain
@@ -1411,20 +1411,11 @@ void finalize_array(void* p, size_t size, const TypeInfo_Struct si, bool resetMe
     for (auto curP = p + size - tsize; curP >= p; curP -= tsize)
     {
         si.xdtor(curP); // call destructor
-
-        if(resetMemory)
-        {
-            ubyte[] w = cast(ubyte[])si.m_init;
-            if (w.ptr is null)
-                (cast(ubyte*) curP)[0 .. w.length] = 0;
-            else
-                (cast(ubyte*) curP)[0 .. w.length] = w[];
-        }
     }
 }
 
 // called by the GC
-void finalize_struct(void* p, size_t size, bool resetMemory = true) nothrow
+void finalize_struct(void* p, size_t size) nothrow
 {
     debug(PRINTF) printf("finalize_struct(p = %p)\n", p);
 
@@ -1433,15 +1424,6 @@ void finalize_struct(void* p, size_t size, bool resetMemory = true) nothrow
     {
         if (ti.xdtor)
             ti.xdtor(p); // call destructor
-
-        if(resetMemory)
-        {
-            ubyte[] w = cast(ubyte[])ti.m_init;
-            if (w.ptr is null)
-                (cast(ubyte*) p)[0 .. w.length] = 0;
-            else
-                (cast(ubyte*) p)[0 .. w.length] = w[];
-        }
     }
     catch (Throwable e)
     {
@@ -1502,11 +1484,11 @@ extern (C) void rt_finalizeFromGC(void* p, size_t size, uint attr)
 {
     // to verify: reset memory necessary?
     if (!(attr & BlkAttr.STRUCTFINAL))
-        rt_finalize2(p, false, true); // class
+        rt_finalize2(p, false, false); // class
     else if (attr & BlkAttr.APPENDABLE)
-        finalize_array2(p, size, true); // array of structs
+        finalize_array2(p, size); // array of structs
     else
-        finalize_struct(p, size, true); // struct
+        finalize_struct(p, size); // struct
 }
 
 
