@@ -1034,7 +1034,9 @@ class TypeInfo_Struct : TypeInfo
     override void destroy(void* p) const
     {
         if (xdtor)
+        {
             (*xdtor)(p);
+        }
     }
 
     override void postblit(void* p) const

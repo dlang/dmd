@@ -120,14 +120,14 @@ unittest
  */
 class FinalizeError : Error
 {
-    ClassInfo   info;
+    TypeInfo   info;
 
-    @safe pure nothrow this( ClassInfo ci, Throwable next, string file = __FILE__, size_t line = __LINE__ )
+    @safe pure nothrow this( TypeInfo ci, Throwable next, string file = __FILE__, size_t line = __LINE__ )
     {
         this(ci, file, line, next);
     }
 
-    @safe pure nothrow this( ClassInfo ci, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    @safe pure nothrow this( TypeInfo ci, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
     {
         super( "Finalization error", file, line, next );
         info = ci;
@@ -135,7 +135,7 @@ class FinalizeError : Error
 
     @safe override string toString() const
     {
-        return "An exception was thrown while finalizing an instance of class " ~ info.name;
+        return "An exception was thrown while finalizing an instance of " ~ info.toString();
     }
 }
 
@@ -180,7 +180,6 @@ unittest
         assert(fe.info == info);
     }
 }
-
 
 /**
  * Thrown on hidden function error.
@@ -453,7 +452,6 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg ) nothr
 // Internal Error Callbacks
 ///////////////////////////////////////////////////////////////////////////////
 
-
 /**
  * A callback for array bounds errors in D.  A $(LREF RangeError) will be thrown.
  *
@@ -474,7 +472,7 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
  * A callback for finalize errors in D.  A $(LREF FinalizeError) will be thrown.
  *
  * Params:
- *  info = The ClassInfo instance for the object that failed finalization.
+ *  info = The TypeInfo instance for the object that failed finalization.
  *  e = The exception thrown during finalization.
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
@@ -482,9 +480,16 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
  * Throws:
  *  $(LREF FinalizeError).
  */
-extern (C) void onFinalizeError( ClassInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
+extern (C) void onFinalizeError( TypeInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @trusted nothrow
 {
-    throw new FinalizeError( info, file, line, e );
+    // This error is thrown during a garbage collection, so no allocation must occur while 
+    //  generating this object. So we use a preallocated instance
+    __gshared FinalizeError err = new FinalizeError( null );
+    err.info = info;
+    err.next = e;
+    err.file = file;
+    err.line = line;
+    throw err;
 }
 
 
