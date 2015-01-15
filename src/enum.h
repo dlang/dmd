@@ -66,7 +66,6 @@ public:
     EnumDeclaration *isEnumDeclaration() { return this; }
 
     Symbol *sinit;
-    Symbol *toInitializer();
     void accept(Visitor *v) { v->visit(this); }
 };
 

@@ -51,15 +51,16 @@ Symbols *Symbols_create();
 type *Type_toCtype(Type *t);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
+Symbol *toInitializer(AggregateDeclaration *ad);
 
 /*************************************
  * Helper
  */
 
-Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *suffix)
+Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
-    const char *n = mangle(this);
+    const char *n = mangle(ds);
     assert(n);
     size_t nlen = strlen(n);
     size_t prefixlen = strlen(prefix);
@@ -111,7 +112,7 @@ Symbol *toSymbol(Dsymbol *s)
 
         void visit(SymbolDeclaration *sd)
         {
-            result = sd->dsym->toInitializer();
+            result = toInitializer(sd->dsym);
         }
 
         void visit(VarDeclaration *vd)
@@ -385,7 +386,7 @@ Symbol *toSymbol(Dsymbol *s)
                 if (!scc)
                     scc = fake_classsym(Id::ClassInfo);
 
-                Symbol *s = cd->toSymbolX("__Class", SCextern, scc->Stype, "Z");
+                Symbol *s = toSymbolX(cd, "__Class", SCextern, scc->Stype, "Z");
                 s->Sfl = FLextern;
                 s->Sflags |= SFLnodebug;
                 cd->csym = s;
@@ -406,7 +407,7 @@ Symbol *toSymbol(Dsymbol *s)
                 if (!scc)
                     scc = fake_classsym(Id::ClassInfo);
 
-                Symbol *s = id->toSymbolX("__Interface", SCextern, scc->Stype, "Z");
+                Symbol *s = toSymbolX(id, "__Interface", SCextern, scc->Stype, "Z");
                 s->Sfl = FLextern;
                 s->Sflags |= SFLnodebug;
                 id->csym = s;
@@ -426,7 +427,7 @@ Symbol *toSymbol(Dsymbol *s)
                 if (!scc)
                     scc = fake_classsym(Id::ClassInfo);
 
-                Symbol *s = m->toSymbolX("__ModuleInfo", SCextern, scc->Stype, "Z");
+                Symbol *s = toSymbolX(m, "__ModuleInfo", SCextern, scc->Stype, "Z");
                 s->Sfl = FLextern;
                 s->Sflags |= SFLnodebug;
                 m->csym = s;
@@ -441,34 +442,14 @@ Symbol *toSymbol(Dsymbol *s)
     return v.result;
 }
 
-/*********************************
- * Generate import symbol from symbol.
- */
-
-Symbol *Dsymbol::toImport()
-{
-    if (!isym)
-    {
-        if (!csym)
-            csym = toSymbol(this);
-        isym = toImport(csym);
-    }
-    return isym;
-}
-
 /*************************************
  */
 
-Symbol *Dsymbol::toImport(Symbol *sym)
+static Symbol *toImport(Symbol *sym)
 {
-    char *id;
-    char *n;
-    Symbol *s;
-    type *t;
-
     //printf("Dsymbol::toImport('%s')\n", sym->Sident);
-    n = sym->Sident;
-    id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
+    char *n = sym->Sident;
+    char *id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
     if (sym->Stype->Tmangle == mTYman_std && tyfunc(sym->Stype->Tty))
     {
         if (config.exe == EX_WIN64)
@@ -484,12 +465,12 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     {
         sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
     }
-    t = type_alloc(TYnptr | mTYconst);
+    type *t = type_alloc(TYnptr | mTYconst);
     t->Tnext = sym->Stype;
     t->Tnext->Tcount++;
     t->Tmangle = mTYman_c;
     t->Tcount++;
-    s = symbol_calloc(id);
+    Symbol *s = symbol_calloc(id);
     s->Stype = t;
     s->Sclass = SCextern;
     s->Sfl = FLextern;
@@ -497,16 +478,31 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     return s;
 }
 
+/*********************************
+ * Generate import symbol from symbol.
+ */
+
+Symbol *toImport(Dsymbol *ds)
+{
+    if (!ds->isym)
+    {
+        if (!ds->csym)
+            ds->csym = toSymbol(ds);
+        ds->isym = toImport(ds->csym);
+    }
+    return ds->isym;
+}
+
 /*************************************
  */
 
-Symbol *FuncDeclaration::toThunkSymbol(int offset)
+Symbol *toThunkSymbol(FuncDeclaration *fd, int offset)
 {
-    toSymbol(this);
+    toSymbol(fd);
 
-    Symbol *sthunk = symbol_generate(SCstatic, csym->Stype);
+    Symbol *sthunk = symbol_generate(SCstatic, fd->csym->Stype);
     sthunk->Sflags |= SFLimplem;
-    cod3_thunk(sthunk, csym, 0, TYnptr, -offset, -1, 0);
+    cod3_thunk(sthunk, fd->csym, 0, TYnptr, -offset, -1, 0);
     return sthunk;
 }
 
@@ -533,116 +529,113 @@ Classsym *fake_classsym(Identifier *id)
  * needed directly (like for rtti comparisons), make it directly accessible.
  */
 
-Symbol *ClassDeclaration::toVtblSymbol()
+Symbol *toVtblSymbol(ClassDeclaration *cd)
 {
-    if (!vtblsym)
+    if (!cd->vtblsym)
     {
-        Symbol *s;
-        TYPE *t;
+        if (!cd->csym)
+            toSymbol(cd);
 
-        if (!csym)
-            toSymbol(this);
-
-        t = type_allocn(TYnptr | mTYconst, tsvoid);
+        TYPE *t = type_allocn(TYnptr | mTYconst, tsvoid);
         t->Tmangle = mTYman_d;
-        s = toSymbolX("__vtbl", SCextern, t, "Z");
+        Symbol *s = toSymbolX(cd, "__vtbl", SCextern, t, "Z");
         s->Sflags |= SFLnodebug;
         s->Sfl = FLextern;
-        vtblsym = s;
+        cd->vtblsym = s;
         slist_add(s);
     }
-    return vtblsym;
+    return cd->vtblsym;
 }
 
 /**********************************
  * Create the static initializer for the struct/class.
  */
 
-Symbol *AggregateDeclaration::toInitializer()
+Symbol *toInitializer(AggregateDeclaration *ad)
 {
-    if (!sinit)
+    if (!ad->sinit)
     {
         Classsym *stag = fake_classsym(Id::ClassInfo);
-        Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
+        Symbol *s = toSymbolX(ad, "__init", SCextern, stag->Stype, "Z");
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
-        StructDeclaration *sd = isStructDeclaration();
+        StructDeclaration *sd = ad->isStructDeclaration();
         if (sd)
             s->Salignment = sd->alignment;
         slist_add(s);
-        sinit = s;
+        ad->sinit = s;
     }
-    return sinit;
+    return ad->sinit;
 }
 
-Symbol *EnumDeclaration::toInitializer()
+Symbol *toInitializer(EnumDeclaration *ed)
 {
-    if (!sinit)
+    if (!ed->sinit)
     {
         Classsym *stag = fake_classsym(Id::ClassInfo);
-        Identifier *ident_save = ident;
-        if (!ident)
-            ident = Identifier::generateId("__enum");
-        Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
-        ident = ident_save;
+        Identifier *ident_save = ed->ident;
+        if (!ed->ident)
+            ed->ident = Identifier::generateId("__enum");
+        Symbol *s = toSymbolX(ed, "__init", SCextern, stag->Stype, "Z");
+        ed->ident = ident_save;
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
         slist_add(s);
-        sinit = s;
+        ed->sinit = s;
     }
-    return sinit;
+    return ed->sinit;
 }
 
 
 /******************************************
  */
 
-Symbol *Module::toModuleAssert()
+Symbol *toModuleAssert(Module *m)
 {
-    if (!massert)
+    if (!m->massert)
     {
         type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
 
-        massert = toSymbolX("__assert", SCextern, t, "FiZv");
-        massert->Sfl = FLextern;
-        massert->Sflags |= SFLnodebug | SFLexit;
-        slist_add(massert);
+        m->massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
+        m->massert->Sfl = FLextern;
+        m->massert->Sflags |= SFLnodebug | SFLexit;
+        slist_add(m->massert);
     }
-    return massert;
+    return m->massert;
 }
 
-Symbol *Module::toModuleUnittest()
+Symbol *toModuleUnittest(Module *m)
 {
-    if (!munittest)
+    if (!m->munittest)
     {
         type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
 
-        munittest = toSymbolX("__unittest_fail", SCextern, t, "FiZv");
-        munittest->Sfl = FLextern;
-        munittest->Sflags |= SFLnodebug;
-        slist_add(munittest);
+        m->munittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
+        m->munittest->Sfl = FLextern;
+        m->munittest->Sflags |= SFLnodebug;
+        slist_add(m->munittest);
     }
-    return munittest;
+    return m->munittest;
 }
 
 /******************************************
  */
 
-Symbol *Module::toModuleArray()
+Symbol *toModuleArray(Module *m)
 {
-    if (!marray)
+    if (!m->marray)
     {
         type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
 
-        marray = toSymbolX("__array", SCextern, t, "Z");
-        marray->Sfl = FLextern;
-        marray->Sflags |= SFLnodebug | SFLexit;
-        slist_add(marray);
+        m->marray = toSymbolX(m, "__array", SCextern, t, "Z");
+        m->marray->Sfl = FLextern;
+        m->marray->Sflags |= SFLnodebug | SFLexit;
+        slist_add(m->marray);
     }
-    return marray;
+    return m->marray;
 }
 
 /********************************************
@@ -653,7 +646,7 @@ Symbol *Module::toModuleArray()
  *              1       add value signature
  */
 
-Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
+Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
 {
 #ifdef DEBUG
         assert((flags & ~1) == 0);
@@ -689,7 +682,7 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
         s->Ssymnum = -1;
         symbol_func(s);
 
-        type *t = type_function(TYnfunc, NULL, 0, false, Type_toCtype(next));
+        type *t = type_function(TYnfunc, NULL, 0, false, Type_toCtype(taa->next));
         t->Tmangle = mTYman_c;
         s->Stype = t;
 
@@ -701,9 +694,9 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
 /*                   CTFE stuff                      */
 /*****************************************************/
 
-Symbol* StructLiteralExp::toSymbol()
+Symbol* toSymbol(StructLiteralExp *sle)
 {
-    if (sym) return sym;
+    if (sle->sym) return sle->sym;
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
     Symbol *s = symbol_calloc("internal");
@@ -711,18 +704,18 @@ Symbol* StructLiteralExp::toSymbol()
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-    sym = s;
+    sle->sym = s;
     dt_t *d = NULL;
-    Expression_toDt(this, &d);
+    Expression_toDt(sle, &d);
     s->Sdt = d;
     slist_add(s);
     outdata(s);
-    return sym;
+    return sle->sym;
 }
 
-Symbol* ClassReferenceExp::toSymbol()
+Symbol* toSymbol(ClassReferenceExp *cre)
 {
-    if (value->sym) return value->sym;
+    if (cre->value->sym) return cre->value->sym;
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
     Symbol *s = symbol_calloc("internal");
@@ -730,11 +723,11 @@ Symbol* ClassReferenceExp::toSymbol()
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-    value->sym = s;
+    cre->value->sym = s;
     dt_t *d = NULL;
-    ClassReferenceExp_toInstanceDt(this, &d);
+    ClassReferenceExp_toInstanceDt(cre, &d);
     s->Sdt = d;
     slist_add(s);
     outdata(s);
-    return value->sym;
+    return cre->value->sym;
 }

@@ -125,7 +125,6 @@ public:
     // Back end
     Symbol *stag;               // tag symbol for debug data
     Symbol *sinit;
-    Symbol *toInitializer();
 
     AggregateDeclaration *isAggregateDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -289,8 +288,6 @@ public:
     void addLocalClass(ClassDeclarations *);
 
     // Back end
-    Symbol *toVtblSymbol();
-
     Symbol *vtblsym;
 
     ClassDeclaration *isClassDeclaration() { return (ClassDeclaration *)this; }

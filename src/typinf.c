@@ -34,6 +34,12 @@
 Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 void toObjFile(Dsymbol *ds, bool multiobj);
+Symbol *toVtblSymbol(ClassDeclaration *cd);
+Symbol *toInitializer(AggregateDeclaration *ad);
+Symbol *toInitializer(EnumDeclaration *ed);
+Expression *getTypeInfo(Type *t, Scope *sc);
+TypeInfoDeclaration *getTypeInfoDeclaration(Type *t);
+static bool builtinTypeInfo(Type *t);
 
 /*******************************************
  * Get a canonicalized form of the TypeInfo for use with the internal
@@ -43,14 +49,12 @@ void toObjFile(Dsymbol *ds, bool multiobj);
  * so we can use the custom internal ones more.
  */
 
-Expression *Type::getInternalTypeInfo(Scope *sc)
-{   TypeInfoDeclaration *tid;
-    Expression *e;
-    Type *t;
+Expression *getInternalTypeInfo(Type *t, Scope *sc)
+{
     static TypeInfoDeclaration *internalTI[TMAX];
 
-    //printf("Type::getInternalTypeInfo() %s\n", toChars());
-    t = toBasetype();
+    //printf("Type::getInternalTypeInfo() %s\n", t->toChars());
+    t = t->toBasetype();
     switch (t->ty)
     {
         case Tsarray:
@@ -76,21 +80,23 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
         case Tdelegate:
         case Tpointer:
         Linternal:
-            tid = internalTI[t->ty];
+        {
+            TypeInfoDeclaration *tid = internalTI[t->ty];
             if (!tid)
-            {   tid = TypeInfoDeclaration::create(t, 1);
+            {
+                tid = TypeInfoDeclaration::create(t, 1);
                 internalTI[t->ty] = tid;
             }
-            e = VarExp::create(Loc(), tid);
+            Expression *e = VarExp::create(Loc(), tid);
             e = e->addressOf();
             e->type = tid->type;        // do this so we don't get redundant dereference
             return e;
-
+        }
         default:
             break;
     }
     //printf("\tcalling getTypeInfo() %s\n", t->toChars());
-    return t->getTypeInfo(sc);
+    return getTypeInfo(t, sc);
 }
 
 
@@ -100,16 +106,16 @@ FuncDeclaration *search_toString(StructDeclaration *sd);
  * Get the exact TypeInfo.
  */
 
-void Type::genTypeInfo(Scope *sc)
+void genTypeInfo(Type *torig, Scope *sc)
 {
     //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
     if (!Type::dtypeinfo)
     {
-        error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
+        torig->error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
         fatal();
     }
 
-    Type *t = merge2(); // do this since not all Type's are merge'd
+    Type *t = torig->merge2(); // do this since not all Type's are merge'd
     if (!t->vtinfo)
     {
         if (t->isShared())      // does both 'shared' and 'shared const'
@@ -121,13 +127,13 @@ void Type::genTypeInfo(Scope *sc)
         else if (t->isWild())
             t->vtinfo = TypeInfoWildDeclaration::create(t);
         else
-            t->vtinfo = t->getTypeInfoDeclaration();
+            t->vtinfo = getTypeInfoDeclaration(t);
         assert(t->vtinfo);
 
         /* If this has a custom implementation in std/typeinfo, then
          * do not generate a COMDAT for it.
          */
-        if (!t->builtinTypeInfo())
+        if (!builtinTypeInfo(t))
         {
             // Generate COMDAT
             if (sc)                     // if in semantic() pass
@@ -152,83 +158,44 @@ void Type::genTypeInfo(Scope *sc)
             }
         }
     }
-    if (!vtinfo)
-        vtinfo = t->vtinfo;     // Types aren't merged, but we can share the vtinfo's
-    assert(vtinfo);
+    if (!torig->vtinfo)
+        torig->vtinfo = t->vtinfo;     // Types aren't merged, but we can share the vtinfo's
+    assert(torig->vtinfo);
 }
 
-Expression *Type::getTypeInfo(Scope *sc)
+Expression *getTypeInfo(Type *t, Scope *sc)
 {
-    assert(ty != Terror);
-    genTypeInfo(sc);
-    Expression *e = VarExp::create(Loc(), vtinfo);
+    assert(t->ty != Terror);
+    genTypeInfo(t, sc);
+    Expression *e = VarExp::create(Loc(), t->vtinfo);
     e = e->addressOf();
-    e->type = vtinfo->type;     // do this so we don't get redundant dereference
+    e->type = t->vtinfo->type;     // do this so we don't get redundant dereference
     return e;
 }
 
-TypeInfoDeclaration *Type::getTypeInfoDeclaration()
+TypeInfoDeclaration *getTypeInfoDeclaration(Type *t)
 {
-    //printf("Type::getTypeInfoDeclaration() %s\n", toChars());
-    return TypeInfoDeclaration::create(this, 0);
-}
-
-TypeInfoDeclaration *TypePointer::getTypeInfoDeclaration()
-{
-    return TypeInfoPointerDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeDArray::getTypeInfoDeclaration()
-{
-    return TypeInfoArrayDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeSArray::getTypeInfoDeclaration()
-{
-    return TypeInfoStaticArrayDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeAArray::getTypeInfoDeclaration()
-{
-    return TypeInfoAssociativeArrayDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeStruct::getTypeInfoDeclaration()
-{
-    return TypeInfoStructDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeClass::getTypeInfoDeclaration()
-{
-    if (sym->isInterfaceDeclaration())
-        return TypeInfoInterfaceDeclaration::create(this);
-    else
-        return TypeInfoClassDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeVector::getTypeInfoDeclaration()
-{
-    return TypeInfoVectorDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeEnum::getTypeInfoDeclaration()
-{
-    return TypeInfoEnumDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeFunction::getTypeInfoDeclaration()
-{
-    return TypeInfoFunctionDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeDelegate::getTypeInfoDeclaration()
-{
-    return TypeInfoDelegateDeclaration::create(this);
-}
-
-TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
-{
-    return TypeInfoTupleDeclaration::create(this);
+    //printf("Type::getTypeInfoDeclaration() %s\n", t->toChars());
+    switch(t->ty)
+    {
+    case Tpointer:  return TypeInfoPointerDeclaration::create(t);
+    case Tarray:    return TypeInfoArrayDeclaration::create(t);
+    case Tsarray:   return TypeInfoStaticArrayDeclaration::create(t);
+    case Taarray:   return TypeInfoAssociativeArrayDeclaration::create(t);
+    case Tstruct:   return TypeInfoStructDeclaration::create(t);
+    case Tvector:   return TypeInfoVectorDeclaration::create(t);
+    case Tenum:     return TypeInfoEnumDeclaration::create(t);
+    case Tfunction: return TypeInfoFunctionDeclaration::create(t);
+    case Tdelegate: return TypeInfoDelegateDeclaration::create(t);
+    case Ttuple:    return TypeInfoTupleDeclaration::create(t);
+    case Tclass:
+        if (((TypeClass *)t)->sym->isInterfaceDeclaration())
+            return TypeInfoInterfaceDeclaration::create(t);
+        else
+            return TypeInfoClassDeclaration::create(t);
+    default:
+        return TypeInfoDeclaration::create(t, 0);
+    }
 }
 
 /****************************************************
@@ -266,7 +233,7 @@ public:
         //printf("TypeInfoDeclaration::toDt() %s\n", toChars());
         verifyStructSize(Type::dtypeinfo, 2 * Target::ptrsize);
 
-        dtxoff(pdt, Type::dtypeinfo->toVtblSymbol(), 0); // vtbl for TypeInfo
+        dtxoff(pdt, toVtblSymbol(Type::dtypeinfo), 0); // vtbl for TypeInfo
         dtsize_t(pdt, 0);                        // monitor
     }
 
@@ -275,11 +242,11 @@ public:
         //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
         verifyStructSize(Type::typeinfoconst, 3 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfoconst->toVtblSymbol(), 0); // vtbl for TypeInfo_Const
+        dtxoff(pdt, toVtblSymbol(Type::typeinfoconst), 0); // vtbl for TypeInfo_Const
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        tm->genTypeInfo(NULL);
+        genTypeInfo(tm, NULL);
         dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
@@ -288,11 +255,11 @@ public:
         //printf("TypeInfoInvariantDeclaration::toDt() %s\n", toChars());
         verifyStructSize(Type::typeinfoinvariant, 3 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfoinvariant->toVtblSymbol(), 0); // vtbl for TypeInfo_Invariant
+        dtxoff(pdt, toVtblSymbol(Type::typeinfoinvariant), 0); // vtbl for TypeInfo_Invariant
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        tm->genTypeInfo(NULL);
+        genTypeInfo(tm, NULL);
         dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
@@ -301,11 +268,11 @@ public:
         //printf("TypeInfoSharedDeclaration::toDt() %s\n", toChars());
         verifyStructSize(Type::typeinfoshared, 3 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfoshared->toVtblSymbol(), 0); // vtbl for TypeInfo_Shared
+        dtxoff(pdt, toVtblSymbol(Type::typeinfoshared), 0); // vtbl for TypeInfo_Shared
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->unSharedOf();
         tm = tm->merge();
-        tm->genTypeInfo(NULL);
+        genTypeInfo(tm, NULL);
         dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
@@ -314,11 +281,11 @@ public:
         //printf("TypeInfoWildDeclaration::toDt() %s\n", toChars());
         verifyStructSize(Type::typeinfowild, 3 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfowild->toVtblSymbol(), 0); // vtbl for TypeInfo_Wild
+        dtxoff(pdt, toVtblSymbol(Type::typeinfowild), 0); // vtbl for TypeInfo_Wild
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        tm->genTypeInfo(NULL);
+        genTypeInfo(tm, NULL);
         dtxoff(pdt, toSymbol(tm->vtinfo), 0);
     }
 
@@ -327,7 +294,7 @@ public:
         //printf("TypeInfoEnumDeclaration::toDt()\n");
         verifyStructSize(Type::typeinfoenum, 7 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfoenum->toVtblSymbol(), 0); // vtbl for TypeInfo_Enum
+        dtxoff(pdt, toVtblSymbol(Type::typeinfoenum), 0); // vtbl for TypeInfo_Enum
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tenum);
@@ -343,7 +310,7 @@ public:
 
         if (sd->memtype)
         {
-            sd->memtype->genTypeInfo(NULL);
+            genTypeInfo(sd->memtype, NULL);
             dtxoff(pdt, toSymbol(sd->memtype->vtinfo), 0);        // TypeInfo for enum members
         }
         else
@@ -364,7 +331,7 @@ public:
         else
         {
             dtsize_t(pdt, sd->type->size()); // init.length
-            dtxoff(pdt, sd->toInitializer(), 0);    // init.ptr
+            dtxoff(pdt, toInitializer(sd), 0);    // init.ptr
         }
     }
 
@@ -373,14 +340,14 @@ public:
         //printf("TypeInfoPointerDeclaration::toDt()\n");
         verifyStructSize(Type::typeinfopointer, 3 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfopointer->toVtblSymbol(), 0); // vtbl for TypeInfo_Pointer
+        dtxoff(pdt, toVtblSymbol(Type::typeinfopointer), 0); // vtbl for TypeInfo_Pointer
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tpointer);
 
         TypePointer *tc = (TypePointer *)d->tinfo;
 
-        tc->next->genTypeInfo(NULL);
+        genTypeInfo(tc->next, NULL);
         dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for type being pointed to
     }
 
@@ -389,14 +356,14 @@ public:
         //printf("TypeInfoArrayDeclaration::toDt()\n");
         verifyStructSize(Type::typeinfoarray, 3 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfoarray->toVtblSymbol(), 0); // vtbl for TypeInfo_Array
+        dtxoff(pdt, toVtblSymbol(Type::typeinfoarray), 0); // vtbl for TypeInfo_Array
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tarray);
 
         TypeDArray *tc = (TypeDArray *)d->tinfo;
 
-        tc->next->genTypeInfo(NULL);
+        genTypeInfo(tc->next, NULL);
         dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
     }
 
@@ -405,14 +372,14 @@ public:
         //printf("TypeInfoStaticArrayDeclaration::toDt()\n");
         verifyStructSize(Type::typeinfostaticarray, 4 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfostaticarray->toVtblSymbol(), 0); // vtbl for TypeInfo_StaticArray
+        dtxoff(pdt, toVtblSymbol(Type::typeinfostaticarray), 0); // vtbl for TypeInfo_StaticArray
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tsarray);
 
         TypeSArray *tc = (TypeSArray *)d->tinfo;
 
-        tc->next->genTypeInfo(NULL);
+        genTypeInfo(tc->next, NULL);
         dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
 
         dtsize_t(pdt, tc->dim->toInteger());         // length
@@ -423,14 +390,14 @@ public:
         //printf("TypeInfoVectorDeclaration::toDt()\n");
         verifyStructSize(Type::typeinfovector, 3 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfovector->toVtblSymbol(), 0); // vtbl for TypeInfo_Vector
+        dtxoff(pdt, toVtblSymbol(Type::typeinfovector), 0); // vtbl for TypeInfo_Vector
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tvector);
 
         TypeVector *tc = (TypeVector *)d->tinfo;
 
-        tc->basetype->genTypeInfo(NULL);
+        genTypeInfo(tc->basetype, NULL);
         dtxoff(pdt, toSymbol(tc->basetype->vtinfo), 0); // TypeInfo for equivalent static array
     }
 
@@ -439,17 +406,17 @@ public:
         //printf("TypeInfoAssociativeArrayDeclaration::toDt()\n");
         verifyStructSize(Type::typeinfoassociativearray, 4 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfoassociativearray->toVtblSymbol(), 0); // vtbl for TypeInfo_AssociativeArray
+        dtxoff(pdt, toVtblSymbol(Type::typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Taarray);
 
         TypeAArray *tc = (TypeAArray *)d->tinfo;
 
-        tc->next->genTypeInfo(NULL);
+        genTypeInfo(tc->next, NULL);
         dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
 
-        tc->index->genTypeInfo(NULL);
+        genTypeInfo(tc->index, NULL);
         dtxoff(pdt, toSymbol(tc->index->vtinfo), 0); // TypeInfo for array of type
     }
 
@@ -458,14 +425,14 @@ public:
         //printf("TypeInfoFunctionDeclaration::toDt()\n");
         verifyStructSize(Type::typeinfofunction, 5 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfofunction->toVtblSymbol(), 0); // vtbl for TypeInfo_Function
+        dtxoff(pdt, toVtblSymbol(Type::typeinfofunction), 0); // vtbl for TypeInfo_Function
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tfunction);
 
         TypeFunction *tc = (TypeFunction *)d->tinfo;
 
-        tc->next->genTypeInfo(NULL);
+        genTypeInfo(tc->next, NULL);
         dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for function return value
 
         const char *name = d->tinfo->deco;
@@ -480,14 +447,14 @@ public:
         //printf("TypeInfoDelegateDeclaration::toDt()\n");
         verifyStructSize(Type::typeinfodelegate, 5 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfodelegate->toVtblSymbol(), 0); // vtbl for TypeInfo_Delegate
+        dtxoff(pdt, toVtblSymbol(Type::typeinfodelegate), 0); // vtbl for TypeInfo_Delegate
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tdelegate);
 
         TypeDelegate *tc = (TypeDelegate *)d->tinfo;
 
-        tc->next->nextOf()->genTypeInfo(NULL);
+        genTypeInfo(tc->next->nextOf(), NULL);
         dtxoff(pdt, toSymbol(tc->next->nextOf()->vtinfo), 0); // TypeInfo for delegate return value
 
         const char *name = d->tinfo->deco;
@@ -505,7 +472,7 @@ public:
         else
             verifyStructSize(Type::typeinfostruct, 15 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfostruct->toVtblSymbol(), 0); // vtbl for TypeInfo_Struct
+        dtxoff(pdt, toVtblSymbol(Type::typeinfostruct), 0); // vtbl for TypeInfo_Struct
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tstruct);
@@ -544,7 +511,7 @@ public:
         if (sd->zeroInit)
             dtsize_t(pdt, 0);                // NULL for 0 initialization
         else
-            dtxoff(pdt, sd->toInitializer(), 0);    // init.ptr
+            dtxoff(pdt, toInitializer(sd), 0);    // init.ptr
 
         if (FuncDeclaration *fd = sd->xhash)
         {
@@ -618,7 +585,7 @@ public:
                 // m_argi
                 if (t)
                 {
-                    t->genTypeInfo(NULL);
+                    genTypeInfo(t, NULL);
                     dtxoff(pdt, toSymbol(t->vtinfo), 0);
                 }
                 else
@@ -648,7 +615,7 @@ public:
         //printf("TypeInfoInterfaceDeclaration::toDt() %s\n", tinfo->toChars());
         verifyStructSize(Type::typeinfointerface, 3 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfointerface->toVtblSymbol(), 0); // vtbl for TypeInfoInterface
+        dtxoff(pdt, toVtblSymbol(Type::typeinfointerface), 0); // vtbl for TypeInfoInterface
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tclass);
@@ -667,7 +634,7 @@ public:
         //printf("TypeInfoTupleDeclaration::toDt() %s\n", tinfo->toChars());
         verifyStructSize(Type::typeinfotypelist, 4 * Target::ptrsize);
 
-        dtxoff(pdt, Type::typeinfotypelist->toVtblSymbol(), 0); // vtbl for TypeInfoInterface
+        dtxoff(pdt, toVtblSymbol(Type::typeinfotypelist), 0); // vtbl for TypeInfoInterface
         dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Ttuple);
@@ -679,8 +646,9 @@ public:
 
         dt_t *dt = NULL;
         for (size_t i = 0; i < dim; i++)
-        {   Parameter *arg = (*tu->arguments)[i];
-            Expression *e = arg->type->getTypeInfo(NULL);
+        {
+            Parameter *arg = (*tu->arguments)[i];
+            Expression *e = getTypeInfo(arg->type, NULL);
             e = e->optimize(WANTvalue);
             Expression_toDt(e, &dt);
         }
@@ -702,28 +670,17 @@ void TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d)
  * because then the compiler doesn't need to build one.
  */
 
-int Type::builtinTypeInfo()
+static bool builtinTypeInfo(Type *t)
 {
-    return 0;
-}
-
-int TypeBasic::builtinTypeInfo()
-{
-    return mod ? 0 : 1;
-}
-
-int TypeDArray::builtinTypeInfo()
-{
-    return !mod && (next->isTypeBasic() != NULL && !next->mod ||
-        // strings are so common, make them builtin
-        next->ty == Tchar && next->mod == MODimmutable ||
-        next->ty == Tchar && next->mod == MODconst);
-}
-
-int TypeClass::builtinTypeInfo()
-{
-    /* This is statically put out with the ClassInfo, so
-     * claim it is built in so it isn't regenerated by each module.
-     */
-    return mod ? 0 : 1;
+    if (t->isTypeBasic() || t->ty == Tclass)
+        return !t->mod;
+    if (t->ty == Tarray)
+    {
+        Type *next = t->nextOf();
+        return !t->mod && (next->isTypeBasic() != NULL && !next->mod ||
+            // strings are so common, make them builtin
+            next->ty == Tchar && next->mod == MODimmutable ||
+            next->ty == Tchar && next->mod == MODconst);
+    }
+    return false;
 }

@@ -54,6 +54,10 @@
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
 
+Symbol *toInitializer(AggregateDeclaration *ad);
+Expression *getInternalTypeInfo(Type *t, Scope *sc);
+Expression *getTypeInfo(Type *t, Scope *sc);
+
 /***************************** Type *****************************/
 
 ClassDeclaration *Type::dtypeinfo;
@@ -2086,7 +2090,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         if (tb->ty == Tstruct && tb->needsNested())
         {
             StructLiteralExp *se = (StructLiteralExp *)e;
-            se->sinit = se->sd->toInitializer();
+            se->sinit = toInitializer(se->sd);
         }
     }
     else if (ident == Id::mangleof)
@@ -2175,7 +2179,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
             if (tb->ty == Tstruct && tb->needsNested())
             {
                 StructLiteralExp *se = (StructLiteralExp *)e;
-                se->sinit = se->sd->toInitializer();
+                se->sinit = toInitializer(se->sd);
             }
             goto Lreturn;
         }
@@ -3746,8 +3750,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         arguments->push(e);
         // don't convert to dynamic array
         arguments->push(n->ty == Tsarray
-                    ? n->getTypeInfo(sc)
-                    : n->getInternalTypeInfo(sc));
+                    ? getTypeInfo(n, sc)
+                    : getInternalTypeInfo(n, sc));
         e = new CallExp(e->loc, ec, arguments);
         e->type = next->arrayOf();
     }
@@ -7688,7 +7692,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
      * otherwise the literals expressed as code get excessively large.
      */
     if (size(loc) > Target::ptrsize * 4 && !needsNested())
-        structinit->sinit = sym->toInitializer();
+        structinit->sinit = toInitializer(sym);
 
     structinit->type = this;
     return structinit;

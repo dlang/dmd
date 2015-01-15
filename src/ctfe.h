@@ -50,7 +50,6 @@ public:
     /// Return index of the field, or -1 if not found
     /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
     int findFieldIndexByName(VarDeclaration *v);
-    Symbol* toSymbol();
     void accept(Visitor *v) { v->visit(this); }
 };
 

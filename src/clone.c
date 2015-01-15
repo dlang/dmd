@@ -25,6 +25,7 @@
 #include "template.h"
 #include "tokens.h"
 
+Expression *getTypeInfo(Type *t, Scope *sc);
 
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, @nogc, and @disable
@@ -843,7 +844,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
                     Expression *ea = new AddrExp(loc, ex);
                     ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
 
-                    Expression *et = v->type->getTypeInfo(sc);
+                    Expression *et = getTypeInfo(v->type, sc);
                     et = new DotIdExp(loc, et, Id::postblit);
 
                     ex = new CallExp(loc, et, ea);
@@ -956,7 +957,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
                     Expression *ea = new AddrExp(loc, ex);
                     ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
 
-                    Expression *et = v->type->getTypeInfo(sc);
+                    Expression *et = getTypeInfo(v->type, sc);
                     et = new DotIdExp(loc, et, Id::destroy);
 
                     ex = new CallExp(loc, et, ea);

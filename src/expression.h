@@ -483,7 +483,6 @@ public:
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
     Expression *addDtorHook(Scope *sc);
-    Symbol *toSymbol();
 
     void accept(Visitor *v) { v->visit(this); }
 };

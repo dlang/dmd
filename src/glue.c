@@ -54,6 +54,13 @@ Dsymbols *Dsymbols_create();
 Expressions *Expressions_create();
 type *Type_toCtype(Type *t);
 void toObjFile(Dsymbol *ds, bool multiobj);
+void genModuleInfo(Module *m);
+void genObjFile(Module *m, bool multiobj);
+Symbol *toModuleAssert(Module *m);
+Symbol *toModuleUnittest(Module *m);
+Symbol *toModuleArray(Module *m);
+Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
+void genhelpers(Module *m, bool iscomdat);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -65,9 +72,6 @@ symbols stests;
 symbols ssharedctors;
 SharedStaticDtorDeclarations esharedctorgates;
 symbols sshareddtors;
-
-int dtorcount;
-int shareddtorcount;
 
 char *lastmname;
 
@@ -140,7 +144,7 @@ void obj_write_deferred(Library *library)
             md->munittest = m->munittest;
             md->marray = m->marray;
 
-            md->genobjfile(0);
+            genObjFile(md, false);
         }
 
         /* Set object file name to be source name with sequence number,
@@ -185,7 +189,7 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
         }
 
         localgot = NULL;
-        sctor = m->toSymbolX(id, SCglobal, t, "FZv");
+        sctor = toSymbolX(m, id, SCglobal, t, "FZv");
         cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
         elem *ector = NULL;
 
@@ -295,20 +299,20 @@ void obj_startaddress(Symbol *s)
  * Generate .obj file for Module.
  */
 
-void Module::genobjfile(bool multiobj)
+void genObjFile(Module *m, bool multiobj)
 {
     //EEcontext *ee = env->getEEcontext();
 
-    //printf("Module::genobjfile(multiobj = %d) %s\n", multiobj, toChars());
+    //printf("Module::genobjfile(multiobj = %d) %s\n", multiobj, m->toChars());
 
-    if (ident == Id::entrypoint)
+    if (m->ident == Id::entrypoint)
     {
         bool v = global.params.verbose;
         global.params.verbose = false;
 
-        for (size_t i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < m->members->dim; i++)
         {
-            Dsymbol *member = (*members)[i];
+            Dsymbol *member = (*m->members)[i];
             //printf("toObjFile %s %s\n", member->kind(), member->toChars());
             toObjFile(member, global.params.multiobj);
         }
@@ -317,9 +321,9 @@ void Module::genobjfile(bool multiobj)
         return;
     }
 
-    lastmname = srcfile->toChars();
+    lastmname = m->srcfile->toChars();
 
-    objmod->initfile(lastmname, NULL, toPrettyChars());
+    objmod->initfile(lastmname, NULL, m->toPrettyChars());
 
     eictor = NULL;
     ictorlocalgot = NULL;
@@ -330,19 +334,17 @@ void Module::genobjfile(bool multiobj)
     esharedctorgates.setDim(0);
     sshareddtors.setDim(0);
     stests.setDim(0);
-    dtorcount = 0;
-    shareddtorcount = 0;
 
-    if (doppelganger)
+    if (m->doppelganger)
     {
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *m = aimports[0];
-        assert(m);
-        if (m->sictor || m->sctor || m->sdtor || m->ssharedctor || m->sshareddtor)
+        Module *mod = m->aimports[0];
+        assert(mod);
+        if (mod->sictor || mod->sctor || mod->sdtor || mod->ssharedctor || mod->sshareddtor)
         {
-            Symbol *s = toSymbol(m);
+            Symbol *s = toSymbol(mod);
             //objextern(s);
             //if (!s->Sxtrnnum) objextdef(s->Sident);
             if (!s->Sxtrnnum)
@@ -365,22 +367,22 @@ void Module::genobjfile(bool multiobj)
         /* Create coverage identifier:
          *  private uint[numlines] __coverage;
          */
-        cov = symbol_calloc("__coverage");
-        cov->Stype = type_fake(TYint);
-        cov->Stype->Tmangle = mTYman_c;
-        cov->Stype->Tcount++;
-        cov->Sclass = SCstatic;
-        cov->Sfl = FLdata;
-        dtnzeros(&cov->Sdt, 4 * numlines);
-        outdata(cov);
-        slist_add(cov);
+        m->cov = symbol_calloc("__coverage");
+        m->cov->Stype = type_fake(TYint);
+        m->cov->Stype->Tmangle = mTYman_c;
+        m->cov->Stype->Tcount++;
+        m->cov->Sclass = SCstatic;
+        m->cov->Sfl = FLdata;
+        dtnzeros(&m->cov->Sdt, 4 * m->numlines);
+        outdata(m->cov);
+        slist_add(m->cov);
 
-        covb = (unsigned *)calloc((numlines + 32) / 32, sizeof(*covb));
+        m->covb = (unsigned *)calloc((m->numlines + 32) / 32, sizeof(*m->covb));
     }
 
-    for (size_t i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < m->members->dim; i++)
     {
-        Dsymbol *member = (*members)[i];
+        Dsymbol *member = (*m->members)[i];
         //printf("toObjFile %s %s\n", member->kind(), member->toChars());
         toObjFile(member, multiobj);
     }
@@ -395,11 +397,11 @@ void Module::genobjfile(bool multiobj)
         bcov->Stype->Tcount++;
         bcov->Sclass = SCstatic;
         bcov->Sfl = FLdata;
-        dtnbytes(&bcov->Sdt, (numlines + 32) / 32 * sizeof(*covb), (char *)covb);
+        dtnbytes(&bcov->Sdt, (m->numlines + 32) / 32 * sizeof(*m->covb), (char *)m->covb);
         outdata(bcov);
 
-        free(covb);
-        covb = NULL;
+        free(m->covb);
+        m->covb = NULL;
 
         /* Generate:
          *  _d_cover_register(uint[] __coverage, BitArray __bcoverage, string filename);
@@ -412,12 +414,12 @@ void Module::genobjfile(bool multiobj)
         type *t = type_function(TYnfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_c;
 
-        sictor = toSymbolX("__modictor", SCglobal, t, "FZv");
-        cstate.CSpsymtab = &sictor->Sfunc->Flocsym;
+        m->sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
+        cstate.CSpsymtab = &m->sictor->Sfunc->Flocsym;
         localgot = ictorlocalgot;
 
-        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(cov));
-        elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(bcov));
+        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(m->cov));
+        elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(bcov));
 
         if (config.exe == EX_WIN64)
         {
@@ -425,7 +427,7 @@ void Module::genobjfile(bool multiobj)
             ebcov = addressElem(ebcov, Type::tvoid->arrayOf(), false);
         }
 
-        elem *efilename = toEfilename(this);
+        elem *efilename = toEfilename(m);
         if (config.exe == EX_WIN64)
             efilename = addressElem(efilename, Type::tstring, true);
 
@@ -451,23 +453,23 @@ void Module::genobjfile(bool multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = eictor;
-            sictor->Sfunc->Fstartline.Sfilename = arg;
-            sictor->Sfunc->Fstartblock = b;
-            writefunc(sictor);
+            m->sictor->Sfunc->Fstartline.Sfilename = m->arg;
+            m->sictor->Sfunc->Fstartblock = b;
+            writefunc(m->sictor);
         }
 
-        sctor = callFuncsAndGates(this, &sctors, &ectorgates, "__modctor");
-        sdtor = callFuncsAndGates(this, &sdtors, NULL, "__moddtor");
+        m->sctor = callFuncsAndGates(m, &sctors, &ectorgates, "__modctor");
+        m->sdtor = callFuncsAndGates(m, &sdtors, NULL, "__moddtor");
 
-        ssharedctor = callFuncsAndGates(this, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
-        sshareddtor = callFuncsAndGates(this, &sshareddtors, NULL, "__modshareddtor");
-        stest = callFuncsAndGates(this, &stests, NULL, "__modtest");
+        m->ssharedctor = callFuncsAndGates(m, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
+        m->sshareddtor = callFuncsAndGates(m, &sshareddtors, NULL, "__modshareddtor");
+        m->stest = callFuncsAndGates(m, &stests, NULL, "__modtest");
 
-        if (doppelganger)
-            genmoduleinfo();
+        if (m->doppelganger)
+            genModuleInfo(m);
     }
 
-    if (doppelganger)
+    if (m->doppelganger)
     {
         objmod->termfile();
         return;
@@ -480,23 +482,23 @@ void Module::genobjfile(bool multiobj)
          * possibly later in the doppelganger modules.
          * Another way to fix it is do the main one last.
          */
-        toModuleAssert();
-        toModuleUnittest();
-        toModuleArray();
+        toModuleAssert(m);
+        toModuleUnittest(m);
+        toModuleArray(m);
     }
 
     /* Always generate module info, because of templates and -cov.
      * But module info needs the runtime library, so disable it for betterC.
      */
     if (!global.params.betterC /*|| needModuleInfo()*/)
-        genmoduleinfo();
+        genModuleInfo(m);
 
-    genhelpers(false);
+    genhelpers(m, false);
 
     objmod->termfile();
 }
 
-void Module::genhelpers(bool iscomdat)
+void genhelpers(Module *m, bool iscomdat)
 {
     if (global.params.betterC)
         return;
@@ -509,54 +511,52 @@ void Module::genhelpers(bool iscomdat)
         unsigned bc;
         switch (i)
         {
-            case 0:     ma = marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
-            case 1:     ma = massert;   rt = RTLSYM_DASSERT;    bc = BCexit; break;
-            case 2:     ma = munittest; rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
+            case 0:     ma = m->marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
+            case 1:     ma = m->massert;   rt = RTLSYM_DASSERT;    bc = BCexit; break;
+            case 2:     ma = m->munittest; rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
             default:    assert(0);
         }
 
-        if (ma)
-        {
-            elem *elinnum;
+        if (!ma)
+            continue;
 
-            localgot = NULL;
 
-            // Call dassert(filename, line)
-            // Get sole parameter, linnum
-            {
-                Symbol *sp = symbol_calloc("linnum");
-                sp->Stype = type_fake(TYint);
-                sp->Stype->Tcount++;
-                sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
+        localgot = NULL;
 
-                FuncParamRegs fpr(TYjfunc);
-                fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
+        // Call dassert(filename, line)
+        // Get sole parameter, linnum
+        Symbol *sp = symbol_calloc("linnum");
+        sp->Stype = type_fake(TYint);
+        sp->Stype->Tcount++;
+        sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
 
-                sp->Sflags &= ~SFLspill;
-                sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
-                cstate.CSpsymtab = &ma->Sfunc->Flocsym;
-                symbol_add(sp);
+        FuncParamRegs fpr(TYjfunc);
+        fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
 
-                elinnum = el_var(sp);
-            }
+        sp->Sflags &= ~SFLspill;
+        sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
+        cstate.CSpsymtab = &ma->Sfunc->Flocsym;
+        symbol_add(sp);
 
-            elem *efilename = toEfilename(this);
-            if (config.exe == EX_WIN64)
-                efilename = addressElem(efilename, Type::tstring, true);
+        elem *elinnum = el_var(sp);
 
-            elem *e = el_var(rtlsym[rt]);
-            e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
-            block *b = block_calloc();
-            b->BC = bc;
-            b->Belem = e;
-            ma->Sfunc->Fstartline.Sfilename = arg;
-            ma->Sfunc->Fstartblock = b;
-            ma->Sclass = iscomdat ? SCcomdat : SCglobal;
-            ma->Sfl = 0;
-            ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
-            writefunc(ma);
-        }
+        elem *efilename = toEfilename(m);
+        if (config.exe == EX_WIN64)
+            efilename = addressElem(efilename, Type::tstring, true);
+
+        elem *e = el_var(rtlsym[rt]);
+        e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
+
+        block *b = block_calloc();
+        b->BC = bc;
+        b->Belem = e;
+        ma->Sfunc->Fstartline.Sfilename = m->arg;
+        ma->Sfunc->Fstartblock = b;
+        ma->Sclass = iscomdat ? SCcomdat : SCglobal;
+        ma->Sfl = 0;
+        ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
+        writefunc(ma);
     }
 }
 

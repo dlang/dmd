@@ -50,6 +50,9 @@ Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc);
 void toObjFile(Dsymbol *ds, bool multiobj);
+Symbol *toVtblSymbol(ClassDeclaration *cd);
+Symbol* toSymbol(StructLiteralExp *sle);
+Symbol* toSymbol(ClassReferenceExp *cre);
 
 /* ================================================================ */
 
@@ -254,7 +257,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             if (e->e1->op == TOKstructliteral)
             {
                 StructLiteralExp* sl = (StructLiteralExp *)e->e1;
-                dtxoff(pdt, sl->toSymbol(), 0);
+                dtxoff(pdt, toSymbol(sl), 0);
                 return;
             }
             visit((UnaExp *)e);
@@ -602,7 +605,7 @@ void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt)
     //printf("ClassDeclaration::toDt(this = '%s')\n", cd->toChars());
 
     // Put in first two members, the vtbl[] and the monitor
-    dtxoff(pdt, cd->toVtblSymbol(), 0);
+    dtxoff(pdt, toVtblSymbol(cd), 0);
     if (!cd->cpp)
         dtsize_t(pdt, 0);                    // monitor
 
@@ -797,7 +800,7 @@ dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off)
     printf("ClassReferenceExp::toDtI() %d\n", e->op);
 #endif
 
-    dtxoff(pdt, e->toSymbol(), off);
+    dtxoff(pdt, toSymbol(e), off);
     return pdt;
 }
 
@@ -822,7 +825,7 @@ dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt)
         Expression_toDt(e, &dt);           // convert e to an initializer dt
         dts[i] = dt;
     }
-    dtxoff(pdtend, ce->originalClass()->toVtblSymbol(), 0);
+    dtxoff(pdtend, toVtblSymbol(ce->originalClass()), 0);
     dtsize_t(pdtend, 0);                    // monitor
     // Put in the rest
     membersToDt(ce, &d, ce->originalClass(), &dts);

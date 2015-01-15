@@ -22,84 +22,24 @@
 
 // tocsym
 
-Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, TYPE *t, const char *suffix)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Dsymbol::toImport()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Dsymbol::toImport(Symbol *sym)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *FuncDeclaration::toThunkSymbol(int offset)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *ClassDeclaration::toVtblSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *AggregateDeclaration::toInitializer()
+Symbol *toInitializer(AggregateDeclaration *ad)
 {
     return NULL;
 }
 
-Symbol *EnumDeclaration::toInitializer()
+Symbol *toModuleAssert(Module *m)
 {
     return NULL;
 }
 
-Symbol *Module::toModuleAssert()
+Symbol *toModuleUnittest(Module *m)
 {
     return NULL;
 }
 
-Symbol *Module::toModuleUnittest()
+Symbol *toModuleArray(Module *m)
 {
     return NULL;
-}
-
-Symbol *Module::toModuleArray()
-{
-    return NULL;
-}
-
-Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol* StructLiteralExp::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol* ClassReferenceExp::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-// toobj
-
-void Module::genmoduleinfo()
-{
-    assert(0);
 }
 
 // glue
@@ -116,11 +56,11 @@ void obj_end(Library *library, File *objfile)
 {
 }
 
-void Module::genobjfile(bool multiobj)
+void genObjFile(Module *m, bool multiobj)
 {
 }
 
-void Module::genhelpers(bool iscomdat)
+void genhelpers(Module *m, bool iscomdat)
 {
     assert(0);
 }
@@ -137,115 +77,19 @@ void backend_term()
 
 // typinf
 
-Expression *Type::getInternalTypeInfo(Scope *sc)
+Expression *getInternalTypeInfo(Type *t, Scope *sc)
 {
     assert(0);
     return NULL;
 }
 
-Expression *Type::getTypeInfo(Scope *sc)
+Expression *getTypeInfo(Type *t, Scope *sc)
 {
-    Declaration *ti = new TypeInfoDeclaration(this, 1);
+    Declaration *ti = new TypeInfoDeclaration(t, 1);
     Expression *e = new VarExp(Loc(), ti);
     e = e->addressOf();
     e->type = ti->type;
     return e;
-}
-
-TypeInfoDeclaration *Type::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypePointer::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeDArray::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeSArray::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeAArray::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeStruct::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeClass::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeVector::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeEnum::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeFunction::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeDelegate::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-int Type::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
-}
-
-int TypeBasic::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
-}
-
-int TypeDArray::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
-}
-
-int TypeClass::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
 }
 
 // lib
