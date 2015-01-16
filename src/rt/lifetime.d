@@ -1095,6 +1095,38 @@ extern (C) void[] _d_newarraymiT(const TypeInfo ti, size_t ndims, ...)
     }
 }
 
+
+/**
+ *
+ */
+extern (C) void[] _d_newarraymTX(const TypeInfo ti, size_t[] dims)
+{
+    debug(PRINTF) printf("_d_newarraymT(dims.length = %d)\n", dims.length);
+
+    if (dims.length == 0)
+        return null;
+    else
+    {
+        return _d_newarrayOpT!(_d_newarrayT)(ti, dims);
+    }
+}
+
+
+/**
+ *
+ */
+extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims)
+{
+    debug(PRINTF) printf("_d_newarraymiT(dims.length = %d)\n", dims.length);
+
+    if (dims.length == 0)
+        return null;
+    else
+    {
+        return _d_newarrayOpT!(_d_newarrayiT)(ti, dims);
+    }
+}
+
 /**
  * Allocate a non-array item.
  * This is an optimization to avoid things needed for arrays like the __arrayPad(size).
