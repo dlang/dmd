@@ -131,15 +131,6 @@ nothrow:
      */
     @trusted void lock()
     {
-        lock_impl!SyncError();
-    }
-
-    @trusted void lock_nothrow() nothrow
-    {
-        lock_impl!Error();
-    }
-    private @trusted void lock_impl(Exc)()
-    {
         version( Windows )
         {
             EnterCriticalSection( &m_hndl );
@@ -148,9 +139,13 @@ nothrow:
         {
             int rc = pthread_mutex_lock( &m_hndl );
             if( rc )
-                throw new Exc( "Unable to lock mutex" );
+                throw new SyncError( "Unable to lock mutex" );
         }
     }
+
+    // TBD in 2.067
+    // deprecated("Please use lock instead")
+    alias lock_nothrow = lock;
 
     /**
      * Decrements the internal lock count by one.  If this brings the count to
@@ -161,16 +156,6 @@ nothrow:
      */
     @trusted void unlock()
     {
-        unlock_impl!SyncError();
-    }
-
-    @trusted void unlock_nothrow() nothrow
-    {
-        unlock_impl!Error();
-    }
-
-    private @trusted void unlock_impl(Exc)()
-    {
         version( Windows )
         {
             LeaveCriticalSection( &m_hndl );
@@ -179,9 +164,13 @@ nothrow:
         {
             int rc = pthread_mutex_unlock( &m_hndl );
             if( rc )
-                throw new Exc( "Unable to unlock mutex" );
+                throw new SyncError( "Unable to unlock mutex" );
         }
     }
+
+    // TBD in 2.067
+    // deprecated("Please use unlock instead")
+    alias unlock_nothrow = unlock;
 
     /**
      * If the lock is held by another caller, the method returns.  Otherwise,
