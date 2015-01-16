@@ -3696,7 +3696,6 @@ Expression *StringExp::semantic(Scope *sc)
             string = buffer.extractData();
             len = newlen;
             sz = 4;
-            //type = new TypeSArray(Type::tdchar, new IntegerExp(loc, len, Type::tindex));
             type = new TypeDArray(Type::tdchar->immutableOf());
             committed = 1;
             break;
@@ -3722,7 +3721,6 @@ Expression *StringExp::semantic(Scope *sc)
             string = buffer.extractData();
             len = newlen;
             sz = 2;
-            //type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
             type = new TypeDArray(Type::twchar->immutableOf());
             committed = 1;
             break;
@@ -3730,7 +3728,6 @@ Expression *StringExp::semantic(Scope *sc)
         case 'c':
             committed = 1;
         default:
-            //type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
             type = new TypeDArray(Type::tchar->immutableOf());
             break;
     }

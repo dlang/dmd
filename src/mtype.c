@@ -115,7 +115,6 @@ Type *Type::tnull;
 Type *Type::tsize_t;
 Type *Type::tptrdiff_t;
 Type *Type::thash_t;
-Type *Type::tindex;
 
 Type *Type::tvoidptr;
 Type *Type::tstring;
@@ -295,7 +294,6 @@ void Type::init()
     tsize_t = basic[Tsize_t];
     tptrdiff_t = basic[Tptrdiff_t];
     thash_t = tsize_t;
-    tindex = tsize_t;
 }
 
 d_uns64 Type::size()
@@ -1231,7 +1229,7 @@ Type *Type::arrayOf()
 Type *Type::sarrayOf(dinteger_t dim)
 {
     assert(deco);
-    Type *t = new TypeSArray(this, new IntegerExp(Loc(), dim, Type::tindex));
+    Type *t = new TypeSArray(this, new IntegerExp(Loc(), dim, Type::tsize_t));
 
     // according to TypeSArray::semantic()
     t = t->addMod(mod);
@@ -4376,12 +4374,12 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     if (ident == Id::length)
     {
         if (e->op == TOKstring)
-        {   StringExp *se = (StringExp *)e;
-
-            return new IntegerExp(se->loc, se->len, Type::tindex);
+        {
+            StringExp *se = (StringExp *)e;
+            return new IntegerExp(se->loc, se->len, Type::tsize_t);
         }
         if (e->op == TOKnull)
-            return new IntegerExp(e->loc, 0, Type::tindex);
+            return new IntegerExp(e->loc, 0, Type::tsize_t);
         e = new ArrayLengthExp(e->loc, e);
         e->type = Type::tsize_t;
         return e;
