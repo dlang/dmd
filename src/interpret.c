@@ -2409,8 +2409,8 @@ public:
                 {
                     RootObject * o = (*td->objects)[i];
                     Expression *ex = isExpression(o);
-                    DsymbolExp *s = (ex && ex->op == TOKdsymbol) ? (DsymbolExp *)ex : NULL;
-                    VarDeclaration *v2 = s ? s->s->isVarDeclaration() : NULL;
+                    DsymbolExp *ds = (ex && ex->op == TOKdsymbol) ? (DsymbolExp *)ex : NULL;
+                    VarDeclaration *v2 = ds ? ds->s->isVarDeclaration() : NULL;
                     assert(v2);
                     if (v2->isDataseg() && !v2->isCTFE())
                         continue;
@@ -2418,16 +2418,16 @@ public:
                     ctfeStack.push(v2);
                     if (v2->init)
                     {
-                        Expression *ex;
+                        Expression *einit;
                         if (ExpInitializer *ie = v2->init->isExpInitializer())
                         {
-                            ex = interpret(ie->exp, istate, goal);
-                            if (exceptionOrCant(ex))
+                            einit = interpret(ie->exp, istate, goal);
+                            if (exceptionOrCant(einit))
                                 return;
                         }
                         else if (v2->init->isVoidInitializer())
                         {
-                            ex = voidInitLiteral(v2->type, v2).copy();
+                            einit = voidInitLiteral(v2->type, v2).copy();
                         }
                         else
                         {
@@ -2435,7 +2435,7 @@ public:
                             result = CTFEExp::cantexp;
                             return;
                         }
-                        setValue(v2, ex);
+                        setValue(v2, einit);
                     }
                 }
                 return;
@@ -2487,10 +2487,10 @@ public:
             AttribDeclaration *ad = e->declaration->isAttribDeclaration();
             if (ad && ad->decl && ad->decl->dim == 1)
             {
-                Dsymbol *s = (*ad->decl)[0];
-                if (s->isAggregateDeclaration() ||
-                    s->isTemplateDeclaration() ||
-                    s->isAliasDeclaration())
+                Dsymbol *sparent = (*ad->decl)[0];
+                if (sparent->isAggregateDeclaration() ||
+                    sparent->isTemplateDeclaration() ||
+                    sparent->isAliasDeclaration())
                 {
                     result = NULL;
                     return;         // static (template) struct declaration. Nothing to do.
@@ -3626,10 +3626,10 @@ public:
                     return;
                 }
                 newval = copyLiteral(newval).copy();
-                if (Expression *oldval = getValue(v))
+                if (Expression *currval = getValue(v))
                 {
-                    assignInPlace(oldval, newval);      // In-place modification
-                    result = oldval;                    // should return the modified old value
+                    assignInPlace(currval, newval);      // In-place modification
+                    result = currval;                    // should return the modified old value
                 }
                 else
                 {
@@ -3657,15 +3657,15 @@ public:
                 }
                 if (e->op == TOKassign)
                 {
-                    Expression *oldval = getValue(v);
-                    assert(oldval->op == TOKarrayliteral);
+                    Expression *currval = getValue(v);
+                    assert(currval->op == TOKarrayliteral);
                     assert(newval->op == TOKarrayliteral);
 
-                    Expressions *oldelems = ((ArrayLiteralExp *)oldval)->elements;
+                    Expressions *oldelems = ((ArrayLiteralExp *)currval)->elements;
                     Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
                     assert(oldelems->dim == newelems->dim);
 
-                    Type *elemtype = oldval->type->nextOf();
+                    Type *elemtype = currval->type->nextOf();
                     for (size_t j = 0; j < newelems->dim; j++)
                     {
                         Expression *oldelem = (*oldelems)[j];
@@ -4846,7 +4846,7 @@ public:
             if (agg->op == TOKsymoff)
             {
                 e->error("mutable variable %s cannot be %s at compile time, even through a pointer",
-                    (modify ? "modified" : "read"), ((SymOffExp *)agg)->var->toChars());
+                    (char *)(modify ? "modified" : "read"), ((SymOffExp *)agg)->var->toChars());
                 return false;
             }
 

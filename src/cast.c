@@ -1507,8 +1507,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             visit((Expression *)e);
             if (result->op == TOKnull)
             {
-                NullExp *e = (NullExp *)result;
-                e->committed = 1;
+                NullExp *ex = (NullExp *)result;
+                ex->committed = 1;
                 return;
             }
         }

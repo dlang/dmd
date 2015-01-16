@@ -2356,14 +2356,14 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     OutBuffer codebuf;
 
                     // escape the contents, but do not perform highlighting
-                    highlightCode3(sc, &codebuf, buf->data + iCodeStart + 1, buf->data + i);
+                    highlightCode3(sc, &codebuf, (utf8_t *)(buf->data + iCodeStart + 1), (utf8_t *)buf->data + i);
 
                     buf->remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
 
                     static const char pre[] = "$(DDOC_BACKQUOTED ";
                     i = buf->insert(iCodeStart, pre, strlen(pre));
-                    i = buf->insert(i, codebuf.data, codebuf.offset);
-                    i = buf->insert(i, ")", 1);
+                    i = buf->insert(i, (char *)codebuf.data, codebuf.offset);
+                    i = buf->insert(i, (char *)")", 1);
 
                     break;
                 }
@@ -2471,11 +2471,11 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     }
                     else
                     {
-                        static const char pre[] = "$(D_CODE ";
+                        static const char d_code[] = "$(D_CODE ";
 
                         inCode = 1;
                         codeIndent = istart - iLineStart;  // save indent count
-                        i = buf->insert(i, pre, strlen(pre));
+                        i = buf->insert(i, d_code, strlen(d_code));
                         iCodeStart = i;
                         i--;            // place i on >
                         leadingBlank = true;

@@ -374,12 +374,12 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                         // marg = name[ ] ~ "," ~ marg[ ];
                         if (marglen)
                         {
-                            unsigned char* p = (unsigned char*)malloc(namelen + 1 + marglen);
-                            assert(p);
-                            memcpy(p, name, namelen);
-                            p[namelen] = ',';
-                            memcpy(p + namelen + 1, marg, marglen);
-                            marg = p;
+                            utf8_t *q = (utf8_t *)mem.malloc(namelen + 1 + marglen);
+                            assert(q);
+                            memcpy(q, name, namelen);
+                            q[namelen] = ',';
+                            memcpy(q + namelen + 1, marg, marglen);
+                            marg = q;
                             marglen += namelen + 1;
                         }
                         else

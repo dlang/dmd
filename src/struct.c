@@ -527,8 +527,8 @@ void AggregateDeclaration::makeNested()
     {
         enclosing = fd;
 
-        AggregateDeclaration *ad = fd->isMember2();
-        t = ad ? ad->handleType() : Type::tvoidptr;
+        AggregateDeclaration *agg = fd->isMember2();
+        t = agg ? agg->handleType() : Type::tvoidptr;
     }
     else if (ad)
     {
