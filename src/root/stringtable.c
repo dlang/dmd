@@ -132,6 +132,18 @@ void StringTable::_init(size_t size)
     count = 0;
 }
 
+void StringTable::reset(size_t size)
+{
+    for (size_t i = 0; i < npools; ++i)
+        mem.free(pools[i]);
+
+    mem.free(table);
+    mem.free(pools);
+    table = NULL;
+    pools = NULL;
+    _init(size);
+}
+
 StringTable::~StringTable()
 {
     for (size_t i = 0; i < npools; ++i)
