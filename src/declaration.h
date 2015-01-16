@@ -55,7 +55,7 @@ enum PURE;
 #define STCvariadic     0x10000LL       // variadic function argument
 #define STCctorinit     0x20000LL       // can only be set inside constructor
 #define STCtemplateparameter  0x40000LL // template parameter
-#define STCscope        0x80000LL       // template parameter
+#define STCscope        0x80000LL
 #define STCimmutable    0x100000LL
 #define STCref          0x200000LL
 #define STCinit         0x400000LL      // has explicit initializer
@@ -84,6 +84,9 @@ enum PURE;
 #define STCrvalue        0x20000000000LL // force rvalue for variables
 #define STCnogc          0x40000000000LL // @nogc
 #define STCvolatile      0x80000000000LL // destined for volatile in the back end
+
+#define STCscoperet      0x100000000000LL // scoped return value
+
 
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |

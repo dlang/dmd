@@ -375,12 +375,15 @@ void AliasDeclaration::semantic(Scope *sc)
         goto L2;                        // it's a symbolic alias
 
     type = type->addStorageClass(storage_class);
-    if (storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCdisable))
+    if (storage_class & (STCscope | STCref | STCnothrow | STCnogc | STCpure | STCdisable))
     {
+        if (storage_class & STCscope)
+            storage_class = (storage_class & ~STCscope) | STCscoperet;
+
         // For 'ref' to be attached to function types, and picked
         // up by Type::resolve(), it has to go into sc.
         sc = sc->push();
-        sc->stc |= storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCshared | STCdisable);
+        sc->stc |= storage_class & (STCscoperet | STCref | STCnothrow | STCnogc | STCpure | STCshared | STCdisable);
         type->resolve(loc, sc, &e, &t, &s);
         sc = sc->pop();
     }

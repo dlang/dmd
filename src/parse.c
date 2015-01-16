@@ -1045,6 +1045,10 @@ StorageClass Parser::parseAttribute(Expressions **pudas)
 
 StorageClass Parser::parsePostfix(StorageClass storageClass, Expressions **pudas)
 {
+    if (storageClass & STCscope)
+        // Rewrite STCscope as STCscoperet
+        storageClass = (storageClass & ~STCscope) | STCscoperet;
+
     while (1)
     {
         StorageClass stc;
@@ -1056,6 +1060,7 @@ StorageClass Parser::parsePostfix(StorageClass storageClass, Expressions **pudas
             case TOKwild:       stc = STCwild;          break;
             case TOKnothrow:    stc = STCnothrow;       break;
             case TOKpure:       stc = STCpure;          break;
+            case TOKscope:      stc = STCscope;         break;
             case TOKat:
             {
                 Expressions *udas = NULL;
@@ -1976,7 +1981,24 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         nextToken();
                     }
                     else
+                    {
                         at = parseType(&ai);
+
+                        /* For function pointers or delegates, 'scope' applies to the return value, not the declaration
+                         */
+                        if (global.params.useScope && storageClass & STCscope)
+                        {
+                            Type *tn = at->nextOf();
+                            if (at->ty == Tpointer && tn->ty == Tfunction ||
+                                at->ty == Tdelegate)
+                            {
+                                assert(tn->ty == Tfunction);
+                                TypeFunction *tf = (TypeFunction *)tn;
+                                tf->isscoperet = true;
+                                storageClass &= ~STCscope;
+                            }
+                        }
+                    }
                     ae = NULL;
                     if (token.value == TOKassign)       // = defaultArg
                     {   nextToken();
