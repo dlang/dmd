@@ -184,7 +184,6 @@ public:
 
     // Some special types
     static Type *tshiftcnt;
-    static Type *tboolean;
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
     static Type *twstring;              // immutable(wchar)[]

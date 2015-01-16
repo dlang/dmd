@@ -109,7 +109,6 @@ Type *Type::twchar;
 Type *Type::tdchar;
 
 Type *Type::tshiftcnt;
-Type *Type::tboolean;
 Type *Type::terror;
 Type *Type::tnull;
 
@@ -271,7 +270,6 @@ void Type::init()
     tdchar = basic[Tdchar];
 
     tshiftcnt = tint32;
-    tboolean = tbool;
     terror = basic[Terror];
     tnull = basic[Tnull];
     tnull = new TypeNull();

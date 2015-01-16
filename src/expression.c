@@ -9327,7 +9327,7 @@ Expression *NotExp::semantic(Scope *sc)
     if (checkNonAssignmentArrayOp(e1))
         return new ErrorExp();
 
-    type = Type::tboolean;
+    type = Type::tbool;
     return this;
 }
 
@@ -9352,7 +9352,7 @@ Expression *BoolExp::semantic(Scope *sc)
     if (e1->type == Type::terror)
         return e1;
 
-    type = Type::tboolean;
+    type = Type::tbool;
     return this;
 }
 
@@ -12991,7 +12991,7 @@ Expression *OrOrExp::semantic(Scope *sc)
         e1 = e1->optimize(WANTvalue);
         if (e1->isBool(true))
         {
-            return new IntegerExp(loc, 1, Type::tboolean);
+            return new IntegerExp(loc, 1, Type::tbool);
         }
     }
 
@@ -13005,7 +13005,7 @@ Expression *OrOrExp::semantic(Scope *sc)
     else
     {
         e2 = e2->checkToBoolean(sc);
-        type = Type::tboolean;
+        type = Type::tbool;
     }
     if (e2->op == TOKtype || e2->op == TOKimport)
     {
@@ -13049,7 +13049,7 @@ Expression *AndAndExp::semantic(Scope *sc)
         e1 = e1->optimize(WANTvalue);
         if (e1->isBool(false))
         {
-            return new IntegerExp(loc, 0, Type::tboolean);
+            return new IntegerExp(loc, 0, Type::tbool);
         }
     }
 
@@ -13063,7 +13063,7 @@ Expression *AndAndExp::semantic(Scope *sc)
     else
     {
         e2 = e2->checkToBoolean(sc);
-        type = Type::tboolean;
+        type = Type::tbool;
     }
     if (e2->op == TOKtype || e2->op == TOKimport)
     {
@@ -13102,7 +13102,6 @@ Expression *InExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    //type = Type::tboolean;
     Type *t2b = e2->type->toBasetype();
     switch (t2b->ty)
     {
@@ -13138,7 +13137,7 @@ Expression *InExp::semantic(Scope *sc)
 RemoveExp::RemoveExp(Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, TOKremove, sizeof(RemoveExp), e1, e2)
 {
-    type = Type::tboolean;
+    type = Type::tbool;
 }
 
 Expression *RemoveExp::semantic(Scope *sc)
@@ -13193,7 +13192,7 @@ Expression *CmpExp::semantic(Scope *sc)
     if (Expression *ex = typeCombine(this, sc))
         return ex;
 
-    type = Type::tboolean;
+    type = Type::tbool;
 
     // Special handling for array comparisons
     t1 = e1->type->toBasetype();
@@ -13351,7 +13350,7 @@ Expression *EqualExp::semantic(Scope *sc)
             if (ve1->var == ve2->var)
             {
                 // They are the same, result is 'true' for ==, 'false' for !=
-                return new IntegerExp(loc, (op == TOKequal), Type::tboolean);
+                return new IntegerExp(loc, (op == TOKequal), Type::tbool);
             }
         }
     }
@@ -13435,7 +13434,7 @@ Expression *EqualExp::semantic(Scope *sc)
         if (dim == 0)
         {
             // zero-length tuple comparison should always return true or false.
-            e = new IntegerExp(loc, (op == TOKequal), Type::tboolean);
+            e = new IntegerExp(loc, (op == TOKequal), Type::tbool);
         }
         else
         {
@@ -13460,7 +13459,7 @@ Expression *EqualExp::semantic(Scope *sc)
     if (Expression *ex = typeCombine(this, sc))
         return ex;
 
-    type = Type::tboolean;
+    type = Type::tbool;
 
     // Special handling for array comparisons
     if (!arrayTypeCompatible(loc, e1->type, e2->type))
@@ -13495,7 +13494,7 @@ Expression *IdentityExp::semantic(Scope *sc)
 
     if (Expression *ex = binSemanticProp(sc))
         return ex;
-    type = Type::tboolean;
+    type = Type::tbool;
 
     if (Expression *ex = typeCombine(this, sc))
         return ex;
