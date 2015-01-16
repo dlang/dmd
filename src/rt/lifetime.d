@@ -1967,51 +1967,6 @@ size_t newCapacity(size_t newlength, size_t size)
 }
 
 
-/**
- * Obsolete, replaced with _d_arrayappendcTX()
- */
-extern (C) void[] _d_arrayappendcT(const TypeInfo ti, ref byte[] x, ...)
-{
-    version(X86)
-    {
-        byte *argp = cast(byte*)(&ti + 2);
-        return _d_arrayappendT(ti, x, argp[0..1]);
-    }
-    else version(Win64)
-    {
-        byte *argp = cast(byte*)(&ti + 2);
-        return _d_arrayappendT(ti, x, argp[0..1]);
-    }
-    else version(X86_64)
-    {
-        // This code copies the element twice, which is annoying
-        //   #1 is from va_arg copying from the varargs to b
-        //   #2 is in _d_arrayappendT is copyinb b into the end of x
-        // to fix this, we need a form of _d_arrayappendT that just grows
-        // the array and leaves the copy to be done here by va_arg.
-        auto tinext = unqualify(ti.next);
-        byte[] b = (cast(byte*)alloca(tinext.tsize))[0 .. tinext.tsize];
-
-        va_list ap;
-        va_start(ap, __va_argsave);
-        va_arg(ap, cast()tinext, cast(void*)b.ptr);
-        va_end(ap);
-
-        // The 0..1 here is strange.  Inside _d_arrayappendT, it ends up copying
-        // b.length * ti.next.tsize bytes, which is right amount, but awfully
-        // indirectly determined.  So, while it passes a darray of just one byte,
-        // the entire block is copied correctly.  If the full b darray is passed
-        // in, what's copied is ti.next.tsize * ti.next.tsize bytes, rather than
-        // 1 * ti.next.tsize bytes.
-        return _d_arrayappendT(ti, x, b[0..1]);
-    }
-    else
-    {
-        static assert(false, "platform not supported");
-    }
-}
-
-
 /**************************************
  * Extend an array by n elements.
  * Caller must initialize those elements.
@@ -2387,72 +2342,6 @@ void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
         auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
         __setArrayAllocLength(info, allocsize, isshared, tinext);
         result = __arrayStart(info);
-    }
-    return result;
-}
-
-/**
- * The old way, obsolete.
- */
-extern (C) void* _d_arrayliteralT(const TypeInfo ti, size_t length, ...)
-{
-    auto tinext = unqualify(ti.next);
-    auto sizeelem = tinext.tsize;              // array element size
-    void* result;
-
-    debug(PRINTF) printf("_d_arrayliteralT(sizeelem = %d, length = %d)\n", sizeelem, length);
-    if (length == 0 || sizeelem == 0)
-        result = null;
-    else
-    {
-        auto allocsize = length * sizeelem;
-        auto info = __arrayAlloc(allocsize, ti, tinext);
-        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-        __setArrayAllocLength(info, allocsize, isshared, tinext);
-        result = __arrayStart(info);
-
-        version(X86)
-        {
-            va_list q;
-            va_start(q, length);
-
-            size_t stacksize = (sizeelem + int.sizeof - 1) & ~(int.sizeof - 1);
-
-            if (stacksize == sizeelem)
-            {
-                memcpy(result, q, length * sizeelem);
-            }
-            else
-            {
-                for (size_t i = 0; i < length; i++)
-                {
-                    memcpy(result + i * sizeelem, q, sizeelem);
-                    q += stacksize;
-                }
-            }
-
-            va_end(q);
-        }
-        else version (Win64)
-        {
-            va_list q;
-            va_start(q, length);
-            for (size_t i = 0; i < length; i++)
-            {
-                va_arg(q, cast()tinext, result + i * sizeelem);
-            }
-            va_end(q);
-        }
-        else
-        {
-            va_list q;
-            va_start(q, __va_argsave);
-            for (size_t i = 0; i < length; i++)
-            {
-                va_arg(q, cast()tinext, result + i * sizeelem);
-            }
-            va_end(q);
-        }
     }
     return result;
 }
