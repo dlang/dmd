@@ -1442,8 +1442,10 @@ Object *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, 
             tup.objects = *td->objects;
             if (match(va, &tup, this, sc))
             {
+                tup.objects.data = NULL;        // we aren't the owner of the array
                 return o;
             }
+            tup.objects.data = NULL;    // we aren't the owner of the array
         }
     }
     if (ea && ea->op == TOKtype)
