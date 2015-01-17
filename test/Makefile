@@ -27,6 +27,10 @@
 #   EXTRA_SOURCES:       list of extra files to build and link along with the test
 #                        default: (none)
 #
+#   EXTRA_OBJC_SOURCES:  list of extra Objective-C files to build and link along with the test
+#                        default: (none). Test files with this variable will be ignored unless
+#                        the D_OBJC environment variable is set to "1"
+#
 #   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
 #                        default: the make variable ARGS (see below)
 #
@@ -48,7 +52,7 @@
 #
 #   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
 #                        default: (none)
-#                        note: the make variable REQUIRED_ARGS is also added to the $(DMD) 
+#                        note: the make variable REQUIRED_ARGS is also added to the $(DMD)
 #                              command line (see below)
 #
 #   DISABLED:            text describing why the test is disabled (if empty, the test is
@@ -111,6 +115,12 @@ export EXE=
 export OBJ=.o
 export DSEP=/
 export SEP=/
+endif
+
+ifeq ($(OS),osx)
+ifeq ($(MODEL),64)
+export D_OBJC=1
+endif
 endif
 
 ifeq ($(OS),freebsd)
@@ -181,7 +191,7 @@ clean:
 	$(QUIET)if [ -e $(RESULTS_DIR) ]; then rm -rf $(RESULTS_DIR); fi
 
 $(RESULTS_DIR)/.created:
-	@echo Creating output directory: $(RESULTS_DIR) 
+	@echo Creating output directory: $(RESULTS_DIR)
 	$(QUIET)if [ ! -d $(RESULTS_DIR) ]; then mkdir $(RESULTS_DIR); fi
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/runnable ]; then mkdir $(RESULTS_DIR)/runnable; fi
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/compilable ]; then mkdir $(RESULTS_DIR)/compilable; fi
