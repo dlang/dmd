@@ -160,6 +160,7 @@ Usage:\n\
   -defaultlib=name  set default library to name\n\
   -deps          print module dependencies (imports/file/version/debug/lib)\n\
   -deps=filename write module dependencies to filename (only imports)\n%s\
+  -dip25         implement http://wiki.dlang.org/DIP25 (experimental)\n\
   -g             add symbolic debug info\n\
   -gc            add symbolic debug info, optimize for non D debuggers\n\
   -gs            always emit stack frame\n\
@@ -190,7 +191,6 @@ Usage:\n\
   -property      enforce property syntax\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
-  -scope         diagnose scope errors (experimental)\n\
   -shared        generate shared library (DLL)\n\
   -transition=id show additional info about language change identified by 'id'\n\
   -transition=?  list all language changes\n\
@@ -718,8 +718,8 @@ Language changes listed by -transition=id:\n\
                 global.params.enforcePropertySyntax = true;
             else if (strcmp(p + 1, "inline") == 0)
                 global.params.useInline = true;
-            else if (strcmp(p + 1, "scope") == 0)
-                global.params.useScope = true;
+            else if (strcmp(p + 1, "dip25") == 0)
+                global.params.useDIP25 = true;
             else if (strcmp(p + 1, "lib") == 0)
                 global.params.lib = true;
             else if (strcmp(p + 1, "nofloat") == 0)

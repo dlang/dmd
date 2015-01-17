@@ -1168,6 +1168,9 @@ Ldone:
 
         if (!f->isnogc)
             flags |= FUNCFLAGnogcInprocess;
+
+        if (!isVirtual() || introducing)
+            flags |= FUNCFLAGreturnInprocess;
     }
 
     Module::dprogress++;
@@ -1280,7 +1283,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->linkage = LINKd;
         sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract |
                         STCdeprecated | STCoverride |
-                        STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref |
+                        STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref | STCreturn |
                         STCproperty | STCnothrow | STCpure | STCsafe | STCtrusted | STCsystem);
         sc2->protection = Prot(PROTpublic);
         sc2->explicitProtection = 0;
@@ -1400,7 +1403,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 stc |= STCparameter;
                 if (f->varargs == 2 && i + 1 == nparams)
                     stc |= STCvariadic;
-                stc |= fparam->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
+                stc |= fparam->storageClass & (STCin | STCout | STCref | STCreturn | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
                 v->storage_class = stc;
                 v->semantic(sc2);
                 if (!sc2->insert(v))
@@ -2143,6 +2146,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         f->isnogc = true;
     }
 
+    flags &= ~FUNCFLAGreturnInprocess;
+
     // reset deco to apply inference result to mangled name
     if (f != type)
         f->deco = NULL;
@@ -2254,6 +2259,8 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
             v->storage_class |= STCparameter;
             if (thandle->ty == Tstruct)
                 v->storage_class |= STCref;
+            if (type->ty == Tfunction && ((TypeFunction *)type)->isreturn)
+                v->storage_class |= STCreturn;
             v->semantic(sc);
             if (!sc->insert(v))
                 assert(0);

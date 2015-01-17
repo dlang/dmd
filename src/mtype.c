@@ -2044,6 +2044,7 @@ Type *TypeFunction::substWildTo(unsigned)
     t->purity = purity;
     t->isproperty = isproperty;
     t->isref = isref;
+    t->isreturn = isreturn;
     t->iswild = 0;
     t->trust = trust;
     t->fargs = fargs;
@@ -5096,6 +5097,7 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, L
     this->purity = PUREimpure;
     this->isproperty = false;
     this->isref = false;
+    this->isreturn = false;
     this->iswild = 0;
     this->fargs = NULL;
 
@@ -5110,6 +5112,8 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, L
 
     if (stc & STCref)
         this->isref = true;
+    if (stc & STCreturn)
+        this->isreturn = true;
 
     this->trust = TRUSTdefault;
     if (stc & STCsafe)
@@ -5141,6 +5145,7 @@ Type *TypeFunction::syntaxCopy()
     t->purity = purity;
     t->isproperty = isproperty;
     t->isref = isref;
+    t->isreturn = isreturn;
     t->iswild = iswild;
     t->trust = trust;
     t->fargs = fargs;
@@ -5210,6 +5215,9 @@ int Type::covariant(Type *t, StorageClass *pstc)
             // We can add scope, but not subtract it
             if (!(fparam1->storageClass & STCscope) && (fparam2->storageClass & STCscope))
                 inoutmismatch = 1;
+            // We can subtract return, but not add it
+            if ((fparam1->storageClass & STCreturn) && !(fparam2->storageClass & STCreturn))
+                inoutmismatch = 1;
         }
     }
     else if (t1->parameters != t2->parameters)
@@ -5271,6 +5279,10 @@ int Type::covariant(Type *t, StorageClass *pstc)
 
 Lcovariant:
     if (t1->isref != t2->isref)
+        goto Lnotcovariant;
+
+    // We can subtract 'return' from 'this', but cannot add it
+    if (t1->isreturn && !t2->isreturn)
         goto Lnotcovariant;
 
     /* Can convert mutable to const
@@ -5359,6 +5371,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         tf->isnogc = true;
     if (sc->stc & STCref)
         tf->isref = true;
+    if (sc->stc & STCreturn)
+        tf->isreturn = true;
 
     if (sc->stc & STCsafe)
         tf->trust = TRUSTsafe;
@@ -5480,6 +5494,16 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             else if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
             {
                 error(loc, "cannot have parameter of type %s", fparam->type->toChars());
+                errors = true;
+            }
+
+            if ((fparam->storageClass & (STCref | STCwild)) == (STCref | STCwild))
+                // 'ref inout' implies 'return'
+                fparam->storageClass |= STCreturn;
+
+            if ((fparam->storageClass & (STCreturn | STCref)) == STCreturn)
+            {
+                error(loc, "'return' can only be used with 'ref'");
                 errors = true;
             }
 
@@ -6023,6 +6047,8 @@ bool TypeFunction::parameterEscapes(Parameter *p)
      */
     if (p->storageClass & (STCscope | STClazy))
         return false;
+    if (p->storageClass & STCreturn)
+        return true;
 
     /* If haven't inferred the return type yet, assume it escapes
      */
@@ -6070,6 +6096,7 @@ Type *TypeFunction::addStorageClass(StorageClass stc)
         tf->isnogc = t->isnogc;
         tf->isproperty = t->isproperty;
         tf->isref = t->isref;
+        tf->isreturn = t->isreturn;
         tf->trust = t->trust;
         tf->iswild = t->iswild;
 

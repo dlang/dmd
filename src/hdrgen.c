@@ -872,6 +872,9 @@ public:
         }
         t->attributesApply(&pas, &PrePostAppendStrings::fp);
 
+        if (t->isreturn)
+            buf->writestring(" return");
+
         t->inuse--;
     }
     void visitFuncIdentWithPrefix(TypeFunction *t, Identifier *ident, TemplateDeclaration *td, bool isPostfixStyle)
@@ -931,6 +934,9 @@ public:
             buf->writeByte(')');
         }
         parametersToBuffer(t->parameters, t->varargs);
+
+        if (t->isreturn)
+            buf->writestring("return ");
 
         t->inuse--;
     }
@@ -1714,7 +1720,7 @@ public:
 
     void visit(FuncDeclaration *f)
     {
-        //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
+        //printf("FuncDeclaration::toCBuffer() '%s'\n", f->toChars());
 
         StorageClassDeclaration::stcToCBuffer(buf, f->storage_class);
         typeToBuffer(f->type, f->ident);
@@ -2844,6 +2850,9 @@ public:
     {
         if (p->storageClass & STCauto)
             buf->writestring("auto ");
+
+        if (p->storageClass & STCreturn)
+            buf->writestring("return ");
 
         if (p->storageClass & STCout)
             buf->writestring("out ");

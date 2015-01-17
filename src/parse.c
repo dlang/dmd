@@ -1056,6 +1056,7 @@ StorageClass Parser::parsePostfix(StorageClass storageClass, Expressions **pudas
             case TOKwild:       stc = STCwild;          break;
             case TOKnothrow:    stc = STCnothrow;       break;
             case TOKpure:       stc = STCpure;          break;
+            case TOKreturn:     stc = STCreturn;        break;
             case TOKat:
             {
                 Expressions *udas = NULL;
@@ -1917,6 +1918,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                 case TOKscope:     stc = STCscope;      goto L2;
                 case TOKfinal:     stc = STCfinal;      goto L2;
                 case TOKauto:      stc = STCauto;       goto L2;
+                case TOKreturn:    stc = STCreturn;     goto L2;
                 L2:
                     storageClass = appendStorageClass(storageClass, stc);
                     continue;
@@ -3187,10 +3189,10 @@ Type *Parser::parseBasicType2(Type *t)
 
                 StorageClass stc = parsePostfix(STCundefined, NULL);
                 TypeFunction *tf = new TypeFunction(parameters, t, varargs, linkage, stc);
-                if (stc & (STCconst | STCimmutable | STCshared | STCwild))
+                if (stc & (STCconst | STCimmutable | STCshared | STCwild | STCreturn))
                 {
                     if (save == TOKfunction)
-                        error("const/immutable/shared/inout attributes are only valid for non-static member functions");
+                        error("const/immutable/shared/inout/return attributes are only valid for non-static member functions");
                     else
                         tf = (TypeFunction *)tf->addSTC(stc);
                 }
@@ -3352,7 +3354,7 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
                 int varargs;
                 Parameters *parameters = parseParameters(&varargs);
 
-                /* Parse const/immutable/shared/inout/nothrow/pure postfix
+                /* Parse const/immutable/shared/inout/nothrow/pure/return postfix
                  */
                 StorageClass stc = parsePostfix(storageClass, pudas);
                                         // merge prefix storage classes
@@ -5885,6 +5887,7 @@ bool Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                         case TOKwild:
                         case TOKpure:
                         case TOKnothrow:
+                        case TOKreturn:
                             t = peek(t);
                             continue;
                         case TOKat:
