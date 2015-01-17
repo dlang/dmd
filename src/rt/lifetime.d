@@ -998,76 +998,41 @@ extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length) pure nothrow
 /**
  *
  */
-void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t ndims, va_list q)
+void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t[] dims)
 {
-    debug(PRINTF) printf("_d_newarrayOpT(ndims = %d)\n", ndims);
-    if (ndims == 0)
+    debug(PRINTF) printf("_d_newarrayOpT(ndims = %d)\n", dims.length);
+    if (dims.length == 0)
         return null;
-    else
+
+    void[] foo(const TypeInfo ti, size_t[] dims)
     {
-        void[] foo(const TypeInfo ti, va_list ap, size_t ndims)
+        auto tinext = unqualify(ti.next);
+        auto dim = dims[0];
+
+        debug(PRINTF) printf("foo(ti = %p, ti.next = %p, dim = %d, ndims = %d\n", ti, ti.next, dim, dims.length);
+        if (dims.length == 1)
         {
-            auto tinext = unqualify(ti.next);
-            size_t dim;
-            va_arg(ap, dim);
-
-            debug(PRINTF) printf("foo(ti = %p, ti.next = %p, dim = %d, ndims = %d\n", ti, ti.next, dim, ndims);
-            if (ndims == 1)
-            {
-                auto r = op(ti, dim);
-                return *cast(void[]*)(&r);
-            }
-            else
-            {
-                auto allocsize = (void[]).sizeof * dim;
-                auto info = GC.qalloc(allocsize + __arrayPad(allocsize, tinext), 0, ti);
-                auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-                __setArrayAllocLength(info, allocsize, isshared, tinext);
-                auto p = __arrayStart(info)[0 .. dim];
-
-                version(X86)
-                {
-                    va_list ap2;
-                    va_copy(ap2, ap);
-                }
-                else version(Win64)
-                {
-                    va_list ap2;
-                    va_copy(ap2, ap);
-                }
-                for (size_t i = 0; i < dim; i++)
-                {
-                    version (Win64)
-                    {
-                    }
-                    else version(X86_64)
-                    {
-                        __va_list argsave = *cast(__va_list*)ap;
-                        va_list ap2 = &argsave;
-                    }
-                    (cast(void[]*)p.ptr)[i] = foo(tinext, ap2, ndims - 1);
-                }
-                return p;
-            }
+            auto r = op(ti, dim);
+            return *cast(void[]*)(&r);
         }
 
-        version (none)
+        auto allocsize = (void[]).sizeof * dim;
+        auto info = GC.qalloc(allocsize + __arrayPad(allocsize, tinext), 0, ti);
+        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
+        __setArrayAllocLength(info, allocsize, isshared, tinext);
+        auto p = __arrayStart(info)[0 .. dim];
+
+        foreach(i; 0..dim)
         {
-            va_list q2;
-            va_copy(q2, q);
-            for (size_t i = 0; i < ndims; i++)
-            {
-                printf("index %d: %ul\n", i, va_arg!(size_t)(q2));
-            }
-            va_end(q2);
+            (cast(void[]*)p.ptr)[i] = foo(tinext, dims[1..$]);
         }
-
-        auto result = foo(ti, q, ndims);
-        debug(PRINTF) printf("result = %llx\n", result.ptr);
-        va_end(q);
-
-        return result;
+        return p;
     }
+
+    auto result = foo(ti, dims);
+    debug(PRINTF) printf("result = %llx\n", result.ptr);
+
+    return result;
 }
 
 
@@ -1091,7 +1056,12 @@ extern (C) void[] _d_newarraymT(const TypeInfo ti, size_t ndims, ...)
             va_start(q, __va_argsave);
         else
             static assert(false, "platform not supported");
-        return _d_newarrayOpT!(_d_newarrayT)(ti, ndims, q);
+
+        auto dims = (cast(size_t*)alloca(size_t.sizeof * ndims))[0..ndims];
+        foreach(ref v; dims)
+            va_arg(q, v);
+        va_end(q);
+        return _d_newarrayOpT!(_d_newarrayT)(ti, dims);
     }
 }
 
@@ -1116,7 +1086,44 @@ extern (C) void[] _d_newarraymiT(const TypeInfo ti, size_t ndims, ...)
             va_start(q, __va_argsave);
         else
             static assert(false, "platform not supported");
-        return _d_newarrayOpT!(_d_newarrayiT)(ti, ndims, q);
+
+        auto dims = (cast(size_t*)alloca(size_t.sizeof * ndims))[0..ndims];
+        foreach(ref v; dims)
+            va_arg(q, v);
+        va_end(q);
+        return _d_newarrayOpT!(_d_newarrayiT)(ti, dims);
+    }
+}
+
+
+/**
+ *
+ */
+extern (C) void[] _d_newarraymTX(const TypeInfo ti, size_t[] dims)
+{
+    debug(PRINTF) printf("_d_newarraymT(dims.length = %d)\n", dims.length);
+
+    if (dims.length == 0)
+        return null;
+    else
+    {
+        return _d_newarrayOpT!(_d_newarrayT)(ti, dims);
+    }
+}
+
+
+/**
+ *
+ */
+extern (C) void[] _d_newarraymiTX(const TypeInfo ti, size_t[] dims)
+{
+    debug(PRINTF) printf("_d_newarraymiT(dims.length = %d)\n", dims.length);
+
+    if (dims.length == 0)
+        return null;
+    else
+    {
+        return _d_newarrayOpT!(_d_newarrayiT)(ti, dims);
     }
 }
 
