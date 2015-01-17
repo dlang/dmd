@@ -816,7 +816,7 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
     // Create a CTFE pointer &agg1[indx]
     IntegerExp *ofs = new IntegerExp(loc, indx, Type::tsize_t);
     Expression *ie = new IndexExp(loc, agg1, ofs);
-    ie->type = pointee;
+    ie->type = type->toBasetype()->nextOf();    // Bugzilla 13992
     new(&ue) AddrExp(loc, ie);
     ue.exp()->type = type;
     return ue;
