@@ -1551,21 +1551,25 @@ elem *toElem(Expression *e, IRState *irs)
                 else
                 {
                     // Multidimensional array allocations
-                    e = el_long(TYsize_t, ne->arguments->dim);
                     for (size_t i = 0; i < ne->arguments->dim; i++)
                     {
-                        Expression *arg = (*ne->arguments)[i];     // gives array length
-                        e = el_param(toElem(arg, irs), e);
                         assert(t->ty == Tarray);
                         t = t->nextOf();
                         assert(t);
                     }
 
-                    e = el_param(e, toElem(getTypeInfo(ne->type, NULL), irs));
+                    // Allocate array of dimensions on the stack
+                    Symbol *sdata;
+                    elem *earray = ExpressionsToStaticArray(ne->loc, ne->arguments, &sdata);
 
-                    int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYMT : RTLSYM_NEWARRAYMIT;
+                    e = el_pair(TYdarray, el_long(TYsize_t, ne->arguments->dim), el_ptr(sdata));
+                    if (config.exe == EX_WIN64)
+                        e = addressElem(e, Type::tsize_t->arrayOf());
+                    e = el_param(e, toElem(getTypeInfo(ne->type, NULL), irs));
+                    int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
                     e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
-                    e->Eflags |= EFLAGS_variadic;
+
+                    e = el_combine(earray, e);
                 }
                 e = el_combine(ezprefix, e);
             }
