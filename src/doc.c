@@ -2355,8 +2355,10 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
                     OutBuffer codebuf;
 
-                    // escape the contents, but do not perform highlighting
-                    highlightCode3(sc, &codebuf, (utf8_t *)(buf->data + iCodeStart + 1), (utf8_t *)buf->data + i);
+                    codebuf.write(buf->data + iCodeStart + 1, i - (iCodeStart + 1));
+
+                    // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
+                    highlightCode(sc, s, &codebuf, 0, false);
 
                     buf->remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
 
@@ -2364,6 +2366,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     i = buf->insert(iCodeStart, pre, strlen(pre));
                     i = buf->insert(i, (char *)codebuf.data, codebuf.offset);
                     i = buf->insert(i, (char *)")", 1);
+
+                    i--; // point to the ending ) so when the for loop does i++, it will see the next character
 
                     break;
                 }
