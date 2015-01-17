@@ -2229,43 +2229,38 @@ body
  */
 extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
 {
+    auto arrs = (cast(byte[]*)alloca((byte[]).sizeof * n))[0..n];
+
+    va_list ap;
+    version(X86)
+        va_start(ap, n);
+    else version(Win64)
+        va_start(ap, n);
+    else version(X86_64)
+        va_start(ap, __va_argsave);
+    else
+        static assert(false, "platform not supported");
+
+    foreach(ref b; arrs)
+        va_arg(ap, b);
+    va_end(ap);
+
+    return _d_arraycatnTX(ti, arrs);
+}
+
+
+/**
+ *
+ */
+extern (C) void[] _d_arraycatnTX(const TypeInfo ti, byte[][] arrs)
+{
     size_t length;
     auto tinext = unqualify(ti.next);
     auto size = tinext.tsize;   // array element size
 
-    version(X86)
-    {
-        byte[]* p = cast(byte[]*)(&n + 1);
+    foreach(b; arrs)
+        length += b.length;
 
-        for (auto i = 0u; i < n; i++)
-        {
-            byte[] b = *p++;
-            length += b.length;
-        }
-    }
-    else version(Win64)
-    {
-        byte[]** p = cast(byte[]**)(cast(void*)&n + 8);
-
-        for (auto i = 0; i < n; i++)
-        {
-            byte[]* b = *p++;
-            length += (*b).length;
-        }
-    }
-    else
-    {
-        __va_list argsave = __va_argsave.va;
-        va_list ap;
-        va_start(ap, __va_argsave);
-        for (auto i = 0u; i < n; i++)
-        {
-            byte[] b;
-            va_arg(ap, b);
-            length += b.length;
-        }
-        va_end(ap);
-    }
     if (!length)
         return null;
 
@@ -2275,51 +2270,14 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
     __setArrayAllocLength(info, allocsize, isshared, tinext);
     void *a = __arrayStart (info);
 
-    version(X86)
+    size_t j = 0;
+    foreach(b; arrs)
     {
-        p = cast(byte[]*)(&n + 1);
-
-        size_t j = 0;
-        for (auto i = 0u; i < n; i++)
+        if (b.length)
         {
-            byte[] b = *p++;
-            if (b.length)
-            {
-                memcpy(a + j, b.ptr, b.length * size);
-                j += b.length * size;
-            }
+            memcpy(a + j, b.ptr, b.length * size);
+            j += b.length * size;
         }
-    }
-    else version (Win64)
-    {
-        p = cast(byte[]**)(cast(void*)&n + 8);
-
-        size_t j = 0;
-        for (auto i = 0; i < n; i++)
-        {
-            byte[] b = *(*p++);
-            if (b.length)
-            {
-                memcpy(a + j, b.ptr, b.length * size);
-                j += b.length * size;
-            }
-        }
-    }
-    else
-    {
-        va_list ap2 = &argsave;
-        size_t j = 0;
-        for (auto i = 0u; i < n; i++)
-        {
-            byte[] b;
-            va_arg(ap2, b);
-            if (b.length)
-            {
-                memcpy(a + j, b.ptr, b.length * size);
-                j += b.length * size;
-            }
-        }
-        va_end(ap2);
     }
 
     // do postblit processing
