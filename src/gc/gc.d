@@ -1437,23 +1437,12 @@ struct Gcx
         if (inited)
         {
             //printf("Gcx.invariant(): this = %p\n", &this);
+            pooltable.Invariant();
 
-            for (size_t i = 0; i < npools; i++)
-            {   auto pool = pooltable[i];
-
-                pool.Invariant();
-                if (i == 0)
-                {
-                    assert(minAddr == pool.baseAddr);
-                }
-                if (i + 1 < npools)
-                {
-                    assert(pool.opCmp(pooltable[i + 1]) < 0);
-                }
-                else if (i + 1 == npools)
-                {
-                    assert(maxAddr == pool.topAddr);
-                }
+            if (pooltable.length)
+            {
+                assert(minAddr == pooltable[0].baseAddr);
+                assert(maxAddr == pooltable[$ - 1].topAddr);
             }
 
             foreach (range; ranges)
@@ -3129,14 +3118,14 @@ nothrow:
         npools = nlen;
     }
 
-    ref Pool* opIndex(size_t idx) pure
+    ref inout(Pool*) opIndex(size_t idx) inout pure
     in { assert(idx < length); }
     body
     {
         return pools[idx];
     }
 
-    Pool*[] opSlice(size_t a, size_t b) pure
+    inout(Pool*)[] opSlice(size_t a, size_t b) inout pure
     in { assert(a <= length && b <= length); }
     body
     {
@@ -3144,6 +3133,15 @@ nothrow:
     }
 
     alias opDollar = length;
+
+    debug (INVARIANT)
+    void Invariant() const
+    {
+        if (!npools) return;
+
+        foreach (i, pool; pools[0 .. npools - 1])
+            assert(pool.opCmp(pools[i + 1]) < 0);
+    }
 
 private:
     Pool** pools;
