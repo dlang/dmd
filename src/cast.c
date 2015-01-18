@@ -589,10 +589,20 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                     return;
                                 }
                                 int szto = (int)t->nextOf()->size();
-                                if ((tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
-                                    e->length(szto) != ((TypeSArray *)t)->dim->toInteger())
+                                if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
                                 {
-                                    return;
+                                    if (e->committed && tynto != tyn)
+                                        return;
+                                    size_t fromlen = e->length(szto);
+                                    size_t tolen = ((TypeSArray *)t)->dim->toInteger();
+                                    if (tolen < fromlen)
+                                        return;
+                                    if (tolen != fromlen)
+                                    {
+                                        // implicit length extending
+                                        result = MATCHconvert;
+                                        return;
+                                    }
                                 }
                                 if (!e->committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                                 {
@@ -604,10 +614,20 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             {
                                 TY tynto = t->nextOf()->ty;
                                 int sznto = (int)t->nextOf()->size();
-                                if ((tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
-                                    e->length(sznto) != ((TypeSArray *)t)->dim->toInteger())
+                                if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
                                 {
-                                    return;
+                                    if (e->committed && tynto != tyn)
+                                        return;
+                                    size_t fromlen = e->length(sznto);
+                                    size_t tolen = (size_t)((TypeSArray *)t)->dim->toInteger();
+                                    if (tolen < fromlen)
+                                        return;
+                                    if (tolen != fromlen)
+                                    {
+                                        // implicit length extending
+                                        result = MATCHconvert;
+                                        return;
+                                    }
                                 }
                                 if (tynto == tyn)
                                 {

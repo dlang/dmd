@@ -174,16 +174,28 @@ void f13907_3(wchar[3] a) {}
 auto f13907_12(char[1]) { return 1; }
 auto f13907_12(char[2]) { return 2; }
 
+auto f13907_123(char[1]) { return 1; }
+auto f13907_123(char[2]) { return 2; }
+auto f13907_123(char[3]) { return 3; }
+auto f13907_123(const(char)[]) { return 0; }
+
 void test13907()
 {
     static assert(!__traits(compiles, { f13907_1("\U00010000"w); }));
     static assert(!__traits(compiles, { f13907_1("\U00010000" ); }));
     f13907_2("\U00010000"w);
     f13907_2("\U00010000");
-    static assert(!__traits(compiles, { f13907_3("\U00010000"w); }));
-    static assert(!__traits(compiles, { f13907_3("\U00010000" ); }));
+  //f13907_3("\U00010000"w);    // Re-enable implicit length extension, from issue 13999 (unlisted codegen bug)
+    f13907_3("\U00010000" );    // Re-enable implicit length extension, from issue 13999
 
     assert(f13907_12("a") == 1);
+    assert(f13907_12("ab") == 2);
+    static assert(!__traits(compiles, { f13907_12("abc"); }));
+
+    assert(f13907_123("a") == 1);
+    assert(f13907_123("ab") == 2);
+    assert(f13907_123("abc") == 3);
+    assert(f13907_123("abcd") == 0);
 
     // regression tests for the lengthen behavior in initializer
     enum const(char*) p = "hello world";
@@ -203,6 +215,14 @@ void test13907()
     arr ~= ["class"];
     enum immutable(char[5]) sarrstr = "class";
     arr ~= [sarrstr];
+
+    // Bugzilla 13999
+    string[dchar[2]] aa13999 = ["あ": "bar"];
+    assert(aa13999["あ"] == "bar");
+    dchar[2] key13999 = "あ";
+    assert(key13999[0] == 'あ');
+    assert(key13999[1] == '\0');
+    assert(aa13999[key13999] == "bar");
 }
 
 /***************************************************/
