@@ -184,7 +184,6 @@ public:
 
     // Some special types
     static Type *tshiftcnt;
-    static Type *tboolean;
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
     static Type *twstring;              // immutable(wchar)[]
@@ -196,7 +195,6 @@ public:
     static Type *tsize_t;               // matches size_t alias
     static Type *tptrdiff_t;            // matches ptrdiff_t alias
     static Type *thash_t;               // matches hash_t alias
-    static Type *tindex;                // array/ptr index
 
     static ClassDeclaration *dtypeinfo;
     static ClassDeclaration *typeinfoclass;
