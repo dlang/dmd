@@ -2888,10 +2888,10 @@ nothrow:
     {
         if (p >= minAddr && p < maxAddr)
         {
-            if (npools <= 1)
-            {
-                return npools == 0 ? null : pools[0];
-            }
+            assert(npools);
+
+            if (npools == 1)
+                return pools[0];
 
             /* The pooltable[] is sorted by address, so do a binary search
              */
