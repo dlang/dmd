@@ -2890,6 +2890,9 @@ nothrow:
         {
             assert(npools);
 
+            // let dmd allocate a register for this.pools
+            auto pools = this.pools;
+
             if (npools == 1)
                 return pools[0];
 
