@@ -1592,13 +1592,18 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
+            /* Handle reinterpret casts:
+             *  cast(wchar[3])"abcd"c --> [\u6261, \u6463, \u0000]
+             *  cast(wchar[2])"abcd"c --> [\u6261, \u6463]
+             *  cast(wchar[1])"abcd"c --> [\u6261]
+             */
             if (e->committed && tb->ty == Tsarray && typeb->ty == Tarray)
             {
                 se = (StringExp *)e->copy();
                 d_uns64 szx = tb->nextOf()->size();
                 assert(szx <= 255);
                 se->sz = (unsigned char)szx;
-                se->len = (e->len * e->sz) / se->sz;
+                se->len = ((TypeSArray *)tb)->dim->toInteger();
                 se->committed = 1;
                 se->type = t;
 

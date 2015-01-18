@@ -185,7 +185,7 @@ void test13907()
     static assert(!__traits(compiles, { f13907_1("\U00010000" ); }));
     f13907_2("\U00010000"w);
     f13907_2("\U00010000");
-  //f13907_3("\U00010000"w);    // Re-enable implicit length extension, from issue 13999 (unlisted codegen bug)
+    f13907_3("\U00010000"w);    // Re-enable implicit length extension, from issue 13999
     f13907_3("\U00010000" );    // Re-enable implicit length extension, from issue 13999
 
     assert(f13907_12("a") == 1);
