@@ -2420,23 +2420,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     if (td && td->funcroot)
         dstart = td->funcroot;
 
-    unsigned errors = global.errors;
     overloadApply(dstart, &p, &ParamDeduce::fp);
-    if (global.errors != errors)
-    {
-    Lerror:
-        static FuncDeclaration *errorFunc = NULL;
-        if (errorFunc == NULL)
-        {
-            errorFunc = new FuncDeclaration(Loc(), Loc(), Id::empty, STCundefined, NULL);
-            errorFunc->type = Type::terror;
-            errorFunc->errors = true;
-        }
-        m->count = 1;
-        m->lastf = errorFunc;
-        m->last = MATCHnomatch;
-        return;
-    }
 
     //printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
     if (p.td_best && p.ti_best)
@@ -2477,8 +2461,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         {
             m->count = 0;
             m->lastf = NULL;
-            m->last = MATCHnomatch;
-            return;
+            goto Lerror;
         }
 
         if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
@@ -2513,6 +2496,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     }
     else
     {
+    Lerror:
+        // Keep m->lastf and m->count as-is.
         m->last = MATCHnomatch;
     }
 }
