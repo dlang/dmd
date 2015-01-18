@@ -26,7 +26,6 @@ module gc.gc;
 //debug = PTRCHECK;             // more pointer checking
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = INVARIANT;            // enable invariants
-//debug = CACHE_HITRATE;        // enable hit rate measure
 
 /*************** Configuration *********************/
 
@@ -110,11 +109,6 @@ __gshared Duration recoverTime;
 __gshared Duration maxPauseTime;
 __gshared size_t numCollections;
 __gshared size_t maxPoolMemory;
-
-private
-{
-    enum USE_CACHE = true;
-}
 
 private
 {
@@ -1395,11 +1389,6 @@ struct Gcx
                    pauseTime, maxPause);
         }
 
-        debug(CACHE_HITRATE)
-        {
-            printf("\tGcx.Pool Cache hits: %llu\tqueries: %llu\n",cached_pool_hits,cached_pool_queries);
-        }
-
         inited = 0;
 
         for (size_t i = 0; i < npools; i++)
@@ -1593,9 +1582,9 @@ struct Gcx
         }
     }
 
-    Pool* findPool(bool bypassCache = !USE_CACHE)(void* p) pure nothrow
+    Pool* findPool(void* p) pure nothrow
     {
-        return pooltable.findPool!bypassCache(p);
+        return pooltable.findPool(p);
     }
 
     /**
@@ -2130,7 +2119,7 @@ struct Gcx
                 if ((cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) == pcache)
                     continue;
 
-                auto pool = findPool!true(p);
+                auto pool = findPool(p);
                 if (pool)
                 {
                     size_t offset = cast(size_t)(p - pool.baseAddr);
@@ -2545,7 +2534,7 @@ struct Gcx
     {
         // first, we find the Pool this block is in, then check to see if the
         // mark bit is clear.
-        auto pool = findPool!true(addr);
+        auto pool = findPool(addr);
         if(pool)
         {
             auto offset = cast(size_t)(addr - pool.baseAddr);
@@ -2780,7 +2769,7 @@ struct Gcx
             for (size_t i = 0; i < current.dim; i++)
             {
                 void* p = current.data[i].p;
-                if (!findPool!true(current.data[i].parent))
+                if (!findPool(current.data[i].parent))
                 {
                     auto j = prev.find(current.data[i].p);
                     debug(PRINTF) printf(j == OPFAIL ? "N" : " ");
@@ -2803,7 +2792,7 @@ struct Gcx
             {
                 debug(PRINTF) printf("parent'ing unallocated memory %p, parent = %p\n", p, parent);
                 Pool *pool;
-                pool = findPool!true(p);
+                pool = findPool(p);
                 assert(pool);
                 size_t offset = cast(size_t)(p - pool.baseAddr);
                 size_t biti;
@@ -2895,18 +2884,8 @@ nothrow:
      * Return null if not in a Pool.
      * Assume pooltable[] is sorted.
      */
-    Pool *findPool(bool bypassCache = !USE_CACHE)(void *p) nothrow
+    Pool *findPool(void *p) nothrow
     {
-        static if (!bypassCache && USE_CACHE)
-        {
-            debug (CACHE_HITRATE) cached_pool_queries++;
-            if (p < cached_pool_topAddr
-                && p >= cached_pool_baseAddr)
-            {
-                debug (CACHE_HITRATE) cached_pool_hits++;
-                return cached_pool;
-            }
-        }
         if (p >= minAddr && p < maxAddr)
         {
             if (npools <= 1)
@@ -2927,15 +2906,7 @@ nothrow:
                 else if (p >= pool.topAddr)
                     low = mid + 1;
                 else
-                {
-                    static if (!bypassCache && USE_CACHE)
-                    {
-                        cached_pool_topAddr = pool.topAddr;
-                        cached_pool_baseAddr = pool.baseAddr;
-                        cached_pool = pool;
-                    }
                     return pool;
-                }
             }
         }
         return null;
@@ -2974,17 +2945,6 @@ nothrow:
             minAddr = maxAddr = null;
         }
 
-        static if (USE_CACHE)
-        {
-            if (cached_pool && isFree(cached_pool))
-            {
-                // reset pool cache
-                cached_pool_topAddr = cached_pool_topAddr.init;
-                cached_pool_baseAddr = cached_pool_baseAddr.init;
-                cached_pool = cached_pool.init;
-            }
-        }
-
         immutable len = npools;
         npools = i;
         // return freed pools to the caller
@@ -3007,17 +2967,6 @@ private:
     Pool** pools;
     size_t npools;
     byte* minAddr, maxAddr;
-
-    static if (USE_CACHE){
-        byte *cached_pool_topAddr;
-        byte *cached_pool_baseAddr;
-        Pool *cached_pool;
-        debug (CACHE_HITRATE)
-        {
-            ulong cached_pool_queries;
-            ulong cached_pool_hits;
-        }
-    }
 }
 
 unittest
