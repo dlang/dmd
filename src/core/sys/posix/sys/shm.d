@@ -60,16 +60,17 @@ version( linux )
 
     alias c_ulong   shmatt_t;
 
+    /* For any changes, please check /usr/include/bits/shm.h */
     struct shmid_ds
     {
         ipc_perm    shm_perm;
         size_t      shm_segsz;
         time_t      shm_atime;
-        c_ulong     __unused1;
+        version( X86_64 ) {} else c_ulong     __unused1;
         time_t      shm_dtime;
-        c_ulong     __unused2;
+        version( X86_64 ) {} else c_ulong     __unused2;
         time_t      shm_ctime;
-        c_ulong     __unused3;
+        version( X86_64 ) {} else c_ulong     __unused3;
         pid_t       shm_cpid;
         pid_t       shm_lpid;
         shmatt_t    shm_nattch;
