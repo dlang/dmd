@@ -87,6 +87,8 @@ SYMBOL_MARS(NEWITEMT,     FLfunc,FREGSAVED,"_d_newitemT", 0, t) \
 SYMBOL_MARS(NEWITEMIT,    FLfunc,FREGSAVED,"_d_newitemiT", 0, t) \
 SYMBOL_MARS(NEWARRAYMT,    FLfunc,FREGSAVED,"_d_newarraymT", 0, tv) \
 SYMBOL_MARS(NEWARRAYMIT,   FLfunc,FREGSAVED,"_d_newarraymiT", 0, tv) \
+SYMBOL_MARS(NEWARRAYMTX,   FLfunc,FREGSAVED,"_d_newarraymTX", 0, t) \
+SYMBOL_MARS(NEWARRAYMITX,  FLfunc,FREGSAVED,"_d_newarraymiTX", 0, t) \
 SYMBOL_MARS(ARRAYLITERALT, FLfunc,FREGSAVED,"_d_arrayliteralT", 0, tv) \
 SYMBOL_MARS(ARRAYLITERALTX, FLfunc,FREGSAVED,"_d_arrayliteralTX", 0, t) \
 SYMBOL_MARS(ASSOCARRAYLITERALT, FLfunc,FREGSAVED,"_d_assocarrayliteralT", 0, tv) \
@@ -106,6 +108,7 @@ SYMBOL_MARS(INTERFACE_CAST,FLfunc,FREGSAVED,"_d_interface_cast", 0, t) \
 SYMBOL_MARS(FATEXIT,       FLfunc,FREGSAVED,"_fatexit", 0, t) \
 SYMBOL_MARS(ARRAYCATT,     FLfunc,FREGSAVED,"_d_arraycatT", 0, t) \
 SYMBOL_MARS(ARRAYCATNT,    FLfunc,FREGSAVED,"_d_arraycatnT", 0, tv) \
+SYMBOL_MARS(ARRAYCATNTX,   FLfunc,FREGSAVED,"_d_arraycatnTX", 0, t) \
 SYMBOL_MARS(ARRAYAPPENDT,  FLfunc,FREGSAVED,"_d_arrayappendT", 0, t) \
 SYMBOL_MARS(ARRAYAPPENDCT,  FLfunc,FREGSAVED,"_d_arrayappendcT", 0, tv) \
 SYMBOL_MARS(ARRAYAPPENDCTX, FLfunc,FREGSAVED,"_d_arrayappendcTX", 0, t) \
