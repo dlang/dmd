@@ -1581,7 +1581,7 @@ struct Gcx
                     immutable bitstride = size / 16;
 
                     GCBits.wordtype toClear;
-                    size_t clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
+                    size_t clearStart = biti >> GCBits.BITS_SHIFT;
                     size_t clearIndex;
 
                     for (; p < ptop; p += size, biti += bitstride, clearIndex += bitstride)
@@ -1594,7 +1594,7 @@ struct Gcx
                                 toClear = 0;
                             }
 
-                            clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
+                            clearStart = biti >> GCBits.BITS_SHIFT;
                             clearIndex = biti & GCBits.BITS_MASK;
                         }
 
@@ -2468,7 +2468,7 @@ struct Gcx
                     }
 
                     //debug(PRINTF) printf("\t\tmark(x%x) = %d\n", biti, pool.mark.test(biti));
-                    if (!pool.mark.testSet(biti))
+                    if (!pool.mark.set(biti))
                     {
                         //if (log) debug(PRINTF) printf("\t\tmarking %p\n", p);
                         if (!pool.noscan.test(biti))
@@ -2640,7 +2640,7 @@ struct Gcx
                         void* q = sentinel_add(p);
                         sentinel_Invariant(q);
 
-                        if (pool.finals.nbits && pool.finals.testClear(biti))
+                        if (pool.finals.nbits && pool.finals.clear(biti))
                         {
                             size_t size = pool.bPageOffsets[pn] * PAGESIZE - SENTINEL_EXTRA;
                             uint attr = getBits(pool, biti);
@@ -2693,7 +2693,7 @@ struct Gcx
                         size_t bitstride = size / 16;
 
                         GCBits.wordtype toClear;
-                        size_t clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
+                        size_t clearStart = biti >> GCBits.BITS_SHIFT;
                         size_t clearIndex;
 
                         for (; p < ptop; p += size, biti += bitstride, clearIndex += bitstride)
@@ -2706,7 +2706,7 @@ struct Gcx
                                     toClear = 0;
                                 }
 
-                                clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
+                                clearStart = biti >> GCBits.BITS_SHIFT;
                                 clearIndex = biti & GCBits.BITS_MASK;
                             }
 
@@ -2895,7 +2895,7 @@ struct Gcx
     {
         // Calculate the mask and bit offset once and then use it to
         // set all of the bits we need to set.
-        immutable dataIndex = 1 + (biti >> GCBits.BITS_SHIFT);
+        immutable dataIndex = biti >> GCBits.BITS_SHIFT;
         immutable bitOffset = biti & GCBits.BITS_MASK;
         immutable orWith = GCBits.BITS_1 << bitOffset;
 
@@ -2947,7 +2947,7 @@ struct Gcx
     }
     body
     {
-        immutable dataIndex =  1 + (biti >> GCBits.BITS_SHIFT);
+        immutable dataIndex =  biti >> GCBits.BITS_SHIFT;
         immutable bitOffset = biti & GCBits.BITS_MASK;
         immutable keep = ~(GCBits.BITS_1 << bitOffset);
 
