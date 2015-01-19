@@ -7183,6 +7183,10 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
 #if LOGDOTEXP
     printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e->toChars(), ident->toChars(), toChars());
 #endif
+    // Bugzilla 14010
+    if (ident == Id::mangleof)
+        return getProperty(e->loc, ident, flag);
+
     if (sym->scope)
         sym->semantic(sym->scope);
     if (!sym->members)
@@ -7202,8 +7206,7 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
     {
         if (ident == Id::max ||
             ident == Id::min ||
-            ident == Id::init ||
-            ident == Id::mangleof)
+            ident == Id::init)
         {
             return getProperty(e->loc, ident, flag);
         }
@@ -7425,6 +7428,10 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 #if LOGDOTEXP
     printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
+    // Bugzilla 14010
+    if (ident == Id::mangleof)
+        return getProperty(e->loc, ident, flag);
+
     if (!sym->members)
     {
         error(e->loc, "struct %s is forward referenced", sym->toChars());
@@ -7987,6 +7994,12 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         }
     }
 
+    // Bugzilla 12543
+    if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
+    {
+        return Type::getProperty(e->loc, ident, 0);
+    }
+
     if (ident == Id::tupleof)
     {
         /* Create a TupleExp
@@ -8041,12 +8054,6 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         e = e->semantic(sc2);
         sc2->pop();
         return e;
-    }
-
-    // Bugzilla 12543
-    if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
-    {
-        return Type::getProperty(e->loc, ident, 0);
     }
 
     s = sym->search(e->loc, ident);
