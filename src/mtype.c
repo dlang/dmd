@@ -7183,15 +7183,27 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
 #if LOGDOTEXP
     printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e->toChars(), ident->toChars(), toChars());
 #endif
+    if (sym->scope)
+        sym->semantic(sym->scope);
+    if (!sym->members)
+    {
+        if (!flag)
+        {
+            sym->error("is forward referenced when looking for '%s'", ident->toChars());
+            e = new ErrorExp();
+        }
+        else
+            e = NULL;
+        return e;
+    }
+
     Dsymbol *s = sym->search(e->loc, ident);
     if (!s)
     {
         if (ident == Id::max ||
             ident == Id::min ||
             ident == Id::init ||
-            ident == Id::mangleof ||
-            !sym->memtype
-           )
+            ident == Id::mangleof)
         {
             return getProperty(e->loc, ident, flag);
         }
