@@ -1519,10 +1519,14 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             assert(type == f);
 
-            // If no return type inferred yet, then infer a void
-            if (inferRetType && !f->next)
-                f->next = Type::tvoid;
-
+            if (inferRetType)
+            {
+                // If no return type inferred yet, then infer a void
+                if (!f->next)
+                    f->next = Type::tvoid;
+                if (f->checkRetType(loc))
+                    fbody = new ErrorStatement();
+            }
             if (returns && !fbody->isErrorStatement())
             {
                 for (size_t i = 0; i < returns->dim; )

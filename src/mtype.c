@@ -5403,32 +5403,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     {
         sc = sc->push();
         sc->stc &= ~(STC_TYPECTOR | STC_FUNCATTR);
-        tf->next = tf->next->semantic(loc,sc);
+        tf->next = tf->next->semantic(loc, sc);
         sc = sc->pop();
-        Type *tb = tf->next->toBasetype();
-        if (tb->ty == Tfunction)
-        {
-            error(loc, "functions cannot return a function");
-            errors = true;
-        }
-        else if (tb->ty == Ttuple)
-        {
-            error(loc, "functions cannot return a tuple");
-            errors = true;
-        }
-        else if (!tf->isref && (tb->ty == Tstruct || tb->ty == Tsarray))
-        {
-            Type *tb2 = tb->baseElemOf();
-            if (tb2->ty == Tstruct && !((TypeStruct *)tb2)->sym->members)
-            {
-                error(loc, "functions cannot return opaque type %s by value", tb->toChars());
-                errors = true;
-            }
-        }
-        else if (tb->ty == Tvoid)
-            tf->isref = false;                  // rewrite "ref void" as just "void"
-        else if (tb->ty == Terror)
-            errors = true;
+        errors |= tf->checkRetType(loc);
         if (tf->next->isscope() && !(sc->flags & SCOPEctor))
         {
             error(loc, "functions cannot return scope %s", tf->next->toChars());
@@ -5666,6 +5643,33 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     return tf;
 }
 
+bool TypeFunction::checkRetType(Loc loc)
+{
+    Type *tb = next->toBasetype();
+    if (tb->ty == Tfunction)
+    {
+        error(loc, "functions cannot return a function");
+        next = Type::terror;
+    }
+    if (tb->ty == Ttuple)
+    {
+        error(loc, "functions cannot return a tuple");
+        next = Type::terror;
+    }
+    if (!isref && (tb->ty == Tstruct || tb->ty == Tsarray))
+    {
+        Type *tb2 = tb->baseElemOf();
+        if (tb2->ty == Tstruct && !((TypeStruct *)tb2)->sym->members)
+        {
+            error(loc, "functions cannot return opaque type %s by value", tb->toChars());
+            next = Type::terror;
+        }
+    }
+    if (tb->ty == Terror)
+        return true;
+
+    return false;
+}
 
 /********************************************
  * Do this lazily, as the parameter types might be forward referenced.
