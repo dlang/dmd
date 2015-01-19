@@ -434,6 +434,11 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
                 e = toAssocArrayLiteral();
             else
                 e = toExpression();
+            if (!e) // Bugzilla 13987
+            {
+                error(loc, "cannot use array to initialize %s", t->toChars());
+                goto Lerr;
+            }
             ExpInitializer *ei = new ExpInitializer(e->loc, e);
             return ei->semantic(sc, t, needInterpret);
         }
