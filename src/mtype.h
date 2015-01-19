@@ -634,6 +634,7 @@ public:
 
     Type *substWildTo(unsigned mod);
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
+    bool checkRetType(Loc loc);
 
     Expression *defaultInit(Loc loc);
     void accept(Visitor *v) { v->visit(this); }
