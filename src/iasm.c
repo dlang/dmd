@@ -3720,7 +3720,6 @@ static OPND *asm_cond_exp()
     {
         asm_token();
         o2 = asm_cond_exp();
-        asm_token();
         asm_chktok(TOKcolon,"colon");
         o3 = asm_cond_exp();
         o1 = (o1->disp) ? o2 : o3;
