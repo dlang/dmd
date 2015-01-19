@@ -7142,3 +7142,18 @@ static assert({
     assert(c.C13847.foo() == 2);
     return true;
 }());
+
+/**************************************************
+    13992 - Repainting pointer arithmetic result
+**************************************************/
+
+enum hash13992 = hashOf13992("abcd".ptr);
+
+@trusted hashOf13992(const void* buf)
+{
+    auto data = cast(const(ubyte)*) buf;
+    size_t hash;
+    data += 2;      // problematic pointer arithmetic
+    hash += *data;  // CTFE internal issue was shown by the dereference
+    return hash;
+}
