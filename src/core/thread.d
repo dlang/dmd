@@ -1044,7 +1044,7 @@ class Thread
      *
      * ------------------------------------------------------------------------
      */
-    static void sleep( Duration val )
+    static void sleep( Duration val ) nothrow
     in
     {
         assert( !val.isNegative );
@@ -1087,7 +1087,7 @@ class Thread
                 if( !nanosleep( &tin, &tout ) )
                     return;
                 if( errno != EINTR )
-                    throw new ThreadException( "Unable to sleep for the specified duration" );
+                    throw new ThreadError( "Unable to sleep for the specified duration" );
                 tin = tout;
             }
         }
@@ -2577,16 +2577,7 @@ extern (C) void thread_suspendAll() nothrow
             else if (t.m_isInCriticalRegion)
             {
                 Thread.criticalRegionLock.unlock();
-                try
-                {
-                    Thread.sleep(waittime);
-                }
-                catch(Exception)
-                {
-                    // if sleep actually fails, it tries to allocate the new exception
-                    //  which fails the GC recursion check, so we don't expect to ever
-                    //  reach this point, but we have to convince the compiler, too
-                }
+                Thread.sleep(waittime);
                 if (waittime < dur!"msecs"(10)) waittime *= 2;
                 Thread.criticalRegionLock.lock();
                 goto Lagain;
