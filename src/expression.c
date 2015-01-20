@@ -11030,7 +11030,7 @@ Expression *AssignExp::semantic(Scope *sc)
      * depends on the result of e1 in assignments.
      */
     {
-        Expression *e2x = inferType(e2, t1);
+        Expression *e2x = inferType(e2, t1->baseElemOf());
 
         e2x = e2x->semantic(sc);
         e2x = resolveProperties(sc, e2x);
