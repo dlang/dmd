@@ -1106,6 +1106,18 @@ void test12508()
 }
 
 /***************************************************/
+// 13879
+
+void test13879()
+{
+    bool function(int)[2] funcs1 = (int x) => true; // OK
+    assert(funcs1[0] is funcs1[1]);
+    funcs1[0] = x => true;                          // OK
+    bool function(int)[2] funcs2 = x => true;       // OK <- Error
+    assert(funcs2[0] is funcs2[1]);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1159,6 +1171,7 @@ int main()
     test11661();
     test11774();
     test12508();
+    test13879();
 
     printf("Success\n");
     return 0;
