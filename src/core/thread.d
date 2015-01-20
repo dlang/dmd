@@ -128,7 +128,7 @@ version( Windows )
         const CREATE_SUSPENDED = 0x00000004;
 
         extern (Windows) alias uint function(void*) btex_fptr;
-        extern (C) uintptr_t _beginthreadex(void*, uint, btex_fptr, void*, uint, uint*);
+        extern (C) uintptr_t _beginthreadex(void*, uint, btex_fptr, void*, uint, uint*) nothrow;
 
         //
         // Entry point for Windows threads
