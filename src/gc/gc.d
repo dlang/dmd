@@ -1790,8 +1790,7 @@ struct Gcx
     {
         debug(PRINTF) printf("Minimizing.\n");
 
-        static bool isFree(Pool* p) pure nothrow { return p.freepages == p.npages; }
-        foreach (pool; pooltable.minimize!isFree())
+        foreach (pool; pooltable.minimize())
         {
             debug(PRINTF) printFreeInfo(pool);
             pool.Dtor();
@@ -3097,6 +3096,11 @@ struct Pool
             size = bPageOffsets[pagenum] * PAGESIZE;
         }
         return size;
+    }
+
+    @property bool isFree() const pure nothrow
+    {
+        return npages == freepages;
     }
 }
 

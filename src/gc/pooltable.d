@@ -106,7 +106,7 @@ nothrow:
     }
 
     // semi-stable partition, returns right half for which pred is false
-    Pool*[] minimize(alias isFree)() pure
+    Pool*[] minimize() pure
     {
         static void swap(ref Pool* a, ref Pool* b)
         {
@@ -116,13 +116,13 @@ nothrow:
         size_t i;
         // find first bad entry
         for (; i < npools; ++i)
-            if (isFree(pools[i])) break;
+            if (pools[i].isFree) break;
 
         // move good in front of bad entries
         size_t j = i + 1;
         for (; j < npools; ++j)
         {
-            if (!isFree(pools[j])) // keep
+            if (!pools[j].isFree) // keep
                 swap(pools[i++], pools[j]);
         }
         // npooltable[0 .. i]      => used pools
@@ -175,16 +175,15 @@ unittest
     {
         byte* baseAddr, topAddr;
         size_t freepages, npages;
+        @property bool isFree() const pure nothrow { return freepages == npages; }
     }
     PoolTable!MockPool pooltable;
-
-    static bool isFree(MockPool* mp) pure nothrow { return mp.freepages == mp.npages; }
 
     void reset()
     {
         foreach(ref pool; pooltable[0 .. $])
             pool.freepages = pool.npages;
-        pooltable.minimize!isFree();
+        pooltable.minimize();
         assert(pooltable.length == 0);
 
         foreach(i; 0 .. NPOOLS)
@@ -207,7 +206,7 @@ unittest
     // all pools are free
     reset();
     assert(pooltable.length == NPOOLS);
-    auto freed = pooltable.minimize!isFree();
+    auto freed = pooltable.minimize();
     assert(freed.length == NPOOLS);
     assert(pooltable.length == 0);
 
@@ -215,7 +214,7 @@ unittest
     reset();
     usePools();
     assert(pooltable.length == NPOOLS);
-    freed = pooltable.minimize!isFree();
+    freed = pooltable.minimize();
     assert(freed.length == 0);
     assert(pooltable.length == NPOOLS);
 
@@ -228,7 +227,7 @@ unittest
         // make the 2nd pool free
         pooltable[2].freepages = NPAGES;
 
-        pooltable.minimize!isFree();
+        pooltable.minimize();
         assert(pooltable.length == NPOOLS - 1);
         assert(pooltable[0] == opools[0]);
         assert(pooltable[1] == opools[1]);
@@ -253,7 +252,7 @@ unittest
         top = pooltable[NPOOLS - 1].topAddr;
     }
 
-    freed = pooltable.minimize!isFree();
+    freed = pooltable.minimize();
     assert(freed.length == 0);
     assert(pooltable.length == NPOOLS);
     assert(pooltable.minAddr == base);
@@ -262,7 +261,7 @@ unittest
     pooltable[NPOOLS - 1].freepages = NPAGES;
     pooltable[NPOOLS - 2].freepages = NPAGES;
 
-    freed = pooltable.minimize!isFree();
+    freed = pooltable.minimize();
     assert(freed.length == 2);
     assert(pooltable.length == NPOOLS - 2);
     assert(pooltable.minAddr == base);
@@ -270,7 +269,7 @@ unittest
 
     pooltable[0].freepages = NPAGES;
 
-    freed = pooltable.minimize!isFree();
+    freed = pooltable.minimize();
     assert(freed.length == 1);
     assert(pooltable.length == NPOOLS - 3);
     assert(pooltable.minAddr != base);
@@ -280,7 +279,7 @@ unittest
     // free all
     foreach(pool; pooltable[0 .. $])
         pool.freepages = NPAGES;
-    freed = pooltable.minimize!isFree();
+    freed = pooltable.minimize();
     assert(freed.length == NPOOLS - 3);
     assert(pooltable.length == 0);
     pooltable.reset();
