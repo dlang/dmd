@@ -370,15 +370,15 @@ pvs:
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
 	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
-	optabgen
+	.\optabgen.exe
 
 impcnvtab.c : impcnvgen.c
 	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
-	impcnvgen
+	.\impcnvgen.exe
 
 id.h id.c : idgen.c
 	$(CC) -cpp -DDM_TARGET_CPU_X86=1 idgen
-	idgen
+	.\idgen.exe
 
 verstr.h : ..\VERSION
 	echo "$(..\VERSION)" >verstr.h
