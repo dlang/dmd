@@ -159,7 +159,7 @@ version (Shared)
     }
 
     // interface for core.thread to inherit loaded libraries
-    void* pinLoadedLibraries()
+    void* pinLoadedLibraries() nothrow
     {
         auto res = cast(Array!(ThreadDSO)*)calloc(1, Array!(ThreadDSO).sizeof);
         res.length = _loadedDSOs.length;
@@ -176,7 +176,7 @@ version (Shared)
         return res;
     }
 
-    void unpinLoadedLibraries(void* p)
+    void unpinLoadedLibraries(void* p) nothrow
     {
         auto pary = cast(Array!(ThreadDSO)*)p;
         // In case something failed we need to undo the pinning.
@@ -578,6 +578,7 @@ void freeDSO(DSO* pdso)
 
 version (Shared)
 {
+nothrow:
     link_map* linkMapForHandle(void* handle)
     {
         link_map* map;

@@ -91,3 +91,7 @@ template staticIota(int beg, int end)
     }
 }
 
+template dtorIsNothrow(T)
+{
+    enum dtorIsNothrow = is(typeof(function{T t=void;}) : void function() nothrow);
+}

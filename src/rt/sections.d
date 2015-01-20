@@ -49,8 +49,8 @@ static assert(is(typeof(&initTLSRanges) RT == return) &&
 
 version (Shared)
 {
-    static assert(is(typeof(&pinLoadedLibraries) == void* function()));
-    static assert(is(typeof(&unpinLoadedLibraries) == void function(void*)));
+    static assert(is(typeof(&pinLoadedLibraries) == void* function() nothrow));
+    static assert(is(typeof(&unpinLoadedLibraries) == void function(void*) nothrow));
     static assert(is(typeof(&inheritLoadedLibraries) == void function(void*)));
     static assert(is(typeof(&cleanupLoadedLibraries) == void function()));
 }
