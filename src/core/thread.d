@@ -510,9 +510,8 @@ class Thread
     }
     body
     {
-        this();
+        this(sz);
         m_fn   = fn;
-        m_sz   = sz;
         m_call = Call.FN;
         m_curr = &m_main;
     }
@@ -536,9 +535,8 @@ class Thread
     }
     body
     {
-        this();
+        this(sz);
         m_dg   = dg;
-        m_sz   = sz;
         m_call = Call.DG;
         m_curr = &m_main;
     }
@@ -1267,8 +1265,21 @@ private:
     // Initializes a thread object which has no associated executable function.
     // This is used for the main thread initialized in thread_init().
     //
-    this()
+    this(size_t sz = 0)
     {
+        if (sz)
+        {
+            version (Posix)
+            {
+                // stack size must be a multiple of PAGESIZE
+                sz += PAGESIZE - 1;
+                sz -= sz % PAGESIZE;
+                // and at least PTHREAD_STACK_MIN
+                if (PTHREAD_STACK_MIN > sz)
+                    sz = PTHREAD_STACK_MIN;
+            }
+            m_sz = sz;
+        }
         m_call = Call.NO;
         m_curr = &m_main;
     }
@@ -3315,32 +3326,29 @@ private
         }
     }
 
-    __gshared const size_t PAGESIZE;
+    static immutable size_t PAGESIZE;
+    version (Posix) static immutable size_t PTHREAD_STACK_MIN;
 }
 
 
 shared static this()
 {
-    static if( __traits( compiles, GetSystemInfo ) )
+    version (Windows)
     {
         SYSTEM_INFO info;
-        GetSystemInfo( &info );
+        GetSystemInfo(&info);
 
         PAGESIZE = info.dwPageSize;
-        assert( PAGESIZE < int.max );
+        assert(PAGESIZE < int.max);
     }
-    else static if( __traits( compiles, sysconf ) &&
-                    __traits( compiles, _SC_PAGESIZE ) )
+    else version (Posix)
     {
-        PAGESIZE = cast(size_t) sysconf( _SC_PAGESIZE );
-        assert( PAGESIZE < int.max );
+        PAGESIZE = cast(size_t)sysconf(_SC_PAGESIZE);
+        PTHREAD_STACK_MIN = cast(size_t)sysconf(_SC_THREAD_STACK_MIN);
     }
     else
     {
-        version( PPC )
-            PAGESIZE = 8192;
-        else
-            PAGESIZE = 4096;
+        static assert(0, "unimplemented");
     }
 }
 
@@ -5125,5 +5133,11 @@ version (FreeBSD) unittest
         thread_suspendAll();
         thread_resumeAll();
     }
+    thr.join();
+}
+
+unittest
+{
+    auto thr = new Thread(function{}, 10).start();
     thr.join();
 }
