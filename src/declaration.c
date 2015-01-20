@@ -864,13 +864,11 @@ void VarDeclaration::semantic(Scope *sc)
             if (sc->func->setUnsafe())
                 error("__gshared not allowed in safe functions; use shared");
         }
-        if (type->hasPointers())    // get type size
+        if (init && init->isVoidInitializer() &&
+            type->hasPointers())    // get type size
         {
-            if (init && init->isVoidInitializer())
-            {
-                if (sc->func->setUnsafe())
-                    error("void initializers for pointers not allowed in safe functions");
-            }
+            if (sc->func->setUnsafe())
+                error("void initializers for pointers not allowed in safe functions");
         }
     }
 
