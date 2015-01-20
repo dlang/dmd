@@ -2575,6 +2575,10 @@ public:
             result = e;
             return;
         }
+
+        Type *tn = e->type->toBasetype()->nextOf()->toBasetype();
+        bool wantCopy = (tn->ty == Tsarray || tn->ty == Tstruct);
+
         Expressions *expsx = NULL;
         size_t dim = e->elements ? e->elements->dim : 0;
         for (size_t i = 0; i < dim; i++)
@@ -2587,6 +2591,13 @@ public:
             if (exceptionOrCant(ex))
                 return;
 
+            /* Each elements should have distinct CFE memory.
+             *  int[1] z = 7;
+             *  int[1][] pieces = [z,z];    // here
+             */
+            if (wantCopy || ex == exp && expsx)
+                ex = copyLiteral(ex).copy();
+
             /* If any changes, do Copy On Write
              */
             if (ex != exp)
@@ -2596,16 +2607,17 @@ public:
                     expsx = new Expressions();
                     ++CtfeStatus::numArrayAllocs;
                     expsx->setDim(dim);
-                    for (size_t j = 0; j < dim; j++)
+                    for (size_t j = 0; j < i; j++)
                     {
-                        (*expsx)[j] = (*e->elements)[j];
+                        (*expsx)[j] = copyLiteral((*e->elements)[j]).copy();
                     }
                 }
                 (*expsx)[i] = ex;
             }
         }
-        if (dim && expsx)
+        if (expsx)
         {
+            // todo: all tuple expansions should go in semantic phase.
             expandTuples(expsx);
             if (expsx->dim != dim)
             {
@@ -2615,7 +2627,8 @@ public:
             }
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, expsx);
             ae->type = e->type;
-            result = copyLiteral(ae).copy();
+            ae->ownedByCtfe = true;
+            result = ae;
             return;
         }
         if (((TypeNext *)e->type)->next->mod & (MODconst | MODimmutable))
@@ -3132,9 +3145,11 @@ public:
             Expression *e2 = interpret(e->e2, istate);
             if (exceptionOrCant(e2))
                 return;
+            //printf("e1 = %s %s, e2 = %s %s\n", e1->type->toChars(), e1->toChars(), e2->type->toChars(), e2->toChars());
             dinteger_t ofs1, ofs2;
             Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
             Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
+            //printf("agg1 = %p %s, agg2 = %p %s\n", agg1, agg1->toChars(), agg2, agg2->toChars());
             int cmp = comparePointers(e->loc, e->op, e->type, agg1, ofs1, agg2, ofs2);
             if (cmp == -1)
             {

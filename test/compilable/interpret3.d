@@ -7157,3 +7157,23 @@ enum hash13992 = hashOf13992("abcd".ptr);
     hash += *data;  // CTFE internal issue was shown by the dereference
     return hash;
 }
+
+/**************************************************
+    13739 - Precise copy for ArrayLiteralExp elements
+**************************************************/
+
+static assert(
+{
+    int[] a1 = [13];
+    int[][] a2 = [a1];
+    assert(a2[0] is a1);            // OK
+    assert(a2[0].ptr is a1.ptr);    // OK <- NG
+
+    a1[0] = 1;
+    assert(a2[0][0] == 1);  // OK <- NG
+
+    a2[0][0] = 2;
+    assert(a1[0] == 2);     // OK <- NG
+
+    return 1;
+}());
