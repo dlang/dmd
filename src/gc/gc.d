@@ -2516,29 +2516,11 @@ struct Gcx
         goto Lagain;
     }
 
-
-    /**
-     * Return number of full pages free'd.
-     */
-    size_t fullcollect() nothrow
+    // collection step 1: prepare freebits and mark bits
+    void prepare() nothrow
     {
         size_t n;
         Pool*  pool;
-        MonoTime start, stop, begin;
-
-        if (GC.config.profile)
-        {
-            begin = start = currTime;
-        }
-
-        debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
-        //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
-
-        if (running)
-            onInvalidMemoryOperationError();
-        running = 1;
-
-        thread_suspendAll();
 
         for (n = 0; n < npools; n++)
         {
@@ -2570,14 +2552,11 @@ struct Gcx
                 pool.mark.copy(&pool.freebits);
             }
         }
+    }
 
-        if (GC.config.profile)
-        {
-            stop = currTime;
-            prepTime += (stop - start);
-            start = stop;
-        }
-
+    // collection step 2: mark roots and heap
+    void markAll() nothrow
+    {
         if (!noStack)
         {
             debug(COLLECT_PRINTF) printf("\tscan stacks.\n");
@@ -2601,30 +2580,19 @@ struct Gcx
             mark(range.pbot, range.ptop);
         }
         //log--;
+    }
 
-        debug(COLLECT_PRINTF) printf("\tscan heap\n");
-
-        thread_processGCMarks(&isMarked);
-        thread_resumeAll();
-
-        if (GC.config.profile)
-        {
-            stop = currTime;
-            markTime += (stop - start);
-            Duration pause = stop - begin;
-            if (pause > maxPauseTime)
-                maxPauseTime = pause;
-            start = stop;
-        }
-
+    // collection step 3: free all unreferenced objects
+    size_t sweep() nothrow
+    {
         // Free up everything not marked
         debug(COLLECT_PRINTF) printf("\tfree'ing\n");
         size_t freedpages = 0;
         size_t freed = 0;
-        for (n = 0; n < npools; n++)
-        {   size_t pn;
-
-            pool = pooltable[n];
+        for (size_t n = 0; n < npools; n++)
+        {
+            size_t pn;
+            Pool* pool = pooltable[n];
 
             if(pool.isLargeObject)
             {
@@ -2741,24 +2709,27 @@ struct Gcx
             }
         }
 
-        if (GC.config.profile)
-        {
-            stop = currTime;
-            sweepTime += (stop - start);
-            start = stop;
-        }
+        debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n", freed, freedpages, npools);
+        return freedpages;
+    }
 
+    // collection step 4: recover pages with no live objects, rebuild free lists
+    size_t recover() nothrow
+    {
         // Zero buckets
         bucket[] = null;
 
         // Free complete pages, rebuild free list
         debug(COLLECT_PRINTF) printf("\tfree complete pages\n");
         size_t recoveredpages = 0;
-        for (n = 0; n < npools; n++)
-        {   size_t pn;
+        for (size_t n = 0; n < npools; n++)
+        {
+            size_t pn;
+            Pool* pool = pooltable[n];
 
-            pool = pooltable[n];
-            if(pool.isLargeObject) continue;
+            if(pool.isLargeObject)
+                continue;
+
             for (pn = 0; pn < pool.npages; pn++)
             {
                 Bins   bin = cast(Bins)pool.pagetable[pn];
@@ -2775,7 +2746,8 @@ struct Gcx
 
                     biti = bitbase;
                     for (biti = bitbase; biti < bittop; biti += bitstride)
-                    {   if (!pool.freebits.test(biti))
+                    {
+                        if (!pool.freebits.test(biti))
                             goto Lnotfree;
                     }
                     pool.pagetable[pn] = B_FREE;
@@ -2784,14 +2756,13 @@ struct Gcx
                     recoveredpages++;
                     continue;
 
-                 Lnotfree:
+                Lnotfree:
                     p = pool.baseAddr + pn * PAGESIZE;
                     for (u = 0; u < PAGESIZE; u += size)
                     {   biti = bitbase + u / 16;
                         if (pool.freebits.test(biti))
-                        {   List *list;
-
-                            list = cast(List *)(p + u);
+                        {
+                            List *list = cast(List *)(p + u);
                             if (list.next != bucket[bin])       // avoid unnecessary writes
                                 list.next = bucket[bin];
                             list.pool = pool;
@@ -2802,15 +2773,72 @@ struct Gcx
             }
         }
 
+        debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", recoveredpages);
+        return recoveredpages;
+    }
+
+    /**
+     * Return number of full pages free'd.
+     */
+    size_t fullcollect() nothrow
+    {
+        MonoTime start, stop, begin;
+
+        if (GC.config.profile)
+        {
+            begin = start = currTime;
+        }
+
+        debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
+        //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
+
+        if (running)
+            onInvalidMemoryOperationError();
+        running = 1;
+
+        thread_suspendAll();
+
+        prepare();
+
+        if (GC.config.profile)
+        {
+            stop = currTime;
+            prepTime += (stop - start);
+            start = stop;
+        }
+
+        markAll();
+
+        thread_processGCMarks(&isMarked);
+        thread_resumeAll();
+
+        if (GC.config.profile)
+        {
+            stop = currTime;
+            markTime += (stop - start);
+            Duration pause = stop - begin;
+            if (pause > maxPauseTime)
+                maxPauseTime = pause;
+            start = stop;
+        }
+
+        size_t freedpages = sweep();
+
+        if (GC.config.profile)
+        {
+            stop = currTime;
+            sweepTime += (stop - start);
+            start = stop;
+        }
+
+        size_t recoveredpages = recover();
+
         if (GC.config.profile)
         {
             stop = currTime;
             recoverTime += (stop - start);
             ++numCollections;
         }
-
-        debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", recoveredpages);
-        debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n", freed, freedpages, npools);
 
         running = 0; // only clear on success
 
