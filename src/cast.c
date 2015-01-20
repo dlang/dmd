@@ -594,7 +594,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                     if (e->committed && tynto != tyn)
                                         return;
                                     size_t fromlen = e->length(szto);
-                                    size_t tolen = ((TypeSArray *)t)->dim->toInteger();
+                                    size_t tolen = (size_t)((TypeSArray *)t)->dim->toInteger();
                                     if (tolen < fromlen)
                                         return;
                                     if (tolen != fromlen)
@@ -1603,7 +1603,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 d_uns64 szx = tb->nextOf()->size();
                 assert(szx <= 255);
                 se->sz = (unsigned char)szx;
-                se->len = ((TypeSArray *)tb)->dim->toInteger();
+                se->len = (size_t)((TypeSArray *)tb)->dim->toInteger();
                 se->committed = 1;
                 se->type = t;
 
