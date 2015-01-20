@@ -5164,11 +5164,29 @@ int bug8539()
 static assert(bug8539());
 
 /**************************************************
-    7874, 13740 - better lvalue handling
+    7874, 13297, 13740 - better lvalue handling
 **************************************************/
 
 int bug7874(int x){ return ++x = 1; }
 static assert(bug7874(0) == 1);
+
+// ----
+
+struct S13297
+{
+    int* p;
+}
+void f13297(ref int* p)
+{
+    p = cast(int*) 1;
+    assert(p); // passes
+}
+static assert(
+{
+    S13297 s;
+    f13297(s.p);
+    return s.p != null; // false
+}());
 
 // ----
 
