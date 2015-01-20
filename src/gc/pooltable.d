@@ -14,7 +14,7 @@ struct PoolTable(Pool)
     import core.stdc.string : memmove;
 
 nothrow:
-    void reset()
+    void Dtor()
     {
         cstdlib.free(pools);
         pools = null;
@@ -282,5 +282,5 @@ unittest
     freed = pooltable.minimize();
     assert(freed.length == NPOOLS - 3);
     assert(pooltable.length == 0);
-    pooltable.reset();
+    pooltable.Dtor();
 }

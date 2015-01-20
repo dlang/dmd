@@ -1398,7 +1398,7 @@ struct Gcx
             pool.Dtor();
             cstdlib.free(pool);
         }
-        pooltable.reset();
+        pooltable.Dtor();
 
         roots.removeAll();
         ranges.removeAll();
