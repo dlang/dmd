@@ -229,7 +229,7 @@ else version( Posix )
         version( OSX )
         {
             import core.sys.osx.mach.thread_act;
-            extern (C) mach_port_t pthread_mach_thread_np(pthread_t);
+            import core.sys.osx.pthread : pthread_mach_thread_np;
         }
 
         version( GNU )
