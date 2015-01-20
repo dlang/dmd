@@ -401,7 +401,7 @@ else version( Posix )
                 status = sigdelset( &sigres, resumeSignalNumber );
                 assert( status == 0 );
 
-                version (FreeBSD) Thread.sm_suspendagain = false;
+                version (FreeBSD) obj.m_suspendagain = false;
                 status = sem_post( &suspendCount );
                 assert( status == 0 );
 
@@ -418,7 +418,7 @@ else version( Posix )
             {
                 if (THR_IN_CRITICAL(pthread_self()))
                 {
-                    Thread.sm_suspendagain = true;
+                    Thread.getThis().m_suspendagain = true;
                     if (sem_post(&suspendCount)) assert(0);
                     return;
                 }
@@ -1337,7 +1337,7 @@ private:
     version (FreeBSD)
     {
         // set when suspend failed and should be retried, see Issue 13416
-        static shared bool sm_suspendagain;
+        shared bool m_suspendagain;
     }
 
 
@@ -2448,7 +2448,7 @@ private void suspend( Thread t ) nothrow
             version (FreeBSD)
             {
                 // avoid deadlocks, see Issue 13416
-                if (Thread.sm_suspendagain) goto Lagain;
+                if (t.m_suspendagain) goto Lagain;
             }
         }
         else if( !t.m_lock )
