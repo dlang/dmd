@@ -613,8 +613,6 @@ class Thread
                 throw new ThreadException( "Error initializing thread attributes" );
             if( m_sz && pthread_attr_setstacksize( &attr, m_sz ) )
                 throw new ThreadException( "Error initializing thread stack size" );
-            if( pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_JOINABLE ) )
-                throw new ThreadException( "Error setting thread joinable" );
         }
 
         version( Windows )
