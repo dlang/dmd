@@ -1964,7 +1964,7 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         t = e2->type;
       L1:
         Type *tb = t->toBasetype();
-        if (tb->ty == Tarray && tb->nextOf()->equals(e->type))
+        if (tb->ty == Tarray && tb->nextOf()->equivalent(e->type))
         {
             Expressions *expressions = new Expressions();
             expressions->push(e);

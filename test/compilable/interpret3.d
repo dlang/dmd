@@ -7200,3 +7200,25 @@ static assert(
 
     return 1;
 }());
+
+/**************************************************
+    13295 - Don't copy struct literal in VarExp::interpret()
+**************************************************/
+
+struct S13295
+{
+    int n;
+}
+
+void f13295(ref const S13295 s)
+{
+    *cast(int*) &s.n = 1;
+    assert(s.n == 1);     // OK <- fail
+}
+
+static assert(
+{
+    S13295 s;
+    f13295(s);
+    return s.n == 1; // true <- false
+}());
