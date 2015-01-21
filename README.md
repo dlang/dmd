@@ -42,6 +42,12 @@ The runtime library provides the following:
 * Unit test, coverage, and trace support code.
 * Low-level helpers for compiler-inserted calls.
 
+Issues
+------
+
+To report a bug or look up known issues with the runtime library, please visit
+the [bug tracker](http://issues.dlang.org/).
+
 Licensing
 ---------
 
@@ -50,4 +56,4 @@ See the LICENSE file for licensing information.
 Building
 --------
 
-See http://wiki.dlang.org/Building_DMD for build instructions.
+See the [wiki page](http://wiki.dlang.org/Building_DMD) for build instructions.
