@@ -854,9 +854,13 @@ StringTable *stringTab;
 void clearStringTab()
 {
     //printf("clearStringTab()\n");
-    delete stringTab;
-    stringTab = new StringTable;
-    stringTab->_init(1000);             // 1000 is arbitrary guess
+    if (stringTab)
+        stringTab->reset(1000);             // 1000 is arbitrary guess
+    else
+    {
+        stringTab = new StringTable();
+        stringTab->_init(1000);
+    }
 }
 
 elem *toElem(Expression *e, IRState *irs)
