@@ -830,7 +830,7 @@ Lcontinue:
     if(info.size >= PAGESIZE && curcapacity != 0)
     {
         auto extendsize = reqsize + offset + LARGEPAD - info.size;
-        auto u = GC.extend((*p).ptr, extendsize, extendsize);
+        auto u = GC.extend(info.base, extendsize, extendsize);
         if(u)
         {
             // extend worked, save the new current allocated size
@@ -1587,7 +1587,7 @@ body
                             {
                                 // not enough space, try extending
                                 auto extendsize = newsize + offset + LARGEPAD - info.size;
-                                auto u = GC.extend((*p).ptr, extendsize, extendsize);
+                                auto u = GC.extend(info.base, extendsize, extendsize);
                                 if(u)
                                 {
                                     // extend worked, now try setting the length
@@ -1770,7 +1770,7 @@ body
                             {
                                 // not enough space, try extending
                                 auto extendsize = newsize + offset + LARGEPAD - info.size;
-                                auto u = GC.extend((*p).ptr, extendsize, extendsize);
+                                auto u = GC.extend(info.base, extendsize, extendsize);
                                 if(u)
                                 {
                                     // extend worked, now try setting the length
@@ -2011,7 +2011,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
                 {
                     // not enough space, try extending
                     auto extendoffset = offset + LARGEPAD - info.size;
-                    auto u = GC.extend(px.ptr, newsize + extendoffset, newcap + extendoffset);
+                    auto u = GC.extend(info.base, newsize + extendoffset, newcap + extendoffset);
                     if(u)
                     {
                         // extend worked, now try setting the length
