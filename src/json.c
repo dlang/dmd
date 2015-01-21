@@ -471,16 +471,16 @@ public:
         StorageClass stc = d->storage_class;
 
         if (d->originalType && d->originalType->ty == Tfunction) {
-          TypeFunction *tfo = (TypeFunction *)d->originalType;
-          if (tfo->purity == PUREfwdref) {
-            stc |= STCpure;
-          }
-          if (tfo->trust == TRUSTsafe) {
-            stc |= STCsafe;
-          }
-          if (tfo->isproperty) {
-            stc |= STCproperty;
-          }
+            TypeFunction *tfo = (TypeFunction *)d->originalType;
+            if (tfo->purity == PUREfwdref) {
+                stc |= STCpure;
+            }
+            if (tfo->trust == TRUSTsafe) {
+                stc |= STCsafe;
+            }
+            if (tfo->isproperty) {
+                stc |= STCproperty;
+            }
         }
 
         propertyStorageClass("storageClass", stc);
