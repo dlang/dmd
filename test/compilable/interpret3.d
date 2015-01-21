@@ -7144,6 +7144,29 @@ static assert({
 }());
 
 /**************************************************
+    12495 - cast from string to immutable(ubyte)[]
+**************************************************/
+
+string getStr12495()
+{
+    char[1] buf = void;                     // dummy starting point.
+    string s = cast(string)buf[0..0];       // empty slice, .ptr points mutable.
+    assert(buf.ptr == s.ptr);
+    s ~= 'a';                               // this should allocate.
+    assert(buf.ptr != s.ptr);
+    return s.idup;                          // this should allocate again, and
+                                            // definitly point immutable memory.
+}
+auto indexOf12495(string s)
+{
+    auto p1 = s.ptr;
+    auto p2 = (cast(immutable(ubyte)[])s).ptr;
+    assert(cast(void*)p1 == cast(void*)p2); // OK <- fails
+    return cast(void*)p2 - cast(void*)p1;   // OK <- "cannot subtract pointers ..."
+}
+static assert(indexOf12495(getStr12495()) == 0);
+
+/**************************************************
     13992 - Repainting pointer arithmetic result
 **************************************************/
 

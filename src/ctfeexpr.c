@@ -1793,11 +1793,23 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     {
         return paintTypeOntoLiteral(to, e);
     }
+
     Expression *r;
     if (e->type->equals(type) && type->equals(to))
-        r = e;          // necessary not to change e's address for pointer comparisons
+    {
+        // necessary not to change e's address for pointer comparisons
+        r = e;
+    }
+    else if (to->toBasetype()->ty == Tarray &&     type->toBasetype()->ty == Tarray &&
+             to->toBasetype()->nextOf()->size() == type->toBasetype()->nextOf()->size())
+    {
+        // Bugzilla 12495: Array reinterpret casts: eg. string to immutable(ubyte)[]
+        return paintTypeOntoLiteral(to, e);
+    }
     else
+    {
         r = Cast(type, to, e).copy();
+    }
     if (CTFEExp::isCantExp(r))
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
     if (e->op == TOKarrayliteral)
