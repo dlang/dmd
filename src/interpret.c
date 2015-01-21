@@ -2386,8 +2386,6 @@ public:
         result = getVarExp(e->loc, istate, e->var, goal);
         if (exceptionOrCant(result))
             return;
-        // A VarExp may include an implicit cast. It must be done explicitly.
-        result = paintTypeOntoLiteral(e->type, result);
     }
 
     void visit(DeclarationExp *e)
@@ -3417,11 +3415,18 @@ public:
                 // ~= can create new values (see bug 6052)
                 if (e->op == TOKcatass)
                 {
-                    // We need to dup it. We can skip this if it's a dynamic array,
-                    // because it gets copied later anyway
+                    // We need to dup it and repaint the type. For a dynamic array
+                    // we can skip duplication, because it gets copied later anyway.
                     if (newval->type->ty != Tarray)
+                    {
                         newval = copyLiteral(newval).copy();
-                    newval = resolveSlice(newval);
+                        newval->type = e->e2->type; // repaint type
+                    }
+                    else
+                    {
+                        newval = paintTypeOntoLiteral(e->e2->type, newval);
+                        newval = resolveSlice(newval);
+                    }
                 }
                 oldval = resolveSlice(oldval);
 

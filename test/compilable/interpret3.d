@@ -5164,8 +5164,31 @@ int bug8539()
 static assert(bug8539());
 
 /**************************************************
-    13740
+    7874, 13297, 13740 - better lvalue handling
 **************************************************/
+
+int bug7874(int x){ return ++x = 1; }
+static assert(bug7874(0) == 1);
+
+// ----
+
+struct S13297
+{
+    int* p;
+}
+void f13297(ref int* p)
+{
+    p = cast(int*) 1;
+    assert(p); // passes
+}
+static assert(
+{
+    S13297 s;
+    f13297(s.p);
+    return s.p != null; // false
+}());
+
+// ----
 
 class R13740
 {
@@ -7176,4 +7199,26 @@ static assert(
     assert(a1[0] == 2);     // OK <- NG
 
     return 1;
+}());
+
+/**************************************************
+    13295 - Don't copy struct literal in VarExp::interpret()
+**************************************************/
+
+struct S13295
+{
+    int n;
+}
+
+void f13295(ref const S13295 s)
+{
+    *cast(int*) &s.n = 1;
+    assert(s.n == 1);     // OK <- fail
+}
+
+static assert(
+{
+    S13295 s;
+    f13295(s);
+    return s.n == 1; // true <- false
 }());
