@@ -55,9 +55,10 @@ extern (C) void[] _d_arrayassign_l(TypeInfo ti, void[] src, void[] dst, void* pt
 
     enforceRawArraysConformable("copy", elementSize, src, dst, true);
 
-    if (dst.ptr <= src.ptr)
+    if (src.ptr < dst.ptr && dst.ptr < src.ptr + elementSize * src.length)
     {
-        foreach (i; 0 .. dst.length)
+        // If dst is in the middle of src memory, use reverse order.
+        for (auto i = dst.length; i--; )
         {
             void* pdst = dst.ptr + i * elementSize;
             void* psrc = src.ptr + i * elementSize;
@@ -69,7 +70,8 @@ extern (C) void[] _d_arrayassign_l(TypeInfo ti, void[] src, void[] dst, void* pt
     }
     else
     {
-        for (auto i = dst.length; i--; )
+        // Otherwise, use normal order.
+        foreach (i; 0 .. dst.length)
         {
             void* pdst = dst.ptr + i * elementSize;
             void* psrc = src.ptr + i * elementSize;
@@ -80,6 +82,51 @@ extern (C) void[] _d_arrayassign_l(TypeInfo ti, void[] src, void[] dst, void* pt
         }
     }
     return dst;
+}
+
+unittest    // Bugzilla 14024
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    S[4] mem;
+    ref S[2] slice(int a, int b) { return mem[a .. b][0 .. 2]; }
+
+    op = null;
+    mem[0].x = 'a';
+    mem[1].x = 'b';
+    mem[2].x = 'x';
+    mem[3].x = 'y';
+    slice(0, 2) = slice(2, 4);  // [ab] = [xy]
+    assert(op == "XaYb", op);
+
+    op = null;
+    mem[0].x = 'x';
+    mem[1].x = 'y';
+    mem[2].x = 'a';
+    mem[3].x = 'b';
+    slice(2, 4) = slice(0, 2);  // [ab] = [xy]
+    assert(op == "XaYb", op);
+
+    op = null;
+    mem[0].x = 'a';
+    mem[1].x = 'b';
+    mem[2].x = 'c';
+    slice(0, 2) = slice(1, 3);  // [ab] = [bc]
+    assert(op == "BaCb", op);
+
+    op = null;
+    mem[0].x = 'x';
+    mem[1].x = 'y';
+    mem[2].x = 'z';
+    slice(1, 3) = slice(0, 2);  // [yz] = [xy]
+    assert(op == "YzXy", op);
 }
 
 /**
@@ -100,6 +147,8 @@ extern (C) void[] _d_arrayassign_r(TypeInfo ti, void[] src, void[] dst, void* pt
 
     enforceRawArraysConformable("copy", elementSize, src, dst, false);
 
+    // Always use normal order, because we can assume that
+    // the rvalue src has no overlapping with dst.
     foreach (i; 0 .. dst.length)
     {
         void* pdst = dst.ptr + i * elementSize;
