@@ -1352,7 +1352,7 @@ struct Gcx
     @property size_t npools() pure const nothrow { return pooltable.length; }
     PoolTable!Pool pooltable;
 
-    List*[B_MAX]bucket;        // free list for each size
+    List*[B_PAGE] bucket; // free list for each small size
 
 
     void initialize()
@@ -1996,6 +1996,12 @@ struct Gcx
      *  0       failed
      */
     int allocPage(Bins bin) nothrow
+    in
+    {
+        // the freelist for the bin size is empty
+        assert(bucket[bin] is null);
+    }
+    body
     {
         Pool*  pool;
         size_t n;
@@ -2020,16 +2026,18 @@ struct Gcx
 
         // Convert page to free list
         size_t size = binsize[bin];
-        List **b = &bucket[bin];
+        auto tail = &bucket[bin];
 
         p = pool.baseAddr + pn * PAGESIZE;
         ptop = p + PAGESIZE;
         for (; p < ptop; p += size)
         {
-            (cast(List *)p).next = *b;
-            (cast(List *)p).pool = pool;
-            *b = cast(List *)p;
+            auto elem = cast(List *)p;
+            elem.pool = pool;
+            *tail = elem;
+            tail = &elem.next;
         }
+        *tail = null;
         return 1;
     }
 
@@ -2423,8 +2431,10 @@ struct Gcx
     // collection step 4: recover pages with no live objects, rebuild free lists
     size_t recover() nothrow
     {
-        // Zero buckets
-        bucket[] = null;
+        // init tail list
+        List**[B_PAGE] tail = void;
+        foreach (i, ref next; tail)
+            next = &bucket[i];
 
         // Free complete pages, rebuild free list
         debug(COLLECT_PRINTF) printf("\tfree complete pages\n");
@@ -2466,19 +2476,21 @@ struct Gcx
                 Lnotfree:
                     p = pool.baseAddr + pn * PAGESIZE;
                     for (u = 0; u < PAGESIZE; u += size)
-                    {   biti = bitbase + u / 16;
-                        if (pool.freebits.test(biti))
-                        {
-                            List *list = cast(List *)(p + u);
-                            if (list.next != bucket[bin])       // avoid unnecessary writes
-                                list.next = bucket[bin];
-                            list.pool = pool;
-                            bucket[bin] = list;
-                        }
+                    {
+                        biti = bitbase + u / 16;
+                        if (!pool.freebits.test(biti))
+                            continue;
+                        auto elem = cast(List *)(p + u);
+                        elem.pool = pool;
+                        *tail[bin] = elem;
+                        tail[bin] = &elem.next;
                     }
                 }
             }
         }
+        // terminate tail list
+        foreach (ref next; tail)
+            *next = null;
 
         debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", recoveredpages);
         return recoveredpages;
