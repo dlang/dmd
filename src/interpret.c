@@ -2083,15 +2083,33 @@ public:
         {
             // Check for unsupported type painting operations
             Type *elemtype = ((TypeArray *)(val->type))->next;
+            size_t elemsize = elemtype->size();
 
             // It's OK to cast from fixed length to dynamic array, eg &int[3] to int[]*
             if (val->type->ty == Tsarray && pointee->ty == Tarray &&
-                elemtype->size() == pointee->nextOf()->size())
+                elemsize == pointee->nextOf()->size())
             {
                 result = new AddrExp(e->loc, val);
                 result->type = e->type;
                 return;
             }
+
+            // It's OK to cast from fixed length to fixed length array, eg &int[n] to int[d]*.
+            if (val->type->ty == Tsarray && pointee->ty == Tsarray &&
+                elemsize == pointee->nextOf()->size())
+            {
+                size_t d = (size_t)((TypeSArray *)pointee)->dim->toInteger();
+                Expression *elwr = new IntegerExp(e->loc, e->offset / elemsize,     Type::tsize_t);
+                Expression *eupr = new IntegerExp(e->loc, e->offset / elemsize + d, Type::tsize_t);
+
+                // Create a CTFE pointer &val[ofs..ofs+d]
+                result = new SliceExp(e->loc, val, elwr, eupr);
+                result->type = pointee;
+                result = new AddrExp(e->loc, result);
+                result->type = e->type;
+                return;
+            }
+
             if (!isSafePointerCast(elemtype, pointee))
             {
                 // It's also OK to cast from &string to string*.
@@ -5342,6 +5360,7 @@ public:
                 result = paintTypeOntoLiteral(e->to, e1);
                 return;
             }
+            bool castToSarrayPointer = false;
             bool castBackFromVoid = false;
             if (e1->type->ty == Tarray || e1->type->ty == Tsarray || e1->type->ty == Tpointer)
             {
@@ -5363,7 +5382,11 @@ public:
                     ultimatePointee = ultimatePointee->nextOf();
                     ultimateSrc = ultimateSrc->nextOf();
                 }
-                if (ultimatePointee->ty != Tvoid && ultimateSrc->ty != Tvoid &&
+                if (ultimatePointee->ty == Tsarray && ultimatePointee->nextOf()->equivalent(ultimateSrc))
+                {
+                    castToSarrayPointer = true;
+                }
+                else if (ultimatePointee->ty != Tvoid && ultimateSrc->ty != Tvoid &&
                     !isSafePointerCast(elemtype, pointee))
                 {
                     e->error("reinterpreting cast from %s* to %s* is not supported in CTFE",
@@ -5439,6 +5462,22 @@ public:
                 if (isSafePointerCast(origType, pointee))
                 {
                     result = new AddrExp(e->loc, ((AddrExp *)e1)->e1);
+                    result->type = e->type;
+                    return;
+                }
+                if (castToSarrayPointer && pointee->toBasetype()->ty == Tsarray &&
+                    ((AddrExp *)e1)->e1->op == TOKindex)
+                {
+                    // &val[idx]
+                    dinteger_t dim = ((TypeSArray *)pointee->toBasetype())->dim->toInteger();
+                    IndexExp *ie = (IndexExp *)((AddrExp *)e1)->e1;
+                    Expression *lwr = ie->e2;
+                    Expression *upr = new IntegerExp(ie->e2->loc, ie->e2->toInteger() + dim, Type::tsize_t);
+
+                    // Create a CTFE pointer &val[idx..idx+dim]
+                    result = new SliceExp(e->loc, ie->e1, lwr, upr);
+                    result->type = pointee;
+                    result = new AddrExp(e->loc, result);
                     result->type = e->type;
                     return;
                 }
@@ -5661,6 +5700,14 @@ public:
         // *(&x) ==> x
         result = ((AddrExp *)result)->e1;
 
+        if (result->op == TOKslice && e->type->toBasetype()->ty == Tsarray)
+        {
+            /* aggr[lwr..upr]
+             * upr may exceed the upper boundary of aggr, but the check is deferred
+             * until those out-of-bounds elements will be touched.
+             */
+            return;
+        }
         result = interpret(result, istate, goal);
         if (exceptionOrCant(result))
             return;

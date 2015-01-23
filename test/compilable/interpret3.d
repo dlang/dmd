@@ -4132,6 +4132,86 @@ static assert(!is(typeof(compiles!(bug7780(1)))));
 static assert(!is(typeof(compiles!(bug7780(2)))));
 
 /**************************************************
+    14028 - static array pointer that refers existing array elements.
+**************************************************/
+
+int test14028a(size_t ofs)(bool ct)
+{
+    int[4] a;
+    int[2]* p;
+    int num = ofs;
+
+    if (ct)
+        p = cast(int[2]*)&a[ofs];    // SymOffExp
+    else
+        p = cast(int[2]*)&a[num];    // CastExp + AddrExp
+
+    // pointers comparison
+    assert(cast(void*)a.ptr <= cast(void*)p);
+    assert(cast(void*)a.ptr <= cast(void*)&(*p)[0]);
+    assert(cast(void*)&a[0] <= cast(void*)p);
+
+    return 1;
+}
+static assert(test14028a!0(true));
+static assert(test14028a!0(false));
+static assert(test14028a!3(true));
+static assert(test14028a!3(false));
+static assert(!is(typeof(compiles!(test14028a!4(true)))));
+static assert(!is(typeof(compiles!(test14028a!4(false)))));
+
+int test14028b(int num)
+{
+    int[4] a;
+    int[2]* p;
+
+    if (num == 1)
+    {
+        p = cast(int[2]*)&a[0]; // &a[0..2];
+        (*p)[0] = 1;            // a[0] = 1
+        (*p)[1] = 2;            // a[1] = 2
+        assert(a == [1,2,0,0]);
+        p = p + 1;              // &a[0] -> &a[2]
+        (*p)[0] = 3;            // a[2] = 3
+        (*p)[1] = 4;            // a[3] = 4
+        assert(a == [1,2,3,4]);
+    }
+    if (num == 2)
+    {
+        p = cast(int[2]*)&a[1]; // &a[1..3];
+        (*p)[0] = 1;            // a[1] = 1
+        p = p + 1;              // &a[1..3] -> &a[3..5]
+        (*p)[0] = 2;            // a[3] = 2
+        assert(a == [0,1,0,2]);
+    }
+    if (num == 3)
+    {
+        p = cast(int[2]*)&a[1]; // &a[1..3];
+        (*p)[0] = 1;            // a[1] = 1
+        p = p + 1;              // &a[1..3] -> &a[3..5]
+        (*p)[0] = 2;            // a[3] = 2
+        (*p)[1] = 3;            // a[4] = 3 (CTFE error)
+    }
+    if (num == 4)
+    {
+        p = cast(int[2]*)&a[0]; // &a[0..2];
+        p = p + 1;              // &a[0..2] -> &a[2..4]
+        p = p + 1;              // &a[2..4] -> &a[4..6] (ok)
+    }
+    if (num == 5)
+    {
+        p = cast(int[2]*)&a[1]; // &a[1..3];
+        p = p + 2;              // &a[1..3] -> &a[5..7] (CTFE error)
+    }
+    return 1;
+}
+static assert(test14028b(1));
+static assert(test14028b(2));
+static assert(!is(typeof(compiles!(test14028b(3)))));
+static assert(test14028b(4));
+static assert(!is(typeof(compiles!(test14028b(5)))));
+
+/**************************************************
     10275 cast struct literals to immutable
 **************************************************/
 

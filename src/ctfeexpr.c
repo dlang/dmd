@@ -661,6 +661,19 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
             return ie->e1;
         }
     }
+    if (e->op == TOKslice && e->type->toBasetype()->ty == Tsarray)
+    {
+        SliceExp *se = (SliceExp *)e;
+        if ((se->e1->type->ty == Tarray ||
+             se->e1->type->ty == Tsarray ||
+             se->e1->op == TOKstring ||
+             se->e1->op == TOKarrayliteral) &&
+            se->lwr->op == TOKint64)
+        {
+            *ofs = se->lwr->toInteger();
+            return se->e1;
+        }
+    }
     return e;
 }
 
@@ -766,7 +779,7 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
     }
     dinteger_t ofs2 = e2->toInteger();
 
-    Type *pointee = ((TypePointer *)agg1->type)->next;
+    Type *pointee = ((TypeNext *)agg1->type->toBasetype())->next;
     dinteger_t sz = pointee->size();
 
     sinteger_t indx;
@@ -784,7 +797,7 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
         len = dollar->toInteger();
     }
     if (op == TOKadd || op == TOKaddass || op == TOKplusplus)
-        indx = indx + ofs2 / sz;
+        indx += ofs2 / sz;
     else if (op == TOKmin || op == TOKminass || op == TOKminusminus)
         indx -= ofs2 / sz;
     else
@@ -811,6 +824,20 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
     {
         error(loc, "CTFE internal error: pointer arithmetic %s", agg1->toChars());
         goto Lcant;
+    }
+
+    if (eptr->type->toBasetype()->ty == Tsarray)
+    {
+        dinteger_t dim = ((TypeSArray *)eptr->type->toBasetype())->dim->toInteger();
+
+        // Create a CTFE pointer &agg1[indx .. indx+dim]
+        SliceExp *se = new SliceExp(loc, agg1,
+            new IntegerExp(loc, indx,       Type::tsize_t),
+            new IntegerExp(loc, indx + dim, Type::tsize_t));
+        se->type = type->toBasetype()->nextOf();
+        new(&ue) AddrExp(loc, se);
+        ue.exp()->type = type;
+        return ue;
     }
 
     // Create a CTFE pointer &agg1[indx]
@@ -2095,7 +2122,8 @@ bool isCtfeValueValid(Expression *newval)
                (e1->op == TOKstructliteral && isCtfeValueValid(e1) ||
                 e1->op == TOKvar ||
                 e1->op == TOKdotvar && isCtfeReferenceValid(e1) ||
-                e1->op == TOKindex && isCtfeReferenceValid(e1));
+                e1->op == TOKindex && isCtfeReferenceValid(e1) ||
+                e1->op == TOKslice && e1->type->toBasetype()->ty == Tsarray);
     }
     if (newval->op == TOKslice)
     {
