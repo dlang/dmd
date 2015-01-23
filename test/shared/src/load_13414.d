@@ -1,4 +1,4 @@
-import core.runtime, core.atomic, core.sys.linux.dlfcn;
+import core.runtime, core.atomic, core.sys.posix.dlfcn;
 
 shared uint tlsDtor, dtor;
 void staticDtorHook() { atomicOp!"+="(tlsDtor, 1); }

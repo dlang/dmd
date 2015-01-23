@@ -116,8 +116,7 @@ SRCS=\
 	src\rt\qsort.d \
 	src\rt\sections.d \
 	src\rt\sections_android.d \
-	src\rt\sections_freebsd.d \
-	src\rt\sections_linux.d \
+	src\rt\sections_elf_shared.d \
 	src\rt\sections_osx.d \
 	src\rt\sections_solaris.d \
 	src\rt\sections_win32.d \

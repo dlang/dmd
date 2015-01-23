@@ -1,6 +1,6 @@
 /**
  * Written in the D programming language.
- * This module provides linux-specific support for sections.
+ * This module provides ELF-specific support for sections with shared libraries.
  *
  * Copyright: Copyright Martin Nowak 2012-2013.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
@@ -8,18 +8,34 @@
  * Source: $(DRUNTIMESRC src/rt/_sections_linux.d)
  */
 
-module rt.sections_linux;
+module rt.sections_elf_shared;
 
-version (linux):
+version (linux) enum SharedELF = true;
+else version (FreeBSD) enum SharedELF = true;
+else enum SharedELF = false;
+static if (SharedELF):
 
 // debug = PRINTF;
 import core.memory;
 import core.stdc.stdio;
 import core.stdc.stdlib : calloc, exit, free, malloc, EXIT_FAILURE;
 import core.stdc.string : strlen;
-import core.sys.linux.dlfcn;
-import core.sys.linux.elf;
-import core.sys.linux.link;
+version (linux)
+{
+    import core.sys.linux.dlfcn;
+    import core.sys.linux.elf;
+    import core.sys.linux.link;
+}
+else version (FreeBSD)
+{
+    import core.sys.freebsd.dlfcn;
+    import core.sys.freebsd.sys.elf;
+    import core.sys.freebsd.sys.link_elf;
+}
+else
+{
+    static assert(0, "unimplemented");
+}
 import core.sys.posix.pthread;
 import rt.deh;
 import rt.dmain2;
@@ -88,7 +104,7 @@ private:
     {
         Array!(void[]) _codeSegments; // array of code segments
         Array!(DSO*) _deps; // D libraries needed by this DSO
-        link_map* _linkMap; // corresponding link_map*
+        void* _handle; // corresponding handle
     }
 }
 
@@ -98,12 +114,16 @@ private:
 __gshared bool _isRuntimeInitialized;
 
 
+version (FreeBSD) private __gshared void* dummy_ref;
+
 /****
  * Gets called on program startup just before GC is initialized.
  */
 void initSections()
 {
     _isRuntimeInitialized = true;
+    // reference symbol to support weak linkage
+    version (FreeBSD) dummy_ref = &_d_dso_registry;
 }
 
 
@@ -149,7 +169,7 @@ version (Shared)
             if (tdso._addCnt)
             {
                 // Increment the dlopen ref for explicitly loaded libraries to pin them.
-                .dlopen(tdso._pdso._linkMap.l_name, RTLD_LAZY) !is null || assert(0);
+                .dlopen(linkMapForHandle(tdso._pdso._handle).l_name, RTLD_LAZY) !is null || assert(0);
                 (*res)[i]._addCnt = 1; // new array takes over the additional ref count
             }
         }
@@ -164,7 +184,7 @@ version (Shared)
         {
             if (tdso._addCnt)
             {
-                auto handle = handleForName(tdso._pdso._linkMap.l_name);
+                auto handle = tdso._pdso._handle;
                 handle !is null || assert(0);
                 .dlclose(handle);
             }
@@ -189,7 +209,7 @@ version (Shared)
         {
             if (tdso._addCnt == 0) continue;
 
-            auto handle = handleForName(tdso._pdso._linkMap.l_name);
+            auto handle = tdso._pdso._handle;
             handle !is null || assert(0);
             for (; tdso._addCnt > 0; --tdso._addCnt)
                 .dlclose(handle);
@@ -220,6 +240,9 @@ else
 }
 
 private:
+
+// start of linked list for ModuleInfo references
+version (FreeBSD) deprecated extern (C) __gshared void* _Dmodule_ref;
 
 version (Shared)
 {
@@ -256,8 +279,8 @@ version (Shared)
      * Hash table to map link_map* to corresponding DSO*.
      * The hash table is protected by a Mutex.
      */
-    __gshared pthread_mutex_t _linkMapToDSOMutex;
-    __gshared HashTab!(void*, DSO*) _linkMapToDSO;
+    __gshared pthread_mutex_t _handleToDSOMutex;
+    __gshared HashTab!(void*, DSO*) _handleToDSO;
 }
 else
 {
@@ -328,11 +351,15 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         {
             // the first loaded DSO is druntime itself
             assert(!_loadedDSOs.empty ||
-                   linkMapForAddr(&_d_dso_registry) == linkMapForAddr(data._slot));
+                   /* We need a local symbol (rt_get_bss_start) or the function
+                    * pointer might be a PLT address in the executable.
+                    * data._slot is already local in the shared library
+                    */
+                   handleForAddr(&rt_get_bss_start) == handleForAddr(data._slot));
 
             getDependencies(info, pdso._deps);
-            pdso._linkMap = linkMapForAddr(data._slot);
-            setDSOForLinkMap(pdso, pdso._linkMap);
+            pdso._handle = handleForAddr(data._slot);
+            setDSOForHandle(pdso, pdso._handle);
 
             if (!_rtLoading)
             {
@@ -397,9 +424,9 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
                 }
             }
 
-            assert(pdso._linkMap == linkMapForAddr(data._slot));
-            unsetDSOForLinkMap(pdso, pdso._linkMap);
-            pdso._linkMap = null;
+            assert(pdso._handle == handleForAddr(data._slot));
+            unsetDSOForHandle(pdso, pdso._handle);
+            pdso._handle = null;
         }
         else
         {
@@ -475,7 +502,7 @@ version (Shared)
         if (handle is null) return null;
 
         // if it's a D library
-        if (auto pdso = dsoForLinkMap(linkMapForHandle(handle)))
+        if (auto pdso = dsoForHandle(handle))
             incThreadRef(pdso, true);
         return handle;
     }
@@ -489,7 +516,7 @@ version (Shared)
         scope (exit) _rtLoading = save;
 
         // if it's a D library
-        if (auto pdso = dsoForLinkMap(linkMapForHandle(handle)))
+        if (auto pdso = dsoForHandle(handle))
             decThreadRef(pdso, true);
         return .dlclose(handle) == 0;
     }
@@ -502,13 +529,13 @@ version (Shared)
 void initLocks()
 {
     version (Shared)
-        !pthread_mutex_init(&_linkMapToDSOMutex, null) || assert(0);
+        !pthread_mutex_init(&_handleToDSOMutex, null) || assert(0);
 }
 
 void finiLocks()
 {
     version (Shared)
-        !pthread_mutex_destroy(&_linkMapToDSOMutex) || assert(0);
+        !pthread_mutex_destroy(&_handleToDSOMutex) || assert(0);
 }
 
 void runModuleConstructors(DSO* pdso, bool runTlsCtors)
@@ -558,30 +585,30 @@ version (Shared)
         return map;
     }
 
-    DSO* dsoForLinkMap(link_map* map)
+    DSO* dsoForHandle(void* handle)
     {
         DSO* pdso;
-        !pthread_mutex_lock(&_linkMapToDSOMutex) || assert(0);
-        if (auto ppdso = map in _linkMapToDSO)
+        !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
+        if (auto ppdso = handle in _handleToDSO)
             pdso = *ppdso;
-        !pthread_mutex_unlock(&_linkMapToDSOMutex) || assert(0);
+        !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
         return pdso;
     }
 
-    void setDSOForLinkMap(DSO* pdso, link_map* map)
+    void setDSOForHandle(DSO* pdso, void* handle)
     {
-        !pthread_mutex_lock(&_linkMapToDSOMutex) || assert(0);
-        assert(map !in _linkMapToDSO);
-        _linkMapToDSO[map] = pdso;
-        !pthread_mutex_unlock(&_linkMapToDSOMutex) || assert(0);
+        !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
+        assert(handle !in _handleToDSO);
+        _handleToDSO[handle] = pdso;
+        !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
     }
 
-    void unsetDSOForLinkMap(DSO* pdso, link_map* map)
+    void unsetDSOForHandle(DSO* pdso, void* handle)
     {
-        !pthread_mutex_lock(&_linkMapToDSOMutex) || assert(0);
-        assert(_linkMapToDSO[map] == pdso);
-        _linkMapToDSO.remove(map);
-        !pthread_mutex_unlock(&_linkMapToDSOMutex) || assert(0);
+        !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
+        assert(_handleToDSO[handle] == pdso);
+        _handleToDSO.remove(handle);
+        !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
     }
 
     void getDependencies(in ref dl_phdr_info info, ref Array!(DSO*) deps)
@@ -603,7 +630,12 @@ version (Shared)
         {
             if (dyn.d_tag == DT_STRTAB)
             {
-                strtab = cast(const(char)*)dyn.d_un.d_ptr;
+                version (linux)
+                    strtab = cast(const(char)*)dyn.d_un.d_ptr;
+                else version (FreeBSD)
+                    strtab = cast(const(char)*)(info.dlpi_addr + dyn.d_un.d_ptr); // relocate
+                else
+                    static assert(0, "unimplemented");
                 break;
             }
         }
@@ -620,7 +652,7 @@ version (Shared)
             // the runtime linker has already loaded all dependencies
             if (handle is null) assert(0);
             // if it's a D library
-            if (auto pdso = dsoForLinkMap(linkMapForHandle(handle)))
+            if (auto pdso = dsoForHandle(handle))
                 deps.insertBack(pdso); // append it to the dependencies
         }
     }
@@ -680,13 +712,11 @@ void scanSegments(in ref dl_phdr_info info, DSO* pdso)
  * References:
  *      http://linux.die.net/man/3/dl_iterate_phdr
  */
-nothrow
-bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null)
+version (linux) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
 {
     static struct DG { const(void)* addr; dl_phdr_info* result; }
 
-    extern(C) nothrow
-    int callback(dl_phdr_info* info, size_t sz, void* arg)
+    extern(C) int callback(dl_phdr_info* info, size_t sz, void* arg) nothrow @nogc
     {
         auto p = cast(DG*)arg;
         if (findSegmentForAddr(*info, p.addr))
@@ -705,13 +735,16 @@ bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null)
      */
     return dl_iterate_phdr(&callback, &dg) != 0;
 }
+else version (FreeBSD) bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null) nothrow @nogc
+{
+    return !!_rtld_addr_phdr(addr, result);
+}
 
 /*********************************
  * Determine if 'addr' lies within shared object 'info'.
  * If so, return true and fill in 'result' with the corresponding ELF program header.
  */
-nothrow
-bool findSegmentForAddr(in ref dl_phdr_info info, in void* addr, ElfW!"Phdr"* result=null)
+bool findSegmentForAddr(in ref dl_phdr_info info, in void* addr, ElfW!"Phdr"* result=null) nothrow @nogc
 {
     if (addr < cast(void*)info.dlpi_addr) // less than base address of object means quick reject
         return false;
@@ -728,12 +761,21 @@ bool findSegmentForAddr(in ref dl_phdr_info info, in void* addr, ElfW!"Phdr"* re
     return false;
 }
 
+version (linux) import core.sys.linux.errno : program_invocation_name;
+// should be in core.sys.freebsd.stdlib
+version (FreeBSD) extern(C) const(char)* getprogname() nothrow @nogc;
+
+@property const(char)* progname() nothrow @nogc
+{
+    version (linux) return program_invocation_name;
+    version (FreeBSD) return getprogname();
+}
+
 nothrow
 const(char)[] dsoName(const char* dlpi_name)
 {
-    import core.sys.linux.errno;
     // the main executable doesn't have a name in its dlpi_name field
-    const char* p = dlpi_name[0] != 0 ? dlpi_name : program_invocation_name;
+    const char* p = dlpi_name[0] != 0 ? dlpi_name : progname;
     return p[0 .. strlen(p)];
 }
 
@@ -791,14 +833,12 @@ body
  * Returns:
  *      the dlopen handle for that DSO or null if addr is not within a loaded DSO
  */
-version (Shared) link_map* linkMapForAddr(void* addr)
+version (Shared) void* handleForAddr(void* addr)
 {
     Dl_info info = void;
-    link_map* map;
-    if (dladdr1(addr, &info, cast(void**)&map, RTLD_DL_LINKMAP) != 0)
-        return map;
-    else
-        return null;
+    if (dladdr(addr, &info) != 0)
+        return handleForName(info.dli_fname);
+    return null;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

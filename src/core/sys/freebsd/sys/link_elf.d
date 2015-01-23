@@ -71,7 +71,9 @@ struct dl_phdr_info
 };
 
 
-private alias extern(C) int function(dl_phdr_info*, size_t, void*) __dl_iterate_hdr_callback;
-extern int dl_iterate_phdr(__dl_iterate_hdr_callback, void*);
-extern int _rtld_addr_phdr(const void*, dl_phdr_info*);
-extern int _rtld_get_stack_prot();
+private alias extern(C) int function(dl_phdr_info*, size_t, void *) dl_iterate_phdr_cb;
+private alias extern(C) int function(dl_phdr_info*, size_t, void *) @nogc dl_iterate_phdr_cb_ngc;
+extern int dl_iterate_phdr(dl_iterate_phdr_cb __callback, void*__data);
+extern int dl_iterate_phdr(dl_iterate_phdr_cb_ngc __callback, void*__data) @nogc;
+extern int _rtld_addr_phdr(const void*, dl_phdr_info*) @nogc;
+extern int _rtld_get_stack_prot() @nogc;
