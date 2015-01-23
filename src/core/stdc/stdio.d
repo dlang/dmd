@@ -828,7 +828,7 @@ else
     int scanf(in char* format, ...);
 }
 
-// No usafe pointer manipulation.
+// No unsafe pointer manipulation.
 @trusted
 {
     ///
