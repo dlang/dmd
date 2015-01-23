@@ -277,7 +277,19 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
                     (v->storage_class & (STCref | STCout)) && !(v->storage_class & STCreturn))
                 {
                     if (sc->func->flags & FUNCFLAGreturnInprocess)
+                    {
+                        //printf("inferring 'return' for variable '%s'\n", v->toChars());
                         v->storage_class |= STCreturn;
+                        if (v == sc->func->vthis)
+                        {
+                            TypeFunction *tf = (TypeFunction *)sc->func->type;
+                            if (tf->ty == Tfunction)
+                            {
+                                //printf("'this' too\n");
+                                tf->isreturn = true;
+                            }
+                        }
+                    }
                     else if (sc->module && sc->module->isRoot())
                         error(loc, "escaping reference to local ref variable %s", v);
                     return;
@@ -372,6 +384,53 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
         {
             e->e1->accept(this);
             e->e2->accept(this);
+        }
+
+        void visit(CallExp *e)
+        {
+            /* If the function returns by ref, check each argument that is
+             * passed as 'return ref'.
+             */
+            Type *t1 = e->e1->type->toBasetype();
+            TypeFunction *tf;
+            if (t1->ty == Tdelegate)
+            {
+                tf = (TypeFunction *)((TypeDelegate *)t1)->next;
+                assert(tf->ty == Tfunction);
+            }
+            else if (t1->ty == Tfunction)
+                tf = (TypeFunction *)t1;
+            else
+                tf = NULL;
+            if (tf && tf->isref)
+            {
+                if (e->arguments && e->arguments->dim)
+                {
+                    /* j=1 if _arguments[] is first argument,
+                     * skip it because it is not passed by ref
+                     */
+                    int j = (tf->linkage == LINKd && tf->varargs == 1);
+
+                    for (size_t i = j; i < e->arguments->dim; ++i)
+                    {
+                        Expression *arg = (*e->arguments)[i];
+                        size_t nparams = Parameter::dim(tf->parameters);
+                        if (i - j < nparams && i >= j)
+                        {
+                            Parameter *p = Parameter::getNth(tf->parameters, i - j);
+                            if ((p->storageClass & (STCout | STCref)) && (p->storageClass & STCreturn))
+                                arg->accept(this);
+                        }
+                    }
+                }
+
+                // If 'this' is returned by ref, check it too
+                if (tf->isreturn && e->e1->op == TOKdotvar && t1->ty == Tfunction)
+                {
+                    DotVarExp *dve = (DotVarExp *)e->e1;
+                    dve->e1->accept(this);
+                }
+            }
         }
     };
     EscapeRefVisitor v(sc, gag);
