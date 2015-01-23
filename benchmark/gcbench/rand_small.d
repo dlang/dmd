@@ -19,13 +19,21 @@ void main(string[] args)
     if(args.length > 1)
         nIter = to!size_t(args[1]);
 
+    version (RANDOMIZE)
+        auto rnd = Random(unpredictableSeed);
+    else
+        auto rnd = Random(2929088778);
+
     auto ptrs = new void*[4096];
 
     // Allocate large blocks with size uniformly distributed between 8
     // and 2048 bytes.
-    foreach(i; 0..nIter) {
-        foreach(ref ptr; ptrs) {
-            ptr = GC.malloc(uniform(8, 2048), GC.BlkAttr.NO_SCAN);
+    foreach(i; 0..nIter)
+    {
+        foreach(ref ptr; ptrs)
+        {
+            immutable sz = uniform(8, 2048, rnd);
+            ptr = GC.malloc(sz, GC.BlkAttr.NO_SCAN);
         }
     }
 }

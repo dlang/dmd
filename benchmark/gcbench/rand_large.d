@@ -15,14 +15,23 @@ import std.random, core.memory, std.stdio;
 
 enum nIter = 1000;
 
-void main() {
+void main()
+{
+    version (RANDOMIZE)
+        auto rnd = Random(unpredictableSeed);
+    else
+        auto rnd = Random(1202387523);
+
     auto ptrs = new void*[1024];
 
     // Allocate 1024 large blocks with size uniformly distributed between 1
     // and 128 kilobytes.
-    foreach(i; 0..nIter) {
-        foreach(ref ptr; ptrs) {
-            ptr = GC.malloc(uniform(1024, 128 * 1024 + 1), GC.BlkAttr.NO_SCAN);
+    foreach(i; 0..nIter)
+    {
+        foreach(ref ptr; ptrs)
+        {
+            immutable sz = uniform(1024, 128 * 1024 + 1, rnd);
+            ptr = GC.malloc(sz, GC.BlkAttr.NO_SCAN);
         }
     }
 }
