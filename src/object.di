@@ -367,8 +367,8 @@ extern (C)
     // size_t _aaLen(in void* p) pure nothrow @nogc;
     private void* _aaGetX(void** paa, const TypeInfo keyti, in size_t valuesize, in void* pkey) pure nothrow;
     // inout(void)* _aaGetRvalueX(inout void* p, in TypeInfo keyti, in size_t valuesize, in void* pkey);
-    inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize) pure nothrow;
-    inout(void)[] _aaKeys(inout void* p, in size_t keysize) pure nothrow;
+    inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize, const TypeInfo tiValArray) pure nothrow;
+    inout(void)[] _aaKeys(inout void* p, in size_t keysize, const TypeInfo tiKeyArray) pure nothrow;
     void* _aaRehash(void** pp, in TypeInfo keyti) pure nothrow;
 
     // alias _dg_t = extern(D) int delegate(void*);
@@ -507,7 +507,7 @@ auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 
 Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 {
-    auto a = cast(void[])_aaKeys(cast(inout(void)*)aa, Key.sizeof);
+    auto a = cast(void[])_aaKeys(cast(inout(void)*)aa, Key.sizeof, typeid(Key[]));
     return *cast(Key[]*)&a;
 }
 
@@ -518,7 +518,7 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 
 Value[] values(T : Value[Key], Value, Key)(T aa) @property
 {
-    auto a = cast(void[])_aaValues(cast(inout(void)*)aa, Key.sizeof, Value.sizeof);
+    auto a = cast(void[])_aaValues(cast(inout(void)*)aa, Key.sizeof, Value.sizeof, typeid(Value[]));
     return *cast(Value[]*)&a;
 }
 

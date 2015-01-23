@@ -19,6 +19,7 @@ private
     import core.stdc.string;
     import core.stdc.stdio;
     import core.memory;
+    import rt.lifetime : _d_newarrayU;
 
     // Convenience function to make sure the NO_INTERIOR gets set on the
     // bucket array.
@@ -164,6 +165,31 @@ in
 {
     assert(aa);
 }
+body
+{
+    if (aa.impl is null)
+    {
+        aa.impl = new Impl();
+        aa.impl.buckets = aa.impl.binit[];
+        aa.impl.firstUsedBucket = aa.impl.buckets.length;
+        aa.impl._keyti = cast() keyti;
+    }
+    return _aaGetImpl(aa, keyti, valuesize, pkey);
+}
+
+void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti, in size_t valuesize, in void* pkey)
+{
+    if (aa.impl is null)
+    {
+        aa.impl = new Impl();
+        aa.impl.buckets = aa.impl.binit[];
+        aa.impl.firstUsedBucket = aa.impl.buckets.length;
+        aa.impl._keyti = cast() ti.key;
+    }
+    return _aaGetImpl(aa, ti.key, valuesize, pkey);
+}
+
+void* _aaGetImpl(AA* aa, const TypeInfo keyti, in size_t valuesize, in void* pkey)
 out (result)
 {
     assert(result);
@@ -208,7 +234,7 @@ body
         // Not found, create new elem
         //printf("create new one\n");
         size_t size = Entry.sizeof + aligntsize(keytitsize) + valuesize;
-        e = cast(Entry *) GC.malloc(size);
+        e = cast(Entry *) GC.malloc(size, 0); // TODO: needs typeid(Entry+)
         e.next = null;
         e.hash = key_hash;
         ubyte* ptail = cast(ubyte*)(e + 1);
@@ -348,7 +374,7 @@ bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
 /********************************************
  * Produce array of values from aa.
  */
-inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize) pure nothrow
+inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize, const TypeInfo tiValueArray) pure nothrow
 {
     size_t resi;
     Array a;
@@ -358,8 +384,7 @@ inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize)
     if (aa.impl !is null)
     {
         a.length = _aaLen(aa);
-        a.ptr = cast(byte*) GC.malloc(a.length * valuesize,
-                                      valuesize < (void*).sizeof ? GC.BlkAttr.NO_SCAN : 0);
+        a.ptr = cast(byte*) _d_newarrayU(tiValueArray, a.length).ptr;
         resi = 0;
         foreach (inout(Entry)* e; aa.impl.buckets[aa.impl.firstUsedBucket..$])
         {
@@ -368,6 +393,7 @@ inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize)
                 memcpy(a.ptr + resi * valuesize,
                        cast(byte*)e + Entry.sizeof + alignsize,
                        valuesize);
+                // TODO: no postblit here?
                 resi++;
                 e = e.next;
             }
@@ -448,14 +474,13 @@ body
 /********************************************
  * Produce array of N byte keys from aa.
  */
-inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize) pure nothrow
+inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize, const TypeInfo tiKeyArray) pure nothrow
 {
     auto len = _aaLen(aa);
     if (!len)
         return null;
 
-    immutable blkAttr = !(aa.impl.keyti.flags & 1) ? GC.BlkAttr.NO_SCAN : 0;
-    auto res = (cast(byte*) GC.malloc(len * keysize, blkAttr))[0 .. len * keysize];
+    void[] res = _d_newarrayU(tiKeyArray, len);
 
     size_t resi = 0;
     // note, can't use firstUsedBucketCache here, aa is inout
@@ -464,6 +489,7 @@ inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize) pure nothrow
         while (e)
         {
             memcpy(&res[resi * keysize], cast(byte*)(e + 1), keysize);
+            // TODO: no postblit here?
             resi++;
             e = e.next;
         }
@@ -643,8 +669,9 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
                 {
                     // Not found, create new elem
                     //printf("create new one\n");
-                    e = cast(Entry *) cast(void*) new void[Entry.sizeof + keytsize + valuesize];
+                    e = cast(Entry *) GC.malloc(Entry.sizeof + keytsize + valuesize); // TODO: needs typeid(Entry+)
                     memcpy(e + 1, pkey, keysize);
+                    e.next = null;
                     e.hash = key_hash;
                     *pe = e;
                     result.nodes++;
