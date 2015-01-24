@@ -1480,13 +1480,12 @@ UnionExp Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         }
         else
         {
-            void *s;
             size_t len = (size_t)(iupr - ilwr);
             unsigned char sz = es1->sz;
 
-            s = mem.malloc((len + 1) * sz);
-            memcpy((utf8_t *)s, (utf8_t *)es1->string + ilwr * sz, len * sz);
-            memset((utf8_t *)s + len * sz, 0, sz);
+            void *s = mem.malloc((len + 1) * sz);
+            memcpy((char *)s, (char *)es1->string + ilwr * sz, len * sz);
+            memset((char *)s + len * sz, 0, sz);
 
             new(&ue) StringExp(loc, s, len, es1->postfix);
             StringExp *es = (StringExp *)ue.exp();
@@ -1532,21 +1531,19 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *n
 {
     size_t newlen =  newval->len;
     size_t sz = newval->sz;
-    utf8_t *s = (utf8_t *)newval->string;
+    void *s = newval->string;
     Type *elemType = existingAE->type->nextOf();
     for (size_t j = 0; j < newlen; j++)
     {
         dinteger_t val;
         switch (sz)
         {
-            case 1: val = s[j]; break;
-            case 2: val = ((unsigned short *)s)[j]; break;
-            case 4: val = ((unsigned *)s)[j]; break;
-            default:
-                assert(0);
-                break;
+            case 1:     val = (( utf8_t *)s)[j];    break;
+            case 2:     val = ((utf16_t *)s)[j];    break;
+            case 4:     val = ((utf32_t *)s)[j];    break;
+            default:    assert(0);                  break;
         }
-        (*existingAE->elements)[j+firstIndex]
+        (*existingAE->elements)[j + firstIndex]
             = new IntegerExp(newval->loc, val, elemType);
     }
 }
@@ -1556,24 +1553,16 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *n
  */
 void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *newae, size_t firstIndex)
 {
-    utf8_t *s = (utf8_t *)existingSE->string;
+    void *s = existingSE->string;
     for (size_t j = 0; j < newae->elements->dim; j++)
     {
-        unsigned value = (unsigned)((*newae->elements)[j]->toInteger());
+        unsigned val = (unsigned)((*newae->elements)[j]->toInteger());
         switch (existingSE->sz)
         {
-            case 1:
-                s[j + firstIndex] = (utf8_t)value;
-                break;
-            case 2:
-                ((unsigned short *)s)[j + firstIndex] = (unsigned short)value;
-                break;
-            case 4:
-                ((unsigned *)s)[j + firstIndex] = value;
-                break;
-            default:
-                assert(0);
-                break;
+            case 1:     (( utf8_t *)s)[j + firstIndex] = ( utf8_t)val;  break;
+            case 2:     ((utf16_t *)s)[j + firstIndex] = (utf16_t)val;  break;
+            case 4:     ((utf32_t *)s)[j + firstIndex] = (utf32_t)val;  break;
+            default:    assert(0);                                      break;
         }
     }
 }
@@ -1583,10 +1572,10 @@ void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *n
  */
 void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, size_t firstIndex)
 {
-    utf8_t *s = (utf8_t *)existingSE->string;
+    void *s = existingSE->string;
     size_t sz = existingSE->sz;
     assert(sz == newstr->sz);
-    memcpy(s + firstIndex * sz, newstr->string, sz * newstr->len);
+    memcpy((char *)s + firstIndex * sz, newstr->string, sz * newstr->len);
 }
 
 /* Compare a string slice with another string slice.
@@ -1594,12 +1583,11 @@ void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, size_
  */
 int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t lo2, size_t len)
 {
-    utf8_t *s1 = (utf8_t *)se1->string;
-    utf8_t *s2 = (utf8_t *)se2->string;
+    void *s1 = se1->string;
+    void *s2 = se2->string;
     size_t sz = se1->sz;
     assert(sz == se2->sz);
-
-    return memcmp(s1 + sz * lo1, s2 + sz * lo2, sz * len);
+    return memcmp((char *)s1 + sz * lo1, (char *)s2 + sz * lo2, sz * len);
 }
 
 /* Compare a string slice with an array literal slice
@@ -1607,28 +1595,21 @@ int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t 
  */
 int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len)
 {
-    utf8_t *s = (utf8_t *)se1->string;
+    void *s = se1->string;
     size_t sz = se1->sz;
 
     for (size_t j = 0; j < len; j++)
     {
-        unsigned value = (unsigned)((*ae2->elements)[j + lo2]->toInteger());
-        unsigned svalue;
+        unsigned val2 = (unsigned)((*ae2->elements)[j + lo2]->toInteger());
+        unsigned val1;
         switch (sz)
         {
-            case 1:
-                svalue = s[j + lo1];
-                break;
-            case 2:
-                svalue = ((unsigned short *)s)[j+lo1];
-                break;
-            case 4:
-                svalue = ((unsigned *)s)[j + lo1];
-                break;
-            default:
-                assert(0);
+            case 1:     val1 = (( utf8_t *)s)[j + lo1]; break;
+            case 2:     val1 = ((utf16_t *)s)[j + lo1]; break;
+            case 4:     val1 = ((utf32_t *)s)[j + lo1]; break;
+            default:    assert(0);                      break;
         }
-        int c = svalue - value;
+        int c = val1 - val2;
         if (c)
             return c;
     }
@@ -1664,7 +1645,6 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         if (tn->ty == Tchar || tn->ty == Twchar || tn->ty == Tdchar)
         {
             // Create a StringExp
-            void *s;
             if (t->nextOf())
                 t = t->nextOf()->toBasetype();
             unsigned char sz = (unsigned char)t->size();
@@ -1672,14 +1652,14 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
             dinteger_t v = e->toInteger();
 
             size_t len = (t->ty == tn->ty) ? 1 : utf_codeLength(sz, (dchar_t)v);
-            s = mem.malloc((len + 1) * sz);
+            void *s = mem.malloc((len + 1) * sz);
             if (t->ty == tn->ty)
-                memcpy((utf8_t *)s, &v, sz);
+                memcpy(s, &v, sz);
             else
                 utf_encode(sz, s, (dchar_t)v);
 
             // Add terminating 0
-            memset((utf8_t *)s + len * sz, 0, sz);
+            memset((char *)s + len * sz, 0, sz);
 
             new(&ue) StringExp(loc, s, len);
             StringExp *es = (StringExp *)ue.exp();
@@ -1729,7 +1709,6 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
     else if (e1->op == TOKstring && e2->op == TOKstring)
     {
         // Concatenate the strings
-        void *s;
         StringExp *es1 = (StringExp *)e1;
         StringExp *es2 = (StringExp *)e2;
         size_t len = es1->len + es2->len;
@@ -1745,12 +1724,12 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
             assert(ue.exp()->type);
             return ue;
         }
-        s = mem.malloc((len + 1) * sz);
-        memcpy(s, es1->string, es1->len * sz);
-        memcpy((utf8_t *)s + es1->len * sz, es2->string, es2->len * sz);
+        void *s = mem.malloc((len + 1) * sz);
+        memcpy((char *)s, es1->string, es1->len * sz);
+        memcpy((char *)s + es1->len * sz, es2->string, es2->len * sz);
 
         // Add terminating 0
-        memset((utf8_t *)s + len * sz, 0, sz);
+        memset((char *)s + len * sz, 0, sz);
 
         new(&ue) StringExp(loc, s, len);
         StringExp *es = (StringExp *)ue.exp();
@@ -1803,7 +1782,6 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
     else if (e1->op == TOKstring && e2->op == TOKint64)
     {
         // string ~ char --> string
-        void *s;
         StringExp *es1 = (StringExp *)e1;
         StringExp *es;
         unsigned char sz = es1->sz;
@@ -1815,15 +1793,15 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         size_t len = es1->len;
         len += homoConcat ? 1 : utf_codeLength(sz, (dchar_t)v);
 
-        s = mem.malloc((len + 1) * sz);
+        void *s = mem.malloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
         if (homoConcat)
-             memcpy((utf8_t *)s + (sz * es1->len), &v, sz);
+             memcpy((char *)s + (sz * es1->len), &v, sz);
         else
-             utf_encode(sz, (utf8_t *)s + (sz * es1->len), (dchar_t)v);
+             utf_encode(sz, (char *)s + (sz * es1->len), (dchar_t)v);
 
         // Add terminating 0
-        memset((utf8_t *)s + len * sz, 0, sz);
+        memset((char *)s + len * sz, 0, sz);
 
         new(&ue) StringExp(loc, s, len);
         es = (StringExp *)ue.exp();
@@ -1836,18 +1814,17 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
     else if (e1->op == TOKint64 && e2->op == TOKstring)
     {
         // Concatenate the strings
-        void *s;
         StringExp *es2 = (StringExp *)e2;
         size_t len = 1 + es2->len;
         unsigned char sz = es2->sz;
         dinteger_t v = e1->toInteger();
 
-        s = mem.malloc((len + 1) * sz);
-        memcpy((utf8_t *)s, &v, sz);
-        memcpy((utf8_t *)s + sz, es2->string, es2->len * sz);
+        void *s = mem.malloc((len + 1) * sz);
+        memcpy((char *)s, &v, sz);
+        memcpy((char *)s + sz, es2->string, es2->len * sz);
 
         // Add terminating 0
-        memset((utf8_t *)s + len * sz, 0, sz);
+        memset((char *)s + len * sz, 0, sz);
 
         new(&ue) StringExp(loc, s, len);
         StringExp *es = (StringExp *)ue.exp();
