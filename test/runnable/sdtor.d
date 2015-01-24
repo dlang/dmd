@@ -3506,6 +3506,19 @@ bool test14022()
     struct T
     {
         S[2] sb;
+
+        this(ref S[2] sa)
+        {
+            assert(op == "");
+            this.sb = sa;   // TOKconstruct
+            assert(op == "BC", op);
+            assert(sb == [S('b'), S('c')]);
+        }
+        void test(ref S[2] sa)
+        {
+            this.sb = sa;    // dotvar: resolveSlice(newva)
+            assert(op == "BxCy");
+        }
     }
 
     op = null;
@@ -3520,6 +3533,29 @@ bool test14022()
         assert(op == "AxByab");
     }
     assert(op == "AxByabqpba");
+
+    op = null;
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        T t = T(sa[1..3]);
+        t.sb[0].x = 'x';
+        t.sb[1].x = 'y';
+        assert(sa == [S('a'), S('b'), S('c')]);
+        assert(t.sb == [S('x'), S('y')]);
+        assert(op == "BC");
+    }
+    assert(op == "BCyxcba");
+
+    op = null;
+    {
+        S[3] sx = [S('a'), S('b'), S('c')];
+        T t;    t.sb[0].x = 'x';
+                t.sb[1].x = 'y';
+        t.test(sx[1..3]);
+        assert(op == "BxCy");
+        assert(t.sb == [S('b'), S('c')]);
+    }
+    assert(op == "BxCycbcba");
 
     return true;
 }
