@@ -287,3 +287,14 @@ static assert(CallExp.test11696b.mangleof == "_ZN7CallExp10test11696bE3LocP10Exp
 static assert(CallExp.test11696c.mangleof == "_ZN7CallExp10test11696cE3LocPP10ExpressionS2_");
 static assert(CallExp.test11696d.mangleof == "_ZN7CallExp10test11696dE3LocPP10ExpressionS3_");
 
+/**************************************/
+// 13337
+
+extern(C++, N13337a.N13337b.N13337c)
+{
+  struct S13337{}
+  void foo13337(S13337 s);
+}
+
+static assert(foo13337.mangleof == "_ZN7N13337a7N13337b7N13337c8foo13337ENS1_6S13337E");
+

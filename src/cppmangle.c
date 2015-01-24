@@ -249,7 +249,6 @@ class CppMangleVisitor : public Visitor
         //printf("prefix_name(%s)\n", s->toChars());
         if (!substitute(s))
         {
-            store(s);
             Dsymbol *p = s->toParent();
             if (p && p->isTemplateInstance())
             {
@@ -268,6 +267,7 @@ class CppMangleVisitor : public Visitor
             {
                 prefix_name(p);
             }
+            store(s);
             source_name(s);
         }
     }
