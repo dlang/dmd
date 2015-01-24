@@ -3851,21 +3851,6 @@ public:
     Expression *interpretAssignToSlice(BinExp *e,
         Expression *e1, Expression *newval, bool isBlockAssignment)
     {
-        Type *tn = newval->type->toBasetype();
-        if (!isBlockAssignment)
-            tn = tn->nextOf()->toBasetype();
-        bool wantRef = (tn->ty == Tarray || isAssocArray(tn) ||tn->ty == Tclass);
-        if (!wantRef)
-        {
-            Expression *orignewval = newval;
-            newval = resolveSlice(newval);
-            if (CTFEExp::isCantExp(newval))
-            {
-                originalExp->error("CTFE internal error: slice %s", orignewval->toChars());
-                assert(0);
-            }
-        }
-
         int lowerbound;
         size_t upperbound;
 
@@ -3968,11 +3953,7 @@ public:
         // For slice assignment, we check that the lengths match.
         if (!isBlockAssignment)
         {
-            size_t srclen = 0;
-            if (newval->op == TOKarrayliteral)
-                srclen = ((ArrayLiteralExp *)newval)->elements->dim;
-            else if (newval->op == TOKstring)
-                srclen = ((StringExp *)newval)->len;
+            size_t srclen = (size_t)resolveArrayLength(newval);
             if (srclen != (upperbound - lowerbound))
             {
                 e->error("array length mismatch assigning [0..%d] to [%d..%d]",
@@ -3988,6 +3969,28 @@ public:
             {
                 e->error("cannot modify read-only string literal %s", existingSE->toChars());
                 return CTFEExp::cantexp;
+            }
+
+            if (newval->op == TOKslice)
+            {
+                SliceExp *se = (SliceExp *)newval;
+                Expression *aggr2 = se->e1;
+                if (aggregate == aggr2)
+                {
+                    e->error("overlapping slice assignment [%d..%d] = [%llu..%llu]",
+                        lowerbound, upperbound, se->lwr->toInteger(), se->upr->toInteger());
+                    return CTFEExp::cantexp;
+                }
+            #if 1   // todo: instead we can directly access to each elements of the slice
+                Expression *orignewval = newval;
+                newval = resolveSlice(newval);
+                if (CTFEExp::isCantExp(newval))
+                {
+                    e->error("CTFE internal error: slice %s", orignewval->toChars());
+                    return CTFEExp::cantexp;
+                }
+            #endif
+                assert(newval->op != TOKslice);
             }
             if (newval->op == TOKstring)
             {
@@ -4028,6 +4031,91 @@ public:
         {
             ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
 
+            if (newval->op == TOKslice && !isBlockAssignment)
+            {
+                SliceExp *se = (SliceExp *)newval;
+                Expression *aggr2 = se->e1;
+                dinteger_t srclower = se->lwr->toInteger();
+                dinteger_t srcupper = se->upr->toInteger();
+                bool wantCopy = (newval->type->toBasetype()->baseElemOf()->ty == Tstruct);
+
+                //printf("oldval = %p %s[%d..%u]\nnewval = %p %s[%llu..%llu]\n",
+                //    aggregate, aggregate->toChars(), lowerbound, upperbound,
+                //    aggr2, aggr2->toChars(), srclower, srcupper);
+                if (wantCopy)
+                {
+                    // Currently overlapping for struct array is allowed.
+                    // The order of elements processing depends on the overlapping.
+                    // See bugzilla 14024.
+                    assert(aggr2->op == TOKarrayliteral);
+                    Expressions *oldelems = existingAE->elements;
+                    Expressions *newelems = ((ArrayLiteralExp *)aggr2)->elements;
+
+                    Type *elemtype = aggregate->type->nextOf();
+                    bool needsPostblit = e->e2->isLvalue();
+
+                    if (aggregate == aggr2 &&
+                        srclower < lowerbound && lowerbound < srcupper)
+                    {
+                        // reverse order
+                        for (size_t i = upperbound - lowerbound; 0 < i--; )
+                        {
+                            Expression *oldelem = (*oldelems)[(size_t)(i + firstIndex)];
+                            Expression *newelem = (*newelems)[(size_t)(i + srclower)];
+                            newelem = copyLiteral(newelem).copy();
+                            newelem->type = elemtype;
+                            if (needsPostblit)
+                            {
+                                if (Expression *x = evaluatePostblit(istate, newelem))
+                                    return x;
+                            }
+                            if (Expression *x = evaluateDtor(istate, oldelem))
+                                return x;
+                            (*oldelems)[i] = newelem;
+                        }
+                    }
+                    else
+                    {
+                        // normal order
+                        for (size_t i = 0; i < upperbound - lowerbound; i++)
+                        {
+                            Expression *oldelem = (*oldelems)[(size_t)(i + firstIndex)];
+                            Expression *newelem = (*newelems)[(size_t)(i + srclower)];
+                            newelem = copyLiteral(newelem).copy();
+                            newelem->type = elemtype;
+                            if (needsPostblit)
+                            {
+                                if (Expression *x = evaluatePostblit(istate, newelem))
+                                    return x;
+                            }
+                            if (Expression *x = evaluateDtor(istate, oldelem))
+                                return x;
+                            (*oldelems)[i] = newelem;
+                        }
+                    }
+
+                    //assert(0);
+                    return newval;  // oldval?
+                }
+                if (aggregate == aggr2)
+                {
+                    e->error("overlapping slice assignment [%d..%d] = [%llu..%llu]",
+                        lowerbound, upperbound, se->lwr->toInteger(), se->upr->toInteger());
+                    return CTFEExp::cantexp;
+                }
+            #if 1   // todo: instead we can directly access to each elements of the slice
+                Expression *orignewval = newval;
+                newval = resolveSlice(newval);
+                if (CTFEExp::isCantExp(newval))
+                {
+                    e->error("CTFE internal error: slice %s", orignewval->toChars());
+                    return CTFEExp::cantexp;
+                }
+            #endif
+                // no overlapping
+                //length?
+                assert(newval->op != TOKslice);
+            }
             if (newval->op == TOKstring && !isBlockAssignment)
             {
                 /* Mixed slice: it was initialized as an array literal of chars/integers.
@@ -4070,6 +4158,8 @@ public:
             bool cow = !(newval->op == TOKstructliteral ||
                          newval->op == TOKarrayliteral ||
                          newval->op == TOKstring);
+            Type *tn = newval->type->toBasetype();
+            bool wantRef = (tn->ty == Tarray || isAssocArray(tn) ||tn->ty == Tclass);
             for (size_t j = 0; j < upperbound - lowerbound; j++)
             {
                 if (!directblk)

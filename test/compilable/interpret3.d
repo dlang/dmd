@@ -1240,7 +1240,7 @@ int bug5972()
     assert(a[0] == "aq");
     assert(b == "aq");
     assert(b[1] == 'q');
-    a[0][0 .. $ - 1][0 .. $] = a[0][0 .. $ - 1][0 .. $];
+    //a[0][0 .. $ - 1][0 .. $] = a[0][0 .. $ - 1][0 .. $];  // overlap
     return 56;
 }
 static assert(bug5972() == 56);
@@ -7300,3 +7300,55 @@ static assert(
     f13295(s);
     return s.n == 1; // true <- false
 }());
+
+/**************************************************
+    14024 - CTFE version
+**************************************************/
+
+bool test14024()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    S[4] mem;
+    ref S[2] slice(int a, int b) { return mem[a .. b][0 .. 2]; }
+
+    op = null;
+    mem[0].x = 'a';
+    mem[1].x = 'b';
+    mem[2].x = 'x';
+    mem[3].x = 'y';
+    slice(0, 2) = slice(2, 4);  // [ab] = [xy]
+    assert(op == "XaYb", op);
+
+    op = null;
+    mem[0].x = 'x';
+    mem[1].x = 'y';
+    mem[2].x = 'a';
+    mem[3].x = 'b';
+    slice(2, 4) = slice(0, 2);  // [ab] = [xy]
+    assert(op == "XaYb", op);
+
+    op = null;
+    mem[0].x = 'a';
+    mem[1].x = 'b';
+    mem[2].x = 'c';
+    slice(0, 2) = slice(1, 3);  // [ab] = [bc]
+    assert(op == "BaCb", op);
+
+    op = null;
+    mem[0].x = 'x';
+    mem[1].x = 'y';
+    mem[2].x = 'z';
+    slice(1, 3) = slice(0, 2);  // [yz] = [xy]
+    assert(op == "YzXy", op);
+
+    return true;
+}
+static assert(test14024());
