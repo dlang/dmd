@@ -3,6 +3,8 @@
 
 import core.memory;
 
+// see http://forum.dlang.org/thread/4BB6296E.6050506@digitalmars.com for more info
+
 // failure case for bug fixed by druntime rev 282
 // how it works:
 // The erroneous code used the first element in the LRU cache to determine the
@@ -32,8 +34,6 @@ import core.memory;
 //
 void main()
 {
-version(X86)
-{
     // fill up the cache to make it wrap, The block info cache has 8 elements,
     // and the first element is not the first one filled, so we want to wrap to
     // that first element we want to fill in
@@ -58,13 +58,8 @@ version(X86)
     y = new int[1];
     y ~= 1;
 
-    // sanity check
-    assert((cast(void *)x.ptr - cast(void*)y.ptr) == 16, "Bug check code is wrong, please reorder allocations!");
-
     // verify the noscan flag is 0 on the pointer-containing blocks
     assert((GC.getAttr(x.ptr) & GC.BlkAttr.NO_SCAN) == 0);
     x ~= "hello".dup; // this should leave the attributes alone
     assert((GC.getAttr(x.ptr) & GC.BlkAttr.NO_SCAN) == 0); // fails on 2.042
 }
-}
-
