@@ -3708,10 +3708,13 @@ public:
                         Expression *oldelem = (*oldelems)[j];
                         Expression *newelem = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
                         // Bugzilla 9245
-                        if (Expression *x = evaluatePostblit(istate, newelem))
+                        if (e->e2->isLvalue())
                         {
-                            result = x;
-                            return;
+                            if (Expression *x = evaluatePostblit(istate, newelem))
+                            {
+                                result = x;
+                                return;
+                            }
                         }
                         // Bugzilla 13661
                         if (Expression *x = evaluateDtor(istate, oldelem))

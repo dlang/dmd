@@ -3454,15 +3454,13 @@ void test13586()
 
 bool test13661()
 {
-    string postblit;
-    string dtor;
+    string op;
 
     struct S
     {
         char x = 'x';
-
-        this(this) { postblit ~= x; }
-        ~this()    { dtor ~= x; }
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
 
         ref auto opAssign(T)(T arg)
         {
@@ -3476,19 +3474,17 @@ bool test13661()
 
         a[0].x = 'a';
         a[1].x = 'b';
-
         a = a.init;
-        assert(dtor == "ab");
+        assert(op == "ab");
         assert(a[0].x == 'x' && a[1].x == 'x');
 
         a[0].x = 'c';
         a[1].x = 'd';
-
         a = [S(), S()];   // equivalent a = a.init
-        assert(dtor == "abcd");
+        assert(op == "abcd");
         assert(a[0].x == 'x' && a[1].x == 'x');
     }
-    assert(dtor == "abcdxx");
+    assert(op == "abcdxx");
 
     return true;
 }
