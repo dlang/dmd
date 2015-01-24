@@ -284,7 +284,7 @@ static IDXSTR elf_addmangled(Symbol *s)
 }
 
 /**************************
- * Ouput read only data and generate a symbol for it.
+ * Output read only data and generate a symbol for it.
  *
  */
 
@@ -306,7 +306,6 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
 #endif
     {
         //printf("MsCoffObj::sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
-        assert(0);                      // haven't figured out a section for it
         alignOffset(CDATA, tysize(ty));
         s = symboldata(CDoffset, ty);
         s->Sseg = CDATA;
@@ -314,7 +313,7 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
         MsCoffObj::bytes(CDATA, CDoffset, len, p);
     }
 
-    s->Sfl = FLextern;
+    s->Sfl = FLdata; //FLextern;
     return s;
 }
 
@@ -326,6 +325,7 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
 int MsCoffObj::data_readonly(char *p, int len, segidx_t *pseg)
 {
     int oldoff;
+#if !MARS
     if (I64 || I32)
     {
         oldoff = Doffset;
@@ -335,6 +335,7 @@ int MsCoffObj::data_readonly(char *p, int len, segidx_t *pseg)
         *pseg = DATA;
     }
     else
+#endif
     {
         oldoff = CDoffset;
         SegData[CDATA]->SDbuf->reserve(len);
@@ -433,7 +434,10 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
     addScnhdr(".bss",     IMAGE_SCN_CNT_UNINITIALIZED_DATA |
                           alignData |
                           IMAGE_SCN_MEM_READ |
-                          IMAGE_SCN_MEM_WRITE);        // UDATA
+                          IMAGE_SCN_MEM_WRITE);             // UDATA
+    addScnhdr(".rdata",   IMAGE_SCN_CNT_INITIALIZED_DATA |
+                          alignData |
+                          IMAGE_SCN_MEM_READ);              // CONST
 
     seg_count = 0;
 
@@ -442,6 +446,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 #define SHI_DATA        3
 #define SHI_TEXT        4
 #define SHI_UDATA       5
+#define SHI_CDATA       6
 
     getsegment2(SHI_TEXT);
     assert(SegData[CODE]->SDseg == CODE);
@@ -449,10 +454,13 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
     getsegment2(SHI_DATA);
     assert(SegData[DATA]->SDseg == DATA);
 
-    segidx_drectve = getsegment2(SHI_DRECTVE);  // put this here just so UDATA can be seg 4
+    getsegment2(SHI_CDATA);
+    assert(SegData[CDATA]->SDseg == CDATA);
 
     getsegment2(SHI_UDATA);
     assert(SegData[UDATA]->SDseg == UDATA);
+
+    segidx_drectve = getsegment2(SHI_DRECTVE);
 
     segidx_debugS  = getsegment2(SHI_DEBUGS);
 
