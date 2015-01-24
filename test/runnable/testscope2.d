@@ -79,10 +79,93 @@ void test4()
 
 /********************************************/
 
+ref int foo(return ref int x, ref int y)
+{
+    return x;
+}
+
+ref int bar()
+{
+    int x;
+    static int y = 7;
+    return foo(y, x);
+}
+
+void test5()
+{
+    int x = bar();
+    assert(x == 7);
+}
+
+/********************************************/
+
+struct S6
+{
+    int x = 8;
+
+    ref int bar() return
+    {
+	return x;
+    }
+}
+
+void test6()
+{
+    S6 s;
+    int b = s.bar();
+    assert(b == 8);
+}
+
+/********************************************/
+
+class C
+{
+    int x;
+    ref int foo(return ref int x) { return x; }
+    ref int bar() return { return x; }
+}
+
+class D : C
+{
+    override ref int foo(ref int x) { static int y; return y; }
+    override ref int bar() { static int y; return y; }
+}
+
+void test7()
+{
+}
+
+/********************************************/
+
+struct S8(T)
+{
+    int x;
+
+    ref int bar() // infer 'return'
+    {
+	return x;
+    }
+}
+
+ref int test8a(return ref S8!int s)
+{
+    return s.bar();
+}
+
+void test8()
+{
+}
+
+/********************************************/
+
 void main()
 {
     test3();
     test4();
+    test5();
+    test6();
+    test7();
+    test8();
     printf("Success\n");
 }
 
