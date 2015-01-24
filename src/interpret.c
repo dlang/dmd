@@ -4568,27 +4568,37 @@ public:
             if (pthis->op == TOKdottype)
                 pthis = ((DotTypeExp *)dve->e1)->e1;
 
-            // Special handling for: typeid(T[n]).destroy(cast(void*)&v)
+            // Special handling for: typeid(T[n]).destroy(ea)
             TypeInfoDeclaration *tid;
             if (pthis->op == TOKsymoff &&
                 (tid = ((SymOffExp *)pthis)->var->isTypeInfoDeclaration()) != NULL &&
                 tid->tinfo->toBasetype()->ty == Tsarray &&
                 fd->ident == Id::destroy &&
-                e->arguments->dim == 1 &&
-                (*e->arguments)[0]->op == TOKsymoff)
+                e->arguments->dim == 1)
             {
                 Type *tb = tid->tinfo->baseElemOf();
                 if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->dtor)
                 {
-                    Declaration *v = ((SymOffExp *)(*e->arguments)[0])->var;
-                    Expression *arg = getVarExp(e->loc, istate, v, ctfeNeedRvalue);
-
-                    result = evaluateDtor(istate, arg);
-                    if (result)
+                    Expression *ea = (*e->arguments)[0];
+                    // ea would be:
+                    //  &var        <-- SymOffExp
+                    //  cast(void*)&var
+                    //  cast(void*)&this.field
+                    //  etc.
+                    if (ea->op == TOKcast)
+                        ea = ((CastExp *)ea)->e1;
+                    if (ea->op == TOKsymoff)
+                        result = getVarExp(e->loc, istate, ((SymOffExp *)ea)->var, ctfeNeedRvalue);
+                    else if (ea->op == TOKaddress)
+                        result = interpret(((AddrExp *)ea)->e1, istate);
+                    else
+                        assert(0);
+                    if (CTFEExp::isCantExp(result))
                         return;
-                    result = CTFEExp::voidexp;
+                    result = evaluateDtor(istate, result);
+                    if (!result)
+                        result = CTFEExp::voidexp;
                     return;
-
                 }
             }
         }
