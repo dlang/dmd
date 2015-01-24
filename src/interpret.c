@@ -3847,18 +3847,6 @@ public:
             }
             size_t index = (size_t)indexToModify;
 
-            Type *tn = newval->type->toBasetype();
-            bool wantRef = (tn->ty == Tarray || isAssocArray(tn) || tn->ty == Tclass);
-            if (!wantRef)
-            {
-                newval = resolveSlice(newval);
-                if (CTFEExp::isCantExp(newval))
-                {
-                    e->error("CTFE internal error: index assignment %s", e->toChars());
-                    assert(0);
-                }
-            }
-
             if (aggregate->op == TOKstring)
             {
                 StringExp *existingSE = (StringExp *)aggregate;
@@ -3893,6 +3881,36 @@ public:
             if (newval->op == TOKstructliteral)
             {
                 assignInPlace(oldval, newval);
+            }
+            else if (wantCopy && e->op == TOKassign)
+            {
+                assert(oldval->op == TOKarrayliteral);
+                assert(newval->op == TOKarrayliteral);
+
+                Expressions *oldelems = ((ArrayLiteralExp *)oldval)->elements;
+                Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
+                assert(oldelems->dim == newelems->dim);
+
+                Type *elemtype = oldval->type->nextOf();
+                for (size_t i = 0; i < newelems->dim; i++)
+                {
+                    Expression *oldelem = (*oldelems)[i];
+                    Expression *newelem = paintTypeOntoLiteral(elemtype, (*newelems)[i]);
+                    if (e->e2->isLvalue())
+                    {
+                        if (Expression *x = evaluatePostblit(istate, newelem))
+                        {
+                            result = x;
+                            return;
+                        }
+                    }
+                    if (Expression *x = evaluateDtor(istate, oldelem))
+                    {
+                        result = x;
+                        return;
+                    }
+                    (*oldelems)[i] = newelem;
+                }
             }
             else
             {
