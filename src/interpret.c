@@ -3368,12 +3368,133 @@ public:
         // ---------------------------------------
         //      Interpret left hand side
         // ---------------------------------------
+        AssocArrayLiteralExp *existingAA = NULL;
+        Expression *lastIndex = NULL;
+        Expression *oldval = NULL;
         if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
         {
-            assert(((IndexExp *)e1)->modifiable);
+            // ---------------------------------------
+            //      Deal with AA index assignment
+            // ---------------------------------------
+            /* This needs special treatment if the AA doesn't exist yet.
+             * There are two special cases:
+             * (1) If the AA is itself an index of another AA, we may need to create
+             *     multiple nested AA literals before we can insert the new value.
+             * (2) If the ultimate AA is null, no insertion happens at all. Instead,
+             *     we create nested AA literals, and change it into a assignment.
+             */
+            IndexExp *ie = (IndexExp *)e1;
+            int depth = 0;   // how many nested AA indices are there?
+            while (ie->e1->op == TOKindex &&
+                   ((IndexExp *)ie->e1)->e1->type->toBasetype()->ty == Taarray)
+            {
+                assert(ie->modifiable);
+                ie = (IndexExp *)ie->e1;
+                ++depth;
+            }
+
+            // Get the AA value to be modified.
+            Expression *aggregate = interpret(ie->e1, istate);
+            if (exceptionOrCant(aggregate))
+                return;
+            if (aggregate->op == TOKassocarrayliteral)
+            {
+                existingAA = (AssocArrayLiteralExp *)aggregate;
+
+                // Normal case, ultimate parent AA already exists
+                // We need to walk from the deepest index up, checking that an AA literal
+                // already exists on each level.
+                lastIndex = interpret(((IndexExp *)e1)->e2, istate);
+                lastIndex = resolveSlice(lastIndex);    // only happens with AA assignment
+                if (exceptionOrCant(lastIndex))
+                    return;
+
+                while (depth > 0)
+                {
+                    // Walk the syntax tree to find the indexExp at this depth
+                    IndexExp *xe = (IndexExp *)e1;
+                    for (int d= 0; d < depth; ++d)
+                        xe = (IndexExp *)xe->e1;
+
+                    Expression *ekey = interpret(xe->e2, istate);
+                    if (exceptionOrCant(ekey))
+                        return;
+                    ekey = resolveSlice(ekey);  // only happens with AA assignment
+
+                    // Look up this index in it up in the existing AA, to get the next level of AA.
+                    AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(e->loc, existingAA, ekey);
+                    if (exceptionOrCant(newAA))
+                        return;
+                    if (!newAA)
+                    {
+                        // Doesn't exist yet, create an empty AA...
+                        Expressions *keysx = new Expressions();
+                        Expressions *valuesx = new Expressions();
+                        newAA = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
+                        newAA->type = xe->type;
+                        newAA->ownedByCtfe = 1;
+                        //... and insert it into the existing AA.
+                        existingAA->keys->push(ekey);
+                        existingAA->values->push(newAA);
+                    }
+                    existingAA = newAA;
+                    --depth;
+                }
+
+                if (fp)
+                    oldval = findKeyInAA(e->loc, existingAA, lastIndex);
+            }
+            else
+            {
+                /* The AA is currently null. 'aggregate' is actually a reference to
+                 * whatever contains it. It could be anything: var, dotvarexp, ...
+                 * We rewrite the assignment from:
+                 *     aa[i][j] op= newval;
+                 * into:
+                 *     aa = [i:[j:T.init]];
+                 *     aa[j] op= newval;
+                 */
+                oldval = copyLiteral(e->e1->type->defaultInitLiteral(e->loc)).copy();
+
+                Expression *newaae = oldval;
+                while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+                {
+                    Expression *ekey = interpret(((IndexExp *)e1)->e2, istate);
+                    if (exceptionOrCant(ekey))
+                        return;
+                    ekey = resolveSlice(ekey);  // only happens with AA assignment
+                    Expressions *keysx = new Expressions();
+                    Expressions *valuesx = new Expressions();
+                    keysx->push(ekey);
+                    valuesx->push(newaae);
+                    AssocArrayLiteralExp *aae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
+                    aae->type = ((IndexExp *)e1)->e1->type;
+                    aae->ownedByCtfe = 1;
+                    if (!existingAA)
+                    {
+                        existingAA = aae;
+                        lastIndex = ekey;
+                    }
+                    newaae = aae;
+                    e1 = ((IndexExp *)e1)->e1;
+                }
+
+                // We must set to aggregate with newaae
+                e1 = interpret(e1, istate, ctfeNeedLvalue);
+                if (exceptionOrCant(e1))
+                    return;
+                e1 = assignToLvalue(e, e1, newaae);
+                if (exceptionOrCant(e1))
+                    return;
+            }
+            assert(existingAA && lastIndex);
+            e1 = NULL;  // stomp
         }
         else if (e1->op == TOKarraylength)
         {
+            oldval = interpret(e1, istate);
+            if (exceptionOrCant(oldval))
+                return;
         }
         else if (e->op == TOKconstruct || e->op == TOKblit)
         {
@@ -3403,6 +3524,22 @@ public:
         L1:
             e1 = interpret(e1, istate, ctfeNeedLvalue);
             if (exceptionOrCant(e1))
+                return;
+
+            if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+            {
+                IndexExp *ie = (IndexExp *)e1;
+                assert(ie->e1->op == TOKassocarrayliteral);
+                existingAA = (AssocArrayLiteralExp *)ie->e1;
+                lastIndex = ie->e2;
+            }
+        }
+
+        // If it isn't a simple assignment, we need the existing value
+        if (fp && !oldval)
+        {
+            oldval = interpret(e1, istate);
+            if (exceptionOrCant(oldval))
                 return;
         }
 
@@ -3435,16 +3572,9 @@ public:
         //  Also determine the return value (except for slice
         //  assignments, which are more complicated)
         // ----------------------------------------------------
-        Expression *oldval = NULL;
-        if (fp || e1->op == TOKarraylength)
-        {
-            // If it isn't a simple assignment, we need the existing value
-            oldval = interpret(e1, istate);
-            if (exceptionOrCant(oldval))
-                return;
-        }
         if (fp)
         {
+            assert(oldval);
             if (e->e1->type->ty != Tpointer)
             {
                 // ~= can create new values (see bug 6052)
@@ -3489,118 +3619,24 @@ public:
             }
         }
 
-        // ---------------------------------------
-        //      Deal with AA index assignment
-        // ---------------------------------------
-        /* This needs special treatment if the AA doesn't exist yet.
-         * There are two special cases:
-         * (1) If the AA is itself an index of another AA, we may need to create
-         *     multiple nested AA literals before we can insert the new value.
-         * (2) If the ultimate AA is null, no insertion happens at all. Instead,
-         *     we create nested AA literals, and change it into a assignment.
-         */
-        if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+        if (existingAA)
         {
-            IndexExp *ie = (IndexExp *)e1;
-            int depth = 0; // how many nested AA indices are there?
-            while (ie->e1->op == TOKindex && ((IndexExp *)ie->e1)->e1->type->toBasetype()->ty == Taarray)
+            if (existingAA->ownedByCtfe != 1)
             {
-                ie = (IndexExp *)ie->e1;
-                ++depth;
-            }
-
-            // Get the AA value to be modified.
-            Expression *aggregate = interpret(ie->e1, istate);
-            if (exceptionOrCant(aggregate))
-                return;
-            if (aggregate->op == TOKassocarrayliteral)
-            {
-                AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
-                if (existingAA->ownedByCtfe != 1)
-                {
-                    e->error("cannot modify read-only constant %s", existingAA->toChars());
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-
-                // Normal case, ultimate parent AA already exists
-                // We need to walk from the deepest index up, checking that an AA literal
-                // already exists on each level.
-                Expression *index = interpret(((IndexExp *)e1)->e2, istate);
-                if (exceptionOrCant(index))
-                    return;
-                index = resolveSlice(index);    // only happens with AA assignment
-                while (depth > 0)
-                {
-                    // Walk the syntax tree to find the indexExp at this depth
-                    IndexExp *xe = (IndexExp *)e1;
-                    for (int d= 0; d < depth; ++d)
-                        xe = (IndexExp *)xe->e1;
-
-                    Expression *indx = interpret(xe->e2, istate);
-                    if (exceptionOrCant(indx))
-                        return;
-                    indx = resolveSlice(indx);  // only happens with AA assignment
-
-                    // Look up this index in it up in the existing AA, to get the next level of AA.
-                    AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(e->loc, existingAA, indx);
-                    if (exceptionOrCant(newAA))
-                        return;
-                    if (!newAA)
-                    {
-                        // Doesn't exist yet, create an empty AA...
-                        Expressions *valuesx = new Expressions();
-                        Expressions *keysx = new Expressions();
-                        newAA = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
-                        newAA->type = xe->type;
-                        newAA->ownedByCtfe = 1;
-                        //... and insert it into the existing AA.
-                        existingAA->keys->push(indx);
-                        existingAA->values->push(newAA);
-                    }
-                    existingAA = newAA;
-                    --depth;
-                }
-                result = assignAssocArrayElement(e->loc, existingAA, index, newval);
+                e->error("cannot modify read-only constant %s", existingAA->toChars());
+                result = CTFEExp::cantexp;
                 return;
             }
-            else
-            {
-                /* The AA is currently null. 'aggregate' is actually a reference to
-                 * whatever contains it. It could be anything: var, dotvarexp, ...
-                 * We rewrite the assignment from: aggregate[i][j] = newval;
-                 *                           into: aggregate = [i:[j: newval]];
-                 */
 
-                // Determine the return value
-                result = ctfeCast(e->loc, e->type, e->type, fp && post ? oldval : newval);
-                if (exceptionOrCant(result))
-                    return;
+            //printf("\t+L%d existingAA = %s, lastIndex = %s, oldval = %s, newval = %s\n",
+            //    __LINE__, existingAA->toChars(), lastIndex->toChars(), oldval ? oldval->toChars() : NULL, newval->toChars());
+            assignAssocArrayElement(e->loc, existingAA, lastIndex, newval);
 
-                while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
-                {
-                    Expression *index = interpret(((IndexExp *)e1)->e2, istate);
-                    if (exceptionOrCant(index))
-                        return;
-                    index = resolveSlice(index);    // only happens with AA assignment
-                    Expressions *valuesx = new Expressions();
-                    Expressions *keysx = new Expressions();
-                    valuesx->push(newval);
-                    keysx->push(index);
-                    AssocArrayLiteralExp *newaae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
-                    newaae->ownedByCtfe = 1;
-                    newaae->type = ((IndexExp *)e1)->e1->type;
-                    newval = newaae;
-                    e1 = ((IndexExp *)e1)->e1;
-                }
-
-                // We must return to the original aggregate, in case it was a reference
-                e1 = interpret(ie->e1, istate, ctfeNeedLvalue);
-                if (exceptionOrCant(e1))
-                    return;
-            }
+            // Determine the return value
+            result = ctfeCast(e->loc, e->type, e->type, fp && post ? oldval : newval);
+            return;
         }
-        else if (e1->op == TOKarraylength)
+        if (e1->op == TOKarraylength)
         {
             /* Change the assignment from:
              *  arr.length = n;
@@ -3636,8 +3672,15 @@ public:
                 oldval = interpret(e1, istate);
             newval = changeArrayLiteralLength(e->loc, (TypeArray *)t, oldval,
                 oldlen,  newlen).copy();
+
+            e1 = assignToLvalue(e, e1, newval);
+            if (exceptionOrCant(e1))
+                return;
+
+            return;
         }
-        else if (!isBlockAssignment)
+
+        if (!isBlockAssignment)
         {
             newval = ctfeCast(e->loc, e->type, e->type, newval);
             if (exceptionOrCant(newval))

@@ -3168,6 +3168,31 @@ struct Test110s { this(int, int, int){} }
 auto test110 = [Test110f(1, Test110s(1, 2, 3))];
 
 /************************************************/
+// 9023
+
+bool test9023()
+{
+    string[][string] aas;
+    assert(aas.length == 0);
+    aas["a"] ~= "anything";
+    assert(aas.length == 1);
+    assert(aas["a"] == ["anything"]);
+    aas["a"] ~= "more";
+    assert(aas.length == 1);
+    assert(aas["a"] == ["anything", "more"]);
+
+    int[int] aan;
+    assert(aan.length == 0);
+    auto x = aan[0]++;
+    assert(x == 0);
+    assert(aan.length == 1);
+    assert(aan[0] == 1);
+
+    return true;
+}
+static assert(test9023());
+
+/************************************************/
 
 interface IBug9954
 {
@@ -3416,6 +3441,7 @@ int main()
     test6439();
     test6504();
     test8818();
+    test9023();
     test9954();
 
     printf("Success\n");
