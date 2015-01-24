@@ -1039,66 +1039,6 @@ void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t[] dims)
 /**
  *
  */
-extern (C) void[] _d_newarraymT(const TypeInfo ti, size_t ndims, ...)
-{
-    debug(PRINTF) printf("_d_newarraymT(ndims = %d)\n", ndims);
-
-    if (ndims == 0)
-        return null;
-    else
-    {
-        va_list q;
-        version(X86)
-            va_start(q, ndims);
-        else version(Win64)
-            va_start(q, ndims);
-        else version(X86_64)
-            va_start(q, __va_argsave);
-        else
-            static assert(false, "platform not supported");
-
-        auto dims = (cast(size_t*)alloca(size_t.sizeof * ndims))[0..ndims];
-        foreach(ref v; dims)
-            va_arg(q, v);
-        va_end(q);
-        return _d_newarrayOpT!(_d_newarrayT)(ti, dims);
-    }
-}
-
-
-/**
- *
- */
-extern (C) void[] _d_newarraymiT(const TypeInfo ti, size_t ndims, ...)
-{
-    debug(PRINTF) printf("_d_newarraymiT(ndims = %d)\n", ndims);
-
-    if (ndims == 0)
-        return null;
-    else
-    {
-        va_list q;
-        version(X86)
-            va_start(q, ndims);
-        else version(Win64)
-            va_start(q, ndims);
-        else version(X86_64)
-            va_start(q, __va_argsave);
-        else
-            static assert(false, "platform not supported");
-
-        auto dims = (cast(size_t*)alloca(size_t.sizeof * ndims))[0..ndims];
-        foreach(ref v; dims)
-            va_arg(q, v);
-        va_end(q);
-        return _d_newarrayOpT!(_d_newarrayiT)(ti, dims);
-    }
-}
-
-
-/**
- *
- */
 extern (C) void[] _d_newarraymTX(const TypeInfo ti, size_t[] dims)
 {
     debug(PRINTF) printf("_d_newarraymT(dims.length = %d)\n", dims.length);
@@ -2221,31 +2161,6 @@ body
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
     __setArrayAllocLength(info, len, isshared, tinext);
     return p[0 .. x.length + y.length];
-}
-
-
-/**
- *
- */
-extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
-{
-    auto arrs = (cast(byte[]*)alloca((byte[]).sizeof * n))[0..n];
-
-    va_list ap;
-    version(X86)
-        va_start(ap, n);
-    else version(Win64)
-        va_start(ap, n);
-    else version(X86_64)
-        va_start(ap, __va_argsave);
-    else
-        static assert(false, "platform not supported");
-
-    foreach(ref b; arrs)
-        va_arg(ap, b);
-    va_end(ap);
-
-    return _d_arraycatnTX(ti, arrs);
 }
 
 
