@@ -4573,12 +4573,12 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *valuesize = el_long(TYsize_t, vsize);
                 //printf("valuesize: "); elem_print(valuesize);
                 Symbol *s;
-                elem* ti;
+                elem *ti;
                 if (ie->modifiable)
                 {
                     n1 = el_una(OPaddr, TYnptr, n1);
                     s = aaGetSymbol(taa, "GetY", 1);
-                    ti = toElem(getInternalTypeInfo(taa, NULL), irs);
+                    ti = toElem(getInternalTypeInfo(taa->mutableOf(), NULL), irs);
                 }
                 else
                 {
@@ -4587,7 +4587,7 @@ elem *toElem(Expression *e, IRState *irs)
                 }
                 //printf("taa->index = %s\n", taa->index->toChars());
                 //printf("ti:\n"); elem_print(ti);
-                elem* ep = el_params(n2, valuesize, ti, n1, NULL);
+                elem *ep = el_params(n2, valuesize, ti, n1, NULL);
                 e = el_bin(OPcall, TYnptr, el_var(s), ep);
                 if (irs->arrayBoundsCheck())
                 {
