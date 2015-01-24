@@ -3656,96 +3656,93 @@ public:
         {
             VarExp *ve = (VarExp *)e1;
             VarDeclaration *v = ve->var->isVarDeclaration();
-            if (t1b->ty == Tstruct)
-            {
-                if (newval->op != TOKstructliteral)
-                {
-                    e->error("CTFE internal error: assigning struct");
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-                newval = copyLiteral(newval).copy();
-                if (Expression *currval = getValue(v))
-                {
-                    assignInPlace(currval, newval);      // In-place modification
-                    result = currval;                    // should return the modified old value
-                }
-                else
-                {
-                    assert(e->op == TOKconstruct || e->op == TOKblit);
-                    setValue(v, newval);
 
-                    // Blit assignment should return the newly created value.
-                    result = newval;
-                }
+            oldval = getValue(v);
+
+            if (newval->op == TOKstructliteral && oldval)
+            {
+                newval = copyLiteral(newval).copy();
+
+                assignInPlace(oldval, newval);
             }
-            else if (t1b->ty == Tsarray)
+            else if (wantCopy && e->op == TOKassign)
             {
                 // Currently postblit/destructor calls on static array are done
                 // in the druntime internal functions so they don't appear in AST.
                 // Therefore interpreter should handle them specially.
 
-                if (newval->op == TOKslice)
+                assert(oldval);
+
+                newval = resolveSlice(newval);
+                if (CTFEExp::isCantExp(newval))
                 {
-                    // Newly set value is non-ref static array,
-                    // so making new ArrayLiteralExp is legitimate.
-                    newval = resolveSlice(newval);
-                    assert(newval->op == TOKarrayliteral);
-                    ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
+                    e->error("CTFE internal error: var assignment %s", e->toChars());
+                    result = CTFEExp::cantexp;
+                    return;
                 }
-                if (e->op == TOKassign)
+                assert(oldval->op == TOKarrayliteral);
+                assert(newval->op == TOKarrayliteral);
+
+                Expressions *oldelems = ((ArrayLiteralExp *)oldval)->elements;
+                Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
+                assert(oldelems->dim == newelems->dim);
+
+                Type *elemtype = oldval->type->nextOf();
+                for (size_t i = 0; i < newelems->dim; i++)
                 {
-                    Expression *currval = getValue(v);
-                    assert(currval->op == TOKarrayliteral);
-                    assert(newval->op == TOKarrayliteral);
-
-                    Expressions *oldelems = ((ArrayLiteralExp *)currval)->elements;
-                    Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
-                    assert(oldelems->dim == newelems->dim);
-
-                    Type *elemtype = currval->type->nextOf();
-                    for (size_t i = 0; i < newelems->dim; i++)
+                    Expression *oldelem = (*oldelems)[i];
+                    Expression *newelem = paintTypeOntoLiteral(elemtype, (*newelems)[i]);
+                    // Bugzilla 9245
+                    if (e->e2->isLvalue())
                     {
-                        Expression *oldelem = (*oldelems)[i];
-                        Expression *newelem = paintTypeOntoLiteral(elemtype, (*newelems)[i]);
-                        // Bugzilla 9245
-                        if (e->e2->isLvalue())
-                        {
-                            if (Expression *x = evaluatePostblit(istate, newelem))
-                            {
-                                result = x;
-                                return;
-                            }
-                        }
-                        // Bugzilla 13661
-                        if (Expression *x = evaluateDtor(istate, oldelem))
-                        {
-                            result = x;
-                            return;
-                        }
-                        (*oldelems)[i] = newelem;
-                    }
-                }
-                else
-                {
-                    setValue(v, newval);
-
-                    if (e->op == TOKconstruct && e->e2->isLvalue())
-                    {
-                        // Bugzilla 9245
-                        if (Expression *x = evaluatePostblit(istate, newval))
+                        if (Expression *x = evaluatePostblit(istate, newelem))
                         {
                             result = x;
                             return;
                         }
                     }
+                    // Bugzilla 13661
+                    if (Expression *x = evaluateDtor(istate, oldelem))
+                    {
+                        result = x;
+                        return;
+                    }
+                    (*oldelems)[i] = newelem;
                 }
             }
             else
             {
-                // other types don't have any postblit/destructor calls, so
-                // just replace the payload of v.
+                // e1 has its own payload, so we have to create a new literal.
+                if (wantCopy)
+                {
+                    newval = resolveSlice(newval);
+                    if (CTFEExp::isCantExp(newval))
+                    {
+                        e->error("CTFE internal error: dotvar assignment %s", e->toChars());
+                        result = CTFEExp::cantexp;
+                        return;
+                    }
+                    assert(newval->op == TOKarrayliteral);
+                    ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
+
+                    newval = copyLiteral(newval).copy();
+                }
+
                 setValue(v, newval);
+
+                if (t1b->ty == Tsarray && e->op == TOKconstruct && e->e2->isLvalue())
+                {
+                    // Bugzilla 9245
+                    if (Expression *x = evaluatePostblit(istate, newval))
+                    {
+                        result = x;
+                        return;
+                    }
+                }
+
+                // Blit assignment should return the newly created value.
+                if (e->op == TOKblit)
+                    result = newval;
             }
         }
         else if (e1->op == TOKdotvar)

@@ -3488,7 +3488,32 @@ bool test13661()
 
     return true;
 }
+bool test13661a()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        S[2] sb = sa[1..3];
+        assert(sa == [S('a'), S('b'), S('c')]);
+        assert(sb == [S('b'), S('c')]);
+        sb[0].x = 'x';
+        sb[1].x = 'y';
+        assert(sa != [S('a'), S('x'), S('y')]); // OK <- incorrectly fails
+        assert(sa == [S('a'), S('b'), S('c')]); // OK <- incorrectly fails
+        assert(sb == [S('x'), S('y')]);
+    }
+    return true;
+}
 static assert(test13661());     // CTFE
+static assert(test13661a());
 
 bool test14022()
 {
@@ -3785,6 +3810,7 @@ int main()
     test13673();
     test13586();
     test13661();
+    test13661a();
     test14022();
     test14023();
     test13669();
