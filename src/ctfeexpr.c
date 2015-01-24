@@ -174,6 +174,19 @@ CTFEExp::CTFEExp(TOK tok)
     type = Type::tvoid;
 }
 
+char *CTFEExp::toChars()
+{
+    switch (op)
+    {
+        case TOKcantexp:    return (char *)"<cant>";
+        case TOKvoidexp:    return (char *)"<void>";
+        case TOKbreak:      return (char *)"<break>";
+        case TOKcontinue:   return (char *)"<continue>";
+        case TOKgoto:       return (char *)"<goto>";
+        default:            assert(0);  return NULL;
+    }
+}
+
 Expression *UnionExp::copy()
 {
     Expression *e = exp();
