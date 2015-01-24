@@ -3494,6 +3494,30 @@ bool test13661()
 }
 static assert(test13661());     // CTFE
 
+/************************************************/
+// 13669 - dtor call on static array variable
+
+bool test13669()
+{
+    string dtor;
+
+    struct S
+    {
+        char x = 'x';
+        ~this() { dtor ~= x; }
+    }
+
+    { S[2] a; }
+    assert(dtor == "xx");
+    dtor = "";
+
+    { S[2] a = [S('a'), S('b')]; }
+    assert(dtor == "ba");   // reverse order. See also: TypeInfo_StaticArray.destroy()
+
+    return true;
+}
+static assert(test13669());
+
 /**********************************/
 
 __gshared bool b13095 = false;
@@ -3623,6 +3647,7 @@ int main()
     test13673();
     test13586();
     test13661();
+    test13669();
     test13095();
 
     printf("Success\n");

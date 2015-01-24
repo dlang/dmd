@@ -6605,7 +6605,7 @@ Expression *evaluateDtor(InterState *istate, Expression *e)
     if (e->op == TOKarrayliteral)
     {
         ArrayLiteralExp *alex = (ArrayLiteralExp *)e;
-        for (size_t i = 0; i < alex->elements->dim; i++)
+        for (size_t i = alex->elements->dim; 0 < i--; )
             e = evaluateDtor(istate, (*alex->elements)[i]);
     }
     else if (e->op == TOKstructliteral)
