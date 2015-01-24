@@ -1218,9 +1218,7 @@ struct GC
         // when collecting.
         {
             gcLock.lock();
-            gcx.noStack++;
-            gcx.fullcollect();
-            gcx.noStack--;
+            gcx.fullcollect(true);
             gcLock.unlock();
         }
     }
@@ -1368,11 +1366,10 @@ struct Gcx
     Treap!Root roots;
     Treap!Range ranges;
 
-    uint noStack;       // !=0 means don't scan stack
-    uint log;           // turn on logging
-    uint inited;
-    uint running;
-    int disabled;       // turn off collections if >0
+    bool log; // turn on logging
+    debug(INVARIANT) bool initialized;
+    bool running;
+    uint disabled; // turn off collections if >0
 
     import gc.pooltable;
     @property size_t npools() pure const nothrow { return pooltable.length; }
@@ -1385,8 +1382,7 @@ struct Gcx
     uint usedSmallPages, usedLargePages;
 
     void initialize()
-    {   int dummy;
-
+    {
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
         log_init();
         roots.initialize();
@@ -1394,7 +1390,7 @@ struct Gcx
         smallCollectThreshold = largeCollectThreshold = 0.0f;
         usedSmallPages = usedLargePages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
-        inited = 1;
+        debug(INVARIANT) initialized = true;
     }
 
 
@@ -1421,7 +1417,7 @@ struct Gcx
                    pauseTime, maxPause);
         }
 
-        inited = 0;
+        debug(INVARIANT) initialized = false;
 
         for (size_t i = 0; i < npools; i++)
         {
@@ -1443,7 +1439,7 @@ struct Gcx
     debug(INVARIANT)
     invariant()
     {
-        if (inited)
+        if (initialized)
         {
             //printf("Gcx.invariant(): this = %p\n", &this);
             pooltable.Invariant();
@@ -2171,9 +2167,9 @@ struct Gcx
     }
 
     // collection step 2: mark roots and heap
-    void markAll() nothrow
+    void markAll(bool nostack) nothrow
     {
-        if (!noStack)
+        if (!nostack)
         {
             debug(COLLECT_PRINTF) printf("\tscan stacks.\n");
             // Scan stacks and registers for each paused thread
@@ -2390,7 +2386,7 @@ struct Gcx
     /**
      * Return number of full pages free'd.
      */
-    size_t fullcollect() nothrow
+    size_t fullcollect(bool nostack = false) nothrow
     {
         MonoTime start, stop, begin;
 
@@ -2404,7 +2400,7 @@ struct Gcx
 
         if (running)
             onInvalidMemoryOperationError();
-        running = 1;
+        running = true;
 
         thread_suspendAll();
 
@@ -2417,7 +2413,7 @@ struct Gcx
             start = stop;
         }
 
-        markAll();
+        markAll(nostack);
 
         thread_processGCMarks(&isMarked);
         thread_resumeAll();
@@ -2450,7 +2446,7 @@ struct Gcx
             ++numCollections;
         }
 
-        running = 0; // only clear on success
+        running = false; // only clear on success
 
         updateCollectThresholds();
 
