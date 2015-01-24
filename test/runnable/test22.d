@@ -1187,9 +1187,10 @@ void myfunc(int a1, ...) {
 	string sa; int ia; double da;
 	writefln("%d variable arguments", _arguments.length);
 	writefln("argument types %s", _arguments);
-	version(X86) va_start(argument_list, a1);
-	else version(Win64) va_start(argument_list, a1);
-	else version(X86_64) va_start(argument_list, __va_argsave);
+	static if (is(typeof(__va_argsave)))
+		va_start(argument_list, __va_argsave);
+	else
+		va_start(argument_list, a1);
 	for (int i = 0; i < _arguments.length; ) {
 		if ((argument_type=_arguments[i++]) == typeid(string)) {
 			va_arg(argument_list, sa);
