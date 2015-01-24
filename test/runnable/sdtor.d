@@ -3450,7 +3450,7 @@ void test13586()
 }
 
 /**********************************/
-// 13661
+// 13661, 14022 - postblit/dtor call on static array assignment
 
 bool test13661()
 {
@@ -3489,6 +3489,41 @@ bool test13661()
     return true;
 }
 static assert(test13661());     // CTFE
+
+bool test14022()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    S[2] makeSA() { return [S('p'), S('q')]; }
+
+    struct T
+    {
+        S[2] sb;
+    }
+
+    op = null;
+    {
+        S[2] sa = [S('a'), S('b')];
+        T t;    t.sb[0].x = 'x';
+                t.sb[1].x = 'y';
+        assert(op == "");
+        t.sb = sa;
+        assert(op == "AxBy");
+        t.sb = makeSA();
+        assert(op == "AxByab");
+    }
+    assert(op == "AxByabqpba");
+
+    return true;
+}
+static assert(test14022());
 
 /************************************************/
 // 13669 - dtor call on static array variable
@@ -3643,6 +3678,7 @@ int main()
     test13673();
     test13586();
     test13661();
+    test14022();
     test13669();
     test13095();
 

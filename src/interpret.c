@@ -3648,6 +3648,7 @@ public:
         assert(result);
 
         Type *t1b = e1->type->toBasetype();
+        bool wantCopy = (t1b->baseElemOf()->ty == Tstruct);
 
         /* Assignment to a CTFE reference.
          */
@@ -3796,6 +3797,36 @@ public:
             if (newval->op == TOKstructliteral)
             {
                 assignInPlace(oldval, newval);
+            }
+            else if (wantCopy && e->op == TOKassign)
+            {
+                assert(oldval->op == TOKarrayliteral);
+                assert(newval->op == TOKarrayliteral);
+
+                Expressions *oldelems = ((ArrayLiteralExp *)oldval)->elements;
+                Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
+                assert(oldelems->dim == newelems->dim);
+
+                Type *elemtype = oldval->type->nextOf();
+                for (size_t i = 0; i < newelems->dim; i++)
+                {
+                    Expression *oldelem = (*oldelems)[i];
+                    Expression *newelem = paintTypeOntoLiteral(elemtype, (*newelems)[i]);
+                    if (e->e2->isLvalue())
+                    {
+                        if (Expression *x = evaluatePostblit(istate, newelem))
+                        {
+                            result = x;
+                            return;
+                        }
+                    }
+                    if (Expression *x = evaluateDtor(istate, oldelem))
+                    {
+                        result = x;
+                        return;
+                    }
+                    (*oldelems)[i] = newelem;
+                }
             }
             else
             {
