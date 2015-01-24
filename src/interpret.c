@@ -270,7 +270,6 @@ void printCtfePerformanceStats()
 VarDeclaration *findParentVar(Expression *e);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
-Expression *evaluatePostblits(InterState *istate, ArrayLiteralExp *ale, size_t lwr, size_t upr);
 Expression *evaluatePostblit(InterState *istate, Expression *e);
 Expression *evaluateDtor(InterState *istate, Expression *e);
 Expression *scrubReturnValue(Loc loc, Expression *e);
@@ -4087,7 +4086,7 @@ public:
                 }
                 if (originalExp->op != TOKblit && originalExp->e2->isLvalue())
                 {
-                    Expression *x = evaluatePostblits(istate, existingAE, 0, oldelems->dim);
+                    Expression *x = evaluatePostblit(istate, existingAE);
                     if (exceptionOrCantInterpret(x))
                         return x;
                 }
@@ -4134,9 +4133,12 @@ public:
             {
                 size_t lwr = (size_t)(firstIndex);
                 size_t upr = (size_t)(firstIndex + upperbound - lowerbound);
-                Expression *x = evaluatePostblits(istate, existingAE, lwr, upr);
-                if (exceptionOrCantInterpret(x))
-                    return x;
+                for (size_t i = lwr; i < upr; i++)
+                {
+                    Expression *e = evaluatePostblit(istate, (*existingAE->elements)[i]);
+                    if (exceptionOrCantInterpret(e))
+                        return e;
+                }
             }
             if (goal == ctfeNeedNothing)
                 return NULL; // avoid creating an unused literal
@@ -6549,35 +6551,6 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     return e;
 }
 
-Expression *evaluatePostblits(InterState *istate, ArrayLiteralExp *ale, size_t lwr, size_t upr)
-{
-    Type *telem = ale->type->nextOf()->baseElemOf();
-    if (telem->ty != Tstruct)
-        return NULL;
-    StructDeclaration *sd = ((TypeStruct *)telem)->sym;
-    if (sd->postblit)
-    {
-        for (size_t i = lwr; i < upr; i++)
-        {
-            Expression *e = (*ale->elements)[i];
-            if (e->op == TOKarrayliteral)
-            {
-                ArrayLiteralExp *alex = (ArrayLiteralExp *)e;
-                e = evaluatePostblits(istate, alex, 0, alex->elements->dim);
-            }
-            else
-            {
-                // e.__postblit()
-                assert(e->op == TOKstructliteral);
-                e = interpret(sd->postblit, istate, NULL, e);
-            }
-            if (exceptionOrCantInterpret(e))
-                return e;
-        }
-    }
-    return NULL;
-}
-
 Expression *evaluatePostblit(InterState *istate, Expression *e)
 {
     Type *tb = e->type->baseElemOf();
@@ -6589,18 +6562,24 @@ Expression *evaluatePostblit(InterState *istate, Expression *e)
 
     if (e->op == TOKarrayliteral)
     {
-        ArrayLiteralExp *alex = (ArrayLiteralExp *)e;
-        e = evaluatePostblits(istate, alex, 0, alex->elements->dim);
+        ArrayLiteralExp *ale = (ArrayLiteralExp *)e;
+        for (size_t i = 0; i < ale->elements->dim; i++)
+        {
+            e = evaluatePostblit(istate, (*ale->elements)[i]);
+            if (e)
+                return e;
+        }
+        return NULL;
     }
-    else if (e->op == TOKstructliteral)
+    if (e->op == TOKstructliteral)
     {
         // e.__postblit()
         e = interpret(sd->postblit, istate, NULL, e);
+        if (exceptionOrCantInterpret(e))
+            return e;
+        return NULL;
     }
-    else
-        assert(0);
-    if (exceptionOrCantInterpret(e))
-        return e;
+    assert(0);
     return NULL;
 }
 
