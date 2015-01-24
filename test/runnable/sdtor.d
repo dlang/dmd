@@ -3574,6 +3574,40 @@ bool test14023()
 
     S[2] makeSA() { return [S('p'), S('q')]; }
 
+    struct T
+    {
+        S[2][1] sb;
+        this(ref S[2] sa)
+        {
+            assert(op == "");
+            this.sb[0] = sa;   // TOKconstruct
+            assert(sa    == [S('b'), S('c')]);
+            assert(sb[0] == [S('b'), S('c')]);
+        }
+    }
+
+    void test(ref S[2] sa)
+    {
+        S[2][] a;
+        //a.length = 1; // will cause runtine AccessViolation
+        a ~= (S[2]).init;
+        assert(op == "");
+        a[0] = sa;      // index <-- resolveSlice(newva)
+        assert(op == "BxCx");
+        assert(a[0] == [S('b'), S('c')]);
+    }
+
+    op = null;
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        T t = T(sa[1..3]);
+        t.sb[0][0].x = 'x';
+        t.sb[0][1].x = 'y';
+        assert(sa      != [S('a'), S('x'), S('y')]);    // OK <- incorrectly fails
+        assert(sa      == [S('a'), S('b'), S('c')]);    // OK <- incorrectly fails
+        assert(t.sb[0] == [S('x'), S('y')]);
+    }
+
     op = null;
     {
         S[2] sa = [S('a'), S('b')];
@@ -3585,6 +3619,14 @@ bool test14023()
         assert(op == "AxByab");
     }
     assert(op == "AxByabba");
+
+    op = null;
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        test(sa[1..3]);
+        assert(op == "BxCx");
+    }
+    assert(op == "BxCxcba");
 
     return true;
 }

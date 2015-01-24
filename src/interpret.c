@@ -3919,10 +3919,19 @@ public:
 
             if (newval->op == TOKstructliteral)
             {
+                newval = copyLiteral(newval).copy();
+
                 assignInPlace(oldval, newval);
             }
             else if (wantCopy && e->op == TOKassign)
             {
+                newval = resolveSlice(newval);
+                if (CTFEExp::isCantExp(newval))
+                {
+                    e->error("CTFE internal error: index assignment %s", e->toChars());
+                    result = CTFEExp::cantexp;
+                    return;
+                }
                 assert(oldval->op == TOKarrayliteral);
                 assert(newval->op == TOKarrayliteral);
 
@@ -3953,7 +3962,37 @@ public:
             }
             else
             {
+                // e1 has its own payload, so we have to create a new literal.
+                if (wantCopy)
+                {
+                    newval = resolveSlice(newval);
+                    if (CTFEExp::isCantExp(newval))
+                    {
+                        e->error("CTFE internal error: dotvar assignment %s", e->toChars());
+                        result = CTFEExp::cantexp;
+                        return;
+                    }
+                    assert(newval->op == TOKarrayliteral);
+                    ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
+
+                    newval = copyLiteral(newval).copy();
+                }
+
                 (*existingAE->elements)[index] = newval;
+
+                if (t1b->ty == Tsarray && e->op == TOKconstruct && e->e2->isLvalue())
+                {
+                    // Bugzilla 9245
+                    if (Expression *x = evaluatePostblit(istate, newval))
+                    {
+                        result = x;
+                        return;
+                    }
+                }
+
+                // Blit assignment should return the newly created value.
+                if (e->op == TOKblit)
+                    result = newval;
             }
         }
         else
