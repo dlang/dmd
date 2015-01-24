@@ -3714,19 +3714,7 @@ public:
             {
                 // e1 has its own payload, so we have to create a new literal.
                 if (wantCopy)
-                {
-                    newval = resolveSlice(newval);
-                    if (CTFEExp::isCantExp(newval))
-                    {
-                        e->error("CTFE internal error: dotvar assignment %s", e->toChars());
-                        result = CTFEExp::cantexp;
-                        return;
-                    }
-                    assert(newval->op == TOKarrayliteral);
-                    ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
-
                     newval = copyLiteral(newval).copy();
-                }
 
                 setValue(v, newval);
 
@@ -3838,19 +3826,7 @@ public:
             {
                 // e1 has its own payload, so we have to create a new literal.
                 if (wantCopy)
-                {
-                    newval = resolveSlice(newval);
-                    if (CTFEExp::isCantExp(newval))
-                    {
-                        e->error("CTFE internal error: dotvar assignment %s", e->toChars());
-                        result = CTFEExp::cantexp;
-                        return;
-                    }
-                    assert(newval->op == TOKarrayliteral);
-                    ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
-
                     newval = copyLiteral(newval).copy();
-                }
 
                 (*sle->elements)[fieldi] = newval;
 
@@ -3961,19 +3937,7 @@ public:
             {
                 // e1 has its own payload, so we have to create a new literal.
                 if (wantCopy)
-                {
-                    newval = resolveSlice(newval);
-                    if (CTFEExp::isCantExp(newval))
-                    {
-                        e->error("CTFE internal error: dotvar assignment %s", e->toChars());
-                        result = CTFEExp::cantexp;
-                        return;
-                    }
-                    assert(newval->op == TOKarrayliteral);
-                    ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
-
                     newval = copyLiteral(newval).copy();
-                }
 
                 (*existingAE->elements)[index] = newval;
 
