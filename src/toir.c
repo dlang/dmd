@@ -304,9 +304,11 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
  * Convert intrinsic function to operator.
  * Returns that operator, -1 if not an intrinsic function.
  */
-int intrinsic_op(char *name)
+int intrinsic_op(FuncDeclaration *fd)
 {
 #if TX86
+    fd = fd->toAliasFunc();
+    const char *name = mangleExact(fd);
     //printf("intrinsic_op(%s)\n", name);
     static const char *std_namearray[] =
     {
@@ -567,7 +569,20 @@ int intrinsic_op(char *name)
         !memcmp(name, "_D4core", 7))
     {
         int i = binary(name + 7, I64 ? core_namearray64 : core_namearray, sizeof(core_namearray) / sizeof(char *));
-        return (i == -1) ? i : core_ioptab[i];
+        if (i != -1)
+            return core_ioptab[i];
+
+#if TARGET_WINDOS
+        if (global.params.is64bit &&
+            fd->toParent()->isTemplateInstance() &&
+            !strcmp(mangle(fd->getModule()), "4core4stdc6stdarg") &&
+            fd->ident == Id::va_start)
+        {
+            return OPva_start;
+        }
+#endif
+
+        return -1;
     }
 #endif
 

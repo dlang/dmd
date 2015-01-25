@@ -1471,6 +1471,41 @@ void test6530()
 }
 
 /***************************************/
+
+import core.stdc.stdarg;
+
+extern(C)
+void func9495(int a, string format, ...)
+{
+    va_list ap;
+    static if (is(typeof(__va_argsave)))
+        va_start(ap, __va_argsave);
+    else
+        va_start(ap, format);
+    printf("&a: %p\n", &a);
+    printf("&format: %p\n", &format);
+    printf("ap[0]: %p\n", ap);
+    auto a1 = va_arg!int(ap);
+    printf("ap[1]: %p\n", ap);
+    auto a2 = va_arg!int(ap);
+    printf("ap[2]: %p\n", ap);
+    auto a3 = va_arg!int(ap);
+    printf("ap[3]: %p\n", ap);
+    printf("a1: %d\n", a1);
+    printf("a2: %d\n", a2);
+    printf("a3: %d\n", a3);
+    assert(a1 == 0x11111111);
+    assert(a2 == 0x22222222);
+    assert(a3 == 0x33333333);
+    va_end(ap);
+}
+
+void test9495()
+{
+    func9495(0, "", 0x11111111, 0x22222222, 0x33333333);
+}
+
+/***************************************/
 // 6700
 
 template bug6700(TList ...) {
@@ -1708,6 +1743,7 @@ int main()
     test7263();
     test9017();
     test10414();
+    test9495();
 
     printf("Success\n");
     return 0;
