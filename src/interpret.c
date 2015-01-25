@@ -270,7 +270,6 @@ void printCtfePerformanceStats()
 VarDeclaration *findParentVar(Expression *e);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
-Expression *evaluatePostblits(InterState *istate, ArrayLiteralExp *ale, size_t lwr, size_t upr);
 Expression *evaluatePostblit(InterState *istate, Expression *e);
 Expression *evaluateDtor(InterState *istate, Expression *e);
 Expression *scrubReturnValue(Loc loc, Expression *e);
@@ -3650,137 +3649,51 @@ public:
 
         /* Assignment to a CTFE reference.
          */
+        if (Expression *ex = assignToLvalue(e, e1, newval))
+            result = ex;
+
+        return;
+    }
+
+    Expression *assignToLvalue(BinExp *e, Expression *e1, Expression *newval)
+    {
+        VarDeclaration *vd = NULL;
+        Expression **payload;
+        Expression *oldval;
+
         if (e1->op == TOKvar)
         {
-            VarExp *ve = (VarExp *)e1;
-            VarDeclaration *v = ve->var->isVarDeclaration();
-            Type *t1b = e1->type->toBasetype();
-            if (t1b->ty == Tstruct)
-            {
-                if (newval->op != TOKstructliteral)
-                {
-                    e->error("CTFE internal error: assigning struct");
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-                newval = copyLiteral(newval).copy();
-                if (Expression *currval = getValue(v))
-                {
-                    assignInPlace(currval, newval);      // In-place modification
-                    result = currval;                    // should return the modified old value
-                }
-                else
-                {
-                    assert(e->op == TOKconstruct || e->op == TOKblit);
-                    setValue(v, newval);
-
-                    // Blit assignment should return the newly created value.
-                    result = newval;
-                }
-                return;
-            }
-            if (t1b->ty == Tsarray)
-            {
-                // Currently postblit/destructor calls on static array are done
-                // in the druntime internal functions so they don't appear in AST.
-                // Therefore interpreter should handle them specially.
-
-                if (newval->op == TOKslice)
-                {
-                    // Newly set value is non-ref static array,
-                    // so making new ArrayLiteralExp is legitimate.
-                    newval = resolveSlice(newval);
-                    assert(newval->op == TOKarrayliteral);
-                    ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
-                }
-                if (e->op == TOKassign)
-                {
-                    Expression *currval = getValue(v);
-                    assert(currval->op == TOKarrayliteral);
-                    assert(newval->op == TOKarrayliteral);
-
-                    Expressions *oldelems = ((ArrayLiteralExp *)currval)->elements;
-                    Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
-                    assert(oldelems->dim == newelems->dim);
-
-                    Type *elemtype = currval->type->nextOf();
-                    for (size_t j = 0; j < newelems->dim; j++)
-                    {
-                        Expression *oldelem = (*oldelems)[j];
-                        Expression *newelem = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
-                        // Bugzilla 9245
-                        if (Expression *x = evaluatePostblit(istate, newelem))
-                        {
-                            result = x;
-                            return;
-                        }
-                        // Bugzilla 13661
-                        if (Expression *x = evaluateDtor(istate, oldelem))
-                        {
-                            result = x;
-                            return;
-                        }
-                        (*oldelems)[j] = newelem;
-                    }
-                }
-                else
-                {
-                    setValue(v, newval);
-
-                    if (e->op == TOKconstruct && e->e2->isLvalue())
-                    {
-                        // Bugzilla 9245
-                        if (Expression *x = evaluatePostblit(istate, newval))
-                        {
-                            result = x;
-                            return;
-                        }
-                    }
-                }
-                return;
-            }
-
-            // other types don't have any postblit/destructor calls, so
-            // just replace the payload of v.
-            setValue(v, newval);
-            return;
+            vd = ((VarExp *)e1)->var->isVarDeclaration();
+            oldval = getValue(vd);
         }
-        if (e1->op == TOKdotvar)
+        else if (e1->op == TOKdotvar)
         {
             /* Assignment to member variable of the form:
              *  e.v = newval
              */
-            Expression *exx = ((DotVarExp *)e1)->e1;
-            if (exx->op != TOKstructliteral && exx->op != TOKclassreference)
+            Expression *ex = ((DotVarExp *)e1)->e1;
+            StructLiteralExp *sle =
+                ex->op == TOKstructliteral  ? ((StructLiteralExp  *)ex):
+                ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value : NULL;
+            VarDeclaration *v = ((DotVarExp *)e1)->var->isVarDeclaration();
+            if (!sle || !v)
             {
                 e->error("CTFE internal error: dotvar assignment");
-                result = CTFEExp::cantexp;
-                return;
-            }
-            VarDeclaration *member = ((DotVarExp *)e1)->var->isVarDeclaration();
-            if (!member)
-            {
-                e->error("CTFE internal error: dotvar assignment");
-                result = CTFEExp::cantexp;
-                return;
+                return CTFEExp::cantexp;
             }
 
-            StructLiteralExp *sle = exx->op == TOKstructliteral
-                ? (StructLiteralExp *)exx
-                : ((ClassReferenceExp *)exx)->value;
-            int fieldi =  exx->op == TOKstructliteral
-                ? findFieldIndexByName(sle->sd, member)
-                : ((ClassReferenceExp *)exx)->findFieldIndexByName(member);
+            int fieldi = ex->op == TOKstructliteral
+                ? findFieldIndexByName(sle->sd, v)
+                : ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
             if (fieldi == -1)
             {
-                e->error("CTFE internal error: cannot find field %s in %s", member->toChars(), exx->toChars());
-                result = CTFEExp::cantexp;
-                return;
+                e->error("CTFE internal error: cannot find field %s in %s", v->toChars(), ex->toChars());
+                return CTFEExp::cantexp;
             }
-            assert(fieldi >= 0 && fieldi < sle->elements->dim);
+            assert(0 <= fieldi && fieldi < sle->elements->dim);
 
             // If it's a union, set all other members of this union to void
-            if (exx->op == TOKstructliteral)
+            if (ex->op == TOKstructliteral)
             {
                 assert(sle->sd);
                 int unionStart = sle->sd->firstFieldInUnion(fieldi);
@@ -3791,90 +3704,135 @@ public:
                         continue;
                     Expression **exp = &(*sle->elements)[i];
                     if ((*exp)->op != TOKvoid)
-                        *exp = voidInitLiteral((*exp)->type, member).copy();
+                        *exp = voidInitLiteral((*exp)->type, v).copy();
                 }
             }
 
-            if (newval->op == TOKstructliteral)
-                assignInPlace((*sle->elements)[fieldi], newval);
-            else
-                (*sle->elements)[fieldi] = newval;
-            return;
+            payload = &(*sle->elements)[fieldi];
+            oldval = *payload;
         }
-        if (e1->op == TOKindex)
+        else if (e1->op == TOKindex)
         {
-            if (!interpretAssignToIndex(e->loc, (IndexExp *)e1, newval, e))
+            IndexExp *ie = (IndexExp *)e1;
+            assert(ie->e1->type->toBasetype()->ty != Taarray);
+
+            Expression *aggregate;
+            uinteger_t indexToModify;
+            if (!resolveIndexing(ie, istate, &aggregate, &indexToModify, true))
             {
-                result = CTFEExp::cantexp;
+                return CTFEExp::cantexp;
             }
-            return;
+            size_t index = (size_t)indexToModify;
+
+            if (aggregate->op == TOKstring)
+            {
+                StringExp *existingSE = (StringExp *)aggregate;
+                if (!existingSE->ownedByCtfe)
+                {
+                    e->error("cannot modify read-only string literal %s", ie->e1->toChars());
+                    return CTFEExp::cantexp;
+                }
+                void *s = existingSE->string;
+                dinteger_t value = newval->toInteger();
+                switch (existingSE->sz)
+                {
+                    case 1:     (( utf8_t *)s)[index] = ( utf8_t)value; break;
+                    case 2:     ((utf16_t *)s)[index] = (utf16_t)value; break;
+                    case 4:     ((utf32_t *)s)[index] = (utf32_t)value; break;
+                    default:    assert(0);                              break;
+                }
+                return NULL;
+            }
+            if (aggregate->op != TOKarrayliteral)
+            {
+                e->error("index assignment %s is not yet supported in CTFE ", e->toChars());
+                return CTFEExp::cantexp;
+            }
+
+            ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
+
+            payload = &(*existingAE->elements)[index];
+            oldval = *payload;
+        }
+        else
+        {
+            e->error("%s cannot be evaluated at compile time", e->toChars());
+            return CTFEExp::cantexp;
         }
 
-        e->error("%s cannot be evaluated at compile time", e->toChars());
-        result = CTFEExp::cantexp;
-    }
+        Type *t1b = e1->type->toBasetype();
+        bool wantCopy = t1b->baseElemOf()->ty == Tstruct;
 
-    /*************
-     * Deal with assignment to array element of the form:
-     *  aggregate[i] = newval
-     * aggregate is not AA (AAs were dealt with already).
-     *
-     * Return true if OK, false if error occured
-     */
-    bool interpretAssignToIndex(Loc loc, IndexExp *ie, Expression *newval,
-        BinExp *originalExp)
-    {
-        assert(ie->e1->type->toBasetype()->ty != Taarray);
-
-        Expression *aggregate;
-        uinteger_t indexToModify;
-        if (!resolveIndexing(ie, istate, &aggregate, &indexToModify, true))
-            return false;
-
-        Type *tn = newval->type->toBasetype();
-        bool wantRef = (tn->ty == Tarray || isAssocArray(tn) || tn->ty == Tclass);
-        if (!wantRef)
+        if (newval->op == TOKstructliteral && oldval)
         {
+            newval = copyLiteral(newval).copy();
+            assignInPlace(oldval, newval);
+        }
+        else if (wantCopy && e->op == TOKassign)
+        {
+            // Currently postblit/destructor calls on static array are done
+            // in the druntime internal functions so they don't appear in AST.
+            // Therefore interpreter should handle them specially.
+
+            assert(oldval);
+        #if 1   // todo: instead we can directly access to each elements of the slice
             newval = resolveSlice(newval);
             if (CTFEExp::isCantExp(newval))
             {
-                originalExp->error("CTFE internal error: index assignment %s",
-                    originalExp->toChars());
-                assert(0);
+                e->error("CTFE internal error: assignment %s", e->toChars());
+                return CTFEExp::cantexp;
             }
+        #endif
+            assert(oldval->op == TOKarrayliteral);
+            assert(newval->op == TOKarrayliteral);
+
+            Expressions *oldelems = ((ArrayLiteralExp *)oldval)->elements;
+            Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
+            assert(oldelems->dim == newelems->dim);
+
+            Type *elemtype = oldval->type->nextOf();
+            for (size_t i = 0; i < newelems->dim; i++)
+            {
+                Expression *oldelem = (*oldelems)[i];
+                Expression *newelem = paintTypeOntoLiteral(elemtype, (*newelems)[i]);
+                // Bugzilla 9245
+                if (e->e2->isLvalue())
+                {
+                    if (Expression *ex = evaluatePostblit(istate, newelem))
+                        return ex;
+                }
+                // Bugzilla 13661
+                if (Expression *ex = evaluateDtor(istate, oldelem))
+                    return ex;
+                (*oldelems)[i] = newelem;
+            }
+        }
+        else
+        {
+            // e1 has its own payload, so we have to create a new literal.
+            if (wantCopy)
+                newval = copyLiteral(newval).copy();
+
+            if (t1b->ty == Tsarray && e->op == TOKconstruct && e->e2->isLvalue())
+            {
+                // Bugzilla 9245
+                if (Expression *ex = evaluatePostblit(istate, newval))
+                    return ex;
+            }
+
+            oldval = newval;
         }
 
-        if (aggregate->op == TOKarrayliteral)
-        {
-            ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
-            if (newval->op == TOKstructliteral)
-                assignInPlace((*existingAE->elements)[(size_t)indexToModify], newval);
-            else
-                (*existingAE->elements)[(size_t)indexToModify] = newval;
-            return true;
-        }
-        if (aggregate->op == TOKstring)
-        {
-            StringExp *existingSE = (StringExp *)aggregate;
-            if (!existingSE->ownedByCtfe)
-            {
-                originalExp->error("cannot modify read-only string literal %s", ie->e1->toChars());
-                return false;
-            }
-            void *s = existingSE->string;
-            dinteger_t value = newval->toInteger();
-            switch (existingSE->sz)
-            {
-                case 1:     (( utf8_t *)s)[(size_t)indexToModify] = ( utf8_t)value; break;
-                case 2:     ((utf16_t *)s)[(size_t)indexToModify] = (utf16_t)value; break;
-                case 4:     ((utf32_t *)s)[(size_t)indexToModify] = (utf32_t)value; break;
-                default:    assert(0);                                              break;
-            }
-            return true;
-        }
+        if (vd)
+            setValue(vd, oldval);
+        else
+            *payload = oldval;
 
-        originalExp->error("index assignment %s is not yet supported in CTFE ", originalExp->toChars());
-        return false;
+        // Blit assignment should return the newly created value.
+        if (e->op == TOKblit)
+            return oldval;
+
+        return NULL;
     }
 
     /*************
@@ -4087,7 +4045,7 @@ public:
                 }
                 if (originalExp->op != TOKblit && originalExp->e2->isLvalue())
                 {
-                    Expression *x = evaluatePostblits(istate, existingAE, 0, oldelems->dim);
+                    Expression *x = evaluatePostblit(istate, existingAE);
                     if (exceptionOrCantInterpret(x))
                         return x;
                 }
@@ -4134,9 +4092,12 @@ public:
             {
                 size_t lwr = (size_t)(firstIndex);
                 size_t upr = (size_t)(firstIndex + upperbound - lowerbound);
-                Expression *x = evaluatePostblits(istate, existingAE, lwr, upr);
-                if (exceptionOrCantInterpret(x))
-                    return x;
+                for (size_t i = lwr; i < upr; i++)
+                {
+                    Expression *e = evaluatePostblit(istate, (*existingAE->elements)[i]);
+                    if (exceptionOrCantInterpret(e))
+                        return e;
+                }
             }
             if (goal == ctfeNeedNothing)
                 return NULL; // avoid creating an unused literal
@@ -4566,27 +4527,37 @@ public:
             if (pthis->op == TOKdottype)
                 pthis = ((DotTypeExp *)dve->e1)->e1;
 
-            // Special handling for: typeid(T[n]).destroy(cast(void*)&v)
+            // Special handling for: typeid(T[n]).destroy(ea)
             TypeInfoDeclaration *tid;
             if (pthis->op == TOKsymoff &&
                 (tid = ((SymOffExp *)pthis)->var->isTypeInfoDeclaration()) != NULL &&
                 tid->tinfo->toBasetype()->ty == Tsarray &&
                 fd->ident == Id::destroy &&
-                e->arguments->dim == 1 &&
-                (*e->arguments)[0]->op == TOKsymoff)
+                e->arguments->dim == 1)
             {
                 Type *tb = tid->tinfo->baseElemOf();
                 if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->dtor)
                 {
-                    Declaration *v = ((SymOffExp *)(*e->arguments)[0])->var;
-                    Expression *arg = getVarExp(e->loc, istate, v, ctfeNeedRvalue);
-
-                    result = evaluateDtor(istate, arg);
-                    if (result)
+                    Expression *ea = (*e->arguments)[0];
+                    // ea would be:
+                    //  &var        <-- SymOffExp
+                    //  cast(void*)&var
+                    //  cast(void*)&this.field
+                    //  etc.
+                    if (ea->op == TOKcast)
+                        ea = ((CastExp *)ea)->e1;
+                    if (ea->op == TOKsymoff)
+                        result = getVarExp(e->loc, istate, ((SymOffExp *)ea)->var, ctfeNeedRvalue);
+                    else if (ea->op == TOKaddress)
+                        result = interpret(((AddrExp *)ea)->e1, istate);
+                    else
+                        assert(0);
+                    if (CTFEExp::isCantExp(result))
                         return;
-                    result = CTFEExp::voidexp;
+                    result = evaluateDtor(istate, result);
+                    if (!result)
+                        result = CTFEExp::voidexp;
                     return;
-
                 }
             }
         }
@@ -6549,35 +6520,6 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     return e;
 }
 
-Expression *evaluatePostblits(InterState *istate, ArrayLiteralExp *ale, size_t lwr, size_t upr)
-{
-    Type *telem = ale->type->nextOf()->baseElemOf();
-    if (telem->ty != Tstruct)
-        return NULL;
-    StructDeclaration *sd = ((TypeStruct *)telem)->sym;
-    if (sd->postblit)
-    {
-        for (size_t i = lwr; i < upr; i++)
-        {
-            Expression *e = (*ale->elements)[i];
-            if (e->op == TOKarrayliteral)
-            {
-                ArrayLiteralExp *alex = (ArrayLiteralExp *)e;
-                e = evaluatePostblits(istate, alex, 0, alex->elements->dim);
-            }
-            else
-            {
-                // e.__postblit()
-                assert(e->op == TOKstructliteral);
-                e = interpret(sd->postblit, istate, NULL, e);
-            }
-            if (exceptionOrCantInterpret(e))
-                return e;
-        }
-    }
-    return NULL;
-}
-
 Expression *evaluatePostblit(InterState *istate, Expression *e)
 {
     Type *tb = e->type->baseElemOf();
@@ -6589,18 +6531,24 @@ Expression *evaluatePostblit(InterState *istate, Expression *e)
 
     if (e->op == TOKarrayliteral)
     {
-        ArrayLiteralExp *alex = (ArrayLiteralExp *)e;
-        e = evaluatePostblits(istate, alex, 0, alex->elements->dim);
+        ArrayLiteralExp *ale = (ArrayLiteralExp *)e;
+        for (size_t i = 0; i < ale->elements->dim; i++)
+        {
+            e = evaluatePostblit(istate, (*ale->elements)[i]);
+            if (e)
+                return e;
+        }
+        return NULL;
     }
-    else if (e->op == TOKstructliteral)
+    if (e->op == TOKstructliteral)
     {
         // e.__postblit()
         e = interpret(sd->postblit, istate, NULL, e);
+        if (exceptionOrCantInterpret(e))
+            return e;
+        return NULL;
     }
-    else
-        assert(0);
-    if (exceptionOrCantInterpret(e))
-        return e;
+    assert(0);
     return NULL;
 }
 
@@ -6616,7 +6564,7 @@ Expression *evaluateDtor(InterState *istate, Expression *e)
     if (e->op == TOKarrayliteral)
     {
         ArrayLiteralExp *alex = (ArrayLiteralExp *)e;
-        for (size_t i = 0; i < alex->elements->dim; i++)
+        for (size_t i = alex->elements->dim; 0 < i--; )
             e = evaluateDtor(istate, (*alex->elements)[i]);
     }
     else if (e->op == TOKstructliteral)

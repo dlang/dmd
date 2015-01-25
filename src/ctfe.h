@@ -103,6 +103,8 @@ class CTFEExp : public Expression
 public:
     CTFEExp(TOK tok);
 
+    char *toChars();
+
     // Handy instances to share
     static CTFEExp *cantexp;
     static CTFEExp *voidexp;

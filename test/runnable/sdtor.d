@@ -3450,19 +3450,17 @@ void test13586()
 }
 
 /**********************************/
-// 13661
+// 13661, 14022, 14023 - postblit/dtor call on static array assignment
 
 bool test13661()
 {
-    string postblit;
-    string dtor;
+    string op;
 
     struct S
     {
         char x = 'x';
-
-        this(this) { postblit ~= x; }
-        ~this()    { dtor ~= x; }
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
 
         ref auto opAssign(T)(T arg)
         {
@@ -3476,23 +3474,212 @@ bool test13661()
 
         a[0].x = 'a';
         a[1].x = 'b';
-
         a = a.init;
-        assert(dtor == "ab");
+        assert(op == "ab");
         assert(a[0].x == 'x' && a[1].x == 'x');
 
         a[0].x = 'c';
         a[1].x = 'd';
-
         a = [S(), S()];   // equivalent a = a.init
-        assert(dtor == "abcd");
+        assert(op == "abcd");
         assert(a[0].x == 'x' && a[1].x == 'x');
     }
-    assert(dtor == "abcdxx");
+    assert(op == "abcdxx");
 
     return true;
 }
+bool test13661a()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        S[2] sb = sa[1..3];
+        assert(sa == [S('a'), S('b'), S('c')]);
+        assert(sb == [S('b'), S('c')]);
+        sb[0].x = 'x';
+        sb[1].x = 'y';
+        assert(sa != [S('a'), S('x'), S('y')]); // OK <- incorrectly fails
+        assert(sa == [S('a'), S('b'), S('c')]); // OK <- incorrectly fails
+        assert(sb == [S('x'), S('y')]);
+    }
+    return true;
+}
 static assert(test13661());     // CTFE
+static assert(test13661a());
+
+bool test14022()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    S[2] makeSA() { return [S('p'), S('q')]; }
+
+    struct T
+    {
+        S[2] sb;
+
+        this(ref S[2] sa)
+        {
+            assert(op == "");
+            this.sb = sa;   // TOKconstruct
+            assert(op == "BC", op);
+            assert(sb == [S('b'), S('c')]);
+        }
+        void test(ref S[2] sa)
+        {
+            this.sb = sa;    // dotvar: resolveSlice(newva)
+            assert(op == "BxCy");
+        }
+    }
+
+    op = null;
+    {
+        S[2] sa = [S('a'), S('b')];
+        T t;    t.sb[0].x = 'x';
+                t.sb[1].x = 'y';
+        assert(op == "");
+        t.sb = sa;
+        assert(op == "AxBy");
+        t.sb = makeSA();
+        assert(op == "AxByab");
+    }
+    assert(op == "AxByabqpba");
+
+    op = null;
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        T t = T(sa[1..3]);
+        t.sb[0].x = 'x';
+        t.sb[1].x = 'y';
+        assert(sa == [S('a'), S('b'), S('c')]);
+        assert(t.sb == [S('x'), S('y')]);
+        assert(op == "BC");
+    }
+    assert(op == "BCyxcba");
+
+    op = null;
+    {
+        S[3] sx = [S('a'), S('b'), S('c')];
+        T t;    t.sb[0].x = 'x';
+                t.sb[1].x = 'y';
+        t.test(sx[1..3]);
+        assert(op == "BxCy");
+        assert(t.sb == [S('b'), S('c')]);
+    }
+    assert(op == "BxCycbcba");
+
+    return true;
+}
+static assert(test14022());
+
+bool test14023()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    S[2] makeSA() { return [S('p'), S('q')]; }
+
+    struct T
+    {
+        S[2][1] sb;
+        this(ref S[2] sa)
+        {
+            assert(op == "");
+            this.sb[0] = sa;   // TOKconstruct
+            assert(sa    == [S('b'), S('c')]);
+            assert(sb[0] == [S('b'), S('c')]);
+        }
+    }
+
+    void test(ref S[2] sa)
+    {
+        S[2][] a;
+        //a.length = 1; // will cause runtine AccessViolation
+        a ~= (S[2]).init;
+        assert(op == "");
+        a[0] = sa;      // index <-- resolveSlice(newva)
+        assert(op == "BxCx");
+        assert(a[0] == [S('b'), S('c')]);
+    }
+
+    op = null;
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        T t = T(sa[1..3]);
+        t.sb[0][0].x = 'x';
+        t.sb[0][1].x = 'y';
+        assert(sa      != [S('a'), S('x'), S('y')]);    // OK <- incorrectly fails
+        assert(sa      == [S('a'), S('b'), S('c')]);    // OK <- incorrectly fails
+        assert(t.sb[0] == [S('x'), S('y')]);
+    }
+
+    op = null;
+    {
+        S[2] sa = [S('a'), S('b')];
+        S[2][] a = [[S('x'), S('y')]];
+        assert(op == "");
+        a[0] = sa;
+        assert(op == "AxBy");
+        a[0] = makeSA();
+        assert(op == "AxByab");
+    }
+    assert(op == "AxByabba");
+
+    op = null;
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        test(sa[1..3]);
+        assert(op == "BxCx");
+    }
+    assert(op == "BxCxcba");
+
+    return true;
+}
+static assert(test14023());
+
+/************************************************/
+// 13669 - dtor call on static array variable
+
+bool test13669()
+{
+    string dtor;
+
+    struct S
+    {
+        char x = 'x';
+        ~this() { dtor ~= x; }
+    }
+
+    { S[2] a; }
+    assert(dtor == "xx");
+    dtor = "";
+
+    { S[2] a = [S('a'), S('b')]; }
+    assert(dtor == "ba");   // reverse order. See also: TypeInfo_StaticArray.destroy()
+
+    return true;
+}
+static assert(test13669());
 
 /**********************************/
 
@@ -3623,6 +3810,10 @@ int main()
     test13673();
     test13586();
     test13661();
+    test13661a();
+    test14022();
+    test14023();
+    test13669();
     test13095();
 
     printf("Success\n");

@@ -174,6 +174,19 @@ CTFEExp::CTFEExp(TOK tok)
     type = Type::tvoid;
 }
 
+char *CTFEExp::toChars()
+{
+    switch (op)
+    {
+        case TOKcantexp:    return (char *)"<cant>";
+        case TOKvoidexp:    return (char *)"<void>";
+        case TOKbreak:      return (char *)"<break>";
+        case TOKcontinue:   return (char *)"<continue>";
+        case TOKgoto:       return (char *)"<goto>";
+        default:            assert(0);  return NULL;
+    }
+}
+
 Expression *UnionExp::copy()
 {
     Expression *e = exp();
@@ -347,12 +360,30 @@ UnionExp copyLiteral(Expression *e)
     }
     if (e->op == TOKslice)
     {
-        // Array slices only do a shallow copy
-        new(&ue) SliceExp(e->loc, ((SliceExp *)e)->e1,
-            ((SliceExp *)e)->lwr, ((SliceExp *)e)->upr);
-        Expression *r = ue.exp();
-        r->type = e->type;
-        return ue;
+        SliceExp *se = (SliceExp *)e;
+        if (se->type->toBasetype()->ty == Tsarray)
+        {
+            // same with resolveSlice()
+            if (se->e1->op == TOKnull)
+            {
+                new(&ue) NullExp(se->loc, se->type);
+                return ue;
+            }
+            ue = Slice(se->type, se->e1, se->lwr, se->upr).copy();
+            assert(ue.exp()->op == TOKarrayliteral);
+            ArrayLiteralExp *r = (ArrayLiteralExp *)ue.exp();
+            r->elements = copyLiteralArray(r->elements);
+            r->ownedByCtfe = true;
+            return ue;
+        }
+        else
+        {
+            // Array slices only do a shallow copy
+            new(&ue) SliceExp(e->loc, se->e1, se->lwr, se->upr);
+            Expression *r = ue.exp();
+            r->type = e->type;
+            return ue;
+        }
     }
     if (e->op == TOKclassreference)
     {
