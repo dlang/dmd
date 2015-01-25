@@ -27,6 +27,22 @@ string runCmd(string cmd, bool verbose)
     return res.output;
 }
 
+string extraSourceOf(string path)
+{
+    import std.path, std.string;
+
+    string dir = path.dirName;
+    while(dir != path)
+    {
+        string base = dir.baseName;
+        if(base.endsWith(".extra"))
+            return dir[0..$-6] ~ ".d";
+        path = dir;
+        dir = path.dirName;
+    }
+    return null;
+}
+
 void runTests(Config cfg)
 {
     import std.algorithm, std.file, std.path, std.regex, std.string;
@@ -34,15 +50,22 @@ void runTests(Config cfg)
     if (exists("gcx.log")) remove("gcx.log");
 
     string[] sources;
+    string[string] extra_sources;
     auto re = regex(cfg.pattern, "g");
     auto self = buildPath(".", "runbench.d");
     foreach(DirEntry src; dirEntries(".", SpanMode.depth))
     {
-        if (src.isFile && !match(src.name, re).empty &&
-            endsWith(src.name, ".d") && src.name != self)
+        if (!src.isFile || !endsWith(src.name, ".d") || src.name == self)
+            continue;
+
+        string mainsrc = extraSourceOf(src.name);
+        if (mainsrc)
         {
-            sources ~= src.name;
+            if (cfg.verbose) writeln(src.name, " is extra file for ", mainsrc);
+            extra_sources[mainsrc] ~= " " ~ src.name;
         }
+        else if (!match(src.name, re).empty)
+            sources ~= src.name;
     }
 
     immutable bindir = absolutePath("bin");
@@ -53,6 +76,8 @@ void runTests(Config cfg)
         version (Windows) enum exe = "exe"; else enum exe = "";
         auto bin = buildPath(bindir, src.chompPrefix("./").setExtension(exe));
         auto cmd = std.string.format("%s %s -op -odobj -of%s %s", cfg.dmd, cfg.dflags, bin, src);
+        if (auto ex = src in extra_sources)
+            cmd ~= " -I" ~ src[0..$-2] ~ ".extra" ~ *ex;
         runCmd(cmd, cfg.verbose);
         src = bin;
     }
