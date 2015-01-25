@@ -37,7 +37,6 @@ void main()
     auto b = bsf( 0 ); // bitop
     mmx; // cpuid
     demangle( "" ); // demangle
-    setAssertHandler( null ); // exception
     // SES - disabled because you cannot enable the GC without disabling it.
     //GC.enable(); // memory
     Runtime.collectHandler = null; // runtime
