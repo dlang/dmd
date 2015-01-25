@@ -224,6 +224,7 @@ DDOC_PARAM_ROW = $(TR $0)\n\
 DDOC_PARAM_ID  = $(TD $0)\n\
 DDOC_PARAM_DESC = $(TD $0)\n\
 DDOC_BLANKLINE  = $(BR)$(BR)\n\
+DDOC_PARAGRAPH  = $0\n\
 \n\
 DDOC_ANCHOR     = <a name=\"$1\"></a>\n\
 DDOC_PSYMBOL    = $(U $0)\n\
@@ -2211,6 +2212,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     int leadingBlank = 1;
     int inCode = 0;
     int inBacktick = 0;
+    int inParagraph = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
     size_t iCodeStart = 0;                    // start of code section
     size_t codeIndent = 0;
@@ -2247,8 +2249,14 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 if (!sc->module->isDocFile &&
                     !inCode && i == iLineStart && i + 1 < buf->offset)    // if "\n\n"
                 {
-                    static const char blankline[] = "$(DDOC_BLANKLINE)\n";
+                    if (inParagraph)
+                    {
+                        static const char endpara[] = ")";
+                        i = buf->insert(i, endpara, strlen(endpara));
+                        inParagraph = 0;
+                    }
 
+                    static const char blankline[] = "$(DDOC_BLANKLINE)\n";
                     i = buf->insert(i, blankline, strlen(blankline));
                 }
                 leadingBlank = 1;
@@ -2489,6 +2497,14 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
             default:
                 leadingBlank = 0;
+
+                if (!inParagraph)
+                {
+                    static const char para[] = "$(DDOC_PARAGRAPH ";
+                    i = buf->insert(i, para, strlen(para)) - 1;
+                    inParagraph = 1;
+                }
+
                 if (!sc->module->isDocFile &&
                     !inCode && isIdStart((utf8_t *)&buf->data[i]))
                 {
@@ -2541,6 +2557,10 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     if (inCode)
         s->error("unmatched --- in DDoc comment");
     ;
+    if (inParagraph)
+    {
+        buf->writestring(")");
+    }
 }
 
 /**************************************************
