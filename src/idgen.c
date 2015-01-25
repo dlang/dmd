@@ -281,6 +281,7 @@ Msgtable msgtable[] =
     // varargs implementation
     { "va_argsave_t", "__va_argsave_t" },
     { "va_argsave", "__va_argsave" },
+    { "va_start" },
 
     // Builtin functions
     { "std" },

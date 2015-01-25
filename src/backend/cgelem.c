@@ -4844,6 +4844,46 @@ STATIC elem * elarraylength(elem *e, goal_t goal)
 /********************************************
  */
 
+#if TX86 && TARGET_WINDOS && MARS
+STATIC elem * elvalist(elem *e, goal_t goal)
+{
+    if (config.exe == EX_WIN64)
+    {
+        if (e->Eoper == OPva_start)
+        {
+            // (OPva_start &va)
+            // (OPeq (OPind E1) (OPptr &lastNamed+8))
+            //elem_print(e);
+
+            // Find last named parameter
+            symbol *lastNamed = NULL;
+            for (SYMIDX si = 0; si < globsym.top; si++)
+            {
+                symbol *s = globsym.tab[si];
+
+                if (s->Sclass == SCfastpar || s->Sclass == SCshadowreg)
+                    lastNamed = s;
+            }
+
+            e->Eoper = OPeq;
+            e->E1 = el_una(OPind, TYnptr, e->E1);
+            if (lastNamed)
+            {
+                e->E2 = el_ptr(lastNamed);
+                e->E2->EV.sp.Voffset = REGSIZE;
+            }
+            else
+                e->E2 = el_long(TYnptr, 0);
+            //elem_print(e);
+        }
+    }
+    return e;
+}
+#endif
+
+/********************************************
+ */
+
 STATIC elem * elarray(elem *e, goal_t goal)
 {
     return e;

@@ -65,6 +65,9 @@ int _unary[] =
          OPbsf,OPbsr,OPbswap,OPpopcnt,
          OPddtor,
          OPvector,
+#if TX86 && TARGET_WINDOS && MARS
+         OPva_start,
+#endif
 #if TX86
          OPsqrt,OPsin,OPcos,OPinp,
 #endif
@@ -120,6 +123,9 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPmultinewarray,OPcheckcast,OPnullcheck,
                 OPbtc,OPbtr,OPbts,
                 OPhalt,OPdctor,OPddtor,
+#if TX86 && TARGET_WINDOS && MARS
+                OPva_start,
+#endif
 #if TX86
                 OPinp,OPoutp,OPvecsto,
 #endif
@@ -647,6 +653,10 @@ void dotab()
         case OPpopcnt:  X("popcnt",     evalu8, cdpopcnt);
         case OPvector:  X("vector",     elzot,  cdvector);
         case OPvecsto:  X("vecsto",     elzot,  cdvecsto);
+
+#if TX86 && TARGET_WINDOS && MARS
+        case OPva_start: X("va_start",  elvalist, cderr);
+#endif
 
         default:
                 printf("opcode hole x%x\n",i);
