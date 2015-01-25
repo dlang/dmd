@@ -2486,6 +2486,15 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                         static const char d_code[] = "$(D_CODE ";
 
                         inCode = 1;
+
+                        // Code blocks end any paragraphs in progress.
+                        if (inParagraph)
+                        {
+                            static const char endpara[] = ")";
+                            i = buf->insert(i, endpara, strlen(endpara));
+                            inParagraph = 0;
+                        }
+
                         codeIndent = istart - iLineStart;  // save indent count
                         i = buf->insert(i, d_code, strlen(d_code));
                         iCodeStart = i;
@@ -2498,7 +2507,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
             default:
                 leadingBlank = 0;
 
-                if (!inParagraph)
+                if (!inCode && !inParagraph)
                 {
                     static const char para[] = "$(DDOC_PARAGRAPH ";
                     i = buf->insert(i, para, strlen(para)) - 1;
