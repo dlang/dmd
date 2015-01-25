@@ -682,6 +682,8 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         {
             //printf("LabelStatement::blockExit(%p)\n", s);
             result = s->statement ? s->statement->blockExit(func, mustNotThrow) : BEfallthru;
+            if (s->breaks)
+                result |= BEfallthru;
         }
 
         void visit(CompoundAsmStatement *s)
@@ -4015,7 +4017,10 @@ Statement *BreakStatement::semantic(Scope *sc)
                 else if (ls->tf != sc->tf)
                     error("cannot break out of finally block");
                 else
+                {
+                    ls->breaks = true;
                     return this;
+                }
                 return new ErrorStatement();
             }
         }
@@ -4927,6 +4932,7 @@ LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
     this->os = NULL;
     this->lastVar = NULL;
     this->gotoTarget = NULL;
+    this->breaks = false;
     this->lblock = NULL;
     this->fwdrefs = NULL;
 }

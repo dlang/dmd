@@ -695,6 +695,7 @@ public:
     VarDeclaration *lastVar;
     Statement *gotoTarget;      // interpret
 
+    bool breaks;                // someone did a 'break ident'
     block *lblock;              // back end
     Blocks *fwdrefs;            // forward references to this LabelStatement
 
