@@ -2262,9 +2262,16 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
             v = new ThisDeclaration(loc, thandle);
             v->storage_class |= STCparameter;
             if (thandle->ty == Tstruct)
+            {
                 v->storage_class |= STCref;
+
+                // if member function is marked 'inout', then 'this' is 'return ref'
+                if (type->ty == Tfunction && ((TypeFunction *)type)->iswild & 2)
+                    v->storage_class |= STCreturn;
+            }
             if (type->ty == Tfunction && ((TypeFunction *)type)->isreturn)
                 v->storage_class |= STCreturn;
+
             v->semantic(sc);
             if (!sc->insert(v))
                 assert(0);

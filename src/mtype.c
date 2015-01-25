@@ -5474,9 +5474,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 // 'ref inout' implies 'return'
                 fparam->storageClass |= STCreturn;
 
-            if ((fparam->storageClass & (STCreturn | STCref)) == STCreturn)
+            if (fparam->storageClass & STCreturn &&
+                !(fparam->storageClass & (STCref | STCout)))
             {
-                error(loc, "'return' can only be used with 'ref'");
+                error(loc, "'return' can only be used with 'ref' or 'out'");
                 errors = true;
             }
 
