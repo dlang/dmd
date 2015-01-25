@@ -56,16 +56,20 @@ struct SectionGroup
 
 private:
     ModuleGroup _moduleGroup;
-    void[][1] _gcRanges;
+    void[][2] _gcRanges;
 }
 
 void initSections()
 {
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
 
-    auto pbeg = cast(void*)&__xc_a;
-    auto pend = cast(void*)&_deh_beg;
+    auto pbeg = cast(void*)&_data_beg;
+    auto pend = cast(void*)&_data_end;
     _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
+
+    pbeg = cast(void*)&_bss_beg;
+    pend = cast(void*)&_bss_end;
+    _sections._gcRanges[1] = pbeg[0 .. pend - pbeg];
 }
 
 void finiSections()
@@ -140,9 +144,11 @@ extern(C)
         void* _deh_beg;
         void* _deh_end;
 
-        int __xc_a;      // &__xc_a just happens to be start of data segment
-        //int _edata;    // &_edata is start of BSS segment
-        //void* _deh_beg;  // &_deh_beg is past end of BSS
+        void* _data_beg;
+        void* _data_end;
+
+        void* _bss_beg;
+        void* _bss_end;
     }
 
     extern
