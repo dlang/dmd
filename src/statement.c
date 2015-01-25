@@ -3430,6 +3430,7 @@ Statement *BreakStatement::semantic(Scope *sc)
                     error("label '%s' has no break", ident->toChars());
                 if (ls->tf != sc->tf)
                     error("cannot break out of finally block");
+                ls->breaks = true;
                 return this;
             }
         }
@@ -4321,6 +4322,7 @@ LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
     this->tf = NULL;
     this->lblock = NULL;
     this->fwdrefs = NULL;
+    this->breaks = false;
 }
 
 Statement *LabelStatement::syntaxCopy()
@@ -4377,7 +4379,10 @@ Statements *LabelStatement::flatten(Scope *sc)
 int LabelStatement::blockExit(bool mustNotThrow)
 {
     //printf("LabelStatement::blockExit(%p)\n", this);
-    return statement ? statement->blockExit(mustNotThrow) : BEfallthru;
+    int result = statement ? statement->blockExit(mustNotThrow) : BEfallthru;
+    if (breaks)
+        result |= BEfallthru;
+    return result;
 }
 
 

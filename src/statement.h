@@ -809,6 +809,7 @@ struct LabelStatement : Statement
     TryFinallyStatement *tf;
     block *lblock;              // back end
 
+    bool breaks;                // someone did a 'break ident'
     Blocks *fwdrefs;            // forward references to this LabelStatement
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
