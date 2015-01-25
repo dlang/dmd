@@ -96,10 +96,7 @@ else version (Windows) // Win64
      * Initialize ap.
      * parmn should be the last named parameter.
      */
-    void va_start(T)(out va_list ap, ref T parmn)
-    {
-        ap = cast(va_list)(cast(void*)&parmn + ((size_t.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1)));
-    }
+    void va_start(T)(out va_list ap, ref T parmn); // Compiler intrinsic
 
     /************
      * Retrieve and return the next value that is type T.
