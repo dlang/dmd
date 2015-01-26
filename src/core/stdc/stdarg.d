@@ -190,10 +190,7 @@ else version (X86_64)
     alias va_list = __va_list*;
 
     ///
-    void va_start(T)(out va_list ap, ref T parmn)
-    {
-        ap = &parmn.va;
-    }
+    void va_start(T)(out va_list ap, ref T parmn); // Compiler intrinsic
 
     ///
     T va_arg(T)(va_list ap)
