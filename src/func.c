@@ -473,7 +473,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 /* If the parent's purity is inferred, then this function's purity needs
                  * to be inferred first.
                  */
-                if (fd && fd->isPureBypassingInferenceX())
+                if (fd && fd->isPureBypassingInference() >= PUREweak)
                     tf->purity = PUREfwdref;            // default to pure
             }
         }
@@ -3551,11 +3551,6 @@ PURE FuncDeclaration::isPureBypassingInference()
         return PUREfwdref;
     else
         return isPure();
-}
-
-bool FuncDeclaration::isPureBypassingInferenceX()
-{
-    return !(flags & FUNCFLAGpurityInprocess) && isPure() != PUREimpure;
 }
 
 /**************************************

@@ -626,7 +626,6 @@ public:
     bool hasOverloads();
     PURE isPure();
     PURE isPureBypassingInference();
-    bool isPureBypassingInferenceX();
     bool setImpure();
     bool isSafe();
     bool isSafeBypassingInference();

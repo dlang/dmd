@@ -2384,9 +2384,9 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 
     // Find the closest pure parent of the calling function
     FuncDeclaration *outerfunc = sc->func;
-    while ( outerfunc->toParent2() &&
-           !outerfunc->isPureBypassingInference() &&
-            outerfunc->toParent2()->isFuncDeclaration())
+    while (outerfunc->toParent2() &&
+           outerfunc->isPureBypassingInference() == PUREimpure &&
+           outerfunc->toParent2()->isFuncDeclaration())
     {
         outerfunc = outerfunc->toParent2()->isFuncDeclaration();
         if (outerfunc->type->ty == Terror)
@@ -2394,9 +2394,9 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
     }
 
     FuncDeclaration *calledparent = f;
-    while ( calledparent->toParent2() &&
-           !calledparent->isPureBypassingInference() &&
-            calledparent->toParent2()->isFuncDeclaration())
+    while (calledparent->toParent2() &&
+           calledparent->isPureBypassingInference() == PUREimpure &&
+           calledparent->toParent2()->isFuncDeclaration())
     {
         calledparent = calledparent->toParent2()->isFuncDeclaration();
         if (calledparent->type->ty == Terror)
@@ -2408,7 +2408,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
     if (!f->isPure() && calledparent != outerfunc)
     {
         FuncDeclaration *ff = outerfunc;
-        if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
+        if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
         {
             error("pure function '%s' cannot call impure function '%s'",
                 ff->toPrettyChars(), f->toPrettyChars());
@@ -2453,7 +2453,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
          * functions must be pure.
          */
         FuncDeclaration *ff = sc->func;
-        if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
+        if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
         {
             error("pure function '%s' cannot access mutable static data '%s'",
                 ff->toPrettyChars(), v->toChars());
