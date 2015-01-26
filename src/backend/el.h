@@ -149,6 +149,7 @@ int el_signx32(elem_p);
 targ_ldouble el_toldouble(elem_p);
 void el_toconst(elem_p);
 elem_p el_same(elem_p *);
+elem_p el_copytotmp(elem_p *);
 int el_match(elem_p ,elem_p);
 int el_match2(elem_p ,elem_p);
 int el_match3(elem_p ,elem_p);
