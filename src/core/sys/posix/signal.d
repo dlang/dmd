@@ -664,12 +664,12 @@ version( linux )
         } _sifields_t _sifields;
 
     nothrow @nogc:
-        @property ref pid_t si_pid() return { return _sifields._kill.si_pid; }
-        @property ref uid_t si_uid() return { return _sifields._kill.si_uid; }
-        @property ref void* si_addr() return { return _sifields._sigfault.si_addr; }
-        @property ref int si_status() return { return _sifields._sigchld.si_status; }
-        @property ref c_long si_band() return { return _sifields._sigpoll.si_band; }
-        @property ref sigval si_value() return { return _sifields._rt.si_sigval; }
+        @property ref pid_t si_pid() { return _sifields._kill.si_pid; }
+        @property ref uid_t si_uid() { return _sifields._kill.si_uid; }
+        @property ref void* si_addr() { return _sifields._sigfault.si_addr; }
+        @property ref int si_status() { return _sifields._sigchld.si_status; }
+        @property ref c_long si_band() { return _sifields._sigpoll.si_band; }
+        @property ref sigval si_value() { return _sifields._rt.si_sigval; }
     }
 
     enum
