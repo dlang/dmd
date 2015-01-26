@@ -480,7 +480,7 @@ inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize, const TypeInfo tiKeyAr
     if (!len)
         return null;
 
-    void[] res = _d_newarrayU(tiKeyArray, len);
+    void* res = _d_newarrayU(tiKeyArray, len).ptr;
 
     size_t resi = 0;
     // note, can't use firstUsedBucketCache here, aa is inout
@@ -498,7 +498,7 @@ inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize, const TypeInfo tiKeyAr
 
     Array a;
     a.length = len;
-    a.ptr = res.ptr;
+    a.ptr = res;
     return *cast(inout ArrayRet_t*)(&a);
 }
 
