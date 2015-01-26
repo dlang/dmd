@@ -5296,7 +5296,7 @@ class C5311
     void breaksPure() pure const
     {
         static assert(!__traits(compiles, { globalData++; }));      // SHOULD BE ERROR
-        static assert(!__traits(compiles, { X.globalData++; }));    // SHOULD BE ERROR
+        static assert(!__traits(compiles, { C5311.globalData++; }));// SHOULD BE ERROR
         static assert(!__traits(compiles, { this.globalData++; })); // SHOULD BE ERROR
 
         static assert(!__traits(compiles, { int a = this.globalData; }));
@@ -5316,7 +5316,7 @@ struct S5311
     void breaksPure() pure const
     {
         static assert(!__traits(compiles, { globalData++; }));      // SHOULD BE ERROR
-        static assert(!__traits(compiles, { X.globalData++; }));    // SHOULD BE ERROR
+        static assert(!__traits(compiles, { S5311.globalData++; }));// SHOULD BE ERROR
         static assert(!__traits(compiles, { this.globalData++; })); // SHOULD BE ERROR
 
         static assert(!__traits(compiles, { int a = this.globalData; }));
