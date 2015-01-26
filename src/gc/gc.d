@@ -246,7 +246,7 @@ final class GCMutex : Mutex
 {
 }
 
-class GC
+struct GC
 {
     // For passing to debug code (not thread safe)
     __gshared size_t line;

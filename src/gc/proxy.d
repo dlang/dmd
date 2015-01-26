@@ -19,14 +19,7 @@ import core.stdc.stdlib;
 
 private
 {
-    version = GCCLASS;
-
-    version( GCCLASS )
-        alias GC gc_t;
-    else
-        alias GC* gc_t;
-
-    __gshared gc_t _gc;
+    __gshared GC _gc;
 
     static import core.memory;
     alias BlkInfo = core.memory.GC.BlkInfo;
@@ -111,18 +104,6 @@ extern (C)
 
     void gc_init()
     {
-        version (GCCLASS)
-        {   void* p;
-            ClassInfo ci = typeid(GC);
-
-            p = malloc(ci.init.length);
-            (cast(byte*)p)[0 .. ci.init.length] = ci.init[];
-            _gc = cast(GC)p;
-        }
-        else
-        {
-            _gc = cast(GC*) calloc(1, GC.sizeof);
-        }
         _gc.initialize();
         // NOTE: The GC must initialize the thread library
         //       before its first collection.
@@ -146,8 +127,6 @@ extern (C)
         thread_term();
 
         _gc.Dtor();
-        free(cast(void*)_gc);
-        _gc = null;
     }
 
     void gc_enable()
