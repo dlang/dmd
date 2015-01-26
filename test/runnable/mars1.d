@@ -1253,6 +1253,15 @@ void test13784()
 
 
 ////////////////////////////////////////////////////////////////////////
+
+struct At
+{
+    @property auto info() @safe @nothrow @pure @return const { return this; }
+
+    @pure @nothrow @return ref int info2(ref int x) { return x; }
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
