@@ -4573,12 +4573,23 @@ elem *toElem(Expression *e, IRState *irs)
             elem *e = toElem(se->e1, irs);
             if (se->lwr)
             {
-                elem *einit = resolveLengthVar(se->lengthVar, &e, t1);
                 unsigned sz = t1->nextOf()->size();
+
+                elem *einit = resolveLengthVar(se->lengthVar, &e, t1);
+                if (t1->ty == Tsarray)
+                    e = array_toPtr(se->e1->type, e);
+                if (!einit)
+                {
+                    einit = e;
+                    e = el_same(&einit);
+                }
+                // e is a temporary, typed:
+                //  TYdarray if t->ty == Tarray
+                //  TYptr if t->ty == Tsarray or Tpointer
 
                 elem *elwr = toElem(se->lwr, irs);
                 elem *eupr = toElem(se->upr, irs);
-                elem *elwr2 = el_same(&elwr);
+                elem *elwr2 = el_sideeffect(eupr) ? el_copytotmp(&elwr) : el_same(&elwr);
                 elem *eupr2 = eupr;
 
                 //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", se->upperIsInBounds, se->lowerIsLessThanUpper);
@@ -4641,31 +4652,32 @@ elem *toElem(Expression *e, IRState *irs)
                         elwr = el_combine(elwr, eb);
                     }
                 }
+                if (t1->ty != Tsarray)
+                    e = array_toPtr(se->e1->type, e);
 
                 // Create an array reference where:
                 // length is (upr - lwr)
                 // pointer is (ptr + lwr*sz)
                 // Combine as (length pair ptr)
 
-                e = array_toPtr(se->e1->type, e);
-
                 elem *eofs = el_bin(OPmul, TYsize_t, elwr2, el_long(TYsize_t, sz));
-                elem *eptr = el_bin(OPadd, TYnptr, el_same(&e), eofs);
+                elem *eptr = el_bin(OPadd, TYnptr, e, eofs);
 
                 if (tb->ty == Tarray)
                 {
                     elem *elen = el_bin(OPmin, TYsize_t, eupr2, el_copytree(elwr2));
-                    e = el_combine(e, el_pair(TYdarray, elen, eptr));
+                    e = el_pair(TYdarray, elen, eptr);
                 }
                 else
                 {
                     assert(tb->ty == Tsarray);
-                    e = el_una(OPind, totym(se->type), el_combine(e, eptr));
+                    e = el_una(OPind, totym(se->type), eptr);
                     if (tybasic(e->Ety) == TYstruct)
                         e->ET = Type_toCtype(se->type);
                 }
                 e = el_combine(elwr, e);
                 e = el_combine(einit, e);
+                //elem_print(e);
             }
             else if (t1->ty == Tsarray && tb->ty == Tarray)
             {
