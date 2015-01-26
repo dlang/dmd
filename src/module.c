@@ -228,6 +228,9 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     if (result)
         m->srcfile = new File(result);
 
+    if (!m->read(loc))
+        return NULL;
+
     if (global.params.verbose)
     {
         fprintf(global.stdmsg, "import    ");
@@ -241,9 +244,6 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         }
         fprintf(global.stdmsg, "%s\t(%s)\n", ident->toChars(), m->srcfile->toChars());
     }
-
-    if (!m->read(loc))
-        return NULL;
 
     m->parse();
 
@@ -277,7 +277,8 @@ bool Module::read(Loc loc)
         }
 
         if (!global.gag)
-        {   /* Print path
+        {
+            /* Print path
              */
             if (global.path)
             {
