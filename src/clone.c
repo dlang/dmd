@@ -203,7 +203,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     if (!needOpAssign(sd))
         return NULL;
 
-    //printf("StructDeclaration::buildOpAssign() %s\n", toChars());
+    //printf("StructDeclaration::buildOpAssign() %s\n", sd->toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
@@ -238,7 +238,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCnodtor, sd->type, Id::p, NULL));
-    Type *tf = new TypeFunction(fparams, sd->handleType(), 0, LINKd, stc | STCref);
+    TypeFunction *tf = new TypeFunction(fparams, sd->handleType(), 0, LINKd, stc | STCref);
 
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, tf);
 
@@ -302,6 +302,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
         Statement *s2 = new ReturnStatement(loc, e);
 
         fop->fbody = new CompoundStatement(loc, s1, s2);
+        tf->isreturn = true;
     }
 
     sd->members->push(fop);

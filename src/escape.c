@@ -291,7 +291,10 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
                         }
                     }
                     else if (sc->module && sc->module->isRoot())
+                    {
+                        //printf("escaping reference to local ref variable %s\n", v->toChars());
                         error(loc, "escaping reference to local ref variable %s", v);
+                    }
                     return;
                 }
 
