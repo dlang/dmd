@@ -577,7 +577,7 @@ void validate(S)(in S s)
 
 /* =================== Conversion to UTF8 ======================= */
 
-char[] toUTF8(out char[4] buf, dchar c)
+char[] toUTF8(return out char[4] buf, dchar c)
     in
     {
         assert(isValidDchar(c));
@@ -682,7 +682,7 @@ string toUTF8(in dchar[] s)
 
 /* =================== Conversion to UTF16 ======================= */
 
-wchar[] toUTF16(out wchar[2] buf, dchar c)
+wchar[] toUTF16(return out wchar[2] buf, dchar c)
     in
     {
         assert(isValidDchar(c));

@@ -64,8 +64,8 @@ else
 	DOTLIB:=.a
 endif
 
-DFLAGS=$(MODEL_FLAG) -O -release -inline -w -Isrc -Iimport $(PIC)
-UDFLAGS=$(MODEL_FLAG) -O -release -w -Isrc -Iimport $(PIC)
+DFLAGS=$(MODEL_FLAG) -O -release -dip25 -inline -w -Isrc -Iimport $(PIC)
+UDFLAGS=$(MODEL_FLAG) -O -release -dip25 -w -Isrc -Iimport $(PIC)
 DDOCFLAGS=-c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 CFLAGS=$(MODEL_FLAG) -O $(PIC)

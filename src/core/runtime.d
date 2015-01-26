@@ -538,7 +538,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
             void*[MAXFRAMES]  callstack = void;
 
         private:
-            const(char)[] fixline( const(char)[] buf, ref char[4096] fixbuf ) const
+            const(char)[] fixline( const(char)[] buf, return ref char[4096] fixbuf ) const
             {
                 size_t symBeg, symEnd;
                 version( OSX )
