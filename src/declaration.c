@@ -1767,6 +1767,36 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     int lv = fdthis->getLevel(loc, sc, fdv);
                     if (lv == -2)   // error
                         return false;
+                    if (lv > 0 &&
+                        fdv->isPureBypassingInference() >= PUREweak &&
+                        fdthis->isPureBypassingInference() == PUREfwdref &&
+                        fdthis->isInstantiated())
+                    {
+                        /* Bugzilla 9148 and 14039:
+                         *  void foo() pure {
+                         *    int x;
+                         *    void bar()() {  // default is impure
+                         *      x = 1;  // access to enclosing pure function context
+                         *              // means that bar should have weak purity.
+                         *    }
+                         *  }
+                         */
+                        fdthis->flags &= ~FUNCFLAGpurityInprocess;
+                        if (fdthis->type->ty == Tfunction)
+                        {
+                            TypeFunction *tf = (TypeFunction *)fdthis->type;
+                            if (tf->deco)
+                            {
+                                tf = (TypeFunction *)tf->copy();
+                                tf->purity = PUREfwdref;
+                                tf->deco = NULL;
+                                tf->deco = tf->merge()->deco;
+                            }
+                            else
+                                tf->purity = PUREfwdref;
+                            fdthis->type = tf;
+                        }
+                    }
                 }
 
                 // Function literals from fdthis to fdv must be delegates
@@ -1776,20 +1806,6 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
                     {
                         fld->tok = TOKdelegate;
-#if 0
-                        /* This is necessary to avoid breaking tests for 8751 & 8793.
-                         * See: compilable/testInference.d
-                         */
-                        // if is a mutable variable or
-                        // has any mutable indirections or
-                        // does not belong to pure function
-                        if (type->isMutable() ||
-                            !type->implicitConvTo(type->immutableOf()) ||
-                            !fdv->isPureBypassingInference())
-                        {
-                            fld->setImpure();   // Bugzilla 9415
-                        }
-#endif
                     }
                 }
 

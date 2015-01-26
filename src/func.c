@@ -453,7 +453,19 @@ void FuncDeclaration::semantic(Scope *sc)
                     tf->trust = TRUSTsafe;              // default to @safe
             }
 
-            /* If the nesting parent is pure, then this function defaults to pure too.
+            /* If the nesting parent is pure without inference,
+             * then this function defaults to pure too.
+             *
+             *  auto foo() pure {   
+             *    auto bar() {}     // become a weak purity funciton
+             *    class C {         // nested class
+             *      auto baz() {}   // become a weak purity funciton
+             *    }
+             *
+             *    static auto boo() {}   // typed as impure
+             *    // Even though, boo cannot call any impure functions.
+             *    // See also Expression;;checkPurity().
+             *  }
              */
             if (tf->purity == PUREimpure && (isNested() || isThis()))
             {
@@ -473,8 +485,11 @@ void FuncDeclaration::semantic(Scope *sc)
                 /* If the parent's purity is inferred, then this function's purity needs
                  * to be inferred first.
                  */
-                if (fd && fd->isPureBypassingInference() >= PUREweak)
+                if (fd && fd->isPureBypassingInference() >= PUREweak &&
+                    !isInstantiated())
+                {
                     tf->purity = PUREfwdref;            // default to pure
+                }
             }
         }
 
@@ -1517,7 +1532,11 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (!fbody)
                 fbody = new CompoundStatement(Loc(), new Statements());
 
-            assert(type == f);
+            assert(type == f ||
+                   (type->ty == Tfunction &&
+                    f->purity == PUREimpure &&
+                    ((TypeFunction *)type)->purity >= PUREfwdref));
+            f = (TypeFunction *)type;
 
             if (inferRetType)
             {

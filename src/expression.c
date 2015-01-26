@@ -2384,23 +2384,50 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 
     // Find the closest pure parent of the calling function
     FuncDeclaration *outerfunc = sc->func;
-    while (outerfunc->toParent2() &&
-           outerfunc->isPureBypassingInference() == PUREimpure &&
-           outerfunc->toParent2()->isFuncDeclaration())
-    {
-        outerfunc = outerfunc->toParent2()->isFuncDeclaration();
-        if (outerfunc->type->ty == Terror)
-            return;
-    }
-
     FuncDeclaration *calledparent = f;
-    while (calledparent->toParent2() &&
-           calledparent->isPureBypassingInference() == PUREimpure &&
-           calledparent->toParent2()->isFuncDeclaration())
+
+    if (outerfunc->isInstantiated())
     {
-        calledparent = calledparent->toParent2()->isFuncDeclaration();
-        if (calledparent->type->ty == Terror)
-            return;
+        // The attributes of outerfunc should be inferred from the call of f.
+    }
+    else if (f->isFuncLiteralDeclaration())
+    {
+        // The attributes of f is always inferred in its declared place.
+    }
+    else
+    {
+        /* Today, static local functions are impure by default, but they cannot
+         * violate purity of enclosing functions.
+         *
+         *  auto foo() pure {      // non instantiated funciton
+         *    static auto bar() {  // static, without pure attribute
+         *      impureFunc();      // impure call
+         *      // Although impureFunc is called inside bar, f(= impureFunc)
+         *      // is not callable inside pure outerfunc(= foo <- bar).
+         *    }
+         *
+         *    bar();
+         *    // Although bar is called inside foo, f(= bar) is callable
+         *    // bacause calledparent(= foo) is same with outerfunc(= foo).
+         *  }
+         */
+
+        while (outerfunc->toParent2() &&
+               outerfunc->isPureBypassingInference() == PUREimpure &&
+               outerfunc->toParent2()->isFuncDeclaration())
+        {
+            outerfunc = outerfunc->toParent2()->isFuncDeclaration();
+            if (outerfunc->type->ty == Terror)
+                return;
+        }
+        while (calledparent->toParent2() &&
+               calledparent->isPureBypassingInference() == PUREimpure &&
+               calledparent->toParent2()->isFuncDeclaration())
+        {
+            calledparent = calledparent->toParent2()->isFuncDeclaration();
+            if (calledparent->type->ty == Terror)
+                return;
+        }
     }
 
     // If the caller has a pure parent, then either the called func must be pure,
@@ -2476,6 +2503,14 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
          */
 
         Dsymbol *vparent = v->toParent2();
+        if (FuncDeclaration *fdp = vparent->isFuncDeclaration())
+        {
+            if (!sc->func->isPureBypassingInference() && fdp->setImpure())
+            {
+                error("impure function '%s' cannot access variable '%s' declared in enclosing pure function '%s'",
+                    sc->func->toChars(), v->toChars(), fdp->toPrettyChars());
+            }
+        }
         for (Dsymbol *s = sc->func; s; s = s->toParent2())
         {
             if (s == vparent)

@@ -548,7 +548,7 @@ class Node10002
 /***************************************************/
 // 10148
 
-void fa10148() pure {}  // fa is @system
+void fa10148() {}  // fa is @system
 
 auto fb10148(T)()
 {
@@ -561,7 +561,7 @@ auto fb10148(T)()
         void fc(T2)()
         {
             // [5] During semantic3 process, fc is not @safe on default.
-            static assert(is(typeof(&fc) == void delegate() pure));
+            static assert(is(typeof(&fc) == void delegate()));
             fa10148();
         }
         // [1] this is now inferred to @safe by implementing issue 7511
@@ -578,7 +578,7 @@ void test10148()
                          // [3] instantiate fc
 
     // [6] Afer semantic3 done, fc!int is deduced to @system.
-    static assert(is(typeof(&fb10148!int.fc!int) == void delegate() pure @system));
+    static assert(is(typeof(&fb10148!int.fc!int) == void delegate() @system));
 }
 
 /***************************************************/
