@@ -792,10 +792,7 @@ int foo42(const(char) *x, ...)
 {
     va_list ap;
 
-    static if (is(typeof(__va_argsave)))
-        va_start(ap, __va_argsave);
-    else
-        va_start!(typeof(x))(ap, x);
+    va_start!(typeof(x))(ap, x);
     printf("&x = %p, ap = %p\n", &x, ap);
 
     int i;

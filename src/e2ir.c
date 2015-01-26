@@ -393,24 +393,19 @@ if (I32) assert(tysize[TYnptr] == 4);
         }
         else if (op == OPind)
             e = el_una(op,mTYvolatile | tyret,ep);
-#if TARGET_WINDOS
-        else if (op == OPva_start)
+        else if (op == OPva_start && global.params.is64bit)
         {
             assert(I64);
-            if (op == OPva_start)
-            {
-                // (OPparam &va &arg)
-                // call as (OPva_start &va)
-                ep->Eoper = op;
-                ep->Ety = tyret;
-                e = ep;
+            // (OPparam &va &arg)
+            // call as (OPva_start &va)
+            ep->Eoper = op;
+            ep->Ety = tyret;
+            e = ep;
 
-                elem *earg = e->E2;
-                e->E2 = NULL;
-                e = el_combine(earg, e);
-            }
+            elem *earg = e->E2;
+            e->E2 = NULL;
+            e = el_combine(earg, e);
         }
-#endif
         else
             e = el_una(op,tyret,ep);
     }

@@ -572,7 +572,6 @@ int intrinsic_op(FuncDeclaration *fd)
         if (i != -1)
             return core_ioptab[i];
 
-#if TARGET_WINDOS
         if (global.params.is64bit &&
             fd->toParent()->isTemplateInstance() &&
             !strcmp(mangle(fd->getModule()), "4core4stdc6stdarg") &&
@@ -580,7 +579,6 @@ int intrinsic_op(FuncDeclaration *fd)
         {
             return OPva_start;
         }
-#endif
 
         return -1;
     }

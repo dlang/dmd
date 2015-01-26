@@ -4844,39 +4844,73 @@ STATIC elem * elarraylength(elem *e, goal_t goal)
 /********************************************
  */
 
-#if TX86 && TARGET_WINDOS && MARS
+#if TX86 && MARS
 STATIC elem * elvalist(elem *e, goal_t goal)
 {
-    if (config.exe == EX_WIN64)
+    assert(e->Eoper == OPva_start);
+
+#if TARGET_WINDOS
+
+    assert(config.exe == EX_WIN64); // va_start is not an intrinsic on 32-bit
+
+    // (OPva_start &va)
+    // (OPeq (OPind E1) (OPptr &lastNamed+8))
+    //elem_print(e);
+
+    // Find last named parameter
+    symbol *lastNamed = NULL;
+    for (SYMIDX si = 0; si < globsym.top; si++)
     {
-        if (e->Eoper == OPva_start)
+        symbol *s = globsym.tab[si];
+
+        if (s->Sclass == SCfastpar || s->Sclass == SCshadowreg)
+            lastNamed = s;
+    }
+
+    e->Eoper = OPeq;
+    e->E1 = el_una(OPind, TYnptr, e->E1);
+    if (lastNamed)
+    {
+        e->E2 = el_ptr(lastNamed);
+        e->E2->EV.sp.Voffset = REGSIZE;
+    }
+    else
+        e->E2 = el_long(TYnptr, 0);
+    //elem_print(e);
+
+#endif
+
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+
+    assert(I64); // va_start is not an intrinsic on 32-bit
+    // (OPva_start &va)
+    // (OPeq (OPind E1) __va_argsave+offset)
+    //elem_print(e);
+
+    // Find __va_argsave
+    symbol *va_argsave = NULL;
+    for (SYMIDX si = 0; si < globsym.top; si++)
+    {
+        symbol *s = globsym.tab[si];
+        if (s->Sident[0] == '_' && strcmp(s->Sident, "__va_argsave") == 0)
         {
-            // (OPva_start &va)
-            // (OPeq (OPind E1) (OPptr &lastNamed+8))
-            //elem_print(e);
-
-            // Find last named parameter
-            symbol *lastNamed = NULL;
-            for (SYMIDX si = 0; si < globsym.top; si++)
-            {
-                symbol *s = globsym.tab[si];
-
-                if (s->Sclass == SCfastpar || s->Sclass == SCshadowreg)
-                    lastNamed = s;
-            }
-
-            e->Eoper = OPeq;
-            e->E1 = el_una(OPind, TYnptr, e->E1);
-            if (lastNamed)
-            {
-                e->E2 = el_ptr(lastNamed);
-                e->E2->EV.sp.Voffset = REGSIZE;
-            }
-            else
-                e->E2 = el_long(TYnptr, 0);
-            //elem_print(e);
+            va_argsave = s;
+            break;
         }
     }
+
+    e->Eoper = OPeq;
+    e->E1 = el_una(OPind, TYnptr, e->E1);
+    if (va_argsave)
+    {
+        e->E2 = el_ptr(va_argsave);
+        e->E2->EV.sp.Voffset = 6 * 8 + 8 * 16;
+    }
+    else
+        e->E2 = el_long(TYnptr, 0);
+    //elem_print(e);
+#endif
+
     return e;
 }
 #endif
