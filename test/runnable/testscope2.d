@@ -177,6 +177,31 @@ struct S10
 
 /********************************************/
 
+struct RC
+{
+    this(this) { }
+}
+
+struct S11
+{
+    @disable this(this);
+
+    void remove()
+    {
+	_ptr[0] = _ptr[1];
+    }
+
+    RC* _ptr;
+}
+
+
+void test11()
+{
+    S11 ary;
+}
+
+/********************************************/
+
 void main()
 {
     test3();
@@ -185,6 +210,7 @@ void main()
     test6();
     test7();
     test8();
+    test11();
     printf("Success\n");
 }
 
