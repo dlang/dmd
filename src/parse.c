@@ -138,9 +138,8 @@ Dsymbols *Parser::parseModule()
                     Expressions *exps = NULL;
                     StorageClass stc = parseAttribute(&exps);
 
-                    if (stc & (STCproperty | STCnogc | STCdisable |
-                               STCsafe | STCtrusted | STCsystem |
-                               STCpure | STCnothrow | STCreturn))
+                    if (stc == STCproperty || stc == STCnogc || stc == STCdisable ||
+                        stc == STCsafe || stc == STCtrusted || stc == STCsystem)
                     {
                         error("@%s attribute for module declaration is not supported", token.toChars());
                     }
@@ -987,51 +986,45 @@ StorageClass Parser::parseAttribute(Expressions **pudas)
     nextToken();
     Expressions *udas = NULL;
     StorageClass stc = 0;
-    switch (token.value)
+    if (token.value == TOKidentifier)
     {
-        case TOKidentifier:
-            if (token.ident == Id::property)
-                stc = STCproperty;
-            else if (token.ident == Id::nogc)
-                stc = STCnogc;
-            else if (token.ident == Id::safe)
-                stc = STCsafe;
-            else if (token.ident == Id::trusted)
-                stc = STCtrusted;
-            else if (token.ident == Id::system)
-                stc = STCsystem;
-            else if (token.ident == Id::disable)
-                stc = STCdisable;
-            else
+        if (token.ident == Id::property)
+            stc = STCproperty;
+        else if (token.ident == Id::nogc)
+            stc = STCnogc;
+        else if (token.ident == Id::safe)
+            stc = STCsafe;
+        else if (token.ident == Id::trusted)
+            stc = STCtrusted;
+        else if (token.ident == Id::system)
+            stc = STCsystem;
+        else if (token.ident == Id::disable)
+            stc = STCdisable;
+        else
+        {
+            // Allow identifier, template instantiation, or function call
+            Expression *exp = parsePrimaryExp();
+            if (token.value == TOKlparen)
             {
-                // Allow identifier, template instantiation, or function call
-                Expression *exp = parsePrimaryExp();
-                if (token.value == TOKlparen)
-                {
-                    Loc loc = token.loc;
-                    exp = new CallExp(loc, exp, parseArguments());
-                }
-
-                udas = new Expressions();
-                udas->push(exp);
+                Loc loc = token.loc;
+                exp = new CallExp(loc, exp, parseArguments());
             }
-            break;
 
-        case TOKlparen:
-            // @( ArgumentList )
-            // Concatenate with existing
-            if (peekNext() == TOKrparen)
-                error("empty attribute list is not allowed");
-            udas = parseArguments();
-            break;
-
-        case TOKpure:       stc = STCpure;          break;
-        case TOKnothrow:    stc = STCnothrow;       break;
-        case TOKreturn:     stc = STCreturn;        break;
-
-        default:
-            error("@identifier or @(ArgumentList) expected, not @%s", token.toChars());
-            break;
+            udas = new Expressions();
+            udas->push(exp);
+        }
+    }
+    else if (token.value == TOKlparen)
+    {
+        // @( ArgumentList )
+        // Concatenate with existing
+        if (peekNext() == TOKrparen)
+            error("empty attribute list is not allowed");
+        udas = parseArguments();
+    }
+    else
+    {
+        error("@identifier or @(ArgumentList) expected, not @%s", token.toChars());
     }
 
     if (stc)
@@ -6209,10 +6202,6 @@ bool Parser::skipAttributes(Token *t, Token **pt)
                 break;
             case TOKat:
                 t = peek(t);
-                if (t->value == TOKpure ||
-                    t->value == TOKnothrow ||
-                    t->value == TOKreturn)
-                    break;
                 if (t->value == TOKidentifier)
                 {
                     /* @identifier
