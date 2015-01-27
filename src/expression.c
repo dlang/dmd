@@ -10046,6 +10046,29 @@ Lagain:
         lwr = lwr->optimize(WANTvalue);
         upr = upr->optimize(WANTvalue);
 
+        if (lwr->op == TOKdiv)
+        {
+            assert(reinterpret_cast<DivExp*>(lwr)); // TODO remove
+            DivExp* lwrDiv = (DivExp*)lwr; // TODO always true?
+        }
+        else if (lwr->op == TOKvar)
+        {
+            assert(reinterpret_cast<VarExp*>(lwr)); // TODO remove
+            VarExp* lwrVar = (VarExp*)lwr; // TODO always true?
+        }
+
+        if (upr->op == TOKdiv)
+        {
+            assert(reinterpret_cast<DivExp*>(upr)); // TODO remove
+            DivExp* uprDiv = (DivExp*)upr; // TODO always true?
+        }
+        else if (upr->op == TOKvar)
+        {
+            assert(reinterpret_cast<VarExp*>(upr)); // TODO remove
+            VarExp* uprVar = (VarExp*)upr; // TODO always true?
+            printf("xxx");
+        }
+
         IntRange lwrRange = getIntRange(lwr);
         IntRange uprRange = getIntRange(upr);
 
