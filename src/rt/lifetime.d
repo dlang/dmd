@@ -1343,7 +1343,7 @@ void finalize_array2(void* p, size_t size) nothrow
     {
         finalize_array(p, size, si);
     }
-    catch (Throwable e)
+    catch (Exception e)
     {
         onFinalizeError(si, e);
     }
@@ -1372,7 +1372,7 @@ void finalize_struct(void* p, size_t size) nothrow
         if (ti.xdtor)
             ti.xdtor(p); // call destructor
     }
-    catch (Throwable e)
+    catch (Exception e)
     {
         onFinalizeError(ti, e);
     }
@@ -1412,7 +1412,7 @@ extern (C) void rt_finalize2(void* p, bool det = true, bool resetMemory = true) 
             (cast(byte*) p)[0 .. w.length] = w[];
         }
     }
-    catch (Throwable e)
+    catch (Exception e)
     {
         onFinalizeError(*pc, e);
     }
@@ -2591,33 +2591,81 @@ unittest
     }
 }
 
+// test class finalizers exception handling
+unittest
+{
+    bool test(E)()
+    {
+        import core.exception;
+        static class C1
+        {
+            // preallocate to not call new in destructor
+            __gshared E exc = new E("test onFinalizeError");
+            ~this()
+            {
+                throw exc;
+            }
+        }
+
+        bool caught = false;
+        C1 c = new C1;
+        try
+        {
+            GC.runFinalizers((cast(uint*)&C1.__dtor)[0..1]);
+        }
+        catch(FinalizeError err)
+        {
+            caught = true;
+        }
+        catch(E)
+        {
+        }
+        GC.free(cast(void*)c);
+        return caught;
+    }
+
+    assert( test!Exception);
+    import core.exception : InvalidMemoryOperationError;
+    assert(!test!InvalidMemoryOperationError);
+}
+
 // test struct finalizers exception handling
 unittest
 {
     if (!callStructDtorsDuringGC)
         return;
 
-    import core.exception;
-    static struct S1
+    bool test(E)()
     {
-        // preallocate to not call new in destructor
-        __gshared Exception exc = new Exception("test onFinalizeError");
-        ~this()
+        import core.exception;
+        static struct S1
         {
-            throw exc;
+            // preallocate to not call new in destructor
+            __gshared E exc = new E("test onFinalizeError");
+            ~this()
+            {
+                throw exc;
+            }
         }
+
+        bool caught = false;
+        S1* s = new S1;
+        try
+        {
+            GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
+        }
+        catch(FinalizeError err)
+        {
+            caught = true;
+        }
+        catch(E)
+        {
+        }
+        GC.free(s);
+        return caught;
     }
 
-    bool caught = false;
-    S1* s = new S1;
-    try
-    {
-        GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
-    }
-    catch(FinalizeError err)
-    {
-        caught = true;
-    }
-    assert(caught);
-    GC.free(s);
+    assert( test!Exception);
+    import core.exception : InvalidMemoryOperationError;
+    assert(!test!InvalidMemoryOperationError);
 }
