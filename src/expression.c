@@ -10059,17 +10059,15 @@ Lagain:
             if (upr->op == TOKint64)
             {
                 IntegerExp* int_ = (IntegerExp*)upr; // TODO is*Exp predicate?
-                const bool isInBounds = int_->value == 0;
-                if (isInBounds) { e1->warning("Avoiding boundscheck for upper part '%s'", int_->toChars()); }
-                uprAtStart = isInBounds;
+                uprAtStart = int_->value == 0;
+                if (uprAtStart) { e1->warning("Avoiding boundscheck for upper part '%s'", int_->toChars()); }
             }
             else if (upr->op == TOKvar)
             {
                 VarExp* var = (VarExp*)upr; // TODO is*Exp predicate?
-                const bool isInBounds = isOpDollar(var);
-                if (isInBounds) { e1->warning("Avoiding boundscheck for upper part '%s'", var->toChars()); }
-                this->upperIsInBounds = isInBounds;
-                uprAtEnd = isInBounds;
+                uprAtEnd = isOpDollar(var);
+                if (uprAtEnd) { e1->warning("Avoiding boundscheck for upper part '%s'", var->toChars()); }
+                this->upperIsInBounds = uprAtEnd;
             }
             else if (upr->op == TOKdiv)
             {
@@ -10081,16 +10079,14 @@ Lagain:
             if (lwr->op == TOKint64)
             {
                 IntegerExp* int_ = (IntegerExp*)lwr; // TODO is*Exp predicate?
-                const bool isInBounds = int_->value == 0;
-                if (isInBounds) { e1->warning("Avoiding boundscheck for lower part '%s'", int_->toChars()); }
-                lwrAtStart = isInBounds;
+                lwrAtStart = int_->value == 0;
+                if (lwrAtStart) { e1->warning("Avoiding boundscheck for lower part '%s'", int_->toChars()); }
             }
             else if (lwr->op == TOKvar)
             {
                 VarExp* var = (VarExp*)lwr; // TODO is*Exp predicate?
-                const bool isInBounds = isOpDollar(var);
-                if (isInBounds) { e1->warning("Avoiding boundscheck for lower part '%s'", var->toChars()); }
-                lwrAtEnd = isInBounds;
+                lwrAtEnd = isOpDollar(var);
+                if (lwrAtEnd) { e1->warning("Avoiding boundscheck for lower part '%s'", var->toChars()); }
             }
             else if (lwr->op == TOKdiv) // then lower
             {
