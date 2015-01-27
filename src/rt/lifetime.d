@@ -50,7 +50,8 @@ extern (C) void lifetime_init()
 {
     // this is run before static ctors, so it is safe to modify immutables
     import rt.config;
-    if (string s = rt_configOption("callStructDtorsDuringGC"))
+    string s = rt_configOption("callStructDtorsDuringGC");
+    if (s != null)
         cast() callStructDtorsDuringGC = s[0] == '1' || s[0] == 'y' || s[0] == 'Y';
     else
         cast() callStructDtorsDuringGC = true;
