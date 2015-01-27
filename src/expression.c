@@ -9815,15 +9815,7 @@ Expression *SliceExp::syntaxCopy()
 static bool isOpDollar(VarExp* ve)
 {
     VarDeclaration* decl = ve->var->isVarDeclaration();
-    if (decl)
-    {
-        if (decl->ident->len == 8 &&
-            memcmp(decl->ident->string, "__dollar", decl->ident->len) == 0) // TODO is there a function for this?
-        {
-            return true;
-        }
-    }
-    return false;
+    return decl && decl->ident == Id::dollar;
 }
 
 Expression *SliceExp::semantic(Scope *sc)
@@ -10060,7 +10052,7 @@ Lagain:
         lwr = lwr->optimize(WANTvalue);
         upr = upr->optimize(WANTvalue);
 
-        // avoid bounds-checking for slice bounds in form $/n
+        // avoid bounds-checking for slice bounds when possible
         // How to use resolveOpDollar?
         {
             bool upperAtEnd = false;
