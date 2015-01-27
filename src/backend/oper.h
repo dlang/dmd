@@ -259,7 +259,7 @@ enum OPER
         OPpreinc,               /* ++x overloading              */
         OPpredec,               /* --x overloading              */
 
-#if TX86 && TARGET_WINDOS && MARS
+#if TX86 && MARS
         OPva_start,             /* va_start intrinsic           */
 #endif
 
