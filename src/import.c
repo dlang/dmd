@@ -288,7 +288,7 @@ void Import::semantic(Scope *sc)
 
     // object self-imports itself, so skip that (Bugzilla 7547)
     // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
-    if (global.params.moduleDeps != NULL &&
+    if (global.params.moduleDeps != NULL && mod &&
         !(id == Id::object && sc->module->ident == Id::object) &&
         sc->module->ident != Id::entrypoint &&
         strcmp(sc->module->ident->string, "__main") != 0)
@@ -334,10 +334,7 @@ void Import::semantic(Scope *sc)
 
         ob->writestring(id->toChars());
         ob->writestring(" (");
-        if (mod)
-            escapePath(ob, mod->srcfile->toChars());
-        else
-            ob->writestring("???");
+        escapePath(ob, mod->srcfile->toChars());
         ob->writeByte(')');
 
         for (size_t i = 0; i < names.dim; i++)
