@@ -80,13 +80,14 @@ string rt_configOption(string opt, scope rt_configCallBack dg = null, bool rever
     if (!dg)
         dg = (string s) => s;
 
-    if (string s = (reverse ? rt_linkOption(opt, dg) : rt_cmdlineOption(opt, dg)))
+    string s = (reverse ? rt_linkOption(opt, dg) : rt_cmdlineOption(opt, dg));
+    if (s != null)
         return s;
-    if (string s = rt_envvarsOption(opt, dg))
+    s = rt_envvarsOption(opt, dg);
+    if (s != null)
         return s;
-    if (string s = (reverse ? rt_cmdlineOption(opt, dg) : rt_linkOption(opt, dg)))
-        return s;
-    return null;
+    s = (reverse ? rt_cmdlineOption(opt, dg) : rt_linkOption(opt, dg));
+    return s;
 }
 
 string rt_cmdlineOption(string opt, scope rt_configCallBack dg) @nogc nothrow
@@ -97,8 +98,11 @@ string rt_cmdlineOption(string opt, scope rt_configCallBack dg) @nogc nothrow
         {
             if (a.length >= opt.length + 7 && a[0..6] == "--DRT-" &&
                 a[6 .. 6 + opt.length] == opt && a[6 + opt.length] == '=')
-                if (string s = dg(a[7 + opt.length .. $]))
+            {
+                string s = dg(a[7 + opt.length .. $]);
+                if (s != null)
                     return s;
+            }
         }
     }
     return null;
@@ -119,8 +123,11 @@ string rt_envvarsOption(string opt, scope rt_configCallBack dg) @nogc nothrow
 
         auto p = getenv(var.ptr);
         if (p)
-            if (string s = dg(cast(string) p[0 .. strlen(p)]))
+        {
+            string s = dg(cast(string) p[0 .. strlen(p)]);
+            if (s != null)
                 return s;
+        }
     }
     return null;
 }
@@ -130,8 +137,11 @@ string rt_linkOption(string opt, scope rt_configCallBack dg) @nogc nothrow
     foreach (a; rt_options!())
     {
         if(a.length > opt.length && a[0..opt.length] == opt && a[opt.length] == '=')
-            if (string s = dg(a[opt.length + 1 .. $]))
+        {
+            string s = dg(a[opt.length + 1 .. $]);
+            if (s != null)
                 return s;
+        }
     }
     return null;
 }
