@@ -1,11 +1,11 @@
-
+// Compiler implementation of the D programming language
 // Copyright (c) 2000-2009 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gpl.txt.
-// See the included readme.txt for details.
+// Distributed under the Boost Software License, Version 1.0.
+// http://www.boost.org/LICENSE_1_0.txt
+// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/aa.c
 
 
 #include <stdio.h>
@@ -40,6 +40,15 @@ size_t aligntsize(size_t tsize)
 {
     // Is pointer alignment on the x64 4 bytes or 8?
     return (tsize + sizeof(size_t) - 1) & ~(sizeof(size_t) - 1);
+}
+
+static int hashCmp(hash_t lhs, hash_t rhs)
+{
+    if (lhs == rhs)
+        return 0;
+    else if (lhs < rhs)
+        return -1;
+    return 1;
 }
 
 /**********************************
@@ -122,7 +131,7 @@ void* AArray::get(void *pkey)
     while ((e = *pe) != NULL)
     {   int c;
 
-        c = key_hash - e->hash;
+        c = hashCmp(key_hash, e->hash);
         if (c == 0)
         {
             c = keyti->compare(pkey, e + 1);
@@ -180,7 +189,7 @@ void* AArray::in(void *pkey)
         while (e != NULL)
         {   int c;
 
-            c = key_hash - e->hash;
+            c = hashCmp(key_hash, e->hash);
             if (c == 0)
             {
                 c = keyti->compare(pkey, e + 1);
@@ -218,7 +227,7 @@ void AArray::del(void *pkey)
         while ((e = *pe) != NULL)       // NULL means not found
         {   int c;
 
-            c = key_hash - e->hash;
+            c = hashCmp(key_hash, e->hash);
             if (c == 0)
             {
                 c = keyti->compare(pkey, e + 1);
@@ -412,7 +421,7 @@ void AArray::rehash_x(aaA* olde, aaA** newbuckets, size_t newbuckets_length)
             //printf("\te = %p, e->left = %p, e->right = %p\n", e, e->left, e->right);
             assert(e->left != e);
             assert(e->right != e);
-            c = key_hash - e->hash;
+            c = hashCmp(key_hash, e->hash);
             if (c == 0)
                 c = keyti->compare(olde + 1, e + 1);
             if (c < 0)

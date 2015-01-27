@@ -337,6 +337,10 @@ void WRblock(block *b)
 printf("%p %d ", b, b->BC);
         WRBC(b->BC);
         dbg_printf(" Btry=%p Bindex=%d",b->Btry,b->Bindex);
+#if MARS
+        if (b->Bsrcpos.Sfilename)
+            dbg_printf(" %s(%u)", b->Bsrcpos.Sfilename, b->Bsrcpos.Slinnum);
+#endif
         dbg_printf("\n");
         dbg_printf("\tBpred:\n");
         for (bl = b->Bpred; bl; bl = list_next(bl))

@@ -1,52 +1,62 @@
-       |// PERMUTE_ARGS:
-       |// POST_SCRIPT: runnable/extra-files/cov2-postscript.sh
-       |// REQUIRED_ARGS: -cov
-       |// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
-       |
-       |extern(C) void dmd_coverDestPath(string pathname);
-       |
-       |/***************************************************/
-       |
-       |void test1()
-       |{
-      1|    int counter = 20;
-       |    do {
-     20|        --counter;
-       |    }
-     20|    while(counter > 0);
-       |}
-       |
-       |/***************************************************/
-       |
-       |struct S2
-       |{
-      2|    this(this) { int x = 1; }
-      3|    ~this() { int x = 1; }
-0000000|    ref S2 opAssign(S2) { return this; }
-      1|    bool opEquals(ref const S2) const { return true; }
-       |}
-       |struct T2
-       |{
-       |    S2 s;
-       |
-      2|    this(this) { int x = 1; }
-      3|    ~this() { int x = 1; }
-       |}
-       |void test2()
-       |{
-      2|    T2 ta;
-      2|    T2 tb = ta;
-      1|    tb = ta;
-      1|    typeid(T2).equals(&ta, &tb);
-       |}
-       |
-       |/***************************************************/
-       |
-       |int main(string[] args)
-       |{
-      1|    dmd_coverDestPath(args[1]);
-      1|    test1();
-      1|    test2();
-      1|    return 0;
-       |}
-       |
+        |// PERMUTE_ARGS:
+        |// POST_SCRIPT: runnable/extra-files/cov2-postscript.sh
+        |// REQUIRED_ARGS: -cov
+        |// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
+        |
+        |extern(C) void dmd_coverDestPath(string pathname);
+        |
+        |/***************************************************/
+        |
+        |void test1()
+        |{
+       1|    int counter = 20;
+        |    do {
+      20|        --counter;
+        |    }
+      20|    while(counter > 0);
+        |}
+        |
+        |/***************************************************/
+        |
+        |struct S2
+        |{
+       2|    this(this) { int x = 1; }
+       3|    ~this() { int x = 1; }
+00000000|    ref S2 opAssign(S2) { return this; }
+       1|    bool opEquals(ref const S2) const { return true; }
+        |}
+        |struct T2
+        |{
+        |    S2 s;
+        |
+       2|    this(this) { int x = 1; }
+       3|    ~this() { int x = 1; }
+        |}
+        |void test2()
+        |{
+       2|    T2 ta;
+       2|    T2 tb = ta;
+       1|    tb = ta;
+       1|    typeid(T2).equals(&ta, &tb);
+        |}
+        |
+        |/***************************************************/
+        |
+        |void test3()
+        |{
+       1|    long total = 0;
+20000002|    for (size_t i = 0; i < 10_000_000; i++)
+10000000|        total += i;
+        |}
+        |
+        |/***************************************************/
+        |
+        |int main(string[] args)
+        |{
+       1|    dmd_coverDestPath(args[1]);
+       1|    test1();
+       1|    test2();
+       1|    test3();
+       1|    return 0;
+        |}
+        |

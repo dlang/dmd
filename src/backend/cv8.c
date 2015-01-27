@@ -3,9 +3,9 @@
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+// Distributed under the Boost Software License, Version 1.0.
+// http://www.boost.org/LICENSE_1_0.txt
+// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/cv8.c
 
 // This module generates the .debug$S and .debug$T sections for Win64,
 // which are the MS-Coff symbolic debug info and type debug info sections.
@@ -277,7 +277,7 @@ void cv8_initmodule(const char *filename, const char *modulename)
 void cv8_termmodule()
 {
     //printf("cv8_termmodule()\n");
-    assert(config.exe == EX_WIN64);
+    assert(config.objfmt == OBJ_MSCOFF);
 }
 
 /******************************************
@@ -614,14 +614,14 @@ void cv8_outsym(Symbol *s)
             buf->writeWordn(0x1111);
             buf->write32(s->Soffset + base + BPoff);
             buf->write32(typidx);
-            buf->writeWordn(334);       // relative to RBP
+            buf->writeWordn(I64 ? 334 : 22);       // relative to RBP/EBP
             cv8_writename(buf, id, len);
             buf->writeByte(0);
 #else
             // This is supposed to work, implicit BP relative addressing, but it does not
             buf->reserve(2 + 2 + 4 + 4 + len + 1);
             buf->writeWordn( 2 + 4 + 4 + len + 1);
-            buf->writeWordn(0x1006);
+            buf->writeWordn(S_BPREL_V3);
             buf->write32(s->Soffset + base + BPoff);
             buf->write32(typidx);
             cv8_writename(buf, id, len);
@@ -806,7 +806,7 @@ idx_t cv8_fwdref(Symbol *s)
         TOLONG(d->data + 14, 0);        // vshape
     }
     cv4_storenumeric(d->data + numidx, 0);
-    cv_namestring(d->data + len, s->Sident, idlen); 
+    cv_namestring(d->data + len, s->Sident, idlen);
     d->data[len + idlen] = 0;
     idx_t typidx = cv_debtyp(d);
     s->Stypidx = typidx;
@@ -864,7 +864,9 @@ idx_t cv8_darray(type *t, idx_t etypidx)
 
     debtyp_t *f = debtyp_alloc(sizeof(fl));
     memcpy(f->data,fl,sizeof(fl));
+    TOLONG(f->data + 6, I64 ? 0x23 : 0x22); // size_t
     TOLONG(f->data + 26, ptridx);
+    TOWORD(f->data + 30, NPTRSIZE);
     idx_t fieldlist = cv_debtyp(f);
 
     const char *id;
@@ -899,7 +901,7 @@ idx_t cv8_darray(type *t, idx_t etypidx)
     TOLONG(d->data + 6, fieldlist);
     TOLONG(d->data + 10, 0);    // dList
     TOLONG(d->data + 14, 0);    // vtshape
-    TOWORD(d->data + 18, 16);   // size
+    TOWORD(d->data + 18, 2 * NPTRSIZE);   // size
     cv_namestring(d->data + 20, id, idlen);
     d->data[20 + idlen] = 0;
 
@@ -966,6 +968,7 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
     memcpy(f->data,fl,sizeof(fl));
     TOLONG(f->data + 6, pvidx);
     TOLONG(f->data + 22, ptridx);
+    TOWORD(f->data + 26, NPTRSIZE);
     idx_t fieldlist = cv_debtyp(f);
 
     const char *id = "dDelegate";
@@ -980,7 +983,7 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
     TOLONG(d->data + 6, fieldlist);
     TOLONG(d->data + 10, 0);    // dList
     TOLONG(d->data + 14, 0);    // vtshape
-    TOWORD(d->data + 18, 16);   // size
+    TOWORD(d->data + 18, 2 * NPTRSIZE);   // size
     memcpy(d->data + 20, id, idlen);
     d->data[20 + idlen] = 0;
 #endif

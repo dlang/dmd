@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/cond.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -20,10 +21,10 @@
 #include "cond.h"
 #include "module.h"
 #include "template.h"
-#include "lexer.h"
 #include "mtype.h"
 #include "scope.h"
 #include "arraytypes.h"
+#include "tokens.h"
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -135,14 +136,6 @@ int DebugCondition::include(Scope *sc, ScopeDsymbol *sds)
     return (inc == 1);
 }
 
-void DebugCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (ident)
-        buf->printf("debug (%s)", ident->toChars());
-    else
-        buf->printf("debug (%u)", level);
-}
-
 /* ============================================================ */
 
 void VersionCondition::setGlobalLevel(unsigned level)
@@ -220,6 +213,11 @@ bool VersionCondition::isPredefined(const char *ident)
         "Alpha_HardFloat",
         "LittleEndian",
         "BigEndian",
+        "ELFv1",
+        "ELFv2",
+        "CRuntime_Digitalmars",
+        "CRuntime_Glibc",
+        "CRuntime_Microsoft",
         "D_Coverage",
         "D_Ddoc",
         "D_InlineAsm_X86",
@@ -295,20 +293,11 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *sds)
         }
         else if (level <= global.params.versionlevel || level <= mod->versionlevel)
             inc = 1;
-        if (!definedInModule && (!ident || (!isPredefined(ident->toChars()) && ident != Lexer::idPool(Token::toChars(TOKunittest)) && ident != Lexer::idPool(Token::toChars(TOKassert)))))
+        if (!definedInModule && (!ident || (!isPredefined(ident->toChars()) && ident != Identifier::idPool(Token::toChars(TOKunittest)) && ident != Identifier::idPool(Token::toChars(TOKassert)))))
             printDepsConditional(sc, this, "depsVersion ");
     }
     return (inc == 1);
 }
-
-void VersionCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (ident)
-        buf->printf("version (%s)", ident->toChars());
-    else
-        buf->printf("version (%u)", level);
-}
-
 
 /**************************** StaticIfCondition *******************************/
 
@@ -352,7 +341,8 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *sds)
         ++nest;
         sc = sc->push(sc->scopesym);
         sc->sds = sds;                  // sds gets any addMember()
-        sc->flags |= SCOPEstaticif;
+        //sc->speculative = true;       // TODO: static if (is(T U)) { /* U is available */ }
+        sc->flags |= SCOPEcondition;
 
         sc = sc->startCTFE();
         Expression *e = exp->semantic(sc);
@@ -389,11 +379,4 @@ Lerror:
     if (!global.gag)
         inc = 2;                // so we don't see the error message again
     return 0;
-}
-
-void StaticIfCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("static if (");
-    exp->toCBuffer(buf, hgs);
-    buf->writeByte(')');
 }

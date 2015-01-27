@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/todt.c
+ */
 
 /* A dt_t is a simple structure representing data to be added
  * to the data segment of the output object file. As such,
@@ -21,7 +22,6 @@
 #include        <time.h>
 #include        <assert.h>
 
-#include        "lexer.h"
 #include        "mtype.h"
 #include        "expression.h"
 #include        "init.h"
@@ -35,6 +35,8 @@
 // Back end
 #include        "dt.h"
 
+typedef Array<struct dt_t *> Dts;
+
 dt_t **Type_toDt(Type *t, dt_t **pdt);
 dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e);
 void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
@@ -45,6 +47,12 @@ dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts *dts);
 dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
 Symbol *toSymbol(Dsymbol *s);
+dt_t **Expression_toDt(Expression *e, dt_t **pdt);
+unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc);
+void toObjFile(Dsymbol *ds, bool multiobj);
+Symbol *toVtblSymbol(ClassDeclaration *cd);
+Symbol* toSymbol(StructLiteralExp *sle);
+Symbol* toSymbol(ClassReferenceExp *cre);
 
 /* ================================================================ */
 
@@ -129,7 +137,7 @@ dt_t *Initializer_toDt(Initializer *init)
                 else
                 {
                     for (size_t j = 0; j < n; j++)
-                        pdtend = edefault->toDt(pdtend);
+                        pdtend = Expression_toDt(edefault, pdtend);
                 }
             }
             switch (tb->ty)
@@ -150,7 +158,7 @@ dt_t *Initializer_toDt(Initializer *init)
                             for (size_t i = ai->dim; i < tadim; i++)
                             {
                                 for (size_t j = 0; j < n; j++)
-                                    pdtend = edefault->toDt(pdtend);
+                                    pdtend = Expression_toDt(edefault, pdtend);
                             }
                         }
                     }
@@ -181,13 +189,12 @@ dt_t *Initializer_toDt(Initializer *init)
         {
             //printf("ExpInitializer::toDt() %s\n", ei->exp->toChars());
             ei->exp = ei->exp->optimize(WANTvalue);
-            ei->exp->toDt(&result);
+            Expression_toDt(ei->exp, &result);
         }
     };
 
     InitToDt v;
     init->accept(&v);
-    assert(v.result);
     return v.result;
 }
 
@@ -235,7 +242,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 }
                 else //casting from class to class
                 {
-                    pdt = e->e1->toDt(pdt);
+                    pdt = Expression_toDt(e->e1, pdt);
                     return;
                 }
             }
@@ -250,7 +257,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             if (e->e1->op == TOKstructliteral)
             {
                 StructLiteralExp* sl = (StructLiteralExp *)e->e1;
-                dtxoff(pdt, sl->toSymbol(), 0);
+                dtxoff(pdt, toSymbol(sl), 0);
                 return;
             }
             visit((UnaExp *)e);
@@ -401,7 +408,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             dt_t **pdtend = &d;
             for (size_t i = 0; i < e->elements->dim; i++)
             {
-                pdtend = (*e->elements)[i]->toDt(pdtend);
+                pdtend = Expression_toDt((*e->elements)[i], pdtend);
             }
             Type *t = e->type->toBasetype();
 
@@ -472,7 +479,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                     if (tb->ty == Tsarray)
                         toDtElem(((TypeSArray *)tb), pdt, e);
                     else
-                        e->toDt(pdt);           // convert e to an initializer dt
+                        Expression_toDt(e, pdt);           // convert e to an initializer dt
 
                     offset = vd->offset + vd->type->size();
                 }
@@ -546,7 +553,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 pdt = NULL;
                 return;
             }
-            e->fd->toObjFile(0);
+            toObjFile(e->fd, false);
             pdt = dtxoff(pdt, s, 0);
         }
 
@@ -563,7 +570,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 }
                 else
                     elem = e->e1;
-                pdt = elem->toDt(pdt);
+                pdt = Expression_toDt(elem, pdt);
             }
         }
 
@@ -598,7 +605,7 @@ void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt)
     //printf("ClassDeclaration::toDt(this = '%s')\n", cd->toChars());
 
     // Put in first two members, the vtbl[] and the monitor
-    dtxoff(pdt, cd->toVtblSymbol(), 0);
+    dtxoff(pdt, toVtblSymbol(cd), 0);
     if (!cd->cpp)
         dtsize_t(pdt, 0);                    // monitor
 
@@ -675,7 +682,7 @@ void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteTyp
         for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
         {
             assert(cd2);
-            unsigned csymoffset = cd2->baseVtblOffset(b);
+            unsigned csymoffset = baseVtblOffset(cd2, b);
             if (csymoffset != ~0)
             {
                 if (offset < b->offset)
@@ -700,7 +707,7 @@ void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt)
 
     //printf("sd->toDt sle = %s\n", sle->toChars());
     sle->type = sd->type;
-    sle->toDt(pdt);
+    Expression_toDt(sle, pdt);
 }
 
 /* ================================================================= */
@@ -721,7 +728,7 @@ dt_t **Type_toDt(Type *t, dt_t **pdt)
         {
             //printf("Type::toDt()\n");
             Expression *e = t->defaultInit();
-            pdt = e->toDt(pdt);
+            pdt = Expression_toDt(e, pdt);
         }
 
         void visit(TypeVector *t)
@@ -738,21 +745,6 @@ dt_t **Type_toDt(Type *t, dt_t **pdt)
         void visit(TypeStruct *t)
         {
             StructDeclaration_toDt(t->sym, pdt);
-        }
-
-        void visit(TypeTypedef *t)
-        {
-            if (t->sym->init)
-            {
-                dt_t *dt = Initializer_toDt(t->sym->init);
-
-                pdt = dtend(pdt);
-                *pdt = dt;
-            }
-            else
-            {
-                Type_toDt(t->sym->basetype, pdt);
-            }
         }
     };
 
@@ -777,9 +769,9 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
             tnext = tbn->nextOf();
             tbn = tnext->toBasetype();
         }
-        if (!e)                         // if not already supplied
-            e = tnext->defaultInit();   // use default initializer
-        e->toDt(pdt);
+        if (!e)                             // if not already supplied
+            e = tsa->defaultInit(Loc());    // use default initializer
+        Expression_toDt(e, pdt);
         dt_optimize(*pdt);
         if (e->op == TOKstring)
             len /= ((StringExp *)e)->len;
@@ -791,7 +783,7 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
         {
             for (size_t i = 1; i < len; i++)
             {
-                pdt = e->toDt(pdt);
+                pdt = Expression_toDt(e, pdt);
             }
         }
     }
@@ -808,7 +800,7 @@ dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off)
     printf("ClassReferenceExp::toDtI() %d\n", e->op);
 #endif
 
-    dtxoff(pdt, e->toSymbol(), off);
+    dtxoff(pdt, toSymbol(e), off);
     return pdt;
 }
 
@@ -830,10 +822,10 @@ dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt)
         if (!e)
             continue;
         dt_t *dt = NULL;
-        e->toDt(&dt);           // convert e to an initializer dt
+        Expression_toDt(e, &dt);           // convert e to an initializer dt
         dts[i] = dt;
     }
-    dtxoff(pdtend, ce->originalClass()->toVtblSymbol(), 0);
+    dtxoff(pdtend, toVtblSymbol(ce->originalClass()), 0);
     dtsize_t(pdtend, 0);                    // monitor
     // Put in the rest
     membersToDt(ce, &d, ce->originalClass(), &dts);
@@ -961,7 +953,7 @@ dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts 
         for (ClassDeclaration *cd2 = ce->originalClass(); 1; cd2 = cd2->baseClass)
         {
             assert(cd2);
-            unsigned csymoffset = cd2->baseVtblOffset(b);
+            unsigned csymoffset = baseVtblOffset(cd2, b);
             if (csymoffset != ~0)
             {
                 if (offset < b->offset)

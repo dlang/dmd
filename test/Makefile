@@ -27,6 +27,10 @@
 #   EXTRA_SOURCES:       list of extra files to build and link along with the test
 #                        default: (none)
 #
+#   EXTRA_OBJC_SOURCES:  list of extra Objective-C files to build and link along with the test
+#                        default: (none). Test files with this variable will be ignored unless
+#                        the D_OBJC environment variable is set to "1"
+#
 #   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
 #                        default: the make variable ARGS (see below)
 #
@@ -48,7 +52,7 @@
 #
 #   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
 #                        default: (none)
-#                        note: the make variable REQUIRED_ARGS is also added to the $(DMD) 
+#                        note: the make variable REQUIRED_ARGS is also added to the $(DMD)
 #                              command line (see below)
 #
 #   DISABLED:            text describing why the test is disabled (if empty, the test is
@@ -103,8 +107,7 @@ export DMD=../src/dmd.exe
 export EXE=.exe
 export OBJ=.obj
 export DSEP=\\
-export SEP=$(shell echo '\')
-# bug in vim syntax hilighting, needed to kick it back into life: ')
+export SEP=$(subst /,\,/)
 else
 export ARGS=-inline -release -gc -O -unittest -fPIC
 export DMD=../src/dmd
@@ -114,25 +117,30 @@ export DSEP=/
 export SEP=/
 endif
 
+ifeq ($(OS),osx)
+ifeq ($(MODEL),64)
+export D_OBJC=1
+endif
+endif
+
 ifeq ($(OS),freebsd)
-DISABLED_TESTS += a20
-DISABLED_TESTS += cov2
-# coverage issues, see bug 5619
-
-DISABLED_TESTS += builtin
-# precision related bug: Error: static assert  (0x1.f9f8d9aea10fb28ep-2L == 0x1.f9f8d9aea10fdf1cp-2L) is false
-
 DISABLED_TESTS += dhry
 # runnable/dhry.d(488): Error: undefined identifier dtime
+endif
 
-# 64 bit test failures
-DISABLED_TESTS += test17
-DISABLED_SH_TESTS += test39
+ifeq ($(OS),win32)
+DISABLED_FAIL_TESTS += fail13939
 endif
 
 ifeq ($(OS),win64)
-DISABLED_TESTS += testargtypes
 DISABLED_TESTS += testxmm
+DISABLED_FAIL_TESTS += fail13939
+endif
+
+ifeq ($(OS),osx)
+ifeq ($(MODEL),64)
+DISABLED_TESTS += test6423
+endif
 endif
 
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
@@ -166,6 +174,9 @@ $(RESULTS_DIR)/compilable/%.sh.out: compilable/%.sh $(RESULTS_DIR)/.created $(RE
 	$(QUIET) echo " ... $(<D)/$*.sh"
 	$(QUIET) ./$(<D)/$*.sh
 
+$(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/fail_compilation/,$(DISABLED_FAIL_TESTS))): $(RESULTS_DIR)/.created
+	$(QUIET) echo " ... $@ - disabled"
+
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
 
@@ -180,7 +191,7 @@ clean:
 	$(QUIET)if [ -e $(RESULTS_DIR) ]; then rm -rf $(RESULTS_DIR); fi
 
 $(RESULTS_DIR)/.created:
-	@echo Creating output directory: $(RESULTS_DIR) 
+	@echo Creating output directory: $(RESULTS_DIR)
 	$(QUIET)if [ ! -d $(RESULTS_DIR) ]; then mkdir $(RESULTS_DIR); fi
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/runnable ]; then mkdir $(RESULTS_DIR)/runnable; fi
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/compilable ]; then mkdir $(RESULTS_DIR)/compilable; fi

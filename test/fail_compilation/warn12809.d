@@ -3,19 +3,19 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/warn12809.d(16): Warning: statement is not reachable
 fail_compilation/warn12809.d(25): Warning: statement is not reachable
 fail_compilation/warn12809.d(33): Warning: statement is not reachable
 ---
 */
-void test_unrachable1()
-{
-    try assert(0);
-    finally
-    {
-        int x = 1;  // unreachable
-    }
-}
+
+//void test_unrachable1()
+//{
+//    try assert(0);
+//    finally
+//    {
+//        int x = 1;  // unreachable
+//    }
+//}
 
 void test_unrachable2()
 {

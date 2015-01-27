@@ -1,12 +1,13 @@
 
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
-
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/link.c
+ */
 
 #include        <stdio.h>
 #include        <ctype.h>
@@ -143,7 +144,7 @@ int findNoMainError(int fd)
 int runLINK()
 {
 #if _WIN32
-    if (global.params.is64bit)
+    if (global.params.mscoff)
     {
         OutBuffer cmdbuf;
 
@@ -249,16 +250,22 @@ int runLINK()
          */
         const char *vcinstalldir = getenv("VCINSTALLDIR");
         if (vcinstalldir)
-        {   cmdbuf.writestring(" \"/LIBPATH:");
+        {   cmdbuf.writestring(" /LIBPATH:\"");
             cmdbuf.writestring(vcinstalldir);
-            cmdbuf.writestring("lib\\amd64\"");
+            if(global.params.is64bit)
+                cmdbuf.writestring("\\lib\\amd64\"");
+            else
+                cmdbuf.writestring("\\lib\"");
         }
 
         const char *windowssdkdir = getenv("WindowsSdkDir");
         if (windowssdkdir)
-        {   cmdbuf.writestring(" \"/LIBPATH:");
+        {   cmdbuf.writestring(" /LIBPATH:\"");
             cmdbuf.writestring(windowssdkdir);
-            cmdbuf.writestring("lib\\x64\"");
+            if(global.params.is64bit)
+                cmdbuf.writestring("\\lib\\x64\"");
+            else
+                cmdbuf.writestring("\\lib\"");
         }
 
         char *p = cmdbuf.peekString();
@@ -277,7 +284,7 @@ int runLINK()
                 sprintf(p, "@%s", lnkfilename);
         }
 
-        const char *linkcmd = getenv("LINKCMD64");
+        const char *linkcmd = getenv(global.params.is64bit ? "LINKCMD64" : "LINKCMD");
         if (!linkcmd)
             linkcmd = getenv("LINKCMD"); // backward compatible
         if (!linkcmd)
@@ -286,7 +293,10 @@ int runLINK()
             {
                 OutBuffer linkcmdbuf;
                 linkcmdbuf.writestring(vcinstalldir);
-                linkcmdbuf.writestring("bin\\amd64\\link");
+                if(global.params.is64bit)
+                    linkcmdbuf.writestring("\\bin\\amd64\\link");
+                else
+                    linkcmdbuf.writestring("\\bin\\link");
                 linkcmd = linkcmdbuf.extractString();
             }
             else
@@ -555,21 +565,21 @@ int runLINK()
         argv.push(global.params.mapfile);
     }
 
-    /* This switch enables what is known as 'smart linking'
-     * in the Windows world, where unreferenced sections
-     * are removed from the executable. It eliminates unreferenced
-     * functions, essentially making a 'library' out of a module.
-     * Although it is documented to work with ld version 2.13,
-     * in practice it does not, but just seems to be ignored.
-     * Thomas Kuehne has verified that it works with ld 2.16.1.
-     */
-#if __linux__
-    /* Only works on linux because the linkers shipped with other
-     * OSes don't yet support this flag.
-     */
-    argv.push("-Xlinker");
-    argv.push("--gc-sections");
-#endif
+    if (0 && global.params.exefile)
+    {
+        /* This switch enables what is known as 'smart linking'
+         * in the Windows world, where unreferenced sections
+         * are removed from the executable. It eliminates unreferenced
+         * functions, essentially making a 'library' out of a module.
+         * Although it is documented to work with ld version 2.13,
+         * in practice it does not, but just seems to be ignored.
+         * Thomas Kuehne has verified that it works with ld 2.16.1.
+         * BUG: disabled because it causes exception handling to fail
+         * because EH sections are "unreferenced" and elided
+         */
+        argv.push("-Xlinker");
+        argv.push("--gc-sections");
+    }
 
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
     {   const char *p = (*global.params.linkswitches)[i];
@@ -635,10 +645,6 @@ int runLINK()
         argv.push(buf);             // turns into /usr/lib/libphobos2.a
     }
 
-#ifdef __sun
-    argv.push("-mt");
-#endif
-
 //    argv.push("-ldruntime");
     argv.push("-lpthread");
     argv.push("-lm");
@@ -662,7 +668,7 @@ int runLINK()
 
     if (pipe(fds) == -1)
     {
-        perror("Unable to create pipe to linker");
+        perror("unable to create pipe to linker");
         return -1;
     }
 
@@ -679,7 +685,7 @@ int runLINK()
     }
     else if (childpid == -1)
     {
-        perror("Unable to fork");
+        perror("unable to fork");
         return -1;
     }
     close(fds[1]);
@@ -693,7 +699,7 @@ int runLINK()
         {
             if (nme == -1)
             {
-                perror("Error with the linker pipe");
+                perror("error with the linker pipe");
                 return -1;
             }
             else
@@ -743,7 +749,7 @@ int executecmd(const char *cmd, const char *args)
     if (global.params.verbose)
         fprintf(global.stdmsg, "%s %s\n", cmd, args);
 
-    if (!global.params.is64bit)
+    if (!global.params.mscoff)
     {
         if ((len = strlen(args)) > 255)
         {

@@ -1131,8 +1131,13 @@ void stackoffsets(int flags)
                  * but are 4 byte aligned on the OSX 32 stack.
                  */
                 Para.offset = align(REGSIZE,Para.offset); /* align on word stack boundary */
-                if (I64 && alignsize == 16 && Para.offset & 8)
-                    Para.offset += 8;
+                if (alignsize == 16 && (I64 || tyvector(s->ty())))
+                {
+                    if (Para.offset & 4)
+                        Para.offset += 4;
+                    if (Para.offset & 8)
+                        Para.offset += 8;
+                }
                 s->Soffset = Para.offset;
                 //printf("%s param offset =  x%lx, alignsize = %d\n",s->Sident,(long)s->Soffset, (int)alignsize);
                 Para.offset += (s->Sflags & SFLdouble)

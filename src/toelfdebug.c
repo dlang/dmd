@@ -1,13 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 2004-2007 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
-
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/toelfdebug.c
+ */
 
 #include <stdio.h>
 #include <stddef.h>
@@ -43,22 +43,14 @@
  * Emit symbolic debug info in Dwarf2 format.
  */
 
-void toDebug(TypedefDeclaration *tdd)
-{
-    //printf("TypedefDeclaration::toDebug('%s')\n", tdd->toChars());
-}
-
-
 void toDebug(EnumDeclaration *ed)
 {
     //printf("EnumDeclaration::toDebug('%s')\n", ed->toChars());
 }
 
-
 void toDebug(StructDeclaration *sd)
 {
 }
-
 
 void toDebug(ClassDeclaration *cd)
 {

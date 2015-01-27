@@ -7,6 +7,8 @@ import core.simd;
 import core.stdc.string;
 import std.stdio;
 
+alias TypeTuple(T...) = T;
+
 /*****************************************/
 
 void test1()
@@ -1186,6 +1188,78 @@ void test12852()
 
 /*****************************************/
 
+void test9449()
+{
+    ubyte16 table[1];
+}
+
+/*****************************************/
+
+void test9449_2()
+{
+    float[4][2] m = [[2.0, 1, 3, 4], [5.0, 6, 7, 8]];   // segfault
+
+    assert(m[0][0] == 2.0);
+    assert(m[0][1] == 1);
+    assert(m[0][2] == 3);
+    assert(m[0][3] == 4);
+
+    assert(m[1][0] == 5.0);
+    assert(m[1][1] == 6);
+    assert(m[1][2] == 7);
+    assert(m[1][3] == 8);
+}
+
+/*****************************************/
+// 13841
+
+void test13841()
+{
+    alias Vector16s = TypeTuple!(
+        void16,  byte16,  short8,  int4,  long2,
+                ubyte16, ushort8, uint4, ulong2, float4, double2);
+    foreach (V1; Vector16s)
+    {
+        foreach (V2; Vector16s)
+        {
+            V1 v1 = void;
+            V2 v2 = void;
+            static if (is(V1 == V2))
+            {
+                static assert( is(typeof(true ? v1 : v2) == V1));
+            }
+            else
+            {
+                static assert(!is(typeof(true ? v1 : v2)));
+            }
+        }
+    }
+}
+
+/*****************************************/
+// 12776
+
+void test12776()
+{
+    alias Vector16s = TypeTuple!(
+        void16,  byte16,  short8,  int4,  long2,
+                ubyte16, ushort8, uint4, ulong2, float4, double2);
+    foreach (V; Vector16s)
+    {
+        static assert(is(typeof(                   V .init) ==                    V ));
+        static assert(is(typeof(             const(V).init) ==              const(V)));
+        static assert(is(typeof(       inout(      V).init) ==        inout(      V)));
+        static assert(is(typeof(       inout(const V).init) ==        inout(const V)));
+        static assert(is(typeof(shared(            V).init) == shared(            V)));
+        static assert(is(typeof(shared(      const V).init) == shared(      const V)));
+        static assert(is(typeof(shared(inout       V).init) == shared(inout       V)));
+        static assert(is(typeof(shared(inout const V).init) == shared(inout const V)));
+        static assert(is(typeof(         immutable(V).init) ==          immutable(V)));
+    }
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1214,6 +1288,8 @@ int main()
     test9304();
     test9910();
     test12852();
+    test9449();
+    test9449_2();
 
     return 0;
 }

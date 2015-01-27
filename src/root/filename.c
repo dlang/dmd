@@ -127,8 +127,14 @@ Strings *FileName::splitPath(const char *path)
 
 #if POSIX
                     case '~':
-                        buf.writestring(getenv("HOME"));
+                    {
+                        char *home = getenv("HOME");
+                        if (home)
+                            buf.writestring(home);
+                        else
+                            buf.writestring("~");
                         continue;
+                    }
 #endif
 
 #if 0
@@ -171,7 +177,7 @@ bool FileName::equals(RootObject *obj)
     return compare(obj) == 0;
 }
 
-int FileName::equals(const char *name1, const char *name2)
+bool FileName::equals(const char *name1, const char *name2)
 {
     return compare(name1, name2) == 0;
 }
@@ -180,7 +186,7 @@ int FileName::equals(const char *name1, const char *name2)
  * Return !=0 if absolute path name.
  */
 
-int FileName::absolute(const char *name)
+bool FileName::absolute(const char *name)
 {
 #if _WIN32
     return (*name == '\\') ||
@@ -407,28 +413,28 @@ const char *FileName::forceExt(const char *name, const char *ext)
  * Return !=0 if extensions match.
  */
 
-int FileName::equalsExt(const char *ext)
+bool FileName::equalsExt(const char *ext)
 {
     return equalsExt(str, ext);
 }
 
-int FileName::equalsExt(const char *name, const char *ext)
+bool FileName::equalsExt(const char *name, const char *ext)
 {
     const char *e = FileName::ext(name);
     if (!e && !ext)
-        return 1;
+        return true;
     if (!e || !ext)
-        return 0;
+        return false;
     return FileName::compare(e, ext) == 0;
 }
 
 /*************************************
  * Search Path for file.
  * Input:
- *      cwd     if !=0, search current directory before searching path
+ *      cwd     if true, search current directory before searching path
  */
 
-const char *FileName::searchPath(Strings *path, const char *name, int cwd)
+const char *FileName::searchPath(Strings *path, const char *name, bool cwd)
 {
     if (absolute(name))
     {
@@ -483,7 +489,7 @@ const char *FileName::safeSearchPath(Strings *path, const char *name)
         }
     }
 
-    return FileName::searchPath(path, name, 0);
+    return FileName::searchPath(path, name, false);
 #elif POSIX
     /* Even with realpath(), we must check for // and disallow it
      */
@@ -565,7 +571,7 @@ int FileName::exists(const char *name)
 #endif
 }
 
-int FileName::ensurePathExists(const char *path)
+bool FileName::ensurePathExists(const char *path)
 {
     //printf("FileName::ensurePathExists(%s)\n", path ? path : "");
     if (path && *path)
@@ -583,7 +589,7 @@ int FileName::ensurePathExists(const char *path)
                     return 0;
                 }
 #endif
-                int r = ensurePathExists(p);
+                bool r = ensurePathExists(p);
                 mem.free((void *)p);
                 if (r)
                     return r;
@@ -600,7 +606,7 @@ int FileName::ensurePathExists(const char *path)
                 int r = _mkdir(path);
 #endif
 #if POSIX
-                int r = mkdir(path, 0777);
+                int r = mkdir(path, (7 << 6) | (7 << 3) | 7);
 #endif
                 if (r)
                 {
@@ -608,12 +614,12 @@ int FileName::ensurePathExists(const char *path)
                      * this directory
                      */
                     if (errno != EEXIST)
-                        return 1;
+                        return true;
                 }
             }
         }
     }
-    return 0;
+    return false;
 }
 
 /******************************************
@@ -654,7 +660,7 @@ const char *FileName::canonicalName(const char *name)
 void FileName::free(const char *str)
 {
     if (str)
-    {   assert(str[0] != 0xAB);
+    {   assert(str[0] != (char)0xAB);
         memset((void *)str, 0xAB, strlen(str) + 1);     // stomp
     }
     mem.free((void *)str);

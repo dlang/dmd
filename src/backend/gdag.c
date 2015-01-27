@@ -258,6 +258,7 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
             case OPdctor:
                 break;
             case OPasm:
+            case OPddtor:
                 vec_clear(ae);          // kill everything
                 return;
 
@@ -870,7 +871,7 @@ STATIC void abeboolres(elem *n,vec_t ae,vec_t aeval)
             if (n != e && el_match(n,e))
             {
 #ifdef DEBUG
-                //if (debugc)
+                if (debugc)
                 {   dbg_printf("Elem %p: ",n);
                     WReqn(n);
                     dbg_printf(" is replaced by %d\n",vec_testbit(i,aeval) != 0);

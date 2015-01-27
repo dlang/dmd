@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/class.c
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,13 +104,6 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
                 if (!inObject)
                     error("%s", msg);
                 Type::typeinfostruct = this;
-            }
-
-            if (id == Id::TypeInfo_Typedef)
-            {
-                if (!inObject)
-                    error("%s", msg);
-                Type::typeinfotypedef = this;
             }
 
             if (id == Id::TypeInfo_Pointer)
@@ -243,13 +237,10 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
 {
-    ClassDeclaration *cd;
-
     //printf("ClassDeclaration::syntaxCopy('%s')\n", toChars());
-    if (s)
-        cd = (ClassDeclaration *)s;
-    else
-        cd = new ClassDeclaration(loc, ident, NULL);
+    ClassDeclaration *cd =
+        s ? (ClassDeclaration *)s
+          : new ClassDeclaration(loc, ident, NULL);
 
     cd->storage_class |= storage_class;
 
@@ -261,8 +252,7 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
         (*cd->baseclasses)[i] = b2;
     }
 
-    ScopeDsymbol::syntaxCopy(cd);
-    return cd;
+    return ScopeDsymbol::syntaxCopy(cd);
 }
 
 void ClassDeclaration::semantic(Scope *sc)
@@ -348,9 +338,7 @@ void ClassDeclaration::semantic(Scope *sc)
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
         {
-            if (!scx)
-                scx = new Scope(*sc);
-            scope = scx;
+            scope = scx ? scx : sc->copy();
             scope->setNoFree();
 
             BaseClass *b = (*baseclasses)[i];
@@ -364,7 +352,7 @@ void ClassDeclaration::semantic(Scope *sc)
             if (tb->ty == Ttuple)
             {
                 TypeTuple *tup = (TypeTuple *)tb;
-                PROT protection = b->protection;
+                Prot protection = b->protection;
                 baseclasses->remove(i);
                 size_t dim = Parameter::dim(tup->arguments);
                 for (size_t j = 0; j < dim; j++)
@@ -520,7 +508,7 @@ void ClassDeclaration::semantic(Scope *sc)
             assert(t->ty == Tclass);
             TypeClass *tc = (TypeClass *)t;
 
-            BaseClass *b = new BaseClass(tc, PROTpublic);
+            BaseClass *b = new BaseClass(tc, Prot(PROTpublic));
             baseclasses->shift(b);
 
             baseClass = tc->sym;
@@ -553,6 +541,10 @@ void ClassDeclaration::semantic(Scope *sc)
             // then this is a COM interface too.
             if (b->base->isCOMinterface())
                 com = true;
+            if (cpp && !b->base->isCPPinterface())
+            {
+                ::error(loc, "C++ class '%s' cannot implement D interface '%s'", toPrettyChars(), b->base->toPrettyChars());
+            }
         }
     }
 Lancestorsdone:
@@ -662,7 +654,7 @@ Lancestorsdone:
             sc2->linkage = LINKc;
         }
     }
-    sc2->protection = PROTpublic;
+    sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
@@ -670,7 +662,9 @@ Lancestorsdone:
     if (baseClass)
     {
         alignsize = baseClass->alignsize;
-        structsize = (baseClass->structsize + alignsize - 1) & ~(alignsize - 1);
+        structsize = baseClass->structsize;
+        if (cpp && global.params.isWindows)
+            structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
     }
     else
     {
@@ -800,7 +794,7 @@ Lancestorsdone:
         }
         else
         {
-            error("Cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
+            error("cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
         }
     }
 
@@ -858,43 +852,6 @@ Lancestorsdone:
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
 
     //printf("-ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
-}
-
-void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (!isAnonymous())
-    {
-        buf->printf("%s ", kind());
-        buf->writestring(toChars());
-        if (baseclasses->dim)
-            buf->writestring(" : ");
-    }
-    for (size_t i = 0; i < baseclasses->dim; i++)
-    {
-        BaseClass *b = (*baseclasses)[i];
-
-        if (i)
-            buf->writestring(", ");
-        //buf->writestring(b->base->ident->toChars());
-        b->type->toCBuffer(buf, NULL, hgs);
-    }
-    if (members)
-    {
-        buf->writenl();
-        buf->writeByte('{');
-        buf->writenl();
-        buf->level++;
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->toCBuffer(buf, hgs);
-        }
-        buf->level--;
-        buf->writestring("}");
-    }
-    else
-        buf->writeByte(';');
-    buf->writenl();
 }
 
 /*********************************************
@@ -1258,15 +1215,10 @@ InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses 
 
 Dsymbol *InterfaceDeclaration::syntaxCopy(Dsymbol *s)
 {
-    InterfaceDeclaration *id;
-
-    if (s)
-        id = (InterfaceDeclaration *)s;
-    else
-        id = new InterfaceDeclaration(loc, ident, NULL);
-
-    ClassDeclaration::syntaxCopy(id);
-    return id;
+    InterfaceDeclaration *id =
+        s ? (InterfaceDeclaration *)s
+          : new InterfaceDeclaration(loc, ident, NULL);
+    return ClassDeclaration::syntaxCopy(id);
 }
 
 void InterfaceDeclaration::semantic(Scope *sc)
@@ -1332,9 +1284,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
         {
-            if (!scx)
-                scx = new Scope(*sc);
-            scope = scx;
+            scope = scx ? scx : sc->copy();
             scope->setNoFree();
 
             BaseClass *b = (*baseclasses)[i];
@@ -1346,7 +1296,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             if (tb->ty == Ttuple)
             {
                 TypeTuple *tup = (TypeTuple *)tb;
-                PROT protection = b->protection;
+                Prot protection = b->protection;
                 baseclasses->remove(i);
                 size_t dim = Parameter::dim(tup->arguments);
                 for (size_t j = 0; j < dim; j++)
@@ -1358,6 +1308,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
             }
             else
                 i++;
+        }
+
+        if (doAncestorsSemantic == SemanticDone)
+        {
+            //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
+            if (semanticRun >= PASSsemanticdone)
+                return;
+            goto Lancestorsdone;
         }
 
         if (!baseclasses->dim && sc->linkage == LINKcpp)
@@ -1444,6 +1402,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 cpp = true;
         }
     }
+Lancestorsdone:
 
     if (!members)               // if opaque declaration
     {
@@ -1526,7 +1485,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         sc2->linkage = LINKwindows;
     else if (cpp)
         sc2->linkage = LINKcpp;
-    sc2->protection = PROTpublic;
+    sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
@@ -1703,7 +1662,7 @@ BaseClass::BaseClass()
     memset(this, 0, sizeof(BaseClass));
 }
 
-BaseClass::BaseClass(Type *type, PROT protection)
+BaseClass::BaseClass(Type *type, Prot protection)
 {
     //printf("BaseClass(this = %p, '%s')\n", this, type->toChars());
     this->type = type;

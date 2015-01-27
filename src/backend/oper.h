@@ -77,6 +77,7 @@ enum OPER
         OProl,                  // rotate left
         OPror,                  // rotate right
         OPbtst,                 // bit test
+        OPpopcnt,               // count of number of bits set to 1
 
         OPstreq,                /* structure assignment         */
 
@@ -257,6 +258,10 @@ enum OPER
         OParrowstar,            /* for ->* overloading          */
         OPpreinc,               /* ++x overloading              */
         OPpredec,               /* --x overloading              */
+
+#if TX86 && MARS
+        OPva_start,             /* va_start intrinsic           */
+#endif
 
 #ifdef TARGET_INLINEFUNC_OPS
         TARGET_INLINEFUNC_OPS

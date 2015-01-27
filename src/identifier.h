@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/identifier.h
+ */
 
 #ifndef DMD_IDENTIFIER_H
 #define DMD_IDENTIFIER_H
@@ -16,6 +17,7 @@
 #endif /* __DMC__ */
 
 #include "root.h"
+#include "stringtable.h"
 
 class Identifier : public RootObject
 {
@@ -33,8 +35,13 @@ public:
     const char *toHChars2();
     int dyncast();
 
+    static StringTable stringtable;
     static Identifier *generateId(const char *prefix);
     static Identifier *generateId(const char *prefix, size_t i);
+    static Identifier *idPool(const char *s);
+    static Identifier *idPool(const char *s, size_t len);
+    static Identifier *lookup(const char *s, size_t len);
+    static void initTable();
 };
 
 #endif /* DMD_IDENTIFIER_H */

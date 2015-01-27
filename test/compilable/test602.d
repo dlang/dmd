@@ -383,6 +383,7 @@ static assert(!__traits(compiles, (bool b)
 }));
 
 /***************************************************/
+// 11659
 
 int test11659()
 {
@@ -391,3 +392,21 @@ int test11659()
  LABEL:
     return mixin(expr);
 }
+
+/***************************************************/
+// 13321
+
+void test13321(bool b)
+{
+    static struct Foo
+    {
+        this(int) {}
+    }
+
+    Foo x;
+    if (b)
+        goto EXIT;
+    x = Foo(1);
+  EXIT:
+}
+

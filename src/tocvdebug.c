@@ -1,8 +1,13 @@
 
-// Copyright (c) 2004-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/tocvdebug.c
+ */
 
 #include <stdio.h>
 #include <stddef.h>
@@ -50,11 +55,11 @@ int cvMember(Dsymbol *s, unsigned char *p);
  * Convert D protection attribute to cv attribute.
  */
 
-unsigned PROTtoATTR(PROT prot)
+unsigned PROTtoATTR(Prot prot)
 {
     unsigned attribute;
 
-    switch (prot)
+    switch (prot.kind)
     {
         case PROTprivate:       attribute = 1;  break;
         case PROTpackage:       attribute = 2;  break;
@@ -286,41 +291,6 @@ unsigned cv_align(unsigned char *p, unsigned n)
 /****************************
  * Emit symbolic debug info in CV format.
  */
-
-void toDebug(TypedefDeclaration *tdd)
-{
-    //printf("TypedefDeclaration::toDebug('%s')\n", tdd->toChars());
-
-    assert(config.fulltypes >= CV4);
-
-    // If it is a member, it is handled by cvMember()
-    if (!tdd->isMember())
-    {
-        if (tdd->basetype->ty == Ttuple)
-            return;
-
-        const char *id = tdd->toPrettyChars(true);
-        idx_t typidx = cv4_typidx(Type_toCtype(tdd->basetype));
-        if (config.fulltypes == CV8)
-            cv8_udt(id, typidx);
-        else
-        {
-            unsigned len = strlen(id);
-            unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + len);
-
-            // Output a 'user-defined type' for the tag name
-            TOWORD(debsym + 2,S_UDT);
-            TOIDX(debsym + 4,typidx);
-            unsigned length = 2 + 2 + cgcv.sz_idx;
-            length += cv_namestring(debsym + length,id);
-            TOWORD(debsym,length - 2);
-
-            assert(length <= 40 + len);
-            objmod->write_bytes(SegData[DEBSYM],length,debsym);
-        }
-    }
-}
-
 
 void toDebug(EnumDeclaration *ed)
 {
@@ -855,13 +825,6 @@ int cvMember(Dsymbol *s, unsigned char *p)
                 assert(result == save);
             }
         #endif
-        }
-
-        void visit(TypedefDeclaration *tdd)
-        {
-            //printf("TypedefDeclaration::cvMember() '%s'\n", d->toChars());
-
-            cvMemberCommon(tdd, tdd->toChars(), cv4_typidx(Type_toCtype(tdd->basetype)));
         }
 
         void visit(EnumDeclaration *ed)

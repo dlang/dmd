@@ -93,6 +93,12 @@
     <ClCompile Include="enum.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="errors.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="escape.c">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="expression.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -417,6 +423,9 @@
     <ClCompile Include="root\async.c">
       <Filter>src\root</Filter>
     </ClCompile>
+    <ClCompile Include="root\checkedint.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
     <ClCompile Include="root\dmgcmem.c">
       <Filter>src\root</Filter>
     </ClCompile>
@@ -510,6 +519,15 @@
     <ClCompile Include="sapply.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="nspace.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="tokens.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="globals.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aggregate.h">
@@ -540,6 +558,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="enum.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="errors.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="expression.h">
@@ -716,6 +737,9 @@
     <ClInclude Include="root\async.h">
       <Filter>src\root</Filter>
     </ClInclude>
+    <ClInclude Include="root\checkedint.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
     <ClInclude Include="root\longdouble.h">
       <Filter>src\root</Filter>
     </ClInclude>
@@ -750,6 +774,18 @@
       <Filter>src\vcbuild</Filter>
     </ClInclude>
     <ClInclude Include="target.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="nspace.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\obj.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="tokens.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="globals.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

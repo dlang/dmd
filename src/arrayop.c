@@ -1,11 +1,13 @@
 
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/arrayop.c
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -23,8 +25,8 @@
 #include "id.h"
 #include "module.h"
 #include "init.h"
+#include "tokens.h"
 
-extern int binary(const char *p , const char **tab, int high);
 void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments);
 Expression *buildArrayLoop(Expression *e, Parameters *fparams);
 
@@ -55,7 +57,8 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc
         new Parameter(0, NULL, Id::p, NULL),
         new IntegerExp(Loc(), 0, Type::tsize_t),
         new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p->ident)),
-        new ExpStatement(Loc(), loopbody));
+        new ExpStatement(Loc(), loopbody),
+        Loc());
     //printf("%s\n", s1->toChars());
     Statement *s2 = new ReturnStatement(Loc(), new IdentifierExp(Loc(), p->ident));
     //printf("s2: %s\n", s2->toChars());
@@ -67,10 +70,10 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc
     /* Construct the function
      */
     TypeFunction *ftype = new TypeFunction(fparams, exp->type, 0, LINKc, stc);
-    //printf("ftype: %s\n", ftype->toChars());
+    //printf("fd: %s %s\n", ident->toChars(), ftype->toChars());
     FuncDeclaration *fd = new FuncDeclaration(Loc(), Loc(), ident, STCundefined, ftype);
     fd->fbody = fbody;
-    fd->protection = PROTpublic;
+    fd->protection = Prot(PROTpublic);
     fd->linkage = LINKc;
     fd->isArrayOp = 1;
 
@@ -110,47 +113,31 @@ bool isArrayOpValid(Expression *e)
         return (t->ty != Tvoid);
     }
     Type *tb = e->type->toBasetype();
-
-    BinExp *be;
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
-        switch (e->op)
+        if (isUnaArrayOp(e->op))
         {
-            case TOKadd:
-            case TOKmin:
-            case TOKmul:
-            case TOKdiv:
-            case TOKmod:
-            case TOKxor:
-            case TOKand:
-            case TOKor:
-            case TOKassign:
-            case TOKaddass:
-            case TOKminass:
-            case TOKmulass:
-            case TOKdivass:
-            case TOKmodass:
-            case TOKxorass:
-            case TOKandass:
-            case TOKorass:
-            case TOKpow:
-            case TOKpowass:
-                be = (BinExp *)e;
-                return isArrayOpValid(be->e1) && isArrayOpValid(be->e2);
-
-            case TOKconstruct:
-                be = (BinExp *)e;
-                return be->e1->op == TOKslice && isArrayOpValid(be->e2);
-
-            case TOKcall:
-                 return false; // TODO: Decide if [] is required after arrayop calls.
-
-            case TOKneg:
-            case TOKtilde:
-                 return isArrayOpValid(((UnaExp *)e)->e1);
-
-            default:
-                return false;
+             return isArrayOpValid(((UnaExp *)e)->e1);
+        }
+        if (isBinArrayOp(e->op) ||
+            isBinAssignArrayOp(e->op) ||
+            e->op == TOKassign)
+        {
+            BinExp *be = (BinExp *)e;
+            return isArrayOpValid(be->e1) && isArrayOpValid(be->e2);
+        }
+        if (e->op == TOKconstruct)
+        {
+            BinExp *be = (BinExp *)e;
+            return be->e1->op == TOKslice && isArrayOpValid(be->e2);
+        }
+        if (e->op == TOKcall)
+        {
+             return false; // TODO: Decide if [] is required after arrayop calls.
+        }
+        else
+        {
+            return false;
         }
     }
     return true;
@@ -164,24 +151,20 @@ bool isNonAssignmentArrayOp(Expression *e)
 
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
-        switch (e->op)
-        {
-            case TOKadd:
-            case TOKmin:
-            case TOKmul:
-            case TOKdiv:
-            case TOKmod:
-            case TOKxor:
-            case TOKand:
-            case TOKor:
-            case TOKpow:
-            case TOKneg:
-            case TOKtilde:
-                return true;
+        return (isUnaArrayOp(e->op) || isBinArrayOp(e->op));
+    }
+    return false;
+}
 
-            default:
-                return false;
-        }
+bool checkNonAssignmentArrayOp(Expression *e, bool suggestion)
+{
+    if (isNonAssignmentArrayOp(e))
+    {
+        const char *s = "";
+        if (suggestion)
+            s = " (possible missing [])";
+        e->error("array operation %s without destination memory not allowed%s", e->toChars(), s);
+        return true;
     }
     return false;
 }
@@ -199,12 +182,12 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     Type *tbn = tb->nextOf()->toBasetype();
     if (tbn->ty == Tvoid)
     {
-        e->error("Cannot perform array operations on void[] arrays");
+        e->error("cannot perform array operations on void[] arrays");
         return new ErrorExp();
     }
     if (!isArrayOpValid(e))
     {
-        e->error("invalid array operation %s (did you forget a [] ?)", e->toChars());
+        e->error("invalid array operation %s (possible missing [])", e->toChars());
         return new ErrorExp();
     }
 
@@ -224,9 +207,9 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     buf.writestring(e->type->toBasetype()->nextOf()->toBasetype()->mutableOf()->deco);
 
     char *name = buf.peekString();
-    Identifier *ident = Lexer::idPool(name);
+    Identifier *ident = Identifier::idPool(name);
 
-    FuncDeclaration **pFd = (FuncDeclaration **)_aaGet(&arrayfuncs, ident);
+    FuncDeclaration **pFd = (FuncDeclaration **)dmd_aaGet(&arrayfuncs, (void *)ident);
     FuncDeclaration *fd = *pFd;
 
     if (!fd)
@@ -385,8 +368,31 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
             }
             if (s)
             {
+                Type *tb = e->type->toBasetype();
+                Type *t1 = e->e1->type->toBasetype();
+                Type *t2 = e->e2->type->toBasetype();
                 e->e1->accept(this);
+                if (t1->ty == Tarray &&
+                    (t2->ty == Tarray && !t1->equivalent(tb) ||
+                     t2->ty != Tarray && !t1->nextOf()->equivalent(e->e2->type)))
+                {
+                    // Bugzilla 12780: if A is narrower than B
+                    //  A[] op B[]
+                    //  A[] op B
+                    buf->writestring("Of");
+                    buf->writestring(t1->nextOf()->mutableOf()->deco);
+                }
                 e->e2->accept(this);
+                if (t2->ty == Tarray &&
+                    (t1->ty == Tarray && !t2->equivalent(tb) ||
+                     t1->ty != Tarray && !t2->nextOf()->equivalent(e->e1->type)))
+                {
+                    // Bugzilla 12780: if B is narrower than A:
+                    //  A[] op B[]
+                    //  A op B[]
+                    buf->writestring("Of");
+                    buf->writestring(t2->nextOf()->mutableOf()->deco);
+                }
                 buf->writestring(s);
             }
             else
@@ -514,17 +520,7 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 
         void visit(BinExp *e)
         {
-            switch(e->op)
-            {
-            case TOKadd:
-            case TOKmin:
-            case TOKmul:
-            case TOKdiv:
-            case TOKmod:
-            case TOKxor:
-            case TOKand:
-            case TOKor:
-            case TOKpow:
+            if (isBinArrayOp(e->op))
             {
                 /* Evaluate assign expressions left to right
                  */
@@ -535,7 +531,8 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
                 result = be;
                 return;
             }
-            default:
+            else
+            {
                 visit((Expression *)e);
                 return;
             }
@@ -553,12 +550,77 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 }
 
 /***********************************************
+ * Test if expression is a unary array op.
+ */
+
+bool isUnaArrayOp(TOK op)
+{
+    switch (op)
+    {
+    case TOKneg:
+    case TOKtilde:
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
+/***********************************************
+ * Test if expression is a binary array op.
+ */
+
+bool isBinArrayOp(TOK op)
+{
+    switch (op)
+    {
+    case TOKadd:
+    case TOKmin:
+    case TOKmul:
+    case TOKdiv:
+    case TOKmod:
+    case TOKxor:
+    case TOKand:
+    case TOKor:
+    case TOKpow:
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
+/***********************************************
+ * Test if expression is a binary assignment array op.
+ */
+
+bool isBinAssignArrayOp(TOK op)
+{
+    switch (op)
+    {
+    case TOKaddass:
+    case TOKminass:
+    case TOKmulass:
+    case TOKdivass:
+    case TOKmodass:
+    case TOKxorass:
+    case TOKandass:
+    case TOKorass:
+    case TOKpowass:
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
+/***********************************************
  * Test if operand is a valid array op operand.
  */
 
-bool isArrayOperand(Expression *e)
+bool isArrayOpOperand(Expression *e)
 {
-    //printf("Expression::isArrayOperand() %s\n", e->toChars());
+    //printf("Expression::isArrayOpOperand() %s\n", e->toChars());
     if (e->op == TOKslice)
         return true;
     if (e->op == TOKarrayliteral)
@@ -568,36 +630,13 @@ bool isArrayOperand(Expression *e)
             t = t->nextOf()->toBasetype();
         return (t->ty != Tvoid);
     }
-    if (e->type->toBasetype()->ty == Tarray)
+    Type *tb = e->type->toBasetype();
+    if (tb->ty == Tarray)
     {
-        switch (e->op)
-        {
-        case TOKadd:
-        case TOKmin:
-        case TOKmul:
-        case TOKdiv:
-        case TOKmod:
-        case TOKxor:
-        case TOKand:
-        case TOKor:
-        case TOKassign:
-        case TOKaddass:
-        case TOKminass:
-        case TOKmulass:
-        case TOKdivass:
-        case TOKmodass:
-        case TOKxorass:
-        case TOKandass:
-        case TOKorass:
-        case TOKpow:
-        case TOKpowass:
-        case TOKneg:
-        case TOKtilde:
-            return true;
-
-        default:
-            break;
-        }
+        return (isUnaArrayOp(e->op) ||
+                isBinArrayOp(e->op) ||
+                isBinAssignArrayOp(e->op) ||
+                e->op == TOKassign);
     }
     return false;
 }

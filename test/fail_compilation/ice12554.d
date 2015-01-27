@@ -1,10 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice12554.d(18): Error: pure function 'D main' cannot call impure function 'ice12554.array!(MapResult!((y) => x)).array'
+fail_compilation/ice12554.d(18): Error: pure function 'ice12554.main.__lambda1' cannot call impure function 'ice12554.array!(MapResult!((y) => x)).array'
 fail_compilation/ice12554.d(37):        instantiated from here: MapResult!((x) => foo.map!(MapResultS, (y) => x).array)
 fail_compilation/ice12554.d(18):        instantiated from here: map!(int[])
-fail_compilation/ice12554.d(21): Error: pure function 'D main' cannot call impure function 'ice12554.array!(MapResult!((y) => x)).array'
+fail_compilation/ice12554.d(21): Error: pure function 'ice12554.main.__lambda2' cannot call impure function 'ice12554.array!(MapResult!((y) => x)).array'
 fail_compilation/ice12554.d(37):        instantiated from here: MapResult!((x) => foo.map!(MapResultC, (y) => x).array)
 fail_compilation/ice12554.d(21):        instantiated from here: map!(int[])
 ---

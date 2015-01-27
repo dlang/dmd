@@ -83,6 +83,12 @@ endif
 else
 # Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing
+ifeq ($(HOST_CC), clang++)
+WARNINGS := $(WARNINGS) \
+    -Wno-logical-op-parentheses \
+    -Wno-dynamic-class-memaccess \
+    -Wno-switch
+endif
 endif
 
 OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
@@ -92,7 +98,7 @@ MMD=-MMD -MF $(basename $@).deps
 # Default compiler flags for all source files
 CFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
-	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
+	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1 \
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
@@ -136,12 +142,13 @@ DMD_OBJS = \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
-	intrange.o canthrow.o target.o nspace.o
+	intrange.o canthrow.o target.o nspace.o errors.o \
+	escape.o tokens.o globals.o
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o object.o \
-	filename.o file.o async.o
+	filename.o file.o async.o checkedint.o
 
 GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
@@ -194,12 +201,14 @@ SRC = win32.mak posix.mak osmodel.mak \
 	argtypes.c apply.c sapply.c sideeffect.c \
 	intrange.h intrange.c canthrow.c target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
-	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c
+	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c errors.h errors.c \
+	escape.c tokens.h tokens.c globals.h globals.c
 
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
 	$(ROOT)/man.c \
+	$(ROOT)/checkedint.h $(ROOT)/checkedint.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
 	$(ROOT)/aav.h $(ROOT)/aav.c \
@@ -267,6 +276,21 @@ clean:
 	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
 	tytab.c verstr.h core \
 	*.cov *.deps *.gcda *.gcno *.a
+
+######## generate a default dmd.conf
+
+define DEFAULT_DMD_CONF
+[Environment32]
+DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/32$(if $(filter $(OS),osx),, -L--export-dynamic)
+
+[Environment64]
+DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/64$(if $(filter $(OS),osx),, -L--export-dynamic)
+endef
+
+export DEFAULT_DMD_CONF
+
+dmd.conf:
+	[ -f $@ ] || echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## optabgen generates some source
 
@@ -370,12 +394,12 @@ $(ROOT_OBJS): %.o: $(ROOT)/%.c posix.mak
 ######################################################
 
 install: all
-	mkdir -p $(INSTALL_DIR)/bin
-	cp dmd $(INSTALL_DIR)/bin/dmd
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
-	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/bin/dmd.conf
+	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
+	cp dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
+	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
 	cp backendlicense.txt $(INSTALL_DIR)/dmd-backendlicense.txt
-	cp artistic.txt $(INSTALL_DIR)/dmd-artistic.txt
+	cp boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
 
 ######################################################
 

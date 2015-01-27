@@ -19,23 +19,6 @@
 
 #include "outbuffer.h"
 #include "object.h"
-#include "rmem.h"
-
-OutBuffer::OutBuffer()
-{
-    data = NULL;
-    offset = 0;
-    size = 0;
-
-    doindent = 0;
-    level = 0;
-    notlinehead = 0;
-}
-
-OutBuffer::~OutBuffer()
-{
-    mem.free(data);
-}
 
 char *OutBuffer::extractData()
 {
@@ -55,7 +38,7 @@ void OutBuffer::reserve(size_t nbytes)
     {
         size = (offset + nbytes) * 2;
         size = (size + 15) & ~15;
-        data = (utf8_t *)mem.realloc(data, size);
+        data = (unsigned char *)mem.realloc(data, size);
     }
 }
 
@@ -302,25 +285,18 @@ void OutBuffer::fill0(size_t nbytes)
     offset += nbytes;
 }
 
-void OutBuffer::align(size_t size)
-{
-    size_t nbytes = ((offset + size - 1) & ~(size - 1)) - offset;
-    fill0(nbytes);
-}
-
 void OutBuffer::vprintf(const char *format, va_list args)
 {
-    char buffer[128];
-    char *p;
-    unsigned psize;
     int count;
 
-    p = buffer;
-    psize = sizeof(buffer);
+    if (doindent)
+        write(NULL, 0); // perform indent
+    unsigned psize = 128;
     for (;;)
     {
+        reserve(psize);
 #if _WIN32
-        count = _vsnprintf(p,psize,format,args);
+        count = _vsnprintf((char *)data + offset,psize,format,args);
         if (count != -1)
             break;
         psize *= 2;
@@ -336,7 +312,7 @@ void OutBuffer::vprintf(const char *format, va_list args)
   of ap is undefined after the call. The application should call
   va_end(ap) itself afterwards.
  */
-        count = vsnprintf(p,psize,format,va);
+        count = vsnprintf((char *)data + offset,psize,format,va);
         va_end(va);
         if (count == -1)
             psize *= 2;
@@ -345,11 +321,10 @@ void OutBuffer::vprintf(const char *format, va_list args)
         else
             break;
 #else
-    assert(0);
+        assert(0);
 #endif
-        p = (char *) alloca(psize);     // buffer too small, try again with larger size
     }
-    write(p,count);
+    offset += count;
 }
 
 void OutBuffer::printf(const char *format, ...)

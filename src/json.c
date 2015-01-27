@@ -1,11 +1,13 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/json.c
+ */
 
 // This implements the JSON capability.
 
@@ -448,8 +450,8 @@ public:
             property("kind", s->kind());
         }
 
-        if (s->prot() != PROTpublic)
-            property("protection", Pprotectionnames[s->prot()]);
+        if (s->prot().kind != PROTpublic)   // TODO: How about package(names)?
+            property("protection", protectionToChars(s->prot().kind));
 
         if (EnumMember *em = s->isEnumMember())
         {
@@ -554,8 +556,8 @@ public:
         property("kind", s->kind());
         property("comment", (const char *)s->comment);
         property("line", "char", &s->loc);
-        if (s->prot() != PROTpublic)
-            property("protection", Pprotectionnames[s->prot()]);
+        if (s->prot().kind != PROTpublic)
+            property("protection", protectionToChars(s->prot().kind));
         if (s->aliasId)
             property("alias", s->aliasId->toChars());
 
@@ -639,17 +641,6 @@ public:
         objectEnd();
     }
 
-    void visit(TypedefDeclaration *d)
-    {
-        objectStart();
-
-        jsonProperties(d);
-
-        property("base", "baseDeco", d->basetype);
-
-        objectEnd();
-    }
-
     void visit(AggregateDeclaration *d)
     {
         objectStart();
@@ -661,7 +652,7 @@ public:
         {
             if (cd->baseClass && cd->baseClass->ident != Id::Object)
             {
-                property("base", cd->baseClass->toChars());
+                property("base", cd->baseClass->toPrettyChars(true));
             }
             if (cd->interfaces_dim)
             {
@@ -670,7 +661,7 @@ public:
                 for (size_t i = 0; i < cd->interfaces_dim; i++)
                 {
                     BaseClass *b = cd->interfaces[i];
-                    item(b->base->toChars());
+                    item(b->base->toPrettyChars(true));
                 }
                 arrayEnd();
             }

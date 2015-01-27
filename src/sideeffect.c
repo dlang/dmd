@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/sideeffect.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -22,9 +23,43 @@
 #include "aggregate.h"
 #include "scope.h"
 #include "attrib.h"
+#include "tokens.h"
 
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 bool lambdaHasSideEffect(Expression *e);
+
+/**************************************************
+ * Front-end expression rewriting should create temporary variables for
+ * non trivial sub-expressions in order to:
+ *  1. save evaluation order
+ *  2. prevent sharing of sub-expression in AST
+ */
+bool isTrivialExp(Expression *e)
+{
+    class IsTrivialExp : public StoppableVisitor
+    {
+    public:
+        IsTrivialExp() {}
+
+        void visit(Expression *e)
+        {
+            /* Bugzilla 11201: CallExp is always non trivial expression,
+             * especially for inlining.
+             */
+            if (e->op == TOKcall)
+            {
+                stop = true;
+                return;
+            }
+
+            // stop walking if we determine this expression has side effects
+            stop = lambdaHasSideEffect(e);
+        }
+    };
+
+    IsTrivialExp v;
+    return walkPostorder(e, &v) == false;
+}
 
 /********************************************
  * Determine if Expression has any side effects.

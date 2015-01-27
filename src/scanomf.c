@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/scanomf.c
+ */
 
 /* Implements scanning an object module for names to go in the library table of contents.
  * The object module format is OMF.
@@ -95,6 +96,46 @@ static unsigned short parseIdx(unsigned char **pp)
     unsigned short idx = (0x80 & c) ? ((0x7F & c) << 8) + *p++ : c;
     *pp = p;
     return idx;
+}
+
+// skip numeric field of a data type of a COMDEF record
+static void skipNumericField(unsigned char **pp)
+{
+    unsigned char *p = *pp;
+    unsigned char c = *p++;
+    if (c == 0x81)
+        p += 2;
+    else if (c == 0x84)
+        p += 3;
+    else if (c == 0x88)
+        p += 4;
+    else
+        assert(c <= 0x80);
+    *pp = p;
+}
+
+// skip data type of a COMDEF record
+static void skipDataType(unsigned char **pp)
+{
+    unsigned char *p = *pp;
+    unsigned char c = *p++;
+
+    if (c == 0x61)
+    {
+        // FAR data
+        skipNumericField(&p);
+        skipNumericField(&p);
+    }
+    else if (c == 0x62)
+    {
+        // NEAR data
+        skipNumericField(&p);
+    }
+    else
+    {
+        assert(1 <= c && c <= 0x5f); // Borland segment indices
+    }
+    *pp = p;
 }
 
 
@@ -198,6 +239,17 @@ void scanOmfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, const char* nam
 
                 //printf("[s] name='%s'\n",name);
                 (*pAddSymbol)(pctx, names[idx],pickAny);
+                break;
+            }
+            case COMDEF:
+            {
+                while (p + 1 < pnext)
+                {
+                    parseName(&p, name);
+                    parseIdx(&p);               // type index
+                    skipDataType(&p);           // data type
+                    (*pAddSymbol)(pctx, name, 1);
+                }
                 break;
             }
             case ALIAS:
@@ -371,5 +423,3 @@ void writeOMFObj(OutBuffer *buf, const void *base, unsigned length, const char *
     }
     buf->write(base, length);
 }
-
-

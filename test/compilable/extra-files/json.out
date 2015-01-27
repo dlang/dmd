@@ -163,9 +163,9 @@
     "kind" : "class",
     "line" : 25,
     "char" : 1,
-    "base" : "Bar",
+    "base" : "json.Bar!1.Bar",
     "interfaces" : [
-     "Baz"
+     "json.Baz!(int, 2, null).Baz"
     ],
     "members" : [
      {
@@ -233,7 +233,7 @@
     "kind" : "class",
     "line" : 34,
     "char" : 1,
-    "base" : "Bar2",
+    "base" : "json.Bar2",
     "members" : [
      {
       "name" : "val",
@@ -341,7 +341,7 @@
      {
       "name" : "foo",
       "deco" : "C4json4Bar2",
-      "default" : "cast(Bar2)new Bar3(7)"
+      "default" : "new Bar3(7)"
      }
     ],
     "endline" : 58,

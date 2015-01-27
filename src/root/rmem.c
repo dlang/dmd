@@ -129,11 +129,9 @@ void Mem::error()
 /* Allocate, but never release
  */
 
-// Allocate a little less than 64kB because the C runtime adds some overhead that
-// causes the actual memory block to be larger than 64kB otherwise. E.g. the dmc
-// runtime rounds the size up to 128kB, but the remaining space in the chunk is less
-// than 64kB, so it cannot be used by another chunk.
-#define CHUNK_SIZE (4096 * 16 - 64)
+// Allocate a little less than 1Mb because the C runtime adds some overhead that
+// causes the actual memory block to be larger than 1Mb otherwise.
+#define CHUNK_SIZE (256 * 4096 - 64)
 
 static size_t heapleft = 0;
 static void *heapp;

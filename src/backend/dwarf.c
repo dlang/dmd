@@ -1,11 +1,11 @@
-
+// Compiler implementation of the D programming language
 // Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gpl.txt.
-// See the included readme.txt for details.
+// Distributed under the Boost Software License, Version 1.0.
+// http://www.boost.org/LICENSE_1_0.txt
+// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/dwarf.c
 
 // Emit Dwarf symbolic debug info
 
@@ -73,7 +73,7 @@ static char __file__[] = __FILE__;      // for tassert.h
 int dwarf_getsegment(const char *name, int align)
 {
 #if ELFOBJ
-    return ElfObj::getsegment(name, NULL, SHT_PROGDEF, 0, align * 4);
+    return ElfObj::getsegment(name, NULL, SHT_PROGBITS, 0, align * 4);
 #elif MACHOBJ
     return MachObj::getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
 #else
@@ -89,7 +89,7 @@ int dwarf_getsegment(const char *name, int align)
 void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
 {
 #if ELFOBJ
-    ElfObj::addrel(seg, offset, I64 ? R_X86_64_32 : RI_TYPE_SYM32, MAP_SEG2SYMIDX(targseg), val);
+    ElfObj::addrel(seg, offset, I64 ? R_X86_64_32 : R_386_32, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
     MachObj::addrel(seg, offset, NULL, targseg, RELaddr, val);
 #else
@@ -110,16 +110,14 @@ void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 
 void dwarf_appreladdr(int seg, Outbuffer *buf, int targseg, targ_size_t val)
 {
-  if (I64)
-  {
-      dwarf_addrel64(seg, buf->size(), targseg, val);
-      buf->write64(0);
-  }
-  else
-  {
-      dwarf_addrel(seg, buf->size(), targseg, 0);
-      buf->write32(val);
-  }
+    dwarf_addrel64(seg, buf->size(), targseg, I64 ? val : 0);
+    buf->write64(I64 ? 0 : val);
+}
+
+void dwarf_apprel32(int seg, Outbuffer *buf, int targseg, targ_size_t val)
+{
+    dwarf_addrel(seg, buf->size(), targseg, I64 ? val : 0);
+    buf->write32(I64 ? 0 : val);
 }
 
 void append_addr(Outbuffer *buf, targ_size_t addr)
@@ -1213,10 +1211,13 @@ void dwarf_func_term(Symbol *sfunc)
         dwarf_appreladdr(infoseg, infobuf, seg, funcoffset);
         dwarf_appreladdr(infoseg, infobuf, seg, funcoffset + sfunc->Ssize);
 
+        // DW_AT_frame_base
 #if ELFOBJ
-        dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, 0);
+        dwarf_apprel32(infoseg, infobuf, debug_loc_seg, debug_loc_buf->size());
+#else
+        // 64-bit DWARF relocations don't work for OSX64 codegen
+        infobuf->write32(debug_loc_buf->size());
 #endif
-        infobuf->write32(debug_loc_buf->size()); // DW_AT_frame_base
 
         if (haveparameters)
         {
@@ -1255,6 +1256,36 @@ void dwarf_func_term(Symbol *sfunc)
                         if (sa->Sfl == FLreg || sa->Sclass == SCpseudo)
                         {   // BUG: register pairs not supported in Dwarf?
                             infobuf->writeByte(DW_OP_reg0 + sa->Sreglsw);
+                        }
+                        else if (sa->Sscope && vcode == autocode)
+                        {
+                            assert(sa->Sscope->Stype->Tnext && sa->Sscope->Stype->Tnext->Tty == TYstruct);
+
+                            /* find member offset in closure */
+                            targ_size_t memb_off = 0;
+                            struct_t *st = sa->Sscope->Stype->Tnext->Ttag->Sstruct; // Sscope is __closptr
+                            for (symlist_t sl = st->Sfldlst; sl; sl = list_next(sl))
+                            {
+                                symbol *sf = list_symbol(sl);
+                                if (sf->Sclass == SCmember)
+                                {
+                                    if(strcmp(sa->Sident, sf->Sident) == 0)
+                                    {
+                                        memb_off = sf->Smemoff;
+                                        goto L2;
+                                    }
+                                }
+                            }
+                            L2:
+                            targ_size_t closptr_off = sa->Sscope->Soffset; // __closptr offset
+                            //printf("dwarf closure: sym: %s, closptr: %s, ptr_off: %lli, memb_off: %lli\n",
+                            //    sa->Sident, sa->Sscope->Sident, closptr_off, memb_off);
+
+                            infobuf->writeByte(DW_OP_fbreg);
+                            infobuf->writesLEB128(Auto.size + BPoff - Para.size + closptr_off); // closure pointer offset from frame base
+                            infobuf->writeByte(DW_OP_deref);
+                            infobuf->writeByte(DW_OP_plus_uconst);
+                            infobuf->writeuLEB128(memb_off); // closure variable offset
                         }
                         else
                         {
@@ -1390,9 +1421,35 @@ void cv_outsym(symbol *s)
             soffset = infobuf->size();
             infobuf->writeByte(2);                      // DW_FORM_block1
 
-            infobuf->writeByte(DW_OP_addr);
-            dwarf_addrel(infoseg,infobuf->size(),s->Sseg);
-            infobuf->write32(0);        // address of global
+            // append DW_OP_GNU_push_tls_address for tls variables
+#if ELFOBJ
+            assert(s->Sxtrnnum);
+            if (s->Sfl == FLtlsdata)
+            {
+                if (I64)
+                {
+                    infobuf->writeByte(DW_OP_const8u);
+                    ElfObj::addrel(infoseg, infobuf->size(), R_X86_64_DTPOFF32, s->Sxtrnnum, 0);
+                    infobuf->write64(0);
+                }
+                else
+                {
+                    infobuf->writeByte(DW_OP_const4u);
+                    ElfObj::addrel(infoseg, infobuf->size(), R_386_TLS_LDO_32, s->Sxtrnnum, 0);
+                    infobuf->write32(0);
+                }
+            #if (DWARF_VERSION <= 2)
+                infobuf->writeByte(DW_OP_GNU_push_tls_address);
+            #else
+                infobuf->writeByte(DW_OP_form_tls_address);
+            #endif
+            } else
+#endif
+            {
+                infobuf->writeByte(DW_OP_addr);
+                dwarf_addrel(infoseg,infobuf->size(),s->Sseg);
+                append_addr(infobuf, s->Soffset);    // address of global
+            }
 
             infobuf->buf[soffset] = infobuf->size() - soffset - 1;
             break;

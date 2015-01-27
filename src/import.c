@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/import.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -17,7 +18,6 @@
 #include "identifier.h"
 #include "module.h"
 #include "scope.h"
-#include "hdrgen.h"
 #include "mtype.h"
 #include "declaration.h"
 #include "id.h"
@@ -86,9 +86,9 @@ const char *Import::kind()
     return isstatic ? (char *)"static import" : (char *)"import";
 }
 
-PROT Import::prot()
+Prot Import::prot()
 {
-    return protection;
+    return Prot(protection);
 }
 
 Dsymbol *Import::syntaxCopy(Dsymbol *s)
@@ -189,13 +189,22 @@ void Import::importAll(Scope *sc)
         load(sc);
         if (mod)                // if successfully loaded module
         {
+            if (mod->md && mod->md->isdeprecated)
+            {
+                Expression *msg = mod->md->msg;
+                if (StringExp *se = msg ? msg->toStringExp() : NULL)
+                    mod->deprecation(loc, "is deprecated - %s", se->string);
+                else
+                    mod->deprecation(loc, "is deprecated");
+            }
+
             mod->importAll(NULL);
 
             if (!isstatic && !aliasId && !names.dim)
             {
                 if (sc->explicitProtection)
-                    protection = sc->protection;
-                sc->scopesym->importScope(mod, protection);
+                    protection = sc->protection.kind;
+                sc->scopesym->importScope(mod, Prot(protection));
             }
         }
     }
@@ -228,12 +237,12 @@ void Import::semantic(Scope *sc)
         if (!isstatic && !aliasId && !names.dim)
         {
             if (sc->explicitProtection)
-                protection = sc->protection;
+                protection = sc->protection.kind;
             for (Scope *scd = sc; scd; scd = scd->enclosing)
             {
                 if (scd->scopesym)
                 {
-                    scd->scopesym->importScope(mod, protection);
+                    scd->scopesym->importScope(mod, Prot(protection));
                     break;
                 }
             }
@@ -254,7 +263,7 @@ void Import::semantic(Scope *sc)
 #if 0
         sc->protection = protection;
 #else
-        sc->protection = PROTpublic;
+        sc->protection = Prot(PROTpublic);
 #endif
         for (size_t i = 0; i < aliasdecls.dim; i++)
         {
@@ -308,7 +317,8 @@ void Import::semantic(Scope *sc)
 
         // use protection instead of sc->protection because it couldn't be
         // resolved yet, see the comment above
-        ProtDeclaration::protectionToCBuffer(ob, protection);
+        protectionToBuffer(ob, Prot(protection));
+        ob->writeByte(' ');
         if (isstatic)
             StorageClassDeclaration::stcToCBuffer(ob, STCstatic);
         ob->writestring(": ");
@@ -442,46 +452,3 @@ bool Import::overloadInsert(Dsymbol *s)
     else
         return false;
 }
-
-void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    if (hgs->hdrgen && id == Id::object)
-        return;         // object is imported by default
-
-    if (isstatic)
-        buf->writestring("static ");
-    buf->writestring("import ");
-    if (aliasId)
-    {
-        buf->printf("%s = ", aliasId->toChars());
-    }
-    if (packages && packages->dim)
-    {
-        for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (*packages)[i];
-
-            buf->printf("%s.", pid->toChars());
-        }
-    }
-    buf->printf("%s", id->toChars());
-    if (names.dim)
-    {
-        buf->writestring(" : ");
-        for (size_t i = 0; i < names.dim; i++)
-        {
-            Identifier *name = names[i];
-            Identifier *alias = aliases[i];
-
-            if (alias)
-                buf->printf("%s = %s", alias->toChars(), name->toChars());
-            else
-                buf->printf("%s", name->toChars());
-
-            if (i < names.dim - 1)
-                buf->writestring(", ");
-        }
-    }
-    buf->printf(";");
-    buf->writenl();
-}
-

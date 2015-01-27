@@ -2,7 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail108.d(14): Error: typedef test1.foo circular definition
+fail_compilation/fail108.d(14): Error: use alias instead of typedef
+fail_compilation/fail108.d(15): Error: use alias instead of typedef
 ---
 */
 

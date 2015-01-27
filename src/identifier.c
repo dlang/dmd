@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/identifier.c
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -14,8 +15,8 @@
 #include "root.h"
 #include "identifier.h"
 #include "mars.h"
-#include "lexer.h"
 #include "id.h"
+#include "tokens.h"
 
 Identifier::Identifier(const char *string, int value)
 {
@@ -82,7 +83,7 @@ int Identifier::dyncast()
     return DYNCAST_IDENTIFIER;
 }
 
-// BUG: these are redundant with Lexer::uniqueId()
+StringTable Identifier::stringtable;
 
 Identifier *Identifier::generateId(const char *prefix)
 {
@@ -98,5 +99,39 @@ Identifier *Identifier::generateId(const char *prefix, size_t i)
     buf.printf("%llu", (ulonglong)i);
 
     char *id = buf.peekString();
-    return Lexer::idPool(id);
+    return idPool(id);
+}
+
+/********************************************
+ * Create an identifier in the string table.
+ */
+
+Identifier *Identifier::idPool(const char *s)
+{
+    return idPool(s, strlen(s));
+}
+
+Identifier *Identifier::idPool(const char *s, size_t len)
+{
+    StringValue *sv = stringtable.update(s, len);
+    Identifier *id = (Identifier *) sv->ptrvalue;
+    if (!id)
+    {
+        id = new Identifier(sv->toDchars(), TOKidentifier);
+        sv->ptrvalue = (char *)id;
+    }
+    return id;
+}
+
+Identifier *Identifier::lookup(const char *s, size_t len)
+{
+    StringValue *sv = stringtable.lookup(s, len);
+    if (!sv)
+        return NULL;
+    return (Identifier *)sv->ptrvalue;
+}
+
+void Identifier::initTable()
+{
+    stringtable._init(28000);
 }

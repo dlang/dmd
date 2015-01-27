@@ -12,17 +12,17 @@ int testLiteral()
     assert([5 : 4].length == 1);
     assert([5 : 4].values == [4]);
     assert([5 : 4].keys == [5]);
-    foreach(k, v; [5 : 4])
+    foreach (k, v; [5 : 4])
         assert(k == 5 && v == 4);
-    foreach(v; [5 : 4])
+    foreach (v; [5 : 4])
         assert(v == 4);
     assert([5 : 4].dup == [5 : 4]);
     assert([5 : 4].dup);
     if (!__ctfe)
-    foreach(k; [5 : 4].byKey)
+    foreach (k; [5 : 4].byKey)
         assert(k == 5);
     if (!__ctfe)
-    foreach(v; [5 : 4].byValue)
+    foreach (v; [5 : 4].byValue)
         assert(v == 4);
     assert([5 : 4].rehash == [5 : 4]);
     assert([5 : 4][5] == 4);
@@ -39,17 +39,26 @@ int testVar()
     assert(aa.length == 1);
     assert(aa.values == [4]);
     assert(aa.keys == [5]);
-    foreach(k, v; aa)
+    foreach (k, v; aa)
         assert(k == 5 && v == 4);
-    foreach(v; aa)
+    foreach (v; aa)
         assert(v == 4);
     assert(aa.dup == aa);
     assert(aa.dup);
+    {
+        auto bb = aa.dup();
+        assert(bb == aa);
+        //assert(aa !is bb);  // issue in ctfeIdentity
+        assert(&aa[5] !is &bb[5]);
+        bb[5] = 10;
+        assert(aa[5] == 4);
+        assert(bb[5] == 10);
+    }
     if (!__ctfe)
-    foreach(k; aa.byKey)
+    foreach (k; aa.byKey)
         assert(k == 5);
     if (!__ctfe)
-    foreach(v; aa.byValue)
+    foreach (v; aa.byValue)
         assert(v == 4);
     assert(aa.rehash == aa);
     assert(aa[5] == 4);
@@ -66,17 +75,23 @@ int testVarConst()
     assert(aa.length == 1);
     assert(aa.values == [4]);
     assert(aa.keys == [5]);
-    foreach(k, v; aa)
+    foreach (k, v; aa)
         assert(k == 5 && v == 4);
-    foreach(v; aa)
+    foreach (v; aa)
         assert(v == 4);
     //assert(aa.dup == aa);
     assert(aa.dup);
+    {
+        auto bb = aa.dup();
+        //assert(bb == aa);
+        //assert(aa !is bb);  // issue in ctfeIdentity
+        assert(&aa[5] !is &bb[5]);
+    }
     if (!__ctfe)
-    foreach(k; aa.byKey)
+    foreach (k; aa.byKey)
         assert(k == 5);
     if (!__ctfe)
-    foreach(v; aa.byValue)
+    foreach (v; aa.byValue)
         assert(v == 4);
     //assert(aa.rehash == aa);
     assert(aa[5] == 4);
@@ -93,17 +108,23 @@ int testVarImmutable()
     assert(aa.length == 1);
     assert(aa.values == [4]);
     assert(aa.keys == [5]);
-    foreach(k, v; aa)
+    foreach (k, v; aa)
         assert(k == 5 && v == 4);
-    foreach(v; aa)
+    foreach (v; aa)
         assert(v == 4);
     //assert(aa.dup == aa);
     assert(aa.dup);
+    {
+        auto bb = aa.dup();
+        //assert(bb == aa);
+        //assert(aa !is bb);  // issue in ctfeIdentity
+        assert(&aa[5] !is &bb[5]);
+    }
     if (!__ctfe)
-    foreach(k; aa.byKey)
+    foreach (k; aa.byKey)
         assert(k == 5);
     if (!__ctfe)
-    foreach(v; aa.byValue)
+    foreach (v; aa.byValue)
         assert(v == 4);
     // assert(aa.rehash == aa);
     assert(aa[5] == 4);
@@ -121,17 +142,26 @@ int testPointer()
     assert(aa.length == 1);
     assert(aa.values == [4]);
     assert(aa.keys == [5]);
-    // foreach(k, v; aa)
-        // assert(k == 5 && v == 4);
-    // foreach(v; aa)
-        // assert(v == 4);
+    // foreach (k, v; aa)
+    //     assert(k == 5 && v == 4);
+    // foreach (v; aa)
+    //     assert(v == 4);
     assert(aa.dup == *aa);
     assert(aa.dup);
+    {
+        auto bb = aa.dup();
+        assert(bb == *aa);
+        //assert(aa !is bb);  // issue in ctfeIdentity
+        assert(&(*aa)[5] !is &bb[5]);
+        bb[5] = 10;
+        assert((*aa)[5] == 4);
+        assert(bb[5] == 10);
+    }
     if (!__ctfe)
-    foreach(k; aa.byKey)
+    foreach (k; aa.byKey)
         assert(k == 5);
     if (!__ctfe)
-    foreach(v; aa.byValue)
+    foreach (v; aa.byValue)
         assert(v == 4);
     if (!__ctfe)
     assert(aa.rehash == *aa);
@@ -151,17 +181,23 @@ int testPointerConst()
     assert(aa.length == 1);
     assert(aa.values == [4]);
     assert(aa.keys == [5]);
-    // foreach(k, v; aa)
-        // assert(k == 5 && v == 4);
-    // foreach(v; aa)
-        // assert(v == 4);
+    // foreach (k, v; aa)
+    //     assert(k == 5 && v == 4);
+    // foreach (v; aa)
+    //     assert(v == 4);
     // assert(aa.dup == *aa);
     assert(aa.dup);
+    {
+        auto bb = aa.dup();
+        //assert(bb == aa);
+        //assert(aa !is bb);  // issue in ctfeIdentity
+        assert(&(*aa)[5] !is &bb[5]);
+    }
     if (!__ctfe)
-    foreach(k; aa.byKey)
+    foreach (k; aa.byKey)
         assert(k == 5);
     if (!__ctfe)
-    foreach(v; aa.byValue)
+    foreach (v; aa.byValue)
         assert(v == 4);
     // assert(aa.rehash == aa);
     assert((*aa)[5] == 4);
@@ -179,17 +215,23 @@ int testPointerImmutable()
     assert(aa.length == 1);
     assert(aa.values == [4]);
     assert(aa.keys == [5]);
-    // foreach(k, v; aa)
-        // assert(k == 5 && v == 4);
-    // foreach(v; aa)
-        // assert(v == 4);
+    // foreach (k, v; aa)
+    //     assert(k == 5 && v == 4);
+    // foreach (v; aa)
+    //     assert(v == 4);
     // assert(aa.dup == *aa);
     assert(aa.dup);
+    {
+        auto bb = aa.dup();
+        //assert(bb == (*aa));
+        //assert(aa !is bb);  // issue in ctfeIdentity
+        assert(&(*aa)[5] !is &bb[5]);
+    }
     if (!__ctfe)
-    foreach(k; aa.byKey)
+    foreach (k; aa.byKey)
         assert(k == 5);
     if (!__ctfe)
-    foreach(v; aa.byValue)
+    foreach (v; aa.byValue)
         assert(v == 4);
     // assert(aa.rehash == aa);
     assert((*aa)[5] == 4);
@@ -210,17 +252,26 @@ int testRefx(ref int[int] aa)
     assert(aa.length == 1);
     assert(aa.values == [4]);
     assert(aa.keys == [5]);
-    foreach(k, v; aa)
+    foreach (k, v; aa)
         assert(k == 5 && v == 4);
-    foreach(v; aa)
+    foreach (v; aa)
         assert(v == 4);
     assert(aa.dup == aa);
     assert(aa.dup);
+    {
+        auto bb = aa.dup();
+        assert(bb == aa);
+        //assert(aa !is bb);  // issue in ctfeIdentity
+        assert(&aa[5] !is &bb[5]);
+        bb[5] = 10;
+        assert(aa[5] == 4);
+        assert(bb[5] == 10);
+    }
     if (!__ctfe)
-    foreach(k; aa.byKey)
+    foreach (k; aa.byKey)
         assert(k == 5);
     if (!__ctfe)
-    foreach(v; aa.byValue)
+    foreach (v; aa.byValue)
         assert(v == 4);
     assert(aa.rehash == aa);
     assert(aa[5] == 4);
@@ -236,17 +287,17 @@ int testRet()
     assert(testRetx().length == 1);
     assert(testRetx().values == [4]);
     assert(testRetx().keys == [5]);
-    foreach(k, v; testRetx())
+    foreach (k, v; testRetx())
         assert(k == 5 && v == 4);
-    foreach(v; testRetx())
+    foreach (v; testRetx())
         assert(v == 4);
     assert(testRetx().dup == testRetx());
     assert(testRetx().dup);
     if (!__ctfe)
-    foreach(k; testRetx().byKey)
+    foreach (k; testRetx().byKey)
         assert(k == 5);
     if (!__ctfe)
-    foreach(v; testRetx().byValue)
+    foreach (v; testRetx().byValue)
         assert(v == 4);
     assert(testRetx().rehash == testRetx());
     assert(testRetx()[5] == 4);

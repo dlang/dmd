@@ -196,7 +196,7 @@
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
-				PreprocessorDefinitions="NDEBUG;TARGET_WINDOS=1"
+				PreprocessorDefinitions="TARGET_WINDOS=1"
 				RuntimeLibrary="0"
 				StructMemberAlignment="1"
 				BufferSecurityCheck="false"
@@ -394,6 +394,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\errors.c"
+				>
+			</File>
+			<File
+				RelativePath=".\errors.h"
+				>
+			</File>
+			<File
+				RelativePath=".\escape.c"
+				>
+			</File>
+			<File
 				RelativePath=".\complex_t.h"
 				>
 			</File>
@@ -475,6 +487,14 @@
 			</File>
 			<File
 				RelativePath=".\func.c"
+				>
+			</File>
+			<File
+				RelativePath=".\globals.c"
+				>
+			</File>
+			<File
+				RelativePath=".\globals.h"
 				>
 			</File>
 			<File
@@ -779,6 +799,14 @@
 			</File>
 			<File
 				RelativePath=".\toir.h"
+				>
+			</File>
+			<File
+				RelativePath=".\tokens.c"
+				>
+			</File>
+			<File
+				RelativePath=".\tokens.h"
 				>
 			</File>
 			<File
@@ -1362,6 +1390,14 @@
 				</File>
 				<File
 					RelativePath=".\root\async.h"
+					>
+				</File>
+				<File
+					RelativePath=".\root\checkedint.c"
+					>
+				</File>
+				<File
+					RelativePath=".\root\checkedint.h"
 					>
 				</File>
 				<File

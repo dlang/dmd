@@ -2213,6 +2213,13 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
                 info[CLIBullngdbl].retregs32 = mAX;
                 info[CLIBdblullng].retregs32 = mAX;
             }
+            else if (config.objfmt == OBJ_MSCOFF)
+            {
+                strcpy(lib[CLIBldiv].Sident, "_ms_alldiv");
+                strcpy(lib[CLIBlmod].Sident, "_ms_allrem");   info[CLIBlmod].retregs32 = mAX|mDX;
+                strcpy(lib[CLIBuldiv].Sident, "_ms_aulldiv");
+                strcpy(lib[CLIBulmod].Sident, "_ms_aullrem"); info[CLIBulmod].retregs32 = mAX|mDX;
+            }
         }
         clib_inited++;
   }
@@ -2291,7 +2298,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             {
                 cgot = load_localgot();     // EBX gets set to this value
             }
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD
             switch (clib)
             {
                 case CLIBldiv:
@@ -2342,7 +2349,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         }
         if (pushebx)
         {
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD
             c = gen1(c, 0x50 + CX);                             // PUSH ECX
             c = gen1(c, 0x50 + BX);                             // PUSH EBX
             c = gen1(c, 0x50 + DX);                             // PUSH EDX
@@ -2670,7 +2677,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
         parameters[i].reg = NOREG;
         unsigned alignsize = el_alignsize(ep);
         parameters[i].numalign = 0;
-        if (I64 && alignsize > stackalign)
+        if (alignsize > stackalign &&
+            (I64 || (alignsize == 16 && tyvector(ep->Ety))))
         {   unsigned newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
             parameters[i].numalign = newnumpara - numpara;
             numpara = newnumpara;
@@ -2836,22 +2844,26 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     if (v ^ (preg != mreg))
                     {
                         if (preg != lreg)
+                        {
                             if (mask[preg] & XMMREGS)
                             {   unsigned op = xmmload(ty1);            // MOVSS/D preg,lreg
                                 c1 = gen2(c1,op,modregxrmx(3,preg-XMM0,lreg-XMM0));
                             }
                             else
                                 c1 = genmovreg(c1, preg, lreg);
+                        }
                     }
                     else
                     {
                         if (preg2 != mreg)
+                        {
                             if (mask[preg2] & XMMREGS)
                             {   unsigned op = xmmload(ty2);            // MOVSS/D preg2,mreg
                                 c1 = gen2(c1,op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
                             }
                             else
                                 c1 = genmovreg(c1, preg2, mreg);
+                        }
                     }
                 }
 
@@ -3078,17 +3090,10 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (s == tls_get_addr_sym)
             {
-                if (I32)
+                if (I64)
                 {
-                    /* Append a NOP so GNU linker has patch room
+                    /* Prepend 66 66 48 so GNU linker has patch room
                      */
-                    ce = gen1(ce, 0x90);        // NOP
-                    code_orflag(ce, CFvolatile);    // don't schedule it
-                }
-                else
-                {   /* Prepend 66 66 48 so GNU linker has patch room
-                     */
-                    assert(I64);
                     ce->Irex = REX | REX_W;
                     ce = cat(gen1(CNIL, 0x66), ce);
                     ce = cat(gen1(CNIL, 0x66), ce);

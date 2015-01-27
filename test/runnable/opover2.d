@@ -1038,6 +1038,45 @@ void test12382()
 }
 
 /**************************************/
+// 12904
+
+struct S12904
+{
+    void opIndexAssign(U, A...)(U value, A args)
+    {
+        static assert(0);
+    }
+    void opSliceAssign(int n)
+    {
+        assert(n == 10);
+    }
+
+    size_t opDollar(size_t dim)()
+    {
+        return 7;
+    }
+
+    int opSlice(size_t dim)(size_t, size_t to)
+    {
+        assert(to == 7);
+        return 1;
+    }
+
+    int opIndex(int i1, int i2)
+    {
+        assert(i1 == 1 && i2 == 1);
+        return 10;
+    }
+}
+
+void test12904()
+{
+    S12904 s;
+    s[] = s[0..$, 1];
+    s[] = s[0..$, 0..$];
+}
+
+/**************************************/
 // 7641
 
 mixin template Proxy7641(alias a)
@@ -1792,6 +1831,7 @@ int main()
     test3789();
     test10037();
     test6798();
+    test12904();
     test7641();
     test8434();
     test18();

@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 2006-2007 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 2006-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/arraytypes.h
+ */
 
 #ifndef DMD_ARRAYTYPES_H
 #define DMD_ARRAYTYPES_H
@@ -43,9 +44,6 @@ typedef Array<class Initializer *> Initializers;
 typedef Array<class VarDeclaration *> VarDeclarations;
 
 typedef Array<class Type *> Types;
-
-typedef Array<class ScopeDsymbol *> ScopeDsymbols;
-
 typedef Array<class Catch *> Catches;
 
 typedef Array<class StaticDtorDeclaration *> StaticDtorDeclarations;
@@ -64,16 +62,14 @@ typedef Array<class ScopeStatement *> ScopeStatements;
 
 typedef Array<class GotoCaseStatement *> GotoCaseStatements;
 
-typedef Array<class GotoStatement *> GotoStatements;
-
 typedef Array<class ReturnStatement *> ReturnStatements;
+
+typedef Array<class GotoStatement *> GotoStatements;
 
 typedef Array<class TemplateInstance *> TemplateInstances;
 
 typedef Array<struct block *> Blocks;
 
 typedef Array<struct Symbol *> Symbols;
-
-typedef Array<struct dt_t *> Dts;
 
 #endif

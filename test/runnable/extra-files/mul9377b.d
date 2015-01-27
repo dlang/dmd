@@ -1,6 +1,6 @@
 module mul9377b;
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 int j;
 

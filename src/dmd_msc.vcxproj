@@ -44,7 +44,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>.\root;.\tk;.\backend;.;vcbuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;_DEBUG;TARGET_WINDOS%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;TARGET_WINDOS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">TARGET_WINDOS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
       <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
       <Optimization Condition="'$(Configuration)'=='Release'">MaxSpeed</Optimization>
@@ -100,8 +100,11 @@
     <ClCompile Include="eh.c" />
     <ClCompile Include="entity.c" />
     <ClCompile Include="enum.c" />
+    <ClCompile Include="errors.c" />
+    <ClCompile Include="escape.c" />
     <ClCompile Include="expression.c" />
     <ClCompile Include="func.c" />
+    <ClCompile Include="globals.c" />
     <ClCompile Include="glue.c" />
     <ClCompile Include="hdrgen.c" />
     <ClCompile Include="iasm.c" />
@@ -150,6 +153,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="toir.c" />
+    <ClCompile Include="tokens.c" />
     <ClCompile Include="toobj.c" />
     <ClCompile Include="traits.c" />
     <ClCompile Include="typinf.c" />
@@ -221,9 +225,7 @@
     </ClCompile>
     <ClCompile Include="root\aav.c" />
     <ClCompile Include="root\async.c" />
-    <ClCompile Include="root\dmgcmem.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="root\checkedint.c" />
     <ClCompile Include="root\longdouble.c" />
     <ClCompile Include="root\man.c" />
     <ClCompile Include="root\port.c" />
@@ -291,7 +293,9 @@
     <ClInclude Include="doc.h" />
     <ClInclude Include="dsymbol.h" />
     <ClInclude Include="enum.h" />
+    <ClInclude Include="errors.h" />
     <ClInclude Include="expression.h" />
+    <ClInclude Include="globals.h" />
     <ClInclude Include="hdrgen.h" />
     <ClInclude Include="identifier.h" />
     <ClInclude Include="import.h" />
@@ -314,6 +318,7 @@
     <ClInclude Include="target.h" />
     <ClInclude Include="template.h" />
     <ClInclude Include="toir.h" />
+    <ClInclude Include="tokens.h" />
     <ClInclude Include="total.h" />
     <ClInclude Include="utf.h" />
     <ClInclude Include="version.h" />
@@ -351,6 +356,7 @@
     <ClInclude Include="tk\vec.h" />
     <ClInclude Include="root\aav.h" />
     <ClInclude Include="root\async.h" />
+    <ClInclude Include="root\checkedint.h" />
     <ClInclude Include="root\longdouble.h" />
     <ClInclude Include="root\port.h" />
     <ClInclude Include="root\rmem.h" />

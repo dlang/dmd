@@ -64,10 +64,10 @@ void test12630() @nogc
     static const arr1 = [[1,2], [3, 4]];
     enum         arr2 = [[1,2], [3, 4]];
 
-    static const aa1 = [1:1, 2:2];
+  //static const aa1 = [1:1, 2:2];
     enum         aa2 = [1:1, 2:2];
 
-    static const v1 = aa1[1];
+  //static const v1 = aa1[1];
     enum         v2 = aa2[1];
 
     Object o;
@@ -88,9 +88,24 @@ void test12630() @nogc
 /******************************************/
 // 12642
 
-import core.simd;
-
-ulong2 test12642() @nogc
+static if (is(__vector(ulong[2])))
 {
-    return [0, 0];
+    import core.simd;
+
+    ulong2 test12642() @nogc
+    {
+        return [0, 0];
+    }
+}
+
+/******************************************/
+// 13550
+
+auto foo13550() @nogc
+{
+    static int[] bar()
+    {
+        return new int[2];
+    }
+    return &bar;
 }

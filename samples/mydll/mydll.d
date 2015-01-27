@@ -1,5 +1,5 @@
 
 module mydll;
-import std.c.stdio;
+import core.stdc.stdio;
 
 export void dllprint() { printf("hello dll world\n"); }

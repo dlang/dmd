@@ -1,5 +1,5 @@
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 struct S { int a,b,c,d; }
 

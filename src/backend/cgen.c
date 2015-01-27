@@ -525,7 +525,7 @@ size_t addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int fl
         static char zeros[8];
 
         //printf("addtofixlist(%p '%s')\n",s,s->Sident);
-        assert(flags);
+        assert(I32 || flags);
         fixlist *ln = (fixlist *) mem_calloc(sizeof(fixlist));
         //ln->Lsymbol = s;
         ln->Loffset = soffset;

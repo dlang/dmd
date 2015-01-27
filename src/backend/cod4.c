@@ -20,6 +20,7 @@
 #include        "code.h"
 #include        "type.h"
 #include        "global.h"
+#include        "xmm.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -2902,10 +2903,10 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         if (op == OPu16_32 && c1)
         {
             code *cx = code_last(c1);
-            if (cx->Iop == 0x81 && (cx->Irm & modregrm(3,7,0)) == modregrm(3,4,0))
+            if (cx->Iop == 0x81 && (cx->Irm & modregrm(3,7,0)) == modregrm(3,4,0) &&
+                mask[cx->Irm & 7] == retregs)
             {
                 // Convert AND of a word to AND of a dword, zeroing upper word
-                retregs = mask[cx->Irm & 7];
                 if (cx->Irex & REX_B)
                     retregs = mask[8 | (cx->Irm & 7)];
                 cx->Iflags &= ~CFopsize;
@@ -3646,6 +3647,63 @@ code *cdbscan(elem *e, regm_t *pretregs)
 
     return cat3(cl,cg,fixresult(e,retregs,pretregs));
 }
+
+/************************
+ * OPpopcnt operator
+ */
+
+code *cdpopcnt(elem *e,regm_t *pretregs)
+{
+    code *cl,*cg;
+    code cs;
+
+    //printf("cdpopcnt()\n");
+    //elem_print(e);
+    assert(!I16);
+    if (*pretregs == 0)
+        return codelem(e->E1,pretregs,FALSE);
+
+    tym_t tyml = tybasic(e->E1->Ety);
+
+    int sz = tysize[tyml];
+    assert(sz == 2 || sz == 4 || (sz == 8 && I64));     // no byte op
+
+    if ((e->E1->Eoper == OPind && !e->E1->Ecount) || e->E1->Eoper == OPvar)
+    {
+        cl = getlvalue(&cs, e->E1, RMload);     // get addressing mode
+    }
+    else
+    {
+        regm_t retregs = allregs;
+        cl = codelem(e->E1, &retregs, FALSE);
+        reg_t reg = findreg(retregs);
+        cs.Irm = modregrm(3,0,reg & 7);
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        if (reg & 8)
+            cs.Irex |= REX_B;
+    }
+
+    regm_t retregs = *pretregs & allregs;
+    if  (!retregs)
+        retregs = allregs;
+    unsigned reg;
+    cg = allocreg(&retregs, &reg, e->Ety);
+
+    cs.Iop = POPCNT;            // POPCNT reg,EA
+    code_newreg(&cs, reg);
+    if (sz == SHORTSIZE)
+        cs.Iflags |= CFopsize;
+    if (*pretregs & mPSW)
+        cs.Iflags |= CFpsw;
+    cg = gen(cg,&cs);
+    if (sz == 8)
+        code_orrex(cg, REX_W);
+    *pretregs &= mBP | ALLREGS;             // flags already set
+
+    return cat3(cl,cg,fixresult(e,retregs,pretregs));
+}
+
 
 /*******************************************
  * Generate code for OPpair, OPrpair.

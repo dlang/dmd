@@ -323,6 +323,26 @@ void test12243()
 }
 
 /************************************/
+// 11201
+
+struct Foo11201
+{
+    int a;
+    float b;
+
+    Foo11201 func()() const { return this; }
+}
+
+auto f11201()(Foo11201 a) { return a; }
+
+void test11201()
+{
+    auto a = Foo11201(0, 1);
+
+    assert(f11201(a.func!()()) == a);
+}
+
+/************************************/
 // 11223
 
 struct Tuple11223(T...)
@@ -342,6 +362,23 @@ void test11223()
 {
     Tuple11223!string tmp;
     tmp = Tuple11223!string();
+}
+
+/************************************/
+
+
+void foo3918()
+{
+    import core.stdc.stdlib : alloca;
+    void[] mem = alloca(1024)[0..1024];
+}
+
+void test3918()
+{
+    foreach(i; 0 .. 10_000_000)
+    {
+        foo3918();
+    }
 }
 
 /************************************/
@@ -494,12 +531,39 @@ class Foo12080
 }
 
 /**********************************/
+// 13503
+
+void f13503a(string[] s...)
+{
+    assert(s[0] == "Cheese");
+}
+
+auto f13503b(string arg)
+{
+    string result = arg;
+    return result;
+}
+
+string f13503c(string arg)
+{
+    string result = arg;
+    return result;
+}
+
+void test13503()
+{
+    f13503a(f13503b("Cheese"));
+    f13503a(f13503c("Cheese"));
+}
+
+/**********************************/
 
 int main()
 {
     test1();
     test2();
     test3();
+    test3918();
     test4();
     test5();
     test9356();
@@ -507,11 +571,13 @@ int main()
     test7();
     test8();
     test4841();
+    test11201();
     test11223();
     test11314();
     test11224();
     test11322();
     test11394();
+    test13503();
 
     printf("Success\n");
     return 0;

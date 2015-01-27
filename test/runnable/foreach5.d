@@ -950,6 +950,88 @@ void test12739() nothrow
 }
 
 /***************************************/
+// 12932
+
+void test12932() @nogc
+{
+    int sum;
+    foreach (e; [1,2,3])
+    {
+        sum += e;
+    }
+    assert(sum == 6);
+}
+
+/***************************************/
+// 13756
+
+void test13756()
+{
+    int[int] org = [1:2], aa;
+
+    aa = org.dup;
+    foreach (v; aa)
+    {
+        static assert(is(typeof(v) == int));
+        v = 20;
+    }
+    assert(aa == [1:2]);
+
+    aa = org.dup;
+    foreach (ref v; aa)
+    {
+        static assert(is(typeof(v) == int));
+        v = 20;
+    }
+    assert(aa == [1:20]);
+
+    aa = org.dup;
+    foreach (k, v; aa)
+    {
+        static assert(is(typeof(k) == int));
+        static assert(is(typeof(v) == int));
+        k = 10;
+        v = 20;
+    }
+    assert(aa == [1:2]);
+
+    aa = org.dup;
+    foreach (k, ref v; aa)
+    {
+        static assert(is(typeof(k) == int));
+        static assert(is(typeof(v) == int));
+        k = 10;
+        v = 20;
+    }
+    assert(aa == [1:20]);
+
+    aa = org.dup;
+    foreach (ref k, v; aa)      // NG -> OK
+    {
+        static assert(is(typeof(k) == const int));
+        static assert(is(typeof(v) == int));
+        static assert(!__traits(compiles, k = 10));
+        v = 20;
+    }
+    assert(aa == [1:2]);
+
+    aa = org.dup;
+    foreach (ref k, ref v; aa)  // NG -> OK
+    {
+        static assert(is(typeof(k) == const int));
+        static assert(is(typeof(v) == int));
+        static assert(!__traits(compiles, k = 10));
+        v = 20;
+    }
+    assert(aa == [1:20]);
+
+    foreach (ref const k, v; aa)  // NG -> OK, same with 'ref k'
+    {
+        static assert(is(typeof(k) == const int));
+    }
+}
+
+/***************************************/
 
 int main()
 {
@@ -977,6 +1059,8 @@ int main()
     test11291();
     test12103();
     test12739();
+    test12932();
+    test13756();
 
     printf("Success\n");
     return 0;

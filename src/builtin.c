@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/builtin.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -23,6 +24,8 @@
 #include "identifier.h"
 #include "id.h"
 #include "module.h"
+#include "root/port.h"
+#include "tokens.h"
 
 StringTable builtins;
 
@@ -68,7 +71,7 @@ Expression *eval_sqrt(Loc loc, FuncDeclaration *fd, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
-    return new RealExp(loc, sqrtl(arg0->toReal()), arg0->type);
+    return new RealExp(loc, Port::sqrt(arg0->toReal()), arg0->type);
 }
 
 Expression *eval_fabs(Loc loc, FuncDeclaration *fd, Expressions *arguments)
@@ -128,9 +131,49 @@ Expression *eval_bswap(Loc loc, FuncDeclaration *fd, Expressions *arguments)
     return new IntegerExp(loc, n, arg0->type);
 }
 
+Expression *eval_popcnt(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKint64);
+    uinteger_t n = arg0->toInteger();
+    int cnt = 0;
+    while (n)
+    {
+        cnt += (n & 1);
+        n >>= 1;
+    }
+    return new IntegerExp(loc, cnt, arg0->type);
+}
+
+Expression *eval_yl2x(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    Expression *arg1 = (*arguments)[1];
+    assert(arg1->op == TOKfloat64);
+    longdouble x = arg0->toReal();
+    longdouble y = arg1->toReal();
+    longdouble result;
+    Port::yl2x_impl(&x, &y, &result);
+    return new RealExp(loc, result, arg0->type);
+}
+
+Expression *eval_yl2xp1(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    assert(arg0->op == TOKfloat64);
+    Expression *arg1 = (*arguments)[1];
+    assert(arg1->op == TOKfloat64);
+    longdouble x = arg0->toReal();
+    longdouble y = arg1->toReal();
+    longdouble result;
+    Port::yl2xp1_impl(&x, &y, &result);
+    return new RealExp(loc, result, arg0->type);
+}
+
 void builtin_init()
 {
-    builtins._init(45);
+    builtins._init(47);
 
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
@@ -157,8 +200,24 @@ void builtin_init()
 
     // @safe @nogc pure nothrow real function(real, real)
     add_builtin("_D4core4math5atan2FNaNbNiNfeeZe", &eval_unimp);
-    add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
-    add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
+
+    if (Port::yl2x_supported)
+    {
+        add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
+    }
+    else
+    {
+        add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
+    }
+
+    if (Port::yl2xp1_supported)
+    {
+        add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
+    }
+    else
+    {
+        add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
+    }
 
     // @safe @nogc pure nothrow long function(real)
     add_builtin("_D4core4math6rndtolFNaNbNiNfeZl", &eval_unimp);
@@ -188,8 +247,24 @@ void builtin_init()
 
     // @safe @nogc pure nothrow real function(real, real)
     add_builtin("_D3std4math5atan2FNaNbNiNfeeZe", &eval_unimp);
-    add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
-    add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
+
+    if (Port::yl2x_supported)
+    {
+        add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
+    }
+    else
+    {
+        add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
+    }
+
+    if (Port::yl2xp1_supported)
+    {
+        add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
+    }
+    else
+    {
+        add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
+    }
 
     // @safe @nogc pure nothrow long function(real)
     add_builtin("_D3std4math6rndtolFNaNbNiNfeZl", &eval_unimp);
@@ -204,6 +279,16 @@ void builtin_init()
 
     // @safe @nogc pure nothrow uint function(uint)
     add_builtin("_D4core5bitop5bswapFNaNbNiNfkZk", &eval_bswap);
+
+    // @safe @nogc pure nothrow int function(uint)
+    add_builtin("_D4core5bitop7_popcntFNaNbNiNfkZi", &eval_popcnt);
+
+    // @safe @nogc pure nothrow ushort function(ushort)
+    add_builtin("_D4core5bitop7_popcntFNaNbNiNftZt", &eval_popcnt);
+
+    // @safe @nogc pure nothrow int function(ulong)
+    if (global.params.is64bit)
+        add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
 }
 
 /**********************************

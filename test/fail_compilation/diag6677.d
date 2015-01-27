@@ -1,21 +1,20 @@
+// REQUIRED_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag6677.d(1): Error: static constructors cannot be const 
-fail_compilation/diag6677.d(2): Error: static constructors cannot be inout 
-fail_compilation/diag6677.d(3): Error: static constructors cannot be immutable 
-fail_compilation/diag6677.d(4): Error: to create a shared static constructor, use 'shared static this'
-fail_compilation/diag6677.d(5): Error: to create a shared static constructor, use 'shared static this'
-fail_compilation/diag6677.d(5): Error: static constructors cannot be const 
-fail_compilation/diag6677.d(7): Error: static constructors cannot be const 
-fail_compilation/diag6677.d(8): Error: static constructors cannot be inout 
-fail_compilation/diag6677.d(9): Error: static constructors cannot be immutable 
-fail_compilation/diag6677.d(10): Error: static constructors cannot be shared 
-fail_compilation/diag6677.d(11): Error: static constructors cannot be const shared
+fail_compilation/diag6677.d(18): Error: static constructor cannot be const
+fail_compilation/diag6677.d(19): Error: static constructor cannot be inout
+fail_compilation/diag6677.d(20): Error: static constructor cannot be immutable
+fail_compilation/diag6677.d(21): Error: use 'shared static this()' to declare a shared static constructor
+fail_compilation/diag6677.d(22): Error: use 'shared static this()' to declare a shared static constructor
+fail_compilation/diag6677.d(24): Error: shared static constructor cannot be const
+fail_compilation/diag6677.d(25): Error: shared static constructor cannot be inout
+fail_compilation/diag6677.d(26): Error: shared static constructor cannot be immutable
+fail_compilation/diag6677.d(27): Error: redundant attribute 'shared'
+fail_compilation/diag6677.d(28): Error: redundant attribute 'shared'
 ---
 */
 
-#line 1
 static this() const { }
 static this() inout { }
 static this() immutable { }

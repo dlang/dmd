@@ -13,10 +13,10 @@ version(dynload)
 	extern(Windows) void* LoadLibraryA(in char* dll);
 	extern(Windows) void* GetProcAddress(void* lib, in char* name);
 
-	typedef void fnDllPrint();
-	typedef int fnGetglob();
-	typedef char* fnAlloc(int sz);
-	typedef void fnFree(char* p, int sz);
+	alias void fnDllPrint();
+	alias int fnGetglob();
+	alias char* fnAlloc(int sz);
+	alias void fnFree(char* p, int sz);
 
 	mixin(d2_shared ~ "fnDllPrint* pDllPrint;");
 	mixin(d2_shared ~ "fnGetglob* pGetglob;");

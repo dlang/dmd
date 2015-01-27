@@ -1,7 +1,9 @@
+// PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
 
-import std.c.stdio;
+import core.stdc.stdio;
 import core.stdc.stdarg;
+import core.stdc.config;
 
 extern (C++)
         int foob(int i, int j, int k);
@@ -238,6 +240,30 @@ void test11802()
 
 
 /****************************************/
+
+struct S13956
+{
+}
+
+extern(C++) void func13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6);
+
+extern(C++) void check13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6)
+{
+    assert(arg0 == S13956());
+    assert(arg1 == 1);
+    assert(arg2 == 2);
+    assert(arg3 == 3);
+    assert(arg4 == 4);
+    assert(arg5 == 5);
+    assert(arg6 == 6);
+}
+
+void test13956()
+{
+    func13956(S13956(), 1, 2, 3, 4, 5, 6);
+}
+
+/****************************************/
 // 5148
 
 extern (C++)
@@ -279,6 +305,20 @@ void test11()
 }
 /****************************************/
 
+struct Struct10071
+{
+    void *p;
+    c_long_double r;
+}
+
+extern(C++) size_t offset10071();
+void test10071()
+{
+    assert(offset10071() == Struct10071.r.offsetof);
+}
+
+/****************************************/
+
 char[100] valistbuffer;
 
 extern(C++) void myvprintfx(const(char)* format, va_list va)
@@ -289,15 +329,7 @@ extern(C++) void myvprintf(const(char)*, va_list);
 extern(C++) void myprintf(const(char)* format, ...)
 {
     va_list ap;
-    version(X86_64)
-    {
-        version(Windows)
-            va_start(ap, format);
-        else
-            va_start(ap, __va_argsave);
-    }
-    else
-        va_start(ap, format);
+    va_start(ap, format);
     myvprintf(format, ap);
     va_end(ap);
 }
@@ -323,22 +355,387 @@ void test12825()
 
 /****************************************/
 
+struct S13955a
+{
+    float a;
+    double b;
+}
+
+struct S13955b
+{
+    double a;
+    float b;
+}
+
+struct S13955c
+{
+    float a;
+    float b;
+}
+
+struct S13955d
+{
+    double a;
+    double b;
+}
+
+extern(C++) void check13955(S13955a a, S13955b b, S13955c c, S13955d d)
+{
+    assert(a.a == 2);
+    assert(a.b == 4);
+    assert(b.a == 8);
+    assert(b.b == 16);
+    assert(c.a == 32);
+    assert(c.b == 64);
+    assert(d.a == 128);
+    assert(d.b == 256);
+}
+
+extern(C++) void func13955(S13955a a, S13955b b, S13955c c, S13955d d);
+
+void test13955()
+{
+    func13955(S13955a(2, 4), S13955b(8, 16), S13955c(32, 64), S13955d(128, 256));
+}
+
+/****************************************/
+
+extern(C++) class C13161
+{
+    void dummyfunc() {}
+    long val_5;
+    uint val_9;
+}
+
+extern(C++) class Test : C13161
+{
+    uint val_0;
+    long val_1;
+}
+
+extern(C++) size_t getoffset13161();
+
+extern(C++) class C13161a
+{
+    void dummyfunc() {}
+    c_long_double val_5;
+    uint val_9;
+}
+
+extern(C++) class Testa : C13161a
+{
+    bool val_0;
+}
+
+extern(C++) size_t getoffset13161a();
+
+void test13161()
+{
+    assert(getoffset13161() == Test.val_0.offsetof);
+    assert(getoffset13161a() == Testa.val_0.offsetof);
+}
+
+/****************************************/
+
+version (linux)
+{
+    extern(C++, __gnu_cxx)
+    {
+	struct new_allocator(T)
+	{
+	    alias size_type = size_t;
+	    static if (is(T : char))
+		void deallocate(T*, size_type) { }
+	    else
+		void deallocate(T*, size_type);
+	}
+    }
+}
+
+extern (C++, std)
+{
+    struct allocator(T)
+    {
+	version (linux)
+	{
+	    alias size_type = size_t;
+	    void deallocate(T* p, size_type sz)
+	    {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
+	}
+    }
+
+    version (linux)
+    {
+	class vector(T, A = allocator!T)
+	{
+	    final void push_back(ref const T);
+	}
+
+	struct char_traits(T)
+	{
+	}
+
+	struct basic_string(T, C = char_traits!T, A = allocator!T)
+	{
+	}
+
+	struct basic_istream(T, C = char_traits!T)
+	{
+	}
+
+	struct basic_ostream(T, C = char_traits!T)
+	{
+	}
+
+	struct basic_iostream(T, C = char_traits!T)
+	{
+	}
+    }
+}
+
+extern (C++)
+{
+    version (linux)
+    {
+        void foo14(std.vector!(int) p);
+        void foo14a(std.basic_string!(char) *p);
+        void foo14b(std.basic_string!(int) *p);
+        void foo14c(std.basic_istream!(char) *p);
+        void foo14d(std.basic_ostream!(char) *p);
+        void foo14e(std.basic_iostream!(char) *p);
+
+	void foo14f(std.char_traits!char* x, std.basic_string!char* p, std.basic_string!char* q);
+    }
+}
+
+void test14()
+{
+    version (linux)
+    {
+        std.vector!int p;
+        foo14(p);
+
+	foo14a(null);
+	foo14b(null);
+	foo14c(null);
+	foo14d(null);
+	foo14e(null);
+	foo14f(null, null, null);
+    }
+}
+
+version (linux)
+{
+    void test14a(std.allocator!int * pa)
+    {
+    pa.deallocate(null, 0);
+    }
+
+    void gun(std.vector!int pa)
+    {
+    int x = 42;
+    pa.push_back(x);
+    }
+}
+
+void test13289()
+{
+    assert(f13289_cpp_wchar_t('a') == 'A');
+    assert(f13289_cpp_wchar_t('B') == 'B');
+    assert(f13289_d_wchar('c') == 'C');
+    assert(f13289_d_wchar('D') == 'D');
+    assert(f13289_d_dchar('e') == 'E');
+    assert(f13289_d_dchar('F') == 'F');
+    assert(f13289_cpp_test());
+}
+
+extern(C++)
+{
+    bool f13289_cpp_test();
+
+    version(Posix)
+    {
+        dchar f13289_cpp_wchar_t(dchar);
+    }
+    else version(Windows)
+    {
+        wchar f13289_cpp_wchar_t(wchar);
+    }
+
+    wchar f13289_d_wchar(wchar ch)
+    {
+        if (ch <= 'z' && ch >= 'a')
+        {
+            return cast(wchar)(ch - ('a' - 'A'));
+        }
+        else
+        {
+            return ch;
+        }
+    }
+    dchar f13289_d_dchar(dchar ch)
+    {
+        if (ch <= 'z' && ch >= 'a')
+        {
+            return ch - ('a' - 'A');
+        }
+        else
+        {
+            return ch;
+        }
+    }
+}
+
+/****************************************/
+
+version (CRuntime_Microsoft)
+{
+    struct __c_long_double
+    {
+	this(double d) { ld = d; }
+	double ld;
+	alias ld this;
+    }
+
+    alias __c_long_double myld;
+}
+else
+    alias c_long_double myld;
+
+extern (C++) myld testld(myld);
+
+
+void test15()
+{
+    myld ld = 5.0;
+    ld = testld(ld);
+    assert(ld == 6.0);
+}
+
+/****************************************/
+
+version( Windows )
+{
+    alias int   x_long;
+    alias uint  x_ulong;
+}
+else
+{
+  static if( (void*).sizeof > int.sizeof )
+  {
+    alias long  x_long;
+    alias ulong x_ulong;
+  }
+  else
+  {
+    alias int   x_long;
+    alias uint  x_ulong;
+  }
+}
+
+struct __c_long
+{
+    this(x_long d) { ld = d; }
+    x_long ld;
+    alias ld this;
+}
+
+struct __c_ulong
+{
+    this(x_ulong d) { ld = d; }
+    x_ulong ld;
+    alias ld this;
+}
+
+alias __c_long mylong;
+alias __c_ulong myulong;
+
+extern (C++) mylong testl(mylong);
+extern (C++) myulong testul(myulong);
+
+
+void test16()
+{
+  {
+    mylong ld = 5;
+    ld = testl(ld);
+    assert(ld == 5 + mylong.sizeof);
+  }
+  {
+    myulong ld = 5;
+    ld = testul(ld);
+    assert(ld == 5 + myulong.sizeof);
+  }
+}
+
+/****************************************/
+
+struct S13707
+{
+    void* a;
+    void* b;
+    this(void* a, void* b)
+    {
+        this.a = a;
+        this.b = b;
+    }
+}
+
+extern(C++) S13707 func13707();
+
+void test13707()
+{
+    auto p = func13707();
+    assert(p.a == null);
+    assert(p.b == null);
+}
+
+/****************************************/
+
+struct S13932(int x)
+{
+        int member;
+}
+
+extern(C++) void func13932(S13932!(-1) s);
+
+/****************************************/
+
+extern(C++, N13337.M13337)
+{
+  struct S13337{}
+  void foo13337(S13337 s);
+}
+
+/****************************************/
+
 void main()
 {
     test1();
     test2();
     test3();
     test4();
+    test13956();
     test5();
     test6();
+    test10071();
     test7();
     test8();
     test11802();
     test9();
     test10();
+    test13955();
     test11();
     testvalist();
     test12825();
+    test13161();
+    test14();
+    test13289();
+    test15();
+    test16();
+    func13707();
+    func13932(S13932!(-1)(0));
+    foo13337(S13337());
 
     printf("Success\n");
 }

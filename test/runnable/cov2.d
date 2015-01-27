@@ -42,11 +42,21 @@ void test2()
 
 /***************************************************/
 
+void test3()
+{
+    long total = 0;
+    for (size_t i = 0; i < 10_000_000; i++)
+        total += i;
+}
+
+/***************************************************/
+
 int main(string[] args)
 {
     dmd_coverDestPath(args[1]);
     test1();
     test2();
+    test3();
     return 0;
 }
 

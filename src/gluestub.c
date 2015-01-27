@@ -1,4 +1,13 @@
 
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/gluestub.c
+ */
+
 #include "module.h"
 #include "declaration.h"
 #include "aggregate.h"
@@ -9,232 +18,31 @@
 #include "init.h"
 #include "ctfe.h"
 #include "lib.h"
+#include "nspace.h"
 
 // tocsym
 
-Symbol *SymbolDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, TYPE *t, const char *suffix)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Dsymbol::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Dsymbol::toImport()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Dsymbol::toImport(Symbol *sym)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *VarDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *ClassInfoDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *TypeInfoDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *TypeInfoClassDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *FuncAliasDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *FuncDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *FuncDeclaration::toThunkSymbol(int offset)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *ClassDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *InterfaceDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *Module::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *ClassDeclaration::toVtblSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol *AggregateDeclaration::toInitializer()
+Symbol *toInitializer(AggregateDeclaration *ad)
 {
     return NULL;
 }
 
-Symbol *TypedefDeclaration::toInitializer()
+Symbol *toModuleAssert(Module *m)
 {
     return NULL;
 }
 
-Symbol *EnumDeclaration::toInitializer()
+Symbol *toModuleUnittest(Module *m)
 {
     return NULL;
 }
 
-Symbol *Module::toModuleAssert()
+Symbol *toModuleArray(Module *m)
 {
     return NULL;
-}
-
-Symbol *Module::toModuleUnittest()
-{
-    return NULL;
-}
-
-Symbol *Module::toModuleArray()
-{
-    return NULL;
-}
-
-Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol* StructLiteralExp::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-Symbol* ClassReferenceExp::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
-// toobj
-
-void Module::genmoduleinfo()
-{
-    assert(0);
-}
-
-void Dsymbol::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void ClassDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
-{
-    assert(0);
-    return 0;
-}
-
-void InterfaceDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void StructDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void VarDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void TypedefDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void EnumDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void TypeInfoDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void AttribDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void PragmaDeclaration::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void TemplateInstance::toObjFile(bool multiobj)
-{
-    assert(0);
-}
-
-void TemplateMixin::toObjFile(bool multiobj)
-{
-    assert(0);
 }
 
 // glue
-
-void obj_append(Dsymbol *s)
-{
-    assert(0);
-}
 
 void obj_write_deferred(Library *library)
 {
@@ -248,22 +56,11 @@ void obj_end(Library *library, File *objfile)
 {
 }
 
-bool obj_includelib(const char *name)
-{
-    assert(0);
-    return false;
-}
-
-void obj_startaddress(Symbol *s)
-{
-    assert(0);
-}
-
-void Module::genobjfile(bool multiobj)
+void genObjFile(Module *m, bool multiobj)
 {
 }
 
-void FuncDeclaration::toObjFile(bool multiobj)
+void genhelpers(Module *m, bool iscomdat)
 {
     assert(0);
 }
@@ -280,121 +77,19 @@ void backend_term()
 
 // typinf
 
-Expression *Type::getInternalTypeInfo(Scope *sc)
+Expression *getInternalTypeInfo(Type *t, Scope *sc)
 {
     assert(0);
     return NULL;
 }
 
-Expression *Type::getTypeInfo(Scope *sc)
+Expression *getTypeInfo(Type *t, Scope *sc)
 {
-    Declaration *ti = new TypeInfoDeclaration(this, 1);
+    Declaration *ti = new TypeInfoDeclaration(t, 1);
     Expression *e = new VarExp(Loc(), ti);
     e = e->addressOf();
     e->type = ti->type;
     return e;
-}
-
-TypeInfoDeclaration *Type::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeTypedef::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypePointer::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeDArray::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeSArray::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeAArray::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeStruct::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeClass::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeVector::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeEnum::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeFunction::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeDelegate::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
-{
-    assert(0);
-    return NULL;
-}
-
-int Type::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
-}
-
-int TypeBasic::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
-}
-
-int TypeDArray::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
-}
-
-int TypeClass::builtinTypeInfo()
-{
-    assert(0);
-    return 0;
 }
 
 // lib
@@ -423,16 +118,15 @@ Library *LibMach_factory()
     return NULL;
 }
 
-Statement *AsmStatement::semantic(Scope *)
+Statement* asmSemantic(AsmStatement *s, Scope *sc)
 {
     assert(0);
     return NULL;
 }
 
-int binary(const char *p, const char **tab, int n)
+// toir
+
+RET retStyle(TypeFunction *tf)
 {
-    for (int i = 0; i < n; ++i)
-        if (!strcmp(p, tab[i]))
-            return i;
-    return -1;
+    return RETregs;
 }

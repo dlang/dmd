@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/toir.c
+ */
 
 /* Code to help convert to the intermediate representation
  * of the compiler back end.
@@ -16,7 +17,6 @@
 #include        <string.h>
 #include        <time.h>
 
-#include        "lexer.h"
 #include        "expression.h"
 #include        "mtype.h"
 #include        "dsymbol.h"
@@ -57,7 +57,6 @@ Symbol *toSymbol(Dsymbol *s);
  * Produce elem which increments the usage count for a particular line.
  * Used to implement -cov switch (coverage analysis).
  */
-
 elem *incUsageElem(IRState *irs, Loc loc)
 {
     unsigned linnum = loc.linnum;
@@ -94,7 +93,6 @@ elem *incUsageElem(IRState *irs, Loc loc)
  * of fd's 'this' variable.
  * This routine is critical for implementing nested functions.
  */
-
 elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 {
     elem *ethis;
@@ -108,13 +106,15 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
          * nested inside, so this hack is so they'll pass
          */
         fd->ident == Id::require || fd->ident == Id::ensure)
-    {   /* Going down one nesting level, i.e. we're calling
+    {
+        /* Going down one nesting level, i.e. we're calling
          * a nested function from its enclosing function.
          */
         if (irs->sclosure)
             ethis = el_var(irs->sclosure);
         else if (irs->sthis)
-        {   // We have a 'this' pointer for the current function
+        {
+            // We have a 'this' pointer for the current function
             ethis = el_var(irs->sthis);
 
             /* If no variables in the current function's frame are
@@ -123,7 +123,8 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
              * frames.
              */
             if (thisfd->hasNestedFrameRefs())
-            {   /* Local variables are referenced, can't skip.
+            {
+                /* Local variables are referenced, can't skip.
                  * Address of 'this' gives the 'this' for the nested
                  * function
                  */
@@ -131,107 +132,99 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
             }
         }
         else
-        {   /* No 'this' pointer for current function,
+        {
+            /* No 'this' pointer for current function,
              * use NULL if no references to the current function's frame
              */
             ethis = el_long(TYnptr, 0);
             if (thisfd->hasNestedFrameRefs())
-            {   /* OPframeptr is an operator that gets the frame pointer
+            {
+                /* OPframeptr is an operator that gets the frame pointer
                  * for the current function, i.e. for the x86 it gets
                  * the value of EBP
                  */
                 ethis->Eoper = OPframeptr;
             }
         }
-//if (fdparent != thisfd) ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYint, 0x18));
     }
     else
     {
         if (!irs->sthis)                // if no frame pointer for this function
         {
             fd->error(loc, "is a nested function and cannot be accessed from %s", irs->getFunc()->toPrettyChars());
-            ethis = el_long(TYnptr, 0); // error recovery
+            return el_long(TYnptr, 0); // error recovery
         }
-        else
-        {
-            ethis = el_var(irs->sthis);
-            Dsymbol *s = thisfd;
-            while (fd != s)
-            {   /* Go up a nesting level, i.e. we need to find the 'this'
-                 * of an enclosing function.
-                 * Our 'enclosing function' may also be an inner class.
-                 */
 
-                //printf("\ts = '%s'\n", s->toChars());
-                thisfd = s->isFuncDeclaration();
-                if (thisfd)
-                {   /* Enclosing function is a function.
-                     */
-                    if (fdparent == s->toParent2())
-                        break;
-                    if (thisfd->isNested())
-                    {
-                        FuncDeclaration *p = s->toParent2()->isFuncDeclaration();
-                        if (!p || p->hasNestedFrameRefs())
-                            ethis = el_una(OPind, TYnptr, ethis);
-                    }
-                    else if (thisfd->vthis)
-                    {
-                    }
-                    else
-                    {   // Error should have been caught by front end
-                        assert(0);
-                    }
+        ethis = el_var(irs->sthis);
+        Dsymbol *s = thisfd;
+        while (fd != s)
+        {
+            /* Go up a nesting level, i.e. we need to find the 'this'
+             * of an enclosing function.
+             * Our 'enclosing function' may also be an inner class.
+             */
+
+            //printf("\ts = '%s'\n", s->toChars());
+            thisfd = s->isFuncDeclaration();
+            if (thisfd)
+            {
+                /* Enclosing function is a function.
+                 */
+                if (fdparent == s->toParent2())
+                    break;
+                if (thisfd->isNested())
+                {
+                    FuncDeclaration *p = s->toParent2()->isFuncDeclaration();
+                    if (!p || p->hasNestedFrameRefs())
+                        ethis = el_una(OPind, TYnptr, ethis);
+                }
+                else if (thisfd->vthis)
+                {
                 }
                 else
-                {   /* Enclosed by an aggregate. That means the current
-                     * function must be a member function of that aggregate.
-                     */
-                    ClassDeclaration *cd;
-                    StructDeclaration *sd;
-                    AggregateDeclaration *ad = s->isAggregateDeclaration();
-                    if (!ad)
-                        goto Lnoframe;
-                    cd = s->isClassDeclaration();
-                    if (cd && fd->isClassDeclaration() &&
-                        fd->isClassDeclaration()->isBaseOf(cd, NULL))
-                        break;
-                    sd = s->isStructDeclaration();
-                    if (fd == sd)
-                        break;
-                    if (!ad->isNested() || !ad->vthis)
-                    {
-                      Lnoframe:
-                        irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toChars());
-                        return el_long(TYnptr, 0);      // error recovery
-                    }
-                    ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, ad->vthis->offset));
-                    ethis = el_una(OPind, TYnptr, ethis);
-                    if (fdparent == s->toParent2())
-                        break;
-                    if (fd == s->toParent2())
-                    {
-                        /* Remember that frames for functions that have no
-                         * nested references are skipped in the linked list
-                         * of frames.
-                         */
-                        if (s->toParent2()->isFuncDeclaration()->hasNestedFrameRefs())
-                            ethis = el_una(OPind, TYnptr, ethis);
-                        break;
-                    }
-                    if (s->toParent2()->isFuncDeclaration())
-                    {
-                        /* Remember that frames for functions that have no
-                         * nested references are skipped in the linked list
-                         * of frames.
-                         */
-                        if (s->toParent2()->isFuncDeclaration()->hasNestedFrameRefs())
-                            ethis = el_una(OPind, TYnptr, ethis);
-                    }
+                {
+                    // Error should have been caught by front end
+                    assert(0);
                 }
-                s = s->toParent2();
-                assert(s);
             }
+            else
+            {
+                /* Enclosed by an aggregate. That means the current
+                 * function must be a member function of that aggregate.
+                 */
+                AggregateDeclaration *ad = s->isAggregateDeclaration();
+                if (!ad)
+                {
+                  Lnoframe:
+                    irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toChars());
+                    return el_long(TYnptr, 0);      // error recovery
+                }
+                ClassDeclaration *cd = ad->isClassDeclaration();
+                ClassDeclaration *cdx = fd->isClassDeclaration();
+                if (cd && cdx && cdx->isBaseOf(cd, NULL))
+                    break;
+                StructDeclaration *sd = ad->isStructDeclaration();
+                if (fd == sd)
+                    break;
+                if (!ad->isNested() || !ad->vthis)
+                    goto Lnoframe;
+
+                ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, ad->vthis->offset));
+                ethis = el_una(OPind, TYnptr, ethis);
+                if (fdparent == ad->toParent2())
+                    break;
+                if (ad->toParent2()->isFuncDeclaration())
+                {
+                    /* Remember that frames for functions that have no
+                     * nested references are skipped in the linked list
+                     * of frames.
+                     */
+                    if (ad->toParent2()->isFuncDeclaration()->hasNestedFrameRefs())
+                        ethis = el_una(OPind, TYnptr, ethis);
+                }
+            }
+            s = s->toParent2();
+            assert(s);
         }
     }
 #if 0
@@ -241,7 +234,6 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
 #endif
     return ethis;
 }
-
 
 /*************************
  * Initialize the hidden aggregate member, vthis, with
@@ -259,7 +251,8 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
     //printf("setEthis(ad = %s, cdp = %s, thisfd = %s)\n", ad->toChars(), cdp->toChars(), thisfd->toChars());
 
     if (cdp == thisfd)
-    {   /* Class we're new'ing is a local class in this function:
+    {
+        /* Class we're new'ing is a local class in this function:
          *      void thisfd() { class ad { } }
          */
         if (irs->sclosure)
@@ -289,7 +282,8 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
            )
           )
         )
-    {   /* Class we're new'ing is at the same level as thisfd
+    {
+        /* Class we're new'ing is at the same level as thisfd
          */
         assert(offset == 0);    // BUG: should handle this case
         ethis = el_var(irs->sthis);
@@ -310,10 +304,11 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
  * Convert intrinsic function to operator.
  * Returns that operator, -1 if not an intrinsic function.
  */
-
-int intrinsic_op(char *name)
+int intrinsic_op(FuncDeclaration *fd)
 {
 #if TX86
+    fd = fd->toAliasFunc();
+    const char *name = mangleExact(fd);
     //printf("intrinsic_op(%s)\n", name);
     static const char *std_namearray[] =
     {
@@ -388,6 +383,16 @@ int intrinsic_op(char *name)
         "4simd6__simdFNaNbNiNfE4core4simd3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfE4core4simd3XMMNhG16vhZNhG16v",
 
+        "5bitop12volatileLoadFNbNiNfPhZh",
+        "5bitop12volatileLoadFNbNiNfPkZk",
+        "5bitop12volatileLoadFNbNiNfPmZm",
+        "5bitop12volatileLoadFNbNiNfPtZt",
+
+        "5bitop13volatileStoreFNbNiNfPhhZv",
+        "5bitop13volatileStoreFNbNiNfPkkZv",
+        "5bitop13volatileStoreFNbNiNfPmmZv",
+        "5bitop13volatileStoreFNbNiNfPttZv",
+
         "5bitop3bsfFNaNbNiNfkZi",
         "5bitop3bsrFNaNbNiNfkZi",
         "5bitop3btcFNaNbNiPkkZi",
@@ -400,6 +405,10 @@ int intrinsic_op(char *name)
         "5bitop5bswapFNaNbNiNfkZk",
         "5bitop5outplFNbNikkZk",
         "5bitop5outpwFNbNiktZt",
+
+        "5bitop7_popcntFNaNbNiNfkZi",
+        "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
+        "5bitop7_popcntFNaNbNiNftZt",
     };
     static const char *core_namearray64[] =
     {
@@ -425,6 +434,16 @@ int intrinsic_op(char *name)
         "4simd6__simdFNaNbNiNfE4core4simd3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfE4core4simd3XMMNhG16vhZNhG16v",
 
+        "5bitop12volatileLoadFNbNiNfPhZh",
+        "5bitop12volatileLoadFNbNiNfPkZk",
+        "5bitop12volatileLoadFNbNiNfPmZm",
+        "5bitop12volatileLoadFNbNiNfPtZt",
+
+        "5bitop13volatileStoreFNbNiNfPhhZv",
+        "5bitop13volatileStoreFNbNiNfPkkZv",
+        "5bitop13volatileStoreFNbNiNfPmmZv",
+        "5bitop13volatileStoreFNbNiNfPttZv",
+
         "5bitop3bsfFNaNbNiNfmZi",
         "5bitop3bsrFNaNbNiNfmZi",
         "5bitop3btcFNaNbNiPmmZi",
@@ -437,6 +456,10 @@ int intrinsic_op(char *name)
         "5bitop5bswapFNaNbNiNfkZk",
         "5bitop5outplFNbNikkZk",
         "5bitop5outpwFNbNiktZt",
+
+        "5bitop7_popcntFNaNbNiNfkZi",
+        "5bitop7_popcntFNaNbNiNfmZi",
+        "5bitop7_popcntFNaNbNiNftZt",
     };
     static unsigned char core_ioptab[] =
     {
@@ -462,6 +485,16 @@ int intrinsic_op(char *name)
         OPvector,
         OPvector,
 
+        OPind,
+        OPind,
+        OPind,
+        OPind,
+
+        OPeq,
+        OPeq,
+        OPeq,
+        OPeq,
+
         OPbsf,
         OPbsr,
         OPbtc,
@@ -471,9 +504,14 @@ int intrinsic_op(char *name)
         OPinp,
         OPinp,
         OPoutp,
+
         OPbswap,
         OPoutp,
         OPoutp,
+
+        OPpopcnt,
+        OPpopcnt,
+        OPpopcnt,
     };
 
 #ifdef DEBUG
@@ -500,6 +538,7 @@ int intrinsic_op(char *name)
     assert(sizeof(core_namearray) / sizeof(char *) == sizeof(core_ioptab));
     for (size_t i = 0; i < sizeof(core_namearray) / sizeof(char *) - 1; i++)
     {
+        //printf("test1 %s %s %d\n", core_namearray[i], core_namearray[i + 1], strcmp(core_namearray[i], core_namearray[i + 1]));
         if (strcmp(core_namearray[i], core_namearray[i + 1]) >= 0)
         {
             printf("core_namearray[%ld] = '%s'\n", (long)i, core_namearray[i]);
@@ -530,13 +569,23 @@ int intrinsic_op(char *name)
         !memcmp(name, "_D4core", 7))
     {
         int i = binary(name + 7, I64 ? core_namearray64 : core_namearray, sizeof(core_namearray) / sizeof(char *));
-        return (i == -1) ? i : core_ioptab[i];
+        if (i != -1)
+            return core_ioptab[i];
+
+        if (global.params.is64bit &&
+            fd->toParent()->isTemplateInstance() &&
+            !strcmp(mangle(fd->getModule()), "4core4stdc6stdarg") &&
+            fd->ident == Id::va_start)
+        {
+            return OPva_start;
+        }
+
+        return -1;
     }
 #endif
 
     return -1;
 }
-
 
 /**************************************
  * Given an expression e that is an array,
@@ -550,18 +599,19 @@ int intrinsic_op(char *name)
  * Returns:
  *      expression that initializes 'length'
  */
-
 elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
 {
     //printf("resolveLengthVar()\n");
     elem *einit = NULL;
 
     if (lengthVar && !(lengthVar->storage_class & STCconst))
-    {   elem *elength;
+    {
+        elem *elength;
         Symbol *slength;
 
         if (t1->ty == Tsarray)
-        {   TypeSArray *tsa = (TypeSArray *)t1;
+        {
+            TypeSArray *tsa = (TypeSArray *)t1;
             dinteger_t length = tsa->dim->toInteger();
 
             elength = el_long(TYsize_t, length);
@@ -602,8 +652,6 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
  * getEthis() and NewExp::toElem need to use sclosure, if set, rather
  * than the current frame pointer.
  */
-
-
 void buildClosure(FuncDeclaration *fd, IRState *irs)
 {
     if (fd->needsClosure())
@@ -614,8 +662,8 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
         /* BUG: doesn't handle destructors for the local variables.
          * The way to do it is to make the closure variables the fields
          * of a class object:
-         *    class Closure
-         *    {   vtbl[]
+         *    class Closure {
+         *        vtbl[]
          *        monitor
          *        ptr to destructor
          *        sthis
@@ -624,8 +672,20 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
          *    }
          */
         //printf("FuncDeclaration::buildClosure() %s\n", toChars());
+
+        /* Generate type name for closure struct */
+        const char *name1 = "CLOSURE.";
+        const char *name2 = fd->toPrettyChars();
+        size_t namesize = strlen(name1)+strlen(name2)+1;
+        char *closname = (char *) calloc(namesize, sizeof(char));
+        strcat(strcat(closname, name1), name2);
+
+        /* Build type for closure */
+        type *Closstru = type_struct_class(closname, Target::ptrsize, 0, NULL, NULL, false, false, true);
+        symbol_struct_addField(Closstru->Ttag, "__chain", Type_toCtype(Type::tvoidptr), 0);
+
         Symbol *sclosure;
-        sclosure = symbol_name("__closptr", SCauto, Type_toCtype(Type::tvoidptr));
+        sclosure = symbol_name("__closptr", SCauto, type_pointer(Closstru));
         sclosure->Sflags |= SFLtrue | SFLfree;
         symbol_add(sclosure);
         irs->sclosure = sclosure;
@@ -689,6 +749,15 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
             v->offset = offset;
             offset += memsize;
 
+            /* Set Sscope to closure */
+            Symbol *vsym = toSymbol(v);
+            assert(vsym->Sscope == NULL);
+            vsym->Sscope = sclosure;
+
+            /* Add variable as closure type member */
+            symbol_struct_addField(Closstru->Ttag, vsym->Sident, vsym->Stype, v->offset);
+            //printf("closure field %s: memalignsize: %i, offset: %i\n", vsym->Sident, memalignsize, v->offset);
+
             /* Can't do nrvo if the variable is put in a closure, since
              * what the shidden points to may no longer exist.
              */
@@ -698,6 +767,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
             }
         }
         // offset is now the size of the closure
+        Closstru->Ttag->Sstruct->Sstructsize = offset;
 
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, offset);
@@ -763,12 +833,10 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
     }
 }
 
-
 /***************************
  * Determine return style of function - whether in registers or
  * through a hidden pointer to the caller's stack.
  */
-
 RET retStyle(TypeFunction *tf)
 {
     //printf("TypeFunction::retStyle() %s\n", toChars());
@@ -795,7 +863,11 @@ RET retStyle(TypeFunction *tf)
         if (tns->ty == Tstruct)
         {
             StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+            if (sd->ident == Id::__c_long_double)
+                return RETregs;
             if (!sd->isPOD() || sz >= 8)
+                return RETstack;
+            if (sd->fields.dim == 0)
                 return RETstack;
         }
         if (sz <= 16 && !(sz & (sz - 1)))
@@ -811,7 +883,9 @@ Lagain:
         {
 L2:
             if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
+            {
                 ;                               // 32 bit C/C++ structs always on stack
+            }
             else
             {
                 switch (sz)
@@ -837,8 +911,20 @@ L2:
         StructDeclaration *sd = ((TypeStruct *)tns)->sym;
         if (global.params.isLinux && tf->linkage != LINKd && !global.params.is64bit)
         {
+            if (sd->ident == Id::__c_long || sd->ident == Id::__c_ulong)
+                return RETregs;
+
             //printf("  2 RETstack\n");
             return RETstack;            // 32 bit C/C++ structs always on stack
+        }
+        if (global.params.isWindows && tf->linkage == LINKcpp && !global.params.is64bit &&
+                 sd->isPOD() && sd->ctor)
+        {
+            // win32 returns otherwise POD structs with ctors via memory
+            // unless it's not really a struct
+            if (sd->ident == Id::__c_long || sd->ident == Id::__c_ulong)
+                return RETregs;
+            return RETstack;
         }
         if (sd->arg1type && !sd->arg2type)
         {
@@ -887,5 +973,3 @@ L2:
         return RETregs;
     }
 }
-
-

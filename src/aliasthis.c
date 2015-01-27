@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 2009-2009 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 2009-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/aliasthis.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -19,6 +20,7 @@
 #include "dsymbol.h"
 #include "mtype.h"
 #include "declaration.h"
+#include "tokens.h"
 
 Expression *resolveAliasThis(Scope *sc, Expression *e)
 {
@@ -125,11 +127,4 @@ void AliasThis::semantic(Scope *sc)
 const char *AliasThis::kind()
 {
     return "alias this";
-}
-
-void AliasThis::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("alias ");
-    buf->writestring(ident->toChars());
-    buf->writestring(" this;\n");
 }

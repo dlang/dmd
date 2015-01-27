@@ -393,7 +393,7 @@ void test7288()
         return () => { return x; };
     }
     pragma(msg, typeof(&foo));
-    alias int delegate() nothrow @nogc @safe delegate() nothrow @nogc @safe delegate() Dg;
+    alias int delegate() pure nothrow @nogc @safe delegate() pure nothrow @nogc @safe delegate() Dg;
     pragma(msg, Dg);
     static assert(is(typeof(&foo) == Dg));  // should pass
 }
@@ -534,10 +534,10 @@ auto foo7743b()
 }
 void test7743()
 {
-    static assert(is(typeof(&foo7743a) == int delegate() nothrow @nogc @safe function()));
+    static assert(is(typeof(&foo7743a) == int delegate() pure nothrow @nogc @safe function()));
     assert(foo7743a()() == 10);
 
-    static assert(is(typeof(&foo7743b) == int delegate() nothrow @nogc @safe function()));
+    static assert(is(typeof(&foo7743b) == int delegate() pure nothrow @nogc @safe function()));
     assert(foo7743b()() == 10);
 }
 
@@ -1019,6 +1019,30 @@ void test10336()
 }
 
 /***************************************************/
+// 10928
+
+struct D10928
+{
+    int x;
+    ~this() @nogc {}
+}
+
+void f10928a(D10928 bar)
+{
+    (){ bar.x++; }();
+}
+void f10928b(D10928 bar) @nogc
+{
+    (){ bar.x++; }();
+}
+
+void test10928()
+{
+    f10928a(D10928.init);
+    f10928b(D10928.init);
+}
+
+/***************************************************/
 // 11661
 
 void test11661()
@@ -1082,6 +1106,18 @@ void test12508()
 }
 
 /***************************************************/
+// 13879
+
+void test13879()
+{
+    bool function(int)[2] funcs1 = (int x) => true; // OK
+    assert(funcs1[0] is funcs1[1]);
+    funcs1[0] = x => true;                          // OK
+    bool function(int)[2] funcs2 = x => true;       // OK <- Error
+    assert(funcs2[0] is funcs2[1]);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1131,9 +1167,11 @@ int main()
     test10219();
     test10288();
     test10336();
+    test10928();
     test11661();
     test11774();
     test12508();
+    test13879();
 
     printf("Success\n");
     return 0;

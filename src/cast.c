@@ -1,11 +1,13 @@
 
-// Copyright (c) 1999-2014 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/cast.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -22,6 +24,7 @@
 #include "scope.h"
 #include "id.h"
 #include "init.h"
+#include "tokens.h"
 
 bool isCommutative(Expression *e);
 
@@ -57,7 +60,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             {
                 if (match == MATCHconst &&
                     (e->type->constConv(t) ||
-                     !e->isLvalue() && e->type->immutableOf()->equals(t->immutableOf())))
+                     !e->isLvalue() && e->type->equivalent(t)))
                 {
                     /* Do not emit CastExp for const conversions and
                      * unique conversions on rvalue.
@@ -70,7 +73,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
-            result = e->optimize(WANTflags | WANTvalue);
+            result = e->optimize(WANTvalue);
             if (result != e)
             {
                 result->accept(this);
@@ -139,6 +142,26 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             if (tb->ty == Tarray)
                 semanticTypeInfo(sc, ((TypeDArray *)tb)->next);
         }
+
+        void visit(SliceExp *e)
+        {
+            visit((Expression *)e);
+            if (result->op != TOKslice)
+                return;
+
+            e = (SliceExp *)result;
+            if (e->e1->op == TOKarrayliteral)
+            {
+                ArrayLiteralExp *ale = (ArrayLiteralExp *)e->e1;
+                Type *tb = t->toBasetype();
+                Type *tx;
+                if (tb->ty == Tsarray)
+                    tx = tb->nextOf()->sarrayOf(ale->elements ? ale->elements->dim : 0);
+                else
+                    tx = tb->nextOf()->arrayOf();
+                e->e1 = ale->implicitCastTo(sc, tx);
+            }
+        }
     };
 
     ImplicitCastTo v(sc, t);
@@ -179,7 +202,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 e->error("%s is not an expression", e->toChars());
                 e->type = Type::terror;
             }
-            Expression *ex = e->optimize(WANTvalue | WANTflags);
+            Expression *ex = e->optimize(WANTvalue);
             if (ex->type->equals(t))
             {
                 result = MATCHexact;
@@ -219,7 +242,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
          * Returns:
          *      match level
          */
-        static MATCH implicitMod(Expression *e, Type *t, unsigned mod)
+        static MATCH implicitMod(Expression *e, Type *t, MOD mod)
         {
             Type *tprime;
             if (t->ty == Tpointer)
@@ -250,7 +273,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             Type *t1b = e->e1->type->toBasetype();
             Type *t2b = e->e2->type->toBasetype();
             if (t1b->ty == Tpointer && t2b->isintegral() &&
-                t1b->immutableOf()->equals(tb->immutableOf()))
+                t1b->equivalent(tb))
             {
                 // ptr + offset
                 // ptr - offset
@@ -258,7 +281,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 return (m > MATCHconst) ? MATCHconst : m;
             }
             if (t2b->ty == Tpointer && t1b->isintegral() &&
-                t2b->immutableOf()->equals(tb->immutableOf()))
+                t2b->equivalent(tb))
             {
                 // offset + ptr
                 MATCH m = e->e2->implicitConvTo(t);
@@ -499,7 +522,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
              * and mutable to immutable. It works because, after all, a null
              * doesn't actually point to anything.
              */
-            if (t->immutableOf()->equals(e->type->immutableOf()))
+            if (t->equivalent(e->type))
             {
                 result = MATCHconst;
                 return;
@@ -555,14 +578,31 @@ MATCH implicitConvTo(Expression *e, Type *t)
                         case Tsarray:
                             if (e->type->ty == Tsarray)
                             {
-                                if (((TypeSArray *)e->type)->dim->toInteger() !=
-                                    ((TypeSArray *)t)->dim->toInteger())
-                                    return;
                                 TY tynto = t->nextOf()->ty;
                                 if (tynto == tyn)
                                 {
-                                    result = MATCHexact;
+                                    if (((TypeSArray *)e->type)->dim->toInteger() ==
+                                        ((TypeSArray *)t)->dim->toInteger())
+                                    {
+                                        result = MATCHexact;
+                                    }
                                     return;
+                                }
+                                int szto = (int)t->nextOf()->size();
+                                if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                                {
+                                    if (e->committed && tynto != tyn)
+                                        return;
+                                    size_t fromlen = e->length(szto);
+                                    size_t tolen = (size_t)((TypeSArray *)t)->dim->toInteger();
+                                    if (tolen < fromlen)
+                                        return;
+                                    if (tolen != fromlen)
+                                    {
+                                        // implicit length extending
+                                        result = MATCHconvert;
+                                        return;
+                                    }
                                 }
                                 if (!e->committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                                 {
@@ -572,10 +612,23 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             }
                             else if (e->type->ty == Tarray)
                             {
-                                if (e->length() >
-                                    ((TypeSArray *)t)->dim->toInteger())
-                                    return;
                                 TY tynto = t->nextOf()->ty;
+                                int sznto = (int)t->nextOf()->size();
+                                if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                                {
+                                    if (e->committed && tynto != tyn)
+                                        return;
+                                    size_t fromlen = e->length(sznto);
+                                    size_t tolen = (size_t)((TypeSArray *)t)->dim->toInteger();
+                                    if (tolen < fromlen)
+                                        return;
+                                    if (tolen != fromlen)
+                                    {
+                                        // implicit length extending
+                                        result = MATCHconvert;
+                                        return;
+                                    }
+                                }
                                 if (tynto == tyn)
                                 {
                                     result = MATCHexact;
@@ -587,6 +640,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                     return;
                                 }
                             }
+                            /* fall through */
                         case Tarray:
                         case Tpointer:
                             Type *tn = t->nextOf();
@@ -747,6 +801,8 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (e->f && e->f->isolateReturn())
             {
                 result = e->type->immutableOf()->implicitConvTo(t);
+                if (result > MATCHconst)    // Match level is MATCHconst at best.
+                    result = MATCHconst;
                 return;
             }
 
@@ -772,7 +828,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             /* Get mod bits of what we're converting to
              */
             Type *tb = t->toBasetype();
-            unsigned mod = tb->mod;
+            MOD mod = tb->mod;
             if (tf->isref)
                 ;
             else
@@ -825,9 +881,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                         continue;
                     if (fparam->storageClass & (STCout | STCref))
                     {
-                        tparam = tparam->pointerTo();
-                        targ = targ->pointerTo();
-                        if (targ->implicitConvTo(tparam->addMod(mod)) == MATCHnomatch)
+                        if (targ->constConv(tparam->castMod(mod)) == MATCHnomatch)
                             return;
                         continue;
                     }
@@ -1053,7 +1107,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             /* Get mod bits of what we're converting to
              */
             Type *tb = t->toBasetype();
-            unsigned mod = tb->mod;
+            MOD mod = tb->mod;
             if (Type *ti = getIndirection(t))
                 mod = ti->mod;
 #if LOG
@@ -1175,7 +1229,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
                     struct ClassCheck
                     {
-                        static bool convertible(Loc loc, ClassDeclaration *cd, unsigned mod)
+                        static bool convertible(Loc loc, ClassDeclaration *cd, MOD mod)
                         {
                             for (size_t i = 0; i < cd->fields.dim; i++)
                             {
@@ -1192,11 +1246,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                             return false;
                                     }
                                     else
-				    {
+                                    {
                                         /* Enhancement: handle StructInitializer and ArrayInitializer
                                          */
                                         return false;
-				    }
+                                    }
                                 }
                                 else if (!v->type->isZeroInit(loc))
                                     return false;
@@ -1225,6 +1279,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(SliceExp *e)
         {
+            //printf("SliceExp::implicitConvTo e = %s, type = %s\n", e->toChars(), e->type->toChars());
             visit((Expression *)e);
             if (result != MATCHnomatch)
                 return;
@@ -1245,8 +1300,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
              * same mod bits.
              */
             Type *t1b = e->e1->type->toBasetype();
-            if (tb->ty == Tarray &&
-                typeb->immutableOf()->equals(tb->immutableOf()))
+            if (tb->ty == Tarray && typeb->equivalent(tb))
             {
                 Type *tbn = tb->nextOf();
                 Type *tx = NULL;
@@ -1314,7 +1368,6 @@ Type *toStaticArrayType(SliceExp *e)
 
 Expression *castTo(Expression *e, Scope *sc, Type *t)
 {
-
     class CastTo : public Visitor
     {
     public:
@@ -1471,29 +1524,13 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
         void visit(NullExp *e)
         {
             //printf("NullExp::castTo(t = %s) %s\n", t->toChars(), toChars());
-            if (e->type->equals(t))
+            visit((Expression *)e);
+            if (result->op == TOKnull)
             {
-                e->committed = 1;
-                result = e;
+                NullExp *ex = (NullExp *)result;
+                ex->committed = 1;
                 return;
             }
-
-            NullExp *ex = (NullExp *)e->copy();
-            ex->committed = 1;
-            Type *tb = t->toBasetype();
-
-            if (tb->ty == Tvoid)
-            {
-                ex->type = e->type->toBasetype();
-                visit((Expression *)ex);
-                return;
-            }
-            if (tb->ty == Tsarray || tb->ty == Tstruct)
-            {
-                e->error("cannot cast null to %s", t->toChars());
-            }
-            ex->type = t;
-            result = ex;
         }
 
         void visit(StructLiteralExp *e)
@@ -1555,13 +1592,18 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
+            /* Handle reinterpret casts:
+             *  cast(wchar[3])"abcd"c --> [\u6261, \u6463, \u0000]
+             *  cast(wchar[2])"abcd"c --> [\u6261, \u6463]
+             *  cast(wchar[1])"abcd"c --> [\u6261]
+             */
             if (e->committed && tb->ty == Tsarray && typeb->ty == Tarray)
             {
                 se = (StringExp *)e->copy();
                 d_uns64 szx = tb->nextOf()->size();
                 assert(szx <= 255);
                 se->sz = (unsigned char)szx;
-                se->len = (e->len * e->sz) / se->sz;
+                se->len = (size_t)((TypeSArray *)tb)->dim->toInteger();
                 se->committed = 1;
                 se->type = t;
 
@@ -2132,29 +2174,77 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
         void visit(SliceExp *e)
         {
+            //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e->toChars(), e->type->toChars(), t->toChars());
             Type *typeb = e->type->toBasetype();
             Type *tb = t->toBasetype();
-
-            if (typeb->ty == Tarray && tb->ty == Tsarray)
+            if (e->type->equals(t) || typeb->ty != Tarray ||
+                (tb->ty != Tarray && tb->ty != Tsarray))
             {
-                /* If a SliceExp has Tsarray, it will become lvalue.
+                visit((Expression *)e);
+                return;
+            }
+
+            if (tb->ty == Tarray)
+            {
+                if (typeb->nextOf()->equivalent(tb->nextOf()))
+                {
+                    // T[] to const(T)[]
+                    result = e->copy();
+                    result->type = t;
+                }
+                else
+                {
+                    visit((Expression *)e);
+                }
+                return;
+            }
+
+            // Handle the cast from Tarray to Tsarray with CT-known slicing
+
+            TypeSArray *tsa = (TypeSArray *)toStaticArrayType(e);
+            if (tsa && tsa->size(e->loc) == tb->size(e->loc))
+            {
+                /* Match if the sarray sizes are equal:
+                 *  T[a .. b] to const(T)[b-a]
+                 *  T[a .. b] to U[dim] if (T.sizeof*(b-a) == U.sizeof*dim)
+                 *
+                 * If a SliceExp has Tsarray, it will become lvalue.
                  * That's handled in SliceExp::isLvalue and toLvalue
                  */
                 result = e->copy();
                 result->type = t;
+                return;
             }
-            else if (typeb->ty == Tarray && tb->ty == Tarray &&
-                     typeb->nextOf()->constConv(tb->nextOf()) == MATCHconst)
+            if (tsa && tsa->dim->equals(((TypeSArray *)tb)->dim))
             {
-                // immutable(T)[] to const(T)[]
-                //           T [] to const(T)[]
-                result = e->copy();
-                result->type = t;
+                /* Match if the dimensions are equal
+                 * with the implicit conversion of e->e1:
+                 *  cast(float[2]) [2.0, 1.0, 0.0][0..2];
+                 */
+                Type *t1b = e->e1->type->toBasetype();
+                if (t1b->ty == Tsarray)
+                    t1b = tb->nextOf()->sarrayOf(((TypeSArray *)t1b)->dim->toInteger());
+                else if (t1b->ty == Tarray)
+                    t1b = tb->nextOf()->arrayOf();
+                else if (t1b->ty == Tpointer)
+                    t1b = tb->nextOf()->pointerTo();
+                else
+                    assert(0);
+                if (e->e1->implicitConvTo(t1b) > MATCHnomatch)
+                {
+                    Expression *e1x = e->e1->implicitCastTo(sc, t1b);
+                    assert(e1x->op != TOKerror);
+                    e = (SliceExp *)e->copy();
+                    e->e1 = e1x;
+                    e->type = t;
+                    result = e;
+                    return;
+                }
             }
-            else
-            {
-                visit((Expression *)e);
-            }
+            e->error("cannot cast expression %s of type %s to %s",
+                e->toChars(), tsa ? tsa->toChars() : e->type->toChars(),
+                t->toChars());
+            result = new ErrorExp();
         }
     };
 
@@ -2366,11 +2456,11 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
  *      *pe1    rewritten e1
  *      *pe2    rewritten e2
  * Returns:
- *      !=0     success
- *      0       failed
+ *      true    success
+ *      false   failed
  */
 
-int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
+bool typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
 {
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
     //e->print();
@@ -2864,6 +2954,12 @@ Lcc:
         e1 = e1->castTo(sc, t);
         e2 = e2->castTo(sc, t);
     }
+    else if (t1->ty == Tvector && t2->ty == Tvector)
+    {
+        // Bugzilla 13841, all vector types should have no common types between
+        // different vectors, even though their sizes are same.
+        goto Lincompatible;
+    }
     else if (t1->ty == Tvector && t2->ty != Tvector &&
              e2->implicitConvTo(t1))
     {
@@ -2920,19 +3016,58 @@ Lcc:
     {
         goto Lt2;
     }
-    else if (e->op != TOKquestion && t1->ty == Tarray &&
-             isArrayOperand(e1) && e2->implicitConvTo(t1->nextOf()))
+    else if (t1->ty == Tarray && isBinArrayOp(e->op) && isArrayOpOperand(e1))
     {
-        // T[] op T
-        e2 = e2->castTo(sc, t1->nextOf());
-        t = t1->nextOf()->arrayOf();
+        if (e2->implicitConvTo(t1->nextOf()))
+        {
+            // T[] op T
+            // T[] op cast(T)U
+            e2 = e2->castTo(sc, t1->nextOf());
+            t = t1->nextOf()->arrayOf();
+        }
+        else if (t1->nextOf()->implicitConvTo(e2->type))
+        {
+            // (cast(T)U)[] op T    (Bugzilla 12780)
+            // e1 is left as U[], it will be handled in arrayOp() later.
+            t = e2->type->arrayOf();
+        }
+        else if (t2->ty == Tarray && isArrayOpOperand(e2))
+        {
+            if (t1->nextOf()->implicitConvTo(t2->nextOf()))
+            {
+                // (cast(T)U)[] op T[]  (Bugzilla 12780)
+                // e1 is left as U[], it will be handled in arrayOp() later.
+                t = t2->nextOf()->arrayOf();
+            }
+            else if (t2->nextOf()->implicitConvTo(t1->nextOf()))
+            {
+                // T[] op (cast(T)U)[]  (Bugzilla 12780)
+                // e2 is left as U[], it will be handled in arrayOp() later.
+                t = t1->nextOf()->arrayOf();
+            }
+            else
+                goto Lincompatible;
+        }
+        else
+            goto Lincompatible;
     }
-    else if (e->op != TOKquestion && t2->ty == Tarray &&
-             isArrayOperand(e2) && e1->implicitConvTo(t2->nextOf()))
+    else if (t2->ty == Tarray && isBinArrayOp(e->op) && isArrayOpOperand(e2))
     {
-        // T op T[]
-        e1 = e1->castTo(sc, t2->nextOf());
-        t = t2->nextOf()->arrayOf();
+        if (e1->implicitConvTo(t2->nextOf()))
+        {
+            // T op T[]
+            // cast(T)U op T[]
+            e1 = e1->castTo(sc, t2->nextOf());
+            t = t2->nextOf()->arrayOf();
+        }
+        else if (t2->nextOf()->implicitConvTo(e1->type))
+        {
+            // T op (cast(T)U)[]    (Bugzilla 12780)
+            // e2 is left as U[], it will be handled in arrayOp() later.
+            t = e1->type->arrayOf();
+        }
+        else
+            goto Lincompatible;
 
         //printf("test %s\n", e->toChars());
         e1 = e1->optimize(WANTvalue);
@@ -2948,8 +3083,8 @@ Lcc:
     }
     else
     {
-     Lincompatible:
-        return 0;
+    Lincompatible:
+        return false;
     }
 Lret:
     if (!*pt)
@@ -2963,7 +3098,7 @@ Lret:
     printf("\ttype = %s\n", t->toChars());
 #endif
     //print();
-    return 1;
+    return true;
 
 
 Lt1:
@@ -3049,13 +3184,13 @@ Expression *integralPromotions(Expression *e, Scope *sc)
 
 /***********************************
  * See if both types are arrays that can be compared
- * for equality. Return !=0 if so.
+ * for equality. Return true if so.
  * If they are arrays, but incompatible, issue error.
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
 
-int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
+bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
 {
     t1 = t1->toBasetype()->merge2();
     t2 = t2->toBasetype()->merge2();
@@ -3069,18 +3204,18 @@ int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
         {
             error(loc, "array equality comparison type mismatch, %s vs %s", t1->toChars(), t2->toChars());
         }
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 /***********************************
  * See if both types are arrays that can be compared
- * for equality without any casting. Return !=0 if so.
+ * for equality without any casting. Return true if so.
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
-int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
+bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
 {
     t1 = t1->toBasetype();
     t2 = t2->toBasetype();
@@ -3090,9 +3225,9 @@ int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
     {
         if (t1->nextOf()->implicitConvTo(t2->nextOf()) >= MATCHconst ||
             t2->nextOf()->implicitConvTo(t1->nextOf()) >= MATCHconst)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /******************************************************************/
@@ -3401,7 +3536,32 @@ IntRange getIntRange(Expression *e)
                 ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
             range = IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).cast(e->type);
+        }
 
+        void visit(AssignExp *e)
+        {
+            range = getIntRange(e->e2).cast(e->type);
+        }
+
+        void visit(CondExp *e)
+        {
+            // No need to check e->econd; assume caller has called optimize()
+            IntRange ir1 = getIntRange(e->e1);
+            IntRange ir2 = getIntRange(e->e2);
+            range = ir1.unionWith(ir2).cast(e->type);
+        }
+
+        void visit(VarExp *e)
+        {
+            Expression *ie;
+            VarDeclaration* vd = e->var->isVarDeclaration();
+            if (vd && vd->range)
+                range = vd->range->cast(e->type);
+            else if (vd && vd->init && !vd->type->isMutable() &&
+                (ie = vd->getConstInitializer()) != NULL)
+                ie->accept(this);
+            else
+                visit((Expression *)e);
         }
 
         void visit(CommaExp *e)

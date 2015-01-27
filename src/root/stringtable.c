@@ -16,175 +16,217 @@
 #include "rmem.h"                       // mem
 #include "stringtable.h"
 
+#define POOL_BITS 12
+#define POOL_SIZE (1U << POOL_BITS)
+
 // TODO: Merge with root.String
-hash_t calcHash(const char *str, size_t len)
+// MurmurHash2 was written by Austin Appleby, and is placed in the public
+// domain. The author hereby disclaims copyright to this source code.
+// https://sites.google.com/site/murmurhash/
+static uint32_t calcHash(const char *key, size_t len)
 {
-    hash_t hash = 0;
+    // 'm' and 'r' are mixing constants generated offline.
+    // They're not really 'magic', they just happen to work well.
 
-    union
+    const uint32_t m = 0x5bd1e995;
+    const int r = 24;
+
+    // Initialize the hash to a 'random' value
+
+    uint32_t h = (uint32_t)len;
+
+    // Mix 4 bytes at a time into the hash
+
+    const uint8_t *data = (const uint8_t *)key;
+
+    while(len >= 4)
     {
-        uint8_t  scratchB[4];
-        uint16_t scratchS[2];
-        uint32_t scratchI;
-    };
-    
-    while (1)
-    {
-        switch (len)
-        {
-            case 0:
-                return hash;
+        uint32_t k = data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
 
-            case 1:
-                hash *= 37;
-                hash += *(const uint8_t *)str;
-                return hash;
+        k *= m;
+        k ^= k >> r;
+        k *= m;
 
-            case 2:
-                hash *= 37;
-                scratchB[0] = str[0];
-                scratchB[1] = str[1];
-                hash += scratchS[0];
-                return hash;
+        h *= m;
+        h ^= k;
 
-            case 3:
-                hash *= 37;
-                scratchB[0] = str[0];
-                scratchB[1] = str[1];
-                hash += (scratchS[0] << 8) +
-                        ((const uint8_t *)str)[2];
-                return hash;
-
-            default:
-                hash *= 37;
-                scratchB[0] = str[0];
-                scratchB[1] = str[1];
-                scratchB[2] = str[2];
-                scratchB[3] = str[3];
-                hash += scratchI;
-                str += 4;
-                len -= 4;
-                break;
-        }
+        data += 4;
+        len -= 4;
     }
-}
 
-void StringValue::ctor(const char *p, size_t length)
-{
-    this->length = length;
-    this->lstring[length] = 0;
-    memcpy(this->lstring, p, length * sizeof(char));
-}
+    // Handle the last few bytes of the input array
 
-void StringTable::_init(size_t size)
-{
-    table = (void **)mem.calloc(size, sizeof(void *));
-    tabledim = size;
-    count = 0;
-}
+    switch(len & 3)
+    {
+    case 3: h ^= data[2] << 16;
+    case 2: h ^= data[1] << 8;
+    case 1: h ^= data[0];
+        h *= m;
+    };
 
-StringTable::~StringTable()
-{
-    // Zero out dangling pointers to help garbage collector.
-    // Should zero out StringEntry's too.
-    for (size_t i = 0; i < count; i++)
-        table[i] = NULL;
+    // Do a few final mixes of the hash to ensure the last few
+    // bytes are well-incorporated.
 
-    mem.free(table);
-    table = NULL;
+    h ^= h >> 13;
+    h *= m;
+    h ^= h >> 15;
+
+    return h;
 }
 
 struct StringEntry
 {
-    StringEntry *left;
-    StringEntry *right;
-    hash_t hash;
-
-    StringValue value;
-
-    static StringEntry *alloc(const char *s, size_t len);
+    uint32_t hash;
+    uint32_t vptr;
 };
 
-StringEntry *StringEntry::alloc(const char *s, size_t len)
+uint32_t StringTable::allocValue(const char *s, size_t length)
 {
-    StringEntry *se;
+    const size_t nbytes = sizeof(StringValue) + length + 1;
 
-    se = (StringEntry *) mem.calloc(1,sizeof(StringEntry) + len + 1);
-    se->value.ctor(s, len);
-    se->hash = calcHash(s,len);
-    return se;
+    if (!npools || nfill + nbytes > POOL_SIZE)
+    {
+        pools = (uint8_t **)mem.realloc(pools, ++npools * sizeof(pools[0]));
+        pools[npools - 1] = (uint8_t *)mem.malloc(nbytes > POOL_SIZE ? nbytes : POOL_SIZE);
+        nfill = 0;
+    }
+
+    StringValue *sv = (StringValue *)&pools[npools - 1][nfill];
+    sv->ptrvalue = NULL;
+    sv->length = length;
+    ::memcpy(sv->lstring(), s, length);
+    sv->lstring()[length] = 0;
+
+    const uint32_t vptr = (uint32_t)(npools << POOL_BITS | nfill);
+    nfill += nbytes + (-nbytes & 7); // align to 8 bytes
+    return vptr;
 }
 
-void **StringTable::search(const char *s, size_t len)
+StringValue *StringTable::getValue(uint32_t vptr)
 {
-    hash_t hash;
-    unsigned u;
-    int cmp;
-    StringEntry **se;
+    if (!vptr) return NULL;
 
-    //printf("StringTable::search(%p,%d)\n",s,len);
-    hash = calcHash(s,len);
-    u = hash % tabledim;
-    se = (StringEntry **)&table[u];
-    //printf("\thash = %d, u = %d\n",hash,u);
-    while (*se)
+    const size_t idx = (vptr >> POOL_BITS) - 1;
+    const size_t off = vptr & POOL_SIZE - 1;
+    return (StringValue *)&pools[idx][off];
+}
+
+static size_t nextpow2(size_t val)
+{
+    size_t res = 1;
+    while (res < val)
+        res <<= 1;
+    return res;
+}
+
+static const double loadFactor = 0.8;
+
+void StringTable::_init(size_t size)
+{
+    size = nextpow2((size_t)(size / loadFactor));
+    if (size < 32) size = 32;
+    table = (StringEntry *)mem.calloc(size, sizeof(table[0]));
+    tabledim = size;
+    pools = NULL;
+    npools = nfill = 0;
+    count = 0;
+}
+
+void StringTable::reset(size_t size)
+{
+    for (size_t i = 0; i < npools; ++i)
+        mem.free(pools[i]);
+
+    mem.free(table);
+    mem.free(pools);
+    table = NULL;
+    pools = NULL;
+    _init(size);
+}
+
+StringTable::~StringTable()
+{
+    for (size_t i = 0; i < npools; ++i)
+        mem.free(pools[i]);
+
+    mem.free(table);
+    mem.free(pools);
+    table = NULL;
+    pools = NULL;
+}
+
+size_t StringTable::findSlot(hash_t hash, const char *s, size_t length)
+{
+    // quadratic probing using triangular numbers
+    // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
+    for (size_t i = hash & (tabledim - 1), j = 1; ;++j)
     {
-        cmp = (*se)->hash - hash;
-        if (cmp == 0)
+        StringValue *sv;
+        if (!table[i].vptr ||
+            table[i].hash == hash &&
+            (sv = getValue(table[i].vptr))->length == length &&
+            ::memcmp(s, sv->lstring(), length) == 0)
+            return i;
+        i = (i + j) & (tabledim - 1);
+    }
+}
+
+StringValue *StringTable::lookup(const char *s, size_t length)
+{
+    const hash_t hash = calcHash(s, length);
+    const size_t i = findSlot(hash, s, length);
+    // printf("lookup %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+    return getValue(table[i].vptr);
+}
+
+StringValue *StringTable::update(const char *s, size_t length)
+{
+    const hash_t hash = calcHash(s, length);
+    size_t i = findSlot(hash, s, length);
+    if (!table[i].vptr)
+    {
+        if (++count > tabledim * loadFactor)
         {
-            cmp = (*se)->value.len() - len;
-            if (cmp == 0)
-            {
-                cmp = ::memcmp(s,(*se)->value.toDchars(),len);
-                if (cmp == 0)
-                    break;
-            }
+            grow();
+            i = findSlot(hash, s, length);
         }
-        if (cmp < 0)
-            se = &(*se)->left;
-        else
-            se = &(*se)->right;
+        table[i].hash = hash;
+        table[i].vptr = allocValue(s, length);
     }
-    //printf("\treturn %p, %p\n",se, (*se));
-    return (void **)se;
+    // printf("update %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+    return getValue(table[i].vptr);
 }
 
-StringValue *StringTable::lookup(const char *s, size_t len)
-{   StringEntry *se;
-
-    se = *(StringEntry **)search(s,len);
-    if (se)
-        return &se->value;
-    else
-        return NULL;
-}
-
-StringValue *StringTable::update(const char *s, size_t len)
-{   StringEntry **pse;
-    StringEntry *se;
-
-    pse = (StringEntry **)search(s,len);
-    se = *pse;
-    if (!se)                    // not in table: so create new entry
+StringValue *StringTable::insert(const char *s, size_t length)
+{
+    const hash_t hash = calcHash(s, length);
+    size_t i = findSlot(hash, s, length);
+    if (table[i].vptr)
+        return NULL; // already in table
+    if (++count > tabledim * loadFactor)
     {
-        se = StringEntry::alloc(s, len);
-        *pse = se;
+        grow();
+        i = findSlot(hash, s, length);
     }
-    return &se->value;
+    table[i].hash = hash;
+    table[i].vptr = allocValue(s, length);
+    // printf("insert %.*s %p\n", (int)length, s, table[i].value ?: NULL);
+    return getValue(table[i].vptr);
 }
 
-StringValue *StringTable::insert(const char *s, size_t len)
-{   StringEntry **pse;
-    StringEntry *se;
+void StringTable::grow()
+{
+    const size_t odim = tabledim;
+    StringEntry *otab = table;
+    tabledim *= 2;
+    table = (StringEntry *)mem.calloc(tabledim, sizeof(table[0]));
 
-    pse = (StringEntry **)search(s,len);
-    se = *pse;
-    if (se)
-        return NULL;            // error: already in table
-    else
+    for (size_t i = 0; i < odim; ++i)
     {
-        se = StringEntry::alloc(s, len);
-        *pse = se;
+        StringEntry *se = &otab[i];
+        if (!se->vptr) continue;
+        StringValue *sv = getValue(se->vptr);
+        table[findSlot(se->hash, sv->lstring(), sv->length)] = *se;
     }
-    return &se->value;
+    mem.free(otab);
 }

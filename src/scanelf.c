@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/scanelf.c
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -43,7 +44,7 @@ void scanElfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int
     unsigned char *buf = (unsigned char *)base;
     int reason = 0;
 
-    if (buflen < EI_NIDENT + sizeof(Elf32_Hdr))
+    if (buflen < sizeof(Elf32_Ehdr))
     {
         reason = __LINE__;
       Lcorrupt:
@@ -67,7 +68,7 @@ void scanElfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int
     }
     if (buf[EI_CLASS] == ELFCLASS32)
     {
-        Elf32_Hdr *eh = (Elf32_Hdr *)(buf + EI_NIDENT);
+        Elf32_Ehdr *eh = (Elf32_Ehdr *)buf;
         if (eh->e_type != ET_REL)
         {
             error(loc, "ELF object module %s is not relocatable", module_name);
@@ -111,8 +112,8 @@ void scanElfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int
     }
     else if (buf[EI_CLASS] == ELFCLASS64)
     {
-        Elf64_Ehdr *eh = (Elf64_Ehdr *)(buf + EI_NIDENT);
-        if (buflen < EI_NIDENT + sizeof(Elf64_Ehdr))
+        Elf64_Ehdr *eh = (Elf64_Ehdr *)buf;
+        if (buflen < sizeof(Elf64_Ehdr))
             goto Lcorrupt;
         if (eh->e_type != ET_REL)
         {

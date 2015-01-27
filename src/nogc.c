@@ -1,11 +1,13 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/nogc.c
+ */
 
 #include "mars.h"
 #include "init.h"
@@ -16,6 +18,7 @@
 #include "id.h"
 #include "module.h"
 #include "scope.h"
+#include "tokens.h"
 
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 
@@ -60,7 +63,7 @@ public:
     {
         // Note that, walkPostorder does not support DeclarationExp today.
         VarDeclaration *v = e->declaration->isVarDeclaration();
-        if (v && (v->storage_class & (STCmanifest | STCstatic)) == 0 && v->init)
+        if (v && !(v->storage_class & STCmanifest) && !v->isDataseg() && v->init)
         {
             if (v->init->isVoidInitializer())
             {

@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/opover.c
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,10 +26,11 @@
 #include "declaration.h"
 #include "aggregate.h"
 #include "template.h"
+#include "tokens.h"
 
-static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments);
-static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments);
-static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags = 0);
+static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *parameters);
+static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *parameters);
+static int inferApplyArgTypesY(TypeFunction *tf, Parameters *parameters, int flags = 0);
 Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id);
 
 /******************************** Expression **************************/
@@ -911,7 +913,15 @@ Expression *op_overload(Expression *e, Scope *sc)
                 }
             }
 
-            result = compare_overload(e, sc, Id::eq);
+            // Comparing a class with typeof(null) should not call opEquals
+            if (t1->ty == Tclass && t2->ty == Tnull ||
+                t1->ty == Tnull && t2->ty == Tclass)
+            {
+            }
+            else
+            {
+                result = compare_overload(e, sc, Id::eq);
+            }
         }
 
         void visit(CmpExp *e)
@@ -952,6 +962,13 @@ Expression *op_overload(Expression *e, Scope *sc)
                         if (ex->op == TOKerror)
                         {
                             result = ex;
+                            return;
+                        }
+
+                        e->e2 = e->e2->semantic(sc);
+                        if (e->e2->op == TOKerror)
+                        {
+                            result = e->e2;
                             return;
                         }
 
@@ -1532,25 +1549,25 @@ Lerr:
 }
 
 /*****************************************
- * Given array of arguments and an aggregate type,
- * if any of the argument types are missing, attempt to infer
+ * Given array of parameters and an aggregate type,
+ * if any of the parameter types are missing, attempt to infer
  * them from the aggregate type.
  */
 
 bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 {
-    if (!fes->arguments || !fes->arguments->dim)
+    if (!fes->parameters || !fes->parameters->dim)
         return false;
 
     if (sapply)     // prefer opApply
     {
-        for (size_t u = 0; u < fes->arguments->dim; u++)
+        for (size_t u = 0; u < fes->parameters->dim; u++)
         {
-            Parameter *arg = (*fes->arguments)[u];
-            if (arg->type)
+            Parameter *p = (*fes->parameters)[u];
+            if (p->type)
             {
-                arg->type = arg->type->semantic(fes->loc, sc);
-                arg->type = arg->type->addStorageClass(arg->storageClass);
+                p->type = p->type->semantic(fes->loc, sc);
+                p->type = p->type->addStorageClass(p->storageClass);
             }
         }
 
@@ -1570,30 +1587,30 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
         FuncDeclaration *fd = sapply->isFuncDeclaration();
         if (fd)
         {
-            sapply = inferApplyArgTypesX(ethis, fd, fes->arguments);
+            sapply = inferApplyArgTypesX(ethis, fd, fes->parameters);
         }
 #if 0
         TemplateDeclaration *td = sapply->isTemplateDeclaration();
         if (td)
         {
-            inferApplyArgTypesZ(td, fes->arguments);
+            inferApplyArgTypesZ(td, fes->parameters);
         }
 #endif
         return sapply != NULL;
     }
 
-    /* Return if no arguments need types.
+    /* Return if no parameters need types.
      */
-    for (size_t u = 0; u < fes->arguments->dim; u++)
+    for (size_t u = 0; u < fes->parameters->dim; u++)
     {
-        Parameter *arg = (*fes->arguments)[u];
-        if (!arg->type)
+        Parameter *p = (*fes->parameters)[u];
+        if (!p->type)
             break;
     }
 
     AggregateDeclaration *ad;
 
-    Parameter *arg = (*fes->arguments)[0];
+    Parameter *p = (*fes->parameters)[0];
     Type *taggr = fes->aggr->type;
     assert(taggr);
     Type *tab = taggr->toBasetype();
@@ -1602,19 +1619,19 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
         case Tarray:
         case Tsarray:
         case Ttuple:
-            if (fes->arguments->dim == 2)
+            if (fes->parameters->dim == 2)
             {
-                if (!arg->type)
+                if (!p->type)
                 {
-                    arg->type = Type::tsize_t;  // key type
-                    arg->type = arg->type->addStorageClass(arg->storageClass);
+                    p->type = Type::tsize_t;    // key type
+                    p->type = p->type->addStorageClass(p->storageClass);
                 }
-                arg = (*fes->arguments)[1];
+                p = (*fes->parameters)[1];
             }
-            if (!arg->type && tab->ty != Ttuple)
+            if (!p->type && tab->ty != Ttuple)
             {
-                arg->type = tab->nextOf();      // value type
-                arg->type = arg->type->addStorageClass(arg->storageClass);
+                p->type = tab->nextOf();        // value type
+                p->type = p->type->addStorageClass(p->storageClass);
             }
             break;
 
@@ -1622,19 +1639,21 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
         {
             TypeAArray *taa = (TypeAArray *)tab;
 
-            if (fes->arguments->dim == 2)
+            if (fes->parameters->dim == 2)
             {
-                if (!arg->type)
+                if (!p->type)
                 {
-                    arg->type = taa->index;     // key type
-                    arg->type = arg->type->addStorageClass(arg->storageClass);
+                    p->type = taa->index;       // key type
+                    p->type = p->type->addStorageClass(p->storageClass);
+                    if (p->storageClass & STCref) // key must not be mutated via ref
+                        p->type = p->type->addMod(MODconst);
                 }
-                arg = (*fes->arguments)[1];
+                p = (*fes->parameters)[1];
             }
-            if (!arg->type)
+            if (!p->type)
             {
-                arg->type = taa->next;          // value type
-                arg->type = arg->type->addStorageClass(arg->storageClass);
+                p->type = taa->next;            // value type
+                p->type = p->type->addStorageClass(p->storageClass);
             }
             break;
         }
@@ -1648,9 +1667,9 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
             goto Laggr;
 
         Laggr:
-            if (fes->arguments->dim == 1)
+            if (fes->parameters->dim == 1)
             {
-                if (!arg->type)
+                if (!p->type)
                 {
                     /* Look for a front() or back() overload
                      */
@@ -1660,17 +1679,17 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
                     if (fd)
                     {
                         // Resolve inout qualifier of front type
-                        arg->type = fd->type->nextOf();
-                        if (arg->type)
+                        p->type = fd->type->nextOf();
+                        if (p->type)
                         {
-                            arg->type = arg->type->substWildTo(tab->mod);
-                            arg->type = arg->type->addStorageClass(arg->storageClass);
+                            p->type = p->type->substWildTo(tab->mod);
+                            p->type = p->type->addStorageClass(p->storageClass);
                         }
                     }
                     else if (s && s->isTemplateDeclaration())
                         ;
                     else if (s && s->isDeclaration())
-                        arg->type = ((Declaration *)s)->type;
+                        p->type = ((Declaration *)s)->type;
                     else
                         break;
                 }
@@ -1680,7 +1699,7 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 
         case Tdelegate:
         {
-            if (!inferApplyArgTypesY((TypeFunction *)tab->nextOf(), fes->arguments))
+            if (!inferApplyArgTypesY((TypeFunction *)tab->nextOf(), fes->parameters))
                 return false;
             break;
         }
@@ -1691,12 +1710,12 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
     return true;
 }
 
-static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments)
+static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *parameters)
 {
   struct ParamOpOver
   {
-    Parameters *arguments;
-    unsigned char mod;
+    Parameters *parameters;
+    MOD mod;
     MATCH match;
     FuncDeclaration *fd_best;
     FuncDeclaration *fd_ambig;
@@ -1717,7 +1736,7 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
             else if (p->mod != tf->mod)
                 m = MATCHconst;
         }
-        if (!inferApplyArgTypesY(tf, p->arguments, 1))
+        if (!inferApplyArgTypesY(tf, p->parameters, 1))
             m = MATCHnomatch;
 
         if (m > p->match)
@@ -1732,7 +1751,7 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
     }
   };
     ParamOpOver p;
-    p.arguments = arguments;
+    p.parameters = parameters;
     p.mod = ethis->type->mod;
     p.match = MATCHnomatch;
     p.fd_best = NULL;
@@ -1740,7 +1759,7 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
     overloadApply(fstart, &p, &ParamOpOver::fp);
     if (p.fd_best)
     {
-        inferApplyArgTypesY((TypeFunction *)p.fd_best->type, arguments);
+        inferApplyArgTypesY((TypeFunction *)p.fd_best->type, parameters);
         if (p.fd_ambig)
         {   ::error(ethis->loc, "%s.%s matches more than one declaration:\n%s:     %s\nand:\n%s:     %s",
                     ethis->toChars(), fstart->ident->toChars(),
@@ -1753,13 +1772,13 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
 }
 
 /******************************
- * Infer arguments from type of function.
+ * Infer parameters from type of function.
  * Returns:
  *      1 match for this function
  *      0 no match for this function
  */
 
-static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags)
+static int inferApplyArgTypesY(TypeFunction *tf, Parameters *parameters, int flags)
 {   size_t nparams;
     Parameter *p;
 
@@ -1772,26 +1791,27 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
     assert(tf->ty == Tfunction);
 
     /* We now have tf, the type of the delegate. Match it against
-     * the arguments, filling in missing argument types.
+     * the parameters, filling in missing parameter types.
      */
     nparams = Parameter::dim(tf->parameters);
     if (nparams == 0 || tf->varargs)
         goto Lnomatch;          // not enough parameters
-    if (arguments->dim != nparams)
+    if (parameters->dim != nparams)
         goto Lnomatch;          // not enough parameters
 
     for (size_t u = 0; u < nparams; u++)
     {
-        Parameter *arg = (*arguments)[u];
+        p = (*parameters)[u];
         Parameter *param = Parameter::getNth(tf->parameters, u);
-        if (arg->type)
-        {   if (!arg->type->equals(param->type))
+        if (p->type)
+        {
+            if (!p->type->equals(param->type))
                 goto Lnomatch;
         }
         else if (!flags)
         {
-            arg->type = param->type;
-            arg->type = arg->type->addStorageClass(arg->storageClass);
+            p->type = param->type;
+            p->type = p->type->addStorageClass(p->storageClass);
         }
     }
     return 1;
@@ -1800,13 +1820,13 @@ Lnomatch:
     return 0;
 }
 
+#if 0
 /*******************************************
- * Infer foreach arg types from a template function opApply which looks like:
+ * Infer foreach parameter types from a template function opApply which looks like:
  *    int opApply(alias int func(ref uint))() { ... }
  */
 
-#if 0
-void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments)
+void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *parameters)
 {
     for (TemplateDeclaration *td = tstart; td; td = td->overnext)
     {
@@ -1827,7 +1847,7 @@ void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments)
         if (!tap || !tap->specType || tap->specType->ty != Tfunction)
             continue;
         TypeFunction *tf = (TypeFunction *)tap->specType;
-        if (inferApplyArgTypesY(tf, arguments) == 0)    // found it
+        if (inferApplyArgTypesY(tf, parameters) == 0)    // found it
             return;
     }
 }

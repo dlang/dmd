@@ -154,6 +154,37 @@ struct S9332
 }
 
 /******************************************/
+// 13201
+
+class C13201
+{
+    void foo()
+    {
+        synchronized(this)
+        {
+            assert(0);
+        }
+    }
+}
+
+void test13201a()
+{
+    auto c = new C13201();
+    synchronized(c)
+    {
+        assert(0);
+    }
+}
+
+void test13201b()
+{
+    struct S { ~this() {} }
+
+    S s;
+    assert(0);
+}
+
+/******************************************/
 
 void main()
 {

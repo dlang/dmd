@@ -107,9 +107,43 @@ void test6453()
 }
 
 /***************************************************/
+// 13113
+
+struct S13113
+{
+    static int count;
+    invariant() // impure, throwable, system, and gc-able
+    {
+        ++count;    // impure
+    }
+
+    this(int) pure nothrow @safe @nogc {}
+    // post invaiant is called directly but doesn't interfere with constructor attributes
+
+    ~this() pure nothrow @safe @nogc {}
+    // pre invaiant is called directly but doesn't interfere with destructor attributes
+
+    void foo() pure nothrow @safe @nogc {}
+    // pre & post invariant calls don't interfere with method attributes
+}
+
+void test13113()
+{
+    assert(S13113.count == 0);
+    {
+        auto s = S13113(1);
+        assert(S13113.count == 1);
+        s.foo();
+        assert(S13113.count == 3);
+    }
+    assert(S13113.count == 4);
+}
+
+/***************************************************/
 
 void main()
 {
     testinvariant();
     test6453();
+    test13113();
 }

@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/module.c
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,12 +21,10 @@
 #include "id.h"
 #include "import.h"
 #include "dsymbol.h"
-#include "hdrgen.h"
+#include "expression.h"
 #include "lexer.h"
-
-#ifdef IN_GCC
-#include "d-dmd-gcc.h"
-#endif
+#include "attrib.h"
+#include "target.h"
 
 AggregateDeclaration *Module::moduleinfo;
 
@@ -48,7 +47,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
         : Package(ident)
 {
     const char *srcfilename;
-    const char *symfilename;
 
 //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
     this->arg = filename;
@@ -60,7 +58,11 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     isPackageFile = false;
     needmoduleinfo = 0;
     selfimports = 0;
+    rootimports = 0;
     insearch = 0;
+    searchCacheIdent = NULL;
+    searchCacheSymbol = NULL;
+    searchCacheFlags = 0;
     decldefs = NULL;
     massert = NULL;
     munittest = NULL;
@@ -85,7 +87,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
 
     macrotable = NULL;
     escapetable = NULL;
-    safe = false;
     doppelganger = 0;
     cov = NULL;
     covb = NULL;
@@ -114,8 +115,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
 
     objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
 
-    symfilename = FileName::forceExt(filename, global.sym_ext);
-
     if (doDocComment)
         setDocfile();
 
@@ -123,7 +122,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
         hdrfile = setOutfile(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
 
     //objfile = new File(objfilename);
-    symfile = new File(symfilename);
 }
 
 Module *Module::create(const char *filename, Identifier *ident, int doDocComment, int doHdrGen)
@@ -172,7 +170,8 @@ File *Module::setOutfile(const char *name, const char *dir, const char *arg, con
     }
 
     if (FileName::equals(docfilename, srcfile->name->str))
-    {   error("Source file and output file have same name '%s'", srcfile->name->str);
+    {
+        error("source file and output file have same name '%s'", srcfile->name->str);
         fatal();
     }
 
@@ -229,6 +228,9 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     if (result)
         m->srcfile = new File(result);
 
+    if (!m->read(loc))
+        return NULL;
+
     if (global.params.verbose)
     {
         fprintf(global.stdmsg, "import    ");
@@ -243,14 +245,9 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         fprintf(global.stdmsg, "%s\t(%s)\n", ident->toChars(), m->srcfile->toChars());
     }
 
-    if (!m->read(loc))
-        return NULL;
-
     m->parse();
 
-#ifdef IN_GCC
-    d_gcc_magic_module(m);
-#endif
+    Target::loadModule(m);
 
     return m;
 }
@@ -264,6 +261,7 @@ bool Module::read(Loc loc)
         {
             ::error(loc, "cannot find source code for runtime library file 'object.d'");
             errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
+            errorSupplemental(loc, "config file: %s", FileName::canonicalName(global.inifilename));
         }
         else
         {
@@ -279,7 +277,8 @@ bool Module::read(Loc loc)
         }
 
         if (!global.gag)
-        {   /* Print path
+        {
+            /* Print path
              */
             if (global.path)
             {
@@ -514,6 +513,8 @@ void Module::parse()
         members = p.parseModule();
         md = p.md;
         numlines = p.scanloc.linnum;
+        if (p.errors)
+            ++global.errors;
     }
 
     if (srcfile->ref == 0)
@@ -532,7 +533,6 @@ void Module::parse()
          * the name of this module.
          */
         this->ident = md->id;
-        this->safe = md->safe;
         Package *ppack = NULL;
         dst = Package::resolve(md->packages, &this->parent, &ppack);
         assert(dst);
@@ -594,12 +594,15 @@ void Module::parse()
         assert(prev);
         if (Module *mprev = prev->isModule())
         {
-            if (strcmp(srcname, mprev->srcfile->toChars()) == 0)
-                error(loc, "from file %s must be imported with 'import %s;'",
-                    srcname, toPrettyChars());
-            else
+            if (FileName::compare(srcname, mprev->srcfile->toChars()) != 0)
                 error(loc, "from file %s conflicts with another module %s from file %s",
                     srcname, mprev->toChars(), mprev->srcfile->toChars());
+            else if (isRoot() && mprev->isRoot())
+                error(loc, "from file %s is specified twice on the command line",
+                    srcname);
+            else
+                error(loc, "from file %s must be imported with 'import %s;'",
+                    srcname, toPrettyChars());
         }
         else if (Package *pkg = prev->isPackage())
         {
@@ -612,7 +615,7 @@ void Module::parse()
                 pkg->mod = this;
             }
             else
-                error(pkg->loc, "from file %s conflicts with package name %s",
+                error(md ? md->loc : loc, "from file %s conflicts with package name %s",
                     srcname, pkg->toChars());
         }
         else
@@ -636,6 +639,14 @@ void Module::importAll(Scope *prevsc)
     {
         error("is a Ddoc file, cannot import it");
         return;
+    }
+
+    if (md && md->msg)
+    {
+        if (StringExp *se = md->msg->toStringExp())
+            md->msg = se;
+        else
+            md->msg->error("string expected, not '%s'", md->msg->toChars());
     }
 
     /* Note that modules get their own scope, from scratch.
@@ -718,6 +729,11 @@ void Module::semantic()
         runDeferredSemantic();
     }
 
+    if (userAttribDecl)
+    {
+        userAttribDecl->semantic(sc);
+    }
+
     if (!scope)
     {
         sc = sc->pop();
@@ -747,6 +763,11 @@ void Module::semantic2()
         s->semantic2(sc);
     }
 
+    if (userAttribDecl)
+    {
+        userAttribDecl->semantic2(sc);
+    }
+
     sc = sc->pop();
     sc->pop();
     semanticRun = PASSsemantic2done;
@@ -774,35 +795,14 @@ void Module::semantic3()
         s->semantic3(sc);
     }
 
+    if (userAttribDecl)
+    {
+        userAttribDecl->semantic3(sc);
+    }
+
     sc = sc->pop();
     sc->pop();
     semanticRun = PASSsemantic3done;
-}
-
-/****************************************************
- */
-
-void Module::gensymfile()
-{
-    OutBuffer buf;
-    HdrGenState hgs;
-
-    //printf("Module::gensymfile()\n");
-
-    buf.printf("// Sym file generated from '%s'", srcfile->toChars());
-    buf.writenl();
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->toCBuffer(&buf, &hgs);
-    }
-
-    // Transfer image to file
-    symfile->setbuffer(buf.data, buf.offset);
-    buf.data = NULL;
-
-    writeFile(loc, symfile);
 }
 
 /**********************************
@@ -824,16 +824,45 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
      */
 
     //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
-    Dsymbol *s;
     if (insearch)
-        s = NULL;
-    else
+        return NULL;
+    if (searchCacheIdent == ident && searchCacheFlags == flags)
     {
-        insearch = 1;
-        s = ScopeDsymbol::search(loc, ident, flags);
-        insearch = 0;
+        //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n",
+        //        toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
+        return searchCacheSymbol;
+    }
+
+    unsigned int errors = global.errors;
+
+    insearch = 1;
+    Dsymbol *s = ScopeDsymbol::search(loc, ident, flags);
+    insearch = 0;
+
+    if (errors == global.errors)
+    {
+        // Bugzilla 10752: We can cache the result only when it does not cause
+        // access error so the side-effect should be reproduced in later search.
+        searchCacheIdent = ident;
+        searchCacheSymbol = s;
+        searchCacheFlags = flags;
     }
     return s;
+}
+
+Dsymbol *Module::symtabInsert(Dsymbol *s)
+{
+    searchCacheIdent = NULL;       // symbol is inserted, so invalidate cache
+    return Package::symtabInsert(s);
+}
+
+void Module::clearCache()
+{
+    for (size_t i = 0; i < amodules.dim; i++)
+    {
+        Module *m = amodules[i];
+        m->searchCacheIdent = NULL;
+    }
 }
 
 /*******************************************
@@ -970,42 +999,63 @@ int Module::imports(Module *m)
 }
 
 /*************************************
- * Return !=0 if module imports itself.
+ * Return true if module imports itself.
  */
 
-int Module::selfImports()
+bool Module::selfImports()
 {
     //printf("Module::selfImports() %s\n", toChars());
-    if (!selfimports)
+    if (selfimports == 0)
     {
         for (size_t i = 0; i < amodules.dim; i++)
-        {
-            Module *mi = amodules[i];
-            //printf("\t[%d] %s\n", i, mi->toChars());
-            mi->insearch = 0;
-        }
+            amodules[i]->insearch = 0;
 
         selfimports = imports(this) + 1;
 
         for (size_t i = 0; i < amodules.dim; i++)
-        {
-            Module *mi = amodules[i];
-            //printf("\t[%d] %s\n", i, mi->toChars());
-            mi->insearch = 0;
-        }
+            amodules[i]->insearch = 0;
     }
-    return selfimports - 1;
+    return selfimports == 2;
 }
 
+/*************************************
+ * Return true if module imports root module.
+ */
+
+bool Module::rootImports()
+{
+    //printf("Module::rootImports() %s\n", toChars());
+    if (rootimports == 0)
+    {
+        for (size_t i = 0; i < amodules.dim; i++)
+            amodules[i]->insearch = 0;
+
+        rootimports = 1;
+        for (size_t i = 0; i < amodules.dim; ++i)
+        {
+            Module *m = amodules[i];
+            if (m->isRoot() && imports(m))
+            {
+                rootimports = 2;
+                break;
+            }
+        }
+
+        for (size_t i = 0; i < amodules.dim; i++)
+            amodules[i]->insearch = 0;
+    }
+    return rootimports == 2;
+}
 
 /* =========================== ModuleDeclaration ===================== */
 
-ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id, bool safe)
+ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id)
 {
     this->loc = loc;
     this->packages = packages;
     this->id = id;
-    this->safe = safe;
+    this->isdeprecated = false;
+    this->msg = NULL;
 }
 
 char *ModuleDeclaration::toChars()
@@ -1047,6 +1097,35 @@ Module *Package::isPackageMod()
         return mod;
     }
     return NULL;
+}
+
+/**
+ * Checks if pkg is a sub-package of this
+ *
+ * For example, if this qualifies to 'a1.a2' and pkg - to 'a1.a2.a3',
+ * this function returns 'true'. If it is other way around or qualified
+ * package paths conflict function returns 'false'.
+ *
+ * Params:
+ *  pkg = possible subpackage
+ *
+ * Returns:
+ *  see description
+ */
+bool Package::isAncestorPackageOf(Package* pkg)
+{
+    while (pkg)
+    {
+        if (this == pkg)
+            return true;
+
+        if (!pkg->parent)
+            break;
+
+        pkg = pkg->parent->isPackage();
+    }
+
+    return false;
 }
 
 /****************************************************

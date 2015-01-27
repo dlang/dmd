@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 2010-2014 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 2010-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/argtypes.c
+ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -306,7 +307,7 @@ TypeTuple *toArgTypes(Type *t)
         void visit(TypeStruct *t)
         {
             //printf("TypeStruct::toArgTypes() %s\n", t->toChars());
-            if (!t->sym->isPOD())
+            if (!t->sym->isPOD() || t->sym->fields.dim == 0)
             {
             Lmemory:
                 //printf("\ttoArgTypes() %s => [ ]\n", t->toChars());
@@ -428,7 +429,8 @@ TypeTuple *toArgTypes(Type *t)
                 {
                     if (t1->isfloating() && t2->isfloating())
                     {
-                        if (t1->ty == Tfloat64 && t2->ty == Tfloat64)
+                        if ((t1->ty == Tfloat32 || t1->ty == Tfloat64) &&
+                            (t2->ty == Tfloat32 || t2->ty == Tfloat64))
                             ;
                         else
                             goto Lmemory;
@@ -473,11 +475,6 @@ TypeTuple *toArgTypes(Type *t)
         void visit(TypeEnum *t)
         {
             t->toBasetype()->accept(this);
-        }
-
-        void visit(TypeTypedef *t)
-        {
-            t->sym->basetype->accept(this);
         }
 
         void visit(TypeClass *)

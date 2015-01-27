@@ -1,12 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/import.h
+ */
 
 #ifndef DMD_IMPORT_H
 #define DMD_IMPORT_H
@@ -20,11 +21,9 @@
 
 class Identifier;
 struct Scope;
-struct OutBuffer;
 class Module;
 class Package;
 class AliasDeclaration;
-struct HdrGenState;
 
 class Import : public Dsymbol
 {
@@ -36,7 +35,7 @@ public:
     Identifier *id;             // module Identifier
     Identifier *aliasId;
     int isstatic;               // !=0 if static import
-    PROT protection;
+    PROTKIND protection;
 
     // Pairs of alias=name to bind into current namespace
     Identifiers names;
@@ -51,7 +50,7 @@ public:
         int isstatic);
     void addAlias(Identifier *name, Identifier *alias);
     const char *kind();
-    PROT prot();
+    Prot prot();
     Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     void load(Scope *sc);
     void importAll(Scope *sc);
@@ -61,7 +60,6 @@ public:
     int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     bool overloadInsert(Dsymbol *s);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Import *isImport() { return this; }
     void accept(Visitor *v) { v->visit(this); }

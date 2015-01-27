@@ -59,7 +59,7 @@ class LibOMF : public Library
   private:
     void scanObjModule(ObjModule *om);
     unsigned short numDictPages(unsigned padding);
-    int FillDict(unsigned char *bucketsP, unsigned short uNumPages);
+    bool FillDict(unsigned char *bucketsP, unsigned short uNumPages);
     void WriteLibToBuffer(OutBuffer *libbuf);
 
     void error(const char *format, ...)
@@ -82,13 +82,13 @@ class LibOMF : public Library
 
 Library *LibOMF_factory()
 {
-    return new LibOMF();
+    return global.params.mscoff ? LibMSCoff_factory() : new LibOMF();
 }
 
 LibOMF::LibOMF()
 {
     libfile = NULL;
-    tab._init();
+    tab._init(14000);
 }
 
 /***********************************
@@ -111,7 +111,7 @@ void LibOMF::setFilename(const char *dir, const char *filename)
         arg = FileName::combine(dir, arg);
     const char *libfilename = FileName::defaultExt(arg, global.lib_ext);
 
-    libfile = new File(libfilename);
+    libfile = File::create(libfilename);
 
     loc.filename = libfile->name->toChars();
     loc.linnum = 0;
@@ -236,12 +236,11 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
 #endif
     if (!buf)
     {   assert(module_name);
-        FileName f((char *)module_name);
-        File file(&f);
-        readFile(Loc(), &file);
-        buf = file.buffer;
-        buflen = file.len;
-        file.ref = 1;
+        File *file = File::create((char *)module_name);
+        readFile(Loc(), file);
+        buf = file->buffer;
+        buflen = file->len;
+        file->ref = 1;
     }
 
     unsigned g_page_size;
@@ -454,10 +453,10 @@ unsigned short LibOMF::numDictPages(unsigned padding)
 /*******************************************
  * Write a single entry into dictionary.
  * Returns:
- *      0       failure
+ *      false   failure
  */
 
-static int EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsigned char *entry, unsigned entrylen )
+static bool EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsigned char *entry, unsigned entrylen )
 {
     unsigned short      uStartIndex;
     unsigned short      uStep;
@@ -529,7 +528,7 @@ static int EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsigne
                     aP[ HASHMOD ] += (nbytes + 1) >> 1;
                     if (aP[HASHMOD] == 0)
                         aP[HASHMOD] = 0xFF;
-                    return 1;
+                    return true;
                 }
             }
             uIndex += uStep;
@@ -546,16 +545,16 @@ static int EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsigne
             break;
     }
 
-    return 0;
+    return false;
 }
 
 /*******************************************
  * Write the module and symbol names to the dictionary.
  * Returns:
- *      0       failure
+ *      false   failure
  */
 
-int LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
+bool LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
 {
     unsigned char entry[4 + LIBIDMAX + 2 + 1];
 
@@ -582,7 +581,7 @@ int LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
         if ( n & 1 )
             entry[ n + 2 + 2 ] = 0;
         if ( !EnterDict( bucketsP, ndicpages, entry, n + 1 ) )
-            return 0;
+            return false;
     }
 
     // Sort the symbols
@@ -609,10 +608,10 @@ int LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
             entry[ n + 3] = 0;
         if ( !EnterDict( bucketsP, ndicpages, entry, n ) )
         {
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
 

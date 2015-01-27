@@ -1,16 +1,19 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// License for redistribution is by either the Artistic License
-// in artistic.txt, or the GNU General Public License in gnu.txt.
-// See the included readme.txt for details.
+
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/ctfeexpr.c
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>                     // mem{cpy|set}()
+#include <new>
 
 #include "rmem.h"
 
@@ -19,8 +22,10 @@
 #include "aggregate.h"
 // for AssocArray
 #include "id.h"
+#include "utf.h"
 #include "template.h"
 #include "ctfe.h"
+#include "target.h"
 
 int RealEquals(real_t x1, real_t x2);
 
@@ -137,9 +142,9 @@ char *ThrownExceptionExp::toChars()
 // Generate an error message when this exception is not caught
 void ThrownExceptionExp::generateUncaughtError()
 {
-    Expression *e = (*thrown->value->elements)[0];
-    StringExp* se = e->toStringExp();
-    thrown->error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(), se ? se->toChars() : e->toChars());
+    Expression *e = resolveSlice((*thrown->value->elements)[0]);
+    StringExp *se = e->toStringExp();
+    thrown->error("uncaught CTFE exception %s(%s)", thrown->type->toChars(), se ? se->toChars() : e->toChars());
 
     /* Also give the line where the throw statement was. We won't have it
      * in the case where the ThrowStatement is generated internally
@@ -149,17 +154,50 @@ void ThrownExceptionExp::generateUncaughtError()
         errorSupplemental(loc, "thrown from here");
 }
 
-
-// True if 'e' is EXP_CANT_INTERPRET, or an exception
+// True if 'e' is CTFEExp::cantexp, or an exception
 bool exceptionOrCantInterpret(Expression *e)
 {
-    assert(EXP_CANT_INTERPRET && "EXP_CANT_INTERPRET must be distinct from "
-        "null, Expression::init not called?");
-    if (e == EXP_CANT_INTERPRET) return true;
-    if (!e || e == EXP_GOTO_INTERPRET || e == EXP_VOID_INTERPRET
-        || e == EXP_BREAK_INTERPRET || e == EXP_CONTINUE_INTERPRET)
-        return false;
-    return e->op == TOKthrownexception;
+    return e && (e->op == TOKcantexp || e->op == TOKthrownexception);
+}
+
+/********************** CTFEExp ******************************************/
+
+CTFEExp *CTFEExp::cantexp;
+CTFEExp *CTFEExp::voidexp;
+CTFEExp *CTFEExp::breakexp;
+CTFEExp *CTFEExp::continueexp;
+CTFEExp *CTFEExp::gotoexp;
+
+CTFEExp::CTFEExp(TOK tok)
+    : Expression(Loc(), tok, sizeof(CTFEExp))
+{
+    type = Type::tvoid;
+}
+
+char *CTFEExp::toChars()
+{
+    switch (op)
+    {
+        case TOKcantexp:    return (char *)"<cant>";
+        case TOKvoidexp:    return (char *)"<void>";
+        case TOKbreak:      return (char *)"<break>";
+        case TOKcontinue:   return (char *)"<continue>";
+        case TOKgoto:       return (char *)"<goto>";
+        default:            assert(0);  return NULL;
+    }
+}
+
+Expression *UnionExp::copy()
+{
+    Expression *e = exp();
+    //if (e->size > sizeof(u)) printf("%s\n", Token::toChars(e->op));
+    assert(e->size <= sizeof(u));
+    if (e->op == TOKcantexp)    return CTFEExp::cantexp;
+    if (e->op == TOKvoidexp)    return CTFEExp::voidexp;
+    if (e->op == TOKbreak)      return CTFEExp::breakexp;
+    if (e->op == TOKcontinue)   return CTFEExp::continueexp;
+    if (e->op == TOKgoto)       return CTFEExp::gotoexp;
+    return e->copy();
 }
 
 /************** Aggregate literals (AA/string/array/struct) ******************/
@@ -170,8 +208,8 @@ bool needToCopyLiteral(Expression *expr)
 {
     for (;;)
     {
-       switch (expr->op)
-       {
+        switch (expr->op)
+        {
             case TOKarrayliteral:
                 return !((ArrayLiteralExp *)expr)->ownedByCtfe;
             case TOKassocarrayliteral:
@@ -210,46 +248,48 @@ Expressions *copyLiteralArray(Expressions *oldelems)
     Expressions *newelems = new Expressions();
     newelems->setDim(oldelems->dim);
     for (size_t i = 0; i < oldelems->dim; i++)
-        (*newelems)[i] = copyLiteral((*oldelems)[i]);
+        (*newelems)[i] = copyLiteral((*oldelems)[i]).copy();
     return newelems;
 }
 
 // Make a copy of the ArrayLiteral, AALiteral, String, or StructLiteral.
 // This value will be used for in-place modification.
-Expression *copyLiteral(Expression *e)
+UnionExp copyLiteral(Expression *e)
 {
+    UnionExp ue;
     if (e->op == TOKstring) // syntaxCopy doesn't make a copy for StringExp!
     {
         StringExp *se = (StringExp *)e;
         utf8_t *s = (utf8_t *)mem.calloc(se->len + 1, se->sz);
         memcpy(s, se->string, se->len * se->sz);
-        StringExp *se2 = new StringExp(se->loc, s, se->len);
+        new(&ue) StringExp(se->loc, s, se->len);
+        StringExp *se2 = (StringExp *)ue.exp();
         se2->committed = se->committed;
         se2->postfix = se->postfix;
         se2->type = se->type;
         se2->sz = se->sz;
         se2->ownedByCtfe = true;
-        return se2;
+        return ue;
     }
-    else if (e->op == TOKarrayliteral)
+    if (e->op == TOKarrayliteral)
     {
         ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
-        ArrayLiteralExp *r = new ArrayLiteralExp(e->loc,
-            copyLiteralArray(ae->elements));
+        new(&ue) ArrayLiteralExp(e->loc, copyLiteralArray(ae->elements));
+        ArrayLiteralExp *r = (ArrayLiteralExp *)ue.exp();
         r->type = e->type;
         r->ownedByCtfe = true;
-        return r;
+        return ue;
     }
-    else if (e->op == TOKassocarrayliteral)
+    if (e->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
-        AssocArrayLiteralExp *r = new AssocArrayLiteralExp(e->loc,
-            copyLiteralArray(aae->keys), copyLiteralArray(aae->values));
+        new(&ue) AssocArrayLiteralExp(e->loc, copyLiteralArray(aae->keys), copyLiteralArray(aae->values));
+        AssocArrayLiteralExp *r = (AssocArrayLiteralExp *)ue.exp();
         r->type = e->type;
         r->ownedByCtfe = true;
-        return r;
+        return ue;
     }
-    else if (e->op == TOKstructliteral)
+    if (e->op == TOKstructliteral)
     {
         /* syntaxCopy doesn't work for struct literals, because of a nasty special
          * case: block assignment is permitted inside struct literals, eg,
@@ -267,7 +307,7 @@ Expression *copyLiteral(Expression *e)
             VarDeclaration *v = sd->fields[i];
             // If it is a void assignment, use the default initializer
             if (!m)
-                m = voidInitLiteral(v->type, v);
+                m = voidInitLiteral(v->type, v).copy();
             if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
             {
                 // Block assignment from inside struct literals
@@ -276,63 +316,88 @@ Expression *copyLiteral(Expression *e)
                 m = createBlockDuplicatedArrayLiteral(e->loc, v->type, m, (size_t)length);
             }
             else if (v->type->ty != Tarray && v->type->ty!=Taarray) // NOTE: do not copy array references
-                m = copyLiteral(m);
+                m = copyLiteral(m).copy();
             (*newelems)[i] = m;
         }
-        StructLiteralExp *r = new StructLiteralExp(e->loc, se->sd, newelems, se->stype);
+        new(&ue) StructLiteralExp(e->loc, se->sd, newelems, se->stype);
+        StructLiteralExp *r = (StructLiteralExp *)ue.exp();
         r->type = e->type;
         r->ownedByCtfe = true;
-        r->origin = ((StructLiteralExp*)e)->origin;
-        return r;
+        r->origin = ((StructLiteralExp *)e)->origin;
+        return ue;
     }
-    else if (e->op == TOKfunction || e->op == TOKdelegate
-            || e->op == TOKsymoff || e->op == TOKnull
-            || e->op == TOKvar || e->op == TOKdotvar
-            || e->op == TOKint64 || e->op == TOKfloat64
-            || e->op == TOKchar || e->op == TOKcomplex80
-            || e->op == TOKvoid || e->op == TOKvector)
+    if (e->op == TOKfunction || e->op == TOKdelegate ||
+        e->op == TOKsymoff || e->op == TOKnull ||
+        e->op == TOKvar || e->op == TOKdotvar ||
+        e->op == TOKint64 || e->op == TOKfloat64 ||
+        e->op == TOKchar || e->op == TOKcomplex80 ||
+        e->op == TOKvoid || e->op == TOKvector)
     {
         // Simple value types
-        Expression *r = e->copy();  // keep e1 for DelegateExp and DotVarExp
+        // Keep e1 for DelegateExp and DotVarExp
+        new(&ue) UnionExp(e);
+        Expression *r = ue.exp();
         r->type = e->type;
-        return r;
+        return ue;
     }
-    else if (isPointer(e->type))
+    if (isPointer(e->type))
     {
         // For pointers, we only do a shallow copy.
-        Expression *r;
         if (e->op == TOKaddress)
-            r = new AddrExp(e->loc, ((AddrExp *)e)->e1);
+            new(&ue) AddrExp(e->loc, ((AddrExp *)e)->e1);
         else if (e->op == TOKindex)
-            r = new IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
+            new(&ue) IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
         else if (e->op == TOKdotvar)
         {
-            r = new DotVarExp(e->loc, ((DotVarExp *)e)->e1,
+            new(&ue) DotVarExp(e->loc, ((DotVarExp *)e)->e1,
                 ((DotVarExp *)e)->var, ((DotVarExp *)e)->hasOverloads);
         }
         else
             assert(0);
+        Expression *r = ue.exp();
         r->type = e->type;
-        return r;
+        return ue;
     }
-    else if (e->op == TOKslice)
+    if (e->op == TOKslice)
     {
-        // Array slices only do a shallow copy
-        Expression *r = new SliceExp(e->loc, ((SliceExp *)e)->e1,
-            ((SliceExp *)e)->lwr, ((SliceExp *)e)->upr);
-        r->type = e->type;
-        return r;
+        SliceExp *se = (SliceExp *)e;
+        if (se->type->toBasetype()->ty == Tsarray)
+        {
+            // same with resolveSlice()
+            if (se->e1->op == TOKnull)
+            {
+                new(&ue) NullExp(se->loc, se->type);
+                return ue;
+            }
+            ue = Slice(se->type, se->e1, se->lwr, se->upr).copy();
+            assert(ue.exp()->op == TOKarrayliteral);
+            ArrayLiteralExp *r = (ArrayLiteralExp *)ue.exp();
+            r->elements = copyLiteralArray(r->elements);
+            r->ownedByCtfe = true;
+            return ue;
+        }
+        else
+        {
+            // Array slices only do a shallow copy
+            new(&ue) SliceExp(e->loc, se->e1, se->lwr, se->upr);
+            Expression *r = ue.exp();
+            r->type = e->type;
+            return ue;
+        }
     }
-    else if (e->op == TOKclassreference)
-        return new ClassReferenceExp(e->loc, ((ClassReferenceExp *)e)->value, e->type);
-    else if (e->op == TOKerror)
-        return e;
-    else
+    if (e->op == TOKclassreference)
     {
-        e->error("Internal Compiler Error: CTFE literal %s", e->toChars());
-        assert(0);
-        return e;
+        new(&ue) ClassReferenceExp(e->loc, ((ClassReferenceExp *)e)->value, e->type);
+        return ue;
     }
+    if (e->op == TOKerror)
+    {
+        new(&ue) UnionExp(e);
+        return ue;
+    }
+    e->error("CTFE internal error: literal %s", e->toChars());
+    assert(0);
+    return ue;
 }
 
 /* Deal with type painting.
@@ -345,36 +410,47 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
 {
     if (lit->type->equals(type))
         return lit;
+    return paintTypeOntoLiteralCopy(type, lit).copy();
+}
+
+UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit)
+{
+    UnionExp ue;
+
+    if (lit->type->equals(type))
+    {
+        new(&ue) UnionExp(lit);
+        return ue;
+    }
 
     // If it is a cast to inout, retain the original type of the referenced part.
     if (type->hasWild() && type->hasPointers())
     {
-        lit = lit->copy();
-        lit->type = type;
-        return lit;
+        new(&ue) UnionExp(lit);
+        ue.exp()->type = type;
+        return ue;
     }
 
-    Expression *e;
     if (lit->op == TOKslice)
     {
         SliceExp *se = (SliceExp *)lit;
-        e = new SliceExp(lit->loc, se->e1, se->lwr, se->upr);
+        new(&ue) SliceExp(lit->loc, se->e1, se->lwr, se->upr);
     }
     else if (lit->op == TOKindex)
     {
         IndexExp *ie = (IndexExp *)lit;
-        e = new IndexExp(lit->loc, ie->e1, ie->e2);
+        new(&ue) IndexExp(lit->loc, ie->e1, ie->e2);
     }
     else if (lit->op == TOKarrayliteral)
     {
-        e = new SliceExp(lit->loc, lit,
-            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
+        new(&ue) SliceExp(lit->loc, lit,
+            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit).copy());
     }
     else if (lit->op == TOKstring)
     {
         // For strings, we need to introduce another level of indirection
-        e = new SliceExp(lit->loc, lit,
-            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
+        new(&ue) SliceExp(lit->loc, lit,
+            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit).copy());
     }
     else if (lit->op == TOKassocarrayliteral)
     {
@@ -382,28 +458,30 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
         // TODO: we should be creating a reference to this AAExp, not
         // just a ref to the keys and values.
         bool wasOwned = aae->ownedByCtfe;
-        aae = new AssocArrayLiteralExp(lit->loc, aae->keys, aae->values);
+        new(&ue) AssocArrayLiteralExp(lit->loc, aae->keys, aae->values);
+        aae = (AssocArrayLiteralExp *)ue.exp();
         aae->ownedByCtfe = wasOwned;
-        e = aae;
     }
     else
     {
         // Can't type paint from struct to struct*; this needs another
         // level of indirection
-        if (lit->op == TOKstructliteral && isPointer(type) )
-            lit->error("CTFE internal error painting %s", type->toChars());
-        e = copyLiteral(lit);
+        if (lit->op == TOKstructliteral && isPointer(type))
+            lit->error("CTFE internal error: painting %s", type->toChars());
+        ue = copyLiteral(lit);
     }
-    e->type = type;
-    return e;
+    ue.exp()->type = type;
+    return ue;
 }
 
 Expression *resolveSlice(Expression *e)
 {
-    if ( ((SliceExp *)e)->e1->op == TOKnull)
-        return ((SliceExp *)e)->e1;
-    return Slice(e->type, ((SliceExp *)e)->e1,
-        ((SliceExp *)e)->lwr, ((SliceExp *)e)->upr);
+    if (e->op != TOKslice)
+        return e;
+    SliceExp *se = (SliceExp *)e;
+    if (se->e1->op == TOKnull)
+        return se->e1;
+    return Slice(e->type, se->e1, se->lwr, se->upr).copy();
 }
 
 /* Determine the array length, without interpreting it.
@@ -413,22 +491,29 @@ Expression *resolveSlice(Expression *e)
  */
 uinteger_t resolveArrayLength(Expression *e)
 {
+    if (e->op == TOKvector)
+        e = ((VectorExp *)e)->e1;
+
     if (e->op == TOKnull)
         return 0;
     if (e->op == TOKslice)
-    {   uinteger_t ilo = ((SliceExp *)e)->lwr->toInteger();
+    {
+        uinteger_t ilo = ((SliceExp *)e)->lwr->toInteger();
         uinteger_t iup = ((SliceExp *)e)->upr->toInteger();
         return iup - ilo;
     }
     if (e->op == TOKstring)
-    {   return ((StringExp *)e)->len;
+    {
+        return ((StringExp *)e)->len;
     }
     if (e->op == TOKarrayliteral)
-    {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e;
+    {
+        ArrayLiteralExp *ale = (ArrayLiteralExp *)e;
         return ale->elements ? ale->elements->dim : 0;
     }
     if (e->op == TOKassocarrayliteral)
-    {   AssocArrayLiteralExp *ale = (AssocArrayLiteralExp *)e;
+    {
+        AssocArrayLiteralExp *ale = (AssocArrayLiteralExp *)e;
         return ale->keys->dim;
     }
     assert(0);
@@ -453,8 +538,9 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
     }
     bool mustCopy = needToCopyLiteral(elem);
     for (size_t i = 0; i < dim; i++)
-    {   if (mustCopy)
-            elem  = copyLiteral(elem);
+    {
+        if (mustCopy)
+            elem  = copyLiteral(elem).copy();
         (*elements)[i] = elem;
     }
     ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
@@ -514,8 +600,8 @@ TypeAArray *toBuiltinAAType(Type *t)
 bool isTypeInfo_Class(Type *type)
 {
     return type->ty == Tclass &&
-        (( Type::dtypeinfo == ((TypeClass*)type)->sym)
-        || Type::dtypeinfo->isBaseOf(((TypeClass*)type)->sym, NULL));
+        (Type::dtypeinfo == ((TypeClass *)type)->sym ||
+         Type::dtypeinfo->isBaseOf(((TypeClass *)type)->sym, NULL));
 }
 
 /************** Pointer operations ************************************/
@@ -530,8 +616,8 @@ bool isPointer(Type *t)
 // For CTFE only. Returns true if 'e' is true or a non-null pointer.
 int isTrueBool(Expression *e)
 {
-    return e->isBool(true) || ((e->type->ty == Tpointer || e->type->ty == Tclass)
-        && e->op != TOKnull);
+    return e->isBool(true) ||
+           ((e->type->ty == Tpointer || e->type->ty == Tclass) && e->op != TOKnull);
 }
 
 /* Is it safe to convert from srcPointee* to destPointee* ?
@@ -596,12 +682,27 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
     {
         IndexExp *ie = (IndexExp *)e;
         // Note that each AA element is part of its own memory block
-        if ((ie->e1->type->ty == Tarray || ie->e1->type->ty == Tsarray
-            || ie->e1->op == TOKstring || ie->e1->op==TOKarrayliteral) &&
+        if ((ie->e1->type->ty == Tarray ||
+             ie->e1->type->ty == Tsarray ||
+             ie->e1->op == TOKstring ||
+             ie->e1->op == TOKarrayliteral) &&
             ie->e2->op == TOKint64)
         {
             *ofs = ie->e2->toInteger();
             return ie->e1;
+        }
+    }
+    if (e->op == TOKslice && e->type->toBasetype()->ty == Tsarray)
+    {
+        SliceExp *se = (SliceExp *)e;
+        if ((se->e1->type->ty == Tarray ||
+             se->e1->type->ty == Tsarray ||
+             se->e1->op == TOKstring ||
+             se->e1->op == TOKarrayliteral) &&
+            se->lwr->op == TOKint64)
+        {
+            *ofs = se->lwr->toInteger();
+            return se->e1;
         }
     }
     return e;
@@ -611,24 +712,37 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
 */
 bool pointToSameMemoryBlock(Expression *agg1, Expression *agg2)
 {
+    if (agg1 == agg2)
+        return true;
+
     // For integers cast to pointers, we regard them as non-comparable
     // unless they are identical. (This may be overly strict).
-    if (agg1->op == TOKint64 && agg2->op == TOKint64
-        && agg1->toInteger() == agg2->toInteger())
+    if (agg1->op == TOKint64 && agg2->op == TOKint64 &&
+        agg1->toInteger() == agg2->toInteger())
+    {
         return true;
+    }
 
     // Note that type painting can occur with VarExp, so we
     // must compare the variables being pointed to.
-    return agg1 == agg2 ||
-            (agg1->op == TOKvar && agg2->op == TOKvar &&
-            ((VarExp *)agg1)->var == ((VarExp *)agg2)->var) ||
-            (agg1->op == TOKsymoff && agg2->op == TOKsymoff &&
-            ((SymOffExp *)agg1)->var == ((SymOffExp *)agg2)->var);
+    if (agg1->op == TOKvar && agg2->op == TOKvar &&
+        ((VarExp *)agg1)->var == ((VarExp *)agg2)->var)
+    {
+        return true;
+    }
+    if (agg1->op == TOKsymoff && agg2->op == TOKsymoff &&
+        ((SymOffExp *)agg1)->var == ((SymOffExp *)agg2)->var)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 // return e1 - e2 as an integer, or error if not possible
-Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2)
+UnionExp pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2)
 {
+    UnionExp ue;
     dinteger_t ofs1, ofs2;
     Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
     Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
@@ -636,7 +750,7 @@ Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e
     {
         Type *pointee = ((TypePointer *)agg1->type)->next;
         dinteger_t sz = pointee->size();
-        return new IntegerExp(loc, (ofs1-ofs2)*sz, type);
+        new(&ue) IntegerExp(loc, (ofs1 - ofs2) * sz, type);
     }
     else if (agg1->op == TOKstring && agg2->op == TOKstring)
     {
@@ -644,31 +758,40 @@ Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e
         {
             Type *pointee = ((TypePointer *)agg1->type)->next;
             dinteger_t sz = pointee->size();
-            return new IntegerExp(loc, (ofs1-ofs2)*sz, type);
+            new(&ue) IntegerExp(loc, (ofs1 - ofs2) * sz, type);
         }
     }
     else if (agg1->op == TOKsymoff && agg2->op == TOKsymoff &&
-            ((SymOffExp *)agg1)->var == ((SymOffExp *)agg2)->var)
+             ((SymOffExp *)agg1)->var == ((SymOffExp *)agg2)->var)
     {
-        return new IntegerExp(loc, ofs1-ofs2, type);
+        new(&ue) IntegerExp(loc, ofs1 - ofs2, type);
     }
-    error(loc, "%s - %s cannot be interpreted at compile time: cannot subtract "
-        "pointers to two different memory blocks",
-        e1->toChars(), e2->toChars());
-    return EXP_CANT_INTERPRET;
+    else
+    {
+        error(loc, "%s - %s cannot be interpreted at compile time: cannot subtract "
+            "pointers to two different memory blocks",
+            e1->toChars(), e2->toChars());
+        new(&ue) CTFEExp(TOKcantexp);
+    }
+    return ue;
 }
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
 // and op is TOKadd or TOKmin
-Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
+UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
     Expression *eptr, Expression *e2)
 {
+    UnionExp ue;
+
     if (eptr->type->nextOf()->ty == Tvoid)
     {
         error(loc, "cannot perform arithmetic on void* pointers at compile time");
-        return EXP_CANT_INTERPRET;
+      Lcant:
+        new(&ue) CTFEExp(TOKcantexp);
+        return ue;
     }
-    dinteger_t ofs1, ofs2;
+
+    dinteger_t ofs1;
     if (eptr->op == TOKaddress)
         eptr = ((AddrExp *)eptr)->e1;
     Expression *agg1 = getAggregateFromPointer(eptr, &ofs1);
@@ -677,65 +800,84 @@ Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
         if (((SymOffExp *)agg1)->var->type->ty != Tsarray)
         {
             error(loc, "cannot perform pointer arithmetic on arrays of unknown length at compile time");
-            return EXP_CANT_INTERPRET;
+            goto Lcant;
         }
     }
     else if (agg1->op != TOKstring && agg1->op != TOKarrayliteral)
     {
         error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
-        return EXP_CANT_INTERPRET;
+        goto Lcant;
     }
-    ofs2 = e2->toInteger();
-    Type *pointee = ((TypePointer *)agg1->type)->next;
-    sinteger_t indx = ofs1;
+    dinteger_t ofs2 = e2->toInteger();
+
+    Type *pointee = ((TypeNext *)agg1->type->toBasetype())->next;
     dinteger_t sz = pointee->size();
-    Expression *dollar;
+
+    sinteger_t indx;
+    dinteger_t len;
     if (agg1->op == TOKsymoff)
     {
-        dollar = ((TypeSArray *)(((SymOffExp *)agg1)->var->type))->dim;
-        indx = ofs1/sz;
+        indx = ofs1 / sz;
+        len = ((TypeSArray *)((SymOffExp *)agg1)->var->type)->dim->toInteger();
     }
     else
     {
-        dollar = ArrayLength(Type::tsize_t, agg1);
-        assert(dollar != EXP_CANT_INTERPRET);
+        Expression *dollar = ArrayLength(Type::tsize_t, agg1).copy();
+        assert(!CTFEExp::isCantExp(dollar));
+        indx = ofs1;
+        len = dollar->toInteger();
     }
-    dinteger_t len = dollar->toInteger();
-
     if (op == TOKadd || op == TOKaddass || op == TOKplusplus)
-        indx = indx + ofs2/sz;
+        indx += ofs2 / sz;
     else if (op == TOKmin || op == TOKminass || op == TOKminusminus)
-        indx -= ofs2/sz;
+        indx -= ofs2 / sz;
     else
     {
-        error(loc, "CTFE Internal compiler error: bad pointer operation");
-        return EXP_CANT_INTERPRET;
+        error(loc, "CTFE internal error: bad pointer operation");
+        goto Lcant;
     }
 
-    if (indx < 0 || indx > len)
+    if (indx < 0 || len < indx)
     {
         error(loc, "cannot assign pointer to index %lld inside memory block [0..%lld]", indx, len);
-        return EXP_CANT_INTERPRET;
+        goto Lcant;
     }
 
     if (agg1->op == TOKsymoff)
     {
-        SymOffExp *se = new SymOffExp(loc, ((SymOffExp *)agg1)->var, indx*sz);
+        new(&ue) SymOffExp(loc, ((SymOffExp *)agg1)->var, indx * sz);
+        SymOffExp *se = (SymOffExp *)ue.exp();
         se->type = type;
-        return se;
+        return ue;
     }
 
-    Expression *val = agg1;
-    if (val->op != TOKarrayliteral && val->op != TOKstring)
+    if (agg1->op != TOKarrayliteral && agg1->op != TOKstring)
     {
-        error(loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
-        return EXP_CANT_INTERPRET;
+        error(loc, "CTFE internal error: pointer arithmetic %s", agg1->toChars());
+        goto Lcant;
     }
 
+    if (eptr->type->toBasetype()->ty == Tsarray)
+    {
+        dinteger_t dim = ((TypeSArray *)eptr->type->toBasetype())->dim->toInteger();
+
+        // Create a CTFE pointer &agg1[indx .. indx+dim]
+        SliceExp *se = new SliceExp(loc, agg1,
+            new IntegerExp(loc, indx,       Type::tsize_t),
+            new IntegerExp(loc, indx + dim, Type::tsize_t));
+        se->type = type->toBasetype()->nextOf();
+        new(&ue) AddrExp(loc, se);
+        ue.exp()->type = type;
+        return ue;
+    }
+
+    // Create a CTFE pointer &agg1[indx]
     IntegerExp *ofs = new IntegerExp(loc, indx, Type::tsize_t);
-    IndexExp *ie = new IndexExp(loc, val, ofs);
-    ie->type = type;
-    return ie;
+    Expression *ie = new IndexExp(loc, agg1, ofs);
+    ie->type = type->toBasetype()->nextOf();    // Bugzilla 13992
+    new(&ue) AddrExp(loc, ie);
+    ue.exp()->type = type;
+    return ue;
 }
 
 // Return 1 if true, 0 if false
@@ -743,10 +885,10 @@ Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
 int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t ofs1,
         Expression *agg2, dinteger_t ofs2)
 {
-    if ( pointToSameMemoryBlock(agg1, agg2) )
+    if (pointToSameMemoryBlock(agg1, agg2))
     {
         int n;
-        switch(op)
+        switch (op)
         {
         case TOKlt:          n = (ofs1 <  ofs2); break;
         case TOKle:          n = (ofs1 <= ofs2); break;
@@ -761,18 +903,18 @@ int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t of
         }
         return n;
     }
-    bool null1 = ( agg1->op == TOKnull );
-    bool null2 = ( agg2->op == TOKnull );
+    bool null1 = (agg1->op == TOKnull);
+    bool null2 = (agg2->op == TOKnull);
 
     int cmp;
     if (null1 || null2)
     {
         switch (op)
         {
-        case TOKlt:   cmp =  null1 && !null2; break;
-        case TOKgt:   cmp = !null1 &&  null2; break;
-        case TOKle:   cmp = null1; break;
-        case TOKge:   cmp = null2; break;
+        case TOKlt:   cmp =  null1 && !null2;   break;
+        case TOKgt:   cmp = !null1 &&  null2;   break;
+        case TOKle:   cmp = null1;              break;
+        case TOKge:   cmp = null2;              break;
         case TOKidentity:
         case TOKequal:
         case TOKnotidentity: // 'cmp' gets inverted below
@@ -785,7 +927,7 @@ int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t of
     }
     else
     {
-        switch(op)
+        switch (op)
         {
         case TOKidentity:
         case TOKequal:
@@ -802,25 +944,13 @@ int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t of
     return cmp;
 }
 
-union UnionFloatInt
-{
-    float f;
-    d_int32 x;
-};
-
-union UnionDoubleLong
-{
-    double f;
-    d_int64 x;
-};
-
 // True if conversion from type 'from' to 'to' involves a reinterpret_cast
 // floating point -> integer or integer -> floating point
 bool isFloatIntPaint(Type *to, Type *from)
 {
-    return (from->size() == to->size()) &&
-        (  (from->isintegral() && to->isfloating())
-        || (from->isfloating() && to->isintegral()) );
+    return from->size() == to->size() &&
+           (from->isintegral() && to->isfloating() ||
+            from->isfloating() && to->isintegral());
 }
 
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
@@ -829,38 +959,9 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
     if (exceptionOrCantInterpret(fromVal))
         return fromVal;
 
-    if (to->size() == 4)
-    {
-        UnionFloatInt u;
-        if (to->isintegral())
-        {
-            u.f = fromVal->toReal();
-            return new IntegerExp(fromVal->loc, (dinteger_t)ldouble(u.x), to);
-        }
-        else
-        {
-            u.x = (d_int32)fromVal->toInteger();
-            return new RealExp(fromVal->loc, ldouble(u.f), to);
-        }
-    }
-    else if (to->size() == 8)
-    {
-        UnionDoubleLong v;
-        if (to->isintegral())
-        {
-            v.f = fromVal->toReal();
-            return new IntegerExp(fromVal->loc, v.x, to);
-        }
-        else
-        {
-            v.x = fromVal->toInteger();
-            return new RealExp(fromVal->loc, ldouble(v.f), to);
-        }
-    }
-    assert(0);
-    return NULL;    // avoid warning
+    assert(to->size() == 4 || to->size() == 8);
+    return Target::paintAsType(fromVal, to);
 }
-
 
 /***********************************************
       Primitive integer operations
@@ -910,151 +1011,158 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         result = e1->getInteger() * e2->getInteger();
         break;
     case TOKdiv:
+    {
+        sinteger_t n1 = e1->getInteger();
+        sinteger_t n2 = e2->getInteger();
+
+        if (n2 == 0)
         {
-            sinteger_t n1 = e1->getInteger();
-            sinteger_t n2 = e2->getInteger();
-
-            if (n2 == 0)
-            {   e2->error("divide by 0");
-                result = 1;
-            }
-            else if (e1->type->isunsigned() || e2->type->isunsigned())
-                result = ((d_uns64) n1) / ((d_uns64) n2);
-            else
-                result = n1 / n2;
+            e2->error("divide by 0");
+            result = 1;
         }
+        else if (e1->type->isunsigned() || e2->type->isunsigned())
+            result = ((d_uns64) n1) / ((d_uns64) n2);
+        else
+            result = n1 / n2;
         break;
+    }
     case TOKmod:
-        {   sinteger_t n1 = e1->getInteger();
-            sinteger_t n2 = e2->getInteger();
+    {
+        sinteger_t n1 = e1->getInteger();
+        sinteger_t n2 = e2->getInteger();
 
-            if (n2 == 0)
-            {   e2->error("divide by 0");
+        if (n2 == 0)
+        {
+            e2->error("divide by 0");
+            n2 = 1;
+        }
+        if (n2 == -1 && !type->isunsigned())
+        {
+            // Check for int.min % -1
+            if (n1 == 0xFFFFFFFF80000000ULL && type->toBasetype()->ty != Tint64)
+            {
+                e2->error("integer overflow: int.min % -1");
                 n2 = 1;
             }
-            if (n2 == -1 && !type->isunsigned())
-            {    // Check for int.min % -1
-                if (n1 == 0xFFFFFFFF80000000ULL && type->toBasetype()->ty != Tint64)
-                {
-                    e2->error("integer overflow: int.min % -1");
-                    n2 = 1;
-                }
-                else if (n1 == 0x8000000000000000LL) // long.min % -1
-                {
-                    e2->error("integer overflow: long.min % -1");
-                    n2 = 1;
-                }
+            else if (n1 == 0x8000000000000000LL) // long.min % -1
+            {
+                e2->error("integer overflow: long.min % -1");
+                n2 = 1;
             }
-            if (e1->type->isunsigned() || e2->type->isunsigned())
-                result = ((d_uns64) n1) % ((d_uns64) n2);
-            else
-                result = n1 % n2;
         }
+        if (e1->type->isunsigned() || e2->type->isunsigned())
+            result = ((d_uns64) n1) % ((d_uns64) n2);
+        else
+            result = n1 % n2;
         break;
+    }
     case TOKpow:
-        {   dinteger_t n = e2->getInteger();
-            if (!e2->type->isunsigned() && (sinteger_t)n < 0)
-            {
-                e2->error("integer ^^ -integer: total loss of precision");
-                n = 1;
-            }
-            uinteger_t r = e1->getInteger();
-            result = 1;
-            while (n != 0)
-            {
-                if (n & 1)
-                    result = result * r;
-                n >>= 1;
-                r = r * r;
-            }
+    {
+        dinteger_t n = e2->getInteger();
+        if (!e2->type->isunsigned() && (sinteger_t)n < 0)
+        {
+            e2->error("integer ^^ -integer: total loss of precision");
+            n = 1;
+        }
+        uinteger_t r = e1->getInteger();
+        result = 1;
+        while (n != 0)
+        {
+            if (n & 1)
+                result = result * r;
+            n >>= 1;
+            r = r * r;
         }
         break;
+    }
     case TOKshl:
         result = e1->getInteger() << e2->getInteger();
         break;
     case TOKshr:
-        {   dinteger_t value = e1->getInteger();
-            dinteger_t dcount = e2->getInteger();
-            assert(dcount <= 0xFFFFFFFF);
-            unsigned count = (unsigned)dcount;
-            switch (e1->type->toBasetype()->ty)
-            {
-                case Tint8:
-                    result = (d_int8)(value) >> count;
-                    break;
+    {
+        dinteger_t value = e1->getInteger();
+        dinteger_t dcount = e2->getInteger();
+        assert(dcount <= 0xFFFFFFFF);
+        unsigned count = (unsigned)dcount;
+        switch (e1->type->toBasetype()->ty)
+        {
+            case Tint8:
+                result = (d_int8)(value) >> count;
+                break;
 
-                case Tuns8:
-                case Tchar:
-                    result = (d_uns8)(value) >> count;
-                    break;
+            case Tuns8:
+            case Tchar:
+                result = (d_uns8)(value) >> count;
+                break;
 
-                case Tint16:
-                    result = (d_int16)(value) >> count;
-                    break;
+            case Tint16:
+                result = (d_int16)(value) >> count;
+                break;
 
-                case Tuns16:
-                case Twchar:
-                    result = (d_uns16)(value) >> count;
-                    break;
+            case Tuns16:
+            case Twchar:
+                result = (d_uns16)(value) >> count;
+                break;
 
-                case Tint32:
-                    result = (d_int32)(value) >> count;
-                    break;
+            case Tint32:
+                result = (d_int32)(value) >> count;
+                break;
 
-                case Tuns32:
-                case Tdchar:
-                    result = (d_uns32)(value) >> count;
-                    break;
+            case Tuns32:
+            case Tdchar:
+                result = (d_uns32)(value) >> count;
+                break;
 
-                case Tint64:
-                    result = (d_int64)(value) >> count;
-                    break;
+            case Tint64:
+                result = (d_int64)(value) >> count;
+                break;
 
-                case Tuns64:
-                    result = (d_uns64)(value) >> count;
-                    break;
-                default:
-                    assert(0);
-            }
+            case Tuns64:
+                result = (d_uns64)(value) >> count;
+                break;
+            default:
+                assert(0);
         }
         break;
+    }
     case TOKushr:
-        {   dinteger_t value = e1->getInteger();
-            dinteger_t dcount = e2->getInteger();
-            assert(dcount <= 0xFFFFFFFF);
-            unsigned count = (unsigned)dcount;
-            switch (e1->type->toBasetype()->ty)
-            {
-                case Tint8:
-                case Tuns8:
-                case Tchar:
-                    // Possible only with >>>=. >>> always gets promoted to int.
-                    result = (value & 0xFF) >> count;
-                    break;
+    {
+        dinteger_t value = e1->getInteger();
+        dinteger_t dcount = e2->getInteger();
+        assert(dcount <= 0xFFFFFFFF);
+        unsigned count = (unsigned)dcount;
+        switch (e1->type->toBasetype()->ty)
+        {
+            case Tint8:
+            case Tuns8:
+            case Tchar:
+                // Possible only with >>>=. >>> always gets promoted to int.
+                result = (value & 0xFF) >> count;
+                break;
 
-                case Tint16:
-                case Tuns16:
-                case Twchar:
-                    // Possible only with >>>=. >>> always gets promoted to int.
-                    result = (value & 0xFFFF) >> count;
-                    break;
+            case Tint16:
+            case Tuns16:
+            case Twchar:
+                // Possible only with >>>=. >>> always gets promoted to int.
+                result = (value & 0xFFFF) >> count;
+                break;
 
-                case Tint32:
-                case Tuns32:
-                case Tdchar:
-                    result = (value & 0xFFFFFFFF) >> count;
-                    break;
+            case Tint32:
+            case Tuns32:
+            case Tdchar:
+                result = (value & 0xFFFFFFFF) >> count;
+                break;
 
-                case Tint64:
-                case Tuns64:
-                    result = (d_uns64)(value) >> count;
-                    break;
+            case Tint64:
+            case Tuns64:
+                result = (d_uns64)(value) >> count;
+                break;
 
-                default:
-                    assert(0);
-            }
+            default:
+                assert(0);
         }
         break;
+    }
     case TOKequal:
     case TOKidentity:
         result = (e1->getInteger() == e2->getInteger());
@@ -1069,7 +1177,6 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
     dest->setInteger(result);
     dest->type = type;
 }
-
 
 /******** Constant folding, with support for CTFE ***************************/
 
@@ -1216,16 +1323,18 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
 
     Expression *x = e1;
     if (x->op == TOKslice)
-    {   lo1 = ((SliceExp *)x)->lwr->toInteger();
-        x = ((SliceExp*)x)->e1;
+    {
+        lo1 = ((SliceExp *)x)->lwr->toInteger();
+        x = ((SliceExp *)x)->e1;
     }
     StringExp *se1 = (x->op == TOKstring) ? (StringExp *)x : NULL;
     ArrayLiteralExp *ae1 = (x->op == TOKarrayliteral) ? (ArrayLiteralExp *)x : NULL;
 
     x = e2;
     if (x->op == TOKslice)
-    {   lo2 = ((SliceExp *)x)->lwr->toInteger();
-        x = ((SliceExp*)x)->e1;
+    {
+        lo2 = ((SliceExp *)x)->lwr->toInteger();
+        x = ((SliceExp *)x)->e1;
     }
     StringExp *se2 = (x->op == TOKstring) ? (StringExp *)x : NULL;
     ArrayLiteralExp *ae2 = (x->op == TOKarrayliteral) ? (ArrayLiteralExp *)x : NULL;
@@ -1244,17 +1353,20 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
     // a full cmp.
     bool needCmp = ae1->type->nextOf()->isintegral();
     for (size_t i = 0; i < len; i++)
-    {   Expression *ee1 = (*ae1->elements)[(size_t)(lo1 + i)];
+    {
+        Expression *ee1 = (*ae1->elements)[(size_t)(lo1 + i)];
         Expression *ee2 = (*ae2->elements)[(size_t)(lo2 + i)];
         if (needCmp)
-        {   sinteger_t c = ee1->toInteger() - ee2->toInteger();
+        {
+            sinteger_t c = ee1->toInteger() - ee2->toInteger();
             if (c > 0)
                 return 1;
             if (c < 0)
                 return -1;
         }
         else
-        {   if (ctfeRawCmp(loc, ee1, ee2))
+        {
+            if (ctfeRawCmp(loc, ee1, ee2))
                 return 1;
         }
     }
@@ -1288,7 +1400,8 @@ bool isArray(Expression *e)
 int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
 {
     if (e1->op == TOKclassreference || e2->op == TOKclassreference)
-    {   if (e1->op == TOKclassreference && e2->op == TOKclassreference &&
+    {
+        if (e1->op == TOKclassreference && e2->op == TOKclassreference &&
             ((ClassReferenceExp *)e1)->value == ((ClassReferenceExp *)e2)->value)
             return 0;
         return 1;
@@ -1308,7 +1421,8 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
         if ((agg1 == agg2) || (agg1->op == TOKvar && agg2->op == TOKvar &&
             ((VarExp *)agg1)->var == ((VarExp *)agg2)->var))
-        {   if (ofs1 == ofs2)
+        {
+            if (ofs1 == ofs2)
                 return 0;
         }
         return 1;
@@ -1348,8 +1462,8 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         uinteger_t len2 = resolveArrayLength(e2);
         // workaround for dmc optimizer bug calculating wrong len for
         // uinteger_t len = (len1 < len2 ? len1 : len2);
-        // if(len == 0) ...
-        if(len1 > 0 && len2 > 0)
+        // if (len == 0) ...
+        if (len1 > 0 && len2 > 0)
         {
             uinteger_t len = (len1 < len2 ? len1 : len2);
             int res = ctfeCmpArrays(loc, e1, e2, len);
@@ -1390,7 +1504,8 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
     }
 
     if (e1->op == TOKstructliteral && e2->op == TOKstructliteral)
-    {   StructLiteralExp *es1 = (StructLiteralExp *)e1;
+    {
+        StructLiteralExp *es1 = (StructLiteralExp *)e1;
         StructLiteralExp *es2 = (StructLiteralExp *)e2;
         // For structs, we only need to return 0 or 1 (< and > aren't legal).
 
@@ -1406,7 +1521,8 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         else
         {
             for (size_t i = 0; i < es1->elements->dim; i++)
-            {   Expression *ee1 = (*es1->elements)[i];
+            {
+                Expression *ee1 = (*es1->elements)[i];
                 Expression *ee2 = (*es2->elements)[i];
 
                 if (ee1 == ee2)
@@ -1462,7 +1578,6 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
     return 0;
 }
 
-
 /// Evaluate ==, !=.  Resolves slices before comparing. Returns 0 or 1
 int ctfeEqual(Loc loc, TOK op, Expression *e1, Expression *e2)
 {
@@ -1471,7 +1586,6 @@ int ctfeEqual(Loc loc, TOK op, Expression *e1, Expression *e2)
         cmp ^= 1;
     return cmp;
 }
-
 
 /// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
 int ctfeIdentity(Loc loc, TOK op, Expression *e1, Expression *e2)
@@ -1496,7 +1610,8 @@ int ctfeIdentity(Loc loc, TOK op, Expression *e1, Expression *e2)
     else if (e1->type->isimaginary())
         cmp = RealEquals(e1->toImaginary(), e2->toImaginary());
     else if (e1->type->iscomplex())
-    {   complex_t v1 = e1->toComplex();
+    {
+        complex_t v1 = e1->toComplex();
         complex_t v2 = e2->toComplex();
         cmp = RealEquals(creall(v1), creall(v2)) &&
                  RealEquals(cimagl(v1), cimagl(v1));
@@ -1508,7 +1623,6 @@ int ctfeIdentity(Loc loc, TOK op, Expression *e1, Expression *e2)
         cmp ^= 1;
     return cmp;
 }
-
 
 /// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
 int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2)
@@ -1558,13 +1672,13 @@ int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2)
     return n;
 }
 
-
-Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
+UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
 {
     Loc loc = e1->loc;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
     Expression *e;
+    UnionExp ue;
     if (e2->op == TOKstring && e1->op == TOKarrayliteral &&
         t1->nextOf()->isintegral())
     {
@@ -1580,7 +1694,10 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         {
             Expression *es2e = (*es2->elements)[i];
             if (es2e->op != TOKint64)
-                return EXP_CANT_INTERPRET;
+            {
+                new(&ue) CTFEExp(TOKcantexp);
+                return ue;
+            }
             dinteger_t v = es2e->toInteger();
             memcpy((utf8_t *)s + i * sz, &v, sz);
         }
@@ -1588,14 +1705,14 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         // Add terminating 0
         memset((utf8_t *)s + len * sz, 0, sz);
 
-        StringExp *es = new StringExp(loc, s, len);
+        new(&ue) StringExp(loc, s, len);
+        StringExp *es = (StringExp *)ue.exp();
         es->sz = sz;
         es->committed = 0;
         es->type = type;
-        e = es;
-        return e;
+        return ue;
     }
-    else if (e1->op == TOKstring && e2->op == TOKarrayliteral &&
+    if (e1->op == TOKstring && e2->op == TOKarrayliteral &&
         t2->nextOf()->isintegral())
     {
         // string ~ [chars] => string (only valid for CTFE)
@@ -1611,7 +1728,10 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         {
             Expression *es2e = (*es2->elements)[i];
             if (es2e->op != TOKint64)
-                return EXP_CANT_INTERPRET;
+            {
+                new(&ue) CTFEExp(TOKcantexp);
+                return ue;
+            }
             dinteger_t v = es2e->toInteger();
             memcpy((utf8_t *)s + (es1->len + i) * sz, &v, sz);
         }
@@ -1619,40 +1739,42 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         // Add terminating 0
         memset((utf8_t *)s + len * sz, 0, sz);
 
-        StringExp *es = new StringExp(loc, s, len);
+        new(&ue) StringExp(loc, s, len);
+        StringExp *es = (StringExp *)ue.exp();
         es->sz = sz;
         es->committed = 0; //es1->committed;
         es->type = type;
-        e = es;
-        return e;
+        return ue;
     }
-    else if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral &&
+    if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  [ e1 ] ~ [ e2 ] ---> [ e1, e2 ]
         ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
         ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
 
-        es1 = new ArrayLiteralExp(es1->loc, copyLiteralArray(es1->elements));
+        new(&ue) ArrayLiteralExp(es1->loc, copyLiteralArray(es1->elements));
+        es1 = (ArrayLiteralExp *)ue.exp();
         es1->elements->insert(es1->elements->dim, copyLiteralArray(es2->elements));
-        e = es1;
-        e->type = type;
-        return e;
+        es1->type = type;
+        return ue;
     }
-    else if (e1->op == TOKarrayliteral && e2->op == TOKnull &&
+    if (e1->op == TOKarrayliteral && e2->op == TOKnull &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  [ e1 ] ~ null ----> [ e1 ].dup
-        return paintTypeOntoLiteral(type, copyLiteral(e1));
+        ue = paintTypeOntoLiteralCopy(type, copyLiteral(e1).exp());
+        return ue;
     }
-    else if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
+    if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
         t1->nextOf()->equals(t2->nextOf()))
     {
         //  null ~ [ e2 ] ----> [ e2 ].dup
-        return paintTypeOntoLiteral(type, copyLiteral(e2));
+        ue = paintTypeOntoLiteralCopy(type, copyLiteral(e2).exp());
+        return ue;
     }
-
-    return Cat(type, e1, e2);
+    ue = Cat(type, e1, e2);
+    return ue;
 }
 
 /*  Given an AA literal 'ae', and a key 'e2':
@@ -1689,20 +1811,21 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
         if (indx >= es1->len)
         {
             error(loc, "string index %llu is out of bounds [0 .. %llu]", indx, (ulonglong)es1->len);
-            return EXP_CANT_INTERPRET;
+            return CTFEExp::cantexp;
         }
-        else
-            return new IntegerExp(loc, es1->charAt(indx), type);
+        return new IntegerExp(loc, es1->charAt(indx), type);
     }
     assert(e1->op == TOKarrayliteral);
-    ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
-    if (indx >= ale->elements->dim)
     {
-        error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1->toChars(), (ulonglong)ale->elements->dim);
-        return EXP_CANT_INTERPRET;
+        ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
+        if (indx >= ale->elements->dim)
+        {
+            error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1->toChars(), (ulonglong)ale->elements->dim);
+            return CTFEExp::cantexp;
+        }
+        Expression *e = (*ale->elements)[(size_t)indx];
+        return paintTypeOntoLiteral(type, e);
     }
-    Expression *e = (*ale->elements)[(size_t)indx];
-    return paintTypeOntoLiteral(type, e);
 }
 
 Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
@@ -1725,9 +1848,27 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     // Allow casting away const for struct literals
     if (e->op == TOKstructliteral &&
         e->type->toBasetype()->castMod(0) == to->toBasetype()->castMod(0))
+    {
         return paintTypeOntoLiteral(to, e);
-    Expression *r = Cast(type, to, e);
-    if (r == EXP_CANT_INTERPRET)
+    }
+
+    Expression *r;
+    if (e->type->equals(type) && type->equals(to))
+    {
+        // necessary not to change e's address for pointer comparisons
+        r = e;
+    }
+    else if (to->toBasetype()->ty == Tarray &&     type->toBasetype()->ty == Tarray &&
+             to->toBasetype()->nextOf()->size() == type->toBasetype()->nextOf()->size())
+    {
+        // Bugzilla 12495: Array reinterpret casts: eg. string to immutable(ubyte)[]
+        return paintTypeOntoLiteral(to, e);
+    }
+    else
+    {
+        r = Cast(type, to, e).copy();
+    }
+    if (CTFEExp::isCantExp(r))
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
     if (e->op == TOKarrayliteral)
         ((ArrayLiteralExp *)e)->ownedByCtfe = true;
@@ -1739,15 +1880,16 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
 /******** Assignment helper functions ***************************/
 
 /* Set dest = src, where both dest and src are container value literals
- * (ie, struct literals, or static arrays (can be an array literal or a string)
+ * (ie, struct literals, or static arrays (can be an array literal or a string))
  * Assignment is recursively in-place.
  * Purpose: any reference to a member of 'dest' will remain valid after the
  * assignment.
  */
 void assignInPlace(Expression *dest, Expression *src)
 {
-    assert(dest->op == TOKstructliteral || dest->op == TOKarrayliteral ||
-        dest->op == TOKstring);
+    assert(dest->op == TOKstructliteral ||
+           dest->op == TOKarrayliteral ||
+           dest->op == TOKstring);
     Expressions *oldelems;
     Expressions *newelems;
     if (dest->op == TOKstructliteral)
@@ -1778,7 +1920,8 @@ void assignInPlace(Expression *dest, Expression *src)
         sliceAssignStringFromArrayLiteral((StringExp *)dest, (ArrayLiteralExp *)src, 0);
         return;
     }
-    else assert(0);
+    else
+        assert(0);
 
     assert(oldelems->dim == newelems->dim);
 
@@ -1791,7 +1934,8 @@ void assignInPlace(Expression *dest, Expression *src)
             assert(o->op == e->op);
             assignInPlace(o, e);
         }
-        else if (e->type->ty == Tsarray && o->type->ty == Tsarray && e->op != TOKvoid)
+        else if (e->type->ty == Tsarray && e->op != TOKvoid &&
+                 o->type->ty == Tsarray)
         {
             assignInPlace(o, e);
         }
@@ -1804,12 +1948,13 @@ void assignInPlace(Expression *dest, Expression *src)
 
 void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef)
 {
-    assert( ae->type->ty == Tsarray || ae->type->ty == Tarray);
+    assert(ae->type->ty == Tsarray || ae->type->ty == Tarray);
     Type *desttype = ((TypeArray *)ae->type)->next->toBasetype()->castMod(0);
     bool directblk = (val->type->toBasetype()->castMod(0))->equals(desttype);
 
-    bool cow = !(val->op == TOKstructliteral || val->op == TOKarrayliteral
-        || val->op == TOKstring);
+    bool cow = val->op != TOKstructliteral &&
+               val->op != TOKarrayliteral &&
+               val->op != TOKstring;
 
     for (size_t k = 0; k < ae->elements->dim; k++)
     {
@@ -1844,11 +1989,11 @@ Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, Expre
 }
 
 // Create a new struct literal, which is the same as se except that se.field[offset] = elem
-Expression * modifyStructField(Type *type, StructLiteralExp *se, size_t offset, Expression *newval)
+Expression *modifyStructField(Type *type, StructLiteralExp *se, size_t offset, Expression *newval)
 {
     int fieldi = se->getFieldIndex(newval->type, (unsigned)offset);
     if (fieldi == -1)
-        return EXP_CANT_INTERPRET;
+        return CTFEExp::cantexp;
     /* Create new struct literal reflecting updated fieldi
     */
     Expressions *expsx = changeOneElement(se->elements, fieldi, newval);
@@ -1868,7 +2013,8 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
     Expressions *valuesx = aae->values;
     int updated = 0;
     for (size_t j = valuesx->dim; j; )
-    {   j--;
+    {
+        j--;
         Expression *ekey = (*aae->keys)[j];
         int eq = ctfeEqual(loc, TOKequal, ekey, index);
         if (eq)
@@ -1878,7 +2024,8 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
         }
     }
     if (!updated)
-    {   // Append index/newval to keysx[]/valuesx[]
+    {
+        // Append index/newval to keysx[]/valuesx[]
         valuesx->push(newval);
         keysx->push(index);
     }
@@ -1888,9 +2035,10 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
 /// Given array literal oldval of type ArrayLiteralExp or StringExp, of length
 /// oldlen, change its length to newlen. If the newlen is longer than oldlen,
 /// all new elements will be set to the default initializer for the element type.
-Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
+UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     Expression *oldval,  size_t oldlen, size_t newlen)
 {
+    UnionExp ue;
     Type *elemType = arrayType->next;
     assert(elemType);
     Expression *defaultElem = elemType->defaultInitLiteral(loc);
@@ -1900,197 +2048,193 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     // Resolve slices
     size_t indxlo = 0;
     if (oldval->op == TOKslice)
-    {   indxlo = (size_t)((SliceExp *)oldval)->lwr->toInteger();
+    {
+        indxlo = (size_t)((SliceExp *)oldval)->lwr->toInteger();
         oldval = ((SliceExp *)oldval)->e1;
     }
     size_t copylen = oldlen < newlen ? oldlen : newlen;
     if (oldval->op == TOKstring)
     {
         StringExp *oldse = (StringExp *)oldval;
-        utf8_t *s = (utf8_t *)mem.calloc(newlen + 1, oldse->sz);
+        void *s = mem.calloc(newlen + 1, oldse->sz);
         memcpy(s, oldse->string, copylen * oldse->sz);
         unsigned defaultValue = (unsigned)(defaultElem->toInteger());
         for (size_t elemi = copylen; elemi < newlen; ++elemi)
         {
             switch (oldse->sz)
             {
-                case 1:     s[(size_t)(indxlo + elemi)] = (utf8_t)defaultValue; break;
-                case 2:     ((unsigned short *)s)[(size_t)(indxlo + elemi)] = (unsigned short)defaultValue; break;
-                case 4:     ((unsigned *)s)[(size_t)(indxlo + elemi)] = defaultValue; break;
+                case 1:     (( utf8_t *)s)[(size_t)(indxlo + elemi)] = ( utf8_t)defaultValue;  break;
+                case 2:     ((utf16_t *)s)[(size_t)(indxlo + elemi)] = (utf16_t)defaultValue;  break;
+                case 4:     ((utf32_t *)s)[(size_t)(indxlo + elemi)] = (utf32_t)defaultValue;  break;
                 default:    assert(0);
             }
         }
-        StringExp *se = new StringExp(loc, s, newlen);
+        new(&ue) StringExp(loc, s, newlen);
+        StringExp *se = (StringExp *)ue.exp();
         se->type = arrayType;
         se->sz = oldse->sz;
         se->committed = oldse->committed;
         se->ownedByCtfe = true;
-        return se;
     }
     else
     {
-        if (oldlen !=0)
+        if (oldlen != 0)
             assert(oldval->op == TOKarrayliteral);
         ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
         for (size_t i = 0; i < copylen; i++)
             (*elements)[i] = (*ae->elements)[indxlo + i];
         if (elemType->ty == Tstruct || elemType->ty == Tsarray)
-        {   /* If it is an aggregate literal representing a value type,
+        {
+            /* If it is an aggregate literal representing a value type,
              * we need to create a unique copy for each element
              */
             for (size_t i = copylen; i < newlen; i++)
-                (*elements)[i] = copyLiteral(defaultElem);
+                (*elements)[i] = copyLiteral(defaultElem).copy();
         }
         else
         {
             for (size_t i = copylen; i < newlen; i++)
                 (*elements)[i] = defaultElem;
         }
-        ArrayLiteralExp *aae = new ArrayLiteralExp(loc, elements);
+        new(&ue) ArrayLiteralExp(loc, elements);
+        ArrayLiteralExp *aae = (ArrayLiteralExp *)ue.exp();
         aae->type = arrayType;
         aae->ownedByCtfe = true;
-        return aae;
     }
+    return ue;
 }
-
 
 /*************************** CTFE Sanity Checks ***************************/
 
-
 bool isCtfeValueValid(Expression *newval)
 {
-    if (newval->type->ty == Tnull || isPointer(newval->type))
+    Type *tb = newval->type->toBasetype();
+
+    if (newval->op == TOKint64 ||
+        newval->op == TOKfloat64 ||
+        newval->op == TOKchar ||
+        newval->op == TOKcomplex80)
     {
-        if (newval->op == TOKaddress || newval->op == TOKnull ||
-            newval->op == TOKstring)
-            return true;
-        if (newval->op == TOKindex)
-        {
-            Expression *g = ((IndexExp *)newval)->e1;
-            if (g->op == TOKarrayliteral || g->op == TOKstring ||
-                g->op == TOKassocarrayliteral)
-            return true;
-        }
-        if (newval->op == TOKvar)
-            return true;
-        if (newval->type->nextOf()->ty == Tarray && newval->op == TOKslice)
-            return true;
-        if (newval->op == TOKint64)
-            return true; // Result of a cast, but cannot be dereferenced
-        // else it must be a reference
+        return tb->isscalar();
     }
-    if (newval->op == TOKclassreference || (newval->op == TOKnull && newval->type->ty == Tclass))
+    if (newval->op == TOKnull)
+    {
+        return tb->ty == Tnull ||
+               tb->ty == Tpointer ||
+               tb->ty == Tarray ||
+               tb->ty == Taarray ||
+               tb->ty == Tclass;
+    }
+
+    if (newval->op == TOKstring)
+        return true;    // CTFE would directly use the StringExp in AST.
+    if (newval->op == TOKarrayliteral)
+        return ((ArrayLiteralExp *)newval)->ownedByCtfe;
+    if (newval->op == TOKassocarrayliteral)
+        return ((AssocArrayLiteralExp *)newval)->ownedByCtfe;
+    if (newval->op == TOKstructliteral)
+        return ((StructLiteralExp *)newval)->ownedByCtfe;
+    if (newval->op == TOKclassreference)
+        return true;
+
+    if (newval->op == TOKvector)
+        return true;    // vector literal
+
+    if (newval->op == TOKfunction)
+        return true;    // function literal or delegate literal
+    if (newval->op == TOKdelegate)
+    {
+        // &struct.func or &clasinst.func
+        // &nestedfunc
+        Expression *ethis = ((DelegateExp *)newval)->e1;
+        return (ethis->op == TOKstructliteral ||
+                ethis->op == TOKclassreference ||
+                ethis->op == TOKvar && ((VarExp *)ethis)->var == ((DelegateExp *)newval)->func);
+    }
+    if (newval->op == TOKsymoff)
+    {
+        // function pointer, or pointer to static variable
+        Declaration *d = ((SymOffExp *)newval)->var;
+        return d->isFuncDeclaration() || d->isDataseg();
+    }
+    if (newval->op == TOKaddress)
+    {
+        // e1 should be a CTFE reference
+        Expression *e1 = ((AddrExp *)newval)->e1;
+        return tb->ty == Tpointer &&
+               (e1->op == TOKstructliteral && isCtfeValueValid(e1) ||
+                e1->op == TOKvar ||
+                e1->op == TOKdotvar && isCtfeReferenceValid(e1) ||
+                e1->op == TOKindex && isCtfeReferenceValid(e1) ||
+                e1->op == TOKslice && e1->type->toBasetype()->ty == Tsarray);
+    }
+    if (newval->op == TOKslice)
+    {
+        // e1 should be an array aggregate
+        SliceExp *se = (SliceExp *)newval;
+        assert(se->lwr && se->lwr->op == TOKint64);
+        assert(se->upr && se->upr->op == TOKint64);
+        return (tb->ty == Tarray ||
+                tb->ty == Tsarray) &&
+               (se->e1->op == TOKstring ||
+                se->e1->op == TOKarrayliteral);
+    }
+
+    if (newval->op == TOKvoid)
+        return true;    // uninitialized value
+
+    newval->error("CTFE internal error: illegal CTFE value %s", newval->toChars());
+    return false;
+}
+
+bool isCtfeReferenceValid(Expression *newval)
+{
+    if (newval->op == TOKthis)
         return true;
     if (newval->op == TOKvar)
     {
-        VarExp *ve = (VarExp *)newval;
-        VarDeclaration *vv = ve->var->isVarDeclaration();
+        VarDeclaration *v = ((VarExp *)newval)->var->isVarDeclaration();
+        assert(v);
         // Must not be a reference to a reference
-        if (!(vv && getValue(vv) && getValue(vv)->op == TOKvar))
-            return true;
-    }
-    if (newval->op == TOKdotvar)
-    {
-        if (((DotVarExp *)newval)->e1->op == TOKstructliteral)
-        {
-            assert(((StructLiteralExp *)((DotVarExp *)newval)->e1)->ownedByCtfe);
-            return true;
-        }
+        return true;
     }
     if (newval->op == TOKindex)
     {
-        IndexExp *ie = (IndexExp *)newval;
-        if (ie->e2->op == TOKint64)
-        {
-            if (ie->e1->op == TOKarrayliteral || ie->e1->op == TOKstring)
-                return true;
-        }
-        if (ie->e1->op == TOKassocarrayliteral)
-            return true;
-        // BUG: Happens ONLY in ref foreach. Should tighten this.
-        if (ie->e2->op == TOKvar)
-            return true;
+        Expression *eagg = ((IndexExp *)newval)->e1;
+        return eagg->op == TOKstring ||
+               eagg->op == TOKarrayliteral ||
+               eagg->op == TOKassocarrayliteral;
     }
-
-    if (newval->op == TOKfunction)
-        return true; // function literal or delegate literal
-
-    if (newval->op == TOKvector)
-        return true; // vector literal
-
-    if (newval->op == TOKdelegate)
+    if (newval->op == TOKdotvar)
     {
-        Expression *dge = ((DelegateExp *)newval)->e1;
-        if (dge->op == TOKvar && ((VarExp *)dge)->var->isFuncDeclaration())
-            return true;        // &nestedfunc
-
-        if (dge->op == TOKstructliteral || dge->op == TOKclassreference)
-            return true;       // &struct.func or &clasinst.func
-    }
-    if (newval->op == TOKsymoff)  // function pointer
-    {
-        if (((SymOffExp *)newval)->var->isFuncDeclaration())
-            return true;
-        if (((SymOffExp *)newval)->var->isDataseg())
-            return true;    // pointer to static variable
+        Expression *eagg = ((DotVarExp *)newval)->e1;
+        return  (eagg->op == TOKstructliteral || eagg->op == TOKclassreference) &&
+                isCtfeValueValid(eagg);
     }
 
-    if (newval->op == TOKint64 || newval->op == TOKfloat64 ||
-        newval->op == TOKchar || newval->op == TOKcomplex80)
-        return true;
-
-    // References
-
-    if (newval->op == TOKstructliteral)
-        assert(((StructLiteralExp *)newval)->ownedByCtfe);
-    if (newval->op == TOKarrayliteral)
-        assert(((ArrayLiteralExp *)newval)->ownedByCtfe);
-    if (newval->op == TOKassocarrayliteral)
-        assert(((AssocArrayLiteralExp *)newval)->ownedByCtfe);
-
-    if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
-        (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
-        (newval->op == TOKnull))
-    {   return true;
-    }
-    // Dynamic arrays passed by ref may be null. When this happens
-    // they may originate from an index or dotvar expression.
-    if (newval->type->ty == Tarray || newval->type->ty == Taarray)
-        if (newval->op == TOKdotvar || newval->op == TOKindex)
-            return true; // actually must be null
-
-    if (newval->op == TOKslice)
-    {
-        SliceExp *se = (SliceExp *)newval;
-        assert(se->lwr && se->lwr != EXP_CANT_INTERPRET && se->lwr->op == TOKint64);
-        assert(se->upr && se->upr != EXP_CANT_INTERPRET && se->upr->op == TOKint64);
-        assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
-        return true;
-    }
-    if (newval->op == TOKvoid)
-    {
-        return true;
-    }
-    newval->error("CTFE internal error: illegal value %s", newval->toChars());
-    return false;
+    // Internally a ref variable may directly point a stack memory.
+    // e.g. ref int v = 1;
+    return isCtfeValueValid(newval);
 }
 
 // Used for debugging only
 void showCtfeExpr(Expression *e, int level)
 {
-    for (int i = level; i>0; --i) printf(" ");
+    for (int i = level; i > 0; --i) printf(" ");
     Expressions *elements = NULL;
     // We need the struct definition to detect block assignment
     StructDeclaration *sd = NULL;
     ClassDeclaration *cd = NULL;
     if (e->op == TOKstructliteral)
-    {   elements = ((StructLiteralExp *)e)->elements;
+    {
+        elements = ((StructLiteralExp *)e)->elements;
         sd = ((StructLiteralExp *)e)->sd;
         printf("STRUCT type = %s %p:\n", e->type->toChars(),
             e);
     }
     else if (e->op == TOKclassreference)
-    {   elements = ((ClassReferenceExp *)e)->value->elements;
+    {
+        elements = ((ClassReferenceExp *)e)->value->elements;
         cd = ((ClassReferenceExp *)e)->originalClass();
         printf("CLASS type = %s %p:\n", e->type->toChars(),
             ((ClassReferenceExp *)e)->value);
@@ -2123,15 +2267,10 @@ void showCtfeExpr(Expression *e, int level)
         if (v && getValue(v))
             showCtfeExpr(getValue(v), level + 1);
     }
-    else if (isPointer(e->type))
+    else if (e->op == TOKaddress)
     {
         // This is potentially recursive. We mustn't try to print the thing we're pointing to.
-        if (e->op == TOKindex)
-            printf("POINTER %p into %p [%s]\n", e, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2->toChars());
-        else if (e->op == TOKdotvar)
-            printf("POINTER %p to %p .%s\n", e, ((DotVarExp *)e)->e1, ((DotVarExp *)e)->var->toChars());
-        else
-            printf("POINTER %p: %s\n", e, e->toChars());
+        printf("POINTER %p to %p: %s\n", e, ((AddrExp *)e)->e1, e->toChars());
     }
     else
         printf("VALUE %p: %s\n", e, e->toChars());
@@ -2140,9 +2279,11 @@ void showCtfeExpr(Expression *e, int level)
     {
         size_t fieldsSoFar = 0;
         for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *z = NULL;
+        {
+            Expression *z = NULL;
             VarDeclaration *v = NULL;
-            if (i > 15) {
+            if (i > 15)
+            {
                 printf("...(total %d elements)\n", (int)elements->dim);
                 return;
             }
@@ -2157,7 +2298,7 @@ void showCtfeExpr(Expression *e, int level)
                 {
                     fieldsSoFar += cd->fields.dim;
                     cd = cd->baseClass;
-                    for (int j = level; j>0; --j) printf(" ");
+                    for (int j = level; j > 0; --j) printf(" ");
                     printf(" BASE CLASS: %s\n", cd->toChars());
                 }
                 v = cd->fields[i - fieldsSoFar];
@@ -2168,7 +2309,7 @@ void showCtfeExpr(Expression *e, int level)
             }
             if (!z)
             {
-                for (int j = level; j>0; --j) printf(" ");
+                for (int j = level; j > 0; --j) printf(" ");
                 printf(" void\n");
                 continue;
             }
@@ -2178,7 +2319,7 @@ void showCtfeExpr(Expression *e, int level)
                 // If it is a void assignment, use the default initializer
                 if ((v->type->ty != z->type->ty) && v->type->ty == Tsarray)
                 {
-                    for (int j = level; --j;) printf(" ");
+                    for (int j = level; --j; ) printf(" ");
                     printf(" field: block initalized static array\n");
                     continue;
                 }
@@ -2190,12 +2331,13 @@ void showCtfeExpr(Expression *e, int level)
 
 /*************************** Void initialization ***************************/
 
-Expression *voidInitLiteral(Type *t, VarDeclaration *var)
+UnionExp voidInitLiteral(Type *t, VarDeclaration *var)
 {
+    UnionExp ue;
     if (t->ty == Tsarray)
     {
         TypeSArray *tsa = (TypeSArray *)t;
-        Expression *elem = voidInitLiteral(tsa->next, var);
+        Expression *elem = voidInitLiteral(tsa->next, var).copy();
 
         // For aggregate value types (structs, static arrays) we must
         // create an a separate copy for each element.
@@ -2207,13 +2349,13 @@ Expression *voidInitLiteral(Type *t, VarDeclaration *var)
         for (size_t i = 0; i < d; i++)
         {
             if (mustCopy && i > 0)
-                elem  = copyLiteral(elem);
+                elem  = copyLiteral(elem).copy();
             (*elements)[i] = elem;
         }
-        ArrayLiteralExp *ae = new ArrayLiteralExp(var->loc, elements);
+        new(&ue) ArrayLiteralExp(var->loc, elements);
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)ue.exp();
         ae->type = tsa;
         ae->ownedByCtfe = true;
-        return ae;
     }
     else if (t->ty == Tstruct)
     {
@@ -2222,15 +2364,14 @@ Expression *voidInitLiteral(Type *t, VarDeclaration *var)
         exps->setDim(ts->sym->fields.dim);
         for (size_t i = 0; i < ts->sym->fields.dim; i++)
         {
-            (*exps)[i] = voidInitLiteral(ts->sym->fields[i]->type, ts->sym->fields[i]);
+            (*exps)[i] = voidInitLiteral(ts->sym->fields[i]->type, ts->sym->fields[i]).copy();
         }
-        StructLiteralExp *se = new StructLiteralExp(var->loc, ts->sym, exps);
+        new(&ue) StructLiteralExp(var->loc, ts->sym, exps);
+        StructLiteralExp *se = (StructLiteralExp *)ue.exp();
         se->type = ts;
         se->ownedByCtfe = true;
-        return se;
     }
     else
-    {
-        return new VoidInitExp(var, t);
-    }
+        new(&ue) VoidInitExp(var, t);
+    return ue;
 }

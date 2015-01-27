@@ -703,6 +703,11 @@ struct Config
                                    2:   fast inline 8087 code
                                  */
     short memmodel;             // 0:S,X,N,F, 1:M, 2:C, 3:L, 4:V
+    unsigned objfmt;            // target object format
+#define OBJ_OMF         1
+#define OBJ_MSCOFF      2
+#define OBJ_ELF         3
+#define OBJ_MACH        4
     unsigned exe;               // target operating system
 #define EX_DOSX         1       // DOSX 386 program
 #define EX_ZPM          2       // ZPM 286 program

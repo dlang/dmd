@@ -692,6 +692,24 @@ void test7780()
 }
 
 /***************************************************/
+
+auto foo7849(string) { return 1; }
+auto foo7849(dstring) { return 2; }
+
+enum str7849a = "string";
+immutable str7849ai = "string";
+immutable str7849bi = str7849ai;
+enum str7849b = str7849ai;
+enum str7849c = str7849bi;
+
+void test7849()
+{
+    assert(foo7849(str7849a) == 1);
+    assert(foo7849(str7849b) == 1);
+    assert(foo7849(str7849c) == 1);
+}
+
+/***************************************************/
 // 8352
 
 void test8352()
@@ -991,6 +1009,65 @@ void test11785()
 }
 
 /***************************************************/
+// 11915
+
+int f11915(    int) { return 1; }
+int f11915(ref int) { return 2; }
+
+int g11915(    int) { return 1; }
+int g11915(out int) { return 2; }
+
+void test11915()
+{
+    const int n = 1;
+    assert(f11915(n) == 1);
+    assert(g11915(n) == 1);
+}
+
+/***************************************************/
+// 11916
+
+auto f11916(T)(    T)            { return 1; }
+auto f11916(T)(out T) if (false) { return 2; }
+
+auto g11916(T)(    T) { return 1; }
+auto g11916(T)(out T) { return 2; }
+
+void test11916()
+{
+    const int c = 1;
+    int m = 2;
+
+    // 'out const int' is invalid function parameter, so (out T) version will be dropped
+    // from overload candidates before template constraint evaluated.
+    assert(f11916(c) == 1);
+
+    // Both (T) and (out T) have valid signatures with T == int, but the 2nd overload will be
+    // dropped from overload candidates because of the template constraint.
+    assert(f11916(m) == 1);
+
+    // 'out const int' parameter is invalid, so non-out version is selected.
+    assert(g11916(c) == 1);
+
+    // MATCHconst for (T) version, and MATCHexact for (out T) version.
+    assert(g11916(m) == 2);
+}
+
+/***************************************************/
+// 13783
+
+enum E13783 { a = 5 }
+
+    inout(int) f(    inout(int) t) { return t * 2; }
+ref inout(int) f(ref inout(int) t) { return t; }
+
+void test13783()
+{
+    const E13783 e = E13783.a;
+    assert(f(e) == 10);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1011,6 +1088,7 @@ int main()
     test1900d();
     test1900e();
     test7780();
+    test7849();
     test8352();
     test8441a();
     test8441b();
@@ -1020,6 +1098,9 @@ int main()
     test10658a();
     test10658b();
     test11785();
+    test11915();
+    test11916();
+    test13783();
 
     printf("Success\n");
     return 0;

@@ -1,9 +1,13 @@
 
-// Compiler implementation of the D programming language
-// Copyright (c) 2000-2013 by Digital Mars
-// All Rights Reserved
-// Written by Walter Bright
-// http://www.digitalmars.com
+/* Compiler implementation of the D programming language
+ * Copyright (c) 1999-2014 by Digital Mars
+ * All Rights Reserved
+ * written by Walter Bright
+ * http://www.digitalmars.com
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/D-Programming-Language/dmd/blob/master/src/s2ir.c
+ */
 
 #include        <stdio.h>
 #include        <string.h>
@@ -39,6 +43,7 @@
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
+Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
@@ -49,9 +54,12 @@ Symbol *toSymbol(Type *t);
 unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 
-#define elem_setLoc(e,loc)      ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
-                                 (e)->Esrcpos.Slinnum = (loc).linnum, \
-                                 (e)->Esrcpos.Scharnum = (loc).charnum)
+#define elem_setLoc(e,loc)      srcpos_setLoc(&(e)->Esrcpos, loc)
+#define block_setLoc(b,loc)     srcpos_setLoc(&(b)->Bsrcpos, loc)
+
+#define srcpos_setLoc(s,loc)    ((s)->Sfilename = (char *)(loc).filename, \
+                                 (s)->Slinnum = (loc).linnum, \
+                                 (s)->Scharnum = (loc).charnum)
 
 #define SEH     (TARGET_WINDOS)
 
@@ -153,7 +161,7 @@ public:
         elem *e;
         Blockx *blx = irs->blx;
 
-        //printf("IfStatement::toIR('%s')\n", condition->toChars());
+        //printf("IfStatement::toIR('%s')\n", s->condition->toChars());
 
         IRState mystate(irs, s);
 
@@ -247,6 +255,7 @@ public:
 
     void visit(ForStatement *s)
     {
+        //printf("visit(ForStatement)) %u..%u\n", s->loc.linnum, s->endloc.linnum);
         Blockx *blx = irs->blx;
 
         IRState mystate(irs,s);
@@ -280,6 +289,7 @@ public:
         /* End of the body goes to the continue block
          */
         blx->curblock->appendSucc(mystate.contBlock);
+        block_setLoc(blx->curblock, s->endloc);
         block_next(blx, BCgoto, mystate.contBlock);
 
         if (s->increment)
@@ -336,6 +346,7 @@ public:
         /* Nothing more than a 'goto' to the current break destination
          */
         b->appendSucc(bbreak);
+        block_setLoc(b, s->loc);
         block_next(blx, BCgoto, NULL);
     }
 
@@ -363,6 +374,7 @@ public:
         /* Nothing more than a 'goto' to the current continue destination
          */
         b->appendSucc(bcont);
+        block_setLoc(b, s->loc);
         block_next(blx, BCgoto, NULL);
     }
 
@@ -382,22 +394,20 @@ public:
             return;
         block *b = blx->curblock;
         incUsage(irs, s->loc);
+        b->appendSucc(bdest);
+        block_setLoc(b, s->loc);
 
-        if (b->Btry != bdest->Btry)
+        // Check that bdest is in an enclosing try block
+        for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
         {
-            // Check that bdest is in an enclosing try block
-            for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
+            if (!bt)
             {
-                if (!bt)
-                {
-                    //printf("b->Btry = %p, bdest->Btry = %p\n", b->Btry, bdest->Btry);
-                    s->error("cannot goto into try block");
-                    break;
-                }
+                //printf("b->Btry = %p, bdest->Btry = %p\n", b->Btry, bdest->Btry);
+                s->error("cannot goto into try block");
+                break;
             }
         }
 
-        b->appendSucc(bdest);
         block_next(blx,BCgoto,NULL);
     }
 
@@ -544,9 +554,9 @@ public:
                 else
                 {
                     StringExp *se = (StringExp *)(cs->exp);
-                    unsigned len = se->len;
-                    dtsize_t(&dt, len);
-                    dtabytes(&dt, TYnptr, 0, se->len * se->sz, (char *)se->string);
+                    Symbol *si = toStringSymbol((char *)se->string, se->len, se->sz);
+                    dtsize_t(&dt, se->len);
+                    dtxoff(&dt, si, 0);
                 }
             }
 
@@ -811,17 +821,12 @@ public:
         else
             bc = BCret;
 
-        block *btry = blx->curblock->Btry;
-        if (btry)
+        if (block *finallyBlock = irs->getFinallyBlock())
         {
-            // A finally block is a successor to a return block inside a try-finally
-            if (btry->numSucc() == 2)      // try-finally
-            {
-                block *bfinally = btry->nthSucc(1);
-                assert(bfinally->BC == BC_finally);
-                blx->curblock->appendSucc(bfinally);
-            }
+            assert(finallyBlock->BC == BC_finally);
+            blx->curblock->appendSucc(finallyBlock);
         }
+
         block_next(blx, bc, NULL);
     }
 
@@ -1098,6 +1103,7 @@ public:
         block *contblock = block_calloc(blx);
         tryblock->appendSucc(contblock);
         contblock->BC = BC_finally;
+        bodyirs.finallyBlock = contblock;
 
         if (s->body)
             Statement_toIR(s->body, &bodyirs);
@@ -1127,6 +1133,44 @@ public:
 
         finallyblock->appendSucc(blx->curblock);
         retblock->appendSucc(blx->curblock);
+
+        /* The BCfinally..BC_ret blocks form a function that gets called from stack unwinding.
+         * The successors to BC_ret blocks are both the next outer BCfinally and the destination
+         * after the unwinding is complete.
+         */
+        for (block *b = tryblock; b != finallyblock; b = b->Bnext)
+        {
+            block *btry = b->Btry;
+
+            if (b->BC == BCgoto && b->numSucc() == 1)
+            {
+                block *bdest = b->nthSucc(0);
+                if (btry && bdest->Btry != btry)
+                {
+                    //printf("test1 b %p b->Btry %p bdest %p bdest->Btry %p\n", b, btry, bdest, bdest->Btry);
+                    block *bfinally = btry->nthSucc(1);
+                    if (bfinally == finallyblock)
+                        b->appendSucc(finallyblock);
+                }
+            }
+
+            // If the goto exits a try block, then the finally block is also a successor
+            if (b->BC == BCgoto && b->numSucc() == 2) // if goto exited a tryblock
+            {
+                block *bdest = b->nthSucc(0);
+
+                // If the last finally block executed by the goto
+                if (bdest->Btry == tryblock->Btry)
+                    // The finally block will exit and return to the destination block
+                    retblock->appendSucc(bdest);
+            }
+
+            if (b->BC == BC_ret && b->Btry == tryblock)
+            {
+                // b is nested inside this TryFinally, and so this finally will be called next
+                b->appendSucc(finallyblock);
+            }
+        }
     }
 
     /****************************************

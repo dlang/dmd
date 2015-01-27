@@ -1,7 +1,7 @@
 // EXTRA_SOURCES: imports/testminitAA.d imports/testminitBB.d
 // PERMUTE_ARGS:
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 import imports.testminitAA;
 private import imports.testminitBB;
