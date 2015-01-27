@@ -607,15 +607,19 @@ struct GC
                 auto pool = gcx.findPool(p);
                 if (pool.isLargeObject)
                 {
+                    auto lpool = cast(LargeObjectPool*) pool;
+                    psize = lpool.getSize(p);     // get allocated size
+
                     if (size <= PAGESIZE / 2)
                         goto Lmalloc; // switching from large object pool to small object pool
 
-                    auto lpool = cast(LargeObjectPool*) pool;
-                    psize = lpool.getSize(p);     // get allocated size
                     auto psz = psize / PAGESIZE;
                     auto newsz = (size + PAGESIZE - 1) / PAGESIZE;
                     if (newsz == psz)
+                    {
+                        alloc_size = psize;
                         return p;
+                    }
 
                     auto pagenum = lpool.pagenumOf(p);
 
@@ -628,7 +632,7 @@ struct GC
                     {   // Attempt to expand in place
                         foreach (binsz; lpool.pagetable[pagenum + psz .. pagenum + newsz])
                             if (binsz != B_FREE)
-                                goto Lfallthrough;
+                                goto Lmalloc;
 
                         debug (MEMSTOMP) memset(p + psize, 0xF0, size - psize);
                         debug(PRINTF) printFreeInfo(pool);
@@ -637,7 +641,7 @@ struct GC
                         debug(PRINTF) printFreeInfo(pool);
                     }
                     else
-                        goto Lfallthrough; // does not fit into current pool
+                        goto Lmalloc; // does not fit into current pool
 
                     lpool.updateOffsets(pagenum);
                     if (bits)
@@ -648,14 +652,9 @@ struct GC
                     }
                     alloc_size = newsz * PAGESIZE;
                     return p;
-                    Lfallthrough:
-                        {}
                 }
-                else
-                {
-                    auto spool = cast(SmallObjectPool*) pool;
-                    psize = spool.getSize(p);   // get allocated size
-                }
+
+                psize = (cast(SmallObjectPool*) pool).getSize(p);   // get allocated size
                 if (psize < size ||             // if new size is bigger
                     psize > size * 2)           // or less than half
                 {
