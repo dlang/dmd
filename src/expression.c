@@ -9812,6 +9812,20 @@ Expression *SliceExp::syntaxCopy()
     return se;
 }
 
+static bool isOpDollar(VarExp* ve)
+{
+    VarDeclaration* decl = ve->var->isVarDeclaration();
+    if (decl)
+    {
+        if (decl->ident->len == 8 &&
+            memcmp(decl->ident->string, "__dollar", decl->ident->len) == 0) // TODO is there a function for this?
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 Expression *SliceExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -10046,27 +10060,34 @@ Lagain:
         lwr = lwr->optimize(WANTvalue);
         upr = upr->optimize(WANTvalue);
 
-        if (lwr->op == TOKdiv)
+        // avoid bounds-checking for slice bounds in form $/n
+        // How to use resolveOpDollar?
+        if (upr->op == TOKdiv)  // start with upper because of lowerIsLessThanUpper
         {
-            assert(reinterpret_cast<DivExp*>(lwr)); // TODO remove
-            DivExp* lwrDiv = (DivExp*)lwr; // TODO always true?
-        }
-        else if (lwr->op == TOKvar)
-        {
-            assert(reinterpret_cast<VarExp*>(lwr)); // TODO remove
-            VarExp* lwrVar = (VarExp*)lwr; // TODO always true?
-        }
-
-        if (upr->op == TOKdiv)
-        {
-            assert(reinterpret_cast<DivExp*>(upr)); // TODO remove
-            DivExp* uprDiv = (DivExp*)upr; // TODO always true?
+            DivExp* div = (DivExp*)upr; // TODO is*Exp predicate?
         }
         else if (upr->op == TOKvar)
         {
-            assert(reinterpret_cast<VarExp*>(upr)); // TODO remove
-            VarExp* uprVar = (VarExp*)upr; // TODO always true?
-            printf("xxx");
+            VarExp* var = (VarExp*)upr; // TODO is*Exp predicate?
+            const bool isInBounds = isOpDollar(var);
+            if (isInBounds)
+            {
+                e1->warning("Avoiding boundscheck for upper bound '%s'", var->toChars());
+            }
+            this->upperIsInBounds = isInBounds;
+        }
+        if (lwr->op == TOKdiv) // then lower
+        {
+            DivExp* div = (DivExp*)lwr; // TODO is*Exp predicate?
+        }
+        else if (lwr->op == TOKvar)
+        {
+            VarExp* var = (VarExp*)lwr; // TODO is*Exp predicate?
+            const bool isInBounds = isOpDollar(var);
+            if (isInBounds)
+            {
+                e1->warning("Avoiding boundscheck for lower bound '%s'", var->toChars());
+            }
         }
 
         IntRange lwrRange = getIntRange(lwr);
