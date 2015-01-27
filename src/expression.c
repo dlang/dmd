@@ -10052,41 +10052,54 @@ Lagain:
         lwr = lwr->optimize(WANTvalue);
         upr = upr->optimize(WANTvalue);
 
-        // avoid bounds-checking for slice bounds when possible
-        // How to use resolveOpDollar?
+        // avoid slice bounds-checking. TODO use resolveOpDollar?
         {
-            bool upperAtEnd = false;
-            if (upr->op == TOKdiv)  // start with upper because of lowerIsLessThanUpper
+            // upper
+            bool uprAtStart = false, uprAtEnd = false;
+            if (upr->op == TOKint64)
             {
-                DivExp* div = (DivExp*)upr; // TODO is*Exp predicate?
+                IntegerExp* int_ = (IntegerExp*)upr; // TODO is*Exp predicate?
+                const bool isInBounds = int_->value == 0;
+                if (isInBounds) { e1->warning("Avoiding boundscheck for upper part '%s'", int_->toChars()); }
+                uprAtStart = isInBounds;
             }
             else if (upr->op == TOKvar)
             {
                 VarExp* var = (VarExp*)upr; // TODO is*Exp predicate?
                 const bool isInBounds = isOpDollar(var);
-                if (isInBounds)
-                {
-                    e1->warning("Avoiding boundscheck for upper part '%s'", var->toChars());
-                }
+                if (isInBounds) { e1->warning("Avoiding boundscheck for upper part '%s'", var->toChars()); }
                 this->upperIsInBounds = isInBounds;
-                upperAtEnd = isInBounds;
+                uprAtEnd = isInBounds;
             }
-            bool lowerAtEnd = false;
-            if (lwr->op == TOKdiv) // then lower
+            else if (upr->op == TOKdiv)
             {
-                DivExp* div = (DivExp*)lwr; // TODO is*Exp predicate?
+                DivExp* div = (DivExp*)upr; // TODO is*Exp predicate?
+            }
+
+            // lower
+            bool lwrAtStart = false, lwrAtEnd = false;
+            if (lwr->op == TOKint64)
+            {
+                IntegerExp* int_ = (IntegerExp*)lwr; // TODO is*Exp predicate?
+                const bool isInBounds = int_->value == 0;
+                if (isInBounds) { e1->warning("Avoiding boundscheck for lower part '%s'", int_->toChars()); }
+                lwrAtStart = isInBounds;
             }
             else if (lwr->op == TOKvar)
             {
                 VarExp* var = (VarExp*)lwr; // TODO is*Exp predicate?
                 const bool isInBounds = isOpDollar(var);
-                if (isInBounds)
-                {
-                    e1->warning("Avoiding boundscheck for lower part '%s'", var->toChars());
-                }
-                lowerAtEnd = isInBounds;
+                if (isInBounds) { e1->warning("Avoiding boundscheck for lower part '%s'", var->toChars()); }
+                lwrAtEnd = isInBounds;
             }
-            if (lowerAtEnd && upperAtEnd)
+            else if (lwr->op == TOKdiv) // then lower
+            {
+                DivExp* div = (DivExp*)lwr; // TODO is*Exp predicate?
+            }
+
+            // lower and upper
+            if (lwrAtStart || // [0 .. X]
+                lwrAtEnd && uprAtEnd)       // [$ .. $]
             {
                 lowerIsLessThanUpper = true;
             }
