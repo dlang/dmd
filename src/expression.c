@@ -10062,31 +10062,41 @@ Lagain:
 
         // avoid bounds-checking for slice bounds in form $/n
         // How to use resolveOpDollar?
-        if (upr->op == TOKdiv)  // start with upper because of lowerIsLessThanUpper
         {
-            DivExp* div = (DivExp*)upr; // TODO is*Exp predicate?
-        }
-        else if (upr->op == TOKvar)
-        {
-            VarExp* var = (VarExp*)upr; // TODO is*Exp predicate?
-            const bool isInBounds = isOpDollar(var);
-            if (isInBounds)
+            bool upperAtEnd = false;
+            if (upr->op == TOKdiv)  // start with upper because of lowerIsLessThanUpper
             {
-                e1->warning("Avoiding boundscheck for upper bound '%s'", var->toChars());
+                DivExp* div = (DivExp*)upr; // TODO is*Exp predicate?
             }
-            this->upperIsInBounds = isInBounds;
-        }
-        if (lwr->op == TOKdiv) // then lower
-        {
-            DivExp* div = (DivExp*)lwr; // TODO is*Exp predicate?
-        }
-        else if (lwr->op == TOKvar)
-        {
-            VarExp* var = (VarExp*)lwr; // TODO is*Exp predicate?
-            const bool isInBounds = isOpDollar(var);
-            if (isInBounds)
+            else if (upr->op == TOKvar)
             {
-                e1->warning("Avoiding boundscheck for lower bound '%s'", var->toChars());
+                VarExp* var = (VarExp*)upr; // TODO is*Exp predicate?
+                const bool isInBounds = isOpDollar(var);
+                if (isInBounds)
+                {
+                    e1->warning("Avoiding boundscheck for upper part '%s'", var->toChars());
+                }
+                this->upperIsInBounds = isInBounds;
+                upperAtEnd = isInBounds;
+            }
+            bool lowerAtEnd = false;
+            if (lwr->op == TOKdiv) // then lower
+            {
+                DivExp* div = (DivExp*)lwr; // TODO is*Exp predicate?
+            }
+            else if (lwr->op == TOKvar)
+            {
+                VarExp* var = (VarExp*)lwr; // TODO is*Exp predicate?
+                const bool isInBounds = isOpDollar(var);
+                if (isInBounds)
+                {
+                    e1->warning("Avoiding boundscheck for lower part '%s'", var->toChars());
+                }
+                lowerAtEnd = isInBounds;
+            }
+            if (lowerAtEnd && upperAtEnd)
+            {
+                lowerIsLessThanUpper = true;
             }
         }
 
