@@ -927,11 +927,6 @@ Language changes listed by -transition=id:\n\
                     i += global.params.runargs_length;
                     global.params.runargs_length--;
                 }
-                else
-                {
-                    global.params.run = false;
-                    goto Lnoarg;
-                }
             }
             else
             {
