@@ -1009,6 +1009,8 @@ public:
     VarDeclaration *lengthVar;
     bool upperIsInBounds;       // true if upr <= e1.length
     bool lowerIsLessThanUpper;  // true if lwr <= upr
+    bool lowerIsInBounds() const { return (lowerIsLessThanUpper &&
+                                           upperIsInBounds); }; // true if lwr <= e1.length
 
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
