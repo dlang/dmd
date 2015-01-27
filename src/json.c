@@ -728,12 +728,6 @@ public:
         // TemplateDeclaration::kind returns the kind of its Aggregate onemember, if it is one
         property("kind", "template");
 
-        Expression *expression = d->constraint;
-        if (expression)
-        {
-            property("constraint", expression->toChars());
-        }
-
         jsonProperties(d);
 
         propertyStart("parameters");
@@ -794,6 +788,12 @@ public:
             objectEnd();
         }
         arrayEnd();
+
+        Expression *expression = d->constraint;
+        if (expression)
+        {
+            property("constraint", expression->toChars());
+        }
 
         propertyStart("members");
         arrayStart();

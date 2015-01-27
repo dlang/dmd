@@ -145,23 +145,9 @@
     "members" : []
    },
    {
-    "kind" : "template",
-    "constraint" : "T == string",
-    "line" : 23,
-    "char" : 1,
-    "name" : "IncludeConstraint",
-    "parameters" : [
-     {
-      "name" : "T",
-      "kind" : "type"
-     }
-    ],
-    "members" : []
-   },
-   {
     "name" : "Bar2",
     "kind" : "class",
-    "line" : 25,
+    "line" : 22,
     "char" : 1,
     "base" : "json.Bar!1.Bar",
     "interfaces" : [
@@ -171,40 +157,40 @@
      {
       "name" : "this",
       "kind" : "constructor",
-      "line" : 26,
+      "line" : 23,
       "char" : 5,
       "deco" : "FZC4json4Bar2",
       "originalType" : "()",
-      "endline" : 26,
+      "endline" : 23,
       "endchar" : 13
      },
      {
       "name" : "~this",
       "kind" : "destructor",
-      "line" : 27,
+      "line" : 24,
       "char" : 5,
       "deco" : "FZv",
-      "endline" : 27,
+      "endline" : 24,
       "endchar" : 14
      },
      {
       "name" : "foo",
       "kind" : "function",
-      "line" : 29,
+      "line" : 26,
       "char" : 12,
       "storageClass" : [
        "static"
       ],
       "deco" : "FZv",
       "originalType" : "()",
-      "endline" : 29,
+      "endline" : 26,
       "endchar" : 19
      },
      {
       "name" : "baz",
       "kind" : "function",
       "protection" : "protected",
-      "line" : 30,
+      "line" : 27,
       "char" : 32,
       "storageClass" : [
        "abstract"
@@ -214,13 +200,13 @@
      {
       "name" : "t",
       "kind" : "function",
-      "line" : 31,
+      "line" : 28,
       "char" : 18,
       "storageClass" : [
        "override"
       ],
       "deco" : "xFZi",
-      "endline" : 31,
+      "endline" : 28,
       "endchar" : 40,
       "overrides" : [
        "json.Baz!(int, 2, null).Baz.t"
@@ -231,7 +217,7 @@
    {
     "name" : "Bar3",
     "kind" : "class",
-    "line" : 34,
+    "line" : 31,
     "char" : 1,
     "base" : "json.Bar2",
     "members" : [
@@ -239,14 +225,14 @@
       "name" : "val",
       "kind" : "variable",
       "protection" : "private",
-      "line" : 35,
+      "line" : 32,
       "char" : 14,
       "deco" : "i",
      },
      {
       "name" : "this",
       "kind" : "constructor",
-      "line" : 36,
+      "line" : 33,
       "char" : 5,
       "deco" : "FiZC4json4Bar3",
       "originalType" : "(int i)",
@@ -256,20 +242,20 @@
         "deco" : "i"
        }
       ],
-      "endline" : 36,
+      "endline" : 33,
       "endchar" : 28
      },
      {
       "name" : "baz",
       "kind" : "function",
       "protection" : "protected",
-      "line" : 38,
+      "line" : 35,
       "char" : 32,
       "storageClass" : [
        "override"
       ],
       "deco" : "FZS4json10__T3FooTiZ3Foo",
-      "endline" : 38,
+      "endline" : 35,
       "endchar" : 61,
       "overrides" : [
        "json.Bar2.baz"
@@ -280,13 +266,13 @@
    {
     "name" : "Foo2",
     "kind" : "struct",
-    "line" : 41,
+    "line" : 38,
     "char" : 1,
     "members" : [
      {
       "name" : "bar2",
       "kind" : "variable",
-      "line" : 42,
+      "line" : 39,
       "char" : 7,
       "deco" : "C4json4Bar2",
       "originalType" : "Bar2",
@@ -294,27 +280,27 @@
      {
       "name" : "U",
       "kind" : "union",
-      "line" : 43,
+      "line" : 40,
       "char" : 2,
       "members" : [
        {
         "name" : "s",
         "kind" : "variable",
-        "line" : 45,
+        "line" : 42,
         "char" : 10,
         "deco" : "s",
        },
        {
         "name" : "i",
         "kind" : "variable",
-        "line" : 46,
+        "line" : 43,
         "char" : 8,
         "deco" : "i",
        },
        {
         "name" : "o",
         "kind" : "variable",
-        "line" : 48,
+        "line" : 45,
         "char" : 10,
         "deco" : "C6Object",
         "originalType" : "Object",
@@ -326,7 +312,7 @@
    {
     "name" : "bar",
     "kind" : "function",
-    "line" : 55,
+    "line" : 52,
     "char" : 16,
     "deco" : "FNeKkC4json4Bar2Zi",
     "originalType" : "@trusted myInt(ref uint blah, Bar2 foo = new Bar3(7))",
@@ -344,22 +330,22 @@
       "default" : "new Bar3(7)"
      }
     ],
-    "endline" : 58,
+    "endline" : 55,
     "endchar" : 1
    },
    {
     "name" : "outer",
     "kind" : "function",
-    "line" : 60,
+    "line" : 57,
     "char" : 15,
     "deco" : "FNbNdZi",
-    "endline" : 77,
+    "endline" : 74,
     "endchar" : 1
    },
    {
     "name" : "imports.jsonimport1",
     "kind" : "import",
-    "line" : 80,
+    "line" : 77,
     "char" : 8,
     "protection" : "private",
     "selective" : [
@@ -370,7 +356,7 @@
    {
     "name" : "imports.jsonimport2",
     "kind" : "import",
-    "line" : 81,
+    "line" : 78,
     "char" : 8,
     "protection" : "private",
     "renamed" : {
@@ -381,7 +367,7 @@
    {
     "name" : "imports.jsonimport3",
     "kind" : "import",
-    "line" : 82,
+    "line" : 79,
     "char" : 8,
     "protection" : "private",
     "renamed" : {
@@ -395,19 +381,19 @@
    {
     "name" : "imports.jsonimport4",
     "kind" : "import",
-    "line" : 83,
+    "line" : 80,
     "char" : 8,
     "protection" : "private"
    },
    {
     "name" : "S",
     "kind" : "struct",
-    "line" : 85,
+    "line" : 82,
     "char" : 1,
     "members" : [
      {
       "kind" : "template",
-      "line" : 88,
+      "line" : 85,
       "char" : 5,
       "name" : "this",
       "parameters" : [
@@ -420,7 +406,7 @@
        {
         "name" : "this",
         "kind" : "constructor",
-        "line" : 88,
+        "line" : 85,
         "char" : 5,
         "type" : "(T t)",
         "parameters" : [
@@ -429,7 +415,7 @@
           "type" : "T"
          }
         ],
-        "endline" : 88,
+        "endline" : 85,
         "endchar" : 20
        }
       ]
@@ -439,7 +425,7 @@
    {
     "kind" : "template",
     "protection" : "private",
-    "line" : 92,
+    "line" : 89,
     "char" : 9,
     "name" : "S1_9755",
     "parameters" : [
@@ -452,7 +438,7 @@
      {
       "name" : "S1_9755",
       "kind" : "struct",
-      "line" : 92,
+      "line" : 89,
       "char" : 9,
       "members" : []
      }
@@ -461,7 +447,7 @@
    {
     "kind" : "template",
     "protection" : "package",
-    "line" : 93,
+    "line" : 90,
     "char" : 9,
     "name" : "S2_9755",
     "parameters" : [
@@ -474,7 +460,7 @@
      {
       "name" : "S2_9755",
       "kind" : "struct",
-      "line" : 93,
+      "line" : 90,
       "char" : 9,
       "members" : []
      }
@@ -483,13 +469,13 @@
    {
     "name" : "C_9755",
     "kind" : "class",
-    "line" : 95,
+    "line" : 92,
     "char" : 1,
     "members" : [
      {
       "kind" : "template",
       "protection" : "protected",
-      "line" : 97,
+      "line" : 94,
       "char" : 22,
       "name" : "CI_9755",
       "parameters" : [
@@ -502,7 +488,7 @@
        {
         "name" : "CI_9755",
         "kind" : "class",
-        "line" : 97,
+        "line" : 94,
         "char" : 22,
         "members" : []
        }
@@ -513,7 +499,7 @@
    {
     "name" : "c_10011",
     "kind" : "variable",
-    "line" : 101,
+    "line" : 98,
     "char" : 14,
     "storageClass" : [
      "const"
@@ -525,7 +511,7 @@
    {
     "name" : "Numbers",
     "kind" : "enum",
-    "line" : 104,
+    "line" : 101,
     "char" : 1,
     "baseDeco" : "i",
     "members" : [
@@ -533,52 +519,66 @@
       "name" : "unspecified1",
       "kind" : "enum member",
       "value" : "0",
-      "line" : 106,
+      "line" : 103,
       "char" : 5
      },
      {
       "name" : "one",
       "kind" : "enum member",
       "value" : "2",
-      "line" : 107,
+      "line" : 104,
       "char" : 5
      },
      {
       "name" : "two",
       "kind" : "enum member",
       "value" : "3",
-      "line" : 108,
+      "line" : 105,
       "char" : 5
      },
      {
       "name" : "FILE_NOT_FOUND",
       "kind" : "enum member",
       "value" : "101",
-      "line" : 109,
+      "line" : 106,
       "char" : 5
      },
      {
       "name" : "unspecified3",
       "kind" : "enum member",
       "value" : "102",
-      "line" : 110,
+      "line" : 107,
       "char" : 5
      },
      {
       "name" : "unspecified4",
       "kind" : "enum member",
       "value" : "103",
-      "line" : 111,
+      "line" : 108,
       "char" : 5
      },
      {
       "name" : "four",
       "kind" : "enum member",
       "value" : "4",
-      "line" : 112,
+      "line" : 109,
       "char" : 5
      }
     ]
+   },
+   {
+    "kind" : "template",
+    "line" : 112,
+    "char" : 1,
+    "name" : "IncludeConstraint",
+    "parameters" : [
+     {
+      "name" : "T",
+      "kind" : "type"
+     }
+    ],
+    "constraint" : "T == string",
+    "members" : []
    }
   ]
  }
