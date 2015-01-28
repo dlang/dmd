@@ -1626,12 +1626,24 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
     if (fd->needThis() && !hasthis)
         return false;
 
-    if (fd->inlineNest || (fd->semanticRun < PASSsemantic3 && !hdrscan))
+    if (fd->inlineNest)
     {
 #if CANINLINE_LOG
         printf("\t1: no, inlineNest = %d, semanticRun = %d\n", fd->inlineNest, fd->semanticRun);
 #endif
         return false;
+    }
+
+    if (fd->semanticRun < PASSsemantic3 && !hdrscan)
+    {
+        if (!fd->fbody)
+            return false;
+        if (!fd->functionSemantic3())
+            return false;
+        Module::runDeferredSemantic3();
+        if (global.errors)
+            return false;
+        assert(fd->semanticRun >= PASSsemantic3done);
     }
 
     switch (statementsToo ? fd->inlineStatusStmt : fd->inlineStatusExp)
