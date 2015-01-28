@@ -7301,6 +7301,17 @@ static assert(
     return s.n == 1; // true <- false
 }());
 
+int foo14061(int[] a)
+{
+    foreach (immutable x; a)
+    {
+        auto b = a ~ x;
+        return b == [1, 1];
+    }
+    return 0;
+}
+static assert(foo14061([1]));
+
 /**************************************************
     14024 - CTFE version
 **************************************************/
