@@ -689,6 +689,17 @@ public:
 
     void visitWithMask(Type *t, unsigned char modMask)
     {
+        if (t->ty == Tident &&
+            ((TypeIdentifier *)t)->ident == Id::empty &&
+            ((TypeIdentifier *)t)->idents.dim == 0)
+        {
+            if (t->mod == 0)
+                buf->writestring("auto");
+            else
+                MODtoBuffer(buf, t->mod);
+            return;
+        }
+
         // Tuples and functions don't use the type constructor syntax
         if (modMask == t->mod ||
             t->ty == Tfunction ||

@@ -538,8 +538,9 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                  *      storage_class identifier = initializer;
                  *      storage_class identifier(...) = initializer;
                  */
-                if (token.value == TOKidentifier &&
-                    skipParensIf(peek(&token), &tk) &&
+                if ((tk = &token, skipBasicType3(&tk)) &&
+                    tk->value == TOKidentifier &&
+                    skipParensIf(peek(tk), &tk) &&
                     tk->value == TOKassign)
                 {
                     a = parseAutoDeclarations(pAttrs->storageClass, pAttrs->comment);
@@ -3164,6 +3165,22 @@ Type *Parser::parseBasicType2(Type *t)
                     t = new TypeAArray(t, index);
                     check(TOKrbracket);
                 }
+                else if (token.value == TOKauto ||
+                         token.value == TOKconst ||
+                         token.value == TOKimmutable ||
+                         token.value == TOKwild ||
+                         token.value == TOKshared)
+                {
+                    Type *index = new TypeIdentifier(token.loc, Id::empty);
+                    if (token.value == TOKauto)
+                        nextToken();
+                    else
+                        index = index->addSTC(parseTypeCtor());     // [auto ...]
+                    if (token.value != TOKrbracket)
+                        index = parseBasicType3(index);
+                    t = new TypeAArray(t, index);
+                    check(TOKrbracket);
+                }
                 else
                 {
                     //printf("it's type[expression]\n");
@@ -3210,6 +3227,74 @@ Type *Parser::parseBasicType2(Type *t)
                     t = new TypePointer(tf);    // pointer to function
                 continue;
             }
+
+            default:
+                return t;
+        }
+        assert(0);
+    }
+    assert(0);
+    return NULL;
+}
+
+Type *Parser::parseBasicType3(Type *t)
+{
+    assert(t);
+
+    //printf("parseBasicType3()\n");
+    while (1)
+    {
+        switch (token.value)
+        {
+            case TOKmul:
+                t = new TypePointer(t);
+                nextToken();
+                continue;
+
+            case TOKlbracket:
+                // Handle []. Make sure things like
+                //     int[3][1] a;
+                // is (array[1] of array[3] of int)
+                nextToken();
+                if (token.value == TOKrbracket)
+                {
+                    t = new TypeDArray(t);                      // []
+                    nextToken();
+                }
+                else if (isDeclaration(&token, 0, TOKrbracket, NULL))
+                {
+                    // It's an associative array declaration
+                    //printf("it's an associative array\n");
+                    Type *index = parseType();          // [ type ]
+                    t = new TypeAArray(t, index);
+                    check(TOKrbracket);
+                }
+                else if (token.value == TOKauto ||
+                         token.value == TOKconst ||
+                         token.value == TOKimmutable ||
+                         token.value == TOKwild ||
+                         token.value == TOKshared)
+                {
+                    Type *index = new TypeIdentifier(token.loc, Id::empty);
+                    if (token.value == TOKauto)
+                        nextToken();
+                    else
+                        index = index->addSTC(parseTypeCtor());     // [auto ...]
+                    if (token.value != TOKrbracket)
+                        index = parseBasicType3(index);
+                    t = new TypeAArray(t, index);
+                    check(TOKrbracket);
+                }
+                else
+                {
+                    //printf("it's type[expression]\n");
+                    inBrackets++;
+                    Expression *e = parseAssignExp();           // [ expression ]
+                    t = new TypeSArray(t, e);
+                    inBrackets--;
+                    check(TOKrbracket);
+                }
+                continue;
 
             default:
                 return t;
@@ -3695,8 +3780,9 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
      *  storage_class identifier(...) = initializer;
      */
     if ((storage_class || udas) &&
-        token.value == TOKidentifier &&
-        skipParensIf(peek(&token), &tk) &&
+        (tk = &token, skipBasicType3(&tk)) &&
+        tk->value == TOKidentifier &&
+        skipParensIf(peek(tk), &tk) &&
         tk->value == TOKassign)
     {
         Dsymbols *a = parseAutoDeclarations(storage_class, comment);
@@ -3961,8 +4047,18 @@ L2:
 
 Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t *comment)
 {
+    //printf("parseAutoDeclarations\n");
     Token *tk;
     Dsymbols *a = new Dsymbols;
+
+    Type *t = NULL;
+    if (token.value == TOKmul || token.value == TOKlbracket)
+    {
+        t = new TypeIdentifier(Loc(), Id::empty);
+        t = t->addSTC(storageClass);
+        t = parseBasicType3(t);
+        storageClass &= ~(STCauto | STC_TYPECTOR);
+    }
 
     while (1)
     {
@@ -3977,7 +4073,7 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
         assert(token.value == TOKassign);
         nextToken();            // skip over '='
         Initializer *init = parseInitializer();
-        VarDeclaration *v = new VarDeclaration(loc, NULL, ident, init);
+        VarDeclaration *v = new VarDeclaration(loc, t, ident, init);
         v->storage_class = storageClass;
 
         Dsymbol *s = v;
@@ -6285,6 +6381,71 @@ bool Parser::skipAttributes(Token *t, Token **pt)
 
   Lerror:
     return false;
+}
+
+bool Parser::skipBasicType3(Token **pt)
+{
+    Token *t = *pt;
+    //printf("+skipBasicType3 t = %s\n", t->toChars());
+    while (1)
+    {
+        switch (t->value)
+        {
+            case TOKmul:
+                t = peek(t);
+                continue;
+
+            case TOKlbracket:
+                t = peek(t);
+                if (t->value == TOKrbracket)
+                {
+                    t = peek(t);
+                }
+                else if (isDeclaration(t, 0, TOKrbracket, &t))
+                {
+                    // It's an associative array declaration
+                    t = peek(t);
+                }
+                else if (t->value == TOKauto ||
+                         t->value == TOKconst ||
+                         t->value == TOKimmutable ||
+                         t->value == TOKwild ||
+                         t->value == TOKshared)
+                {
+                    do
+                    {
+                        t = peek(t);
+                    }
+                    while (t->value == TOKauto ||
+                           t->value == TOKconst ||
+                           t->value == TOKimmutable ||
+                           t->value == TOKwild ||
+                           t->value == TOKshared);
+                    if (!skipBasicType3(&t))
+                        return false;
+                    if (t->value != TOKrbracket)
+                        return false;
+                    t = peek(t);
+                }
+                else
+                {
+                    // [ expression ]
+                    if (!isExpression(&t))
+                        return false;
+                    if (t->value != TOKrbracket)
+                        return false;
+                    t = peek(t);
+                }
+                continue;
+
+            default:
+                break;
+        }
+        break;
+    }
+    *pt = t;
+    //printf("-skipBasicType3 t = %s\n", t->toChars());
+    return true;
 }
 
 /********************************* Expression Parser ***************************/
