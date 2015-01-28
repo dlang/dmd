@@ -23,3 +23,14 @@ void main()
     int[$] a4 = void;
     int[$] a5 = 1;
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail481.d(35): Error: cannot infer type from array initializer
+---
+*/
+void test14066()
+{
+    int[$] aa = ['a': 1];
+}

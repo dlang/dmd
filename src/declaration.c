@@ -1010,7 +1010,7 @@ Type *applyPartialType(Loc loc, Scope *sc, Type *t, Type *tx)
 Type *applyPartialType(Loc loc, Scope *sc, Expression *exp, Type *tx)
 {
     Type *t = exp->type;
-    if (!tx)
+    if (!tx || t->ty == Terror)
         return t;
 
     if (tx->ty == Tident &&
