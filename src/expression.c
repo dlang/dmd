@@ -9799,6 +9799,7 @@ SliceExp::SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr)
     this->upr = upr;
     this->lwr = lwr;
     lengthVar = NULL;
+    lowerIsInBounds = false;
     upperIsInBounds = false;
     lowerIsLessThanUpper = false;
 }
@@ -9812,10 +9813,11 @@ Expression *SliceExp::syntaxCopy()
     return se;
 }
 
-static bool isOpDollar(VarExp* ve)
+bool SliceExp::isOpDollar(VarExp* ve)
 {
-    VarDeclaration* decl = ve->var->isVarDeclaration();
-    return decl && decl->ident == Id::dollar;
+    return ve->var == this->lengthVar;
+    // VarDeclaration* decl = ve->var->isVarDeclaration();
+    // return decl && decl->ident == Id::dollar;
 }
 
 Expression *SliceExp::semantic(Scope *sc)
@@ -10055,56 +10057,106 @@ Lagain:
         // avoid slice bounds-checking. TODO use resolveOpDollar?
         {
             // lower
-            bool lwrAtStart = false, lwrIn = false, lwrAtEnd = false;
+            bool lwrAtStart = false;
+            bool lwrIn = false;
+            bool lwrAtEnd = false;
+            dinteger_t lwrMul = 0; // non-zero means [ $*/wrMul .. _ ]
             dinteger_t lwrDiv = 0; // non-zero means [ $/lwrDiv .. _ ]
             if (lwr->op == TOKint64)
             {
                 lwrAtStart = lwr->toInteger() == 0;
-                if (lwrAtStart) { lwr->warning("Avoiding boundscheck"); }
+                if (lwrAtStart) { lwr->warning("Avoiding lower boundscheck"); }
+                this->lowerIsInBounds = lwrAtStart;
             }
             else if (lwr->op == TOKvar)
             {
-                VarExp* var = (VarExp*)lwr; // TODO is*Exp predicate?
-                lwrAtEnd = isOpDollar(var);
-                if (lwrAtEnd) { lwr->warning("Avoiding boundscheck"); }
+                VarExp* var = (VarExp*)lwr;
+                lwrAtEnd = this->isOpDollar(var);
+                if (lwrAtEnd) { lwr->warning("Avoiding lower boundscheck"); }
+                this->lowerIsInBounds = lwrAtEnd;
             }
             else if (lwr->op == TOKdiv)
             {
-                DivExp* div = (DivExp*)lwr; // TODO is*Exp predicate?
-                if (div->e1->op == TOKvar && isOpDollar((VarExp*)div->e1) &&
+                DivExp* div = (DivExp*)lwr;
+                if (div->e1->op == TOKvar && this->isOpDollar((VarExp*)div->e1) && // TODO functionize?
                     div->e2->op == TOKint64)
                 {
                     lwrDiv = div->e2->toInteger();
                     lwrIn = lwrDiv >= 1;
-                    if (lwrIn) { lwr->warning("Avoiding boundscheck"); }
+                    if (lwrIn) { lwr->warning("Avoiding lower boundscheck for $/%ld", lwrDiv); }
+                    this->lowerIsInBounds = lwrIn;
+                }
+                else if (div->e1->op == TOKmul &&
+                         div->e2->op == TOKint64)
+                {
+                    MulExp* mul = (MulExp*)div->e1;
+                    const dinteger_t denom = div->e2->toInteger();
+                    if (mul->e1->op == TOKvar && this->isOpDollar((VarExp*)mul->e1) && // TODO functionize?
+                        mul->e2->op == TOKint64)
+                    {
+                        const dinteger_t numer = mul->e2->toInteger();
+                        this->lowerIsInBounds = numer <= denom;
+                        if (this->lowerIsInBounds) { lwr->warning("Avoiding lower boundscheck $*%ld/%ld", numer, denom); }
+                    }
+                    else if (mul->e1->op == TOKint64 &&
+                             mul->e2->op == TOKvar && this->isOpDollar((VarExp*)mul->e2)) // TODO functionize?
+                    {
+                        const dinteger_t numer = mul->e1->toInteger();
+                        this->lowerIsInBounds = numer <= denom;
+                        if (this->lowerIsInBounds) { lwr->warning("Avoiding lower boundscheck $*%ld/%ld", numer, denom); }
+                    }
                 }
             }
 
             // upper
-            bool uprAtStart = false, uprIn = false, uprAtEnd = false;
+            bool uprAtStart = false;
+            bool uprIn = false;
+            bool uprAtEnd = false;
+            dinteger_t uprMul = 0; // non-zero means [ _ .. $*uprMul ]
             dinteger_t uprDiv = 0; // non-zero means [ _ .. $/uprDiv ]
             if (upr->op == TOKint64)
             {
                 uprAtStart = upr->toInteger() == 0;
-                if (uprAtStart) { upr->warning("Avoiding boundscheck"); }
+                if (uprAtStart) { upr->warning("Avoiding upper boundscheck"); }
+                this->upperIsInBounds = uprAtStart;
             }
             else if (upr->op == TOKvar)
             {
-                VarExp* var = (VarExp*)upr; // TODO is*Exp predicate?
-                uprAtEnd = isOpDollar(var);
-                if (uprAtEnd) { upr->warning("Avoiding boundscheck"); }
+                VarExp* var = (VarExp*)upr;
+                uprAtEnd = this->isOpDollar(var); // TODO functionize?
+                if (uprAtEnd) { upr->warning("Avoiding upper boundscheck"); }
                 this->upperIsInBounds = uprAtEnd;
             }
             else if (upr->op == TOKdiv)
             {
-                DivExp* div = (DivExp*)upr; // TODO is*Exp predicate?
-                if (div->e1->op == TOKvar && isOpDollar((VarExp*)div->e1) &&
+                DivExp* div = (DivExp*)upr;
+                if (div->e1->op == TOKvar && this->isOpDollar((VarExp*)div->e1) && // TODO functionize?
                     div->e2->op == TOKint64)
                 {
                     uprDiv = div->e2->toInteger();
                     uprIn = uprDiv >= 1;
-                    if (uprIn) { upr->warning("Avoiding boundscheck"); }
+                    if (uprIn) { upr->warning("Avoiding upper boundscheck for $/%ld", uprDiv); }
                     this->upperIsInBounds = uprIn;
+                }
+                else if (div->e1->op == TOKmul &&
+                         div->e2->op == TOKint64)
+                {
+                    MulExp* mul = (MulExp*)div->e1;
+                    const dinteger_t denom = div->e2->toInteger();
+                    if (mul->e1->op == TOKvar && this->isOpDollar((VarExp*)mul->e1) && // TODO functionize?
+                        mul->e2->op == TOKint64)
+                    {
+                        const dinteger_t numer = mul->e2->toInteger();
+                        this->upperIsInBounds = numer <= denom;
+                        if (this->upperIsInBounds) { upr->warning("Avoiding upper boundscheck for $*%ld/%ld", numer, denom); }
+                    }
+                    else if (mul->e1->op == TOKint64 &&
+                             mul->e2->op == TOKvar && this->isOpDollar((VarExp*)mul->e2)) // TODO functionize?
+                    {
+                        const dinteger_t numer = mul->e1->toInteger();
+                        this->upperIsInBounds = numer <= denom;
+                        if (this->upperIsInBounds) { upr->warning("Avoiding upper boundscheck for $*%ld/%ld", numer, denom); }
+                    }
                 }
             }
 
@@ -10139,7 +10191,7 @@ Lagain:
         else
             assert(0);
 
-        this->lowerIsLessThanUpper = this->lowerIsLessThanUpper || (lwrRange.imax <= uprRange.imin);
+        this->lowerIsLessThanUpper |= (lwrRange.imax <= uprRange.imin);
 
         //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", upperIsInBounds, lowerIsLessThanUpper);
     }
