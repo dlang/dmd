@@ -1020,7 +1020,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
 
-            ret = Equal(e->op, e->type, e->e1, e->e2).copy();
+            ret = Equal(e->op, e->type, e1, e2).copy();
             if (CTFEExp::isCantExp(ret))
                 ret = e;
         }
