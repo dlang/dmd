@@ -10060,8 +10060,8 @@ Lagain:
             bool lwrAtStart = false;
             bool lwrIn = false;
             bool lwrAtEnd = false;
-            dinteger_t lwrMul = 0; // non-zero means [ $*/wrMul .. _ ]
-            dinteger_t lwrDiv = 0; // non-zero means [ $/lwrDiv .. _ ]
+            dinteger_t lwrMul = 1; // non-one means [ $*lwrMul .. _ ]
+            dinteger_t lwrDiv = 1; // non-one means [ $/lwrDiv .. _ ]
             if (lwr->op == TOKint64)
             {
                 lwrAtStart = lwr->toInteger() == 0;
@@ -10090,20 +10090,20 @@ Lagain:
                          div->e2->op == TOKint64)
                 {
                     MulExp* mul = (MulExp*)div->e1;
-                    const dinteger_t denom = div->e2->toInteger();
+                    lwrDiv = div->e2->toInteger();
                     if (mul->e1->op == TOKvar && this->isOpDollar((VarExp*)mul->e1) && // TODO functionize?
                         mul->e2->op == TOKint64)
                     {
-                        const dinteger_t numer = mul->e2->toInteger();
-                        this->lowerIsInBounds = numer <= denom;
-                        if (this->lowerIsInBounds) { lwr->warning("Avoiding lower boundscheck $*%ld/%ld", numer, denom); }
+                        lwrMul = mul->e2->toInteger();
+                        this->lowerIsInBounds = lwrMul <= lwrDiv;
+                        if (this->lowerIsInBounds) { lwr->warning("Avoiding lower boundscheck $*%ld/%ld", lwrMul, lwrDiv); }
                     }
                     else if (mul->e1->op == TOKint64 &&
                              mul->e2->op == TOKvar && this->isOpDollar((VarExp*)mul->e2)) // TODO functionize?
                     {
-                        const dinteger_t numer = mul->e1->toInteger();
-                        this->lowerIsInBounds = numer <= denom;
-                        if (this->lowerIsInBounds) { lwr->warning("Avoiding lower boundscheck $*%ld/%ld", numer, denom); }
+                        lwrMul = mul->e1->toInteger();
+                        this->lowerIsInBounds = lwrMul <= lwrDiv;
+                        if (this->lowerIsInBounds) { lwr->warning("Avoiding lower boundscheck $*%ld/%ld", lwrMul, lwrDiv); }
                     }
                 }
             }
@@ -10112,8 +10112,8 @@ Lagain:
             bool uprAtStart = false;
             bool uprIn = false;
             bool uprAtEnd = false;
-            dinteger_t uprMul = 0; // non-zero means [ _ .. $*uprMul ]
-            dinteger_t uprDiv = 0; // non-zero means [ _ .. $/uprDiv ]
+            dinteger_t uprMul = 1; // non-one means [ _ .. $*uprMul ]
+            dinteger_t uprDiv = 1; // non-one means [ _ .. $/uprDiv ]
             if (upr->op == TOKint64)
             {
                 uprAtStart = upr->toInteger() == 0;
@@ -10142,20 +10142,20 @@ Lagain:
                          div->e2->op == TOKint64)
                 {
                     MulExp* mul = (MulExp*)div->e1;
-                    const dinteger_t denom = div->e2->toInteger();
+                    uprDiv = div->e2->toInteger();
                     if (mul->e1->op == TOKvar && this->isOpDollar((VarExp*)mul->e1) && // TODO functionize?
                         mul->e2->op == TOKint64)
                     {
-                        const dinteger_t numer = mul->e2->toInteger();
-                        this->upperIsInBounds = numer <= denom;
-                        if (this->upperIsInBounds) { upr->warning("Avoiding upper boundscheck for $*%ld/%ld", numer, denom); }
+                        uprMul = mul->e2->toInteger();
+                        this->upperIsInBounds = uprMul <= uprDiv;
+                        if (this->upperIsInBounds) { upr->warning("Avoiding upper boundscheck for $*%ld/%ld", uprMul, uprDiv); }
                     }
                     else if (mul->e1->op == TOKint64 &&
                              mul->e2->op == TOKvar && this->isOpDollar((VarExp*)mul->e2)) // TODO functionize?
                     {
-                        const dinteger_t numer = mul->e1->toInteger();
-                        this->upperIsInBounds = numer <= denom;
-                        if (this->upperIsInBounds) { upr->warning("Avoiding upper boundscheck for $*%ld/%ld", numer, denom); }
+                        uprMul = mul->e1->toInteger();
+                        this->upperIsInBounds = uprMul <= uprDiv;
+                        if (this->upperIsInBounds) { upr->warning("Avoiding upper boundscheck for $*%ld/%ld", uprMul, uprDiv); }
                     }
                 }
             }
@@ -10163,7 +10163,7 @@ Lagain:
             // lower and upper
             if (lwrAtStart || // [0 .. X]
                 (lwrAtEnd && uprAtEnd) ||       // [$ .. $]
-                (lwrDiv != 0 && uprDiv != 0 && lwrDiv >= uprDiv)) // [$/m .. $/n], m >= n
+                (lwrDiv >= uprDiv)) // [$/m .. $/n], m >= n
             {
                 lowerIsLessThanUpper = true;
             }
