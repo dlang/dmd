@@ -1460,40 +1460,9 @@ Language changes listed by -transition=id:\n\
             fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
         m->semantic3();
     }
-    if (global.errors)
-        fatal();
-    if (global.params.useInline)
-    {
-        /* Do pass 3 semantic analysis on all imported modules,
-         * since otherwise functions in them cannot be inlined
-         * We must do this BEFORE generating the .deps file!
-         */
-        for (size_t i = 0; i < Module::amodules.dim; i++)
-        {
-            Module *m = Module::amodules[i];
-            if (global.params.verbose)
-                fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
-            m->semantic3();
-        }
-        if (global.errors)
-            fatal();
-    }
     Module::runDeferredSemantic3();
     if (global.errors)
         fatal();
-
-    if (global.params.moduleDeps)
-    {
-        OutBuffer* ob = global.params.moduleDeps;
-        if (global.params.moduleDepsFile)
-        {
-            File deps(global.params.moduleDepsFile);
-            deps.setbuffer((void*)ob->data, ob->offset);
-            writeFile(Loc(), &deps);
-        }
-        else
-            printf("%.*s", (int)ob->offset, ob->data);
-    }
 
     // Scan for functions to inline
     if (global.params.useInline)
@@ -1510,6 +1479,21 @@ Language changes listed by -transition=id:\n\
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
         fatal();
+
+    // inlineScan incrementally run semantic3 of each expanded functions.
+    // So deps file generation should be moved after the inlinig stage.
+    if (global.params.moduleDeps)
+    {
+        OutBuffer* ob = global.params.moduleDeps;
+        if (global.params.moduleDepsFile)
+        {
+            File deps(global.params.moduleDepsFile);
+            deps.setbuffer((void*)ob->data, ob->offset);
+            writeFile(Loc(), &deps);
+        }
+        else
+            printf("%.*s", (int)ob->offset, ob->data);
+    }
 
     printCtfePerformanceStats();
 
