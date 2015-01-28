@@ -274,7 +274,7 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
                 }
 
                 if (global.params.useDIP25 &&
-                    (v->storage_class & (STCref | STCout)) && !(v->storage_class & STCreturn))
+                    (v->storage_class & (STCref | STCout)) && !(v->storage_class & (STCreturn | STCforeach)))
                 {
                     if (sc->func->flags & FUNCFLAGreturnInprocess)
                     {
@@ -293,12 +293,14 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
                     else if (sc->module && sc->module->isRoot())
                     {
                         //printf("escaping reference to local ref variable %s\n", v->toChars());
+                        //printf("storage class = x%llx\n", v->storage_class);
                         error(loc, "escaping reference to local ref variable %s", v);
                     }
                     return;
                 }
 
-                if ((v->storage_class & (STCref | STCtemp)) == (STCref | STCtemp) &&
+                if (v->storage_class & STCref &&
+                    v->storage_class & (STCforeach | STCtemp) &&
                     v->init)
                 {
                     // (ref v = ex; ex)
