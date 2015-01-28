@@ -10140,12 +10140,12 @@ Lagain:
         }
         else if (t1b->ty == Tpointer)
         {
-            this->upperIsInBounds = true;
+            this->upperIsInBounds = true; // no boundscheck for x.ptr[_ .. _]
         }
         else
             assert(0);
 
-        this->lowerIsLessThanUpper = (lwrRange.imax <= uprRange.imin);
+        this->lowerIsLessThanUpper = this->lowerIsLessThanUpper || (lwrRange.imax <= uprRange.imin);
 
         //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", upperIsInBounds, lowerIsLessThanUpper);
     }
