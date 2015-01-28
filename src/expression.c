@@ -10161,9 +10161,11 @@ Lagain:
             }
 
             // lower and upper
-            if (lwrAtStart || // [0 .. X]
-                (lwrAtEnd && uprAtEnd) ||       // [$ .. $]
-                (lwrMul*uprDiv <= uprMul*lwrDiv)) // [$*p/q .. $*r/s], p/q <= r/s => p*s <= r*q
+            if ((this->lowerIsInBounds &&
+                 this->upperIsInBounds) &&
+                (lwrAtStart || // [0 .. _]
+                 (lwrAtEnd && uprAtEnd) ||       // [$ .. $]
+                 (lwrMul*uprDiv <= uprMul*lwrDiv))) // [$*p/q .. $*r/s], p/q <= r/s => p*s <= r*q
             {
                 lowerIsLessThanUpper = true;
                 this->warning("Lower <= upper bound");
