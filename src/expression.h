@@ -1007,10 +1007,9 @@ public:
     Expression *upr;            // NULL if implicit 0
     Expression *lwr;            // NULL if implicit [length - 1]
     VarDeclaration *lengthVar;
+    bool lowerIsInBounds;       // true if lwr <= e1.length
     bool upperIsInBounds;       // true if upr <= e1.length
     bool lowerIsLessThanUpper;  // true if lwr <= upr
-    bool lowerIsInBounds() const { return (lowerIsLessThanUpper &&
-                                           upperIsInBounds); }; // true if lwr <= e1.length
 
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
@@ -1020,6 +1019,7 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
+    bool isOpDollar(VarExp* ve);
 
     void accept(Visitor *v) { v->visit(this); }
 };
