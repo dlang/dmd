@@ -10062,18 +10062,15 @@ Lagain:
             bool lwrAtEnd = false;
             dinteger_t lwrMul = 1; // non-one means [ $*lwrMul .. _ ]
             dinteger_t lwrDiv = 1; // non-one means [ $/lwrDiv .. _ ]
-            if (lwr->op == TOKint64)
+            if (lwr->op == TOKint64 && lwr->toInteger() == 0)
             {
-                lwrAtStart = lwr->toInteger() == 0;
-                if (lwrAtStart) { lwr->warning("Avoiding lower boundscheck"); }
-                this->lowerIsInBounds = lwrAtStart;
+                this->lowerIsInBounds = lwrAtStart = true;
+                lwr->warning("Avoiding lower boundscheck");
             }
-            else if (lwr->op == TOKvar)
+            else if (lwr->op == TOKvar && this->isOpDollar((VarExp*)lwr)) // TODO functionize?
             {
-                VarExp* var = (VarExp*)lwr;
-                lwrAtEnd = this->isOpDollar(var);
-                if (lwrAtEnd) { lwr->warning("Avoiding lower boundscheck"); }
-                this->lowerIsInBounds = lwrAtEnd;
+                this->lowerIsInBounds = lwrAtEnd = true;
+                lwr->warning("Avoiding lower boundscheck");
             }
             else if (lwr->op == TOKdiv)
             {
@@ -10114,18 +10111,15 @@ Lagain:
             bool uprAtEnd = false;
             dinteger_t uprMul = 1; // non-one means [ _ .. $*uprMul ]
             dinteger_t uprDiv = 1; // non-one means [ _ .. $/uprDiv ]
-            if (upr->op == TOKint64)
+            if (upr->op == TOKint64 && upr->toInteger() == 0)
             {
-                uprAtStart = upr->toInteger() == 0;
-                if (uprAtStart) { upr->warning("Avoiding upper boundscheck"); }
-                this->upperIsInBounds = uprAtStart;
+                this->upperIsInBounds = uprAtStart = true;
+                upr->warning("Avoiding upper boundscheck");
             }
-            else if (upr->op == TOKvar)
+            else if (upr->op == TOKvar && this->isOpDollar((VarExp*)upr)) // TODO functionize?
             {
-                VarExp* var = (VarExp*)upr;
-                uprAtEnd = this->isOpDollar(var); // TODO functionize?
-                if (uprAtEnd) { upr->warning("Avoiding upper boundscheck"); }
-                this->upperIsInBounds = uprAtEnd;
+                this->upperIsInBounds = uprAtEnd = true;
+                upr->warning("Avoiding upper boundscheck");
             }
             else if (upr->op == TOKdiv)
             {
