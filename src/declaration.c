@@ -944,7 +944,8 @@ Type *applyPartialType(Loc loc, Scope *sc, Type *t, Type *tx)
         ((TypeIdentifier *)tx)->ident == Id::empty &&
         ((TypeIdentifier *)tx)->idents.dim == 0)
     {
-        t = t->addMod(tx->mod);
+        if (tx->mod)
+            t = t->castMod(tx->mod);
         return t;
     }
 
@@ -1017,7 +1018,8 @@ Type *applyPartialType(Loc loc, Scope *sc, Expression *exp, Type *tx)
         ((TypeIdentifier *)tx)->ident == Id::empty &&
         ((TypeIdentifier *)tx)->idents.dim == 0)
     {
-        t = t->addMod(tx->mod);
+        if (tx->mod)
+            t = t->castMod(tx->mod);
         return t;
     }
 

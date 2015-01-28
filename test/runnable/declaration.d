@@ -241,6 +241,24 @@ void test481b()
     static assert(is(typeof(aa15) == int[int[][2]]));
 }
 
+void test14069()
+{
+    const[$] s1 = "hello";
+    static assert(is(typeof(s1) == const(char)[5]));
+    char[$] s2 = "hello";
+    static assert(is(typeof(s2) == char[5]));
+
+    const[$] s3 = "hello"w;
+    static assert(is(typeof(s3) == const(wchar)[5]));
+    wchar[$] s4 = "hello"w;
+    static assert(is(typeof(s4) == wchar[5]));
+
+    const[$] s5 = "hello"d;
+    static assert(is(typeof(s5) == const(dchar)[5]));
+    dchar[$] s6 = "hello"d;
+    static assert(is(typeof(s6) == dchar[5]));
+}
+
 /***************************************************/
 // 6475
 
