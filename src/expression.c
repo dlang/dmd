@@ -10055,7 +10055,8 @@ Lagain:
         // avoid slice bounds-checking. TODO use resolveOpDollar?
         {
             // upper
-            bool uprAtStart = false, uprAtEnd = false;
+            bool uprAtStart = false, uprIn = false, uprAtEnd = false;
+            long uprDiv = 0; // non-zero means [ _ .. $/uprDiv ]
             if (upr->op == TOKint64)
             {
                 IntegerExp* int_ = (IntegerExp*)upr; // TODO is*Exp predicate?
@@ -10072,10 +10073,21 @@ Lagain:
             else if (upr->op == TOKdiv)
             {
                 DivExp* div = (DivExp*)upr; // TODO is*Exp predicate?
+                if (div->e1->op == TOKvar &&
+                    div->e2->op == TOKint64)
+                {
+                    VarExp* p = (VarExp*)div->e1; // TODO is*Exp predicate?
+                    IntegerExp* q = (IntegerExp*)div->e2; // TODO is*Exp predicate?
+                    uprDiv = q->value;
+                    uprIn = uprDiv >= 1;
+                    if (uprIn) { e1->warning("Avoiding boundscheck for upper part '%s'", div->toChars()); }
+                    this->upperIsInBounds = uprIn;
+                }
             }
 
             // lower
-            bool lwrAtStart = false, lwrAtEnd = false;
+            bool lwrAtStart = false, lwrIn = false, lwrAtEnd = false;
+            long lwrDiv = 0; // non-zero means [ $/lwrDiv .. _ ]
             if (lwr->op == TOKint64)
             {
                 IntegerExp* int_ = (IntegerExp*)lwr; // TODO is*Exp predicate?
@@ -10088,14 +10100,24 @@ Lagain:
                 lwrAtEnd = isOpDollar(var);
                 if (lwrAtEnd) { e1->warning("Avoiding boundscheck for lower part '%s'", var->toChars()); }
             }
-            else if (lwr->op == TOKdiv) // then lower
+            else if (lwr->op == TOKdiv)
             {
                 DivExp* div = (DivExp*)lwr; // TODO is*Exp predicate?
+                if (div->e1->op == TOKvar &&
+                    div->e2->op == TOKint64)
+                {
+                    VarExp* p = (VarExp*)div->e1; // TODO is*Exp predicate?
+                    IntegerExp* q = (IntegerExp*)div->e2; // TODO is*Exp predicate?
+                    lwrDiv = q->value;
+                    lwrIn = lwrDiv >= 1;
+                    if (lwrIn) { e1->warning("Avoiding boundscheck for lower part '%s'", div->toChars()); }
+                }
             }
 
             // lower and upper
             if (lwrAtStart || // [0 .. X]
-                lwrAtEnd && uprAtEnd)       // [$ .. $]
+                lwrAtEnd && uprAtEnd ||       // [$ .. $]
+                (lwrDiv != 0 && uprDiv != 0 && lwrDiv >= uprDiv)) // [$/m .. $/n], m >= n
             {
                 lowerIsLessThanUpper = true;
             }
