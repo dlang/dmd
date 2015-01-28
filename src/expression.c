@@ -10056,18 +10056,17 @@ Lagain:
         {
             // lower
             bool lwrAtStart = false, lwrIn = false, lwrAtEnd = false;
-            long lwrDiv = 0; // non-zero means [ $/lwrDiv .. _ ]
+            dinteger_t lwrDiv = 0; // non-zero means [ $/lwrDiv .. _ ]
             if (lwr->op == TOKint64)
             {
-                IntegerExp* int_ = (IntegerExp*)lwr; // TODO is*Exp predicate?
-                lwrAtStart = int_->value == 0;
-                if (lwrAtStart) { e1->warning("Avoiding boundscheck for lower part '%s'", int_->toChars()); }
+                lwrAtStart = lwr->toInteger() == 0;
+                if (lwrAtStart) { lwr->warning("Avoiding boundscheck"); }
             }
             else if (lwr->op == TOKvar)
             {
                 VarExp* var = (VarExp*)lwr; // TODO is*Exp predicate?
                 lwrAtEnd = isOpDollar(var);
-                if (lwrAtEnd) { e1->warning("Avoiding boundscheck for lower part '%s'", var->toChars()); }
+                if (lwrAtEnd) { lwr->warning("Avoiding boundscheck"); }
             }
             else if (lwr->op == TOKdiv)
             {
@@ -10075,26 +10074,25 @@ Lagain:
                 if (div->e1->op == TOKvar && isOpDollar((VarExp*)div->e1) &&
                     div->e2->op == TOKint64)
                 {
-                    lwrDiv = ((IntegerExp*)div->e2)->value;
+                    lwrDiv = div->e2->toInteger();
                     lwrIn = lwrDiv >= 1;
-                    if (lwrIn) { e1->warning("Avoiding boundscheck for lower part '%s'", div->toChars()); }
+                    if (lwrIn) { lwr->warning("Avoiding boundscheck"); }
                 }
             }
 
             // upper
             bool uprAtStart = false, uprIn = false, uprAtEnd = false;
-            long uprDiv = 0; // non-zero means [ _ .. $/uprDiv ]
+            dinteger_t uprDiv = 0; // non-zero means [ _ .. $/uprDiv ]
             if (upr->op == TOKint64)
             {
-                IntegerExp* int_ = (IntegerExp*)upr; // TODO is*Exp predicate?
-                uprAtStart = int_->value == 0;
-                if (uprAtStart) { e1->warning("Avoiding boundscheck for upper part '%s'", int_->toChars()); }
+                uprAtStart = upr->toInteger() == 0;
+                if (uprAtStart) { upr->warning("Avoiding boundscheck"); }
             }
             else if (upr->op == TOKvar)
             {
                 VarExp* var = (VarExp*)upr; // TODO is*Exp predicate?
                 uprAtEnd = isOpDollar(var);
-                if (uprAtEnd) { e1->warning("Avoiding boundscheck for upper part '%s'", var->toChars()); }
+                if (uprAtEnd) { upr->warning("Avoiding boundscheck"); }
                 this->upperIsInBounds = uprAtEnd;
             }
             else if (upr->op == TOKdiv)
@@ -10103,9 +10101,9 @@ Lagain:
                 if (div->e1->op == TOKvar && isOpDollar((VarExp*)div->e1) &&
                     div->e2->op == TOKint64)
                 {
-                    uprDiv = ((IntegerExp*)div->e2)->value;
+                    uprDiv = div->e2->toInteger();
                     uprIn = uprDiv >= 1;
-                    if (uprIn) { e1->warning("Avoiding boundscheck for upper part '%s'", div->toChars()); }
+                    if (uprIn) { upr->warning("Avoiding boundscheck"); }
                     this->upperIsInBounds = uprIn;
                 }
             }
