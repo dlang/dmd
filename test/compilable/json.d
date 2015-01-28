@@ -108,3 +108,5 @@ enum Numbers
     unspecified4,
     four = 4,
 }
+
+template IncludeConstraint(T) if (T == string) {}

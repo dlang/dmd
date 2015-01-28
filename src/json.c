@@ -789,6 +789,12 @@ public:
         }
         arrayEnd();
 
+        Expression *expression = d->constraint;
+        if (expression)
+        {
+            property("constraint", expression->toChars());
+        }
+
         propertyStart("members");
         arrayStart();
         for (size_t i = 0; i < d->members->dim; i++)

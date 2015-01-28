@@ -565,6 +565,20 @@
       "char" : 5
      }
     ]
+   },
+   {
+    "kind" : "template",
+    "line" : 112,
+    "char" : 1,
+    "name" : "IncludeConstraint",
+    "parameters" : [
+     {
+      "name" : "T",
+      "kind" : "type"
+     }
+    ],
+    "constraint" : "T == string",
+    "members" : []
    }
   ]
  }
