@@ -2384,23 +2384,50 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 
     // Find the closest pure parent of the calling function
     FuncDeclaration *outerfunc = sc->func;
-    while ( outerfunc->toParent2() &&
-           !outerfunc->isPureBypassingInference() &&
-            outerfunc->toParent2()->isFuncDeclaration())
-    {
-        outerfunc = outerfunc->toParent2()->isFuncDeclaration();
-        if (outerfunc->type->ty == Terror)
-            return;
-    }
-
     FuncDeclaration *calledparent = f;
-    while ( calledparent->toParent2() &&
-           !calledparent->isPureBypassingInference() &&
-            calledparent->toParent2()->isFuncDeclaration())
+
+    if (outerfunc->isInstantiated())
     {
-        calledparent = calledparent->toParent2()->isFuncDeclaration();
-        if (calledparent->type->ty == Terror)
-            return;
+        // The attributes of outerfunc should be inferred from the call of f.
+    }
+    else if (f->isFuncLiteralDeclaration())
+    {
+        // The attributes of f is always inferred in its declared place.
+    }
+    else
+    {
+        /* Today, static local functions are impure by default, but they cannot
+         * violate purity of enclosing functions.
+         *
+         *  auto foo() pure {      // non instantiated funciton
+         *    static auto bar() {  // static, without pure attribute
+         *      impureFunc();      // impure call
+         *      // Although impureFunc is called inside bar, f(= impureFunc)
+         *      // is not callable inside pure outerfunc(= foo <- bar).
+         *    }
+         *
+         *    bar();
+         *    // Although bar is called inside foo, f(= bar) is callable
+         *    // bacause calledparent(= foo) is same with outerfunc(= foo).
+         *  }
+         */
+
+        while (outerfunc->toParent2() &&
+               outerfunc->isPureBypassingInference() == PUREimpure &&
+               outerfunc->toParent2()->isFuncDeclaration())
+        {
+            outerfunc = outerfunc->toParent2()->isFuncDeclaration();
+            if (outerfunc->type->ty == Terror)
+                return;
+        }
+        while (calledparent->toParent2() &&
+               calledparent->isPureBypassingInference() == PUREimpure &&
+               calledparent->toParent2()->isFuncDeclaration())
+        {
+            calledparent = calledparent->toParent2()->isFuncDeclaration();
+            if (calledparent->type->ty == Terror)
+                return;
+        }
     }
 
     // If the caller has a pure parent, then either the called func must be pure,
@@ -2408,7 +2435,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
     if (!f->isPure() && calledparent != outerfunc)
     {
         FuncDeclaration *ff = outerfunc;
-        if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
+        if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
         {
             error("pure function '%s' cannot call impure function '%s'",
                 ff->toPrettyChars(), f->toPrettyChars());
@@ -2453,7 +2480,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
          * functions must be pure.
          */
         FuncDeclaration *ff = sc->func;
-        if (sc->flags & SCOPEcompile ? ff->isPureBypassingInferenceX() : ff->setImpure())
+        if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
         {
             error("pure function '%s' cannot access mutable static data '%s'",
                 ff->toPrettyChars(), v->toChars());
@@ -2476,6 +2503,14 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
          */
 
         Dsymbol *vparent = v->toParent2();
+        if (FuncDeclaration *fdp = vparent->isFuncDeclaration())
+        {
+            if (!sc->func->isPureBypassingInference() && fdp->setImpure())
+            {
+                error("impure function '%s' cannot access variable '%s' declared in enclosing pure function '%s'",
+                    sc->func->toChars(), v->toChars(), fdp->toPrettyChars());
+            }
+        }
         for (Dsymbol *s = sc->func; s; s = s->toParent2())
         {
             if (s == vparent)
@@ -3439,7 +3474,8 @@ Expression *ThisExp::semantic(Scope *sc)
     var = fd->vthis;
     assert(var->parent);
     type = var->type;
-    var->isVarDeclaration()->checkNestedReference(sc, loc);
+    if (!var->isVarDeclaration()->checkNestedReference(sc, loc))
+        return new ErrorExp();
     if (!sc->intypeof)
         sc->callSuper |= CSXthis;
     return this;
@@ -3544,7 +3580,8 @@ Expression *SuperExp::semantic(Scope *sc)
         type = type->castMod(var->type->mod);
     }
 
-    var->isVarDeclaration()->checkNestedReference(sc, loc);
+    if (!var->isVarDeclaration()->checkNestedReference(sc, loc))
+        return new ErrorExp();
 
     if (!sc->intypeof)
         sc->callSuper |= CSXsuper;
@@ -5053,12 +5090,16 @@ Expression *SymOffExp::semantic(Scope *sc)
     //var->semantic(sc);
     if (!type)
         type = var->type->pointerTo();
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
-        v->checkNestedReference(sc, loc);
-    FuncDeclaration *f = var->isFuncDeclaration();
-    if (f)
-        f->checkNestedReference(sc, loc);
+    if (VarDeclaration *v = var->isVarDeclaration())
+    {
+        if (!v->checkNestedReference(sc, loc))
+            return new ErrorExp();
+    }
+    else if (FuncDeclaration *f = var->isFuncDeclaration())
+    {
+        if (!f->checkNestedReference(sc, loc))
+            return new ErrorExp();
+    }
     return this;
 }
 
@@ -5125,11 +5166,13 @@ Expression *VarExp::semantic(Scope *sc)
     if (VarDeclaration *vd = var->isVarDeclaration())
     {
         hasOverloads = 0;
-        vd->checkNestedReference(sc, loc);
+        if (!vd->checkNestedReference(sc, loc))
+            return new ErrorExp();
     }
     else if (FuncDeclaration *fd = var->isFuncDeclaration())
     {
-        fd->checkNestedReference(sc, loc);
+        if (!fd->checkNestedReference(sc, loc))
+            return new ErrorExp();
     }
     else if (OverDeclaration *od = var->isOverDeclaration())
     {
@@ -8733,7 +8776,8 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            f->checkNestedReference(sc, loc);
+            if (!f->checkNestedReference(sc, loc))
+                return new ErrorExp();
         }
         else if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
         {
@@ -8820,7 +8864,8 @@ Lagain:
         checkPurity(sc, f);
         checkSafety(sc, f);
         checkNogc(sc, f);
-        f->checkNestedReference(sc, loc);
+        if (!f->checkNestedReference(sc, loc))
+            return new ErrorExp();
         accessCheck(loc, sc, NULL, f);
 
         ethis = NULL;

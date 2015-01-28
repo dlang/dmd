@@ -589,10 +589,10 @@ enum TRUSTformat
 enum PURE
 {
     PUREimpure = 0,     // not pure at all
-    PUREweak = 1,       // no mutable globals are read or written
-    PUREconst = 2,      // parameters are values or const
-    PUREstrong = 3,     // parameters are values or immutable
-    PUREfwdref = 4,     // it's pure, but not known which level yet
+    PUREfwdref = 1,     // it's pure, but not known which level yet
+    PUREweak = 2,       // no mutable globals are read or written
+    PUREconst = 3,      // parameters are values or const
+    PUREstrong = 4,     // parameters are values or immutable
 };
 
 RET retStyle(TypeFunction *tf);

@@ -133,3 +133,23 @@ immutable(void)* g10063(inout int* p) pure
 {
     return f10063(p);
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/testInference.d(154): Error: pure function 'testInference.bar14049' cannot call impure function 'testInference.foo14049!int.foo14049'
+---
+*/
+auto impure14049() { return 1; }
+
+void foo14049(T)(T val)
+{
+    auto n = () @trusted {
+        return impure14049();
+    }();
+}
+
+void bar14049() pure
+{
+    foo14049(1);
+}

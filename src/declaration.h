@@ -280,7 +280,7 @@ public:
     ExpInitializer *getExpInitializer();
     Expression *getConstInitializer(bool needFullType = true);
     void checkCtorConstInit();
-    void checkNestedReference(Scope *sc, Loc loc);
+    bool checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
@@ -626,7 +626,6 @@ public:
     bool hasOverloads();
     PURE isPure();
     PURE isPureBypassingInference();
-    bool isPureBypassingInferenceX();
     bool setImpure();
     bool isSafe();
     bool isSafeBypassingInference();
@@ -649,7 +648,7 @@ public:
     virtual bool addPostInvariant();
     const char *kind();
     FuncDeclaration *isUnique();
-    void checkNestedReference(Scope *sc, Loc loc);
+    bool checkNestedReference(Scope *sc, Loc loc);
     bool needsClosure();
     bool hasNestedFrameRefs();
     void buildResultVar(Scope *sc, Type *tret);

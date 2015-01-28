@@ -6039,6 +6039,7 @@ bool TypeFunction::hasLazyParameters()
 
 bool TypeFunction::parameterEscapes(Parameter *p)
 {
+    purityLevel();
 
     /* Scope parameters do not escape.
      * Allow 'lazy' to imply 'scope' -
@@ -6057,12 +6058,14 @@ bool TypeFunction::parameterEscapes(Parameter *p)
         return true;
 
     if (purity > PUREweak)
-    {   /* With pure functions, we need only be concerned if p escapes
+    {
+        /* With pure functions, we need only be concerned if p escapes
          * via any return statement.
          */
         Type* tret = nextOf()->toBasetype();
         if (!isref && !tret->hasPointers())
-        {   /* The result has no references, so p could not be escaping
+        {
+            /* The result has no references, so p could not be escaping
              * that way.
              */
             return false;
