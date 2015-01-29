@@ -1011,6 +1011,17 @@ public:
     bool upperIsInBounds;       // true if upr <= e1.length
     bool lowerIsLessThanUpper;  // true if lwr <= upr
 
+    enum Boundness
+    {
+        unknown,
+        outside,                // outside of [0 .. $]
+        inside,                 // within [0 .. $]
+        atStart,                // specialization of inside
+        atEnd,                  // specialization of inside
+    };
+
+    Boundness analyzeRelativeBound(Expression* e, dinteger_t* mul, dinteger_t* div);
+
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);

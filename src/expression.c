@@ -9820,6 +9820,62 @@ bool SliceExp::isOpDollar(VarExp* ve)
     // return decl && decl->ident == Id::dollar;
 }
 
+SliceExp::Boundness SliceExp::analyzeRelativeBound(Expression* e,
+                                                   dinteger_t* p, dinteger_t* q) // out arguments
+{
+    if (e->op == TOKint64 && e->toInteger() == 0)
+    {
+        e->warning("Avoiding boundscheck for 0");
+        return atStart;
+    }
+    else if (e->op == TOKvar && this->isOpDollar((VarExp*)e)) // TODO functionize?
+    {
+        e->warning("Avoiding boundscheck for $");
+        return atEnd;
+    }
+    else if (e->op == TOKdiv)
+    {
+        DivExp* div = (DivExp*)e;
+        if (div->e1->op == TOKvar && this->isOpDollar((VarExp*)div->e1) && // TODO functionize?
+            div->e2->op == TOKint64)
+        {
+            *q = div->e2->toInteger();
+            if (*q >= 1)
+            {
+                e->warning("Avoiding boundscheck for $/%ld", *q);
+                return inside;
+            }
+        }
+        else if (div->e1->op == TOKmul &&
+                 div->e2->op == TOKint64)
+        {
+            MulExp* mul = (MulExp*)div->e1;
+            *q = div->e2->toInteger();
+            if (mul->e1->op == TOKvar && this->isOpDollar((VarExp*)mul->e1) && // TODO functionize?
+                mul->e2->op == TOKint64)
+            {
+                *p = mul->e2->toInteger();
+                if (*p <= *q)
+                {
+                    e->warning("Avoiding boundscheck for $*%ld/%ld", *p, *q);
+                    return inside;
+                }
+            }
+            else if (mul->e1->op == TOKint64 &&
+                     mul->e2->op == TOKvar && this->isOpDollar((VarExp*)mul->e2)) // TODO functionize?
+            {
+                *p = mul->e1->toInteger();
+                if (*p <= *q)
+                {
+                    e->warning("Avoiding boundscheck for $*%ld/%ld", *p, *q);
+                    return inside;
+                }
+            }
+        }
+    }
+    return unknown;
+}
+
 Expression *SliceExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -10057,109 +10113,30 @@ Lagain:
         // avoid slice bounds-checking. TODO use resolveOpDollar?
         {
             // lower
-            bool lwrAtStart = false;
-            bool lwrIn = false;
-            bool lwrAtEnd = false;
             dinteger_t lwrMul = 1; // non-one means [ $*lwrMul .. _ ]
             dinteger_t lwrDiv = 1; // non-one means [ $/lwrDiv .. _ ]
-            if (lwr->op == TOKint64 && lwr->toInteger() == 0)
+            const Boundness lwrBoundness = this->analyzeRelativeBound(lwr, &lwrMul, &lwrDiv);
+            if (lwrBoundness >= inside)
             {
-                this->lowerIsInBounds = lwrAtStart = true;
-                lwr->warning("Avoiding lower boundscheck");
-            }
-            else if (lwr->op == TOKvar && this->isOpDollar((VarExp*)lwr)) // TODO functionize?
-            {
-                this->lowerIsInBounds = lwrAtEnd = true;
-                lwr->warning("Avoiding lower boundscheck");
-            }
-            else if (lwr->op == TOKdiv)
-            {
-                DivExp* div = (DivExp*)lwr;
-                if (div->e1->op == TOKvar && this->isOpDollar((VarExp*)div->e1) && // TODO functionize?
-                    div->e2->op == TOKint64)
-                {
-                    lwrDiv = div->e2->toInteger();
-                    lwrIn = lwrDiv >= 1;
-                    if (lwrIn) { lwr->warning("Avoiding lower boundscheck for $/%ld", lwrDiv); }
-                    this->lowerIsInBounds = lwrIn;
-                }
-                else if (div->e1->op == TOKmul &&
-                         div->e2->op == TOKint64)
-                {
-                    MulExp* mul = (MulExp*)div->e1;
-                    lwrDiv = div->e2->toInteger();
-                    if (mul->e1->op == TOKvar && this->isOpDollar((VarExp*)mul->e1) && // TODO functionize?
-                        mul->e2->op == TOKint64)
-                    {
-                        lwrMul = mul->e2->toInteger();
-                        this->lowerIsInBounds = lwrMul <= lwrDiv;
-                        if (this->lowerIsInBounds) { lwr->warning("Avoiding lower boundscheck $*%ld/%ld", lwrMul, lwrDiv); }
-                    }
-                    else if (mul->e1->op == TOKint64 &&
-                             mul->e2->op == TOKvar && this->isOpDollar((VarExp*)mul->e2)) // TODO functionize?
-                    {
-                        lwrMul = mul->e1->toInteger();
-                        this->lowerIsInBounds = lwrMul <= lwrDiv;
-                        if (this->lowerIsInBounds) { lwr->warning("Avoiding lower boundscheck $*%ld/%ld", lwrMul, lwrDiv); }
-                    }
-                }
+                this->lowerIsInBounds = true;
             }
 
             // upper
-            bool uprAtStart = false;
-            bool uprIn = false;
-            bool uprAtEnd = false;
-            dinteger_t uprMul = 1; // non-one means [ _ .. $*uprMul ]
-            dinteger_t uprDiv = 1; // non-one means [ _ .. $/uprDiv ]
-            if (upr->op == TOKint64 && upr->toInteger() == 0)
+            dinteger_t uprMul = 1; // non-one means [ $*uprMul .. _ ]
+            dinteger_t uprDiv = 1; // non-one means [ $/uprDiv .. _ ]
+            const Boundness uprBoundness = this->analyzeRelativeBound(upr, &uprMul, &uprDiv);
+            if (uprBoundness >= inside)
             {
-                this->upperIsInBounds = uprAtStart = true;
-                upr->warning("Avoiding upper boundscheck");
-            }
-            else if (upr->op == TOKvar && this->isOpDollar((VarExp*)upr)) // TODO functionize?
-            {
-                this->upperIsInBounds = uprAtEnd = true;
-                upr->warning("Avoiding upper boundscheck");
-            }
-            else if (upr->op == TOKdiv)
-            {
-                DivExp* div = (DivExp*)upr;
-                if (div->e1->op == TOKvar && this->isOpDollar((VarExp*)div->e1) && // TODO functionize?
-                    div->e2->op == TOKint64)
-                {
-                    uprDiv = div->e2->toInteger();
-                    uprIn = uprDiv >= 1;
-                    if (uprIn) { upr->warning("Avoiding upper boundscheck for $/%ld", uprDiv); }
-                    this->upperIsInBounds = uprIn;
-                }
-                else if (div->e1->op == TOKmul &&
-                         div->e2->op == TOKint64)
-                {
-                    MulExp* mul = (MulExp*)div->e1;
-                    uprDiv = div->e2->toInteger();
-                    if (mul->e1->op == TOKvar && this->isOpDollar((VarExp*)mul->e1) && // TODO functionize?
-                        mul->e2->op == TOKint64)
-                    {
-                        uprMul = mul->e2->toInteger();
-                        this->upperIsInBounds = uprMul <= uprDiv;
-                        if (this->upperIsInBounds) { upr->warning("Avoiding upper boundscheck for $*%ld/%ld", uprMul, uprDiv); }
-                    }
-                    else if (mul->e1->op == TOKint64 &&
-                             mul->e2->op == TOKvar && this->isOpDollar((VarExp*)mul->e2)) // TODO functionize?
-                    {
-                        uprMul = mul->e1->toInteger();
-                        this->upperIsInBounds = uprMul <= uprDiv;
-                        if (this->upperIsInBounds) { upr->warning("Avoiding upper boundscheck for $*%ld/%ld", uprMul, uprDiv); }
-                    }
-                }
+                this->upperIsInBounds = true;
             }
 
             // lower and upper
             if ((this->lowerIsInBounds &&
                  this->upperIsInBounds) &&
-                (lwrAtStart || // [0 .. _]
-                 (lwrAtEnd && uprAtEnd) ||       // [$ .. $]
-                 (lwrMul*uprDiv <= uprMul*lwrDiv))) // [$*p/q .. $*r/s], p/q <= r/s => p*s <= r*q
+                (lwrBoundness == atStart || // [0 .. _]
+                 (lwrBoundness == atEnd &&
+                  uprBoundness == atEnd) || // [$ .. $]
+                 (lwrMul*uprDiv <= uprMul*lwrDiv))) // [$*p/q .. $*r/s], p/q <= r/s => p*s <= r*q. TODO mul overflows?
             {
                 lowerIsLessThanUpper = true;
                 this->warning("Lower <= upper bound");
