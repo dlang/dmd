@@ -1011,18 +1011,6 @@ public:
     bool upperIsInBounds;       // true if upr <= e1.length
     bool lowerIsLessThanUpper;  // true if lwr <= upr
 
-    // Decribes Boundness of a Slice Beginning or End Index.
-    enum Boundness
-    {
-        unknown,                // unknown whether inside or outside
-        outside,                // outside of [0 .. $]
-        inside,                 // inside of [0 .. $]
-        atStart,                // specialization of inside
-        atEnd,                  // specialization of inside
-    };
-
-    Boundness analyzeRelativeBound(Expression* e, dinteger_t* mul, dinteger_t* div);
-
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
@@ -1031,7 +1019,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
-    bool isOpDollar(VarExp* ve);
 
     void accept(Visitor *v) { v->visit(this); }
 };

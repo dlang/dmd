@@ -9828,18 +9828,20 @@ enum Boundness
     atEnd,                  // specialization of inside
 };
 
+static bool LOG_BOUNDNESS = true;
+
 Boundness analyzeRelativeBound(Expression* e,
                                VarDeclaration *lengthVar,
                                dinteger_t* p, dinteger_t* q) // out arguments
 {
     if (e->op == TOKint64 && e->toInteger() == 0)
     {
-        e->warning("Avoiding boundscheck for 0");
+        if (LOG_BOUNDNESS) printf("Avoiding boundscheck for 0\n");
         return atStart;
     }
     else if (isOpDollar(e, lengthVar))
     {
-        e->warning("Avoiding boundscheck for $");
+        if (LOG_BOUNDNESS) printf("Avoiding boundscheck for $\n");
         return atEnd;
     }
     else if (e->op == TOKdiv)
@@ -9850,7 +9852,7 @@ Boundness analyzeRelativeBound(Expression* e,
             *q = div->e2->toInteger();
             if (*q >= 1)
             {
-                e->warning("Avoiding boundscheck for $/%ld", *q);
+                if (LOG_BOUNDNESS) printf("Avoiding boundscheck for $/%ld\n", *q);
                 return inside;
             }
         }
@@ -9864,7 +9866,7 @@ Boundness analyzeRelativeBound(Expression* e,
                 *p = mul->e2->toInteger();
                 if (*p <= *q)
                 {
-                    e->warning("Avoiding boundscheck for $*%ld/%ld", *p, *q);
+                    if (LOG_BOUNDNESS) printf("Avoiding boundscheck for $*%ld/%ld\n", *p, *q);
                     return inside;
                 }
                 else if (*p > *q)
@@ -9878,7 +9880,7 @@ Boundness analyzeRelativeBound(Expression* e,
                 *p = mul->e1->toInteger();
                 if (*p <= *q)
                 {
-                    e->warning("Avoiding boundscheck for $*%ld/%ld", *p, *q);
+                    if (LOG_BOUNDNESS) printf("Avoiding boundscheck for $*%ld/%ld\n", *p, *q);
                     return inside;
                 }
                 else if (*p > *q)
@@ -10168,7 +10170,7 @@ Lagain:
                  (lwrMul*uprDiv <= uprMul*lwrDiv)))
             {
                 lowerIsLessThanUpper = true;
-                this->warning("Lower <= upper bound");
+                if (LOG_BOUNDNESS) printf("Lower <= upper bound\n");
             }
         }
 
