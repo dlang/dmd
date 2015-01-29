@@ -82,6 +82,18 @@ char[3] a481_18x = "abc";
 char[$] a481_18y = "abc";
 static assert(is(typeof(a481_18x) == typeof(a481_18y)));
 
+immutable pure @safe bool function(in bool[])[2] a481_19x =
+[
+    s => s[0],
+    s => s[0]
+];
+immutable pure @safe bool function(in bool[])[$] a481_19y =
+[
+    s => s[0],
+    s => s[0]
+];
+static assert(is(typeof(a481_19x) == typeof(a481_19y)));
+
 void test481()
 {
     assert(a481_1x == a481_1y);

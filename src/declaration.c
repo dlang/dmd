@@ -940,6 +940,8 @@ Type *semanticPartialType(Loc loc, Scope *sc, Type *t)
 
 Type *applyPartialType(Loc loc, Scope *sc, Type *t, Type *tx)
 {
+    if (tx->deco || tx->ty == Terror)
+        return tx;
     if (tx->ty == Tident &&
         ((TypeIdentifier *)tx)->ident == Id::empty &&
         ((TypeIdentifier *)tx)->idents.dim == 0)
@@ -949,24 +951,17 @@ Type *applyPartialType(Loc loc, Scope *sc, Type *t, Type *tx)
         return t;
     }
 
-    if (tx->deco)
-        return tx;
-
-    if (t->ty == Tfunction ||
-        t->ty == Tdelegate ||
-        t->ty == Tpointer && ((TypePointer *)t)->next->ty == Tfunction)
-    {
-    Lerror:
-        error(loc, "cannot match %s and %s", tx->toChars(), t->toChars());
-        return Type::terror;
-    }
     Type *txn = tx->nextOf();
     assert(txn);
     // tx is undetermined type, eg. auto[$], const[], immutable*, int[$], etc.
 
     Type *tn = t->nextOf();
     if (!tn)
-        goto Lerror;
+    {
+    Lerror:
+        error(loc, "cannot match %s and %s", tx->toChars(), t->toChars());
+        return Type::terror;
+    }
     tn = applyPartialType(loc, sc, tn->toBasetype(), txn);
     if (tn->ty == Terror)
         return tn;
@@ -1014,6 +1009,8 @@ Type *applyPartialType(Loc loc, Scope *sc, Expression *exp, Type *tx)
     if (!tx || t->ty == Terror)
         return t;
 
+    if (tx->deco || tx->ty == Terror)
+        return tx;
     if (tx->ty == Tident &&
         ((TypeIdentifier *)tx)->ident == Id::empty &&
         ((TypeIdentifier *)tx)->idents.dim == 0)
@@ -1023,19 +1020,9 @@ Type *applyPartialType(Loc loc, Scope *sc, Expression *exp, Type *tx)
         return t;
     }
 
-    if (t->ty == Tfunction ||
-        t->ty == Tdelegate ||
-        t->ty == Tpointer && ((TypePointer *)t)->next->ty == Tfunction)
-    {
-    Lerror:
-        error(loc, "cannot match %s and %s", tx->toChars(), t->toChars());
-        return Type::terror;
-    }
-
-    if (tx->deco || tx->ty == Terror)
-        return tx;
     Type *txn = tx->nextOf();
     assert(txn);
+    // tx is undetermined type, eg. auto[$], const[], immutable*, int[$], etc.
 
     if (exp->op == TOKarrayliteral)
     {
@@ -1227,7 +1214,10 @@ void VarDeclaration::semantic(Scope *sc)
     {
         inuse++;
 
-        tx = semanticPartialType(loc, sc, tx);
+        Scope *sc2 = sc->push();
+        sc2->stc |= (storage_class & STC_FUNCATTR);
+        tx = semanticPartialType(loc, sc2, tx);
+        sc2->pop();
 
         // Infering the type requires running semantic,
         // so mark the scope as ctfe if required
@@ -1254,6 +1244,8 @@ void VarDeclaration::semantic(Scope *sc)
         if (!originalType)
             originalType = type->syntaxCopy();
 
+        inuse++;
+
         /* Prefix function attributes of variable declaration can affect
          * its type:
          *      pure nothrow void function() fp;
@@ -1261,10 +1253,10 @@ void VarDeclaration::semantic(Scope *sc)
          */
         Scope *sc2 = sc->push();
         sc2->stc |= (storage_class & STC_FUNCATTR);
-        inuse++;
         type = type->semantic(loc, sc2);
-        inuse--;
         sc2->pop();
+
+        inuse--;
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 

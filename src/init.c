@@ -814,6 +814,8 @@ Initializer *ExpInitializer::inferType(Scope *sc, Type *tx)
 
     if (tx)
     {
+        //printf("ExpInitializer::inferType() tx = %s (%s), exp = %s (%s) %s\n",
+        //    tx->toChars(), tx->deco, exp->type->toChars(), exp->type->deco, exp->toChars());
         Type *tb = tx->toBasetype();
         Type *ti = exp->type->toBasetype();
 
