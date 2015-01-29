@@ -1011,11 +1011,12 @@ public:
     bool upperIsInBounds;       // true if upr <= e1.length
     bool lowerIsLessThanUpper;  // true if lwr <= upr
 
+    // Decribes Boundness of a Slice Beginning or End Index.
     enum Boundness
     {
-        unknown,
+        unknown,                // unknown whether inside or outside
         outside,                // outside of [0 .. $]
-        inside,                 // within [0 .. $]
+        inside,                 // inside of [0 .. $]
         atStart,                // specialization of inside
         atEnd,                  // specialization of inside
     };
