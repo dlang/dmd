@@ -146,7 +146,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
             if (flag)
                 return NULL;
             e1->error("this for %s needs to be type %s not type %s",
-                var->toChars(), ad->toChars(), t->toChars());
+                      var->toChars(), ad->toChars(), t->toChars());
             return new ErrorExp();
         }
     }
@@ -9861,7 +9861,7 @@ bool isOutside(Boundness boundness)
             boundness == belowLowBound);
 }
 
-bool LOG_BOUNDNESS = false;
+bool LOG_BOUNDNESS = true;
 
 Boundness analyzeSliceBound(Expression* e,
                             VarDeclaration *lengthVar,
@@ -9938,6 +9938,8 @@ Boundness analyzeSliceBound(Expression* e,
 
     return unknownBounds;
 }
+
+#define DINTEGER_UNDEFINED (18446744073709551615ULL)
 
 Expression *SliceExp::semantic(Scope *sc)
 {
@@ -10178,7 +10180,7 @@ Lagain:
             // lower
             dinteger_t lwrM = 1; // non-one means [ $*lwrM .. _ ]
             dinteger_t lwrD = 1; // non-one means [ $/lwrD .. _ ]
-            dinteger_t lwrO = 0; // offset
+            dinteger_t lwrO = DINTEGER_UNDEFINED; // offset
             const Boundness lwrBoundness = analyzeSliceBound(lwr, this->lengthVar, &lwrM, &lwrD, &lwrO);
             bool lowerIsInBounds = false;
             if (isInside(lwrBoundness))
@@ -10196,7 +10198,7 @@ Lagain:
             // upper
             dinteger_t uprM = 1; // non-one means [ $*uprM .. _ ]
             dinteger_t uprD = 1; // non-one means [ $/uprD .. _ ]
-            dinteger_t uprO = 0;
+            dinteger_t uprO = DINTEGER_UNDEFINED;
             const Boundness uprBoundness = analyzeSliceBound(upr, this->lengthVar, &uprM, &uprD, &uprO);
             if (isInside(uprBoundness))
             {
@@ -10213,14 +10215,15 @@ Lagain:
             // lower and upper
             // [$*p/q .. $*r/s], p/q+o <= r/s+t => p*s + o*q*s <= r*q + t*q*s.
             // TODO do we need to handle mul overflows for (lwrM*uprD <= uprM*lwrD)
-            if ((lwrBoundness == atLowBound ||
-                 (lwrBoundness == atHighBound &&
-                  uprBoundness == atHighBound) ||
-                 (lwrBoundness == belowHighBound &&
-                  uprBoundness == atHighBound) ||
+            if (((lwrBoundness == atLowBound && isInside(uprBoundness)) ||
+                 (isInside(lwrBoundness) && uprBoundness == atHighBound) ||
+                 (lwrBoundness == belowHighBound && uprBoundness == atHighBound) ||
+                 (lwrBoundness == atLowBound && uprBoundness == aboveLowBound) ||
                  (lwrM*uprD <= uprM*lwrD && lwrO == 0 && uprO == 0) ||
                  (lwrM == 1 && lwrD == 1 &&
-                  uprM == 1 && uprD == 1 && lwrO <= uprO)))
+                  uprM == 1 && uprD == 1 &&
+                  lwrO != DINTEGER_UNDEFINED && uprO != DINTEGER_UNDEFINED &&
+                  lwrO <= uprO)))
             {
                 lowerIsLessThanUpper = true;
                 if (LOG_BOUNDNESS) this->warning("Lower <= upper bound");
