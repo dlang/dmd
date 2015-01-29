@@ -1007,7 +1007,6 @@ public:
     Expression *upr;            // NULL if implicit 0
     Expression *lwr;            // NULL if implicit [length - 1]
     VarDeclaration *lengthVar;
-    bool lowerIsInBounds;       // true if lwr <= e1.length
     bool upperIsInBounds;       // true if upr <= e1.length
     bool lowerIsLessThanUpper;  // true if lwr <= upr
 
