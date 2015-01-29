@@ -9828,7 +9828,7 @@ enum Boundness
     atEnd,                  // specialization of inside
 };
 
-static bool LOG_BOUNDNESS = true;
+static bool LOG_BOUNDNESS = false;
 
 Boundness analyzeRelativeBound(Expression* e,
                                VarDeclaration *lengthVar,
