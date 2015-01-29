@@ -9840,8 +9840,11 @@ enum Boundness
     atHighBound,                // specialization of inside
 
     outsideBounds,              // outside of [0 .. $]
-    aboveBounds,                // specialization of outside
-    belowBounds,                // specialization of outside
+    aboveHighBound,             // specialization of outside
+    belowLowBound,              // specialization of outside
+
+    belowHighBound,
+    aboveLowBound,
 };
 
 bool isInside(Boundness boundness)
@@ -9854,11 +9857,11 @@ bool isInside(Boundness boundness)
 bool isOutside(Boundness boundness)
 {
     return (boundness == outsideBounds ||
-            boundness == aboveBounds ||
-            boundness == belowBounds);
+            boundness == aboveHighBound ||
+            boundness == belowLowBound);
 }
 
-bool LOG_BOUNDNESS = false;
+bool LOG_BOUNDNESS = true;
 
 Boundness analyzeSliceBound(Expression* e,
                             VarDeclaration *lengthVar,
@@ -9866,12 +9869,12 @@ Boundness analyzeSliceBound(Expression* e,
 {
     if (e->op == TOKint64 && e->toInteger() == 0) // TODO: isIntegerEqualTo
     {
-        if (LOG_BOUNDNESS) e->warning("Avoiding boundscheck for 0");
+        if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for 0");
         return atLowBound;
     }
     else if (isOpDollar(e, lengthVar))
     {
-        if (LOG_BOUNDNESS) e->warning("Avoiding boundscheck for $");
+        if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $");
         return atHighBound;
     }
     else if (e->op == TOKdiv)
@@ -9881,7 +9884,7 @@ Boundness analyzeSliceBound(Expression* e,
         {
             if (*q >= 1)
             {
-                if (LOG_BOUNDNESS) e->warning("Avoiding boundscheck for $/%ld", *q);
+                if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $/%ld", *q);
                 return insideBounds;
             }
         }
@@ -9892,7 +9895,7 @@ Boundness analyzeSliceBound(Expression* e,
             {
                 if (*p <= *q)
                 {
-                    if (LOG_BOUNDNESS) e->warning("Avoiding boundscheck for $*%ld/%ld", *p, *q);
+                    if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $*%ld/%ld", *p, *q);
                     return insideBounds;
                 }
                 else if (*p > *q)
@@ -9905,7 +9908,7 @@ Boundness analyzeSliceBound(Expression* e,
             {
                 if (*p <= *q)
                 {
-                    if (LOG_BOUNDNESS) e->warning("Avoiding boundscheck for $*%ld/%ld", *p, *q);
+                    if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $*%ld/%ld", *p, *q);
                     return insideBounds;
                 }
                 else if (*p > *q)
@@ -9921,7 +9924,15 @@ Boundness analyzeSliceBound(Expression* e,
         if ((isOpDollar(add->e1, lengthVar) && isInteger(add->e2, off)) ||
             (isInteger(add->e1, off) && isOpDollar(add->e2, lengthVar)))
         {
-            return outsideBounds;
+            return aboveHighBound;
+        }
+    }
+    else if (e->op == TOKmin)
+    {
+        MinExp* min = (MinExp*)e;
+        if ((isOpDollar(min->e1, lengthVar) && isInteger(min->e2, off)))
+        {
+            return belowHighBound;
         }
     }
 
@@ -10054,7 +10065,7 @@ Lagain:
         if (e1->op == TOKerror)
             return e1;
         error("%s cannot be sliced with []",
-            t1b->ty == Tvoid ? e1->toChars() : t1b->toChars());
+              t1b->ty == Tvoid ? e1->toChars() : t1b->toChars());
         return new ErrorExp();
     }
 
@@ -10176,10 +10187,10 @@ Lagain:
             }
             else if (isOutside(lwrBoundness))
             {
-                this->error("Lower slice limit $*%lld/%lld + %lld is out of bounds",
-                            (unsigned long long)lwrM,
-                            (unsigned long long)lwrD,
-                            (unsigned long long)lwrO);
+                lwr->error("slice limit $*%lld/%lld + %lld is out of bounds",
+                           (unsigned long long)lwrM,
+                           (unsigned long long)lwrD,
+                           (unsigned long long)lwrO);
             }
 
             // upper
@@ -10193,19 +10204,19 @@ Lagain:
             }
             else if (isOutside(uprBoundness))
             {
-                this->error("Upper slice limit $*%lld/%lld + %lld is out of bounds",
-                            (unsigned long long)uprM,
-                            (unsigned long long)uprD,
-                            (unsigned long long)uprO);
+                upr->error("slice limit $*%lld/%lld + %lld is out of bounds",
+                           (unsigned long long)uprM,
+                           (unsigned long long)uprD,
+                           (unsigned long long)uprO);
             }
 
             // lower and upper
             // [$*p/q .. $*r/s], p/q+o <= r/s+t => p*s + o*q*s <= r*q + t*q*s.
             // TODO do we need to handle mul overflows for (lwrM*uprD <= uprM*lwrD)
-            if ((lowerIsInBounds &&
-                 this->upperIsInBounds) &&
-                (lwrBoundness == atLowBound ||
+            if ((lwrBoundness == atLowBound ||
                  (lwrBoundness == atHighBound &&
+                  uprBoundness == atHighBound) ||
+                 (lwrBoundness == belowHighBound &&
                   uprBoundness == atHighBound) ||
                  (lwrM*uprD <= uprM*lwrD && lwrO == 0 && uprO == 0) ||
                  (lwrM == 1 && lwrD == 1 &&
