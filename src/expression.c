@@ -9813,22 +9813,31 @@ Expression *SliceExp::syntaxCopy()
     return se;
 }
 
-bool SliceExp::isOpDollar(VarExp* ve)
+bool isOpDollar(Expression* e, VarDeclaration *lengthVar)
 {
-    return ve->var == this->lengthVar;
-    // VarDeclaration* decl = ve->var->isVarDeclaration();
-    // return decl && decl->ident == Id::dollar;
+    return e->op == TOKvar && ((VarExp*)e)->var == lengthVar;
 }
 
-SliceExp::Boundness SliceExp::analyzeRelativeBound(Expression* e,
-                                                   dinteger_t* p, dinteger_t* q) // out arguments
+// Decribes Boundness of a Slice Beginning or End Index.
+enum Boundness
+{
+    unknown,                // unknown whether inside or outside
+    outside,                // outside of [0 .. $]
+    inside,                 // inside of [0 .. $]
+    atStart,                // specialization of inside
+    atEnd,                  // specialization of inside
+};
+
+Boundness analyzeRelativeBound(Expression* e,
+                               VarDeclaration *lengthVar,
+                               dinteger_t* p, dinteger_t* q) // out arguments
 {
     if (e->op == TOKint64 && e->toInteger() == 0)
     {
         e->warning("Avoiding boundscheck for 0");
         return atStart;
     }
-    else if (e->op == TOKvar && this->isOpDollar((VarExp*)e)) // TODO functionize?
+    else if (isOpDollar(e, lengthVar))
     {
         e->warning("Avoiding boundscheck for $");
         return atEnd;
@@ -9836,8 +9845,7 @@ SliceExp::Boundness SliceExp::analyzeRelativeBound(Expression* e,
     else if (e->op == TOKdiv)
     {
         DivExp* div = (DivExp*)e;
-        if (div->e1->op == TOKvar && this->isOpDollar((VarExp*)div->e1) && // TODO functionize?
-            div->e2->op == TOKint64)
+        if (isOpDollar(div->e1, lengthVar) && div->e2->op == TOKint64)
         {
             *q = div->e2->toInteger();
             if (*q >= 1)
@@ -9851,8 +9859,7 @@ SliceExp::Boundness SliceExp::analyzeRelativeBound(Expression* e,
         {
             MulExp* mul = (MulExp*)div->e1;
             *q = div->e2->toInteger();
-            if (mul->e1->op == TOKvar && this->isOpDollar((VarExp*)mul->e1) && // TODO functionize?
-                mul->e2->op == TOKint64)
+            if (isOpDollar(mul->e1, lengthVar) && mul->e2->op == TOKint64)
             {
                 *p = mul->e2->toInteger();
                 if (*p <= *q)
@@ -9860,15 +9867,23 @@ SliceExp::Boundness SliceExp::analyzeRelativeBound(Expression* e,
                     e->warning("Avoiding boundscheck for $*%ld/%ld", *p, *q);
                     return inside;
                 }
+                else if (*p > *q)
+                {
+                    return outside;
+                }
             }
             else if (mul->e1->op == TOKint64 &&
-                     mul->e2->op == TOKvar && this->isOpDollar((VarExp*)mul->e2)) // TODO functionize?
+                     isOpDollar(mul->e2, lengthVar))
             {
                 *p = mul->e1->toInteger();
                 if (*p <= *q)
                 {
                     e->warning("Avoiding boundscheck for $*%ld/%ld", *p, *q);
                     return inside;
+                }
+                else if (*p > *q)
+                {
+                    return outside;
                 }
             }
         }
@@ -10110,33 +10125,47 @@ Lagain:
         lwr = lwr->optimize(WANTvalue);
         upr = upr->optimize(WANTvalue);
 
-        // avoid slice bounds-checking. TODO use resolveOpDollar?
+        // avoid slice bounds-checking
         {
             // lower
             dinteger_t lwrMul = 1; // non-one means [ $*lwrMul .. _ ]
             dinteger_t lwrDiv = 1; // non-one means [ $/lwrDiv .. _ ]
-            const Boundness lwrBoundness = this->analyzeRelativeBound(lwr, &lwrMul, &lwrDiv);
+            const Boundness lwrBoundness = analyzeRelativeBound(lwr, this->lengthVar, &lwrMul, &lwrDiv);
             if (lwrBoundness >= inside)
             {
                 this->lowerIsInBounds = true;
+            }
+            else if (lwrBoundness == outside)
+            {
+                this->error("Lower slice limit $*%lld/%lld is out of bounds",
+                            (unsigned long long)lwrMul,
+                            (unsigned long long)lwrDiv);
             }
 
             // upper
             dinteger_t uprMul = 1; // non-one means [ $*uprMul .. _ ]
             dinteger_t uprDiv = 1; // non-one means [ $/uprDiv .. _ ]
-            const Boundness uprBoundness = this->analyzeRelativeBound(upr, &uprMul, &uprDiv);
+            const Boundness uprBoundness = analyzeRelativeBound(upr, this->lengthVar, &uprMul, &uprDiv);
             if (uprBoundness >= inside)
             {
                 this->upperIsInBounds = true;
             }
+            else if (uprBoundness == outside)
+            {
+                this->error("Lower slice limit $*%lld/%lld is out of bounds",
+                            (unsigned long long)lwrMul,
+                            (unsigned long long)lwrDiv);
+            }
 
             // lower and upper
+            // [$*p/q .. $*r/s], p/q <= r/s => p*s <= r*q.
+            // TODO do we need to handle mul overflows for (lwrMul*uprDiv <= uprMul*lwrDiv)
             if ((this->lowerIsInBounds &&
                  this->upperIsInBounds) &&
-                (lwrBoundness == atStart || // [0 .. _]
+                (lwrBoundness == atStart ||
                  (lwrBoundness == atEnd &&
-                  uprBoundness == atEnd) || // [$ .. $]
-                 (lwrMul*uprDiv <= uprMul*lwrDiv))) // [$*p/q .. $*r/s], p/q <= r/s => p*s <= r*q. TODO mul overflows?
+                  uprBoundness == atEnd) ||
+                 (lwrMul*uprDiv <= uprMul*lwrDiv)))
             {
                 lowerIsLessThanUpper = true;
                 this->warning("Lower <= upper bound");
@@ -10165,7 +10194,10 @@ Lagain:
         else
             assert(0);
 
-        this->lowerIsLessThanUpper |= (lwrRange.imax <= uprRange.imin);
+        if (!this->lowerIsLessThanUpper)
+        {
+            this->lowerIsLessThanUpper = (lwrRange.imax <= uprRange.imin);
+        }
 
         //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", upperIsInBounds, lowerIsLessThanUpper);
     }
