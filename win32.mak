@@ -270,6 +270,9 @@ $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
 $(IMPDIR)\core\sys\freebsd\time.d : src\core\sys\freebsd\time.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\freebsd\sys\cdefs.d : src\core\sys\freebsd\sys\cdefs.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\freebsd\sys\elf.d : src\core\sys\freebsd\sys\elf.d
 	copy $** $@
 
@@ -286,6 +289,9 @@ $(IMPDIR)\core\sys\freebsd\sys\event.d : src\core\sys\freebsd\sys\event.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\sys\link_elf.d : src\core\sys\freebsd\sys\link_elf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\sys\mman.d : src\core\sys\freebsd\sys\mman.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\config.d : src\core\sys\linux\config.d
@@ -355,6 +361,12 @@ $(IMPDIR)\core\sys\osx\mach\semaphore.d : src\core\sys\osx\mach\semaphore.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\osx\mach\thread_act.d : src\core\sys\osx\mach\thread_act.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\osx\sys\cdefs.d : src\core\sys\osx\sys\cdefs.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\osx\sys\mman.d : src\core\sys\osx\sys\mman.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\arpa\inet.d : src\core\sys\posix\arpa\inet.d
