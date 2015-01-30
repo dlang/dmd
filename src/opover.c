@@ -435,38 +435,59 @@ Expression *op_overload(Expression *e, Scope *sc)
             AggregateDeclaration *ad = isAggregate(ae->e1->type);
             if (ad)
             {
+                int maybeSlice = 0;
+                if (ae->arguments->dim == 0)
+                    maybeSlice = 1;
+                else if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
+                    maybeSlice = 2;
+
                 Expression *e0 = NULL;
 
-                Dsymbol *fd = search_function(ad, opId(ae));
-                if (fd)
+                Dsymbol *sindex = search_function(ad, opId(ae));
+                if (sindex)
                 {
                     // Deal with $
                     Expression *ex = resolveOpDollar(sc, ae, &e0);
                     if (!ex)
-                        goto Lfallback;
+                        goto Lslice;
                     if (ex->op == TOKerror)
                     {
                         result = ex;
                         return;
                     }
 
-                    /* Rewrite op e1[arguments] as:
+                    /* Rewrite e1[arguments] as:
                      *    e1.opIndex(arguments)
                      */
-                    result = new DotIdExp(ae->loc, ae->e1, fd->ident);
+                    result = new DotIdExp(ae->loc, ae->e1, sindex->ident);
                     result = new CallExp(ae->loc, result, ae->arguments);
-                    if (ae->arguments->dim == 0)
+                    if (maybeSlice == 1)    // might fallback to e1.opSlice()
                         result = result->trySemantic(sc);
                     else
                         result = result->semantic(sc);
-                    if (!result)
-                        goto Lfallback;
+                    if (result)
+                    {
+                        result = Expression::combine(e0, result);
+                        return;
+                    }
+                }
+            Lslice:
+                Dsymbol *sslice = search_function(ad, Id::slice);
+                if (maybeSlice && (sslice || ae->e1->op == TOKtype))
+                {
+                    // a[]      --> SliceExp, Tarray, Tslice
+                    // a[a..b]  --> SliceExp, Tslice
+                    if (maybeSlice == 1)
+                        result = new SliceExp(ae->loc, ae->e1, NULL, NULL);
+                    else
+                    {
+                        IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
+                        result = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
+                    }
+                    result = result->semantic(sc);
                     result = Expression::combine(e0, result);
                     return;
                 }
-
-                if (ae->e1->op == TOKtype && ae->arguments->dim < 2)
-                    goto Lfallback;
 
                 // Didn't find it. Forward to aliasthis
                 if (ad->aliasthis && ae->e1->type != ae->att1)
@@ -483,25 +504,6 @@ Expression *op_overload(Expression *e, Scope *sc)
                     result = ue->trySemantic(sc);
                     if (result)
                         return;
-                }
-
-            Lfallback:
-                if (ae->arguments->dim == 0)
-                {
-                    // a[]
-                    SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
-                    result = se->semantic(sc);
-                    result = Expression::combine(e0, result);
-                    return;
-                }
-                if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
-                {
-                    // a[lwr..upr]
-                    IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
-                    SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
-                    result = se->semantic(sc);
-                    result = Expression::combine(e0, result);
-                    return;
                 }
             }
         }

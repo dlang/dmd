@@ -1807,6 +1807,26 @@ void test12193()
 }
 
 /**************************************/
+// 14057
+
+struct W14057
+{
+    int[] subType;
+    alias subType this;
+
+    W14057 opSlice(size_t, size_t)
+    {
+        return this;
+    }
+}
+
+void test14057()
+{
+    auto w = W14057();
+    W14057 w2 = w[0 .. 1337];
+}
+
+/**************************************/
 
 int main()
 {
@@ -1846,6 +1866,7 @@ int main()
     test10567();
     test11062();
     test11311();
+    test14057();
 
     printf("Success\n");
     return 0;
