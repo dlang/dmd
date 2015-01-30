@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <assert.h>
+#include <stdio.h>
 
 #include "rmem.h"
 #include "port.h"
@@ -10202,10 +10203,25 @@ Lagain:
             }
             else if (isOutside(lwrBoundness))
             {
-                lwr->error("slice limit $*%lld/%lld + %lld is out of bounds",
-                           (unsigned long long)lwrM,
-                           (unsigned long long)lwrD,
-                           (unsigned long long)lwrO);
+                char buf[1024];
+                int tot = sizeof(buf);
+                int off = 0;
+                off += snprintf(&buf[off], tot-off, "lower slice limit ");
+                off += snprintf(&buf[off], tot-off, "$");
+                if (lwrM != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "*%lld", (unsigned long long)lwrM);
+                }
+                if (lwrD != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "/%lld", (unsigned long long)lwrD);
+                }
+                if (lwrO != 0 && lwrO != DINTEGER_UNDEFINED && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "+%lld", (unsigned long long)lwrO);
+                }
+                off += snprintf(&buf[off], tot-off, " is out of bounds");
+                lwr->error(buf);
             }
 
             // upper
@@ -10219,10 +10235,25 @@ Lagain:
             }
             else if (isOutside(uprBoundness))
             {
-                upr->error("slice limit $*%lld/%lld + %lld is out of bounds",
-                           (unsigned long long)uprM,
-                           (unsigned long long)uprD,
-                           (unsigned long long)uprO);
+                char buf[1024];
+                int tot = sizeof(buf);
+                int off = 0;
+                off += snprintf(&buf[off], tot-off, "upper slice limit ");
+                off += snprintf(&buf[off], tot-off, "$");
+                if (uprM != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "*%lld", (unsigned long long)uprM);
+                }
+                if (uprD != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "/%lld", (unsigned long long)uprD);
+                }
+                if (uprO != 0 && uprO != DINTEGER_UNDEFINED && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "+%lld", (unsigned long long)uprO);
+                }
+                off += snprintf(&buf[off], tot-off, " is out of bounds");
+                upr->error(buf);
             }
 
             // lower and upper
