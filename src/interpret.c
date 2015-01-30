@@ -5996,7 +5996,7 @@ Expression *interpret(Statement *s, InterState *istate)
     return v.result;
 }
 
-bool scrubArray(Loc loc, Expressions *elems, bool structlit = false);
+Expression *scrubArray(Loc loc, Expressions *elems, bool structlit = false);
 
 /* All results destined for use outside of CTFE need to have their CTFE-specific
  * features removed.
@@ -6012,15 +6012,15 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
         {
             int old = se->stageflags;
             se->stageflags |= stageScrub;
-            if (!scrubArray(loc, se->elements, true))
-                return CTFEExp::cantexp;
+            if (Expression *ex = scrubArray(loc, se->elements, true))
+                return ex;
             se->stageflags = old;
         }
     }
     if (e->op == TOKvoid)
     {
         error(loc, "uninitialized variable '%s' cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
-        e = new ErrorExp();
+        return new ErrorExp();
     }
     e = resolveSlice(e);
     if (e->op == TOKstructliteral)
@@ -6031,8 +6031,8 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
         {
             int old = se->stageflags;
             se->stageflags |= stageScrub;
-            if (!scrubArray(loc, se->elements, true))
-                return CTFEExp::cantexp;
+            if (Expression *ex = scrubArray(loc, se->elements, true))
+                return ex;
             se->stageflags = old;
         }
     }
@@ -6043,17 +6043,17 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     if (e->op == TOKarrayliteral)
     {
         ((ArrayLiteralExp *)e)->ownedByCtfe = false;
-        if (!scrubArray(loc, ((ArrayLiteralExp *)e)->elements))
-            return CTFEExp::cantexp;
+        if (Expression *ex = scrubArray(loc, ((ArrayLiteralExp *)e)->elements))
+            return ex;
     }
     if (e->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
         aae->ownedByCtfe = false;
-        if (!scrubArray(loc, aae->keys))
-            return CTFEExp::cantexp;
-        if (!scrubArray(loc, aae->values))
-            return CTFEExp::cantexp;
+        if (Expression *ex = scrubArray(loc, aae->keys))
+            return ex;
+        if (Expression *ex = scrubArray(loc, aae->values))
+            return ex;
         aae->type = toBuiltinAAType(aae->type);
     }
     return e;
@@ -6082,7 +6082,7 @@ bool isEntirelyVoid(Expressions *elems)
 }
 
 // Scrub all members of an array. Return false if error
-bool scrubArray(Loc loc, Expressions *elems, bool structlit)
+Expression *scrubArray(Loc loc, Expressions *elems, bool structlit)
 {
     for (size_t i = 0; i < elems->dim; i++)
     {
@@ -6104,12 +6104,12 @@ bool scrubArray(Loc loc, Expressions *elems, bool structlit)
         else
         {
             m = scrubReturnValue(loc, m);
-            if (CTFEExp::isCantExp(m))
-                return false;
+            if (CTFEExp::isCantExp(m) || m->op == TOKerror)
+                return m;
         }
         (*elems)[i] = m;
     }
-    return true;
+    return NULL;
 }
 
 
