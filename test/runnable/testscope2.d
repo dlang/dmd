@@ -213,6 +213,20 @@ int* foo12()
 
 /********************************************/
 
+struct FullCaseEntry
+{
+    dchar[3] seq;
+    ubyte n, size;// n number in batch, size - size of batch
+    ubyte entry_len;
+
+    @property auto value() const @trusted pure nothrow @nogc return
+    {
+        return seq[0..entry_len];
+    }
+}
+
+/********************************************/
+
 void main()
 {
     test3();
