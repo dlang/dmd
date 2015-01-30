@@ -913,14 +913,18 @@ bool ClassDeclaration::isBaseInfoComplete()
 
 Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
-    Dsymbol *s;
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
 
     //if (scope) printf("%s doAncestorsSemantic = %d\n", toChars(), doAncestorsSemantic);
-    if (scope && doAncestorsSemantic == SemanticStart)
+    if (scope && doAncestorsSemantic < SemanticDone)
     {
-        // must semantic on base class/interfaces
-        semantic(NULL);
+        if (!inuse)
+        {
+            // must semantic on base class/interfaces
+            ++inuse;
+            semantic(NULL);
+            --inuse;
+        }
     }
 
     if (!members || !symtab)    // opaque or addMember is not yet done
@@ -930,7 +934,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
         return NULL;
     }
 
-    s = ScopeDsymbol::search(loc, ident, flags);
+    Dsymbol *s = ScopeDsymbol::search(loc, ident, flags);
     if (!s)
     {
         // Search bases classes in depth-first, left to right order
@@ -1224,9 +1228,6 @@ Dsymbol *InterfaceDeclaration::syntaxCopy(Dsymbol *s)
 void InterfaceDeclaration::semantic(Scope *sc)
 {
     //printf("InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
-    if (inuse)
-        return;
-
     if (semanticRun >= PASSsemanticdone)
         return;
     int errors = global.errors;
@@ -1369,7 +1370,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
             if (tc->sym->scope && tc->sym->doAncestorsSemantic != SemanticDone)
                 tc->sym->semantic(NULL);    // Try to resolve forward reference
-            if (tc->sym->inuse || tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->doAncestorsSemantic != SemanticDone)
             {
                 //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
                 if (tc->sym->scope)
@@ -1491,7 +1492,6 @@ Lancestorsdone:
     sc2->userAttribDecl = NULL;
 
     structsize = Target::ptrsize * 2;
-    inuse++;
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -1529,7 +1529,6 @@ Lancestorsdone:
         type = Type::terror;
     }
 
-    inuse--;
     //members->print();
     sc2->pop();
     //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);

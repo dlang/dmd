@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice8100.d(11): Error: class ice8100.Bar!bool.Bar is forward referenced when looking for 'Q'
+fail_compilation/ice8100.d(10): Error: no property 'Q' for type 'ice8100.Bar!bool.Bar'
 fail_compilation/ice8100.d(11): Error: template instance ice8100.Foo!(Bar!bool) error instantiating
 fail_compilation/ice8100.d(12):        instantiated from here: Bar!bool
 ---

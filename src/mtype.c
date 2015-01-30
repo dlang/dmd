@@ -6440,6 +6440,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     }
                     if (e->op == TOKtype)
                         *pt = e->type;
+                    else if (e->op == TOKerror)
+                        *pt = Type::terror;
                     else
                         *pe = e;
                 }
