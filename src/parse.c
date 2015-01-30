@@ -6294,6 +6294,7 @@ bool Parser::skipAttributes(Token *t, Token **pt)
             case TOKpure:
             case TOKref:
             case TOKgshared:
+            case TOKreturn:
             //case TOKmanifest:
                 break;
             case TOKat:
