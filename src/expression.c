@@ -9861,8 +9861,10 @@ bool isOutside(Boundness boundness)
             boundness == belowLowBound);
 }
 
-bool LOG_BOUNDNESS = false;
+bool LOG_BOUNDNESS = true;
 
+/** Analyze Expression $(D e) as Slice Bound with Length Variable (Dollar) in $(D lengthVar).
+ */
 Boundness analyzeSliceBound(Expression* e,
                             VarDeclaration *lengthVar,
                             dinteger_t* p, dinteger_t* q, dinteger_t* off) // out arguments
@@ -9918,11 +9920,22 @@ Boundness analyzeSliceBound(Expression* e,
             }
         }
     }
+    else if (e->op == TOKmul)
+    {
+        MulExp* mul = (MulExp*)e;
+        if (((isOpDollar(mul->e1, lengthVar) && isInteger(mul->e2, p)) ||
+             (isInteger(mul->e1, p) && isOpDollar(mul->e2, lengthVar))) &&
+            *p >= 2)
+        {
+            return aboveHighBound; // iff $ != 0
+        }
+    }
     else if (e->op == TOKadd)
     {
         AddExp* add = (AddExp*)e;
-        if ((isOpDollar(add->e1, lengthVar) && isInteger(add->e2, off)) ||
-            (isInteger(add->e1, off) && isOpDollar(add->e2, lengthVar)))
+        if (((isOpDollar(add->e1, lengthVar) && isInteger(add->e2, off)) ||
+             (isInteger(add->e1, off) && isOpDollar(add->e2, lengthVar))) &&
+            *off >= 1)
         {
             return aboveHighBound;
         }
