@@ -9861,7 +9861,7 @@ bool isOutside(Boundness boundness)
             boundness == belowLowBound);
 }
 
-bool LOG_BOUNDNESS = true;
+bool LOG_BOUNDNESS = false;
 
 Boundness analyzeSliceBound(Expression* e,
                             VarDeclaration *lengthVar,
