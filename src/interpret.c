@@ -2403,6 +2403,20 @@ public:
         result = getVarExp(e->loc, istate, e->var, goal);
         if (exceptionOrCant(result))
             return;
+        if ((e->var->storage_class & (STCref | STCout)) == 0 &&
+            e->type->baseElemOf()->ty != Tstruct)
+        {
+            /* Ultimately, STCref|STCout check should be enough to see the
+             * necessity of type repainting. But currently front-end paints
+             * non-ref struct variables by the const type.
+             *
+             *  auto foo(ref const S cs);
+             *  S s;
+             *  foo(s); // VarExp('s') will have const(S)
+             */
+            // A VarExp may include an implicit cast. It must be done explicitly.
+            result = paintTypeOntoLiteral(e->type, result);
+        }
     }
 
     void visit(DeclarationExp *e)
