@@ -1521,7 +1521,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                             {
                                 a = a->implicitCastTo(sc, tret);
                                 a = a->optimize(WANTvalue);
-                                a = toDelegate(a, sc);
+                                a = toDelegate(a, a->type, sc);
                             }
                             else
                                 a = a->implicitCastTo(sc, tbn);
@@ -1668,7 +1668,10 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             else if (p->storageClass & STClazy)
             {
                 // Convert lazy argument to a delegate
-                arg = toDelegate(arg, sc);
+                if (p->type->ty == Tvoid)
+                    arg = toDelegate(arg, p->type, sc);
+                else
+                    arg = toDelegate(arg, arg->type, sc);
             }
             else
             {

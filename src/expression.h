@@ -74,7 +74,7 @@ void discardValue(Expression *e);
 bool isTrivialExp(Expression *e);
 
 int isConst(Expression *e);
-Expression *toDelegate(Expression *e, Scope *sc);
+Expression *toDelegate(Expression *e, Type* t, Scope *sc);
 AggregateDeclaration *isAggregate(Type *t);
 IntRange getIntRange(Expression *e);
 bool checkNonAssignmentArrayOp(Expression *e, bool suggestion = false);
