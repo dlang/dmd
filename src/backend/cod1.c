@@ -1438,6 +1438,11 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         }
         else if (e->EV.sp.Voffset)
             s->Sflags &= ~GTregcand;
+
+        if (config.fpxmmregs && tyfloating(s->ty()) && !tyfloating(ty))
+            // Can't successfully mix XMM register variables accessed as integers
+            s->Sflags &= ~GTregcand;
+
         if (!(keepmsk & RMstore))               // if not store only
             s->Sflags |= SFLread;               // assume we are doing a read
         break;
