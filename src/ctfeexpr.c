@@ -369,7 +369,7 @@ UnionExp copyLiteral(Expression *e)
                 new(&ue) NullExp(se->loc, se->type);
                 return ue;
             }
-            ue = Slice(se->type, se->e1, se->lwr, se->upr).copy();
+            ue = Slice(se->type, se->e1, se->lwr, se->upr);
             assert(ue.exp()->op == TOKarrayliteral);
             ArrayLiteralExp *r = (ArrayLiteralExp *)ue.exp();
             r->elements = copyLiteralArray(r->elements);

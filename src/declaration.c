@@ -1104,7 +1104,7 @@ Type *applyPartialType(Loc loc, Scope *sc, Expression *exp, Type *tx)
         TypeSArray *tsa2 = (TypeSArray *)toStaticArrayType((SliceExp *)exp);
         if (tsa2)
         {
-            size_t d = tsa2->dim->toInteger();
+            dinteger_t d = tsa2->dim->toInteger();
 
             Expression *dim = ((TypeSArray *)tx)->dim;
             if (!(dim->op == TOKidentifier && ((IdentifierExp *)dim)->ident == Id::dollar))

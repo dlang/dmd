@@ -2082,7 +2082,7 @@ public:
         {
             // Check for unsupported type painting operations
             Type *elemtype = ((TypeArray *)(val->type))->next;
-            size_t elemsize = elemtype->size();
+            d_uns64 elemsize = elemtype->size();
 
             // It's OK to cast from fixed length to dynamic array, eg &int[3] to int[]*
             if (val->type->ty == Tsarray && pointee->ty == Tarray &&
