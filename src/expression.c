@@ -9862,7 +9862,7 @@ bool isOutside(Boundness boundness)
             boundness == belowLowBound);
 }
 
-bool LOG_BOUNDNESS = true;
+bool LOG_BOUNDNESS = false;
 
 /** Analyze Expression $(D e) as Slice Bound with Length Variable (Dollar) in $(D lengthVar).
  */
@@ -9870,10 +9870,18 @@ Boundness analyzeSliceBound(Expression* e,
                             VarDeclaration *lengthVar,
                             dinteger_t* p, dinteger_t* q, dinteger_t* off) // out arguments
 {
-    if (e->op == TOKint64 && e->toInteger() == 0) // TODO: isIntegerEqualTo
+    if (e->op == TOKint64)
     {
-        if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for 0");
-        return atLowBound;
+        sinteger_t value = e->toInteger();
+        if (value == 0)
+        {
+            if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for 0");
+            return atLowBound;
+        }
+        else if (value < 0)
+        {
+            return belowLowBound;
+        }
     }
     else if (isOpDollar(e, lengthVar))
     {
