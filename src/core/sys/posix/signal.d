@@ -751,10 +751,18 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
+    enum SIG_HOLD = cast(sigfn_t2) 3;
+
     struct sigset_t
     {
         uint[4] __bits;
     }
+
+    enum SA_NOCLDSTOP = 8;
+
+    enum SIG_BLOCK = 1;
+    enum SIG_UNBLOCK = 2;
+    enum SIG_SETMASK = 3;
 
     struct siginfo_t
     {
@@ -800,6 +808,12 @@ else version( FreeBSD )
 
         @property ref c_long si_band() { return _reason._poll._band; }
     }
+
+    enum SI_USER    = 0x10001;
+    enum SI_QUEUE   = 0x10002;
+    enum SI_TIMER   = 0x10003;
+    enum SI_ASYNCIO = 0x10004;
+    enum SI_MESGQ   = 0x10005;
 
     int kill(pid_t, int);
     int sigaction(int, in sigaction_t*, sigaction_t*);
