@@ -216,7 +216,7 @@ else version (X86_64)
     }
 }
 // http://sourceware.org/git/?p=glibc.git;a=blob;f=ports/sysdeps/unix/sysv/linux/aarch64/bits/mman.h
-else version (AARCH64)
+else version (AArch64)
 {
     static if (__USE_MISC) enum
     {
