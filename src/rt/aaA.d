@@ -342,30 +342,23 @@ body
  */
 bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
 {
-    Entry *e;
-
-    if (aa.impl && aa.impl.buckets.length)
+    if (!aa.impl || !aa.impl.buckets.length)
+        return false;
+    auto key_hash = keyti.getHash(pkey);
+    //printf("hash = %d\n", key_hash);
+    immutable size_t i = key_hash % aa.impl.buckets.length;
+    auto pe = &aa.impl.buckets[i];
+    for (Entry *e = void; (e = *pe) !is null; pe = &e.next)
     {
-        auto key_hash = keyti.getHash(pkey);
-        //printf("hash = %d\n", key_hash);
-        size_t i = key_hash % aa.impl.buckets.length;
-        auto pe = &aa.impl.buckets[i];
-        while ((e = *pe) !is null) // null means not found
-        {
-            if (key_hash == e.hash)
-            {
-                if (keyti.equals(pkey, e + 1))
-                {
-                    *pe = e.next;
-                    if(!(--aa.impl.nodes))
-                        // reset cache, we know there are no nodes in the aa.
-                        aa.impl.firstUsedBucket = aa.impl.buckets.length;
-                    GC.free(e);
-                    return true;
-                }
-            }
-            pe = &e.next;
-        }
+        if (key_hash != e.hash || !keyti.equals(pkey, e + 1))
+            continue;
+        *pe = e.next;
+        if (!(--aa.impl.nodes))
+            // reset cache, we know there are no nodes in the aa.
+            aa.impl.firstUsedBucket = aa.impl.buckets.length;
+        // ee could be freed here, but user code may 
+        // hold pointers to it
+        return true;
     }
     return false;
 }
