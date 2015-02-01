@@ -2196,6 +2196,7 @@ struct Gcx
                         log_free(q);
                         pool.pagetable[pn] = B_FREE;
                         if(pn < pool.searchStart) pool.searchStart = pn;
+                        pool.largestFree = pool.npages; // invalidate
                         freedpages++;
                         pool.freepages++;
 
@@ -2614,6 +2615,7 @@ struct Pool
     // page in this pool is, so that if a lot of pages towards the beginning
     // are occupied, we can bypass them in O(1).
     size_t searchStart;
+    size_t largestFree; // upper limit for largest free chunk in large object pool
 
     void initialize(size_t npages, bool isLargeObject) nothrow
     {
@@ -2669,6 +2671,8 @@ struct Pool
 
         this.npages = npages;
         this.freepages = npages;
+        this.searchStart = 0;
+        this.largestFree = npages;
     }
 
 
@@ -2911,43 +2915,37 @@ struct LargeObjectPool
      */
     size_t allocPages(size_t n) nothrow
     {
-        if(freepages < n) return OPFAIL;
-        size_t i;
-        size_t n2;
+        if(largestFree < n)
+            return OPFAIL;
 
         //debug(PRINTF) printf("Pool::allocPages(n = %d)\n", n);
-        n2 = n;
-        for (i = searchStart; i < npages; i++)
-        {
-            if (pagetable[i] == B_FREE)
-            {
-                if(pagetable[searchStart] < B_FREE)
-                {
-                    searchStart = i;
-                }
+        size_t largest = 0;
+        while (searchStart < npages && pagetable[searchStart] != B_FREE)
+            searchStart++;
 
-                if (--n2 == 0)
-                {   //debug(PRINTF) printf("\texisting pn = %d\n", i - n + 1);
-                    return i - n + 1;
-                }
-            }
-            else
+        for (size_t i = searchStart; i < npages; )
+        {
+            assert(pagetable[i] == B_FREE);
+            size_t p = 1;
+            while (p < n && pagetable[i + p] == B_FREE)
+                p++;
+
+            if (p == n)
+                return i;
+
+            if (p > largest)
+                largest = p;
+
+            i += p;
+            while(i < npages && pagetable[i] == B_PAGE)
             {
-                n2 = n;
-                if(pagetable[i] == B_PAGE)
-                {
-                    // Then we have the offset information.  We can skip a
-                    // whole bunch of stuff.
-                    i += bPageOffsets[i] - 1;
-                }
+                // we have the size information, so we skip a whole bunch of pages.
+                i += bPageOffsets[i];
             }
         }
 
-        if(pagetable[searchStart] < B_FREE)
-        {
-            searchStart = npages;
-        }
-
+        // not enough free pages found, remember largest free chunk
+        largestFree = largest;
         return OPFAIL;
     }
 
@@ -2957,7 +2955,9 @@ struct LargeObjectPool
     void freePages(size_t pagenum, size_t npages) nothrow
     {
         //memset(&pagetable[pagenum], B_FREE, npages);
-        if(pagenum < searchStart) searchStart = pagenum;
+        if(pagenum < searchStart)
+            searchStart = pagenum;
+        largestFree = npages; // invalidate
 
         for(size_t i = pagenum; i < npages + pagenum; i++)
         {
@@ -3035,6 +3035,7 @@ struct LargeObjectPool
 
             if (pn < searchStart)
                 searchStart = pn;
+            largestFree = npages; // invalidate
 
             debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
             //log_free(sentinel_add(p));
