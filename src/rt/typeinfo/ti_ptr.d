@@ -13,7 +13,8 @@
  */
 module rt.typeinfo.ti_ptr;
 
-// pointer
+// internal typeinfo for any pointer type
+// please keep in sync with TypeInfo_Pointer
 
 class TypeInfo_P : TypeInfo
 {
@@ -24,22 +25,22 @@ class TypeInfo_P : TypeInfo
 
     override size_t getHash(in void* p)
     {
-        return cast(uint)*cast(void* *)p;
+        return cast(size_t)*cast(void**)p;
     }
 
     override bool equals(in void* p1, in void* p2)
     {
-        return *cast(void* *)p1 == *cast(void* *)p2;
+        return *cast(void**)p1 == *cast(void**)p2;
     }
 
     override int compare(in void* p1, in void* p2)
     {
-        auto c = *cast(void* *)p1 - *cast(void* *)p2;
-        if (c < 0)
+        if (*cast(void**)p1 < *cast(void**)p2)
             return -1;
-        else if (c > 0)
+        else if (*cast(void**)p1 > *cast(void**)p2)
             return 1;
-        return 0;
+        else
+            return 0;
     }
 
     override @property size_t tsize() nothrow pure
@@ -49,15 +50,10 @@ class TypeInfo_P : TypeInfo
 
     override void swap(void *p1, void *p2)
     {
-        void* t;
-
-        t = *cast(void* *)p1;
-        *cast(void* *)p1 = *cast(void* *)p2;
-        *cast(void* *)p2 = t;
+        void* tmp = *cast(void**)p1;
+        *cast(void**)p1 = *cast(void**)p2;
+        *cast(void**)p2 = tmp;
     }
 
-    override @property uint flags() nothrow pure
-    {
-        return 1;
-    }
+    override @property uint flags() nothrow pure const { return 1; }
 }
