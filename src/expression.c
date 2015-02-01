@@ -9831,6 +9831,31 @@ bool isInteger(Expression* e, dinteger_t* value)
     }
 }
 
+AddExp* isAddExp(Expression* e)
+{
+    return e->op == TOKadd ? (AddExp*)e : NULL;
+}
+
+MinExp* isMinExp(Expression* e)
+{
+    return e->op == TOKmin ? (MinExp*)e : NULL;
+}
+
+MulExp* isMulExp(Expression* e)
+{
+    return e->op == TOKmul ? (MulExp*)e : NULL;
+}
+
+DivExp* isDivExp(Expression* e)
+{
+    return e->op == TOKdiv ? (DivExp*)e : NULL;
+}
+
+NegExp* isNegExp(Expression* e)
+{
+    return e->op == TOKneg ? (NegExp*)e : NULL;
+}
+
 // Decribes Boundness of a Slice Beginning or End Index.
 enum Boundness
 {
@@ -9868,7 +9893,7 @@ bool LOG_BOUNDNESS = false;
  */
 Boundness analyzeSliceBound(Expression* e,
                             VarDeclaration *lengthVar,
-                            dinteger_t* p, dinteger_t* q, dinteger_t* off) // out arguments
+                            dinteger_t* p, uinteger_t* q, uinteger_t* off) // out arguments
 {
     if (e->op == TOKint64)
     {
@@ -9876,12 +9901,15 @@ Boundness analyzeSliceBound(Expression* e,
         if (value == 0)
         {
             if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for 0");
+            *off = 0;
             return atLowBound;
         }
         const sinteger_t svalue = (sinteger_t)value;
-        if (svalue < 0)
+        if (svalue < 0) // limit max slice bound index to 2^n-1, n=32 on 32-bit and n=64 on 64-bit
         {
-            return belowLowBound;
+            // printf("%s is below low bound: %lld", e->toChars(), svalue);
+            *off = value;
+            return belowLowBound; // TODO aboveHighBound instead?
         }
     }
     else if (isOpDollar(e, lengthVar))
@@ -9889,17 +9917,15 @@ Boundness analyzeSliceBound(Expression* e,
         if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $");
         return atHighBound;
     }
-    else if (e->op == TOKneg)
+    else if (NegExp* neg = isNegExp(e))
     {
-        NegExp* neg = (NegExp*)e;
         if (isOpDollar(neg->e1, lengthVar))
         {
             return outsideBounds;
         }
     }
-    else if (e->op == TOKdiv)
+    else if (DivExp* div = isDivExp(e))
     {
-        DivExp* div = (DivExp*)e;
         if (isOpDollar(div->e1, lengthVar) && isInteger(div->e2, q))
         {
             if (*q >= 1)
@@ -9938,19 +9964,28 @@ Boundness analyzeSliceBound(Expression* e,
             }
         }
     }
-    else if (e->op == TOKmul)
+    else if (MulExp* mul = isMulExp(e))
     {
-        MulExp* mul = (MulExp*)e;
-        if (((isOpDollar(mul->e1, lengthVar) && isInteger(mul->e2, p)) ||
-             (isInteger(mul->e1, p) && isOpDollar(mul->e2, lengthVar))) &&
-            *p >= 2)
+        if (NegExp* neg = isNegExp(mul->e1))
         {
-            return aboveHighBound; // iff $ != 0
+            if (isOpDollar(neg->e1, lengthVar) && isInteger(mul->e2, p) &&
+                *p >= 2)
+            {
+                return belowLowBound;
+            }
+        }
+        else
+        {
+            if (((isOpDollar(mul->e1, lengthVar) && isInteger(mul->e2, p)) ||
+                 (isInteger(mul->e1, p) && isOpDollar(mul->e2, lengthVar))) &&
+                *p >= 2)
+            {
+                return aboveHighBound; // iff $ != 0
+            }
         }
     }
-    else if (e->op == TOKadd)
+    else if (AddExp* add = isAddExp(e))
     {
-        AddExp* add = (AddExp*)e;
         if (((isOpDollar(add->e1, lengthVar) && isInteger(add->e2, off)) ||
              (isInteger(add->e1, off) && isOpDollar(add->e2, lengthVar))) &&
             *off >= 1)
@@ -9958,9 +9993,8 @@ Boundness analyzeSliceBound(Expression* e,
             return aboveHighBound;
         }
     }
-    else if (e->op == TOKmin)
+    else if (MinExp* min = isMinExp(e))
     {
-        MinExp* min = (MinExp*)e;
         if ((isOpDollar(min->e1, lengthVar) && isInteger(min->e2, off)))
         {
             return belowHighBound;
@@ -10210,8 +10244,8 @@ Lagain:
         {
             // lower
             dinteger_t lwrM = 1; // non-one means [ $*lwrM .. _ ]
-            dinteger_t lwrD = 1; // non-one means [ $/lwrD .. _ ]
-            dinteger_t lwrO = DINTEGER_UNDEFINED; // offset
+            uinteger_t lwrD = 1; // non-one means [ $/lwrD .. _ ]
+            uinteger_t lwrO = DINTEGER_UNDEFINED; // offset
             const Boundness lwrBoundness = analyzeSliceBound(lwr, this->lengthVar, &lwrM, &lwrD, &lwrO);
             bool lowerIsInBounds = false;
             if (isInside(lwrBoundness))
@@ -10224,7 +10258,10 @@ Lagain:
                 int tot = sizeof(buf);
                 int off = 0;
                 off += snprintf(&buf[off], tot-off, "lower slice limit ");
-                off += snprintf(&buf[off], tot-off, "$");
+                if (lwrM != 1 && lwrD != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "$");
+                }
                 if (lwrM != 1 && off < tot)
                 {
                     off += snprintf(&buf[off], tot-off, "*%lld", (unsigned long long)lwrM);
@@ -10243,8 +10280,8 @@ Lagain:
 
             // upper
             dinteger_t uprM = 1; // non-one means [ $*uprM .. _ ]
-            dinteger_t uprD = 1; // non-one means [ $/uprD .. _ ]
-            dinteger_t uprO = DINTEGER_UNDEFINED;
+            uinteger_t uprD = 1; // non-one means [ $/uprD .. _ ]
+            uinteger_t uprO = DINTEGER_UNDEFINED;
             const Boundness uprBoundness = analyzeSliceBound(upr, this->lengthVar, &uprM, &uprD, &uprO);
             if (isInside(uprBoundness))
             {
@@ -10257,6 +10294,10 @@ Lagain:
                 int off = 0;
                 off += snprintf(&buf[off], tot-off, "upper slice limit ");
                 off += snprintf(&buf[off], tot-off, "$");
+                if (uprM != 1 && uprD != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "$");
+                }
                 if (uprM != 1 && off < tot)
                 {
                     off += snprintf(&buf[off], tot-off, "*%lld", (unsigned long long)uprM);
