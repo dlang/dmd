@@ -2024,7 +2024,7 @@ struct Gcx
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                         pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
-			
+
                         // For the NO_INTERIOR attribute.  This tracks whether
                         // the pointer is an interior pointer or points to the
                         // base address of a block.
@@ -2196,7 +2196,6 @@ struct Gcx
                         log_free(q);
                         pool.pagetable[pn] = B_FREE;
                         if(pn < pool.searchStart) pool.searchStart = pn;
-                        pool.largestFree = pool.npages; // invalidate
                         freedpages++;
                         pool.freepages++;
 
@@ -2218,6 +2217,7 @@ struct Gcx
                                 memset(p, 0xF3, PAGESIZE);
                             }
                         }
+                        pool.largestFree = pool.freepages; // invalidate
                     }
                 }
             }
@@ -2915,13 +2915,18 @@ struct LargeObjectPool
      */
     size_t allocPages(size_t n) nothrow
     {
-        if(largestFree < n)
+        if(largestFree < n || searchStart + n > npages)
             return OPFAIL;
 
         //debug(PRINTF) printf("Pool::allocPages(n = %d)\n", n);
         size_t largest = 0;
-        while (searchStart < npages && pagetable[searchStart] != B_FREE)
-            searchStart++;
+        if (pagetable[searchStart] == B_PAGEPLUS)
+        {
+            searchStart -= bPageOffsets[searchStart]; // jump to B_PAGE
+            searchStart += bPageOffsets[searchStart];
+        }
+        while (searchStart < npages && pagetable[searchStart] == B_PAGE)
+            searchStart += bPageOffsets[searchStart];
 
         for (size_t i = searchStart; i < npages; )
         {
@@ -2957,7 +2962,6 @@ struct LargeObjectPool
         //memset(&pagetable[pagenum], B_FREE, npages);
         if(pagenum < searchStart)
             searchStart = pagenum;
-        largestFree = npages; // invalidate
 
         for(size_t i = pagenum; i < npages + pagenum; i++)
         {
@@ -2968,6 +2972,7 @@ struct LargeObjectPool
 
             pagetable[i] = B_FREE;
         }
+        largestFree = freepages; // invalidate
     }
 
     /**
@@ -3035,7 +3040,6 @@ struct LargeObjectPool
 
             if (pn < searchStart)
                 searchStart = pn;
-            largestFree = npages; // invalidate
 
             debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
             //log_free(sentinel_add(p));
