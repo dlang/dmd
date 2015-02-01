@@ -4224,7 +4224,9 @@ private:
         else
         {
             version (Posix) import core.sys.posix.sys.mman; // mmap
+            version (FreeBSD) import core.sys.freebsd.sys.mman : MAP_ANON;
             version (linux) import core.sys.linux.sys.mman : MAP_ANON;
+            version (OSX) import core.sys.osx.sys.mman : MAP_ANON;
 
             static if( __traits( compiles, mmap ) )
             {
