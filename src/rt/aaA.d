@@ -82,7 +82,7 @@ struct Impl
     size_t firstUsedBucketCache() @safe pure nothrow @nogc
     in
     {
-        assert(firstUsedBucket < buckets.length);
+        assert(firstUsedBucket <= buckets.length);
         foreach(i; 0 .. firstUsedBucket)
             assert(buckets[i] is null);
     }
