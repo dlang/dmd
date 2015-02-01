@@ -1245,6 +1245,23 @@ void test11730()
 }
 
 /************************************************/
+// 14089
+
+struct S14089
+{
+    int num;
+    S14089 opAssign(S14089 val) { return this; }
+}
+
+void test14089()
+{
+    S14089[int] aa;
+    S14089 b = aa[1] = S14089(0);
+    assert(aa[1].num == 0);
+    assert(b.num == 0);
+}
+
+/************************************************/
 
 int main()
 {
@@ -1293,6 +1310,7 @@ int main()
     test6799();
     test11359();
     test11730();
+    test14089();
 
     printf("Success\n");
     return 0;
