@@ -366,18 +366,16 @@ version (linux)
     static if (__USE_FILE_OFFSET64)
     {
         int getrlimit64(int, rlimit*);
-        int getrusage64(int, rusage*);
         int setrlimit64(int, in rlimit*);
         alias getrlimit = getrlimit64;
-        alias getrusage = getrusage64;
         alias setrlimit = setrlimit64;
     }
     else
     {
         int getrlimit(int, rlimit*);
-        int getrusage(int, rusage*);
         int setrlimit(int, in rlimit*);
     }
+    int getrusage(int, rusage*);
 }
 else
 {
