@@ -7655,25 +7655,25 @@ bool TemplateInstance::needsCodegen()
     // If this may be a speculative instantiation:
     if (!minst)
     {
-        for (TemplateInstance *ti = this; ti; ti = ti->tnext)
+        TemplateInstance *tnext = this->tnext;
+        TemplateInstance *tinst = this->tinst;
+        // At first, disconnect chain first to prevent infinite recursion.
+        this->tnext = NULL;
+        this->tinst = NULL;
+
+        // Determine necessity of tinst before tnext.
+        if (tinst && tinst->needsCodegen())
         {
-            TemplateInstance *tix = ti;
-            while (tix && !tix->minst)
-                tix = tix->tinst;
-            if (tix)
-            {
-                assert(tix->minst);
-
-                // cache the result, ti is in non-speculative instantiation chain
-                minst = tix->minst;
-                return tix->needsCodegen();
-            }
-            // ti was speculative.
+            minst = tinst->minst;   // cache result
+            assert(minst);
+            return true;
         }
-
-        // cache the result, mark as definitely speculative
-        tinst = NULL;
-        minst = NULL;
+        if (tnext && tnext->needsCodegen())
+        {
+            minst = tnext->minst;   // cache result
+            assert(minst);
+            return true;
+        }
         return false;
     }
 
