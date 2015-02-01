@@ -23,7 +23,7 @@ extern extern(C) __gshared string[] rt_options;
 struct Config
 {
     bool disable;            // start disabled
-    bool profile;            // enable profiling with summary when terminating program
+    byte profile;            // enable profiling with summary when terminating program
     bool precise;            // enable precise scanning
     bool concurrent;         // enable concurrent collection
 

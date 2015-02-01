@@ -26,6 +26,7 @@ module gc.gc;
 //debug = PTRCHECK;             // more pointer checking
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = INVARIANT;            // enable invariants
+//debug = PROFILE_API;          // profile API calls for config.profile > 1
 
 /*************** Configuration *********************/
 
@@ -53,11 +54,66 @@ private alias BlkInfo = core.memory.GC.BlkInfo;
 
 version (GNU) import gcc.builtins;
 
-debug (PRINTF_TO_FILE) import core.stdc.stdio : fprintf, fopen, fflush, FILE;
-else                   import core.stdc.stdio : printf; // needed to output profiling results
+debug (PRINTF_TO_FILE) import core.stdc.stdio : sprintf, fprintf, fopen, fflush, FILE;
+else                   import core.stdc.stdio : sprintf, printf; // needed to output profiling results
 
 import core.time;
 alias currTime = MonoTime.currTime;
+
+// high performance time measurements without additional translations
+alias MonoTimeNative = long;
+alias DurationNative = long;
+
+version(OSX) extern(C) ulong mach_absolute_time() nothrow @nogc;
+
+@property MonoTimeNative currTimeNative() nothrow
+{
+    version(Windows)
+    {
+        import core.sys.windows.windows;
+        long ticks;
+        if(QueryPerformanceCounter(&ticks) == 0)
+        {
+            // This probably cannot happen on Windows 95 or later
+            assert(0, "Call to QueryPerformanceCounter failed.");
+        }
+        return ticks;
+    }
+    else version(OSX)
+    {
+        return mach_absolute_time();
+    }
+    else version(Posix)
+    {
+        import core.sys.posix.time;
+        import core.sys.posix.sys.time;
+
+        timespec ts;
+        if(clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+            assert(0, "Call to clock_gettime failed.");
+
+        return ts.tv_sec * 1_000_000_000L + ts.tv_nsec;
+    }
+    else
+        static assert(false, "no native timer function");
+}
+
+MonoTime toMonoTime(MonoTimeNative tm)
+{
+    version(Windows)
+        return MonoTime(tm);
+    else version(OSX)
+        return MonoTime(tm);
+    else version(Posix)
+        return MonoTime(convClockFreq(tm, 1_000_000_000L, MonoTime.ticksPerSecond));
+    else
+        static assert(false, "no native timer function");
+}
+
+Duration toDuration(DurationNative dur)
+{
+    return toMonoTime(dur) - MonoTime(0);
+}
 
 debug(PRINTF_TO_FILE)
 {
@@ -109,6 +165,18 @@ __gshared Duration recoverTime;
 __gshared Duration maxPauseTime;
 __gshared size_t numCollections;
 __gshared size_t maxPoolMemory;
+
+__gshared long numMallocs;
+__gshared long numFrees;
+__gshared long numReallocs;
+__gshared long numExtends;
+__gshared long numOthers;
+__gshared DurationNative mallocTime;
+__gshared DurationNative freeTime;
+__gshared DurationNative reallocTime;
+__gshared DurationNative extendTime;
+__gshared DurationNative otherTime;
+__gshared DurationNative lockTime;
 
 private
 {
@@ -331,6 +399,42 @@ struct GC
     }
 
 
+    private void runLocked(alias time, alias count)(scope void delegate() nothrow dg)
+    {
+        debug(PROFILE_API)
+        {
+            MonoTimeNative tm = void;
+            if (GC.config.profile > 1)
+                tm = currTimeNative;
+        }
+
+        gcLock.lock();
+
+        debug(PROFILE_API)
+        {
+            if (GC.config.profile > 1)
+            {
+                count++;
+                MonoTimeNative now = currTimeNative;
+                lockTime += now - tm;
+                tm = now;
+            }
+        }
+
+        dg();
+
+        debug(PROFILE_API)
+        {
+            if (GC.config.profile > 1)
+            {
+                MonoTimeNative now = currTimeNative;
+                time += now - tm;
+            }
+        }
+
+        gcLock.unlock();
+    }
+
     /**
      *
      */
@@ -356,9 +460,10 @@ struct GC
             return oldb;
         }
 
-        gcLock.lock();
-        auto rc = go();
-        gcLock.unlock();
+        uint rc = void;
+        runLocked!(otherTime, numOthers)({
+            rc = go();
+        });
         return rc;
     }
 
@@ -389,9 +494,10 @@ struct GC
             return oldb;
         }
 
-        gcLock.lock();
-        auto rc = go();
-        gcLock.unlock();
+        uint rc = void;
+        runLocked!(otherTime, numOthers)({
+            rc = go();
+        });
         return rc;
     }
 
@@ -422,12 +528,12 @@ struct GC
             return oldb;
         }
 
-        gcLock.lock();
-        auto rc = go();
-        gcLock.unlock();
+        uint rc = void;
+        runLocked!(otherTime, numOthers)({
+            rc = go();
+        });
         return rc;
     }
-
 
     /**
      *
@@ -448,11 +554,9 @@ struct GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        {
-            gcLock.lock();
+        runLocked!(mallocTime, numMallocs)({
             p = mallocNoSync(size, bits, *alloc_size, ti);
-            gcLock.unlock();
-        }
+        });
 
         if (!(bits & BlkAttr.NO_SCAN))
         {
@@ -513,9 +617,9 @@ struct GC
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
         {
-            gcLock.lock();
-            p = mallocNoSync(size, bits, *alloc_size, ti);
-            gcLock.unlock();
+            runLocked!(mallocTime, numMallocs)({
+                p = mallocNoSync(size, bits, *alloc_size, ti);
+            });
         }
 
         memset(p, 0, size);
@@ -539,11 +643,9 @@ struct GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        {
-            gcLock.lock();
+        runLocked!(reallocTime, numReallocs)({
             p = reallocNoSync(p, size, bits, *alloc_size, ti);
-            gcLock.unlock();
-        }
+        });
 
         if (p !is oldp && !(bits & BlkAttr.NO_SCAN))
         {
@@ -709,9 +811,10 @@ struct GC
      */
     size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti = null) nothrow
     {
-        gcLock.lock();
-        auto rc = extendNoSync(p, minsize, maxsize, ti);
-        gcLock.unlock();
+        size_t rc = void;
+        runLocked!(extendTime, numExtends)({
+            rc = extendNoSync(p, minsize, maxsize, ti);
+        });
         return rc;
     }
 
@@ -818,7 +921,9 @@ struct GC
         }
 
         gcLock.lock();
-        freeNoSync(p);
+        runLocked!(freeTime, numFrees)({
+            freeNoSync(p);
+        });
         gcLock.unlock();
     }
 
@@ -900,9 +1005,10 @@ struct GC
             return null;
         }
 
-        gcLock.lock();
-        auto rc = addrOfNoSync(p);
-        gcLock.unlock();
+        void* rc = void;
+        runLocked!(otherTime, numOthers)({
+            rc = addrOfNoSync(p);
+        });
         return rc;
     }
 
@@ -935,9 +1041,10 @@ struct GC
             return 0;
         }
 
-        gcLock.lock();
-        auto rc = sizeOfNoSync(p);
-        gcLock.unlock();
+        size_t rc = void;
+        runLocked!(otherTime, numOthers)({
+            rc = sizeOfNoSync(p);
+        });
         return rc;
     }
 
@@ -989,9 +1096,10 @@ struct GC
             return  i;
         }
 
-        gcLock.lock();
-        auto rc = queryNoSync(p);
-        gcLock.unlock();
+        BlkInfo rc = void;
+        runLocked!(otherTime, numOthers)({
+            rc = queryNoSync(p);
+        });
         return rc;
     }
 
@@ -1029,9 +1137,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
-        checkNoSync(p);
-        gcLock.unlock();
+        runLocked!(otherTime, numOthers)({
+            checkNoSync(p);
+        });
     }
 
 
@@ -1086,9 +1194,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
-        gcx.addRoot(p);
-        gcLock.unlock();
+        runLocked!(otherTime, numOthers)({
+            gcx.addRoot(p);
+        });
     }
 
 
@@ -1102,9 +1210,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
-        gcx.removeRoot(p);
-        gcLock.unlock();
+        runLocked!(otherTime, numOthers)({
+            gcx.removeRoot(p);
+        });
     }
 
 
@@ -1137,9 +1245,9 @@ struct GC
 
         //debug(PRINTF) printf("+GC.addRange(p = %p, sz = 0x%zx), p + sz = %p\n", p, sz, p + sz);
 
-        gcLock.lock();
-        gcx.addRange(p, p + sz, ti);
-        gcLock.unlock();
+        runLocked!(otherTime, numOthers)({
+            gcx.addRange(p, p + sz, ti);
+        });
 
         //debug(PRINTF) printf("-GC.addRange()\n");
     }
@@ -1155,9 +1263,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
-        gcx.removeRange(p);
-        gcLock.unlock();
+        runLocked!(otherTime, numOthers)({
+            gcx.removeRange(p);
+        });
     }
 
     /**
@@ -1165,9 +1273,9 @@ struct GC
      */
     void runFinalizers(in void[] segment) nothrow
     {
-        gcLock.lock();
-        gcx.runFinalizers(segment);
-        gcLock.unlock();
+        runLocked!(otherTime, numOthers)({
+            gcx.runFinalizers(segment);
+        });
     }
 
     private auto rangeIterImpl(scope int delegate(ref Range) nothrow dg) nothrow
@@ -1424,9 +1532,27 @@ struct Gcx
             long gcTime = (recoverTime + sweepTime + markTime + prepTime).total!("msecs");
             printf("\tGrand total GC time:  %lld milliseconds\n", gcTime);
             long pauseTime = (markTime + prepTime).total!("msecs");
-            printf("GC summary:%5lld MB,%5lld GC%5lld ms, Pauses%5lld ms <%5lld ms\n",
+
+            char[30] apitxt;
+            apitxt[0] = 0;
+            debug(PROFILE_API) if (GC.config.profile > 1)
+            {
+                printf("\n");
+                printf("\tmalloc:  %llu calls, %lld ms\n", cast(ulong)numMallocs, mallocTime.toDuration.total!"msecs");
+                printf("\trealloc: %llu calls, %lld ms\n", cast(ulong)numReallocs, reallocTime.toDuration.total!"msecs");
+                printf("\tfree:    %llu calls, %lld ms\n", cast(ulong)numFrees, freeTime.toDuration.total!"msecs");
+                printf("\textend:  %llu calls, %lld ms\n", cast(ulong)numExtends, extendTime.toDuration.total!"msecs");
+                printf("\tother:   %llu calls, %lld ms\n", cast(ulong)numOthers, otherTime.toDuration.total!"msecs");
+                printf("\tlock time: %lld ms\n", lockTime.toDuration.total!"msecs");
+
+                DurationNative apiTime = mallocTime + reallocTime + freeTime + extendTime + otherTime + lockTime;
+                printf("\tGC API: %lld ms\n", apiTime.toDuration.total!"msecs");
+                sprintf(apitxt.ptr, " API%5ld ms", apiTime.toDuration.total!"msecs");
+            }
+
+            printf("GC summary:%5lld MB,%5lld GC%5lld ms, Pauses%5lld ms <%5lld ms%s\n",
                    cast(long) maxPoolMemory >> 20, cast(ulong)numCollections, gcTime,
-                   pauseTime, maxPause);
+                   pauseTime, maxPause, apitxt.ptr);
         }
 
         debug(INVARIANT) initialized = false;
