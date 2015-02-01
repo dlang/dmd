@@ -99,6 +99,11 @@ int AsyncRead::read(size_t i)
 
 void AsyncRead::dispose(AsyncRead *aw)
 {
+    for (size_t i = 0; i < aw->filesdim; i++)
+    {
+        FileData *f = &aw->files[i];
+        WaitForSingleObject(f->event, INFINITE);
+    }
     free(aw);
 }
 
@@ -109,7 +114,8 @@ unsigned __stdcall startthread(void *p)
     AsyncRead *aw = (AsyncRead *)p;
 
     //printf("aw->filesdim = %p %d\n", aw, aw->filesdim);
-    for (size_t i = 0; i < aw->filesdim; i++)
+    size_t dim = aw->filesdim;
+    for (size_t i = 0; i < dim; i++)
     {   FileData *f = &aw->files[i];
 
         f->result = f->file->read();
