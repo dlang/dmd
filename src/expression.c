@@ -9878,23 +9878,24 @@ Boundness analyzeSliceBound(Expression* e,
             if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for 0");
             return atLowBound;
         }
-        if (e->type->isunsigned()) // BUG this evaluates to true for [-1 .. _ ]
+        const sinteger_t svalue = (sinteger_t)value;
+        if (svalue < 0)
         {
-            const uinteger_t uvalue = (uinteger_t)value;
-        }
-        else
-        {
-            const sinteger_t svalue = (sinteger_t)value;
-            if (svalue < 0)
-            {
-                return belowLowBound;
-            }
+            return belowLowBound;
         }
     }
     else if (isOpDollar(e, lengthVar))
     {
         if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $");
         return atHighBound;
+    }
+    else if (e->op == TOKneg)
+    {
+        NegExp* neg = (NegExp*)e;
+        if (isOpDollar(neg->e1, lengthVar))
+        {
+            return outsideBounds;
+        }
     }
     else if (e->op == TOKdiv)
     {
