@@ -9872,15 +9872,23 @@ Boundness analyzeSliceBound(Expression* e,
 {
     if (e->op == TOKint64)
     {
-        sinteger_t value = e->toInteger();
+        const dinteger_t value = e->toInteger();
         if (value == 0)
         {
             if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for 0");
             return atLowBound;
         }
-        else if (value < 0)
+        if (e->type->isunsigned()) // BUG this evaluates to true for [-1 .. _ ]
         {
-            return belowLowBound;
+            const uinteger_t uvalue = (uinteger_t)value;
+        }
+        else
+        {
+            const sinteger_t svalue = (sinteger_t)value;
+            if (svalue < 0)
+            {
+                return belowLowBound;
+            }
         }
     }
     else if (isOpDollar(e, lengthVar))
