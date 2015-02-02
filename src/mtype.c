@@ -1492,6 +1492,7 @@ char *Type::toChars()
     OutBuffer buf;
     buf.reserve(16);
     HdrGenState hgs;
+    hgs.fullQual = (ty == Tclass && !mod);
 
     ::toCBuffer(this, &buf, NULL, &hgs);
     return buf.extractString();
@@ -2874,11 +2875,6 @@ Type *TypeBasic::syntaxCopy()
     return this;
 }
 
-char *TypeBasic::toChars()
-{
-    return Type::toChars();
-}
-
 d_uns64 TypeBasic::size(Loc loc)
 {   unsigned size;
 
@@ -3517,11 +3513,6 @@ TypeBasic *TypeVector::elementType()
 bool TypeVector::checkBoolean()
 {
     return false;
-}
-
-char *TypeVector::toChars()
-{
-    return Type::toChars();
 }
 
 d_uns64 TypeVector::size(Loc loc)
@@ -7139,13 +7130,6 @@ const char *TypeEnum::kind()
     return "enum";
 }
 
-char *TypeEnum::toChars()
-{
-    if (mod)
-        return Type::toChars();
-    return sym->toChars();
-}
-
 Type *TypeEnum::syntaxCopy()
 {
     return this;
@@ -7376,19 +7360,6 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
 const char *TypeStruct::kind()
 {
     return "struct";
-}
-
-char *TypeStruct::toChars()
-{
-    //printf("sym.parent: %s, deco = %s\n", sym->parent->toChars(), deco);
-    if (mod)
-        return Type::toChars();
-    TemplateInstance *ti = sym->parent->isTemplateInstance();
-    if (ti && ti->aliasdecl == sym)
-    {
-        return ti->toChars();
-    }
-    return sym->toChars();
 }
 
 Type *TypeStruct::syntaxCopy()
@@ -7941,13 +7912,6 @@ TypeClass::TypeClass(ClassDeclaration *sym)
 const char *TypeClass::kind()
 {
     return "class";
-}
-
-char *TypeClass::toChars()
-{
-    if (mod)
-        return Type::toChars();
-    return (char *)sym->toPrettyChars();
 }
 
 Type *TypeClass::syntaxCopy()

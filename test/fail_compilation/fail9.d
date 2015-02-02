@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9.d(25): Error: no property 'Vector' for type 'fail9.Vector!int.Vector'
-fail_compilation/fail9.d(25): Error: no property 'Vector' for type 'fail9.Vector!int.Vector'
+fail_compilation/fail9.d(25): Error: no property 'Vector' for type 'fail9.Vector!int'
+fail_compilation/fail9.d(25): Error: no property 'Vector' for type 'fail9.Vector!int'
 ---
 */
 
