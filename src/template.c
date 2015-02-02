@@ -2413,11 +2413,10 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     overloadApply(dstart, &p, &ParamDeduce::fp);
 
     //printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
-    if (p.td_best && p.ti_best)
+    if (p.td_best && p.ti_best && m->count == 1)
     {
         // Matches to template function
-        if (!p.td_best->onemember || !p.td_best->onemember->isFuncDeclaration())
-            return; // goto Lerror?
+        assert(p.td_best->onemember && p.td_best->onemember->isFuncDeclaration());
 
         /* The best match is td_best with arguments tdargs.
          * Now instantiate the template.
@@ -2429,8 +2428,16 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         ti->semantic(sc, fargs);
 
         m->lastf = ti->toAlias()->isFuncDeclaration();
-        if (ti->errors || !m->lastf)
-            goto Lerror;
+        if (!m->lastf)
+            goto Lnomatch;
+        if (ti->errors)
+        {
+        Lerror:
+            m->count = 1;
+            assert(m->lastf);
+            m->last = MATCHnomatch;
+            return;
+        }
 
         // look forward instantiated overload function
         // Dsymbol::oneMembers is alredy called in TemplateInstance::semantic.
@@ -2448,11 +2455,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             goto Lerror;
         assert(tf->ty == Tfunction);
         if (!tf->callMatch(p.tthis_best, fargs))
-        {
-            m->count = 0;
-            m->lastf = NULL;
-            goto Lerror;
-        }
+            goto Lnomatch;
 
         if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
         {
@@ -2482,12 +2485,15 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     }
     else if (m->lastf)
     {
-        // Matches to non template function
+        // Matches to non template function,
+        // or found matches were ambiguous.
+        assert(m->count >= 1);
     }
     else
     {
-    Lerror:
-        // Keep m->lastf and m->count as-is.
+    Lnomatch:
+        m->count = 0;
+        m->lastf = NULL;
         m->last = MATCHnomatch;
     }
 }
