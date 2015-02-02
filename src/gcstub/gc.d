@@ -27,24 +27,12 @@ module gc.gc;
 
 private
 {
-   import core.stdc.stdlib;
-   import core.stdc.stdio;
+    import core.stdc.stdlib;
+    import core.stdc.stdio;
 
-   enum BlkAttr : uint
-    {
-        FINALIZE    = 0b0000_0001,
-        NO_SCAN     = 0b0000_0010,
-        NO_MOVE     = 0b0000_0100,
-        APPENDABLE  = 0b0000_1000,
-        ALL_BITS    = 0b1111_1111
-    }
-
-    struct BlkInfo
-    {
-        void*  base;
-        size_t size;
-        uint   attr;
-    }
+    static import core.memory;
+    private alias BlkAttr = core.memory.GC.BlkAttr;
+    private alias BlkInfo = core.memory.GC.BlkInfo;
 
     extern (C) void thread_init();
     extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
