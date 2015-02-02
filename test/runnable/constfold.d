@@ -728,12 +728,28 @@ void test13978()
 }
 
 /************************************/
+// Pull Request 3697
+
+void test3697and()
+{
+    enum x = 0;
+    auto y = x && 1 / x;
+}
+
+void test3697or()
+{
+    enum x = 0;
+    enum y = 1;
+    auto z = y || 1 / x;
+}
 
 int main()
 {
     test1();
     test2();
     test3();
+    test3697and();
+    test3697or();
     test6077();
     test8400();
     test8939();
