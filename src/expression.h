@@ -200,6 +200,13 @@ public:
 
     int isConst() { return ::isConst(this); }
     virtual int isBool(int result);
+
+    virtual AddExp* isAddExp() { return NULL; }
+    virtual MinExp* isMinExp() { return NULL; }
+    virtual MulExp* isMulExp() { return NULL; }
+    virtual DivExp* isDivExp() { return NULL; }
+    virtual NegExp* isNegExp() { return NULL; }
+
     Expression *op_overload(Scope *sc)
     {
         return ::op_overload(this, sc);
@@ -929,6 +936,7 @@ public:
     Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
+    NegExp* isNegExp() { return this; }
 };
 
 class UAddExp : public UnaExp
@@ -1274,6 +1282,7 @@ public:
     Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
+    AddExp* isAddExp() { return this; }
 };
 
 class MinExp : public BinExp
@@ -1283,6 +1292,7 @@ public:
     Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
+    MinExp* isMinExp() { return this; }
 };
 
 class CatExp : public BinExp
@@ -1301,6 +1311,7 @@ public:
     Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
+    MulExp* isMulExp() { return this; }
 };
 
 class DivExp : public BinExp
@@ -1310,6 +1321,7 @@ public:
     Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
+    DivExp* isDivExp() { return this; }
 };
 
 class ModExp : public BinExp

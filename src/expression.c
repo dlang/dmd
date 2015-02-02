@@ -9831,31 +9831,6 @@ bool isInteger(Expression* e, dinteger_t* value)
     }
 }
 
-AddExp* isAddExp(Expression* e)
-{
-    return e->op == TOKadd ? (AddExp*)e : NULL;
-}
-
-MinExp* isMinExp(Expression* e)
-{
-    return e->op == TOKmin ? (MinExp*)e : NULL;
-}
-
-MulExp* isMulExp(Expression* e)
-{
-    return e->op == TOKmul ? (MulExp*)e : NULL;
-}
-
-DivExp* isDivExp(Expression* e)
-{
-    return e->op == TOKdiv ? (DivExp*)e : NULL;
-}
-
-NegExp* isNegExp(Expression* e)
-{
-    return e->op == TOKneg ? (NegExp*)e : NULL;
-}
-
 // Decribes Boundness of a Slice Beginning or End Index.
 enum Boundness
 {
@@ -9917,14 +9892,14 @@ Boundness analyzeSliceBound(Expression* e,
         if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $");
         return atHighBound;
     }
-    else if (NegExp* neg = isNegExp(e))
+    else if (NegExp* neg = e->isNegExp())
     {
         if (isOpDollar(neg->e1, lengthVar))
         {
             return outsideBounds;
         }
     }
-    else if (DivExp* div = isDivExp(e))
+    else if (DivExp* div = e->isDivExp())
     {
         if (isOpDollar(div->e1, lengthVar) && isInteger(div->e2, q))
         {
@@ -9964,9 +9939,9 @@ Boundness analyzeSliceBound(Expression* e,
             }
         }
     }
-    else if (MulExp* mul = isMulExp(e))
+    else if (MulExp* mul = e->isMulExp())
     {
-        if (NegExp* neg = isNegExp(mul->e1))
+        if (NegExp* neg = mul->e1->isNegExp())
         {
             if (isOpDollar(neg->e1, lengthVar) && isInteger(mul->e2, p) &&
                 *p >= 2)
@@ -9984,7 +9959,7 @@ Boundness analyzeSliceBound(Expression* e,
             }
         }
     }
-    else if (AddExp* add = isAddExp(e))
+    else if (AddExp* add = e->isAddExp())
     {
         if (((isOpDollar(add->e1, lengthVar) && isInteger(add->e2, off)) ||
              (isInteger(add->e1, off) && isOpDollar(add->e2, lengthVar))) &&
@@ -9993,7 +9968,7 @@ Boundness analyzeSliceBound(Expression* e,
             return aboveHighBound;
         }
     }
-    else if (MinExp* min = isMinExp(e))
+    else if (MinExp* min = e->isMinExp())
     {
         if ((isOpDollar(min->e1, lengthVar) && isInteger(min->e2, off)))
         {
