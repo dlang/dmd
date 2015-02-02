@@ -187,11 +187,13 @@ extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
 {
     foreach (e; dataSegs)
     {
-        if (auto sect = getSection(h, slide, e.seg.ptr, e.sect.ptr))
+        auto sect = getSection(h, slide, e.seg.ptr, e.sect.ptr);
+        if (sect != null)
             _sections._gcRanges.insertBack((cast(void*)sect.ptr)[0 .. sect.length]);
     }
 
-    if (auto sect = getSection(h, slide, "__DATA", "__minfodata"))
+    auto minfosect = getSection(h, slide, "__DATA", "__minfodata");
+    if (minfosect != null)
     {
         // no support for multiple images yet
         // take the sections from the last static image which is the executable
@@ -206,31 +208,34 @@ extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
         }
 
         debug(PRINTF) printf("  minfodata\n");
-        auto p = cast(immutable(ModuleInfo*)*)sect.ptr;
-        immutable len = sect.length / (*p).sizeof;
+        auto p = cast(immutable(ModuleInfo*)*)minfosect.ptr;
+        immutable len = minfosect.length / (*p).sizeof;
 
         _sections._moduleGroup = ModuleGroup(p[0 .. len]);
     }
 
-    if (auto sect = getSection(h, slide, "__DATA", "__deh_eh"))
+    auto ehsect = getSection(h, slide, "__DATA", "__deh_eh");
+    if (ehsect != null)
     {
         debug(PRINTF) printf("  deh_eh\n");
-        auto p = cast(immutable(FuncTable)*)sect.ptr;
-        immutable len = sect.length / (*p).sizeof;
+        auto p = cast(immutable(FuncTable)*)ehsect.ptr;
+        immutable len = ehsect.length / (*p).sizeof;
 
         _sections._ehTables = p[0 .. len];
     }
 
-    if (auto sect = getSection(h, slide, "__DATA", "__tls_data"))
+    auto tlssect = getSection(h, slide, "__DATA", "__tls_data");
+    if (tlssect != null)
     {
-        debug(PRINTF) printf("  tls_data %p %p\n", sect.ptr, sect.ptr + sect.length);
-        _sections._tlsImage[0] = (cast(immutable(void)*)sect.ptr)[0 .. sect.length];
+        debug(PRINTF) printf("  tls_data %p %p\n", tlssect.ptr, tlssect.ptr + tlssect.length);
+        _sections._tlsImage[0] = (cast(immutable(void)*)tlssect.ptr)[0 .. tlssect.length];
     }
 
-    if (auto sect = getSection(h, slide, "__DATA", "__tlscoal_nt"))
+    auto tlssect2 = getSection(h, slide, "__DATA", "__tlscoal_nt");
+    if (tlssect2 != null)
     {
-        debug(PRINTF) printf("  tlscoal_nt %p %p\n", sect.ptr, sect.ptr + sect.length);
-        _sections._tlsImage[1] = (cast(immutable(void)*)sect.ptr)[0 .. sect.length];
+        debug(PRINTF) printf("  tlscoal_nt %p %p\n", tlssect2.ptr, tlssect2.ptr + tlssect2.length);
+        _sections._tlsImage[1] = (cast(immutable(void)*)tlssect2.ptr)[0 .. tlssect2.length];
     }
 }
 
