@@ -11,6 +11,7 @@ static import common = rt.util.container.common;
 
 struct Array(T)
 {
+nothrow:
     @disable this(this);
 
     ~this()

@@ -128,7 +128,7 @@ version( Windows )
         const CREATE_SUSPENDED = 0x00000004;
 
         extern (Windows) alias uint function(void*) btex_fptr;
-        extern (C) uintptr_t _beginthreadex(void*, uint, btex_fptr, void*, uint, uint*);
+        extern (C) uintptr_t _beginthreadex(void*, uint, btex_fptr, void*, uint, uint*) nothrow;
 
         //
         // Entry point for Windows threads
@@ -229,7 +229,7 @@ else version( Posix )
         version( OSX )
         {
             import core.sys.osx.mach.thread_act;
-            extern (C) mach_port_t pthread_mach_thread_np(pthread_t);
+            import core.sys.osx.pthread : pthread_mach_thread_np;
         }
 
         version( GNU )
@@ -510,9 +510,8 @@ class Thread
     }
     body
     {
-        this();
+        this(sz);
         m_fn   = fn;
-        m_sz   = sz;
         m_call = Call.FN;
         m_curr = &m_main;
     }
@@ -536,9 +535,8 @@ class Thread
     }
     body
     {
-        this();
+        this(sz);
         m_dg   = dg;
-        m_sz   = sz;
         m_call = Call.DG;
         m_curr = &m_main;
     }
@@ -589,7 +587,7 @@ class Thread
      * Throws:
      *  ThreadException if the thread fails to start.
      */
-    final Thread start()
+    final Thread start() nothrow
     in
     {
         assert( !next && !prev );
@@ -610,11 +608,9 @@ class Thread
             pthread_attr_t  attr;
 
             if( pthread_attr_init( &attr ) )
-                throw new ThreadException( "Error initializing thread attributes" );
+                onThreadError( "Error initializing thread attributes" );
             if( m_sz && pthread_attr_setstacksize( &attr, m_sz ) )
-                throw new ThreadException( "Error initializing thread stack size" );
-            if( pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_JOINABLE ) )
-                throw new ThreadException( "Error setting thread joinable" );
+                onThreadError( "Error initializing thread stack size" );
         }
 
         version( Windows )
@@ -631,7 +627,7 @@ class Thread
             assert(m_sz <= uint.max, "m_sz must be less than or equal to uint.max");
             m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint) m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_addr );
             if( cast(size_t) m_hndl == 0 )
-                throw new ThreadException( "Error creating thread" );
+                onThreadError( "Error creating thread" );
         }
 
         // Start thread as non-suspendable, undone in thread_entryPoint
@@ -648,7 +644,7 @@ class Thread
             version( Windows )
             {
                 if( ResumeThread( m_hndl ) == -1 )
-                    throw new ThreadException( "Error resuming thread" );
+                    onThreadError( "Error resuming thread" );
             }
             else version( Posix )
             {
@@ -670,20 +666,20 @@ class Thread
                     {
                         unpinLoadedLibraries(libs);
                         .free(ps);
-                        throw new ThreadException( "Error creating thread" );
+                        onThreadError( "Error creating thread" );
                     }
                 }
                 else
                 {
                     if( pthread_create( &m_addr, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
-                        throw new ThreadException( "Error creating thread" );
+                        onThreadError( "Error creating thread" );
                 }
             }
             version( OSX )
             {
                 m_tmach = pthread_mach_thread_np( m_addr );
                 if( m_tmach == m_tmach.init )
-                    throw new ThreadException( "Error creating thread" );
+                    onThreadError( "Error creating thread" );
             }
 
             add( this );
@@ -1269,8 +1265,21 @@ private:
     // Initializes a thread object which has no associated executable function.
     // This is used for the main thread initialized in thread_init().
     //
-    this()
+    this(size_t sz = 0)
     {
+        if (sz)
+        {
+            version (Posix)
+            {
+                // stack size must be a multiple of PAGESIZE
+                sz += PAGESIZE - 1;
+                sz -= sz % PAGESIZE;
+                // and at least PTHREAD_STACK_MIN
+                if (PTHREAD_STACK_MIN > sz)
+                    sz = PTHREAD_STACK_MIN;
+            }
+            m_sz = sz;
+        }
         m_call = Call.NO;
         m_curr = &m_main;
     }
@@ -3317,32 +3326,29 @@ private
         }
     }
 
-    __gshared const size_t PAGESIZE;
+    static immutable size_t PAGESIZE;
+    version (Posix) static immutable size_t PTHREAD_STACK_MIN;
 }
 
 
 shared static this()
 {
-    static if( __traits( compiles, GetSystemInfo ) )
+    version (Windows)
     {
         SYSTEM_INFO info;
-        GetSystemInfo( &info );
+        GetSystemInfo(&info);
 
         PAGESIZE = info.dwPageSize;
-        assert( PAGESIZE < int.max );
+        assert(PAGESIZE < int.max);
     }
-    else static if( __traits( compiles, sysconf ) &&
-                    __traits( compiles, _SC_PAGESIZE ) )
+    else version (Posix)
     {
-        PAGESIZE = cast(size_t) sysconf( _SC_PAGESIZE );
-        assert( PAGESIZE < int.max );
+        PAGESIZE = cast(size_t)sysconf(_SC_PAGESIZE);
+        PTHREAD_STACK_MIN = cast(size_t)sysconf(_SC_THREAD_STACK_MIN);
     }
     else
     {
-        version( PPC )
-            PAGESIZE = 8192;
-        else
-            PAGESIZE = 4096;
+        static assert(0, "unimplemented");
     }
 }
 
@@ -5127,5 +5133,11 @@ version (FreeBSD) unittest
         thread_suspendAll();
         thread_resumeAll();
     }
+    thr.join();
+}
+
+unittest
+{
+    auto thr = new Thread(function{}, 10).start();
     thr.join();
 }
