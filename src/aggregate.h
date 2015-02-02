@@ -149,6 +149,8 @@ public:
 
     AggregateDeclaration *isAggregateDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
+
+    virtual bool isInputRange() { return false; }
 };
 
 struct StructFlags
@@ -195,6 +197,8 @@ public:
     void finalizeSize();
     bool fit(Loc loc, Scope *sc, Expressions *elements, Type *stype);
     bool isPOD();
+
+    bool isInputRange();
 
     StructDeclaration *isStructDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -313,6 +317,9 @@ public:
     Symbol *vtblsym;
 
     ClassDeclaration *isClassDeclaration() { return (ClassDeclaration *)this; }
+
+    bool isInputRange();
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
