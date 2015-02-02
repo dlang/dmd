@@ -82,7 +82,7 @@ struct Impl
     size_t firstUsedBucketCache() @safe pure nothrow @nogc
     in
     {
-        assert(firstUsedBucket < buckets.length);
+        assert(firstUsedBucket <= buckets.length);
         foreach(i; 0 .. firstUsedBucket)
             assert(buckets[i] is null);
     }
@@ -986,4 +986,15 @@ void _aaRangePopFront(ref Range r) pure nothrow @nogc
             }
         }
     }
+}
+
+// Bugzilla 14104
+unittest
+{
+    import core.stdc.stdio;
+    alias K = const(ubyte)*;
+    size_t[K] aa;
+    immutable key = cast(K)(cast(size_t)uint.max + 1);
+    aa[key] = 12;
+    assert(key in aa);
 }

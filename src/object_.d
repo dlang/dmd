@@ -358,6 +358,7 @@ class TypeInfo_Enum : TypeInfo_Typedef
 
 }
 
+// Please make sure to keep this in sync with TypeInfo_P (src/rt/typeinfo/ti_ptr.d)
 class TypeInfo_Pointer : TypeInfo
 {
     override string toString() const { return m_next.toString() ~ "*"; }
