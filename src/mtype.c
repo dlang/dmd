@@ -7384,7 +7384,7 @@ char *TypeStruct::toChars()
     if (mod)
         return Type::toChars();
     TemplateInstance *ti = sym->parent->isTemplateInstance();
-    if (ti && ti->toAlias() == sym)
+    if (ti && ti->aliasdecl == sym)
     {
         return ti->toChars();
     }
