@@ -67,6 +67,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sys\inotify.d \
 	$(IMPDIR)\core\sys\linux\sys\mman.d \
 	$(IMPDIR)\core\sys\linux\sys\signalfd.d \
+	$(IMPDIR)\core\sys\linux\sys\sysinfo.d \
 	$(IMPDIR)\core\sys\linux\sys\xattr.d \
 	\
 	$(IMPDIR)\core\sys\osx\execinfo.d \
