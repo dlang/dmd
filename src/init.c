@@ -346,11 +346,12 @@ bool ArrayInitializer::isAssociativeArray()
 Initializer *ArrayInitializer::inferType(Scope *sc, Type *tx)
 {
     //printf("ArrayInitializer::inferType() %s\n", toChars());
+    bool isAA = isAssociativeArray();
     Expressions *keys = NULL;
     Expressions *values;
     if (tx ? (tx->ty == Taarray ||
-              tx->ty != Tarray && tx->ty != Tsarray && isAssociativeArray())
-           : isAssociativeArray())
+              tx->ty != Tarray && tx->ty != Tsarray && isAA)
+           : isAA)
     {
         Type *tidx = NULL;
         Type *tval = NULL;
@@ -395,7 +396,7 @@ Initializer *ArrayInitializer::inferType(Scope *sc, Type *tx)
         ExpInitializer *ei = new ExpInitializer(loc, e);
         return ei->inferType(sc, tx);
     }
-    else
+    else if (!isAA)
     {
         Type *tn = NULL;
         if (tx && (tx->ty == Tarray || tx->ty == Tsarray))
@@ -813,6 +814,8 @@ Initializer *ExpInitializer::inferType(Scope *sc, Type *tx)
 
     if (tx)
     {
+        //printf("ExpInitializer::inferType() tx = %s (%s), exp = %s (%s) %s\n",
+        //    tx->toChars(), tx->deco, exp->type->toChars(), exp->type->deco, exp->toChars());
         Type *tb = tx->toBasetype();
         Type *ti = exp->type->toBasetype();
 

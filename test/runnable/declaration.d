@@ -82,6 +82,18 @@ char[3] a481_18x = "abc";
 char[$] a481_18y = "abc";
 static assert(is(typeof(a481_18x) == typeof(a481_18y)));
 
+immutable pure @safe bool function(in bool[])[2] a481_19x =
+[
+    s => s[0],
+    s => s[0]
+];
+immutable pure @safe bool function(in bool[])[$] a481_19y =
+[
+    s => s[0],
+    s => s[0]
+];
+static assert(is(typeof(a481_19x) == typeof(a481_19y)));
+
 void test481()
 {
     assert(a481_1x == a481_1y);
@@ -239,6 +251,24 @@ void test481b()
 
     int[int[][$]] aa15 = [[[1],[2]]:1, [[3],[4]]:2];
     static assert(is(typeof(aa15) == int[int[][2]]));
+}
+
+void test14069()
+{
+    const[$] s1 = "hello";
+    static assert(is(typeof(s1) == const(char)[5]));
+    char[$] s2 = "hello";
+    static assert(is(typeof(s2) == char[5]));
+
+    const[$] s3 = "hello"w;
+    static assert(is(typeof(s3) == const(wchar)[5]));
+    wchar[$] s4 = "hello"w;
+    static assert(is(typeof(s4) == wchar[5]));
+
+    const[$] s5 = "hello"d;
+    static assert(is(typeof(s5) == const(dchar)[5]));
+    dchar[$] s6 = "hello"d;
+    static assert(is(typeof(s6) == dchar[5]));
 }
 
 /***************************************************/
