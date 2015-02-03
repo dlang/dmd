@@ -4160,6 +4160,18 @@ void test13374()
 }
 
 /******************************************/
+// 14109
+
+string f14109() { return "a"; }
+string g14109()() { return "a"; }
+
+struct S14109(string s) { static assert(s == "a"); }
+
+alias X14109 = S14109!(f14109);
+alias Y14109 = S14109!(g14109!());
+static assert(is(X14109 == Y14109));
+
+/******************************************/
 // 13378
 
 struct Vec13378(size_t n, T, string as)
