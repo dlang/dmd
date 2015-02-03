@@ -2997,7 +2997,7 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident, int flag)
             case Timaginary80:
             case Tfloat80:
                 error(loc, "use .min_normal property instead of .min");
-                goto Lmin_normal;
+                return new ErrorExp();
         }
     }
     else if (ident == Id::min_normal)
