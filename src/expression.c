@@ -9882,8 +9882,11 @@ Boundness analyzeSliceBound(Expression* e,
         const sinteger_t svalue = (sinteger_t)value;
         if (svalue < 0) // limit max slice bound index to 2^n-1, n=32 on 32-bit and n=64 on 64-bit
         {
-            // printf("%s is below low bound: %lld", e->toChars(), svalue);
             *off = value;
+            printf("%s is below low bound, e->toInteger() returns %ld, e->toUInteger() returns %ld\n",
+                   e->toChars(),
+                   e->toInteger(),
+                   e->toUInteger());
             return belowLowBound; // TODO aboveHighBound instead?
         }
     }
