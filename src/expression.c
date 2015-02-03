@@ -11427,8 +11427,6 @@ Expression *AssignExp::semantic(Scope *sc)
                         ex = ex->modifiableLvalue(sc, ex);  // allocate new slot
                         ey = new ConstructExp(loc, ex, ey);
 
-                        ey = new CastExp(ey->loc, ey, Type::tvoid);
-
                         e = new CondExp(loc, new InExp(loc, ek, ea), e, ey);
                     }
                     e = combine(e0, e);

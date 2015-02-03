@@ -316,8 +316,31 @@ void discardValue(Expression *e)
         case TOKquestion:
         {
             CondExp *ce = (CondExp *)e;
-            discardValue(ce->e1);
-            discardValue(ce->e2);
+
+            /* Bugzilla 6178 & 14089: Either CondExp::e1 or e2 may have
+             * redundant expression to make those types common. For example:
+             *
+             *  struct S { this(int n); int v; alias v this; }
+             *  S[int] aa;
+             *  aa[1] = 0;
+             *
+             * The last assignment statement will be rewitten to:
+             *
+             *  1 in aa ? aa[1].value = 0 : (aa[1] = 0, aa[1].this(0)).value;
+             *
+             * The last DotVarExp is necessary to take assigned value.
+             *
+             *  int value = (aa[1] = 0);    // value = aa[1].value
+             *
+             * To avoid false error, discardValue() should be called only when
+             * the both tops of e1 and e2 have actually no side effects.
+             */
+            if (!lambdaHasSideEffect(ce->e1) &&
+                !lambdaHasSideEffect(ce->e2))
+            {
+                discardValue(ce->e1);
+                discardValue(ce->e2);
+            }
             return;
         }
 
@@ -329,7 +352,7 @@ void discardValue(Expression *e)
              * no side effect).
              * See Bugzilla 4231 for discussion
              */
-            CommaExp* firstComma = ce;
+            CommaExp *firstComma = ce;
             while (firstComma->e1->op == TOKcomma)
                 firstComma = (CommaExp *)firstComma->e1;
             if (firstComma->e1->op == TOKdeclaration &&
