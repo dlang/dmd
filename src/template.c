@@ -5202,7 +5202,12 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
             ei = new VarExp(loc, f);
             ei = ei->semantic(sc);
             if (!f->needThis())
-                ei = resolvePropertiesOnly(sc, ei);
+            {
+                unsigned int errors = global.startGagging();
+                ei = resolveProperties(sc, ei);
+                if (global.endGagging(errors))
+                    goto Lnomatch;
+            }
             /* If it was really a property, it will become a CallExp.
              * If it stayed as a var, it cannot be interpreted.
              */
