@@ -1350,6 +1350,15 @@ immutable uint[B_MAX] binsize = [ 16,32,64,128,256,512,1024,2048,4096 ];
 immutable size_t[B_MAX] notbinsize = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1),
                                 ~(512-1),~(1024-1),~(2048-1),~(4096-1) ];
 
+alias PageBits = GCBits.wordtype[PAGESIZE / 16 / GCBits.BITS_PER_WORD];
+static assert(PAGESIZE % (GCBits.BITS_PER_WORD * 16) == 0);
+
+private void set(ref PageBits bits, size_t i) @nogc pure nothrow
+{
+    assert(i < PageBits.sizeof * 8);
+    bts(bits.ptr, i);
+}
+
 /* ============================ Gcx =============================== */
 
 struct Gcx
@@ -2230,45 +2239,32 @@ struct Gcx
 
                     if (bin < B_PAGE)
                     {
-                        auto   size = binsize[bin];
+                        immutable size = binsize[bin];
                         byte *p = pool.baseAddr + pn * PAGESIZE;
                         byte *ptop = p + PAGESIZE;
-                        size_t biti = pn * (PAGESIZE/16);
-                        size_t bitstride = size / 16;
+                        immutable base = pn * (PAGESIZE/16);
+                        immutable bitstride = size / 16;
 
-                        GCBits.wordtype toClear;
-                        size_t clearStart = biti >> GCBits.BITS_SHIFT;
-                        size_t clearIndex;
+                        bool freeBits;
+                        PageBits toFree;
 
-                        for (; p < ptop; p += size, biti += bitstride, clearIndex += bitstride)
+                        for (size_t i; p < ptop; p += size, i += bitstride)
                         {
-                            if(clearIndex > GCBits.BITS_PER_WORD - 1)
-                            {
-                                if(toClear)
-                                {
-                                    pool.clrBitsSmallSweep(clearStart, toClear);
-                                    toClear = 0;
-                                }
-
-                                clearStart = biti >> GCBits.BITS_SHIFT;
-                                clearIndex = biti & GCBits.BITS_MASK;
-                            }
+                            immutable biti = base + i;
 
                             if (!pool.mark.test(biti))
                             {
                                 void* q = sentinel_add(p);
                                 sentinel_Invariant(q);
 
-                                pool.freebits.set(biti);
-
                                 if (pool.finals.nbits && pool.finals.test(biti))
                                     rt_finalizeFromGC(q, size - SENTINEL_EXTRA, pool.getBits(biti));
 
-                                toClear |= GCBits.BITS_1 << clearIndex;
+                                freeBits = true;
+                                toFree.set(i);
 
-                                List *list = cast(List *)p;
-                                debug(COLLECT_PRINTF) printf("\tcollecting %p\n", list);
-                                log_free(sentinel_add(list));
+                                debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
+                                log_free(sentinel_add(p));
 
                                 debug (MEMSTOMP) memset(p, 0xF3, size);
 
@@ -2276,10 +2272,8 @@ struct Gcx
                             }
                         }
 
-                        if(toClear)
-                        {
-                            pool.clrBitsSmallSweep(clearStart, toClear);
-                        }
+                        if (freeBits)
+                            pool.freePageBits(pn, toFree);
                     }
                 }
             }
@@ -2807,19 +2801,37 @@ struct Pool
         }
     }
 
-    void clrBitsSmallSweep(size_t dataIndex, GCBits.wordtype toClear) nothrow
+    void freePageBits(size_t pagenum, in ref PageBits toFree) nothrow
     {
-        immutable toKeep = ~toClear;
+        assert(!isLargeObject);
+        assert(!nointerior.nbits); // only for large objects
+
+        import core.internal.traits : staticIota;
+        immutable beg = pagenum * (PAGESIZE / 16 / GCBits.BITS_PER_WORD);
+        foreach (i; staticIota!(0, PageBits.length))
+        {
+            immutable w = toFree[i];
+            if (!w) continue;
+
+            immutable wi = beg + i;
+            freebits.data[wi] |= w;
+            noscan.data[wi] &= ~w;
+            appendable.data[wi] &= ~w;
+        }
+
         if (finals.nbits)
-            finals.data[dataIndex] &= toKeep;
+        {
+            foreach (i; staticIota!(0, PageBits.length))
+                if (toFree[i])
+                    finals.data[beg + i] &= ~toFree[i];
+        }
+
         if (structFinals.nbits)
-            structFinals.data[dataIndex] &= toKeep;
-
-        noscan.data[dataIndex] &= toKeep;
-        appendable.data[dataIndex] &= toKeep;
-
-        if (nointerior.nbits)
-            nointerior.data[dataIndex] &= toKeep;
+        {
+            foreach (i; staticIota!(0, PageBits.length))
+                if (toFree[i])
+                    structFinals.data[beg + i] &= ~toFree[i];
+        }
     }
 
     /**
@@ -3105,26 +3117,15 @@ struct SmallObjectPool
             immutable size = binsize[bin];
             auto p = baseAddr + pn * PAGESIZE;
             const ptop = p + PAGESIZE;
-            auto biti = pn * (PAGESIZE/16);
+            immutable base = pn * (PAGESIZE/16);
             immutable bitstride = size / 16;
 
-            GCBits.wordtype toClear;
-            size_t clearStart = biti >> GCBits.BITS_SHIFT;
-            size_t clearIndex;
+            bool freeBits;
+            PageBits toFree;
 
-            for (; p < ptop; p += size, biti += bitstride, clearIndex += bitstride)
+            for (size_t i; p < ptop; p += size, i += bitstride)
             {
-                if (clearIndex > GCBits.BITS_PER_WORD - 1)
-                {
-                    if (toClear)
-                    {
-                        clrBitsSmallSweep(clearStart, toClear);
-                        toClear = 0;
-                    }
-
-                    clearStart = biti >> GCBits.BITS_SHIFT;
-                    clearIndex = biti & GCBits.BITS_MASK;
-                }
+                immutable biti = base + i;
 
                 if (!finals.test(biti))
                     continue;
@@ -3137,19 +3138,17 @@ struct SmallObjectPool
 
                 rt_finalizeFromGC(q, size, attr);
 
-                toClear |= GCBits.BITS_1 << clearIndex;
+                freeBits = true;
+                toFree.set(i);
 
                 debug(COLLECT_PRINTF) printf("\tcollecting %p\n", p);
                 //log_free(sentinel_add(p));
 
                 debug (MEMSTOMP) memset(p, 0xF3, size);
-                freebits.set(biti);
             }
 
-            if (toClear)
-            {
-                clrBitsSmallSweep(clearStart, toClear);
-            }
+            if (freeBits)
+                freePageBits(pn, toFree);
         }
     }
 
