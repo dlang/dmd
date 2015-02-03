@@ -2665,17 +2665,6 @@ Lagain:
     return e;
 }
 
-/****************************
- */
-
-Expression *Expression::checkToPointer()
-{
-    //printf("Expression::checkToPointer()\n");
-    Expression *e = this;
-
-    return e;
-}
-
 /******************************
  * Take address of expression.
  */
@@ -13025,7 +13014,6 @@ Expression *OrOrExp::semantic(Scope *sc)
     // same as for AndAnd
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->checkToPointer();
     e1 = e1->checkToBoolean(sc);
     unsigned cs1 = sc->callSuper;
 
@@ -13043,7 +13031,6 @@ Expression *OrOrExp::semantic(Scope *sc)
     e2 = e2->semantic(sc);
     sc->mergeCallSuper(loc, cs1);
     e2 = resolveProperties(sc, e2);
-    e2 = e2->checkToPointer();
 
     if (e2->type->ty == Tvoid)
         type = Type::tvoid;
@@ -13083,7 +13070,6 @@ Expression *AndAndExp::semantic(Scope *sc)
     // same as for OrOr
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->checkToPointer();
     e1 = e1->checkToBoolean(sc);
     unsigned cs1 = sc->callSuper;
 
@@ -13101,7 +13087,6 @@ Expression *AndAndExp::semantic(Scope *sc)
     e2 = e2->semantic(sc);
     sc->mergeCallSuper(loc, cs1);
     e2 = resolveProperties(sc, e2);
-    e2 = e2->checkToPointer();
 
     if (e2->type->ty == Tvoid)
         type = Type::tvoid;
@@ -13580,7 +13565,6 @@ Expression *CondExp::semantic(Scope *sc)
 
     Expression *ec = econd->semantic(sc);
     ec = resolveProperties(sc, ec);
-    ec = ec->checkToPointer();
     ec = ec->checkToBoolean(sc);
 
     unsigned cs0 = sc->callSuper;
