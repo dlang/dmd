@@ -139,7 +139,10 @@ void Import::load(Scope *sc)
                     if (!mod)
                         p->isPkgMod = PKGpackage;
                     else
-                        assert(p->isPkgMod == PKGmodule);
+                    {
+                        // mod is a package.d, or a normal module which conflicts with the package name.
+                        assert(mod->isPackageFile == (p->isPkgMod == PKGmodule));
+                    }
                 }
                 else
                 {
