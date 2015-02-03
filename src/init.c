@@ -66,7 +66,7 @@ Initializer *ErrorInitializer::syntaxCopy()
     return this;
 }
 
-Initializer *ErrorInitializer::inferType(Scope *sc, Type *tx)
+Initializer *ErrorInitializer::inferType(Scope *sc)
 {
     return this;
 }
@@ -95,7 +95,7 @@ Initializer *VoidInitializer::syntaxCopy()
     return new VoidInitializer(loc);
 }
 
-Initializer *VoidInitializer::inferType(Scope *sc, Type *tx)
+Initializer *VoidInitializer::inferType(Scope *sc)
 {
     error(loc, "cannot infer type from void initializer");
     return new ErrorInitializer();
@@ -141,20 +141,8 @@ void StructInitializer::addInit(Identifier *field, Initializer *value)
     this->value.push(value);
 }
 
-Initializer *StructInitializer::inferType(Scope *sc, Type *tx)
+Initializer *StructInitializer::inferType(Scope *sc)
 {
-    if (tx && !(tx->ty == Tident && ((TypeIdentifier *)tx)->ident == Id::empty))
-    {
-        Type *tb = tx->toBasetype();
-        //printf("si tb = %s => %s\n", tb->toChars(), toChars());
-        if (tb->ty == Tstruct ||
-            tb->ty == Tdelegate ||
-            tb->ty == Tpointer && tb->nextOf()->ty == Tfunction)
-        {
-            return semantic(sc, tb, INITnointerpret);
-        }
-    }
-
     error(loc, "cannot infer type from struct initializer");
     return new ErrorInitializer();
 }
@@ -343,23 +331,13 @@ bool ArrayInitializer::isAssociativeArray()
     return false;
 }
 
-Initializer *ArrayInitializer::inferType(Scope *sc, Type *tx)
+Initializer *ArrayInitializer::inferType(Scope *sc)
 {
     //printf("ArrayInitializer::inferType() %s\n", toChars());
     Expressions *keys = NULL;
     Expressions *values;
-    if (tx ? (tx->ty == Taarray ||
-              tx->ty != Tarray && tx->ty != Tsarray && isAssociativeArray())
-           : isAssociativeArray())
+    if (isAssociativeArray())
     {
-        Type *tidx = NULL;
-        Type *tval = NULL;
-        if (tx && tx->ty == Taarray)
-        {
-            tidx = ((TypeAArray *)tx)->index;
-            tval = ((TypeAArray *)tx)->next;
-        }
-
         keys = new Expressions();
         keys->setDim(value.dim);
         values = new Expressions();
@@ -370,20 +348,12 @@ Initializer *ArrayInitializer::inferType(Scope *sc, Type *tx)
             Expression *e = index[i];
             if (!e)
                 goto Lno;
-            if (tidx)
-            {
-                e = ::inferType(e, tidx);
-                e = e->semantic(sc);
-                e = resolveProperties(sc, e);
-                if (tidx->deco) // tidx may be partial type
-                    e = e->implicitCastTo(sc, tidx);
-            }
             (*keys)[i] = e;
 
             Initializer *iz = value[i];
             if (!iz)
                 goto Lno;
-            iz = iz->inferType(sc, tval);
+            iz = iz->inferType(sc);
             if (iz->isErrorInitializer())
                 return iz;
             assert(iz->isExpInitializer());
@@ -393,14 +363,10 @@ Initializer *ArrayInitializer::inferType(Scope *sc, Type *tx)
 
         Expression *e = new AssocArrayLiteralExp(loc, keys, values);
         ExpInitializer *ei = new ExpInitializer(loc, e);
-        return ei->inferType(sc, tx);
+        return ei->inferType(sc);
     }
     else
     {
-        Type *tn = NULL;
-        if (tx && (tx->ty == Tarray || tx->ty == Tsarray))
-            tn = ((TypeNext *)tx)->next;
-
         Expressions *elements = new Expressions();
         elements->setDim(value.dim);
         elements->zero();
@@ -412,7 +378,7 @@ Initializer *ArrayInitializer::inferType(Scope *sc, Type *tx)
             Initializer *iz = value[i];
             if (!iz)
                 goto Lno;
-            iz = iz->inferType(sc, tn);
+            iz = iz->inferType(sc);
             if (iz->isErrorInitializer())
                 return iz;
             assert(iz->isExpInitializer());
@@ -422,7 +388,7 @@ Initializer *ArrayInitializer::inferType(Scope *sc, Type *tx)
 
         Expression *e = new ArrayLiteralExp(loc, elements);
         ExpInitializer *ei = new ExpInitializer(loc, e);
-        return ei->inferType(sc, tx);
+        return ei->inferType(sc);
     }
 Lno:
     if (keys)
@@ -804,36 +770,11 @@ bool arrayHasNonConstPointers(Expressions *elems)
 }
 #endif
 
-Initializer *ExpInitializer::inferType(Scope *sc, Type *tx)
+Initializer *ExpInitializer::inferType(Scope *sc)
 {
     //printf("ExpInitializer::inferType() %s\n", toChars());
-    exp = ::inferType(exp, tx);
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-
-    if (tx)
-    {
-        Type *tb = tx->toBasetype();
-        Type *ti = exp->type->toBasetype();
-
-        // Look for implicit constructor call
-        if (tb->ty == Tstruct &&
-            !(ti->ty == Tstruct && tb->toDsymbol(sc) == ti->toDsymbol(sc)) &&
-            !exp->implicitConvTo(tx))
-        {
-            StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-            if (sd->ctor)
-            {
-                // Rewrite as S().ctor(exp)
-                Expression *e;
-                e = new StructLiteralExp(loc, sd, NULL);
-                e = new DotIdExp(loc, e, Id::ctor);
-                e = new CallExp(loc, e, exp);
-                e = e->semantic(sc);
-                exp = e->optimize(WANTvalue);
-            }
-        }
-    }
 
     if (exp->op == TOKimport)
     {
