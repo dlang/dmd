@@ -182,7 +182,6 @@ public:
     virtual int checkModifiable(Scope *sc, int flag = 0);
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
-    Expression *checkToPointer();
     Expression *addressOf();
     Expression *deref();
 
