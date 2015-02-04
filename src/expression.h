@@ -178,6 +178,7 @@ public:
     void checkSafety(Scope *sc, FuncDeclaration *f);
     void checkNogc(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
+    bool checkRightThis(Scope *sc);
     bool checkReadModifyWrite(TOK rmwOp, Expression *ex = NULL);
     virtual int checkModifiable(Scope *sc, int flag = 0);
     virtual Expression *checkToBoolean(Scope *sc);

@@ -239,23 +239,6 @@ bool isNeedThisScope(Scope *sc, Declaration *d)
     return true;
 }
 
-Expression *checkRightThis(Scope *sc, Expression *e)
-{
-    if (e->op == TOKvar && e->type->ty != Terror)
-    {
-        VarExp *ve = (VarExp *)e;
-        if (isNeedThisScope(sc, ve->var))
-        {
-            //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
-            //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
-            e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
-            e = new ErrorExp();
-        }
-    }
-    return e;
-}
-
-
 /***************************************
  * Pull out any properties.
  */
@@ -540,7 +523,8 @@ Expression *resolveProperties(Scope *sc, Expression *e)
     //printf("resolveProperties(%s)\n", e->toChars());
 
     e = resolvePropertiesX(sc, e);
-    e = checkRightThis(sc, e);
+    if (e->checkRightThis(sc))
+        return new ErrorExp();
     return e;
 }
 
@@ -2596,6 +2580,24 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
             checkSafety(sc, sd->postblit);
             checkNogc(sc, sd->postblit);
             return false;
+        }
+    }
+    return false;
+}
+
+bool Expression::checkRightThis(Scope *sc)
+{
+    if (op == TOKerror)
+        return true;
+    if (op == TOKvar && type->ty != Terror)
+    {
+        VarExp *ve = (VarExp *)this;
+        if (isNeedThisScope(sc, ve->var))
+        {
+            //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
+            //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
+            error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
+            return true;
         }
     }
     return false;
@@ -8493,7 +8495,8 @@ Lagain:
         }
         else
         {
-            checkRightThis(sc, ue1old);
+            if (ue1old->checkRightThis(sc))
+                return new ErrorExp();
             if (e1->op == TOKdotvar)
             {
                 dve->var = f;
@@ -11018,11 +11021,8 @@ Expression *AssignExp::semantic(Scope *sc)
          */
         if (Expression *e = resolvePropertiesX(sc, e1x, e2))
             return e;
-
-        e1x = checkRightThis(sc, e1x);
-
-        if (e1x->op == TOKerror)
-            return e1x;
+        if (e1x->checkRightThis(sc))
+            return new ErrorExp();
         e1 = e1x;
         assert(e1->type);
     }
