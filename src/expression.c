@@ -532,14 +532,14 @@ Expression *resolveProperties(Scope *sc, Expression *e)
 /******************************
  * Check the tail CallExp is really property function call.
  */
-
-void checkPropertyCall(Expression *e, Expression *emsg)
+bool checkPropertyCall(Expression *e, Expression *emsg)
 {
     while (e->op == TOKcomma)
         e = ((CommaExp *)e)->e2;
 
     if (e->op == TOKcall)
-    {   CallExp *ce = (CallExp *)e;
+    {
+        CallExp *ce = (CallExp *)e;
         TypeFunction *tf;
         if (ce->f)
         {
@@ -547,7 +547,8 @@ void checkPropertyCall(Expression *e, Expression *emsg)
             /* If a forward reference to ce->f, try to resolve it
              */
             if (!tf->deco && ce->f->scope)
-            {   ce->f->semantic(ce->f->scope);
+            {
+                ce->f->semantic(ce->f->scope);
                 tf = (TypeFunction *)ce->f->type;
             }
         }
@@ -561,8 +562,12 @@ void checkPropertyCall(Expression *e, Expression *emsg)
             assert(0);
 
         if (!tf->isproperty && global.params.enforcePropertySyntax)
+        {
             ce->e1->error("not a property %s", emsg->toChars());
+            return true;
+        }
     }
+    return false;
 }
 
 /******************************
