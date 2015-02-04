@@ -7510,7 +7510,7 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
-        accessCheck(e->loc, sc, NULL, v);
+        checkAccess(e->loc, sc, NULL, v);
         Expression *ve = new VarExp(e->loc, v);
         ve = ve->semantic(sc);
         return ve;
@@ -7613,7 +7613,7 @@ L1:
         }
         if (d->semanticRun == PASSinit && d->scope)
             d->semantic(d->scope);
-        accessCheck(e->loc, sc, e, d);
+        checkAccess(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
             ve->type = d->type->addMod(e->type->mod);
@@ -7624,7 +7624,7 @@ L1:
     if (d->isDataseg() || unreal && d->isField())
     {
         // (e, d)
-        accessCheck(e->loc, sc, e, d);
+        checkAccess(e->loc, sc, e, d);
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
@@ -7638,7 +7638,7 @@ L1:
 
 #if 0
         // *(&e + offset)
-        accessCheck(e->loc, sc, e, d);
+        checkAccess(e->loc, sc, e, d);
         Expression *b = new AddrExp(e->loc, e);
         b->type = e->type->pointerTo();
         b = new AddExp(e->loc, b, new IntegerExp(e->loc, v->offset, Type::tint32));
@@ -8153,7 +8153,7 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
-        accessCheck(e->loc, sc, NULL, v);
+        checkAccess(e->loc, sc, NULL, v);
         Expression *ve = new VarExp(e->loc, v);
         ve = ve->semantic(sc);
         return ve;
@@ -8314,7 +8314,7 @@ L1:
         //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
         if (d->semanticRun == PASSinit && d->scope)
             d->semantic(d->scope);
-        accessCheck(e->loc, sc, e, d);
+        checkAccess(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
             ve->type = d->type->addMod(e->type->mod);
@@ -8325,7 +8325,7 @@ L1:
     if (d->isDataseg() || unreal && d->isField())
     {
         // (e, d)
-        accessCheck(e->loc, sc, e, d);
+        checkAccess(e->loc, sc, e, d);
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
