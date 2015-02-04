@@ -1842,7 +1842,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         case Tarray:
         case Tsarray:
         {
-            if (!checkForArgTypes())
+            if (checkForArgTypes())
                 return this;
 
             if (dim < 1 || dim > 2)
@@ -2047,7 +2047,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         case Taarray:
             if (op == TOKforeach_reverse)
                 warning("cannot use foreach_reverse with an associative array");
-            if (!checkForArgTypes())
+            if (checkForArgTypes())
                 return this;
 
             taa = (TypeAArray *)tab;
@@ -2218,7 +2218,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             Expression *ec;
             Expression *e;
 
-            if (!checkForArgTypes())
+            if (checkForArgTypes())
             {
                 body = body->semanticNoScope(sc);
                 return this;
@@ -2542,7 +2542,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
 bool ForeachStatement::checkForArgTypes()
 {
-    bool result = true;
+    bool result = false;
 
     for (size_t i = 0; i < parameters->dim; i++)
     {
@@ -2551,7 +2551,7 @@ bool ForeachStatement::checkForArgTypes()
         {
             error("cannot infer type for %s", p->ident->toChars());
             p->type = Type::terror;
-            result = false;
+            result = true;
         }
     }
     return result;
