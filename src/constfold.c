@@ -109,7 +109,7 @@ UnionExp Not(Type *type, Expression *e1)
     UnionExp ue;
     Loc loc = e1->loc;
 
-    new(&ue) IntegerExp(loc, e1->isBool(0), type);
+    new(&ue) IntegerExp(loc, e1->isBool(false) ? 1 : 0, type);
     return ue;
 }
 
@@ -118,7 +118,7 @@ UnionExp Bool(Type *type, Expression *e1)
     UnionExp ue;
     Loc loc = e1->loc;
 
-    new(&ue) IntegerExp(loc, e1->isBool(1), type);
+    new(&ue) IntegerExp(loc, e1->isBool(true) ? 1 : 0, type);
     return ue;
 }
 

@@ -7335,7 +7335,7 @@ Expression *TypeEnum::defaultInit(Loc loc)
 
 bool TypeEnum::isZeroInit(Loc loc)
 {
-    return sym->getDefaultValue(loc)->isBool(false) != 0;
+    return sym->getDefaultValue(loc)->isBool(false);
 }
 
 int TypeEnum::hasPointers()
