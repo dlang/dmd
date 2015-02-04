@@ -351,6 +351,31 @@ void test13776()
 }
 
 /***************************************************/
+// 14090
+
+template Packed14090(Args...)
+{
+    enum x = __traits(compiles, { Args[0] v; });
+    // Args[0] is an opaque struct Empty, so the variable declaration fails to compile.
+    // The error message creation calls TypeStruct('_Empty')->toChars(), and
+    // it wrongly calls TemplateInstance('RoundRobin!()')->toAlias().
+    // Finally it will cause incorrect "recursive template instantiation" error.
+}
+
+template Map14090(A...)
+{
+    alias Map14090 = A[0];
+}
+
+template RoundRobin14090()
+{
+    struct Empty;
+    alias RoundRobin14090 = Map14090!(Packed14090!(Empty));
+}
+
+alias roundRobin14090 = RoundRobin14090!();
+
+/***************************************************/
 // 13950
 
 template Tuple13950(T...) { alias T Tuple13950; }
