@@ -6585,11 +6585,6 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
     return this;
 }
 
-int BinExp::isunsigned()
-{
-    return e1->type->isunsigned() || e2->type->isunsigned();
-}
-
 Expression *BinExp::incompatibleTypes()
 {
     if (e1->type->toBasetype() != Type::terror &&

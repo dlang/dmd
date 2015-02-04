@@ -745,7 +745,6 @@ public:
     Expression *binSemantic(Scope *sc);
     Expression *binSemanticProp(Scope *sc);
     Expression *checkComplexOpAssign(Scope *sc);
-    int isunsigned();
     Expression *incompatibleTypes();
 
     Expression *reorderSettingAAElem(Scope *sc);
