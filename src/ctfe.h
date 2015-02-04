@@ -189,7 +189,7 @@ UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
 bool isPointer(Type *t);
 
 // For CTFE only. Returns true if 'e' is TRUE or a non-null pointer.
-int isTrueBool(Expression *e);
+bool isTrueBool(Expression *e);
 
 /// Is it safe to convert from srcPointee* to destPointee* ?
 ///  srcPointee is the genuine type (never void).

@@ -2701,10 +2701,9 @@ Expression *Expression::deref()
 }
 
 /********************************
- * Does this expression statically evaluate to a boolean true or false?
+ * Does this expression statically evaluate to a boolean 'result' (true or false)?
  */
-
-int Expression::isBool(int result)
+bool Expression::isBool(bool result)
 {
     return false;
 }
@@ -2849,9 +2848,9 @@ complex_t IntegerExp::toComplex()
     return (complex_t)toReal();
 }
 
-int IntegerExp::isBool(int result)
+bool IntegerExp::isBool(bool result)
 {
-    int r = toInteger() != 0;
+    bool r = toInteger() != 0;
     return result ? r : !r;
 }
 
@@ -2964,7 +2963,7 @@ Expression *RealExp::semantic(Scope *sc)
     return this;
 }
 
-int RealExp::isBool(int result)
+bool RealExp::isBool(bool result)
 {
     return result ? (value != 0)
                   : (value == 0);
@@ -3031,7 +3030,7 @@ Expression *ComplexExp::semantic(Scope *sc)
     return this;
 }
 
-int ComplexExp::isBool(int result)
+bool ComplexExp::isBool(bool result)
 {
     if (result)
         return (bool)(value);
@@ -3480,7 +3479,7 @@ Lerr:
     return new ErrorExp();
 }
 
-int ThisExp::isBool(int result)
+bool ThisExp::isBool(bool result)
 {
     return result ? true : false;
 }
@@ -3623,7 +3622,7 @@ Expression *NullExp::semantic(Scope *sc)
     return this;
 }
 
-int NullExp::isBool(int result)
+bool NullExp::isBool(bool result)
 {
     return result ? false : true;
 }
@@ -3906,7 +3905,7 @@ int StringExp::compare(RootObject *obj)
     return (int)(len1 - len2);
 }
 
-int StringExp::isBool(int result)
+bool StringExp::isBool(bool result)
 {
     return result ? true : false;
 }
@@ -4045,7 +4044,7 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     return this;
 }
 
-int ArrayLiteralExp::isBool(int result)
+bool ArrayLiteralExp::isBool(bool result)
 {
     size_t dim = elements ? elements->dim : 0;
     return result ? (dim != 0) : (dim == 0);
@@ -4177,7 +4176,7 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 }
 
 
-int AssocArrayLiteralExp::isBool(int result)
+bool AssocArrayLiteralExp::isBool(bool result)
 {
     size_t dim = keys->dim;
     return result ? (dim != 0) : (dim == 0);
@@ -5098,7 +5097,7 @@ Expression *SymOffExp::semantic(Scope *sc)
     return this;
 }
 
-int SymOffExp::isBool(int result)
+bool SymOffExp::isBool(bool result)
 {
     return result ? true : false;
 }
@@ -6584,11 +6583,6 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
         }
     }
     return this;
-}
-
-int BinExp::isunsigned()
-{
-    return e1->type->isunsigned() || e2->type->isunsigned();
 }
 
 Expression *BinExp::incompatibleTypes()
@@ -10101,7 +10095,7 @@ Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-int SliceExp::isBool(int result)
+bool SliceExp::isBool(bool result)
 {
     return e1->isBool(result);
 }
@@ -10456,7 +10450,7 @@ Expression *CommaExp::modifiableLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-int CommaExp::isBool(int result)
+bool CommaExp::isBool(bool result)
 {
     return e2->isBool(result);
 }
