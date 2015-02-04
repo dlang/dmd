@@ -168,10 +168,10 @@ public:
     }
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
     virtual bool checkValue();
-    void checkScalar();
-    void checkNoBool();
-    Expression *checkIntegral();
-    Expression *checkArithmetic();
+    bool checkScalar();
+    bool checkNoBool();
+    bool checkIntegral();
+    bool checkArithmetic();
     Expression *checkReadModifyWrite(TOK rmwOp, Expression *exp = NULL);
     void checkDeprecated(Scope *sc, Dsymbol *s);
     void checkPurity(Scope *sc, FuncDeclaration *f);
@@ -746,6 +746,8 @@ public:
     Expression *binSemanticProp(Scope *sc);
     Expression *checkComplexOpAssign(Scope *sc);
     Expression *incompatibleTypes();
+    bool checkIntegral();
+    bool checkArithmetic();
 
     Expression *reorderSettingAAElem(Scope *sc);
 

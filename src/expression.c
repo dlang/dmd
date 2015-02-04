@@ -2320,41 +2320,60 @@ bool Expression::checkValue()
     return false;
 }
 
-void Expression::checkScalar()
+bool Expression::checkScalar()
 {
-    if (!type->isscalar() && type->toBasetype() != Type::terror)
+    if (op == TOKerror)
+        return true;
+    if (type->toBasetype()->ty == Terror)
+        return true;
+    if (!type->isscalar())
+    {
         error("'%s' is not a scalar, it is a %s", toChars(), type->toChars());
-    checkValue();
+        return true;
+    }
+    return checkValue();
 }
 
-void Expression::checkNoBool()
+bool Expression::checkNoBool()
 {
+    if (op == TOKerror)
+        return true;
+    if (type->toBasetype()->ty == Terror)
+        return true;
     if (type->toBasetype()->ty == Tbool)
+    {
         error("operation not allowed on bool '%s'", toChars());
+        return true;
+    }
+    return false;
 }
 
-Expression *Expression::checkIntegral()
+bool Expression::checkIntegral()
 {
+    if (op == TOKerror)
+        return true;
+    if (type->toBasetype()->ty == Terror)
+        return true;
     if (!type->isintegral())
-    {   if (type->toBasetype() != Type::terror)
-            error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
-        return new ErrorExp();
+    {
+        error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
+        return true;
     }
-    if (checkValue())
-        return new ErrorExp();
-    return this;
+    return checkValue();
 }
 
-Expression *Expression::checkArithmetic()
+bool Expression::checkArithmetic()
 {
+    if (op == TOKerror)
+        return true;
+    if (type->toBasetype()->ty == Terror)
+        return true;
     if (!type->isintegral() && !type->isfloating())
-    {   if (type->toBasetype() != Type::terror)
-            error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
-        return new ErrorExp();
+    {
+        error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
+        return true;
     }
-    if (checkValue())
-        return new ErrorExp();
-    return this;
+    return checkValue();
 }
 
 void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
@@ -6616,6 +6635,20 @@ Expression *BinExp::incompatibleTypes()
     return this;
 }
 
+bool BinExp::checkIntegral()
+{
+    bool r1 = e1->checkIntegral();
+    bool r2 = e2->checkIntegral();
+    return (r1 || r2);
+}
+
+bool BinExp::checkArithmetic()
+{
+    bool r1 = e1->checkArithmetic();
+    bool r2 = e2->checkArithmetic();
+    return (r1 || r2);
+}
+
 /********************** BinAssignExp **************************************/
 
 Expression *BinAssignExp::semantic(Scope *sc)
@@ -6656,7 +6689,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
     e1 = e1->optimize(WANTvalue);
     e1 = e1->modifiableLvalue(sc, e1);
     type = e1->type;
-    checkScalar();
+    if (checkScalar())
+        return new ErrorExp();
 
     int arith = (op == TOKaddass || op == TOKminass || op == TOKmulass ||
                  op == TOKdivass || op == TOKmodass || op == TOKpowass);
@@ -6665,8 +6699,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
 
     if (bitwise && type->toBasetype()->ty == Tbool)
          e2 = e2->implicitCastTo(sc, type);
-    else
-        checkNoBool();
+    else if (checkNoBool())
+        return new ErrorExp();
 
     if ((op == TOKaddass || op == TOKminass) &&
         e1->type->toBasetype()->ty == Tpointer &&
@@ -6676,16 +6710,10 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (Expression *ex = typeCombine(this, sc))
         return ex;
 
-    if (arith)
-    {
-        e1 = e1->checkArithmetic();
-        e2 = e2->checkArithmetic();
-    }
-    if (bitwise || shift)
-    {
-        e1 = e1->checkIntegral();
-        e2 = e2->checkIntegral();
-    }
+    if (arith && checkArithmetic())
+        return new ErrorExp();
+    if ((bitwise || shift) && checkIntegral())
+        return new ErrorExp();
     if (shift)
     {
         e2 = e2->castTo(sc, Type::tshiftcnt);
@@ -9258,10 +9286,10 @@ Expression *NegExp::semantic(Scope *sc)
         return this;
     }
 
-    e1->checkNoBool();
-    e1 = e1->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
+    if (e1->checkNoBool())
+        return new ErrorExp();
+    if (e1->checkArithmetic())
+        return new ErrorExp();
 
     return this;
 }
@@ -9284,8 +9312,11 @@ Expression *UAddExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1->checkNoBool();
-    e1->checkArithmetic();
+    if (e1->checkNoBool())
+        return new ErrorExp();
+    if (e1->checkArithmetic())
+        return new ErrorExp();
+
     return e1;
 }
 
@@ -9317,10 +9348,10 @@ Expression *ComExp::semantic(Scope *sc)
         return this;
     }
 
-    e1->checkNoBool();
-    e1 = e1->checkIntegral();
-    if (e1->op == TOKerror)
-        return e1;
+    if (e1->checkNoBool())
+        return new ErrorExp();
+    if (e1->checkIntegral())
+        return new ErrorExp();
 
     return this;
 }
@@ -10742,8 +10773,11 @@ Expression *PostExp::semantic(Scope *sc)
     }
 
     e = this;
-    e1->checkScalar();
-    e1->checkNoBool();
+    if (e1->checkScalar())
+        return new ErrorExp();
+    if (e1->checkNoBool())
+        return new ErrorExp();
+
     if (e1->type->ty == Tpointer)
         e = scaleFactor(this, sc);
     else
@@ -12019,18 +12053,19 @@ Expression *AddExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
+    bool err = false;
     if (tb1->ty == Tdelegate ||
         tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction)
     {
-        e = e1->checkArithmetic();
+        err |= e1->checkArithmetic();
     }
     if (tb2->ty == Tdelegate ||
         tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction)
     {
-        e = e2->checkArithmetic();
+        err |= e2->checkArithmetic();
     }
-    if (e)
-        return e;
+    if (err)
+        return new ErrorExp();
 
     if (tb1->ty == Tpointer && e2->type->isintegral() ||
         tb2->ty == Tpointer && e1->type->isintegral())
@@ -12113,18 +12148,19 @@ Expression *MinExp::semantic(Scope *sc)
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
 
+    bool err = false;
     if (t1->ty == Tdelegate ||
         t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
     {
-        e = e1->checkArithmetic();
+        err |= e1->checkArithmetic();
     }
     if (t2->ty == Tdelegate ||
         t2->ty == Tpointer && t2->nextOf()->ty == Tfunction)
     {
-        e = e2->checkArithmetic();
+        err |= e2->checkArithmetic();
     }
-    if (e)
-        return e;
+    if (err)
+        return new ErrorExp();
 
     if (t1->ty == Tpointer)
     {
@@ -12388,12 +12424,8 @@ Expression *MulExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if (checkArithmetic())
+        return new ErrorExp();
 
     if (type->isfloating())
     {
@@ -12476,12 +12508,8 @@ Expression *DivExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if (checkArithmetic())
+        return new ErrorExp();
 
     if (type->isfloating())
     {
@@ -12567,12 +12595,8 @@ Expression *ModExp::semantic(Scope *sc)
         return incompatibleTypes();
     }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if (checkArithmetic())
+        return new ErrorExp();
 
     if (type->isfloating())
     {
@@ -12638,12 +12662,8 @@ Expression *PowExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if (checkArithmetic())
+        return new ErrorExp();
 
     // For built-in numeric types, there are several cases.
     // TODO: backend support, especially for  e1 ^^ 2.
@@ -12730,8 +12750,8 @@ Expression *ShlExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
+    if (checkIntegral())
+        return new ErrorExp;
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
     {
@@ -12762,8 +12782,8 @@ Expression *ShrExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
+    if (checkIntegral())
+        return new ErrorExp();
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
     {
@@ -12794,8 +12814,8 @@ Expression *UshrExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
+    if (checkIntegral())
+        return new ErrorExp();
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
     {
@@ -12848,12 +12868,8 @@ Expression *AndExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if (checkIntegral())
+        return new ErrorExp();
 
     return this;
 }
@@ -12897,12 +12913,8 @@ Expression *OrExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if (checkIntegral())
+        return new ErrorExp();
 
     return this;
 }
@@ -12946,16 +12958,11 @@ Expression *XorExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if (checkIntegral())
+        return new ErrorExp();
 
     return this;
 }
-
 
 /************************************************************/
 
