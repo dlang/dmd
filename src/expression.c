@@ -1314,34 +1314,6 @@ bool checkDefCtor(Loc loc, Type *t)
     return false;
 }
 
-/********************************************
- * Determine if t is an array of structs that need a postblit.
- */
-bool Expression::checkPostblit(Scope *sc, Type *t)
-{
-    t = t->baseElemOf();
-    if (t->ty == Tstruct)
-    {
-        // Bugzilla 11395: Require TypeInfo generation for array concatenation
-        semanticTypeInfo(sc, t);
-
-        StructDeclaration *sd = ((TypeStruct *)t)->sym;
-        if (sd->postblit)
-        {
-            if (sd->postblit->storage_class & STCdisable)
-                sd->error(loc, "is not copyable because it is annotated with @disable");
-            else
-            {
-                checkPurity(sc, sd->postblit);
-                checkSafety(sc, sd->postblit);
-                checkNogc(sc, sd->postblit);
-            }
-            return true;
-        }
-    }
-    return false;
-}
-
 /*********************************************
  * If e is an instance of a struct, and that struct has a copy constructor,
  * rewrite e as:
@@ -2598,6 +2570,35 @@ void Expression::checkNogc(Scope *sc, FuncDeclaration *f)
                 sc->func->toPrettyChars(), f->toPrettyChars());
         }
     }
+}
+
+/********************************************
+ * Check that the postblit is callable if t is an array of structs.
+ * Returns true if error happens.
+ */
+bool Expression::checkPostblit(Scope *sc, Type *t)
+{
+    t = t->baseElemOf();
+    if (t->ty == Tstruct)
+    {
+        // Bugzilla 11395: Require TypeInfo generation for array concatenation
+        semanticTypeInfo(sc, t);
+
+        StructDeclaration *sd = ((TypeStruct *)t)->sym;
+        if (sd->postblit)
+        {
+            if (sd->postblit->storage_class & STCdisable)
+            {
+                sd->error(loc, "is not copyable because it is annotated with @disable");
+                return true;
+            }
+            checkPurity(sc, sd->postblit);
+            checkSafety(sc, sd->postblit);
+            checkNogc(sc, sd->postblit);
+            return false;
+        }
+    }
+    return false;
 }
 
 /*******************************
@@ -11451,7 +11452,8 @@ Expression *AssignExp::semantic(Scope *sc)
                  e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
                  e2x->op != TOKslice && e2x->isLvalue()))
             {
-                e1x->checkPostblit(sc, t1);
+                if (e1x->checkPostblit(sc, t1))
+                    return new ErrorExp();
             }
         }
         else
@@ -11583,8 +11585,11 @@ Expression *AssignExp::semantic(Scope *sc)
         // memset
         ismemset = 1;   // make it easy for back end to tell what this is
         e2x = e2x->implicitCastTo(sc, t1->nextOf());
-        if (op != TOKblit && e2x->isLvalue())
-            e1->checkPostblit(sc, t1->nextOf());
+        if (op != TOKblit && e2x->isLvalue() &&
+            e1->checkPostblit(sc, t1->nextOf()))
+        {
+            return new ErrorExp();
+        }
     }
     else if (e1->op == TOKslice &&
              (t2->ty == Tarray || t2->ty == Tsarray) &&
@@ -11620,7 +11625,8 @@ Expression *AssignExp::semantic(Scope *sc)
              e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
              e2x->op != TOKslice && e2x->isLvalue()))
         {
-            e1->checkPostblit(sc, t1->nextOf());
+            if (e1->checkPostblit(sc, t1->nextOf()))
+                return new ErrorExp();
         }
 
         if (0 && global.params.warnings && !global.gag && op == TOKassign &&
@@ -11844,7 +11850,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
        )
     {
         // Append array
-        e1->checkPostblit(sc, tb1next);
+        if (e1->checkPostblit(sc, tb1next))
+            return new ErrorExp();
         e2 = e2->castTo(sc, e1->type);
     }
     else if ((tb1->ty == Tarray) &&
@@ -11852,7 +11859,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
        )
     {
         // Append element
-        e2->checkPostblit(sc, tb2);
+        if (e2->checkPostblit(sc, tb2))
+            return new ErrorExp();
         e2 = e2->castTo(sc, tb1next);
         e2 = e2->isLvalue() ? callCpCtor(sc, e2) : valueNoDtor(e2);
     }
@@ -12299,7 +12307,8 @@ Expression *CatExp::semantic(Scope *sc)
         e2->implicitConvTo(tb1next) >= MATCHconvert &&
         tb2->ty != Tvoid)
     {
-        e2->checkPostblit(sc, tb2);
+        if (e2->checkPostblit(sc, tb2))
+            return new ErrorExp();
         e2 = e2->implicitCastTo(sc, tb1next);
         type = tb1next->arrayOf();
         if (tb2->ty == Tarray || tb2->ty == Tsarray)
@@ -12314,7 +12323,8 @@ Expression *CatExp::semantic(Scope *sc)
         e1->implicitConvTo(tb2next) >= MATCHconvert &&
         tb1->ty != Tvoid)
     {
-        e1->checkPostblit(sc, tb1);
+        if (e1->checkPostblit(sc, tb1))
+            return new ErrorExp();
         e1 = e1->implicitCastTo(sc, tb2next);
         type = tb2next->arrayOf();
         if (tb1->ty == Tarray || tb1->ty == Tsarray)
@@ -12358,7 +12368,8 @@ Expression *CatExp::semantic(Scope *sc)
     }
     if (Type *tbn = tb->nextOf())
     {
-        checkPostblit(sc, tbn);
+        if (checkPostblit(sc, tbn))
+            return new ErrorExp();
     }
 #if 0
     e1->type->print();
