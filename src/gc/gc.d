@@ -1380,6 +1380,8 @@ struct Gcx
     // run a collection when reaching those thresholds (number of used pages)
     float smallCollectThreshold, largeCollectThreshold;
     uint usedSmallPages, usedLargePages;
+    // total number of mapped pages
+    uint mappedPages;
 
     void initialize()
     {
@@ -1389,6 +1391,7 @@ struct Gcx
         ranges.initialize();
         smallCollectThreshold = largeCollectThreshold = 0.0f;
         usedSmallPages = usedLargePages = 0;
+        mappedPages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
         debug(INVARIANT) initialized = true;
     }
@@ -1422,10 +1425,11 @@ struct Gcx
         for (size_t i = 0; i < npools; i++)
         {
             Pool *pool = pooltable[i];
-
+            mappedPages -= pool.npages;
             pool.Dtor();
             cstdlib.free(pool);
         }
+        assert(!mappedPages);
         pooltable.Dtor();
 
         roots.removeAll();
@@ -1719,11 +1723,17 @@ struct Gcx
         foreach (pool; pooltable.minimize())
         {
             debug(PRINTF) printFreeInfo(pool);
+            mappedPages -= pool.npages;
             pool.Dtor();
             cstdlib.free(pool);
         }
 
         debug(PRINTF) printf("Done minimizing.\n");
+    }
+
+    private @property bool lowMem() const nothrow
+    {
+        return isLowOnMem(mappedPages * PAGESIZE);
     }
 
     void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
@@ -1752,7 +1762,7 @@ struct Gcx
 
         if (!tryAlloc())
         {
-            if (disabled || usedSmallPages < smallCollectThreshold)
+            if (!lowMem && (disabled || usedSmallPages < smallCollectThreshold))
             {
                 // disabled or threshold not reached => allocate a new pool instead of collecting
                 if (!newPool(1, false))
@@ -1820,7 +1830,7 @@ struct Gcx
 
         if (!tryAlloc())
         {
-            if (disabled || usedLargePages < largeCollectThreshold)
+            if (!lowMem && (disabled || usedLargePages < largeCollectThreshold))
             {
                 // disabled or threshold not reached => allocate a new pool instead of collecting
                 if (!tryAllocNewPool())
@@ -1910,13 +1920,12 @@ struct Gcx
             }
         }
 
+        mappedPages += npages;
+
         if (GC.config.profile)
         {
-            size_t gcmem = 0;
-            foreach (i; 0 .. npools)
-                gcmem += pooltable[i].topAddr - pooltable[i].baseAddr;
-            if(gcmem > maxPoolMemory)
-                maxPoolMemory = gcmem;
+            if (mappedPages * PAGESIZE > maxPoolMemory)
+                maxPoolMemory = mappedPages * PAGESIZE;
         }
         return pool;
     }
