@@ -5169,7 +5169,7 @@ Expression *SymOffExp::semantic(Scope *sc)
     }
     else if (FuncDeclaration *f = var->isFuncDeclaration())
     {
-        if (!f->checkNestedReference(sc, loc))
+        if (f->checkNestedReference(sc, loc))
             return new ErrorExp();
     }
     return this;
@@ -5246,7 +5246,7 @@ Expression *VarExp::semantic(Scope *sc)
     }
     else if (FuncDeclaration *fd = var->isFuncDeclaration())
     {
-        if (!fd->checkNestedReference(sc, loc))
+        if (fd->checkNestedReference(sc, loc))
             return new ErrorExp();
     }
     else if (OverDeclaration *od = var->isOverDeclaration())
@@ -8841,7 +8841,7 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            if (!f->checkNestedReference(sc, loc))
+            if (f->checkNestedReference(sc, loc))
                 return new ErrorExp();
         }
         else if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
@@ -8930,7 +8930,7 @@ Lagain:
         checkSafety(sc, f);
         checkNogc(sc, f);
         checkAccess(loc, sc, NULL, f);
-        if (!f->checkNestedReference(sc, loc))
+        if (f->checkNestedReference(sc, loc))
             return new ErrorExp();
 
         ethis = NULL;

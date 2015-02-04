@@ -4116,8 +4116,8 @@ const char *FuncDeclaration::kind()
  *    the current function to the list of siblings of 'this' function.
  * 3. If the current function is a literal, and it's accessing an uplevel scope,
  *    then mark it as a delegate.
+ * Returns true if error occurs.
  */
-
 bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
@@ -4159,11 +4159,11 @@ bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
         {
             int lv = fdthis->getLevel(loc, sc, fdv);
             if (lv == -2)
-                return false;   // error
+                return true;    // error
             if (lv == -1)
-                return true;    // downlevel call
+                return false;   // downlevel call
             if (lv == 0)
-                return true;    // same level call
+                return false;   // same level call
 
             // Uplevel call
 
@@ -4174,7 +4174,7 @@ bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 fld->tok = TOKdelegate;
         }
     }
-    return true;
+    return false;
 }
 
 /* For all functions between outerFunc and f, mark them as needing
