@@ -614,7 +614,7 @@ bool isPointer(Type *t)
 }
 
 // For CTFE only. Returns true if 'e' is true or a non-null pointer.
-int isTrueBool(Expression *e)
+bool isTrueBool(Expression *e)
 {
     return e->isBool(true) ||
            ((e->type->ty == Tpointer || e->type->ty == Tclass) && e->op != TOKnull);
