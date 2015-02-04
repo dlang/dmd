@@ -174,30 +174,30 @@ ROOTOBJS= man.obj port.obj checkedint.obj \
 	$(GCOBJS)
 
 # D front end
-SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
-	utf.c entity.c identifier.c mtype.c expression.c optimize.c \
-	template.h template.c lexer.c declaration.c cast.c \
-	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
-	constfold.c version.h version.c inifile.c staticassert.c \
-	module.c scope.c init.h init.c attrib.h attrib.c opover.c \
-	class.c mangle.c func.c nogc.c inline.c access.c complex_t.h cppmangle.c \
+SRCS= mars.cpp enum.cpp struct.cpp dsymbol.cpp import.cpp idgen.cpp impcnvgen.cpp utf.h \
+	utf.cpp entity.cpp identifier.cpp mtype.cpp expression.cpp optimize.cpp \
+	template.h template.cpp lexer.cpp declaration.cpp cast.cpp \
+	cond.h cond.cpp link.cpp aggregate.h staticassert.h parse.cpp statement.cpp \
+	constfold.cpp version.h version.cpp inifile.cpp staticassert.cpp \
+	module.cpp scope.cpp init.h init.cpp attrib.h attrib.cpp opover.cpp \
+	class.cpp mangle.cpp func.cpp nogc.cpp inline.cpp access.cpp complex_t.h cppmangle.cpp \
 	identifier.h parse.h scope.h enum.h import.h \
 	mars.h module.h mtype.h dsymbol.h \
-	declaration.h lexer.h expression.h statement.h doc.h doc.c \
-	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
-	delegatize.c interpret.c ctfeexpr.c traits.c builtin.c \
-	clone.c lib.h arrayop.c nspace.h nspace.c errors.h errors.c escape.c \
-	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
-	apply.c sapply.c sideeffect.c ctfe.h \
-	intrange.h intrange.c canthrow.c target.c target.h visitor.h \
-	tokens.h tokens.c globals.h globals.c
+	declaration.h lexer.h expression.h statement.h doc.h doc.cpp \
+	macro.h macro.cpp hdrgen.h hdrgen.cpp arraytypes.h \
+	delegatize.cpp interpret.cpp ctfeexpr.cpp traits.cpp builtin.cpp \
+	clone.cpp lib.h arrayop.cpp nspace.h nspace.cpp errors.h errors.cpp escape.cpp \
+	aliasthis.h aliasthis.cpp json.h json.cpp unittests.cpp imphint.cpp argtypes.cpp \
+	apply.cpp sapply.cpp sideeffect.cpp ctfe.h \
+	intrange.h intrange.cpp canthrow.cpp target.cpp target.h visitor.h \
+	tokens.h tokens.cpp globals.h globals.cpp
 
 # Glue layer
-GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
-	toobj.c toctype.c tocvdebug.c toir.h toir.c \
-	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
-	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
-	tk.c eh.c gluestub.c
+GLUESRC= glue.cpp msc.cpp s2ir.cpp todt.cpp e2ir.cpp tocsym.cpp \
+	toobj.cpp toctype.cpp tocvdebug.cpp toir.h toir.cpp \
+	libmscoff.cpp scanmscoff.cpp irstate.h irstate.cpp typinf.cpp iasm.cpp \
+	toelfdebug.cpp libomf.cpp scanomf.cpp libelf.cpp scanelf.cpp libmach.cpp scanmach.cpp \
+	tk.cpp eh.cpp gluestub.cpp
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
@@ -223,15 +223,15 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\backend.txt
 
 # Toolkit
-TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
+TKSRCC=	$(TK)\filespec.cpp $(TK)\mem.cpp $(TK)\vec.cpp $(TK)\list.cpp
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 
 # Root package
-ROOTSRCC=$(ROOT)\rmem.c $(ROOT)\stringtable.c \
-	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
-	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c \
-	$(ROOT)\checkedint.c \
-	$(ROOT)\outbuffer.c $(ROOT)\object.c $(ROOT)\filename.c $(ROOT)\file.c
+ROOTSRCC=$(ROOT)\rmem.cpp $(ROOT)\stringtable.cpp \
+	$(ROOT)\man.cpp $(ROOT)\port.cpp $(ROOT)\async.cpp $(ROOT)\response.cpp \
+	$(ROOT)\speller.cpp $(ROOT)\aav.cpp $(ROOT)\longdouble.cpp \
+	$(ROOT)\checkedint.cpp \
+	$(ROOT)\outbuffer.cpp $(ROOT)\object.cpp $(ROOT)\filename.cpp $(ROOT)\file.cpp
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
 	$(ROOT)\stringtable.h \
@@ -304,8 +304,8 @@ clean:
 	$(DEL) *.obj
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	$(DEL) impcnvtab.c
-	$(DEL) id.h id.c
+	$(DEL) impcnvtab.cpp
+	$(DEL) id.h id.cpp
 	$(DEL) verstr.h
 
 install: detab install-copy
@@ -355,8 +355,8 @@ scp: detab tolf $(MAKEFILES)
 	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
 
 pvs:
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp canthrow.c --source-file canthrow.c
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /I$C /I$(TK) /Tp scanmscoff.c --source-file scanmscoff.c
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp canthrow.cpp --source-file canthrow.cpp
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /I$C /I$(TK) /Tp scanmscoff.cpp --source-file scanmscoff.cpp
 	$(PVS) --cfg PVS-Studio.cfg --cl-params /DMARS /DDM_TARGET_CPU_X86 /I$C /I$(TK) /I$(ROOT) /Tp $C\cod3.c --source-file $C\cod3.c
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(SRCS) --source-file $(SRCS)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(GLUESRC) --source-file $(GLUESRC)
@@ -372,11 +372,11 @@ elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
 	.\optabgen.exe
 
-impcnvtab.c : impcnvgen.c
+impcnvtab.cpp : impcnvgen.cpp
 	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
 	.\impcnvgen.exe
 
-id.h id.c : idgen.c
+id.h id.cpp : idgen.cpp
 	$(CC) -cpp -DDM_TARGET_CPU_X86=1 idgen
 	.\idgen.exe
 
@@ -389,14 +389,17 @@ verstr.h : ..\VERSION
 .c.obj:
 	$(CC) -c $(CFLAGS) $*
 
+.cpp.obj:
+	$(CC) -c $(CFLAGS) $*
+
 .asm.obj:
 	$(CC) -c $(CFLAGS) $*
 
 # Generated source
-impcnvtab.obj : mtype.h impcnvtab.c
+impcnvtab.obj : mtype.h impcnvtab.cpp
 	$(CC) -c -I$(ROOT) -cpp impcnvtab
 
-iasm.obj : $(CH) $(TOTALH) $C\iasm.h iasm.c
+iasm.obj : $(CH) $(TOTALH) $C\iasm.h iasm.cpp
 	$(CC) -c $(MFLAGS) -I$(ROOT) -Ae iasm
 
 # D front/back end
@@ -463,7 +466,7 @@ cod5.obj : $C\cod5.c
 code.obj : $C\code.c
 	$(CC) -c $(MFLAGS) $C\code
 
-irstate.obj : irstate.h irstate.c
+irstate.obj : irstate.h irstate.cpp
 	$(CC) -c $(MFLAGS) -I$(ROOT) irstate
 
 csymbol.obj : $C\symbol.c
@@ -484,7 +487,7 @@ dt.obj : $C\dt.h $C\dt.c
 ee.obj : $C\ee.c
 	$(CC) -c $(MFLAGS) $C\ee
 
-eh.obj : $C\cc.h $C\code.h $C\type.h $C\dt.h eh.c
+eh.obj : $C\cc.h $C\code.h $C\type.h $C\dt.h eh.cpp
 	$(CC) -c $(MFLAGS) eh
 
 el.obj : $C\rtlsym.h $C\el.h $C\el.c
@@ -511,25 +514,25 @@ glocal.obj : $C\rtlsym.h $C\glocal.c
 gloop.obj : $C\gloop.c
 	$(CC) -c $(MFLAGS) $C\gloop
 
-glue.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h glue.c
+glue.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h glue.cpp
 	$(CC) -c $(MFLAGS) -I$(ROOT) glue
 
-gluestub.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h gluestub.c
+gluestub.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h gluestub.cpp
 	$(CC) -c $(MFLAGS) -I$(ROOT) gluestub
 
-imphint.obj : imphint.c
+imphint.obj : imphint.cpp
 	$(CC) -c $(CFLAGS) $*
 
-mars.obj : $(TOTALH) module.h mars.h mars.c verstr.h
+mars.obj : $(TOTALH) module.h mars.h mars.cpp verstr.h
 	$(CC) -c $(CFLAGS) $* -Ae
 
 md5.obj : $C\md5.h $C\md5.c
 	$(CC) -c $(MFLAGS) $C\md5
 
-module.obj : $(TOTALH) module.c
-	$(CC) -c $(CFLAGS) -I$C module.c
+module.obj : $(TOTALH) module.cpp
+	$(CC) -c $(CFLAGS) -I$C module.cpp
 
-msc.obj : $(CH) mars.h msc.c
+msc.obj : $(CH) mars.h msc.cpp
 	$(CC) -c $(MFLAGS) -I$(ROOT) msc
 
 mscoffobj.obj : $C\mscoff.h $C\mscoffobj.c
@@ -562,8 +565,8 @@ ptrntab.obj : $C\iasm.h $C\ptrntab.c
 rtlsym.obj : $C\rtlsym.h $C\rtlsym.c
 	$(CC) -c $(MFLAGS) $C\rtlsym
 
-scanmscoff.obj : $(TOTALH) $C\mscoff.h scanmscoff.c
-	$(CC) -c $(CFLAGS) -I.;$(ROOT);$C scanmscoff.c
+scanmscoff.obj : $(TOTALH) $C\mscoff.h scanmscoff.cpp
+	$(CC) -c $(CFLAGS) -I.;$(ROOT);$C scanmscoff.cpp
 
 ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 	$(CC) -c $(MFLAGS) -I. $C\ti_achar
@@ -571,37 +574,37 @@ ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
 	$(CC) -c $(MFLAGS) -I. $C\ti_pvoid
 
-toctype.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h toctype.c
+toctype.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h toctype.cpp
 	$(CC) -c $(MFLAGS) -I$(ROOT) toctype
 
-tocvdebug.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h tocvdebug.c
+tocvdebug.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h tocvdebug.cpp
 	$(CC) -c $(MFLAGS) -I$(ROOT) tocvdebug
 
-toobj.obj : $(CH) $(TOTALH) mars.h module.h toobj.c
+toobj.obj : $(CH) $(TOTALH) mars.h module.h toobj.cpp
 	$(CC) -c $(MFLAGS) -I$(ROOT) toobj
 
 type.obj : $C\type.c
 	$(CC) -c $(MFLAGS) $C\type
 
-typinf.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h typinf.c
+typinf.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h typinf.cpp
 	$(CC) -c $(MFLAGS) -I$(ROOT) typinf
 
-todt.obj : mtype.h expression.h $C\dt.h todt.c
+todt.obj : mtype.h expression.h $C\dt.h todt.cpp
 	$(CC) -c -I$(ROOT) $(MFLAGS) todt
 
-s2ir.obj : $C\rtlsym.h statement.h s2ir.c visitor.h
+s2ir.obj : $C\rtlsym.h statement.h s2ir.cpp visitor.h
 	$(CC) -c -I$(ROOT) $(MFLAGS) s2ir
 
-e2ir.obj : $C\rtlsym.h expression.h toir.h e2ir.c
+e2ir.obj : $C\rtlsym.h expression.h toir.h e2ir.cpp
 	$(CC) -c -I$(ROOT) $(MFLAGS) e2ir
 
-toir.obj : $C\rtlsym.h expression.h toir.h toir.c
+toir.obj : $C\rtlsym.h expression.h toir.h toir.cpp
 	$(CC) -c -I$(ROOT) $(MFLAGS) toir
 
-tocsym.obj : $(CH) $(TOTALH) mars.h module.h tocsym.c
+tocsym.obj : $(CH) $(TOTALH) mars.h module.h tocsym.cpp
 	$(CC) -c $(MFLAGS) -I$(ROOT) tocsym
 
-unittests.obj : $(TOTALH) unittests.c
+unittests.obj : $(TOTALH) unittests.cpp
 	$(CC) -c $(CFLAGS) $*
 
 util2.obj : $C\util2.c
@@ -611,51 +614,51 @@ var.obj : $C\var.c optab.c
 	$(CC) -c $(MFLAGS) -I. $C\var
 
 
-tk.obj : tk.c
-	$(CC) -c $(MFLAGS) tk.c
+tk.obj : tk.cpp
+	$(CC) -c $(MFLAGS) tk.cpp
 
 # Root
-aav.obj : $(ROOT)\aav.h $(ROOT)\aav.c
-	$(CC) -c $(CFLAGS) $(ROOT)\aav.c
+aav.obj : $(ROOT)\aav.h $(ROOT)\aav.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\aav.cpp
 
-async.obj : $(ROOT)\async.h $(ROOT)\async.c
-	$(CC) -c $(CFLAGS) $(ROOT)\async.c
+async.obj : $(ROOT)\async.h $(ROOT)\async.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\async.cpp
 
-checkedint.obj : $(ROOT)\checkedint.h $(ROOT)\checkedint.c
-	$(CC) -c $(CFLAGS) $(ROOT)\checkedint.c
+checkedint.obj : $(ROOT)\checkedint.h $(ROOT)\checkedint.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\checkedint.cpp
 
-dmgcmem.obj : $(ROOT)\dmgcmem.c
-	$(CC) -c $(CFLAGS) $(ROOT)\dmgcmem.c
+dmgcmem.obj : $(ROOT)\dmgcmem.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\dmgcmem.cpp
 
-man.obj : $(ROOT)\man.c
-	$(CC) -c $(CFLAGS) $(ROOT)\man.c
+man.obj : $(ROOT)\man.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\man.cpp
 
-rmem.obj : $(ROOT)\rmem.c
-	$(CC) -c $(CFLAGS) $(ROOT)\rmem.c
+rmem.obj : $(ROOT)\rmem.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\rmem.cpp
 
-port.obj : $(ROOT)\port.c
-	$(CC) -c $(CFLAGS) $(ROOT)\port.c
+port.obj : $(ROOT)\port.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\port.cpp
 
-response.obj : $(ROOT)\response.c
-	$(CC) -c $(CFLAGS) $(ROOT)\response.c
+response.obj : $(ROOT)\response.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\response.cpp
 
-speller.obj : $(ROOT)\speller.h $(ROOT)\speller.c
-	$(CC) -c $(CFLAGS) $(ROOT)\speller.c
+speller.obj : $(ROOT)\speller.h $(ROOT)\speller.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\speller.cpp
 
-stringtable.obj : $(ROOT)\stringtable.c
-	$(CC) -c $(CFLAGS) $(ROOT)\stringtable.c
+stringtable.obj : $(ROOT)\stringtable.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\stringtable.cpp
 
-outbuffer.obj : $(ROOT)\outbuffer.c
-	$(CC) -c $(CFLAGS) $(ROOT)\outbuffer.c
+outbuffer.obj : $(ROOT)\outbuffer.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\outbuffer.cpp
 
-object.obj : $(ROOT)\object.c
-	$(CC) -c $(CFLAGS) $(ROOT)\object.c
+object.obj : $(ROOT)\object.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\object.cpp
 
-filename.obj : $(ROOT)\filename.c
-	$(CC) -c $(CFLAGS) $(ROOT)\filename.c
+filename.obj : $(ROOT)\filename.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\filename.cpp
 
-file.obj : $(ROOT)\file.c
-	$(CC) -c $(CFLAGS) $(ROOT)\file.c
+file.obj : $(ROOT)\file.cpp
+	$(CC) -c $(CFLAGS) $(ROOT)\file.cpp
 
 # Root/GC -- Removed (look in history)
 #
@@ -672,62 +675,62 @@ file.obj : $(ROOT)\file.c
 
 # These rules were generated by makedep, but are not currently maintained
 
-access.obj : $(TOTALH) enum.h aggregate.h init.h attrib.h access.c
-aliasthis.obj : $(TOTALH) aliasthis.h aliasthis.c
-apply.obj : $(TOTALH) apply.c
-argtypes.obj : $(TOTALH) mtype.h argtypes.c
-arrayop.obj : $(TOTALH) identifier.h declaration.h arrayop.c
-attrib.obj : $(TOTALH) dsymbol.h identifier.h declaration.h attrib.h attrib.c
-builtin.obj : $(TOTALH) builtin.c
-canthrow.obj : $(TOTALH) canthrow.c
-cast.obj : $(TOTALH) expression.h mtype.h cast.c
-class.obj : $(TOTALH) enum.h class.c
-clone.obj : $(TOTALH) clone.c
-constfold.obj : $(TOTALH) expression.h constfold.c
-cond.obj : $(TOTALH) identifier.h declaration.h cond.h cond.c
+access.obj : $(TOTALH) enum.h aggregate.h init.h attrib.h access.cpp
+aliasthis.obj : $(TOTALH) aliasthis.h aliasthis.cpp
+apply.obj : $(TOTALH) apply.cpp
+argtypes.obj : $(TOTALH) mtype.h argtypes.cpp
+arrayop.obj : $(TOTALH) identifier.h declaration.h arrayop.cpp
+attrib.obj : $(TOTALH) dsymbol.h identifier.h declaration.h attrib.h attrib.cpp
+builtin.obj : $(TOTALH) builtin.cpp
+canthrow.obj : $(TOTALH) canthrow.cpp
+cast.obj : $(TOTALH) expression.h mtype.h cast.cpp
+class.obj : $(TOTALH) enum.h class.cpp
+clone.obj : $(TOTALH) clone.cpp
+constfold.obj : $(TOTALH) expression.h constfold.cpp
+cond.obj : $(TOTALH) identifier.h declaration.h cond.h cond.cpp
 cppmangle.obj : $(TOTALH) mtype.h declaration.h mars.h
-declaration.obj : $(TOTALH) identifier.h attrib.h declaration.h declaration.c expression.h
-delegatize.obj : $(TOTALH) delegatize.c
-doc.obj : $(TOTALH) doc.h doc.c
-enum.obj : $(TOTALH) dsymbol.h identifier.h enum.h enum.c
-errors.obj : $(TOTALH) errors.h errors.c
-escape.obj : $(TOTALH) escape.c
-expression.obj : $(TOTALH) expression.h expression.c
-func.obj : $(TOTALH) identifier.h attrib.h declaration.h func.c
-globals.obj : $(TOTALH) globals.h globals.c
-hdrgen.obj : $(TOTALH) hdrgen.h hdrgen.c
-id.obj : $(TOTALH) id.h id.c
-identifier.obj : $(TOTALH) identifier.h identifier.c
-import.obj : $(TOTALH) dsymbol.h import.h import.c
-inifile.obj : $(TOTALH) inifile.c
-init.obj : $(TOTALH) init.h init.c
-inline.obj : $(TOTALH) inline.c
-interpret.obj : $(TOTALH) interpret.c declaration.h expression.h ctfe.h
-ctfexpr.obj : $(TOTALH) ctfeexpr.c ctfe.h
-intrange.obj : $(TOTALH) intrange.h intrange.c
-json.obj : $(TOTALH) json.h json.c
-lexer.obj : $(TOTALH) lexer.c
-libmscoff.obj : $(TOTALH) lib.h libmscoff.c
-libomf.obj : $(TOTALH) lib.h libomf.c
-link.obj : $(TOTALH) link.c
-macro.obj : $(TOTALH) macro.h macro.c
-mangle.obj : $(TOTALH) dsymbol.h declaration.h mangle.c
-nspace.obj : $(TOTALH) nspace.c
-opover.obj : $(TOTALH) expression.h opover.c
-optimize.obj : $(TOTALH) expression.h optimize.c
-parse.obj : $(TOTALH) attrib.h lexer.h parse.h parse.c
-sapply.obj : $(TOTALH) sapply.c
-scanomf.obj : $(TOTALH) lib.h scanomf.c
-scope.obj : $(TOTALH) scope.h scope.c
-sideeffect.obj : $(TOTALH) sideeffect.c
-statement.obj : $(TOTALH) statement.h statement.c expression.h
-staticassert.obj : $(TOTALH) staticassert.h staticassert.c
-struct.obj : $(TOTALH) identifier.h enum.h struct.c
-target.obj : $(TOTALH) target.c target.h
-tokens.obj : $(TOTALH) tokens.h tokens.c
-traits.obj : $(TOTALH) traits.c
-dsymbol.obj : $(TOTALH) identifier.h dsymbol.h dsymbol.c
-mtype.obj : $(TOTALH) mtype.h mtype.c
-utf.obj : utf.h utf.c
-template.obj : $(TOTALH) template.h template.c
-version.obj : $(TOTALH) identifier.h dsymbol.h cond.h version.h version.c
+declaration.obj : $(TOTALH) identifier.h attrib.h declaration.h declaration.cpp expression.h
+delegatize.obj : $(TOTALH) delegatize.cpp
+doc.obj : $(TOTALH) doc.h doc.cpp
+enum.obj : $(TOTALH) dsymbol.h identifier.h enum.h enum.cpp
+errors.obj : $(TOTALH) errors.h errors.cpp
+escape.obj : $(TOTALH) escape.cpp
+expression.obj : $(TOTALH) expression.h expression.cpp
+func.obj : $(TOTALH) identifier.h attrib.h declaration.h func.cpp
+globals.obj : $(TOTALH) globals.h globals.cpp
+hdrgen.obj : $(TOTALH) hdrgen.h hdrgen.cpp
+id.obj : $(TOTALH) id.h id.cpp
+identifier.obj : $(TOTALH) identifier.h identifier.cpp
+import.obj : $(TOTALH) dsymbol.h import.h import.cpp
+inifile.obj : $(TOTALH) inifile.cpp
+init.obj : $(TOTALH) init.h init.cpp
+inline.obj : $(TOTALH) inline.cpp
+interpret.obj : $(TOTALH) interpret.cpp declaration.h expression.h ctfe.h
+ctfexpr.obj : $(TOTALH) ctfeexpr.cpp ctfe.h
+intrange.obj : $(TOTALH) intrange.h intrange.cpp
+json.obj : $(TOTALH) json.h json.cpp
+lexer.obj : $(TOTALH) lexer.cpp
+libmscoff.obj : $(TOTALH) lib.h libmscoff.cpp
+libomf.obj : $(TOTALH) lib.h libomf.cpp
+link.obj : $(TOTALH) link.cpp
+macro.obj : $(TOTALH) macro.h macro.cpp
+mangle.obj : $(TOTALH) dsymbol.h declaration.h mangle.cpp
+nspace.obj : $(TOTALH) nspace.cpp
+opover.obj : $(TOTALH) expression.h opover.cpp
+optimize.obj : $(TOTALH) expression.h optimize.cpp
+parse.obj : $(TOTALH) attrib.h lexer.h parse.h parse.cpp
+sapply.obj : $(TOTALH) sapply.cpp
+scanomf.obj : $(TOTALH) lib.h scanomf.cpp
+scope.obj : $(TOTALH) scope.h scope.cpp
+sideeffect.obj : $(TOTALH) sideeffect.cpp
+statement.obj : $(TOTALH) statement.h statement.cpp expression.h
+staticassert.obj : $(TOTALH) staticassert.h staticassert.cpp
+struct.obj : $(TOTALH) identifier.h enum.h struct.cpp
+target.obj : $(TOTALH) target.cpp target.h
+tokens.obj : $(TOTALH) tokens.h tokens.cpp
+traits.obj : $(TOTALH) traits.cpp
+dsymbol.obj : $(TOTALH) identifier.h dsymbol.h dsymbol.cpp
+mtype.obj : $(TOTALH) mtype.h mtype.cpp
+utf.obj : utf.h utf.cpp
+template.obj : $(TOTALH) template.h template.cpp
+version.obj : $(TOTALH) identifier.h dsymbol.h cond.h version.h version.cpp
