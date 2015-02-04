@@ -1416,7 +1416,7 @@ Statement *DoStatement::semantic(Scope *sc)
     condition = condition->optimize(WANTvalue);
     condition = checkGC(sc, condition);
 
-    condition = condition->checkToBoolean(sc);
+    condition = condition->toBoolean(sc);
 
     if (condition->op == TOKerror)
         return new ErrorStatement();
@@ -1506,7 +1506,7 @@ Statement *ForStatement::semantic(Scope *sc)
         condition = resolveProperties(sc, condition);
         condition = condition->optimize(WANTvalue);
         condition = checkGC(sc, condition);
-        condition = condition->checkToBoolean(sc);
+        condition = condition->toBoolean(sc);
     }
     if (increment)
     {
@@ -2855,7 +2855,7 @@ Statement *IfStatement::semantic(Scope *sc)
     // Convert to boolean after declaring prm so this works:
     //  if (S prm = S()) {}
     // where S is a struct that defines opCast!bool.
-    condition = condition->checkToBoolean(sc);
+    condition = condition->toBoolean(sc);
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.

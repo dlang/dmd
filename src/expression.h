@@ -181,7 +181,7 @@ public:
     bool checkRightThis(Scope *sc);
     bool checkReadModifyWrite(TOK rmwOp, Expression *ex = NULL);
     virtual int checkModifiable(Scope *sc, int flag = 0);
-    virtual Expression *checkToBoolean(Scope *sc);
+    virtual Expression *toBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *addressOf();
     Expression *deref();
@@ -972,7 +972,7 @@ class DeleteExp : public UnaExp
 public:
     DeleteExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    Expression *checkToBoolean(Scope *sc);
+    Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1157,7 +1157,7 @@ public:
     Expression *semantic(Scope *sc);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
-    Expression *checkToBoolean(Scope *sc);
+    Expression *toBoolean(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1391,7 +1391,7 @@ class OrOrExp : public BinExp
 public:
     OrOrExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *checkToBoolean(Scope *sc);
+    Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1400,7 +1400,7 @@ class AndAndExp : public BinExp
 public:
     AndAndExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *checkToBoolean(Scope *sc);
+    Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1465,7 +1465,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *checkToBoolean(Scope *sc);
+    Expression *toBoolean(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };

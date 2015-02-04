@@ -2678,10 +2678,11 @@ bool Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
 }
 
 /*****************************
- * Check that expression can be tested for true or false.
+ * If expression can be tested for true or false,
+ * returns the modified expression.
+ * Otherwise returns ErrorExp.
  */
-
-Expression *Expression::checkToBoolean(Scope *sc)
+Expression *Expression::toBoolean(Scope *sc)
 {
     // Default is 'yes' - do nothing
 
@@ -6971,7 +6972,7 @@ Expression *AssertExp::semantic(Scope *sc)
     e1 = resolveProperties(sc, e1);
     // BUG: see if we can do compile time elimination of the Assert
     e1 = e1->optimize(WANTvalue);
-    e1 = e1->checkToBoolean(sc);
+    e1 = e1->toBoolean(sc);
     if (msg)
     {
         msg = msg->semantic(sc);
@@ -9431,7 +9432,7 @@ Expression *NotExp::semantic(Scope *sc)
     if (Expression *ex = unaSemantic(sc))
         return ex;
     e1 = resolveProperties(sc, e1);
-    e1 = e1->checkToBoolean(sc);
+    e1 = e1->toBoolean(sc);
     if (e1->type == Type::terror)
         return e1;
 
@@ -9460,7 +9461,7 @@ Expression *BoolExp::semantic(Scope *sc)
     if (Expression *ex = unaSemantic(sc))
         return ex;
     e1 = resolveProperties(sc, e1);
-    e1 = e1->checkToBoolean(sc);
+    e1 = e1->toBoolean(sc);
     if (e1->type == Type::terror)
         return e1;
 
@@ -9576,7 +9577,7 @@ Lerr:
 }
 
 
-Expression *DeleteExp::checkToBoolean(Scope *sc)
+Expression *DeleteExp::toBoolean(Scope *sc)
 {
     error("delete does not give a boolean result");
     return new ErrorExp();
@@ -11815,7 +11816,7 @@ Expression *AssignExp::toLvalue(Scope *sc, Expression *ex)
     return this;
 }
 
-Expression *AssignExp::checkToBoolean(Scope *sc)
+Expression *AssignExp::toBoolean(Scope *sc)
 {
     // Things like:
     //  if (a = b) ...
@@ -13040,7 +13041,7 @@ Expression *OrOrExp::semantic(Scope *sc)
     // same as for AndAnd
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->checkToBoolean(sc);
+    e1 = e1->toBoolean(sc);
     unsigned cs1 = sc->callSuper;
 
     if (sc->flags & SCOPEcondition)
@@ -13062,7 +13063,7 @@ Expression *OrOrExp::semantic(Scope *sc)
         type = Type::tvoid;
     else
     {
-        e2 = e2->checkToBoolean(sc);
+        e2 = e2->toBoolean(sc);
         type = Type::tbool;
     }
     if (e2->op == TOKtype || e2->op == TOKimport)
@@ -13078,9 +13079,9 @@ Expression *OrOrExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *OrOrExp::checkToBoolean(Scope *sc)
+Expression *OrOrExp::toBoolean(Scope *sc)
 {
-    e2 = e2->checkToBoolean(sc);
+    e2 = e2->toBoolean(sc);
     return this;
 }
 
@@ -13096,7 +13097,7 @@ Expression *AndAndExp::semantic(Scope *sc)
     // same as for OrOr
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->checkToBoolean(sc);
+    e1 = e1->toBoolean(sc);
     unsigned cs1 = sc->callSuper;
 
     if (sc->flags & SCOPEcondition)
@@ -13118,7 +13119,7 @@ Expression *AndAndExp::semantic(Scope *sc)
         type = Type::tvoid;
     else
     {
-        e2 = e2->checkToBoolean(sc);
+        e2 = e2->toBoolean(sc);
         type = Type::tbool;
     }
     if (e2->op == TOKtype || e2->op == TOKimport)
@@ -13134,9 +13135,9 @@ Expression *AndAndExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *AndAndExp::checkToBoolean(Scope *sc)
+Expression *AndAndExp::toBoolean(Scope *sc)
 {
-    e2 = e2->checkToBoolean(sc);
+    e2 = e2->toBoolean(sc);
     return this;
 }
 
@@ -13593,7 +13594,7 @@ Expression *CondExp::semantic(Scope *sc)
 
     Expression *ec = econd->semantic(sc);
     ec = resolveProperties(sc, ec);
-    ec = ec->checkToBoolean(sc);
+    ec = ec->toBoolean(sc);
 
     unsigned cs0 = sc->callSuper;
     unsigned *fi0 = sc->saveFieldInit();
@@ -13692,10 +13693,10 @@ Expression *CondExp::modifiableLvalue(Scope *sc, Expression *e)
     return toLvalue(sc, this);
 }
 
-Expression *CondExp::checkToBoolean(Scope *sc)
+Expression *CondExp::toBoolean(Scope *sc)
 {
-    e1 = e1->checkToBoolean(sc);
-    e2 = e2->checkToBoolean(sc);
+    e1 = e1->toBoolean(sc);
+    e2 = e2->toBoolean(sc);
     return this;
 }
 
