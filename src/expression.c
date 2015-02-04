@@ -3532,7 +3532,7 @@ Expression *ThisExp::semantic(Scope *sc)
     var = fd->vthis;
     assert(var->parent);
     type = var->type;
-    if (!var->isVarDeclaration()->checkNestedReference(sc, loc))
+    if (var->isVarDeclaration()->checkNestedReference(sc, loc))
         return new ErrorExp();
     if (!sc->intypeof)
         sc->callSuper |= CSXthis;
@@ -3638,7 +3638,7 @@ Expression *SuperExp::semantic(Scope *sc)
         type = type->castMod(var->type->mod);
     }
 
-    if (!var->isVarDeclaration()->checkNestedReference(sc, loc))
+    if (var->isVarDeclaration()->checkNestedReference(sc, loc))
         return new ErrorExp();
 
     if (!sc->intypeof)
@@ -5164,7 +5164,7 @@ Expression *SymOffExp::semantic(Scope *sc)
         type = var->type->pointerTo();
     if (VarDeclaration *v = var->isVarDeclaration())
     {
-        if (!v->checkNestedReference(sc, loc))
+        if (v->checkNestedReference(sc, loc))
             return new ErrorExp();
     }
     else if (FuncDeclaration *f = var->isFuncDeclaration())
@@ -5238,7 +5238,7 @@ Expression *VarExp::semantic(Scope *sc)
     if (VarDeclaration *vd = var->isVarDeclaration())
     {
         hasOverloads = 0;
-        if (!vd->checkNestedReference(sc, loc))
+        if (vd->checkNestedReference(sc, loc))
             return new ErrorExp();
         // Bugzilla 12025: If the variable is not actually used in runtime code,
         // the purity violation error is redundant.

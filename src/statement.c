@@ -3940,7 +3940,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         {
             fd->buildResultVar(NULL, exp->type);
             bool r = fd->vresult->checkNestedReference(sc, Loc());
-            assert(r);  // vresult should be always accessible
+            assert(!r);  // vresult should be always accessible
 
             // Send out "case receiver" statement to the foreach.
             //  return vresult;

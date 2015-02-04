@@ -1745,8 +1745,8 @@ void VarDeclaration::checkCtorConstInit()
 /************************************
  * Check to see if this variable is actually in an enclosing function
  * rather than the current one.
+ * Returns true if error occurs.
  */
-
 bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
@@ -1785,7 +1785,7 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 {
                     int lv = fdthis->getLevel(loc, sc, fdv);
                     if (lv == -2)   // error
-                        return false;
+                        return true;
                     if (lv > 0 &&
                         fdv->isPureBypassingInference() >= PUREweak &&
                         fdthis->isPureBypassingInference() == PUREfwdref &&
@@ -1847,12 +1847,12 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 if (ident == Id::dollar)
                 {
                     ::error(loc, "cannnot use $ inside a function literal");
-                    return false;
+                    return true;
                 }
             }
         }
     }
-    return true;
+    return false;
 }
 
 /****************************
