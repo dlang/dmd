@@ -2724,7 +2724,7 @@ Lagain:
         }
     }
 
-    if (!t->checkBoolean())
+    if (!t->isBoolean())
     {
         if (tb != Type::terror)
             error("expression %s of type %s does not have a boolean value", toChars(), t->toChars());

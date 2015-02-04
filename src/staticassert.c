@@ -65,7 +65,7 @@ void StaticAssert::semantic2(Scope *sc)
     // Simplify expression, to make error messages nicer if CTFE fails
     e = e->optimize(WANTvalue);
 
-    if (!e->type->checkBoolean())
+    if (!e->type->isBoolean())
     {
         if (e->type->toBasetype() != Type::terror)
             exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());

@@ -268,7 +268,7 @@ public:
     virtual bool isscope();
     virtual bool isString();
     virtual bool isAssignable();
-    virtual bool checkBoolean(); // if can be converted to boolean value
+    virtual bool isBoolean();
     virtual void checkDeprecated(Loc loc, Scope *sc);
     bool isConst()       { return (mod & MODconst) != 0; }
     bool isImmutable()   { return (mod & MODimmutable) != 0; }
@@ -433,7 +433,7 @@ public:
     bool isfloating();
     bool isscalar();
     bool isunsigned();
-    bool checkBoolean();
+    bool isBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
@@ -494,7 +494,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
-    bool checkBoolean();
+    bool isBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     bool hasPointers();
@@ -519,7 +519,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    bool checkBoolean();
+    bool isBoolean();
     Expression *toExpression();
     bool hasPointers();
     MATCH implicitConvTo(Type *to);
@@ -652,7 +652,7 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    bool checkBoolean();
+    bool isBoolean();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool hasPointers();
 
@@ -769,7 +769,7 @@ public:
     Expression *defaultInitLiteral(Loc loc);
     bool isZeroInit(Loc loc);
     bool isAssignable();
-    bool checkBoolean();
+    bool isBoolean();
     bool needsDestruction();
     bool needsNested();
     bool hasPointers();
@@ -802,7 +802,7 @@ public:
     bool iscomplex();
     bool isscalar();
     bool isunsigned();
-    bool checkBoolean();
+    bool isBoolean();
     bool isString();
     bool isAssignable();
     bool needsDestruction();
@@ -840,7 +840,7 @@ public:
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
     bool isscope();
-    bool checkBoolean();
+    bool isBoolean();
     bool hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -888,7 +888,7 @@ public:
 
     Type *syntaxCopy();
     MATCH implicitConvTo(Type *to);
-    bool checkBoolean();
+    bool isBoolean();
 
     d_uns64 size(Loc loc);
     Expression *defaultInit(Loc loc);
