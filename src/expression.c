@@ -4327,7 +4327,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     if (!sd->fit(loc, sc, elements, stype))
         return new ErrorExp();
 
-    if (!checkFrameAccess(loc, sc, sd, elements->dim))
+    if (checkFrameAccess(loc, sc, sd, elements->dim))
         return new ErrorExp();
 
     /* Fill out remainder of elements[] with default initializers for fields[]
