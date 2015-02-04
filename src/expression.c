@@ -2268,42 +2268,6 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     return toLvalue(sc, e);
 }
 
-/*******************************
- * Check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
- * exp is the RHS expression, or NULL if ++/-- is used (for diagnostics)
- */
-Expression *Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
-{
-    //printf("Expression::checkReadModifyWrite() %s %s", toChars(), ex ? ex->toChars() : "");
-    if (!type || !type->isShared())
-        return NULL;
-
-    // atomicOp uses opAssign (+=/-=) rather than opOp (++/--) for the CT string literal.
-    switch (rmwOp)
-    {
-        case TOKplusplus:
-        case TOKpreplusplus:
-            rmwOp = TOKaddass;
-            break;
-
-        case TOKminusminus:
-        case TOKpreminusminus:
-            rmwOp = TOKminass;
-            break;
-
-        default:
-            break;
-    }
-
-    deprecation("read-modify-write operations are not allowed for shared variables. "
-                "Use core.atomic.atomicOp!\"%s\"(%s, %s) instead.",
-                Token::tochars[rmwOp], toChars(), ex ? ex->toChars() : "1");
-    return NULL;
-
-    // note: enable when deprecation becomes an error.
-    // return new ErrorExp();
-}
-
 bool Expression::checkValue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
@@ -2634,6 +2598,43 @@ void Expression::checkNogc(Scope *sc, FuncDeclaration *f)
                 sc->func->toPrettyChars(), f->toPrettyChars());
         }
     }
+}
+
+/*******************************
+ * Check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
+ * ex is the RHS expression, or NULL if ++/-- is used (for diagnostics)
+ * Returns true if error occurs.
+ */
+bool Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
+{
+    //printf("Expression::checkReadModifyWrite() %s %s", toChars(), ex ? ex->toChars() : "");
+    if (!type || !type->isShared())
+        return false;
+
+    // atomicOp uses opAssign (+=/-=) rather than opOp (++/--) for the CT string literal.
+    switch (rmwOp)
+    {
+        case TOKplusplus:
+        case TOKpreplusplus:
+            rmwOp = TOKaddass;
+            break;
+
+        case TOKminusminus:
+        case TOKpreminusminus:
+            rmwOp = TOKminass;
+            break;
+
+        default:
+            break;
+    }
+
+    deprecation("read-modify-write operations are not allowed for shared variables. "
+                "Use core.atomic.atomicOp!\"%s\"(%s, %s) instead.",
+                Token::tochars[rmwOp], toChars(), ex ? ex->toChars() : "1");
+    return false;
+
+    // note: enable when deprecation becomes an error.
+    // return true;
 }
 
 /*****************************
@@ -6660,9 +6661,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e = e1->checkReadModifyWrite(op, e2);
-    if (e)
-        return e;
+    if (e1->checkReadModifyWrite(op, e2))
+        return new ErrorExp();
 
     if (e1->op == TOKarraylength)
     {
@@ -10713,9 +10713,8 @@ Expression *PostExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e = e1->checkReadModifyWrite(op);
-    if (e)
-        return e;
+    if (e1->checkReadModifyWrite(op))
+        return new ErrorExp();
 
     if (e1->op == TOKslice)
     {
@@ -11960,9 +11959,8 @@ Expression *PowAssignExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e = e1->checkReadModifyWrite(op, e2);
-    if (e)
-        return e;
+    if (e1->checkReadModifyWrite(op, e2))
+        return new ErrorExp();
 
     assert(e1->type && e2->type);
     if (e1->op == TOKslice || e1->type->ty == Tarray || e1->type->ty == Tsarray)
