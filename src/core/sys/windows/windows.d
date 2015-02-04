@@ -3959,3 +3959,22 @@ LPWSTR lstrcpynW(LPWSTR lpString1, LPCWSTR lpString2, int iMaxLength);
 int lstrlenA(LPCSTR lpString);
 int lstrlenW(LPCWSTR lpString);
 }
+
+enum
+{
+    _S_IREAD  = 0x0100, // read permission, owner
+    _S_IWRITE = 0x0080, // write permission, owner
+}
+
+enum
+{
+    _SH_DENYRW = 0x10, // deny read/write mode
+    _SH_DENYWR = 0x20, // deny write mode
+    _SH_DENYRD = 0x30, // deny read mode
+    _SH_DENYNO = 0x40, // deny none mode
+}
+
+extern(C) @nogc
+{
+    int _wsopen(const wchar* filename, int oflag, int shflag, ...);
+}
