@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <assert.h>
+#include <stdio.h>
 
 #include "rmem.h"
 #include "port.h"
@@ -146,7 +147,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
             if (flag)
                 return NULL;
             e1->error("this for %s needs to be type %s not type %s",
-                var->toChars(), ad->toChars(), t->toChars());
+                      var->toChars(), ad->toChars(), t->toChars());
             return new ErrorExp();
         }
     }
@@ -9804,6 +9805,177 @@ Expression *SliceExp::syntaxCopy()
     return se;
 }
 
+bool isOpDollar(Expression* e, VarDeclaration *lengthVar)
+{
+    return e->op == TOKvar && ((VarExp*)e)->var == lengthVar;
+}
+
+bool isInteger(Expression* e, dinteger_t* value)
+{
+    if (e->op == TOKint64)
+    {
+        *value = e->toInteger();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+// Decribes Boundness of a Slice Beginning or End Index.
+enum Boundness
+{
+    unknownBounds,              // unknown whether inside or outside
+
+    insideBounds,               // inclusive inside of [0 .. $]
+    atLowBound,                 // specialization of inside
+    atHighBound,                // specialization of inside
+
+    outsideBounds,              // outside of [0 .. $]
+    aboveHighBound,             // specialization of outside
+    belowLowBound,              // specialization of outside
+
+    belowHighBound,
+    aboveLowBound,
+};
+
+bool isInside(Boundness boundness)
+{
+    return (boundness == insideBounds ||
+            boundness == atLowBound ||
+            boundness == atHighBound);
+}
+
+bool isOutside(Boundness boundness)
+{
+    return (boundness == outsideBounds ||
+            boundness == aboveHighBound ||
+            boundness == belowLowBound);
+}
+
+bool LOG_BOUNDNESS = false;
+
+/** Analyze Expression $(D e) as Slice Bound with Length Variable (Dollar) in $(D lengthVar).
+ */
+Boundness analyzeSliceBound(Expression* e,
+                            VarDeclaration *lengthVar,
+                            dinteger_t* p, uinteger_t* q, uinteger_t* off) // out arguments
+{
+    if (e->op == TOKint64)
+    {
+        const dinteger_t value = e->toInteger();
+        if (value == 0)
+        {
+            if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for 0");
+            *off = 0;
+            return atLowBound;
+        }
+        const sinteger_t svalue = (sinteger_t)value;
+        if (svalue < 0) // limit max slice bound index to 2^n-1, n=32 on 32-bit and n=64 on 64-bit
+        {
+            *off = value;
+            printf("%s is below low bound, e->toInteger() returns %ld, e->toUInteger() returns %ld\n",
+                   e->toChars(),
+                   e->toInteger(),
+                   e->toUInteger());
+            return belowLowBound; // TODO aboveHighBound instead?
+        }
+    }
+    else if (isOpDollar(e, lengthVar))
+    {
+        if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $");
+        return atHighBound;
+    }
+    else if (NegExp* neg = e->isNegExp())
+    {
+        if (isOpDollar(neg->e1, lengthVar))
+        {
+            return outsideBounds;
+        }
+    }
+    else if (DivExp* div = e->isDivExp())
+    {
+        if (isOpDollar(div->e1, lengthVar) && isInteger(div->e2, q))
+        {
+            if (*q >= 1)
+            {
+                if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $/%ld", *q);
+                return insideBounds;
+            }
+        }
+        else if (div->e1->op == TOKmul && isInteger(div->e2, q))
+        {
+            MulExp* mul = (MulExp*)div->e1;
+            if (isOpDollar(mul->e1, lengthVar) && isInteger(mul->e2, p))
+            {
+                if (*p <= *q)
+                {
+                    if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $*%ld/%ld", *p, *q);
+                    return insideBounds;
+                }
+                else if (*p > *q)
+                {
+                    return outsideBounds;
+                }
+            }
+            else if (isInteger(mul->e1, p) &&
+                     isOpDollar(mul->e2, lengthVar))
+            {
+                if (*p <= *q)
+                {
+                    if (LOG_BOUNDNESS) e->warning("avoiding boundscheck for $*%ld/%ld", *p, *q);
+                    return insideBounds;
+                }
+                else if (*p > *q)
+                {
+                    return outsideBounds;
+                }
+            }
+        }
+    }
+    else if (MulExp* mul = e->isMulExp())
+    {
+        if (NegExp* neg = mul->e1->isNegExp())
+        {
+            if (isOpDollar(neg->e1, lengthVar) && isInteger(mul->e2, p) &&
+                *p >= 2)
+            {
+                return belowLowBound;
+            }
+        }
+        else
+        {
+            if (((isOpDollar(mul->e1, lengthVar) && isInteger(mul->e2, p)) ||
+                 (isInteger(mul->e1, p) && isOpDollar(mul->e2, lengthVar))) &&
+                *p >= 2)
+            {
+                return aboveHighBound; // iff $ != 0
+            }
+        }
+    }
+    else if (AddExp* add = e->isAddExp())
+    {
+        if (((isOpDollar(add->e1, lengthVar) && isInteger(add->e2, off)) ||
+             (isInteger(add->e1, off) && isOpDollar(add->e2, lengthVar))) &&
+            *off >= 1)
+        {
+            return aboveHighBound;
+        }
+    }
+    else if (MinExp* min = e->isMinExp())
+    {
+        if ((isOpDollar(min->e1, lengthVar) && isInteger(min->e2, off)))
+        {
+            return belowHighBound;
+        }
+    }
+
+    return unknownBounds;
+}
+
+#define DINTEGER_UNDEFINED (18446744073709551615ULL)
+
 Expression *SliceExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -9930,7 +10102,7 @@ Lagain:
         if (e1->op == TOKerror)
             return e1;
         error("%s cannot be sliced with []",
-            t1b->ty == Tvoid ? e1->toChars() : t1b->toChars());
+              t1b->ty == Tvoid ? e1->toChars() : t1b->toChars());
         return new ErrorExp();
     }
 
@@ -10038,6 +10210,98 @@ Lagain:
         lwr = lwr->optimize(WANTvalue);
         upr = upr->optimize(WANTvalue);
 
+        // avoid slice bounds-checking
+        {
+            // lower
+            dinteger_t lwrM = 1; // non-one means [ $*lwrM .. _ ]
+            uinteger_t lwrD = 1; // non-one means [ $/lwrD .. _ ]
+            uinteger_t lwrO = DINTEGER_UNDEFINED; // offset
+            const Boundness lwrBoundness = analyzeSliceBound(lwr, this->lengthVar, &lwrM, &lwrD, &lwrO);
+            bool lowerIsInBounds = false;
+            if (isInside(lwrBoundness))
+            {
+                lowerIsInBounds = true;
+            }
+            else if (isOutside(lwrBoundness))
+            {
+                char buf[1024];
+                int tot = sizeof(buf);
+                int off = 0;
+                off += snprintf(&buf[off], tot-off, "lower slice limit ");
+                if (lwrM != 1 && lwrD != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "$");
+                }
+                if (lwrM != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "*%lld", (unsigned long long)lwrM);
+                }
+                if (lwrD != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "/%lld", (unsigned long long)lwrD);
+                }
+                if (lwrO != 0 && lwrO != DINTEGER_UNDEFINED && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "+%lld", (unsigned long long)lwrO);
+                }
+                off += snprintf(&buf[off], tot-off, " is out of bounds");
+                lwr->error(buf);
+            }
+
+            // upper
+            dinteger_t uprM = 1; // non-one means [ $*uprM .. _ ]
+            uinteger_t uprD = 1; // non-one means [ $/uprD .. _ ]
+            uinteger_t uprO = DINTEGER_UNDEFINED;
+            const Boundness uprBoundness = analyzeSliceBound(upr, this->lengthVar, &uprM, &uprD, &uprO);
+            if (isInside(uprBoundness))
+            {
+                this->upperIsInBounds = true;
+            }
+            else if (isOutside(uprBoundness))
+            {
+                char buf[1024];
+                int tot = sizeof(buf);
+                int off = 0;
+                off += snprintf(&buf[off], tot-off, "upper slice limit ");
+                off += snprintf(&buf[off], tot-off, "$");
+                if (uprM != 1 && uprD != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "$");
+                }
+                if (uprM != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "*%lld", (unsigned long long)uprM);
+                }
+                if (uprD != 1 && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "/%lld", (unsigned long long)uprD);
+                }
+                if (uprO != 0 && uprO != DINTEGER_UNDEFINED && off < tot)
+                {
+                    off += snprintf(&buf[off], tot-off, "+%lld", (unsigned long long)uprO);
+                }
+                off += snprintf(&buf[off], tot-off, " is out of bounds");
+                upr->error(buf);
+            }
+
+            // lower and upper
+            // [$*p/q .. $*r/s], p/q+o <= r/s+t => p*s + o*q*s <= r*q + t*q*s.
+            // TODO do we need to handle mul overflows for (lwrM*uprD <= uprM*lwrD)
+            if (((lwrBoundness == atLowBound && isInside(uprBoundness)) ||
+                 (isInside(lwrBoundness) && uprBoundness == atHighBound) ||
+                 (lwrBoundness == belowHighBound && uprBoundness == atHighBound) ||
+                 (lwrBoundness == atLowBound && uprBoundness == aboveLowBound) ||
+                 (lwrM*uprD <= uprM*lwrD && lwrO == 0 && uprO == 0) ||
+                 (lwrM == 1 && lwrD == 1 &&
+                  uprM == 1 && uprD == 1 &&
+                  lwrO != DINTEGER_UNDEFINED && uprO != DINTEGER_UNDEFINED &&
+                  lwrO <= uprO)))
+            {
+                lowerIsLessThanUpper = true;
+                if (LOG_BOUNDNESS) this->warning("Lower <= upper bound");
+            }
+        }
+
         IntRange lwrRange = getIntRange(lwr);
         IntRange uprRange = getIntRange(upr);
 
@@ -10055,12 +10319,15 @@ Lagain:
         }
         else if (t1b->ty == Tpointer)
         {
-            this->upperIsInBounds = true;
+            this->upperIsInBounds = true; // no boundscheck for x.ptr[_ .. _]
         }
         else
             assert(0);
 
-        this->lowerIsLessThanUpper = (lwrRange.imax <= uprRange.imin);
+        if (!this->lowerIsLessThanUpper)
+        {
+            this->lowerIsLessThanUpper = (lwrRange.imax <= uprRange.imin);
+        }
 
         //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", upperIsInBounds, lowerIsLessThanUpper);
     }
