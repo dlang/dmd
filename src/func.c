@@ -464,7 +464,7 @@ void FuncDeclaration::semantic(Scope *sc)
              *
              *    static auto boo() {}   // typed as impure
              *    // Even though, boo cannot call any impure functions.
-             *    // See also Expression;;checkPurity().
+             *    // See also Expression::checkPurity().
              *  }
              */
             if (tf->purity == PUREimpure && (isNested() || isThis()))
