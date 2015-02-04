@@ -334,7 +334,7 @@ public:
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     virtual int hasWild();
     virtual Expression *toExpression();
-    virtual int hasPointers();
+    virtual bool hasPointers();
     virtual Type *nextOf();
     Type *baseElemOf();
     uinteger_t sizemask();
@@ -473,7 +473,7 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     Expression *toExpression();
-    int hasPointers();
+    bool hasPointers();
     bool needsDestruction();
     bool needsNested();
 
@@ -497,7 +497,7 @@ public:
     bool checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
-    int hasPointers();
+    bool hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -521,7 +521,7 @@ public:
     bool isZeroInit(Loc loc);
     bool checkBoolean();
     Expression *toExpression();
-    int hasPointers();
+    bool hasPointers();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
 
@@ -541,7 +541,7 @@ public:
     bool isscalar();
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    int hasPointers();
+    bool hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -654,7 +654,7 @@ public:
     bool isZeroInit(Loc loc);
     bool checkBoolean();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    int hasPointers();
+    bool hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -772,7 +772,7 @@ public:
     bool checkBoolean();
     bool needsDestruction();
     bool needsNested();
-    int hasPointers();
+    bool hasPointers();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
@@ -812,7 +812,7 @@ public:
     Type *toBasetype();
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    int hasPointers();
+    bool hasPointers();
     Type *nextOf();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -841,7 +841,7 @@ public:
     bool isZeroInit(Loc loc);
     bool isscope();
     bool checkBoolean();
-    int hasPointers();
+    bool hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
 };

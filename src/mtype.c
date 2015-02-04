@@ -2373,8 +2373,7 @@ Expression *Type::toExpression()
  * Return !=0 if type has pointers that need to
  * be scanned by the GC during a collection cycle.
  */
-
-int Type::hasPointers()
+bool Type::hasPointers()
 {
     //printf("Type::hasPointers() %s, %d\n", toChars(), ty);
     return false;
@@ -4241,14 +4240,14 @@ Expression *TypeSArray::toExpression()
     return e;
 }
 
-int TypeSArray::hasPointers()
+bool TypeSArray::hasPointers()
 {
     /* Don't want to do this, because:
      *    struct S { T* array[0]; }
      * may be a variable length struct.
      */
     //if (dim->toInteger() == 0)
-        //return false;
+    //    return false;
 
     if (next->ty == Tvoid)
     {
@@ -4458,7 +4457,7 @@ bool TypeDArray::checkBoolean()
     return true;
 }
 
-int TypeDArray::hasPointers()
+bool TypeDArray::hasPointers()
 {
     return true;
 }
@@ -4786,7 +4785,7 @@ Expression *TypeAArray::toExpression()
     return NULL;
 }
 
-int TypeAArray::hasPointers()
+bool TypeAArray::hasPointers()
 {
     return true;
 }
@@ -4994,7 +4993,7 @@ bool TypePointer::isZeroInit(Loc loc)
     return true;
 }
 
-int TypePointer::hasPointers()
+bool TypePointer::hasPointers()
 {
     return true;
 }
@@ -6278,7 +6277,7 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident, in
     return e;
 }
 
-int TypeDelegate::hasPointers()
+bool TypeDelegate::hasPointers()
 {
     return true;
 }
@@ -7338,7 +7337,7 @@ bool TypeEnum::isZeroInit(Loc loc)
     return sym->getDefaultValue(loc)->isBool(false);
 }
 
-int TypeEnum::hasPointers()
+bool TypeEnum::hasPointers()
 {
     return sym->getMemtype(Loc())->hasPointers();
 }
@@ -7787,7 +7786,7 @@ bool TypeStruct::isAssignable()
     return assignable;
 }
 
-int TypeStruct::hasPointers()
+bool TypeStruct::hasPointers()
 {
     // Probably should cache this information in sym rather than recompute
     StructDeclaration *s = sym;
@@ -8461,7 +8460,7 @@ bool TypeClass::checkBoolean()
     return true;
 }
 
-int TypeClass::hasPointers()
+bool TypeClass::hasPointers()
 {
     return true;
 }
