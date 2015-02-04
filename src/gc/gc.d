@@ -1769,11 +1769,13 @@ struct Gcx
                 {
                     // out of memory => try to free some memory
                     fullcollect();
+                    if (lowMem) minimize();
                 }
             }
             else
             {
                 fullcollect();
+                if (lowMem) minimize();
             }
             // tryAlloc will succeed if a new pool was allocated above, if it fails allocate a new pool now
             if (!tryAlloc() && (!newPool(1, false) || !tryAlloc()))
