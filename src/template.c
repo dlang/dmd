@@ -6517,8 +6517,9 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             }
             else if (definitelyValueParameter(ea))
             {
+                if (ea->checkValue())   // check void expression
+                    ea = new ErrorExp();
                 unsigned int olderrs = global.errors;
-                ea->rvalue();   // check void expression
                 ea = ea->ctfeInterpret();
                 if (global.errors != olderrs)
                     ea = new ErrorExp();

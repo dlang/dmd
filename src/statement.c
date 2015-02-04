@@ -3731,7 +3731,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (exp->type && exp->type->ty != Tvoid ||
             exp->op == TOKfunction || exp->op == TOKtype || exp->op == TOKtemplate)
         {
-            if (!exp->rvalue()) // don't make error for void expression
+            // don't make error for void expression
+            if (exp->checkValue())
                 exp = new ErrorExp();
         }
         if (checkNonAssignmentArrayOp(exp))

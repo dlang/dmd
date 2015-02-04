@@ -137,7 +137,6 @@ public:
     void error(const char *format, ...);
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
-    virtual bool rvalue();
 
     // creates a single expression which is effectively (e1, e2)
     // this new expression does not necessarily need to have valid D source code representation,
@@ -168,6 +167,7 @@ public:
         return ::castTo(this, sc, t);
     }
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
+    virtual bool checkValue();
     void checkScalar();
     void checkNoBool();
     Expression *checkIntegral();
@@ -495,7 +495,7 @@ public:
     TypeExp(Loc loc, Type *type);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    bool rvalue();
+    bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -517,9 +517,9 @@ public:
     FuncDeclaration *fd;
 
     TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd = NULL);
-    bool rvalue();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
+    bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -630,13 +630,13 @@ public:
     TOK tok;
 
     FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
-    bool rvalue();
     void genIdent(Scope *sc);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);
     MATCH matchType(Type *to, Scope *sc, FuncExp **pfe, int flag = 0);
     char *toChars();
+    bool checkValue();
 
     void accept(Visitor *v) { v->visit(this); }
 };
