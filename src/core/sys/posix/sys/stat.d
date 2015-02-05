@@ -956,7 +956,7 @@ version( linux )
 {
   static if( __USE_LARGEFILE64 )
   {
-    int   fstat64(int, stat_t*);
+    int   fstat64(int, stat_t*) @trusted;
     alias fstat64 fstat;
 
     int   lstat64(in char*, stat_t*);
@@ -967,7 +967,7 @@ version( linux )
   }
   else
   {
-    int   fstat(int, stat_t*);
+    int   fstat(int, stat_t*) @trusted;
     int   lstat(in char*, stat_t*);
     int   stat(in char*, stat_t*);
   }
@@ -976,7 +976,7 @@ else version (Solaris)
 {
     version (D_LP64)
     {
-        int fstat(int, stat_t*);
+        int fstat(int, stat_t*) @trusted;
         int lstat(in char*, stat_t*);
         int stat(in char*, stat_t*);
 
@@ -991,7 +991,7 @@ else version (Solaris)
     {
         static if (__USE_LARGEFILE64)
         {
-            int   fstat64(int, stat_t*);
+            int   fstat64(int, stat_t*) @trusted;
             alias fstat64 fstat;
 
             int   lstat64(in char*, stat_t*);
@@ -1002,7 +1002,7 @@ else version (Solaris)
         }
         else
         {
-            int fstat(int, stat_t*);
+            int fstat(int, stat_t*) @trusted;
             int lstat(in char*, stat_t*);
             int stat(in char*, stat_t*);
         }
@@ -1010,7 +1010,7 @@ else version (Solaris)
 }
 else version( Posix )
 {
-    int   fstat(int, stat_t*);
+    int   fstat(int, stat_t*) @trusted;
     int   lstat(in char*, stat_t*);
     int   stat(in char*, stat_t*);
 }
