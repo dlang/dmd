@@ -751,7 +751,7 @@ bool isDruntimeArrayOp(Identifier *ident)
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 {
     ClassDeclaration *cd = fd->parent->isClassDeclaration();
-    //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", this, parent->toChars(), toChars());
+    //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", fd, fd->parent->toChars(), fd->toChars());
 
     //if (type) printf("type = %s\n", type->toChars());
 #if 0

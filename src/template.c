@@ -5815,13 +5815,17 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     Dsymbols *target_symbol_list;
     size_t target_symbol_list_idx = 0;
     //if (sc->scopesym) printf("3: sc is %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
-    if (!tinst && sc->scopesym && sc->scopesym->members)
+    if (0 && !tinst && sc->scopesym && sc->scopesym->members)
     {
         /* A module can have explicit template instance and its alias
          * in module scope (e,g, `alias Base64Impl!('+', '/') Base64;`).
-         * When the module is just imported, compiler can assume that
+         * When the module is just imported, normally compiler can assume that
          * its instantiated code would be contained in the separately compiled
-         * obj/lib file (e.g. phobos.lib). So we can omit their semantic3 running.
+         * obj/lib file (e.g. phobos.lib).
+         * Bugzilla 2644: However, if the template is instantiated in both
+         * modules of root and non-root, compiler should generate its objcode.
+         * Therefore, always conservatively insert this instance to the member of
+         * a root module, then calculate the necessity by TemplateInstance::needsCodegen().
          */
         //if (sc->scopesym->isModule())
         //    printf("module level instance %s\n", toChars());
