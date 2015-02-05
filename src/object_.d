@@ -169,8 +169,11 @@ bool opEquals(Object lhs, Object rhs)
     if (lhs is null || rhs is null) return false;
 
     // If same exact type => one call to method opEquals
-    if (!__ctfe && // CTFE doesn't like comparing typeid
-        (typeid(lhs) is typeid(rhs) || typeid(lhs).opEquals(typeid(rhs))))
+    if (typeid(lhs) is typeid(rhs) ||
+        !__ctfe && typeid(lhs).opEquals(typeid(rhs)))
+            /* CTFE doesn't like typeid much. 'is' works, but opEquals doesn't
+            (issue 7147). But CTFE also guarantees that equal TypeInfos are
+            always identical. So, no opEquals needed during CTFE. */
     {
         return lhs.opEquals(rhs);
     }
