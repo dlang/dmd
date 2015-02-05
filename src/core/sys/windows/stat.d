@@ -46,5 +46,5 @@ struct struct_stat
 }
 
 int  stat(char *, struct_stat *);
-int  fstat(int, struct_stat *);
+int  fstat(int, struct_stat *) @trusted;
 int  _wstat(wchar *, struct_stat *);

@@ -74,7 +74,7 @@ version(linux) {
         int statvfs64 (const char * file, statvfs_t* buf);
         alias statvfs64 statvfs;
 
-        int fstatvfs64 (int fildes, statvfs_t *buf);
+        int fstatvfs64 (int fildes, statvfs_t *buf) @trusted;
         alias fstatvfs64 fstatvfs;
     }
     else
@@ -108,5 +108,5 @@ else
     }
 
     int statvfs (const char * file, statvfs_t* buf);
-    int fstatvfs (int fildes, statvfs_t *buf);
+    int fstatvfs (int fildes, statvfs_t *buf) @trusted;
 }
