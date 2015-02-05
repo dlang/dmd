@@ -5690,6 +5690,12 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     // Get the instantiating module from the scope minst
     minst = sc->minst;
+    // Bugzilla 10920: If the enclosing function is non-root symbol,
+    // this instance should be speculative.
+    if (!tinst && sc->func && !sc->func->isInstantiated() && sc->func->inNonRoot())
+    {
+        minst = NULL;
+    }
 
     gagged = (global.gag > 0);
 
