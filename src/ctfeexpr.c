@@ -1184,20 +1184,26 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
 /// with >,is, ==, etc, using ctfeCmp, ctfeEqual, ctfeIdentity
 bool isCtfeComparable(Expression *e)
 {
-    Expression *x = e;
-    if (x->op == TOKslice)
-        x = ((SliceExp *)e)->e1;
+    if (e->op == TOKslice)
+        e = ((SliceExp *)e)->e1;
 
-    if (x->isConst() != 1 &&
-        x->op != TOKnull &&
-        x->op != TOKstring &&
-        x->op != TOKfunction &&
-        x->op != TOKdelegate &&
-        x->op != TOKarrayliteral &&
-        x->op != TOKstructliteral &&
-        x->op != TOKassocarrayliteral &&
-        x->op != TOKclassreference)
+    if (e->isConst() != 1)
     {
+        if (e->op == TOKnull ||
+            e->op == TOKstring ||
+            e->op == TOKfunction ||
+            e->op == TOKdelegate ||
+            e->op == TOKarrayliteral ||
+            e->op == TOKstructliteral ||
+            e->op == TOKassocarrayliteral ||
+            e->op == TOKclassreference)
+        {
+            return true;
+        }
+        // Bugzilla 14123: TypeInfo object is comparable in CTFE
+        if (e->op == TOKsymoff && ((SymOffExp *)e)->var->isTypeInfoDeclaration())
+            return true;
+
         return false;
     }
     return true;
@@ -1590,6 +1596,8 @@ int ctfeEqual(Loc loc, TOK op, Expression *e1, Expression *e2)
 /// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
 int ctfeIdentity(Loc loc, TOK op, Expression *e1, Expression *e2)
 {
+    //printf("ctfeIdentity op = '%s', e1 = %s %s, e2 = %s %s\n", Token::toChars(op),
+    //    Token::toChars(e1->op), e1->toChars(), Token::toChars(e2->op), e1->toChars());
     int cmp;
     if (e1->op == TOKnull)
     {

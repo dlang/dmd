@@ -4607,6 +4607,36 @@ int bug7147(int n)
 static assert(!is(typeof(compiles!(bug7147(0)))));
 static assert( is(typeof(compiles!(bug7147(1)))));
 
+
+/**************************************************
+    14123 - identity TypeInfo objects
+**************************************************/
+
+static assert({
+    bool eq(TypeInfo t1, TypeInfo t2)
+    {
+        return t1 is t2;
+    }
+
+    class C {}
+    struct S {}
+
+    assert( eq(typeid(C), typeid(C)));
+    assert(!eq(typeid(C), typeid(Object)));
+    assert( eq(typeid(S), typeid(S)));
+    assert(!eq(typeid(S), typeid(int)));
+    assert( eq(typeid(int), typeid(int)));
+    assert(!eq(typeid(int), typeid(long)));
+
+    Object o = new Object;
+    Object c = new C;
+    assert( eq(typeid(o), typeid(o)));
+    assert(!eq(typeid(c), typeid(o)));
+    assert(!eq(typeid(o), typeid(S)));
+
+    return 1;
+}());
+
 /**************************************************
     6885 wrong code with new array
 **************************************************/
