@@ -4974,7 +4974,7 @@ void UnitTestDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
-    if (!isInstantiated() && inNonRoot())
+    if (inNonRoot())
         return;
 
     if (global.params.useUnitTests)

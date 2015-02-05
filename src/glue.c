@@ -807,7 +807,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 
     for (FuncDeclaration *fd2 = fd; fd2; )
     {
-        if (!fd2->isInstantiated() && fd2->inNonRoot())
+        if (fd2->inNonRoot())
             return;
         if (fd2->isNested())
             fd2 = fd2->toParent2()->isFuncDeclaration();

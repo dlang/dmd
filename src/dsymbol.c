@@ -815,23 +815,18 @@ void Dsymbol::addComment(const utf8_t *comment)
 }
 
 /****************************************
- * Returns true if this symbol is defined in non-root module.
+ * Returns true if this symbol is defined in a non-root module without instantiation.
  */
-
 bool Dsymbol::inNonRoot()
 {
     Dsymbol *s = parent;
-    for (; s; s = s->parent)
+    for (; s; s = s->toParent())
     {
         if (TemplateInstance *ti = s->isTemplateInstance())
         {
-            if (ti->isTemplateMixin())
-                continue;
-            if (!ti->minst || !ti->minst->isRoot())
-                return true;
             return false;
         }
-        else if (Module *m = s->isModule())
+        if (Module *m = s->isModule())
         {
             if (!m->isRoot())
                 return true;

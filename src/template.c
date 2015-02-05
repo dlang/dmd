@@ -5692,7 +5692,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     minst = sc->minst;
     // Bugzilla 10920: If the enclosing function is non-root symbol,
     // this instance should be speculative.
-    if (!tinst && sc->func && !sc->func->isInstantiated() && sc->func->inNonRoot())
+    if (!tinst && sc->func && sc->func->inNonRoot())
     {
         minst = NULL;
     }
@@ -7649,7 +7649,7 @@ bool TemplateInstance::needsCodegen()
     {
         //printf("%s minst = %s, enclosing in nonRoot = %d\n",
         //    toPrettyChars(), minst ? minst->toChars() : NULL,
-        //    enclosing && !enclosing->isInstantiated() && enclosing->inNonRoot());
+        //    enclosing && enclosing->inNonRoot());
         if (enclosing)
         {
             // Bugzilla 13415: If and only if the enclosing scope needs codegen,
