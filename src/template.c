@@ -1829,6 +1829,8 @@ Lmatch:
                     else
                         goto Lnomatch;
                 }
+                if (isError(oded))
+                    goto Lerror;
             }
             oded = declareParameter(paramscope, tparam, oded);
             (*dedargs)[i] = oded;
@@ -1875,6 +1877,11 @@ Lmatch:
 Lnomatch:
     paramscope->pop();
     //printf("\tnomatch\n");
+    return MATCHnomatch;
+
+Lerror: // todo: for the future improvement
+    paramscope->pop();
+    //printf("\terror\n");
     return MATCHnomatch;
 }
 
