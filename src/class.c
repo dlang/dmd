@@ -1745,7 +1745,7 @@ void BaseClass::copyBaseInterfaces(BaseClasses *vtblInterfaces)
 //      return;
 
     baseInterfaces_dim = base->interfaces_dim;
-    baseInterfaces = (BaseClass *)mem.calloc(baseInterfaces_dim, sizeof(BaseClass));
+    baseInterfaces = (BaseClass *)mem.xcalloc(baseInterfaces_dim, sizeof(BaseClass));
 
     //printf("%s.copyBaseInterfaces()\n", base->toChars());
     for (size_t i = 0; i < baseInterfaces_dim; i++)

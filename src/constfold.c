@@ -1483,7 +1483,7 @@ UnionExp Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
             size_t len = (size_t)(iupr - ilwr);
             unsigned char sz = es1->sz;
 
-            void *s = mem.malloc((len + 1) * sz);
+            void *s = mem.xmalloc((len + 1) * sz);
             memcpy((char *)s, (char *)es1->string + ilwr * sz, len * sz);
             memset((char *)s + len * sz, 0, sz);
 
@@ -1652,7 +1652,7 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
             dinteger_t v = e->toInteger();
 
             size_t len = (t->ty == tn->ty) ? 1 : utf_codeLength(sz, (dchar_t)v);
-            void *s = mem.malloc((len + 1) * sz);
+            void *s = mem.xmalloc((len + 1) * sz);
             if (t->ty == tn->ty)
                 memcpy(s, &v, sz);
             else
@@ -1724,7 +1724,7 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
             assert(ue.exp()->type);
             return ue;
         }
-        void *s = mem.malloc((len + 1) * sz);
+        void *s = mem.xmalloc((len + 1) * sz);
         memcpy((char *)s, es1->string, es1->len * sz);
         memcpy((char *)s + es1->len * sz, es2->string, es2->len * sz);
 
@@ -1793,7 +1793,7 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         size_t len = es1->len;
         len += homoConcat ? 1 : utf_codeLength(sz, (dchar_t)v);
 
-        void *s = mem.malloc((len + 1) * sz);
+        void *s = mem.xmalloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
         if (homoConcat)
              memcpy((char *)s + (sz * es1->len), &v, sz);
@@ -1819,7 +1819,7 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         unsigned char sz = es2->sz;
         dinteger_t v = e1->toInteger();
 
-        void *s = mem.malloc((len + 1) * sz);
+        void *s = mem.xmalloc((len + 1) * sz);
         memcpy((char *)s, &v, sz);
         memcpy((char *)s + sz, es2->string, es2->len * sz);
 

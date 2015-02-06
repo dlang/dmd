@@ -260,7 +260,7 @@ UnionExp copyLiteral(Expression *e)
     if (e->op == TOKstring) // syntaxCopy doesn't make a copy for StringExp!
     {
         StringExp *se = (StringExp *)e;
-        utf8_t *s = (utf8_t *)mem.calloc(se->len + 1, se->sz);
+        utf8_t *s = (utf8_t *)mem.xcalloc(se->len + 1, se->sz);
         memcpy(s, se->string, se->len * se->sz);
         new(&ue) StringExp(se->loc, s, se->len);
         StringExp *se2 = (StringExp *)ue.exp();
@@ -556,7 +556,7 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
 StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
         unsigned value, size_t dim, unsigned char sz)
 {
-    utf8_t *s = (utf8_t *)mem.calloc(dim + 1, sz);
+    utf8_t *s = (utf8_t *)mem.xcalloc(dim + 1, sz);
     for (size_t elemi = 0; elemi < dim; ++elemi)
     {
         switch (sz)
@@ -1551,7 +1551,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         if (es2->keys->dim != dim)
             return 1;
 
-        bool *used = (bool *)mem.malloc(sizeof(bool) * dim);
+        bool *used = (bool *)mem.xmalloc(sizeof(bool) * dim);
         memset(used, 0, sizeof(bool) * dim);
 
         for (size_t i = 0; i < dim; ++i)
@@ -1571,12 +1571,12 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
                 used[j] = true;
                 if (ctfeRawCmp(loc, v1, v2))
                 {
-                    mem.free(used);
+                    mem.xfree(used);
                     return 1;
                 }
             }
         }
-        mem.free(used);
+        mem.xfree(used);
         return 0;
     }
     error(loc, "CTFE internal error: bad compare");
@@ -1696,7 +1696,7 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
         size_t len = es1->len + es2->elements->dim;
         unsigned char sz = es1->sz;
 
-        void *s = mem.malloc((len + 1) * sz);
+        void *s = mem.xmalloc((len + 1) * sz);
         memcpy((char *)s + sz * es2->elements->dim, es1->string, es1->len * sz);
         for (size_t i = 0; i < es2->elements->dim; i++)
         {
@@ -1730,7 +1730,7 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
         size_t len = es1->len + es2->elements->dim;
         unsigned char sz = es1->sz;
 
-        void *s = mem.malloc((len + 1) * sz);
+        void *s = mem.xmalloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
         for (size_t i = 0; i < es2->elements->dim; i++)
         {
@@ -2064,7 +2064,7 @@ UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     if (oldval->op == TOKstring)
     {
         StringExp *oldse = (StringExp *)oldval;
-        void *s = mem.calloc(newlen + 1, oldse->sz);
+        void *s = mem.xcalloc(newlen + 1, oldse->sz);
         memcpy(s, oldse->string, copylen * oldse->sz);
         unsigned defaultValue = (unsigned)(defaultElem->toInteger());
         for (size_t elemi = copylen; elemi < newlen; ++elemi)

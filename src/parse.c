@@ -84,7 +84,7 @@ Parser::Parser(Loc loc, Module *module, const utf8_t *base, size_t length, int d
         /* Create a pseudo-filename for the mixin string, as it may not even exist
          * in the source file.
          */
-        char *filename = (char *)mem.malloc(strlen(loc.filename) + 7 + sizeof(loc.linnum) * 3 + 1);
+        char *filename = (char *)mem.xmalloc(strlen(loc.filename) + 7 + sizeof(loc.linnum) * 3 + 1);
         sprintf(filename, "%s-mixin-%d", loc.filename, (int)loc.linnum);
         scanloc.filename = filename;
     }
@@ -1796,7 +1796,7 @@ Dsymbol *Parser::parseUnitTest(PrefixAttributes *pAttrs)
         size_t len = endPtr - begPtr;
         if (len > 0)
         {
-            docline = (char *)mem.malloc(len + 2);
+            docline = (char *)mem.xmalloc(len + 2);
             memcpy(docline, begPtr, len);
             docline[len  ] = '\n';  // Terminate all lines by LF
             docline[len+1] = '\0';
@@ -6463,7 +6463,7 @@ Expression *Parser::parsePrimaryExp()
                     size_t len1 = len;
                     size_t len2 = token.len;
                     len = len1 + len2;
-                    utf8_t *s2 = (utf8_t *)mem.malloc((len + 1) * sizeof(utf8_t));
+                    utf8_t *s2 = (utf8_t *)mem.xmalloc((len + 1) * sizeof(utf8_t));
                     memcpy(s2, s, len1 * sizeof(utf8_t));
                     memcpy(s2 + len1, token.ustring, (len2 + 1) * sizeof(utf8_t));
                     s = s2;

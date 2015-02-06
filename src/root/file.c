@@ -66,7 +66,7 @@ File::~File()
     if (buffer)
     {
         if (ref == 0)
-            mem.free(buffer);
+            mem.xfree(buffer);
 #if _WIN32
         if (ref == 2)
             UnmapViewOfFile(buffer);

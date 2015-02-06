@@ -16,12 +16,12 @@ struct Mem
 {
     Mem() { }
 
-    char *strdup(const char *s);
-    void *malloc(size_t size);
-    void *calloc(size_t size, size_t n);
-    void *realloc(void *p, size_t size);
-    void free(void *p);
-    void *mallocdup(void *o, size_t size);
+    char *xstrdup(const char *s);
+    void *xmalloc(size_t size);
+    void *xcalloc(size_t size, size_t n);
+    void *xrealloc(void *p, size_t size);
+    void xfree(void *p);
+    void *xmallocdup(void *o, size_t size);
     void error();
 };
 

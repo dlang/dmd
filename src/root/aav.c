@@ -65,7 +65,7 @@ Value* dmd_aaGet(AA** paa, Key key)
     //printf("paa = %p\n", paa);
 
     if (!*paa)
-    {   AA *a = (AA *)mem.malloc(sizeof(AA));
+    {   AA *a = (AA *)mem.xmalloc(sizeof(AA));
         a->b = (aaA**)a->binit;
         a->b_length = 4;
         a->nodes = 0;
@@ -93,7 +93,7 @@ Value* dmd_aaGet(AA** paa, Key key)
     //printf("create new one\n");
 
     size_t nodes = ++(*paa)->nodes;
-    e = (nodes != 1) ? (aaA *)mem.malloc(sizeof(aaA)) : &(*paa)->aafirst;
+    e = (nodes != 1) ? (aaA *)mem.xmalloc(sizeof(aaA)) : &(*paa)->aafirst;
     //e = new aaA();
     e->next = NULL;
     e->key = key;
@@ -153,7 +153,7 @@ void dmd_aaRehash(AA** paa)
                 len = 32;
             else
                 len *= 4;
-            aaA** newb = (aaA**)mem.malloc(sizeof(aaA)*len);
+            aaA** newb = (aaA**)mem.xmalloc(sizeof(aaA)*len);
             memset(newb, 0, len * sizeof(aaA*));
 
             for (size_t k = 0; k < aa->b_length; k++)
@@ -167,7 +167,7 @@ void dmd_aaRehash(AA** paa)
                 }
             }
             if (aa->b != (aaA**)aa->binit)
-                mem.free(aa->b);
+                mem.xfree(aa->b);
 
             aa->b = newb;
             aa->b_length = len;

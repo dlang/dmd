@@ -29,7 +29,7 @@ int utfStride(const utf8_t *p);
 
 utf8_t *memdup(const utf8_t *p, size_t len)
 {
-    return (utf8_t *)memcpy(mem.malloc(len), p, len);
+    return (utf8_t *)memcpy(mem.xmalloc(len), p, len);
 }
 
 Macro::Macro(const utf8_t *name, size_t namelen, const utf8_t *text, size_t textlen)
@@ -374,7 +374,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                         // marg = name[ ] ~ "," ~ marg[ ];
                         if (marglen)
                         {
-                            utf8_t *q = (utf8_t *)mem.malloc(namelen + 1 + marglen);
+                            utf8_t *q = (utf8_t *)mem.xmalloc(namelen + 1 + marglen);
                             assert(q);
                             memcpy(q, name, namelen);
                             q[namelen] = ',';
@@ -438,7 +438,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                         buf->remove(u, v + 1 - u);
                         end -= v + 1 - u;
                         u += mend - (v + 1);
-                        mem.free((utf8_t *)marg);
+                        mem.xfree((utf8_t *)marg);
                         //printf("u = %d, end = %d\n", u, end);
                         //printf("#%.*s#\n", end - u, &buf->data[u]);
                         continue;
@@ -455,7 +455,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
         }
         u++;
     }
-    mem.free((utf8_t *)arg);
+    mem.xfree((utf8_t *)arg);
     *pend = end;
     nest--;
 }

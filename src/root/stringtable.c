@@ -86,8 +86,8 @@ uint32_t StringTable::allocValue(const char *s, size_t length)
 
     if (!npools || nfill + nbytes > POOL_SIZE)
     {
-        pools = (uint8_t **)mem.realloc(pools, ++npools * sizeof(pools[0]));
-        pools[npools - 1] = (uint8_t *)mem.malloc(nbytes > POOL_SIZE ? nbytes : POOL_SIZE);
+        pools = (uint8_t **)mem.xrealloc(pools, ++npools * sizeof(pools[0]));
+        pools[npools - 1] = (uint8_t *)mem.xmalloc(nbytes > POOL_SIZE ? nbytes : POOL_SIZE);
         nfill = 0;
     }
 
@@ -125,7 +125,7 @@ void StringTable::_init(size_t size)
 {
     size = nextpow2((size_t)(size / loadFactor));
     if (size < 32) size = 32;
-    table = (StringEntry *)mem.calloc(size, sizeof(table[0]));
+    table = (StringEntry *)mem.xcalloc(size, sizeof(table[0]));
     tabledim = size;
     pools = NULL;
     npools = nfill = 0;
@@ -135,10 +135,10 @@ void StringTable::_init(size_t size)
 void StringTable::reset(size_t size)
 {
     for (size_t i = 0; i < npools; ++i)
-        mem.free(pools[i]);
+        mem.xfree(pools[i]);
 
-    mem.free(table);
-    mem.free(pools);
+    mem.xfree(table);
+    mem.xfree(pools);
     table = NULL;
     pools = NULL;
     _init(size);
@@ -147,10 +147,10 @@ void StringTable::reset(size_t size)
 StringTable::~StringTable()
 {
     for (size_t i = 0; i < npools; ++i)
-        mem.free(pools[i]);
+        mem.xfree(pools[i]);
 
-    mem.free(table);
-    mem.free(pools);
+    mem.xfree(table);
+    mem.xfree(pools);
     table = NULL;
     pools = NULL;
 }
@@ -219,7 +219,7 @@ void StringTable::grow()
     const size_t odim = tabledim;
     StringEntry *otab = table;
     tabledim *= 2;
-    table = (StringEntry *)mem.calloc(tabledim, sizeof(table[0]));
+    table = (StringEntry *)mem.xcalloc(tabledim, sizeof(table[0]));
 
     for (size_t i = 0; i < odim; ++i)
     {
@@ -228,5 +228,5 @@ void StringTable::grow()
         StringValue *sv = getValue(se->vptr);
         table[findSlot(se->hash, sv->lstring(), sv->length)] = *se;
     }
-    mem.free(otab);
+    mem.xfree(otab);
 }

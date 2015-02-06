@@ -178,7 +178,7 @@ void verrorPrint(Loc loc, COLOR headerColor, const char *header, const char *for
         setConsoleColorBright(true);
     if (*p)
         fprintf(stderr, "%s: ", p);
-    mem.free(p);
+    mem.xfree(p);
 
     if (global.params.color)
         setConsoleColor(headerColor, true);

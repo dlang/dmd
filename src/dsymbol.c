@@ -228,7 +228,7 @@ const char *Dsymbol::toPrettyChars(bool QualifyTypes)
     for (p = this; p; p = p->parent)
         len += strlen(QualifyTypes ? p->toPrettyCharsHelper() : p->toChars()) + 1;
 
-    s = (char *)mem.malloc(len);
+    s = (char *)mem.xmalloc(len);
     q = s + len - 1;
     *q = 0;
     for (p = this; p; p = p->parent)
@@ -1083,7 +1083,7 @@ void ScopeDsymbol::importScope(Dsymbol *s, Prot protection)
             }
         }
         imports->push(s);
-        prots = (PROTKIND *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
+        prots = (PROTKIND *)mem.xrealloc(prots, imports->dim * sizeof(prots[0]));
         prots[imports->dim - 1] = protection.kind;
     }
 }

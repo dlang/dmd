@@ -44,7 +44,7 @@
 /****************************** FileName ********************************/
 
 FileName::FileName(const char *str)
-    : str(mem.strdup(str))
+    : str(mem.xstrdup(str))
 {
 }
 
@@ -57,7 +57,7 @@ const char *FileName::combine(const char *path, const char *name)
         return (char *)name;
     pathlen = strlen(path);
     namelen = strlen(name);
-    f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
+    f = (char *)mem.xmalloc(pathlen + 1 + namelen + 1);
     memcpy(f, path, pathlen);
 #if POSIX
     if (path[pathlen - 1] != '/')
@@ -241,7 +241,7 @@ const char *FileName::ext()
 }
 
 /********************************
- * Return mem.malloc'd filename with extension removed.
+ * Return mem.xmalloc'd filename with extension removed.
  */
 
 const char *FileName::removeExt(const char *str)
@@ -249,12 +249,12 @@ const char *FileName::removeExt(const char *str)
     const char *e = ext(str);
     if (e)
     {   size_t len = (e - str) - 1;
-        char *n = (char *)mem.malloc(len + 1);
+        char *n = (char *)mem.xmalloc(len + 1);
         memcpy(n, str, len);
         n[len] = 0;
         return n;
     }
-    return mem.strdup(str);
+    return mem.xstrdup(str);
 }
 
 /********************************
@@ -325,7 +325,7 @@ const char *FileName::path(const char *str)
 #endif
     }
     pathlen = n - str;
-    char *path = (char *)mem.malloc(pathlen + 1);
+    char *path = (char *)mem.xmalloc(pathlen + 1);
     memcpy(path, str, pathlen);
     path[pathlen] = 0;
     return path;
@@ -348,7 +348,7 @@ const char *FileName::replaceName(const char *path, const char *name)
         return name;
     pathlen = n - path;
     namelen = strlen(name);
-    char *f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
+    char *f = (char *)mem.xmalloc(pathlen + 1 + namelen + 1);
     memcpy(f, path, pathlen);
 #if POSIX
     if (path[pathlen - 1] != '/')
@@ -377,11 +377,11 @@ const char *FileName::defaultExt(const char *name, const char *ext)
 {
     const char *e = FileName::ext(name);
     if (e)                              // if already has an extension
-        return mem.strdup(name);
+        return mem.xstrdup(name);
 
     size_t len = strlen(name);
     size_t extlen = strlen(ext);
-    char *s = (char *)mem.malloc(len + 1 + extlen + 1);
+    char *s = (char *)mem.xmalloc(len + 1 + extlen + 1);
     memcpy(s,name,len);
     s[len] = '.';
     memcpy(s + len + 1, ext, extlen + 1);
@@ -400,7 +400,7 @@ const char *FileName::forceExt(const char *name, const char *ext)
         size_t len = e - name;
         size_t extlen = strlen(ext);
 
-        char *s = (char *)mem.malloc(len + extlen + 1);
+        char *s = (char *)mem.xmalloc(len + extlen + 1);
         memcpy(s,name,len);
         memcpy(s + len, ext, extlen + 1);
         return s;
@@ -471,7 +471,7 @@ const char *FileName::searchPath(Strings *path, const char *name, bool cwd)
  *      https://www.securecoding.cert.org/confluence/display/seccode/FIO02-C.+Canonicalize+path+names+originating+from+untrusted+sources
  * Returns:
  *      NULL    file not found
- *      !=NULL  mem.malloc'd file name
+ *      !=NULL  mem.xmalloc'd file name
  */
 
 const char *FileName::safeSearchPath(Strings *path, const char *name)
@@ -526,7 +526,7 @@ const char *FileName::safeSearchPath(Strings *path, const char *name)
             if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
             {
                 ::free((void *)cpath);
-                const char *p = mem.strdup(cname);
+                const char *p = mem.xstrdup(cname);
                 ::free((void *)cname);
                 return p;
             }
@@ -585,12 +585,12 @@ bool FileName::ensurePathExists(const char *path)
                 size_t len = strlen(path);
                 if ((len > 2 && p[-1] == ':' && strcmp(path + 2, p) == 0) ||
                     len == strlen(p))
-                {   mem.free((void *)p);
+                {   mem.xfree((void *)p);
                     return 0;
                 }
 #endif
                 bool r = ensurePathExists(p);
-                mem.free((void *)p);
+                mem.xfree((void *)p);
                 if (r)
                     return r;
             }
@@ -663,7 +663,7 @@ void FileName::free(const char *str)
     {   assert(str[0] != (char)0xAB);
         memset((void *)str, 0xAB, strlen(str) + 1);     // stomp
     }
-    mem.free((void *)str);
+    mem.xfree((void *)str);
 }
 
 char *FileName::toChars()
