@@ -5054,7 +5054,6 @@ elem *toElem(Expression *e, IRState *irs)
          * tries to use aligned int stores whereever possible.
          * Update *poffset to end of initialized hole; *poffset will be >= offset2.
          */
-
         static elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
         {
             elem *e = NULL;
@@ -5131,16 +5130,16 @@ elem *toElem(Expression *e, IRState *irs)
                 /* Initialize all alignment 'holes' to zero.
                  * Do before initializing fields, as the hole filling process
                  * can spill over into the fields.
+                 *
+                 * TODO: Currently any fields are conservatively filled to zero,
+                 * even if a field will be set immediately after.
                  */
                 size_t offset = 0;
                 for (size_t i = 0; i < sle->sd->fields.dim; i++)
                 {
                     VarDeclaration *v = sle->sd->fields[i];
-
-                    e = el_combine(e, fillHole(stmp, &offset, v->offset, sle->sd->structsize));
                     size_t vend = v->offset + v->type->size();
-                    if (offset < vend)
-                        offset = vend;
+                    e = el_combine(e, fillHole(stmp, &offset, vend, sle->sd->structsize));
                 }
                 e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
             }
