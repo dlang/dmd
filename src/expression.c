@@ -1119,7 +1119,7 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
         }
         if (e->op == TOKtype)
         {
-            e->checkValue();
+            e->checkValue();    // report an error "type T has no value"
             t0 = Type::terror;
             continue;
         }
