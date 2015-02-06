@@ -301,7 +301,7 @@ void gendocfile(Module *m)
         time_t t;
         time(&t);
         char *p = ctime(&t);
-        p = mem.strdup(p);
+        p = mem.xstrdup(p);
         Macro::define(&m->macrotable, (utf8_t *)"DATETIME", 8, (utf8_t *)p, strlen(p));
         Macro::define(&m->macrotable, (utf8_t *)"YEAR", 4, (utf8_t *)p + 20, 4);
     }
@@ -1915,7 +1915,7 @@ void DocComment::parseEscapes(Escape **pescapetable, const utf8_t *textstart, si
             p++;
         }
         size_t len = p - start;
-        char *s = (char *)memcpy(mem.malloc(len + 1), start, len);
+        char *s = (char *)memcpy(mem.xmalloc(len + 1), start, len);
         s[len] = 0;
         escapetable->strings[c] = s;
         //printf("\t%c = '%s'\n", c, s);

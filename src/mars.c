@@ -1253,7 +1253,7 @@ Language changes listed by -transition=id:\n\
             {
                 ext--;                  // skip onto '.'
                 assert(*ext == '.');
-                newname = (char *)mem.malloc((ext - p) + 1);
+                newname = (char *)mem.xmalloc((ext - p) + 1);
                 memcpy(newname, p, ext - p);
                 newname[ext - p] = 0;              // strip extension
                 name = newname;
@@ -1689,7 +1689,7 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
     if (!env)
         return;
 
-    env = mem.strdup(env);      // create our own writable copy
+    env = mem.xstrdup(env);      // create our own writable copy
 
     size_t argc = *pargc;
     Strings *argv = new Strings();

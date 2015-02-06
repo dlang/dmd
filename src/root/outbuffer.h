@@ -45,7 +45,7 @@ struct OutBuffer
     }
     ~OutBuffer()
     {
-        mem.free(data);
+        mem.xfree(data);
     }
     char *extractData();
 

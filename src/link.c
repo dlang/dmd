@@ -489,7 +489,7 @@ int runLINK()
         }
         else
             close(fd);
-        global.params.exefile = mem.strdup(name);
+        global.params.exefile = mem.xstrdup(name);
         argv.push(global.params.exefile);
 #else
         /* The use of tmpnam raises the issue of "is this a security hole"?
@@ -502,7 +502,7 @@ int runLINK()
          */
         char s[L_tmpnam + 1];
         char *n = tmpnam(s);
-        global.params.exefile = mem.strdup(n);
+        global.params.exefile = mem.xstrdup(n);
         argv.push(global.params.exefile);
 #endif
     }
@@ -516,7 +516,7 @@ int runLINK()
         if (e)
         {
             e--;                        // back up over '.'
-            ex = (char *)mem.malloc(e - n + 1);
+            ex = (char *)mem.xmalloc(e - n + 1);
             memcpy(ex, n, e - n);
             ex[e - n] = 0;
             // If generating dll then force dll extension
@@ -606,7 +606,7 @@ int runLINK()
             argv.push(p);
         else
         {
-            char *s = (char *)mem.malloc(plen + 3);
+            char *s = (char *)mem.xmalloc(plen + 3);
             s[0] = '-';
             s[1] = 'l';
             memcpy(s + 2, p, plen + 1);
@@ -854,7 +854,7 @@ int runProgram()
 #if _WIN32
         // BUG: what about " appearing in the string?
         if (strchr(a, ' '))
-        {   char *b = (char *)mem.malloc(3 + strlen(a));
+        {   char *b = (char *)mem.xmalloc(3 + strlen(a));
             sprintf(b, "\"%s\"", a);
             a = b;
         }

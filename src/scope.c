@@ -185,7 +185,7 @@ Scope *Scope::pop()
             size_t dim = fieldinit_dim;
             for (size_t i = 0; i < dim; i++)
                 enclosing->fieldinit[i] |= fieldinit[i];
-            mem.free(fieldinit);
+            mem.xfree(fieldinit);
             fieldinit = NULL;
         }
     }
@@ -295,7 +295,7 @@ unsigned *Scope::saveFieldInit()
     if (fieldinit)  // copy
     {
         size_t dim = fieldinit_dim;
-        fi = (unsigned *)mem.malloc(sizeof(unsigned) * dim);
+        fi = (unsigned *)mem.xmalloc(sizeof(unsigned) * dim);
         for (size_t i = 0; i < dim; i++)
             fi[i] = fieldinit[i];
     }

@@ -1067,7 +1067,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 assert(e->op == TOKstring);
 
                 StringExp *se = (StringExp *)e;
-                char *name = (char *)mem.malloc(se->len + 1);
+                char *name = (char *)mem.xmalloc(se->len + 1);
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;
 

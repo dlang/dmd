@@ -1611,7 +1611,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                  */
                 if ((se->len + 1) * se->sz > (e->len + 1) * e->sz)
                 {
-                    void *s = (void *)mem.malloc((se->len + 1) * se->sz);
+                    void *s = (void *)mem.xmalloc((se->len + 1) * se->sz);
                     memcpy(s, se->string, se->len * se->sz);
                     memset((char *)s + se->len * se->sz, 0, se->sz);
                     se->string = s;
@@ -1789,7 +1789,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     // Copy when changing the string literal
                     size_t newsz = se->sz;
                     size_t d = (dim2 < se->len) ? dim2 : se->len;
-                    void *s = (void *)mem.malloc((dim2 + 1) * newsz);
+                    void *s = (void *)mem.xmalloc((dim2 + 1) * newsz);
                     memcpy(s, se->string, d * newsz);
                     // Extend with 0, add terminating 0
                     memset((char *)s + d * newsz, 0, (dim2 + 1 - d) * newsz);

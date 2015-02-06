@@ -1155,7 +1155,7 @@ TOK Lexer::wysiwygStringConstant(Token *t, int tc)
                 {
                     t->len = (unsigned)stringbuffer.offset;
                     stringbuffer.writeByte(0);
-                    t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
+                    t->ustring = (utf8_t *)mem.xmalloc(stringbuffer.offset);
                     memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
                     stringPostfix(t);
                     return TOKstring;
@@ -1226,7 +1226,7 @@ TOK Lexer::hexStringConstant(Token *t)
                 }
                 t->len = (unsigned)stringbuffer.offset;
                 stringbuffer.writeByte(0);
-                t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
+                t->ustring = (utf8_t *)mem.xmalloc(stringbuffer.offset);
                 memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
                 stringPostfix(t);
                 return TOKxstring;
@@ -1414,7 +1414,7 @@ Ldone:
         error("delimited string must end in %c\"", delimright);
     t->len = (unsigned)stringbuffer.offset;
     stringbuffer.writeByte(0);
-    t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
+    t->ustring = (utf8_t *)mem.xmalloc(stringbuffer.offset);
     memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
     stringPostfix(t);
     return TOKstring;
@@ -1449,7 +1449,7 @@ TOK Lexer::tokenStringConstant(Token *t)
                 if (--nest == 0)
                 {
                     t->len = (unsigned)(p - 1 - pstart);
-                    t->ustring = (utf8_t *)mem.malloc(t->len + 1);
+                    t->ustring = (utf8_t *)mem.xmalloc(t->len + 1);
                     memcpy(t->ustring, pstart, t->len);
                     t->ustring[t->len] = 0;
                     stringPostfix(t);
@@ -1516,7 +1516,7 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
             case '"':
                 t->len = (unsigned)stringbuffer.offset;
                 stringbuffer.writeByte(0);
-                t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
+                t->ustring = (utf8_t *)mem.xmalloc(stringbuffer.offset);
                 memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
                 stringPostfix(t);
                 return TOKstring;
@@ -2169,7 +2169,7 @@ void Lexer::poundLine()
                 if (memcmp(p, "__FILE__", 8) == 0)
                 {
                     p += 8;
-                    filespec = mem.strdup(scanloc.filename);
+                    filespec = mem.xstrdup(scanloc.filename);
                     continue;
                 }
                 goto Lerr;
@@ -2193,7 +2193,7 @@ void Lexer::poundLine()
 
                         case '"':
                             stringbuffer.writeByte(0);
-                            filespec = mem.strdup((char *)stringbuffer.data);
+                            filespec = mem.xstrdup((char *)stringbuffer.data);
                             p++;
                             break;
 
@@ -2439,7 +2439,7 @@ const utf8_t *Lexer::combineComments(const utf8_t *c1, const utf8_t *c2)
                 insertNewLine = 1;
             }
 
-            utf8_t *p = (utf8_t *)mem.malloc(len1 + 1 + len2 + 1);
+            utf8_t *p = (utf8_t *)mem.xmalloc(len1 + 1 + len2 + 1);
             memcpy(p, c1, len1 - insertNewLine);
             if (insertNewLine)
                 p[len1 - 1] = '\n';
