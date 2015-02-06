@@ -1337,7 +1337,7 @@ void finalize_array2(void* p, size_t size) nothrow
     {
         si = *cast(TypeInfo_Struct*)(p + size_t.sizeof);
         size = *cast(size_t*)p;
-        p += LARGEPAD;
+        p += LARGEPREFIX;
     }
 
     try
@@ -2669,4 +2669,20 @@ unittest
     assert( test!Exception);
     import core.exception : InvalidMemoryOperationError;
     assert(!test!InvalidMemoryOperationError);
+}
+
+// test bug 14126
+unittest
+{
+    static struct S
+    {
+        S* thisptr;
+        ~this() { assert(&this == thisptr); thisptr = null;}
+    }
+
+    S[] test14126 = new S[2048]; // make sure we allocate at least a PAGE
+    foreach(ref s; test14126)
+    {
+        s.thisptr = &s;
+    }
 }
