@@ -153,12 +153,12 @@ public:
     virtual bool semantic(Scope *sc, TemplateParameters *parameters) = 0;
     virtual void print(RootObject *oarg, RootObject *oded) = 0;
     virtual RootObject *specialization() = 0;
-    virtual RootObject *defaultArg(Loc loc, Scope *sc) = 0;
+    virtual RootObject *defaultArg(Loc instLoc, Scope *sc) = 0;
     virtual bool hasDefaultArg() = 0;
 
     /* Match actual argument against parameter.
      */
-    virtual MATCH matchArg(Loc loc, Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    virtual MATCH matchArg(Loc instLoc, Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     virtual MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam) = 0;
 
     /* Create dummy argument based on parameter.
@@ -186,7 +186,7 @@ public:
     bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
-    RootObject *defaultArg(Loc loc, Scope *sc);
+    RootObject *defaultArg(Loc instLoc, Scope *sc);
     bool hasDefaultArg();
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
@@ -226,7 +226,7 @@ public:
     bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
-    RootObject *defaultArg(Loc loc, Scope *sc);
+    RootObject *defaultArg(Loc instLoc, Scope *sc);
     bool hasDefaultArg();
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
@@ -253,7 +253,7 @@ public:
     bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
-    RootObject *defaultArg(Loc loc, Scope *sc);
+    RootObject *defaultArg(Loc instLoc, Scope *sc);
     bool hasDefaultArg();
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
@@ -274,7 +274,7 @@ public:
     bool semantic(Scope *sc, TemplateParameters *parameters);
     void print(RootObject *oarg, RootObject *oded);
     RootObject *specialization();
-    RootObject *defaultArg(Loc loc, Scope *sc);
+    RootObject *defaultArg(Loc instLoc, Scope *sc);
     bool hasDefaultArg();
     MATCH matchArg(Loc loc, Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);

@@ -1128,7 +1128,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
     unsigned wildmatch = 0;
     size_t inferStart = 0;
 
-    Loc loc = ti->loc;
+    Loc instLoc = ti->loc;
     Objects *tiargs = ti->tiargs;
     Objects *dedargs = new Objects();
     Objects* dedtypes = &ti->tdtypes;   // for T:T*, the dedargs is the T*, dedtypes is the T
@@ -1218,7 +1218,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         {
             assert(i < parameters->dim);
             Declaration *sparam = NULL;
-            MATCH m = (*parameters)[i]->matchArg(loc, paramscope, dedargs, i, parameters, dedtypes, &sparam);
+            MATCH m = (*parameters)[i]->matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, &sparam);
             //printf("\tdeduceType m = %d\n", m);
             if (m <= MATCHnomatch)
                 goto Lnomatch;
@@ -1664,7 +1664,7 @@ Lretry:
                 else if (tb->ty == Taarray)
                 {
                     TypeAArray *taa = (TypeAArray *)tb;
-                    Expression *dim = new IntegerExp(loc, nfargs - argi, Type::tsize_t);
+                    Expression *dim = new IntegerExp(instLoc, nfargs - argi, Type::tsize_t);
 
                     size_t i = templateParameterLookup(taa->index, parameters);
                     if (i == IDX_NOTFOUND)
@@ -1672,7 +1672,7 @@ Lretry:
                         Expression *e;
                         Type *t;
                         Dsymbol *s;
-                        taa->index->resolve(loc, sc, &e, &t, &s);
+                        taa->index->resolve(instLoc, sc, &e, &t, &s);
                         if (!e)
                             goto Lnomatch;
                         e = e->ctfeInterpret();
@@ -1796,7 +1796,7 @@ Lmatch:
                      * the oded == oarg
                      */
                     (*dedargs)[i] = oded;
-                    MATCH m2 = tparam->matchArg(loc, paramscope, dedargs, i, parameters, dedtypes, NULL);
+                    MATCH m2 = tparam->matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, NULL);
                     //printf("m2 = %d\n", m2);
                     if (m2 <= MATCHnomatch)
                         goto Lnomatch;
@@ -1813,7 +1813,7 @@ Lmatch:
             }
             else
             {
-                oded = tparam->defaultArg(loc, paramscope);
+                oded = tparam->defaultArg(instLoc, paramscope);
                 if (!oded)
                 {
                     // if tuple parameter and
@@ -1829,6 +1829,8 @@ Lmatch:
                     else
                         goto Lnomatch;
                 }
+                if (isError(oded))
+                    goto Lerror;
             }
             oded = declareParameter(paramscope, tparam, oded);
             (*dedargs)[i] = oded;
@@ -1875,6 +1877,11 @@ Lmatch:
 Lnomatch:
     paramscope->pop();
     //printf("\tnomatch\n");
+    return MATCHnomatch;
+
+Lerror: // todo: for the future improvement
+    paramscope->pop();
+    //printf("\terror\n");
     return MATCHnomatch;
 }
 
@@ -4626,14 +4633,14 @@ TemplateThisParameter  *TemplateParameter::isTemplateThisParameter()
 /*******************************************
  * Match to a particular TemplateParameter.
  * Input:
- *      i               i'th argument
+ *      instLoc         location that the template is instantiated.
  *      tiargs[]        actual arguments to template instance
+ *      i               i'th argument
  *      parameters[]    template parameters
  *      dedtypes[]      deduced arguments to template instance
  *      *psparam        set to symbol declared and initialized to dedtypes[i]
  */
-
-MATCH TemplateParameter::matchArg(Loc loc, Scope *sc, Objects *tiargs,
+MATCH TemplateParameter::matchArg(Loc instLoc, Scope *sc, Objects *tiargs,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
 {
@@ -4644,7 +4651,7 @@ MATCH TemplateParameter::matchArg(Loc loc, Scope *sc, Objects *tiargs,
     else
     {
         // Get default argument instead
-        oarg = defaultArg(loc, sc);
+        oarg = defaultArg(instLoc, sc);
         if (!oarg)
         {
             assert(i < dedtypes->dim);
@@ -4815,14 +4822,13 @@ RootObject *TemplateTypeParameter::specialization()
     return specType;
 }
 
-
-RootObject *TemplateTypeParameter::defaultArg(Loc loc, Scope *sc)
+RootObject *TemplateTypeParameter::defaultArg(Loc instLoc, Scope *sc)
 {
     Type *t = defaultType;
     if (t)
     {
         t = t->syntaxCopy();
-        t = t->semantic(loc, sc);
+        t = t->semantic(loc, sc);   // use the parameter loc
     }
     return t;
 }
@@ -5088,8 +5094,7 @@ RootObject *TemplateAliasParameter::specialization()
     return specAlias;
 }
 
-
-RootObject *TemplateAliasParameter::defaultArg(Loc loc, Scope *sc)
+RootObject *TemplateAliasParameter::defaultArg(Loc instLoc, Scope *sc)
 {
     RootObject *da = defaultAlias;
     Type *ta = isType(defaultAlias);
@@ -5102,7 +5107,7 @@ RootObject *TemplateAliasParameter::defaultArg(Loc loc, Scope *sc)
        }
     }
 
-    RootObject *o = aliasParameterSemantic(loc, sc, da, NULL);
+    RootObject *o = aliasParameterSemantic(loc, sc, da, NULL);  // use the parameter loc
     return o;
 }
 
@@ -5326,8 +5331,7 @@ RootObject *TemplateValueParameter::specialization()
     return specValue;
 }
 
-
-RootObject *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
+RootObject *TemplateValueParameter::defaultArg(Loc instLoc, Scope *sc)
 {
     Expression *e = defaultValue;
     if (e)
@@ -5335,7 +5339,7 @@ RootObject *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
         e = e->syntaxCopy();
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
-        e = e->resolveLoc(loc, sc);
+        e = e->resolveLoc(instLoc, sc);     // use the instantiated loc
         e = e->optimize(WANTvalue);
     }
     return e;
@@ -5378,7 +5382,7 @@ bool TemplateTupleParameter::semantic(Scope *sc, TemplateParameters *parameters)
     return true;
 }
 
-MATCH TemplateTupleParameter::matchArg(Loc loc, Scope *sc, Objects *tiargs,
+MATCH TemplateTupleParameter::matchArg(Loc instLoc, Scope *sc, Objects *tiargs,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
 {
@@ -5477,8 +5481,7 @@ RootObject *TemplateTupleParameter::specialization()
     return NULL;
 }
 
-
-RootObject *TemplateTupleParameter::defaultArg(Loc loc, Scope *sc)
+RootObject *TemplateTupleParameter::defaultArg(Loc instLoc, Scope *sc)
 {
     return NULL;
 }
