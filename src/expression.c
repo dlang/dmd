@@ -11551,6 +11551,18 @@ Expression *AssignExp::semantic(Scope *sc)
             error("slice %s is not mutable", e1->toChars());
             return new ErrorExp();
         }
+
+        // For conditional operator, both branches need conversion.
+        SliceExp *se = (SliceExp *)e1;
+        while (se->e1->op == TOKslice)
+            se = (SliceExp *)se->e1;
+        if (se->e1->op == TOKquestion &&
+            se->e1->type->toBasetype()->ty == Tsarray)
+        {
+            se->e1 = se->e1->modifiableLvalue(sc, e1);
+            if (se->e1->op == TOKerror)
+                return se->e1;
+        }
     }
     else
     {
