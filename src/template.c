@@ -4829,7 +4829,7 @@ RootObject *TemplateTypeParameter::defaultArg(Loc loc, Scope *sc)
     if (t)
     {
         t = t->syntaxCopy();
-        t = t->semantic(loc, sc);
+        t = t->semantic(this->loc, sc);   // use the parameter loc
     }
     return t;
 }
@@ -5109,7 +5109,7 @@ RootObject *TemplateAliasParameter::defaultArg(Loc loc, Scope *sc)
        }
     }
 
-    RootObject *o = aliasParameterSemantic(loc, sc, da, NULL);
+    RootObject *o = aliasParameterSemantic(this->loc, sc, da, NULL);  // use the parameter loc
     return o;
 }
 
@@ -5342,7 +5342,7 @@ RootObject *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
         e = e->syntaxCopy();
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
-        e = e->resolveLoc(loc, sc);
+        e = e->resolveLoc(loc, sc);     // use the instantiated loc
         e = e->optimize(WANTvalue);
     }
     return e;
