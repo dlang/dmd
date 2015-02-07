@@ -7248,6 +7248,52 @@ static this()
 }
 
 /***************************************************/
+// 13952
+
+struct Reg13952
+{
+    ubyte type;
+    ubyte regNo;
+    ushort size;
+}
+
+struct Imm13952
+{
+    ulong imm;
+}
+
+struct Opnd13952
+{
+    union
+    {
+        Reg13952 reg; // size == 4
+        Imm13952 imm; // size == 8
+    }
+    ubyte tag;
+
+    this(Reg13952 r) { reg = r; }
+}
+
+Opnd13952 opnd13952(Reg13952 reg)
+{
+    return Opnd13952(reg);
+}
+
+void test13952()
+{
+    Reg13952 reg;
+    auto op = opnd13952(reg);
+    auto buf = (cast(ubyte*)&op)[0 .. op.sizeof];
+    //debug
+    //{
+    //    import std.stdio;
+    //    writefln("op.reg = [%(%02x %)]", (cast(ubyte*)&op.reg)[0 .. Reg13952.sizeof]);
+    //    writefln("op.imm = [%(%02x %)]", (cast(ubyte*)&op.imm)[0 .. Imm13952.sizeof]);
+    //}
+    foreach (e; buf) assert(e == 0);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -7548,6 +7594,7 @@ int main()
     test13437();
     test13472();
     test13476();
+    test13952();
 
     printf("Success\n");
     return 0;
