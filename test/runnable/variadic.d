@@ -1494,6 +1494,41 @@ void test9495()
 }
 
 /***************************************/
+
+void copya(int a, string format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+
+    va_list ap2;
+    va_copy(ap2, ap);
+
+    auto a1 = va_arg!int(ap);
+    auto a2 = va_arg!int(ap);
+    auto a3 = va_arg!int(ap);
+
+    assert(a1 == 0x11111111);
+    assert(a2 == 0x22222222);
+    assert(a3 == 0x33333333);
+
+    auto b1 = va_arg!int(ap2);
+    auto b2 = va_arg!int(ap2);
+    auto b3 = va_arg!int(ap2);
+
+    assert(b1 == 0x11111111);
+    assert(b2 == 0x22222222);
+    assert(b3 == 0x33333333);
+
+    va_end(ap);
+    va_end(ap2);
+}
+
+void testCopy()
+{
+    copya(0, "", 0x11111111, 0x22222222, 0x33333333);
+}
+
+/***************************************/
 // 6700
 
 template bug6700(TList ...) {
@@ -1732,6 +1767,7 @@ int main()
     test9017();
     test10414();
     test9495();
+    testCopy();
 
     printf("Success\n");
     return 0;
