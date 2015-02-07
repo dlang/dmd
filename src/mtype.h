@@ -34,9 +34,6 @@ class TypeInfoDeclaration;
 class Dsymbol;
 class TemplateInstance;
 class TemplateDeclaration;
-class TypeEnum;
-class TypeStruct;
-class TypeClass;
 enum LINK;
 
 class TypeBasic;
