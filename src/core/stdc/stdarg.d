@@ -459,10 +459,19 @@ else version (X86_64)
     {
     }
 
+    import core.stdc.stdlib : alloca;
+
     ///
-    void va_copy(out va_list dest, va_list src)
+    void va_copy(out va_list dest, va_list src, void* storage = alloca(__va_list_tag.sizeof))
     {
-        dest = src;
+        // Instead of copying the pointers, and aliasing the source va_list,
+        // the default argument alloca will allocate storage in the caller's
+        // stack frame.  This is still not correct (it should be allocated in
+        // the place where the va_list variable is declared) but most of the
+        // time the caller's stack frame _is_ the place where the va_list is
+        // allocated, so in most cases this will now work.
+        dest = cast(va_list)storage;
+        *dest = *src;
     }
 }
 else
