@@ -77,12 +77,6 @@ void backend_term()
 
 // typinf
 
-Expression *getInternalTypeInfo(Type *t, Scope *sc)
-{
-    assert(0);
-    return NULL;
-}
-
 Expression *getTypeInfo(Type *t, Scope *sc)
 {
     Declaration *ti = new TypeInfoDeclaration(t, 1);

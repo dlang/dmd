@@ -41,65 +41,6 @@ Expression *getTypeInfo(Type *t, Scope *sc);
 TypeInfoDeclaration *getTypeInfoDeclaration(Type *t);
 static bool builtinTypeInfo(Type *t);
 
-/*******************************************
- * Get a canonicalized form of the TypeInfo for use with the internal
- * runtime library routines. Canonicalized in that static arrays are
- * represented as dynamic arrays, enums are represented by their
- * underlying type, etc. This reduces the number of TypeInfo's needed,
- * so we can use the custom internal ones more.
- */
-
-Expression *getInternalTypeInfo(Type *t, Scope *sc)
-{
-    static TypeInfoDeclaration *internalTI[TMAX];
-
-    //printf("Type::getInternalTypeInfo() %s\n", t->toChars());
-    t = t->toBasetype();
-    switch (t->ty)
-    {
-        case Tsarray:
-#if 0
-            // convert to corresponding dynamic array type
-            t = t->nextOf()->mutableOf()->arrayOf();
-#endif
-            break;
-
-        case Tclass:
-            if (((TypeClass *)t)->sym->isInterfaceDeclaration())
-                break;
-            goto Linternal;
-
-        case Tarray:
-            // convert to corresponding dynamic array type
-            t = t->nextOf()->mutableOf()->arrayOf();
-            if (t->nextOf()->ty != Tclass)
-                break;
-            goto Linternal;
-
-        case Tfunction:
-        case Tdelegate:
-        case Tpointer:
-        Linternal:
-        {
-            TypeInfoDeclaration *tid = internalTI[t->ty];
-            if (!tid)
-            {
-                tid = TypeInfoDeclaration::create(t, 1);
-                internalTI[t->ty] = tid;
-            }
-            Expression *e = VarExp::create(Loc(), tid);
-            e = e->addressOf();
-            e->type = tid->type;        // do this so we don't get redundant dereference
-            return e;
-        }
-        default:
-            break;
-    }
-    //printf("\tcalling getTypeInfo() %s\n", t->toChars());
-    return getTypeInfo(t, sc);
-}
-
-
 FuncDeclaration *search_toString(StructDeclaration *sd);
 
 /****************************************************
