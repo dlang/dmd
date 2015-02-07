@@ -1351,7 +1351,7 @@ void MsCoffObj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
  * This gets called if this is the module with "extern (D) main()" in it.
  */
 
-static void emitSectionBrace(const char* segname, const char* symname, int attr)
+static void emitSectionBrace(const char* segname, const char* symname, int attr, MsCoffObj* coffZeroBytes)
 {
     char name[16];
     strcat(strcpy(name, segname), "$A");
@@ -1367,6 +1367,8 @@ static void emitSectionBrace(const char* segname, const char* symname, int attr)
     beg->Sseg = seg_bg;
     beg->Soffset = 0;
     symbuf->write(&beg, sizeof(beg));
+    if (coffZeroBytes) // unnecessary, but required by current runtime
+        coffZeroBytes->bytes(seg_bg, 0, I64 ? 8 : 4, NULL);
 
     /* Create symbol sym_end that sits just after the .seg$B section
      */
@@ -1375,6 +1377,8 @@ static void emitSectionBrace(const char* segname, const char* symname, int attr)
     end->Sseg = seg_en;
     end->Soffset = 0;
     symbuf->write(&end, sizeof(end));
+    if (coffZeroBytes) // unnecessary, but required by current runtime
+        coffZeroBytes->bytes(seg_en, 0, I64 ? 8 : 4, NULL);
 }
 
 void MsCoffObj::ehsections()
@@ -1383,14 +1387,14 @@ void MsCoffObj::ehsections()
 
     int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
     int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | align | IMAGE_SCN_MEM_READ;
-    emitSectionBrace("._deh", "_deh", attr);
-    emitSectionBrace(".minfo", "_minfo", attr);
+    emitSectionBrace("._deh", "_deh", attr, this);
+    emitSectionBrace(".minfo", "_minfo", attr, this);
 
     attr = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_16BYTES | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
-    emitSectionBrace(".data", "_data", attr);
+    emitSectionBrace(".data", "_data", attr, NULL);
 
     attr = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_ALIGN_16BYTES | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
-    emitSectionBrace(".bss", "_bss", attr);
+    emitSectionBrace(".bss", "_bss", attr, NULL);
 
     /*************************************************************************/
 #if 0
