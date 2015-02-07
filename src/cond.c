@@ -172,6 +172,7 @@ bool VersionCondition::isPredefined(const char *ident)
         "Android",
         "Cygwin",
         "MinGW",
+        "FreeStanding",
         "X86",
         "X86_64",
         "ARM",
