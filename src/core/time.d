@@ -791,9 +791,9 @@ public:
                     foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
                     {
                         auto t = TickDuration.from!units(1);
-                        assert(cast(T)cast(D)dur!units(1) == t, units);
+                        assertApprox(cast(T)cast(D)dur!units(1), t - TickDuration(1), t + TickDuration(1), units);
                         t = TickDuration.from!units(2);
-                        assert(cast(T)cast(D)dur!units(2) == t, units);
+                        assertApprox(cast(T)cast(D)dur!units(2), t - TickDuration(1), t + TickDuration(1), units);
                     }
                 }
                 else
