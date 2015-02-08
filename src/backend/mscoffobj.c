@@ -284,7 +284,7 @@ static IDXSTR elf_addmangled(Symbol *s)
 }
 
 /**************************
- * Ouput read only data and generate a symbol for it.
+ * Output read only data and generate a symbol for it.
  *
  */
 
@@ -306,7 +306,6 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
 #endif
     {
         //printf("MsCoffObj::sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
-        assert(0);                      // haven't figured out a section for it
         alignOffset(CDATA, tysize(ty));
         s = symboldata(CDoffset, ty);
         s->Sseg = CDATA;
@@ -314,7 +313,7 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
         MsCoffObj::bytes(CDATA, CDoffset, len, p);
     }
 
-    s->Sfl = FLextern;
+    s->Sfl = FLdata; //FLextern;
     return s;
 }
 
@@ -326,6 +325,7 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
 int MsCoffObj::data_readonly(char *p, int len, segidx_t *pseg)
 {
     int oldoff;
+#if !MARS
     if (I64 || I32)
     {
         oldoff = Doffset;
@@ -335,6 +335,7 @@ int MsCoffObj::data_readonly(char *p, int len, segidx_t *pseg)
         *pseg = DATA;
     }
     else
+#endif
     {
         oldoff = CDoffset;
         SegData[CDATA]->SDbuf->reserve(len);
@@ -422,7 +423,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
                           IMAGE_SCN_ALIGN_1BYTES |
                           IMAGE_SCN_MEM_READ |
                           IMAGE_SCN_MEM_DISCARDABLE);
-    addScnhdr(".data",    IMAGE_SCN_CNT_INITIALIZED_DATA |
+    addScnhdr(".data$B",  IMAGE_SCN_CNT_INITIALIZED_DATA |
                           alignData |
                           IMAGE_SCN_MEM_READ |
                           IMAGE_SCN_MEM_WRITE);             // DATA
@@ -430,10 +431,13 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
                           alignText |
                           IMAGE_SCN_MEM_EXECUTE |
                           IMAGE_SCN_MEM_READ);              // CODE
-    addScnhdr(".bss",     IMAGE_SCN_CNT_UNINITIALIZED_DATA |
+    addScnhdr(".bss$B",   IMAGE_SCN_CNT_UNINITIALIZED_DATA |
                           alignData |
                           IMAGE_SCN_MEM_READ |
-                          IMAGE_SCN_MEM_WRITE);        // UDATA
+                          IMAGE_SCN_MEM_WRITE);             // UDATA
+    addScnhdr(".rdata",   IMAGE_SCN_CNT_INITIALIZED_DATA |
+                          alignData |
+                          IMAGE_SCN_MEM_READ);              // CONST
 
     seg_count = 0;
 
@@ -442,6 +446,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 #define SHI_DATA        3
 #define SHI_TEXT        4
 #define SHI_UDATA       5
+#define SHI_CDATA       6
 
     getsegment2(SHI_TEXT);
     assert(SegData[CODE]->SDseg == CODE);
@@ -449,10 +454,13 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
     getsegment2(SHI_DATA);
     assert(SegData[DATA]->SDseg == DATA);
 
-    segidx_drectve = getsegment2(SHI_DRECTVE);  // put this here just so UDATA can be seg 4
+    getsegment2(SHI_CDATA);
+    assert(SegData[CDATA]->SDseg == CDATA);
 
     getsegment2(SHI_UDATA);
     assert(SegData[UDATA]->SDseg == UDATA);
+
+    segidx_drectve = getsegment2(SHI_DRECTVE);
 
     segidx_debugS  = getsegment2(SHI_DEBUGS);
 
@@ -1343,75 +1351,52 @@ void MsCoffObj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
  * This gets called if this is the module with "extern (D) main()" in it.
  */
 
+static void emitSectionBrace(const char* segname, const char* symname, int attr, MsCoffObj* coffZeroBytes)
+{
+    char name[16];
+    strcat(strcpy(name, segname), "$A");
+    const int seg_bg = MsCoffObj::getsegment(name, attr);
+
+    strcat(strcpy(name, segname), "$C");
+    const int seg_en = MsCoffObj::getsegment(name, attr);
+
+    /* Create symbol sym_beg that sits just before the .seg$B section
+     */
+    strcat(strcpy(name, symname), "_beg");
+    symbol *beg = symbol_name(name, SCglobal, tspvoid);
+    beg->Sseg = seg_bg;
+    beg->Soffset = 0;
+    symbuf->write(&beg, sizeof(beg));
+    if (coffZeroBytes) // unnecessary, but required by current runtime
+        coffZeroBytes->bytes(seg_bg, 0, I64 ? 8 : 4, NULL);
+
+    /* Create symbol sym_end that sits just after the .seg$B section
+     */
+    strcat(strcpy(name, symname), "_end");
+    symbol *end = symbol_name(name, SCglobal, tspvoid);
+    end->Sseg = seg_en;
+    end->Soffset = 0;
+    symbuf->write(&end, sizeof(end));
+    if (coffZeroBytes) // unnecessary, but required by current runtime
+        coffZeroBytes->bytes(seg_en, 0, I64 ? 8 : 4, NULL);
+}
+
 void MsCoffObj::ehsections()
 {
     //printf("MsCoffObj::ehsections()\n");
 
-  {
     int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
+    int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | align | IMAGE_SCN_MEM_READ;
+    emitSectionBrace("._deh", "_deh", attr, this);
+    emitSectionBrace(".minfo", "_minfo", attr, this);
 
-    const int segdeh_bg =
-    MsCoffObj::getsegment("._deh$A", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                     align |
-                                     IMAGE_SCN_MEM_READ);
+    attr = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_16BYTES | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
+    emitSectionBrace(".data", "_data", attr, NULL);
 
-    const int segdeh_en =
-    MsCoffObj::getsegment("._deh$C", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                     align |
-                                     IMAGE_SCN_MEM_READ);
-
-    /* Create symbol _eh_beg that sits just before the ._deh$B section
-     */
-    symbol *eh_beg = symbol_name("_deh_beg", SCglobal, tspvoid);
-    eh_beg->Sseg = segdeh_bg;
-    eh_beg->Soffset = 0;
-    symbuf->write(&eh_beg, sizeof(eh_beg));
-    MsCoffObj::bytes(segdeh_bg, 0, I64 ? 8 * 3 : 4 * 3, NULL);
-
-    /* Create symbol _eh_end that sits just after the ._deh$B section
-     */
-    symbol *eh_end = symbol_name("_deh_end", SCglobal, tspvoid);
-    eh_end->Sseg = segdeh_en;
-    eh_end->Soffset = 0;
-    symbuf->write(&eh_end, sizeof(eh_end));
-    MsCoffObj::bytes(segdeh_en, 0, I64 ? 8 : 4, NULL);
-  }
+    attr = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_ALIGN_16BYTES | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
+    emitSectionBrace(".bss", "_bss", attr, NULL);
 
     /*************************************************************************/
-
-  {
-    /* Module info sections
-     */
-    int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
-
-    const int segbg =
-    MsCoffObj::getsegment(".minfo$A", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                      align |
-                                      IMAGE_SCN_MEM_READ);
-    const int segen =
-    MsCoffObj::getsegment(".minfo$C", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                      align |
-                                      IMAGE_SCN_MEM_READ);
-
-    /* Create symbol _minfo_beg that sits just before the .minfo$B section
-     */
-    symbol *minfo_beg = symbol_name("_minfo_beg", SCglobal, tspvoid);
-    minfo_beg->Sseg = segbg;
-    minfo_beg->Soffset = 0;
-    symbuf->write(&minfo_beg, sizeof(minfo_beg));
-    MsCoffObj::bytes(segbg, 0, I64 ? 8 : 4, NULL);
-
-    /* Create symbol _minfo_end that sits just after the .minfo$B section
-     */
-    symbol *minfo_end = symbol_name("_minfo_end", SCglobal, tspvoid);
-    minfo_end->Sseg = segen;
-    minfo_end->Soffset = 0;
-    symbuf->write(&minfo_end, sizeof(minfo_end));
-    MsCoffObj::bytes(segen, 0, I64 ? 8 : 4, NULL);
-  }
-
-    /*************************************************************************/
-
 #if 0
   {
     /* TLS sections
@@ -1494,7 +1479,7 @@ int MsCoffObj::comdat(Symbol *s)
     {
         s->Sfl = FLdata;
         align = 16;
-        s->Sseg = MsCoffObj::getsegment(".data",  IMAGE_SCN_CNT_INITIALIZED_DATA |
+        s->Sseg = MsCoffObj::getsegment(".data$B",  IMAGE_SCN_CNT_INITIALIZED_DATA |
                                             IMAGE_SCN_LNK_COMDAT |
                                             IMAGE_SCN_ALIGN_16BYTES |
                                             IMAGE_SCN_MEM_READ |
