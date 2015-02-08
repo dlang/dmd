@@ -133,7 +133,7 @@ void test13959()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(144): Error: cannot cast expression mi of type MyInt14154 to MyUbyte14154
+fail_compilation/fail_casting.d(144): Error: cannot cast expression mi.x of type int to MyUbyte14154
 ---
 */
 struct MyUbyte14154 { ubyte x; alias x this; }
@@ -142,4 +142,39 @@ void test14154()
 {
     MyInt14154 mi;
     ubyte t = cast(MyUbyte14154)mi;
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_casting.d(179): Error: cannot cast expression __tup3.__expand_field_0 of type int to object.Object
+fail_compilation/fail_casting.d(179): Error: cannot cast expression __tup3.__expand_field_1 of type int to object.Object
+---
+*/
+alias TypeTuple14093(T...) = T;
+struct Tuple14093(T...)
+{
+    static if (T.length == 4)
+    {
+        alias Types = TypeTuple14093!(T[0], T[2]);
+
+        Types expand;
+
+        @property ref inout(Tuple14093!Types) _Tuple_super() inout @trusted
+        {
+            return *cast(typeof(return)*) &(expand[0]);
+        }
+        alias _Tuple_super this;
+    }
+    else
+    {
+        alias Types = T;
+        Types expand;
+        alias expand this;
+    }
+}
+void test14093()
+{
+    Tuple14093!(int, "x", int, "y") point;
+    auto newPoint = cast(Object)(point);
 }

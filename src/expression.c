@@ -9611,50 +9611,10 @@ Expression *CastExp::semantic(Scope *sc)
     if (tob->ty == Tpointer && t1b->ty == Tdelegate)
         deprecation("casting from %s to %s is deprecated", e1->type->toChars(), to->toChars());
 
-    {
-        // Bugzlla 3133: Struct casts are possible only when the sizes match
-        // Same with static array -> static array
-        if ((t1b->ty == Tsarray || t1b->ty == Tstruct) &&
-            (tob->ty == Tsarray || tob->ty == Tstruct))
-        {
-            if (t1b->size(loc) != tob->size(loc))
-                goto Lfail;
-        }
 
-        // Bugzilla 9178: Tsarray <--> typeof(null)
-        // Bugzilla 9904: Tstruct <--> typeof(null)
-        if (t1b->ty == Tnull && (tob->ty == Tsarray || tob->ty == Tstruct) ||
-            tob->ty == Tnull && (t1b->ty == Tsarray || t1b->ty == Tstruct))
-        {
-            goto Lfail;
-        }
-
-        // Bugzilla 13959: Tstruct <--> Tpointer
-        if ((tob->ty == Tstruct && t1b->ty == Tpointer) ||
-            (t1b->ty == Tstruct && tob->ty == Tpointer))
-        {
-            goto Lfail;
-        }
-
-        // Bugzilla 10646: Tclass <--> (T[] or T[n])
-        if (tob->ty == Tclass && (t1b->ty == Tarray || t1b->ty == Tsarray) ||
-            t1b->ty == Tclass && (tob->ty == Tarray || tob->ty == Tsarray))
-        {
-            goto Lfail;
-        }
-
-        // Bugzilla 11484: (T[] or T[n]) <--> TypeBasic
-        // Bugzilla 11485, 7472: Tclass <--> TypeBasic
-        // Bugzilla 14154L Tstruct <--> TypeBasic
-        if (t1b->isTypeBasic() && (tob->ty == Tarray || tob->ty == Tsarray || tob->ty == Tclass || tob->ty == Tstruct) ||
-            tob->isTypeBasic() && (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Tclass || t1b->ty == Tstruct))
-        {
-            goto Lfail;
-        }
-
-        if (t1b->ty == Tvoid && tob->ty != Tvoid && e1->op != TOKfunction)
-            goto Lfail;
-    }
+    Expression *ex = e1->castTo(sc, to);
+    if (ex->op == TOKerror)
+        return ex;
 
     // Check for unsafe casts
     if (sc->func && !sc->intypeof)
@@ -9720,11 +9680,7 @@ Expression *CastExp::semantic(Scope *sc)
     }
 
 Lsafe:
-    return e1->castTo(sc, to);
-
-Lfail:
-    error("cannot cast expression %s of type %s to %s", e1->toChars(), e1->type->toChars(), to->toChars());
-    return new ErrorExp();
+    return ex;
 }
 
 /************************************************************/

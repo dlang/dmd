@@ -1475,9 +1475,54 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 result->type = t;
                 return;
             }
+
+            // Bugzlla 3133: Struct casts are possible only when the sizes match
+            // Same with static array -> static array
+            if ((t1b->ty == Tsarray || t1b->ty == Tstruct) &&
+                (tob->ty == Tsarray || tob->ty == Tstruct))
+            {
+                if (t1b->size(e->loc) != tob->size(e->loc))
+                    goto Lfail;
+            }
+            // Bugzilla 9178: Tsarray <--> typeof(null)
+            // Bugzilla 9904: Tstruct <--> typeof(null)
+            if (t1b->ty == Tnull && (tob->ty == Tsarray || tob->ty == Tstruct) ||
+                tob->ty == Tnull && (t1b->ty == Tsarray || t1b->ty == Tstruct))
+            {
+                goto Lfail;
+            }
+            // Bugzilla 13959: Tstruct <--> Tpointer
+            if ((tob->ty == Tstruct && t1b->ty == Tpointer) ||
+                (t1b->ty == Tstruct && tob->ty == Tpointer))
+            {
+                goto Lfail;
+            }
+            // Bugzilla 10646: Tclass <--> (T[] or T[n])
+            if (tob->ty == Tclass && (t1b->ty == Tarray || t1b->ty == Tsarray) ||
+                t1b->ty == Tclass && (tob->ty == Tarray || tob->ty == Tsarray))
+            {
+                goto Lfail;
+            }
+            // Bugzilla 11484: (T[] or T[n]) <--> TypeBasic
+            // Bugzilla 11485, 7472: Tclass <--> TypeBasic
+            // Bugzilla 14154L Tstruct <--> TypeBasic
+            if (t1b->isTypeBasic() && (tob->ty == Tarray || tob->ty == Tsarray || tob->ty == Tclass || tob->ty == Tstruct) ||
+                tob->isTypeBasic() && (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Tclass || t1b->ty == Tstruct))
+            {
+                goto Lfail;
+            }
+            if (t1b->ty == Tvoid && tob->ty != Tvoid && e->op != TOKfunction)
+            {
+            Lfail:
+                e->error("cannot cast expression %s of type %s to %s",
+                    e->toChars(), e->type->toChars(), t->toChars());
+                result = new ErrorExp();
+                return;
+            }
+
         L1:
             result = new CastExp(e->loc, e, tob);
-            result->type = t;
+            result->type = t;       // Don't call semantic()
             //printf("Returning: %s\n", result->toChars());
         }
 
@@ -1898,6 +1943,17 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 (*te->exps)[i] = ex;
             }
             result = te;
+
+            /* Questionable behavior: In here, result->type is not set to t.
+             * Therefoe:
+             *  TypeTuple!(int, int) values;
+             *  auto values2 = cast(long)values;
+             *  // typeof(values2) == TypeTuple!(int, int) !!
+             * 
+             * Only when the casted tuple is immediately expanded, it would work.
+             *  auto arr = [cast(long)values];
+             *  // typeof(arr) == long[]
+             */
         }
 
         void visit(ArrayLiteralExp *e)
