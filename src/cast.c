@@ -1403,81 +1403,80 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     return;
                 }
             }
-            result = e;
+
             Type *tb = t->toBasetype();
             Type *typeb = e->type->toBasetype();
-            if (!tb->equals(typeb))
+            if (tb->equals(typeb))
             {
-                // Do (type *) cast of (type [dim])
-                if (tb->ty == Tpointer &&
-                    typeb->ty == Tsarray)
+                result = e->copy();  // because of COW for assignment to e->type
+                result->type = t;
+                return;
+            }
+
+            // Do (type *) cast of (type [dim])
+            if (tb->ty == Tpointer &&
+                typeb->ty == Tsarray)
+            {
+                //printf("Converting [dim] to *\n");
+                result = new AddrExp(e->loc, e);
+                result->type = t;
+                return;
+            }
+
+            if (typeb->ty == Tstruct)
+            {
+                TypeStruct *ts = (TypeStruct *)typeb;
+                if (!(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym) &&
+                    ts->sym->aliasthis)
                 {
-                    //printf("Converting [dim] to *\n");
-                    result = new AddrExp(e->loc, result);
-                }
-                else
-                {
-                    if (typeb->ty == Tstruct)
-                    {
-                        TypeStruct *ts = (TypeStruct *)typeb;
-                        if (!(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym) &&
-                            ts->sym->aliasthis)
-                        {
-                            /* Forward the cast to our alias this member, rewrite to:
-                             *   cast(to)e1.aliasthis
-                             */
-                            Expression *ex = resolveAliasThis(sc, e);
-                            result = ex->castTo(sc, t);
-                            return;
-                        }
-                    }
-                    else if (typeb->ty == Tclass)
-                    {
-                        TypeClass *ts = (TypeClass *)typeb;
-                        if (ts->sym->aliasthis)
-                        {
-                            if (tb->ty == Tclass)
-                            {
-                                ClassDeclaration *cdfrom = typeb->isClassHandle();
-                                ClassDeclaration *cdto   = tb->isClassHandle();
-                                int offset;
-                                if (cdto->isBaseOf(cdfrom, &offset))
-                                     goto L1;
-                            }
-                            /* Forward the cast to our alias this member, rewrite to:
-                             *   cast(to)e1.aliasthis
-                             */
-                            Expression *e1 = resolveAliasThis(sc, e);
-                            Expression *e2 = new CastExp(e->loc, e1, tb);
-                            e2 = e2->semantic(sc);
-                            result = e2;
-                            return;
-                        }
-                    }
-                    else if (tb->ty == Tvector && typeb->ty != Tvector)
-                    {
-                        //printf("test1 e = %s, e->type = %s, tb = %s\n", e->toChars(), e->type->toChars(), tb->toChars());
-                        TypeVector *tv = (TypeVector *)tb;
-                        result = new CastExp(e->loc, result, tv->elementType());
-                        result = new VectorExp(e->loc, result, tb);
-                        result = result->semantic(sc);
-                        return;
-                    }
-                    else if (typeb->implicitConvTo(tb) == MATCHconst && t->equals(e->type->constOf()))
-                    {
-                        result = e->copy();
-                        result->type = t;
-                        return;
-                    }
-                L1:
-                    result = new CastExp(e->loc, result, tb);
+                    /* Forward the cast to our alias this member, rewrite to:
+                     *   cast(to)e1.aliasthis
+                     */
+                    Expression *ex = resolveAliasThis(sc, e);
+                    result = ex->castTo(sc, t);
+                    return;
                 }
             }
-            else
+            else if (typeb->ty == Tclass)
             {
-                result = result->copy();  // because of COW for assignment to e->type
+                TypeClass *ts = (TypeClass *)typeb;
+                if (ts->sym->aliasthis)
+                {
+                    if (tb->ty == Tclass)
+                    {
+                        ClassDeclaration *cdfrom = typeb->isClassHandle();
+                        ClassDeclaration *cdto   = tb->isClassHandle();
+                        int offset;
+                        if (cdto->isBaseOf(cdfrom, &offset))
+                             goto L1;
+                    }
+                    /* Forward the cast to our alias this member, rewrite to:
+                     *   cast(to)e1.aliasthis
+                     */
+                    Expression *e1 = resolveAliasThis(sc, e);
+                    Expression *e2 = new CastExp(e->loc, e1, tb);
+                    e2 = e2->semantic(sc);
+                    result = e2;
+                    return;
+                }
             }
-            assert(result != e);
+            else if (tb->ty == Tvector && typeb->ty != Tvector)
+            {
+                //printf("test1 e = %s, e->type = %s, tb = %s\n", e->toChars(), e->type->toChars(), tb->toChars());
+                TypeVector *tv = (TypeVector *)tb;
+                result = new CastExp(e->loc, e, tv->elementType());
+                result = new VectorExp(e->loc, result, tb);
+                result = result->semantic(sc);
+                return;
+            }
+            else if (typeb->implicitConvTo(tb) == MATCHconst && t->equals(e->type->constOf()))
+            {
+                result = e->copy();
+                result->type = t;
+                return;
+            }
+        L1:
+            result = new CastExp(e->loc, e, tb);
             result->type = t;
             //printf("Returning: %s\n", result->toChars());
         }
