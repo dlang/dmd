@@ -1423,40 +1423,27 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
-            if (t1b->ty == Tstruct)
+            if (AggregateDeclaration *t1ad = isAggregate(t1b))
             {
-                TypeStruct *ts = (TypeStruct *)t1b;
-                if (!(tob->ty == Tstruct && ts->sym == ((TypeStruct *)tob)->sym) &&
-                    ts->sym->aliasthis)
+                AggregateDeclaration *toad = isAggregate(tob);
+                if (t1ad != toad && t1ad->aliasthis)
                 {
-                    /* Forward the cast to our alias this member, rewrite to:
-                     *   cast(to)e1.aliasthis
-                     */
-                    Expression *ex = resolveAliasThis(sc, e);
-                    result = ex->castTo(sc, t);
-                    return;
-                }
-            }
-            else if (t1b->ty == Tclass)
-            {
-                TypeClass *ts = (TypeClass *)t1b;
-                if (ts->sym->aliasthis)
-                {
-                    if (tob->ty == Tclass)
+                    if (t1b->ty == Tclass && tob->ty == Tclass)
                     {
-                        ClassDeclaration *cdfrom = t1b->isClassHandle();
-                        ClassDeclaration *cdto   = tob->isClassHandle();
+                        ClassDeclaration *t1cd = t1b->isClassHandle();
+                        ClassDeclaration *tocd = tob->isClassHandle();
                         int offset;
-                        if (cdto->isBaseOf(cdfrom, &offset))
+                        if (tocd->isBaseOf(t1cd, &offset))
                              goto L1;
                     }
+
                     /* Forward the cast to our alias this member, rewrite to:
                      *   cast(to)e1.aliasthis
                      */
-                    Expression *e1 = resolveAliasThis(sc, e);
-                    Expression *e2 = new CastExp(e->loc, e1, tob);
-                    e2 = e2->semantic(sc);
-                    result = e2;
+                    result = resolveAliasThis(sc, e);
+                    result = result->castTo(sc, t);
+                    //result = new CastExp(e->loc, ex, t);
+                    //result = result->semantic(sc);
                     return;
                 }
             }
