@@ -552,10 +552,17 @@ symbol * Obj::sym_cdata(tym_t ty,char *p,int len)
 
 int Obj::data_readonly(char *p, int len, int *pseg)
 {
+#if MARS
     targ_size_t oldoff = CDoffset;
     Obj::bytes(CDATA,CDoffset,len,p);
     CDoffset += len;
     *pseg = CDATA;
+#else
+    targ_size_t oldoff = Doffset;
+    Obj::bytes(DATA,Doffset,len,p);
+    Doffset += len;
+    *pseg = DATA;
+#endif
     return oldoff;
 }
 
