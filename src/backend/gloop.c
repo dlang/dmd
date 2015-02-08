@@ -1056,6 +1056,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPbsf:
         case OPbsr:
         case OPbswap:
+        case OPpopcnt:
 #if TX86
         case OPsqrt:
         case OPsin:

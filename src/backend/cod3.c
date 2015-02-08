@@ -754,10 +754,14 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             nextb = bs2;
             bl->Bcode = NULL;
         L2:
+            if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
+                !(funcsym_p->ty() & mTYnaked))
+            {
+                //printf("BCiftrue: %s(%u)\n", bl->Bsrcpos.Sfilename ? bl->Bsrcpos.Sfilename : "", bl->Bsrcpos.Slinnum);
+                cgen_linnum(&c,bl->Bsrcpos);
+            }
             if (nextb != bl->Bnext)
-            {   if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
-                    !(funcsym_p->ty() & mTYnaked))
-                    cgen_linnum(&c,bl->Bsrcpos);
+            {
                 assert(!(bl->Bflags & BFLepilog));
                 c = cat(c,genjmp(CNIL,JMP,FLblock,nextb));
             }
@@ -792,8 +796,8 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 #endif
         case BCgoto:
             nextb = list_block(bl->Bsucc);
-            if ((funcsym_p->Sfunc->Fflags3 & Fnteh ||
-                 (MARS /*&& config.flags2 & CFG2seh*/)) &&
+            if (((MARS /*&& config.flags2 & CFG2seh*/) ||
+                 funcsym_p->Sfunc->Fflags3 & Fnteh) &&
                 bl->Btry != nextb->Btry &&
                 nextb->BC != BC_finally)
             {   int toindex;
@@ -1363,7 +1367,7 @@ void doswitch(block *b)
         if (I32 && config.flags3 & CFG3pic)
             retregs &= ~mBX;                            // need EBX for GOT
 #endif
-        bool modify = (vmin || I16 || I64);
+        bool modify = (I16 || I64 || vmin);
         c = scodelem(e,&retregs,0,!modify);
         unsigned reg = findreg(retregs & IDXREGS); // reg that result is in
         unsigned reg2;
@@ -1415,6 +1419,8 @@ void doswitch(block *b)
                 gen2sib(ce,0x63,(REX_W << 16) | modregxrm(0,r2,4), modregxrmx(2,reg,r1)); // MOVSXD R2,[reg*4][R1]
                 gen2sib(ce,LEA,(REX_W << 16) | modregxrm(0,r1,4),modregxrmx(0,r1,r2));    // LEA R1,[R1][R2]
                 gen2(ce,0xFF,modregrmx(3,4,r1));                                          // JMP R1
+
+                pinholeopt(ce, NULL);
 
                 b->Btablesize = (int) (vmax - vmin + 1) * 4;
             }
@@ -1862,19 +1868,23 @@ int jmpopcode(elem *e)
         e = e->E2;                      /* right operand determines it  */
 
   op = e->Eoper;
+  tym_t tymx = tybasic(e->Ety);
+  bool needsNanCheck = tyfloating(tymx) && config.inline8087 &&
+    (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
+     tymx == TYcdouble || tymx == TYcfloat ||
+     op == OPind ||
+     (OTcall(op) && (regmask(tymx, tybasic(e->E1->Eoper)) & (mST0 | XMMREGS))));
   if (e->Ecount != e->Ecomsub)          // comsubs just get Z bit set
-        return JNE;
+  {
+        if (needsNanCheck) // except for floating point values that need a NaN check
+            return XP|JNE;
+        else
+            return JNE;
+  }
   if (!OTrel(op))                       // not relational operator
   {
-        tym_t tymx = tybasic(e->Ety);
-        if (tyfloating(tymx) && config.inline8087 &&
-            (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
-             tymx == TYcdouble || tymx == TYcfloat ||
-             op == OPind ||
-             (OTcall(op) && (regmask(tymx, tybasic(e->E1->Eoper)) & (mST0 | XMMREGS)))))
-        {
+        if (needsNanCheck)
             return XP|JNE;
-        }
         return ((op >= OPbt && op <= OPbts) || op == OPbtst) ? JC : JNE;
   }
 
@@ -4058,7 +4068,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
         if (config.wflags & WFssneds ||
             // If DS needs reloading from SS,
             // then assume SS != DS on thunk entry
-            (config.wflags & WFss && LARGEDATA))
+            (LARGEDATA && config.wflags & WFss))
             c1->Iflags |= CFss;                         /* SS:          */
         c = cat(c,c1);
     }
@@ -4110,7 +4120,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
             if (config.wflags & WFssneds ||
                 // If DS needs reloading from SS,
                 // then assume SS != DS on thunk entry
-                (config.wflags & WFss && LARGEDATA))
+                (LARGEDATA && config.wflags & WFss))
                 c1->Iflags |= CFss;                     /* SS:          */
 
             /* MOV/LES BX,[ES:]d2[BX] */
@@ -5239,7 +5249,8 @@ void pinholeopt(code *c,block *b)
             }
 
             // Replace [R13] with 0[R13]
-            if (c->Irex & REX_B && (c->Irm & modregrm(3,0,5)) == modregrm(0,0,5))
+            if (c->Irex & REX_B && ((c->Irm & modregrm(3,0,7)) == modregrm(0,0,BP) ||
+                                    issib(c->Irm) && (c->Irm & modregrm(3,0,0)) == 0 && (c->Isib & 7) == BP))
             {
                 c->Irm |= modregrm(1,0,0);
                 c->IFL1 = FLconst;
@@ -5386,7 +5397,7 @@ void simplify_code(code* c)
         (c->Iop == 0x81 || c->Iop == 0x80) &&
         c->IFL2 == FLconst &&
         reghasvalue((c->Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c->IEV2.Vsize_t : c->IEV2.Vlong,&reg) &&
-        !(c->Iflags & CFopsize && I16)
+        !(I16 && c->Iflags & CFopsize)
        )
     {
         // See if we can replace immediate instruction with register instruction

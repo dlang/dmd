@@ -774,7 +774,7 @@ STATIC void defstarkill()
 
 #if 1
 /* The following program fails for this:
-import std.c.stdio;
+import core.stdc.stdio;
 
 class Foo
 {
@@ -974,6 +974,7 @@ STATIC void accumaecpx(elem *n)
             vec_free(Kr);
             break;
         }
+        case OPddtor:
         case OPasm:
             assert(!n->Eexp);                   // no ASM available expressions
             vec_set(KILL);                      // KILL everything

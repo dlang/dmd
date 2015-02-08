@@ -286,6 +286,7 @@ cd_t cdmul;
 cd_t cdnot;
 cd_t cdcom;
 cd_t cdbswap;
+cd_t cdpopcnt;
 cd_t cdcond;
 void WRcodlst (code *c );
 cd_t cdcomma;

@@ -1438,6 +1438,11 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         }
         else if (e->EV.sp.Voffset)
             s->Sflags &= ~GTregcand;
+
+        if (config.fpxmmregs && tyfloating(s->ty()) && !tyfloating(ty))
+            // Can't successfully mix XMM register variables accessed as integers
+            s->Sflags &= ~GTregcand;
+
         if (!(keepmsk & RMstore))               // if not store only
             s->Sflags |= SFLread;               // assume we are doing a read
         break;
@@ -2298,7 +2303,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             {
                 cgot = load_localgot();     // EBX gets set to this value
             }
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD
             switch (clib)
             {
                 case CLIBldiv:
@@ -2349,7 +2354,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         }
         if (pushebx)
         {
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD
             c = gen1(c, 0x50 + CX);                             // PUSH ECX
             c = gen1(c, 0x50 + BX);                             // PUSH EBX
             c = gen1(c, 0x50 + DX);                             // PUSH EDX
@@ -2844,22 +2849,26 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     if (v ^ (preg != mreg))
                     {
                         if (preg != lreg)
+                        {
                             if (mask[preg] & XMMREGS)
                             {   unsigned op = xmmload(ty1);            // MOVSS/D preg,lreg
                                 c1 = gen2(c1,op,modregxrmx(3,preg-XMM0,lreg-XMM0));
                             }
                             else
                                 c1 = genmovreg(c1, preg, lreg);
+                        }
                     }
                     else
                     {
                         if (preg2 != mreg)
+                        {
                             if (mask[preg2] & XMMREGS)
                             {   unsigned op = xmmload(ty2);            // MOVSS/D preg2,mreg
                                 c1 = gen2(c1,op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
                             }
                             else
                                 c1 = genmovreg(c1, preg2, mreg);
+                        }
                     }
                 }
 
@@ -3086,17 +3095,10 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (s == tls_get_addr_sym)
             {
-                if (I32)
+                if (I64)
                 {
-                    /* Append a NOP so GNU linker has patch room
+                    /* Prepend 66 66 48 so GNU linker has patch room
                      */
-                    ce = gen1(ce, 0x90);        // NOP
-                    code_orflag(ce, CFvolatile);    // don't schedule it
-                }
-                else
-                {   /* Prepend 66 66 48 so GNU linker has patch room
-                     */
-                    assert(I64);
                     ce->Irex = REX | REX_W;
                     ce = cat(gen1(CNIL, 0x66), ce);
                     ce = cat(gen1(CNIL, 0x66), ce);

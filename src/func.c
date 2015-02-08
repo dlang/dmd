@@ -386,7 +386,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 // This function is covariant with fdv
                 if (fdv->isFinal())
                     error("cannot override final function %s", fdv->toPrettyChars());
-                
+
                 if (!isOverride() &&
                         (global.params.enabledV2hints & V2MODEoverride) &&
                         sc->module && sc->module->isRoot())
