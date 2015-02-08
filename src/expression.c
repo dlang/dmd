@@ -42,6 +42,7 @@
 #include "nspace.h"
 #include "ctfe.h"
 
+bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2);
 bool isArrayOpValid(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
@@ -11423,8 +11424,21 @@ Expression *AssignExp::semantic(Scope *sc)
                         ex = ex->optimize(WANTvalue);
                         ex = ex->modifiableLvalue(sc, ex);  // allocate new slot
                         ey = new ConstructExp(loc, ex, ey);
+                        ey = ey->semantic(sc);
+                        if (ey->op == TOKerror)
+                            return ey;
+                        ex = e;
 
-                        e = new CondExp(loc, new InExp(loc, ek, ea), e, ey);
+                        // Bugzilla 14144: The whole expression should have the common type
+                        // of opAssign() return and assigned AA entry.
+                        // Even if there's no common type, expression should be typed as void.
+                        Type *t = NULL;
+                        if (!typeMerge(sc, TOKquestion, &t, &ex, &ey))
+                        {
+                            ex = new CastExp(ex->loc, ex, Type::tvoid);
+                            ey = new CastExp(ey->loc, ey, Type::tvoid);
+                        }
+                        e = new CondExp(loc, new InExp(loc, ek, ea), ex, ey);
                     }
                     e = combine(e0, e);
                     e = e->semantic(sc);
