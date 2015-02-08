@@ -1551,7 +1551,8 @@ Lretry:
 
                 oarg = argtype;
             }
-            else if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
+            else if ((fparam->storageClass & STCout) == 0 &&
+                     (argtype->ty == Tarray || argtype->ty == Tpointer) &&
                      templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND &&
                      ((TypeIdentifier *)prmtype)->idents.dim == 0)
             {
@@ -1622,6 +1623,8 @@ Lretry:
             if (m > MATCHnomatch && (fparam->storageClass & STCout))
             {
                 if (!farg->isLvalue())
+                    goto Lnomatch;
+                if (!farg->type->isMutable())   // Bugzilla 11916
                     goto Lnomatch;
             }
             if (m == MATCHnomatch && (fparam->storageClass & STClazy) && prmtype->ty == Tvoid &&
@@ -2580,17 +2583,11 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
         tf->next = NULL;
     fd->type = tf;
     fd->type = fd->type->addSTC(scx->stc);
-
-    unsigned olderrors = global.startGagging();
     fd->type = fd->type->semantic(fd->loc, scx);
     scx = scx->pop();
 
-    if (global.endGagging(olderrors))
-    {
-        if (fd->type->ty != Tfunction)
-            return NULL;
-    }
-    assert(fd->type->ty == Tfunction);
+    if (fd->type->ty != Tfunction)
+        return NULL;
 
     fd->originalType = fd->type;    // for mangling
     //printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
