@@ -26,7 +26,7 @@
 #include "init.h"
 #include "tokens.h"
 
-bool isCommutative(Expression *e);
+bool isCommutative(TOK op);
 
 /* ==================== implicitCast ====================== */
 
@@ -2460,10 +2460,9 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
  *      false   failed
  */
 
-bool typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
+bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2)
 {
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
-    //e->print();
 
     MATCH m;
     Expression *e1 = *pe1;
@@ -2471,7 +2470,7 @@ bool typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression
     Type *t1b = e1->type->toBasetype();
     Type *t2b = e2->type->toBasetype();
 
-    if (e->op != TOKquestion ||
+    if (op != TOKquestion ||
         t1b->ty != t2b->ty && (t1b->isTypeBasic() && t2b->isTypeBasic()))
     {
         e1 = integralPromotions(e1, sc);
@@ -2691,9 +2690,9 @@ Lagain:
         if (t1->ty == Tsarray && e2->op == TOKarrayliteral)
             goto Lt1;
         if (m == MATCHconst &&
-            (e->op == TOKaddass || e->op == TOKminass || e->op == TOKmulass ||
-             e->op == TOKdivass || e->op == TOKmodass || e->op == TOKpowass ||
-             e->op == TOKandass || e->op == TOKorass  || e->op == TOKxorass)
+            (op == TOKaddass || op == TOKminass || op == TOKmulass ||
+             op == TOKdivass || op == TOKmodass || op == TOKpowass ||
+             op == TOKandass || op == TOKorass  || op == TOKxorass)
            )
         {
             // Don't make the lvalue const
@@ -3016,7 +3015,7 @@ Lcc:
     {
         goto Lt2;
     }
-    else if (t1->ty == Tarray && isBinArrayOp(e->op) && isArrayOpOperand(e1))
+    else if (t1->ty == Tarray && isBinArrayOp(op) && isArrayOpOperand(e1))
     {
         if (e2->implicitConvTo(t1->nextOf()))
         {
@@ -3051,7 +3050,7 @@ Lcc:
         else
             goto Lincompatible;
     }
-    else if (t2->ty == Tarray && isBinArrayOp(e->op) && isArrayOpOperand(e2))
+    else if (t2->ty == Tarray && isBinArrayOp(op) && isArrayOpOperand(e2))
     {
         if (e1->implicitConvTo(t2->nextOf()))
         {
@@ -3069,13 +3068,13 @@ Lcc:
         else
             goto Lincompatible;
 
-        //printf("test %s\n", e->toChars());
+        //printf("test %s\n", Token::toChars(op));
         e1 = e1->optimize(WANTvalue);
-        if (e && isCommutative(e) && e1->isConst())
+        if (isCommutative(op) && e1->isConst())
         {
             /* Swap operands to minimize number of functions generated
              */
-            //printf("swap %s\n", e->toChars());
+            //printf("swap %s\n", Token::toChars(op));
             Expression *tmp = e1;
             e1 = e2;
             e2 = tmp;
@@ -3133,7 +3132,7 @@ Expression *typeCombine(BinExp *be, Scope *sc)
             goto Lerror;
     }
 
-    if (!typeMerge(sc, be, &be->type, &be->e1, &be->e2))
+    if (!typeMerge(sc, be->op, &be->type, &be->e1, &be->e2))
         goto Lerror;
     // If the types have no value, return an error
     if (be->e1->op == TOKerror)

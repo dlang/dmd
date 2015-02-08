@@ -41,24 +41,39 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id);
  * to fit operator overload.
  */
 
-bool isCommutative(Expression *e)
+bool isCommutative(TOK op)
 {
-    class CommutativeVisitor : public Visitor
+    switch (op)
     {
-    public:
-        bool result;
-        void visit(Expression *e) { result = false; }
-        void visit(AddExp *e)     { result = true; }
-        void visit(MulExp *e)     { result = true; }
-        void visit(AndExp *e)     { result = true; }
-        void visit(OrExp *e)      { result = true; }
-        void visit(XorExp *e)     { result = true; }
-        void visit(EqualExp *e)   { result = true; }
-        void visit(CmpExp *e)     { result = true; }
-    };
-    CommutativeVisitor v;
-    e->accept(&v);
-    return v.result;
+        case TOKadd:
+        case TOKmul:
+        case TOKand:
+        case TOKor:
+        case TOKxor:
+
+        // EqualExp
+        case TOKequal:
+        case TOKnotequal:
+
+        // CmpExp
+        case TOKlt:
+        case TOKle:
+        case TOKgt:
+        case TOKge:
+        case TOKunord:
+        case TOKlg:
+        case TOKleg:
+        case TOKule:
+        case TOKul:
+        case TOKuge:
+        case TOKug:
+        case TOKue:
+            return true;
+
+        default:
+            break;
+    }
+    return false;
 }
 
 /***********************************
@@ -723,7 +738,7 @@ Expression *op_overload(Expression *e, Scope *sc)
 
         L1:
         #if 1 // Retained for D1 compatibility
-            if (isCommutative(e) && !tiargs)
+            if (isCommutative(e->op) && !tiargs)
             {
                 s = NULL;
                 s_r = NULL;

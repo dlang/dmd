@@ -1262,6 +1262,34 @@ void test14089()
 }
 
 /************************************************/
+// 14144
+
+struct JSON14144
+{
+    union
+    {
+        double _floating;
+    }
+
+    this(typeof(null))
+    {
+    }
+
+    @trusted pure nothrow typeof(null) opAssign(typeof(null) nothing)
+    {
+        return null;
+    }
+}
+
+void test14144()
+{
+    JSON14144[string] x;
+    x["wat"] = null;
+    assert(x.length == 1);
+    assert("wat" in x);
+}
+
+/************************************************/
 
 int main()
 {
@@ -1315,5 +1343,3 @@ int main()
     printf("Success\n");
     return 0;
 }
-
-
