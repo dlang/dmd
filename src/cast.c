@@ -849,23 +849,17 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             size_t nparams = Parameter::dim(tf->parameters);
             size_t j = (tf->linkage == LINKd && tf->varargs == 1); // if TypeInfoArray was prepended
-            for (size_t i = j; i <= e->arguments->dim; ++i)
+            if (e->e1->op == TOKdotvar)
             {
-                if (i == e->arguments->dim)
-                {
-                    if (e->e1->op == TOKdotvar)
-                    {
-                        /* Treat 'this' as just another function argument
-                         */
-                        DotVarExp *dve = (DotVarExp *)e->e1;
-                        Type *targ = dve->e1->type;
-                        if (targ->toBasetype()->ty == Tstruct)
-                            targ = targ->pointerTo();
-                        if (targ->implicitConvTo(targ->addMod(mod)) == MATCHnomatch)
-                            return;
-                    }
-                    continue;
-                }
+                /* Treat 'this' as just another function argument
+                 */
+                DotVarExp *dve = (DotVarExp *)e->e1;
+                Type *targ = dve->e1->type;
+                if (targ->constConv(targ->castMod(mod)) == MATCHnomatch)
+                    return;
+            }
+            for (size_t i = j; i < e->arguments->dim; ++i)
+            {
                 Expression *earg = (*e->arguments)[i];
                 Type *targ = earg->type->toBasetype();
 #if LOG
@@ -1125,9 +1119,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 /* Treat 'this' as just another function argument
                  */
                 Type *targ = e->thisexp->type;
-                if (targ->toBasetype()->ty == Tstruct)
-                    targ = targ->pointerTo();
-                if (targ->implicitConvTo(targ->addMod(mod)) == MATCHnomatch)
+                if (targ->constConv(targ->castMod(mod)) == MATCHnomatch)
                     return;
             }
 
@@ -1138,9 +1130,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
             {
                 if (!fd)
                     continue;
-                TypeFunction *tf = (TypeFunction *)fd->type->toBasetype();
-                if (tf->ty != Tfunction || ((TypeFunction *)tf)->purity == PUREimpure)
-                    return;     // error or impure
+                if (fd->errors || fd->type->ty != Tfunction)
+                    return;     // error
+                TypeFunction *tf = (TypeFunction *)fd->type;
+                if (tf->purity == PUREimpure)
+                    return;     // impure
 
                 Expressions *args = (fd == e->allocator) ? e->newargs : e->arguments;
 
@@ -1163,9 +1157,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             continue;
                         if (fparam->storageClass & (STCout | STCref))
                         {
-                            tparam = tparam->pointerTo();
-                            targ = targ->pointerTo();
-                            if (targ->implicitConvTo(tparam->addMod(mod)) == MATCHnomatch)
+                            if (targ->constConv(tparam->castMod(mod)) == MATCHnomatch)
                                 return;
                             continue;
                         }
