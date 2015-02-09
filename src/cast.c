@@ -819,11 +819,33 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             if (tf->purity == PUREimpure)
                 return;
-
-            /* See if fail only because of mod bits
-             */
-            if (e->type->immutableOf()->implicitConvTo(t->immutableOf()) == MATCHnomatch)
+            if (e->f && e->f->isNested())
                 return;
+
+            /* See if fail only because of mod bits.
+             *
+             * Bugzilla 14155: All pure functions can access global immutable data.
+             * So the returned pointer may refer an immutable global data,
+             * and then the returned pointer that points non-mutable object
+             * cannot be unique pointer.
+             *
+             * Example:
+             *  immutable g;
+             *  static this() { g = 1; }
+             *  const(int*) foo() pure { return &g; }
+             *  void test() {
+             *    immutable(int*) ip = foo(); // OK
+             *    int* mp = foo();            // should be disallowed
+             *  }
+             */
+            if (e->type->immutableOf()->implicitConvTo(t) < MATCHconst &&
+                e->type->addMod(MODshared)->implicitConvTo(t) < MATCHconst &&
+                e->type->implicitConvTo(t->addMod(MODshared)) < MATCHconst)
+            {
+                return;
+            }
+            // Allow a conversion to immutable type, or
+            // conversions of mutable types between thread-local and shared.
 
             /* Get mod bits of what we're converting to
              */
@@ -1135,6 +1157,18 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 TypeFunction *tf = (TypeFunction *)fd->type;
                 if (tf->purity == PUREimpure)
                     return;     // impure
+
+                if (fd == e->member)
+                {
+                    if (e->type->immutableOf()->implicitConvTo(t) < MATCHconst &&
+                        e->type->addMod(MODshared)->implicitConvTo(t) < MATCHconst &&
+                        e->type->implicitConvTo(t->addMod(MODshared)) < MATCHconst)
+                    {
+                        return;
+                    }
+                    // Allow a conversion to immutable type, or
+                    // conversions of mutable types between thread-local and shared.
+                }
 
                 Expressions *args = (fd == e->allocator) ? e->newargs : e->arguments;
 
