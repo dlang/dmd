@@ -1883,10 +1883,20 @@ else
 
     ///
     double  fabs(double x);
-    ///
-    float   fabsf(float x);
-    ///
-    real    fabsl(real x);
+    version(CRuntime_Microsoft)
+    {
+        ///
+        float   fabsf(float x) { return fabs(x); }
+        ///
+        real    fabsl(real x) { return fabs(x); }
+    }
+    else
+    {
+        ///
+        float   fabsf(float x);
+        ///
+        real    fabsl(real x);        
+    }
 
     ///
     double  hypot(double x, double y);
