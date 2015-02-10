@@ -1640,9 +1640,14 @@ void FuncDeclaration::semantic3(Scope *sc)
                     sc2->callSuper = 0;
 
                     // Insert implicit super() at start of fbody
-                    if (!resolveFuncCall(Loc(), sc2, cd->baseClass->ctor, NULL, NULL, NULL, 1))
+                    FuncDeclaration *fd = resolveFuncCall(Loc(), sc2, cd->baseClass->ctor, NULL, NULL, NULL, 1);
+                    if (!fd)
                     {
                         error("no match for implicit super() call in constructor");
+                    }
+                    else if (fd->storage_class & STCdisable)
+                    {
+                        error("cannot call super() implicitly because it is annotated with @disable");
                     }
                     else
                     {
