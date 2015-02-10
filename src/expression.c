@@ -9641,8 +9641,9 @@ Expression *CastExp::semantic(Scope *sc)
 
         // Bugzilla 11484: (T[] or T[n]) <--> TypeBasic
         // Bugzilla 11485, 7472: Tclass <--> TypeBasic
-        if (t1b->isTypeBasic() && (tob->ty == Tarray || tob->ty == Tsarray || tob->ty == Tclass) ||
-            tob->isTypeBasic() && (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Tclass))
+        // Bugzilla 14154L Tstruct <--> TypeBasic
+        if (t1b->isTypeBasic() && (tob->ty == Tarray || tob->ty == Tsarray || tob->ty == Tclass || tob->ty == Tstruct) ||
+            tob->isTypeBasic() && (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Tclass || t1b->ty == Tstruct))
         {
             goto Lfail;
         }
