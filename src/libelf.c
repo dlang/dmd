@@ -192,8 +192,8 @@ void OmToHeader(Header *h, ObjModule *om) {
     if (om->group_id > 999999)
         om->group_id = 0;
     size_t len;
-    if (om->name_offset == -1) {
-        // "name/           1423563789  5000  5000  100640  3068      `\n"
+    if (om->name_offset == -1)
+    {   // "name/           1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //        name       file_time   u_id gr_id  fmode    fsize   trailer
         len = sprintf(buffer, "%-16s%-12llu%-6u%-6u%-8o%-10u`", om->name,
@@ -203,8 +203,8 @@ void OmToHeader(Header *h, ObjModule *om) {
         const size_t name_length = strlen(om->name);
         assert(name_length < OBJECT_NAME_SIZE);
         buffer[name_length] = '/';
-    } else {
-        // "/162007         1423563789  5000  5000  100640  3068      `\n"
+    } else
+    {   // "/162007         1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //     name_offset   file_time   u_id gr_id  fmode    fsize   trailer
         len = sprintf(buffer, "/%-15d%-12llu%-6u%-6u%-8o%-10u`",
