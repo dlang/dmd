@@ -129,3 +129,17 @@ void test13959()
     { int*  x; auto y = cast(S)x; }     // no error so it's rewritten as: S(x)
     { void* x; auto y = cast(S)x; }
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_casting.d(144): Error: cannot cast expression mi of type MyInt14154 to MyUbyte14154
+---
+*/
+struct MyUbyte14154 { ubyte x; alias x this; }
+struct MyInt14154   {   int x; alias x this; }
+void test14154()
+{
+    MyInt14154 mi;
+    ubyte t = cast(MyUbyte14154)mi;
+}
