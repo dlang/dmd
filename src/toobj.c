@@ -438,7 +438,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             dtsize_t(&dt, 0);            // null for now, fix later
 
             // defaultConstructor
-            if (cd->defaultCtor)
+            if (cd->defaultCtor && !(cd->defaultCtor->storage_class & STCdisable))
                 dtxoff(&dt, toSymbol(cd->defaultCtor), 0, TYnptr);
             else
                 dtsize_t(&dt, 0);
