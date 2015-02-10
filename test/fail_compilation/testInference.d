@@ -153,3 +153,15 @@ void bar14049() pure
 {
     foo14049(1);
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/testInference.d(166): Error: pure function 'testInference.f14160' cannot access mutable static data 'g14160'
+---
+*/
+int g14160;
+int* f14160() pure
+{
+    return &g14160; // should be rejected
+}
