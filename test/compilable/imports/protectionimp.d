@@ -1,18 +1,18 @@
 private
 {
-  class privC {}
-  struct privS {}
-  interface privI {}
-  union privU {}
-  enum privE { foo }
-  void privF() {}
-  mixin template privMT() {}
+    void privF() {}
+    class privC {}
+    struct privS {}
+    union privU {}
+    interface privI {}
+    enum privE { foo }
+    mixin template privMT() {}
 
-  class privTC(T) {}
-  struct privTS(T) {}
-  interface privTI(T) {}
-  union privTU(T) {}
-  void privTF(T)() {}
+    void privTF(T)() {}
+    class privTC(T) {}
+    struct privTS(T) {}
+    union privTU(T) {}
+    interface privTI(T) {}
 }
 
 void publF(T)() {}
