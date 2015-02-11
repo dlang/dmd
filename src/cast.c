@@ -1403,82 +1403,113 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     return;
                 }
             }
-            result = e;
-            Type *tb = t->toBasetype();
-            Type *typeb = e->type->toBasetype();
-            if (!tb->equals(typeb))
+
+            Type *tob = t->toBasetype();
+            Type *t1b = e->type->toBasetype();
+            if (tob->equals(t1b))
             {
-                // Do (type *) cast of (type [dim])
-                if (tb->ty == Tpointer &&
-                    typeb->ty == Tsarray)
+                result = e->copy();  // because of COW for assignment to e->type
+                result->type = t;
+                return;
+            }
+
+            // Do (type *) cast of (type [dim])
+            if (tob->ty == Tpointer &&
+                t1b->ty == Tsarray)
+            {
+                //printf("Converting [dim] to *\n");
+                result = new AddrExp(e->loc, e);
+                result->type = t;
+                return;
+            }
+
+            if (AggregateDeclaration *t1ad = isAggregate(t1b))
+            {
+                AggregateDeclaration *toad = isAggregate(tob);
+                if (t1ad != toad && t1ad->aliasthis)
                 {
-                    //printf("Converting [dim] to *\n");
-                    result = new AddrExp(e->loc, result);
-                }
-                else
-                {
-                    if (typeb->ty == Tstruct)
+                    if (t1b->ty == Tclass && tob->ty == Tclass)
                     {
-                        TypeStruct *ts = (TypeStruct *)typeb;
-                        if (!(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym) &&
-                            ts->sym->aliasthis)
-                        {
-                            /* Forward the cast to our alias this member, rewrite to:
-                             *   cast(to)e1.aliasthis
-                             */
-                            Expression *ex = resolveAliasThis(sc, e);
-                            result = ex->castTo(sc, t);
-                            return;
-                        }
+                        ClassDeclaration *t1cd = t1b->isClassHandle();
+                        ClassDeclaration *tocd = tob->isClassHandle();
+                        int offset;
+                        if (tocd->isBaseOf(t1cd, &offset))
+                             goto L1;
                     }
-                    else if (typeb->ty == Tclass)
-                    {
-                        TypeClass *ts = (TypeClass *)typeb;
-                        if (ts->sym->aliasthis)
-                        {
-                            if (tb->ty == Tclass)
-                            {
-                                ClassDeclaration *cdfrom = typeb->isClassHandle();
-                                ClassDeclaration *cdto   = tb->isClassHandle();
-                                int offset;
-                                if (cdto->isBaseOf(cdfrom, &offset))
-                                     goto L1;
-                            }
-                            /* Forward the cast to our alias this member, rewrite to:
-                             *   cast(to)e1.aliasthis
-                             */
-                            Expression *e1 = resolveAliasThis(sc, e);
-                            Expression *e2 = new CastExp(e->loc, e1, tb);
-                            e2 = e2->semantic(sc);
-                            result = e2;
-                            return;
-                        }
-                    }
-                    else if (tb->ty == Tvector && typeb->ty != Tvector)
-                    {
-                        //printf("test1 e = %s, e->type = %s, tb = %s\n", e->toChars(), e->type->toChars(), tb->toChars());
-                        TypeVector *tv = (TypeVector *)tb;
-                        result = new CastExp(e->loc, result, tv->elementType());
-                        result = new VectorExp(e->loc, result, tb);
-                        result = result->semantic(sc);
-                        return;
-                    }
-                    else if (typeb->implicitConvTo(tb) == MATCHconst && t->equals(e->type->constOf()))
-                    {
-                        result = e->copy();
-                        result->type = t;
-                        return;
-                    }
-                L1:
-                    result = new CastExp(e->loc, result, tb);
+
+                    /* Forward the cast to our alias this member, rewrite to:
+                     *   cast(to)e1.aliasthis
+                     */
+                    result = resolveAliasThis(sc, e);
+                    result = result->castTo(sc, t);
+                    //result = new CastExp(e->loc, ex, t);
+                    //result = result->semantic(sc);
+                    return;
                 }
             }
-            else
+            else if (tob->ty == Tvector && t1b->ty != Tvector)
             {
-                result = result->copy();  // because of COW for assignment to e->type
+                //printf("test1 e = %s, e->type = %s, tob = %s\n", e->toChars(), e->type->toChars(), tob->toChars());
+                TypeVector *tv = (TypeVector *)tob;
+                result = new CastExp(e->loc, e, tv->elementType());
+                result = new VectorExp(e->loc, result, tob);
+                result = result->semantic(sc);
+                return;
             }
-            assert(result != e);
-            result->type = t;
+            else if (t1b->implicitConvTo(tob) == MATCHconst && t->equals(e->type->constOf()))
+            {
+                result = e->copy();
+                result->type = t;
+                return;
+            }
+
+            // Bugzlla 3133: Struct casts are possible only when the sizes match
+            // Same with static array -> static array
+            if ((t1b->ty == Tsarray || t1b->ty == Tstruct) &&
+                (tob->ty == Tsarray || tob->ty == Tstruct))
+            {
+                if (t1b->size(e->loc) != tob->size(e->loc))
+                    goto Lfail;
+            }
+            // Bugzilla 9178: Tsarray <--> typeof(null)
+            // Bugzilla 9904: Tstruct <--> typeof(null)
+            if (t1b->ty == Tnull && (tob->ty == Tsarray || tob->ty == Tstruct) ||
+                tob->ty == Tnull && (t1b->ty == Tsarray || t1b->ty == Tstruct))
+            {
+                goto Lfail;
+            }
+            // Bugzilla 13959: Tstruct <--> Tpointer
+            if ((tob->ty == Tstruct && t1b->ty == Tpointer) ||
+                (t1b->ty == Tstruct && tob->ty == Tpointer))
+            {
+                goto Lfail;
+            }
+            // Bugzilla 10646: Tclass <--> (T[] or T[n])
+            if (tob->ty == Tclass && (t1b->ty == Tarray || t1b->ty == Tsarray) ||
+                t1b->ty == Tclass && (tob->ty == Tarray || tob->ty == Tsarray))
+            {
+                goto Lfail;
+            }
+            // Bugzilla 11484: (T[] or T[n]) <--> TypeBasic
+            // Bugzilla 11485, 7472: Tclass <--> TypeBasic
+            // Bugzilla 14154L Tstruct <--> TypeBasic
+            if (t1b->isTypeBasic() && (tob->ty == Tarray || tob->ty == Tsarray || tob->ty == Tclass || tob->ty == Tstruct) ||
+                tob->isTypeBasic() && (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Tclass || t1b->ty == Tstruct))
+            {
+                goto Lfail;
+            }
+            if (t1b->ty == Tvoid && tob->ty != Tvoid && e->op != TOKfunction)
+            {
+            Lfail:
+                e->error("cannot cast expression %s of type %s to %s",
+                    e->toChars(), e->type->toChars(), t->toChars());
+                result = new ErrorExp();
+                return;
+            }
+
+        L1:
+            result = new CastExp(e->loc, e, tob);
+            result->type = t;       // Don't call semantic()
             //printf("Returning: %s\n", result->toChars());
         }
 
@@ -1899,6 +1930,17 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 (*te->exps)[i] = ex;
             }
             result = te;
+
+            /* Questionable behavior: In here, result->type is not set to t.
+             * Therefoe:
+             *  TypeTuple!(int, int) values;
+             *  auto values2 = cast(long)values;
+             *  // typeof(values2) == TypeTuple!(int, int) !!
+             * 
+             * Only when the casted tuple is immediately expanded, it would work.
+             *  auto arr = [cast(long)values];
+             *  // typeof(arr) == long[]
+             */
         }
 
         void visit(ArrayLiteralExp *e)

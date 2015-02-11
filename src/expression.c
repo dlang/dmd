@@ -9542,129 +9542,79 @@ Expression *CastExp::semantic(Scope *sc)
         return e1x;
     e1 = e1x;
 
-    if (e1->type)               // if not a tuple
-    {
-        if (!to)
-        {
-            /* Handle cast(const) and cast(immutable), etc.
-             */
-            to = e1->type->castMod(mod);
-        }
-        else
-            to = to->semantic(loc, sc);
-        if (to == Type::terror)
-            return new ErrorExp();
-        if (to->ty == Ttuple)
-        {
-            error("cannot cast %s to tuple type %s", e1->toChars(), to->toChars());
-            return new ErrorExp();
-        }
-
-        // cast(void) is used to mark e1 as unused, so it is safe
-        if (to->ty == Tvoid)
-            goto Lsafe;
-
-        if (!to->equals(e1->type) && mod == (unsigned char)~0)
-        {
-            Expression *e = op_overload(sc);
-            if (e)
-                return e->implicitCastTo(sc, to);
-        }
-
-        if (e1->op == TOKtemplate)
-        {
-            error("cannot cast template %s to type %s", e1->toChars(), to->toChars());
-            return new ErrorExp();
-        }
-
-        Type *t1b = e1->type->toBasetype();
-        Type *tob = to->toBasetype();
-
-        if (tob->ty == Tstruct && !tob->equals(t1b))
-        {
-            /* Look to replace:
-             *  cast(S)t
-             * with:
-             *  S(t)
-             */
-
-            // Rewrite as to.call(e1)
-            Expression *e = new TypeExp(loc, to);
-            e = new CallExp(loc, e, e1);
-            e = e->trySemantic(sc);
-            if (e)
-                return e;
-        }
-
-        if (!t1b->equals(tob) && (t1b->ty == Tarray || t1b->ty == Tsarray))
-        {
-            if (checkNonAssignmentArrayOp(e1))
-                return new ErrorExp;
-        }
-
-        // Bugzlla 3133: Struct casts are possible only when the sizes match
-        // Same with static array -> static array
-        if ((t1b->ty == Tsarray || t1b->ty == Tstruct) &&
-            (tob->ty == Tsarray || tob->ty == Tstruct))
-        {
-            if (t1b->size(loc) != tob->size(loc))
-                goto Lfail;
-        }
-
-        // Bugzilla 9178: Tsarray <--> typeof(null)
-        // Bugzilla 9904: Tstruct <--> typeof(null)
-        if (t1b->ty == Tnull && (tob->ty == Tsarray || tob->ty == Tstruct) ||
-            tob->ty == Tnull && (t1b->ty == Tsarray || t1b->ty == Tstruct))
-        {
-            goto Lfail;
-        }
-
-        // Bugzilla 13959: Tstruct <--> Tpointer
-        if ((tob->ty == Tstruct && t1b->ty == Tpointer) ||
-            (t1b->ty == Tstruct && tob->ty == Tpointer))
-        {
-            goto Lfail;
-        }
-
-        // Bugzilla 10646: Tclass <--> (T[] or T[n])
-        if (tob->ty == Tclass && (t1b->ty == Tarray || t1b->ty == Tsarray) ||
-            t1b->ty == Tclass && (tob->ty == Tarray || tob->ty == Tsarray))
-        {
-            goto Lfail;
-        }
-
-        // Look for casting to a vector type
-        if (tob->ty == Tvector && t1b->ty != Tvector)
-        {
-            return new VectorExp(loc, e1, to);
-        }
-
-        // Bugzilla 11484: (T[] or T[n]) <--> TypeBasic
-        // Bugzilla 11485, 7472: Tclass <--> TypeBasic
-        // Bugzilla 14154L Tstruct <--> TypeBasic
-        if (t1b->isTypeBasic() && (tob->ty == Tarray || tob->ty == Tsarray || tob->ty == Tclass || tob->ty == Tstruct) ||
-            tob->isTypeBasic() && (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Tclass || t1b->ty == Tstruct))
-        {
-            goto Lfail;
-        }
-
-        if (tob->ty == Tpointer && t1b->ty == Tdelegate)
-            deprecation("casting from %s to %s is deprecated", e1->type->toChars(), to->toChars());
-
-        if (t1b->ty == Tvoid && tob->ty != Tvoid && e1->op != TOKfunction)
-            goto Lfail;
-    }
-    else if (!to)
-    {
-        error("cannot cast tuple");
-        return new ErrorExp();
-    }
-
     if (!e1->type)
     {
         error("cannot cast %s", e1->toChars());
         return new ErrorExp();
     }
+
+    if (!to)    // Handle cast(const) and cast(immutable), etc.
+        to = e1->type->castMod(mod);
+    to = to->semantic(loc, sc);
+    if (to == Type::terror)
+        return new ErrorExp();
+    if (to->ty == Ttuple)
+    {
+        error("cannot cast %s to tuple type %s", e1->toChars(), to->toChars());
+        return new ErrorExp();
+    }
+    if (e1->op == TOKtemplate)
+    {
+        error("cannot cast template %s to type %s", e1->toChars(), to->toChars());
+        return new ErrorExp();
+    }
+
+    // cast(void) is used to mark e1 as unused, so it is safe
+    if (to->ty == Tvoid)
+    {
+        type = to;
+        return this;
+    }
+
+    if (!to->equals(e1->type) && mod == (unsigned char)~0)
+    {
+        if (Expression *e = op_overload(sc))
+            return e->implicitCastTo(sc, to);
+    }
+
+    Type *t1b = e1->type->toBasetype();
+    Type *tob = to->toBasetype();
+
+    if (tob->ty == Tstruct && !tob->equals(t1b))
+    {
+        /* Look to replace:
+         *  cast(S)t
+         * with:
+         *  S(t)
+         */
+
+        // Rewrite as to.call(e1)
+        Expression *e = new TypeExp(loc, to);
+        e = new CallExp(loc, e, e1);
+        e = e->trySemantic(sc);
+        if (e)
+            return e;
+    }
+
+    if (!t1b->equals(tob) && (t1b->ty == Tarray || t1b->ty == Tsarray))
+    {
+        if (checkNonAssignmentArrayOp(e1))
+            return new ErrorExp;
+    }
+
+    // Look for casting to a vector type
+    if (tob->ty == Tvector && t1b->ty != Tvector)
+    {
+        return new VectorExp(loc, e1, to);
+    }
+
+    if (tob->ty == Tpointer && t1b->ty == Tdelegate)
+        deprecation("casting from %s to %s is deprecated", e1->type->toChars(), to->toChars());
+
+
+    Expression *ex = e1->castTo(sc, to);
+    if (ex->op == TOKerror)
+        return ex;
 
     // Check for unsafe casts
     if (sc->func && !sc->intypeof)
@@ -9730,16 +9680,7 @@ Expression *CastExp::semantic(Scope *sc)
     }
 
 Lsafe:
-    if (to->ty == Tvoid)
-    {
-        type = to;
-        return this;
-    }
-    return e1->castTo(sc, to);
-
-Lfail:
-    error("cannot cast expression %s of type %s to %s", e1->toChars(), e1->type->toChars(), to->toChars());
-    return new ErrorExp();
+    return ex;
 }
 
 /************************************************************/
