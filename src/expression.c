@@ -2457,6 +2457,8 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 
 void Expression::checkPurity(Scope *sc, VarDeclaration *v)
 {
+    //printf("v = %s %s\n", v->type->toChars(), v->toChars());
+
     /* Look for purity and safety violations when accessing variable v
      * from current function.
      */
@@ -5163,6 +5165,9 @@ Expression *VarExp::semantic(Scope *sc)
         hasOverloads = 0;
         if (!vd->checkNestedReference(sc, loc))
             return new ErrorExp();
+        // Bugzilla 12025: If the variable is not actually used in runtime code,
+        // the purity violation error is redundant.
+        //checkPurity(sc, vd);
     }
     else if (FuncDeclaration *fd = var->isFuncDeclaration())
     {
@@ -9061,7 +9066,7 @@ Expression *AddrExp::semantic(Scope *sc)
                 f->tookAddressOf++;
 
             Expression *e;
-            if ( f->needThis())
+            if (f->needThis())
                 e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
             else // It is a function pointer. Convert &v.f() --> (v, &V.f())
                 e = new CommaExp(loc, dve->e1, new AddrExp(loc, new VarExp(loc, f)));
@@ -9093,6 +9098,8 @@ Expression *AddrExp::semantic(Scope *sc)
                         sc->func->toChars());
                 }
             }
+
+            ve->checkPurity(sc, v);
         }
 
         FuncDeclaration *f = ve->var->isFuncDeclaration();
