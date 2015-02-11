@@ -5905,6 +5905,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // Declare each template parameter as an alias for the argument type
     Scope *paramscope = scope->push();
     paramscope->stc = 0;
+    paramscope->protection = Prot(PROTpublic);  // Bugzilla 14169: template parameters should be public
     declareParameters(paramscope);
     paramscope->pop();
 

@@ -1,5 +1,7 @@
 import imports.protectionimp;
 
+alias TypeTuple(T...) = T;
+
 private
 {
     void localF() {}
@@ -72,3 +74,22 @@ void main()
     static assert( __traits(compiles, publMT));
 }
 
+/***************************************************/
+// 14169
+
+template staticMap14169(alias fun, T...)
+{
+    static if (T.length > 0)
+        alias staticMap14169 = TypeTuple!(fun!(T[0]), staticMap14169!(fun, T[1..$]));
+    else
+        alias staticMap14169 = TypeTuple!();
+}
+
+class C14169
+{
+    private struct InnerStruct(string NameS)
+    {
+        alias Name = NameS;
+    }
+    alias DimensionNames = staticMap14169!(GetName14169, InnerStruct!"A");
+}

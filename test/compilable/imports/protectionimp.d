@@ -20,3 +20,11 @@ void publFA(alias A)() {}
 private alias privC privA;
 
 public mixin template publMT() {}
+
+/***************************************************/
+// 14169
+
+template GetName14169(TemplateParam)
+{
+    enum GetName14169 = TemplateParam.Name;
+}
