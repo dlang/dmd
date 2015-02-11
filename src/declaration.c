@@ -1309,7 +1309,7 @@ Lnomatch:
             ei->exp = inferType(ei->exp, type);
 
         // If inside function, there is no semantic3() call
-        if (sc->func)
+        if (sc->func || sc->intypeof == 1)
         {
             // If local variable, use AssignExp to handle all the various
             // possibilities.
@@ -1380,7 +1380,8 @@ Lnomatch:
             }
             else
             {
-                init = init->semantic(sc, type, INITinterpret);
+                // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
+                init = init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
             }
         }
         else if (parent->isAggregateDeclaration())
@@ -1525,7 +1526,8 @@ void VarDeclaration::semantic2(Scope *sc)
             printf("type = %p\n", ei->exp->type);
         }
 #endif
-        init = init->semantic(sc, type, INITinterpret);
+        // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
+        init = init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
         inuse--;
     }
     if (storage_class & STCmanifest)

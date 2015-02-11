@@ -10157,12 +10157,14 @@ Expression *opAssignToOp(Loc loc, TOK op, Expression *e1, Expression *e2)
  */
 
 Expression *ArrayLengthExp::rewriteOpAssign(BinExp *exp)
-{   Expression *e;
+{
+    Expression *e;
 
     assert(exp->e1->op == TOKarraylength);
     ArrayLengthExp *ale = (ArrayLengthExp *)exp->e1;
     if (ale->e1->op == TOKvar)
-    {   e = opAssignToOp(exp->loc, exp->op, ale, exp->e2);
+    {
+        e = opAssignToOp(exp->loc, exp->op, ale, exp->e2);
         e = new AssignExp(exp->loc, ale->syntaxCopy(), e);
     }
     else

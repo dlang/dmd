@@ -751,3 +751,52 @@ void test13564()
 {
     auto c = new C13564!int();
 }
+
+/***************************************************/
+// 14166
+
+struct Proxy14166(T)
+{
+    T* ptr;
+    ref deref() { return *ptr; }
+    alias deref this;
+}
+struct Test14166
+{
+    auto opIndex() { return this; }
+    auto opIndex(int) { return 1; }
+}
+template Elem14166a(R) { alias Elem14166a = typeof(R.init[][0]); }
+template Elem14166b(R) { alias Elem14166b = typeof(R.init[0]); }
+void test14166()
+{
+    alias T = Proxy14166!Test14166;
+    static assert(is(Elem14166a!T == int));     // rejects-valid case
+    static assert(is(Elem14166b!T == int));     // regression case
+}
+
+// other related cases
+struct S14166
+{
+    int x;
+    double y;
+    int[] a;
+    S14166 opUnary(string op : "++")() { return this;  }
+}
+S14166 s14166;
+
+struct X14166 { this(int) { } X14166 opAssign(int) { return this; } }
+X14166[int] aa14166;
+X14166[int] makeAA14166() { return aa14166; }
+
+struct Tup14166(T...) { T field; alias field this; }
+Tup14166!(int, int) tup14166;
+Tup14166!(int, int) makeTup14166() { return tup14166; }
+
+pragma(msg, typeof((s14166.x += 1) = 2));    // ok <- error
+pragma(msg, typeof(s14166.a.length += 2));   // ok <- error
+pragma(msg, typeof(s14166++));               // ok <- error
+pragma(msg, typeof(s14166.x ^^ 2));          // ok <- error
+pragma(msg, typeof(s14166.y ^^= 2.5));       // ok <- error
+pragma(msg, typeof(makeAA14166()[0] = 1));   // ok <- error
+pragma(msg, typeof(tup14166.field = makeTup14166()));   // ok <- error
