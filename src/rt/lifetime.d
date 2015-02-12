@@ -1163,14 +1163,7 @@ struct Array
  */
 extern (C) void _d_delarray(void[]* p)
 {
-    if (p)
-    {
-        assert(!(*p).length || (*p).ptr);
-
-        if ((*p).ptr)
-            GC.free((*p).ptr);
-        *p = null;
-    }
+    _d_delarray_t(p, null);
 }
 
 debug(PRINTF)
@@ -1193,24 +1186,53 @@ extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct ti)
 {
     if (p)
     {
-        assert(!(*p).length || (*p).ptr);
-        if ((*p).ptr)
+        auto bic = __getBlkInfo(p.ptr);
+        auto info = bic ? *bic : GC.query(p.ptr);
+
+        if (info.base && (info.attr & BlkAttr.APPENDABLE))
         {
             if (ti) // ti non-null only if ti is a struct with dtor
-                finalize_array(p.ptr, p.length * ti.tsize, ti);
-
-            // if p is in the cache, clear it as well
-            if(auto bic = __getBlkInfo((*p).ptr))
             {
-                // clear the data from the cache, it's being deleted.
-                bic.base = null;
+                void* start = __arrayStart(info);
+                size_t length = __arrayAllocLength(info, ti);
+                finalize_array(start, length, ti);
             }
-            GC.free((*p).ptr);
+
+            // if p is in the cache, clear it there as well
+            if(bic)
+                bic.base = null;
+
+            GC.free(info.base);
+            *p = null;
         }
-        *p = null;
     }
 }
 
+unittest
+{
+    __gshared size_t countDtor = 0;
+    struct S 
+    {
+        int x;
+        ~this() { countDtor++; }
+    }
+    // destroy large array with x.ptr not base address of allocation
+    auto x = new S[10000];
+    void* p = x.ptr;
+    assert(GC.addrOf(p) != null);
+    delete x;
+    assert(GC.addrOf(p) == null);
+    assert(countDtor == 10000);
+
+    // destroy full array even if only slice passed
+    auto y = new S[400];
+    auto z = y[200 .. 300];
+    p = z.ptr;
+    assert(GC.addrOf(p) != null);
+    delete z;
+    assert(GC.addrOf(p) == null);
+    assert(countDtor == 10000 + 400);
+}
 
 /**
  *
