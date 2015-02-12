@@ -1834,9 +1834,40 @@ Lmatch:
                 }
                 if (isError(oded))
                     goto Lerror;
+                ntargs++;
+
+                /* At the template parameter T, the picked default template argument
+                 * X!int should be matched to T in order to deduce dependent
+                 * template parameter A.
+                 *  auto foo(T : X!A = X!int, A...)() { ... }
+                 *  foo();  // T <-- X!int, A <-- (int)
+                 */
+                if (tparam->specialization())
+                {
+                    (*dedargs)[i] = oded;
+                    MATCH m2 = tparam->matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, NULL);
+                    //printf("m2 = %d\n", m2);
+                    if (m2 <= MATCHnomatch)
+                        goto Lnomatch;
+                    if (m2 < matchTiargs)
+                        matchTiargs = m2;             // pick worst match
+                    if (!(*dedtypes)[i]->equals(oded))
+                        error("specialization not allowed for deduced parameter %s", tparam->ident->toChars());
+                }
             }
             oded = declareParameter(paramscope, tparam, oded);
-            (*dedargs)[i] = oded;
+
+            /* Bugzilla 7469: Normalize ti->tiargs for the correct mangling of template instance.
+             */
+            if (Tuple *va = isTuple(oded))
+            {
+                dedargs->setDim(parameters->dim - 1 + va->objects.dim);
+                for (size_t j = 0; j < va->objects.dim; j++)
+                    (*dedargs)[i + j] = va->objects[j];
+                i = dedargs->dim - 1;
+            }
+            else
+                (*dedargs)[i] = oded;
         }
     }
 
@@ -1858,7 +1889,7 @@ Lmatch:
         if (!fd)
             goto Lnomatch;
     }
-    ti->tiargs = dedargs;
+    ti->tiargs = dedargs;   // update to the normalized template arguments.
     if (constraint)
     {
         if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
@@ -6645,6 +6676,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             error("incompatible arguments for template instantiation");
             return false;
         }
+        // TODO: Normalizing tiargs for bugzilla 7469 is necessary?
         return true;
     }
 
@@ -6765,8 +6797,8 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 
     if (td_last)
     {
-        /* Bugzilla 7469: Normalize template value arguments by using corresponding
-         * template value parameter types for correct mangling.
+        /* Bugzilla 7469: Normalize tiargs by using corresponding deduced
+         * template value parameters and tuples for the correct mangling.
          *
          * By doing this before hasNestedArgs, CTFEable local variable will be
          * accepted as a value parameter. For example:
@@ -6791,6 +6823,13 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             // tdtypes[i] is already normalized to the required type in matchArg
 
             (*tiargs)[i] = tdtypes[i];
+        }
+        if (td_last->isVariadic() && tiargs->dim == dim && tdtypes[dim])
+        {
+            Tuple *va = isTuple(tdtypes[dim]);
+            assert(va);
+            for (size_t i = 0; i < va->objects.dim; i++)
+                tiargs->push(va->objects[i]);
         }
     }
     else if (errors && inst)
