@@ -637,6 +637,7 @@ struct GC
                         debug (MEMSTOMP) memset(p + psize, 0xF0, size - psize);
                         debug(PRINTF) printFreeInfo(pool);
                         memset(&lpool.pagetable[pagenum + psz], B_PAGEPLUS, newsz - psz);
+                        gcx.usedLargePages += newsz - psz;
                         lpool.freepages -= (newsz - psz);
                         debug(PRINTF) printFreeInfo(pool);
                     }
@@ -759,6 +760,7 @@ struct GC
             memset(lpool.pagetable + pagenum + psz, B_PAGEPLUS, sz);
             lpool.updateOffsets(pagenum);
             lpool.freepages -= sz;
+            gcx.usedLargePages += sz;
             return (psz + sz) * PAGESIZE;
         }
     }
@@ -1216,9 +1218,7 @@ struct GC
         // when collecting.
         {
             gcLock.lock();
-            gcx.noStack++;
-            gcx.fullcollect();
-            gcx.noStack--;
+            gcx.fullcollect(true);
             gcLock.unlock();
         }
     }
@@ -1366,11 +1366,10 @@ struct Gcx
     Treap!Root roots;
     Treap!Range ranges;
 
-    uint noStack;       // !=0 means don't scan stack
-    uint log;           // turn on logging
-    uint inited;
-    uint running;
-    int disabled;       // turn off collections if >0
+    bool log; // turn on logging
+    debug(INVARIANT) bool initialized;
+    bool running;
+    uint disabled; // turn off collections if >0
 
     import gc.pooltable;
     @property size_t npools() pure const nothrow { return pooltable.length; }
@@ -1378,16 +1377,23 @@ struct Gcx
 
     List*[B_PAGE] bucket; // free list for each small size
 
+    // run a collection when reaching those thresholds (number of used pages)
+    float smallCollectThreshold, largeCollectThreshold;
+    uint usedSmallPages, usedLargePages;
+    // total number of mapped pages
+    uint mappedPages;
 
     void initialize()
-    {   int dummy;
-
+    {
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
         log_init();
         roots.initialize();
         ranges.initialize();
+        smallCollectThreshold = largeCollectThreshold = 0.0f;
+        usedSmallPages = usedLargePages = 0;
+        mappedPages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
-        inited = 1;
+        debug(INVARIANT) initialized = true;
     }
 
 
@@ -1414,15 +1420,16 @@ struct Gcx
                    pauseTime, maxPause);
         }
 
-        inited = 0;
+        debug(INVARIANT) initialized = false;
 
         for (size_t i = 0; i < npools; i++)
         {
             Pool *pool = pooltable[i];
-
+            mappedPages -= pool.npages;
             pool.Dtor();
             cstdlib.free(pool);
         }
+        assert(!mappedPages);
         pooltable.Dtor();
 
         roots.removeAll();
@@ -1436,7 +1443,7 @@ struct Gcx
     debug(INVARIANT)
     invariant()
     {
-        if (inited)
+        if (initialized)
         {
             //printf("Gcx.invariant(): this = %p\n", &this);
             pooltable.Invariant();
@@ -1680,6 +1687,31 @@ struct Gcx
         return pool.npages * PAGESIZE;
     }
 
+    /**
+     * Update the thresholds for when to collect the next time
+     */
+    void updateCollectThresholds() nothrow
+    {
+        static float max(float a, float b) nothrow
+        {
+            return a >= b ? a : b;
+        }
+
+        // instantly increases, slowly decreases
+        static float smoothDecay(float oldVal, float newVal) nothrow
+        {
+            // decay to 63.2% of newVal over 5 collections
+            // http://en.wikipedia.org/wiki/Low-pass_filter#Simple_infinite_impulse_response_filter
+            enum alpha = 1.0 / (5 + 1);
+            immutable decay = (newVal - oldVal) * alpha + oldVal;
+            return max(newVal, decay);
+        }
+
+        immutable smTarget = usedSmallPages * GC.config.heapSizeFactor;
+        smallCollectThreshold = smoothDecay(smallCollectThreshold, smTarget);
+        immutable lgTarget = usedLargePages * GC.config.heapSizeFactor;
+        largeCollectThreshold = smoothDecay(largeCollectThreshold, lgTarget);
+    }
 
     /**
      * Minimizes physical memory usage by returning free pools to the OS.
@@ -1691,11 +1723,17 @@ struct Gcx
         foreach (pool; pooltable.minimize())
         {
             debug(PRINTF) printFreeInfo(pool);
+            mappedPages -= pool.npages;
             pool.Dtor();
             cstdlib.free(pool);
         }
 
         debug(PRINTF) printf("Done minimizing.\n");
+    }
+
+    private @property bool lowMem() const nothrow
+    {
+        return isLowOnMem(mappedPages * PAGESIZE);
     }
 
     void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
@@ -1724,19 +1762,20 @@ struct Gcx
 
         if (!tryAlloc())
         {
-            if (disabled)
+            if (!lowMem && (disabled || usedSmallPages < smallCollectThreshold))
             {
-                // disabled => allocate a new pool instead of collecting
+                // disabled or threshold not reached => allocate a new pool instead of collecting
                 if (!newPool(1, false))
                 {
-                    // disabled but out of memory => try to free some memory
+                    // out of memory => try to free some memory
                     fullcollect();
+                    if (lowMem) minimize();
                 }
             }
-            else if (fullcollect() < npools * ((POOLSIZE / PAGESIZE) / 8))
+            else
             {
-                // very little memory was freed => allocate a new pool for anticipated heap growth
-                newPool(1, false);
+                fullcollect();
+                if (lowMem) minimize();
             }
             // tryAlloc will succeed if a new pool was allocated above, if it fails allocate a new pool now
             if (!tryAlloc() && (!newPool(1, false) || !tryAlloc()))
@@ -1793,9 +1832,9 @@ struct Gcx
 
         if (!tryAlloc())
         {
-            if (disabled)
+            if (!lowMem && (disabled || usedLargePages < largeCollectThreshold))
             {
-                // disabled => allocate a new pool instead of collecting
+                // disabled or threshold not reached => allocate a new pool instead of collecting
                 if (!tryAllocNewPool())
                 {
                     // disabled but out of memory => try to free some memory
@@ -1805,11 +1844,8 @@ struct Gcx
             }
             else
             {
-                immutable nfreed = fullcollect();
+                fullcollect();
                 minimize();
-                // very little memory was freed => allocate a new pool for anticipated heap growth
-                if (nfreed < npools * ((POOLSIZE / PAGESIZE) / 4))
-                    tryAllocNewPool();
             }
             // If alloc didn't yet succeed retry now that we collected/minimized
             if (!pool && !tryAlloc() && !tryAllocNewPool())
@@ -1823,6 +1859,7 @@ struct Gcx
         if (npages > 1)
             memset(&pool.pagetable[pn + 1], B_PAGEPLUS, npages - 1);
         pool.updateOffsets(pn);
+        usedLargePages += npages;
         pool.freepages -= npages;
 
         debug(PRINTF) printFreeInfo(pool);
@@ -1885,13 +1922,12 @@ struct Gcx
             }
         }
 
+        mappedPages += npages;
+
         if (GC.config.profile)
         {
-            size_t gcmem = 0;
-            foreach (i; 0 .. npools)
-                gcmem += pooltable[i].topAddr - pooltable[i].baseAddr;
-            if(gcmem > maxPoolMemory)
-                maxPoolMemory = gcmem;
+            if (mappedPages * PAGESIZE > maxPoolMemory)
+                maxPoolMemory = mappedPages * PAGESIZE;
         }
         return pool;
     }
@@ -1910,7 +1946,10 @@ struct Gcx
             if(pool.isLargeObject)
                 continue;
             if (List* p = (cast(SmallObjectPool*)pool).allocPage(bin))
+            {
+                ++usedSmallPages;
                 return p;
+            }
         }
         return null;
     }
@@ -2139,9 +2178,9 @@ struct Gcx
     }
 
     // collection step 2: mark roots and heap
-    void markAll() nothrow
+    void markAll(bool nostack) nothrow
     {
-        if (!noStack)
+        if (!nostack)
         {
             debug(COLLECT_PRINTF) printf("\tscan stacks.\n");
             // Scan stacks and registers for each paused thread
@@ -2171,8 +2210,8 @@ struct Gcx
     {
         // Free up everything not marked
         debug(COLLECT_PRINTF) printf("\tfree'ing\n");
-        size_t freedpages = 0;
-        size_t freed = 0;
+        size_t freedLargePages;
+        size_t freed;
         for (size_t n = 0; n < npools; n++)
         {
             size_t pn;
@@ -2205,7 +2244,7 @@ struct Gcx
                         log_free(q);
                         pool.pagetable[pn] = B_FREE;
                         if(pn < pool.searchStart) pool.searchStart = pn;
-                        freedpages++;
+                        freedLargePages++;
                         pool.freepages++;
 
                         debug (MEMSTOMP) memset(p, 0xF3, PAGESIZE);
@@ -2219,7 +2258,7 @@ struct Gcx
                             // we updated it.
 
                             pool.freepages++;
-                            freedpages++;
+                            freedLargePages++;
 
                             debug (MEMSTOMP)
                             {   p += PAGESIZE;
@@ -2279,8 +2318,10 @@ struct Gcx
             }
         }
 
-        debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n", freed, freedpages, npools);
-        return freedpages;
+        assert(freedLargePages <= usedLargePages);
+        usedLargePages -= freedLargePages;
+        debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n", freed, freedLargePages, npools);
+        return freedLargePages;
     }
 
     // collection step 4: recover pages with no live objects, rebuild free lists
@@ -2293,7 +2334,7 @@ struct Gcx
 
         // Free complete pages, rebuild free list
         debug(COLLECT_PRINTF) printf("\tfree complete pages\n");
-        size_t recoveredpages = 0;
+        size_t freedSmallPages;
         for (size_t n = 0; n < npools; n++)
         {
             size_t pn;
@@ -2325,7 +2366,7 @@ struct Gcx
                     pool.pagetable[pn] = B_FREE;
                     if(pn < pool.searchStart) pool.searchStart = pn;
                     pool.freepages++;
-                    recoveredpages++;
+                    freedSmallPages++;
                     continue;
 
                 Lnotfree:
@@ -2347,14 +2388,16 @@ struct Gcx
         foreach (ref next; tail)
             *next = null;
 
-        debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", recoveredpages);
-        return recoveredpages;
+        assert(freedSmallPages <= usedSmallPages);
+        usedSmallPages -= freedSmallPages;
+        debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", freedSmallPages);
+        return freedSmallPages;
     }
 
     /**
      * Return number of full pages free'd.
      */
-    size_t fullcollect() nothrow
+    size_t fullcollect(bool nostack = false) nothrow
     {
         MonoTime start, stop, begin;
 
@@ -2368,7 +2411,7 @@ struct Gcx
 
         if (running)
             onInvalidMemoryOperationError();
-        running = 1;
+        running = true;
 
         thread_suspendAll();
 
@@ -2381,7 +2424,7 @@ struct Gcx
             start = stop;
         }
 
-        markAll();
+        markAll(nostack);
 
         thread_processGCMarks(&isMarked);
         thread_resumeAll();
@@ -2396,7 +2439,7 @@ struct Gcx
             start = stop;
         }
 
-        size_t freedpages = sweep();
+        immutable freedLargePages = sweep();
 
         if (GC.config.profile)
         {
@@ -2405,7 +2448,7 @@ struct Gcx
             start = stop;
         }
 
-        size_t recoveredpages = recover();
+        immutable freedSmallPages = recover();
 
         if (GC.config.profile)
         {
@@ -2414,9 +2457,11 @@ struct Gcx
             ++numCollections;
         }
 
-        running = 0; // only clear on success
+        running = false; // only clear on success
 
-        return freedpages + recoveredpages;
+        updateCollectThresholds();
+
+        return freedLargePages + freedSmallPages;
     }
 
     /**

@@ -141,3 +141,60 @@ else
 {
     static assert(false, "No supported allocation methods available.");
 }
+
+/**
+   Check for any kind of memory pressure.
+
+   Params:
+      mapped = the amount of memory mapped by the GC in bytes
+   Returns:
+       true if memory is scarce
+*/
+// TOOD: get virtual mem sizes and current usage from OS
+// TODO: compare current RSS and avail. physical memory
+version (Windows)
+{
+    bool isLowOnMem(size_t mapped) nothrow @nogc
+    {
+        version (D_LP64)
+            return false;
+        else
+        {
+            import core.sys.windows.windows;
+            MEMORYSTATUS stat;
+            GlobalMemoryStatus(&stat);
+            // Less than 5 % of virtual address space available
+            return stat.dwAvailVirtual < stat.dwTotalVirtual / 20;
+        }
+    }
+}
+else version (OSX)
+{
+    bool isLowOnMem(size_t mapped) nothrow @nogc
+    {
+        enum GB = 2 ^^ 30;
+        version (D_LP64)
+            return false;
+        else
+        {
+            // 80 % of available 4GB is used for GC (excluding malloc and mmap)
+            enum size_t limit = 4UL * GB * 8 / 10;
+            return mapped > limit;
+        }
+    }
+}
+else
+{
+    bool isLowOnMem(size_t mapped) nothrow @nogc
+    {
+        enum GB = 2 ^^ 30;
+        version (D_LP64)
+            return false;
+        else
+        {
+            // be conservative and assume 3GB
+            enum size_t limit = 3UL * GB * 8 / 10;
+            return mapped > limit;
+        }
+    }
+}
