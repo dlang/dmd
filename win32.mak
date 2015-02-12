@@ -9,9 +9,9 @@ CC=dmc
 DOCDIR=doc
 IMPDIR=import
 
-DFLAGS=-m$(MODEL) -O -release -dip25 -inline -w -Isrc -Iimport
-UDFLAGS=-m$(MODEL) -O -release -dip25 -w -Isrc -Iimport
-DDOCFLAGS=-c -w -o- -Isrc -Iimport -version=CoreDdoc
+DFLAGS=-m$(MODEL) -conf= -O -release -dip25 -inline -w -Isrc -Iimport
+UDFLAGS=-m$(MODEL) -conf= -O -release -dip25 -w -Isrc -Iimport
+DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 CFLAGS=
 
@@ -109,25 +109,25 @@ $(DOCDIR)\core_sync_semaphore.html : src\core\sync\semaphore.d
 import: $(IMPORTS)
 
 $(IMPDIR)\core\sync\barrier.di : src\core\sync\barrier.d
-	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\condition.di : src\core\sync\condition.d
-	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\config.di : src\core\sync\config.d
-	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\exception.di : src\core\sync\exception.d
-	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\mutex.di : src\core\sync\mutex.d
-	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\rwmutex.di : src\core\sync\rwmutex.d
-	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
-	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $**
 
 ######################## Header .di file copy ##############################
 
