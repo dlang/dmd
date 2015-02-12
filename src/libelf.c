@@ -185,52 +185,38 @@ struct Header
 
 void OmToHeader(Header *h, ObjModule *om)
 {
-    size_t len;
-    if (om->name_offset == -1)
-    {
-        len = strlen(om->name);
-        memcpy(h->object_name, om->name, len);
-        h->object_name[len] = '/';
-    }
-    else
-    {
-        len = sprintf(h->object_name, "/%d", om->name_offset);
-        h->object_name[len] = ' ';
-    }
-    assert(len < OBJECT_NAME_SIZE);
-    memset(h->object_name + len + 1, ' ', OBJECT_NAME_SIZE - (len + 1));
-
-    /* In the following sprintf's, don't worry if the trailing 0
-     * that sprintf writes goes off the end of the field. It will
-     * write into the next field, which we will promptly overwrite
-     * anyway. (So make sure to write the fields in ascending order.)
-     */
-    len = sprintf(h->file_time, "%llu", (longlong)om->file_time);
-    assert(len <= 12);
-    memset(h->file_time + len, ' ', 12 - len);
-
+    char* buffer = reinterpret_cast<char*>(h);
+    // user_id and group_id are padded on 6 characters in Header struct.
+    // Squashing to 0 if more than 999999.
     if (om->user_id > 999999)
         om->user_id = 0;
-    len = sprintf(h->user_id, "%u", om->user_id);
-    assert(len <= 6);
-    memset(h->user_id + len, ' ', 6 - len);
-
     if (om->group_id > 999999)
         om->group_id = 0;
-    len = sprintf(h->group_id, "%u", om->group_id);
-    assert(len <= 6);
-    memset(h->group_id + len, ' ', 6 - len);
-
-    len = sprintf(h->file_mode, "%o", om->file_mode);
-    assert(len <= 8);
-    memset(h->file_mode + len, ' ', 8 - len);
-
-    len = sprintf(h->file_size, "%u", om->length);
-    assert(len <= 10);
-    memset(h->file_size + len, ' ', 10 - len);
-
-    h->trailer[0] = '`';
-    h->trailer[1] = '\n';
+    size_t len;
+    if (om->name_offset == -1)
+    {   // "name/           1423563789  5000  5000  100640  3068      `\n"
+        //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
+        //        name       file_time   u_id gr_id  fmode    fsize   trailer
+        len = snprintf(buffer, sizeof(Header), "%-16s%-12llu%-6u%-6u%-8o%-10u`",
+                om->name, (longlong) om->file_time, om->user_id, om->group_id,
+                om->file_mode, om->length);
+        // adding '/' after the name field
+        const size_t name_length = strlen(om->name);
+        assert(name_length < OBJECT_NAME_SIZE);
+        buffer[name_length] = '/';
+    }
+    else
+    {   // "/162007         1423563789  5000  5000  100640  3068      `\n"
+        //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
+        //     name_offset   file_time   u_id gr_id  fmode    fsize   trailer
+        len = snprintf(buffer, sizeof(Header),
+                "/%-15d%-12llu%-6u%-6u%-8o%-10u`", om->name_offset,
+                (longlong) om->file_time, om->user_id, om->group_id,
+                om->file_mode, om->length);
+    }
+    assert(sizeof(Header) > 0 && len == sizeof(Header) - 1);
+    // replace trailing \0 with \n
+    buffer[len] = '\n';
 }
 
 void LibElf::addSymbol(ObjModule *om, char *name, int pickAny)
