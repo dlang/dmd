@@ -183,10 +183,11 @@ struct Header
     char trailer[2];
 };
 
-void OmToHeader(Header *h, ObjModule *om) {
+void OmToHeader(Header *h, ObjModule *om)
+{
     char* buffer = reinterpret_cast<char*>(h);
-    // user_id and group_id are padded on 6 characters.
-    // Squashing to 0 if more than allocated space.
+    // user_id and group_id are padded on 6 characters in Header struct.
+    // Squashing to 0 if more than 999999.
     if (om->user_id > 999999)
         om->user_id = 0;
     if (om->group_id > 999999)
@@ -196,23 +197,25 @@ void OmToHeader(Header *h, ObjModule *om) {
     {   // "name/           1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //        name       file_time   u_id gr_id  fmode    fsize   trailer
-        len = sprintf(buffer, "%-16s%-12llu%-6u%-6u%-8o%-10u`", om->name,
-                (longlong) om->file_time, om->user_id, om->group_id,
+        len = snprintf(buffer, sizeof(Header), "%-16s%-12llu%-6u%-6u%-8o%-10u`",
+                om->name, (longlong) om->file_time, om->user_id, om->group_id,
                 om->file_mode, om->length);
         // adding '/' after the name field
         const size_t name_length = strlen(om->name);
         assert(name_length < OBJECT_NAME_SIZE);
         buffer[name_length] = '/';
-    } else
+    }
+    else
     {   // "/162007         1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //     name_offset   file_time   u_id gr_id  fmode    fsize   trailer
-        len = sprintf(buffer, "/%-15d%-12llu%-6u%-6u%-8o%-10u`",
-                om->name_offset, (longlong) om->file_time, om->user_id,
-                om->group_id, om->file_mode, om->length);
-
+        len = snprintf(buffer, sizeof(Header),
+                "/%-15d%-12llu%-6u%-6u%-8o%-10u`", om->name_offset,
+                (longlong) om->file_time, om->user_id, om->group_id,
+                om->file_mode, om->length);
     }
     assert(sizeof(Header) > 0 && len == sizeof(Header) - 1);
+    // replace trailing \0 with \n
     buffer[len] = '\n';
 }
 
