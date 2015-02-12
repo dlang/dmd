@@ -371,8 +371,10 @@ void outdata(symbol *s)
 #else
                 /*else*/ if (dt->DTseg == DATA)
                     objmod->reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
+#if MARS
                 else if (dt->DTseg == CDATA)
                     objmod->reftodatseg(seg,offset,dt->DTabytes,CDATA,flags);
+#endif
                 else
                     objmod->reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #endif
@@ -1436,7 +1438,7 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
 
     symbol *s;
 
-#if ELFOBJ || OMFOBJ /* includes COFF */
+#if ELFOBJ || (OMFOBJ && MARS) /* includes COFF */
     /* MACHOBJ can't go here, because the const data segment goes into
      * the _TEXT segment, and one cannot have a fixup from _TEXT to _TEXT.
      */
