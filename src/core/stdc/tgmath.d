@@ -869,10 +869,16 @@ else
 
     ///
     alias core.stdc.math.fabs          fabs;
-    ///
-    alias core.stdc.math.fabsf         fabs;
-    ///
-    alias core.stdc.math.fabsl         fabs;
+    version( CRuntime_Microsoft )
+    {
+    }
+    else
+    {
+        ///
+        alias core.stdc.math.fabsf         fabs;
+        ///
+        alias core.stdc.math.fabsl         fabs;
+    }
 
     ///
     alias core.stdc.complex.cabs       fabs;
