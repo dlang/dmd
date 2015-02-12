@@ -23,6 +23,7 @@
 #include "aggregate.h"
 #include "scope.h"
 #include "attrib.h"
+#include "tokens.h"
 
 bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow);
 bool walkPostorder(Expression *e, StoppableVisitor *v);

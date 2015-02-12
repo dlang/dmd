@@ -344,7 +344,7 @@ code *nteh_prolog()
     cs.IEV2.Vint = -1;
     c1 = gen(CNIL,&cs);                 // PUSH -1
 
-    if ((usednteh & NTEHcpp) || MARS)
+    if (MARS || (usednteh & NTEHcpp))
     {
         // PUSH &framehandler
         cs.IFL2 = FLframehandler;

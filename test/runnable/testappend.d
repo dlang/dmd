@@ -1,7 +1,7 @@
 // PERMUTE_ARGS:
 
-import std.c.stdio;
-import std.math;
+import core.stdc.stdio;
+import core.stdc.math : isnan;
 
 void test12826()
 {

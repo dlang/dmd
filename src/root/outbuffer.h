@@ -15,6 +15,7 @@
 #include <string.h>
 #include <assert.h>
 #include "port.h"
+#include "rmem.h"
 
 #if __DMC__
 #pragma once
@@ -32,8 +33,20 @@ struct OutBuffer
     int level;
     int notlinehead;
 
-    OutBuffer();
-    ~OutBuffer();
+    OutBuffer()
+    {
+        data = NULL;
+        offset = 0;
+        size = 0;
+
+        doindent = 0;
+        level = 0;
+        notlinehead = 0;
+    }
+    ~OutBuffer()
+    {
+        mem.xfree(data);
+    }
     char *extractData();
 
     void reserve(size_t nbytes);
@@ -54,7 +67,6 @@ struct OutBuffer
     void write(OutBuffer *buf);
     void write(RootObject *obj);
     void fill0(size_t nbytes);
-    void align(size_t size);
     void vprintf(const char *format, va_list args);
     void printf(const char *format, ...);
     void bracket(char left, char right);

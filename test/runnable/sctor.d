@@ -223,12 +223,43 @@ void test11246()
 }
 
 /***************************************************/
+// 13515
+
+Object[string][100] aa13515;
+
+static this()
+{
+    aa13515[5]["foo"] = null;
+}
+
+struct S13515
+{
+    Object[string][100] aa;
+
+    this(int n)
+    {
+        aa[5]["foo"] = null;
+    }
+}
+
+void test13515()
+{
+    assert(aa13515[5].length == 1);
+    assert(aa13515[5]["foo"] is null);
+
+    auto s = S13515(1);
+    assert(s.aa[5].length == 1);
+    assert(s.aa[5]["foo"] is null);
+}
+
+/***************************************************/
 
 int main()
 {
     test8117();
     test9665();
     test11246();
+    test13515();
 
     printf("Success\n");
     return 0;

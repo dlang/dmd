@@ -18,13 +18,13 @@
 
 Mem mem;
 
-char *Mem::strdup(const char *s)
+char *Mem::xstrdup(const char *s)
 {
     char *p;
 
     if (s)
     {
-        p = ::strdup(s);
+        p = strdup(s);
         if (p)
             return p;
         error();
@@ -32,74 +32,75 @@ char *Mem::strdup(const char *s)
     return NULL;
 }
 
-void *Mem::malloc(size_t size)
+void *Mem::xmalloc(size_t size)
 {   void *p;
 
     if (!size)
         p = NULL;
     else
     {
-        p = ::malloc(size);
+        p = malloc(size);
         if (!p)
             error();
     }
     return p;
 }
 
-void *Mem::calloc(size_t size, size_t n)
+void *Mem::xcalloc(size_t size, size_t n)
 {   void *p;
 
     if (!size || !n)
         p = NULL;
     else
     {
-        p = ::calloc(size, n);
+        p = calloc(size, n);
         if (!p)
             error();
     }
     return p;
 }
 
-void *Mem::realloc(void *p, size_t size)
+void *Mem::xrealloc(void *p, size_t size)
 {
     if (!size)
     {   if (p)
-        {   ::free(p);
+        {
+            free(p);
             p = NULL;
         }
     }
     else if (!p)
     {
-        p = ::malloc(size);
+        p = malloc(size);
         if (!p)
             error();
     }
     else
     {
         void *psave = p;
-        p = ::realloc(psave, size);
+        p = realloc(psave, size);
         if (!p)
-        {   free(psave);
+        {   xfree(psave);
             error();
         }
     }
     return p;
 }
 
-void Mem::free(void *p)
+void Mem::xfree(void *p)
 {
     if (p)
-        ::free(p);
+        free(p);
 }
 
-void *Mem::mallocdup(void *o, size_t size)
+void *Mem::xmallocdup(void *o, size_t size)
 {   void *p;
 
     if (!size)
         p = NULL;
     else
     {
-        p = ::malloc(size);
+        p = malloc(size);
         if (!p)
             error();
         else

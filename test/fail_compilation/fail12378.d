@@ -3,10 +3,10 @@ TEST_OUTPUT:
 ---
 fail_compilation/fail12378.d(18): Error: undefined identifier ANYTHING
 fail_compilation/fail12378.d(18): Error: undefined identifier GOES
-fail_compilation/fail12378.d(89):        instantiated from here: MapResultS!((x0) => ANYTHING - GOES, Result)
+fail_compilation/fail12378.d(91):        instantiated from here: MapResultS!((x0) => ANYTHING - GOES, Result)
 fail_compilation/fail12378.d(17):        instantiated from here: mapS!(Result)
-fail_compilation/fail12378.d(98):        instantiated from here: __lambda1!int
-fail_compilation/fail12378.d(89):        instantiated from here: MapResultS!((y0) => iota(2).mapS!((x0) => ANYTHING - GOES), Result)
+fail_compilation/fail12378.d(100):        instantiated from here: __lambda1!int
+fail_compilation/fail12378.d(91):        instantiated from here: MapResultS!((y0) => iota(2).mapS!((x0) => ANYTHING - GOES), Result)
 fail_compilation/fail12378.d(16):        instantiated from here: mapS!(Result)
 ---
 */
@@ -25,10 +25,10 @@ TEST_OUTPUT:
 ---
 fail_compilation/fail12378.d(40): Error: undefined identifier ANYTHING
 fail_compilation/fail12378.d(40): Error: undefined identifier GOES
-fail_compilation/fail12378.d(110):        instantiated from here: MapResultC!((x0) => ANYTHING - GOES, Result)
+fail_compilation/fail12378.d(112):        instantiated from here: MapResultC!((x0) => ANYTHING - GOES, Result)
 fail_compilation/fail12378.d(39):        instantiated from here: mapC!(Result)
-fail_compilation/fail12378.d(121):        instantiated from here: __lambda1!int
-fail_compilation/fail12378.d(110):        instantiated from here: MapResultC!((y0) => iota(2).mapC!((x0) => ANYTHING - GOES), Result)
+fail_compilation/fail12378.d(123):        instantiated from here: __lambda1!int
+fail_compilation/fail12378.d(112):        instantiated from here: MapResultC!((y0) => iota(2).mapC!((x0) => ANYTHING - GOES), Result)
 fail_compilation/fail12378.d(38):        instantiated from here: mapC!(Result)
 ---
 */
@@ -45,15 +45,17 @@ void testC()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail12378.d(62): Error: undefined identifier ANYTHING
-fail_compilation/fail12378.d(62): Error: undefined identifier GOES
-fail_compilation/fail12378.d(133):        instantiated from here: MapResultI!((x0) => ANYTHING - GOES, Result)
-fail_compilation/fail12378.d(61):        instantiated from here: mapI!(Result)
-fail_compilation/fail12378.d(141):        instantiated from here: __lambda1!int
-fail_compilation/fail12378.d(133):        instantiated from here: MapResultI!((y0) => iota(2).mapI!((x0) => ANYTHING - GOES), Result)
-fail_compilation/fail12378.d(60):        instantiated from here: mapI!(Result)
+fail_compilation/fail12378.d(64): Error: undefined identifier ANYTHING
+fail_compilation/fail12378.d(64): Error: undefined identifier GOES
+fail_compilation/fail12378.d(135):        instantiated from here: MapResultI!((x0) => ANYTHING - GOES, Result)
+fail_compilation/fail12378.d(63):        instantiated from here: mapI!(Result)
+fail_compilation/fail12378.d(143):        instantiated from here: __lambda1!int
+fail_compilation/fail12378.d(135):        instantiated from here: MapResultI!((y0) => iota(2).mapI!((x0) => ANYTHING - GOES), Result)
+fail_compilation/fail12378.d(62):        instantiated from here: mapI!(Result)
+fail_compilation/fail12378.d(143): Error: static function fail12378.testI.MapResultI!((y0) => iota(2).mapI!((x0) => ANYTHING - GOES), Result).MapResultI.front cannot access frame of function fail12378.testI
 ---
 */
+
 void testI()
 {
     auto r =

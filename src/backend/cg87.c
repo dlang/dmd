@@ -92,6 +92,18 @@ int NDP::savetop = 0;           /* # of entries used in NDP::save[]     */
 #define NDPSAVEINC 8            /* allocation chunk sizes               */
 #endif
 
+STATIC code *getlvalue87(code *pcs,elem *e,regm_t keepmsk)
+{
+    code *c = getlvalue(pcs, e, keepmsk);
+    if (ADDFWAIT())
+        pcs->Iflags |= CFwait;
+    if (I32)
+        pcs->Iflags &= ~CFopsize;
+    else if (I64)
+        pcs->Irex &= ~REX_W;
+    return c;
+}
+
 /****************************************
  * Store/load to ndp save location i
  */
@@ -1687,9 +1699,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                     }
                     else
                     {
-                        c = getlvalue(&cs,e,0);
-                        if (I64)
-                            cs.Irex &= ~REX_W;                  // don't use for x87 ops
+                        c = getlvalue87(&cs,e,0);
                         c = cat(c,makesure87(eleft,eoffset,0,0));
                         cs.Iop = ESC(mf,0);
                         cs.Irm |= modregrm(0,op,0);
@@ -1734,12 +1744,8 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 {
 #if 1
                 L4:
-                    c = getlvalue(&cs,e->E1,0);
+                    c = getlvalue87(&cs,e->E1,0);
                     cs.Iop = ESC(mf1,0);
-                    if (ADDFWAIT())
-                        cs.Iflags |= CFwait;
-                    if (!I16)
-                        cs.Iflags &= ~CFopsize;
                     if (op != -1)
                     {   cs.Irm |= modregrm(0,op,0);
                         c = cat(c,makesure87(eleft,eoffset,0,0));
@@ -1773,12 +1779,8 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 if (e->E1->Eoper == OPvar ||
                     (e->E1->Eoper == OPind && e->E1->Ecount == 0))
                 {
-                    c = getlvalue(&cs,e->E1,0);
+                    c = getlvalue87(&cs,e->E1,0);
                     cs.Iop = 0xDF;
-                    if (ADDFWAIT())
-                        cs.Iflags |= CFwait;
-                    if (!I16)
-                        cs.Iflags &= ~CFopsize;
                     c = cat(c,push87());
                     cs.Irm |= modregrm(0,5,0);
                     c = gen(c,&cs);                     // FILD m64
@@ -2036,20 +2038,14 @@ code *eq87(elem *e,regm_t *pretregs)
             while (e2->Eoper == OPcomma)
                 e2 = e2->E2;
             note87(e2,0,0);
-            c2 = getlvalue(&cs, e->E1, 0);
+            c2 = getlvalue87(&cs, e->E1, 0);
             c2 = cat(c2,makesure87(e2,0,0,1));
         }
         else
         {
-            c2 = getlvalue(&cs, e->E1, 0);
+            c2 = getlvalue87(&cs, e->E1, 0);
         }
         cs.Irm |= modregrm(0,op2,0);            // OR in reg field
-        if (I32)
-            cs.Iflags &= ~CFopsize;
-        else if (ADDFWAIT())
-            cs.Iflags |= CFwait;
-        else if (I64)
-            cs.Irex &= ~REX_W;
         c2 = gen(c2, &cs);
 #if LNGDBLSIZE == 12
         if (tysize[TYldouble] == 12)
@@ -2154,7 +2150,7 @@ code *complex_eq87(elem *e,regm_t *pretregs)
             cs.Iflags = 0;
             cs.Irex = 0;
             cs.Iop = op1;
-            c2 = getlvalue(&cs, e->E1, 0);
+            c2 = getlvalue87(&cs, e->E1, 0);
             cs.IEVoffset1 += sz;
             cs.Irm |= modregrm(0, op2, 0);
             c2 = cat(c2, makesure87(e->E2, sz, 0, 0));
@@ -2320,11 +2316,8 @@ code *opass87(elem *e,regm_t *pretregs)
         retregs = mST0;
         cr = codelem(e->E2,&retregs,FALSE);     // evaluate rvalue
         note87(e->E2,0,0);
-        cl = getlvalue(&cs,e->E1,e->Eoper==OPmodass?mAX:0);
+        cl = getlvalue87(&cs,e->E1,e->Eoper==OPmodass?mAX:0);
         cl = cat(cl,makesure87(e->E2,0,0,0));
-        cs.Iflags |= ADDFWAIT() ? CFwait : 0;
-        if (I32)
-            cs.Iflags &= ~CFopsize;
         if (config.flags4 & CFG4fdivcall && e->Eoper == OPdivass)
         {
             c = push87();
@@ -2441,11 +2434,8 @@ code *opmod_complex87(elem *e,regm_t *pretregs)
     retregs = mST0;
     cr = codelem(e->E2,&retregs,FALSE);         // FLD E2
     note87(e->E2,0,0);
-    cl = getlvalue(&cs,e->E1,0);
+    cl = getlvalue87(&cs,e->E1,0);
     cl = cat(cl,makesure87(e->E2,0,0,0));
-    cs.Iflags |= ADDFWAIT() ? CFwait : 0;
-    if (!I16)
-        cs.Iflags &= ~CFopsize;
 
     c = push87();
     switch (ty1)
@@ -2540,7 +2530,7 @@ code *opass_complex87(elem *e,regm_t *pretregs)
         retregs = mST0;
         cr = codelem(e->E2, &retregs, FALSE);
         note87(e->E2, 0, 0);
-        cl = getlvalue(&cs, e->E1, 0);
+        cl = getlvalue87(&cs, e->E1, 0);
         cl = cat(cl,makesure87(e->E2,0,0,0));
         cl = cat(cl,push87());
         cl = genf2(cl,0xD9,0xC0);               // FLD ST(0)
@@ -2549,13 +2539,10 @@ code *opass_complex87(elem *e,regm_t *pretregs)
     else
     {
         cr = loadComplex(e->E2);
-        cl = getlvalue(&cs,e->E1,0);
+        cl = getlvalue87(&cs,e->E1,0);
         cl = cat(cl,makesure87(e->E2,sz2,0,0));
         cl = cat(cl,makesure87(e->E2,0,1,0));
     }
-    cs.Iflags |= ADDFWAIT() ? CFwait : 0;
-    if (!I16)
-        cs.Iflags &= ~CFopsize;
 
     switch (e->Eoper)
     {
@@ -2808,7 +2795,7 @@ code *cdnegass87(elem *e,regm_t *pretregs)
     tym_t tyml = tybasic(e1->Ety);            // type of lvalue
     int sz = tysize[tyml];
 
-    cl = getlvalue(&cs,e1,0);
+    cl = getlvalue87(&cs,e1,0);
 
     /* If the EA is really an XMM register, modEA() will fail.
      * So disallow putting e1 into a register.
@@ -2881,10 +2868,7 @@ code *post87(elem *e,regm_t *pretregs)
 
         //printf("post87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
         assert(*pretregs);
-        cl = getlvalue(&cs,e->E1,0);
-        cs.Iflags |= ADDFWAIT() ? CFwait : 0;
-        if (!I16)
-            cs.Iflags &= ~CFopsize;
+        cl = getlvalue87(&cs,e->E1,0);
         ty1 = tybasic(e->E1->Ety);
         switch (ty1)
         {   case TYdouble_alias:
@@ -3474,7 +3458,7 @@ code *cdind87(elem *e,regm_t *pretregs)
 
     //printf("cdind87(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
 
-    c = getlvalue(&cs,e,0);             // get addressing mode
+    c = getlvalue87(&cs,e,0);           // get addressing mode
     if (*pretregs)
     {
         switch (tybasic(e->Ety))
@@ -3491,8 +3475,6 @@ code *cdind87(elem *e,regm_t *pretregs)
 
             case TYildouble:
             case TYldouble:
-                if (I64)
-                    cs.Irex &= ~REX_W;
                 cs.Iop = 0xDB;
                 cs.Irm |= modregrm(0,5,0);
                 break;

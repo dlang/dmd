@@ -33,6 +33,7 @@
 #include "template.h"
 #include "attrib.h"
 #include "enum.h"
+#include "lexer.h"
 
 
 /****************************** Dsymbol ******************************/
@@ -227,7 +228,7 @@ const char *Dsymbol::toPrettyChars(bool QualifyTypes)
     for (p = this; p; p = p->parent)
         len += strlen(QualifyTypes ? p->toPrettyCharsHelper() : p->toChars()) + 1;
 
-    s = (char *)mem.malloc(len);
+    s = (char *)mem.xmalloc(len);
     q = s + len - 1;
     *q = 0;
     for (p = this; p; p = p->parent)
@@ -415,7 +416,7 @@ Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
  * Search for symbol with correct spelling.
  */
 
-void *symbol_search_fp(void *arg, const char *seed)
+void *symbol_search_fp(void *arg, const char *seed, int* cost)
 {
     /* If not in the lexer's string table, it certainly isn't in the symbol table.
      * Doing this first is a lot faster.
@@ -423,15 +424,14 @@ void *symbol_search_fp(void *arg, const char *seed)
     size_t len = strlen(seed);
     if (!len)
         return NULL;
-    StringValue *sv = Lexer::stringtable.lookup(seed, len);
-    if (!sv)
+    Identifier *id = Identifier::lookup(seed, len);
+    if (!id)
         return NULL;
-    Identifier *id = (Identifier *)sv->ptrvalue;
-    assert(id);
 
+    *cost = 0;
     Dsymbol *s = (Dsymbol *)arg;
     Module::clearCache();
-    return (void *)s->search(Loc(), id, IgnoreErrors | IgnoreAmbiguous);
+    return (void *)s->search(Loc(), id, IgnoreErrors);
 }
 
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
@@ -455,6 +455,15 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
     Dsymbol *s = toAlias();
     Dsymbol *sm;
 
+    if (Declaration *d = s->isDeclaration())
+    {
+        if (d->inuse)
+        {
+            ::error(loc, "circular reference to '%s'", d->toPrettyChars());
+            return NULL;
+        }
+    }
+
     switch (id->dyncast())
     {
         case DYNCAST_IDENTIFIER:
@@ -462,7 +471,8 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             break;
 
         case DYNCAST_DSYMBOL:
-        {   // It's a template instance
+        {
+            // It's a template instance
             //printf("\ttemplate instance id\n");
             Dsymbol *st = (Dsymbol *)id;
             TemplateInstance *ti = st->isTemplateInstance();
@@ -553,6 +563,11 @@ bool Dsymbol::isImportedSymbol()
 }
 
 bool Dsymbol::isDeprecated()
+{
+    return false;
+}
+
+bool Dsymbol::muteDeprecationMessage()
 {
     return false;
 }
@@ -655,7 +670,7 @@ void Dsymbol::deprecation(const char *format, ...)
 
 void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 {
-    if (global.params.useDeprecated != 1 && isDeprecated())
+    if (global.params.useDeprecated != 1 && isDeprecated() && !muteDeprecationMessage())
     {
         // Don't complain if we're inside a deprecated symbol's scope
         for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
@@ -693,7 +708,7 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
     {
         if (!(sc->func && sc->func->storage_class & STCdisable))
         {
-            if (d->ident == Id::cpctor && d->toParent())
+            if (d->toParent() && d->isPostBlitDeclaration())
                 d->toParent()->error(loc, "is not copyable because it is annotated with @disable");
             else
                 error(loc, "is not callable because it is annotated with @disable");
@@ -757,9 +772,9 @@ Module *Dsymbol::getAccessModule()
 /*************************************
  */
 
-PROT Dsymbol::prot()
+Prot Dsymbol::prot()
 {
-    return PROTpublic;
+    return Prot(PROTpublic);
 }
 
 /*************************************
@@ -812,7 +827,7 @@ bool Dsymbol::inNonRoot()
         {
             if (ti->isTemplateMixin())
                 continue;
-            if (!ti->instantiatingModule || !ti->instantiatingModule->isRoot())
+            if (!ti->minst || !ti->minst->isRoot())
                 return true;
             return false;
         }
@@ -895,6 +910,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     {
         Dsymbol *s = NULL;
         OverloadSet *a = NULL;
+        int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
 
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
@@ -908,7 +924,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
              */
-            Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? IgnorePrivateMembers : IgnoreNone);
+            Dsymbol *s2 = ss->search(loc, ident, sflags | (ss->isModule() ? IgnorePrivateMembers : IgnoreNone));
             if (!s)
             {
                 s = s2;
@@ -926,7 +942,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                      * the other.
                      */
                     if (s->isDeprecated() ||
-                        s2->prot() > s->prot() && s2->prot() != PROTnone)
+                        s->prot().isMoreRestrictiveThan(s2->prot()) && s2->prot().kind != PROTnone)
                         s = s2;
                 }
                 else
@@ -982,7 +998,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 s = a;
             }
 
-            if (!(flags & IgnoreErrors) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
+            if (!(flags & IgnoreErrors) && s->prot().kind == PROTprivate && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
@@ -1029,7 +1045,8 @@ OverloadSet *ScopeDsymbol::mergeOverloadSet(OverloadSet *os, Dsymbol *s)
             if (s->toAlias() == s2->toAlias())
             {
                 if (s2->isDeprecated() ||
-                    s->prot() > s2->prot() && s->prot() != PROTnone)
+                    (s2->prot().isMoreRestrictiveThan(s->prot()) &&
+                     s->prot().kind != PROTnone))
                 {
                     os->a[j] = s;
                 }
@@ -1043,7 +1060,7 @@ OverloadSet *ScopeDsymbol::mergeOverloadSet(OverloadSet *os, Dsymbol *s)
     return os;
 }
 
-void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
+void ScopeDsymbol::importScope(Dsymbol *s, Prot protection)
 {
     //printf("%s->ScopeDsymbol::importScope(%s, %d)\n", toChars(), s->toChars(), protection);
 
@@ -1059,15 +1076,15 @@ void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
                 Dsymbol *ss = (*imports)[i];
                 if (ss == s)                    // if already imported
                 {
-                    if (protection > prots[i])
-                        prots[i] = protection;  // upgrade access
+                    if (protection.kind > prots[i])
+                        prots[i] = protection.kind;  // upgrade access
                     return;
                 }
             }
         }
         imports->push(s);
-        prots = (PROT *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
-        prots[imports->dim - 1] = protection;
+        prots = (PROTKIND *)mem.xrealloc(prots, imports->dim * sizeof(prots[0]));
+        prots[imports->dim - 1] = protection.kind;
     }
 }
 
@@ -1233,12 +1250,12 @@ FuncDeclaration *ScopeDsymbol::findGetMembers()
     if (!tfgetmembers)
     {
         Scope sc;
-        Parameters *arguments = new Parameters;
-        Parameters *arg = new Parameter(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
-        arguments->push(arg);
+        Parameters *parameters = new Parameters;
+        Parameters *p = new Parameter(STCin, Type::tchar->constOf()->arrayOf(), NULL, NULL);
+        parameters->push(p);
 
         Type *tret = NULL;
-        tfgetmembers = new TypeFunction(arguments, tret, 0, LINKd);
+        tfgetmembers = new TypeFunction(parameters, tret, 0, LINKd);
         tfgetmembers = (TypeFunction *)tfgetmembers->semantic(Loc(), &sc);
     }
     if (fdx)
@@ -1480,7 +1497,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 if (t && t->ty == Tfunction)
                     e = new CallExp(e->loc, e);
                 v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(Loc(), e));
-                v->storage_class |= STCtemp | STCctfe;
+                v->storage_class |= STCtemp | STCctfe | STCrvalue;
             }
             else
             {
@@ -1543,4 +1560,69 @@ Dsymbol *DsymbolTable::update(Dsymbol *s)
     Dsymbol **ps = (Dsymbol **)dmd_aaGet(&tab, (void *)ident);
     *ps = s;
     return s;
+}
+
+/****************************** Prot ******************************/
+
+Prot::Prot()
+{
+    this->kind = PROTundefined;
+    this->pkg = NULL;
+}
+
+Prot::Prot(PROTKIND kind)
+{
+    this->kind = kind;
+    this->pkg = NULL;
+}
+
+/**
+ * Checks if `this` is superset of `other` restrictions.
+ * For example, "protected" is more restrictive than "public".
+ */
+bool Prot::isMoreRestrictiveThan(Prot other)
+{
+    return this->kind < other.kind;
+}
+
+/**
+ * Checks if `this` is absolutely identical protection attribute to `other`
+ */
+bool Prot::operator==(Prot other)
+{
+    if (this->kind == other.kind)
+    {
+        if (this->kind == PROTpackage)
+            return this->pkg == other.pkg;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Checks if parent defines different access restrictions than this one.
+ *
+ * Params:
+ *  parent = protection attribute for scope that hosts this one
+ *
+ * Returns:
+ *  'true' if parent is already more restrictive than this one and thus
+ *  no differentiation is needed.
+ */
+bool Prot::isSubsetOf(Prot parent)
+{
+    if (this->kind != parent.kind)
+        return false;
+
+    if (this->kind == PROTpackage)
+    {
+        if (!this->pkg)
+            return true;
+        if (!parent.pkg)
+            return false;
+        if (parent.pkg->isAncestorPackageOf(this->pkg))
+            return true;
+    }
+
+    return true;
 }

@@ -327,7 +327,7 @@
      {
       "name" : "foo",
       "deco" : "C4json4Bar2",
-      "default" : "cast(Bar2)new Bar3(7)"
+      "default" : "new Bar3(7)"
      }
     ],
     "endline" : 55,
@@ -565,6 +565,20 @@
       "char" : 5
      }
     ]
+   },
+   {
+    "kind" : "template",
+    "line" : 112,
+    "char" : 1,
+    "name" : "IncludeConstraint",
+    "parameters" : [
+     {
+      "name" : "T",
+      "kind" : "type"
+     }
+    ],
+    "constraint" : "T == string",
+    "members" : []
    }
   ]
  }

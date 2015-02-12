@@ -12,7 +12,7 @@ module abc;
 string foos = "foo";
 
 alias int myint; ///
-typedef int mytypedefint;
+alias int mytypedefint;
 
 /** windy
  * city

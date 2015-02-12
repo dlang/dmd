@@ -1226,7 +1226,7 @@ elem * evalu8(elem *e, goal_t goal)
     case OPdiv:
         if (!boolres(e2))                       // divide by 0
         {
-#if SCPP
+#if SCPP || MARS
             if (!tyfloating(tym))
 #endif
                 goto div0;
@@ -1401,15 +1401,20 @@ elem * evalu8(elem *e, goal_t goal)
         }
         break;
     case OPmod:
-        if (!boolres(e2))
-        {
-            div0:
-#if SCPP
-                synerr(EM_divby0);
-#else // MARS
-                //error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero");
+#if MARS
+        if (!tyfloating(tym))
 #endif
-                break;
+        {
+            if (!boolres(e2))
+            {
+                div0:
+#if SCPP
+                    synerr(EM_divby0);
+#elif MARS
+                    error(e->Esrcpos.Sfilename, e->Esrcpos.Slinnum, e->Esrcpos.Scharnum, "divide by zero");
+#endif
+                    break;
+            }
         }
         if (uns)
             e->EV.Vullong = ((targ_ullong) l1) % ((targ_ullong) l2);
@@ -1485,6 +1490,7 @@ elem * evalu8(elem *e, goal_t goal)
     {
         targ_llong rem, quo;
 
+        assert(!tyfloating(tym));
         if (!boolres(e2))
             goto div0;
         if (uns)
@@ -1991,6 +1997,29 @@ elem * evalu8(elem *e, goal_t goal)
                      ((i1 <<  8) & 0x00FF0000) |
                      ((i1 << 24) & 0xFF000000);
         break;
+
+    case OPpopcnt:
+    {
+        // Eliminate any unwanted sign extension
+        switch (tysize(tym))
+        {
+            case 1:     l1 &= 0xFF;       break;
+            case 2:     l1 &= 0xFFFF;     break;
+            case 4:     l1 &= 0xFFFFFFFF; break;
+            case 8:     break;
+            default:    assert(0);
+        }
+
+        int popcnt = 0;
+        while (l1)
+        {   // Not efficient, but don't need efficiency here
+            popcnt += (l1 & 1);
+            l1 = (targ_ullong)l1 >> 1;  // shift is unsigned
+        }
+        e->EV.Vllong = popcnt;
+        break;
+    }
+
     case OProl:
     case OPror:
     {   unsigned n = i2;

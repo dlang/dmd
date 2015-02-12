@@ -8,7 +8,7 @@ pragma(msg, "Hello World");
 
 static assert(true, "message");
 
-typedef double mydbl = 10;
+alias double mydbl;
 
 int testmain()
 in
@@ -158,6 +158,16 @@ static ~this()
 {
 }
 
+pure nothrow @safe @nogc static  this() {}
+pure nothrow @safe @nogc static ~this() {}
+static  this() pure nothrow @safe @nogc {}
+static ~this() pure nothrow @safe @nogc {}
+
+pure nothrow @safe @nogc shared static  this() {}
+pure nothrow @safe @nogc shared static ~this() {}
+shared static  this() pure nothrow @safe @nogc {}
+shared static ~this() pure nothrow @safe @nogc {}
+
 interface iFoo{}
 class xFoo: iFoo{}
 
@@ -222,6 +232,14 @@ class Test
     alias A!(short) getHShort;
     alias A!(ushort) getHUShort;
     alias A!(real) getHReal;
+
+    alias void F();
+
+    pure nothrow @safe @nogc unittest {}
+    pure nothrow @safe @nogc invariant {}
+
+    pure nothrow @safe @nogc new (size_t sz) { return null; }
+    pure nothrow @safe @nogc delete (void* p) { }
 }
 
 template templ( T )
@@ -393,6 +411,8 @@ template Foo10334(T) if (Bar10334!false) {}             ///
 template Foo10334(T) if (Bar10334!'A') {}               ///
 template Foo10334(T) if (Bar10334!int) {}               ///
 template Foo10334(T) if (Bar10334!string) {}            ///
+template Foo10334(T) if (Bar10334!wstring) {}           ///
+template Foo10334(T) if (Bar10334!dstring) {}           ///
 template Foo10334(T) if (Bar10334!this) {}              ///
 template Foo10334(T) if (Bar10334!([1,2,3])) {}         ///
 template Foo10334(T) if (Bar10334!(Baz10334!())) {}     ///
@@ -420,3 +440,6 @@ pure clamp12266b(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
 {
     return 0;
 }
+
+// 13832
+alias Dg13832 = ref int delegate();

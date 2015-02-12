@@ -27,7 +27,6 @@
 
 // D compiler
 #include        "mars.h"
-#include        "lexer.h"
 #include        "mtype.h"
 #include        "statement.h"
 #include        "id.h"
@@ -1384,38 +1383,45 @@ static code *asm_emit(Loc loc,
                         popndTmp->pregDisp2 &&
                         popndTmp->pregDisp2->val == _BP)
                         usDefaultseg = _SS;
+                else if (asmstate.ucItype == ITjump)
+                        usDefaultseg = _CS;
                 else
                         usDefaultseg = _DS;
                 if (pregSegment->val != usDefaultseg)
-                    switch (pregSegment->val)
-                    {
-                    case _CS:
-                        emit(0x2e);
-                        pc->Iflags |= CFcs;
-                        break;
-                    case _SS:
-                        emit(0x36);
-                        pc->Iflags |= CFss;
-                        break;
-                    case _DS:
-                        emit(0x3e);
-                        pc->Iflags |= CFds;
-                        break;
-                    case _ES:
-                        emit(0x26);
-                        pc->Iflags |= CFes;
-                        break;
-                    case _FS:
-                        emit(0x64);
-                        pc->Iflags |= CFfs;
-                        break;
-                    case _GS:
-                        emit(0x65);
-                        pc->Iflags |= CFgs;
-                        break;
-                    default:
-                        assert(0);
-                    }
+                {
+                    if (asmstate.ucItype == ITjump)
+                        error(asmstate.loc, "Cannot generate a segment prefix for a branching instruction");
+                    else
+                        switch (pregSegment->val)
+                        {
+                        case _CS:
+                            emit(0x2e);
+                            pc->Iflags |= CFcs;
+                            break;
+                        case _SS:
+                            emit(0x36);
+                            pc->Iflags |= CFss;
+                            break;
+                        case _DS:
+                            emit(0x3e);
+                            pc->Iflags |= CFds;
+                            break;
+                        case _ES:
+                            emit(0x26);
+                            pc->Iflags |= CFes;
+                            break;
+                        case _FS:
+                            emit(0x64);
+                            pc->Iflags |= CFfs;
+                            break;
+                        case _GS:
+                            emit(0x65);
+                            pc->Iflags |= CFgs;
+                            break;
+                        default:
+                            assert(0);
+                        }
+                }
             }
             break;
     }
@@ -2099,25 +2105,25 @@ static opflag_t asm_float_type_size(Type *ptype, opflag_t *pusFloat)
 /*******************************
  */
 
-static int asm_isint(OPND *o)
+static bool asm_isint(OPND *o)
 {
     if (!o || o->base || o->s)
-        return 0;
+        return false;
     //return o->disp != 0;
-    return 1;
+    return true;
 }
 
-static int asm_isNonZeroInt(OPND *o)
+static bool asm_isNonZeroInt(OPND *o)
 {
     if (!o || o->base || o->s)
-        return 0;
+        return false;
     return o->disp != 0;
 }
 
 /*******************************
  */
 
-static int asm_is_fpreg(char *szReg)
+static bool asm_is_fpreg(char *szReg)
 {
 #if 1
     return(szReg[0] == 'S' &&
@@ -2358,6 +2364,10 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
                 return;
             }
         }
+        if (v->isThreadlocal())
+            error(asmstate.loc, "cannot directly load TLS variable '%s'", v->toChars());
+        else if (v->isDataseg() && global.params.pic)
+            error(asmstate.loc, "cannot directly load global variable '%s' with PIC code", v->toChars());
     }
     em = s->isEnumMember();
     if (em)
@@ -3710,7 +3720,6 @@ static OPND *asm_cond_exp()
     {
         asm_token();
         o2 = asm_cond_exp();
-        asm_token();
         asm_chktok(TOKcolon,"colon");
         o3 = asm_cond_exp();
         o1 = (o1->disp) ? o2 : o3;
@@ -4186,7 +4195,7 @@ static OPND *asm_una_exp()
             // Check for offset keyword
             if (asmtok->ident == Id::offset)
             {
-                deprecation(asmstate.loc, "offset deprecated, use offsetof");
+                error(asmstate.loc, "use offsetof instead of offset");
                 goto Loffset;
             }
             if (asmtok->ident == Id::offsetof)
@@ -4312,6 +4321,8 @@ static OPND *asm_primary_exp()
                     o1->segreg = regp;
                     asm_token();
                     o2 = asm_cond_exp();
+                    if (o2->s && o2->s->isLabel())
+                        o2->segreg = NULL; // The segment register was specified explicitly.
                     o1 = asm_merge_opnds(o1, o2);
                 }
                 else if (asm_TKlbra_seen)
@@ -4355,23 +4366,18 @@ static OPND *asm_primary_exp()
             }
             else
             {
-                if (asmstate.ucItype == ITjump)
-                {
-                    s = NULL;
-                    if (asmstate.sc->func->labtab)
-                        s = asmstate.sc->func->labtab->lookup(asmtok->ident);
-                    if (!s)
-                        s = asmstate.sc->search(Loc(), asmtok->ident, &scopesym);
-                    if (!s)
-                    {
-                        // Assume it is a label, and define that label
-                        s = asmstate.sc->func->searchLabel(asmtok->ident);
-                    }
-                }
-                else
+                s = NULL;
+                if (asmstate.sc->func->labtab)
+                    s = asmstate.sc->func->labtab->lookup(asmtok->ident);
+                if (!s)
                     s = asmstate.sc->search(Loc(), asmtok->ident, &scopesym);
                 if (!s)
-                    asmerr("undefined identifier '%s'", asmtok->toChars());
+                {
+                    // Assume it is a label, and define that label
+                    s = asmstate.sc->func->searchLabel(asmtok->ident);
+                }
+                if (s->isLabel())
+                    o1->segreg = &regtab[25]; // Make it use CS as a base for a label
 
                 Identifier *id = asmtok->ident;
                 asm_token();
@@ -4616,10 +4622,6 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
 {
     //printf("AsmStatement::semantic()\n");
 
-    assert(sc->func);
-    if (sc->func->setUnsafe())
-        s->error("inline assembler not allowed in @safe function %s", sc->func->toChars());
-
     OP *o;
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL, *o4 = NULL;
     PTRNTAB ptb;
@@ -4654,7 +4656,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     {
         asmstate.bInit = true;
         init_optab();
-        asmstate.psDollar = LabelDsymbol::create(Id::__dollar);
+        asmstate.psDollar = LabelDsymbol::create(Id::_dollar);
         asmstate.psLocalsize = Dsymbol::create(Id::__LOCAL_SIZE);
     }
 
@@ -4806,4 +4808,3 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
 }
 
 #endif
-

@@ -22,6 +22,7 @@
 #include "id.h"
 #include "statement.h"
 #include "template.h"
+#include "tokens.h"
 
 TypeTuple *toArgTypes(Type *t);
 
@@ -130,13 +131,14 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     this->loc = loc;
 
     storage_class = 0;
-    protection = PROTpublic;
+    protection = Prot(PROTpublic);
     type = NULL;
     structsize = 0;             // size of struct
     alignsize = 0;              // size of struct for alignment purposes
     sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
     isdeprecated = false;
+    mutedeprecation = false;
     inv = NULL;
     aggNew = NULL;
     aggDelete = NULL;
@@ -154,7 +156,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     getRTInfo = NULL;
 }
 
-PROT AggregateDeclaration::prot()
+Prot AggregateDeclaration::prot()
 {
     return protection;
 }
@@ -172,6 +174,8 @@ void AggregateDeclaration::semantic2(Scope *sc)
     if (!members)
         return;
 
+    if (scope && sizeok == SIZEOKfwd)   // Bugzilla 12531
+        semantic(NULL);
     if (scope)
     {
         error("has forward references");
@@ -183,7 +187,7 @@ void AggregateDeclaration::semantic2(Scope *sc)
     sc2->parent = this;
     //if (isUnionDeclaration())     // TODO
     //    sc2->inunion = 1;
-    sc2->protection = PROTpublic;
+    sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
@@ -217,7 +221,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
     sc2->parent = this;
     if (isUnionDeclaration())
         sc2->inunion = 1;
-    sc2->protection = PROTpublic;
+    sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
@@ -236,6 +240,16 @@ void AggregateDeclaration::semantic3(Scope *sc)
         (!isDeprecated() || global.params.useDeprecated) &&
         (type && type->ty != Terror))
     {
+        // we do not want to report deprecated uses of this type during RTInfo
+        //  generation, so we disable reporting deprecation temporarily
+        // WARNING: Muting messages during analysis of RTInfo might silently instantiate
+        //  templates that use (other) deprecated types. If these template instances
+        //  are used in other parts of the program later, they will be reused without
+        //  ever producing the deprecation message. The implementation here restricts
+        //  muting to the types that RTInfo is currently generated for.
+        bool wasmuted = mutedeprecation;
+        mutedeprecation = true;
+
         // Evaluate: RTinfo!type
         Objects *tiargs = new Objects();
         tiargs->push(type);
@@ -253,6 +267,8 @@ void AggregateDeclaration::semantic3(Scope *sc)
 
         e = e->ctfeInterpret();
         getRTInfo = e;
+
+        mutedeprecation = wasmuted;
     }
 
     if (sd)
@@ -382,9 +398,14 @@ bool AggregateDeclaration::isDeprecated()
     return isdeprecated;
 }
 
+bool AggregateDeclaration::muteDeprecationMessage()
+{
+    return mutedeprecation;
+}
+
 bool AggregateDeclaration::isExport()
 {
-    return protection == PROTexport;
+    return protection.kind == PROTexport;
 }
 
 /****************************
@@ -486,57 +507,55 @@ bool AggregateDeclaration::isNested()
 
 void AggregateDeclaration::makeNested()
 {
-    if (!enclosing && sizeok != SIZEOKdone && !isUnionDeclaration() && !isInterfaceDeclaration())
-    {
-        // If nested struct, add in hidden 'this' pointer to outer scope
-        if (!(storage_class & STCstatic))
-        {
-            Dsymbol *s = toParent2();
-            if (s)
-            {
-                AggregateDeclaration *ad = s->isAggregateDeclaration();
-                FuncDeclaration *fd = s->isFuncDeclaration();
+    if (enclosing)  // if already nested
+        return;
+    if (sizeok == SIZEOKdone)
+        return;
+    if (isUnionDeclaration() || isInterfaceDeclaration())
+        return;
+    if (storage_class & STCstatic)
+        return;
 
-                if (fd)
-                {
-                    enclosing = fd;
-                }
-                else if (isClassDeclaration() && ad && ad->isClassDeclaration())
-                {
-                    enclosing = ad;
-                }
-                else if (isStructDeclaration() && ad)
-                {
-                    if (TemplateInstance *ti = ad->parent->isTemplateInstance())
-                    {
-                        enclosing = ti->enclosing;
-                    }
-                }
-                if (enclosing)
-                {
-                    //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing->toChars());
-                    Type *t;
-                    if (ad)
-                        t = ad->handleType();
-                    else if (fd)
-                    {
-                        AggregateDeclaration *ad2 = fd->isMember2();
-                        if (ad2)
-                            t = ad2->handleType();
-                        else
-                            t = Type::tvoidptr;
-                    }
-                    else
-                        assert(0);
-                    if (t->ty == Tstruct)
-                        t = Type::tvoidptr;     // t should not be a ref type
-                    assert(!vthis);
-                    vthis = new ThisDeclaration(loc, t);
-                    //vthis->storage_class |= STCref;
-                    members->push(vthis);
-                }
+    // If nested struct, add in hidden 'this' pointer to outer scope
+    Dsymbol *s = toParent2();
+    if (!s)
+        return;
+    AggregateDeclaration *ad = s->isAggregateDeclaration();
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    Type *t = NULL;
+    if (fd)
+    {
+        enclosing = fd;
+
+        AggregateDeclaration *agg = fd->isMember2();
+        t = agg ? agg->handleType() : Type::tvoidptr;
+    }
+    else if (ad)
+    {
+        if (isClassDeclaration() && ad->isClassDeclaration())
+        {
+            enclosing = ad;
+        }
+        else if (isStructDeclaration())
+        {
+            if (TemplateInstance *ti = ad->parent->isTemplateInstance())
+            {
+                enclosing = ti->enclosing;
             }
         }
+
+        t = ad->handleType();
+    }
+    if (enclosing)
+    {
+        //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing->toChars());
+        assert(t);
+        if (t->ty == Tstruct)
+            t = Type::tvoidptr;     // t should not be a ref type
+        assert(!vthis);
+        vthis = new ThisDeclaration(loc, t);
+        //vthis->storage_class |= STCref;
+        members->push(vthis);
     }
 }
 
@@ -620,7 +639,6 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     zeroInit = 0;       // assume false until we do semantic processing
     hasIdentityAssign = false;
     hasIdentityEquals = false;
-    cpctor = NULL;
     postblit = NULL;
 
     xeq = NULL;
@@ -730,7 +748,7 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->parent = this;
     if (isUnionDeclaration())
         sc2->inunion = 1;
-    sc2->protection = PROTpublic;
+    sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
@@ -822,7 +840,6 @@ void StructDeclaration::semantic(Scope *sc)
 
     dtor = buildDtor(this, sc2);
     postblit = buildPostBlit(this, sc2);
-    cpctor = buildCpCtor(this, sc2);
 
     buildOpAssign(this, sc2);
     buildOpEquals(this, sc2);
@@ -857,7 +874,8 @@ void StructDeclaration::semantic(Scope *sc)
         {
             unsigned xerrors = global.startGagging();
             sc = sc->push();
-            sc->speculative = true;
+            sc->tinst = NULL;
+            sc->minst = NULL;
             FuncDeclaration *fcall = resolveFuncCall(loc, sc, scall, NULL, NULL, NULL, 1);
             sc = sc->pop();
             global.endGagging(xerrors);
@@ -1004,22 +1022,46 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
         }
         offset = (unsigned)(v->offset + v->type->size());
 
-        Type *telem = v->type;
+        Type *t = v->type;
         if (stype)
-            telem = telem->addMod(stype->mod);
-        Type *origType = telem;
-        while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
+            t = t->addMod(stype->mod);
+        Type *origType = t;
+        Type *tb = t->toBasetype();
+
+        /* Look for case of initializing a static array with a too-short
+         * string literal, such as:
+         *  char[5] foo = "abc";
+         * Allow this by doing an explicit cast, which will lengthen the string
+         * literal.
+         */
+        if (e->op == TOKstring && tb->ty == Tsarray)
+        {
+            StringExp *se = (StringExp *)e;
+            Type *typeb = se->type->toBasetype();
+            TY tynto = tb->nextOf()->ty;
+            if (!se->committed &&
+                (typeb->ty == Tarray || typeb->ty == Tsarray) &&
+                (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                se->length((int)tb->nextOf()->size()) < ((TypeSArray *)tb)->dim->toInteger())
+            {
+                e = se->castTo(sc, t);
+                goto L1;
+            }
+        }
+
+        while (!e->implicitConvTo(t) && tb->ty == Tsarray)
         {
             /* Static array initialization, as in:
              *  T[3][5] = e;
              */
-            telem = telem->toBasetype()->nextOf();
+            t = tb->nextOf();
+            tb = t->toBasetype();
         }
+        if (!e->implicitConvTo(t))
+            t = origType;  // restore type for better diagnostic
 
-        if (!e->implicitConvTo(telem))
-            telem = origType;  // restore type for better diagnostic
-
-        e = e->implicitCastTo(sc, telem);
+        e = e->implicitCastTo(sc, t);
+    L1:
         if (e->op == TOKerror)
             return false;
 
@@ -1039,8 +1081,10 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
  */
 bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
 {
+    //printf("StructDeclaration::fill() %s\n", toChars());
     assert(sizeok == SIZEOKdone);
     size_t nfields = fields.dim - isNested();
+    bool errors = false;
 
     if (elements)
     {
@@ -1070,6 +1114,26 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                             v2->offset < vd->offset + vd->type->size());
             if (!overlap)
                 continue;
+
+            // vd and v2 are overlapping. If either has destructors, postblits, etc., then error
+            //printf("overlapping fields %s and %s\n", vd->toChars(), v2->toChars());
+
+            VarDeclaration *v = vd;
+            for (int k = 0; k < 2; ++k, v = v2)
+            {
+                Type *tv = v->type->baseElemOf();
+                Dsymbol *sv = tv->toDsymbol(NULL);
+                if (sv && !errors)
+                {
+                    StructDeclaration *sd = sv->isStructDeclaration();
+                    if (sd && (sd->dtor || sd->inv || sd->postblit))
+                    {
+                        error("destructors, postblits and invariants are not allowed in overlapping fields %s and %s", vd->toChars(), v2->toChars());
+                        errors = true;
+                        break;
+                    }
+                }
+            }
 
             if (elements)
             {
@@ -1168,7 +1232,7 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                 return false;
         }
     }
-    return true;
+    return !errors;
 }
 
 /***************************************
@@ -1187,7 +1251,7 @@ bool StructDeclaration::isPOD()
 
     ispod = ISPODyes;
 
-    if (enclosing || cpctor || postblit || dtor)
+    if (enclosing || postblit || dtor)
         ispod = ISPODno;
 
     // Recursively check all fields are POD.

@@ -1,8 +1,5 @@
-// REQUIRED_ARGS: -d
-// PERMUTE_ARGS: -dw
 
-import std.stdio;
-import std.c.stdlib;
+extern(C) int printf(const char*, ...);
 
 enum
 {
@@ -104,60 +101,6 @@ void test1()
     assert(dotype(0x8000000000000000uL) == T_ulong);
     assert(dotype(0xFFFFFFFFFFFFFFFFuL) == T_ulong);
 
-    /***************** Octal ***********************/
-
-    assert(dotype(0) == T_int);
-    assert(dotype(077777) == T_int);
-    assert(dotype(0100000) == T_int);
-    assert(dotype(0177777) == T_int);
-    assert(dotype(0200000) == T_int);
-    assert(dotype(017777777777) == T_int);
-    assert(dotype(020000000000) == T_uint);
-    assert(dotype(037777777777) == T_uint);
-    assert(dotype(040000000000) == T_long);
-    assert(dotype(0777777777777777777777) == T_long);
-    assert(dotype(01000000000000000000000) == T_ulong);
-    assert(dotype(01777777777777777777777) == T_ulong);
-
-    assert(dotype(0u) == T_uint);
-    assert(dotype(077777u) == T_uint);
-    assert(dotype(0100000u) == T_uint);
-    assert(dotype(0177777u) == T_uint);
-    assert(dotype(0200000u) == T_uint);
-    assert(dotype(017777777777u) == T_uint);
-    assert(dotype(020000000000u) == T_uint);
-    assert(dotype(037777777777u) == T_uint);
-    assert(dotype(040000000000u) == T_ulong);
-    assert(dotype(0777777777777777777777u) == T_ulong);
-    assert(dotype(01000000000000000000000u) == T_ulong);
-    assert(dotype(01777777777777777777777u) == T_ulong);
-
-    assert(dotype(0L) == T_long);
-    assert(dotype(077777L) == T_long);
-    assert(dotype(0100000L) == T_long);
-    assert(dotype(0177777L) == T_long);
-    assert(dotype(0200000L) == T_long);
-    assert(dotype(017777777777L) == T_long);
-    assert(dotype(020000000000L) == T_long);
-    assert(dotype(037777777777L) == T_long);
-    assert(dotype(040000000000L) == T_long);
-    assert(dotype(0777777777777777777777L) == T_long);
-    assert(dotype(01000000000000000000000L) == T_ulong);
-    assert(dotype(01777777777777777777777L) == T_ulong);
-
-    assert(dotype(0uL) == T_ulong);
-    assert(dotype(077777uL) == T_ulong);
-    assert(dotype(0100000uL) == T_ulong);
-    assert(dotype(0177777uL) == T_ulong);
-    assert(dotype(0200000uL) == T_ulong);
-    assert(dotype(017777777777uL) == T_ulong);
-    assert(dotype(020000000000uL) == T_ulong);
-    assert(dotype(037777777777uL) == T_ulong);
-    assert(dotype(040000000000uL) == T_ulong);
-    assert(dotype(0777777777777777777777uL) == T_ulong);
-    assert(dotype(01000000000000000000000uL) == T_ulong);
-    assert(dotype(01777777777777777777777uL) == T_ulong);
-
     /***************** Decimal ***********************/
 
     assert(dotype(0) == T_int);
@@ -221,10 +164,74 @@ void test2()
         assert(e == 2_463_534_242UL);
 }
 
+/***************************************************/
+// 13907
+
+void f13907_1(wchar[1] a) {}
+void f13907_2(wchar[2] a) {}
+void f13907_3(wchar[3] a) {}
+
+auto f13907_12(char[1]) { return 1; }
+auto f13907_12(char[2]) { return 2; }
+
+auto f13907_123(char[1]) { return 1; }
+auto f13907_123(char[2]) { return 2; }
+auto f13907_123(char[3]) { return 3; }
+auto f13907_123(const(char)[]) { return 0; }
+
+void test13907()
+{
+    static assert(!__traits(compiles, { f13907_1("\U00010000"w); }));
+    static assert(!__traits(compiles, { f13907_1("\U00010000" ); }));
+    f13907_2("\U00010000"w);
+    f13907_2("\U00010000");
+    f13907_3("\U00010000"w);    // Re-enable implicit length extension, from issue 13999
+    f13907_3("\U00010000" );    // Re-enable implicit length extension, from issue 13999
+
+    assert(f13907_12("a") == 1);
+    assert(f13907_12("ab") == 2);
+    static assert(!__traits(compiles, { f13907_12("abc"); }));
+
+    assert(f13907_123("a") == 1);
+    assert(f13907_123("ab") == 2);
+    assert(f13907_123("abc") == 3);
+    assert(f13907_123("abcd") == 0);
+
+    // regression tests for the lengthen behavior in initializer
+    enum const(char*) p = "hello world";
+    static assert(!__traits(compiles, { static   char[5] a = "hello world"; }));  // truncation is not allowed
+    static assert(!__traits(compiles, { static  void[20] a = "hello world"; }));
+    static assert(!__traits(compiles, { static   int[20] a = "hello world"; }));
+    static assert(!__traits(compiles, { static  char[20] a = "hello world"w; }));
+    static assert(!__traits(compiles, { static wchar[20] a = "hello world"d; }));
+    static assert(!__traits(compiles, { static dchar[20] a = "hello world"c; }));
+    static assert(!__traits(compiles, { static  char[20] a = p; }));
+    static  char[20] csa = "hello world";  // extending is allowed
+    static wchar[20] wsa = "hello world";  // ok
+    static dchar[20] dsa = "hello world";  // ok
+
+    // Bugzilla 13966
+    string[1][] arr;
+    arr ~= ["class"];
+    enum immutable(char[5]) sarrstr = "class";
+    arr ~= [sarrstr];
+
+    // Bugzilla 13999
+    string[dchar[2]] aa13999 = ["あ": "bar"];
+    assert(aa13999["あ"] == "bar");
+    dchar[2] key13999 = "あ";
+    assert(key13999[0] == 'あ');
+    assert(key13999[1] == '\0');
+    assert(aa13999[key13999] == "bar");
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
     test2();
+    test13907();
 
     printf("Success\n");
     return 0;

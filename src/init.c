@@ -24,6 +24,7 @@
 #include "hdrgen.h"
 #include "template.h"
 #include "id.h"
+#include "tokens.h"
 
 /********************************** Initializer *******************************/
 
@@ -262,8 +263,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         TOK tok = (t->ty == Tdelegate) ? TOKdelegate : TOKfunction;
         /* Rewrite as empty delegate literal { }
          */
-        Parameters *arguments = new Parameters;
-        Type *tf = new TypeFunction(arguments, NULL, 0, LINKd);
+        Parameters *parameters = new Parameters;
+        Type *tf = new TypeFunction(parameters, NULL, 0, LINKd);
         FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf, tok, NULL);
         fd->fbody = new CompoundStatement(loc, new Statements());
         fd->endloc = loc;
@@ -428,10 +429,16 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         case Tstruct:   // consider implicit constructor call
         {
             Expression *e;
+            // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
             if (t->ty == Taarray || isAssociativeArray())
                 e = toAssocArrayLiteral();
             else
                 e = toExpression();
+            if (!e) // Bugzilla 13987
+            {
+                error(loc, "cannot use array to initialize %s", t->toChars());
+                goto Lerr;
+            }
             ExpInitializer *ei = new ExpInitializer(e->loc, e);
             return ei->semantic(sc, t, needInterpret);
         }
@@ -847,6 +854,12 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     if (!global.gag && olderrors != global.errors)
         return this; // Failed, suppress duplicate error messages
 
+    if (exp->type->ty == Ttuple && ((TypeTuple *)exp->type)->arguments->dim == 0)
+    {
+        Type *et = exp->type;
+        exp = new TupleExp(exp->loc, new Expressions());
+        exp->type = et;
+    }
     if (exp->op == TOKtype)
     {
         exp->error("initializer must be an expression, not '%s'", exp->toChars());
@@ -872,12 +885,15 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
      * Allow this by doing an explicit cast, which will lengthen the string
      * literal.
      */
-    if (exp->op == TOKstring && tb->ty == Tsarray && ti->ty == Tsarray)
+    if (exp->op == TOKstring && tb->ty == Tsarray)
     {
         StringExp *se = (StringExp *)exp;
-        if (!se->committed && se->type->ty == Tsarray &&
-            ((TypeSArray *)se->type)->dim->toInteger() <
-            ((TypeSArray *)t)->dim->toInteger())
+        Type *typeb = se->type->toBasetype();
+        TY tynto = tb->nextOf()->ty;
+        if (!se->committed &&
+            (typeb->ty == Tarray || typeb->ty == Tsarray) &&
+            (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+            se->length((int)tb->nextOf()->size()) < ((TypeSArray *)tb)->dim->toInteger())
         {
             exp = se->castTo(sc, t);
             goto L1;
@@ -950,9 +966,9 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         }
         exp = exp->implicitCastTo(sc, t);
     }
+L1:
     if (exp->op == TOKerror)
         return this;
-L1:
     if (needInterpret)
         exp = exp->ctfeInterpret();
     else

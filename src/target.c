@@ -20,7 +20,8 @@ int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
 bool Target::reverseCppOverloads;
-int Target::longsize;
+int Target::c_longsize;
+int Target::c_long_doublesize;
 
 
 void Target::init()
@@ -28,6 +29,8 @@ void Target::init()
     // These have default values for 32 bit code, they get
     // adjusted for 64 bit code.
     ptrsize = 4;
+    if (global.params.isLP64)
+        ptrsize = 8;
 
     if (global.params.isLinux || global.params.isFreeBSD
         || global.params.isOpenBSD || global.params.isSolaris)
@@ -35,14 +38,14 @@ void Target::init()
         realsize = 12;
         realpad = 2;
         realalignsize = 4;
-        longsize = 4;
+        c_longsize = 4;
     }
     else if (global.params.isOSX)
     {
         realsize = 16;
         realpad = 6;
         realalignsize = 16;
-        longsize = 4;
+        c_longsize = 4;
     }
     else if (global.params.isWindows)
     {
@@ -50,7 +53,7 @@ void Target::init()
         realpad = 0;
         realalignsize = 2;
         reverseCppOverloads = !global.params.is64bit;
-        longsize = 4;
+        c_longsize = 4;
     }
     else
         assert(0);
@@ -62,16 +65,17 @@ void Target::init()
             realsize = 16;
             realpad = 6;
             realalignsize = 16;
-            longsize = 8;
+            c_longsize = 8;
         }
         else if (global.params.isOSX)
         {
-            longsize = 8;
+            c_longsize = 8;
         }
     }
 
-    if (global.params.isLP64)
-        ptrsize = 8;
+    c_long_doublesize = realsize;
+    if (global.params.is64bit && global.params.isWindows)
+        c_long_doublesize = 8;
 }
 
 /******************************
@@ -184,7 +188,7 @@ Type *Target::va_listType()
     {
         if (global.params.is64bit)
         {
-            return (new TypeIdentifier(Loc(), Lexer::idPool("__va_list_tag")))->pointerTo();
+            return (new TypeIdentifier(Loc(), Identifier::idPool("__va_list_tag")))->pointerTo();
         }
         else
         {
@@ -199,6 +203,88 @@ Type *Target::va_listType()
 }
 
 /******************************
+ * Private helpers for Target::paintAsType.
+ */
+
+// Write the integer value of 'e' into a unsigned byte buffer.
+static void encodeInteger(Expression *e, unsigned char *buffer)
+{
+    dinteger_t value = e->toInteger();
+    int size = (int)e->type->size();
+
+    for (int p = 0; p < size; p++)
+    {
+        int offset = p;     // Would be (size - 1) - p; on BigEndian
+        buffer[offset] = ((value >> (p * 8)) & 0xFF);
+    }
+}
+
+// Write the bytes encoded in 'buffer' into an integer and returns
+// the value as a new IntegerExp.
+static Expression *decodeInteger(Loc loc, Type *type, unsigned char *buffer)
+{
+    dinteger_t value = 0;
+    int size = (int)type->size();
+
+    for (int p = 0; p < size; p++)
+    {
+        int offset = p;     // Would be (size - 1) - p; on BigEndian
+        value |= ((dinteger_t)buffer[offset] << (p * 8));
+    }
+
+    return new IntegerExp(loc, value, type);
+}
+
+// Write the real value of 'e' into a unsigned byte buffer.
+static void encodeReal(Expression *e, unsigned char *buffer)
+{
+    switch (e->type->ty)
+    {
+        case Tfloat32:
+        {
+            float *p = (float *)buffer;
+            *p = (float)e->toReal();
+            break;
+        }
+        case Tfloat64:
+        {
+            double *p = (double *)buffer;
+            *p = (double)e->toReal();
+            break;
+        }
+        default:
+            assert(0);
+    }
+}
+
+// Write the bytes encoded in 'buffer' into a longdouble and returns
+// the value as a new RealExp.
+static Expression *decodeReal(Loc loc, Type *type, unsigned char *buffer)
+{
+    longdouble value;
+
+    switch (type->ty)
+    {
+        case Tfloat32:
+        {
+            float *p = (float *)buffer;
+            value = ldouble(*p);
+            break;
+        }
+        case Tfloat64:
+        {
+            double *p = (double *)buffer;
+            value = ldouble(*p);
+            break;
+        }
+        default:
+            assert(0);
+    }
+
+    return new RealExp(loc, value, type);
+}
+
+/******************************
  * Encode the given expression, which is assumed to be an rvalue literal
  * as another type for use in CTFE.
  * This corresponds roughly to the idiom *(Type *)&e.
@@ -206,55 +292,43 @@ Type *Target::va_listType()
 
 Expression *Target::paintAsType(Expression *e, Type *type)
 {
-    union
-    {
-        d_int32 int32value;
-        d_int64 int64value;
-        float float32value;
-        double float64value;
-    } u;
+    // We support up to 512-bit values.
+    unsigned char buffer[64];
 
+    memset(buffer, 0, sizeof(buffer));
     assert(e->type->size() == type->size());
 
+    // Write the expression into the buffer.
     switch (e->type->ty)
     {
         case Tint32:
         case Tuns32:
-            u.int32value = (d_int32)e->toInteger();
-            break;
-
         case Tint64:
         case Tuns64:
-            u.int64value = (d_int64)e->toInteger();
+            encodeInteger(e, buffer);
             break;
 
         case Tfloat32:
-            u.float32value = e->toReal();
-            break;
-
         case Tfloat64:
-            u.float64value = e->toReal();
+            encodeReal(e, buffer);
             break;
 
         default:
             assert(0);
     }
 
+    // Interpret the buffer as a new type.
     switch (type->ty)
     {
         case Tint32:
         case Tuns32:
-            return new IntegerExp(e->loc, u.int32value, type);
-
         case Tint64:
         case Tuns64:
-            return new IntegerExp(e->loc, u.int64value, type);
+            return decodeInteger(e->loc, type, buffer);
 
         case Tfloat32:
-            return new RealExp(e->loc, ldouble(u.float32value), type);
-
         case Tfloat64:
-            return new RealExp(e->loc, ldouble(u.float64value), type);
+            return decodeReal(e->loc, type, buffer);
 
         default:
             assert(0);
@@ -262,3 +336,47 @@ Expression *Target::paintAsType(Expression *e, Type *type)
 
     return NULL;    // avoid warning
 }
+
+/*
+ * Return true if the given type is supported for this target
+ */
+
+int Target::checkVectorType(int sz, Type *type)
+{
+    if (!global.params.is64bit && !global.params.isOSX)
+        return 1; // not supported
+
+    if (sz != 16 && sz != 32)
+        return 2; // wrong size
+
+    switch (type->ty)
+    {
+    case Tvoid:
+    case Tint8:
+    case Tuns8:
+    case Tint16:
+    case Tuns16:
+    case Tint32:
+    case Tuns32:
+    case Tfloat32:
+    case Tint64:
+    case Tuns64:
+    case Tfloat64:
+        break;
+    default:
+        return 3; // wrong base type
+    }
+
+    return 0;
+}
+
+/******************************
+ * For the given module, perform any post parsing analysis.
+ * Certain compiler backends (ie: GDC) have special placeholder
+ * modules whose source are empty, but code gets injected
+ * immediately after loading.
+ */
+void Target::loadModule(Module *m)
+{
+}
+

@@ -18,41 +18,35 @@
 
 struct StringEntry;
 
-// StringValue is a variable-length structure as indicated by the last array
-// member with unspecified size.  It has neither proper c'tors nor a factory
-// method because the only thing which should be creating these is StringTable.
+// StringValue is a variable-length structure. It has neither proper c'tors nor a
+// factory method because the only thing which should be creating these is StringTable.
 struct StringValue
 {
     void *ptrvalue;
-private:
     size_t length;
+    char *lstring() { return (char *)(this + 1); }
 
-#ifndef IN_GCC
-    // Disable warning about nonstandard extension
-    #pragma warning (disable : 4200)
-#endif
-    char lstring[];
-
-public:
     size_t len() const { return length; }
-    const char *toDchars() const { return lstring; }
+    const char *toDchars() const { return (char *)(this + 1); }
 
-private:
-    friend struct StringEntry;
     StringValue();  // not constructible
-    // This is more like a placement new c'tor
-    void ctor(const char *p, size_t length);
 };
 
 struct StringTable
 {
 private:
-    void **table;
-    size_t count;
+    StringEntry *table;
     size_t tabledim;
 
+    uint8_t **pools;
+    size_t npools;
+    size_t nfill;
+
+    size_t count;
+
 public:
-    void _init(size_t size = 37);
+    void _init(size_t size = 0);
+    void reset(size_t size = 0);
     ~StringTable();
 
     StringValue *lookup(const char *s, size_t len);
@@ -60,7 +54,10 @@ public:
     StringValue *update(const char *s, size_t len);
 
 private:
-    void **search(const char *s, size_t len);
+    uint32_t allocValue(const char *p, size_t length);
+    StringValue *getValue(uint32_t validx);
+    size_t findSlot(hash_t hash, const char *s, size_t len);
+    void grow();
 };
 
 #endif

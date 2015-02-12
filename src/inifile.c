@@ -36,7 +36,16 @@
 
 char *skipspace(char *p);
 
-const char *findinifile(const char *argv0, const char *inifile)
+/*****************************
+ * Find the config file
+ * Input:
+ *      argv0           program name (argv[0])
+ *      inifile         .ini file name
+ * Returns:
+ *      file path of the config file or NULL
+ *      Note: this is a memory leak
+ */
+const char *findConfFile(const char *argv0, const char *inifile)
 {
 #if LOG
     printf("findinifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
@@ -73,25 +82,22 @@ const char *findinifile(const char *argv0, const char *inifile)
         return filename;
 
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    /* argv0 might be a symbolic link,
-     * so try again looking past it to the real path
-     */
-    const char *real_argv0 = FileName::canonicalName(argv0);
-    //printf("argv0 = %s, real_argv0 = %p\n", argv0, real_argv0);
-    if (real_argv0)
-    {
-        filename = FileName::replaceName(real_argv0, inifile);
-        if (FileName::exists(filename))
-            return filename;
-    }
-
     // Search PATH for argv0
     const char *p = getenv("PATH");
 #if LOG
     printf("\tPATH='%s'\n", p);
 #endif
     Strings *paths = FileName::splitPath(p);
-    filename = FileName::searchPath(paths, argv0, 0);
+    const char *abspath = FileName::searchPath(paths, argv0, false);
+    if (abspath)
+    {
+        const char *absname = FileName::replaceName(abspath, inifile);
+        if (FileName::exists(absname))
+            return absname;
+    }
+
+    // Resolve symbolic links
+    filename = FileName::canonicalName(abspath ? abspath : argv0);
     if (filename)
     {
         filename = FileName::replaceName(filename, inifile);
@@ -114,17 +120,11 @@ const char *findinifile(const char *argv0, const char *inifile)
  * Read and analyze .ini file, i.e. write the entries of the specified section
  *  into the process environment
  * Input:
- *      argv0           program name (argv[0])
- *      inifile         .ini file name
+ *      filename path to config file
  *      envsectionname  name of the section to process
- * Returns:
- *      file name of ini file
- *      Note: this is a memory leak
  */
-
-const char *inifile(const char *argv0, const char *inifile, const char *envsectionname)
+void parseConfFile(const char *filename, const char *envsectionname)
 {
-    const char *filename = findinifile(argv0, inifile);
     const char *path = FileName::path(filename); // need path for @P macro
 #if LOG
     printf("\tpath = '%s', filename = '%s'\n", path, filename);
@@ -133,7 +133,7 @@ const char *inifile(const char *argv0, const char *inifile, const char *envsecti
     File file(filename);
 
     if (file.read())
-        return filename;                        // error reading file
+        return; // error reading file
 
     // Parse into lines
     bool envsection = true;
@@ -299,7 +299,7 @@ const char *inifile(const char *argv0, const char *inifile, const char *envsecti
                 break;
         }
     }
-    return filename;
+    return;
 }
 
 /********************
@@ -312,4 +312,3 @@ char *skipspace(char *p)
         p++;
     return p;
 }
-

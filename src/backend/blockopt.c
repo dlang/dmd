@@ -1023,7 +1023,7 @@ STATIC void brrear()
 #if NTEXCEPTIONS
                                 bt->Btry == list_block(bt->Bsucc)->Btry &&
 #endif
-
+                                (OPTIMIZER || !(bt->Bsrcpos.Slinnum && configv.addlinenumbers)) &&
                                ++iter < 10)
                         {
                                 list_ptr(bl) = list_ptr(bt->Bsucc);

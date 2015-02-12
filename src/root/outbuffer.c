@@ -19,23 +19,6 @@
 
 #include "outbuffer.h"
 #include "object.h"
-#include "rmem.h"
-
-OutBuffer::OutBuffer()
-{
-    data = NULL;
-    offset = 0;
-    size = 0;
-
-    doindent = 0;
-    level = 0;
-    notlinehead = 0;
-}
-
-OutBuffer::~OutBuffer()
-{
-    mem.free(data);
-}
 
 char *OutBuffer::extractData()
 {
@@ -55,7 +38,7 @@ void OutBuffer::reserve(size_t nbytes)
     {
         size = (offset + nbytes) * 2;
         size = (size + 15) & ~15;
-        data = (utf8_t *)mem.realloc(data, size);
+        data = (unsigned char *)mem.xrealloc(data, size);
     }
 }
 
@@ -300,12 +283,6 @@ void OutBuffer::fill0(size_t nbytes)
     reserve(nbytes);
     memset(data + offset,0,nbytes);
     offset += nbytes;
-}
-
-void OutBuffer::align(size_t size)
-{
-    size_t nbytes = ((offset + size - 1) & ~(size - 1)) - offset;
-    fill0(nbytes);
 }
 
 void OutBuffer::vprintf(const char *format, va_list args)

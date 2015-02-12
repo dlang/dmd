@@ -62,6 +62,8 @@ typedef Array<class ScopeStatement *> ScopeStatements;
 
 typedef Array<class GotoCaseStatement *> GotoCaseStatements;
 
+typedef Array<class ReturnStatement *> ReturnStatements;
+
 typedef Array<class GotoStatement *> GotoStatements;
 
 typedef Array<class TemplateInstance *> TemplateInstances;
@@ -69,7 +71,5 @@ typedef Array<class TemplateInstance *> TemplateInstances;
 typedef Array<struct block *> Blocks;
 
 typedef Array<struct Symbol *> Symbols;
-
-typedef Array<struct dt_t *> Dts;
 
 #endif

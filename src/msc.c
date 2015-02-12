@@ -107,7 +107,7 @@ void backend_init()
         params->debugc,
         params->debugf,
         params->debugr,
-        params->debugw,
+        false,
         params->debugx,
         params->debugy
     );
@@ -164,6 +164,7 @@ symbol *symboldata(targ_size_t offset,tym_t ty)
     symbol *s = symbol_generate(SClocstat, type_fake(ty));
     s->Sfl = FLdata;
     s->Soffset = offset;
+    s->Stype->Tmangle = mTYman_d; // writes symbol unmodified in Obj::mangle
     symbol_keep(s);             // keep around
     return s;
 }

@@ -1066,6 +1066,8 @@ code *cdmul(elem *e,regm_t *pretregs)
             cg = gen2(cg,0xF7,grex | modregrmx(3,5,reg));           // IMUL R1
             if (mgt)
                 gen2(cg,0x03,grex | modregrmx(3,DX,reg));           // ADD EDX,R1
+            code *ct = getregs(mAX);                                // EAX no longer contains 'm'
+            assert(ct == NULL);
             genmovreg(cg, AX, reg);                                 // MOV EAX,R1
             genc2(cg,0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);      // SAR EAX,31
             if (shpost)
@@ -1095,6 +1097,8 @@ code *cdmul(elem *e,regm_t *pretregs)
                     {
                         cg = movregconst(cg,AX,d,(sz == 8) ? 0x40 : 0); // MOV EAX,d
                         cg = gen2(cg,0x0FAF,grex | modregrmx(3,AX,DX)); // IMUL EAX,EDX
+                        code *ct = getregs(mAX);                        // EAX no longer contains 'd'
+                        assert(ct == NULL);
                     }
                     gen2(cg,0x2B,grex | modregxrm(3,reg,AX));           // SUB R1,EAX
                     resreg = regm;
@@ -4176,21 +4180,40 @@ code *getoffset(elem *e,unsigned reg)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     {
       L5:
-        if (I64 && config.flags3 & CFG3pic)
+        if (config.flags3 & CFG3pic)
         {
-            /* Generate:
-             *   LEA DI,s@TLSGD[RIP]
-             */
-            assert(reg == DI);
-            code css;
-            css.Irex = REX | REX_W;
-            css.Iop = 0x8D;             // LEA
-            css.Irm = modregrm(0,DI,5);
-            css.Iflags = CFopsize;
-            css.IFL1 = fl;
-            css.IEVsym1 = e->EV.sp.Vsym;
-            css.IEVoffset1 = e->EV.sp.Voffset;
-            c = gen(NULL, &css);
+            if (I64)
+            {
+                /* Generate:
+                 *   LEA DI,s@TLSGD[RIP]
+                 */
+                assert(reg == DI);
+                code css;
+                css.Irex = REX | REX_W;
+                css.Iop = 0x8D;             // LEA
+                css.Irm = modregrm(0,DI,5);
+                css.Iflags = CFopsize;
+                css.IFL1 = fl;
+                css.IEVsym1 = e->EV.sp.Vsym;
+                css.IEVoffset1 = e->EV.sp.Voffset;
+                c = gen(NULL, &css);
+            }
+            else
+            {
+                /* Generate:
+                 *   LEA EAX,s@TLSGD[1*EBX+0]
+                 */
+                assert(reg == AX);
+                c = load_localgot();
+                code css;
+                css.Iop = 0x8D;             // LEA
+                css.Irm = modregrm(0,AX,4);
+                css.Isib = modregrm(0,BX,5);
+                css.IFL1 = fl;
+                css.IEVsym1 = e->EV.sp.Vsym;
+                css.IEVoffset1 = e->EV.sp.Voffset;
+                c = gen(c, &css);
+            }
             return c;
         }
         /* Generate:
@@ -5107,6 +5130,12 @@ code *cdddtor(elem *e,regm_t *pretregs)
 
     cd = cat(cd, nteh_gensindex(0));    // the actual index will be patched in later
                                         // by except_fillInEHTable()
+
+    // Mark all registers as destroyed
+    {
+        code *cy = getregs(allregs);
+        assert(!cy);
+    }
 
     assert(*pretregs == 0);
     code *c = codelem(e->E1,pretregs,FALSE);

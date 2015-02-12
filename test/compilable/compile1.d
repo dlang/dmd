@@ -552,6 +552,30 @@ class C10326
 }
 
 /***************************************************/
+// 11042
+
+static if           ((true  || error) == true ) {} else { static assert(0); }
+static if           ((false && error) == false) {} else { static assert(0); }
+static assert       ((true  || error) == true );
+static assert       ((false && error) == false);
+int f11042a1()() if ((true  || error) == true ) { return 0; }   enum x11042a1 = f11042a1();
+int f11042b1()() if ((false && error) == false) { return 0; }   enum x11042b1 = f11042b1();
+
+static if           (is(typeof(true  || error)) == false) {} else { static assert(0); }
+static if           (is(typeof(false && error)) == false) {} else { static assert(0); }
+static assert       (is(typeof(true  || error)) == false);
+static assert       (is(typeof(false && error)) == false);
+int f11042a2()() if (is(typeof(true  || error)) == false) { return 0; }   enum x11042a2 = f11042a2();
+int f11042b2()() if (is(typeof(false && error)) == false) { return 0; }   enum x11042b2 = f11042b2();
+
+static if           (__traits(compiles, true  || error) == false) {} else { static assert(0); }
+static if           (__traits(compiles, false && error) == false) {} else { static assert(0); }
+static assert       (__traits(compiles, true  || error) == false);
+static assert       (__traits(compiles, false && error) == false);
+int f11042a3()() if (__traits(compiles, true  || error) == false) { return 0; }   enum x11042a3 = f11042a3();
+int f11042b3()() if (__traits(compiles, false && error) == false) { return 0; }   enum x11042b3 = f11042b3();
+
+/***************************************************/
 // 11554
 
 enum E11554;
@@ -684,3 +708,95 @@ final class C12703
 {
     S12703 s = S12703(1);
 }
+
+/***************************************************/
+// 13481
+
+mixin template Mix13481(void function() callback)
+{
+    static this()
+    {
+        callback();
+    }
+}
+
+void sort13481() { int[] arr; arr.sort; }
+mixin Mix13481!(&sort13481);
+
+mixin Mix13481!({ int[] arr; arr.sort; });
+
+/***************************************************/
+// 13564
+
+class E13564(T)
+{
+    int pos;
+}
+
+class C13564(T)
+{
+    struct S
+    {
+        ~this()
+        {
+            C13564!int c;
+            c.element.pos = 0;
+        }
+    }
+
+    E13564!T element;
+}
+
+void test13564()
+{
+    auto c = new C13564!int();
+}
+
+/***************************************************/
+// 14166
+
+struct Proxy14166(T)
+{
+    T* ptr;
+    ref deref() { return *ptr; }
+    alias deref this;
+}
+struct Test14166
+{
+    auto opIndex() { return this; }
+    auto opIndex(int) { return 1; }
+}
+template Elem14166a(R) { alias Elem14166a = typeof(R.init[][0]); }
+template Elem14166b(R) { alias Elem14166b = typeof(R.init[0]); }
+void test14166()
+{
+    alias T = Proxy14166!Test14166;
+    static assert(is(Elem14166a!T == int));     // rejects-valid case
+    static assert(is(Elem14166b!T == int));     // regression case
+}
+
+// other related cases
+struct S14166
+{
+    int x;
+    double y;
+    int[] a;
+    S14166 opUnary(string op : "++")() { return this;  }
+}
+S14166 s14166;
+
+struct X14166 { this(int) { } X14166 opAssign(int) { return this; } }
+X14166[int] aa14166;
+X14166[int] makeAA14166() { return aa14166; }
+
+struct Tup14166(T...) { T field; alias field this; }
+Tup14166!(int, int) tup14166;
+Tup14166!(int, int) makeTup14166() { return tup14166; }
+
+pragma(msg, typeof((s14166.x += 1) = 2));    // ok <- error
+pragma(msg, typeof(s14166.a.length += 2));   // ok <- error
+pragma(msg, typeof(s14166++));               // ok <- error
+pragma(msg, typeof(s14166.x ^^ 2));          // ok <- error
+pragma(msg, typeof(s14166.y ^^= 2.5));       // ok <- error
+pragma(msg, typeof(makeAA14166()[0] = 1));   // ok <- error
+pragma(msg, typeof(tup14166.field = makeTup14166()));   // ok <- error

@@ -5,7 +5,7 @@ import std.stdio;
 
 template cat1(T)
 {
-     T cat1(T i) { return i + 1; }
+    T cat1(T i) { return i + 1; }
 }
 
 void test1()
@@ -18,7 +18,7 @@ void test1()
 
 template cat2(T)
 {
-     T cat2(T* p) { return *p + 1; }
+    T cat2(T* p) { return *p + 1; }
 }
 
 void test2()
@@ -35,7 +35,7 @@ struct S3 { }
 
 template cat3(T)
 {
-     T cat3(T* p, S3 s) { return *p + 1; }
+    T cat3(T* p, S3 s) { return *p + 1; }
 }
 
 void test3()
@@ -51,7 +51,7 @@ void test3()
 
 template cat4(T, int N)
 {
-     T cat4(T[N] p, T[N] q) { return p[0] + N; }
+    T cat4(T[N] p, T[N] q) { return p[0] + N; }
 }
 
 void test4()
@@ -69,11 +69,12 @@ void test4()
 
 template cat5(T, U=T*, int V=7)
 {
-     T cat5(T x)
-     {	U u = &x;
+    T cat5(T x)
+    {
+        U u = &x;
 
-	return x + 3 + *u + V;
-     }
+        return x + 3 + *u + V;
+    }
 }
 
 void test5()
@@ -87,7 +88,6 @@ void test5()
     auto b = cat5!(int,int*,8)(x);
     assert(b == 15);
     assert(typeid(typeof(b)) == typeid(int));
-
 }
 
 /***********************************/
@@ -182,6 +182,76 @@ void testDIP29_4()
 }
 
 /***********************************/
+// 14155
+
+immutable int g14155;
+
+static this() { g14155 = 1; }
+
+             int*  make14155m (             int*  p) pure { return null; }
+       const(int*) make14155c (       const(int*) p) pure { return &g14155; }
+   immutable(int*) make14155i (   immutable(int*) p) pure { return &g14155; }
+      shared(int*) make14155sm(      shared(int*) p) pure { return null; }
+shared(const int*) make14155sc(shared(const int*) p) pure { return &g14155; }
+
+void test14155_for_testDIP29_4()
+{
+    static assert( __traits(compiles, {              int*  p = make14155m (null); }));  //  m <- m (normal)
+    static assert( __traits(compiles, {        const(int*) p = make14155m (null); }));  //  c <- m (normal)
+    static assert( __traits(compiles, {       shared(int*) p = make14155m (null); }));  // sm <- m (unique)
+    static assert( __traits(compiles, { shared(const int*) p = make14155m (null); }));  // sc <- m (unique)
+    static assert( __traits(compiles, {    immutable(int*) p = make14155m (null); }));  //  i <- m (unique)
+
+    static assert(!__traits(compiles, {              int*  p = make14155c (null); }));  //  m <- c (NG) <bugzilla case>
+    static assert( __traits(compiles, {        const(int*) p = make14155c (null); }));  //  c <- c (normal)
+    static assert(!__traits(compiles, {       shared(int*) p = make14155c (null); }));  // sm <- c (NG)
+    static assert( __traits(compiles, { shared(const int*) p = make14155c (null); }));  // sc <- c (unique or immutable global)
+    static assert( __traits(compiles, {    immutable(int*) p = make14155c (null); }));  //  i <- c (unique or immutable global)
+
+    static assert(!__traits(compiles, {              int*  p = make14155i (null); }));  //  m <- i (NG)
+    static assert( __traits(compiles, {        const(int*) p = make14155i (null); }));  //  c <- i (normal)
+    static assert(!__traits(compiles, {       shared(int*) p = make14155i (null); }));  // sm <- i (NG)
+    static assert( __traits(compiles, { shared(const int*) p = make14155i (null); }));  // sc <- i (normal)
+    static assert( __traits(compiles, {    immutable(int*) p = make14155i (null); }));  //  i <- i (normal)
+
+    static assert( __traits(compiles, {              int*  p = make14155sm(null); }));  //  m <- sm (unique)
+    static assert( __traits(compiles, {        const(int*) p = make14155sm(null); }));  //  c <- sm (unique)
+    static assert( __traits(compiles, {       shared(int*) p = make14155sm(null); }));  // sm <- sm (normal)
+    static assert( __traits(compiles, { shared(const int*) p = make14155sm(null); }));  // sc <- sm (normal)
+    static assert( __traits(compiles, {    immutable(int*) p = make14155sm(null); }));  //  i <- sm (unique)
+
+    static assert(!__traits(compiles, {              int*  p = make14155sc(null); }));  //  m <- sc (NG)
+    static assert( __traits(compiles, {        const(int*) p = make14155sc(null); }));  //  c <- sc (unique or immutable global)
+    static assert(!__traits(compiles, {       shared(int*) p = make14155sc(null); }));  // sm <- sc (NG)
+    static assert( __traits(compiles, { shared(const int*) p = make14155sc(null); }));  // sc <- sc (normal)
+    static assert( __traits(compiles, {    immutable(int*) p = make14155sc(null); }));  //  i <- sc
+
+    int x;
+    int* nestf() pure { return &x; }
+    static assert(!__traits(compiles, { immutable(int*) ip = nestf(); }));
+}
+
+/***********************************/
+// 14141
+
+struct S14141
+{
+    Object obj;
+
+    const(Object) getObj() const pure
+    {
+        return obj;
+    }
+}
+
+void test14141()
+{
+    const S14141 s;
+    static assert(is(typeof(s.getObj()) == const Object));           // ok
+    static assert(!__traits(compiles, { Object o = s.getObj(); }));  // ok <- fails
+}
+
+/***********************************/
 
 int[] test6(int[] a) pure @safe nothrow
 {
@@ -209,121 +279,161 @@ void testDIP29_6()
 
     static assert(__traits(compiles,
     {
-	static struct S { int *p; }
-	immutable s = new S;		// since p is null
+        static struct S { int *p; }
+        immutable s = new S;        // since p is null
     }));
 
     static assert(!__traits(compiles,
     {
-	__gshared int x;
-	static struct S { int *p = &x; }
-	immutable s = new S;		// x is mutable
+        __gshared int x;
+        static struct S { int *p = &x; }
+        immutable s = new S;        // x is mutable
     }));
 
     static assert(!__traits(compiles,
     {
-	int y;
-	struct S { int x; void bar() { y = 3; } }
-	immutable s = new S;		// nested struct
+        int y;
+        struct S { int x; void bar() { y = 3; } }
+        immutable s = new S;        // nested struct
     }));
 
     static assert(!__traits(compiles,
     {
-	static struct S { int x; this(int); }
-	immutable s = new S(1);
+        static struct S { int x; this(int); }
+        immutable s = new S(1);
     }));
 
     static assert(__traits(compiles,
     {
-	static struct S { int x; this(int) pure; }
-	immutable s = new S(1);
+        static struct S { int x; this(int) pure; }
+        immutable s = new S(1);
     }));
 
     static assert(__traits(compiles,
     {
-	static struct S { int* p = void; this(int) pure; }
-	immutable s = new S(1);
+        static struct S { int* p = void; this(int) pure; }
+        immutable s = new S(1);
     }));
 
     static assert(!__traits(compiles,
     {
-	static struct S { int* p = void; this(int*) pure; }
-	int x;
-	immutable s = new S(&x);
+        static struct S { int* p = void; this(int*) pure; }
+        int x;
+        immutable s = new S(&x);
     }));
 
     static assert(__traits(compiles,
     {
-	static struct S { int* p = void; this(immutable(int)*) pure; }
-	immutable int x;
-	immutable s = new S(&x);
+        static struct S { int* p = void; this(immutable(int)*) pure; }
+        immutable int x;
+        immutable s = new S(&x);
     }));
 
     static assert(__traits(compiles,
     {
-	static struct S { int* p = void; this(int*) pure; }
-	immutable s = new S(null);
+        static struct S { int* p = void; this(int*) pure; }
+        immutable s = new S(null);
     }));
 
     /******* classes ************/
 
     static assert(__traits(compiles,
     {
-	static class S { int *p; }
-	immutable s = new S;		// since p is null
+        static class S { int *p; }
+        immutable s = new S;        // since p is null
     }));
 
     static assert(!__traits(compiles,
     {
-	__gshared int x;
-	static class S { int *p = &x; }
-	immutable s = new S;		// x is mutable
+        __gshared int x;
+        static class S { int *p = &x; }
+        immutable s = new S;        // x is mutable
     }));
 
     static assert(!__traits(compiles,
     {
-	int y;
-	class S { int x; void bar() { y = 3; } }
-	immutable s = new S;		// nested class
+        int y;
+        class S { int x; void bar() { y = 3; } }
+        immutable s = new S;        // nested class
     }));
 
     static assert(!__traits(compiles,
     {
-	static class S { int x; this(int); }
-	immutable s = new S(1);
+        static class S { int x; this(int); }
+        immutable s = new S(1);
     }));
 
     static assert(__traits(compiles,
     {
-	static class S { int x; this(int) pure; }
-	immutable s = new S(1);
+        static class S { int x; this(int) pure; }
+        immutable s = new S(1);
     }));
 
     static assert(__traits(compiles,
     {
-	static class S { int* p = void; this(int) pure; }
-	immutable s = new S(1);
+        static class S { int* p = void; this(int) pure; }
+        immutable s = new S(1);
     }));
 
     static assert(!__traits(compiles,
     {
-	static class S { int* p = void; this(int*) pure; }
-	int x;
-	immutable s = new S(&x);
+        static class S { int* p = void; this(int*) pure; }
+        int x;
+        immutable s = new S(&x);
     }));
 
     static assert(__traits(compiles,
     {
-	static class S { int* p = void; this(immutable(int)*) pure; }
-	immutable int x;
-	immutable s = new S(&x);
+        static class S { int* p = void; this(immutable(int)*) pure; }
+        immutable int x;
+        immutable s = new S(&x);
     }));
 
     static assert(__traits(compiles,
     {
-	static class S { int* p = void; this(int*) pure; }
-	immutable s = new S(null);
+        static class S { int* p = void; this(int*) pure; }
+        immutable s = new S(null);
     }));
+}
+
+// 14155
+
+void test14155_for_testDIP29_6()
+{
+    static class CI
+    {
+        int* p;
+        this(int) immutable pure { p = &g14155; }
+    }
+
+    static assert(!__traits(compiles, {           CI c = new immutable CI(1); }));
+    static assert( __traits(compiles, {     const CI c = new immutable CI(1); }));
+    static assert( __traits(compiles, { immutable CI c = new immutable CI(1); }));
+    static assert(!__traits(compiles, {    shared CI c = new immutable CI(1); }));
+    static assert(!__traits(compiles, {           CI c = new     const CI(1); }));
+    static assert( __traits(compiles, {     const CI c = new     const CI(1); }));
+    static assert( __traits(compiles, { immutable CI c = new     const CI(1); }));
+    static assert(!__traits(compiles, {    shared CI c = new     const CI(1); }));
+}
+
+/***********************************/
+// 13640
+
+struct S13640
+{
+    static struct R
+    {
+        int* p;
+        this(inout ref int* p) inout pure { this.p = p; }
+    }
+
+    int* p;
+
+    void foo() inout pure
+    {
+        // Implicit conversion from inout(R) to R should be disallowed.
+        static assert(!__traits(compiles, { R r = inout(R)(p); }));
+    }
 }
 
 /***********************************/

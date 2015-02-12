@@ -2300,6 +2300,7 @@ void g8335(lazy S8335[3] arr)
 {
     assert(S8335.postblit == 0);
     auto x = arr;
+    assert(S8335.postblit == 3);
 }
 
 void h8335(lazy S8335 s)
@@ -2395,7 +2396,7 @@ Foo9320 test9320(Foo9320 a, Foo9320 b, Foo9320 c) {
 struct Test9386
 {
     string name;
-    static char[21] op;
+    static char[25] op;
     static size_t i;
 
     static @property string sop() { return cast(string)op[0..i]; }
@@ -2474,7 +2475,6 @@ void test9386()
               Test9386("3") : Test9386("three"),
               Test9386("4") : Test9386("four") ];
 
-        assert(Test9386.sop == "aaaaaaaa");
         Test9386.op[] = 0;
         Test9386.i = 0;
 
@@ -3284,7 +3284,10 @@ void test12686()
 {
     Foo12686 f;
     Foo12686 f2 = f.bar();
-    assert(Foo12686.count == 2);
+    version (unittest)
+    { }
+    else
+        assert(Foo12686.count == 2);
 }
 
 /**********************************/
@@ -3308,6 +3311,395 @@ void test13089() nothrow
 {
     immutable data = foo13089();
     assert(p13089 == &data);
+}
+
+/**********************************/
+
+struct NoDtortest11763 {}
+
+struct HasDtortest11763
+{
+    NoDtortest11763 func()
+    {
+        return NoDtortest11763();
+    }
+    ~this() {}
+}
+
+void test11763()
+{
+    HasDtortest11763().func();
+}
+
+/**********************************/
+
+struct Buf { }
+
+struct Variant
+{
+    ~this() { }
+
+    Buf get() { Buf b; return b; }
+}
+
+Variant value() { Variant v; return v; }
+
+void test13303()
+{
+    value.get();
+}
+
+/**********************************/
+
+struct S13673
+{
+    string _name;
+    ~this() {}
+}
+
+string name13673;
+
+void test13673()
+{
+    S13673(name13673);
+    S13673(name13673);
+}
+
+/**********************************/
+
+void test13586()
+{
+    static struct S {
+        __gshared int count;
+        ~this() { ++count; printf("~S\n"); }
+    }
+
+    static struct T {
+        __gshared int count;
+        ~this() { ++count; printf("~T\n"); }
+    }
+
+    static int foo(bool flag)
+    {
+        if (flag)
+            throw new Exception("hello");
+        return 1;
+    }
+
+    static void func(S s, int f, T t)
+    {
+        printf("func()\n");
+    }
+
+    static class C
+    {
+        this(S s, int f, T t)
+        {
+            printf("C()\n");
+        }
+    }
+
+  {
+    bool threw = false;
+    try
+    {
+        func(S(), foo(true), T());
+        printf("not reach\n");
+    }
+    catch (Exception e)
+    {
+        threw = true;
+    }
+    printf("threw %d S %d T %d\n", threw, S.count, T.count);
+    assert(threw && S.count == 1 && T.count == 0);
+    S.count = 0;
+    T.count = 0;
+  }
+  {
+    bool threw = false;
+    try
+    {
+        func(S(), foo(false), T());
+        printf("reached\n");
+    }
+    catch (Exception e)
+    {
+        threw = true;
+    }
+    printf("threw %d S %d T %d\n", threw, S.count, T.count);
+    assert(!threw && S.count == 1 && T.count == 1);
+    S.count = 0;
+    T.count = 0;
+  }
+  {
+    bool threw = false;
+    try
+    {
+        new C(S(), foo(true), T());
+        printf("not reach\n");
+    }
+    catch (Exception e)
+    {
+        threw = true;
+    }
+    printf("threw %d S %d T %d\n", threw, S.count, T.count);
+    assert(threw && S.count == 1 && T.count == 0);
+    S.count = 0;
+    T.count = 0;
+  }
+}
+
+/**********************************/
+// 13661, 14022, 14023 - postblit/dtor call on static array assignment
+
+bool test13661()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+
+        ref auto opAssign(T)(T arg)
+        {
+            assert(0);
+            return this;
+        }
+    }
+
+    {
+        S[2] a;
+
+        a[0].x = 'a';
+        a[1].x = 'b';
+        a = a.init;
+        assert(op == "ab");
+        assert(a[0].x == 'x' && a[1].x == 'x');
+
+        a[0].x = 'c';
+        a[1].x = 'd';
+        a = [S(), S()];   // equivalent a = a.init
+        assert(op == "abcd");
+        assert(a[0].x == 'x' && a[1].x == 'x');
+    }
+    assert(op == "abcdxx");
+
+    return true;
+}
+bool test13661a()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        S[2] sb = sa[1..3];
+        assert(sa == [S('a'), S('b'), S('c')]);
+        assert(sb == [S('b'), S('c')]);
+        sb[0].x = 'x';
+        sb[1].x = 'y';
+        assert(sa != [S('a'), S('x'), S('y')]); // OK <- incorrectly fails
+        assert(sa == [S('a'), S('b'), S('c')]); // OK <- incorrectly fails
+        assert(sb == [S('x'), S('y')]);
+    }
+    return true;
+}
+static assert(test13661());     // CTFE
+static assert(test13661a());
+
+bool test14022()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    S[2] makeSA() { return [S('p'), S('q')]; }
+
+    struct T
+    {
+        S[2] sb;
+
+        this(ref S[2] sa)
+        {
+            assert(op == "");
+            this.sb = sa;   // TOKconstruct
+            assert(op == "BC", op);
+            assert(sb == [S('b'), S('c')]);
+        }
+        void test(ref S[2] sa)
+        {
+            this.sb = sa;    // dotvar: resolveSlice(newva)
+            assert(op == "BxCy");
+        }
+    }
+
+    op = null;
+    {
+        S[2] sa = [S('a'), S('b')];
+        T t;    t.sb[0].x = 'x';
+                t.sb[1].x = 'y';
+        assert(op == "");
+        t.sb = sa;
+        assert(op == "AxBy");
+        t.sb = makeSA();
+        assert(op == "AxByab");
+    }
+    assert(op == "AxByabqpba");
+
+    op = null;
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        T t = T(sa[1..3]);
+        t.sb[0].x = 'x';
+        t.sb[1].x = 'y';
+        assert(sa == [S('a'), S('b'), S('c')]);
+        assert(t.sb == [S('x'), S('y')]);
+        assert(op == "BC");
+    }
+    assert(op == "BCyxcba");
+
+    op = null;
+    {
+        S[3] sx = [S('a'), S('b'), S('c')];
+        T t;    t.sb[0].x = 'x';
+                t.sb[1].x = 'y';
+        t.test(sx[1..3]);
+        assert(op == "BxCy");
+        assert(t.sb == [S('b'), S('c')]);
+    }
+    assert(op == "BxCycbcba");
+
+    return true;
+}
+static assert(test14022());
+
+bool test14023()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    S[2] makeSA() { return [S('p'), S('q')]; }
+
+    struct T
+    {
+        S[2][1] sb;
+        this(ref S[2] sa)
+        {
+            assert(op == "");
+            this.sb[0] = sa;   // TOKconstruct
+            assert(sa    == [S('b'), S('c')]);
+            assert(sb[0] == [S('b'), S('c')]);
+        }
+    }
+
+    void test(ref S[2] sa)
+    {
+        S[2][] a;
+        //a.length = 1; // will cause runtine AccessViolation
+        a ~= (S[2]).init;
+        assert(op == "");
+        a[0] = sa;      // index <-- resolveSlice(newva)
+        assert(op == "BxCx");
+        assert(a[0] == [S('b'), S('c')]);
+    }
+
+    op = null;
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        T t = T(sa[1..3]);
+        t.sb[0][0].x = 'x';
+        t.sb[0][1].x = 'y';
+        assert(sa      != [S('a'), S('x'), S('y')]);    // OK <- incorrectly fails
+        assert(sa      == [S('a'), S('b'), S('c')]);    // OK <- incorrectly fails
+        assert(t.sb[0] == [S('x'), S('y')]);
+    }
+
+    op = null;
+    {
+        S[2] sa = [S('a'), S('b')];
+        S[2][] a = [[S('x'), S('y')]];
+        assert(op == "");
+        a[0] = sa;
+        assert(op == "AxBy");
+        a[0] = makeSA();
+        assert(op == "AxByab");
+    }
+    assert(op == "AxByabba");
+
+    op = null;
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        test(sa[1..3]);
+        assert(op == "BxCx");
+    }
+    assert(op == "BxCxcba");
+
+    return true;
+}
+static assert(test14023());
+
+/************************************************/
+// 13669 - dtor call on static array variable
+
+bool test13669()
+{
+    string dtor;
+
+    struct S
+    {
+        char x = 'x';
+        ~this() { dtor ~= x; }
+    }
+
+    { S[2] a; }
+    assert(dtor == "xx");
+    dtor = "";
+
+    { S[2] a = [S('a'), S('b')]; }
+    assert(dtor == "ba");   // reverse order. See also: TypeInfo_StaticArray.destroy()
+
+    return true;
+}
+static assert(test13669());
+
+/**********************************/
+
+__gshared bool b13095 = false;
+
+void bar13095() { throw new Exception(""); }
+
+struct S13095
+{
+    this(int) { printf("ctor %p\n", &this); bar13095(); }
+
+    ~this() { b13095 = true; printf("dtor %p\n", &this); }
+}
+
+void test13095()
+{
+    try {
+        S13095(0);
+    } catch(Exception) { printf("catch\n"); }
+    assert(!b13095);
 }
 
 /**********************************/
@@ -3413,6 +3805,16 @@ int main()
     test12660();
     test12686();
     test13089();
+    test11763();
+    test13303();
+    test13673();
+    test13586();
+    test13661();
+    test13661a();
+    test14022();
+    test14023();
+    test13669();
+    test13095();
 
     printf("Success\n");
     return 0;

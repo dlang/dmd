@@ -1,10 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc3.d(10): Error: redundant storage class 'pure'
-fail_compilation/parseStc3.d(11): Error: redundant storage class 'nothrow'
-fail_compilation/parseStc3.d(12): Error: redundant storage class '@nogc'
-fail_compilation/parseStc3.d(13): Error: redundant storage class '@property'
+fail_compilation/parseStc3.d(10): Error: redundant attribute 'pure'
+fail_compilation/parseStc3.d(11): Error: redundant attribute 'nothrow'
+fail_compilation/parseStc3.d(12): Error: redundant attribute '@nogc'
+fail_compilation/parseStc3.d(13): Error: redundant attribute '@property'
 ---
 */
 pure      void f1() pure      {}
@@ -16,9 +16,9 @@ nothrow   void f2() nothrow   {}
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc3.d(24): Error: redundant storage class '@safe'
-fail_compilation/parseStc3.d(25): Error: redundant storage class '@system'
-fail_compilation/parseStc3.d(26): Error: redundant storage class '@trusted'
+fail_compilation/parseStc3.d(24): Error: redundant attribute '@safe'
+fail_compilation/parseStc3.d(25): Error: redundant attribute '@system'
+fail_compilation/parseStc3.d(26): Error: redundant attribute '@trusted'
 ---
 */
 @safe     void f6() @safe    {}
@@ -28,12 +28,12 @@ fail_compilation/parseStc3.d(26): Error: redundant storage class '@trusted'
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc3.d(39): Error: conflicting storage class '@system'
-fail_compilation/parseStc3.d(40): Error: conflicting storage class '@trusted'
-fail_compilation/parseStc3.d(41): Error: conflicting storage class '@safe'
-fail_compilation/parseStc3.d(42): Error: conflicting storage class '@trusted'
-fail_compilation/parseStc3.d(43): Error: conflicting storage class '@safe'
-fail_compilation/parseStc3.d(44): Error: conflicting storage class '@system'
+fail_compilation/parseStc3.d(39): Error: conflicting attribute '@system'
+fail_compilation/parseStc3.d(40): Error: conflicting attribute '@trusted'
+fail_compilation/parseStc3.d(41): Error: conflicting attribute '@safe'
+fail_compilation/parseStc3.d(42): Error: conflicting attribute '@trusted'
+fail_compilation/parseStc3.d(43): Error: conflicting attribute '@safe'
+fail_compilation/parseStc3.d(44): Error: conflicting attribute '@system'
 ---
 */
 @safe     void f9()  @system  {}
@@ -46,14 +46,14 @@ fail_compilation/parseStc3.d(44): Error: conflicting storage class '@system'
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc3.d(59): Error: conflicting attribute @system
-fail_compilation/parseStc3.d(59): Error: conflicting storage class '@trusted'
-fail_compilation/parseStc3.d(60): Error: conflicting attribute @system
-fail_compilation/parseStc3.d(60): Error: redundant storage class '@system'
-fail_compilation/parseStc3.d(61): Error: conflicting attribute @safe
-fail_compilation/parseStc3.d(61): Error: redundant storage class '@system'
-fail_compilation/parseStc3.d(62): Error: conflicting attribute @safe
-fail_compilation/parseStc3.d(62): Error: redundant storage class '@trusted'
+fail_compilation/parseStc3.d(59): Error: conflicting attribute '@system'
+fail_compilation/parseStc3.d(59): Error: conflicting attribute '@trusted'
+fail_compilation/parseStc3.d(60): Error: conflicting attribute '@system'
+fail_compilation/parseStc3.d(60): Error: redundant attribute '@system'
+fail_compilation/parseStc3.d(61): Error: conflicting attribute '@safe'
+fail_compilation/parseStc3.d(61): Error: redundant attribute '@system'
+fail_compilation/parseStc3.d(62): Error: conflicting attribute '@safe'
+fail_compilation/parseStc3.d(62): Error: redundant attribute '@trusted'
 ---
 */
 @safe @system  void f15() @trusted {}

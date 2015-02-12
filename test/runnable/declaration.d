@@ -295,6 +295,103 @@ void test11421()
 }
 
 /***************************************************/
+// 13776
+
+enum a13776(T) = __traits(compiles, { T; });
+
+enum b13776(A...) = 1;
+
+template x13776s()
+{
+    struct S;
+    alias x13776s = b13776!(a13776!S);
+}
+template y13776s()
+{
+    struct S;
+    alias x2 = b13776!(a13776!S);
+    alias y13776s = x2;
+}
+template z13776s()
+{
+    struct S;
+    alias x1 = a13776!S;
+    alias x2 = b13776!(x1);
+    alias z13776s = x2;
+}
+
+template x13776c()
+{
+    class C;
+    alias x13776c = b13776!(a13776!C);
+}
+template y13776c()
+{
+    class C;
+    alias x2 = b13776!(a13776!C);
+    alias y13776c = x2;
+}
+template z13776c()
+{
+    class C;
+    alias x1 = a13776!C;
+    alias x2 = b13776!(x1);
+    alias z13776c = x2;
+}
+
+void test13776()
+{
+    alias xs = x13776s!();  // ok <- ng
+    alias ys = y13776s!();  // ok <- ng
+    alias zs = z13776s!();  // ok
+
+    alias xc = x13776c!();  // ok <- ng
+    alias yc = y13776c!();  // ok <- ng
+    alias zc = z13776c!();  // ok
+}
+
+/***************************************************/
+// 14090
+
+template Packed14090(Args...)
+{
+    enum x = __traits(compiles, { Args[0] v; });
+    // Args[0] is an opaque struct Empty, so the variable declaration fails to compile.
+    // The error message creation calls TypeStruct('_Empty')->toChars(), and
+    // it wrongly calls TemplateInstance('RoundRobin!()')->toAlias().
+    // Finally it will cause incorrect "recursive template instantiation" error.
+}
+
+template Map14090(A...)
+{
+    alias Map14090 = A[0];
+}
+
+template RoundRobin14090()
+{
+    struct Empty;
+    alias RoundRobin14090 = Map14090!(Packed14090!(Empty));
+}
+
+alias roundRobin14090 = RoundRobin14090!();
+
+/***************************************************/
+// 13950
+
+template Tuple13950(T...) { alias T Tuple13950; }
+
+void f13950(int x = 0, Tuple13950!() xs = Tuple13950!())
+{
+    assert(x == 0);
+    assert(xs.length == 0);
+}
+
+void test13950()
+{
+    f13950();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -308,6 +405,7 @@ int main()
     test8942();
     test10142();
     test11421();
+    test13950();
 
     printf("Success\n");
     return 0;

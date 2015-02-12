@@ -3,17 +3,17 @@ TEST_OUTPUT:
 ---
 fail_compilation/test8556.d(33): Error: circular initialization of isSliceable
 fail_compilation/test8556.d(34): Error: circular initialization of isSliceable
+fail_compilation/test8556.d(47): Error: template test8556.grabExactly cannot deduce function from argument types !()(Circle!(uint[])), candidates are:
+fail_compilation/test8556.d(33):        test8556.grabExactly(R)(R range) if (!isSliceable!R)
+fail_compilation/test8556.d(34):        test8556.grabExactly(R)(R range) if (isSliceable!R)
 fail_compilation/test8556.d(22): Error: template instance test8556.isSliceable!(Circle!(uint[])) error instantiating
 fail_compilation/test8556.d(27):        while looking for match for Grab!(Circle!(uint[]))
 fail_compilation/test8556.d(58): Error: template instance test8556.grab!(Circle!(uint[])) error instantiating
-fail_compilation/test8556.d(61): Error: Circle!(uint[]) cannot be sliced with []
+fail_compilation/test8556.d(61): Error: no [] operator overload for type Circle!(uint[])
 ---
 */
-
-
 extern(C) int printf(const char*, ...);
 
-//+
 template isSliceable(R)
 {
     enum bool isSliceable = is(typeof( R.init[1 .. 2] ));

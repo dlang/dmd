@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc.d(10): Error: if (v; e) is deprecated, use if (auto v = e)
-fail_compilation/parseStc.d(11): Error: redundant storage class 'const'
+fail_compilation/parseStc.d(10): Error: use 'if (auto v = e)' instead of 'if (v; e)'
+fail_compilation/parseStc.d(11): Error: redundant attribute 'const'
 ---
 */
 void test1()
@@ -14,9 +14,9 @@ void test1()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc.d(24): Error: redundant storage class 'const'
-fail_compilation/parseStc.d(25): Error: redundant storage class 'const'
-fail_compilation/parseStc.d(26): Error: conflicting storage class immutable
+fail_compilation/parseStc.d(24): Error: redundant attribute 'const'
+fail_compilation/parseStc.d(25): Error: redundant attribute 'const'
+fail_compilation/parseStc.d(26): Error: conflicting attribute 'immutable'
 ---
 */
 void test2()
@@ -29,8 +29,8 @@ void test2()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc.d(36): Error: redundant storage class 'const'
-fail_compilation/parseStc.d(37): Error: redundant storage class 'const'
+fail_compilation/parseStc.d(36): Error: redundant attribute 'const'
+fail_compilation/parseStc.d(37): Error: redundant attribute 'const'
 ---
 */
 struct S3 { const const test3() {} }

@@ -43,6 +43,7 @@
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
+Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
@@ -53,9 +54,12 @@ Symbol *toSymbol(Type *t);
 unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 
-#define elem_setLoc(e,loc)      ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
-                                 (e)->Esrcpos.Slinnum = (loc).linnum, \
-                                 (e)->Esrcpos.Scharnum = (loc).charnum)
+#define elem_setLoc(e,loc)      srcpos_setLoc(&(e)->Esrcpos, loc)
+#define block_setLoc(b,loc)     srcpos_setLoc(&(b)->Bsrcpos, loc)
+
+#define srcpos_setLoc(s,loc)    ((s)->Sfilename = (char *)(loc).filename, \
+                                 (s)->Slinnum = (loc).linnum, \
+                                 (s)->Scharnum = (loc).charnum)
 
 #define SEH     (TARGET_WINDOS)
 
@@ -251,6 +255,7 @@ public:
 
     void visit(ForStatement *s)
     {
+        //printf("visit(ForStatement)) %u..%u\n", s->loc.linnum, s->endloc.linnum);
         Blockx *blx = irs->blx;
 
         IRState mystate(irs,s);
@@ -284,6 +289,7 @@ public:
         /* End of the body goes to the continue block
          */
         blx->curblock->appendSucc(mystate.contBlock);
+        block_setLoc(blx->curblock, s->endloc);
         block_next(blx, BCgoto, mystate.contBlock);
 
         if (s->increment)
@@ -340,6 +346,7 @@ public:
         /* Nothing more than a 'goto' to the current break destination
          */
         b->appendSucc(bbreak);
+        block_setLoc(b, s->loc);
         block_next(blx, BCgoto, NULL);
     }
 
@@ -367,6 +374,7 @@ public:
         /* Nothing more than a 'goto' to the current continue destination
          */
         b->appendSucc(bcont);
+        block_setLoc(b, s->loc);
         block_next(blx, BCgoto, NULL);
     }
 
@@ -387,6 +395,7 @@ public:
         block *b = blx->curblock;
         incUsage(irs, s->loc);
         b->appendSucc(bdest);
+        block_setLoc(b, s->loc);
 
         // Check that bdest is in an enclosing try block
         for (block *bt = b->Btry; bt != bdest->Btry; bt = bt->Btry)
@@ -545,9 +554,9 @@ public:
                 else
                 {
                     StringExp *se = (StringExp *)(cs->exp);
-                    unsigned len = se->len;
-                    dtsize_t(&dt, len);
-                    dtabytes(&dt, TYnptr, 0, se->len * se->sz, (char *)se->string);
+                    Symbol *si = toStringSymbol((char *)se->string, se->len, se->sz);
+                    dtsize_t(&dt, se->len);
+                    dtxoff(&dt, si, 0);
                 }
             }
 

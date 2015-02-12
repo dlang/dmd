@@ -1,6 +1,6 @@
 module imports.tlsa;
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 int foo()()
 {

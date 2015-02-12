@@ -29,6 +29,9 @@ double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
 longdouble Port::ldbl_max = LDBL_MAX;
 
+bool Port::yl2x_supported = true;
+bool Port::yl2xp1_supported = true;
+
 struct PortInitializer
 {
     PortInitializer();
@@ -93,6 +96,16 @@ int Port::fequal(longdouble x, longdouble y)
      * so be sure and ignore them.
      */
     return memcmp(&x, &y, 10) == 0;
+}
+
+void Port::yl2x_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    *res = _inline_yl2x(*x, *y);
+}
+
+void Port::yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    *res = _inline_yl2xp1(*x, *y);
 }
 
 char *Port::strupr(char *s)
@@ -168,6 +181,14 @@ double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
 longdouble Port::ldbl_max = LDBL_MAX;
 
+#if _M_IX86 || _M_X64
+bool Port::yl2x_supported = true;
+bool Port::yl2xp1_supported = true;
+#else
+bool Port::yl2x_supported = false;
+bool Port::yl2xp1_supported = false;
+#endif
+
 struct PortInitializer
 {
     PortInitializer();
@@ -187,6 +208,8 @@ PortInitializer::PortInitializer()
     Port::snan = ld_snan;
     Port::infinity = std::numeric_limits<double>::infinity();
     Port::ldbl_infinity = ld_inf;
+
+    _set_abort_behavior(_WRITE_ABORT_MSG, _WRITE_ABORT_MSG | _CALL_REPORTFAULT); // disable crash report
 }
 
 int Port::isNan(double r)
@@ -237,6 +260,66 @@ int Port::fequal(longdouble x, longdouble y)
     return memcmp(&x, &y, 10) == 0;
 }
 
+#if _M_IX86
+void Port::yl2x_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    __asm
+    {
+        mov eax, y
+        mov ebx, x
+        mov ecx, res
+        fld tbyte ptr [eax]
+        fld tbyte ptr [ebx]
+        fyl2x
+        fstp tbyte ptr [ecx]
+    }
+}
+
+void Port::yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    __asm
+    {
+        mov eax, y
+        mov ebx, x
+        mov ecx, res
+        fld tbyte ptr [eax]
+        fld tbyte ptr [ebx]
+        fyl2xp1
+        fstp tbyte ptr [ecx]
+    }
+}
+#elif _M_X64
+
+//defined in ldfpu.asm
+extern "C"
+{
+    void ld_yl2x(longdouble *x, longdouble *y, longdouble *r);
+    void ld_yl2xp1(longdouble *x, longdouble *y, longdouble *r);
+}
+
+void Port::yl2x_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    ld_yl2x(x, y, res);
+}
+
+void Port::yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    ld_yl2xp1(x, y, res);
+}
+#else
+
+void Port::yl2x_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    assert(0);
+}
+
+void Port::yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    assert(0);
+}
+
+#endif
+
 char *Port::strupr(char *s)
 {
     return ::strupr(s);
@@ -254,12 +337,26 @@ int Port::stricmp(const char *s1, const char *s2)
 
 float Port::strtof(const char *p, char **endp)
 {
-    return static_cast<float>(::strtod(p, endp));
+    if(endp)
+        return static_cast<float>(::strtod(p, endp)); // does not set errno for underflows, but unused
+
+    _CRT_FLOAT flt;
+    int res = _atoflt(&flt, (char*)p);
+    if (res == _UNDERFLOW)
+        errno = ERANGE;
+    return flt.f;
 }
 
 double Port::strtod(const char *p, char **endp)
 {
-    return ::strtod(p, endp);
+    if(endp)
+        return ::strtod(p, endp); // does not set errno for underflows, but unused
+
+    _CRT_DOUBLE dbl;
+    int res = _atodbl(&dbl, const_cast<char*> (p));
+    if (res == _UNDERFLOW)
+        errno = ERANGE;
+    return dbl.x;
 }
 
 // from backend/strtold.c, renamed to avoid clash with decl in stdlib.h
@@ -297,6 +394,14 @@ longdouble Port::ldbl_infinity = 1 / zero;
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
 longdouble Port::ldbl_max = LDBL_MAX;
+
+#if _X86_ || __x86_64__
+bool Port::yl2x_supported = true;
+bool Port::yl2xp1_supported = true;
+#else
+bool Port::yl2x_supported = false;
+bool Port::yl2xp1_supported = false;
+#endif
 
 struct PortInitializer
 {
@@ -379,6 +484,28 @@ int Port::fequal(longdouble x, longdouble y)
      */
     return memcmp(&x, &y, 10) == 0;
 }
+
+#if _X86_ || __x86_64__
+void Port::yl2x_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    __asm__ volatile("fyl2x": "=t" (*res): "u" (*y), "0" (*x) : "st(1)" );
+}
+
+void Port::yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    __asm__ volatile("fyl2xp1": "=t" (*res): "u" (*y), "0" (*x) : "st(1)" );
+}
+#else
+void Port::yl2x_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    assert(0);
+}
+
+void Port::yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    assert(0);
+}
+#endif
 
 char *Port::strupr(char *s)
 {
@@ -484,6 +611,14 @@ longdouble Port::ldbl_infinity = 1 / zero;
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
 longdouble Port::ldbl_max = LDBL_MAX;
+
+#if __i386 || __x86_64__
+bool Port::yl2x_supported = true;
+bool Port::yl2xp1_supported = true;
+#else
+bool Port::yl2x_supported = false;
+bool Port::yl2xp1_supported = false;
+#endif
 
 struct PortInitializer
 {
@@ -609,6 +744,28 @@ int Port::fequal(longdouble x, longdouble y)
     return memcmp(&x, &y, 10) == 0;
 }
 
+#if __i386 || __x86_64__
+void Port::yl2x_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    __asm__ volatile("fyl2x": "=t" (*res): "u" (*y), "0" (*x) : "st(1)" );
+}
+
+void Port::yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    __asm__ volatile("fyl2xp1": "=t" (*res): "u" (*y), "0" (*x) : "st(1)" );
+}
+#else
+void Port::yl2x_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    assert(0);
+}
+
+void Port::yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    assert(0);
+}
+#endif
+
 char *Port::strupr(char *s)
 {
     char *t = s;
@@ -709,6 +866,14 @@ double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
 longdouble Port::ldbl_max = LDBL_MAX;
 
+#if __i386 || __x86_64__
+bool Port::yl2x_supported = true;
+bool Port::yl2xp1_supported = true;
+#else
+bool Port::yl2x_supported = false;
+bool Port::yl2xp1_supported = false;
+#endif
+
 struct PortInitializer
 {
     PortInitializer();
@@ -790,6 +955,72 @@ int Port::fequal(longdouble x, longdouble y)
      */
     return memcmp(&x, &y, 10) == 0;
 }
+#if __i386
+void Port::yl2x_impl(long double* x, long double* y, long double* res)
+{
+    __asm__ volatile("movl %0, %%eax;"    // move x, y, res to registers
+                     "movl %1, %%ebx;"
+                     "movl %2, %%ecx;"
+                     "fldt (%%ebx);"      // push *y and *x to the FPU stack
+                     "fldt (%%eax);"      // "t" suffix means tbyte
+                     "fyl2x;"             // do operation and wait
+                     "fstpt (%%ecx)"      // pop result to a *res
+                     :                          // output: empty
+                     :"r"(x), "r"(y), "r"(res)  // input: x => %0, y => %1, res => %2
+                     :"%eax", "%ebx", "%ecx");  // clobbered register: eax, ebc, ecx
+}
+
+void Port::yl2xp1_impl(long double* x, long double* y, long double* res)
+{
+    __asm__ volatile("movl %0, %%eax;"    // move x, y, res to registers
+                     "movl %1, %%ebx;"
+                     "movl %2, %%ecx;"
+                     "fldt (%%ebx);"      // push *y and *x to the FPU stack
+                     "fldt (%%eax);"      // "t" suffix means tbyte
+                     "fyl2xp1;"            // do operation and wait
+                     "fstpt (%%ecx)"      // pop result to a *res
+                     :                          // output: empty
+                     :"r"(x), "r"(y), "r"(res)  // input: x => %0, y => %1, res => %2
+                     :"%eax", "%ebx", "%ecx");  // clobbered register: eax, ebc, ecx
+#elif __x86_64__
+void Port::yl2x_impl(long double* x, long double* y, long double* res)
+{
+    __asm__ volatile("movq %0, %%rcx;"    // move x, y, res to registers
+                     "movq %1, %%rdx;"
+                     "movq %2, %%r8;"
+                     "fldt (%%rdx);"      // push *y and *x to the FPU stack
+                     "fldt (%%rcx);"      // "t" suffix means tbyte
+                     "fyl2x;"             // do operation and wait
+                     "fstpt (%%r8)"       // pop result to a *res
+                     :                          // output: empty
+                     :"r"(x), "r"(y), "r"(res)  // input: x => %0, y => %1, res => %2
+                     :"%rcx", "%rdx", "%r8");   // clobbered register: rcx, rdx, r8
+}
+
+void Port::yl2xp1_impl(long double* x, long double* y, long double* res)
+{
+    __asm__ volatile("movq %0, %%rcx;"    // move x, y, res to registers
+                     "movq %1, %%rdx;"
+                     "movq %2, %%r8;"
+                     "fldt (%%rdx);"      // push *y and *x to the FPU stack
+                     "fldt (%%rcx);"      // "t" suffix means tbyte
+                     "fyl2xp1;"            // do operation and wait
+                     "fstpt (%%r8)"       // pop result to a *res
+                     :                          // output: empty
+                     :"r"(x), "r"(y), "r"(res)  // input: x => %0, y => %1, res => %2
+                     :"%rcx", "%rdx", "%r8");   // clobbered register: rcx, rdx, r8
+}
+#else
+void Port::yl2x_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    assert(0);
+}
+
+void Port::yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res)
+{
+    assert(0);
+}
+#endif
 
 char *Port::strupr(char *s)
 {

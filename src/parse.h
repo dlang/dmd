@@ -65,6 +65,7 @@ enum ParseStatementFlags
 class Parser : public Lexer
 {
 public:
+    Module *mod;
     ModuleDeclaration *md;
     LINK linkage;
     Loc endloc;                 // set to location of last right curly
@@ -78,9 +79,9 @@ public:
     Dsymbols *parseDeclDefs(int once, Dsymbol **pLastDecl = NULL, PrefixAttributes *pAttrs = NULL);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, const utf8_t *comment);
     Dsymbols *parseBlock(Dsymbol **pLastDecl, PrefixAttributes *pAttrs = NULL);
-    void composeStorageClass(StorageClass stc);
+    StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc);
     StorageClass parseAttribute(Expressions **pexps);
-    StorageClass parsePostfix(Expressions **pudas);
+    StorageClass parsePostfix(StorageClass storageClass, Expressions **pudas);
     StorageClass parseTypeCtor();
     Expression *parseConstraint();
     TemplateDeclaration *parseTemplateDeclaration(bool ismixin = false);
@@ -93,49 +94,51 @@ public:
     TypeQualified *parseTypeof();
     Type *parseVector();
     LINK parseLinkage(Identifiers **);
+    Identifiers *parseQualifiedIdentifier(const char *entity);
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();
-    Dsymbol *parseCtor();
-    Dsymbol *parseDtor();
-    Dsymbol *parseStaticCtor();
-    Dsymbol *parseStaticDtor();
-    Dsymbol *parseSharedStaticCtor();
-    Dsymbol *parseSharedStaticDtor();
-    InvariantDeclaration *parseInvariant();
-    UnitTestDeclaration *parseUnitTest();
-    NewDeclaration *parseNew();
-    DeleteDeclaration *parseDelete();
+    Dsymbol *parseCtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseDtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseStaticCtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseStaticDtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseSharedStaticCtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseSharedStaticDtor(PrefixAttributes *pAttrs);
+    Dsymbol *parseInvariant(PrefixAttributes *pAttrs);
+    Dsymbol *parseUnitTest(PrefixAttributes *pAttrs);
+    Dsymbol *parseNew(PrefixAttributes *pAttrs);
+    Dsymbol *parseDelete(PrefixAttributes *pAttrs);
     Parameters *parseParameters(int *pvarargs, TemplateParameters **tpl = NULL);
     EnumDeclaration *parseEnum();
     Dsymbol *parseAggregate();
     BaseClasses *parseBaseClasses();
     Dsymbols *parseImport();
-    Type *parseType(Identifier **pident = NULL, TemplateParameters **tpl = NULL);
+    Type *parseType(Identifier **pident = NULL, TemplateParameters **ptpl = NULL);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
-    Type *parseDeclarator(Type *t, Identifier **pident,
-        TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int* pdisable = NULL, Expressions **pudas = NULL);
+    Type *parseDeclarator(Type *t, int *alt, Identifier **pident,
+        TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int *pdisable = NULL, Expressions **pudas = NULL);
     void parseStorageClasses(StorageClass &storage_class, LINK &link, unsigned &structalign, Expressions *&udas);
     Dsymbols *parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, const utf8_t *comment);
     FuncDeclaration *parseContracts(FuncDeclaration *f);
     void checkDanglingElse(Loc elseloc);
+    void checkCstyleTypeSyntax(Loc loc, Type *t, int alt, Identifier *ident);
     /** endPtr used for documented unittests */
-    Statement *parseStatement(int flags, const utf8_t** endPtr = NULL);
+    Statement *parseStatement(int flags, const utf8_t** endPtr = NULL, Loc *pEndloc = NULL);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
     void check(Loc loc, TOK value);
     void check(TOK value);
     void check(TOK value, const char *string);
     void checkParens(TOK value, Expression *e);
-    int isDeclaration(Token *t, int needId, TOK endtok, Token **pt);
-    int isBasicType(Token **pt);
-    int isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok);
-    int isParameters(Token **pt);
-    int isExpression(Token **pt);
-    int skipParens(Token *t, Token **pt);
-    int skipParensIf(Token *t, Token **pt);
-    int skipAttributes(Token *t, Token **pt);
+    bool isDeclaration(Token *t, int needId, TOK endtok, Token **pt);
+    bool isBasicType(Token **pt);
+    bool isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok);
+    bool isParameters(Token **pt);
+    bool isExpression(Token **pt);
+    bool skipParens(Token *t, Token **pt);
+    bool skipParensIf(Token *t, Token **pt);
+    bool skipAttributes(Token *t, Token **pt);
 
     Expression *parseExpression();
     Expression *parsePrimaryExp();

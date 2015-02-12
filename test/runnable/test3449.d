@@ -2,8 +2,6 @@
 /******************************************/
 // 3449
 
-version (PULL93)
-{
 template TypeTuple(T...) { alias TypeTuple = T; }
 
 // If module variable has no explicit initializer,
@@ -89,7 +87,6 @@ void test3449()
         assert(s2.field2 == 10);
     }
 }
-}
 
 /******************************************/
 // 10643
@@ -109,7 +106,7 @@ static assert(S10643.sizeof == int.sizeof * 1000);
 
 int main()
 {
-    version(PULL93) test3449();
+    test3449();
 
     return 0;
 }

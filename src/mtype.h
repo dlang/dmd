@@ -28,13 +28,10 @@ class Identifier;
 class Expression;
 class StructDeclaration;
 class ClassDeclaration;
-class VarDeclaration;
 class EnumDeclaration;
-class TypedefDeclaration;
 class TypeInfoDeclaration;
 class Dsymbol;
 class TemplateInstance;
-struct CppMangleState;
 class TemplateDeclaration;
 enum LINK;
 
@@ -48,7 +45,6 @@ typedef union tree_node type;
 typedef struct TYPE type;
 #endif
 struct Symbol;
-class TypeTuple;
 
 void semanticTypeInfo(Scope *sc, Type *t);
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
@@ -68,7 +64,6 @@ enum ENUMTY
     Tstruct,
     Tenum,
 
-    Ttypedef,
     Tdelegate,
     Tnone,
     Tvoid,
@@ -78,8 +73,8 @@ enum ENUMTY
     Tuns16,
     Tint32,
     Tuns32,
-
     Tint64,
+
     Tuns64,
     Tfloat32,
     Tfloat64,
@@ -89,8 +84,8 @@ enum ENUMTY
     Timaginary80,
     Tcomplex32,
     Tcomplex64,
-
     Tcomplex80,
+
     Tbool,
     Tchar,
     Twchar,
@@ -100,8 +95,8 @@ enum ENUMTY
     Ttypeof,
     Ttuple,
     Tslice,
-
     Treturn,
+
     Tnull,
     Tvector,
     Tint128,
@@ -189,9 +184,10 @@ public:
 
     // Some special types
     static Type *tshiftcnt;
-    static Type *tboolean;
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
+    static Type *twstring;              // immutable(wchar)[]
+    static Type *tdstring;              // immutable(dchar)[]
     static Type *tvalist;               // va_list alias
     static Type *terror;                // for error recovery
     static Type *tnull;                 // for null type
@@ -199,13 +195,11 @@ public:
     static Type *tsize_t;               // matches size_t alias
     static Type *tptrdiff_t;            // matches ptrdiff_t alias
     static Type *thash_t;               // matches hash_t alias
-    static Type *tindex;                // array/ptr index
 
     static ClassDeclaration *dtypeinfo;
     static ClassDeclaration *typeinfoclass;
     static ClassDeclaration *typeinfointerface;
     static ClassDeclaration *typeinfostruct;
-    static ClassDeclaration *typeinfotypedef;
     static ClassDeclaration *typeinfopointer;
     static ClassDeclaration *typeinfoarray;
     static ClassDeclaration *typeinfostaticarray;
@@ -223,7 +217,6 @@ public:
     static TemplateDeclaration *rtinfo;
 
     static Type *basic[TMAX];
-    static unsigned char mangleChar[TMAX];
     static unsigned char sizeTy[TMAX];
     static StringTable stringtable;
 
@@ -241,6 +234,7 @@ public:
     Type *copy();
     virtual Type *syntaxCopy();
     bool equals(RootObject *o);
+    bool equivalent(Type *t);
     // kludge for template.isType()
     int dyncast() { return DYNCAST_TYPE; }
     int covariant(Type *t, StorageClass *pstc = NULL);
@@ -255,7 +249,6 @@ public:
     virtual unsigned alignsize();
     virtual Type *semantic(Loc loc, Scope *sc);
     Type *trySemantic(Loc loc, Scope *sc);
-    virtual void toDecoBuffer(OutBuffer *buf, int flag = 0);
     Type *merge();
     Type *merge2();
     void modToBuffer(OutBuffer *buf);
@@ -320,7 +313,7 @@ public:
     virtual Type *makeMutable();
     virtual Dsymbol *toDsymbol(Scope *sc);
     virtual Type *toBasetype();
-    virtual int isBaseOf(Type *t, int *poffset);
+    virtual bool isBaseOf(Type *t, int *poffset);
     virtual MATCH implicitConvTo(Type *to);
     virtual MATCH constConv(Type *to);
     virtual unsigned char deduceWild(Type *t, bool isRef);
@@ -339,14 +332,9 @@ public:
     virtual bool isZeroInit(Loc loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent(int internal);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    Expression *getInternalTypeInfo(Scope *sc);
-    Expression *getTypeInfo(Scope *sc);
-    void genTypeInfo(Scope *sc);
-    virtual TypeInfoDeclaration *getTypeInfoDeclaration();
-    virtual int builtinTypeInfo();
     virtual int hasWild();
     virtual Expression *toExpression();
-    virtual int hasPointers();
+    virtual bool hasPointers();
     virtual Type *nextOf();
     Type *baseElemOf();
     uinteger_t sizemask();
@@ -381,7 +369,6 @@ public:
     Type *next;
 
     TypeNext(TY ty, Type *next);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     void checkDeprecated(Loc loc, Scope *sc);
     int hasWild();
     Type *nextOf();
@@ -413,7 +400,6 @@ public:
     unsigned alignsize();
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    char *toChars();
     bool isintegral();
     bool isfloating();
     bool isreal();
@@ -424,7 +410,6 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    int builtinTypeInfo();
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic();
@@ -444,8 +429,6 @@ public:
     unsigned alignsize();
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    char *toChars();
-    void toDecoBuffer(OutBuffer *buf, int flag);
     bool isintegral();
     bool isfloating();
     bool isscalar();
@@ -456,7 +439,6 @@ public:
     Expression *defaultInitLiteral(Loc loc);
     TypeBasic *elementType();
     bool isZeroInit(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -482,7 +464,6 @@ public:
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
@@ -491,9 +472,8 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
-    int hasPointers();
+    bool hasPointers();
     bool needsDestruction();
     bool needsNested();
 
@@ -511,16 +491,13 @@ public:
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
     bool checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
-    int builtinTypeInfo();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
-    int hasPointers();
+    bool hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -539,19 +516,14 @@ public:
     d_uns64 size(Loc loc);
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
     bool checkBoolean();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
-    int hasPointers();
+    bool hasPointers();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-
-    // Back end
-    Symbol *aaGetSymbol(const char *func, int flags);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -569,8 +541,7 @@ public:
     bool isscalar();
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
-    int hasPointers();
+    bool hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -616,10 +587,10 @@ enum TRUSTformat
 enum PURE
 {
     PUREimpure = 0,     // not pure at all
-    PUREweak = 1,       // no mutable globals are read or written
-    PUREconst = 2,      // parameters are values or const
-    PUREstrong = 3,     // parameters are values or immutable
-    PUREfwdref = 4,     // it's pure, but not known which level yet
+    PUREfwdref = 1,     // it's pure, but not known which level yet
+    PUREweak = 2,       // no mutable globals are read or written
+    PUREconst = 3,      // parameters are values or const
+    PUREstrong = 4,     // parameters are values or immutable
 };
 
 RET retStyle(TypeFunction *tf);
@@ -636,6 +607,7 @@ public:
     bool isnogc;        // true: is @nogc
     bool isproperty;    // can be called without parentheses
     bool isref;         // true: returns a reference
+    bool isreturn;      // true: 'this' is returned by ref
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx
@@ -650,8 +622,6 @@ public:
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void purityLevel();
-    void toDecoBuffer(OutBuffer *buf, int flag);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     bool hasLazyParameters();
     bool parameterEscapes(Parameter *p);
     Type *addStorageClass(StorageClass stc);
@@ -662,6 +632,7 @@ public:
 
     Type *substWildTo(unsigned mod);
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
+    bool checkRetType(Loc loc);
 
     Expression *defaultInit(Loc loc);
     void accept(Visitor *v) { v->visit(this); }
@@ -682,9 +653,8 @@ public:
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
     bool checkBoolean();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    int hasPointers();
+    bool hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -716,8 +686,6 @@ public:
     TypeIdentifier(Loc loc, Identifier *ident);
     const char *kind();
     Type *syntaxCopy();
-    //char *toChars();
-    void toDecoBuffer(OutBuffer *buf, int flag);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
@@ -735,8 +703,6 @@ public:
     TypeInstance(Loc loc, TemplateInstance *tempinst);
     const char *kind();
     Type *syntaxCopy();
-    //char *toChars();
-    //void toDecoBuffer(OutBuffer *buf, int flag);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
@@ -794,11 +760,9 @@ public:
     const char *kind();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    char *toChars();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
     Expression *defaultInit(Loc loc);
@@ -808,8 +772,7 @@ public:
     bool checkBoolean();
     bool needsDestruction();
     bool needsNested();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
-    int hasPointers();
+    bool hasPointers();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
@@ -828,10 +791,8 @@ public:
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    char *toChars();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     bool isintegral();
@@ -851,51 +812,8 @@ public:
     Type *toBasetype();
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
-    int hasPointers();
+    bool hasPointers();
     Type *nextOf();
-
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-class TypeTypedef : public Type
-{
-public:
-    TypedefDeclaration *sym;
-
-    TypeTypedef(TypedefDeclaration *sym);
-    const char *kind();
-    Type *syntaxCopy();
-    d_uns64 size(Loc loc);
-    unsigned alignsize();
-    char *toChars();
-    Type *semantic(Loc loc, Scope *sc);
-    Dsymbol *toDsymbol(Scope *sc);
-    void toDecoBuffer(OutBuffer *buf, int flag);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    structalign_t alignment();
-    Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    bool isintegral();
-    bool isfloating();
-    bool isreal();
-    bool isimaginary();
-    bool iscomplex();
-    bool isscalar();
-    bool isunsigned();
-    bool checkBoolean();
-    bool isAssignable();
-    bool needsDestruction();
-    bool needsNested();
-    Type *toBasetype();
-    MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
-    Type *toHeadMutable();
-    Expression *defaultInit(Loc loc);
-    Expression *defaultInitLiteral(Loc loc);
-    bool isZeroInit(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
-    int hasPointers();
-    int hasWild();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -909,14 +827,12 @@ public:
     TypeClass(ClassDeclaration *sym);
     const char *kind();
     d_uns64 size(Loc loc);
-    char *toChars();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     ClassDeclaration *isClassHandle();
-    int isBaseOf(Type *t, int *poffset);
+    bool isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
@@ -925,9 +841,7 @@ public:
     bool isZeroInit(Loc loc);
     bool isscope();
     bool checkBoolean();
-    TypeInfoDeclaration *getTypeInfoDeclaration();
-    int hasPointers();
-    int builtinTypeInfo();
+    bool hasPointers();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -947,10 +861,8 @@ public:
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     bool equals(RootObject *o);
-    void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
-    TypeInfoDeclaration *getTypeInfoDeclaration();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -975,7 +887,6 @@ public:
     const char *kind();
 
     Type *syntaxCopy();
-    void toDecoBuffer(OutBuffer *buf, int flag);
     MATCH implicitConvTo(Type *to);
     bool checkBoolean();
 
@@ -1001,23 +912,21 @@ public:
     static Parameter *create(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg);
     Parameter *syntaxCopy();
     Type *isLazyArray();
-    void toDecoBuffer(OutBuffer *buf);
     // kludge for template.isType()
     int dyncast() { return DYNCAST_PARAMETER; }
     virtual void accept(Visitor *v) { v->visit(this); }
 
-    static Parameters *arraySyntaxCopy(Parameters *args);
-    static void argsToDecoBuffer(OutBuffer *buf, Parameters *arguments);
-    static int isTPL(Parameters *arguments);
-    static size_t dim(Parameters *arguments);
-    static Parameter *getNth(Parameters *arguments, size_t nth, size_t *pn = NULL);
+    static Parameters *arraySyntaxCopy(Parameters *parameters);
+    static int isTPL(Parameters *parameters);
+    static size_t dim(Parameters *parameters);
+    static Parameter *getNth(Parameters *parameters, size_t nth, size_t *pn = NULL);
 
     typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
-    static int foreach(Parameters *args, ForeachDg dg, void *ctx, size_t *pn=NULL);
+    static int foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn=NULL);
 };
 
-int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
-int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
+bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
+bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
 void MODtoBuffer(OutBuffer *buf, MOD mod);
 char *MODtoChars(MOD mod);
 bool MODimplicitConv(MOD modfrom, MOD modto);

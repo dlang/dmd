@@ -33,7 +33,6 @@ public:
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    void toObjFile(bool multiobj);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };

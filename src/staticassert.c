@@ -52,8 +52,9 @@ void StaticAssert::semantic2(Scope *sc)
     //printf("StaticAssert::semantic2() %s\n", toChars());
     ScopeDsymbol *sds = new ScopeDsymbol();
     sc = sc->push(sds);
-    sc->speculative = true;
-    sc->flags |= SCOPEstaticassert;
+    sc->tinst = NULL;
+    sc->minst = NULL;
+    sc->flags |= SCOPEcondition;
 
     sc = sc->startCTFE();
     Expression *e = exp->semantic(sc);
@@ -62,7 +63,7 @@ void StaticAssert::semantic2(Scope *sc)
     sc = sc->pop();
 
     // Simplify expression, to make error messages nicer if CTFE fails
-    e = e->optimize(0);
+    e = e->optimize(WANTvalue);
 
     if (!e->type->checkBoolean())
     {
@@ -112,10 +113,6 @@ bool StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
     //printf("StaticAssert::oneMember())\n");
     *ps = NULL;
     return true;
-}
-
-void StaticAssert::toObjFile(bool multiobj)
-{
 }
 
 const char *StaticAssert::kind()

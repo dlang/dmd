@@ -7,7 +7,6 @@ fail_compilation/imports/fail10277.d(3): Error: class TypeInfo only object.d can
 fail_compilation/imports/fail10277.d(4): Error: class TypeInfo_Class only object.d can define this reserved class name
 fail_compilation/imports/fail10277.d(5): Error: class TypeInfo_Interface only object.d can define this reserved class name
 fail_compilation/imports/fail10277.d(6): Error: class TypeInfo_Struct only object.d can define this reserved class name
-fail_compilation/imports/fail10277.d(7): Error: class TypeInfo_Typedef only object.d can define this reserved class name
 fail_compilation/imports/fail10277.d(8): Error: class TypeInfo_Pointer only object.d can define this reserved class name
 fail_compilation/imports/fail10277.d(9): Error: class TypeInfo_Array only object.d can define this reserved class name
 fail_compilation/imports/fail10277.d(10): Error: class TypeInfo_AssociativeArray only object.d can define this reserved class name

@@ -9,7 +9,7 @@
 **************************************************/
 
 alias float[2] vector2;
-typedef vector2 point2;  // if I change this typedef to alias it works fine
+alias vector2 point2;  // if I change this typedef to alias it works fine
 
 float distance(point2 a, point2 b)
 {

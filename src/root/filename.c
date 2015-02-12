@@ -44,7 +44,7 @@
 /****************************** FileName ********************************/
 
 FileName::FileName(const char *str)
-    : str(mem.strdup(str))
+    : str(mem.xstrdup(str))
 {
 }
 
@@ -57,7 +57,7 @@ const char *FileName::combine(const char *path, const char *name)
         return (char *)name;
     pathlen = strlen(path);
     namelen = strlen(name);
-    f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
+    f = (char *)mem.xmalloc(pathlen + 1 + namelen + 1);
     memcpy(f, path, pathlen);
 #if POSIX
     if (path[pathlen - 1] != '/')
@@ -127,8 +127,14 @@ Strings *FileName::splitPath(const char *path)
 
 #if POSIX
                     case '~':
-                        buf.writestring(getenv("HOME"));
+                    {
+                        char *home = getenv("HOME");
+                        if (home)
+                            buf.writestring(home);
+                        else
+                            buf.writestring("~");
                         continue;
+                    }
 #endif
 
 #if 0
@@ -171,7 +177,7 @@ bool FileName::equals(RootObject *obj)
     return compare(obj) == 0;
 }
 
-int FileName::equals(const char *name1, const char *name2)
+bool FileName::equals(const char *name1, const char *name2)
 {
     return compare(name1, name2) == 0;
 }
@@ -180,7 +186,7 @@ int FileName::equals(const char *name1, const char *name2)
  * Return !=0 if absolute path name.
  */
 
-int FileName::absolute(const char *name)
+bool FileName::absolute(const char *name)
 {
 #if _WIN32
     return (*name == '\\') ||
@@ -235,7 +241,7 @@ const char *FileName::ext()
 }
 
 /********************************
- * Return mem.malloc'd filename with extension removed.
+ * Return mem.xmalloc'd filename with extension removed.
  */
 
 const char *FileName::removeExt(const char *str)
@@ -243,12 +249,12 @@ const char *FileName::removeExt(const char *str)
     const char *e = ext(str);
     if (e)
     {   size_t len = (e - str) - 1;
-        char *n = (char *)mem.malloc(len + 1);
+        char *n = (char *)mem.xmalloc(len + 1);
         memcpy(n, str, len);
         n[len] = 0;
         return n;
     }
-    return mem.strdup(str);
+    return mem.xstrdup(str);
 }
 
 /********************************
@@ -319,7 +325,7 @@ const char *FileName::path(const char *str)
 #endif
     }
     pathlen = n - str;
-    char *path = (char *)mem.malloc(pathlen + 1);
+    char *path = (char *)mem.xmalloc(pathlen + 1);
     memcpy(path, str, pathlen);
     path[pathlen] = 0;
     return path;
@@ -342,7 +348,7 @@ const char *FileName::replaceName(const char *path, const char *name)
         return name;
     pathlen = n - path;
     namelen = strlen(name);
-    char *f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
+    char *f = (char *)mem.xmalloc(pathlen + 1 + namelen + 1);
     memcpy(f, path, pathlen);
 #if POSIX
     if (path[pathlen - 1] != '/')
@@ -371,11 +377,11 @@ const char *FileName::defaultExt(const char *name, const char *ext)
 {
     const char *e = FileName::ext(name);
     if (e)                              // if already has an extension
-        return mem.strdup(name);
+        return mem.xstrdup(name);
 
     size_t len = strlen(name);
     size_t extlen = strlen(ext);
-    char *s = (char *)mem.malloc(len + 1 + extlen + 1);
+    char *s = (char *)mem.xmalloc(len + 1 + extlen + 1);
     memcpy(s,name,len);
     s[len] = '.';
     memcpy(s + len + 1, ext, extlen + 1);
@@ -394,7 +400,7 @@ const char *FileName::forceExt(const char *name, const char *ext)
         size_t len = e - name;
         size_t extlen = strlen(ext);
 
-        char *s = (char *)mem.malloc(len + extlen + 1);
+        char *s = (char *)mem.xmalloc(len + extlen + 1);
         memcpy(s,name,len);
         memcpy(s + len, ext, extlen + 1);
         return s;
@@ -407,28 +413,28 @@ const char *FileName::forceExt(const char *name, const char *ext)
  * Return !=0 if extensions match.
  */
 
-int FileName::equalsExt(const char *ext)
+bool FileName::equalsExt(const char *ext)
 {
     return equalsExt(str, ext);
 }
 
-int FileName::equalsExt(const char *name, const char *ext)
+bool FileName::equalsExt(const char *name, const char *ext)
 {
     const char *e = FileName::ext(name);
     if (!e && !ext)
-        return 1;
+        return true;
     if (!e || !ext)
-        return 0;
+        return false;
     return FileName::compare(e, ext) == 0;
 }
 
 /*************************************
  * Search Path for file.
  * Input:
- *      cwd     if !=0, search current directory before searching path
+ *      cwd     if true, search current directory before searching path
  */
 
-const char *FileName::searchPath(Strings *path, const char *name, int cwd)
+const char *FileName::searchPath(Strings *path, const char *name, bool cwd)
 {
     if (absolute(name))
     {
@@ -465,7 +471,7 @@ const char *FileName::searchPath(Strings *path, const char *name, int cwd)
  *      https://www.securecoding.cert.org/confluence/display/seccode/FIO02-C.+Canonicalize+path+names+originating+from+untrusted+sources
  * Returns:
  *      NULL    file not found
- *      !=NULL  mem.malloc'd file name
+ *      !=NULL  mem.xmalloc'd file name
  */
 
 const char *FileName::safeSearchPath(Strings *path, const char *name)
@@ -483,7 +489,7 @@ const char *FileName::safeSearchPath(Strings *path, const char *name)
         }
     }
 
-    return FileName::searchPath(path, name, 0);
+    return FileName::searchPath(path, name, false);
 #elif POSIX
     /* Even with realpath(), we must check for // and disallow it
      */
@@ -520,7 +526,7 @@ const char *FileName::safeSearchPath(Strings *path, const char *name)
             if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
             {
                 ::free((void *)cpath);
-                const char *p = mem.strdup(cname);
+                const char *p = mem.xstrdup(cname);
                 ::free((void *)cname);
                 return p;
             }
@@ -565,7 +571,7 @@ int FileName::exists(const char *name)
 #endif
 }
 
-int FileName::ensurePathExists(const char *path)
+bool FileName::ensurePathExists(const char *path)
 {
     //printf("FileName::ensurePathExists(%s)\n", path ? path : "");
     if (path && *path)
@@ -579,12 +585,12 @@ int FileName::ensurePathExists(const char *path)
                 size_t len = strlen(path);
                 if ((len > 2 && p[-1] == ':' && strcmp(path + 2, p) == 0) ||
                     len == strlen(p))
-                {   mem.free((void *)p);
+                {   mem.xfree((void *)p);
                     return 0;
                 }
 #endif
-                int r = ensurePathExists(p);
-                mem.free((void *)p);
+                bool r = ensurePathExists(p);
+                mem.xfree((void *)p);
                 if (r)
                     return r;
             }
@@ -600,7 +606,7 @@ int FileName::ensurePathExists(const char *path)
                 int r = _mkdir(path);
 #endif
 #if POSIX
-                int r = mkdir(path, 0777);
+                int r = mkdir(path, (7 << 6) | (7 << 3) | 7);
 #endif
                 if (r)
                 {
@@ -608,12 +614,12 @@ int FileName::ensurePathExists(const char *path)
                      * this directory
                      */
                     if (errno != EEXIST)
-                        return 1;
+                        return true;
                 }
             }
         }
     }
-    return 0;
+    return false;
 }
 
 /******************************************
@@ -654,10 +660,10 @@ const char *FileName::canonicalName(const char *name)
 void FileName::free(const char *str)
 {
     if (str)
-    {   assert(str[0] != 0xAB);
+    {   assert(str[0] != (char)0xAB);
         memset((void *)str, 0xAB, strlen(str) + 1);     // stomp
     }
-    mem.free((void *)str);
+    mem.xfree((void *)str);
 }
 
 char *FileName::toChars()

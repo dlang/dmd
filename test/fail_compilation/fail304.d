@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail304.d(15): Error: cannot cast from Small to Large
+fail_compilation/fail304.d(15): Error: cannot cast expression foo() of type Small to Large
 ---
 */
 

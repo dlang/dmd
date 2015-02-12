@@ -2966,6 +2966,8 @@ void test11271()
 /******************************************/
 // 11533
 
+version (none)
+{
 struct S11533
 {
     void put(alias fun)() { fun!int(); }
@@ -2996,6 +2998,20 @@ void test11533c()
     assert(foo.call() == var);
     var += 1;
     assert(foo.call() == var);
+}
+
+void test11533()
+{
+    test11533a();
+    test11533b();
+    test11533c();
+}
+}
+else
+{
+void test11533()
+{
+}
 }
 
 /******************************************/
@@ -3371,6 +3387,21 @@ void test12376()
 {
     enum x = __traits(compiles, encode12376!2(x));
 }
+
+/******************************************/
+// 12447
+
+enum   test12447(string str) = str; // [1]
+string test12447(T...)(T args) if (T.length) { return args[0]; }    // [2]
+
+// With [1]: The template parameter str cannot be be deduced -> no match
+// With [2]: T is deduced to a type tuple (string), then match to the function call.
+static assert(test12447("foo") == "foo");
+
+// With [1]: template parameter str is deduced to "bar", then match.
+// With [2]: T is deduced to an expression tuple ("bar"), but it will make invalid the function signature (T args).
+//           The failure should be masked silently and prefer the 1st version.
+static assert(test12447!("bar") == "bar");
 
 /******************************************/
 // 12651
@@ -3795,6 +3826,17 @@ void test13204()
 }
 
 /******************************************/
+// 8462 (dup of 13204)
+
+alias FP8462 = void function(C8462.Type arg);
+
+class C8462
+{
+    enum Type { Foo }
+    alias funcPtrPtr = FP8462*;
+}
+
+/******************************************/
 // 13218
 
 template isCallable13218(T...)
@@ -4118,6 +4160,190 @@ void test13374()
 }
 
 /******************************************/
+// 14109
+
+string f14109() { return "a"; }
+string g14109()() { return "a"; }
+
+struct S14109(string s) { static assert(s == "a"); }
+
+alias X14109 = S14109!(f14109);
+alias Y14109 = S14109!(g14109!());
+static assert(is(X14109 == Y14109));
+
+/******************************************/
+// 13378
+
+struct Vec13378(size_t n, T, string as)
+{
+    T[n] data;
+}
+
+void doSome13378(size_t n, T, string as)(Vec13378!(n,T,as) v) {}
+
+void test13378()
+{
+    auto v = Vec13378!(3, float, "xyz")([1,2,3]);
+    doSome13378(v);
+}
+
+/******************************************/
+// 13379
+
+void test13379()
+{
+    match13379("");
+}
+
+auto match13379(RegEx )(RegEx  re)
+if (is(RegEx == Regex13379!char))       // #1 Regex!char (speculative && tinst == NULL)
+{}
+auto match13379(String)(String re)
+{}
+
+struct Regex13379(Char)
+{
+    ShiftOr13379!Char kickstart;        // #2 ShiftOr!char (speculative && tinst == Regex!char)
+}
+struct ShiftOr13379(Char)
+{
+    this(ref Regex13379!Char re)        // #3 Regex!Char (speculative && tinst == ShiftOr!char)
+    {
+        uint n_length;
+        uint idx;
+        n_length = min13379(idx, n_length);
+    }
+}
+
+template MinType13379(T...)
+{
+    alias MinType13379 = T[0];
+}
+MinType13379!T min13379(T...)(T args)   // #4 MinType!uint (speculative && thist == ShiftOr!char)
+{
+    alias a = args[0];
+    alias b = args[$-1];
+    return cast(typeof(return)) (a < b ? a : b);
+}
+
+/******************************************/
+// 13417
+
+struct V13417(size_t N, E, alias string AS)
+{
+}
+
+auto f13417(E)(in V13417!(4, E, "ijka"))
+{
+    return V13417!(3, E, "xyz")();
+}
+
+void test13417()
+{
+    f13417(V13417!(4, float, "ijka")());
+}
+
+/******************************************/
+// 13484
+
+int foo13484()(void delegate() hi) { return 1; }
+int foo13484(T)(void delegate(T) hi) { return 2; }
+
+void test13484()
+{
+    assert(foo13484({}) == 1);          // works
+    assert(foo13484((float v){}) == 2); // works <- throws error
+}
+
+/******************************************/
+// 13675
+
+enum E13675;
+
+bool foo13675(T : E13675)()
+{
+    return false;
+}
+
+void test13675()
+{
+    if (foo13675!E13675)
+    {}
+}
+
+/******************************************/
+// 13694
+
+auto foo13694(T)(string A,         T[] G ...) { return 1; }
+auto foo13694(T)(string A, long E, T[] G ...) { return 2; }
+
+void test13694()
+{
+    struct S {}
+
+    S v;
+    assert(foo13694("A", v) == 1);      // <- OK
+    assert(foo13694("A", 0, v) == 2);   // <- used to be OK but now fails
+    assert(foo13694!S("A", 0, v) == 2); // <- workaround solution
+}
+
+/******************************************/
+// 13760
+
+void test13760()
+{
+    void func(K, V)(inout(V[K]) aa, inout(V) val) {}
+
+    class C {}
+    C[int] aa;
+    func(aa, new C);
+}
+
+/******************************************/
+// 13714
+
+struct JSONValue13714
+{
+    this(T)(T arg)
+    {
+    }
+    this(T : JSONValue13714)(inout T arg) inout
+    {
+        //store = arg.store;
+    }
+
+    void opAssign(T)(T arg)
+    {
+    }
+}
+
+void test13714()
+{
+    enum DummyStringEnum
+    {
+        foo = "bar"
+    }
+
+    JSONValue13714[string] aa;
+    aa["A"] = DummyStringEnum.foo;
+}
+
+/******************************************/
+// 13807
+
+T f13807(T)(inout(T)[] arr)
+{
+    return T.init;
+}
+
+void test13807()
+{
+    static assert(is(typeof(f13807([1, 2, 3])) == int));    // OK
+    static assert(is(typeof(f13807(["a", "b"])) == string));    // OK <- Error
+    static assert(is(typeof(f13807!string(["a", "b"])) == string)); // OK
+}
+
+/******************************************/
 
 int main()
 {
@@ -4209,9 +4435,7 @@ int main()
     test10811();
     test10969();
     test11271();
-    test11533a();
-    test11533b();
-    test11533c();
+    test11533();
     test11818();
     test11843();
     test11872();
@@ -4222,6 +4446,10 @@ int main()
     test13294();
     test13299();
     test13374();
+    test13378();
+    test13379();
+    test13484();
+    test13694();
 
     printf("Success\n");
     return 0;

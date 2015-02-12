@@ -11,7 +11,7 @@
  * "as is" without express or implied warranty.
  */
 
-import std.c.stdio;
+import core.stdc.stdio;
 
 import std.conv;
 import std.string;

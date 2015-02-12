@@ -86,9 +86,9 @@ const char *Import::kind()
     return isstatic ? (char *)"static import" : (char *)"import";
 }
 
-PROT Import::prot()
+Prot Import::prot()
 {
-    return protection;
+    return Prot(protection);
 }
 
 Dsymbol *Import::syntaxCopy(Dsymbol *s)
@@ -139,7 +139,10 @@ void Import::load(Scope *sc)
                     if (!mod)
                         p->isPkgMod = PKGpackage;
                     else
-                        assert(p->isPkgMod == PKGmodule);
+                    {
+                        // mod is a package.d, or a normal module which conflicts with the package name.
+                        assert(mod->isPackageFile == (p->isPkgMod == PKGmodule));
+                    }
                 }
                 else
                 {
@@ -189,13 +192,22 @@ void Import::importAll(Scope *sc)
         load(sc);
         if (mod)                // if successfully loaded module
         {
+            if (mod->md && mod->md->isdeprecated)
+            {
+                Expression *msg = mod->md->msg;
+                if (StringExp *se = msg ? msg->toStringExp() : NULL)
+                    mod->deprecation(loc, "is deprecated - %s", se->string);
+                else
+                    mod->deprecation(loc, "is deprecated");
+            }
+
             mod->importAll(NULL);
 
             if (!isstatic && !aliasId && !names.dim)
             {
                 if (sc->explicitProtection)
-                    protection = sc->protection;
-                sc->scopesym->importScope(mod, protection);
+                    protection = sc->protection.kind;
+                sc->scopesym->importScope(mod, Prot(protection));
             }
         }
     }
@@ -228,12 +240,12 @@ void Import::semantic(Scope *sc)
         if (!isstatic && !aliasId && !names.dim)
         {
             if (sc->explicitProtection)
-                protection = sc->protection;
+                protection = sc->protection.kind;
             for (Scope *scd = sc; scd; scd = scd->enclosing)
             {
                 if (scd->scopesym)
                 {
-                    scd->scopesym->importScope(mod, protection);
+                    scd->scopesym->importScope(mod, Prot(protection));
                     break;
                 }
             }
@@ -254,7 +266,7 @@ void Import::semantic(Scope *sc)
 #if 0
         sc->protection = protection;
 #else
-        sc->protection = PROTpublic;
+        sc->protection = Prot(PROTpublic);
 #endif
         for (size_t i = 0; i < aliasdecls.dim; i++)
         {
@@ -308,7 +320,7 @@ void Import::semantic(Scope *sc)
 
         // use protection instead of sc->protection because it couldn't be
         // resolved yet, see the comment above
-        protectionToBuffer(ob, protection);
+        protectionToBuffer(ob, Prot(protection));
         ob->writeByte(' ');
         if (isstatic)
             StorageClassDeclaration::stcToCBuffer(ob, STCstatic);

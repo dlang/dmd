@@ -1,6 +1,6 @@
 // REQUIRED_ARGS: -unittest
 
-import std.string: cmp;
+import std.algorithm: cmp;
 
 extern(C) int printf(const char*, ...);
 

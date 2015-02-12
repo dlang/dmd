@@ -78,7 +78,7 @@ Library *LibElf_factory()
 LibElf::LibElf()
 {
     libfile = NULL;
-    tab._init();
+    tab._init(14000);
 }
 
 /***********************************

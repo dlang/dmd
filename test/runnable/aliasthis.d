@@ -1701,6 +1701,58 @@ struct S12038
 }
 
 /***************************************************/
+// 13490
+
+struct S13490
+{
+    int i;
+    alias i this;
+}
+
+struct T13490
+{
+    S13490[] a1, a2;
+}
+
+void test13490()
+{
+    T13490 t;
+
+    (true ? t.a1 : t.a2) ~= S13490(1);
+    assert(t.a1 == [S13490(1)]);
+    assert(t.a2 == []);
+
+    (false ? t.a1 : t.a2) ~= S13490(2);
+    assert(t.a1 == [S13490(1)]);
+    assert(t.a2 == [S13490(2)]);
+}
+
+/***************************************************/
+// 11355
+
+struct A11355
+{
+    static int postblit;
+    this(this) { ++postblit; }
+}
+
+struct B11355
+{
+    A11355 a;
+    alias a this;
+}
+
+B11355 make11355()
+{
+    return B11355();
+}
+void test11355()
+{
+    A11355 a1 = make11355();
+    assert(A11355.postblit == 1);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1753,6 +1805,8 @@ int main()
     test10456();
     test11333();
     test11800();
+    test13490();
+    test11355();
 
     printf("Success\n");
     return 0;

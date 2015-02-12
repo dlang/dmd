@@ -21,10 +21,10 @@
 #include "cond.h"
 #include "module.h"
 #include "template.h"
-#include "lexer.h"
 #include "mtype.h"
 #include "scope.h"
 #include "arraytypes.h"
+#include "tokens.h"
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -172,6 +172,7 @@ bool VersionCondition::isPredefined(const char *ident)
         "Android",
         "Cygwin",
         "MinGW",
+        "FreeStanding",
         "X86",
         "X86_64",
         "ARM",
@@ -213,6 +214,11 @@ bool VersionCondition::isPredefined(const char *ident)
         "Alpha_HardFloat",
         "LittleEndian",
         "BigEndian",
+        "ELFv1",
+        "ELFv2",
+        "CRuntime_Digitalmars",
+        "CRuntime_Glibc",
+        "CRuntime_Microsoft",
         "D_Coverage",
         "D_Ddoc",
         "D_InlineAsm_X86",
@@ -288,7 +294,7 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *sds)
         }
         else if (level <= global.params.versionlevel || level <= mod->versionlevel)
             inc = 1;
-        if (!definedInModule && (!ident || (!isPredefined(ident->toChars()) && ident != Lexer::idPool(Token::toChars(TOKunittest)) && ident != Lexer::idPool(Token::toChars(TOKassert)))))
+        if (!definedInModule && (!ident || (!isPredefined(ident->toChars()) && ident != Identifier::idPool(Token::toChars(TOKunittest)) && ident != Identifier::idPool(Token::toChars(TOKassert)))))
             printDepsConditional(sc, this, "depsVersion ");
     }
     return (inc == 1);
@@ -337,7 +343,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *sds)
         sc = sc->push(sc->scopesym);
         sc->sds = sds;                  // sds gets any addMember()
         //sc->speculative = true;       // TODO: static if (is(T U)) { /* U is available */ }
-        sc->flags |= SCOPEstaticif;
+        sc->flags |= SCOPEcondition;
 
         sc = sc->startCTFE();
         Expression *e = exp->semantic(sc);

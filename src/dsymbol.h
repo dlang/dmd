@@ -30,7 +30,6 @@ class Declaration;
 class ThisDeclaration;
 class TypeInfoDeclaration;
 class TupleDeclaration;
-class TypedefDeclaration;
 class AliasDeclaration;
 class AggregateDeclaration;
 class EnumDeclaration;
@@ -92,7 +91,7 @@ struct Ungag
 const char *mangle(Dsymbol *s);
 const char *mangleExact(FuncDeclaration *fd);
 
-enum PROT
+enum PROTKIND
 {
     PROTundefined,
     PROTnone,           // no access
@@ -103,9 +102,22 @@ enum PROT
     PROTexport,
 };
 
+struct Prot
+{
+    PROTKIND kind;
+    Package *pkg;
+
+    Prot();
+    Prot(PROTKIND kind);
+
+    bool isMoreRestrictiveThan(Prot other);
+    bool operator==(Prot other);
+    bool isSubsetOf(Prot other);
+};
+
 // in hdrgen.c
-void protectionToBuffer(OutBuffer *buf, PROT prot);
-const char *protectionToChars(PROT prot);
+void protectionToBuffer(OutBuffer *buf, Prot prot);
+const char *protectionToChars(PROTKIND kind);
 
 /* State of symbol in winding its way through the passes of the compiler
  */
@@ -142,7 +154,7 @@ public:
     Dsymbol *parent;
     Symbol *csym;               // symbol for code generator
     Symbol *isym;               // import version of csym
-    const utf8_t *comment;     // documentation comment for this Dsymbol
+    const utf8_t *comment;      // documentation comment for this Dsymbol
     Loc loc;                    // where defined
     Scope *scope;               // !=NULL means context to use for semantic()
     bool errors;                // this symbol failed to pass semantic()
@@ -203,13 +215,14 @@ public:
     virtual bool isExport();                    // is Dsymbol exported?
     virtual bool isImportedSymbol();            // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
+    virtual bool muteDeprecationMessage();      // disable deprecation message on Dsymbol?
     virtual bool isOverloadable();
     virtual bool hasOverloads();
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual bool needThis();                    // need a 'this' pointer?
-    virtual PROT prot();
+    virtual Prot prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual bool oneMember(Dsymbol **ps, Identifier *ident);
     static bool oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident);
@@ -223,14 +236,6 @@ public:
 
     bool inNonRoot();
 
-    // Backend
-    virtual void toObjFile(bool multiobj);                       // compile to .obj file
-
-    Symbol *toImport();                         // to backend import symbol
-    static Symbol *toImport(Symbol *s);         // to backend import symbol
-
-    Symbol *toSymbolX(const char *prefix, int sclass, TYPE *t, const char *suffix);     // helper
-
     // Eliminate need for dynamic_cast
     virtual Package *isPackage() { return NULL; }
     virtual Module *isModule() { return NULL; }
@@ -243,7 +248,6 @@ public:
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
-    virtual TypedefDeclaration *isTypedefDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
     virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }
     virtual FuncDeclaration *isFuncDeclaration() { return NULL; }
@@ -287,7 +291,7 @@ public:
 
 private:
     Dsymbols *imports;          // imported Dsymbol's
-    PROT *prots;                // array of PROT, one for each import
+    PROTKIND *prots;            // array of PROTKIND, one for each import
 
 public:
     ScopeDsymbol();
@@ -295,7 +299,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     OverloadSet *mergeOverloadSet(OverloadSet *os, Dsymbol *s);
-    void importScope(Dsymbol *s, PROT protection);
+    void importScope(Dsymbol *s, Prot protection);
     bool isforwardRef();
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     const char *kind();

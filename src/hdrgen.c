@@ -49,6 +49,8 @@
 #include "nspace.h"
 #include "hdrgen.h"
 
+void linkageToBuffer(OutBuffer *buf, LINK linkage);
+
 void genhdrfile(Module *m)
 {
     OutBuffer buf;
@@ -60,18 +62,7 @@ void genhdrfile(Module *m)
     HdrGenState hgs;
     hgs.hdrgen = true;
 
-    if (m->md)
-    {
-        buf.writestring("module ");
-        buf.writestring(m->md->toChars());
-        buf.writeByte(';');
-        buf.writenl();
-    }
-    for (size_t i = 0; i < m->members->dim; i++)
-    {
-        Dsymbol *s = (*m->members)[i];
-        toCBuffer(s, &buf, &hgs);
-    }
+    toCBuffer(m, &buf, &hgs);
 
     // Transfer image to file
     m->hdrfile->setbuffer(buf.data, buf.offset);
@@ -258,16 +249,16 @@ public:
     {
         buf->writestring(Token::toChars(s->op));
         buf->writestring(" (");
-        for (size_t i = 0; i < s->arguments->dim; i++)
+        for (size_t i = 0; i < s->parameters->dim; i++)
         {
-            Parameter *a = (*s->arguments)[i];
+            Parameter *p = (*s->parameters)[i];
             if (i)
                 buf->writestring(", ");
-            StorageClassDeclaration::stcToCBuffer(buf, a->storageClass);
-            if (a->type)
-                typeToBuffer(a->type, a->ident);
+            StorageClassDeclaration::stcToCBuffer(buf, p->storageClass);
+            if (p->type)
+                typeToBuffer(p->type, p->ident);
             else
-                buf->writestring(a->ident->toChars());
+                buf->writestring(p->ident->toChars());
         }
         buf->writestring("; ");
         s->aggr->accept(this);
@@ -288,10 +279,10 @@ public:
         buf->writestring(Token::toChars(s->op));
         buf->writestring(" (");
 
-        if (s->arg->type)
-            typeToBuffer(s->arg->type, s->arg->ident);
+        if (s->prm->type)
+            typeToBuffer(s->prm->type, s->prm->ident);
         else
-            buf->writestring(s->arg->ident->toChars());
+            buf->writestring(s->prm->ident->toChars());
 
         buf->writestring("; ");
         s->lwr->accept(this);
@@ -312,16 +303,16 @@ public:
     void visit(IfStatement *s)
     {
         buf->writestring("if (");
-        if (Parameter *a = s->arg)
+        if (Parameter *p = s->prm)
         {
-            StorageClass stc = a->storageClass;
-            if (!a->type && !stc)
+            StorageClass stc = p->storageClass;
+            if (!p->type && !stc)
                 stc = STCauto;
             StorageClassDeclaration::stcToCBuffer(buf, stc);
-            if (a->type)
-                typeToBuffer(a->type, a->ident);
+            if (p->type)
+                typeToBuffer(p->type, p->ident);
             else
-                buf->writestring(a->ident->toChars());
+                buf->writestring(p->ident->toChars());
             buf->writestring(" = ");
         }
         s->condition->accept(this);
@@ -366,7 +357,6 @@ public:
             s->elsebody->accept(this);
             buf->level--;
             buf->writeByte('}');
-            buf->writenl();
         }
         buf->writenl();
     }
@@ -771,8 +761,13 @@ public:
 
     void visit(TypeDArray *t)
     {
-        if (t->equals(t->tstring))
+        Type *ut = t->castMod(0);
+        if (ut->equals(Type::tstring))
             buf->writestring("string");
+        else if (ut->equals(Type::twstring))
+            buf->writestring("wstring");
+        else if (ut->equals(Type::tdstring))
+            buf->writestring("dstring");
         else
         {
             visitWithMask(t->next, t->mod);
@@ -877,6 +872,9 @@ public:
         }
         t->attributesApply(&pas, &PrePostAppendStrings::fp);
 
+        if (t->isreturn)
+            buf->writestring(" return");
+
         t->inuse--;
     }
     void visitFuncIdentWithPrefix(TypeFunction *t, Identifier *ident, TemplateDeclaration *td, bool isPostfixStyle)
@@ -937,6 +935,9 @@ public:
         }
         parametersToBuffer(t->parameters, t->varargs);
 
+        if (t->isreturn)
+            buf->writestring("return ");
+
         t->inuse--;
     }
 
@@ -993,16 +994,12 @@ public:
         buf->writestring(t->sym->toChars());
     }
 
-    void visit(TypeTypedef *t)
-    {
-        //printf("TypeTypedef::toCBuffer2() '%s'\n", t->sym->toChars());
-        buf->writestring(t->sym->toChars());
-    }
-
     void visit(TypeStruct *t)
     {
+        // Bugzilla 13776: Don't use ti->toAlias() to avoid forward reference error
+        // while printing messages.
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
-        if (ti && ti->toAlias() == t->sym)
+        if (ti && ti->aliasdecl == t->sym)
             buf->writestring(hgs->fullQual ? ti->toPrettyChars() : ti->toChars());
         else
             buf->writestring(hgs->fullQual ? t->sym->toPrettyChars() : t->sym->toChars());
@@ -1010,8 +1007,10 @@ public:
 
     void visit(TypeClass *t)
     {
+        // Bugzilla 13776: Don't use ti->toAlias() to avoid forward reference error
+        // while printing messages.
         TemplateInstance *ti = t->sym->parent->isTemplateInstance();
-        if (ti && ti->toAlias() == t->sym)
+        if (ti && ti->aliasdecl == t->sym)
             buf->writestring(hgs->fullQual ? ti->toPrettyChars() : ti->toChars());
         else
             buf->writestring(hgs->fullQual ? t->sym->toPrettyChars() : t->sym->toChars());
@@ -1159,7 +1158,10 @@ public:
             buf->writestring("{}");
         }
         else if (d->decl->dim == 1)
+        {
             ((*d->decl)[0])->accept(this);
+            return;
+        }
         else
         {
             buf->writenl();
@@ -1456,6 +1458,8 @@ public:
             if (Type *t = isType(oarg))
             {
                 if (t->equals(Type::tstring) ||
+                    t->equals(Type::twstring) ||
+                    t->equals(Type::tdstring) ||
                     t->mod == 0 &&
                     (t->isTypeBasic() ||
                      t->ty == Tident && ((TypeIdentifier *)t)->idents.dim == 0))
@@ -1656,30 +1660,28 @@ public:
         }
     }
 
-    void visit(TypedefDeclaration *d)
-    {
-        buf->writestring("typedef ");
-        typeToBuffer(d->basetype, d->ident);
-        if (d->init)
-        {
-            buf->writestring(" = ");
-            d->init->accept(this);
-        }
-        buf->writeByte(';');
-        buf->writenl();
-    }
-
     void visit(AliasDeclaration *d)
     {
         buf->writestring("alias ");
         if (d->aliassym)
         {
-            d->aliassym->accept(this);
-            buf->writeByte(' ');
             buf->writestring(d->ident->toChars());
+            buf->writestring(" = ");
+            StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
+            d->aliassym->accept(this);
+        }
+        else if (d->type->ty == Tfunction)
+        {
+            StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
+            typeToBuffer(d->type, d->ident);
         }
         else
-            typeToBuffer(d->type, d->ident);
+        {
+            buf->writestring(d->ident->toChars());
+            buf->writestring(" = ");
+            StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
+            typeToBuffer(d->type, NULL);
+        }
         buf->writeByte(';');
         buf->writenl();
     }
@@ -1718,7 +1720,7 @@ public:
 
     void visit(FuncDeclaration *f)
     {
-        //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
+        //printf("FuncDeclaration::toCBuffer() '%s'\n", f->toChars());
 
         StorageClassDeclaration::stcToCBuffer(buf, f->storage_class);
         typeToBuffer(f->type, f->ident);
@@ -1731,13 +1733,15 @@ public:
                 hgs->autoMember--;
             }
             else if (hgs->tpltMember == 0 && !global.params.useInline)
+            {
                 buf->writeByte(';');
+                buf->writenl();
+            }
             else
                 bodyToBuffer(f);
         }
         else
             bodyToBuffer(f);
-        buf->writenl();
     }
 
     void bodyToBuffer(FuncDeclaration *f)
@@ -1852,22 +1856,24 @@ public:
 
     void visit(StaticCtorDeclaration *d)
     {
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         if (d->isSharedStaticCtorDeclaration())
             buf->writestring("shared ");
+        buf->writestring("static this()");
         if (hgs->hdrgen && !hgs->tpltMember)
         {
-            buf->writestring("static this();");
+            buf->writeByte(';');
             buf->writenl();
-            return;
         }
-        buf->writestring("static this()");
-        bodyToBuffer(d);
+        else
+            bodyToBuffer(d);
     }
 
     void visit(StaticDtorDeclaration *d)
     {
         if (hgs->hdrgen)
             return;
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         if (d->isSharedStaticDtorDeclaration())
             buf->writestring("shared ");
         buf->writestring("static ~this()");
@@ -1878,6 +1884,7 @@ public:
     {
         if (hgs->hdrgen)
             return;
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
         buf->writestring("invariant");
         bodyToBuffer(d);
     }
@@ -1886,21 +1893,24 @@ public:
     {
         if (hgs->hdrgen)
             return;
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
         buf->writestring("unittest");
         bodyToBuffer(d);
     }
 
     void visit(NewDeclaration *d)
     {
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         buf->writestring("new");
-        parametersToBuffer(d->arguments, d->varargs);
+        parametersToBuffer(d->parameters, d->varargs);
         bodyToBuffer(d);
     }
 
     void visit(DeleteDeclaration *d)
     {
+        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
         buf->writestring("delete");
-        parametersToBuffer(d->arguments, 0);
+        parametersToBuffer(d->parameters, 0);
         bodyToBuffer(d);
     }
 
@@ -2052,14 +2062,6 @@ public:
                     TypeEnum *te = (TypeEnum *)t;
                     buf->printf("cast(%s)", te->sym->toChars());
                     t = te->sym->memtype;
-                    goto L1;
-                }
-
-                case Ttypedef:
-                {
-                    TypeTypedef *tt = (TypeTypedef *)t;
-                    buf->printf("cast(%s)", tt->sym->toChars());
-                    t = tt->sym->basetype;
                     goto L1;
                 }
 
@@ -2849,6 +2851,9 @@ public:
         if (p->storageClass & STCauto)
             buf->writestring("auto ");
 
+        if (p->storageClass & STCreturn)
+            buf->writestring("return ");
+
         if (p->storageClass & STCout)
             buf->writestring("out ");
         else if (p->storageClass & STCref)
@@ -2909,6 +2914,41 @@ public:
             }
         }
         buf->writeByte(')');
+    }
+
+    void visit(Module *m)
+    {
+        if (m->md)
+        {
+            if (m->userAttribDecl)
+            {
+                buf->writestring("@(");
+                argsToBuffer(m->userAttribDecl->atts);
+                buf->writeByte(')');
+                buf->writenl();
+            }
+            if (m->md->isdeprecated)
+            {
+                if (m->md->msg)
+                {
+                    buf->writestring("deprecated(");
+                    m->md->msg->accept(this);
+                    buf->writestring(") ");
+                }
+                else
+                    buf->writestring("deprecated ");
+            }
+
+            buf->writestring("module ");
+            buf->writestring(m->md->toChars());
+            buf->writeByte(';');
+            buf->writenl();
+        }
+        for (size_t i = 0; i < m->members->dim; i++)
+        {
+            Dsymbol *s = (*m->members)[i];
+            s->accept(this);
+        }
     }
 };
 
@@ -2991,16 +3031,25 @@ const char *linkageToChars(LINK linkage)
     return NULL;    // never reached
 }
 
-void protectionToBuffer(OutBuffer *buf, PROT prot)
+void protectionToBuffer(OutBuffer *buf, Prot prot)
 {
-    const char *p = protectionToChars(prot);
+    const char *p = protectionToChars(prot.kind);
     if (p)
         buf->writestring(p);
+
+    if (prot.kind == PROTpackage && prot.pkg)
+    {
+        Package *ppkg = prot.pkg;
+
+        buf->writeByte('(');
+        buf->writestring(prot.pkg->toPrettyChars(true));
+        buf->writeByte(')');
+    }
 }
 
-const char *protectionToChars(PROT prot)
+const char *protectionToChars(PROTKIND kind)
 {
-    switch (prot)
+    switch (kind)
     {
         case PROTundefined: return NULL;
         case PROTnone:      return "none";

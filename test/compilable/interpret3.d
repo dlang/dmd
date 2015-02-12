@@ -2,7 +2,7 @@
 
 template compiles(int T)
 {
-   bool compiles = true;
+    bool compiles = true;
 }
 
 alias TypeTuple(T...) = T;
@@ -11,47 +11,45 @@ alias TypeTuple(T...) = T;
     3901 Arbitrary struct assignment, ref return
 **************************************************/
 
-struct ArrayRet{
-   int x;
+struct ArrayRet
+{
+    int x;
 }
 
 int arrayRetTest(int z)
 {
-  ArrayRet[6] w;
-  int q = (w[3].x = z);
-  return q;
+    ArrayRet[6] w;
+    int q = (w[3].x = z);
+    return q;
 }
-
-static assert(arrayRetTest(51)==51);
+static assert(arrayRetTest(51) == 51);
 
 // Bugzilla 3842 -- must not segfault
 int ice3842(int z)
 {
-   ArrayRet w;
-   return arrayRetTest((*(&w)).x);
+    ArrayRet w;
+    return arrayRetTest((*(&w)).x);
 }
-
 static assert(true || is(typeof(compiles!(ice3842(51)))));
 
-
-int arrayret2(){
-
-  int [5] a;
-  int [3] b;
-  b[] = a[1..$-1] = 5;
-  return b[1];
+int arrayret2()
+{
+    int[5] a;
+    int[3] b;
+    b[] = a[1 .. $-1] = 5;
+    return b[1];
 }
-static assert(arrayret2()==5);
+static assert(arrayret2() == 5);
 
 struct DotVarTest
 {
-   ArrayRet z;
+    ArrayRet z;
 }
 
 struct DotVarTest2
 {
-   ArrayRet z;
-   DotVarTest p;
+    ArrayRet z;
+    DotVarTest p;
 }
 
 int dotvar1()
@@ -60,6 +58,7 @@ int dotvar1()
     w.z.x = 3;
     return w.z.x;
 }
+static assert(dotvar1() == 3);
 
 int dotvar2()
 {
@@ -68,34 +67,32 @@ int dotvar2()
     m[1].p.z.x = 5;
     return m[2].z.x + 7;
 }
-
-static assert(dotvar1()==3);
-static assert(dotvar2()==10);
+static assert(dotvar2() == 10);
 
 
-struct RetRefStruct{
-   int x;
-   char c;
+struct RetRefStruct
+{
+    int x;
+    char c;
 }
 
 // Return value reference tests, for D2 only.
 
 ref RetRefStruct reffunc1(ref RetRefStruct a)
 {
-int y = a.x;
-return a;
+    int y = a.x;
+    return a;
 }
-
 
 ref RetRefStruct reffunc2(ref RetRefStruct a)
 {
-   RetRefStruct z = a;
-   return reffunc1(a);
+    RetRefStruct z = a;
+    return reffunc1(a);
 }
 
 ref int reffunc7(ref RetRefStruct aa)
 {
-   return reffunc1(aa).x;
+    return reffunc1(aa).x;
 }
 
 ref int reffunc3(ref int a)
@@ -105,38 +102,41 @@ ref int reffunc3(ref int a)
 
 struct RefTestStruct
 {
-  RetRefStruct r;
+    RetRefStruct r;
 
-  ref RefTestStruct reffunc4(ref RetRefStruct[3] a)
-  {
-    return this;
-  }
+    ref RefTestStruct reffunc4(ref RetRefStruct[3] a)
+    {
+        return this;
+    }
 
-  ref int reffunc6()
-  {
-    return this.r.x;
-  }
+    ref int reffunc6()
+    {
+        return this.r.x;
+    }
 }
 
 ref RetRefStruct reffunc5(ref RetRefStruct[3] a)
 {
-   int t = 1;
-   for (int i=0; i<10; ++i)
-   { if (i==7)  ++t;}
+    int t = 1;
+    for (int i = 0; i < 10; ++i)
+    {
+        if (i == 7)
+            ++t;
+    }
     return a[reffunc3(t)];
 }
 
 int retRefTest1()
 {
-    RetRefStruct b = RetRefStruct(0,'a');
-    reffunc1(b).x =3;
-    return b.x-1;
+    RetRefStruct b = RetRefStruct(0, 'a');
+    reffunc1(b).x = 3;
+    return b.x - 1;
 }
 
 int retRefTest2()
 {
-    RetRefStruct b = RetRefStruct(0,'a');
-    reffunc2(b).x =3;
+    RetRefStruct b = RetRefStruct(0, 'a');
+    reffunc2(b).x = 3;
     RetRefStruct[3] z;
     RefTestStruct w;
     w.reffunc4(z).reffunc4(z).r.x = 4;
@@ -144,22 +144,22 @@ int retRefTest2()
     w.reffunc6() = 218;
     assert(w.r.x == 218);
     z[2].x = 3;
-    int q=4;
+    int q = 4;
     int u = reffunc5(z).x + reffunc3(q);
-    assert(u==7);
+    assert(u == 7);
     reffunc5(z).x += 7;
     assert(z[2].x == 10);
     RetRefStruct m = RetRefStruct(7, 'c');
     m.x = 6;
-    reffunc7(m)+=3;
-    assert(m.x==9);
-    return b.x-1;
+    reffunc7(m) += 3;
+    assert(m.x == 9);
+    return b.x - 1;
 }
 
 int retRefTest3()
 {
-    RetRefStruct b = RetRefStruct(0,'a');
-    auto deleg = function (RetRefStruct a){ return a;};
+    RetRefStruct b = RetRefStruct(0, 'a');
+    auto deleg = function (RetRefStruct a){ return a; };
     typeof(deleg)[3] z;
     z[] = deleg;
     auto y = deleg(b).x + 27;
@@ -171,16 +171,16 @@ int retRefTest3()
 
 int retRefTest4()
 {
-    RetRefStruct b = RetRefStruct(0,'a');
+    RetRefStruct b = RetRefStruct(0, 'a');
     reffunc3(b.x) = 218;
     assert(b.x == 218);
     return b.x;
 }
 
-static assert(retRefTest1()==2);
-static assert(retRefTest2()==2);
-static assert(retRefTest3()==26);
-static assert(retRefTest4()==218);
+static assert(retRefTest1() == 2);
+static assert(retRefTest2() == 2);
+static assert(retRefTest3() == 26);
+static assert(retRefTest4() == 218);
 
 /**************************************************
     Bug 7887 assign to returned reference
@@ -199,7 +199,8 @@ static assert(test7887());
     Bug 7473 struct non-ref
 **************************************************/
 
-struct S7473{
+struct S7473
+{
     int i;
 }
 
@@ -211,11 +212,13 @@ static assert({
     return true;
 }());
 
-void bug7473(S7473 s){
+void bug7473(S7473 s)
+{
     s.i = 2;
 }
 
-struct S7473b{
+struct S7473b
+{
     S7473 m;
 }
 
@@ -227,7 +230,8 @@ static assert({
     return true;
 }());
 
-void bug7473b(S7473b s){
+void bug7473b(S7473b s)
+{
     s.m.i = 2;
 }
 
@@ -240,22 +244,22 @@ int bug4389()
     string s;
     dchar c = '\u2348';
     s ~= c;
-    assert(s.length==3);
+    assert(s.length == 3);
     dchar d = 'D';
     s ~= d;
-    assert(s.length==4);
+    assert(s.length == 4);
     s = "";
     s ~= c;
-    assert(s.length==3);
+    assert(s.length == 3);
     s ~= d;
-    assert(s.length==4);
+    assert(s.length == 4);
     string z;
     wchar w = '\u0300';
     z ~= w;
-    assert(z.length==2);
+    assert(z.length == 2);
     z = "";
     z ~= w;
-    assert(z.length==2);
+    assert(z.length == 2);
     return 1;
 }
 
@@ -286,15 +290,19 @@ string ice4390()
 static assert(mixin(ice4390()) == ``);
 
 // bug 5248 (D1 + D2)
-struct Leaf5248 {
-    string Compile_not_ovloaded() {
+struct Leaf5248
+{
+    string Compile_not_ovloaded()
+    {
         return "expression";
     }
-};
-struct Matrix5248 {
+}
+struct Matrix5248
+{
     Leaf5248 Right;
 
-    string Compile() {
+    string Compile()
+    {
         return Right.Compile_not_ovloaded();
     }
 };
@@ -321,6 +329,7 @@ static assert(bug4837());
 /**************************************************
   10252 shift out of range
 **************************************************/
+
 int lshr10252(int shift)
 {
      int a = 5;
@@ -339,11 +348,11 @@ int ushr10252(int shift)
      return a >>> shift;
 }
 
-static assert(is(typeof(compiles!(lshr10252(4)))));
+static assert( is(typeof(compiles!(lshr10252( 4)))));
 static assert(!is(typeof(compiles!(lshr10252(60)))));
-static assert(is(typeof(compiles!(rshr10252(4)))));
+static assert( is(typeof(compiles!(rshr10252( 4)))));
 static assert(!is(typeof(compiles!(rshr10252(80)))));
-static assert(is(typeof(compiles!(ushr10252(2)))));
+static assert( is(typeof(compiles!(ushr10252( 2)))));
 static assert(!is(typeof(compiles!(ushr10252(60)))));
 
 /**************************************************
@@ -351,27 +360,29 @@ static assert(!is(typeof(compiles!(ushr10252(60)))));
 **************************************************/
 
 enum a1982 = [1, 2, 3];
-static assert (a1982 !is null);
+static assert(a1982 !is null);
 
 string foo1982() { return null; }
-static assert (foo1982() is null);
-static assert (!foo1982().length);
+static assert(foo1982() is null);
+static assert(!foo1982().length);
 
-static assert (null is null);
+static assert(null is null);
 
 /**************************************************
   7988 CTFE return values should be allowed in compile-time expressions
 **************************************************/
 
-class X7988 { int y; this() { y = 2; }}
-static assert( (new X7988).y == 2);
+class X7988 { int y; this() { y = 2; } }
+static assert((new X7988).y == 2);
 
 /**************************************************
   8253 ICE: calling of member function of non-CTFE class variable
 **************************************************/
 
-class Bug8253 {
-    bool j(){
+class Bug8253
+{
+    bool j()
+    {
         return true;
     }
 }
@@ -382,45 +393,53 @@ static assert(!is(typeof(compiles!(m8253.j()))));
   8285 Issue with slice returned from CTFE function
 **************************************************/
 
-string foo8285() {
-     string s = "ab";
-     return s[0 .. $];
+string foo8285()
+{
+    string s = "ab";
+    return s[0 .. $];
 }
 
 template T8285b(string s) { }
 
-template T8285a() {
-     enum s = foo8285();
-     alias T8285b!(s) t2;
+template T8285a()
+{
+    enum s = foo8285();
+    alias T8285b!(s) t2;
 }
 
-int bar8285() {
-     alias T8285a!() t1;
-     return 0;
+int bar8285()
+{
+    alias T8285a!() t1;
+    return 0;
 }
 
-int baz8285(int x) {
-     return 0;
+int baz8285(int x)
+{
+    return 0;
 }
 
 static assert(baz8285(bar8285()) == 0);
 
 // test case 2
 
-string xbar8285() {
+string xbar8285()
+{
     string s = "ab";
-    return s[0..$];
+    return s[0 .. $];
 }
 
-template xT8285a() {
-    enum xT8285a = xbar8285()[0..$];
+template xT8285a()
+{
+    enum xT8285a = xbar8285()[0 .. $];
 }
 
-string xbaz8285() {
+string xbaz8285()
+{
     return xT8285a!();
 }
 
-string xfoo8285(string s) {
+string xfoo8285(string s)
+{
     return s;
 }
 
@@ -429,12 +448,14 @@ static assert(xfoo8285(xbaz8285()) == "ab");
 /**************************************************
   'this' parameter bug revealed during refactoring
 **************************************************/
+
 int thisbug1(int x) { return x; }
 
 struct ThisBug1
 {
     int m = 1;
-    int wut() {
+    int wut()
+    {
         return thisbug1(m);
     }
 }
@@ -457,21 +478,24 @@ int bug6972()
     n /= 2u;
     return n;
 }
-static assert(bug6972()==3);
+static assert(bug6972() == 3);
 
 /**************************************************
     Bug 6164
 **************************************************/
 
-size_t bug6164(){
-    int[] ctfe2(int n){
-        int[] r=[];
-        if(n!=0) r~=[1] ~ ctfe2(n-1);
+size_t bug6164()
+{
+    int[] ctfe2(int n)
+    {
+        int[] r = [];
+        if (n != 0)
+            r ~= [1] ~ ctfe2(n - 1);
         return r;
     }
     return ctfe2(2).length;
 }
-static assert(bug6164()==2);
+static assert(bug6164() == 2);
 
 /**************************************************
     Interpreter code coverage tests
@@ -479,38 +503,41 @@ static assert(bug6164()==2);
 
 int cov1(int a)
 {
-   a %= 15382;
-   a /= 5;
-   a = ~ a;
-   bool c = (a==0);
-   bool b = true && c;
-   assert(b==0);
-   b = false && c;
-   assert(b==0);
-   b = false || c;
-   assert(b==0);
-   a ^= 0x45349;
-   a = ~ a;
-   a &= 0xFF3F;
-   a >>>= 1;
-   a = a ^ 0x7393;
-   a = a >> 1;
-   a = a >>> 1;
-   a = a | 0x010101;
-   return a;
+    a %= 15382;
+    a /= 5;
+    a = ~ a;
+    bool c = (a == 0);
+    bool b = true && c;
+    assert(b == 0);
+    b = false && c;
+    assert(b == 0);
+    b = false || c;
+    assert(b == 0);
+    a ^= 0x45349;
+    a = ~ a;
+    a &= 0xFF3F;
+    a >>>= 1;
+    a = a ^ 0x7393;
+    a = a >> 1;
+    a = a >>> 1;
+    a = a | 0x010101;
+    return a;
 }
 static assert(cov1(534564) == 71589);
 
 int cov2()
 {
     int i = 0;
-    do{
+    do
+    {
         goto DOLABEL;
     DOLABEL:
-        if (i!=0) {
+        if (i != 0)
+        {
             goto IFLABEL;
     IFLABEL:
-            switch(i) {
+            switch(i)
+            {
             case 3:
                 break;
             case 6:
@@ -518,7 +545,8 @@ int cov2()
     SWITCHLABEL:
                 i = 27;
                 goto case 3;
-             default: assert(0);
+            default:
+                assert(0);
             }
             return i;
         }
@@ -526,12 +554,11 @@ int cov2()
     } while(true);
     return 88; // unreachable
 }
-
-static assert(cov2()==27);
+static assert(cov2() == 27);
 
 template CovTuple(T...)
 {
-  alias T CovTuple;
+    alias T CovTuple;
 }
 
 alias CovTuple!(int, long) TCov3;
@@ -544,32 +571,31 @@ int cov3(TCov3 t)
     assert(s[1] == 2);
     return 7;
 }
-
 static assert(cov3(1, 2) == 7);
 
 int badassert1(int z)
 {
-   assert(z == 5, "xyz");
-   return 1;
+    assert(z == 5, "xyz");
+    return 1;
 }
 
 size_t badslice1(int[] z)
 {
-  return z[0..3].length;
+    return z[0 .. 3].length;
 }
 
 size_t badslice2(int[] z)
 {
-  return z[0..badassert1(1)].length;
+    return z[0 .. badassert1(1)].length;
 }
 
 size_t badslice3(int[] z)
 {
-  return z[badassert1(1)..2].length;
+    return z[badassert1(1) .. 2].length;
 }
 
 static assert(!is(typeof(compiles!(badassert1(67)))));
-static assert(is(typeof(compiles!(badassert1(5)))));
+static assert( is(typeof(compiles!(badassert1(5)))));
 static assert(!is(typeof(compiles!(badslice1([1,2])))));
 static assert(!is(typeof(compiles!(badslice2([1,2])))));
 static assert(!is(typeof(compiles!(badslice3([1,2,3])))));
@@ -578,40 +604,42 @@ static assert(!is(typeof(compiles!(badslice3([1,2,3])))));
 
 int bug7894()
 {
-    for (int k = 0; k < 2; ++k) {
+    for (int k = 0; k < 2; ++k)
+    {
         goto Lagain;
-Lagain: ;
+Lagain:
+        ;
     }
     int m = 1;
-    do {
+    do
+    {
         ++m;
         goto Ldo;
 Ldo: ;
     } while (m < 3);
-    assert( m == 3);
+    assert(m == 3);
 
     return 1;
 }
-static assert( bug7894() );
+static assert(bug7894());
 
 /*******************************************/
 
 size_t bug5524(int x, int[] more...)
 {
     int[0] zz;
-    assert(zz.length==0);
+    assert(zz.length == 0);
     return 7 + more.length + x;
 }
-
 static assert(bug5524(3) == 10);
 
 
 // 5722
 
-static assert( ("" ~ "\&copy;"[0]).length == 1 );
+static assert(("" ~ "\&copy;"[0]).length == 1);
 const char[] null5722 = null;
-static assert( (null5722 ~ "\&copy;"[0]).length == 1 );
-static assert( ("\&copy;"[0] ~ null5722).length == 1 );
+static assert((null5722 ~ "\&copy;"[0]).length == 1);
+static assert(("\&copy;"[0] ~ null5722).length == 1);
 
 /*******************************************
  * Tests for CTFE Array support.
@@ -621,140 +649,135 @@ static assert( ("\&copy;"[0] ~ null5722).length == 1 );
 
 char[] bug1330StringIndex()
 {
-    char [] blah = "foo".dup;
+    char[] blah = "foo".dup;
     assert(blah == "foo");
-    char [] s = blah[0..2];
+    char[] s = blah[0 .. 2];
     blah[0] = 'h';
-    assert(s== "ho");
+    assert(s == "ho");
     s[0] = 'm';
     return blah;
 }
-
-static assert(bug1330StringIndex()=="moo");
-static assert(bug1330StringIndex()=="moo"); // check we haven't clobbered any string literals
+static assert(bug1330StringIndex() == "moo");
+static assert(bug1330StringIndex() == "moo"); // check we haven't clobbered any string literals
 
 int[] bug1330ArrayIndex()
 {
-    int [] blah = [1,2,3];
-    int [] s = blah;
-    s = blah[0..2];
+    int[] blah = [1,2,3];
+    int[] s = blah;
+    s = blah[0 .. 2];
     int z = blah[0] = 6;
-    assert(z==6);
-    assert(blah[0]==6);
-    assert(s[0]==6);
-    assert(s== [6, 2]);
+    assert(z == 6);
+    assert(blah[0] == 6);
+    assert(s[0] == 6);
+    assert(s == [6, 2]);
     s[1] = 4;
-    assert(z==6);
+    assert(z == 6);
     return blah;
 }
-
-static assert(bug1330ArrayIndex()==[6,4,3]);
-static assert(bug1330ArrayIndex()==[6,4,3]); // check we haven't clobbered any literals
+static assert(bug1330ArrayIndex() == [6, 4, 3]);
+static assert(bug1330ArrayIndex() == [6, 4, 3]); // check we haven't clobbered any literals
 
 char[] bug1330StringSliceAssign()
 {
-    char [] blah = "food".dup;
+    char[] blah = "food".dup;
     assert(blah == "food");
-    char [] s = blah[1..4];
-    blah[0..2] = "hc";
-    assert(s== "cod");
-    s[0..2] = ['a', 'b'];   // Mix string + array literal
+    char[] s = blah[1 .. 4];
+    blah[0 .. 2] = "hc";
+    assert(s == "cod");
+    s[0 .. 2] = ['a', 'b'];   // Mix string + array literal
     assert(blah == "habd");
-    s[0..2] = "mq";
+    s[0 .. 2] = "mq";
     return blah;
 }
-
-static assert(bug1330StringSliceAssign()=="hmqd");
-static assert(bug1330StringSliceAssign()=="hmqd");
+static assert(bug1330StringSliceAssign() == "hmqd");
+static assert(bug1330StringSliceAssign() == "hmqd");
 
 int[] bug1330ArraySliceAssign()
 {
-    int [] blah = [1,2,3,4];
-    int [] s = blah[1..4];
-    blah[0..2] = [7, 9];
-    assert(s == [9,3,4]);
-    s[0..2] = [8, 15];
+    int[] blah = [1, 2, 3, 4];
+    int[] s = blah[1 .. 4];
+    blah[0 .. 2] = [7, 9];
+    assert(s == [9, 3, 4]);
+    s[0 .. 2] = [8, 15];
     return blah;
 }
-
-static assert(bug1330ArraySliceAssign()==[7, 8, 15, 4]);
+static assert(bug1330ArraySliceAssign() == [7, 8, 15, 4]);
 
 int[] bug1330ArrayBlockAssign()
 {
-    int [] blah = [1,2,3,4,5];
-    int [] s = blah[1..4];
-    blah[0..2] = 17;
-    assert(s == [17,3,4]);
-    s[0..2] = 9;
+    int[] blah = [1, 2, 3, 4, 5];
+    int[] s = blah[1 .. 4];
+    blah[0 .. 2] = 17;
+    assert(s == [17, 3, 4]);
+    s[0 .. 2] = 9;
     return blah;
 }
-
-static assert(bug1330ArrayBlockAssign()==[17, 9, 9, 4, 5]);
+static assert(bug1330ArrayBlockAssign() == [17, 9, 9, 4, 5]);
 
 char[] bug1330StringBlockAssign()
 {
-    char [] blah = "abcde".dup;
-    char [] s = blah[1..4];
-    blah[0..2] = 'x';
+    char[] blah = "abcde".dup;
+    char[] s = blah[1 .. 4];
+    blah[0 .. 2] = 'x';
     assert(s == "xcd");
-    s[0..2] = 'y';
+    s[0 .. 2] = 'y';
     return blah;
 }
-
 static assert(bug1330StringBlockAssign() == "xyyde");
 
-int assignAA(int x) {
+int assignAA(int x)
+{
     int[int] aa;
     int[int] cc = aa;
-    assert(cc.values.length==0);
-    assert(cc.keys.length==0);
+    assert(cc.values.length == 0);
+    assert(cc.keys.length == 0);
     aa[1] = 2;
     aa[x] = 6;
     int[int] bb = aa;
-    assert(bb.keys.length==2);
-    assert(cc.keys.length==0); // cc is not affected to aa, because it is null
+    assert(bb.keys.length == 2);
+    assert(cc.keys.length == 0); // cc is not affected to aa, because it is null
     aa[500] = 65;
-    assert(bb.keys.length==3); // but bb is affected by changes to aa
+    assert(bb.keys.length == 3); // but bb is affected by changes to aa
     return aa[1] + aa[x];
 }
 static assert(assignAA(12) == 8);
 
-template Compileable(int z) { bool OK;}
+template Compileable(int z) { bool OK; }
 
 int arraybounds(int j, int k)
 {
-    int [] xxx = [1, 2, 3, 4, 5];
-    int [] s = xxx[1..$];
-    s = s[j..k]; // slice of slice
-    return s[$-1];
+    int[] xxx = [1, 2, 3, 4, 5];
+    int[] s = xxx[1 .. $];
+    s = s[j .. k]; // slice of slice
+    return s[$ - 1];
 }
+static assert(!is(typeof(Compileable!(arraybounds(1, 14)))));
+static assert(!is(typeof(Compileable!(arraybounds(15, 3)))));
+static assert(arraybounds(2, 4) == 5);
 
 int arraybounds2(int j, int k)
 {
-    int [] xxx = [1, 2, 3, 4, 5];
-    int [] s = xxx[j..k]; // direct slice
+    int[] xxx = [1, 2, 3, 4, 5];
+    int[] s = xxx[j .. k]; // direct slice
     return 1;
 }
-static assert( !is(typeof(Compileable!(arraybounds(1, 14)))));
-static assert( !is(typeof(Compileable!(arraybounds(15, 3)))));
-static assert( arraybounds(2,4) == 5);
-static assert( !is(typeof(Compileable!(arraybounds2(1, 14)))));
-static assert( !is(typeof(Compileable!(arraybounds2(15, 3)))));
-static assert( arraybounds2(2,4) == 1);
+static assert(!is(typeof(Compileable!(arraybounds2(1, 14)))));
+static assert(!is(typeof(Compileable!(arraybounds2(15, 3)))));
+static assert(arraybounds2(2, 4) == 1);
 
-int bug5147a() {
+int bug5147a()
+{
     int[1][2] a = 37;
     return a[0][0];
 }
+static assert(bug5147a() == 37);
 
-static assert(bug5147a()==37);
-
-int bug5147b() {
+int bug5147b()
+{
     int[4][2][3][17] a = 37;
     return a[0][0][0][0];
 }
-
-static assert(bug5147b()==37);
+static assert(bug5147b() == 37);
 
 int setlen()
 {
@@ -762,107 +785,112 @@ int setlen()
     zzz.length = 2;
     zzz[0].length = 10;
     assert(zzz.length == 2);
-    assert(zzz[0].length==10);
-    assert(zzz[1].length==0);
+    assert(zzz[0].length == 10);
+    assert(zzz[1].length == 0);
     return 2;
 }
+static assert(setlen() == 2);
 
-static assert(setlen()==2);
-
-int[1][1] bug5147() {
+int[1][1] bug5147()
+{
     int[1][1] a = 1;
     return a;
 }
 static assert(bug5147() == [[1]]);
+
 enum int[1][1] enum5147 = bug5147();
 static assert(enum5147 == [[1]]);
+
 immutable int[1][1] bug5147imm = bug5147();
 
-
 // Index referencing
-int[2][2] indexref() {
+int[2][2] indexref1()
+{
     int[2][2] a = 2;
-    a[0]=7;
+    a[0] = 7;
 
     int[][] b = [null, null];
-    b[0..$] = a[0][0..2];
-    assert(b[0][0]==7);
-    assert(b[0][1]==7);
-    int [] w;
+    b[0 .. $] = a[0][0 .. 2];
+    assert(b[0][0] == 7);
+    assert(b[0][1] == 7);
+    int[] w;
     w = a[0];
-    assert(w[0]==7);
-    w[0..$] = 5;
-    assert(a[0]!=[7,7]);
-    assert(a[0]==[5,5]);
-    assert(b[0] == [5,5]);
+    assert(w[0] == 7);
+    w[0 .. $] = 5;
+    assert(a[0] != [7, 7]);
+    assert(a[0] == [5, 5]);
+    assert(b[0] == [5, 5]);
     return a;
 }
-int[2][2] indexref2() {
+int[2][2] indexref2()
+{
     int[2][2] a = 2;
-    a[0]=7;
+    a[0] = 7;
 
     int[][2] b = null;
-    b[0..$] = a[0];
-    assert(b[0][0]==7);
-    assert(b[0][1]==7);
-    assert(b == [[7,7], [7,7]]);
-    int [] w;
+    b[0 .. $] = a[0];
+    assert(b[0][0] == 7);
+    assert(b[0][1] == 7);
+    assert(b == [[7, 7], [7, 7]]);
+    int[] w;
     w = a[0];
-    assert(w[0]==7);
-    w[0..$] = 5;
-    assert(a[0]!=[7,7]);
-    assert(a[0]==[5,5]);
-    assert(b[0] == [5,5]);
+    assert(w[0] == 7);
+    w[0 .. $] = 5;
+    assert(a[0] != [7, 7]);
+    assert(a[0] == [5, 5]);
+    assert(b[0] == [5, 5]);
     return a;
 }
-int[2][2] indexref3() {
+int[2][2] indexref3()
+{
     int[2][2] a = 2;
     a[0]=7;
 
     int[][2] b = [null, null];
-    b[0..$] = a[0];
-    assert(b[0][0]==7);
-    assert(b[0][1]==7);
-    int [] w;
+    b[0 .. $] = a[0];
+    assert(b[0][0] == 7);
+    assert(b[0][1] == 7);
+    int[] w;
     w = a[0];
-    assert(w[0]==7);
-    w[0..$] = 5;
-    assert(a[0]!=[7,7]);
-    assert(a[0]==[5,5]);
-    assert(b[0] == [5,5]);
+    assert(w[0] == 7);
+    w[0 .. $] = 5;
+    assert(a[0] != [7, 7]);
+    assert(a[0] == [5, 5]);
+    assert(b[0] == [5, 5]);
     return a;
 }
-int[2][2] indexref4() {
+int[2][2] indexref4()
+{
     int[2][2] a = 2;
-    a[0]=7;
+    a[0] = 7;
 
-    int[][2] b =[[1,2,3],[1,2,3]]; // wrong code
+    int[][2] b =[[1, 2, 3], [1, 2, 3]]; // wrong code
     b[0] = a[0];
-    assert(b[0][0]==7);
-    assert(b[0][1]==7);
-    int [] w;
-    w = a[0]; //[0..$];
-    assert(w[0]==7);
-    w[0..$] = 5;
-    assert(a[0]!=[7,7]);
-    assert(a[0]==[5,5]);
-    assert(b[0] == [5,5]);
+    assert(b[0][0] == 7);
+    assert(b[0][1] == 7);
+    int[] w;
+    w = a[0]; //[0 .. $];
+    assert(w[0] == 7);
+    w[0 .. $] = 5;
+    assert(a[0] != [7, 7]);
+    assert(a[0] == [5, 5]);
+    assert(b[0] == [5, 5]);
     return a;
 }
+static assert(indexref1() == [[5, 5], [2, 2]]);
+static assert(indexref2() == [[5, 5], [2, 2]]);
+static assert(indexref3() == [[5, 5], [2, 2]]);
+static assert(indexref4() == [[5, 5], [2, 2]]);
 
-static assert(indexref() == [[5,5], [2,2]]);
-static assert(indexref2() == [[5,5], [2,2]]);
-static assert(indexref3() == [[5,5], [2,2]]);
-static assert(indexref4() == [[5,5], [2,2]]);
-
-int staticdynamic() {
+int staticdynamic()
+{
     int[2][1] a = 2;
-    assert( a == [[2,2]]);
+    assert(a == [[2, 2]]);
 
-    int[][1] b = a[0][0..1];
+    int[][1] b = a[0][0 .. 1];
     assert(b[0] == [2]);
     auto k = b[0];
-    auto m = a[0][0..1];
+    auto m = a[0][0 .. 1];
     assert(k == [2]);
     assert(m == k);
     return 0;
@@ -872,9 +900,9 @@ static assert(staticdynamic() == 0);
 int[] crashing()
 {
     int[12] cra;
-    return (cra[2..$]=3);
+    return (cra[2 .. $] = 3);
 }
-static assert(crashing()[9]==3);
+static assert(crashing()[9] == 3);
 
 int chainassign()
 {
@@ -883,18 +911,20 @@ int chainassign()
     auto k = (y[] = (x[] = 2));
     return k[0];
 }
-static assert(chainassign()==2);
+static assert(chainassign() == 2);
 
 // index assignment
-struct S3801 {
-char c;
-  int[3] arr;
+struct S3801
+{
+    char c;
+    int[3] arr;
 
-  this(int x, int y){
-    c = 'x';
-    arr[0] = x;
-    arr[1] = y;
-  }
+    this(int x, int y)
+    {
+        c = 'x';
+        arr[0] = x;
+        arr[1] = y;
+    }
 }
 
 int bug3801()
@@ -902,7 +932,7 @@ int bug3801()
     S3801 xxx = S3801(17, 67);
     int[] w = xxx.arr;
     xxx.arr[1] = 89;
-    assert(xxx.arr[0]==17);
+    assert(xxx.arr[0] == 17);
     assert(w[1] == 89);
     assert(w == [17, 89, 0]);
     return xxx.arr[1];
@@ -910,13 +940,15 @@ int bug3801()
 
 enum : S3801 { bug3801e = S3801(17, 18) }
 static assert(bug3801e.arr == [17, 18, 0]);
+
 immutable S3801 bug3801u = S3801(17, 18);
 static assert(bug3801u.arr == [17, 18, 0]);
-static assert(bug3801()==89);
+static assert(bug3801() == 89);
 
-int bug3835() {
+int bug3835()
+{
     int[4] arr;
-    arr[]=19;
+    arr[] = 19;
     arr[0] = 4;
     int kk;
     foreach (ref el; arr)
@@ -924,31 +956,31 @@ int bug3835() {
         el += 10;
         kk = el;
     }
-    assert(arr[2]==29);
-    arr[0]+=3;
+    assert(arr[2] == 29);
+    arr[0] += 3;
     return arr[0];
 }
 static assert(bug3835() == 17);
 
-auto bug5852(const(string) s) {
-    string [] r;
+auto bug5852(const(string) s)
+{
+    string[] r;
     r ~= s;
     assert(r.length == 1);
     return r[0].length;
 }
-
-static assert(bug5852("abc")==3);
+static assert(bug5852("abc") == 3);
 
 // 7217
 
 struct S7217 { int[] arr; }
 
-bool f7217() {
+bool f7217()
+{
     auto s = S7217();
     auto t = s.arr;
     return true;
 }
-
 static assert(f7217());
 
 /*******************************************
@@ -957,7 +989,7 @@ static assert(f7217());
 
 static assert(
 {
-    struct W{ int [] z;}
+    struct W { int[] z; }
     W w;
     w.z.length = 2;
     assert(w.z.length == 2);
@@ -968,7 +1000,8 @@ static assert(
 
 // 7185 char[].length = n
 
-bool bug7185() {
+bool bug7185()
+{
     auto arr = new char[2];
     auto arr2 = new char[2];
     arr2[] = "ab";
@@ -976,16 +1009,15 @@ bool bug7185() {
     arr2.length = 7;
     assert(arr.length == 1);
     assert(arr2.length == 7);
-    assert(arr2[0..2] == "ab");
+    assert(arr2[0 .. 2] == "ab");
     return true;
 }
-
 static assert(bug7185());
 
 bool bug9908()
 {
     static const int[3] sa = 1;
-    return sa == [1,1,1];
+    return sa == [1, 1, 1];
 }
 static assert(bug9908());
 
@@ -993,33 +1025,35 @@ static assert(bug9908());
     6934
 *******************************************/
 
-struct Struct6934 {
-    int[] x = [1,2];
+struct Struct6934
+{
+    int[] x = [1, 2];
 }
 
-void bar6934(ref int[] p) {
+void bar6934(ref int[] p)
+{
     p[0] = 12;
     assert(p[0] == 12);
-    p[0..1] = 17;
+    p[0 .. 1] = 17;
     assert(p[0] == 17);
-    p = p[1..$];
+    p = p[1 .. $];
 }
 
-int bug6934() {
+int bug6934()
+{
     Struct6934 q;
     bar6934(q.x);
-    int[][] y = [[2,5], [3,6, 8]];
+    int[][] y = [[2, 5], [3, 6, 8]];
     bar6934(y[0]);
     return 1;
 }
-
 static assert(bug6934());
 
 /*******************************************
              Bug 5671
 *******************************************/
 
-static assert( ['a', 'b'] ~ "c" == "abc" );
+static assert(['a', 'b'] ~ "c" == "abc");
 
 /*******************************************
       8624
@@ -1027,18 +1061,19 @@ static assert( ['a', 'b'] ~ "c" == "abc" );
 
 int evil8624()
 {
-  long  m =  0x1_0000_0000L;
-  assert(m != 0);
-  long [] a = [0x1_0000_0000L];
-  long [] b = [0x4_0000_0000L];
-  assert(a[] != b[]);
-  return 1;
+    long  m =  0x1_0000_0000L;
+    assert(m != 0);
+    long[] a = [0x1_0000_0000L];
+    long[] b = [0x4_0000_0000L];
+    assert(a[] != b[]);
+    return 1;
 }
-static assert(  evil8624() );
+static assert(evil8624());
 
 /*******************************************
         8644 array literal >,<
 *******************************************/
+
 int bug8644()
 {
     auto m = "a";
@@ -1053,7 +1088,6 @@ int bug8644()
     assert(d >= d);
     return true;
 }
-
 static assert(bug8644());
 
 /*******************************************
@@ -1062,19 +1096,22 @@ static assert(bug8644());
 
 struct A6159 {}
 
-static assert({ return A6159.init is A6159.init;}());
-static assert({ return [1] is [1];}());
+static assert({ return A6159.init is A6159.init; }());
+static assert({ return [1] is [1]; }());
 
 /*******************************************
         Bug 5685
 *******************************************/
 
-string bug5685() {
-  return "xxx";
+string bug5685()
+{
+    return "xxx";
 }
-struct Bug5865 {
-    void test1(){
-        enum file2 = (bug5685())[0..$]  ;
+struct Bug5865
+{
+    void test1()
+    {
+        enum file2 = (bug5685())[0 .. $];
     }
 }
 
@@ -1082,8 +1119,9 @@ struct Bug5865 {
     6235 - Regression ICE on $ in template
 *******************************************/
 
-struct Bug6235(R) {
-    enum XXX = is(typeof(R.init[0..$]) : const ubyte[]);
+struct Bug6235(R)
+{
+    enum XXX = is(typeof(R.init[0 .. $]) : const ubyte[]);
 }
 
 Bug6235!(ubyte[]) bug6235;
@@ -1092,33 +1130,39 @@ Bug6235!(ubyte[]) bug6235;
     8673 ICE
 *******************************************/
 
-enum dollar8673 = [0][(()=>$-1)()];
+enum dollar8673 = [0][(() => $ - 1)()];
 
 /*******************************************
         Bug 5840
 *******************************************/
 
-struct Bug5840 {
+struct Bug5840
+{
     string g;
     int w;
 }
 
 int bug5840(int u)
-{   // check for clobbering
+{
+    // check for clobbering
     Bug5840 x = void;
     x.w = 4;
     x.g = "3gs";
-    if (u==1) bug5840(2);
-    if (u==2) {
+    if (u == 1)
+        bug5840(2);
+    if (u == 2)
+    {
         x.g = "abc";
         x.w = 3465;
-    } else {
+    }
+    else
+    {
         assert(x.g == "3gs");
         assert(x.w == 4);
     }
     return 56;
 }
-static assert(bug5840(1)==56);
+static assert(bug5840(1) == 56);
 
 /*******************************************
         7810
@@ -1126,7 +1170,6 @@ static assert(bug5840(1)==56);
 
 int bug7810()
 {
-
     int[1][3] x = void;
     x[0] = [2];
     x[1] = [7];
@@ -1139,20 +1182,17 @@ int bug7810()
 
     return 1;
 }
-
 static assert(bug7810());
 
-
-struct Bug7810 {
+struct Bug7810
+{
     int w;
 }
-
 int bug7810b(T)(T[] items...)
 {
     assert(items[0] == Bug7810(20));
     return 42;
 }
-
 static assert(bug7810b(Bug7810(20), Bug7810(10)) == 42);
 
 /*******************************************
@@ -1171,17 +1211,19 @@ const testTODsThrownZ = TimeOfDayZ(0);
         Bug 5954
 *******************************************/
 
-struct Bug5954 {
+struct Bug5954
+{
     int x;
-    this(int xx) {
+    this(int xx)
+    {
         this.x = xx;
     }
 }
-void bug5954() {
+void bug5954()
+{
     enum f = Bug5954(10);
     static assert(f.x == 10);
 }
-
 
 /*******************************************
         Bug 5972
@@ -1189,19 +1231,19 @@ void bug5954() {
 
 int bug5972()
 {
-  char [] z = "abc".dup;
-  char[] [] a = [null, null];
-  a[0]  = z[0..2];
-  char[] b = a[0];
-  assert(b == "ab");
-  a[0][1] = 'q';
-  assert( a[0] == "aq");
-  assert(b == "aq");
-  assert(b[1]=='q');
-  a[0][0..$-1][0..$] = a[0][0..$-1][0..$];
-  return 56;
+    char[] z = "abc".dup;
+    char[][] a = [null, null];
+    a[0]  = z[0 .. 2];
+    char[] b = a[0];
+    assert(b == "ab");
+    a[0][1] = 'q';
+    assert(a[0] == "aq");
+    assert(b == "aq");
+    assert(b[1] == 'q');
+    //a[0][0 .. $ - 1][0 .. $] = a[0][0 .. $ - 1][0 .. $];  // overlap
+    return 56;
 }
-static assert(bug5972()==56);
+static assert(bug5972() == 56);
 
 /*******************************************
     2.053beta [CTFE]ICE 'global errors'
@@ -1209,10 +1251,10 @@ static assert(bug5972()==56);
 
 int wconcat(wstring replace)
 {
-  wstring value;
-  value  = "A"w;
-  value = value ~ replace;
-  return 1;
+    wstring value;
+    value  = "A"w;
+    value = value ~ replace;
+    return 1;
 }
 static assert(wconcat("X"w));
 
@@ -1267,19 +1309,21 @@ void oddity4001(int q)
     Bug 3779
 *******************************************/
 
-static const bug3779 = ["123"][0][$-1];
+static const bug3779 = ["123"][0][$ - 1];
 
 /*******************************************
     Bug 8893 ICE with bad struct literal
 *******************************************/
 
-struct Foo8893 {
+struct Foo8893
+{
     char[3] data;
 }
-int bar8893(Foo8893 f) {
+int bar8893(Foo8893 f)
+{
     return f.data[0];
 }
-static assert( !is(typeof(compiles!( bar8893(Foo8893(['a','b'])) ))));
+static assert(!is(typeof(compiles!(bar8893(Foo8893(['a','b']))))));
 
 /*******************************************
     non-Cow struct literals
@@ -1287,9 +1331,9 @@ static assert( !is(typeof(compiles!( bar8893(Foo8893(['a','b'])) ))));
 
 struct Zadok
 {
-    int [3] z;
-    char [4] s = void;
-    ref int[] fog(ref int [] q) { return q; }
+    int[3] z;
+    char[4] s = void;
+    ref int[] fog(ref int[] q) { return q; }
     int bfg()
     {
         z[0] = 56;
@@ -1309,37 +1353,37 @@ struct Zadok
 struct Vug
 {
     Zadok p;
-    int [] other;
+    int[] other;
 }
 
 int quop()
 {
-    int [] heap = new int[5];
+    int[] heap = new int[5];
     heap[] = 738;
     Zadok pong;
     pong.z = 3;
-    int [] w = pong.z;
-    assert(w[0]==3);
+    int[] w = pong.z;
+    assert(w[0] == 3);
     Zadok phong;
     phong.z = 61;
     pong = phong;
-    assert(w[0]==61);
+    assert(w[0] == 61);
     Vug b = Vug(Zadok(17, "abcd"));
     b = Vug(Zadok(17, "abcd"), heap);
     b.other[2] = 78;
-    assert(heap[2]==78);
-    char [] y = b.p.s;
-    assert(y[2]=='c');
+    assert(heap[2] == 78);
+    char[] y = b.p.s;
+    assert(y[2] == 'c');
     phong.s = ['z','x','f', 'g'];
     w = b.p.z;
-    assert(y[2]=='c');
-    assert(w[0]==17);
+    assert(y[2] == 'c');
+    assert(w[0] == 17);
     b.p = phong;
-    assert(y[2]=='f');
+    assert(y[2] == 'f');
 
     Zadok wok = Zadok(6, "xyzw");
     b.p = wok;
-    assert(y[2]=='z');
+    assert(y[2] == 'z');
     b.p = phong;
     assert(w[0] == 61);
     Vug q;
@@ -1347,8 +1391,8 @@ int quop()
     return pong.bfg();
 }
 
-static assert(quop()==8);
-static assert(quop()==8); // check for clobbering
+static assert(quop() == 8);
+static assert(quop() == 8); // check for clobbering
 
 /**************************************************
    Bug 5676 tuple assign of struct that has void opAssign
@@ -1357,21 +1401,20 @@ static assert(quop()==8); // check for clobbering
 struct S5676
 {
     int x;
-    void opAssign(S5676 rhs) { x = rhs.x;}
+    void opAssign(S5676 rhs) { x = rhs.x; }
 }
-
 
 struct Tup5676(E...)
 {
     E g;
-    void foo(E values) { g = values;   }
+    void foo(E values) { g = values; }
 }
 
 bool ice5676()
 {
     Tup5676!(S5676) q;
-    q.foo( S5676(3) );
-    assert( q.g[0].x == 3);
+    q.foo(S5676(3));
+    assert(q.g[0].x == 3);
     return true;
 }
 
@@ -1381,22 +1424,27 @@ static assert(ice5676());
    Bug 5682 Wrong CTFE with operator overloading
 **************************************************/
 
-struct A {
+struct A
+{
     int n;
-    auto opBinary(string op : "*")(A rhs) {
+    auto opBinary(string op : "*")(A rhs)
+    {
         return A(n * rhs.n);
     }
 }
 
-A foo(A[] lhs, A[] rhs) {
+A foo(A[] lhs, A[] rhs)
+{
     A current;
-    for (size_t k = 0; k < rhs.length; ++k) {
+    for (size_t k = 0; k < rhs.length; ++k)
+    {
         current = lhs[k] * rhs[k];
     }
     return current;
 }
 
-auto test() {
+auto test()
+{
     return foo([A(1), A(2)], [A(3), A(4)]);
 }
 
@@ -1407,27 +1455,28 @@ static assert(test().n == 8);
 **************************************************/
 struct Xarg
 {
-   char [] s;
+    char[] s;
 }
 
 int zfs(int n)
 {
-    char [] m = "exy".dup;
+    char[] m = "exy".dup;
     if (n == 1)
-    {   // it's OK to cast to const, then cast back
+    {
+        // it's OK to cast to const, then cast back
         string ss = cast(string)m;
         m = cast(char[])ss;
         m[2]='q';
         return 56;
     }
     auto q = Xarg(cast(char[])"abc");
-    assert(q.s[1]=='b');
-    if (n==2)
+    assert(q.s[1] == 'b');
+    if (n == 2)
         q.s[1] = 'p';
-    else if (n==3)
-        q.s[0..$] = 'p';
-    char * w = &q.s[2];
-    if (n==4)
+    else if (n == 3)
+        q.s[0 .. $] = 'p';
+    char* w = &q.s[2];
+    if (n == 4)
         *w = 'z';
     return 76;
 }
@@ -1435,8 +1484,8 @@ int zfs(int n)
 static assert(!is(typeof(compiles!(zfs(2)))));
 static assert(!is(typeof(compiles!(zfs(3)))));
 static assert(!is(typeof(compiles!(zfs(4)))));
-static assert(is(typeof(compiles!(zfs(1)))));
-static assert(is(typeof(compiles!(zfs(5)))));
+static assert( is(typeof(compiles!(zfs(1)))));
+static assert( is(typeof(compiles!(zfs(5)))));
 
 /**************************************************
    .dup must protect string literals
@@ -1444,22 +1493,21 @@ static assert(is(typeof(compiles!(zfs(5)))));
 
 string mutateTheImmutable(immutable string _s)
 {
-   char[] s = _s.dup;
-   foreach(ref c; s)
-       c = 'x';
-   return s.idup;
+    char[] s = _s.dup;
+    foreach (ref c; s)
+        c = 'x';
+    return s.idup;
 }
 
 string doharm(immutable string _name)
 {
-   return mutateTheImmutable(_name[2..$].idup);
+    return mutateTheImmutable(_name[2 .. $].idup);
 }
 
 enum victimLiteral = "CL_INVALID_CONTEXT";
 
 enum thug = doharm(victimLiteral);
 static assert(victimLiteral == "CL_INVALID_CONTEXT");
-
 
 /**************************************************
         Use $ in a slice of a dotvar slice
@@ -1470,11 +1518,11 @@ int sliceDollar()
     Xarg z;
     z.s = new char[20];
     z.s[] = 'b';
-    z.s = z.s[2..$-2];
-    z.s[$-2] = 'c';
-    return z.s[$-2];
+    z.s = z.s[2 .. $ - 2];
+    z.s[$ - 2] = 'c';
+    return z.s[$ - 2];
 }
-static assert(sliceDollar()=='c');
+static assert(sliceDollar() == 'c');
 
 /**************************************************
    Variation of 5972 which caused segfault
@@ -1482,13 +1530,13 @@ static assert(sliceDollar()=='c');
 
 int bug5972crash()
 {
-  char [] z = "abc".dup;
-  char[] [] a = [null, null];
-  a[0]  = z[0..2];
-  a[0][1] = 'q';
-  return 56;
+    char[] z = "abc".dup;
+    char[][] a = [null, null];
+    a[0] = z[0 .. 2];
+    a[0][1] = 'q';
+    return 56;
 }
-static assert(bug5972crash()==56);
+static assert(bug5972crash() == 56);
 
 /**************************************************
    String slice assignment through ref parameter
@@ -1513,8 +1561,8 @@ static assert(sdfgasf() == 1);
 
 string bug8830(string s)
 {
-    auto ss = s[1..$];
-    return ss.ptr[0..2];
+    auto ss = s[1 .. $];
+    return ss.ptr[0 .. 2];
 }
 static assert(bug8830("hello") == "el");
 
@@ -1528,11 +1576,12 @@ void test8608()
     int z;
     int foo(bool b)
     {
-        if (b)  bug8608(z);
+        if (b)
+            bug8608(z);
         return 1;
     }
-    static assert( is(typeof(compiles!( foo(false) ))));
-    static assert(!is(typeof(compiles!( foo(true) ))));
+    static assert( is(typeof(compiles!(foo(false)))));
+    static assert(!is(typeof(compiles!(foo(true) ))));
 }
 
 /**************************************************
@@ -1551,21 +1600,23 @@ bool bug7770b(char c)
     return true;
 }
 
-static assert( bug7770a(foo7770[0 .. $]));
-static assert( bug7770b(foo7770[ $ - 2 ]));
+static assert(bug7770a(foo7770[0 .. $]));
+static assert(bug7770b(foo7770[$ - 2]));
+
 void baz7770()
 {
-    static assert( bug7770a(foo7770[0 .. $]));
-    static assert( bug7770b(foo7770[ $ - 2 ]));
+    static assert(bug7770a(foo7770[0 .. $]));
+    static assert(bug7770b(foo7770[$ - 2]));
 }
 
 /**************************************************
    8601 ICE
 **************************************************/
 
-dchar bug8601(dstring s) {
-    dstring w = s[1..$];
-    return  w[0];
+dchar bug8601(dstring s)
+{
+    dstring w = s[1 .. $];
+    return w[0];
 }
 
 enum dstring e8601 = [cast(dchar)'o', 'n'];
@@ -1575,13 +1626,15 @@ static assert(bug8601(e8601) == 'n');
    Bug 6015
 **************************************************/
 
-struct Foo6015 {
+struct Foo6015
+{
     string field;
 }
 
-bool func6015(string input){
+bool func6015(string input)
+{
     Foo6015 foo;
-    foo.field = input[0..$];
+    foo.field = input[0 .. $];
     assert(foo.field == "test");
     foo.field = "test2";
     assert(foo.field != "test");
@@ -1595,11 +1648,13 @@ static assert(func6015("test"));
    Bug 6001
 **************************************************/
 
-void bug6001e(ref int[] s) {
+void bug6001e(ref int[] s)
+{
     int[] r = s;
     s ~= 0;
 }
-bool bug6001f() {
+bool bug6001f()
+{
     int[] s;
     bug6001e(s);
     return true;
@@ -1619,7 +1674,7 @@ int blaz()
     blah(q);
     return 67;
 }
-static assert(blaz()==67);
+static assert(blaz() == 67);
 
 void bug6001g(ref int[] w)
 {
@@ -1628,12 +1683,13 @@ void bug6001g(ref int[] w)
     w[0] = 23;
 }
 
-bool bug6001h() {
+bool bug6001h()
+{
     int[] s;
     bug6001g(s);
     assert(s.length == 2);
-    assert(s[1]== 0);
-    assert(s[0]==23);
+    assert(s[1] == 0);
+    assert(s[0] == 23);
     return true;
 }
 static assert(bug6001h());
@@ -1644,11 +1700,13 @@ static assert(bug6001h());
 **************************************************/
 
 void bug10243(ref int n)
-{ n = 3; }
-
-void bug10551(int *p)
 {
-   bug10243(p[0]);
+    n = 3;
+}
+
+void bug10551(int* p)
+{
+    bug10243(p[0]);
 }
 
 bool test10243()
@@ -1656,7 +1714,7 @@ bool test10243()
     int[1] arr;
     bug10243(*arr.ptr);
     assert(arr[0] == 3);
-    int [1] arr2;
+    int[1] arr2;
     bug10551(arr2.ptr);
     assert(arr2[0] == 3);
     int v;
@@ -1687,7 +1745,8 @@ static assert(bug4910(123));
 
 void test5845(ulong cols) {}
 
-uint solve(bool niv, ref ulong cols) {
+uint solve(bool niv, ref ulong cols)
+{
     if (niv)
         solve(false, cols);
     else
@@ -1695,8 +1754,9 @@ uint solve(bool niv, ref ulong cols) {
     return 65;
 }
 
-ulong nqueen(int n) {
-    ulong cols    = 0;
+ulong nqueen(int n)
+{
+    ulong cols = 0;
     return solve(true, cols);
 }
 
@@ -1707,37 +1767,41 @@ static assert(nqueen(2) == 65);
 **************************************************/
 
 struct Foo5258 { int x; }
-void bar5258(int n, ref Foo5258 fong) {
+void bar5258(int n, ref Foo5258 fong)
+{
     if (n)
         bar5258(n - 1, fong);
     else
         fong.x++;
 }
-int bug5258() {
+int bug5258()
+{
     Foo5258 foo5258 = Foo5258();
     bar5258(1, foo5258);
     return 45;
 }
-static assert(bug5258()==45);
+static assert(bug5258() == 45);
 
-
-struct Foo5258b  { int[2] r; }
-void baqopY(int n, ref int[2] fongo) {
+struct Foo5258b { int[2] r; }
+void baqopY(int n, ref int[2] fongo)
+{
     if (n)
         baqopY(n - 1, fongo);
     else
         fongo[0]++;
 }
-int bug5258b() {
+int bug5258b()
+{
     Foo5258b qq;
     baqopY(1, qq.r);
     return 618;
 }
-static assert(bug5258b()==618);
+static assert(bug5258b() == 618);
 
 // Notice that this case involving reassigning the dynamic array
 struct Foo5258c { int[] r; }
-void baqop(int n, ref int[] fongo) {
+void baqop(int n, ref int[] fongo)
+{
     if (n)
         baqop(n - 1, fongo);
     else
@@ -1746,7 +1810,8 @@ void baqop(int n, ref int[] fongo) {
         fongo[0]++;
     }
 }
-size_t bug5258c() {
+size_t bug5258c()
+{
     Foo5258c qq;
     qq.r = new int[30];
     baqop(1, qq.r);
@@ -1758,9 +1823,10 @@ static assert(bug5258c() == 20);
     Bug 6049
 **************************************************/
 
-struct Bug6049 {
+struct Bug6049
+{
     int m;
-    this(int x)  {  m = x; }
+    this(int x) {  m = x; }
     invariant() { }
 }
 
@@ -1772,13 +1838,16 @@ static assert(foo6049[0].m == 6);
     Bug 6052
 **************************************************/
 
-struct Bug6052 {
+struct Bug6052
+{
     int a;
 }
 
-bool bug6052() {
+bool bug6052()
+{
     Bug6052[2] arr;
-    for (int i = 0; i < 2; ++ i) {
+    for (int i = 0; i < 2; ++ i)
+    {
         Bug6052 el = {i};
         Bug6052 ek = el;
         arr[i] = el;
@@ -1793,7 +1862,8 @@ bool bug6052() {
 
 static assert(bug6052());
 
-bool bug6052b() {
+bool bug6052b()
+{
     int[][1] arr;
     int[1] z = [7];
     arr[0] = z;
@@ -1806,7 +1876,8 @@ bool bug6052b() {
 
 static assert(bug6052b());
 
-struct Bug6052c {
+struct Bug6052c
+{
     int x;
     this(int a) { x = a; }
 }
@@ -1820,8 +1891,8 @@ int bug6052c()
     assert(pieces[0].x == 0);
     return 1;
 }
-static assert(bug6052c()==1);
-static assert(bug6052c()==1);
+static assert(bug6052c() == 1);
+static assert(bug6052c() == 1);
 
 
 static assert({
@@ -1845,7 +1916,6 @@ static assert({
     return true;
 }());
 
-
 static assert({
     Bug6052c[] pieces = [];
     for (int c = 0; c < 2; ++ c)
@@ -1854,7 +1924,6 @@ static assert({
     assert(pieces[0].x == 0);
     return true;
 }());
-
 
 static assert({
     int[1] z = 7;
@@ -1874,7 +1943,8 @@ static assert({
     Bug 6749
 **************************************************/
 
-struct CtState {
+struct CtState
+{
     string code;
 }
 
@@ -1899,26 +1969,25 @@ int[] funcRetArr(int[] a)
 
 int testFuncRetAssign()
 {
-    int [] x = new int[20];
+    int[] x = new int[20];
     funcRetArr(x)[2] = 4;
-    assert(x[2]==4);
+    assert(x[2] == 4);
     funcRetArr(x)[] = 27;
-    assert(x[15]==27);
+    assert(x[15] == 27);
     return 5;
 }
 static assert(testFuncRetAssign() == 5);
 
 int keyAssign()
 {
-        int[int] pieces;
-        pieces[3] = 1;
-        pieces.keys[0]= 4;
-        pieces.values[0]=27;
-        assert(pieces[3]== 1);
+    int[int] pieces;
+    pieces[3] = 1;
+    pieces.keys[0] = 4;
+    pieces.values[0] = 27;
+    assert(pieces[3] == 1);
     return 5;
 }
-static assert(keyAssign()==5);
-
+static assert(keyAssign() == 5);
 
 /**************************************************
     Bug 6054 -- AA literals
@@ -1938,46 +2007,47 @@ enum x6054 = {
 **************************************************/
 
 enum bug6077 = {
-  string s;
-  string t;
-  return s ~ t;
+    string s;
+    string t;
+    return s ~ t;
 }();
 
 /**************************************************
     Bug 6078 -- Pass null array by ref
 **************************************************/
 
-struct Foo6078 {
-  int[] bar;
+struct Foo6078
+{
+    int[] bar;
 }
 
-static assert( {
-  Foo6078 f;
-  int i;
-  foreach (ref e; f.bar) {
-    i += e;
-  }
-  return i;
+static assert({
+    Foo6078 f;
+    int i;
+    foreach (ref e; f.bar)
+    {
+        i += e;
+    }
+    return i;
 }() == 0);
 
 int bug6078(ref int[] z)
 {
-    int [] q = z;
+    int[] q = z;
     return 2;
 }
 
-static assert( {
-  Foo6078 f;
-  return bug6078(f.bar);
+static assert({
+    Foo6078 f;
+    return bug6078(f.bar);
 }() == 2);
-
 
 /**************************************************
     Bug 6079 -- Array bounds checking
 **************************************************/
 
 static assert(!is(typeof(compiles!({
-    int[] x = [1,2,3,4];
+    int[] x = [1, 2, 3, 4];
     x[4] = 1;
     return true;
 }()
@@ -1998,24 +2068,28 @@ S6100 init6100(int x)
     return s;
 }
 
-static const S6100[2] s6100a = [ init6100(1), init6100(2) ];
+static const S6100[2] s6100a = [init6100(1), init6100(2)];
 static assert(s6100a[0].a == 1);
 
 /**************************************************
     Bug 4825 -- failed with -inline
 **************************************************/
 
-int a4825() {
+int a4825()
+{
     int r;
     return r;
 }
 
-int b4825() {
+int b4825()
+{
     return a4825();
 }
 
-void c4825() {
-    void d() {
+void c4825()
+{
+    void d()
+    {
         auto e = b4825();
     }
     static const int f = b4825();
@@ -2024,10 +2098,12 @@ void c4825() {
 /**************************************************
     Bug 5708 -- failed with -inline
 **************************************************/
+
 string b5708(string s) { return s; }
 string a5708(string s) { return b5708(s); }
 
-void bug5708() {
+void bug5708()
+{
     void m() { a5708("lit"); }
     static assert(a5708("foo") == "foo");
     static assert(a5708("bar") == "bar");
@@ -2037,7 +2113,8 @@ void bug5708() {
     Bug 6120 -- failed with -inline
 **************************************************/
 
-struct Bug6120(T) {
+struct Bug6120(T)
+{
     this(int x) { }
 }
 static assert({
@@ -2049,7 +2126,8 @@ static assert({
     Bug 6123 -- failed with -inline
 **************************************************/
 
-struct Bug6123(T) {
+struct Bug6123(T)
+{
     void f() {}
     // can also trigger if the struct is normal but f is template
 }
@@ -2064,7 +2142,7 @@ static assert({
 **************************************************/
 
 static assert({
-    int *a = null;
+    int* a = null;
     assert(a is null);
     assert(a == null);
     return true;
@@ -2072,10 +2150,10 @@ static assert({
 
 static assert({
     int b;
-    int* a= &b;
+    int* a = &b;
     assert(a !is null);
     *a = 7;
-    assert(b==7);
+    assert(b == 7);
     assert(*a == 7);
     return true;
 }());
@@ -2090,28 +2168,31 @@ int dontbreak6053()
 static assert(dontbreak6053());
 
 static assert({
-    int a; *(&a) = 15;
-    assert(a==15);
-    assert(*(&a)==15);
+    int a;
+    *(&a) = 15;
+    assert(a == 15);
+    assert(*(&a) == 15);
     return true;
 }());
 
 static assert({
-    int a=5, b=6, c=2;
-    assert( *(c ? &a : &b) == 5);
-    assert( *(!c ? &a : &b) == 6);
+    int a = 5, b = 6, c = 2;
+    assert(*(c ? &a : &b) == 5);
+    assert(*(!c ? &a : &b) == 6);
     return true;
 }());
 
 static assert({
-    int a, b, c; (c ? a : b) = 1;
+    int a, b, c;
+    (c ? a : b) = 1;
     return true;
 }());
 
 static assert({
-    int a, b, c=1;
-    int *p=&a; (c ? *p : b) = 51;
-    assert(a==51);
+    int a, b, c = 1;
+    int* p = &a;
+    (c ? *p : b) = 51;
+    assert(a == 51);
     return true;
 }());
 
@@ -2121,24 +2202,31 @@ static assert({
 
 // dereference null pointer
 static assert(!is(typeof(compiles!({
-    int a, b, c=1; int *p; (c ? *p : b) = 51; return 6;
+    int a, b, c = 1;
+    int* p;
+    (c ? *p : b) = 51;
+    return 6;
 }()
 ))));
 static assert(!is(typeof(compiles!({
-    int *a = null; assert(*a!=6); return 72;
+    int* a = null;
+    assert(*a != 6);
+    return 72;
 }()
 ))));
 
 // cannot <, > compare pointers to different arrays
 static assert(!is(typeof(compiles!({
-    int a[5]; int b[5]; bool c = (&a[0] > &b[0]);
+    int[5] a, b;
+    bool c = (&a[0] > &b[0]);
     return 72;
 }()
 ))));
 
-// can ==, is,!is,!= compare pointers for different arrays
+// can ==, is, !is, != compare pointers for different arrays
 static assert({
-    int a[5]; int b[5];
+    int[5] a;
+    int[5] b;
     assert(!(&a[0] == &b[0]));
     assert(&a[0] != &b[0]);
     assert(!(&a[0] is &b[0]));
@@ -2147,10 +2235,10 @@ static assert({
 }());
 
 static assert({
-    int a[5];
+    int[5] a;
     a[0] = 25;
     a[1] = 5;
-    int *b = &a[1];
+    int* b = &a[1];
     assert(*b == 5);
     *b = 34;
     int c = *b;
@@ -2161,23 +2249,23 @@ static assert({
     assert(&a[0] <= &a[1]);
     assert(!(&a[0] >= &a[1]));
     assert(&a[4] > &a[0]);
-    assert(c==34);
-    assert(*b ==40);
+    assert(c == 34);
+    assert(*b == 40);
     assert(a[1] == 40);
     return true;
 }());
 
 static assert({
-    int [12] x;
-    int *p = &x[10];
-    int *q = &x[4];
-    return p-q;
+    int[12] x;
+    int* p = &x[10];
+    int* q = &x[4];
+    return p - q;
 }() == 6);
 
 static assert({
-    int [12] x;
-    int *p = &x[10];
-    int *q = &x[4];
+    int[12] x;
+    int* p = &x[10];
+    int* q = &x[4];
     q = p;
     assert(p == q);
     q = &x[4];
@@ -2188,10 +2276,10 @@ static assert({
 }() == 6);
 
 static assert({
-    int [12] x;
-    int [] y = x[2..8];
-    int *p = &y[4];
-    int *q = &x[6];
+    int[12] x;
+    int[] y = x[2 .. 8];
+    int* p = &y[4];
+    int* q = &x[6];
     assert(p == q);
     p = &y[5];
     assert(p > q);
@@ -2201,9 +2289,9 @@ static assert({
 }() == 6);
 
 static assert({
-    char [12] x;
-    const(char) *p = "abcdef";
-    const (char) *q = p;
+    char[12] x;
+    const(char)* p = "abcdef";
+    const (char)* q = p;
     q = q + 2;
     assert(*q == 'c');
     assert(q > p);
@@ -2219,26 +2307,25 @@ static assert({
 bool nullptrcmp()
 {
     // null tests
-    void * null1 = null, null2 = null;
+    void* null1 = null, null2 = null;
     int x = 2;
-    void * p = &x;
-    assert( null1 == null2);
-    assert( null1 is null2);
-    assert( null1 <= null2);
-    assert( null1 >= null2);
-    assert( !(null1 > null2) );
-    assert( !(null2 > null1) );
-    assert( null1 != p);
-    assert( null1 !is p);
-    assert( p != null1);
-    assert( p !is null1);
-    assert( null1 <= p);
-    assert( p >= null2);
-    assert( p > null1);
-    assert( !(null1 > p) );
+    void* p = &x;
+    assert(null1 == null2);
+    assert(null1 is null2);
+    assert(null1 <= null2);
+    assert(null1 >= null2);
+    assert(!(null1 > null2));
+    assert(!(null2 > null1));
+    assert(null1 != p);
+    assert(null1 !is p);
+    assert(p != null1);
+    assert(p !is null1);
+    assert(null1 <= p);
+    assert(p >= null2);
+    assert(p > null1);
+    assert(!(null1 > p));
     return true;
 }
-
 static assert(nullptrcmp());
 
 /**************************************************
@@ -2247,7 +2334,7 @@ static assert(nullptrcmp());
 
 struct Data10840
 {
-   bool xxx;
+    bool xxx;
 }
 
 struct Bug10840
@@ -2259,7 +2346,8 @@ bool bug10840(int n)
 {
     Bug10840 stack;
     if (n == 1)
-    {   // detect deref through null pointer
+    {
+        // detect deref through null pointer
         return stack._data.xxx;
     }
     // Wrong-code for ?:
@@ -2269,14 +2357,13 @@ bool bug10840(int n)
 static assert(bug10840(0));
 static assert(!is(typeof(Compileable!(bug10840(1)))));
 
-
 /**************************************************
   8216 ptr inside a pointer range
 **************************************************/
 
-// Four-pointer relations. Return true if [p1..p2] points inside [q1..q2]
+// Four-pointer relations. Return true if [p1 .. p2] points inside [q1 .. q2]
 // (where the end points dont coincide).
-bool ptr4cmp(void *p1, void *p2, void *q1, void *q2)
+bool ptr4cmp(void* p1, void* p2, void* q1, void* q2)
 {
 // Each compare can be written with <, <=, >, or >=.
 // Either && or || can be used, giving 32 permutations.
@@ -2293,28 +2380,28 @@ bool ptr4cmp(void *p1, void *p2, void *q1, void *q2)
     bool b9 = (!(p1 <= q1) && !(p2 > q2));
     bool b10 = (!!!(p1 <= q1) && !(p2 > q2));
 
-    assert( b1 == b2 && b1 == b3 && b1 == b4 && b1 == b5 && b1 == b6 );
-    assert( b1 == b7 && b1 == b8 && b1 == b9 && b1 == b10 );
+    assert(b1 == b2 && b1 == b3 && b1 == b4 && b1 == b5 && b1 == b6);
+    assert(b1 == b7 && b1 == b8 && b1 == b9 && b1 == b10);
 
     bool c1 = (p1 <= q1 || p2 > q2);
-    assert ( c1 == !b1 );
+    assert(c1 == !b1);
     bool c2 = (p1 < q1 || p2 >= q2);
     bool c3 = (!(q1 <= p1) || !(q2 >= p2));
-    assert( c1 == c2 && c1 == c3 );
+    assert(c1 == c2 && c1 == c3);
     return b1;
 }
 
 bool bug8216()
 {
-   int[4] a;
-   int [13] b;
-   int v;
-   int *p = &v;
-   assert(!ptr4cmp(&a[0], &a[3], p, p));
-   assert(!ptr4cmp(&b[2], &b[9], &a[1], &a[2]));
-   assert(!ptr4cmp(&b[1], &b[9], &b[2], &b[8]));
-   assert( ptr4cmp(&b[2], &b[8], &b[1], &b[9]));
-   return 1;
+    int[4] a;
+    int[13] b;
+    int v;
+    int* p = &v;
+    assert(!ptr4cmp(&a[0], &a[3], p, p));
+    assert(!ptr4cmp(&b[2], &b[9], &a[1], &a[2]));
+    assert(!ptr4cmp(&b[1], &b[9], &b[2], &b[8]));
+    assert( ptr4cmp(&b[2], &b[8], &b[1], &b[9]));
+    return 1;
 }
 static assert(bug8216());
 
@@ -2322,12 +2409,13 @@ static assert(bug8216());
   6517 ptr++, ptr--
 **************************************************/
 
-int bug6517() {
+int bug6517()
+{
     int[] arr = [1, 2, 3];
     auto startp = arr.ptr;
     auto endp = arr.ptr + arr.length;
 
-    for(; startp < endp; startp++) {}
+    for (; startp < endp; startp++) {}
     startp = arr.ptr;
     assert(startp++ == arr.ptr);
     assert(startp != arr.ptr);
@@ -2336,9 +2424,7 @@ int bug6517() {
 
     return 84;
 }
-
 static assert(bug6517() == 84);
-
 
 /**************************************************
   Out-of-bounds pointer assignment and deference
@@ -2346,8 +2432,8 @@ static assert(bug6517() == 84);
 
 int ptrDeref(int ofs, bool wantDeref)
 {
-    int a[5];
-    int *b = &a[0];
+    int[5] a;
+    int* b = &a[0];
     b = b + ofs; // OK
     if (wantDeref)
         return *b; // out of bounds
@@ -2365,11 +2451,11 @@ static assert(!is(typeof(compiles!(ptrDeref(6, true)))));
   Pointer +=
 **************************************************/
 static assert({
-    int [12] x;
+    int[12] x;
     int zzz;
     assert(&zzz);
-    int *p = &x[10];
-    int *q = &x[4];
+    int* p = &x[10];
+    int* q = &x[4];
     q = p;
     assert(p == q);
     q = &x[4];
@@ -2386,40 +2472,41 @@ static assert({
   Reduced version of bug 5615
 **************************************************/
 
-const(char)[] passthrough(const(char)[] x) {
+const(char)[] passthrough(const(char)[] x)
+{
     return x;
 }
 
 sizediff_t checkPass(Char1)(const(Char1)[] s)
 {
-    const(Char1)[] balance = s[1..$];
+    const(Char1)[] balance = s[1 .. $];
     return passthrough(balance).ptr - s.ptr;
 }
-static assert(checkPass("foobar")==1);
+static assert(checkPass("foobar") == 1);
 
 /**************************************************
   Pointers must not escape from CTFE
 **************************************************/
 
-struct Toq {
-    const(char) * m;
-}
-
-Toq ptrRet(bool b) {
-    string x = "abc";
-    return Toq(b ? x[0..1].ptr: null);
-}
-
-static assert(is(typeof(compiles!(
+struct Toq
 {
+    const(char)* m;
+}
+
+Toq ptrRet(bool b)
+{
+    string x = "abc";
+    return Toq(b ? x[0 .. 1].ptr : null);
+}
+
+static assert(is(typeof(compiles!({
     enum Toq boz = ptrRet(false); // OK - ptr is null
     Toq z = ptrRet(true); // OK -- ptr doesn't escape
     return 4;
 }()
 ))));
 
-static assert(!is(typeof(compiles!(
-{
+static assert(!is(typeof(compiles!({
     enum Toq boz = ptrRet(true); // fail - ptr escapes
     return 4;
 }()
@@ -2435,9 +2522,8 @@ struct Qoz
     int[3] yof;
 }
 
-static assert(
-{
-    int [3] gaz;
+static assert({
+    int[3] gaz;
     gaz[2] = 3156;
     Toq z = ptrRet(true);
     auto p = z.m;
@@ -2446,38 +2532,37 @@ static assert(
     auto q = &z.m;
     assert(*q == p);
     assert(**q == 'a');
-    Qoz g = Qoz(2,[5,6,7]);
+    Qoz g = Qoz(2, [5, 6, 7]);
     auto r = &g.w;
     assert(*r == 2);
     r = &g.yof[1];
     assert(*r == 6);
-    g.yof[0]=15;
+    g.yof[0] = 15;
     ++r;
     assert(*r == 7);
-    r-=2;
+    r -= 2;
     assert(*r == 15);
     r = &gaz[0];
-    r+=2;
+    r += 2;
     assert(*r == 3156);
     return *p;
-}() == 'a'
-);
+}() == 'a');
 
 struct AList
 {
-    AList * next;
+    AList* next;
     int value;
-    static AList * newList()
+    static AList* newList()
     {
         AList[] z = new AList[1];
         return &z[0];
     }
-    static AList * make(int i, int j)
+    static AList* make(int i, int j)
     {
         auto r = newList();
         r.next = (new AList[1]).ptr;
         r.value = 1;
-        AList * z= r.next;
+        AList* z = r.next;
         (*z).value = 2;
         r.next.value = j;
         assert(r.value == 1);
@@ -2501,7 +2586,7 @@ struct AList
     }
 }
 
-static assert(AList.checkList()==2);
+static assert(AList.checkList() == 2);
 
 /**************************************************
     7194 pointers as struct members
@@ -2509,7 +2594,8 @@ static assert(AList.checkList()==2);
 
 struct S7194 { int* p, p2; }
 
-int f7194() {
+int f7194()
+{
     assert(S7194().p == null);
     assert(!S7194().p);
     assert(S7194().p == S7194().p2);
@@ -2524,21 +2610,24 @@ int f7194() {
     return 0;
 }
 
-int g7194() {
+int g7194()
+{
     auto s = S7194();
     assert(s.p);  // should fail
     return 0;
 }
 
 static assert(f7194() == 0);
-static assert(!is(typeof(compiles!( g7194() ))));
+static assert(!is(typeof(compiles!(g7194()))));
 
 /**************************************************
     7248 recursive struct pointers in array
 **************************************************/
+
 struct S7248 { S7248* ptr; }
 
-bool bug7248() {
+bool bug7248()
+{
     S7248[2] sarr;
     sarr[0].ptr = &sarr[1];
     sarr[0].ptr = null;
@@ -2547,11 +2636,12 @@ bool bug7248() {
 }
 static assert(bug7248());
 
-
 /**************************************************
     7216 calling a struct pointer member
 **************************************************/
-struct S7216 {
+
+struct S7216
+{
     S7216* p;
     int t;
 
@@ -2559,7 +2649,8 @@ struct S7216 {
     void g() { ++t; }
 }
 
-bool bug7216() {
+bool bug7216()
+{
     S7216 s0, s1;
     s1.t = 6;
     s0.p = &s1;
@@ -2577,7 +2668,7 @@ static assert(bug7216());
 
 bool bug10858()
 {
-    int *[4] x;
+    int*[4] x;
     x[0] = null;
     assert(x[0] == null);
     return true;
@@ -2613,28 +2704,28 @@ static assert(arr12528C2.length == 2 && arr12528C2[0] !is arr12528C2[1]);
 shared int x9745;
 shared int[5] y9745;
 
-shared (int) * bug9745(int m)
+shared(int)* bug9745(int m)
 {
     auto k = &x9745;
     auto j = &x9745;
     auto p = &y9745[0];
     auto q = &y9745[3];
-    assert (j - k == 0);
-    assert( j == k );
-    assert( q - p == 3);
+    assert(j - k == 0);
+    assert(j == k);
+    assert(q - p == 3);
     --q;
     int a = 0;
     assert(p + 2 == q);
-    if (m==7)
+    if (m == 7)
     {
-        auto z1 = y9745[0..2]; // slice global pointer
+        auto z1 = y9745[0 .. 2]; // slice global pointer
     }
-    if (m==8)
+    if (m == 8)
         p[1] = 7; // modify through a pointer
-    if (m==9)
+    if (m == 9)
          a = p[1]; // read from a pointer
     if (m == 0)
-        return & x9745;
+        return &x9745;
     return &y9745[1];
 }
 
@@ -2642,12 +2733,12 @@ int test9745(int m)
 {
     bug9745(m);
     // type painting
-    shared int * w = bug9745(0);
+    shared int* w = bug9745(0);
     return 1;
 }
 
-shared int * w9745a = bug9745(0);
-shared int * w9745b = bug9745(1);
+shared int* w9745a = bug9745(0);
+shared int* w9745b = bug9745(1);
 static assert( is(typeof(compiles!(test9745(6)))));
 static assert(!is(typeof(compiles!(test9745(7)))));
 static assert(!is(typeof(compiles!(test9745(8)))));
@@ -2657,8 +2748,8 @@ static assert(!is(typeof(compiles!(test9745(9)))));
 // (mostly applies to fake pointers, eg Windows HANDLES)
 bool test9745b()
 {
-    void *b6 = cast(void *)0xFEFEFEFE;
-    void *b7 = cast(void *)0xFEFEFEFF;
+    void* b6 = cast(void*)0xFEFEFEFE;
+    void* b7 = cast(void*)0xFEFEFEFF;
     assert(b6 is b6);
     assert(b7 != b6);
     return true;
@@ -2689,7 +2780,7 @@ static assert(bug9364());
 
 static const int glob10251 = 7;
 
-const (int) * bug10251()
+const(int)* bug10251()
 {
    return &glob10251;
 }
@@ -2701,14 +2792,16 @@ static b10251 = bug10251();
     4065 [CTFE] AA "in" operator doesn't work
 **************************************************/
 
-bool bug4065(string s) {
+bool bug4065(string s)
+{
     enum int[string] aa = ["aa":14, "bb":2];
-    int *p = s in aa;
+    int* p = s in aa;
     if (s == "aa")
         assert(*p == 14);
-    else if (s=="bb")
+    else if (s == "bb")
         assert(*p == 2);
-    else assert(!p);
+    else
+        assert(!p);
     int[string] zz;
     assert(!("xx" in zz));
     bool c = !p;
@@ -2716,8 +2809,8 @@ bool bug4065(string s) {
 }
 
 static assert(!bug4065("xx"));
-static assert(bug4065("aa"));
-static assert(bug4065("bb"));
+static assert( bug4065("aa"));
+static assert( bug4065("bb"));
 
 /**************************************************
     12689 - assigning via pointer from 'in' expression
@@ -2737,10 +2830,9 @@ static assert(g12689() == 42);
     Pointers in ? :
 **************************************************/
 
-static assert(
-{
+static assert({
     int[2] x;
-    int *p = &x[1];
+    int* p = &x[1];
     return p ? true: false;
 }());
 
@@ -2751,22 +2843,22 @@ static assert(
 int ptrSlice()
 {
     auto arr = new int[5];
-    int * x = &arr[0];
-    int [] y = x[0..5];
-    x[1..3] = 6;
+    int* x = &arr[0];
+    int[] y = x[0 .. 5];
+    x[1 .. 3] = 6;
     ++x;
-    x[1..3] = 14;
-    assert(arr[1]==6);
-    assert(arr[2]==14);
-    x[-1..4]= 5;
-    int [] z = arr[1..2];
+    x[1 .. 3] = 14;
+    assert(arr[1] == 6);
+    assert(arr[2] == 14);
+    //x[-1 .. 4] = 5;   // problematic because negative lower boundary will throw RangeError in runtime
+    (x - 1)[0 .. 3] = 5;
+    int[] z = arr[1 .. 2];
     z.length = 4;
-    z[$-1] = 17;
-    assert(arr.length ==5);
+    z[$ - 1] = 17;
+    assert(arr.length == 5);
     return 2;
 }
-
-static assert(ptrSlice()==2);
+static assert(ptrSlice() == 2);
 
 /**************************************************
     6344 - create empty slice from null pointer
@@ -2774,7 +2866,7 @@ static assert(ptrSlice()==2);
 
 static assert({
     char* c = null;
-    auto m = c[0..0];
+    auto m = c[0 .. 0];
     return true;
 }());
 
@@ -2783,8 +2875,8 @@ static assert({
 **************************************************/
 
 enum E8365 { first = 7, second, third, fourth }
-static assert({ E8365[2] x; return x[0]; }() == E8365.first);
-static assert({ E8365[2][2] x; return x[0][0]; }() == E8365.first);
+static assert({ E8365[2]       x; return x[0];       }() == E8365.first);
+static assert({ E8365[2][2]    x; return x[0][0];    }() == E8365.first);
 static assert({ E8365[2][2][2] x; return x[0][0][0]; }() == E8365.first);
 
 /**************************************************
@@ -2793,8 +2885,9 @@ static assert({ E8365[2][2][2] x; return x[0][0][0]; }() == E8365.first);
 
 int bug4448()
 {
-    int n=2;
-    L1: do
+    int n = 2;
+L1:
+    do
     {
         switch(n)
         {
@@ -2808,19 +2901,19 @@ int bug4448()
     } while (0);
     return 3;
 }
-
-static assert(bug4448()==3);
+static assert(bug4448() == 3);
 
 int bug4448b()
 {
-    int n=2;
-    L1:for (n=2; n<5; ++n)
+    int n = 2;
+L1:
+    for (n = 2; n < 5; ++n)
     {
-        for (int m=1; m<6; ++m)
+        for (int m = 1; m < 6; ++m)
         {
-            if (n<3)
+            if (n < 3)
             {
-                assert(m==1);
+                assert(m == 1);
                 continue L1;
             }
         }
@@ -2828,8 +2921,7 @@ int bug4448b()
     }
     return 3;
 }
-
-static assert(bug4448b()==3);
+static assert(bug4448b() == 3);
 
 /**************************************************
     6985 - non-constant case
@@ -2837,7 +2929,7 @@ static assert(bug4448b()==3);
 
 int bug6985(int z)
 {
-    int q = z *2 - 6;
+    int q = z * 2 - 6;
     switch(z)
     {
     case q:
@@ -2847,9 +2939,7 @@ int bug6985(int z)
     }
     return q;
 }
-
 static assert(bug6985(6) == 87);
-
 
 /**************************************************
     6281 - [CTFE] A null pointer '!is null' returns 'true'
@@ -2859,6 +2949,7 @@ static assert(!{
     auto p = null;
     return p !is null;
 }());
+
 static assert(!{
     auto p = null;
     return p != null;
@@ -2870,7 +2961,7 @@ static assert(!{
 
 bool bug6331(string s)
 {
-    if (s[0..1])
+    if (s[0 .. 1])
         return true;
     return false;
 }
@@ -2895,28 +2986,28 @@ static assert({
     return true;
 }());
 
-static assert( {
+static assert({
     immutable qq = "qq";
     string q = qq;
     int[string] pieces = ["a":1];
     pieces[q] = 0;
     string w = "ab";
-    int z = pieces[w[0..1]];
+    int z = pieces[w[0 .. 1]];
     assert(z == 1);
     return true;
-}() );
+}());
 
 /**************************************************
     6282 - dereference 'in' of an AA
 **************************************************/
 
 static assert({
-    int [] w = new int[4];
+    int[] w = new int[4];
     w[2] = 6;
     auto c = [5: w];
     auto kk  = (*(5 in c))[2];
     (*(5 in c))[2] = 8;
-    (*(5 in c))[1..$-2] = 4;
+    (*(5 in c))[1 .. $ - 2] = 4;
     auto a = [4:"1"];
     auto n = *(4 in a);
     return n;
@@ -2929,7 +3020,8 @@ static assert({
 struct Bug6337
 {
     int k;
-    void six() {
+    void six()
+    {
         k = 6;
     }
     int ctfe()
@@ -2938,38 +3030,43 @@ struct Bug6337
         return k;
     }
 }
-static assert( Bug6337().ctfe() == 6);
+static assert(Bug6337().ctfe() == 6);
 
 /**************************************************
     6603 call manifest function pointer
 **************************************************/
 
-int f6603(int a) { return a+5; }
+int f6603(int a) { return a + 5; }
 enum bug6603 = &f6603;
-static assert(bug6603(6)==11);
+static assert(bug6603(6) == 11);
 
 /**************************************************
     6375
 **************************************************/
 
-struct D6375 {
+struct D6375
+{
     int[] arr;
 }
-A6375 a6375(int[] array) {
+A6375 a6375(int[] array)
+{
     return A6375(array);
 }
-struct A6375 {
+struct A6375
+{
     D6375* _data;
-    this(int[] arr) {
+    this(int[] arr)
+    {
         _data = new D6375;
         _data.arr = arr;
     }
-    int[] data() {
+    int[] data()
+    {
         return _data.arr;
     }
 }
 static assert({
-    int[] a = [ 1, 2 ];
+    int[] a = [1, 2];
     auto app2 = a6375(a);
     auto data = app2.data();
     return true;
@@ -2989,7 +3086,8 @@ static assert({
     6276 ~=
 **************************************************/
 
-struct Bug6276{
+struct Bug6276
+{
     int[] i;
 }
 static assert({
@@ -3007,7 +3105,7 @@ static assert({
     int[] arr = [1];
     arr.ptr[0] = 2;
     auto k = arr.ptr[0];
-    assert(k==2);
+    assert(k == 2);
     return arr[0];
 }() == 2);
 
@@ -3015,11 +3113,13 @@ static assert({
     6306  recursion and local variables
 **************************************************/
 
-void recurse6306() {
+void recurse6306()
+{
     bug6306(false);
 }
 
-bool bug6306(bool b) {
+bool bug6306(bool b)
+{
     int x = 0;
     if (b)
         recurse6306();
@@ -3027,8 +3127,7 @@ bool bug6306(bool b) {
     x = 1;
     return true;
 }
-
-static assert( bug6306(true) );
+static assert(bug6306(true));
 
 /**************************************************
     6386  ICE on unsafe pointer cast
@@ -3044,9 +3143,9 @@ static assert(!is(typeof(compiles!({
 ))));
 
 static assert({
-    int [] x = [123, 456];
+    int[] x = [123, 456];
     int* p = &x[0];
-    auto m = cast(const(int) *)p;
+    auto m = cast(const(int)*)p;
     auto q = p;
     return *q;
 }());
@@ -3058,25 +3157,25 @@ static assert({
 static assert({
     // Should compile, but pointer can't be dereferenced
     int x = 123;
-    int* p = cast(int *)x;
+    int* p = cast(int*)x;
     auto q = cast(char*)x;
     auto r = cast(char*)323;
     // Valid const-changing cast
-    const float *m = cast(immutable float *)[1.2f,2.4f,3f];
+    const float *m = cast(immutable float*)[1.2f,2.4f,3f];
     return true;
 }()
 );
 
 static assert(!is(typeof(compiles!({
     int x = 123;
-    int* p = cast(int *)x;
+    int* p = cast(int*)x;
     int a = *p;
     return true;
 }()
 ))));
 
 static assert(!is(typeof(compiles!({
-    int* p = cast(int *)123;
+    int* p = cast(int*)123;
     int a = *p;
     return true;
 }()
@@ -3103,17 +3202,16 @@ static assert(!is(typeof(compiles!({
 ))));
 
 static assert(!is(typeof(compiles!({
-    long *p = cast(long *)[1.2f,2.4f,3f];
+    long *p = cast(long*)[1.2f, 2.4f, 3f];
     return true;
 }()
 ))));
-
 
 /**************************************************
     6250  deref pointers to array
 **************************************************/
 
-int []* simple6250(int []* x) { return x; }
+int[]* simple6250(int[]* x) { return x; }
 
 void swap6250(int[]* lhs, int[]* rhs)
 {
@@ -3135,8 +3233,8 @@ int ctfeSort6250()
 {
      int[][2] x;
      int[3] a = [17, 18, 19];
-     x[0] = a[1..2];
-     x[1] = a[2..$];
+     x[0] = a[1 .. 2];
+     x[1] = a[2 .. $];
      assert(x[0][0] == 18);
      assert(x[0][1] == 19);
      swap6250(&x[0], &x[1]);
@@ -3147,7 +3245,7 @@ int ctfeSort6250()
      return x[1][0];
 }
 
-static assert(ctfeSort6250()==57);
+static assert(ctfeSort6250() == 57);
 
 /**************************************************
     6672 circular references in array
@@ -3160,15 +3258,18 @@ void bug6672(ref string lhs, ref string rhs)
     rhs = tmp;
 }
 
-static assert( {
+static assert({
     auto kw = ["a"];
     bug6672(kw[0], kw[0]);
     return true;
 }());
 
-void slice6672(ref string[2] agg, ref string lhs) { agg[0..$] = lhs; }
+void slice6672(ref string[2] agg, ref string lhs)
+{
+    agg[0 .. $] = lhs;
+}
 
-static assert( {
+static assert({
     string[2] kw = ["a", "b"];
     slice6672(kw, kw[0]);
     assert(kw[0] == "a");
@@ -3177,9 +3278,9 @@ static assert( {
 }());
 
 // an unrelated rejects-valid bug
-static assert( {
+static assert({
     string[2] kw = ["a", "b"];
-    kw[0..2] = "x";
+    kw[0 .. 2] = "x";
     return true;
 }());
 
@@ -3192,11 +3293,11 @@ void bug6672b(ref string lhs, ref string rhs)
     rhs = tmp;
 }
 
-static assert( {
+static assert({
     auto kw=["a", "b"];
     bug6672b(kw[0], kw[1]);
-    assert(kw[0]=="b");
-    assert(kw[1]=="a");
+    assert(kw[0] == "b");
+    assert(kw[1] == "a");
     return true;
 }());
 
@@ -3204,11 +3305,12 @@ static assert( {
     6399 (*p).length = n
 **************************************************/
 
-struct A6399{
+struct A6399
+{
     int[] arr;
     int subLen()
     {
-        arr = [1,2,3,4,5];
+        arr = [1, 2, 3, 4, 5];
         arr.length -= 1;
         return cast(int)arr.length;
     }
@@ -3240,7 +3342,8 @@ static assert(S7789().foo());
     6418 member named 'length'
 **************************************************/
 
-struct Bug6418 {
+struct Bug6418
+{
     size_t length() { return 189; }
 }
 static assert(Bug6418.init.length == 189);
@@ -3249,7 +3352,8 @@ static assert(Bug6418.init.length == 189);
     4021 rehash
 **************************************************/
 
-bool bug4021() {
+bool bug4021()
+{
     int[int] aa = [1: 1];
     aa.rehash;
     return true;
@@ -3277,69 +3381,139 @@ struct Base11629
 enum ct11629 = Base11629(4);
 
 /**************************************************
-    3512 foreach(dchar; string)
-    6558 foreach(int, dchar; string)
+    3512 foreach (dchar; string)
+    6558 foreach (int, dchar; string)
 **************************************************/
 
 bool test3512()
 {
     string s = "öhai";
     int q = 0;
-    foreach (wchar c; s) {
-        if (q==2) assert(c=='a');
+
+    foreach (wchar c; s)
+    {
+        if (q == 2)
+            assert(c == 'a');
         ++q;
     }
-    assert(q==4);
-    foreach (dchar c; s) { ++q; if (c=='h') break; } // _aApplycd1
+    assert(q == 4);
+
+    // _aApplycd1
+    foreach (dchar c; s)
+    {
+        ++q;
+        if (c == 'h')
+            break;
+    }
     assert(q == 6);
-    foreach (int i, wchar c; s) {
+
+    // _aApplycw2
+    foreach (int i, wchar c; s)
+    {
         assert(i >= 0 && i < s.length);
-        }   // _aApplycw2
-    foreach (int i, dchar c; s) {
+    }
+
+    // _aApplycd2
+    foreach (int i, dchar c; s)
+    {
         assert(i >= 0 && i < s.length);
-        } // _aApplycd2
+    }
 
     wstring w = "xüm";
-    foreach (char c; w) {++q; } // _aApplywc1
+
+    // _aApplywc1
+    foreach (char c; w)
+    {
+        ++q;
+    }
     assert(q == 10);
-    foreach (dchar c; w) { ++q; } // _aApplywd1
+
+    // _aApplywd1
+    foreach (dchar c; w)
+    {
+        ++q;
+    }
     assert(q == 13);
-    foreach (int i, char c; w) {
+
+    // _aApplywc2
+    foreach (int i, char c; w)
+    {
         assert(i >= 0 && i < w.length);
-        } // _aApplywc2
-    foreach (int i, dchar c; w) {
+    }
+
+    // _aApplywd2
+    foreach (int i, dchar c; w)
+    {
         assert(i >= 0 && i < w.length);
-        } // _aApplywd2
+    }
 
     dstring d = "yäq";
+
+    // _aApplydc1
     q = 0;
-    foreach (char c; d) { ++q; } // _aApplydc1
+    foreach (char c; d)
+    {
+        ++q;
+    }
     assert(q == 4);
+
+    // _aApplydw1
     q = 0;
-    foreach (wchar c; d) { ++q; } // _aApplydw1
+    foreach (wchar c; d)
+    {
+        ++q;
+    }
     assert(q == 3);
-    foreach (int i, char c; d) {
+
+    // _aApplydc2
+    foreach (int i, char c; d)
+    {
         assert(i >= 0 && i < d.length);
-    } // _aApplydc2
-    foreach (int i, wchar c; d) {
+    }
+    // _aApplydw2
+    foreach (int i, wchar c; d)
+    {
         assert(i >= 0 && i < d.length);
-    } // _aApplydw2
+    }
 
     dchar[] dr = "squop"d.dup;
-    foreach(int n, char c; dr) { if (n==2) break; assert(c!='o'); }
-    foreach_reverse (char c; dr) {} // _aApplyRdc1
-    foreach_reverse (wchar c; dr) {} // _aApplyRdw1
-    foreach_reverse (int n, char c; dr) { if (n==4) break; assert(c!='o');} // _aApplyRdc2
-    foreach_reverse (int i, wchar c; dr) {
+
+    foreach (int n, char c; dr)
+    {
+        if (n == 2)
+            break;
+        assert(c != 'o');
+    }
+
+    // _aApplyRdc1
+    foreach_reverse (char c; dr)
+    {}
+
+    // _aApplyRdw1
+    foreach_reverse (wchar c; dr)
+    {}
+
+    // _aApplyRdc2
+    foreach_reverse (int n, char c; dr)
+    {
+        if (n == 4)
+            break;
+        assert(c != 'o');
+    }
+
+    // _aApplyRdw2
+    foreach_reverse (int i, wchar c; dr)
+    {
         assert(i >= 0 && i < dr.length);
-    } // _aApplyRdw2
+    }
+
     q = 0;
     wstring w2 = ['x', 'ü', 'm']; // foreach over array literals
     foreach_reverse (int n, char c; w2)
     {
         ++q;
-        if (c == 'm') assert(n == 2 && q==1);
-        if (c == 'x') assert(n == 0 && q==4);
+        if (c == 'm') assert(n == 2 && q == 1);
+        if (c == 'x') assert(n == 0 && q == 4);
     }
     return true;
 }
@@ -3349,18 +3523,23 @@ static assert(test3512());
     6510 ICE only with -inline
 **************************************************/
 
-struct Stack6510 {
-    struct Proxy {
+struct Stack6510
+{
+    struct Proxy
+    {
         void shrink() {}
     }
     Proxy stack;
-    void pop() {
+    void pop()
+    {
         stack.shrink();
     }
 }
 
-int bug6510() {
-    static int used() {
+int bug6510()
+{
+    static int used()
+    {
         Stack6510 junk;
         junk.pop();
         return 3;
@@ -3368,15 +3547,17 @@ int bug6510() {
     return used();
 }
 
-void test6510() {
-    static assert(bug6510()==3);
+void test6510()
+{
+    static assert(bug6510() == 3);
 }
 
 /**************************************************
     6511   arr[] shouldn't make a copy
 **************************************************/
 
-T bug6511(T)() {
+T bug6511(T)()
+{
     T[1] a = [1];
     a[] += a[];
     return a[0];
@@ -3388,19 +3569,20 @@ static assert(bug6511!long() == 2);
     6512   new T[][]
 **************************************************/
 
-bool bug6512(int m) {
+bool bug6512(int m)
+{
     auto x = new int[2][][](m, 5);
     assert(x.length == m);
     assert(x[0].length == 5);
     assert(x[0][0].length == 2);
-    foreach( i; 0.. m)
-        foreach( j; 0..5)
-            foreach(k; 0..2)
+    foreach (i; 0.. m)
+        foreach (j; 0 .. 5)
+            foreach (k; 0 .. 2)
                 x[i][j][k] = k + j*10 + i*100;
-    foreach( i; 0.. m)
-        foreach( j; 0..5)
-            foreach(k; 0..2)
-                assert( x[i][j][k] == k + j*10 + i*100);
+    foreach (i; 0.. m)
+        foreach (j; 0 .. 5)
+            foreach (k; 0 .. 2)
+                assert(x[i][j][k] == k + j*10 + i*100);
     return true;
 }
 static assert(bug6512(3));
@@ -3411,7 +3593,7 @@ static assert(bug6512(3));
 
 dstring bug6516()
 {
-    return cast(dstring) new dchar[](0);
+    return cast(dstring)new dchar[](0);
 }
 
 static assert(bug6516() == ""d);
@@ -3420,23 +3602,23 @@ static assert(bug6516() == ""d);
     6727   ICE(interpret.c)
 **************************************************/
 
-const(char) * ice6727(const(char) *z) { return z;}
-static assert(
-    {
-        auto q = ice6727("a".dup.ptr);
-        return true;
-    }());
+const(char)* ice6727(const(char)* z) { return z; }
+static assert({
+    auto q = ice6727("a".dup.ptr);
+    return true;
+}());
 
 /**************************************************
     6721   Cannot get pointer to start of char[]
 **************************************************/
+
 static assert({
-        char[] c1="".dup;
-        auto p = c1.ptr;
-        string c2="";
-        auto p2 = c2.ptr;
-        return 6;
-    }() == 6);
+    char[] c1 = "".dup;
+    auto p = c1.ptr;
+    string c2 = "";
+    auto p2 = c2.ptr;
+    return 6;
+}() == 6);
 
 /**************************************************
     6693   Assign to null AA
@@ -3492,7 +3674,8 @@ static assert({
     6751   ref AA assignment
 **************************************************/
 
-void bug6751(ref int[int] aa){
+void bug6751(ref int[int] aa)
+{
     aa[1] = 2;
 }
 
@@ -3503,7 +3686,8 @@ static assert({
     return true;
 }());
 
-void bug6751b(ref int[int][int] aa){
+void bug6751b(ref int[int][int] aa)
+{
     aa[1][17] = 2;
 }
 
@@ -3522,13 +3706,13 @@ static assert({
 
 static assert({
     S6751 s;
-    s.aa[7][56]=57;
+    s.aa[7][56] = 57;
     bug6751b(s.aa);
     assert(s.aa[1][17] == 2);
     assert(s.aa[7][56] == 57);
     bug6751c(s.aa);
-    assert(s.aa.keys.length==1);
-    assert(s.aa.values.length==1);
+    assert(s.aa.keys.length == 1);
+    assert(s.aa.values.length == 1);
     return true;
 }());
 
@@ -3541,13 +3725,15 @@ static assert({
     return true;
 }());
 
-void bug6751c(ref int[int][int] aa){
+void bug6751c(ref int[int][int] aa)
+{
     aa = [38: [56 : 77]];
 }
 
 /**************************************************
    7790   AA foreach ref
 **************************************************/
+
 struct S7790
 {
     size_t id;
@@ -3555,13 +3741,12 @@ struct S7790
 
 size_t bug7790(S7790[string] tree)
 {
-    foreach(k, ref v; tree)
+    foreach (k, ref v; tree)
         v.id = 1;
     return tree["a"].id;
 }
 
 static assert(bug7790(["a":S7790(0)]) == 1);
-
 
 /**************************************************
     6765   null AA.length
@@ -3570,7 +3755,7 @@ static assert(bug7790(["a":S7790(0)]) == 1);
 static assert({
     int[int] w;
     return w.length;
-}()==0);
+}() == 0);
 
 /**************************************************
     6769   AA.keys, AA.values with -inline
@@ -3602,21 +3787,24 @@ static assert({
     int[int] aa = [58: 17, 45:6];
     int valsum = 0;
     int keysum = 0;
-    foreach(m; aa) { //aaApply
+    foreach (m; aa)  // aaApply
+    {
         valsum += m;
     }
-    assert(valsum == 17+6);
+    assert(valsum == 17 + 6);
     valsum = 0;
-    foreach(n, m; aa) { //aaApply2
+    foreach (n, m; aa)  // aaApply2
+    {
         valsum += m;
         keysum += n;
     }
-    assert(valsum == 17+6);
-    assert(keysum == 58+45);
+    assert(valsum == 17 + 6);
+    assert(keysum == 58 + 45);
     // Check empty AA
     valsum = 0;
     int[int] bb;
-    foreach(m; bb) {
+    foreach (m; bb)
+    {
         ++valsum;
     }
     assert(valsum == 0);
@@ -3641,7 +3829,6 @@ S7890 bug7890()
 
 enum e7890 = bug7890();
 
-
 /**************************************************
     AA.remove
 **************************************************/
@@ -3663,18 +3850,23 @@ static assert({
 
 static assert({
     int n = 0;
-    try {
+
+    try
+    {
         n = 1;
     }
     catch (Exception e)
     {}
     assert(n == 1);
-    try {
+
+    try
+    {
         n = 2;
     }
     catch (Exception e)
     {}
-    finally {
+    finally
+    {
         assert(n == 2);
         n = 3;
     }
@@ -3689,10 +3881,10 @@ static assert({
 bool badpointer(int k)
 {
     int m = 6;
-    int *w =  &m;
+    int* w =  &m;
     assert(*w == 6);
-    int [3] a = [17,2,21];
-    int *w2 = &a[2];
+    int[3] a = [17, 2, 21];
+    int* w2 = &a[2];
     assert(*w2 == 21);
 
     // cast int* to uint* is OK
@@ -3703,47 +3895,47 @@ bool badpointer(int k)
     uint* u3 = cast(uint*)&m;
     assert(*u3 == 6);
     // cast int* to void* is OK
-    void *v1 = cast(void*)w;
-    void *v3 = &m;
-    void *v4 = &a[0];
-    // cast from void * back to int* is OK
-    int *t3 = cast(int *)v3;
+    void* v1 = cast(void*)w;
+    void* v3 = &m;
+    void* v4 = &a[0];
+    // cast from void* back to int* is OK
+    int* t3 = cast(int*)v3;
     assert(*t3 == 6);
-    int *t4 = cast(int *)v4;
+    int* t4 = cast(int*)v4;
     assert(*t4 == 17);
     // cast from void* to uint* is OK
-    uint *t1 = cast(uint *)v1;
+    uint* t1 = cast(uint*)v1;
     assert(*t1 == 6);
     // and check that they're real pointers
     m = 18;
     assert(*t1 == 18);
     assert(*u3 == 18);
 
-    int **p = &w;
+    int** p = &w;
 
     if (k == 1) // bad reinterpret
-        double *d1 = cast(double *)w;
+        double *d1 = cast(double*)w;
     if (k == 3) // bad reinterpret
-        char *d3 = cast(char *)w2;
+        char* d3 = cast(char*)w2;
     if (k == 4) {
-        void *q1 = cast(void *)p;    // OK-void is int*
-        void **q = cast(void **)p;   // OK-void is int
+        void* q1 = cast(void*)p;    // OK-void is int*
+        void* *q = cast(void**)p;   // OK-void is int
     }
     if (k == 5)
-        void ***q = cast(void ***)p;  // bad: too many *
-    if (k == 6) // bad reinterpret through void *
-        double *d1 = cast(double*)v1;
+        void*** q = cast(void***)p;  // bad: too many *
+    if (k == 6) // bad reinterpret through void*
+        double* d1 = cast(double*)v1;
     if (k == 7)
-        double *d7 = cast(double*)v4;
-    if (k==8)
-        ++v4; // can't do pointer arithmetic on void *
+        double* d7 = cast(double*)v4;
+    if (k == 8)
+        ++v4; // can't do pointer arithmetic on void*
     return true;
 }
 static assert(badpointer(4));
 static assert(!is(typeof(compiles!(badpointer(1)))));
-static assert(is(typeof(compiles!(badpointer(2)))));
+static assert( is(typeof(compiles!(badpointer(2)))));
 static assert(!is(typeof(compiles!(badpointer(3)))));
-static assert(is(typeof(compiles!(badpointer(4)))));
+static assert( is(typeof(compiles!(badpointer(4)))));
 static assert(!is(typeof(compiles!(badpointer(5)))));
 static assert(!is(typeof(compiles!(badpointer(6)))));
 static assert(!is(typeof(compiles!(badpointer(7)))));
@@ -3756,11 +3948,11 @@ static assert(!is(typeof(compiles!(badpointer(8)))));
 int bug10211()
 {
     int m = 7;
-    int *x = &m;
-    int **y = &x;
+    int* x = &m;
+    int** y = &x;
     assert(**y == 7);
-    uint *p = cast(uint *)x;
-    uint **q = cast(uint **)y;
+    uint* p = cast(uint*)x;
+    uint** q = cast(uint**)y;
     return 1;
 }
 
@@ -3797,31 +3989,39 @@ static assert(test12296());
 /**************************************************
     9170 Allow reinterpret casts float<->int
 **************************************************/
-int f9170(float x) {
+
+int f9170(float x)
+{
     return *(cast(int*)&x);
 }
 
-float i9170(int x) {
+float i9170(int x)
+{
     return *(cast(float*)&x);
 }
 
-float u9170(uint x) {
+float u9170(uint x)
+{
     return *(cast(float*)&x);
 }
 
-int f9170arr(float[] x) {
+int f9170arr(float[] x)
+{
     return *(cast(int*)&(x[1]));
 }
 
-long d9170(double x) {
+long d9170(double x)
+{
     return *(cast(long*)&x);
 }
 
-int fref9170(ref float x) {
+int fref9170(ref float x)
+{
     return *(cast(int*)&x);
 }
 
-long dref9170(ref double x) {
+long dref9170(ref double x)
+{
     return *(cast(long*)&x);
 }
 
@@ -3831,8 +4031,8 @@ bool bug9170()
     double d = 1.25;
     assert(f9170(f) == 0x3FA0_0000);
     assert(fref9170(f) == 0x3FA0_0000);
-    assert(d9170(d)==0x3FF4_0000_0000_0000L);
-    assert(dref9170(d)==0x3FF4_0000_0000_0000L);
+    assert(d9170(d) == 0x3FF4_0000_0000_0000L);
+    assert(dref9170(d) == 0x3FF4_0000_0000_0000L);
     float [3] farr = [0, 1.25, 0];
     assert(f9170arr(farr) == 0x3FA0_0000);
     int i = 0x3FA0_0000;
@@ -3848,7 +4048,8 @@ static assert(bug9170());
     6792 ICE with pointer cast of indexed array
 **************************************************/
 
-struct S6792 {
+struct S6792
+{
     int i;
 }
 
@@ -3882,7 +4083,7 @@ static assert({
     {
         S6792*[string] aa;
         aa["key"] = [S6792(3)].ptr;
-        const(S6792) s = *(cast(const(S6792) *)aa["key"]);
+        const(S6792) s = *(cast(const(S6792)*)aa["key"]);
         assert(s.i == 3);
     }
     {
@@ -3890,7 +4091,7 @@ static assert({
         blah["abc"] = S6792(6);
         S6792*[string] aa;
         aa["kuy"] = &blah["abc"];
-        const(S6792) s = *(cast(const(S6792) *)aa["kuy"]);
+        const(S6792) s = *(cast(const(S6792)*)aa["kuy"]);
         assert(s.i == 6);
 
         void*[7] ary;
@@ -3898,8 +4099,8 @@ static assert({
         S6792 t = *(cast(S6792*)ary[5]);
         assert(t.i == 6);
 
-        int Q= 6;
-        ary[3]= &Q;
+        int q = 6;
+        ary[3]= &q;
         int gg = *(cast(int*)(ary[3]));
     }
     return true;
@@ -3908,9 +4109,11 @@ static assert({
 /**************************************************
    7780 array cast
 **************************************************/
-int bug7780(int testnum){
+
+int bug7780(int testnum)
+{
     int[] y = new int[2];
-    y[0]=2000000;
+    y[0] = 2000000;
     if (testnum == 1)
     {
         void[] x = y;
@@ -3918,7 +4121,7 @@ int bug7780(int testnum){
     }
     if (testnum == 2)
     {
-        int[] x = y[0..1];
+        int[] x = y[0 .. 1];
         return (cast(byte[])x)[1];
     }
     return 1;
@@ -3929,6 +4132,86 @@ static assert(!is(typeof(compiles!(bug7780(1)))));
 static assert(!is(typeof(compiles!(bug7780(2)))));
 
 /**************************************************
+    14028 - static array pointer that refers existing array elements.
+**************************************************/
+
+int test14028a(size_t ofs)(bool ct)
+{
+    int[4] a;
+    int[2]* p;
+    int num = ofs;
+
+    if (ct)
+        p = cast(int[2]*)&a[ofs];    // SymOffExp
+    else
+        p = cast(int[2]*)&a[num];    // CastExp + AddrExp
+
+    // pointers comparison
+    assert(cast(void*)a.ptr <= cast(void*)p);
+    assert(cast(void*)a.ptr <= cast(void*)&(*p)[0]);
+    assert(cast(void*)&a[0] <= cast(void*)p);
+
+    return 1;
+}
+static assert(test14028a!0(true));
+static assert(test14028a!0(false));
+static assert(test14028a!3(true));
+static assert(test14028a!3(false));
+static assert(!is(typeof(compiles!(test14028a!4(true)))));
+static assert(!is(typeof(compiles!(test14028a!4(false)))));
+
+int test14028b(int num)
+{
+    int[4] a;
+    int[2]* p;
+
+    if (num == 1)
+    {
+        p = cast(int[2]*)&a[0]; // &a[0..2];
+        (*p)[0] = 1;            // a[0] = 1
+        (*p)[1] = 2;            // a[1] = 2
+        assert(a == [1,2,0,0]);
+        p = p + 1;              // &a[0] -> &a[2]
+        (*p)[0] = 3;            // a[2] = 3
+        (*p)[1] = 4;            // a[3] = 4
+        assert(a == [1,2,3,4]);
+    }
+    if (num == 2)
+    {
+        p = cast(int[2]*)&a[1]; // &a[1..3];
+        (*p)[0] = 1;            // a[1] = 1
+        p = p + 1;              // &a[1..3] -> &a[3..5]
+        (*p)[0] = 2;            // a[3] = 2
+        assert(a == [0,1,0,2]);
+    }
+    if (num == 3)
+    {
+        p = cast(int[2]*)&a[1]; // &a[1..3];
+        (*p)[0] = 1;            // a[1] = 1
+        p = p + 1;              // &a[1..3] -> &a[3..5]
+        (*p)[0] = 2;            // a[3] = 2
+        (*p)[1] = 3;            // a[4] = 3 (CTFE error)
+    }
+    if (num == 4)
+    {
+        p = cast(int[2]*)&a[0]; // &a[0..2];
+        p = p + 1;              // &a[0..2] -> &a[2..4]
+        p = p + 1;              // &a[2..4] -> &a[4..6] (ok)
+    }
+    if (num == 5)
+    {
+        p = cast(int[2]*)&a[1]; // &a[1..3];
+        p = p + 2;              // &a[1..3] -> &a[5..7] (CTFE error)
+    }
+    return 1;
+}
+static assert(test14028b(1));
+static assert(test14028b(2));
+static assert(!is(typeof(compiles!(test14028b(3)))));
+static assert(test14028b(4));
+static assert(!is(typeof(compiles!(test14028b(5)))));
+
+/**************************************************
     10275 cast struct literals to immutable
 **************************************************/
 
@@ -3937,8 +4220,9 @@ struct Bug10275
     uint[] ivals;
 }
 
-Bug10275 bug10275() {
-    return Bug10275([1,2,3]);
+Bug10275 bug10275()
+{
+    return Bug10275([1, 2, 3]);
 }
 
 int test10275()
@@ -3970,32 +4254,39 @@ static assert({ bug6851(); return true; }());
 /**************************************************
     7876
 **************************************************/
-int* bug7876(int n){
-    int x;auto ptr = &x;
-    if (n==2) ptr = null;
+
+int* bug7876(int n)
+{
+    int x;
+    auto ptr = &x;
+    if (n == 2)
+        ptr = null;
     return ptr;
 }
 
 struct S7876
 {
-    int *p;
+    int* p;
 }
 
-S7876 bug7876b(int n) {
+S7876 bug7876b(int n)
+{
     int x;
     S7876 s;
     s.p = &x;
-    if (n==11) s.p = null;
+    if (n == 11)
+        s.p = null;
     return s;
 }
 
 int test7876(int n)
 {
-    if (n >= 10) {
+    if (n >= 10)
+    {
         S7876 m = bug7876b(n);
         return 1;
     }
-    int *p = bug7876(n);
+    int* p = bug7876(n);
     return 1;
 }
 
@@ -4024,8 +4315,10 @@ static assert(f11824!(int[])());    // OK <- NG
 /**************************************************
     6817 if converted to &&, only with -inline
 **************************************************/
+
 static assert({
-    void toggle() {
+    void toggle()
+    {
         bool b;
         if (b)
             b = false;
@@ -4041,15 +4334,17 @@ static assert({
 static assert({
     cast(void)(71);
     return true;
-} ());
+}());
 
 /**************************************************
     6816 nested function can't access this
 **************************************************/
 
-struct S6816 {
-    size_t foo() {
-        return (){ return value+1; }();
+struct S6816
+{
+    size_t foo()
+    {
+        return (){ return value +1 ; }();
     }
     size_t value;
 }
@@ -4089,7 +4384,7 @@ bool bug10217()
         int i;
         void bar() {}
     }
-    auto yyy = S.init.tupleof[$-1];
+    auto yyy = S.init.tupleof[$ - 1];
     assert(!yyy);
     return 1;
 }
@@ -4119,9 +4414,9 @@ void bug8676(int n)
 
 interface SomeInterface
 {
-  int daz();
-  float bar(char);
-  int baz();
+    int daz();
+    float bar(char);
+    int baz();
 }
 
 interface SomeOtherInterface
@@ -4134,7 +4429,7 @@ class TheBase : SomeInterface, SomeOtherInterface
     int q = 88;
     int rad = 61;
     int a = 14;
-    int somebaseclassfunc() { return 28;}
+    int somebaseclassfunc() { return 28; }
     int daz() { return 0; }
     int baz() { return 0; }
     int xxx() { return 762; }
@@ -4155,7 +4450,8 @@ class SomeClass : TheBase, SomeInterface
     override int baz() { return 0; }
 }
 
-class Unrelated : TheBase {
+class Unrelated : TheBase
+{
     this(int x) { a = x; }
 }
 
@@ -4167,8 +4463,9 @@ auto classtest1(int n)
     TheBase d = c;
     assert(d.a == 14);
     assert(d.q == 88);
-    if (n==7)
-    {   // bad cast -- should fail
+    if (n == 7)
+    {
+        // bad cast -- should fail
         Unrelated u = cast(Unrelated)d;
         assert(u is null);
     }
@@ -4200,10 +4497,10 @@ static assert(classtest1(7)); // bug 7154
 // can't initialize enum with not null class
 SomeClass classtest2(int n)
 {
-    return n==5 ? (new SomeClass) : null;
+    return n == 5 ? (new SomeClass) : null;
 }
-static assert(is(typeof( (){ enum const(SomeClass) xx = classtest2(2);}() )));
-static assert(!is(typeof( (){ enum const(SomeClass) xx = classtest2(5);}() )));
+static assert( is(typeof((){ enum const(SomeClass) xx = classtest2(2);}())));
+static assert(!is(typeof((){ enum const(SomeClass) xx = classtest2(5);}())));
 
 class RecursiveClass
 {
@@ -4247,7 +4544,8 @@ static assert(f12016(new immutable C12016));
 
 class Bug10610(T)
 {
-    int baz() immutable {
+    int baz() immutable
+    {
         return 1;
     }
     static immutable(Bug10610!T) min = new Bug10610!T();
@@ -4268,7 +4566,7 @@ struct MapResult13141(alias pred)
     int[] range;
     @property empty() { return range.length == 0; }
     @property front() { return pred(range[0]); }
-    void popFront() { range = range[1..$]; }
+    void popFront() { range = range[1 .. $]; }
 }
 
 string[] array13141(R)(R r)
@@ -4296,7 +4594,7 @@ static assert({
     TypeInfo xxx = typeid(Object);
     TypeInfo yyy = typeid(new Error("xxx"));
     return true;
-    }());
+}());
 
 int bug7147(int n)
 {
@@ -4309,11 +4607,42 @@ int bug7147(int n)
 static assert(!is(typeof(compiles!(bug7147(0)))));
 static assert( is(typeof(compiles!(bug7147(1)))));
 
+
+/**************************************************
+    14123 - identity TypeInfo objects
+**************************************************/
+
+static assert({
+    bool eq(TypeInfo t1, TypeInfo t2)
+    {
+        return t1 is t2;
+    }
+
+    class C {}
+    struct S {}
+
+    assert( eq(typeid(C), typeid(C)));
+    assert(!eq(typeid(C), typeid(Object)));
+    assert( eq(typeid(S), typeid(S)));
+    assert(!eq(typeid(S), typeid(int)));
+    assert( eq(typeid(int), typeid(int)));
+    assert(!eq(typeid(int), typeid(long)));
+
+    Object o = new Object;
+    Object c = new C;
+    assert( eq(typeid(o), typeid(o)));
+    assert(!eq(typeid(c), typeid(o)));
+    assert(!eq(typeid(o), typeid(S)));
+
+    return 1;
+}());
+
 /**************************************************
     6885 wrong code with new array
 **************************************************/
 
-struct S6885 {
+struct S6885
+{
     int p;
 }
 
@@ -4322,7 +4651,7 @@ int bug6885()
     auto array = new double[1][2];
     array[1][0] = 6;
     array[0][0] = 1;
-    assert(array[1][0]==6);
+    assert(array[1][0] == 6);
 
     auto barray = new S6885[2];
     barray[1].p = 5;
@@ -4342,7 +4671,7 @@ int bug6886()
     auto carray = new int[][2];
     carray[1] = [6];
     carray[0] = [4];
-    assert(carray[1][0]==6);
+    assert(carray[1][0] == 6);
     return 1;
 }
 
@@ -4352,23 +4681,24 @@ static assert(bug6886());
     10198 Multidimensional struct block initializer
 **************************************************/
 
-struct Block10198 {
+struct Block10198
+{
     int val[3][4];
 }
 
 int bug10198()
 {
-   Block10198 pp = Block10198(67);
-   assert(pp.val[2][3] == 67);
-   assert(pp.val[1][3] == 67);
-  return 1;
+    Block10198 pp = Block10198(67);
+    assert(pp.val[2][3] == 67);
+    assert(pp.val[1][3] == 67);
+    return 1;
 }
 static assert(bug10198());
-
 
 /****************************************************
  * Exception chaining tests from xtest46.d
  ****************************************************/
+
 class A75
 {
     pure static void raise(string s)
@@ -4378,11 +4708,13 @@ class A75
 }
 
 int test75()
-{   int x = 0;
+{
+    int x = 0;
     try
     {
         A75.raise("a");
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
         x = 1;
     }
@@ -4397,30 +4729,30 @@ static assert(test75());
 
 int test4_test54()
 {
-        int status=0;
+    int status = 0;
 
+    try
+    {
         try
         {
-                try
-                {
-                        status++;
-                        assert(status==1);
-                        throw new Exception("first");
-                }
-                finally
-                {
-                        status++;
-                        assert(status==2);
-                        status++;
-                        throw new Exception("second");
-                }
+            status++;
+            assert(status == 1);
+            throw new Exception("first");
         }
-        catch(Exception e)
+        finally
         {
+            status++;
+            assert(status == 2);
+            status++;
+            throw new Exception("second");
+        }
+    }
+    catch (Exception e)
+    {
         assert(e.msg == "first");
         assert(e.next.msg == "second");
-        }
-        return true;
+    }
+    return true;
 }
 
 static assert(test4_test54());
@@ -4440,23 +4772,29 @@ void foo55()
 
 int test4_test55()
 {
-        int status=0;
-        try{
-                try{
-                        status++;
-                        assert(status==1);
-                        Exception x = new Exception("first");
-                        throw x;
-                }finally{
-                        status++;
-                        assert(status==2);
-                        status++;
-                        foo55();
-                }
-        }catch(Exception e){
-                assert(e.msg == "first");
-                assert(status==3);
+    int status = 0;
+    try
+    {
+        try
+        {
+            status++;
+            assert(status == 1);
+            Exception x = new Exception("first");
+            throw x;
         }
+        finally
+        {
+            status++;
+            assert(status == 2);
+            status++;
+            foo55();
+        }
+    }
+    catch (Exception e)
+    {
+        assert(e.msg == "first");
+        assert(status == 3);
+    }
     return 1;
 }
 
@@ -4485,11 +4823,11 @@ void bug1513outer()
             }
             finally
             {
-                result1513 |=4;
-               throw new Exception("f");
+                result1513 |= 4;
+                throw new Exception("f");
             }
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             assert(e.msg == "d");
             assert(e.next.msg == "f");
@@ -4526,7 +4864,7 @@ void bug1513outer()
         {
             bug1513c();
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             assert(result1513 == 7);
             assert(e.msg == "a");
@@ -4570,33 +4908,33 @@ void doublecollide()
             collideone();
         }
     }
-    catch(Exception e)
+    catch (Exception e)
     {
-            assert(e.msg == "p");
-            assert(e.next.msg == "q");
-            assert(e.next.next.msg == "x");
-            assert(e.next.next.next.msg == "y");
-            assert(!e.next.next.next.next);
+        assert(e.msg == "p");
+        assert(e.next.msg == "q");
+        assert(e.next.next.msg == "x");
+        assert(e.next.next.next.msg == "y");
+        assert(!e.next.next.next.next);
     }
 }
 
 void collidetwo()
 {
-       try
+    try
+    {
+        try
         {
-            try
-            {
-                throw new Exception("p2");
-            }
-            finally
-            {
-                throw new Exception("q2");
-            }
+            throw new Exception("p2");
         }
         finally
         {
-            collideone();
+            throw new Exception("q2");
         }
+    }
+    finally
+    {
+        collideone();
+    }
 }
 
 void collideMixed()
@@ -4615,15 +4953,16 @@ void collideMixed()
                 throw new Error("t");
             }
         }
-        catch(Exception f)
-        {    // Doesn't catch, because Error is chained to it.
+        catch (Exception f)
+        {
+            // Doesn't catch, because Error is chained to it.
             works += 2;
         }
     }
-    catch(Error z)
+    catch (Error z)
     {
         works += 4;
-        assert(z.msg=="t"); // Error comes first
+        assert(z.msg == "t"); // Error comes first
         assert(z.next is null);
         assert(z.bypassedException.msg == "e");
     }
@@ -4642,7 +4981,7 @@ void multicollide()
 {
     try
     {
-       try
+        try
         {
             try
             {
@@ -4655,8 +4994,9 @@ void multicollide()
                     throw new AnotherException("n2");
                 }
             }
-            catch(AnotherException s)
-            {   // Not caught -- we needed to catch the root cause "m2", not
+            catch (AnotherException s)
+            {
+                // Not caught -- we needed to catch the root cause "m2", not
                 // just the collateral "n2" (which would leave m2 uncaught).
                 assert(0);
             }
@@ -4666,7 +5006,7 @@ void multicollide()
             collidetwo();
         }
     }
-    catch(Exception f)
+    catch (Exception f)
     {
         assert(f.msg == "m2");
         assert(f.next.msg == "n2");
@@ -4705,10 +5045,10 @@ class Foo6
 
 class Foo32
 {
-   struct Bar
-   {
+    struct Bar
+    {
         int x;
-   }
+    }
 }
 
 class Base56
@@ -4725,17 +5065,16 @@ class Base56
     string bar() { return mybar; }
 }
 
-class Derived56: Base56
+class Derived56 : Base56
 {
     alias Base56.foo foo; // Bring in Base56's foo getter.
     override void foo(string s) { super.foo = s; } // Override foo setter.
 }
 
-
 int testwith()
 {
     With1 x = With1(7);
-    with(x)
+    with (x)
     {
         a = 2;
     }
@@ -4765,7 +5104,8 @@ int testwith()
         assert(bar == "hi");
     }
     int w = 7;
-    synchronized {
+    synchronized
+    {
         ++w;
     }
     assert(w == 8);
@@ -4778,7 +5118,8 @@ static assert(testwith());
     9236 ICE  switch with(EnumType)
 **************************************************/
 
-enum Command9236 {
+enum Command9236
+{
     Char,
     Any,
 };
@@ -4786,9 +5127,9 @@ enum Command9236 {
 bool bug9236(Command9236 cmd)
 {
     int n = 0;
-    with(Command9236) switch(cmd)
+    with (Command9236) switch (cmd)
     {
-     case Any:
+    case Any:
         n = 1;
         break;
     default:
@@ -4796,7 +5137,7 @@ bool bug9236(Command9236 cmd)
     }
     assert(n == 1);
 
-    switch(cmd) with(Command9236)
+    switch (cmd) with (Command9236)
     {
     case Any:
         return true;
@@ -4806,7 +5147,6 @@ bool bug9236(Command9236 cmd)
 }
 
 static assert(bug9236(Command9236.Any));
-
 
 /**************************************************
     6416 static struct declaration
@@ -4830,17 +5170,30 @@ static assert({
 }());
 
 /**************************************************
+    13757 extern(C) alias declaration
+**************************************************/
+
+static assert({
+    alias FP1 = extern(C) int function();
+    alias extern(C) int function() FP2;
+    return true;
+}());
+
+/**************************************************
     6522 opAssign + foreach ref
 **************************************************/
 
-struct Foo6522 {
+struct Foo6522
+{
     bool b = false;
-    void opAssign(int x) {
+    void opAssign(int x)
+    {
         this.b = true;
     }
 }
 
-bool foo6522() {
+bool foo6522()
+{
     Foo6522[1] array;
     foreach (ref item; array)
         item = 1;
@@ -4853,15 +5206,17 @@ static assert(foo6522());
     7245 pointers + foreach ref
 **************************************************/
 
-int bug7245(int testnum) {
+int bug7245(int testnum)
+{
     int[3] arr;
     arr[0] = 4;
     arr[1] = 6;
     arr[2] = 8;
     int* ptr;
 
-    foreach(i, ref p; arr) {
-        if(i == 1)
+    foreach (i, ref p; arr)
+    {
+        if (i == 1)
             ptr = &p;
         if (testnum == 1)
             p = 5;
@@ -4870,8 +5225,8 @@ int bug7245(int testnum) {
     return *ptr;
 }
 
-static assert(bug7245(0)==6);
-static assert(bug7245(1)==5);
+static assert(bug7245(0) == 6);
+static assert(bug7245(1) == 5);
 
 /**************************************************
     8498 modifying foreach
@@ -4881,7 +5236,7 @@ static assert(bug7245(1)==5);
 
 int bug8498()
 {
-    foreach(ref i; 0..5)
+    foreach (ref i; 0 .. 5)
     {
         assert(i == 0);
         i = 100;
@@ -4890,20 +5245,24 @@ int bug8498()
 }
 static assert(bug8498());
 
-string bug7658() {
+string bug7658()
+{
     string[] children = ["0"];
-    foreach(ref child; children)
+    foreach (ref child; children)
         child = "1";
     return children[0];
 }
 
 static assert(bug7658() == "1");
 
-int bug8539() {
-    static void one(ref int x) {
+int bug8539()
+{
+    static void one(ref int x)
+    {
         x = 1;
     }
-    static void go() {
+    static void go()
+    {
         int y;
         one(y);
         assert(y == 1); // fails with -inline
@@ -4913,6 +5272,49 @@ int bug8539() {
 }
 
 static assert(bug8539());
+
+/**************************************************
+    7874, 13297, 13740 - better lvalue handling
+**************************************************/
+
+int bug7874(int x){ return ++x = 1; }
+static assert(bug7874(0) == 1);
+
+// ----
+
+struct S13297
+{
+    int* p;
+}
+void f13297(ref int* p)
+{
+    p = cast(int*) 1;
+    assert(p); // passes
+}
+static assert(
+{
+    S13297 s;
+    f13297(s.p);
+    return s.p != null; // false
+}());
+
+// ----
+
+class R13740
+{
+    int e;
+    bool empty = false;
+    @property ref front() { return e; }
+    void popFront() { empty = true; }
+}
+static assert({
+    auto r = new R13740();
+    foreach (ref e; r)
+        e = 42;
+    assert(r.e == 42); /* fails in CTFE */
+
+    return true;
+}());
 
 /**************************************************
     6919
@@ -4961,31 +5363,37 @@ static assert(Foo6995.index!(27)() == 27);
     7043 ref with -inline
 **************************************************/
 
-int bug7043(S)(ref int x) {
+int bug7043(S)(ref int x)
+{
     return x;
 }
 
-static assert( {
+static assert({
     int i = 416;
     return bug7043!(char)(i);
-}() == 416 );
+}() == 416);
 
 /**************************************************
     6037 recursive ref
 **************************************************/
 
-void bug6037(ref int x, bool b){
+void bug6037(ref int x, bool b)
+{
     int w = 3;
-    if (b) {
+    if (b)
+    {
         bug6037(w, false);
-        assert(w==6);
-    } else {
+        assert(w == 6);
+    }
+    else
+    {
         x = 6;
-        assert(w==3); // fails
+        assert(w == 3); // fails
     }
 }
 
-int bug6037outer(){
+int bug6037outer()
+{
     int q;
     bug6037(q, true);
     return 401;
@@ -4996,22 +5404,26 @@ static assert(bug6037outer() == 401);
 /**************************************************
     7940 wrong code for complicated assign
 **************************************************/
-struct Bug7940 {
+
+struct Bug7940
+{
     int m;
 }
 
-struct App7940 {
-   Bug7940[] x;
+struct App7940
+{
+    Bug7940[] x;
 }
 
-int bug7940() {
-  Bug7940[2] y;
-  App7940 app;
-  app.x = y[0..1];
-  app.x[0].m = 12;
-  assert(y[0].m == 12);
-  assert(app.x[0].m == 12);
-  return 1;
+int bug7940()
+{
+    Bug7940[2] y;
+    App7940 app;
+    app.x = y[0 .. 1];
+    app.x[0].m = 12;
+    assert(y[0].m == 12);
+    assert(app.x[0].m == 12);
+    return 1;
 }
 
 static assert(bug7940());
@@ -5020,7 +5432,8 @@ static assert(bug7940());
     10298 wrong code for struct array literal init
 **************************************************/
 
-struct Bug10298 {
+struct Bug10298
+{
     int m;
 }
 
@@ -5068,20 +5481,21 @@ void out7266(out int b)
     assert(b == 7);
 }
 
-static assert( bug7266());
+static assert(bug7266());
 
 /**************************************************
     9982 dotvar assign through pointer
 **************************************************/
 
-struct Bug9982 {
+struct Bug9982
+{
     int a;
 }
 
 int test9982()
 {
     Bug9982 x;
-    int *q = &x.a;
+    int*q = &x.a;
     *q = 99;
     assert(x.a == 99);
     return 1;
@@ -5122,7 +5536,7 @@ struct Tuple11618(T...)
 
 static assert({
     Tuple11618!(immutable dchar) result = void;
-    auto addr = cast(dchar*) &result[0];
+    auto addr = cast(dchar*)&result[0];
     *addr = dchar.init;
     return (result[0] == dchar.init);
 }());
@@ -5148,7 +5562,7 @@ int bug7143(int test)
     }
     if (test == 2)
     {
-        if(c is null)
+        if (c is null)
             return -1;
         return c.x + 45;
     }
@@ -5214,14 +5628,17 @@ static assert(test7147() == 1);
     7158
 **************************************************/
 
-class C7158 {
-    bool b() {return true;}
+class C7158
+{
+    bool b() { return true; }
 }
-struct S7158 {
+struct S7158
+{
     C7158 c;
 }
 
-bool test7158() {
+bool test7158()
+{
     S7158 s = S7158(new C7158);
     return s.c.b;
 }
@@ -5231,20 +5648,24 @@ static assert(test7158());
     8484
 **************************************************/
 
-class C8484 {
+class C8484
+{
     int n;
     int b() { return n + 3; }
 }
 
-struct S {
+struct S
+{
     C8484 c;
 }
 
-int t8484( ref C8484 c ){
+int t8484(ref C8484 c)
+{
     return c.b();
 }
 
-int test8484() {
+int test8484()
+{
     auto s = S(new C8484);
     s.c.n = 4;
     return t8484(s.c);
@@ -5255,14 +5676,17 @@ static assert(test8484() == 7);
     7419
 **************************************************/
 
-struct X7419 {
+struct X7419
+{
     double x;
-    this(double x) {
+    this(double x)
+    {
         this.x = x;
     }
 }
 
-void bug7419() {
+void bug7419()
+{
     enum x = {
         auto p = X7419(3);
         return p.x;
@@ -5286,15 +5710,18 @@ void ice9445(void delegate() expr, void function() f2)
     10452 delegate ==
 **************************************************/
 
-struct S10452 {
+struct S10452
+{
     bool func() { return true; }
 }
 
-struct Outer10452 {
+struct Outer10452
+{
     S10452 inner;
 }
 
-class C10452 {
+class C10452
+{
     bool func() { return true; }
 }
 
@@ -5346,7 +5773,6 @@ bool test10452()
 }
 static assert(test10452());
 
-
 /**************************************************
     7162 and 4711
 **************************************************/
@@ -5368,12 +5794,14 @@ static assert(ice7162());
     8857, only with -inline (creates an &&)
 **************************************************/
 
-struct Result8857 {  char[] next; }
+struct Result8857 { char[] next; }
 
-void bug8857()() {
+void bug8857()()
+{
     Result8857 r;
     r.next = null;
-    if (true) {
+    if (true)
+    {
        auto next = r.next;
     }
 }
@@ -5395,7 +5823,7 @@ int bug7527()
 {
     auto app = Bug7527();
 
-    app.data.ptr[0..1] = "x";
+    app.data.ptr[0 .. 1] = "x";
     return 1;
 }
 
@@ -5417,7 +5845,8 @@ static assert(!is(typeof( compiles!(
     7165
 **************************************************/
 
-struct S7165 {
+struct S7165
+{
     int* ptr;
     bool f() const { return !!ptr; }
 }
@@ -5433,7 +5862,7 @@ int[] f7187b(int n) { return [0]; }
 
 int g7187(int[] r)
 {
-    auto t = r[0..0];
+    auto t = r[0 .. 0];
     return 1;
 }
 
@@ -5442,14 +5871,15 @@ static assert(g7187(f7187b(7)));
 
 struct S7187 { const(int)[] field; }
 
-const(int)[] f7187c() {
+const(int)[] f7187c()
+{
     auto s = S7187([0]);
     return s.field;
 }
 
 bool g7187c(const(int)[] r)
 {
-    auto t = r[0..0];
+    auto t = r[0 .. 0];
     return true;
 }
 
@@ -5460,12 +5890,14 @@ static assert(g7187c(f7187c()));
     6933 struct destructors
 **************************************************/
 
-struct Bug6933 {
+struct Bug6933
+{
     int x = 3;
-    ~this()     { }
+    ~this() { }
 }
 
-int test6933() {
+int test6933()
+{
     Bug6933 q;
     assert(q.x == 3);
     return 3;
@@ -5477,10 +5909,12 @@ static assert(test6933());
     7197
 **************************************************/
 
-int foo7197(int[] x...) {
+int foo7197(int[] x...)
+{
     return 1;
 }
-template bar7197(y...) {
+template bar7197(y...)
+{
     enum int bar7197 = foo7197(y);
 }
 enum int bug7197 = 7;
@@ -5495,7 +5929,7 @@ enum EScmp : string { a = "aaa" }
 bool testEScmp()
 {
     EScmp x = EScmp.a;
-    assert( x < "abc" );
+    assert(x < "abc");
     return true;
 }
 
@@ -5530,11 +5964,13 @@ enum e7667 = bug7667();
     7536
 **************************************************/
 
-bool bug7536(string expr) {
+bool bug7536(string expr)
+{
     return true;
 }
 
-void vop() {
+void vop()
+{
     const string x7536 = "x";
     static assert(bug7536(x7536));
 }
@@ -5546,9 +5982,10 @@ void vop() {
 struct S6681
 {
     this(int a, int b) { this.a = b; this.b = a; }
-    union {
+    union
+    {
         ulong g;
-        struct {int a, b; };
+        struct { int a, b; };
     }
 }
 
@@ -5572,7 +6009,7 @@ bool bug6681(int test)
     assert(z == 2);
     x.g = 6;
     w = *u;
-    assert( w == 6);
+    assert(w == 6);
     if (test == 3)
         z = *v;
     return true;
@@ -5586,11 +6023,13 @@ static assert(!is(typeof(compiles!(bug6681(4)))));
     9113 ICE with struct in union
 **************************************************/
 
-union U9113 {
-   struct M {
+union U9113
+{
+    struct M
+    {
         int y;
-   }
-   int xx;
+    }
+    int xx;
 }
 
 int bug9113(T)()
@@ -5600,7 +6039,7 @@ int bug9113(T)()
     return 1;
 }
 
-static assert( !is( typeof( compiles!(bug9113!(int)())) ) );
+static assert(!is(typeof(compiles!(bug9113!(int)()))));
 
 /**************************************************
     Creation of unions
@@ -5636,7 +6075,7 @@ void fill6438(int[] arr, int testnum)
     {
         auto u = arr[0];
     }
-    foreach(ref x; arr)
+    foreach (ref x; arr)
         x = 7;
     auto r = arr[0];
     S6438[2] s;
@@ -5651,7 +6090,7 @@ bool bug6438(int testnum)
 {
     int[4] stackSpace = void;
     fill6438(stackSpace[], testnum);
-    assert(stackSpace == [7,7,7,7]);
+    assert(stackSpace == [7, 7, 7, 7]);
     return true;
 }
 
@@ -5674,15 +6113,19 @@ static bug10994 = Bug10994.init;
     10937 struct inside union
 **************************************************/
 
-struct S10937 {
-    union {
+struct S10937
+{
+    union
+    {
         ubyte[1] a;
-        struct {
+        struct
+        {
             ubyte b;
         }
     }
 
-    this(ubyte B) {
+    this(ubyte B)
+    {
         if (B > 6)
             this.b = B;
         else
@@ -5694,12 +6137,41 @@ enum test10937 = S10937(7);
 enum west10937 = S10937(2);
 
 /**************************************************
+    13831
+**************************************************/
+
+struct Vector13831()
+{
+}
+
+struct Coord13831
+{
+    union
+    {
+        struct { short x; }
+        Vector13831!() vector;
+    }
+}
+
+struct Chunk13831
+{
+    this(Coord13831)
+    {
+        coord = coord;
+    }
+
+    Coord13831 coord;
+
+    static const Chunk13831* unknownChunk = new Chunk13831(Coord13831());
+}
+
+/**************************************************
     7732
 **************************************************/
 
 struct AssociativeArray
 {
-    int *impl;
+    int* impl;
     int f()
     {
         if (impl !is null)
@@ -5714,7 +6186,7 @@ int test7732()
     return aa.f;
 }
 
-static assert( test7732() );
+static assert(test7732());
 
 /**************************************************
     7784
@@ -5750,7 +6222,7 @@ static assert(ctfe7784());
     7781
 **************************************************/
 
-static assert( ({return;}(), true) );
+static assert(({ return; }(), true));
 
 /**************************************************
     7785
@@ -5760,14 +6232,15 @@ bool bug7785(int n)
 {
     int val = 7;
     auto p = &val;
-    if (n==2) {
+    if (n == 2)
+    {
         auto ary = p[0 .. 1];
     }
     auto x = p[0];
     val = 6;
     assert(x == 7);
-    if (n==3)
-        p[0..1] = 1;
+    if (n == 3)
+        p[0 .. 1] = 1;
     return true;
 }
 
@@ -5779,19 +6252,21 @@ static assert(!is(typeof(compiles!(bug7785(3)))));
     7987
 **************************************************/
 
-class C7987 {
+class C7987
+{
     int m;
 }
 
-struct S7987 {
-    int *p;
+struct S7987
+{
+    int* p;
     C7987 c;
 }
 
 bool bug7987()
 {
-    int [7] q;
-    int[][2] b = q[0..5];
+    int[7] q;
+    int[][2] b = q[0 .. 5];
     assert(b == b);
     assert(b is b);
     C7987 c1 = new C7987;
@@ -5799,7 +6274,7 @@ bool bug7987()
     S7987 s, t;
     s.p = &q[0];
     t.p = &q[1];
-    assert(s!=t);
+    assert(s != t);
     s.p = &q[1];
     /*assert(s == t);*/     assert(s.p == t.p);
     s.c = c1;
@@ -5820,7 +6295,8 @@ static assert(bug7987());
 
 static assert(!is(typeof(compiles!(typeid(int).toString.length))));
 
-class Bug10579 {
+class Bug10579
+{
     int foo() { return 1; }
 }
 Bug10579 uninitialized10579;
@@ -5887,7 +6363,8 @@ C73 test73 = func73();
 
 /******************************************************/
 
-struct S74 {
+struct S74
+{
     int n[1];
     static S74 test(){ S74 ret = void; ret.n[0] = 0; return ret; }
 }
@@ -5901,7 +6378,7 @@ in
 {
     int x = 0;
 label:
-    foreach (i; (++x)..3)
+    foreach (i; (++x) .. 3)
     {
         if (i == 1)
             continue label;     // doesn't work.
@@ -5913,7 +6390,7 @@ out
 {
     int x = 0;
 label:
-    foreach (i; (++x)..3)
+    foreach (i; (++x) .. 3)
     {
         if (i == 1)
             continue label;     // doesn't work.
@@ -5925,7 +6402,7 @@ body
 {
     int x = 0;
 label:
-    foreach (i; (++x)..3)
+    foreach (i; (++x) .. 3)
     {
         if (i == 1)
             continue label;     // works.
@@ -5939,54 +6416,53 @@ static assert(bug8865());
 
 /******************************************************/
 
-
 struct Test75
 {
     this(int) pure {}
 }
 
-static assert(__traits(compiles, {static shared Test75* t75 = new shared(Test75)(0); return t75;}));
-static assert(__traits(compiles, {static shared(Test75)* t75 = new shared(Test75)(0); return t75;}));
-static assert(__traits(compiles, {static __gshared Test75* t75 = new Test75(0); return t75;}));
-static assert(__traits(compiles, {static const Test75* t75 = new const(Test75)(0); return t75;}));
-static assert(__traits(compiles, {static immutable Test75* t75 = new immutable(Test75)(0); return t75;}));
-static assert(!__traits(compiles, {static Test75* t75 = new Test75(0); return t75;}));
+static assert( __traits(compiles, { static shared(Test75*)   t75 = new shared(Test75)(0);    return t75; }));
+static assert( __traits(compiles, { static shared(Test75)*   t75 = new shared(Test75)(0);    return t75; }));
+static assert( __traits(compiles, { static __gshared Test75* t75 = new Test75(0);            return t75; }));
+static assert( __traits(compiles, { static const(Test75*)    t75 = new const(Test75)(0);     return t75; }));
+static assert( __traits(compiles, { static immutable Test75* t75 = new immutable(Test75)(0); return t75; }));
+static assert(!__traits(compiles, { static Test75*           t75 = new Test75(0);            return t75; }));
+/+
+static assert(!__traits(compiles, { enum                 t75 = new shared(Test75)(0); return t75; }));
+static assert(!__traits(compiles, { enum                 t75 = new Test75(0);         return t75; }));
+static assert(!__traits(compiles, { enum shared(Test75)* t75 = new shared(Test75)(0); return t75; }));
+static assert(!__traits(compiles, { enum Test75*         t75 = new Test75(0);         return t75; }));
 
-//static assert(!__traits(compiles, {enum t75 = new shared(Test75)(0); return t75;}));
-//static assert(!__traits(compiles, {enum t75 = new Test75(0); return t75;}));
-//static assert(!__traits(compiles, {enum shared(Test75)* t75 = new shared(Test75)(0); return t75;}));
-//static assert(!__traits(compiles, {enum Test75* t75 = new Test75(0); return t75;}));
-
-//static assert(__traits(compiles, {enum t75 = new const(Test75)(0); return t75;}));
-//static assert(__traits(compiles, {enum t75 = new immutable(Test75)(0); return t75;}));
-//static assert(__traits(compiles, {enum const(Test75)* t75 = new const(Test75)(0); return t75;}));
-//static assert(__traits(compiles, {enum immutable(Test75)* t75 = new immutable(Test75)(0); return t75;}));
-
+static assert( __traits(compiles, { enum                    t75 = new const(Test75)(0);     return t75;}));
+static assert( __traits(compiles, { enum                    t75 = new immutable(Test75)(0); return t75;}));
+static assert( __traits(compiles, { enum const(Test75)*     t75 = new const(Test75)(0);     return t75;}));
+static assert( __traits(compiles, { enum immutable(Test75)* t75 = new immutable(Test75)(0); return t75;}));
++/
 /******************************************************/
 
 class Test76
 {
     this(int) pure {}
 }
+/+
+static assert(!__traits(compiles, { enum                   t76 = new shared(Test76)(0); return t76;}));
+static assert(!__traits(compiles, { enum                   t76 = new Test76(0);         return t76;}));
+static assert(!__traits(compiles, { enum shared(Test76)    t76 = new shared(Test76)(0); return t76;}));
+static assert(!__traits(compiles, { enum Test76            t76 = new Test76(0);         return t76;}));
 
-//static assert(!__traits(compiles, {enum t76 = new shared(Test76)(0); return t76;}));
-//static assert(!__traits(compiles, {enum t76 = new Test76(0); return t76;}));
-//static assert(!__traits(compiles, {enum shared(Test76) t76 = new shared(Test76)(0); return t76;}));
-//static assert(!__traits(compiles, {enum Test76 t76 = new Test76(0); return t76;}));
-
-//static assert(__traits(compiles, {enum t76 = new const(Test76)(0); return t76;}));
-//static assert(__traits(compiles, {enum t76 = new immutable(Test76)(0); return t76;}));
-//static assert(__traits(compiles, {enum const(Test76) t76 = new const(Test76)(0); return t76;}));
-//static assert(__traits(compiles, {enum immutable(Test76) t76 = new immutable(Test76)(0); return t76;}));
-
-
+static assert( __traits(compiles, { enum                   t76 = new const(Test76)(0);     return t76;}));
+static assert( __traits(compiles, { enum                   t76 = new immutable(Test76)(0); return t76;}));
+static assert( __traits(compiles, { enum const(Test76)     t76 = new const(Test76)(0);     return t76;}));
+static assert( __traits(compiles, { enum immutable(Test76) t76 = new immutable(Test76)(0); return t76;}));
++/
 /******************************************************/
-static assert(__traits(compiles, {static shared Test76 t76 = new shared(Test76)(0); return t76;}));
-static assert(__traits(compiles, {static shared(Test76) t76 = new shared(Test76)(0); return t76;}));
-static assert(__traits(compiles, {static __gshared Test76 t76 = new Test76(0); return t76;}));
-static assert(__traits(compiles, {static const Test76 t76 = new const(Test76)(0); return t76;}));
-static assert(__traits(compiles, {static immutable Test76 t76 = new immutable Test76(0); return t76;}));
-static assert(!__traits(compiles, {static Test76 t76 = new Test76(0); return t76;}));
+
+static assert( __traits(compiles, { static shared Test76    t76 = new shared(Test76)(0);   return t76; }));
+static assert( __traits(compiles, { static shared(Test76)   t76 = new shared(Test76)(0);   return t76; }));
+static assert( __traits(compiles, { static __gshared Test76 t76 = new Test76(0);           return t76; }));
+static assert( __traits(compiles, { static const Test76     t76 = new const(Test76)(0);    return t76; }));
+static assert( __traits(compiles, { static immutable Test76 t76 = new immutable Test76(0); return t76; }));
+static assert(!__traits(compiles, { static Test76           t76 = new Test76(0);           return t76; }));
 
 /***** Bug 5678 *********************************/
 
@@ -5995,7 +6471,7 @@ struct Bug5678
     this(int) {}
 }
 
-static assert(!__traits(compiles, {enum const(Bug5678)* b5678 = new const(Bug5678)(0); return b5678;}));
+static assert(!__traits(compiles, { enum const(Bug5678)* b5678 = new const(Bug5678)(0); return b5678; }));
 
 /**************************************************
     10782 run semantic2 for class field
@@ -6138,7 +6614,7 @@ bool test11510()
     S11510 s;
 
     s.y = [1,2,3].ptr;            // writing overlapped pointer field is OK
-    assert(s.y[0..3] == [1,2,3]); // reading valid field is OK
+    assert(s.y[0 .. 3] == [1,2,3]); // reading valid field is OK
 
     s.x = 10;
     assert(s.x == 10);
@@ -6218,7 +6694,7 @@ struct Hash11535
         uint i = 0, index = 0;
         auto inputLen = data.length;
 
-        (&_buffer[index])[0 .. inputLen-i] = (&data[i])[0 .. inputLen-i];
+        (&_buffer[index])[0 .. inputLen - i] = (&data[i])[0 .. inputLen - i];
     }
 }
 
@@ -6240,7 +6716,8 @@ static assert(()
     // enter to TryCatchStatement.body
     {
         bool c = false;
-        try {
+        try
+        {
             if (c)  // need to bypass front-end optimization
                 throw new Exception("");
             else
@@ -6574,10 +7051,10 @@ auto testWrap12602a()
 {
     uint[] dest = [1, 2, 3, 4];
 
-    auto ra = wrap12602a(dest[0..2]);
-    auto rb = wrap12602a(dest[2..4]);
+    auto ra = wrap12602a(dest[0 .. 2]);
+    auto rb = wrap12602a(dest[2 .. 4]);
 
-    foreach (i; 0..2)
+    foreach (i; 0 .. 2)
         rb.source[i] = ra.source[i];
 
     assert(ra.source == [1,2]);
@@ -6592,10 +7069,10 @@ auto testWrap12602b()
 {
     uint[] dest = [1, 2, 3, 4];
 
-    auto ra = wrap12602b(dest[0..2]);
-    auto rb = wrap12602b(dest[2..4]);
+    auto ra = wrap12602b(dest[0 .. 2]);
+    auto rb = wrap12602b(dest[2 .. 4]);
 
-    foreach (i; 0..2)
+    foreach (i; 0 .. 2)
         rb.source[i] = ra.source[i];
 
     assert(ra.source == [1,2]);
@@ -6610,10 +7087,10 @@ auto testWrap12602c()
 {
     uint[] dest = [1, 2, 3, 4];
 
-    auto ra = Result12602(dest[0..2]);
-    auto rb = Result12602(dest[2..4]);
+    auto ra = Result12602(dest[0 .. 2]);
+    auto rb = Result12602(dest[2 .. 4]);
 
-    foreach (i; 0..2)
+    foreach (i; 0 .. 2)
         rb.source[i] = ra.source[i];
 
     assert(ra.source == [1,2]);
@@ -6628,10 +7105,10 @@ auto testWrap12602d()
 {
     uint[] dest = [1, 2, 3, 4];
 
-    Result12602 ra; ra.source = dest[0..2];
-    Result12602 rb; rb.source = dest[2..4];
+    Result12602 ra; ra.source = dest[0 .. 2];
+    Result12602 rb; rb.source = dest[2 .. 4];
 
-    foreach (i; 0..2)
+    foreach (i; 0 .. 2)
         rb.source[i] = ra.source[i];
 
     assert(ra.source == [1,2]);
@@ -6677,3 +7154,242 @@ void test12851()
     const int[5] arr;
     alias staticZip = TypeTuple!(arr[0]);
 }
+
+/**************************************************
+    13630 - indexing and setting array element via pointer
+**************************************************/
+
+struct S13630(T)
+{
+    T[3] arr;
+
+    this(A...)(auto ref in A args)
+    {
+        auto p = arr.ptr;
+
+        foreach (ref v; args)
+        {
+            *p = 0;
+        }
+    }
+}
+
+enum s13630 = S13630!float(1);
+
+/**************************************************
+    13827
+**************************************************/
+
+struct Matrix13827(T, uint N)
+{
+    private static defaultMatrix()
+    {
+        T arr[N];
+        return arr;
+    }
+
+    union
+    {
+        T[N] A = defaultMatrix;
+        T[N] flat;
+    }
+
+    this(A...)(auto ref in A args)
+    {
+        uint k;
+
+        foreach (ref v; args)
+            flat[k++] = cast(T)v;
+    }
+}
+enum m13827 = Matrix13827!(int, 3)(1, 2, 3);
+
+/**************************************************
+    13847 - support DotTypeExp
+**************************************************/
+
+class B13847
+{
+    int foo() { return 1; }
+}
+
+class C13847 : B13847
+{
+    override int foo() { return 2; }
+
+    final void test(int n)
+    {
+        assert(foo() == n);
+        assert(B13847.foo() == 1);
+        assert(C13847.foo() == 2);
+        assert(this.B13847.foo() == 1);
+        assert(this.C13847.foo() == 2);
+    }
+}
+
+class D13847 : C13847
+{
+    override int foo() { return 3; }
+}
+
+static assert({
+    C13847 c = new C13847();
+    c.test(2);
+    assert(c.B13847.foo() == 1);
+    assert(c.C13847.foo() == 2);
+
+    D13847 d = new D13847();
+    d.test(3);
+    assert(d.B13847.foo() == 1);
+    assert(d.C13847.foo() == 2);
+    assert(d.D13847.foo() == 3);
+
+    c = d;
+    c.test(3);
+    assert(c.B13847.foo() == 1);
+    assert(c.C13847.foo() == 2);
+    return true;
+}());
+
+/**************************************************
+    12495 - cast from string to immutable(ubyte)[]
+**************************************************/
+
+string getStr12495()
+{
+    char[1] buf = void;                     // dummy starting point.
+    string s = cast(string)buf[0..0];       // empty slice, .ptr points mutable.
+    assert(buf.ptr == s.ptr);
+    s ~= 'a';                               // this should allocate.
+    assert(buf.ptr != s.ptr);
+    return s.idup;                          // this should allocate again, and
+                                            // definitly point immutable memory.
+}
+auto indexOf12495(string s)
+{
+    auto p1 = s.ptr;
+    auto p2 = (cast(immutable(ubyte)[])s).ptr;
+    assert(cast(void*)p1 == cast(void*)p2); // OK <- fails
+    return cast(void*)p2 - cast(void*)p1;   // OK <- "cannot subtract pointers ..."
+}
+static assert(indexOf12495(getStr12495()) == 0);
+
+/**************************************************
+    13992 - Repainting pointer arithmetic result
+**************************************************/
+
+enum hash13992 = hashOf13992("abcd".ptr);
+
+@trusted hashOf13992(const void* buf)
+{
+    auto data = cast(const(ubyte)*) buf;
+    size_t hash;
+    data += 2;      // problematic pointer arithmetic
+    hash += *data;  // CTFE internal issue was shown by the dereference
+    return hash;
+}
+
+/**************************************************
+    13739 - Precise copy for ArrayLiteralExp elements
+**************************************************/
+
+static assert(
+{
+    int[] a1 = [13];
+    int[][] a2 = [a1];
+    assert(a2[0] is a1);            // OK
+    assert(a2[0].ptr is a1.ptr);    // OK <- NG
+
+    a1[0] = 1;
+    assert(a2[0][0] == 1);  // OK <- NG
+
+    a2[0][0] = 2;
+    assert(a1[0] == 2);     // OK <- NG
+
+    return 1;
+}());
+
+/**************************************************
+    13295 - Don't copy struct literal in VarExp::interpret()
+**************************************************/
+
+struct S13295
+{
+    int n;
+}
+
+void f13295(ref const S13295 s)
+{
+    *cast(int*) &s.n = 1;
+    assert(s.n == 1);     // OK <- fail
+}
+
+static assert(
+{
+    S13295 s;
+    f13295(s);
+    return s.n == 1; // true <- false
+}());
+
+int foo14061(int[] a)
+{
+    foreach (immutable x; a)
+    {
+        auto b = a ~ x;
+        return b == [1, 1];
+    }
+    return 0;
+}
+static assert(foo14061([1]));
+
+/**************************************************
+    14024 - CTFE version
+**************************************************/
+
+bool test14024()
+{
+    string op;
+
+    struct S
+    {
+        char x = 'x';
+        this(this) { op ~= x-0x20; }    // upper case
+        ~this()    { op ~= x; }         // lower case
+    }
+
+    S[4] mem;
+    ref S[2] slice(int a, int b) { return mem[a .. b][0 .. 2]; }
+
+    op = null;
+    mem[0].x = 'a';
+    mem[1].x = 'b';
+    mem[2].x = 'x';
+    mem[3].x = 'y';
+    slice(0, 2) = slice(2, 4);  // [ab] = [xy]
+    assert(op == "XaYb", op);
+
+    op = null;
+    mem[0].x = 'x';
+    mem[1].x = 'y';
+    mem[2].x = 'a';
+    mem[3].x = 'b';
+    slice(2, 4) = slice(0, 2);  // [ab] = [xy]
+    assert(op == "XaYb", op);
+
+    op = null;
+    mem[0].x = 'a';
+    mem[1].x = 'b';
+    mem[2].x = 'c';
+    slice(0, 2) = slice(1, 3);  // [ab] = [bc]
+    assert(op == "BaCb", op);
+
+    op = null;
+    mem[0].x = 'x';
+    mem[1].x = 'y';
+    mem[2].x = 'z';
+    slice(1, 3) = slice(0, 2);  // [yz] = [xy]
+    assert(op == "YzXy", op);
+
+    return true;
+}
+static assert(test14024());

@@ -1,7 +1,7 @@
 // PERMUTE_ARGS:
 
-import std.c.stdio;
-import std.c.stdlib;
+import core.stdc.stdio;
+import core.stdc.stdlib;
 
 /*********************************************/
 
@@ -16,7 +16,7 @@ class Foo
 	assert(sz == Foo.classinfo.init.length);
 	assert(x == 5);
 
-	p = std.c.stdlib.malloc(sz);
+	p = core.stdc.stdlib.malloc(sz);
 	flags |= 4;
 	return p;
     }
@@ -74,7 +74,7 @@ struct Foo2
 	assert(sz == Foo2.sizeof);
 	assert(x == 5);
 
-	p = std.c.stdlib.malloc(sz);
+	p = core.stdc.stdlib.malloc(sz);
 	flags |= 4;
 	return p;
     }
@@ -83,7 +83,7 @@ struct Foo2
     {
 	printf("p = %p\n", p);
 	flags |= 2;
-	std.c.stdlib.free(p);
+	core.stdc.stdlib.free(p);
     }
 }
 

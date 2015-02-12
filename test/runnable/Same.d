@@ -2,7 +2,7 @@
 // PERMUTE_ARGS:
 
 module Same; // makes no difference if removed
-import std.c.stdio;
+import core.stdc.stdio;
 class Same
 {
 this()

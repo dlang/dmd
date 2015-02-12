@@ -450,8 +450,8 @@ public:
             property("kind", s->kind());
         }
 
-        if (s->prot() != PROTpublic)
-            property("protection", protectionToChars(s->prot()));
+        if (s->prot().kind != PROTpublic)   // TODO: How about package(names)?
+            property("protection", protectionToChars(s->prot().kind));
 
         if (EnumMember *em = s->isEnumMember())
         {
@@ -556,8 +556,8 @@ public:
         property("kind", s->kind());
         property("comment", (const char *)s->comment);
         property("line", "char", &s->loc);
-        if (s->prot() != PROTpublic)
-            property("protection", protectionToChars(s->prot()));
+        if (s->prot().kind != PROTpublic)
+            property("protection", protectionToChars(s->prot().kind));
         if (s->aliasId)
             property("alias", s->aliasId->toChars());
 
@@ -637,17 +637,6 @@ public:
         //property("unknown", "declaration");
 
         jsonProperties(d);
-
-        objectEnd();
-    }
-
-    void visit(TypedefDeclaration *d)
-    {
-        objectStart();
-
-        jsonProperties(d);
-
-        property("base", "baseDeco", d->basetype);
 
         objectEnd();
     }
@@ -799,6 +788,12 @@ public:
             objectEnd();
         }
         arrayEnd();
+
+        Expression *expression = d->constraint;
+        if (expression)
+        {
+            property("constraint", expression->toChars());
+        }
 
         propertyStart("members");
         arrayStart();

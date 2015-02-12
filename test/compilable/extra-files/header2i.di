@@ -4,16 +4,12 @@ class C
 void foo(const C c, const(char)[] s, const int* q, const(int*) p)
 {
 }
-
 void bar(in void* p)
 {
 }
-
 void f(void function() f2);
-
 class C2;
 void foo2(const C2 c);
-
 struct Foo3
 {
 	int k;
@@ -32,7 +28,6 @@ class C3
 	{
 		return 0;
 	}
-
 }
 T foo3(T)()
 {
@@ -75,7 +70,7 @@ interface I4(T) if ((int[1]).length == 1)
 }
 template MyClass4(T) if (is(typeof(T.subtype)))
 {
-	alias T.subtype HelperSymbol;
+	alias HelperSymbol = T.subtype;
 	class MyClass4
 	{
 	}
@@ -195,4 +190,3 @@ void test13275()
 	{
 	}
 }
-

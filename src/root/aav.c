@@ -18,6 +18,7 @@
 #include <assert.h>
 
 #include "aav.h"
+#include "rmem.h"
 
 
 inline size_t hash(size_t a)
@@ -55,7 +56,8 @@ size_t dmd_aaLen(AA* aa)
 
 /*************************************************
  * Get pointer to value in associative array indexed by key.
- * Add entry for key if it is not already there.
+ * Add entry for key if it is not already there, returning a pointer to a null Value.
+ * Create the associative array if it does not already exist.
  */
 
 Value* dmd_aaGet(AA** paa, Key key)
@@ -63,9 +65,9 @@ Value* dmd_aaGet(AA** paa, Key key)
     //printf("paa = %p\n", paa);
 
     if (!*paa)
-    {   AA *a = new AA();
-        a->b = a->binit;
-        a->b_length = sizeof(a->binit) / sizeof(a->binit[0]);
+    {   AA *a = (AA *)mem.xmalloc(sizeof(AA));
+        a->b = (aaA**)a->binit;
+        a->b_length = 4;
         a->nodes = 0;
         a->binit[0] = NULL;
         a->binit[1] = NULL;
@@ -91,7 +93,7 @@ Value* dmd_aaGet(AA** paa, Key key)
     //printf("create new one\n");
 
     size_t nodes = ++(*paa)->nodes;
-    e = (nodes != 1) ? new aaA() : &(*paa)->aafirst;
+    e = (nodes != 1) ? (aaA *)mem.xmalloc(sizeof(aaA)) : &(*paa)->aafirst;
     //e = new aaA();
     e->next = NULL;
     e->key = key;
@@ -151,7 +153,7 @@ void dmd_aaRehash(AA** paa)
                 len = 32;
             else
                 len *= 4;
-            aaA** newb = new aaA*[len];
+            aaA** newb = (aaA**)mem.xmalloc(sizeof(aaA)*len);
             memset(newb, 0, len * sizeof(aaA*));
 
             for (size_t k = 0; k < aa->b_length; k++)
@@ -164,8 +166,8 @@ void dmd_aaRehash(AA** paa)
                     e = enext;
                 }
             }
-            if (aa->b != aa->binit)
-                delete[] aa->b;
+            if (aa->b != (aaA**)aa->binit)
+                mem.xfree(aa->b);
 
             aa->b = newb;
             aa->b_length = len;

@@ -26,13 +26,6 @@ struct Escape;
 class VarDeclaration;
 class Library;
 
-// Back end
-#ifdef IN_GCC
-typedef union tree_node elem;
-#else
-struct elem;
-#endif
-
 enum PKG
 {
     PKGunknown, // not yet determined whether it's a package.d or not
@@ -52,6 +45,8 @@ public:
     static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
 
     Package *isPackage() { return this; }
+
+    bool isAncestorPackageOf(Package *pkg);
 
     void semantic(Scope *sc) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
@@ -87,7 +82,10 @@ public:
     int needmoduleinfo;
 
     int selfimports;            // 0: don't know, 1: does not, 2: does
-    int selfImports();          // returns !=0 if module imports itself
+    bool selfImports();         // returns true if module imports itself
+
+    int rootimports;            // 0: don't know, 1: does not, 2: does
+    bool rootImports();         // returns true if module imports root module
 
     int insearch;
     Identifier *searchCacheIdent;
@@ -112,7 +110,6 @@ public:
 
     Macro *macrotable;          // document comment macros
     Escape *escapetable;        // document comment escapes
-    bool safe;                  // true if module is marked as 'safe'
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
@@ -131,8 +128,6 @@ public:
     void semantic();    // semantic analysis
     void semantic2();   // pass 2 semantic analysis
     void semantic3();   // pass 3 semantic analysis
-    void genobjfile(bool multiobj);
-    void genhelpers(bool iscomdat);
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     Dsymbol *symtabInsert(Dsymbol *s);
@@ -164,15 +159,8 @@ public:
     Symbol *sfilename;          // symbol for filename
 
     Symbol *massert;            // module assert function
-    Symbol *toModuleAssert();   // get module assert function
-
     Symbol *munittest;          // module unittest failure function
-    Symbol *toModuleUnittest(); // get module unittest failure function
-
     Symbol *marray;             // module array bounds function
-    Symbol *toModuleArray();    // get module array bounds function
-
-    void genmoduleinfo();
 
     Module *isModule() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -184,9 +172,10 @@ struct ModuleDeclaration
     Loc loc;
     Identifier *id;
     Identifiers *packages;            // array of Identifier's representing packages
-    bool safe;
+    bool isdeprecated;  // if it is a deprecated module
+    Expression *msg;
 
-    ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id, bool safe);
+    ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id);
 
     char *toChars();
 };

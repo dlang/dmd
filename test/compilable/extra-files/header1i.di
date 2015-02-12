@@ -4,7 +4,7 @@ import std.stdio;
 pragma (lib, "test");
 pragma (msg, "Hello World");
 static assert(true, "message");
-typedef double mydbl = 10;
+alias mydbl = double;
 int testmain()
 in
 {
@@ -24,7 +24,6 @@ body
 	assert(i == 2147483648u);
 	return 0;
 }
-
 struct S
 {
 	int m;
@@ -46,7 +45,6 @@ template Foo(T, int V)
 		auto aa = [1:1, 2:2, 3:3];
 		int n, m;
 	}
-
 	int bar(double d, int x)
 	{
 		if (d)
@@ -127,7 +125,6 @@ template Foo(T, int V)
 				}
 			}
 		}
-
 		loop:
 		while (x)
 		{
@@ -169,9 +166,12 @@ template Foo(T, int V)
 			toString();
 		}
 	}
-
 }
 static this();
+nothrow pure @nogc @safe static this();
+nothrow pure @nogc @safe static this();
+nothrow pure @nogc @safe shared static this();
+nothrow pure @nogc @safe shared static this();
 interface iFoo
 {
 }
@@ -189,161 +189,135 @@ class Foo3
 	this(int a, ...)
 	{
 	}
-
 	this(int* a)
 	{
 	}
-
 }
-alias int myint;
+alias myint = int;
 static notquit = 1;
 class Test
 {
 	void a()
 	{
 	}
-
 	void b()
 	{
 	}
-
 	void c()
 	{
 	}
-
 	void d()
 	{
 	}
-
 	void e()
 	{
 	}
-
 	void f()
 	{
 	}
-
 	void g()
 	{
 	}
-
 	void h()
 	{
 	}
-
 	void i()
 	{
 	}
-
 	void j()
 	{
 	}
-
 	void k()
 	{
 	}
-
 	void l()
 	{
 	}
-
 	void m()
 	{
 	}
-
 	void n()
 	{
 	}
-
 	void o()
 	{
 	}
-
 	void p()
 	{
 	}
-
 	void q()
 	{
 	}
-
 	void r()
 	{
 	}
-
 	void s()
 	{
 	}
-
 	void t()
 	{
 	}
-
 	void u()
 	{
 	}
-
 	void v()
 	{
 	}
-
 	void w()
 	{
 	}
-
 	void x()
 	{
 	}
-
 	void y()
 	{
 	}
-
 	void z()
 	{
 	}
-
 	void aa()
 	{
 	}
-
 	void bb()
 	{
 	}
-
 	void cc()
 	{
 	}
-
 	void dd()
 	{
 	}
-
 	void ee()
 	{
 	}
-
 	template A(T)
 	{
 	}
-	alias A!uint getHUint;
-	alias A!int getHInt;
-	alias A!float getHFloat;
-	alias A!ulong getHUlong;
-	alias A!long getHLong;
-	alias A!double getHDouble;
-	alias A!byte getHByte;
-	alias A!ubyte getHUbyte;
-	alias A!short getHShort;
-	alias A!ushort getHUShort;
-	alias A!real getHReal;
+	alias getHUint = A!uint;
+	alias getHInt = A!int;
+	alias getHFloat = A!float;
+	alias getHUlong = A!ulong;
+	alias getHLong = A!long;
+	alias getHDouble = A!double;
+	alias getHByte = A!byte;
+	alias getHUbyte = A!ubyte;
+	alias getHShort = A!short;
+	alias getHUShort = A!ushort;
+	alias getHReal = A!real;
+	alias void F();
+	nothrow pure @nogc @safe new(size_t sz)
+	{
+		return null;
+	}
+	nothrow pure @nogc @safe delete(void* p)
+	{
+	}
 }
 void templ(T)(T val)
 {
 	pragma (msg, "Invalid destination type.");
 }
 static char[] charArray = ['"', '\''];
-
 class Point
 {
 	auto x = 10;
@@ -360,23 +334,19 @@ template Foo2(bool bar)
 		else
 		{
 		}
-
 		static if (!bar)
 		{
 		}
 		else
 		{
 		}
-
 	}
-
 }
 template Foo4()
 {
 	void bar()
 	{
 	}
-
 }
 template Foo4x(T...)
 {
@@ -385,7 +355,7 @@ class Baz4
 {
 	mixin Foo4!() foo;
 	mixin Foo4x!(int, "str") foox;
-	alias foo.bar baz;
+	alias baz = foo.bar;
 }
 int test(T)(T t)
 {
@@ -398,12 +368,10 @@ bool foo6(int a, int b, int c, int d)
 {
 	return (a < b) != (c < d);
 }
-
 auto foo7(int x)
 {
 	return 5;
 }
-
 class D8
 {
 }
@@ -411,7 +379,6 @@ void func8()
 {
 	scope a = new D8;
 }
-
 T func9(T)() if (true)
 {
 	T i;
@@ -430,13 +397,11 @@ template V10(T)
 			}
 		}
 	}
-
 }
 int foo11(int function() fn)
 {
 	return fn();
 }
-
 int bar11(T)()
 {
 	return foo11(function int()
@@ -451,24 +416,19 @@ struct S6360
 	{
 		return 0;
 	}
-
 	const pure nothrow @property long weeks2()
 	{
 		return 0;
 	}
-
 }
 struct S12
 {
 	nothrow this(int n)
 	{
 	}
-
 	nothrow this(string s)
 	{
 	}
-
-
 }
 struct T12
 {
@@ -478,7 +438,6 @@ struct T12
 	immutable this(A...)(A args)
 	{
 	}
-
 }
 import std.stdio : writeln, F = File;
 void foo6591()()
@@ -487,8 +446,6 @@ void foo6591()()
 }
 version (unittest)
 {
-	nothrow pure {}
-	nothrow pure {}
 	public {}
 	extern (C) {}
 	align{}
@@ -524,6 +481,12 @@ template Foo10334(T) if (Bar10334!int)
 {
 }
 template Foo10334(T) if (Bar10334!string)
+{
+}
+template Foo10334(T) if (Bar10334!wstring)
+{
+}
+template Foo10334(T) if (Bar10334!dstring)
 {
 }
 template Foo10334(T) if (Bar10334!this)
@@ -568,3 +531,4 @@ pure clamp12266b(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
 {
 	return 0;
 }
+alias Dg13832 = ref int delegate();
