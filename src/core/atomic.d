@@ -1335,11 +1335,11 @@ version( unittest )
 
         version (D_LP64)
         {
-            static if (has128BitCAS) enum hasDWCAS = true;
+            enum hasDWCAS = has128BitCAS;
         }
         else
         {
-            static if (has64BitCAS) enum hasDWCAS = true;
+            enum hasDWCAS = has64BitCAS;
         }
 
         static if (hasDWCAS)
