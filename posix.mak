@@ -64,9 +64,9 @@ else
 	DOTLIB:=.a
 endif
 
-DFLAGS=$(MODEL_FLAG) -O -release -dip25 -inline -w -Isrc -Iimport $(PIC)
-UDFLAGS=$(MODEL_FLAG) -O -release -dip25 -w -Isrc -Iimport $(PIC)
-DDOCFLAGS=-c -w -o- -Isrc -Iimport -version=CoreDdoc
+DFLAGS=$(MODEL_FLAG) -conf= -O -release -dip25 -inline -w -Isrc -Iimport $(PIC)
+UDFLAGS=$(MODEL_FLAG) -conf= -O -release -dip25 -w -Isrc -Iimport $(PIC)
+DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 CFLAGS=$(MODEL_FLAG) -O $(PIC)
 ifeq (solaris,$(OS))
@@ -136,7 +136,7 @@ import: $(IMPORTS)
 
 $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 	@mkdir -p `dirname $@`
-	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $<
+	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $<
 
 ######################## Header .di file copy ##############################
 
@@ -175,7 +175,7 @@ $(DRUNTIMESO): $(OBJS) $(SRCS)
 
 $(DRUNTIMESOLIB): $(OBJS) $(SRCS)
 	$(DMD) -c -fPIC -of$(DRUNTIMESOOBJ) $(DFLAGS) $(SRCS)
-	$(DMD) -lib -of$(DRUNTIMESOLIB) $(DRUNTIMESOOBJ) $(OBJS)
+	$(DMD) -conf= -lib -of$(DRUNTIMESOLIB) $(DRUNTIMESOOBJ) $(OBJS)
 
 ################### Library generation #########################
 
