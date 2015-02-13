@@ -108,6 +108,11 @@ export EXE=.exe
 export OBJ=.obj
 export DSEP=\\
 export SEP=$(subst /,\,/)
+
+DRUNTIME_PATH=..\..\druntime
+PHOBOS_PATH=..\..\phobos
+export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
+export LIB=$(PHOBOS_PATH)
 else
 export ARGS=-inline -release -gc -O -unittest -fPIC
 export DMD=../src/dmd
@@ -115,6 +120,10 @@ export EXE=
 export OBJ=.o
 export DSEP=/
 export SEP=/
+
+DRUNTIME_PATH=../../druntime
+PHOBOS_PATH=../../phobos
+export DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
 endif
 
 ifeq ($(OS),osx)
@@ -221,6 +230,6 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(
 $(RESULTS_DIR)/d_do_test$(EXE): d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	@echo "OS: $(OS)"
-	$(QUIET)$(DMD) -m$(MODEL) -unittest -run d_do_test.d -unittest
-	$(QUIET)$(DMD) -m$(MODEL) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
+	$(QUIET)$(DMD) -conf= -m$(MODEL) -unittest -run d_do_test.d -unittest
+	$(QUIET)$(DMD) -conf= -m$(MODEL) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
 
