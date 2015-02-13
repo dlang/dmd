@@ -94,6 +94,8 @@ version(enableLog) {
 }
 else
 {
+    import core.vararg;
+
     struct LogIndent
     {
         this(int n)
