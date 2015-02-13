@@ -27,83 +27,83 @@ __gshared const string gLogFile = "c:/tmp/parser.log";
 
 version(enableLog) {
 
-	struct LogIndent
-	{
-		this(int n)
-		{
-			indent = n;
-			gLogIndent += indent;
-		}
-		~this()
-		{
-			gLogIndent -= indent;
-		}
-		int indent;
-	}
+    struct LogIndent
+    {
+        this(int n)
+        {
+            indent = n;
+            gLogIndent += indent;
+        }
+        ~this()
+        {
+            gLogIndent -= indent;
+        }
+        int indent;
+    }
 
-	mixin template logIndent(int n = 1)
-	{
-		LogIndent indent = LogIndent(n);
-	}
-	
-	class logSync {}
+    mixin template logIndent(int n = 1)
+    {
+        LogIndent indent = LogIndent(n);
+    }
 
-	void logInfo(...)
-	{
-		auto buffer = new char[17 + 1];
-		SysTime now = Clock.currTime();
-		uint tid = GetCurrentThreadId();
-		auto len = sprintf(buffer.ptr, "%02d:%02d:%02d - %04x - ",
-		                   now.hour, now.minute, now.second, tid);
-		string s = to!string(buffer[0..len]);
-		s ~= replicate(" ", gLogIndent);
-		
-		void putc(dchar c)
-		{
-			s ~= c;
-		}
+    class logSync {}
 
-		try {
-			std.format.doFormat(&putc, _arguments, _argptr);
-		} 
-		catch(Exception e) 
-		{
-			string msg = e.toString();
-			s ~= " EXCEPTION";
-		}
+    void logInfo(...)
+    {
+        auto buffer = new char[17 + 1];
+        SysTime now = Clock.currTime();
+        uint tid = GetCurrentThreadId();
+        auto len = sprintf(buffer.ptr, "%02d:%02d:%02d - %04x - ",
+                           now.hour, now.minute, now.second, tid);
+        string s = to!string(buffer[0..len]);
+        s ~= replicate(" ", gLogIndent);
 
-		log_string(s);
-	}
-	
-	void log_string(string s)
-	{
-		s ~= "\n";
-		if(gLogFile.length == 0)
-			OutputDebugStringA(toStringz(s));
-		else
-			synchronized(logSync.classinfo)
-			{
-				if(gLogFirst)
-				{
-					gLogFirst = false;
-					s = "\n" ~ replicate("=", 80) ~ "\n" ~ s;
-				}
-				std.file.append(gLogFile, s);
-			}
-	}
+        void putc(dchar c)
+        {
+            s ~= c;
+        }
+
+        try {
+            std.format.doFormat(&putc, _arguments, _argptr);
+        }
+        catch(Exception e)
+        {
+            string msg = e.toString();
+            s ~= " EXCEPTION";
+        }
+
+        log_string(s);
+    }
+
+    void log_string(string s)
+    {
+        s ~= "\n";
+        if(gLogFile.length == 0)
+            OutputDebugStringA(toStringz(s));
+        else
+            synchronized(logSync.classinfo)
+            {
+                if(gLogFirst)
+                {
+                    gLogFirst = false;
+                    s = "\n" ~ replicate("=", 80) ~ "\n" ~ s;
+                }
+                std.file.append(gLogFile, s);
+            }
+    }
 }
 else
 {
-	struct LogIndent
-	{
-		this(int n)
-		{
-		}
-	}
-	void logInfo(...)
-	{
-	}
-	void log_string(string s)
-	{
-	}
+    struct LogIndent
+    {
+        this(int n)
+        {
+        }
+    }
+    void logInfo(...)
+    {
+    }
+    void log_string(string s)
+    {
+    }
 }

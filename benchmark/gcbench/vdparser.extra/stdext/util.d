@@ -11,22 +11,21 @@ module stdext.util;
 ////////////////////////////////////////////////////////////////
 inout(T) static_cast(T, S = Object)(inout(S) p)
 {
-	if(!p)
-		return null;
-	if(__ctfe)
-		return cast(inout(T)) p;
-	assert(cast(inout(T)) p);
-	void* vp = cast(void*)p;
-	return cast(inout(T)) vp;
+    if(!p)
+        return null;
+    if(__ctfe)
+        return cast(inout(T)) p;
+    assert(cast(inout(T)) p);
+    void* vp = cast(void*)p;
+    return cast(inout(T)) vp;
 }
 
 ////////////////////////////////////////////////////////////////
 bool isIn(T...)(T values)
 {
-	T[0] needle = values[0];
-	foreach(v; values[1..$])
-		if(v == needle)
-			return true;
-	return false;
+    T[0] needle = values[0];
+    foreach(v; values[1..$])
+        if(v == needle)
+            return true;
+    return false;
 }
-

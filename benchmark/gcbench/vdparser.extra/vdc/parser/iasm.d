@@ -16,27 +16,27 @@ import ast = vdc.ast.all;
 
 class AsmInstruction
 {
-	static Action enter(Parser p)
-	{
-		p.pushNode(new ast.AsmInstruction(p.tok));
-		return shift(p);
-	}
-	
-	static Action shift(Parser p)
-	{
-		switch(p.tok.id)
-		{
-			case TOK_EOF:
-				return p.parseError("end of file in asm block");
-			case TOK_semicolon:
-			case TOK_rcurly:
-				return Forward;
-			default:
-				p.topNode!(ast.AsmInstruction).addToken(p.tok);
-				p.pushState(&shift);
-				return Accept;
-		}
-	}
+    static Action enter(Parser p)
+    {
+        p.pushNode(new ast.AsmInstruction(p.tok));
+        return shift(p);
+    }
+
+    static Action shift(Parser p)
+    {
+        switch(p.tok.id)
+        {
+            case TOK_EOF:
+                return p.parseError("end of file in asm block");
+            case TOK_semicolon:
+            case TOK_rcurly:
+                return Forward;
+            default:
+                p.topNode!(ast.AsmInstruction).addToken(p.tok);
+                p.pushState(&shift);
+                return Accept;
+        }
+    }
 }
 
 //-- GRAMMAR_BEGIN --

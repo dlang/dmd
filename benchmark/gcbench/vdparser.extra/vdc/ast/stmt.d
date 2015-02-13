@@ -32,29 +32,29 @@ import std.conv;
 //    [Statement...]
 class Statement : Node
 {
-	mixin ForwardCtor!();
-	
-	override Value interpret(Context sc)
-	{
-		foreach(m; members)
-		{
-			Value v = m.interpret(sc);
-			if(v)
-				return v;
-		}
-		return null;
-	}
+    mixin ForwardCtor!();
+
+    override Value interpret(Context sc)
+    {
+        foreach(m; members)
+        {
+            Value v = m.interpret(sc);
+            if(v)
+                return v;
+        }
+        return null;
+    }
 }
 
 class EmptyStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer(";");
-		writer.nl;
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer(";");
+        writer.nl;
+    }
 }
 
 version(obsolete)
@@ -68,7 +68,7 @@ version(obsolete)
 //    BlockStatement
 class ScopeStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 }
 
 //ScopeNonEmptyStatement:
@@ -76,7 +76,7 @@ class ScopeStatement : Statement
 //    BlockStatement
 class ScopeNonEmptyStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 }
 
 //NoScopeNonEmptyStatement:
@@ -84,7 +84,7 @@ class ScopeNonEmptyStatement : Statement
 //    BlockStatement
 class NoScopeNonEmptyStatement : ScopeNonEmptyStatement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 }
 
 //NoScopeStatement:
@@ -93,7 +93,7 @@ class NoScopeNonEmptyStatement : ScopeNonEmptyStatement
 //    BlockStatement
 class NoScopeStatement : ScopeStatement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 }
 
 //NonEmptyStatement:
@@ -129,7 +129,7 @@ class NoScopeStatement : ScopeStatement
 //    TemplateMixin
 class NonEmptyStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 }
 } // version(obsolete)
 
@@ -137,43 +137,43 @@ class NonEmptyStatement : Statement
 //    Identifier : NoScopeStatement
 class LabeledStatement : Statement
 {
-	string ident;
-	
-	Statement getStatement() { return getMember!Statement(0); }
+    string ident;
 
-	this() {} // default constructor needed for clone()
+    Statement getStatement() { return getMember!Statement(0); }
 
-	this(Token tok)
-	{
-		super(tok);
-		ident = tok.txt;
-	}
-	
-	override LabeledStatement clone()
-	{
-		LabeledStatement n = static_cast!LabeledStatement(super.clone());
-		n.ident = ident;
-		return n;
-	}
-	override bool compare(const(Node) n) const
-	{
-		if(!super.compare(n))
-			return false;
+    this() {} // default constructor needed for clone()
 
-		auto tn = static_cast!(typeof(this))(n);
-		return tn.ident == ident;
-	}
+    this(Token tok)
+    {
+        super(tok);
+        ident = tok.txt;
+    }
 
-	override void toD(CodeWriter writer)
-	{
-		{
-			CodeIndenter indent = CodeIndenter(writer, -1);
-			writer.writeIdentifier(ident);
-			writer(":");
-			writer.nl;
-		}
-		writer(getStatement());
-	}
+    override LabeledStatement clone()
+    {
+        LabeledStatement n = static_cast!LabeledStatement(super.clone());
+        n.ident = ident;
+        return n;
+    }
+    override bool compare(const(Node) n) const
+    {
+        if(!super.compare(n))
+            return false;
+
+        auto tn = static_cast!(typeof(this))(n);
+        return tn.ident == ident;
+    }
+
+    override void toD(CodeWriter writer)
+    {
+        {
+            CodeIndenter indent = CodeIndenter(writer, -1);
+            writer.writeIdentifier(ident);
+            writer(":");
+            writer.nl;
+        }
+        writer(getStatement());
+    }
 }
 
 //BlockStatement:
@@ -185,33 +185,33 @@ class LabeledStatement : Statement
 //    Statement StatementList
 class BlockStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer("{");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			foreach(m; members)
-				writer(m);
-		}
-		writer("}");
-		writer.nl;
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("{");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            foreach(m; members)
+                writer(m);
+        }
+        writer("}");
+        writer.nl;
+    }
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void _semantic(Scope sc)
-	{
-		// TODO: TemplateParameterList, Constraint
-		if(members.length > 0)
-		{
-			sc = enterScope(sc);
-			super._semantic(sc);
-			sc = sc.pop();
-		}
-	}
+    override void _semantic(Scope sc)
+    {
+        // TODO: TemplateParameterList, Constraint
+        if(members.length > 0)
+        {
+            sc = enterScope(sc);
+            super._semantic(sc);
+            sc = sc.pop();
+        }
+    }
 
 }
 
@@ -219,114 +219,114 @@ class BlockStatement : Statement
 //    [Expression]
 class ExpressionStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer(getMember(0), ";");
-		writer.nl;
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer(getMember(0), ";");
+        writer.nl;
+    }
 
-	override Value interpret(Context sc)
-	{
-		getMember(0).interpret(sc);
-		return null;
-	}
+    override Value interpret(Context sc)
+    {
+        getMember(0).interpret(sc);
+        return null;
+    }
 }
 
 //DeclarationStatement:
 //    [Decl]
 class DeclarationStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer(getMember(0));
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer(getMember(0));
+    }
 
-	override Node[] expandNonScopeBlock(Scope sc, Node[] athis)
-	{
-		Node n = getMember(0);
-		Node[1] nthis = [ n ];
-		Node[] nm = n.expandNonScopeBlock(sc, nthis);
-		if(nm.length == 1 && nm[0] == n)
-			return athis;
-		
-		Node[] decls;
-		foreach(m; nm)
-		{
-			auto decl = new DeclarationStatement(id, span);
-			decl.addMember(m);
-			decls ~= decl;
-		}
-		return decls;
-	}
+    override Node[] expandNonScopeBlock(Scope sc, Node[] athis)
+    {
+        Node n = getMember(0);
+        Node[1] nthis = [ n ];
+        Node[] nm = n.expandNonScopeBlock(sc, nthis);
+        if(nm.length == 1 && nm[0] == n)
+            return athis;
 
-	override void addSymbols(Scope sc)
-	{
-		addMemberSymbols(sc);
-	}
+        Node[] decls;
+        foreach(m; nm)
+        {
+            auto decl = new DeclarationStatement(id, span);
+            decl.addMember(m);
+            decls ~= decl;
+        }
+        return decls;
+    }
 
-	override void _semantic(Scope sc)
-	{
-		auto decl = getMember(0);
-		decl.addSymbols(sc); // symbols might already be referenced in an initializer
-		super._semantic(sc);
-		if(decl.attr & Attr_Static)
-		{
-			Context ctx = new Context(nullContext);
-			ctx.scop = sc;
-			initValues(ctx, false);
-		}
-	}
+    override void addSymbols(Scope sc)
+    {
+        addMemberSymbols(sc);
+    }
 
-	override Value interpret(Context sc)
-	{
-		auto decl = getMember(0);
-		if(!(decl.attr & Attr_Static))
-			initValues(sc, true);
-		return null;
-	}
-	
-	void initValues(Context sc, bool reinit)
-	{
-		auto decl = cast(Decl)getMember(0);
-		if(!decl)
-			return; // classes, enums, etc
-		//if(decl.getFunctionBody())
-		//	return; // nothing to do for local functions
-		
-		auto decls = decl.getDeclarators();
-		for(int n = 0; n < decls.members.length; n++)
-		{
-			auto d = decls.getDeclarator(n);
-			if(reinit)
-			{
-				d.value = null;
-				d.interpretReinit(sc);
-			}
-			else
-				d.interpret(sc);
-		}
-	}
+    override void _semantic(Scope sc)
+    {
+        auto decl = getMember(0);
+        decl.addSymbols(sc); // symbols might already be referenced in an initializer
+        super._semantic(sc);
+        if(decl.attr & Attr_Static)
+        {
+            Context ctx = new Context(nullContext);
+            ctx.scop = sc;
+            initValues(ctx, false);
+        }
+    }
+
+    override Value interpret(Context sc)
+    {
+        auto decl = getMember(0);
+        if(!(decl.attr & Attr_Static))
+            initValues(sc, true);
+        return null;
+    }
+
+    void initValues(Context sc, bool reinit)
+    {
+        auto decl = cast(Decl)getMember(0);
+        if(!decl)
+            return; // classes, enums, etc
+        //if(decl.getFunctionBody())
+        //    return; // nothing to do for local functions
+
+        auto decls = decl.getDeclarators();
+        for(int n = 0; n < decls.members.length; n++)
+        {
+            auto d = decls.getDeclarator(n);
+            if(reinit)
+            {
+                d.value = null;
+                d.interpretReinit(sc);
+            }
+            else
+                d.interpret(sc);
+        }
+    }
 }
 
 //ImportStatement:
 //    [ImportDeclaration]
 class ImportStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		getMember(0).toD(writer);
-	}
+    override void toD(CodeWriter writer)
+    {
+        getMember(0).toD(writer);
+    }
 
-	override Value interpret(Context sc)
-	{
-		return null;
-	}
+    override Value interpret(Context sc)
+    {
+        return null;
+    }
 }
 
 //IfStatement:
@@ -345,141 +345,141 @@ class ImportStatement : Statement
 //    ScopeNonEmptyStatement
 class IfStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer("if(", getMember(0), ")");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(1));
-		}
-		if(members.length > 2)
-		{
-			writer("else");
-			writer.nl;
-			{
-				CodeIndenter indent = CodeIndenter(writer);
-				writer(getMember(2));
-			}
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("if(", getMember(0), ")");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(1));
+        }
+        if(members.length > 2)
+        {
+            writer("else");
+            writer.nl;
+            {
+                CodeIndenter indent = CodeIndenter(writer);
+                writer(getMember(2));
+            }
+        }
+    }
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override Value interpret(Context sc)
-	{
-		Value cond = getMember(0).interpret(sc);
-		if(cond.toBool())
-		{
-			if(Value v = getMember(1).interpret(sc))
-				return v;
-		}
-		else if(members.length > 2)
-		{
-			if(Value v = getMember(2).interpret(sc))
-				return v;
-		}
-		return null;
-	}
+    override Value interpret(Context sc)
+    {
+        Value cond = getMember(0).interpret(sc);
+        if(cond.toBool())
+        {
+            if(Value v = getMember(1).interpret(sc))
+                return v;
+        }
+        else if(members.length > 2)
+        {
+            if(Value v = getMember(2).interpret(sc))
+                return v;
+        }
+        return null;
+    }
 }
 
 //WhileStatement:
 //    while ( Expression ) ScopeNonEmptyStatement
 class WhileStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void toD(CodeWriter writer)
-	{
-		writer("while(", getMember(0), ")");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(1));
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("while(", getMember(0), ")");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(1));
+        }
+    }
 
-	override Value interpret(Context sc)
-	{
-		while(getMember(0).interpret(sc).toBool())
-		{
-			if(Value v = getMember(1).interpret(sc))
-			{
-				if(auto bv = cast(BreakValue)v)
-				{
-					if(!bv.label)
-						break;
-					if(auto ls = cast(LabeledStatement)parent)
-						if(ls.ident == bv.label)
-							break;
-				}
-				else if(auto cv = cast(ContinueValue)v)
-				{
-					if(!cv.label)
-						continue;
-					if(auto ls = cast(LabeledStatement)parent)
-						if(ls.ident == cv.label)
-							continue;
-				}
-				return v;
-			}
-		}
-		return null;
-	}
+    override Value interpret(Context sc)
+    {
+        while(getMember(0).interpret(sc).toBool())
+        {
+            if(Value v = getMember(1).interpret(sc))
+            {
+                if(auto bv = cast(BreakValue)v)
+                {
+                    if(!bv.label)
+                        break;
+                    if(auto ls = cast(LabeledStatement)parent)
+                        if(ls.ident == bv.label)
+                            break;
+                }
+                else if(auto cv = cast(ContinueValue)v)
+                {
+                    if(!cv.label)
+                        continue;
+                    if(auto ls = cast(LabeledStatement)parent)
+                        if(ls.ident == cv.label)
+                            continue;
+                }
+                return v;
+            }
+        }
+        return null;
+    }
 }
 
 //DoStatement:
 //    do ScopeNonEmptyStatement while ( Expression )
 class DoStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void toD(CodeWriter writer)
-	{
-		writer("do");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(0));
-		}
-		writer("while(", getMember(1), ")");
-		writer.nl;
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("do");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(0));
+        }
+        writer("while(", getMember(1), ")");
+        writer.nl;
+    }
 
-	override Value interpret(Context sc)
-	{
-		do
-		{
-			if(Value v = getMember(0).interpret(sc))
-			{
-				if(auto bv = cast(BreakValue)v)
-				{
-					if(!bv.label)
-						break;
-					if(auto ls = cast(LabeledStatement)parent)
-						if(ls.ident == bv.label)
-							break;
-				}
-				else if(auto cv = cast(ContinueValue)v)
-				{
-					if(!cv.label)
-						continue;
-					if(auto ls = cast(LabeledStatement)parent)
-						if(ls.ident == cv.label)
-							continue;
-				}
-				return v;
-			}
-		}
-		while(getMember(1).interpret(sc).toBool());
-		return null;
-	}
+    override Value interpret(Context sc)
+    {
+        do
+        {
+            if(Value v = getMember(0).interpret(sc))
+            {
+                if(auto bv = cast(BreakValue)v)
+                {
+                    if(!bv.label)
+                        break;
+                    if(auto ls = cast(LabeledStatement)parent)
+                        if(ls.ident == bv.label)
+                            break;
+                }
+                else if(auto cv = cast(ContinueValue)v)
+                {
+                    if(!cv.label)
+                        continue;
+                    if(auto ls = cast(LabeledStatement)parent)
+                        if(ls.ident == cv.label)
+                            continue;
+                }
+                return v;
+            }
+        }
+        while(getMember(1).interpret(sc).toBool());
+        return null;
+    }
 }
 
 //ForStatement:
@@ -496,48 +496,48 @@ class DoStatement : Statement
 //
 class ForStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void toD(CodeWriter writer)
-	{
-		writer("for(", getMember(0), getMember(1), "; ", getMember(2), ")");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(3));
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("for(", getMember(0), getMember(1), "; ", getMember(2), ")");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(3));
+        }
+    }
 
-	override Value interpret(Context sc)
-	{
-		for(getMember(0).interpret(sc); getMember(1).interpret(sc).toBool();
-			getMember(2).interpret(sc))
-		{
-			if(Value v = getMember(3).interpret(sc))
-			{
-				if(auto bv = cast(BreakValue)v)
-				{
-					if(!bv.label)
-						break;
-					if(auto ls = cast(LabeledStatement)parent)
-						if(ls.ident == bv.label)
-							break;
-				}
-				else if(auto cv = cast(ContinueValue)v)
-				{
-					if(!cv.label)
-						continue;
-					if(auto ls = cast(LabeledStatement)parent)
-						if(ls.ident == cv.label)
-							continue;
-				}
-				return v;
-			}
-		}
-		return null;
-	}
+    override Value interpret(Context sc)
+    {
+        for(getMember(0).interpret(sc); getMember(1).interpret(sc).toBool();
+            getMember(2).interpret(sc))
+        {
+            if(Value v = getMember(3).interpret(sc))
+            {
+                if(auto bv = cast(BreakValue)v)
+                {
+                    if(!bv.label)
+                        break;
+                    if(auto ls = cast(LabeledStatement)parent)
+                        if(ls.ident == bv.label)
+                            break;
+                }
+                else if(auto cv = cast(ContinueValue)v)
+                {
+                    if(!cv.label)
+                        continue;
+                    if(auto ls = cast(LabeledStatement)parent)
+                        if(ls.ident == cv.label)
+                            continue;
+                }
+                return v;
+            }
+        }
+        return null;
+    }
 }
 
 //ForeachStatement:
@@ -570,160 +570,160 @@ class ForStatement : Statement
 //    Expression
 class ForeachStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	Expression getAggregate() { return getMember!Expression(1); }
-	Expression getLwrExpression() { return getMember!Expression(1); }
-	Expression getUprExpression() { return getMember!Expression(2); }
+    Expression getAggregate() { return getMember!Expression(1); }
+    Expression getLwrExpression() { return getMember!Expression(1); }
+    Expression getUprExpression() { return getMember!Expression(2); }
 
-	final bool isRangeForeach() const { return members.length > 3; }
+    final bool isRangeForeach() const { return members.length > 3; }
 
-	override void toD(CodeWriter writer)
-	{
-		writer(id, "(", getMember(0), "; ");
-		if(members.length == 3)
-			writer(getMember(1));
-		else
-			writer(getMember(1), " .. ", getMember(2));
-		
-		writer(")");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(members.length - 1));
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer(id, "(", getMember(0), "; ");
+        if(members.length == 3)
+            writer(getMember(1));
+        else
+            writer(getMember(1), " .. ", getMember(2));
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " not implemented.");
-	}
+        writer(")");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(members.length - 1));
+        }
+    }
+
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " not implemented.");
+    }
 }
 
 class ForeachTypeList : Node
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer.writeArray(members);
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer.writeArray(members);
+    }
 
-	override void addSymbols(Scope sc)
-	{
-		addMemberSymbols(sc);
-	}
+    override void addSymbols(Scope sc)
+    {
+        addMemberSymbols(sc);
+    }
 }
 
 class ForeachType : Node
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	bool isRef;
-	Type type;
+    bool isRef;
+    Type type;
 
-	Type getType() { return members.length == 2 ? getMember!Type(0) : null; }
-	Identifier getIdentifier() { return getMember!Identifier(members.length - 1); }
+    Type getType() { return members.length == 2 ? getMember!Type(0) : null; }
+    Identifier getIdentifier() { return getMember!Identifier(members.length - 1); }
 
-	override ForeachType clone()
-	{
-		ForeachType n = static_cast!ForeachType(super.clone());
-		n.isRef = isRef;
-		return n;
-	}
-	override bool compare(const(Node) n) const
-	{
-		if(!super.compare(n))
-			return false;
+    override ForeachType clone()
+    {
+        ForeachType n = static_cast!ForeachType(super.clone());
+        n.isRef = isRef;
+        return n;
+    }
+    override bool compare(const(Node) n) const
+    {
+        if(!super.compare(n))
+            return false;
 
-		auto tn = static_cast!(typeof(this))(n);
-		return tn.isRef == isRef;
-	}
-	
-	override void toD(CodeWriter writer)
-	{
-		if(isRef)
-			writer("ref ");
-		writer.writeArray(members, " ");
-	}
+        auto tn = static_cast!(typeof(this))(n);
+        return tn.isRef == isRef;
+    }
 
-	override void addSymbols(Scope sc)
-	{
-		string ident = getIdentifier().ident;
-		sc.addSymbol(ident, this);
-	}
+    override void toD(CodeWriter writer)
+    {
+        if(isRef)
+            writer("ref ");
+        writer.writeArray(members, " ");
+    }
 
-	override Type calcType()
-	{
-		if(type)
-			return type;
+    override void addSymbols(Scope sc)
+    {
+        string ident = getIdentifier().ident;
+        sc.addSymbol(ident, this);
+    }
 
-		if(auto t = getType())
-			type = t.calcType();
+    override Type calcType()
+    {
+        if(type)
+            return type;
 
-		else if(ForeachStatement stmt = parent ? cast(ForeachStatement) parent.parent : null)
-		{
-			if(stmt.isRangeForeach())
-				type = stmt.getLwrExpression().calcType();
-			else
-			{
-				Expression expr = stmt.getAggregate();
-				Type et = expr.calcType();
-				if(auto ti = cast(TypeIndirection) et)
-				{
-					type = ti.getNextType();
-				}
-			}
-		}
-		if(!type)
-			type = semanticErrorType("cannot infer type of foreach variable ", getIdentifier().ident);
-		return type;
-	}
+        if(auto t = getType())
+            type = t.calcType();
+
+        else if(ForeachStatement stmt = parent ? cast(ForeachStatement) parent.parent : null)
+        {
+            if(stmt.isRangeForeach())
+                type = stmt.getLwrExpression().calcType();
+            else
+            {
+                Expression expr = stmt.getAggregate();
+                Type et = expr.calcType();
+                if(auto ti = cast(TypeIndirection) et)
+                {
+                    type = ti.getNextType();
+                }
+            }
+        }
+        if(!type)
+            type = semanticErrorType("cannot infer type of foreach variable ", getIdentifier().ident);
+        return type;
+    }
 }
 
 //SwitchStatement:
 //    switch ( Expression ) ScopeNonEmptyStatement
 class SwitchStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	bool isFinal;
+    bool isFinal;
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override SwitchStatement clone()
-	{
-		SwitchStatement n = static_cast!SwitchStatement(super.clone());
-		n.isFinal = isFinal;
-		return n;
-	}
-	override bool compare(const(Node) n) const
-	{
-		if(!super.compare(n))
-			return false;
+    override SwitchStatement clone()
+    {
+        SwitchStatement n = static_cast!SwitchStatement(super.clone());
+        n.isFinal = isFinal;
+        return n;
+    }
+    override bool compare(const(Node) n) const
+    {
+        if(!super.compare(n))
+            return false;
 
-		auto tn = static_cast!(typeof(this))(n);
-		return tn.isFinal == isFinal;
-	}
-	
-	override void toD(CodeWriter writer)
-	{
-		if(isFinal)
-			writer("final ");
-		writer("switch(", getMember(0), ")");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(1));
-		}
-	}
+        auto tn = static_cast!(typeof(this))(n);
+        return tn.isFinal == isFinal;
+    }
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " not implemented.");
-	}
+    override void toD(CodeWriter writer)
+    {
+        if(isFinal)
+            writer("final ");
+        writer("switch(", getMember(0), ")");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(1));
+        }
+    }
+
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " not implemented.");
+    }
 }
 
 //FinalSwitchStatement:
@@ -731,12 +731,12 @@ class SwitchStatement : Statement
 //
 class FinalSwitchStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " not implemented.");
-	}
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " not implemented.");
+    }
 }
 
 //CaseStatement:
@@ -752,51 +752,51 @@ class FinalSwitchStatement : Statement
 //    AssignExpression
 class CaseStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		{
-			CodeIndenter indent = CodeIndenter(writer, -1);
-			writer("case ", getMember(0));
-			if(id == TOK_slice)
-			{
-				writer(": .. case ", getMember(1));
-			}
-			else
-			{
-				writer.writeArray(members[1..$], ", ", true);
-			}
-			writer(":");
-		}
-		writer.nl();
-	}
+    override void toD(CodeWriter writer)
+    {
+        {
+            CodeIndenter indent = CodeIndenter(writer, -1);
+            writer("case ", getMember(0));
+            if(id == TOK_slice)
+            {
+                writer(": .. case ", getMember(1));
+            }
+            else
+            {
+                writer.writeArray(members[1..$], ", ", true);
+            }
+            writer(":");
+        }
+        writer.nl();
+    }
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " not implemented.");
-	}
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " not implemented.");
+    }
 }
 
 //DefaultStatement:
 //    default : Statement
 class DefaultStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		{
-			CodeIndenter indent = CodeIndenter(writer, -1);
-			writer("default:");
-		}
-		writer.nl();
-	}
-	
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " not implemented.");
-	}
+    override void toD(CodeWriter writer)
+    {
+        {
+            CodeIndenter indent = CodeIndenter(writer, -1);
+            writer("default:");
+        }
+        writer.nl();
+    }
+
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " not implemented.");
+    }
 }
 
 //ContinueStatement:
@@ -804,41 +804,41 @@ class DefaultStatement : Statement
 //    continue Identifier ;
 class ContinueStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	string ident;
+    string ident;
 
-	override ContinueStatement clone()
-	{
-		ContinueStatement n = static_cast!ContinueStatement(super.clone());
-		n.ident = ident;
-		return n;
-	}
-	override bool compare(const(Node) n) const
-	{
-		if(!super.compare(n))
-			return false;
+    override ContinueStatement clone()
+    {
+        ContinueStatement n = static_cast!ContinueStatement(super.clone());
+        n.ident = ident;
+        return n;
+    }
+    override bool compare(const(Node) n) const
+    {
+        if(!super.compare(n))
+            return false;
 
-		auto tn = static_cast!(typeof(this))(n);
-		return tn.ident == ident;
-	}
-	
-	override void toD(CodeWriter writer)
-	{
-		writer("continue");
-		if(ident.length)
-		{
-			writer(" ");
-			writer.writeIdentifier(ident);
-		}
-		writer(";");
-		writer.nl;
-	}
+        auto tn = static_cast!(typeof(this))(n);
+        return tn.ident == ident;
+    }
 
-	override Value interpret(Context sc)
-	{
-		return new ContinueValue(ident);
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("continue");
+        if(ident.length)
+        {
+            writer(" ");
+            writer.writeIdentifier(ident);
+        }
+        writer(";");
+        writer.nl;
+    }
+
+    override Value interpret(Context sc)
+    {
+        return new ContinueValue(ident);
+    }
 }
 
 //BreakStatement:
@@ -846,41 +846,41 @@ class ContinueStatement : Statement
 //    break Identifier ;
 class BreakStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	string ident;
+    string ident;
 
-	override BreakStatement clone()
-	{
-		BreakStatement n = static_cast!BreakStatement(super.clone());
-		n.ident = ident;
-		return n;
-	}
-	override bool compare(const(Node) n) const
-	{
-		if(!super.compare(n))
-			return false;
+    override BreakStatement clone()
+    {
+        BreakStatement n = static_cast!BreakStatement(super.clone());
+        n.ident = ident;
+        return n;
+    }
+    override bool compare(const(Node) n) const
+    {
+        if(!super.compare(n))
+            return false;
 
-		auto tn = static_cast!(typeof(this))(n);
-		return tn.ident == ident;
-	}
-	
-	override void toD(CodeWriter writer)
-	{
-		writer("break");
-		if(ident.length)
-		{
-			writer(" ");
-			writer.writeIdentifier(ident);
-		}
-		writer(";");
-		writer.nl;
-	}
+        auto tn = static_cast!(typeof(this))(n);
+        return tn.ident == ident;
+    }
 
-	override Value interpret(Context sc)
-	{
-		return new BreakValue(ident);
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("break");
+        if(ident.length)
+        {
+            writer(" ");
+            writer.writeIdentifier(ident);
+        }
+        writer(";");
+        writer.nl;
+    }
+
+    override Value interpret(Context sc)
+    {
+        return new BreakValue(ident);
+    }
 }
 
 
@@ -889,18 +889,18 @@ class BreakStatement : Statement
 //    return Expression ;
 class ReturnStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer("return ", getMember(0), ";");
-		writer.nl;
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("return ", getMember(0), ";");
+        writer.nl;
+    }
 
-	override Value interpret(Context sc)
-	{
-		return getMember(0).interpret(sc);
-	}
+    override Value interpret(Context sc)
+    {
+        return getMember(0).interpret(sc);
+    }
 }
 
 
@@ -911,49 +911,49 @@ class ReturnStatement : Statement
 //    goto case Expression ;
 class GotoStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	string ident;
-	
-	override GotoStatement clone()
-	{
-		GotoStatement n = static_cast!GotoStatement(super.clone());
-		n.ident = ident;
-		return n;
-	}
-	override bool compare(const(Node) n) const
-	{
-		if(!super.compare(n))
-			return false;
+    string ident;
 
-		auto tn = static_cast!(typeof(this))(n);
-		return tn.ident == ident;
-	}
-	
-	override void toD(CodeWriter writer)
-	{
-		if(id == TOK_Identifier)
-		{
-			writer("goto ");
-			writer.writeIdentifier(ident);
-			writer(";");
-		}
-		else if(id == TOK_default)
-			writer("goto default;");
-		else
-		{
-			if(members.length > 0)
-				writer("goto case ", getMember(0), ";");
-			else
-				writer("goto case;");
-		}
-		writer.nl;
-	}
+    override GotoStatement clone()
+    {
+        GotoStatement n = static_cast!GotoStatement(super.clone());
+        n.ident = ident;
+        return n;
+    }
+    override bool compare(const(Node) n) const
+    {
+        if(!super.compare(n))
+            return false;
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " not implemented.");
-	}
+        auto tn = static_cast!(typeof(this))(n);
+        return tn.ident == ident;
+    }
+
+    override void toD(CodeWriter writer)
+    {
+        if(id == TOK_Identifier)
+        {
+            writer("goto ");
+            writer.writeIdentifier(ident);
+            writer(";");
+        }
+        else if(id == TOK_default)
+            writer("goto default;");
+        else
+        {
+            if(members.length > 0)
+                writer("goto case ", getMember(0), ";");
+            else
+                writer("goto case;");
+        }
+        writer.nl;
+    }
+
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " not implemented.");
+    }
 }
 
 //WithStatement:
@@ -962,78 +962,78 @@ class GotoStatement : Statement
 //    with ( TemplateInstance ) ScopeNonEmptyStatement
 class WithStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void toD(CodeWriter writer)
-	{
-		writer("with(", getMember(0), ")");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(1));
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("with(", getMember(0), ")");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(1));
+        }
+    }
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " not implemented.");
-	}
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " not implemented.");
+    }
 }
 
 //SynchronizedStatement:
 //    [Expression_opt ScopeNonEmptyStatement]
 class SynchronizedStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void toD(CodeWriter writer)
-	{
-		if(members.length > 1)
-			writer("synchronized(", getMember(0), ") ");
-		else
-			writer("synchronized ");
-			
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(members.length - 1));
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        if(members.length > 1)
+            writer("synchronized(", getMember(0), ") ");
+        else
+            writer("synchronized ");
 
-	override Value interpret(Context sc)
-	{
-		// no need to synhronize, interpreter is single-threaded
-		return getMember(members.length - 1).interpret(sc);
-	}
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(members.length - 1));
+        }
+    }
+
+    override Value interpret(Context sc)
+    {
+        // no need to synhronize, interpreter is single-threaded
+        return getMember(members.length - 1).interpret(sc);
+    }
 }
 
 //VolatileStatement:
 //    [ScopeNonEmptyStatement]
 class VolatileStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void toD(CodeWriter writer)
-	{
-		writer("volatile ");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(members.length - 1));
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("volatile ");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(members.length - 1));
+        }
+    }
 
-	override Value interpret(Context sc)
-	{
-		// no need to synhronize, interpreter is single-threaded
-		return super.interpret(sc);
-	}
+    override Value interpret(Context sc)
+    {
+        // no need to synhronize, interpreter is single-threaded
+        return super.interpret(sc);
+    }
 }
 
 
@@ -1060,65 +1060,65 @@ class VolatileStatement : Statement
 //    finally NoScopeNonEmptyStatement
 class TryStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void toD(CodeWriter writer)
-	{
-		writer("try");
-		writer.nl();
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(0));
-		}
-		foreach(m; members[1..$])
-			writer(m);
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("try");
+        writer.nl();
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(0));
+        }
+        foreach(m; members[1..$])
+            writer(m);
+    }
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " not implemented.");
-	}
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " not implemented.");
+    }
 }
 
 class Catch : Node
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void toD(CodeWriter writer)
-	{
-		if(members.length > 2)
-			writer("catch(", getMember(0), " ", getMember(1), ")");
-		else if(members.length > 1)
-			writer("catch(", getMember(0), ")");
-		else
-			writer("catch");
-		writer.nl();
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(members.length - 1));
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        if(members.length > 2)
+            writer("catch(", getMember(0), " ", getMember(1), ")");
+        else if(members.length > 1)
+            writer("catch(", getMember(0), ")");
+        else
+            writer("catch");
+        writer.nl();
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(members.length - 1));
+        }
+    }
 }
 
 class FinallyStatement : Catch
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void toD(CodeWriter writer)
-	{
-		writer("finally");
-		writer.nl();
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(0));
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("finally");
+        writer.nl();
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(0));
+        }
+    }
 }
 
 
@@ -1126,18 +1126,18 @@ class FinallyStatement : Catch
 //    throw Expression ;
 class ThrowStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer("throw ", getMember(0), ";");
-		writer.nl;
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("throw ", getMember(0), ";");
+        writer.nl;
+    }
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " not implemented.");
-	}
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " not implemented.");
+    }
 }
 
 //ScopeGuardStatement:
@@ -1146,24 +1146,24 @@ class ThrowStatement : Statement
 //    scope ( "failure" ) ScopeNonEmptyStatement
 class ScopeGuardStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override bool createsScope() const { return true; }
+    override bool createsScope() const { return true; }
 
-	override void toD(CodeWriter writer)
-	{
-		writer("scope(", getMember(0), ")");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(1));
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("scope(", getMember(0), ")");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(1));
+        }
+    }
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " not implemented.");
-	}
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " not implemented.");
+    }
 }
 
 //AsmStatement:
@@ -1175,86 +1175,85 @@ class ScopeGuardStatement : Statement
 //    AsmInstruction ; AsmInstructionList
 class AsmStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer("asm {");
-		writer.nl;
-		{
-			CodeIndenter indent = CodeIndenter(writer);
-			writer(getMember(0));
-		}
-		writer("}");
-		writer.nl;
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("asm {");
+        writer.nl;
+        {
+            CodeIndenter indent = CodeIndenter(writer);
+            writer(getMember(0));
+        }
+        writer("}");
+        writer.nl;
+    }
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " cannot be interpreted.");
-	}
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " cannot be interpreted.");
+    }
 }
 
 class AsmInstructionList : Node
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		foreach(m; members)
-		{
-			writer(m, ";");
-			writer.nl();
-		}
-	}
+    override void toD(CodeWriter writer)
+    {
+        foreach(m; members)
+        {
+            writer(m, ";");
+            writer.nl();
+        }
+    }
 }
 
 //PragmaStatement:
 //    Pragma NoScopeStatement
 class PragmaStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer(getMember(0), " ", getMember(1));
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer(getMember(0), " ", getMember(1));
+    }
 
-	override Value interpret(Context sc)
-	{
-		getMember(0).interpret(sc);
-		return getMember(1).interpret(sc);
-	}
+    override Value interpret(Context sc)
+    {
+        getMember(0).interpret(sc);
+        return getMember(1).interpret(sc);
+    }
 }
 
 //MixinStatement:
 //    [ AssignExpression ]
 class MixinStatement : Statement
 {
-	mixin ForwardCtor!();
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		writer("mixin(", getMember(0), ");");
-		writer.nl;
-	}
+    override void toD(CodeWriter writer)
+    {
+        writer("mixin(", getMember(0), ");");
+        writer.nl;
+    }
 
-	override void _semantic(Scope sc)
-	{
-		Context ctx = new Context(nullContext);
-		ctx.scop = sc;
-		Value v = getMember(0).interpretCatch(ctx);
-		string s = v.toMixin();
-		Parser parser = new Parser;
-		if(auto prj = sc.getProject())
-			parser.saveErrors = prj.saveErrors;
-		Node[] n = parser.parseStatements(s, span);
-		parent.replaceMember(this, n);
-	}
+    override void _semantic(Scope sc)
+    {
+        Context ctx = new Context(nullContext);
+        ctx.scop = sc;
+        Value v = getMember(0).interpretCatch(ctx);
+        string s = v.toMixin();
+        Parser parser = new Parser;
+        if(auto prj = sc.getProject())
+            parser.saveErrors = prj.saveErrors;
+        Node[] n = parser.parseStatements(s, span);
+        parent.replaceMember(this, n);
+    }
 
-	override Value interpret(Context sc)
-	{
-		return semanticErrorValue(this, " semantic not run");
-	}
+    override Value interpret(Context sc)
+    {
+        return semanticErrorValue(this, " semantic not run");
+    }
 }
-
