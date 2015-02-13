@@ -1,6 +1,5 @@
-
 import vdc.semantic;
-import std.random, std.conv;
+import std.random, std.conv, std.file, std.path;
 
 struct FalsePointers
 {
@@ -12,7 +11,6 @@ FalsePointers* ptrs;
 
 void main(string[] argv)
 {
-    string fname = argv.length > 1 ? argv[1] : "../../phobos/std/datetime.d";
     size_t nIter = 10;
     if(argv.length > 2)
         nIter = to!size_t(argv[2]);
@@ -30,6 +28,7 @@ void main(string[] argv)
     Project prj = new Project;
     foreach(i; 0..nIter)
     {
-        prj.addAndParseFile(fname);
+        foreach(string name; dirEntries(buildPath("gcbench", "vdparser.extra"), "*.d", SpanMode.depth))
+            prj.addAndParseFile(name);
     }
 }

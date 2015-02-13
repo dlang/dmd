@@ -15,24 +15,24 @@ import vdc.ast.writer;
 
 class AsmInstruction : Node
 {
-	mixin ForwardCtor!();
-	
-	Token[] tokens;
-	
-	void addToken(Token tok)
-	{
-		Token ntok = new Token;
-		ntok.copy(tok);
-		tokens ~= ntok;
-	}
+    mixin ForwardCtor!();
 
-	override void toD(CodeWriter writer)
-	{
-		foreach(t; tokens)
-		{
-			writer(t.txt, " ");
-		}
-	}
+    Token[] tokens;
+
+    void addToken(Token tok)
+    {
+        Token ntok = new Token;
+        ntok.copy(tok);
+        tokens ~= ntok;
+    }
+
+    override void toD(CodeWriter writer)
+    {
+        foreach(t; tokens)
+        {
+            writer(t.txt, " ");
+        }
+    }
 }
 
 
