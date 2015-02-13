@@ -584,7 +584,7 @@ class ValueT(T) : Value
         }
     }
 
-    enum int unOps[] = [ TOK_plusplus, TOK_minusminus, TOK_min, TOK_add, TOK_not, TOK_tilde ];
+    enum int[] unOps = [ TOK_plusplus, TOK_minusminus, TOK_min, TOK_add, TOK_not, TOK_tilde ];
 
     static string genMixinUnOpAll()
     {
