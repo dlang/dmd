@@ -90,15 +90,18 @@ void semanticTypeInfo(Scope *sc, Type *t)
         void visit(TypeStruct *t)
         {
             StructDeclaration *sd = t->sym;
-            if (sd->members &&
-                (sd->xeq  && sd->xeq  != sd->xerreq  ||
-                 sd->xcmp && sd->xcmp != sd->xerrcmp ||
-                 (sd->postblit && !(sd->postblit->storage_class & STCdisable)) ||
-                 sd->dtor ||
-                 sd->xhash ||
-                 search_toString(sd)
-                ) &&
-                sd->inNonRoot())
+            if (!sd->members)
+                return;     // opaque struct
+            if (sd->semanticRun >= PASSsemantic3)
+                return;     // semantic3 will be done
+            if (!sd->xeq && !sd->xcmp && !sd->postblit &&
+                !sd->dtor && !sd->xhash && !search_toString(sd))
+                return;     // none of TypeInfo-specific members
+
+            // If the struct is in a non-root module, run semantic3 to get
+            // correct symbols for the member function.
+            // Note that, all instantiated symbols will run semantic3.
+            if (sd->inNonRoot())
             {
                 //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
                 Module::addDeferredSemantic3(sd);

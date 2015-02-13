@@ -79,7 +79,7 @@ void genTypeInfo(Type *torig, Scope *sc)
             // Generate COMDAT
             if (sc)                     // if in semantic() pass
             {
-                if (sc->func && !sc->func->isInstantiated() && sc->func->inNonRoot())
+                if (sc->func && sc->func->inNonRoot())
                 {
                     // Bugzilla 13043: Avoid linking TypeInfo if it's not
                     // necessary for root module compilation

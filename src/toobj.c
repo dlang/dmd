@@ -1097,30 +1097,30 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             visit((AttribDeclaration *)pd);
         }
 
-        void visit(TemplateInstance *td)
+        void visit(TemplateInstance *ti)
         {
         #if LOG
-            printf("TemplateInstance::toObjFile('%s', this = %p)\n", td->toChars(), td);
+            printf("TemplateInstance::toObjFile('%s', this = %p)\n", ti->toChars(), ti);
         #endif
-            if (!isError(td) && td->members)
+            if (!isError(ti) && ti->members)
             {
-                if (!td->needsCodegen())
+                if (!ti->needsCodegen())
                 {
-                    //printf("-speculative (%p, %s)\n", this, toPrettyChars());
+                    //printf("-speculative (%p, %s)\n", ti, ti->toPrettyChars());
                     return;
                 }
-                //printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
+                //printf("TemplateInstance::toObjFile('%s', this = %p)\n", ti->toChars(), this);
 
                 if (multiobj)
                 {
                     // Append to list of object files to be written later
-                    obj_append(td);
+                    obj_append(ti);
                 }
                 else
                 {
-                    for (size_t i = 0; i < td->members->dim; i++)
+                    for (size_t i = 0; i < ti->members->dim; i++)
                     {
-                        Dsymbol *s = (*td->members)[i];
+                        Dsymbol *s = (*ti->members)[i];
                         s->accept(this);
                     }
                 }
