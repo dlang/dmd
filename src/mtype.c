@@ -2979,7 +2979,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 {
                     if (tf->linkage != LINKc)
                     {
-                        error(loc, "cannot have out or ref parameter of type %s", t->toChars());
+                        error(loc, "cannot have out, ref or lazy parameter of type %s", t->toChars());
                     }
                     else
                     {
