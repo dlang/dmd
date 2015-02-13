@@ -11,7 +11,7 @@ FalsePointers* ptrs;
 
 void main(string[] argv)
 {
-    size_t nIter = 10;
+    size_t nIter = 20;
     if(argv.length > 2)
         nIter = to!size_t(argv[2]);
 
