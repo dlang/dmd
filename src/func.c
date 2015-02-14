@@ -456,7 +456,7 @@ void FuncDeclaration::semantic(Scope *sc)
             /* If the nesting parent is pure without inference,
              * then this function defaults to pure too.
              *
-             *  auto foo() pure {   
+             *  auto foo() pure {
              *    auto bar() {}     // become a weak purity funciton
              *    class C {         // nested class
              *      auto baz() {}   // become a weak purity funciton
@@ -837,7 +837,8 @@ void FuncDeclaration::semantic(Scope *sc)
                 return;
 
             default:
-            {   FuncDeclaration *fdv = cd->baseClass->vtbl[vi]->isFuncDeclaration();
+            {
+                FuncDeclaration *fdv = cd->baseClass->vtbl[vi]->isFuncDeclaration();
                 FuncDeclaration *fdc = cd->vtbl[vi]->isFuncDeclaration();
                 // This function is covariant with fdv
 
@@ -879,7 +880,8 @@ void FuncDeclaration::semantic(Scope *sc)
                         error("multiple overrides of same function");
                     }
                     else if (!thismixin)    // fdc overrides fdv
-                    {   // this doesn't override any function
+                    {
+                        // this doesn't override any function
                         break;
                     }
                 }
@@ -934,7 +936,8 @@ void FuncDeclaration::semantic(Scope *sc)
                     return;
 
                 default:
-                {   FuncDeclaration *fdv = (FuncDeclaration *)b->base->vtbl[vi];
+                {
+                    FuncDeclaration *fdv = (FuncDeclaration *)b->base->vtbl[vi];
                     Type *ti = NULL;
 
                     /* Remember which functions this overrides
@@ -990,7 +993,7 @@ void FuncDeclaration::semantic(Scope *sc)
             }
         }
 
-        if (!doesoverride && isOverride() && type->nextOf())
+        if (!doesoverride && isOverride() && (type->nextOf() || !may_override))
         {
             Dsymbol *s = NULL;
             for (size_t i = 0; i < cd->baseclasses->dim; i++)
