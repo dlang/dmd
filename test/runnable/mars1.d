@@ -1187,6 +1187,22 @@ void test13190()
 
 ////////////////////////////////////////////////////////////////////////
 
+double foo13485(double c, double d)
+{
+    // This must not be optimized to c += (d + d)
+    c += d;
+    c += d;
+    return c;
+}
+
+void test13485()
+{
+    enum double d = 0X1P+1023;
+    assert(foo13485(-d, d) == d);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 void test12833a(int a)
 {
     long x = cast(long)a;
@@ -1294,6 +1310,7 @@ int main()
     testshrshl();
     test13383();
     test13190();
+    test13485();
     test10639();
     test10715();
     test10678();
