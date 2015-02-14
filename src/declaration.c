@@ -557,15 +557,27 @@ Dsymbol *AliasDeclaration::toAlias()
         inSemantic = 2;
         unsigned olderrors = global.errors;
         Dsymbol *s = type->toDsymbol(scope);
-        //printf("[%s] %s, s = %p, this = %p\n", loc.toChars(), type->toChars(), s, this);
-        if (!s || global.errors != olderrors)
-            goto Lerr;
-        s = s->toAlias();
+        //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type->toChars(), s, this);
         if (global.errors != olderrors)
             goto Lerr;
-
-        aliassym = s;
-        inSemantic = 0;
+        if (s)
+        {
+            s = s->toAlias();
+            if (global.errors != olderrors)
+                goto Lerr;
+            aliassym = s;
+            inSemantic = 0;
+        }
+        else
+        {
+            Type *t = type->semantic(loc, scope);
+            if (t->ty == Terror)
+                goto Lerr;
+            if (global.errors != olderrors)
+                goto Lerr;
+            //printf("t = %s\n", t->toChars());
+            inSemantic = 0;
+        }
     }
     if (inSemantic)
     {
