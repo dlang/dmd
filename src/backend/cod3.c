@@ -3224,6 +3224,7 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
         MOV     voff+3*8[RBP],RCX
         MOV     voff+4*8[RBP],R8
         MOV     voff+5*8[RBP],R9
+        MOV     R11,RDX
         MOVZX   EAX,AL                      // AL = 0..8, # of XMM registers used
         SHL     EAX,2                       // 4 bytes for each MOVAPS
         LEA     RDX,offset L2[RIP]
@@ -3245,6 +3246,7 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
         MOV     9[RAX],RDX                  // set __va_argsave.stack_args
         SUB     RAX,6*8+0x7F                // point to start of __va_argsave
         MOV     6*8+8*16+4+4+8[RAX],RAX     // set __va_argsave.reg_args
+        MOV     RDX,R11
     */
     targ_size_t voff = Auto.size + BPoff + sv->Soffset;  // EBP offset of start of sv
     const int vregnum = 6;
@@ -3264,6 +3266,13 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
                 ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,r,4);
             c = genc1(c,0x89,ea,FLconst,voff + i*8);
         }
+    }
+
+    bool saveRDX = (mask[DX] & *namedargs) != 0;
+    if (saveRDX)
+    {
+        c = genregs(c,0x89,DX,R11); // MOV R11,RDX
+        code_orrex(c, REX_W);
     }
 
     c = genregs(c,0x0FB6,AX,AX);                          // MOVZX EAX,AL
@@ -3328,6 +3337,12 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
 
     // MOV 6*8+8*16+4+4+8[RAX],RAX  // set __va_argsave.reg_args
     genc1(c,0x89,(REX_W << 16) | modregrm(2,AX,AX),FLconst,6*8+8*16+4+4+8);
+
+    if (saveRDX)
+    {
+        c = genregs(c,0x89,R11,DX); // MOV RDX,R11
+        code_orrex(c, REX_W);
+    }
 
     pinholeopt(c, NULL);
     useregs(mDX|mAX);
