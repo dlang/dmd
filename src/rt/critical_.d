@@ -13,6 +13,8 @@
  */
 module rt.critical_;
 
+nothrow:
+
 private
 {
     debug(PRINTF) import core.stdc.stdio;
@@ -212,4 +214,3 @@ version( USE_PTHREADS )
         }
     }
 }
-
