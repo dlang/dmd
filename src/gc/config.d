@@ -23,7 +23,7 @@ extern extern(C) __gshared string[] rt_options;
 struct Config
 {
     bool disable;            // start disabled
-    byte profile;            // enable profiling with summary when terminating program
+    ubyte profile;           // enable profiling with summary when terminating program
     bool precise;            // enable precise scanning
     bool concurrent;         // enable concurrent collection
 
@@ -60,7 +60,7 @@ struct Config
 
         string s = "GC options are specified as white space separated assignments:
     disable:0|1    - start disabled (%d)
-    profile:0|1    - enable profiling with summary when terminating program (%d)
+    profile:0|1|2  - enable profiling with summary when terminating program (%d)
     precise:0|1    - enable precise scanning (not implemented yet)
     concurrent:0|1 - enable concurrent collection (not implemented yet)
 
@@ -207,28 +207,33 @@ unittest
     scope (exit) inUnittest = false;
 
     Config conf;
-    assert(!conf.parseOptions("profile"));
-    assert(!conf.parseOptions("profile:"));
-    assert(!conf.parseOptions("profile:5"));
-    assert(conf.parseOptions("profile:y") && conf.profile);
-    assert(conf.parseOptions("profile:n") && !conf.profile);
-    assert(conf.parseOptions("profile:Y") && conf.profile);
-    assert(conf.parseOptions("profile:N") && !conf.profile);
-    assert(conf.parseOptions("profile:1") && conf.profile);
-    assert(conf.parseOptions("profile:0") && !conf.profile);
+    assert(!conf.parseOptions("disable"));
+    assert(!conf.parseOptions("disable:"));
+    assert(!conf.parseOptions("disable:5"));
+    assert(conf.parseOptions("disable:y") && conf.disable);
+    assert(conf.parseOptions("disable:n") && !conf.disable);
+    assert(conf.parseOptions("disable:Y") && conf.disable);
+    assert(conf.parseOptions("disable:N") && !conf.disable);
+    assert(conf.parseOptions("disable:1") && conf.disable);
+    assert(conf.parseOptions("disable:0") && !conf.disable);
 
-    assert(conf.parseOptions("profile=y") && conf.profile);
-    assert(conf.parseOptions("profile=n") && !conf.profile);
+    assert(conf.parseOptions("disable=y") && conf.disable);
+    assert(conf.parseOptions("disable=n") && !conf.disable);
 
-    assert(conf.parseOptions("profile:1 minPoolSize:16"));
-    assert(conf.profile);
+    assert(conf.parseOptions("profile=0") && conf.profile == 0);
+    assert(conf.parseOptions("profile=1") && conf.profile == 1);
+    assert(conf.parseOptions("profile=2") && conf.profile == 2);
+    assert(!conf.parseOptions("profile=256"));
+
+    assert(conf.parseOptions("disable:1 minPoolSize:16"));
+    assert(conf.disable);
     assert(conf.minPoolSize == 16);
 
     assert(conf.parseOptions("heapSizeFactor:3.1"));
     assert(conf.heapSizeFactor == 3.1f);
-    assert(conf.parseOptions("heapSizeFactor:3.1234567890 profile:0"));
+    assert(conf.parseOptions("heapSizeFactor:3.1234567890 disable:0"));
     assert(conf.heapSizeFactor > 3.123f);
-    assert(!conf.profile);
+    assert(!conf.disable);
     assert(!conf.parseOptions("heapSizeFactor:3.0.2.5"));
     assert(conf.parseOptions("heapSizeFactor:2"));
     assert(conf.heapSizeFactor == 2.0f);
