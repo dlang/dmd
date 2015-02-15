@@ -941,6 +941,13 @@ void test36()
     }
 }
 
+void test36b() @nogc nothrow
+{
+    synchronized
+    {
+    }
+}
+
 /* ================================ */
 int test37()
 {
