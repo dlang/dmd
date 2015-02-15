@@ -37,3 +37,15 @@ class Bar10195 : Foo10195
 {
     override auto baz() { return 1; }
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/diag8318.d(50): Error: function diag8318.B14173.foo does not override any function
+---
+*/
+class A14173 {}
+class B14173 : A14173
+{
+    override foo() {}
+}
