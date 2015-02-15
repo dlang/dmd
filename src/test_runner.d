@@ -15,7 +15,13 @@ bool tester()
     immutable pkg = ".package";
     immutable pkgLen = pkg.length;
 
-    if(name.length > pkgLen && name[$ - pkgLen .. $] == pkg)
+    debug string mode = "debug";
+    else string mode =  "release";
+    static if ((void*).sizeof == 4) mode ~= "32";
+    else static if ((void*).sizeof == 8) mode ~= "64";
+    else static assert(0, "You must be from the future!");
+
+    if (name.length > pkgLen && name[$ - pkgLen .. $] == pkg)
         name = name[0 .. $ - pkgLen];
 
     if (auto fp = getModuleInfo(name).unitTest)
@@ -24,15 +30,18 @@ bool tester()
         {
             immutable t0 = MonoTime.currTime;
             fp();
-            immutable t1 = MonoTime.currTime;
-            printf("%.3fs PASS %.*s\n", (t1 - t0).total!"msecs" / 1000.0,
-                cast(int)name.length, name.ptr);
+            printf("%.3fs PASS %.*s %.*s\n",
+                (MonoTime.currTime - t0).total!"msecs" / 1000.0,
+                cast(uint)mode.length, mode.ptr,
+                cast(uint)name.length, name.ptr);
         }
         catch (Throwable e)
         {
             auto msg = e.toString();
-            printf("****** FAIL %.*s\n%.*s\n", cast(int)name.length, name.ptr,
-                cast(int)msg.length, msg.ptr);
+            printf("****** FAIL %.*s %.*s\n%.*s\n",
+                cast(uint)mode.length, mode.ptr,
+                cast(uint)name.length, name.ptr,
+                cast(uint)msg.length, msg.ptr);
             return false;
         }
     }
