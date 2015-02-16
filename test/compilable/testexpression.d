@@ -116,6 +116,6 @@ void main()
 {
     OpAssignCases!TestOpAssign();
     //OpAssignCases!TestOpAssignAssign(); // disabled due to bug 7436
-    //OpAssignCases!TestOpAssignAuto(); // 5181
+    OpAssignCases!TestOpAssignAuto();
     OpReAssignCases!TestOpAndAssign();
 }
