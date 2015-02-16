@@ -14,6 +14,27 @@ DOCS=\
 	$(DOCDIR)\core_time.html \
 	$(DOCDIR)\core_vararg.html \
 	\
+	$(DOCDIR)\core_stdc_complex.html \
+	$(DOCDIR)\core_stdc_ctype.html \
+	$(DOCDIR)\core_stdc_errno.html \
+	$(DOCDIR)\core_stdc_fenv.html \
+	$(DOCDIR)\core_stdc_float_.html \
+	$(DOCDIR)\core_stdc_inttypes.html \
+	$(DOCDIR)\core_stdc_limits.html \
+	$(DOCDIR)\core_stdc_locale.html \
+	$(DOCDIR)\core_stdc_math.html \
+	$(DOCDIR)\core_stdc_signal.html \
+	$(DOCDIR)\core_stdc_stdarg.html \
+	$(DOCDIR)\core_stdc_stddef.html \
+	$(DOCDIR)\core_stdc_stdint.html \
+	$(DOCDIR)\core_stdc_stdio.html \
+	$(DOCDIR)\core_stdc_stdlib.html \
+	$(DOCDIR)\core_stdc_string.html \
+	$(DOCDIR)\core_stdc_tgmath.html \
+	$(DOCDIR)\core_stdc_time.html \
+	$(DOCDIR)\core_stdc_wchar_.html \
+	$(DOCDIR)\core_stdc_wctype.html \
+	\
 	$(DOCDIR)\core_sync_barrier.html \
 	$(DOCDIR)\core_sync_condition.html \
 	$(DOCDIR)\core_sync_config.html \
