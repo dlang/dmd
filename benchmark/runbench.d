@@ -109,7 +109,7 @@ void runTests(Config cfg)
                 auto tgt = bin.setExtension("gcx.log");
                 rename("gcx.log", tgt);
                 auto lines = File(tgt, "r").byLine()
-                    .find!(ln => ln.canFind("maxPoolMemory"));
+                    .find!(ln => ln.canFind("GC summary:"));
                 if (!lines.empty) gcprof = lines.front.find("GC summary:")[11..$].idup;
             }
             else
