@@ -56,6 +56,8 @@ struct Config
 
     void help()
     {
+        version (unittest) if (inUnittest) return;
+
         string s = "GC options are specified as white space separated assignments:
     disable:0|1    - start disabled (%d)
     profile:0|1    - enable profiling with summary when terminating program (%d)
@@ -66,7 +68,7 @@ struct Config
     minPoolSize:N  - initial and minimum pool size in MB (%lld)
     maxPoolSize:N  - maximum pool size in MB (%lld)
     incPoolSize:N  - pool size increment MB (%lld)
-    heapSizeFactor:N - targeted heap size to used memory ratio (%f)
+    heapSizeFactor:N - targeted heap size to used memory ratio (%g)
 ";
         printf(s.ptr, disable, profile, cast(long)initReserve, cast(long)minPoolSize,
                cast(long)maxPoolSize, cast(long)incPoolSize, heapSizeFactor);
@@ -77,16 +79,20 @@ struct Config
         opt = skip!isspace(opt);
         while (opt.length)
         {
-            auto tail = find!(c => c == ':' || c == '=')(opt);
+            auto tail = find!(c => c == ':' || c == '=' || c == ' ')(opt);
             auto name = opt[0 .. $ - tail.length];
-            if (tail.length <= 1)
+            if (name == "help")
+            {
+                help();
+                opt = skip!isspace(tail);
+                continue;
+            }
+            if (tail.length <= 1 || tail[0] == ' ')
                 return optError("Missing argument for", name);
             tail = tail[1 .. $];
 
             switch (name)
             {
-            case "help": help(); break;
-
             foreach (field; __traits(allMembers, Config))
             {
                 static if (!is(typeof(__traits(getMember, this, field)) == function))
@@ -142,8 +148,10 @@ body
 
     if (!i)
         return parseError("a number", optname, str);
+    if (v > res.max)
+        return parseError("a number " ~ T.max.stringof ~ " or below", optname, str[0 .. i]);
     str = str[i .. $];
-    res = v;
+    res = cast(T) v;
     return true;
 }
 
@@ -228,4 +236,8 @@ unittest
     assert(!conf.parseOptions("initReserve:foo"));
     assert(!conf.parseOptions("initReserve:y"));
     assert(!conf.parseOptions("initReserve:20.5"));
+
+    assert(conf.parseOptions("help"));
+    assert(conf.parseOptions("help profile:1"));
+    assert(conf.parseOptions("help profile:1 help"));
 }
