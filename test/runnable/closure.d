@@ -756,6 +756,59 @@ void test5911()
 }
 
 /************************************/
+// 9685
+
+auto get9685a(alias fun)()
+{
+    int x = 10;
+    struct Foo
+    {
+        size_t data;
+
+        @property clone()
+        {
+            return Foo(15);
+        }
+    }
+    return Foo(5);
+}
+void test9685a()
+{
+    uint a = 42;
+    auto bar = get9685a!(() => a)();
+    auto qux = bar.clone;
+    //printf("bar context pointer : %p\n", bar.tupleof[$-1]);
+    //printf("qux context pointer : %p\n", qux.tupleof[$-1]);
+    assert(bar.tupleof[$-1] == qux.tupleof[$-1]);
+    assert(qux.data == 15);
+}
+
+auto get9685b(alias fun)()
+{
+    int x = 10;
+    struct Foo
+    {
+        size_t data;
+
+        @property clone()
+        {
+            return Foo(data + x);
+        }
+    }
+    return Foo(5);
+}
+void test9685b()
+{
+    uint a = 42;
+    auto bar = get9685b!(() => a)();
+    auto qux = bar.clone;
+    //printf("bar context pointer : %p\n", bar.tupleof[$-1]);
+    //printf("qux context pointer : %p\n", qux.tupleof[$-1]);
+    assert(bar.tupleof[$-1] == qux.tupleof[$-1]);
+    assert(qux.data == 15);
+}
+
+/************************************/
 
 int main()
 {
@@ -783,6 +836,8 @@ int main()
     test22();
     bug1841();
     test5911();
+    test9685a();
+    test9685b();
 
     printf("Success\n");
     return 0;

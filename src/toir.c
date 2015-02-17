@@ -266,7 +266,9 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
     else
     {
         ethis = getEthis(loc, irs, adp);
-        ethis = el_una(OPaddr, TYnptr, ethis);
+        FuncDeclaration *fdp = adp->isFuncDeclaration();
+        if (fdp && fdp->hasNestedFrameRefs())
+            ethis = el_una(OPaddr, TYnptr, ethis);
     }
 
     ey = el_bin(OPadd, TYnptr, ey, el_long(TYsize_t, ad->vthis->offset));
