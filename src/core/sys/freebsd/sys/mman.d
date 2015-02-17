@@ -43,11 +43,9 @@ static if (__BSD_VISIBLE)
     enum MAP_NOSYNC = 0x0800;
 
     enum MAP_FILE = 0x0000;
-}
-    // cannot be within __BSD_VISIBLE because of forward reference (Bugzilla 11301)
-    enum MAP_ANON = 0x1000;
-static if (__BSD_VISIBLE)
-{
+
+    // already in core.sys.posix.sys.mman
+    // enum MAP_ANON = 0x1000;
     //#ifndef _KERNEL
     alias MAP_ANONYMOUS = MAP_ANON;
     //#endif /* !_KERNEL */

@@ -204,29 +204,87 @@ version( linux )
 
     enum MAP_FAILED     = cast(void*) -1;
 
-    version (Alpha) enum
+    version (MICROBLAZE)
+        private enum DEFAULTS = true;
+    else version (Alpha)
     {
-        MS_ASYNC = 1,
-        MS_SYNC = 2,
-        MS_INVALIDATE = 4,
+        private enum DEFAULTS = false;
+        enum MAP_ANON = 0x10;
+        enum MS_ASYNC = 1;
+        enum MS_SYNC = 2;
+        enum MS_INVALIDATE = 4;
     }
-    else version (HPPA) enum
+    else version (SH)
+        private enum DEFAULTS = true;
+    else version (SH64)
+        private enum DEFAULTS = true;
+    else version (AArch64)
+        private enum DEFAULTS = true;
+    else version (ARM)
+        private enum DEFAULTS = true;
+    else version (S390)
+        private enum DEFAULTS = true;
+    else version (S390X)
+        private enum DEFAULTS = true;
+    else version (IA64)
+        private enum DEFAULTS = true;
+    else version (HPPA)
     {
-        MS_ASYNC = 1,
-        MS_SYNC = 2,
-        MS_INVALIDATE = 4,
+        private enum DEFAULTS = false;
+        enum MAP_ANON = 0x10;
+        enum MS_SYNC = 1;
+        enum MS_ASYNC = 2;
+        enum MS_INVALIDATE = 4;
     }
-    else version (HPPA64) enum
+    else version (HPPA64)
     {
-        MS_ASYNC = 1,
-        MS_SYNC = 2,
-        MS_INVALIDATE = 4,
+        private enum DEFAULTS = false;
+        enum MAP_ANON = 0x10;
+        enum MS_SYNC = 1;
+        enum MS_ASYNC = 2;
+        enum MS_INVALIDATE = 4;
     }
-    else enum
+    else version (M68K)
+        private enum DEFAULTS = true;
+    else version (TILE)
+        private enum DEFAULTS = true;
+    else version (X86)
+        private enum DEFAULTS = true;
+    else version (X86_64)
+        private enum DEFAULTS = true;
+    else version (MIPS32)
     {
-        MS_ASYNC = 1,
-        MS_SYNC = 4,
-        MS_INVALIDATE = 2
+        private enum DEFAULTS = false;
+        enum MAP_ANON = 0x0800;
+        enum MS_ASYNC = 1;
+        enum MS_INVALIDATE = 2;
+        enum MS_SYNC = 4;
+    }
+    else version (MIPS64)
+    {
+        private enum DEFAULTS = false;
+        enum MAP_ANON = 0x0800;
+        enum MS_ASYNC = 1;
+        enum MS_INVALIDATE = 2;
+        enum MS_SYNC = 4;
+    }
+    else version (SPARC)
+        private enum DEFAULTS = true;
+    else version (SPARC64)
+        private enum DEFAULTS = true;
+    else version (PPC)
+        private enum DEFAULTS = true;
+    else version (PPC64)
+        private enum DEFAULTS = true;
+    else
+        static assert(0, "unimplemented");
+
+    static if (DEFAULTS)
+    {
+        enum MAP_ANON = 0x20;
+        enum MS_ASYNC = 1;
+        enum MS_INVALIDATE = 2;
+        enum MS_SYNC = 4;
     }
 
     int msync(void*, size_t, int);
@@ -236,9 +294,7 @@ else version( OSX )
     enum MAP_SHARED     = 0x0001;
     enum MAP_PRIVATE    = 0x0002;
     enum MAP_FIXED      = 0x0010;
-    static import core.sys.osx.sys.mman;
-    deprecated("Please use core.sys.osx.sys.mman for non-POSIX extensions")
-    alias MAP_ANON = core.sys.osx.sys.mman.MAP_ANON;
+    enum MAP_ANON       = 0x1000;
 
     enum MAP_FAILED     = cast(void*)-1;
 
@@ -253,9 +309,7 @@ else version( FreeBSD )
     enum MAP_SHARED     = 0x0001;
     enum MAP_PRIVATE    = 0x0002;
     enum MAP_FIXED      = 0x0010;
-    static import core.sys.freebsd.sys.mman;
-    deprecated("Please use core.sys.freebsd.sys.mman for non-POSIX extensions")
-    alias MAP_ANON = core.sys.freebsd.sys.mman.MAP_ANON;
+    enum MAP_ANON       = 0x1000;
 
     enum MAP_FAILED     = cast(void*)-1;
 

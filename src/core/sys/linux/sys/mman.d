@@ -253,8 +253,9 @@ else version (Alpha)
     static if (__USE_MISC) enum
     {
         MAP_FILE = 0,
-        MAP_ANONYMOUS = 0x10,
-        MAP_ANON = MAP_ANONYMOUS,
+        MAP_ANONYMOUS = MAP_ANON,
+        // in core.sys.posix.sys.mman
+        // MAP_ANON = MAP_ANONYMOUS,
         MAP_HUGE_SHIFT = 26,
         MAP_HUGE_MASK = 0x3f,
     }
@@ -360,8 +361,9 @@ else version (HPPA)
     static if (__USE_MISC) enum
     {
         MAP_FILE = 0,
-        MAP_ANONYMOUS = 0x10,
-        MAP_ANON = MAP_ANONYMOUS,
+        MAP_ANONYMOUS = MAP_ANON,
+        // in core.sys.posix.sys.mman
+        // MAP_ANON = MAP_ANONYMOUS,
         MAP_VARIABLE = 0,
         MAP_HUGE_SHIFT = 26,
         MAP_HUGE_MASK = 0x3f,
@@ -460,8 +462,9 @@ else version (HPPA64)
     static if (__USE_MISC) enum
     {
         MAP_FILE = 0,
-        MAP_ANONYMOUS = 0x10,
-        MAP_ANON = MAP_ANONYMOUS,
+        MAP_ANONYMOUS = MAP_ANON,
+        // in core.sys.posix.sys.mman
+        // MAP_ANON = MAP_ANONYMOUS,
         MAP_VARIABLE = 0,
         MAP_HUGE_SHIFT = 26,
         MAP_HUGE_MASK = 0x3f,
@@ -587,8 +590,6 @@ else version (MIPS32)
         MAP_HUGETLB = 0x80000,
     }
 
-    private enum __MAP_ANONYMOUS = 0x0800;
-
     static if (__USE_MISC) enum MAP_RENAME = MAP_ANONYMOUS;
 }
 // http://sourceware.org/git/?p=glibc.git;a=blob;f=ports/sysdeps/unix/sysv/linux/mips/bits/mman.h
@@ -606,8 +607,6 @@ else version (MIPS64)
         MAP_STACK = 0x40000,
         MAP_HUGETLB = 0x80000,
     }
-
-    private enum __MAP_ANONYMOUS = 0x0800;
 
     static if (__USE_MISC) enum MAP_RENAME = MAP_ANONYMOUS;
 }
@@ -644,13 +643,12 @@ else
         enum MAP_TYPE = 0x0f;
 
     enum MAP_FIXED = 0x10;
-    static if (!is(typeof(__MAP_ANONYMOUS)))
-        private enum __MAP_ANONYMOUS = 0x20;
     static if (__USE_MISC) enum
     {
         MAP_FILE = 0,
-        MAP_ANONYMOUS = __MAP_ANONYMOUS,
-        MAP_ANON = MAP_ANONYMOUS,
+        MAP_ANONYMOUS = MAP_ANON,
+        // in core.sys.posix.sys.mman
+        // MAP_ANON = 0xXX,
         MAP_HUGE_SHIFT = 26,
         MAP_HUGE_MASK = 0x3f,
     }
