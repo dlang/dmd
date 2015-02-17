@@ -1,7 +1,7 @@
 /**
  * D header file for C99.
  *
- * $(C_HEADER_DESCRIPTION pubs.opengroup.org/onlinepubs/009695399/basedefs/stdlib.h.html, stdlib.h)
+ * $(C_HEADER_DESCRIPTION pubs.opengroup.org/onlinepubs/009695399/basedefs/_stdlib.h.html, _stdlib.h)
  *
  * Copyright: Copyright Sean Kelly 2005 - 2014.
  * License: Distributed under the
