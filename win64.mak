@@ -90,6 +90,67 @@ $(DOCDIR)\core_time.html : src\core\time.d
 $(DOCDIR)\core_vararg.html : src\core\vararg.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
+
+$(DOCDIR)\core_stdc_complex.html : src\core\stdc\complex.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_ctype.html : src\core\stdc\ctype.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_errno.html : src\core\stdc\errno.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_fenv.html : src\core\stdc\fenv.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_float_.html : src\core\stdc\float_.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_inttypes.html : src\core\stdc\inttypes.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_limits.html : src\core\stdc\limits.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_locale.html : src\core\stdc\locale.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_math.html : src\core\stdc\math.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_signal.html : src\core\stdc\signal.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_stdarg.html : src\core\stdc\stdarg.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_stddef.html : src\core\stdc\stddef.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_stdint.html : src\core\stdc\stdint.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_stdio.html : src\core\stdc\stdio.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_stdlib.html : src\core\stdc\stdlib.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_string.html : src\core\stdc\string.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_tgmath.html : src\core\stdc\tgmath.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_time.html : src\core\stdc\time.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_wchar_.html : src\core\stdc\wchar_.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
+$(DOCDIR)\core_stdc_wctype.html : src\core\stdc\wctype.d
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
+
 $(DOCDIR)\core_sync_barrier.html : src\core\sync\barrier.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
