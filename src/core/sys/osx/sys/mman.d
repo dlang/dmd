@@ -53,19 +53,16 @@ static if (_DARWIN_C_SOURCE)
     enum MS_DEACTIVATE = 0x0008;
 
     enum MAP_FILE = 0x0000;
-}
-    // cannot be within _DARWIN_C_SOURCE because of forward reference (Bugzilla 11301)
-    enum MAP_ANON = 0x1000;
 
 // already in core.sys.posix.sys.mman
+// enum MAP_ANON = 0x1000;
+
 // enum POSIX_MADV_NORMAL = 0;
 // enum POSIX_MADV_RANDOM = 1;
 // enum POSIX_MADV_SEQUENTIAL = 2;
 // enum POSIX_MADV_WILLNEED = 3;
 // enum POSIX_MADV_DONTNEED = 4;
 
-static if (_DARWIN_C_SOURCE)
-{
     alias MADV_NORMAL = POSIX_MADV_NORMAL;
     alias MADV_RANDOM = POSIX_MADV_RANDOM;
     alias MADV_SEQUENTIAL = POSIX_MADV_SEQUENTIAL;
