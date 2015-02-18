@@ -4221,6 +4221,15 @@ public:
 
     void visit(BinAssignExp *e)
     {
+        if (goal == ctfeNeedLvalue)
+        {
+            Expression *e1 = e->e1;
+            while (e->e1->op == TOKcast)
+                e1 = ((CastExp *)e1)->e1;
+            result = interpret(e1, istate, goal);
+            return;
+        }
+
         switch (e->op)
         {
         case TOKaddass:  interpretAssignCommon(e, &Add);        return;

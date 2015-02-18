@@ -1875,6 +1875,68 @@ elem *toElem(Expression *e, IRState *irs)
             return e;
         }
 
+        elem *toElemBinAssign(BinAssignExp *be, int op)
+        {
+            //printf("toElemBinAssign() '%s'\n", be->toChars());
+
+            Type *tb1 = be->e1->type->toBasetype();
+            Type *tb2 = be->e2->type->toBasetype();
+
+            assert(!((tb1->ty == Tarray || tb1->ty == Tsarray ||
+                      tb2->ty == Tarray || tb2->ty == Tsarray) &&
+                     tb2->ty != Tvoid &&
+                     op != OPeq && op != OPandand && op != OPoror));
+
+            tym_t tym = totym(be->type);
+
+            elem *el;
+            elem *ev;
+            if (be->e1->op == TOKcast)
+            {
+                int depth = 0;
+                Expression *e1 = be->e1;
+                while (e1->op == TOKcast)
+                {
+                    ++depth;
+                    e1 = ((CastExp *)e1)->e1;
+                }
+                assert(depth > 0);
+
+                el = toElem(e1, irs);
+                el = addressElem(el, e1->type->pointerTo());
+                ev = el_same(&el);
+
+                el = el_una(OPind, totym(e1->type), el);
+
+                ev = el_una(OPind, tym, ev);
+
+                CastExp *ce = (CastExp *)e1;
+                for (size_t d = depth; d > 0; d--)
+                {
+                    e1 = be->e1;
+                    for (size_t i = 1; i < d; i++)
+                        e1 = ((CastExp *)e1)->e1;
+
+                    el = toElemCast((CastExp *)e1, el);
+                }
+            }
+            else
+            {
+                el = toElem(be->e1, irs);
+                el = addressElem(el, be->e1->type->pointerTo());
+                ev = el_same(&el);
+
+                el = el_una(OPind, tym, el);
+                ev = el_una(OPind, tym, ev);
+            }
+            elem *er = toElem(be->e2, irs);
+            elem *e = el_bin(op, tym, el, er);
+            e = el_combine(e, ev);
+
+            el_setLoc(e,be->loc);
+            return e;
+        }
+
         /***************************************
          */
 
@@ -2835,7 +2897,7 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(AddAssignExp *e)
         {
             //printf("AddAssignExp::toElem() %s\n", e->toChars());
-            result = toElemBin(e, OPaddass);
+            result = toElemBinAssign(e, OPaddass);
         }
 
 
@@ -2844,7 +2906,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(MinAssignExp *e)
         {
-            result = toElemBin(e, OPminass);
+            result = toElemBinAssign(e, OPminass);
         }
 
         /***************************************
@@ -2972,7 +3034,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(DivAssignExp *e)
         {
-            result = toElemBin(e, OPdivass);
+            result = toElemBinAssign(e, OPdivass);
         }
 
         /***************************************
@@ -2980,7 +3042,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(ModAssignExp *e)
         {
-            result = toElemBin(e, OPmodass);
+            result = toElemBinAssign(e, OPmodass);
         }
 
         /***************************************
@@ -2988,7 +3050,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(MulAssignExp *e)
         {
-            result = toElemBin(e, OPmulass);
+            result = toElemBinAssign(e, OPmulass);
         }
 
         /***************************************
@@ -2996,7 +3058,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(ShlAssignExp *e)
         {
-            result = toElemBin(e, OPshlass);
+            result = toElemBinAssign(e, OPshlass);
         }
 
         /***************************************
@@ -3013,7 +3075,7 @@ elem *toElem(Expression *e, IRState *irs)
                 CastExp *ce = (CastExp *)e->e1;
                 t1 = ce->e1->type;
             }
-            result = toElemBin(e, t1->isunsigned() ? OPshrass : OPashrass);
+            result = toElemBinAssign(e, t1->isunsigned() ? OPshrass : OPashrass);
         }
 
         /***************************************
@@ -3021,7 +3083,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(UshrAssignExp *e)
         {
-            result = toElemBin(e, OPshrass);
+            result = toElemBinAssign(e, OPshrass);
         }
 
         /***************************************
@@ -3029,7 +3091,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(AndAssignExp *e)
         {
-            result = toElemBin(e, OPandass);
+            result = toElemBinAssign(e, OPandass);
         }
 
         /***************************************
@@ -3037,7 +3099,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(OrAssignExp *e)
         {
-            result = toElemBin(e, OPorass);
+            result = toElemBinAssign(e, OPorass);
         }
 
         /***************************************
@@ -3045,7 +3107,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(XorAssignExp *e)
         {
-            result = toElemBin(e, OPxorass);
+            result = toElemBinAssign(e, OPxorass);
         }
 
         /***************************************
@@ -3742,18 +3804,23 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(CastExp *ce)
         {
-            tym_t ftym;
-            tym_t ttym;
-            OPER eop;
-
         #if 0
             printf("CastExp::toElem()\n");
             ce->print();
             printf("\tfrom: %s\n", ce->e1->type->toChars());
             printf("\tto  : %s\n", ce->to->toChars());
         #endif
-
             elem *e = toElem(ce->e1, irs);
+
+            result = toElemCast(ce, e);
+        }
+
+        elem *toElemCast(CastExp *ce, elem *e)
+        {
+            tym_t ftym;
+            tym_t ttym;
+            OPER eop;
+
             Type *tfrom = ce->e1->type->toBasetype();
             Type *t = ce->to->toBasetype();         // skip over typedef's
 
@@ -3763,8 +3830,8 @@ elem *toElem(Expression *e, IRState *irs)
                 goto Lret;
 
             fty = tfrom->ty;
-            //printf("fty = %d\n", fty);
             tty = t->ty;
+            //printf("fty = %d\n", fty);
 
             if (tty == Tpointer && fty == Tarray)
             {
@@ -4386,8 +4453,7 @@ elem *toElem(Expression *e, IRState *irs)
                     // This error should really be pushed to the front end
                     ce->error("e2ir: cannot cast %s of type %s to type %s", ce->e1->toChars(), ce->e1->type->toChars(), t->toChars());
                     e = el_long(TYint, 0);
-                    result = e;
-                    return;
+                    return e;
 
                 Lzero:
                     e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
@@ -4407,7 +4473,7 @@ elem *toElem(Expression *e, IRState *irs)
             e->Ety = totym(t);
 
             el_setLoc(e, ce->loc);
-            result = e;
+            return e;
         }
 
         void visit(ArrayLengthExp *ale)

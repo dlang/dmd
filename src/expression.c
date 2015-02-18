@@ -6725,44 +6725,8 @@ bool BinAssignExp::isLvalue()
 
 Expression *BinAssignExp::toLvalue(Scope *sc, Expression *ex)
 {
-    Expression *e;
-
-    if (e1->op == TOKvar)
-    {
-        /* Convert (e1 op= e2) to
-         *    e1 op= e2;
-         *    e1
-         */
-        e = e1->copy();
-        e = Expression::combine(this, e);
-    }
-    else
-    {
-        // toLvalue may be called from inline.c with sc == NULL,
-        // but this branch should not be reached at that time.
-        assert(sc);
-
-        /* Convert (e1 op= e2) to
-         *    ref v = e1;
-         *    v op= e2;
-         *    v
-         */
-
-        // ref v = e1;
-        Identifier *id = Identifier::generateId("__assignop");
-        ExpInitializer *ei = new ExpInitializer(loc, e1);
-        VarDeclaration *v = new VarDeclaration(loc, e1->type, id, ei);
-        v->storage_class |= STCtemp | STCref | STCforeach;
-        Expression *de = new DeclarationExp(loc, v);
-
-        // v op= e2
-        e1 = new VarExp(e1->loc, v);
-
-        e = new CommaExp(loc, de, this);
-        e = new CommaExp(loc, e, new VarExp(loc, v));
-        e = e->semantic(sc);
-    }
-    return e;
+    // Lvalue-ness will be handled in glue layer.
+    return this;
 }
 
 Expression *BinAssignExp::modifiableLvalue(Scope *sc, Expression *e)
