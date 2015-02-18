@@ -910,7 +910,7 @@ elem *toElem(Expression *e, IRState *irs)
             int offset = (se->op == TOKsymoff) ? ((SymOffExp*)se)->offset : 0;
             VarDeclaration *v = se->var->isVarDeclaration();
 
-            //printf("SymbolExp::toElem('%s') %p, %s\n", toChars(), se, se->type->toChars());
+            //printf("[%s] SymbolExp::toElem('%s') %p, %s\n", se->loc.toChars(), se->toChars(), se, se->type->toChars());
             //printf("\tparent = '%s'\n", se->var->parent ? se->var->parent->toChars() : "null");
             if (se->op == TOKvar && se->var->needThis())
             {
@@ -3220,12 +3220,14 @@ elem *toElem(Expression *e, IRState *irs)
         {
             // *(&e + offset)
 
-            //printf("DotVarExp::toElem('%s')\n", dve->toChars());
+            //printf("[%s] DotVarExp::toElem('%s')\n", dve->loc.toChars(), dve->toChars());
 
             VarDeclaration *v = dve->var->isVarDeclaration();
             if (!v)
             {
                 dve->error("%s is not a field, but a %s", dve->var->toChars(), dve->var->kind());
+                result = el_long(TYint, 0);
+                return;
             }
 
             // Bugzilla 12900
@@ -3243,7 +3245,7 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb1 = dve->e1->type->toBasetype();
             if (tb1->ty != Tclass && tb1->ty != Tpointer)
                 e = addressElem(e, tb1);
-            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v ? v->offset : 0));
+            e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v->offset));
             e = el_una(OPind, totym(dve->type), e);
             if (tybasic(e->Ety) == TYstruct)
             {
@@ -5093,7 +5095,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(StructLiteralExp *sle)
         {
-            //printf("StructLiteralExp::toElem() %s\n", sle->toChars());
+            //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
 
             if (sle->sinit)
             {

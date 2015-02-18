@@ -4146,12 +4146,14 @@ bool FuncDeclaration::needsClosure()
         goto Lyes;
 
     for (size_t i = 0; i < closureVars.dim; i++)
-    {   VarDeclaration *v = closureVars[i];
+    {
+        VarDeclaration *v = closureVars[i];
         assert(v->isVarDeclaration());
         //printf("\tv = %s\n", v->toChars());
 
         for (size_t j = 0; j < v->nestedrefs.dim; j++)
-        {   FuncDeclaration *f = v->nestedrefs[j];
+        {
+            FuncDeclaration *f = v->nestedrefs[j];
             assert(f != this);
 
             //printf("\t\tf = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f->toChars(), f->isVirtual(), f->isThis(), f->tookAddressOf);
@@ -4195,13 +4197,15 @@ bool FuncDeclaration::needsClosure()
         tret = tret->toBasetype();
         //printf("\t\treturning %s\n", tret->toChars());
         if (tret->ty == Tclass || tret->ty == Tstruct)
-        {   Dsymbol *st = tret->toDsymbol(NULL);
+        {
+            Dsymbol *st = tret->toDsymbol(NULL);
             //printf("\t\treturning class/struct %s\n", tret->toChars());
             for (Dsymbol *s = st->parent; s; s = s->parent)
             {
                 //printf("\t\t\tparent = %s %s\n", s->kind(), s->toChars());
                 if (s == this)
-                {   //printf("\t\treturning local %s\n", st->toChars());
+                {
+                    //printf("\t\treturning local %s\n", st->toChars());
                     goto Lyes;
                 }
             }
