@@ -1351,13 +1351,11 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
             unsigned char thismod = tthis->mod;
             if (hasttp)
                 mod = MODmerge(thismod, mod);
-            if (thismod != mod)
-            {
-                if (!MODmethodConv(thismod, mod))
-                    goto Lnomatch;
-                if (MATCHconst < match)
-                    match = MATCHconst;
-            }
+            MATCH m = MODmethodConv(thismod, mod);
+            if (m <= MATCHnomatch)
+                goto Lnomatch;
+            if (m < match)
+                match = m;
         }
     }
 

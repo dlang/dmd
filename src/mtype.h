@@ -930,7 +930,7 @@ bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
 void MODtoBuffer(OutBuffer *buf, MOD mod);
 char *MODtoChars(MOD mod);
 bool MODimplicitConv(MOD modfrom, MOD modto);
-bool MODmethodConv(MOD modfrom, MOD modto);
+MATCH MODmethodConv(MOD modfrom, MOD modto);
 MOD MODmerge(MOD mod1, MOD mod2);
 
 #endif /* DMD_MTYPE_H */

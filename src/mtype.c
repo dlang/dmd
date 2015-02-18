@@ -1363,26 +1363,30 @@ bool MODimplicitConv(MOD modfrom, MOD modto)
 }
 
 /***************************
- * Return !=0 if a method of type '() modfrom' can call a method of type '() modto'.
+ * Return MATCHexact or MATCHconst if a method of type '() modfrom' can call a method of type '() modto'.
  */
-bool MODmethodConv(MOD modfrom, MOD modto)
+MATCH MODmethodConv(MOD modfrom, MOD modto)
 {
+    if (modfrom == modto)
+        return MATCHexact;
     if (MODimplicitConv(modfrom, modto))
-        return true;
+        return MATCHconst;
 
     #define X(m, n) (((m) << 4) | (n))
     switch (X(modfrom, modto))
     {
-        case X(0, MODwild):
+        case X(0,            MODwild):
         case X(MODimmutable, MODwild):
-        case X(MODconst, MODwild):
-        case X(MODshared, MODshared|MODwild):
+        case X(MODconst,     MODwild):
+        case X(MODwildconst, MODwild):
+        case X(MODshared,              MODshared|MODwild):
         case X(MODshared|MODimmutable, MODshared|MODwild):
-        case X(MODshared|MODconst, MODshared|MODwild):
-            return true;
+        case X(MODshared|MODconst,     MODshared|MODwild):
+        case X(MODshared|MODwildconst, MODshared|MODwild):
+            return MATCHconst;
 
         default:
-            return false;
+            return MATCHnomatch;
     }
     #undef X
 }
@@ -5738,7 +5742,6 @@ void TypeFunction::purityLevel()
     }
 }
 
-
 /********************************
  * 'args' are being matched to function 'this'
  * Determine match level.
@@ -5755,7 +5758,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
     unsigned char wildmatch = 0;
 
     if (tthis)
-    {   Type *t = tthis;
+    {
+        Type *t = tthis;
         if (t->toBasetype()->ty == Tpointer)
             t = t->toBasetype()->nextOf();      // change struct* to struct
         if (t->mod != mod)
@@ -5821,7 +5825,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         else if (wildmatch & MODwild)
             wildmatch = MODwild;
         else
-        {   assert(wildmatch & MODmutable);
+        {
+            assert(wildmatch & MODmutable);
             wildmatch = MODmutable;
         }
     }
@@ -5935,7 +5940,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         {
           L1:
             if (varargs == 2 && u + 1 == nparams)       // if last varargs param
-            {   Type *tb = p->type->toBasetype();
+            {
+                Type *tb = p->type->toBasetype();
                 TypeSArray *tsa;
                 dinteger_t sz;
 
@@ -6012,7 +6018,8 @@ bool TypeFunction::hasLazyParameters()
 {
     size_t dim = Parameter::dim(parameters);
     for (size_t i = 0; i < dim; i++)
-    {   Parameter *fparam = Parameter::getNth(parameters, i);
+    {
+        Parameter *fparam = Parameter::getNth(parameters, i);
         if (fparam->storageClass & STClazy)
             return true;
     }
