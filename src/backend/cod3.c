@@ -3226,10 +3226,10 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
         MOV     voff+5*8[RBP],R9
         MOVZX   EAX,AL                      // AL = 0..8, # of XMM registers used
         SHL     EAX,2                       // 4 bytes for each MOVAPS
-        LEA     RDX,offset L2[RIP]
-        SUB     RDX,RAX
+        LEA     R11,offset L2[RIP]
+        SUB     R11,RAX
         LEA     RAX,voff+6*8+0x7F[RBP]
-        JMP     EDX
+        JMP     R11d
         MOVAPS  -0x0F[RAX],XMM7             // only save XMM registers if actually used
         MOVAPS  -0x1F[RAX],XMM6
         MOVAPS  -0x2F[RAX],XMM5
@@ -3241,10 +3241,11 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
       L2:
         MOV     1[RAX],offset_regs          // set __va_argsave.offset_regs
         MOV     5[RAX],offset_fpregs        // set __va_argsave.offset_fpregs
-        LEA     RDX, Para.size+Para.offset[RBP]
-        MOV     9[RAX],RDX                  // set __va_argsave.stack_args
+        LEA     R11, Para.size+Para.offset[RBP]
+        MOV     9[RAX],R11                  // set __va_argsave.stack_args
         SUB     RAX,6*8+0x7F                // point to start of __va_argsave
         MOV     6*8+8*16+4+4+8[RAX],RAX     // set __va_argsave.reg_args
+        MOV     RDX,R11
     */
     targ_size_t voff = Auto.size + BPoff + sv->Soffset;  // EBP offset of start of sv
     const int vregnum = 6;
@@ -3269,12 +3270,12 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
     c = genregs(c,0x0FB6,AX,AX);                          // MOVZX EAX,AL
     genc2(c,0xC1,modregrm(3,4,AX),2);                      // SHL EAX,2
     int raxoff = voff+6*8+0x7F;
-    unsigned L2offset = (raxoff < -0x7F) ? 0x2C : 0x29;
+    unsigned L2offset = (raxoff < -0x7F) ? 0x2D : 0x2A;
     if (!hasframe)
         L2offset += 1;                                      // +1 for sib byte
-    // LEA RDX,offset L2[RIP]
-    genc1(c,LEA,(REX_W << 16) | modregrm(0,DX,5),FLconst,L2offset);
-    genregs(c,0x29,AX,DX);                                 // SUB RDX,RAX
+    // LEA R11,offset L2[RIP]
+    genc1(c,LEA,(REX_W << 16) | modregxrm(0,R11,5),FLconst,L2offset);
+    genregs(c,0x29,AX,R11);                                // SUB R11,RAX
     code_orrex(c, REX_W);
     // LEA RAX,voff+vsize-6*8-16+0x7F[RBP]
     unsigned ea = (REX_W << 16) | modregrm(2,AX,BPRM);
@@ -3282,7 +3283,7 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
         // add sib byte for [RSP] addressing
         ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,AX,4);
     genc1(c,LEA,ea,FLconst,raxoff);
-    gen2(c,0xFF,modregrm(3,4,DX));                         // JMP EDX
+    gen2(c,0xFF,modregrmx(3,4,R11));                       // JMP R11d
     for (int i = 0; i < 8; i++)
     {
         // MOVAPS -15-16*i[RAX],XMM7-i
@@ -3312,15 +3313,15 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
     // MOV 5[RAX],offset_fpregs
     genc(c,0xC7,modregrm(2,0,AX),FLconst,5,FLconst,offset_fpregs);
 
-    // LEA RDX, Para.size+Para.offset[RBP]
-    ea = modregrm(2,DX,BPRM);
+    // LEA R11, Para.size+Para.offset[RBP]
+    ea = modregxrm(2,R11,BPRM);
     if (!hasframe)
         ea = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
     Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
     genc1(c,LEA,(REX_W << 16) | ea,FLconst,Para.size + Para.offset);
 
-    // MOV 9[RAX],RDX
-    genc1(c,0x89,(REX_W << 16) | modregrm(2,DX,AX),FLconst,9);
+    // MOV 9[RAX],R11
+    genc1(c,0x89,(REX_W << 16) | modregxrm(2,R11,AX),FLconst,9);
 
     // SUB RAX,6*8+0x7F             // point to start of __va_argsave
     genc2(c,0x2D,0,6*8+0x7F);
@@ -3330,7 +3331,7 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
     genc1(c,0x89,(REX_W << 16) | modregrm(2,AX,AX),FLconst,6*8+8*16+4+4+8);
 
     pinholeopt(c, NULL);
-    useregs(mDX|mAX);
+    useregs(mAX|mR11);
 
     return c;
 }
@@ -7123,4 +7124,3 @@ void code::print()
 #endif
 
 #endif // !SPP
-
