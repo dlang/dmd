@@ -1582,7 +1582,8 @@ segidx_t MsCoffObj::getsegment2(IDXSEC shtidx)
     return seg;
 }
 
-extern void too_many_symbols();
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
+extern void fatal();
 
 /********************************************
  * Add new scnhdr.
@@ -1604,7 +1605,10 @@ IDXSEC MsCoffObj::addScnhdr(const char *scnhdr_name, unsigned long flags)
         memcpy(sec.s_name, scnhdr_name, len);
     sec.s_flags = flags;
     ScnhdrBuf->write((void *)&sec, sizeof(sec));
-    if (scnhdr_cnt > 65279) too_many_symbols();
+    if (scnhdr_cnt > 65279) {
+        error(NULL, 0, 0, "more than %d sections in object file", 65279);
+        fatal();   
+    }
     return ++scnhdr_cnt;
 }
 
@@ -1724,7 +1728,6 @@ segidx_t MsCoffObj::seg_debugS_comdat(symbol *sfunc)
     segidx_t seg = MsCoffObj::getsegment(".debug$S", IMAGE_SCN_CNT_INITIALIZED_DATA |
                                           IMAGE_SCN_ALIGN_1BYTES |
                                           IMAGE_SCN_MEM_READ |
-                                          IMAGE_SCN_LNK_COMDAT |
                                           IMAGE_SCN_MEM_DISCARDABLE);
     SegData[seg]->SDassocseg = sfunc->Sseg;
     return seg;
