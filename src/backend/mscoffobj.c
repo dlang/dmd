@@ -1582,6 +1582,8 @@ segidx_t MsCoffObj::getsegment2(IDXSEC shtidx)
     return seg;
 }
 
+extern void too_many_symbols();
+
 /********************************************
  * Add new scnhdr.
  * Returns:
@@ -1602,6 +1604,7 @@ IDXSEC MsCoffObj::addScnhdr(const char *scnhdr_name, unsigned long flags)
         memcpy(sec.s_name, scnhdr_name, len);
     sec.s_flags = flags;
     ScnhdrBuf->write((void *)&sec, sizeof(sec));
+    if (scnhdr_cnt > 65279) too_many_symbols();
     return ++scnhdr_cnt;
 }
 
