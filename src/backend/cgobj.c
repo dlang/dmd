@@ -374,7 +374,7 @@ void too_many_symbols()
 #if SCPP
     err_fatal(EM_too_many_symbols, 0x7FFF);
 #elif TARGET_WINDOS // COFF
-    error(NULL, 0, 0, "more than %d symbols in object file", 65279);
+    error(NULL, 0, 0, "more than %d sections in object file", 65279);
     fatal();    
 #else // MARS
     error(NULL, 0, 0, "more than %d symbols in object file", 0x7FFF);
