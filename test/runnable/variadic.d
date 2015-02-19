@@ -1670,6 +1670,28 @@ void test10414()
 }
 
 /***************************************/
+
+import core.stdc.stdarg;
+
+struct S14179
+{
+    const(char)* filename;
+    uint linnum;
+    uint charnum;
+}
+
+extern(C++) const(char)* func14179(S14179 x, const(char)* string, ...)
+{
+    return string;
+}
+
+void test14179()
+{
+    const(char)* s = "hello";
+    assert(func14179(S14179(), s) == s);
+}
+
+/***************************************/
 // 10722
 
 struct S10722
@@ -1768,6 +1790,7 @@ int main()
     test10414();
     test9495();
     testCopy();
+    test14179();
 
     printf("Success\n");
     return 0;
