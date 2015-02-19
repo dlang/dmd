@@ -4658,7 +4658,7 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     n1 = el_una(OPaddr, TYnptr, n1);
                     s = aaGetSymbol(taa, "GetY", 1);
-                    ti = toElem(getTypeInfo(taa->mutableOf(), NULL), irs);
+                    ti = toElem(getTypeInfo(taa->unSharedOf()->mutableOf(), NULL), irs);
                 }
                 else
                 {
