@@ -12,16 +12,23 @@
 
 struct filehdr
 {
-        unsigned short f_magic; // identifies type of target machine
+        unsigned short f_sig1;      // IMAGE_FILE_MACHINE_UNKNOWN
+        unsigned short f_sig2;      // 0xFFFF
+        unsigned short f_minver;    // 2
+        unsigned short f_magic;     // identifies type of target machine
+        unsigned long f_timdat;     // creation date, number of seconds since 1970
+        unsigned char f_uuid[16];   //  { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
+                                    //    '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
+        unsigned long f_unused[4];  // { 0, 0, 0, 0 }
+        unsigned long f_nscns;      // number of sections
+        unsigned long f_symptr;     // file offset of symbol table
+        unsigned long f_nsyms;      // number of entries in the symbol table
+        
+        
 #define IMAGE_FILE_MACHINE_UNKNOWN 0            // applies to any machine type
 #define IMAGE_FILE_MACHINE_I386    0x14C        // x86
 #define IMAGE_FILE_MACHINE_AMD64   0x8664       // x86_64
-        unsigned short f_nscns; // number of sections (96 is max)
-        long f_timdat;        // creation date, number of seconds since 1970
-        long f_symptr;          // file offset of symbol table
-        long f_nsyms;           // number of entried in the symbol table
-        unsigned short f_opthdr; // optional header size (0)
-        unsigned short f_flags;
+
 #define IMAGE_FILE_RELOCS_STRIPPED              1
 #define IMAGE_FILE_EXECUTABLE_IMAGE             2
 #define IMAGE_FILE_LINE_NUMS_STRIPPED           4
@@ -111,7 +118,7 @@ struct syment
 #define n_nptr          _n._n_nptr[1]
 
     unsigned n_value;
-    short n_scnum;
+    long n_scnum;
 #define IMAGE_SYM_DEBUG                 -2
 #define IMAGE_SYM_ABSOLUTE              -1
 #define IMAGE_SYM_UNDEFINED             0
@@ -198,6 +205,7 @@ union auxent
         unsigned TotalSize;
         unsigned PointerToLinenumber;
         unsigned PointerToNextFunction;
+        unsigned short Zeros;
     } x_fd;
 
     // .bf symbols
@@ -208,6 +216,7 @@ union auxent
         unsigned short Linenumber;
         char filler[6];
         unsigned PointerToNextFunction;
+        unsigned short Zeros;
 #pragma pack()
     } x_bf;
 
@@ -215,30 +224,31 @@ union auxent
     struct
     {   unsigned Unused;
         unsigned short Linenumber;
+        unsigned short Zeros;
     } x_ef;
 
     // Weak externals
     struct
     {   unsigned TagIndex;
         unsigned Characteristics;
+        unsigned short Zeros;
 #define IMAGE_WEAK_EXTERN_SEARCH_NOLIBRARY
 #define IMAGE_WEAK_EXTERN_SEARCH_LIBRARY
 #define IMAGE_WEAK_EXTERN_SEARCH_ALIAS
     } x_weak;
 
-    // Files
-    struct
-    {   char FileName[18];
-    } x_filename;
-
     // Section definitions
     struct
-    {   unsigned length;
+    {   
+        unsigned length;
         unsigned short NumberOfRelocations;
         unsigned short NumberOfLinenumbers;
         unsigned CheckSum;
-        unsigned short Number;
+        unsigned short NumberLowPart;
         unsigned char Selection;
+        unsigned char Unused;
+        unsigned short NumberHighPart;
+        unsigned short Zeros;
 #define IMAGE_COMDAT_SELECT_NODUPLICATES        1
 #define IMAGE_COMDAT_SELECT_ANY                 2
 #define IMAGE_COMDAT_SELECT_SAME_SIZE           3
