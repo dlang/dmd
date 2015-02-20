@@ -46,6 +46,17 @@ struct filehdr
 #define IMAGE_FILE_BYTES_REVERSED_HI            0x8000
 };
 
+struct filehdr_old
+{
+        unsigned short f_magic; // identifies type of target machine
+        unsigned short f_nscns; // number of sections (96 is max)
+        long f_timdat;        // creation date, number of seconds since 1970
+        long f_symptr;          // file offset of symbol table
+        long f_nsyms;           // number of entried in the symbol table
+        unsigned short f_opthdr; // optional header size (0)
+        unsigned short f_flags;
+};
+
 /***********************************************/
 
 // size should be 40 bytes
@@ -136,6 +147,23 @@ struct syment
     unsigned char n_numaux;
 };
 
+
+struct syment_old
+{
+    union
+    {
+        char _n_name[SYMNMLEN];
+        struct
+        {   long _n_zeroes;
+            long _n_offset;
+        } _n_n;
+    } _n;
+    unsigned n_value;
+    short n_scnum;
+    unsigned short n_type;      // 0x20 function; 0x00 not a function
+    unsigned char n_sclass;
+    unsigned char n_numaux;
+};
 
 /***********************************************/
 
