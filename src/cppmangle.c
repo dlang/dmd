@@ -1138,8 +1138,18 @@ public:
 
     void visit(TypeFunction *type)
     {
-        // We can mangle pointer to a function, not function.
-        visit((Type*)type);
+        const char *arg = mangleFunctionType(type);
+
+        if ((flags & IS_DMC))
+        {
+            if (checkTypeSaved(type)) return;
+        }
+        else
+        {
+            buf.writestring("$$A6");
+        }
+        buf.writestring(arg);
+        flags &= ~(IS_NOT_TOP_TYPE | IGNORE_CONST);
     }
 
     void visit(TypeStruct *type)
