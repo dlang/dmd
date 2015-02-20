@@ -31,35 +31,17 @@ Expression *getTypeInfo(Type *t, Scope *sc);
 
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t iStart = 0)
 {
-    if (!ad->isNested())
-        return true;
-
+    Dsymbol *sparent = ad->toParent2();
     Dsymbol *s = sc->func;
-    if (s)
+    if (ad->isNested() && s)
     {
-        Dsymbol *sparent = ad->toParent2();
         //printf("ad = %p %s [%s], parent:%p\n", ad, ad->toChars(), ad->loc.toChars(), ad->parent);
         //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent->toChars(), sparent->loc.toChars(), sparent->parent->toChars());
 
         while (s)
         {
             if (s == sparent)   // hit!
-            {
-                bool result = true;
-                for (size_t i = iStart; i < ad->fields.dim; i++)
-                {
-                    VarDeclaration *vd = ad->fields[i];
-                    if (AggregateDeclaration *ad2 = isAggregate(vd->type))
-                    {
-                        if (ad2->isStructDeclaration())
-                        {
-                            bool r = checkFrameAccess(loc, sc, ad2);
-                            result = result && r;
-                        }
-                    }
-                }
-                return result;
-            }
+                break;
 
             if (FuncDeclaration *fd = s->isFuncDeclaration())
             {
@@ -73,9 +55,25 @@ bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t iStar
             }
             s = s->toParent2();
         }
+        if (s != sparent)
+        {
+            error(loc, "cannot access frame pointer of %s", ad->toPrettyChars());
+            return false;
+        }
     }
-    error(loc, "cannot access frame pointer of %s", ad->toPrettyChars());
-    return false;
+
+    bool result = true;
+    for (size_t i = iStart; i < ad->fields.dim; i++)
+    {
+        VarDeclaration *vd = ad->fields[i];
+        Type *tb = vd->type->baseElemOf();
+        if (tb->ty == Tstruct)
+        {
+            bool r = checkFrameAccess(loc, sc, ((TypeStruct *)tb)->sym);
+            result = result && r;
+        }
+    }
+    return result;
 }
 
 /********************************* Declaration ****************************/
