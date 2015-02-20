@@ -3767,11 +3767,13 @@ elem *toElem(Expression *e, IRState *irs)
                 switch (elem->type->toBasetype()->ty)
                 {
                     case Tfloat32:
-                        ((targ_float *)&e->EV.Vcent)[i] = elem->toReal();
+                        // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
+                        ((targ_float *)&e->EV.Vcent)[i] = creall(elem->toComplex());
                         break;
 
                     case Tfloat64:
-                        ((targ_double *)&e->EV.Vcent)[i] = elem->toReal();
+                        // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
+                        ((targ_double *)&e->EV.Vcent)[i] = creall(elem->toComplex());
                         break;
 
                     case Tint64:
