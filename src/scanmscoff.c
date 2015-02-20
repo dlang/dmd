@@ -61,11 +61,13 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
 
     struct filehdr *header = (struct filehdr *)buf;
     char is_old_coff = false;
-    if (header->f_sig2 != 0xFFFF) {
+    if (header->f_sig2 != 0xFFFF && header->f_minver != 2) {
         is_old_coff = true;
         struct filehdr_old *header_old;
         header_old = (filehdr_old *) malloc(sizeof(filehdr_old));
         memcpy(header_old, buf, sizeof(filehdr_old));
+        
+        header = (filehdr *) malloc(sizeof(filehdr));
         memset(header, 0, sizeof(filehdr));
         header->f_magic = header_old->f_magic;
         header->f_nscns = header_old->f_nscns;
@@ -123,6 +125,7 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
         printf("Symbol %d:\n",i);
 #endif
         off = header->f_symptr + i * (is_old_coff?sizeof(syment_old):sizeof(syment));
+        
         if (off > buflen)
         {   reason = __LINE__;
             goto Lcorrupt;
@@ -134,12 +137,13 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
             struct syment_old *n2;
             n2 = (syment_old *) malloc(sizeof(syment_old));
             memcpy(n2, (buf + off), sizeof(syment_old));
-            
+            n = (syment *) malloc(sizeof(syment));
             memcpy(n, n2, sizeof(n2->_n));
             n->n_value = n2->n_value;
             n->n_scnum = n2->n_scnum;
             n->n_type = n2->n_type;
-            n->n_numaux = n2->n_numaux;            
+            n->n_sclass = n2->n_sclass;
+            n->n_numaux = n2->n_numaux;
             free(n2);
         }
         if (n->n_zeroes)
