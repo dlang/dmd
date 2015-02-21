@@ -12,26 +12,26 @@ else version (X86)
 
 void test1()
 {
-    writefln("%a", sin(6.8));
+    writefln("%a", sin(6.8L));
     auto f = 6.8L;
     writefln("%a", sin(f));
-    assert(sin(f) == sin(6.8));
-    static assert(approxEqual(sin(6.8), 0x1.f9f8d9aea10fdf1cp-2));
+    assert(sin(f) == sin(6.8L));
+    static assert(approxEqual(sin(6.8L), 0x1.f9f8d9aea10fdf1cp-2));
 
-    writefln("%a", cos(6.8));
+    writefln("%a", cos(6.8L));
     f = 6.8L;
     writefln("%a", cos(f));
-    assert(cos(f) == cos(6.8));
-    static assert(approxEqual(cos(6.8), 0x1.bd21aaf88dcfa13ap-1));
+    assert(cos(f) == cos(6.8L));
+    static assert(approxEqual(cos(6.8L), 0x1.bd21aaf88dcfa13ap-1));
 
-    writefln("%a", tan(6.8));
+    writefln("%a", tan(6.8L));
     f = 6.8L;
     writefln("%a", tan(f));
     version (Win64)
     { }
     else
-	assert(tan(f) == tan(6.8));
-    static assert(approxEqual(tan(6.8), 0x1.22fd752af75cd08cp-1));
+	assert(tan(f) == tan(6.8L));
+    static assert(approxEqual(tan(6.8L), 0x1.22fd752af75cd08cp-1));
 }
 
 /*******************************************/
