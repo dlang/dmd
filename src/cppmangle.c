@@ -1771,6 +1771,35 @@ private:
         cur->accept(this);
     }
 
+    static int mangleParameterDg(void *ctx, size_t n, Parameter *p)
+    {
+        VisualCPPMangler *mangler = (VisualCPPMangler *)ctx;
+
+        Type *t = p->type;
+        if (p->storageClass & (STCout | STCref))
+        {
+            t = t->referenceTo();
+        }
+        else if (p->storageClass & STClazy)
+        {
+            // Mangle as delegate
+            Type *td = new TypeFunction(NULL, t, 0, LINKd);
+            td = new TypeDelegate(td);
+            t = t->merge();
+        }
+        if (t->ty == Tsarray)
+        {
+            t->error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
+            t->error(Loc(), "Use pointer instead.");
+            assert(0);
+        }
+        mangler->flags &= ~IS_NOT_TOP_TYPE;
+        mangler->flags &= ~IGNORE_CONST;
+        t->accept(mangler);
+
+        return 0;
+    }
+
     const char *mangleFunctionType(TypeFunction *type, bool needthis = false, bool noreturn = false)
     {
         VisualCPPMangler tmp(this);
@@ -1839,10 +1868,7 @@ private:
         }
         else
         {
-            for (size_t i = 0; i < type->parameters->dim; ++i)
-            {
-                tmp.mangleParameter((*type->parameters)[i]);
-            }
+            Parameter::foreach(type->parameters, &mangleParameterDg, (void*)&tmp);
             if (type->varargs == 1)
             {
                 tmp.buf.writeByte('Z');
@@ -1858,31 +1884,6 @@ private:
         memcpy(&saved_idents, &tmp.saved_idents, sizeof(const char*) * VC_SAVED_IDENT_CNT);
         memcpy(&saved_types, &tmp.saved_types, sizeof(Type*) * VC_SAVED_TYPE_CNT);
         return ret;
-    }
-
-    void mangleParameter(Parameter *p)
-    {
-        Type *t = p->type;
-        if (p->storageClass & (STCout | STCref))
-        {
-            t = t->referenceTo();
-        }
-        else if (p->storageClass & STClazy)
-        {
-            // Mangle as delegate
-            Type *td = new TypeFunction(NULL, t, 0, LINKd);
-            td = new TypeDelegate(td);
-            t = t->merge();
-        }
-        if (t->ty == Tsarray)
-        {
-            t->error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
-            t->error(Loc(), "Use pointer instead.");
-            assert(0);
-        }
-        flags &= ~IS_NOT_TOP_TYPE;
-        flags &= ~IGNORE_CONST;
-        t->accept(this);
     }
 };
 

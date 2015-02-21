@@ -474,3 +474,9 @@ void test14195a(Delegate1<void()> func) {}
 void test14195b(Delegate2<int(float, double), int(float, double)> func) {}
 
 /******************************************/
+// 14200
+
+void test14200a(int a) {};
+void test14200b(float a, int b, double c) {};
+
+/******************************************/

@@ -734,6 +734,23 @@ void test14195()
 
 
 /****************************************/
+// 14200
+
+template Tuple14200(T...)
+{
+  alias Tuple14200 = T;
+}
+
+extern(C++) void test14200a(Tuple14200!(int));
+extern(C++) void test14200b(float, Tuple14200!(int, double));
+
+void test14200()
+{
+  test14200a(1);
+  test14200b(1.0f, 1, 1.0);
+}
+
+/****************************************/
 
 void main()
 {
@@ -763,6 +780,7 @@ void main()
     func13932(S13932!(-1)(0));
     foo13337(S13337());
     test14195();
+    test14200();
 
     printf("Success\n");
 }
