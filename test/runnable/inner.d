@@ -10,33 +10,33 @@ class Outer
 
     static class StaticInner
     {
-	int si;
+        int si;
 
-	int foo()
-	{
-	    return si + os;
-	}
+        int foo()
+        {
+            return si + os;
+        }
     }
 
     class Inner
     {
-	int i;
+        int i;
 
-	int foo(int m)
-	{
-	    return i * o + m;
-	}
+        int foo(int m)
+        {
+            return i * o + m;
+        }
 
-	this(int k)
-	{
-	    i = k + 7;
-	    os = 6;
-	}
+        this(int k)
+        {
+            i = k + 7;
+            os = 6;
+        }
     }
 
     Inner bar()
     {
-	return new Inner(17);
+        return new Inner(17);
     }
 }
 
@@ -65,37 +65,37 @@ class C1
 
     this()
     {
-	c1 = 2;
+        c1 = 2;
     }
 
     class C2
     {
-	class C3
-	{
-	    int c3;
+        class C3
+        {
+            int c3;
 
-	    this(int n)
-	    {
-		c3 = n + c1 + c2;
-	    }
-	}
+            this(int n)
+            {
+                c3 = n + c1 + c2;
+            }
+        }
 
-	int c2;
+        int c2;
 
-	C3 foo()
-	{
-	    return new C3(8);
-	}
+        C3 foo()
+        {
+            return new C3(8);
+        }
 
-	this(int k)
-	{
-	    c2 = k + 7;
-	}
+        this(int k)
+        {
+            c2 = k + 7;
+        }
     }
 
     C2 bar()
     {
-	return new C2(17);
+        return new C2(17);
     }
 }
 
@@ -119,24 +119,24 @@ class C3
 
     this()
     {
-	c1 = 2;
+        c1 = 2;
     }
 
     class B { }
 
     class C2 : B
     {
-	int c2;
+        int c2;
 
-	this(int k)
-	{
-	    c2 = c1 + k + 7;
-	}
+        this(int k)
+        {
+            c2 = c1 + k + 7;
+        }
     }
 
     C2 bar()
     {
-	return new C2(17);
+        return new C2(17);
     }
 }
 
@@ -157,15 +157,15 @@ void test4()
 
     class C
     {
-	void foo()
-	{
-	    assert(m == 3);
-	}
+        void foo()
+        {
+            assert(m == 3);
+        }
     }
 
     void bar()
     {
-	assert(m == 3);
+        assert(m == 3);
     }
 
     bar();
@@ -181,16 +181,16 @@ void test5()
 
     void bar()
     {
-	assert(m == 3);
+        assert(m == 3);
     }
 
     class C
     {
-	void foo()
-	{
-	    assert(m == 3);
-	    bar();
-	}
+        void foo()
+        {
+            assert(m == 3);
+            bar();
+        }
     }
 
     bar();
@@ -207,23 +207,23 @@ void test6()
 
     void bar()
     {
-	assert(m == 3);
+        assert(m == 3);
     }
 
     void abc()
     {
-	class C
-	{
-	    void foo()
-	    {
-		assert(m == 3);
-		bar();
-	    }
-	}
+        class C
+        {
+            void foo()
+            {
+                assert(m == 3);
+                bar();
+            }
+        }
 
-	bar();
-	C c = new C;
-	c.foo();
+        bar();
+        C c = new C;
+        c.foo();
     }
 
     abc();
@@ -237,28 +237,28 @@ void test7()
 
     void bar()
     {
-	assert(m == 3);
+        assert(m == 3);
     }
 
     void ghi()
     {
-	void abc()
-	{
-	    class C
-	    {
-		void foo()
-		{
-		    assert(m == 3);
-		    bar();
-		}
-	    }
+        void abc()
+        {
+            class C
+            {
+                void foo()
+                {
+                    assert(m == 3);
+                    bar();
+                }
+            }
 
-	    bar();
-	    C c = new C;
-	    c.foo();
-	}
+            bar();
+            C c = new C;
+            c.foo();
+        }
 
-	abc();
+        abc();
     }
 
     ghi();
@@ -272,33 +272,33 @@ void test8()
 
     void bar()
     {
-	assert(m == 3);
+        assert(m == 3);
     }
 
     void ghi()
     {
-	void abc()
-	{
-	    class C
-	    {
-		void foo()
-		{
-		    void fooey()
-		    {
-			assert(m == 3);
-			bar();
-		    }
+        void abc()
+        {
+            class C
+            {
+                void foo()
+                {
+                    void fooey()
+                    {
+                        assert(m == 3);
+                        bar();
+                    }
 
-		    fooey();
-		}
-	    }
+                    fooey();
+                }
+            }
 
-	    bar();
-	    C c = new C;
-	    c.foo();
-	}
+            bar();
+            C c = new C;
+            c.foo();
+        }
 
-	abc();
+        abc();
     }
 
     ghi();
@@ -312,30 +312,30 @@ class C9
 
     void ccc()
     {
-	assert(m == 3);
+        assert(m == 3);
     }
 
     this()
     {
-	m = 3;
+        m = 3;
     }
 
     class D
     {
-	int n;
+        int n;
 
-	this() { n = 4; }
+        this() { n = 4; }
 
-	void abc()
-	{
-	    assert(m == 3);
-	    ccc();
-	}
+        void abc()
+        {
+            assert(m == 3);
+            ccc();
+        }
     }
 
     D def()
     {
-	return new D;
+        return new D;
     }
 }
 
@@ -359,16 +359,16 @@ void test10()
 
     class C
     {
-	void foo()
-	{
-	    assert(m == 3);
-	}
+        void foo()
+        {
+            assert(m == 3);
+        }
     }
 
     void abc()
     {
-	C c = new C;
-	c.foo();
+        C c = new C;
+        c.foo();
     }
 
     abc();
@@ -382,21 +382,21 @@ void test11()
 
     class C
     {
-	void foo()
-	{
-	    assert(m == 3);
-	}
+        void foo()
+        {
+            assert(m == 3);
+        }
     }
 
     void abc()
     {
-	void def()
-	{
-	    C c = new C;
-	    c.foo();
-	}
+        void def()
+        {
+            C c = new C;
+            c.foo();
+        }
 
-	def();
+        def();
     }
 
     abc();
@@ -410,17 +410,17 @@ void test12()
 
     class C
     {
-	void foo()
-	{
-	    assert(m == 3);
-	}
+        void foo()
+        {
+            assert(m == 3);
+        }
 
-	void abc()
-	{
-	    assert(m == 3);
-	    C c = new C;
-	    c.foo();
-	}
+        void abc()
+        {
+            assert(m == 3);
+            C c = new C;
+            c.foo();
+        }
     }
 
     C d = new C;
@@ -435,22 +435,22 @@ void test13()
 
     class C
     {
-	void foo()
-	{
-	    assert(m == 3);
-	}
+        void foo()
+        {
+            assert(m == 3);
+        }
 
-	void abc()
-	{
-	    void def()
-	    {
-		assert(m == 3);
-		C c = new C;
-		c.foo();
-	    }
+        void abc()
+        {
+            void def()
+            {
+                assert(m == 3);
+                C c = new C;
+                c.foo();
+            }
 
-	    def();
-	}
+            def();
+        }
     }
 
     C d = new C;
@@ -463,7 +463,7 @@ class C14
 {
     void foo()
     {
-	assert(0);
+        assert(0);
     }
 }
 
@@ -472,13 +472,13 @@ void test14()
     int m = 3;
 
     C14 c = new class C14
-	{
-	    override void foo()
-	    {
-		printf("in inner class\n");
-		assert(m == 3);
-	    }
-	};
+        {
+            override void foo()
+            {
+                printf("in inner class\n");
+                assert(m == 3);
+            }
+        };
 
     c.foo();
 }
@@ -489,7 +489,7 @@ class C15
 {
     void foo()
     {
-	assert(0);
+        assert(0);
     }
 }
 
@@ -498,20 +498,20 @@ void test15()
     int m = 3;
 
     C15 c = new class(1,2) C15
-	{
-	    this(int i, int j)
-	    {
-		printf("in inner class ctor\n");
-		assert(i == 1);
-		assert(j == 2);
-	    }
+        {
+            this(int i, int j)
+            {
+                printf("in inner class ctor\n");
+                assert(i == 1);
+                assert(j == 2);
+            }
 
-	    override void foo()
-	    {
-		printf("in inner class\n");
-		assert(m == 3);
-	    }
-	};
+            override void foo()
+            {
+                printf("in inner class\n");
+                assert(m == 3);
+            }
+        };
 
     c.foo();
 }
@@ -525,15 +525,15 @@ class C16
     void iterator()
     {
         class Foo
-	{
-	    void current()
-	    {
-		assert(w == 3);
+        {
+            void current()
+            {
+                assert(w == 3);
             }
         }
 
-	Foo f = new Foo();
-	f.current();
+        Foo f = new Foo();
+        f.current();
     }
 }
 
@@ -551,22 +551,22 @@ class Owner
 
     this()
     {
-	n = new Nested(this);
+        n = new Nested(this);
     }
 
     class Nested
     {
-	this(Owner owner)
-	{
-	    m = owner;
-	}
+        this(Owner owner)
+        {
+            m = owner;
+        }
 
-	Owner foo()
-	{
-	    return m;
-	}
+        Owner foo()
+        {
+            return m;
+        }
 
-	Owner m;
+        Owner m;
     }
 
     Nested n;
@@ -591,7 +591,7 @@ class Foo18
     {
         void doSayHello()
         {
-	    writefln("Betty");
+            writefln("Betty");
             sayHello();
         }
     }
@@ -627,7 +627,7 @@ class Foo19
     {
         void doSayHello()
         {
-	    writefln("Betty");
+            writefln("Betty");
             sayHello();
         }
     }
@@ -659,20 +659,21 @@ void test19()
 /*******************************************************/
 
 class Outer20
-{   int a;
+{
+    int a;
 
     class Inner
     {
-	int foo()
-	{
-	    return a;
-	}
+        int foo()
+        {
+            return a;
+        }
     }
 }
 
 void test20()
 {
-    Outer20 o = new Outer20; 
+    Outer20 o = new Outer20;
     o.a = 3;
     Outer20.Inner oi = o.new Inner;
     assert(oi.foo() == 3);
@@ -694,16 +695,16 @@ class Outer22
 {
     class Inner
     {
-	Outer22 foo()
-	{
-	    return this.outer;
-	}
+        Outer22 foo()
+        {
+            return this.outer;
+        }
     }
 
     void bar()
     {
-	Inner i = new Inner;
-	assert(this == i.foo());
+        Inner i = new Inner;
+        assert(this == i.foo());
     }
 }
 
@@ -728,7 +729,7 @@ class Foo23
 
     void bar()
     {
-	Adapter23 a = cast( Adapter23 )( new AnonAdapter() );
+        Adapter23 a = cast( Adapter23 )( new AnonAdapter() );
     }
 }
 
@@ -744,27 +745,33 @@ void test23()
 
 /*******************************************************/
 
-class I24 {
+class I24
+{
     public abstract void callI();
 }
 
 C24 c24;
 
-class C24  {
+class C24
+{
     private int index;
-    void foo(){
+    void foo()
+    {
         printf( "ok, this = %p\n", this);
-	assert(this == c24);
+        assert(this == c24);
     }
-    I24 bar(){
-        auto i = new class() I24 {
-            override public void callI() {
+    I24 bar()
+    {
+        auto i = new class() I24
+        {
+            override public void callI()
+            {
                 foo();
             }
         };
-	printf("bar.this = %p\n", this);
-	printf("  i.this = %p\n", (cast(void**)i)[2]);
-	assert(*cast(void**)&c24 == (cast(void**)i)[2]);
+        printf("bar.this = %p\n", this);
+        printf("  i.this = %p\n", (cast(void**)i)[2]);
+        assert(*cast(void**)&c24 == (cast(void**)i)[2]);
         return i;
     }
 }
@@ -824,4 +831,3 @@ int main()
     printf("Success\n");
     return 0;
 }
-
