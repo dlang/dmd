@@ -2908,6 +2908,137 @@ static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char
 }
 
 /********************************************
+ * Find function in overload list that matches to the 'this' modifier.
+ * There's four result types.
+ *
+ * 1. If the 'tthis' matches only one candidate, it's an "exact match".
+ *    Returns the function and 't' is set to its type.
+ *      eg. If 'tthis" is mutable and there's only one mutable method.
+ * 2. If there's two or more match candidates, but a candidate function will be
+ *    a "better match".
+ *    Returns NULL but 't' is set to the candidate type.
+ *      eg. If 'tthis' is mutable, and there's both mutable and const methods,
+ *          the mutable method will be a better match.
+ * 3. If there's two or more match candidates, but there's no better match,
+ *    Returns NULL and 't' is set to NULL to represent "ambiguous match".
+ *      eg. If 'tthis' is mutable, and there's two or more mutable methods.
+ * 4. If there's no candidates, it's "no match" and returns NULL with error report.
+ *      e.g. If 'tthis' is const but there's no const methods.
+ */
+FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Type *tthis, Type *&t)
+{
+    //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
+    Match m;
+    memset(&m, 0, sizeof(m));
+    m.last = MATCHnomatch;
+
+  struct ParamMod
+  {
+    Match *m;
+    Type *tthis;
+
+    static int fp(void *param, Dsymbol *s)
+    {
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+            return ((ParamMod *)param)->fp(fd);
+        return 0;
+    }
+    int fp(FuncDeclaration *f)
+    {
+        if (f == m->lastf)          // skip duplicates
+            return 0;
+
+        m->anyf = f;
+        TypeFunction *tf = (TypeFunction *)f->type;
+        //printf("tf = %s\n", tf->toChars());
+
+        MATCH match;
+        if (tthis)   // non-static functions are preferred than static ones
+        {
+            if (f->needThis())
+                match = f->isCtorDeclaration() ? MATCHexact : MODmethodConv(tthis->mod, tf->mod);
+            else
+                match = MATCHconst; // keep static funciton in overload candidates
+        }
+        else            // static functions are preferred than non-static ones
+        {
+            if (f->needThis())
+                match = MATCHconvert;
+            else
+                match = MATCHexact;
+        }
+        if (match != MATCHnomatch)
+        {
+            if (match > m->last) goto LfIsBetter;
+            if (match < m->last) goto LlastIsBetter;
+
+            /* See if one of the matches overrides the other.
+             */
+            if (m->lastf->overrides(f)) goto LlastIsBetter;
+            if (f->overrides(m->lastf)) goto LfIsBetter;
+
+        Lambiguous:
+            //printf("\tambiguous\n");
+            m->nextf = f;
+            m->count++;
+            return 0;
+
+        LlastIsBetter:
+            //printf("\tlastbetter\n");
+            return 0;
+
+        LfIsBetter:
+            //printf("\tisbetter\n");
+            if (m->last <= MATCHconvert)
+            {
+                // clear last secondary matching
+                m->nextf = NULL;
+                m->count = 0;
+            }
+            m->last = match;
+            m->lastf = f;
+            m->count++;     // count up
+            return 0;
+        }
+        return 0;
+    }
+  };
+    ParamMod p;
+    p.m = &m;
+    p.tthis = tthis;
+    overloadApply(this, &p, &ParamMod::fp);
+
+    if (m.count == 1)       // exact match
+    {
+        t = m.lastf->type;
+    }
+    else if (m.count > 1)
+    {
+        if (!m.nextf)       // better match
+            t = m.lastf->type;
+        else                // ambiguous match
+            t = NULL;
+        m.lastf = NULL;
+    }
+    else                    // no match
+    {
+        t = NULL;
+        TypeFunction *tf = (TypeFunction *)this->type;
+        assert(tthis);
+        assert(!MODimplicitConv(tthis->mod, tf->mod));  // modifier mismatch
+        {
+            OutBuffer thisBuf, funcBuf;
+            MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);
+            MODMatchToBuffer(&funcBuf, tf->mod, tthis->mod);
+            ::error(loc, "%smethod %s is not callable using a %sobject",
+                funcBuf.peekString(), this->toPrettyChars(), thisBuf.peekString());
+        }
+    }
+
+    return m.lastf;
+}
+
+/********************************************
  * Returns true if function was declared
  * directly or indirectly in a unittest block
  */
