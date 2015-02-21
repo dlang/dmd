@@ -3417,7 +3417,6 @@ elem *toElem(Expression *e, IRState *irs)
             elem *ehidden = irs->ehidden;
             irs->ehidden = NULL;
 
-            int directcall = 0;
             elem *ec;
             FuncDeclaration *fd = NULL;
             bool dctor = false;
@@ -3427,26 +3426,6 @@ elem *toElem(Expression *e, IRState *irs)
 
                 fd = dve->var->isFuncDeclaration();
 
-                Expression *ex = dve->e1;
-                while (1)
-                {
-                    switch (ex->op)
-                    {
-                        case TOKsuper:          // super.member() calls directly
-                        case TOKdottype:        // type.member() calls directly
-                            directcall = 1;
-                            break;
-
-                        case TOKcast:
-                            ex = ((CastExp *)ex)->e1;
-                            continue;
-
-                        default:
-                            //ex->dump(0);
-                            break;
-                    }
-                    break;
-                }
                 if (dve->e1->op == TOKstructliteral)
                 {
                     StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
@@ -3494,7 +3473,8 @@ elem *toElem(Expression *e, IRState *irs)
 
 
                 if (dctor)
-                { }
+                {
+                }
                 else if (ce->arguments && ce->arguments->dim && ec->Eoper != OPvar)
                 {
                     if (ec->Eoper == OPind && el_sideeffect(ec->E1))
@@ -3583,7 +3563,7 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                 }
             }
-            elem *ecall = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments);
+            elem *ecall = callfunc(ce->loc, irs, ce->directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments);
 
             if (dctor && ecall->Eoper == OPind)
             {

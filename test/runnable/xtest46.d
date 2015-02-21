@@ -7312,6 +7312,28 @@ class Foo14165
 }
 
 /***************************************************/
+// 14211
+
+extern(C++) // all derived classes won't have invariants
+class B14211
+{
+    void func()
+    {
+    }
+}
+
+final class C14211 : B14211
+{
+}
+
+void test14211()
+{
+    auto c = new C14211();
+    *cast(void**)c = null;
+    c.func();   // called without vtbl access
+}
+
+/***************************************************/
 
 int main()
 {
@@ -7614,6 +7636,7 @@ int main()
     test13472();
     test13476();
     test13952();
+    test14211();
 
     printf("Success\n");
     return 0;
