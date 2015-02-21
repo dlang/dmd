@@ -375,7 +375,7 @@ void AliasDeclaration::semantic(Scope *sc)
     if (s && ((s->getType() && type->equals(s->getType())) || s->isEnumMember()))
         goto L2;                        // it's a symbolic alias
 
-    type = type->addStorageClass(storage_class);
+    type = type->addSTC(storage_class);
     if (storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCdisable))
     {
         // For 'ref' to be attached to function types, and picked

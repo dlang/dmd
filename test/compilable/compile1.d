@@ -710,6 +710,17 @@ final class C12703
 }
 
 /***************************************************/
+// 13280
+
+struct S13280
+{
+    alias U = ubyte;
+    alias T1 =       ubyte[this.sizeof]; // ok
+    alias T2 = const     U[this.sizeof]; // ok
+    alias T3 = const ubyte[this.sizeof]; // ok <- error
+}
+
+/***************************************************/
 // 13481
 
 mixin template Mix13481(void function() callback)

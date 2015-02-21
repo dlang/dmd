@@ -6863,6 +6863,7 @@ Type *TypeTypeof::syntaxCopy()
 
 Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
 {
+    //printf("TypeTypeof::toDsymbol('%s')\n", toChars());
     Type *t = semantic(loc, sc);
     if (t == this)
         return NULL;
