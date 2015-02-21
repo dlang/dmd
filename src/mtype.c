@@ -8126,7 +8126,11 @@ L1:
         {
             if (sym->vthis->scope)
                 sym->vthis->semantic(NULL);
-            s = sym->vthis;
+
+            ClassDeclaration *cdp = sym->toParent2()->isClassDeclaration();
+            DotVarExp *de = new DotVarExp(e->loc, e, sym->vthis, 0);
+            de->type = (cdp ? cdp->type : sym->vthis->type)->addMod(e->type->mod);
+            return de;
         }
         else
         {

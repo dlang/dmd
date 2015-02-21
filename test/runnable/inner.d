@@ -796,6 +796,38 @@ struct S7426
 }
 
 /*******************************************************/
+// 14046
+
+class A14046
+{
+    class NestedA { }
+}
+
+class B14046 : A14046
+{
+    int field;
+
+    class NestedB : NestedA
+    {
+        void foo()
+        {
+            this.outer.field = 1;  // ok <- disallowed
+
+            //(cast(B14046)this.outer).field = 1;  // workaround
+        }
+    }
+}
+
+void test14046()
+{
+    auto b = new B14046();
+    auto nb = b.new NestedB();
+    assert(b.field == 0);
+    nb.foo();
+    assert(b.field == 1);
+}
+
+/*******************************************************/
 
 int main()
 {
@@ -827,6 +859,8 @@ int main()
     test22();
     test23();
     test24();
+
+    test14046();
 
     printf("Success\n");
     return 0;
