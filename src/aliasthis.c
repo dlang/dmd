@@ -24,25 +24,43 @@
 
 Expression *resolveAliasThis(Scope *sc, Expression *e)
 {
-    Type *t = e->type->toBasetype();
-    AggregateDeclaration *ad = isAggregate(t);
+    AggregateDeclaration *ad = isAggregate(e->type);
 
     if (ad && ad->aliasthis)
     {
-        bool isstatic = (e->op == TOKtype);
-        e = new DotIdExp(e->loc, e, ad->aliasthis->ident);
+        Loc loc = e->loc;
+        Type *tthis = (e->op == TOKtype ? e->type : NULL);
+        e = new DotIdExp(loc, e, ad->aliasthis->ident);
         e = e->semantic(sc);
-        if (isstatic && ad->aliasthis->needThis())
+        if (tthis && ad->aliasthis->needThis())
         {
+            if (e->op == TOKvar)
+            {
+                if (FuncDeclaration *f = ((VarExp *)e)->var->isFuncDeclaration())
+                {
+                    // Bugzilla 13009: Support better match for the overloaded alias this.
+                    Type *t;
+                    f = f->overloadModMatch(loc, tthis, t);
+                    if (f && t)
+                    {
+                        e = new VarExp(loc, f, 0);  // use better match
+                        e = new CallExp(loc, e);
+                        goto L1;
+                    }
+                }
+            }
             /* non-@property function is not called inside typeof(),
              * so resolve it ahead.
              */
+            {
             int save = sc->intypeof;
             sc->intypeof = 1;   // bypass "need this" error check
             e = resolveProperties(sc, e);
             sc->intypeof = save;
+            }
 
-            e = new TypeExp(e->loc, new TypeTypeof(e->loc, e));
+        L1:
+            e = new TypeExp(loc, new TypeTypeof(loc, e));
             e = e->semantic(sc);
         }
         e = resolveProperties(sc, e);
