@@ -9591,8 +9591,6 @@ Expression *CastExp::semantic(Scope *sc)
     if (sc->func && !sc->intypeof)
     {
         // Disallow unsafe casts
-        Type *tob = to->toBasetype();
-        Type *t1b = e1->type->toBasetype();
 
         // Implicit conversions are always safe
         if (t1b->implicitConvTo(tob))
