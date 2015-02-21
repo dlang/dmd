@@ -1770,11 +1770,15 @@ Lmatch:
     for (size_t i = 0; i < dedtypes->dim; i++)
     {
         Type *at = isType((*dedtypes)[i]);
-        if (at && at->ty == Tnone)
+        if (at)
         {
-            TypeDeduced *xt = (TypeDeduced *)at;
-            (*dedtypes)[i] = xt->tded;  // 'unbox'
-            delete xt;
+            if (at->ty == Tnone)
+            {
+                TypeDeduced *xt = (TypeDeduced *)at;
+                at = xt->tded;  // 'unbox'
+                delete xt;
+            }
+            (*dedtypes)[i] = at->merge2();
         }
     }
     for (size_t i = ntargs; i < dedargs->dim; i++)
