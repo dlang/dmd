@@ -7948,6 +7948,7 @@ CallExp::CallExp(Loc loc, Expression *e, Expressions *exps)
 {
     this->arguments = exps;
     this->f = NULL;
+    this->directcall = false;
 }
 
 CallExp::CallExp(Loc loc, Expression *e)
@@ -7955,6 +7956,7 @@ CallExp::CallExp(Loc loc, Expression *e)
 {
     this->arguments = NULL;
     this->f = NULL;
+    this->directcall = false;
 }
 
 CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
@@ -7968,6 +7970,7 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
     }
     this->arguments = arguments;
     this->f = NULL;
+    this->directcall = false;
 }
 
 CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
@@ -7980,6 +7983,7 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
 
     this->arguments = arguments;
     this->f = NULL;
+    this->directcall = false;
 }
 
 CallExp *CallExp::create(Loc loc, Expression *e, Expressions *exps)
@@ -8484,11 +8488,23 @@ Lagain:
             // See if we need to adjust the 'this' pointer
             AggregateDeclaration *ad = f->isThis();
             ClassDeclaration *cd = ue->e1->type->isClassHandle();
-            if (ad && cd && ad->isClassDeclaration() && ad != cd &&
-                ue->e1->op != TOKsuper)
+            if (ad && cd && ad->isClassDeclaration())
             {
-                ue->e1 = ue->e1->castTo(sc, ad->type); //new CastExp(loc, ue->e1, ad->type);
-                ue->e1 = ue->e1->semantic(sc);
+                if (ue->e1->op == TOKdottype)
+                {
+                    ue->e1 = ((DotTypeExp *)ue->e1)->e1;
+                    directcall = true;
+                }
+                else if (ue->e1->op == TOKsuper)
+                    directcall = true;
+                else if ((cd->storage_class & STCfinal) != 0)   // Bugzilla 14211
+                    directcall = true;
+
+                if (ad != cd)
+                {
+                    ue->e1 = ue->e1->castTo(sc, ad->type->addMod(ue->e1->type->mod));
+                    ue->e1 = ue->e1->semantic(sc);
+                }
             }
         }
         t1 = e1->type;
@@ -8629,7 +8645,9 @@ Lagain:
         return new ErrorExp();
     }
     else if (t1->ty == Terror)
+    {
         return new ErrorExp();
+    }
     else if (t1->ty != Tfunction)
     {
         TypeFunction *tf;

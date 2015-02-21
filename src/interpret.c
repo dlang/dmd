@@ -4609,19 +4609,8 @@ public:
 
         Expression *pthis = NULL;
         FuncDeclaration *fd = NULL;
-        bool directcall = false;
 
-        Expression *ecall = e->e1;
-        if (ecall->op == TOKdotvar)
-        {
-            // Check that is a direct call
-            DotVarExp *dve = (DotVarExp *)ecall;
-            Expression *ex = dve->e1;
-            while (ex->op == TOKcast)
-                ex = ((CastExp *)ex)->e1;
-            directcall = (ex->op == TOKsuper || ex->op == TOKdottype);
-        }
-        ecall = interpret(ecall, istate);
+        Expression *ecall = interpret(e->e1, istate);
         if (exceptionOrCant(ecall))
             return;
 
@@ -4740,7 +4729,7 @@ public:
             }
             assert(pthis->op == TOKstructliteral || pthis->op == TOKclassreference);
 
-            if (fd->isVirtual() && !directcall)
+            if (fd->isVirtual() && !e->directcall)
             {
                 // Make a virtual function call.
                 // Get the function from the vtable of the original class
