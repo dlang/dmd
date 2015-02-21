@@ -596,7 +596,7 @@ void build_syment_table()
         sym.n_sclass = IMAGE_SYM_CLASS_STATIC;
         sym.n_numaux = 1;
 
-        assert(sizeof(sym) == 18);
+        assert(sizeof(sym) == 20);
         syment_buf->write(&sym, sizeof(sym));
 
         union auxent aux;
@@ -614,17 +614,19 @@ void build_syment_table()
 
         if (psechdr->s_flags & IMAGE_SCN_LNK_COMDAT)
         {
-            aux.x_section.Selection = IMAGE_COMDAT_SELECT_ANY;
+            aux.x_section.Selection = (unsigned char)IMAGE_COMDAT_SELECT_ANY;
             if (pseg->SDassocseg)
-            {   aux.x_section.Selection = IMAGE_COMDAT_SELECT_ASSOCIATIVE;
-                aux.x_section.Number = pseg->SDassocseg;
+            {   aux.x_section.Selection = (unsigned char)IMAGE_COMDAT_SELECT_ASSOCIATIVE;
+                aux.x_section.NumberHighPart = (unsigned short)pseg->SDassocseg >> 16;
+                aux.x_section.NumberLowPart = (unsigned short)pseg->SDassocseg & 0x0000FFFF;
             }
         }
+        
+        memset(&aux.x_section.Zeros, 0, 2);
 
         syment_buf->write(&aux, sizeof(aux));
-        //printf("%d %d %d %d %d %d\n", sizeof(aux.x_fd), sizeof(aux.x_bf), sizeof(aux.x_ef),
-        //     sizeof(aux.x_weak), sizeof(aux.x_filename), sizeof(aux.x_section));
-        assert(sizeof(aux) == 18);
+        
+        assert(sizeof(aux) == 20);
     }
 
     /* Add symbols from symbuf[]
@@ -758,17 +760,23 @@ void MsCoffObj::term(const char *objfilename)
     // Write out the bytes for the header
 
     struct filehdr header;
-
+    
+    header.f_sig1 = IMAGE_FILE_MACHINE_UNKNOWN;
+    header.f_sig2 = 0xFFFF;
+    header.f_minver = 2;
     header.f_magic = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
     header.f_nscns = scnhdr_cnt;
     time_t f_timedat = 0;
     time(&f_timedat);
-    header.f_timdat = (long)f_timedat;
+    header.f_timdat = (unsigned long)f_timedat;
     header.f_symptr = 0;        // offset to symbol table
     header.f_nsyms = 0;
-    header.f_opthdr = 0;
-    header.f_flags = 0;
-
+    unsigned char uuid[16] = { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
+                                '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
+    memcpy(header.f_uuid, uuid, 16);
+    memset(header.f_unused, 0, sizeof(header.f_unused));
+    
+    
     foffset = sizeof(header);       // start after header
 
     foffset += ScnhdrBuf->size();   // section headers
@@ -1581,6 +1589,9 @@ segidx_t MsCoffObj::getsegment2(IDXSEC shtidx)
     //printf("seg_count = %d\n", seg_count);
     return seg;
 }
+
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
+extern void fatal();
 
 /********************************************
  * Add new scnhdr.

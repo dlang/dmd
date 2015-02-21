@@ -60,7 +60,23 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
     }
 
     struct filehdr *header = (struct filehdr *)buf;
-
+    char is_old_coff = false;
+    if (header->f_sig2 != 0xFFFF && header->f_minver != 2) {
+        is_old_coff = true;
+        struct filehdr_old *header_old;
+        header_old = (filehdr_old *) malloc(sizeof(filehdr_old));
+        memcpy(header_old, buf, sizeof(filehdr_old));
+        
+        header = (filehdr *) malloc(sizeof(filehdr));
+        memset(header, 0, sizeof(filehdr));
+        header->f_magic = header_old->f_magic;
+        header->f_nscns = header_old->f_nscns;
+        header->f_timdat = header_old->f_timdat;
+        header->f_symptr = header_old->f_symptr;
+        header->f_nsyms = header_old->f_nsyms;
+        free(header_old);
+    }
+    
     switch (header->f_magic)
     {
         case IMAGE_FILE_MACHINE_UNKNOWN:
@@ -85,7 +101,7 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
         error(loc, "MS-Coff object module %s has no string table", module_name);
         return;
     }
-    off += header->f_nsyms * sizeof(struct syment);
+    off += header->f_nsyms * (is_old_coff?sizeof(struct syment_old):sizeof(struct syment));
     if (off + 4 > buflen)
     {   reason = __LINE__;
         goto Lcorrupt;
@@ -99,19 +115,37 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
     string_len -= 4;
 
     for (int i = 0; i < header->f_nsyms; i++)
-    {   struct syment *n;
+    {   
+        struct syment *n;
+        
         char s[8 + 1];
         char *p;
 
 #if LOG
         printf("Symbol %d:\n",i);
 #endif
-        off = header->f_symptr + i * sizeof(*n);
+        off = header->f_symptr + i * (is_old_coff?sizeof(syment_old):sizeof(syment));
+        
         if (off > buflen)
         {   reason = __LINE__;
             goto Lcorrupt;
         }
+        
         n = (struct syment *)(buf + off);
+        
+        if (is_old_coff) {
+            struct syment_old *n2;
+            n2 = (syment_old *) malloc(sizeof(syment_old));
+            memcpy(n2, (buf + off), sizeof(syment_old));
+            n = (syment *) malloc(sizeof(syment));
+            memcpy(n, n2, sizeof(n2->_n));
+            n->n_value = n2->n_value;
+            n->n_scnum = n2->n_scnum;
+            n->n_type = n2->n_type;
+            n->n_sclass = n2->n_sclass;
+            n->n_numaux = n2->n_numaux;
+            free(n2);
+        }
         if (n->n_zeroes)
         {   strncpy(s,n->n_name,8);
             s[SYMNMLEN] = 0;
