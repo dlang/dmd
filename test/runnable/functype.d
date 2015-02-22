@@ -254,6 +254,26 @@ void test8579()
 }
 
 /***************************************************/
+// 14210
+
+string foo14210a(DT)(string name, DT dg)
+{
+    return name ~ " :: " ~ typeof(dg).stringof;
+}
+string foo14210b(DT)(string name, DT dg)
+{
+    return name ~ " :: " ~ typeof(dg).stringof;
+}
+void test14210()
+{
+    assert(foo14210a("1", (int a)    => a+0) == "1 :: int function(int) pure nothrow @nogc @safe");
+    assert(foo14210a("2", (int a=40) => a+2) == "2 :: int function(int) pure nothrow @nogc @safe");
+
+    assert(foo14210b("2", (int a=40) => a+2) == "2 :: int function(int) pure nothrow @nogc @safe");
+    assert(foo14210b("1", (int a)    => a+0) == "1 :: int function(int) pure nothrow @nogc @safe");
+}
+
+/***************************************************/
 // 10734
 
 // There's no platform independent export symbol, so
@@ -288,6 +308,7 @@ int main()
     test3646();
     test3866();
     test8579();
+    test14210();
 
     printf("Success\n");
     return 0;
