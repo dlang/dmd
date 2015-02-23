@@ -858,6 +858,20 @@ void test6780()
 }
 
 /**********************************/
+// 6810
+
+int f6810(int n)(int) { return 1;}
+int f6810(U...)(U)    { assert(0); }
+int f6810(U...)(U a)  { assert(0); }
+int f6810(U...)(U)   if (true) { assert(0); }
+int f6810(U...)(U a) if (true) { assert(0); }
+
+void test6810()
+{
+    assert(f6810!0(0) == 1);
+}
+
+/**********************************/
 // 6891
 
 struct S6891(int N, T)
@@ -4412,6 +4426,7 @@ int main()
     test6208c();
     test6738();
     test6780();
+    test6810();
     test6891();
     test6994();
     test6764();
