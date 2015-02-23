@@ -918,7 +918,7 @@ void VarDeclaration::semantic(Scope *sc)
         }
     }
     if ((storage_class & STCauto) && !inferred)
-       error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
+        error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
 
     if (tb->ty == Ttuple)
     {

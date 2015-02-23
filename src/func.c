@@ -631,6 +631,8 @@ void FuncDeclaration::semantic(Scope *sc)
     f = (TypeFunction *)type;
     size_t nparams = Parameter::dim(f->parameters);
 
+    if ((storage_class & STCauto) && !f->isref && !inferRetType)
+        error("storage class 'auto' has no effect if return type is not inferred");
     if (storage_class & STCscope)
         error("functions cannot be scope");
 
