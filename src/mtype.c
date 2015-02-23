@@ -7758,7 +7758,7 @@ bool TypeStruct::needsNested()
 bool TypeStruct::isAssignable()
 {
     bool assignable = true;
-    unsigned offset;
+    unsigned offset = ~0;  // dead-store initialize to prevent spurious warning
 
     /* If any of the fields are const or immutable,
      * then one cannot assign this struct.
@@ -7824,7 +7824,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                 /* Check all the fields. If they can all be converted,
                  * allow the conversion.
                  */
-                unsigned offset;
+                unsigned offset = ~0;   // dead-store to prevent spurious warning
                 for (size_t i = 0; i < sym->fields.dim; i++)
                 {
                     VarDeclaration *v = sym->fields[i];

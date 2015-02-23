@@ -1115,8 +1115,8 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
     CondExp condexp(Loc(), &integerexp, NULL, NULL);
 
     Type *t0 = NULL;
-    Expression *e0;
-    size_t j0;
+    Expression *e0 = NULL;      // dead-store to prevent spurious warning
+    size_t j0 = ~0;             // dead-store to prevent spurious warning
     for (size_t i = 0; i < exps->dim; i++)
     {
         Expression *e = (*exps)[i];

@@ -7311,7 +7311,7 @@ void TemplateInstance::semantic2(Scope *sc)
 
         int needGagging = (gagged && !global.gag);
         unsigned int olderrors = global.errors;
-        int oldGaggedErrors;
+        int oldGaggedErrors = -1;       // dead-store to prevent spurious warning
         if (needGagging)
             oldGaggedErrors = global.startGagging();
 
@@ -7370,7 +7370,7 @@ void TemplateInstance::semantic3(Scope *sc)
 
         int needGagging = (gagged && !global.gag);
         unsigned int olderrors = global.errors;
-        int oldGaggedErrors;
+        int oldGaggedErrors = -1;       // dead-store to prevent spurious warning
         /* If this is a gagged instantiation, gag errors.
          * Future optimisation: If the results are actually needed, errors
          * would already be gagged, so we don't really need to run semantic

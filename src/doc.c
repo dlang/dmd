@@ -547,7 +547,7 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s, Scope *sc)
         return dot;
     if (dot)
         buf->writeByte('.');
-    
+
     // Use "this" not "__ctor"
     TemplateDeclaration *td;
     if (s->isCtorDeclaration() || ((td = s->isTemplateDeclaration()) != NULL &&
@@ -1392,7 +1392,7 @@ void DocComment::parseSections(const utf8_t *comment)
     const utf8_t *p;
     const utf8_t *pstart;
     const utf8_t *pend;
-    const utf8_t *idstart;
+    const utf8_t *idstart = NULL;       // dead-store to prevent spurious warning
     size_t idlen;
 
     const utf8_t *name = NULL;
