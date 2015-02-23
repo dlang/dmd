@@ -3748,12 +3748,12 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     case Tfloat32:
                         // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
-                        ((targ_float *)&e->EV.Vcent)[i] = creall(elem->toComplex());
+                        e->EV.Vfloat4[i] = creall(elem->toComplex());
                         break;
 
                     case Tfloat64:
                         // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
-                        ((targ_double *)&e->EV.Vcent)[i] = creall(elem->toComplex());
+                        e->EV.Vdouble2[i] = creall(elem->toComplex());
                         break;
 
                     case Tint64:
