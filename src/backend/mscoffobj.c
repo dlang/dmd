@@ -617,8 +617,8 @@ void build_syment_table()
             aux.x_section.Selection = (unsigned char)IMAGE_COMDAT_SELECT_ANY;
             if (pseg->SDassocseg)
             {   aux.x_section.Selection = (unsigned char)IMAGE_COMDAT_SELECT_ASSOCIATIVE;
-                aux.x_section.NumberHighPart = (unsigned short)pseg->SDassocseg >> 16;
-                aux.x_section.NumberLowPart = (unsigned short)pseg->SDassocseg & 0x0000FFFF;
+                aux.x_section.NumberHighPart = (unsigned short)(pseg->SDassocseg >> 16);
+                aux.x_section.NumberLowPart = (unsigned short)(pseg->SDassocseg & 0x0000FFFF);
             }
         }
         
