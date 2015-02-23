@@ -399,7 +399,7 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
         a->setDim(1);
         for (size_t i = 0; ; i++)
         {
-            Type *tthis;
+            Type *tthis = NULL;         // dead-store to prevent spurious warning
             if (i == 0) tthis = ad->type;
             if (i == 1) tthis = ad->type->constOf();
             if (i == 2) tthis = ad->type->immutableOf();

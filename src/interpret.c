@@ -3672,7 +3672,7 @@ public:
     Expression *assignToLvalue(BinExp *e, Expression *e1, Expression *newval)
     {
         VarDeclaration *vd = NULL;
-        Expression **payload;
+        Expression **payload = NULL;    // dead-store to prevent spurious warning
         Expression *oldval;
 
         if (e1->op == TOKvar)
@@ -6310,7 +6310,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     Expressions args;
     args.setDim(numParams);
 
-    Expression *eresult;
+    Expression *eresult = NULL;         // ded-store to prevent spurious warning
 
     // Buffers for encoding; also used for decoding array literals
     utf8_t utf8buf[4];
