@@ -179,3 +179,29 @@ void test12422() pure
     void bar12422()() { foo12422(); }
     bar12422();
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/testInference.d(196): Error: pure function 'testInference.test13729a' cannot access mutable static data 'g13729'
+fail_compilation/testInference.d(206): Error: pure function 'testInference.test13729b' cannot call impure function 'testInference.test13729b.foo!().foo'
+---
+*/
+int g13729;
+
+void test13729a() pure
+{
+    static void foo()   // typed as impure
+    {
+        g13729++;       // disallowed
+    }
+    foo();
+}
+void test13729b() pure
+{
+    static void foo()() // inferred to impure
+    {
+        g13729++;
+    }
+    foo();              // cannot call impure function
+}
