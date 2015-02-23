@@ -218,6 +218,7 @@ void Type::init()
     sizeTy[Treturn] = sizeof(TypeReturn);
     sizeTy[Terror] = sizeof(TypeError);
     sizeTy[Tnull] = sizeof(TypeNull);
+    sizeTy[Tvector] = sizeof(TypeVector);
 
     initTypeMangle();
 
