@@ -56,20 +56,15 @@ struct SectionGroup
 
 private:
     ModuleGroup _moduleGroup;
-    void[][2] _gcRanges;
+    void[][1] _gcRanges;
 }
 
 void initSections()
 {
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
 
-    auto pbeg = cast(void*)&_data_beg;
-    auto pend = cast(void*)&_data_end;
-    _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
-
-    pbeg = cast(void*)&_bss_beg;
-    pend = cast(void*)&_bss_end;
-    _sections._gcRanges[1] = pbeg[0 .. pend - pbeg];
+    _sections._gcRanges[0] = findImageSection(".data");
+    debug(PRINTF) printf("found .data section: [%p,+%llx]\n", _sections._gcRanges[0].ptr, cast(ulong)_sections._gcRanges[0].length);
 }
 
 void finiSections()
@@ -141,6 +136,8 @@ extern(C)
      */
     extern __gshared
     {
+        void* __ImageBase;
+
         void* _deh_beg;
         void* _deh_end;
 
@@ -156,4 +153,74 @@ extern(C)
         int _tls_start;
         int _tls_end;
     }
+}
+
+/////////////////////////////////////////////////////////////////////
+
+enum IMAGE_DOS_SIGNATURE = 0x5A4D;      // MZ
+
+struct IMAGE_DOS_HEADER // DOS .EXE header
+{
+    ushort   e_magic;    // Magic number
+    ushort[29] e_res2;   // Reserved ushorts
+    int      e_lfanew;   // File address of new exe header
+}
+
+struct IMAGE_FILE_HEADER
+{
+    ushort Machine;
+    ushort NumberOfSections;
+    uint   TimeDateStamp;
+    uint   PointerToSymbolTable;
+    uint   NumberOfSymbols;
+    ushort SizeOfOptionalHeader;
+    ushort Characteristics;
+}
+
+struct IMAGE_NT_HEADERS
+{
+    uint Signature;
+    IMAGE_FILE_HEADER FileHeader;
+    // optional header follows
+}
+
+struct IMAGE_SECTION_HEADER
+{
+    char[8] Name;
+    union {
+        uint   PhysicalAddress;
+        uint   VirtualSize;
+    }
+    uint   VirtualAddress;
+    uint   SizeOfRawData;
+    uint   PointerToRawData;
+    uint   PointerToRelocations;
+    uint   PointerToLinenumbers;
+    ushort NumberOfRelocations;
+    ushort NumberOfLinenumbers;
+    uint   Characteristics;
+}
+
+bool compareSectionName(ref IMAGE_SECTION_HEADER section, string name) nothrow
+{
+    if (name[] != section.Name[0 .. name.length])
+        return false;
+    return name.length == 8 || section.Name[name.length] == 0;
+}
+
+void[] findImageSection(string name) nothrow
+{
+    if (name.length > 8) // section name from string table not supported
+        return null;
+    IMAGE_DOS_HEADER* doshdr = cast(IMAGE_DOS_HEADER*) &__ImageBase;
+    if (doshdr.e_magic != IMAGE_DOS_SIGNATURE)
+        return null;
+
+    auto nthdr = cast(IMAGE_NT_HEADERS*)(cast(void*)doshdr + doshdr.e_lfanew);
+    auto sections = cast(IMAGE_SECTION_HEADER*)(cast(void*)nthdr + IMAGE_NT_HEADERS.sizeof + nthdr.FileHeader.SizeOfOptionalHeader);
+    for(ushort i = 0; i < nthdr.FileHeader.NumberOfSections; i++)
+        if (compareSectionName (sections[i], name))
+            return (cast(void*)&__ImageBase + sections[i].VirtualAddress)[0 .. sections[i].VirtualSize];
+
+    return null;
 }
