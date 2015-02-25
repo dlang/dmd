@@ -80,9 +80,6 @@ static Outbuffer *symbuf;
 
 static Outbuffer *syment_buf;   // array of struct syment
 
-struct Comdef { symbol *sym; targ_size_t size; int count; };
-static Outbuffer *comdef_symbuf;        // Comdef's are stored here
-
 static segidx_t segidx_drectve;         // contents of ".drectve" section
 static segidx_t segidx_debugS = UNKNOWN;
 static segidx_t segidx_xdata = UNKNOWN;
@@ -393,12 +390,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
         syment_buf = new Outbuffer(sizeof(struct syment) * SYM_TAB_INIT);
     syment_buf->setsize(0);
 
-    if (!comdef_symbuf)
-        comdef_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
-    comdef_symbuf->setsize(0);
-
     extdef = 0;
-
     pointersSeg = 0;
 
     // Initialize segments for CODE, DATA, UDATA and CDATA
@@ -671,31 +663,6 @@ void build_syment_table()
                     sym.n_value = s->Soffset;
                 break;
         }
-        sym.n_numaux = 0;
-
-        syment_buf->write(&sym, sizeof(sym));
-    }
-
-    /* Add comdef symbols from comdef_symbuf[]
-     */
-
-    dim = comdef_symbuf->size() / sizeof(Comdef);
-    for (size_t i = 0; i < dim; i++)
-    {   Comdef *c = ((Comdef *)comdef_symbuf->buf) + i;
-        symbol *s = c->sym;
-        s->Sxtrnnum = syment_buf->size() / sizeof(syment);
-        n++;
-
-        struct syment sym;
-
-        char dest[DEST_LEN+1];
-        char *destr = obj_mangle2(s, dest);
-        syment_set_name(&sym, destr);
-
-        sym.n_scnum = IMAGE_SYM_UNDEFINED;
-        sym.n_type = 0;
-        sym.n_sclass = IMAGE_SYM_CLASS_EXTERNAL;
-        sym.n_value = c->size * c->count;
         sym.n_numaux = 0;
 
         syment_buf->write(&sym, sizeof(sym));
