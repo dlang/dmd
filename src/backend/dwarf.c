@@ -111,7 +111,7 @@ void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 void dwarf_appreladdr(int seg, Outbuffer *buf, int targseg, targ_size_t val)
 {
     dwarf_addrel64(seg, buf->size(), targseg, I64 ? val : 0);
-    buf->write64(I64 ? 0 : val);
+    I64 ? buf->write64(0) : buf->write32(val);
 }
 
 void dwarf_apprel32(int seg, Outbuffer *buf, int targseg, targ_size_t val)
