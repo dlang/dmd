@@ -795,6 +795,10 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
 
+    /* Verify msg is implicitly convertible to const(char)[] and return the result.
+       Call only after checking existing msg state as the state might be modified. */
+    static Expression *ensureValidMsg(Scope *sc, Expression *msg);
+
     void accept(Visitor *v) { v->visit(this); }
 };
 

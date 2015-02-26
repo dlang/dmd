@@ -5522,6 +5522,95 @@ void testreal_to_ulong()
     //assert(v == 10145709240540253389UL);
 }
 
+void test8765()
+{
+    try
+    {
+        int a = 0;
+        assert(a == 1);
+    }
+    catch (Throwable e)
+    {
+        // no-message -> assert expression
+        assert(e.msg == "assert(a == 1) failed");
+    }
+
+    try
+    {
+        int b = 0;
+        assert(b == 1, "b is not 1");
+    }
+    catch (Throwable e)
+    {
+        // string literal -> assert expression + string literal
+        assert(e.msg == "assert(b == 1) : b is not 1");
+    }
+
+    try
+    {
+        int d = 0;
+        assert(d == 1, [65, 66]);
+    }
+    catch (Throwable e)
+    {
+        // implicit conv to const(char)[] -> assert expression + literal
+        assert(e.msg == "assert(d == 1) : AB", e.msg);
+    }
+
+    // no implicit conv to const(char)[] -> CT error
+    static assert(!__traits(compiles, {
+        struct S { }
+        assert(0, [S()]);
+    }));
+
+    // ditto
+    static assert(!__traits(compiles, {
+        struct S { }
+        S s;
+        assert(0, s);
+    }));
+
+    try
+    {
+        enum msg = "b is not 1";
+        int b = 0;
+        assert(b == 1, msg);
+    }
+    catch (Throwable e)
+    {
+        // CT value -> assert expression + CT value
+        assert(e.msg == "assert(b == 1) : b is not 1");
+    }
+
+    try
+    {
+        string msg = "c is not 1";
+        int c = 0;
+        assert(c == 1, msg);
+    }
+    catch (Throwable e)
+    {
+        // RT value -> concatenation of assert expression + RT value
+        assert(e.msg == "assert(c == 1) : c is not 1");
+    }
+}
+
+void test9255()
+{
+    try
+    {
+        int x = 0;
+        assert(x == 1);
+    }
+    catch (Throwable e)
+    {
+        version(Windows)
+            assert(e.file == r"runnable\test42.d");
+        else
+            assert(e.file == "runnable/test42.d");
+    }
+}
+
 /***************************************************/
 
 long testbt1(long a, long b, int c)
@@ -5782,7 +5871,7 @@ void test11265()
 
 struct TimeOfDay
 {
-    void roll(int value) 
+    void roll(int value)
     {
         value %= 60;
         auto newVal = _seconds + value;
@@ -6142,6 +6231,8 @@ int main()
     test8423();
     test8496();
     test8840();
+    test9255();
+    test8765();
     test8889();
     test8870();
     test9781();

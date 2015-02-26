@@ -6878,24 +6878,65 @@ Expression *AssertExp::syntaxCopy()
     return new AssertExp(loc, e1->syntaxCopy(), msg ? msg->syntaxCopy() : NULL);
 }
 
+Expression *AssertExp::ensureValidMsg(Scope *sc, Expression *msg)
+{
+    assert(msg);  // must be present
+    msg = msg->semantic(sc);
+    msg = resolveProperties(sc, msg);
+    msg = msg->implicitCastTo(sc, Type::tchar->constOf()->arrayOf());
+    msg = msg->optimize(WANTvalue);
+    return msg;
+}
+
 Expression *AssertExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
     printf("AssertExp::semantic('%s')\n", toChars());
 #endif
+    // save expression as a message before any semantic expansion
+    char *assertExpMsg = msg ? NULL : mem.strdup(toChars());
+
     if (Expression *ex = unaSemantic(sc))
         return ex;
+
     e1 = resolveProperties(sc, e1);
     // BUG: see if we can do compile time elimination of the Assert
     e1 = e1->optimize(WANTvalue);
     e1 = e1->checkToBoolean(sc);
+
     if (msg)
     {
+        OutBuffer buf;
         msg = msg->semantic(sc);
         msg = resolveProperties(sc, msg);
-        msg = msg->implicitCastTo(sc, Type::tchar->constOf()->arrayOf());
         msg = msg->optimize(WANTvalue);
+
+        if (msg->op != TOKstring)  // runtime value
+        {
+            msg = ensureValidMsg(sc, msg);
+            buf.printf("assert(%s) : ", e1->toChars());
+            buf.writeByte(0);
+            Expression *assertMsg = new StringExp(Loc(), buf.extractData());
+            msg = new CatExp(Loc(), assertMsg, msg);
+        }
+        else  // compile-time value
+        {
+            msg = ensureValidMsg(sc, msg);
+            buf.printf("assert(%s) : %s", e1->toChars(),
+                       (msg->op == TOKstring) ? ((StringExp *)msg)->string : msg->toChars());
+            buf.writeByte(0);
+            msg = new StringExp(Loc(), buf.extractData());
+        }
     }
+    else  // no message -> use assert expression as msg
+    {
+        OutBuffer buf;
+        buf.printf("%s failed", assertExpMsg);
+        buf.writeByte(0);
+        msg = new StringExp(Loc(), buf.extractData());
+    }
+    msg = ensureValidMsg(sc, msg);
+
     if (e1->op == TOKerror)
         return e1;
     if (msg && msg->op == TOKerror)
