@@ -3993,6 +3993,11 @@ elem *toElem(Expression *e, IRState *irs)
 
             switch (fty)
             {
+                case Tnull:
+                {
+                    // typeof(null) is same with void* in binary level.
+                    goto Lzero;
+                }
                 case Tpointer:  fty = I64 ? Tuns64 : Tuns32;  break;
                 case Tchar:     fty = Tuns8;    break;
                 case Twchar:    fty = Tuns16;   break;
@@ -4437,11 +4442,6 @@ elem *toElem(Expression *e, IRState *irs)
                         e = el_una(OPld_d, TYcdouble, e);
                         fty = Tcomplex64;
                         goto Lagain;
-
-                case X(Tnull, Tarray):
-                case X(Tnull, Taarray):
-                case X(Tnull, Tdelegate):
-                    goto Lzero;
 
                 /* ============================= */
 
