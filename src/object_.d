@@ -2455,6 +2455,297 @@ unittest
     }
 }
 
+private void _destructRecurse(S)(ref S s)
+    if (is(S == struct))
+{
+    import core.internal.traits : hasElaborateDestructor;
+
+    static if (__traits(hasMember, S, "__dtor"))
+        s.__dtor();
+
+    foreach_reverse (i, ref field; s.tupleof)
+    {
+        static if (hasElaborateDestructor!(typeof(field)))
+            _destructRecurse(field);
+    }
+}
+
+private void _destructRecurse(E, size_t n)(ref E[n] arr)
+{
+    import core.internal.traits : hasElaborateDestructor;
+
+    static if (hasElaborateDestructor!E)
+    {
+        foreach_reverse (ref elem; arr)
+            _destructRecurse(elem);
+    }
+}
+
+private string _genFieldPostblit(S)()
+{
+    import core.internal.traits : hasElaborateCopyConstructor;
+    import core.internal.traits : FieldNameTuple;
+
+    string code;
+    foreach(fieldName; FieldNameTuple!S)
+    {
+        static if(hasElaborateCopyConstructor!(typeof(__traits(getMember, S.init, fieldName))))
+        {
+            code ~= `
+                _postblitRecurse(s.` ~ fieldName ~ `);
+                scope(failure) _destructRecurse(s. ` ~ fieldName ~ `);
+            `;
+        }
+    }
+    return code;
+}
+
+// Public and explicitly undocumented
+void _postblitRecurse(S)(ref S s)
+    if (is(S == struct))
+{
+    mixin(_genFieldPostblit!S());
+
+    static if (__traits(hasMember, S, "__postblit"))
+        s.__postblit();
+}
+
+// Ditto
+void _postblitRecurse(E, size_t n)(ref E[n] arr)
+{
+    import core.internal.traits : hasElaborateCopyConstructor;
+
+    static if (hasElaborateCopyConstructor!E)
+    {
+        size_t i;
+        scope(failure)
+        {
+            for (; i != 0; --i)
+            {
+                _destructRecurse(arr[i - 1]); // What to do if this throws?
+            }
+        }
+
+        for (i = 0; i < arr.length; ++i)
+            _postblitRecurse(arr[i]);
+    }
+}
+
+// Test destruction/postblit order
+@safe nothrow pure unittest
+{
+    string[] order;
+
+    struct InnerTop
+    {
+        ~this() @safe nothrow pure
+        {
+            order ~= "destroy inner top";
+        }
+
+        this(this) @safe nothrow pure
+        {
+            order ~= "copy inner top";
+        }
+    }
+
+    struct InnerMiddle {}
+
+    version(none) // @@@BUG@@@ 14242
+    struct InnerElement
+    {
+        static char counter = '1';
+
+        ~this() @safe nothrow pure
+        {
+            order ~= "destroy inner element #" ~ counter++;
+        }
+
+        this(this) @safe nothrow pure
+        {
+            order ~= "copy inner element #" ~ counter++;
+        }
+    }
+
+    struct InnerBottom
+    {
+        ~this() @safe nothrow pure
+        {
+            order ~= "destroy inner bottom";
+        }
+
+        this(this) @safe nothrow pure
+        {
+            order ~= "copy inner bottom";
+        }
+    }
+
+    struct S
+    {
+        char[] s;
+        InnerTop top;
+        InnerMiddle middle;
+        version(none) InnerElement[3] array; // @@@BUG@@@ 14242
+        int a;
+        InnerBottom bottom;
+        ~this() @safe nothrow pure { order ~= "destroy outer"; }
+        this(this) @safe nothrow pure { order ~= "copy outer"; }
+    }
+
+    string[] destructRecurseOrder;
+    {
+        S s;
+        _destructRecurse(s);
+        destructRecurseOrder = order;
+        order = null;
+    }
+
+    assert(order.length);
+    assert(destructRecurseOrder == order);
+    order = null;
+
+    S s;
+    _postblitRecurse(s);
+    assert(order.length);
+    auto postblitRecurseOrder = order;
+    order = null;
+    S s2 = s;
+    assert(order.length);
+    assert(postblitRecurseOrder == order);
+}
+
+// Test static struct
+nothrow @safe @nogc unittest
+{
+    static int i = 0;
+    static struct S { ~this() nothrow @safe @nogc { i = 42; } }
+    S s;
+    _destructRecurse(s);
+    assert(i == 42);
+}
+
+// Test handling of fixed-length arrays
+// Separate from first test because of @@@BUG@@@ 14242
+unittest
+{
+    string[] order;
+
+    struct S
+    {
+        char id;
+
+        this(this)
+        {
+            order ~= "copy #" ~ id;
+        }
+
+        ~this()
+        {
+            order ~= "destroy #" ~ id;
+        }
+    }
+
+    string[] destructRecurseOrder;
+    {
+        S[3] arr = [S('1'), S('2'), S('3')];
+        _destructRecurse(arr);
+        destructRecurseOrder = order;
+        order = null;
+    }
+    assert(order.length);
+    assert(destructRecurseOrder == order);
+    order = null;
+
+    S[3] arr = [S('1'), S('2'), S('3')];
+    _postblitRecurse(arr);
+    assert(order.length);
+    auto postblitRecurseOrder = order;
+    order = null;
+
+    auto arrCopy = arr;
+    assert(order.length);
+    assert(postblitRecurseOrder == order);
+}
+
+// Test handling of failed postblit
+// Not nothrow or @safe because of @@@BUG@@@ 14242
+/+ nothrow @safe +/ unittest
+{
+    static class FailedPostblitException : Exception { this() nothrow @safe { super(null); } }
+    static string[] order;
+    static struct Inner
+    {
+        char id;
+
+        @safe:
+        this(this)
+        {
+            order ~= "copy inner #" ~ id;
+            if(id == '2')
+                throw new FailedPostblitException();
+        }
+
+        ~this() nothrow
+        {
+            order ~= "destroy inner #" ~ id;
+        }
+    }
+
+    static struct Outer
+    {
+        Inner inner1, inner2, inner3;
+
+        nothrow @safe:
+        this(char first, char second, char third)
+        {
+            inner1 = Inner(first);
+            inner2 = Inner(second);
+            inner3 = Inner(third);
+        }
+
+        this(this)
+        {
+            order ~= "copy outer";
+        }
+
+        ~this()
+        {
+            order ~= "destroy outer";
+        }
+    }
+
+    auto outer = Outer('1', '2', '3');
+
+    try _postblitRecurse(outer);
+    catch(FailedPostblitException) {}
+    catch(Exception) assert(false);
+
+    auto postblitRecurseOrder = order;
+    order = null;
+
+    try auto copy = outer;
+    catch(FailedPostblitException) {}
+    catch(Exception) assert(false);
+
+    assert(postblitRecurseOrder == order);
+    order = null;
+
+    Outer[3] arr = [Outer('1', '1', '1'), Outer('1', '2', '3'), Outer('3', '3', '3')];
+
+    try _postblitRecurse(arr);
+    catch(FailedPostblitException) {}
+    catch(Exception) assert(false);
+
+    postblitRecurseOrder = order;
+    order = null;
+
+    try auto arrCopy = arr;
+    catch(FailedPostblitException) {}
+    catch(Exception) assert(false);
+
+    assert(postblitRecurseOrder == order);
+}
+
 /++
     Destroys the given object and puts it in an invalid state. It's used to
     destroy an object so that any cleanup which its destructor or finalizer
@@ -2528,16 +2819,18 @@ version(unittest) unittest
 
 void destroy(T)(ref T obj) if (is(T == struct))
 {
-    typeid(T).destroy( &obj );
-    auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
-    auto init = cast(ubyte[])typeid(T).init();
-    if(init.ptr is null) // null ptr means initialize to 0s
-        buf[] = 0;
-    else
-        buf[] = init[];
+    _destructRecurse(obj);
+    () @trusted {
+        auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
+        auto init = cast(ubyte[])typeid(T).init();
+        if (init.ptr is null) // null ptr means initialize to 0s
+            buf[] = 0;
+        else
+            buf[] = init[];
+    } ();
 }
 
-version(unittest) unittest
+version(unittest) nothrow @safe @nogc unittest
 {
    {
        struct A { string s = "A";  }
@@ -2551,7 +2844,7 @@ version(unittest) unittest
        struct C
        {
            string s = "C";
-           ~this()
+           ~this() nothrow @safe @nogc
            {
                destroyed ++;
            }
@@ -2561,7 +2854,7 @@ version(unittest) unittest
        {
            C c;
            string s = "B";
-           ~this()
+           ~this() nothrow @safe @nogc
            {
                destroyed ++;
            }

@@ -595,6 +595,82 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
     return (*aa).get(key, defaultValue);
 }
 
+private void _destructRecurse(S)(ref S s)
+    if (is(S == struct))
+{
+    import core.internal.traits : hasElaborateDestructor;
+
+    static if (__traits(hasMember, S, "__dtor"))
+        s.__dtor();
+
+    foreach_reverse (i, ref field; s.tupleof)
+    {
+        static if (hasElaborateDestructor!(typeof(field)))
+            _destructRecurse(field);
+    }
+}
+
+private void _destructRecurse(E, size_t n)(ref E[n] arr)
+{
+    import core.internal.traits : hasElaborateDestructor;
+
+    static if (hasElaborateDestructor!E)
+    {
+        foreach_reverse (ref elem; arr)
+            _destructRecurse(elem);
+    }
+}
+
+private string _genFieldPostblit(S)()
+{
+    import core.internal.traits : hasElaborateCopyConstructor;
+    import core.internal.traits : FieldNameTuple;
+
+    string code;
+    foreach(fieldName; FieldNameTuple!S)
+    {
+        static if(hasElaborateCopyConstructor!(typeof(__traits(getMember, S.init, fieldName))))
+        {
+            code ~= `
+                _postblitRecurse(s.` ~ fieldName ~ `);
+                scope(failure) _destructRecurse(s. ` ~ fieldName ~ `);
+            `;
+        }
+    }
+    return code;
+}
+
+// Public and explicitly undocumented
+void _postblitRecurse(S)(ref S s)
+    if (is(S == struct))
+{
+    mixin(_genFieldPostblit!S());
+
+    static if (__traits(hasMember, S, "__postblit"))
+        s.__postblit();
+}
+
+// Ditto
+void _postblitRecurse(E, size_t n)(ref E[n] arr)
+{
+    import core.internal.traits : hasElaborateCopyConstructor;
+
+    static if (hasElaborateCopyConstructor!E)
+    {
+        size_t i;
+        scope(failure)
+        {
+            for (; i != 0; --i)
+            {
+                _destructRecurse(arr[i - 1]); // What to do if this throws?
+            }
+        }
+
+        for (i = 0; i < arr.length; ++i)
+            _postblitRecurse(arr[i]);
+    }
+}
+
 void destroy(T)(T obj) if (is(T == class))
 {
     rt_finalize(cast(void*)obj);
@@ -607,13 +683,15 @@ void destroy(T)(T obj) if (is(T == interface))
 
 void destroy(T)(ref T obj) if (is(T == struct))
 {
-    typeid(T).destroy(&obj);
-    auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
-    auto init = cast(ubyte[])typeid(T).init();
-    if(init.ptr is null) // null ptr means initialize to 0s
-        buf[] = 0;
-    else
-        buf[] = init[];
+    _destructRecurse(obj);
+    () @trusted {
+        auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
+        auto init = cast(ubyte[])typeid(T).init();
+        if (init.ptr is null) // null ptr means initialize to 0s
+            buf[] = 0;
+        else
+            buf[] = init[];
+    } ();
 }
 
 void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
