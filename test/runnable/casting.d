@@ -199,6 +199,34 @@ void test11722()
 }
 
 /***************************************************/
+// 14218
+
+void test14218()
+{
+    foreach (To; Seq!( byte,  short,  int,  long,
+                      ubyte, ushort, uint, ulong,
+                       char,  wchar, dchar, bool))
+    {
+        auto x = cast(To)null;
+        assert(x == 0);     // false, '0x00'
+    }
+
+    // Questionable but currently accepted
+    foreach (To; Seq!( float,  double,  real,
+                      ifloat, idouble, ireal))
+    {
+        auto x = cast(To)null;
+        assert(x == 0);     // 0i
+    }
+
+    // Internal error: backend/el.c in el_long()
+    //foreach (To; Seq!(cfloat, cdouble, creal))
+    //{
+    //    static assert(!__traits(compiles, { auto x = cast(To)null; }));
+    //}
+}
+
+/***************************************************/
 
 int main()
 {
@@ -210,6 +238,7 @@ int main()
     test10834();
     test10842();
     test11722();
+    test14218();
 
     printf("Success\n");
     return 0;
