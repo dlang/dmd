@@ -606,8 +606,6 @@ void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt)
 
     // Put in first two members, the vtbl[] and the monitor
     dtxoff(pdt, toVtblSymbol(cd), 0);
-    if (!cd->cpp)
-        dtsize_t(pdt, 0);                    // monitor
 
     // Put in the rest
     membersToDt(cd, pdt, cd);
@@ -627,10 +625,7 @@ void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteTyp
     }
     else
     {
-        if (cd->cpp)
-            offset = Target::ptrsize;       // allow room for __vptr
-        else
-            offset = Target::ptrsize * 2;   // allow room for __vptr and __monitor
+        offset = Target::ptrsize;
     }
 
     // Note equivalence of this loop to struct's
@@ -826,7 +821,7 @@ dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt)
         dts[i] = dt;
     }
     dtxoff(pdtend, toVtblSymbol(ce->originalClass()), 0);
-    dtsize_t(pdtend, 0);                    // monitor
+
     // Put in the rest
     membersToDt(ce, &d, ce->originalClass(), &dts);
     *pdt = d;
@@ -852,7 +847,7 @@ dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts 
     }
     else
     {
-        offset = Target::ptrsize * 2;
+        offset = Target::ptrsize;
     }
     for (size_t i = 0; i < cd->fields.dim; i++)
     {

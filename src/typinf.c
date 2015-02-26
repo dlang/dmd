@@ -172,19 +172,17 @@ public:
     void visit(TypeInfoDeclaration *d)
     {
         //printf("TypeInfoDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::dtypeinfo, 2 * Target::ptrsize);
+        verifyStructSize(Type::dtypeinfo, 1 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::dtypeinfo), 0); // vtbl for TypeInfo
-        dtsize_t(pdt, 0);                        // monitor
     }
 
     void visit(TypeInfoConstDeclaration *d)
     {
         //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::typeinfoconst, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoconst, 2 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfoconst), 0); // vtbl for TypeInfo_Const
-        dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
         genTypeInfo(tm, NULL);
@@ -194,10 +192,9 @@ public:
     void visit(TypeInfoInvariantDeclaration *d)
     {
         //printf("TypeInfoInvariantDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::typeinfoinvariant, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoinvariant, 2 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfoinvariant), 0); // vtbl for TypeInfo_Invariant
-        dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
         genTypeInfo(tm, NULL);
@@ -207,10 +204,9 @@ public:
     void visit(TypeInfoSharedDeclaration *d)
     {
         //printf("TypeInfoSharedDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::typeinfoshared, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoshared, 2 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfoshared), 0); // vtbl for TypeInfo_Shared
-        dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->unSharedOf();
         tm = tm->merge();
         genTypeInfo(tm, NULL);
@@ -220,10 +216,9 @@ public:
     void visit(TypeInfoWildDeclaration *d)
     {
         //printf("TypeInfoWildDeclaration::toDt() %s\n", toChars());
-        verifyStructSize(Type::typeinfowild, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfowild, 2 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfowild), 0); // vtbl for TypeInfo_Wild
-        dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
         genTypeInfo(tm, NULL);
@@ -233,10 +228,9 @@ public:
     void visit(TypeInfoEnumDeclaration *d)
     {
         //printf("TypeInfoEnumDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfoenum, 7 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoenum, 6 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfoenum), 0); // vtbl for TypeInfo_Enum
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tenum);
 
@@ -279,10 +273,9 @@ public:
     void visit(TypeInfoPointerDeclaration *d)
     {
         //printf("TypeInfoPointerDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfopointer, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfopointer, 2 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfopointer), 0); // vtbl for TypeInfo_Pointer
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tpointer);
 
@@ -295,10 +288,9 @@ public:
     void visit(TypeInfoArrayDeclaration *d)
     {
         //printf("TypeInfoArrayDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfoarray, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoarray, 2 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfoarray), 0); // vtbl for TypeInfo_Array
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tarray);
 
@@ -311,10 +303,9 @@ public:
     void visit(TypeInfoStaticArrayDeclaration *d)
     {
         //printf("TypeInfoStaticArrayDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfostaticarray, 4 * Target::ptrsize);
+        verifyStructSize(Type::typeinfostaticarray, 3 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfostaticarray), 0); // vtbl for TypeInfo_StaticArray
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tsarray);
 
@@ -329,10 +320,9 @@ public:
     void visit(TypeInfoVectorDeclaration *d)
     {
         //printf("TypeInfoVectorDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfovector, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfovector, 2 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfovector), 0); // vtbl for TypeInfo_Vector
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tvector);
 
@@ -345,10 +335,9 @@ public:
     void visit(TypeInfoAssociativeArrayDeclaration *d)
     {
         //printf("TypeInfoAssociativeArrayDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfoassociativearray, 4 * Target::ptrsize);
+        verifyStructSize(Type::typeinfoassociativearray, 3 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Taarray);
 
@@ -364,10 +353,9 @@ public:
     void visit(TypeInfoFunctionDeclaration *d)
     {
         //printf("TypeInfoFunctionDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfofunction, 5 * Target::ptrsize);
+        verifyStructSize(Type::typeinfofunction, 4 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfofunction), 0); // vtbl for TypeInfo_Function
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tfunction);
 
@@ -386,10 +374,9 @@ public:
     void visit(TypeInfoDelegateDeclaration *d)
     {
         //printf("TypeInfoDelegateDeclaration::toDt()\n");
-        verifyStructSize(Type::typeinfodelegate, 5 * Target::ptrsize);
+        verifyStructSize(Type::typeinfodelegate, 4 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfodelegate), 0); // vtbl for TypeInfo_Delegate
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tdelegate);
 
@@ -409,12 +396,11 @@ public:
     {
         //printf("TypeInfoStructDeclaration::toDt() '%s'\n", toChars());
         if (global.params.is64bit)
-            verifyStructSize(Type::typeinfostruct, 17 * Target::ptrsize);
+            verifyStructSize(Type::typeinfostruct, 16 * Target::ptrsize);
         else
-            verifyStructSize(Type::typeinfostruct, 15 * Target::ptrsize);
+            verifyStructSize(Type::typeinfostruct, 14 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfostruct), 0); // vtbl for TypeInfo_Struct
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tstruct);
 
@@ -554,10 +540,9 @@ public:
     void visit(TypeInfoInterfaceDeclaration *d)
     {
         //printf("TypeInfoInterfaceDeclaration::toDt() %s\n", tinfo->toChars());
-        verifyStructSize(Type::typeinfointerface, 3 * Target::ptrsize);
+        verifyStructSize(Type::typeinfointerface, 2 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfointerface), 0); // vtbl for TypeInfoInterface
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Tclass);
 
@@ -573,10 +558,9 @@ public:
     void visit(TypeInfoTupleDeclaration *d)
     {
         //printf("TypeInfoTupleDeclaration::toDt() %s\n", tinfo->toChars());
-        verifyStructSize(Type::typeinfotypelist, 4 * Target::ptrsize);
+        verifyStructSize(Type::typeinfotypelist, 3 * Target::ptrsize);
 
         dtxoff(pdt, toVtblSymbol(Type::typeinfotypelist), 0); // vtbl for TypeInfoInterface
-        dtsize_t(pdt, 0);                        // monitor
 
         assert(d->tinfo->ty == Ttuple);
 

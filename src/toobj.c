@@ -308,7 +308,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             /* The layout is:
                {
                     void **vptr;
-                    monitor_t monitor;
+                    size_t monitorOffset;
                     byte[] initializer;         // static initialization data
                     char[] name;                // class name
                     void *[] vtbl;
@@ -344,10 +344,14 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 dtxoff(&dt, toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
             else
                 dtsize_t(&dt, 0);                // BUG: should be an assert()
-            dtsize_t(&dt, 0);                    // monitor
+
+            Dsymbol* monitorSym = cd->search(cd->loc, Id::__monitor);
+            VarDeclaration* monitorVar = monitorSym ? monitorSym->isVarDeclaration() : NULL;
+            size_t monitorOffset = monitorVar ? monitorVar->offset : 0;
+            dtsize_t(&dt, monitorOffset);       // monitorOffset
 
             // initializer[]
-            assert(cd->structsize >= 8 || (cd->cpp && cd->structsize >= 4));
+            assert(cd->structsize >= 4);
             dtsize_t(&dt, cd->structsize);           // size
             dtxoff(&dt, sinit, 0, TYnptr);      // initializer
 
@@ -684,7 +688,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             /* The layout is:
                {
                     void **vptr;
-                    monitor_t monitor;
+                    size_t monitorOffset;
                     byte[] initializer;         // static initialization data
                     char[] name;                // class name
                     void *[] vtbl;
@@ -707,7 +711,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 dtxoff(&dt, toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
             else
                 dtsize_t(&dt, 0);                // BUG: should be an assert()
-            dtsize_t(&dt, 0);                    // monitor
+            dtsize_t(&dt, 0);                    // Monitor offset. Not used here.
 
             // initializer[]
             dtsize_t(&dt, 0);                    // size

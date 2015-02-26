@@ -122,17 +122,16 @@ void testType(T)(size_t[] expected)
 
     // generate bit pattern for C!T
     C!T ct = null;
-    size_t mutexBit = (RTInfoMark__Monitor ? 2 : 0);
     size_t ctpOff = ct.p.offsetof / bytesPerPtr;
     size_t cttOff = ct.t.offsetof / bytesPerPtr;
-    sexp[0] = (expected[0] << cttOff) | (1 << ctpOff) | mutexBit;
+    sexp[0] = (expected[0] << cttOff) | (1 << ctpOff);
     _testType!(C!(T))(sexp);
 
     C!(T, string) cts = null;
     size_t ctspOff = cts.p.offsetof / bytesPerPtr;
     size_t ctstOff = cts.t.offsetof / bytesPerPtr;
     // generate bit pattern for C!T
-    sexp[0] = (expected[0] << ctstOff) | (1 << ctspOff) | mutexBit | 0b1000; // arr ptr
+    sexp[0] = (expected[0] << ctstOff) | (1 << ctspOff) | 0b100; // arr ptr
     _testType!(C!(T, string))(sexp);
 }
 
@@ -233,8 +232,8 @@ void testRTInfo()
     else
         _testType!(Large)          ([ 0x4000_0000, 0x1000_0000, 0x0001_0000 ]);
 
-    _testType!(N.CNested)     ([ 0b101000 ]);
-    _testType!(N.CNestedDerived) ([ 0b1000101000 ]);
+    _testType!(N.CNested)     ([ 0b10100 ]);
+    _testType!(N.CNestedDerived) ([ 0b100010100 ]);
 
     testType!(N.Nested)       ([ 0b110 ]);
 
@@ -257,7 +256,7 @@ void testRTInfo()
     }
 
     testType!(SFNested)      ([ 0b10100 ]);
-    _testType!(CFNested)     ([ 0b110000 ]);
+    _testType!(CFNested)     ([ 0b11000 ]);
 }
 
 void main() 
