@@ -9731,6 +9731,8 @@ Expression *CastExp::semantic(Scope *sc)
             goto Lsafe;
         }
 
+        if (tob->ty == Tarray && t1b->ty == Tsarray)    // Bugzilla 12502
+            t1b = t1b->nextOf()->arrayOf();
         if (tob->ty == Tarray && t1b->ty == Tarray)
         {
             Type* tobn = tob->nextOf()->toBasetype();
