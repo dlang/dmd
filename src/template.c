@@ -1120,7 +1120,6 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
     size_t nfargs;
     size_t ntargs;              // array size of tiargs
     size_t fptupindex = IDX_NOTFOUND;
-    size_t tuple_dim = 0;
     MATCH match = MATCHexact;
     MATCH matchTiargs = MATCHexact;
     Parameters *fparameters;            // function parameter list
@@ -1167,7 +1166,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
     paramscope->stc = 0;
 
     TemplateTupleParameter *tp = isVariadic();
-    bool tp_is_declared = false;
+    Tuple *declaredTuple = NULL;
 
 #if 0
     for (size_t i = 0; i < dedargs->dim; i++)
@@ -1200,14 +1199,13 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
             assert(parameters->dim);
             (*dedargs)[parameters->dim - 1] = t;
 
-            tuple_dim = ntargs - n;
-            t->objects.setDim(tuple_dim);
-            for (size_t i = 0; i < tuple_dim; i++)
+            t->objects.setDim(ntargs - n);
+            for (size_t i = 0; i < t->objects.dim; i++)
             {
                 t->objects[i] = (*tiargs)[n + i];
             }
             declareParameter(paramscope, tp, t);
-            tp_is_declared = true;
+            declaredTuple = t;
         }
         else
             n = ntargs;
@@ -1229,7 +1227,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
             if (!paramscope->insert(sparam))
                 goto Lnomatch;
         }
-        if (n < parameters->dim && !tp_is_declared)
+        if (n < parameters->dim && !declaredTuple)
         {
             inferStart = n;
         }
@@ -1264,13 +1262,13 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
         if (nfparams == 0 && nfargs != 0)               // if no function parameters
         {
-            if (!tp_is_declared)
+            if (!declaredTuple)
             {
                 Tuple *t = new Tuple();
                 //printf("t = %p\n", t);
                 (*dedargs)[parameters->dim - 1] = t;
                 declareParameter(paramscope, tp, t);
-                tp_is_declared = true;
+                declaredTuple = t;
             }
         }
         else
@@ -1361,8 +1359,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
     // Loop through the function parameters
     {
-    //printf("%s nfargs=%d, nfparams=%d, tuple_dim = %d\n", toChars(), nfargs, nfparams, tuple_dim);
-    //printf("\ttp = %p, fptupindex = %d, found = %d, tp_is_declared = %d\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, tp_is_declared);
+    //printf("%s nfargs=%d, nfparams=%d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
+    //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
     size_t argi = 0;
     for (size_t parami = 0; parami < nfparams; parami++)
     {
@@ -1378,13 +1376,13 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         {
             assert(prmtype->ty == Tident);
             TypeIdentifier *tid = (TypeIdentifier *)prmtype;
-            if (!tp_is_declared)
+            if (!declaredTuple)
             {
                 /* The types of the function arguments
                  * now form the tuple argument.
                  */
-                Tuple *t = new Tuple();
-                (*dedargs)[parameters->dim - 1] = t;
+                declaredTuple = new Tuple();
+                (*dedargs)[parameters->dim - 1] = declaredTuple;
 
                 /* Count function parameters following a tuple parameter.
                  * void foo(U, T...)(int y, T, U, int) {}  // rem == 2 (U, int)
@@ -1406,9 +1404,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
                 if (nfargs - argi < rem)
                     goto Lnomatch;
-                tuple_dim = nfargs - argi - rem;
-                t->objects.setDim(tuple_dim);
-                for (size_t i = 0; i < tuple_dim; i++)
+                declaredTuple->objects.setDim(nfargs - argi - rem);
+                for (size_t i = 0; i < declaredTuple->objects.dim; i++)
                 {
                     Expression *farg = (*fargs)[argi + i];
 
@@ -1444,11 +1441,22 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                     {
                         tt = tt->mutableOf();
                     }
-                    t->objects[i] = tt;
+                    declaredTuple->objects[i] = tt;
                 }
-                declareParameter(paramscope, tp, t);
+                declareParameter(paramscope, tp, declaredTuple);
             }
-            argi += tuple_dim;
+            else
+            {
+                // Bugzilla 6810: If declared tuple is not a type tuple,
+                // it cannot be function parameter types.
+                for (size_t i = 0; i < declaredTuple->objects.dim; i++)
+                {
+                    if (!isType(declaredTuple->objects[i]))
+                        goto Lnomatch;
+                }
+            }
+            assert(declaredTuple);
+            argi += declaredTuple->objects.dim;
             continue;
         }
 
