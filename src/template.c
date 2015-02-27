@@ -2108,6 +2108,16 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         if (tiargs && tiargs->dim > 0)
             return 0;
 
+        if (fd->semanticRun == PASSinit && fd->scope)
+        {
+            Ungag ungag = fd->ungagSpeculative();
+            fd->semantic(fd->scope);
+        }
+        if (fd->semanticRun == PASSinit)
+        {
+            ::error(loc, "forward reference to template %s", fd->toChars());
+            return 1;
+        }
         //printf("fd = %s %s, fargs = %s\n", fd->toChars(), fd->type->toChars(), fargs->toChars());
         m->anyf = fd;
         TypeFunction *tf = (TypeFunction *)fd->type;
@@ -2209,14 +2219,11 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         if (!sc)
             sc = td->scope; // workaround for Type::aliasthisOf
 
-        if (td->semanticRun == PASSinit)
+        if (td->semanticRun == PASSinit && td->scope)
         {
-            if (td->scope)
-            {
-                // Try to fix forward reference. Ungag errors while doing so.
-                Ungag ungag = td->ungagSpeculative();
-                td->semantic(td->scope);
-            }
+            // Try to fix forward reference. Ungag errors while doing so.
+            Ungag ungag = td->ungagSpeculative();
+            td->semantic(td->scope);
         }
         if (td->semanticRun == PASSinit)
         {
