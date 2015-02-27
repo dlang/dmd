@@ -165,3 +165,17 @@ int* f14160() pure
 {
     return &g14160; // should be rejected
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/testInference.d(180): Error: pure function 'testInference.test12422' cannot call impure function 'testInference.test12422.bar12422!().bar12422'
+---
+*/
+int g12422;
+void foo12422() { ++g12422; }
+void test12422() pure
+{
+    void bar12422()() { foo12422(); }
+    bar12422();
+}
