@@ -1657,6 +1657,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
             {
                 const char *s = (t->ty == Tsarray) ? "static array of " : "";
                 ad->error("cannot have field %s with %ssame struct type", toChars(), s);
+                return;
             }
             if (ts->sym->sizeok != SIZEOKdone && ts->sym->scope)
                 ts->sym->semantic(NULL);
