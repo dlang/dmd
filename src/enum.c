@@ -154,7 +154,8 @@ void EnumDeclaration::semantic(Scope *sc)
         /* Check to see if memtype is forward referenced
          */
         if (memtype->ty == Tenum)
-        {   EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
+        {
+            EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
             if (!sym->memtype || !sym->members || !sym->symtab || sym->scope)
             {
                 // memtype is forward referenced, so try again later
@@ -271,7 +272,7 @@ void EnumDeclaration::semantic(Scope *sc)
     //printf("defaultval = %lld\n", defaultval);
 
     //if (defaultval) printf("defaultval: %s %s\n", defaultval->toChars(), defaultval->type->toChars());
-    //members->print();
+    //printf("members = %s\n", members->toChars());
 }
 
 /******************************
@@ -544,6 +545,33 @@ void EnumMember::semantic(Scope *sc)
             {
                 ed->errors = true;
                 goto Lerrors;
+            }
+            if (ed->memtype->ty != Terror)
+            {
+                /* Bugzilla 11746: All of named enum members should have same type
+                 * with the first member. If the following members were referenced
+                 * during the first member semantic, their types should be unified.
+                 */
+                for (size_t i = 0; i < ed->members->dim; i++)
+                {
+                    EnumMember *em = (*ed->members)[i]->isEnumMember();
+                    if (!em || em == this || em->semanticRun < PASSsemanticdone || em->type)
+                        continue;
+
+                    //printf("[%d] em = %s, em->semanticRun = %d\n", i, toChars(), em->semanticRun);
+                    Expression *e = em->value;
+                    e = e->implicitCastTo(sc, ed->memtype);
+                    e = e->ctfeInterpret();
+                    e = e->castTo(sc, ed->type);
+                    if (e->op == TOKerror)
+                        ed->errors = true;
+                    em->value = e;
+                }
+                if (ed->errors)
+                {
+                    ed->memtype = Type::terror;
+                    goto Lerrors;
+                }
             }
         }
 
