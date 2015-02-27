@@ -2346,11 +2346,11 @@ bool Expression::checkPurity(Scope *sc, FuncDeclaration *f)
     }
     else if (f->isInstantiated())
     {
-        // The attributes of f is inferred from its body.
+        // The attributes of f are inferred from its body.
     }
     else if (f->isFuncLiteralDeclaration())
     {
-        // The attributes of f is always inferred in its declared place.
+        // The attributes of f are always inferred in its declared place.
     }
     else
     {
