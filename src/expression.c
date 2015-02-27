@@ -2397,6 +2397,10 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
     {
         // The attributes of outerfunc should be inferred from the call of f.
     }
+    else if (f->isInstantiated())
+    {
+        // The attributes of f is inferred from its body.
+    }
     else if (f->isFuncLiteralDeclaration())
     {
         // The attributes of f is always inferred in its declared place.
