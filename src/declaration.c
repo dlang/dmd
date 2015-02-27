@@ -29,6 +29,11 @@
 
 Expression *getTypeInfo(Type *t, Scope *sc);
 
+/************************************
+ * Check to see the aggregate type is nested and its context pointer is
+ * accessible from the current scope.
+ * Returns true if error occurs.
+ */
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t iStart = 0)
 {
     Dsymbol *sparent = ad->toParent2();
@@ -58,19 +63,18 @@ bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t iStar
         if (s != sparent)
         {
             error(loc, "cannot access frame pointer of %s", ad->toPrettyChars());
-            return false;
+            return true;
         }
     }
 
-    bool result = true;
+    bool result = false;
     for (size_t i = iStart; i < ad->fields.dim; i++)
     {
         VarDeclaration *vd = ad->fields[i];
         Type *tb = vd->type->baseElemOf();
         if (tb->ty == Tstruct)
         {
-            bool r = checkFrameAccess(loc, sc, ((TypeStruct *)tb)->sym);
-            result = result && r;
+            result |= checkFrameAccess(loc, sc, ((TypeStruct *)tb)->sym);
         }
     }
     return result;
@@ -1745,8 +1749,8 @@ void VarDeclaration::checkCtorConstInit()
 /************************************
  * Check to see if this variable is actually in an enclosing function
  * rather than the current one.
+ * Returns true if error occurs.
  */
-
 bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
@@ -1785,7 +1789,7 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 {
                     int lv = fdthis->getLevel(loc, sc, fdv);
                     if (lv == -2)   // error
-                        return false;
+                        return true;
                     if (lv > 0 &&
                         fdv->isPureBypassingInference() >= PUREweak &&
                         fdthis->isPureBypassingInference() == PUREfwdref &&
@@ -1847,12 +1851,12 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 if (ident == Id::dollar)
                 {
                     ::error(loc, "cannnot use $ inside a function literal");
-                    return false;
+                    return true;
                 }
             }
         }
     }
-    return true;
+    return false;
 }
 
 /****************************

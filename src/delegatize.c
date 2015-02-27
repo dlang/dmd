@@ -52,7 +52,7 @@ Expression *toDelegate(Expression *e, Type* t, Scope *sc)
     bool r = lambdaCheckForNestedRef(e, sc);
     sc = sc->pop();
 
-    if (!r)
+    if (r)
         return new ErrorExp();
 
     Statement *s;
@@ -112,7 +112,7 @@ void lambdaSetParent(Expression *e, Scope *sc)
 
 /*******************************************
  * Look for references to variables in a scope enclosing the new function literal.
- * Returns false if error occurs.
+ * Returns true if error occurs.
  */
 bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
 {
@@ -123,7 +123,7 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
         bool result;
 
         LambdaCheckForNestedRef(Scope *sc)
-            : sc(sc), result(true)
+            : sc(sc), result(false)
         {
         }
 
@@ -158,7 +158,7 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
             if (v)
             {
                 result = v->checkNestedReference(sc, Loc());
-                if (!result)
+                if (result)
                     return;
 
                 /* Some expressions cause the frontend to create a temporary.
@@ -183,4 +183,3 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
     walkPostorder(e, &v);
     return v.result;
 }
-

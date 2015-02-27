@@ -53,7 +53,7 @@ void initPrecedence();
 
 Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
-void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
+bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d);
 Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);
 Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void expandTuples(Expressions *exps);
@@ -137,7 +137,6 @@ public:
     void error(const char *format, ...);
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
-    virtual bool rvalue();
 
     // creates a single expression which is effectively (e1, e2)
     // this new expression does not necessarily need to have valid D source code representation,
@@ -168,19 +167,21 @@ public:
         return ::castTo(this, sc, t);
     }
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
-    void checkScalar();
-    void checkNoBool();
-    Expression *checkIntegral();
-    Expression *checkArithmetic();
-    Expression *checkReadModifyWrite(TOK rmwOp, Expression *exp = NULL);
+    virtual bool checkValue();
+    bool checkScalar();
+    bool checkNoBool();
+    bool checkIntegral();
+    bool checkArithmetic();
     void checkDeprecated(Scope *sc, Dsymbol *s);
-    void checkPurity(Scope *sc, FuncDeclaration *f);
-    void checkPurity(Scope *sc, VarDeclaration *v);
-    void checkSafety(Scope *sc, FuncDeclaration *f);
-    void checkNogc(Scope *sc, FuncDeclaration *f);
+    bool checkPurity(Scope *sc, FuncDeclaration *f);
+    bool checkPurity(Scope *sc, VarDeclaration *v);
+    bool checkSafety(Scope *sc, FuncDeclaration *f);
+    bool checkNogc(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
+    bool checkRightThis(Scope *sc);
+    bool checkReadModifyWrite(TOK rmwOp, Expression *ex = NULL);
     virtual int checkModifiable(Scope *sc, int flag = 0);
-    virtual Expression *checkToBoolean(Scope *sc);
+    virtual Expression *toBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *addressOf();
     Expression *deref();
@@ -495,7 +496,7 @@ public:
     TypeExp(Loc loc, Type *type);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    bool rvalue();
+    bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -517,9 +518,9 @@ public:
     FuncDeclaration *fd;
 
     TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd = NULL);
-    bool rvalue();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
+    bool checkValue();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -630,13 +631,13 @@ public:
     TOK tok;
 
     FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
-    bool rvalue();
     void genIdent(Scope *sc);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);
     MATCH matchType(Type *to, Scope *sc, FuncExp **pfe, int flag = 0);
     char *toChars();
+    bool checkValue();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -746,6 +747,8 @@ public:
     Expression *binSemanticProp(Scope *sc);
     Expression *checkComplexOpAssign(Scope *sc);
     Expression *incompatibleTypes();
+    bool checkIntegral();
+    bool checkArithmetic();
 
     Expression *reorderSettingAAElem(Scope *sc);
 
@@ -969,7 +972,7 @@ class DeleteExp : public UnaExp
 public:
     DeleteExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    Expression *checkToBoolean(Scope *sc);
+    Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1154,7 +1157,7 @@ public:
     Expression *semantic(Scope *sc);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
-    Expression *checkToBoolean(Scope *sc);
+    Expression *toBoolean(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1388,7 +1391,7 @@ class OrOrExp : public BinExp
 public:
     OrOrExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *checkToBoolean(Scope *sc);
+    Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1397,7 +1400,7 @@ class AndAndExp : public BinExp
 public:
     AndAndExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    Expression *checkToBoolean(Scope *sc);
+    Expression *toBoolean(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1462,7 +1465,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *checkToBoolean(Scope *sc);
+    Expression *toBoolean(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };

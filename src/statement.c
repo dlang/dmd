@@ -1416,7 +1416,7 @@ Statement *DoStatement::semantic(Scope *sc)
     condition = condition->optimize(WANTvalue);
     condition = checkGC(sc, condition);
 
-    condition = condition->checkToBoolean(sc);
+    condition = condition->toBoolean(sc);
 
     if (condition->op == TOKerror)
         return new ErrorStatement();
@@ -1506,7 +1506,7 @@ Statement *ForStatement::semantic(Scope *sc)
         condition = resolveProperties(sc, condition);
         condition = condition->optimize(WANTvalue);
         condition = checkGC(sc, condition);
-        condition = condition->checkToBoolean(sc);
+        condition = condition->toBoolean(sc);
     }
     if (increment)
     {
@@ -1842,7 +1842,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         case Tarray:
         case Tsarray:
         {
-            if (!checkForArgTypes())
+            if (checkForArgTypes())
                 return this;
 
             if (dim < 1 || dim > 2)
@@ -2047,7 +2047,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         case Taarray:
             if (op == TOKforeach_reverse)
                 warning("cannot use foreach_reverse with an associative array");
-            if (!checkForArgTypes())
+            if (checkForArgTypes())
                 return this;
 
             taa = (TypeAArray *)tab;
@@ -2218,7 +2218,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             Expression *ec;
             Expression *e;
 
-            if (!checkForArgTypes())
+            if (checkForArgTypes())
             {
                 body = body->semanticNoScope(sc);
                 return this;
@@ -2542,7 +2542,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
 bool ForeachStatement::checkForArgTypes()
 {
-    bool result = true;
+    bool result = false;
 
     for (size_t i = 0; i < parameters->dim; i++)
     {
@@ -2551,7 +2551,7 @@ bool ForeachStatement::checkForArgTypes()
         {
             error("cannot infer type for %s", p->ident->toChars());
             p->type = Type::terror;
-            result = false;
+            result = true;
         }
     }
     return result;
@@ -2855,7 +2855,7 @@ Statement *IfStatement::semantic(Scope *sc)
     // Convert to boolean after declaring prm so this works:
     //  if (S prm = S()) {}
     // where S is a struct that defines opCast!bool.
-    condition = condition->checkToBoolean(sc);
+    condition = condition->toBoolean(sc);
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -3731,7 +3731,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (exp->type && exp->type->ty != Tvoid ||
             exp->op == TOKfunction || exp->op == TOKtype || exp->op == TOKtemplate)
         {
-            if (!exp->rvalue()) // don't make error for void expression
+            // don't make error for void expression
+            if (exp->checkValue())
                 exp = new ErrorExp();
         }
         if (checkNonAssignmentArrayOp(exp))
@@ -3939,7 +3940,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         {
             fd->buildResultVar(NULL, exp->type);
             bool r = fd->vresult->checkNestedReference(sc, Loc());
-            assert(r);  // vresult should be always accessible
+            assert(!r);  // vresult should be always accessible
 
             // Send out "case receiver" statement to the foreach.
             //  return vresult;

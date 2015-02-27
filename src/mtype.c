@@ -1763,7 +1763,10 @@ bool Type::isAssignable()
     return true;
 }
 
-bool Type::checkBoolean()
+/**************************
+ * Returns true if T can be converted to boolean value.
+ */
+bool Type::isBoolean()
 {
     return isscalar();
 }
@@ -3513,7 +3516,7 @@ TypeBasic *TypeVector::elementType()
     return tb;
 }
 
-bool TypeVector::checkBoolean()
+bool TypeVector::isBoolean()
 {
     return false;
 }
@@ -4454,7 +4457,7 @@ bool TypeDArray::isZeroInit(Loc loc)
     return true;
 }
 
-bool TypeDArray::checkBoolean()
+bool TypeDArray::isBoolean()
 {
     return true;
 }
@@ -4766,7 +4769,7 @@ bool TypeAArray::isZeroInit(Loc loc)
     return true;
 }
 
-bool TypeAArray::checkBoolean()
+bool TypeAArray::isBoolean()
 {
     return true;
 }
@@ -6255,7 +6258,7 @@ bool TypeDelegate::isZeroInit(Loc loc)
     return true;
 }
 
-bool TypeDelegate::checkBoolean()
+bool TypeDelegate::isBoolean()
 {
     return true;
 }
@@ -7285,9 +7288,9 @@ bool TypeEnum::isAssignable()
     return sym->getMemtype(Loc())->isAssignable();
 }
 
-bool TypeEnum::checkBoolean()
+bool TypeEnum::isBoolean()
 {
-    return sym->getMemtype(Loc())->checkBoolean();
+    return sym->getMemtype(Loc())->isBoolean();
 }
 
 bool TypeEnum::needsDestruction()
@@ -7512,7 +7515,7 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
-        accessCheck(e->loc, sc, NULL, v);
+        checkAccess(e->loc, sc, NULL, v);
         Expression *ve = new VarExp(e->loc, v);
         ve = ve->semantic(sc);
         return ve;
@@ -7615,7 +7618,7 @@ L1:
         }
         if (d->semanticRun == PASSinit && d->scope)
             d->semantic(d->scope);
-        accessCheck(e->loc, sc, e, d);
+        checkAccess(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
             ve->type = d->type->addMod(e->type->mod);
@@ -7626,7 +7629,7 @@ L1:
     if (d->isDataseg() || unreal && d->isField())
     {
         // (e, d)
-        accessCheck(e->loc, sc, e, d);
+        checkAccess(e->loc, sc, e, d);
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
@@ -7640,7 +7643,7 @@ L1:
 
 #if 0
         // *(&e + offset)
-        accessCheck(e->loc, sc, e, d);
+        checkAccess(e->loc, sc, e, d);
         Expression *b = new AddrExp(e->loc, e);
         b->type = e->type->pointerTo();
         b = new AddExp(e->loc, b, new IntegerExp(e->loc, v->offset, Type::tint32));
@@ -7732,7 +7735,7 @@ bool TypeStruct::isZeroInit(Loc loc)
     return sym->zeroInit != 0;
 }
 
-bool TypeStruct::checkBoolean()
+bool TypeStruct::isBoolean()
 {
     return false;
 }
@@ -8155,7 +8158,7 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
-        accessCheck(e->loc, sc, NULL, v);
+        checkAccess(e->loc, sc, NULL, v);
         Expression *ve = new VarExp(e->loc, v);
         ve = ve->semantic(sc);
         return ve;
@@ -8316,7 +8319,7 @@ L1:
         //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
         if (d->semanticRun == PASSinit && d->scope)
             d->semantic(d->scope);
-        accessCheck(e->loc, sc, e, d);
+        checkAccess(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
             ve->type = d->type->addMod(e->type->mod);
@@ -8327,7 +8330,7 @@ L1:
     if (d->isDataseg() || unreal && d->isField())
     {
         // (e, d)
-        accessCheck(e->loc, sc, e, d);
+        checkAccess(e->loc, sc, e, d);
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
@@ -8461,7 +8464,7 @@ bool TypeClass::isZeroInit(Loc loc)
     return true;
 }
 
-bool TypeClass::checkBoolean()
+bool TypeClass::isBoolean()
 {
     return true;
 }
@@ -8828,7 +8831,7 @@ MATCH TypeNull::implicitConvTo(Type *to)
     return MATCHnomatch;
 }
 
-bool TypeNull::checkBoolean()
+bool TypeNull::isBoolean()
 {
     return true;
 }
