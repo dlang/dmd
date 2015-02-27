@@ -1952,13 +1952,14 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
 
                 default:
                 Ldefault:
-                {   stc = storageClass & (STCin | STCout | STCref | STClazy);
+                {
+                    stc = storageClass & (STCin | STCout | STCref | STClazy);
                     // if stc is not a power of 2
                     if (stc & (stc - 1) &&
                         !(stc == (STCin | STCref)))
                         error("incompatible parameter storage classes");
-                    if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
-                        error("scope cannot be ref or out");
+                    if ((storageClass & STCscope) && (storageClass & STCout))
+                        error("scope cannot be out");
 
                     Token *t;
                     if (tpl && token.value == TOKidentifier &&

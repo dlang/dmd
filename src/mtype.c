@@ -5593,7 +5593,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
 
             // Remove redundant storage classes for type, they are already applied
-            fparam->storageClass &= ~(STC_TYPECTOR | STCin);
+            if ((fparam->storageClass & (STCin | STCref)) == (STCin | STCref))
+                fparam->storageClass &= ~(STC_TYPECTOR);        // keep STCin
+            else
+                fparam->storageClass &= ~(STC_TYPECTOR | STCin);
         }
         argsc->pop();
     }
@@ -5899,6 +5902,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                         ta = tn->sarrayOf(dim);
                     }
                 }
+                else if (p->storageClass & (STCin | STCscope))
+                    m = MATCHconvert;
                 else
                     goto Nomatch;
             }

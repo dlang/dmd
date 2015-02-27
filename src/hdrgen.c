@@ -2850,6 +2850,10 @@ public:
     {
         if (p->storageClass & STCauto)
             buf->writestring("auto ");
+        else if (p->storageClass & STCin)
+            buf->writestring("in ");
+        else if (p->storageClass & STCscope)
+            buf->writestring("scope ");
 
         if (p->storageClass & STCreturn)
             buf->writestring("return ");
@@ -2858,8 +2862,6 @@ public:
             buf->writestring("out ");
         else if (p->storageClass & STCref)
             buf->writestring("ref ");
-        else if (p->storageClass & STCin)
-            buf->writestring("in ");
         else if (p->storageClass & STClazy)
             buf->writestring("lazy ");
         else if (p->storageClass & STCalias)
@@ -2870,7 +2872,7 @@ public:
             stc &= ~STCshared;
 
         StorageClassDeclaration::stcToCBuffer(buf,
-            stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope));
+            stc & (STCconst | STCimmutable | STCwild | STCshared));
 
         if (p->storageClass & STCalias)
         {
@@ -2883,6 +2885,11 @@ public:
         {
             // print parameter name, instead of undetermined type parameter
             buf->writestring(p->ident->toChars());
+        }
+        else if ((p->storageClass & STCref) &&
+                 (p->storageClass & (STCin | STCscope)))
+        {
+            typeToBuffer(p->type->mutableOf(), p->ident);
         }
         else
             typeToBuffer(p->type, p->ident);
