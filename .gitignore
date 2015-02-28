@@ -48,3 +48,7 @@ dmd.xcodeproj/project.xcworkspace/xcuserdata
 src/*.bak
 src/*.lib
 tags
+
+# OSX
+src/impcnvgen.dSYM/
+src/optabgen.dSYM/
