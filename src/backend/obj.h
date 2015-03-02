@@ -82,9 +82,7 @@ struct Obj
     VIRTUAL void fltused();
     VIRTUAL int data_readonly(char *p, int len, int *pseg);
     VIRTUAL int data_readonly(char *p, int len);
-#if ELFOBJ || MACHOBJ
     VIRTUAL symbol *sym_cdata(tym_t, char *, int);
-#endif
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
 

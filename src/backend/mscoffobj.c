@@ -80,9 +80,6 @@ static Outbuffer *symbuf;
 
 static Outbuffer *syment_buf;   // array of struct syment
 
-struct Comdef { symbol *sym; targ_size_t size; int count; };
-static Outbuffer *comdef_symbuf;        // Comdef's are stored here
-
 static segidx_t segidx_drectve;         // contents of ".drectve" section
 static segidx_t segidx_debugS = UNKNOWN;
 static segidx_t segidx_xdata = UNKNOWN;
@@ -284,7 +281,7 @@ static IDXSTR elf_addmangled(Symbol *s)
 }
 
 /**************************
- * Ouput read only data and generate a symbol for it.
+ * Output read only data and generate a symbol for it.
  *
  */
 
@@ -306,7 +303,6 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
 #endif
     {
         //printf("MsCoffObj::sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
-        assert(0);                      // haven't figured out a section for it
         alignOffset(CDATA, tysize(ty));
         s = symboldata(CDoffset, ty);
         s->Sseg = CDATA;
@@ -314,7 +310,7 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
         MsCoffObj::bytes(CDATA, CDoffset, len, p);
     }
 
-    s->Sfl = FLextern;
+    s->Sfl = FLdata; //FLextern;
     return s;
 }
 
@@ -326,6 +322,7 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
 int MsCoffObj::data_readonly(char *p, int len, segidx_t *pseg)
 {
     int oldoff;
+#if !MARS
     if (I64 || I32)
     {
         oldoff = Doffset;
@@ -335,6 +332,7 @@ int MsCoffObj::data_readonly(char *p, int len, segidx_t *pseg)
         *pseg = DATA;
     }
     else
+#endif
     {
         oldoff = CDoffset;
         SegData[CDATA]->SDbuf->reserve(len);
@@ -392,12 +390,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
         syment_buf = new Outbuffer(sizeof(struct syment) * SYM_TAB_INIT);
     syment_buf->setsize(0);
 
-    if (!comdef_symbuf)
-        comdef_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
-    comdef_symbuf->setsize(0);
-
     extdef = 0;
-
     pointersSeg = 0;
 
     // Initialize segments for CODE, DATA, UDATA and CDATA
@@ -422,7 +415,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
                           IMAGE_SCN_ALIGN_1BYTES |
                           IMAGE_SCN_MEM_READ |
                           IMAGE_SCN_MEM_DISCARDABLE);
-    addScnhdr(".data",    IMAGE_SCN_CNT_INITIALIZED_DATA |
+    addScnhdr(".data$B",  IMAGE_SCN_CNT_INITIALIZED_DATA |
                           alignData |
                           IMAGE_SCN_MEM_READ |
                           IMAGE_SCN_MEM_WRITE);             // DATA
@@ -430,10 +423,13 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
                           alignText |
                           IMAGE_SCN_MEM_EXECUTE |
                           IMAGE_SCN_MEM_READ);              // CODE
-    addScnhdr(".bss",     IMAGE_SCN_CNT_UNINITIALIZED_DATA |
+    addScnhdr(".bss$B",   IMAGE_SCN_CNT_UNINITIALIZED_DATA |
                           alignData |
                           IMAGE_SCN_MEM_READ |
-                          IMAGE_SCN_MEM_WRITE);        // UDATA
+                          IMAGE_SCN_MEM_WRITE);             // UDATA
+    addScnhdr(".rdata",   IMAGE_SCN_CNT_INITIALIZED_DATA |
+                          alignData |
+                          IMAGE_SCN_MEM_READ);              // CONST
 
     seg_count = 0;
 
@@ -442,6 +438,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 #define SHI_DATA        3
 #define SHI_TEXT        4
 #define SHI_UDATA       5
+#define SHI_CDATA       6
 
     getsegment2(SHI_TEXT);
     assert(SegData[CODE]->SDseg == CODE);
@@ -449,10 +446,13 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
     getsegment2(SHI_DATA);
     assert(SegData[DATA]->SDseg == DATA);
 
-    segidx_drectve = getsegment2(SHI_DRECTVE);  // put this here just so UDATA can be seg 4
+    getsegment2(SHI_CDATA);
+    assert(SegData[CDATA]->SDseg == CDATA);
 
     getsegment2(SHI_UDATA);
     assert(SegData[UDATA]->SDseg == UDATA);
+
+    segidx_drectve = getsegment2(SHI_DRECTVE);
 
     segidx_debugS  = getsegment2(SHI_DEBUGS);
 
@@ -588,7 +588,7 @@ void build_syment_table()
         sym.n_sclass = IMAGE_SYM_CLASS_STATIC;
         sym.n_numaux = 1;
 
-        assert(sizeof(sym) == 18);
+        assert(sizeof(sym) == 20);
         syment_buf->write(&sym, sizeof(sym));
 
         union auxent aux;
@@ -606,17 +606,19 @@ void build_syment_table()
 
         if (psechdr->s_flags & IMAGE_SCN_LNK_COMDAT)
         {
-            aux.x_section.Selection = IMAGE_COMDAT_SELECT_ANY;
+            aux.x_section.Selection = (unsigned char)IMAGE_COMDAT_SELECT_ANY;
             if (pseg->SDassocseg)
-            {   aux.x_section.Selection = IMAGE_COMDAT_SELECT_ASSOCIATIVE;
-                aux.x_section.Number = pseg->SDassocseg;
+            {   aux.x_section.Selection = (unsigned char)IMAGE_COMDAT_SELECT_ASSOCIATIVE;
+                aux.x_section.NumberHighPart = (unsigned short)(pseg->SDassocseg >> 16);
+                aux.x_section.NumberLowPart = (unsigned short)(pseg->SDassocseg & 0x0000FFFF);
             }
         }
 
+        memset(&aux.x_section.Zeros, 0, 2);
+
         syment_buf->write(&aux, sizeof(aux));
-        //printf("%d %d %d %d %d %d\n", sizeof(aux.x_fd), sizeof(aux.x_bf), sizeof(aux.x_ef),
-        //     sizeof(aux.x_weak), sizeof(aux.x_filename), sizeof(aux.x_section));
-        assert(sizeof(aux) == 18);
+
+        assert(sizeof(aux) == 20);
     }
 
     /* Add symbols from symbuf[]
@@ -645,10 +647,6 @@ void build_syment_table()
             default:
                 sym.n_scnum = SegData[s->Sseg]->SDshtidx;
                 break;
-
-            case SCcomdef:
-                assert(0);      // comdef's should be in comdef_symbuf[]
-                break;
         }
         sym.n_type = tyfunc(s->Stype->Tty) ? 0x20 : 0;
         switch (s->Sclass)
@@ -665,31 +663,6 @@ void build_syment_table()
                     sym.n_value = s->Soffset;
                 break;
         }
-        sym.n_numaux = 0;
-
-        syment_buf->write(&sym, sizeof(sym));
-    }
-
-    /* Add comdef symbols from comdef_symbuf[]
-     */
-
-    dim = comdef_symbuf->size() / sizeof(Comdef);
-    for (size_t i = 0; i < dim; i++)
-    {   Comdef *c = ((Comdef *)comdef_symbuf->buf) + i;
-        symbol *s = c->sym;
-        s->Sxtrnnum = syment_buf->size() / sizeof(syment);
-        n++;
-
-        struct syment sym;
-
-        char dest[DEST_LEN+1];
-        char *destr = obj_mangle2(s, dest);
-        syment_set_name(&sym, destr);
-
-        sym.n_scnum = IMAGE_SYM_UNDEFINED;
-        sym.n_type = 0;
-        sym.n_sclass = IMAGE_SYM_CLASS_EXTERNAL;
-        sym.n_value = c->size * c->count;
         sym.n_numaux = 0;
 
         syment_buf->write(&sym, sizeof(sym));
@@ -751,15 +724,21 @@ void MsCoffObj::term(const char *objfilename)
 
     struct filehdr header;
 
+    header.f_sig1 = IMAGE_FILE_MACHINE_UNKNOWN;
+    header.f_sig2 = 0xFFFF;
+    header.f_minver = 2;
     header.f_magic = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
     header.f_nscns = scnhdr_cnt;
     time_t f_timedat = 0;
     time(&f_timedat);
-    header.f_timdat = (long)f_timedat;
+    header.f_timdat = (unsigned long)f_timedat;
     header.f_symptr = 0;        // offset to symbol table
     header.f_nsyms = 0;
-    header.f_opthdr = 0;
-    header.f_flags = 0;
+    unsigned char uuid[16] = { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
+                                '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
+    memcpy(header.f_uuid, uuid, 16);
+    memset(header.f_unused, 0, sizeof(header.f_unused));
+
 
     foffset = sizeof(header);       // start after header
 
@@ -1343,75 +1322,52 @@ void MsCoffObj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
  * This gets called if this is the module with "extern (D) main()" in it.
  */
 
+static void emitSectionBrace(const char* segname, const char* symname, int attr, MsCoffObj* coffZeroBytes)
+{
+    char name[16];
+    strcat(strcpy(name, segname), "$A");
+    const int seg_bg = MsCoffObj::getsegment(name, attr);
+
+    strcat(strcpy(name, segname), "$C");
+    const int seg_en = MsCoffObj::getsegment(name, attr);
+
+    /* Create symbol sym_beg that sits just before the .seg$B section
+     */
+    strcat(strcpy(name, symname), "_beg");
+    symbol *beg = symbol_name(name, SCglobal, tspvoid);
+    beg->Sseg = seg_bg;
+    beg->Soffset = 0;
+    symbuf->write(&beg, sizeof(beg));
+    if (coffZeroBytes) // unnecessary, but required by current runtime
+        coffZeroBytes->bytes(seg_bg, 0, I64 ? 8 : 4, NULL);
+
+    /* Create symbol sym_end that sits just after the .seg$B section
+     */
+    strcat(strcpy(name, symname), "_end");
+    symbol *end = symbol_name(name, SCglobal, tspvoid);
+    end->Sseg = seg_en;
+    end->Soffset = 0;
+    symbuf->write(&end, sizeof(end));
+    if (coffZeroBytes) // unnecessary, but required by current runtime
+        coffZeroBytes->bytes(seg_en, 0, I64 ? 8 : 4, NULL);
+}
+
 void MsCoffObj::ehsections()
 {
     //printf("MsCoffObj::ehsections()\n");
 
-  {
     int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
+    int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | align | IMAGE_SCN_MEM_READ;
+    emitSectionBrace("._deh", "_deh", attr, this);
+    emitSectionBrace(".minfo", "_minfo", attr, this);
 
-    const int segdeh_bg =
-    MsCoffObj::getsegment("._deh$A", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                     align |
-                                     IMAGE_SCN_MEM_READ);
+    attr = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_16BYTES | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
+    emitSectionBrace(".data", "_data", attr, NULL);
 
-    const int segdeh_en =
-    MsCoffObj::getsegment("._deh$C", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                     align |
-                                     IMAGE_SCN_MEM_READ);
-
-    /* Create symbol _eh_beg that sits just before the ._deh$B section
-     */
-    symbol *eh_beg = symbol_name("_deh_beg", SCglobal, tspvoid);
-    eh_beg->Sseg = segdeh_bg;
-    eh_beg->Soffset = 0;
-    symbuf->write(&eh_beg, sizeof(eh_beg));
-    MsCoffObj::bytes(segdeh_bg, 0, I64 ? 8 * 3 : 4 * 3, NULL);
-
-    /* Create symbol _eh_end that sits just after the ._deh$B section
-     */
-    symbol *eh_end = symbol_name("_deh_end", SCglobal, tspvoid);
-    eh_end->Sseg = segdeh_en;
-    eh_end->Soffset = 0;
-    symbuf->write(&eh_end, sizeof(eh_end));
-    MsCoffObj::bytes(segdeh_en, 0, I64 ? 8 : 4, NULL);
-  }
+    attr = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_ALIGN_16BYTES | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
+    emitSectionBrace(".bss", "_bss", attr, NULL);
 
     /*************************************************************************/
-
-  {
-    /* Module info sections
-     */
-    int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
-
-    const int segbg =
-    MsCoffObj::getsegment(".minfo$A", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                      align |
-                                      IMAGE_SCN_MEM_READ);
-    const int segen =
-    MsCoffObj::getsegment(".minfo$C", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                      align |
-                                      IMAGE_SCN_MEM_READ);
-
-    /* Create symbol _minfo_beg that sits just before the .minfo$B section
-     */
-    symbol *minfo_beg = symbol_name("_minfo_beg", SCglobal, tspvoid);
-    minfo_beg->Sseg = segbg;
-    minfo_beg->Soffset = 0;
-    symbuf->write(&minfo_beg, sizeof(minfo_beg));
-    MsCoffObj::bytes(segbg, 0, I64 ? 8 : 4, NULL);
-
-    /* Create symbol _minfo_end that sits just after the .minfo$B section
-     */
-    symbol *minfo_end = symbol_name("_minfo_end", SCglobal, tspvoid);
-    minfo_end->Sseg = segen;
-    minfo_end->Soffset = 0;
-    symbuf->write(&minfo_end, sizeof(minfo_end));
-    MsCoffObj::bytes(segen, 0, I64 ? 8 : 4, NULL);
-  }
-
-    /*************************************************************************/
-
 #if 0
   {
     /* TLS sections
@@ -1494,7 +1450,7 @@ int MsCoffObj::comdat(Symbol *s)
     {
         s->Sfl = FLdata;
         align = 16;
-        s->Sseg = MsCoffObj::getsegment(".data",  IMAGE_SCN_CNT_INITIALIZED_DATA |
+        s->Sseg = MsCoffObj::getsegment(".data$B",  IMAGE_SCN_CNT_INITIALIZED_DATA |
                                             IMAGE_SCN_LNK_COMDAT |
                                             IMAGE_SCN_ALIGN_16BYTES |
                                             IMAGE_SCN_MEM_READ |
@@ -1596,6 +1552,9 @@ segidx_t MsCoffObj::getsegment2(IDXSEC shtidx)
     //printf("seg_count = %d\n", seg_count);
     return seg;
 }
+
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
+extern void fatal();
 
 /********************************************
  * Add new scnhdr.
@@ -2061,24 +2020,25 @@ int MsCoffObj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
     // can't have code or thread local comdef's
     assert(!(s->ty() & mTYthread));
 
-    /* A common block looks like this in the symbol table:
-     *  n_name    = s->Sident
-     *  n_value   = size * count
-     *  n_scnum   = IMAGE_SYM_UNDEFINED
-     *  n_type    = x0000
-     *  n_sclass  = IMAGE_SYM_CLASS_EXTERNAL
-     *  n_numaux  = 0
-     */
+    s->Sfl = FLudata;
+    unsigned align = 16;
+    s->Sseg = MsCoffObj::getsegment(".bss$B",  IMAGE_SCN_CNT_UNINITIALIZED_DATA |
+                                        IMAGE_SCN_LNK_COMDAT |
+                                        IMAGE_SCN_ALIGN_16BYTES |
+                                        IMAGE_SCN_MEM_READ |
+                                        IMAGE_SCN_MEM_WRITE);
+    if (s->Salignment > align)
+    {
+        SegData[s->Sseg]->SDalignment = s->Salignment;
+        assert(s->Salignment >= -1);
+    }
+    s->Soffset = SegData[s->Sseg]->SDoffset;
+    SegData[s->Sseg]->SDsym = s;
+    SegData[s->Sseg]->SDoffset += count * size;
 
-    struct Comdef comdef;
-    comdef.sym = s;
-    comdef.size = size;
-    comdef.count = count;
-    comdef_symbuf->write(&comdef, sizeof(comdef));
+    MsCoffObj::pubdef(s->Sseg, s, s->Soffset);
+    searchfixlist(s);               // backpatch any refs to this symbol
 
-    s->Sxtrnnum = 1;
-    if (!s->Sseg)
-        s->Sseg = UDATA;
     return 1;           // should return void
 }
 

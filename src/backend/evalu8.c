@@ -261,10 +261,9 @@ int boolres(elem *e)
 
                 case TYfloat4:
                 {   b = 0;
-                    targ_float *pf = (targ_float *)&e->EV.Vcent;
                     for (size_t i = 0; i < 4; i++)
                     {
-                        if (isnan(pf[i]) || pf[i] != 0)
+                        if (isnan(e->EV.Vfloat4[i]) || e->EV.Vfloat4[i] != 0)
                         {   b = 1;
                             break;
                         }
