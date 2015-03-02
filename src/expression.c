@@ -5156,6 +5156,12 @@ Expression *NewAnonClassExp::semantic(Scope *sc)
     d = d->semantic(sc);
     sc = sc->pop();
 
+    if (!cd->errors && sc->intypeof && !sc->parent->inNonRoot())
+    {
+        ScopeDsymbol *sds = sc->tinst ? (ScopeDsymbol *)sc->tinst : sc->module;
+        sds->members->push(cd);
+    }
+
     Expression *n = new NewExp(loc, thisexp, newargs, cd->type, arguments);
 
     Expression *c = new CommaExp(loc, d, n);
