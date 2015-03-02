@@ -481,18 +481,18 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             {
                 sm = s->search_correct(ti->name);
                 if (sm)
-                    error("template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
-                          ti->name->toChars(), s->kind(), s->toChars(), sm->kind(), sm->toChars());
+                    ::error(loc, "template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
+                          ti->name->toChars(), s->kind(), s->toPrettyChars(), sm->kind(), sm->toChars());
                 else
-                    error("template identifier '%s' is not a member of '%s %s'",
-                          ti->name->toChars(), s->kind(), s->toChars());
+                    ::error(loc, "template identifier '%s' is not a member of '%s %s'",
+                          ti->name->toChars(), s->kind(), s->toPrettyChars());
                 return NULL;
             }
             sm = sm->toAlias();
             TemplateDeclaration *td = sm->isTemplateDeclaration();
             if (!td)
             {
-                error("%s is not a template, it is a %s", ti->name->toChars(), sm->kind());
+                ::error(loc, "%s.%s is not a template, it is a %s", s->toPrettyChars(), ti->name->toChars(), sm->kind());
                 return NULL;
             }
             ti->tempdecl = td;
