@@ -63,8 +63,10 @@ void initSections()
 {
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
 
+    // the ".data" image section includes both object file sections ".data" and ".bss"
     _sections._gcRanges[0] = findImageSection(".data");
-    debug(PRINTF) printf("found .data section: [%p,+%llx]\n", _sections._gcRanges[0].ptr, cast(ulong)_sections._gcRanges[0].length);
+    debug(PRINTF) printf("found .data section: [%p,+%llx]\n", _sections._gcRanges[0].ptr,
+                         cast(ulong)_sections._gcRanges[0].length);
 }
 
 void finiSections()
@@ -140,12 +142,6 @@ extern(C)
 
         void* _deh_beg;
         void* _deh_end;
-
-        void* _data_beg;
-        void* _data_end;
-
-        void* _bss_beg;
-        void* _bss_end;
     }
 
     extern
