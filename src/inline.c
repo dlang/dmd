@@ -301,6 +301,16 @@ public:
             cost++;
     }
 
+    void visit(NewExp *e)
+    {
+        //printf("NewExp::inlineCost3() %s\n", e->toChars());
+        AggregateDeclaration *ad = isAggregate(e->newtype);
+        if (ad && ad->isNested())
+            cost = COST_MAX;
+        else
+            cost++;
+    }
+
     void visit(FuncExp *e)
     {
         //printf("FuncExp::inlineCost3()\n");

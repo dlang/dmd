@@ -243,7 +243,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
         void visit(ClassDeclaration *cd)
         {
-            //printf("ClassDeclaration::toObjFile('%s')\n", toChars());
+            //printf("ClassDeclaration::toObjFile('%s')\n", cd->toChars());
 
             if (cd->type->ty == Terror)
             {
