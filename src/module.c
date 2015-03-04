@@ -508,7 +508,9 @@ void Module::parse()
         return;
     }
     {
-        Parser p(this, buf, buflen, docfile != NULL);
+        // Always lex comments; __traits(documentation, ...) might require it.
+        bool doDocComment = true;
+        Parser p(this, buf, buflen, doDocComment);
         p.nextToken();
         members = p.parseModule();
         md = p.md;

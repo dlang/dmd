@@ -312,6 +312,7 @@
    {
     "name" : "bar",
     "kind" : "function",
+    "comment" : " Documentation test\n",
     "line" : 52,
     "char" : 16,
     "deco" : "FNeKkC4json4Bar2Zi",
@@ -393,6 +394,7 @@
     "members" : [
      {
       "kind" : "template",
+      "comment" : " Issue 9480 - Template name should be stripped of parameters\n",
       "line" : 85,
       "char" : 5,
       "name" : "this",
@@ -425,6 +427,7 @@
    {
     "kind" : "template",
     "protection" : "private",
+    "comment" : " Issue 9755 - Protection not emitted properly for Templates.\n",
     "line" : 89,
     "char" : 9,
     "name" : "S1_9755",
@@ -499,6 +502,7 @@
    {
     "name" : "c_10011",
     "kind" : "variable",
+    "comment" : " Issue 10011 - init property is wrong for object initializer.\n",
     "line" : 98,
     "char" : 14,
     "storageClass" : [
@@ -511,6 +515,7 @@
    {
     "name" : "Numbers",
     "kind" : "enum",
+    "comment" : "\n",
     "line" : 101,
     "char" : 1,
     "baseDeco" : "i",

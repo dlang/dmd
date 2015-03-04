@@ -237,6 +237,7 @@ const char* traits[] = {
     "isLazy",
     "hasMember",
     "identifier",
+    "documentation",
     "getProtection",
     "parent",
     "getMember",
@@ -638,6 +639,22 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             id = s->ident;
         }
         StringExp *se = new StringExp(e->loc, id->toChars());
+        return se->semantic(sc);
+    }
+    else if (e->ident == Id::documentation)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+
+        RootObject *o = (*e->args)[0];
+        Dsymbol *s = getDsymbol(o);
+        if (!s)
+        {
+            e->error("argument %s is not a symbol", o->toChars());
+            goto Lfalse;
+        }
+        char *doc = s->comment ? (char *) s->comment : (char *) "";
+        StringExp *se = new StringExp(e->loc, doc, strlen(doc), 'c');
         return se->semantic(sc);
     }
     else if (e->ident == Id::getProtection)
