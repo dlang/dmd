@@ -508,22 +508,13 @@ void FuncDeclaration::semantic(Scope *sc)
         {
             sc->flags |= SCOPEctor;
 
-            Type *tret;
-            if (!ad || parent->isUnionDeclaration())
-            {
-                error("constructors are only for class or struct definitions");
-                tret = Type::tvoid;
-            }
-            else
-            {
-                tret = ad->handleType();
-                assert(tret);
-                tret = tret->addStorageClass(storage_class | sc->stc);
-                tret = tret->addMod(type->mod);
-            }
+            Type *tret = ad->handleType();
+            assert(tret);
+            tret = tret->addStorageClass(storage_class | sc->stc);
+            tret = tret->addMod(type->mod);
             tf->next = tret;
 
-            if (ad && ad->isStructDeclaration())
+            if (ad->isStructDeclaration())
                 sc->stc |= STCref;
         }
 
@@ -1583,20 +1574,11 @@ void FuncDeclaration::semantic3(Scope *sc)
                 /* It's a static constructor. Ensure that all
                  * ctor consts were initialized.
                  */
-
-                Dsymbol *p = toParent();
-                ScopeDsymbol *pd = p->isScopeDsymbol();
-                if (!pd)
+                ScopeDsymbol *pd = toParent()->isScopeDsymbol();
+                for (size_t i = 0; i < pd->members->dim; i++)
                 {
-                    error("static constructor can only be member of struct/class/module, not %s %s", p->kind(), p->toChars());
-                }
-                else
-                {
-                    for (size_t i = 0; i < pd->members->dim; i++)
-                    {
-                        Dsymbol *s = (*pd->members)[i];
-                        s->checkCtorConstInit();
-                    }
+                    Dsymbol *s = (*pd->members)[i];
+                    s->checkCtorConstInit();
                 }
             }
             else if (ad2 && isCtorDeclaration())
@@ -4588,6 +4570,18 @@ void CtorDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
+    parent = sc->parent;
+    Dsymbol *p = toParent2();
+    AggregateDeclaration *ad = p->isAggregateDeclaration();
+    if (!ad)
+    {
+        ::error(loc, "constructor can only be a member of aggregate, not %s %s",
+            p->kind(), p->toChars());
+        type = Type::terror;
+        errors = true;
+        return;
+    }
+
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static constructor
     sc->flags |= SCOPEctor;
@@ -4602,14 +4596,11 @@ void CtorDeclaration::semantic(Scope *sc)
     TypeFunction *tf = (TypeFunction *)type;
     assert(tf && tf->ty == Tfunction);
 
-    Dsymbol *parent = toParent2();
-    AggregateDeclaration *ad = parent->isAggregateDeclaration();
-
     /* See if it's the default constructor
      * But, template constructor should not become a default constructor.
      */
-    if (ad && tf->varargs == 0 && Parameter::dim(tf->parameters) == 0
-        && (!this->parent->isTemplateInstance() || this->parent->isTemplateMixin()))
+    if (ad && tf->varargs == 0 && Parameter::dim(tf->parameters) == 0 &&
+        (!parent->isTemplateInstance() || parent->isTemplateMixin()))
     {
         StructDeclaration *sd = ad->isStructDeclaration();
         if (sd)
@@ -4681,16 +4672,20 @@ void PostBlitDeclaration::semantic(Scope *sc)
         sc = scope;
         scope = NULL;
     }
+
     parent = sc->parent;
-    Dsymbol *parent = toParent();
-    StructDeclaration *ad = parent->isStructDeclaration();
+    Dsymbol *p = toParent2();
+    StructDeclaration *ad = p->isStructDeclaration();
     if (!ad)
     {
-        error("post blits are only for struct/union definitions, not %s %s", parent->kind(), parent->toChars());
+        ::error(loc, "postblit can only be a member of struct/union, not %s %s",
+            p->kind(), p->toChars());
+        type = Type::terror;
+        errors = true;
+        return;
     }
-    else if (ident == Id::_postblit && semanticRun < PASSsemantic)
+    if (ident == Id::_postblit && semanticRun < PASSsemantic)
         ad->postblits.push(this);
-
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
@@ -4753,16 +4748,20 @@ void DtorDeclaration::semantic(Scope *sc)
         sc = scope;
         scope = NULL;
     }
+
     parent = sc->parent;
-    Dsymbol *parent = toParent();
-    AggregateDeclaration *ad = parent->isAggregateDeclaration();
+    Dsymbol *p = toParent2();
+    AggregateDeclaration *ad = p->isAggregateDeclaration();
     if (!ad)
     {
-        error("destructors are only for class/struct/union definitions, not %s %s", parent->kind(), parent->toChars());
+        ::error(loc, "destructor can only be a member of aggregate, not %s %s",
+            p->kind(), p->toChars());
+        type = Type::terror;
+        errors = true;
+        return;
     }
-    else if (ident == Id::dtor && semanticRun < PASSsemantic)
+    if (ident == Id::dtor && semanticRun < PASSsemantic)
         ad->dtors.push(this);
-
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
@@ -4838,6 +4837,17 @@ void StaticCtorDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
+    parent = sc->parent;
+    Dsymbol *p = parent->pastMixin();
+    if (!p->isScopeDsymbol())
+    {
+        const char *s = (isSharedStaticCtorDeclaration() ? "shared " : "");
+        ::error(loc, "%sstatic constructor can only be member of module/aggregate/template, not %s %s",
+            s, p->kind(), p->toChars());
+        type = Type::terror;
+        errors = true;
+        return;
+    }
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
@@ -4875,7 +4885,8 @@ void StaticCtorDeclaration::semantic(Scope *sc)
     if (!m)
         m = sc->module;
     if (m)
-    {   m->needmoduleinfo = 1;
+    {
+        m->needmoduleinfo = 1;
         //printf("module1 %s needs moduleinfo\n", m->toChars());
     }
 }
@@ -4952,6 +4963,17 @@ void StaticDtorDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
+    parent = sc->parent;
+    Dsymbol *p = parent->pastMixin();
+    if (!p->isScopeDsymbol())
+    {
+        const char *s = (isSharedStaticDtorDeclaration() ? "shared " : "");
+        ::error(loc, "%sstatic destructor can only be member of module/aggregate/template, not %s %s",
+            s, p->kind(), p->toChars());
+        type = Type::terror;
+        errors = true;
+        return;
+    }
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
@@ -4991,7 +5013,8 @@ void StaticDtorDeclaration::semantic(Scope *sc)
     if (!m)
         m = sc->module;
     if (m)
-    {   m->needmoduleinfo = 1;
+    {
+        m->needmoduleinfo = 1;
         //printf("module2 %s needs moduleinfo\n", m->toChars());
     }
 }
@@ -5060,18 +5083,20 @@ void InvariantDeclaration::semantic(Scope *sc)
         sc = scope;
         scope = NULL;
     }
+
     parent = sc->parent;
-    Dsymbol *parent = toParent();
-    AggregateDeclaration *ad = parent->isAggregateDeclaration();
+    Dsymbol *p = parent->pastMixin();
+    AggregateDeclaration *ad = p->isAggregateDeclaration();
     if (!ad)
     {
-        error("invariants are only for struct/union/class definitions");
+        ::error(loc, "invariant can only be a member of aggregate, not %s %s",
+            p->kind(), p->toChars());
+        type = Type::terror;
+        errors = true;
         return;
     }
     if (ident != Id::classInvariant && semanticRun < PASSsemantic)
-    {
         ad->invs.push(this);
-    }
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);
 
@@ -5139,6 +5164,17 @@ void UnitTestDeclaration::semantic(Scope *sc)
     }
 
     protection = sc->protection;
+
+    parent = sc->parent;
+    Dsymbol *p = parent->pastMixin();
+    if (!p->isScopeDsymbol())
+    {
+        ::error(loc, "unittest can only be a member of module/aggregate/template, not %s %s",
+            p->kind(), p->toChars());
+        type = Type::terror;
+        errors = true;
+        return;
+    }
 
     if (inNonRoot())
         return;
@@ -5218,11 +5254,14 @@ void NewDeclaration::semantic(Scope *sc)
     }
 
     parent = sc->parent;
-    Dsymbol *parent = toParent();
-    ClassDeclaration *cd = parent->isClassDeclaration();
-    if (!cd && !parent->isStructDeclaration())
+    Dsymbol *p = parent->pastMixin();
+    if (!p->isAggregateDeclaration())
     {
-        error("new allocators only are for class or struct definitions");
+        ::error(loc, "allocator can only be a member of aggregate, not %s %s",
+            p->kind(), p->toChars());
+        type = Type::terror;
+        errors = true;
+        return;
     }
     Type *tret = Type::tvoid->pointerTo();
     if (!type)
@@ -5239,9 +5278,9 @@ void NewDeclaration::semantic(Scope *sc)
     }
     else
     {
-        Parameter *p = Parameter::getNth(tf->parameters, 0);
-        if (!p->type->equals(Type::tsize_t))
-            error("first argument must be type size_t, not %s", p->type->toChars());
+        Parameter *fparam = Parameter::getNth(tf->parameters, 0);
+        if (!fparam->type->equals(Type::tsize_t))
+            error("first argument must be type size_t, not %s", fparam->type->toChars());
     }
 
     FuncDeclaration::semantic(sc);
@@ -5295,11 +5334,14 @@ void DeleteDeclaration::semantic(Scope *sc)
     }
 
     parent = sc->parent;
-    Dsymbol *parent = toParent();
-    ClassDeclaration *cd = parent->isClassDeclaration();
-    if (!cd && !parent->isStructDeclaration())
+    Dsymbol *p = parent->pastMixin();
+    if (!p->isAggregateDeclaration())
     {
-        error("new allocators only are for class or struct definitions");
+        ::error(loc, "deallocator can only be a member of aggregate, not %s %s",
+            p->kind(), p->toChars());
+        type = Type::terror;
+        errors = true;
+        return;
     }
     if (!type)
         type = new TypeFunction(parameters, Type::tvoid, 0, LINKd, storage_class);
@@ -5315,9 +5357,9 @@ void DeleteDeclaration::semantic(Scope *sc)
     }
     else
     {
-        Parameter *p = Parameter::getNth(tf->parameters, 0);
-        if (!p->type->equals(Type::tvoid->pointerTo()))
-            error("one argument of type void* expected, not %s", p->type->toChars());
+        Parameter *fparam = Parameter::getNth(tf->parameters, 0);
+        if (!fparam->type->equals(Type::tvoid->pointerTo()))
+            error("one argument of type void* expected, not %s", fparam->type->toChars());
     }
 
     FuncDeclaration::semantic(sc);

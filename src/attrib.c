@@ -665,12 +665,12 @@ void AnonDeclaration::semantic(Scope *sc)
 
     assert(sc->parent);
 
-    Dsymbol *parent = sc->parent->pastMixin();
-    AggregateDeclaration *ad = parent->isAggregateDeclaration();
-
-    if (!ad || (!ad->isStructDeclaration() && !ad->isClassDeclaration()))
+    Dsymbol *p = sc->parent->pastMixin();
+    AggregateDeclaration *ad = p->isAggregateDeclaration();
+    if (!ad)
     {
-        error("can only be a part of an aggregate");
+        ::error(loc, "%s can only be a part of an aggregate, not %s %s",
+            kind(), p->kind(), p->toChars());
         return;
     }
 

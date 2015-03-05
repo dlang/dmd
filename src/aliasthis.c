@@ -87,59 +87,60 @@ Dsymbol *AliasThis::syntaxCopy(Dsymbol *s)
 
 void AliasThis::semantic(Scope *sc)
 {
-    Dsymbol *parent = sc->parent;
-    if (parent)
-        parent = parent->pastMixin();
-    AggregateDeclaration *ad = NULL;
-    if (parent)
-        ad = parent->isAggregateDeclaration();
-    if (ad)
+    Dsymbol *p = sc->parent->pastMixin();
+    AggregateDeclaration *ad = p->isAggregateDeclaration();
+    if (!ad)
     {
-        assert(ad->members);
-        Dsymbol *s = ad->search(loc, ident);
-        if (!s)
-        {
-            s = sc->search(loc, ident, NULL);
-            if (s)
-                ::error(loc, "%s is not a member of %s", s->toChars(), ad->toChars());
-            else
-                ::error(loc, "undefined identifier %s", ident->toChars());
-            return;
-        }
-        else if (ad->aliasthis && s != ad->aliasthis)
-            error("there can be only one alias this");
-
-        if (ad->type->ty == Tstruct && ((TypeStruct *)ad->type)->sym != ad)
-        {
-            AggregateDeclaration *ad2 = ((TypeStruct *)ad->type)->sym;
-            assert(ad2->type == Type::terror);
-            ad->aliasthis = ad2->aliasthis;
-            return;
-        }
-
-        /* disable the alias this conversion so the implicit conversion check
-         * doesn't use it.
-         */
-        ad->aliasthis = NULL;
-
-        Dsymbol *sx = s;
-        if (sx->isAliasDeclaration())
-            sx = sx->toAlias();
-        Declaration *d = sx->isDeclaration();
-        if (d && !d->isTupleDeclaration())
-        {
-            Type *t = d->type;
-            assert(t);
-            if (ad->type->implicitConvTo(t) > MATCHnomatch)
-            {
-                ::error(loc, "alias this is not reachable as %s already converts to %s", ad->toChars(), t->toChars());
-            }
-        }
-
-        ad->aliasthis = s;
+        ::error(loc, "alias this can only be a member of aggregate, not %s %s",
+            p->kind(), p->toChars());
+        return;
     }
-    else
-        error("alias this can only appear in struct or class declaration, not %s", parent ? parent->toChars() : "nowhere");
+
+    assert(ad->members);
+    Dsymbol *s = ad->search(loc, ident);
+    if (!s)
+    {
+        s = sc->search(loc, ident, NULL);
+        if (s)
+            ::error(loc, "%s is not a member of %s", s->toChars(), ad->toChars());
+        else
+            ::error(loc, "undefined identifier %s", ident->toChars());
+        return;
+    }
+    else if (ad->aliasthis && s != ad->aliasthis)
+    {
+        ::error(loc, "there can be only one alias this");
+        return;
+    }
+
+    if (ad->type->ty == Tstruct && ((TypeStruct *)ad->type)->sym != ad)
+    {
+        AggregateDeclaration *ad2 = ((TypeStruct *)ad->type)->sym;
+        assert(ad2->type == Type::terror);
+        ad->aliasthis = ad2->aliasthis;
+        return;
+    }
+
+    /* disable the alias this conversion so the implicit conversion check
+     * doesn't use it.
+     */
+    ad->aliasthis = NULL;
+
+    Dsymbol *sx = s;
+    if (sx->isAliasDeclaration())
+        sx = sx->toAlias();
+    Declaration *d = sx->isDeclaration();
+    if (d && !d->isTupleDeclaration())
+    {
+        Type *t = d->type;
+        assert(t);
+        if (ad->type->implicitConvTo(t) > MATCHnomatch)
+        {
+            ::error(loc, "alias this is not reachable as %s already converts to %s", ad->toChars(), t->toChars());
+        }
+    }
+
+    ad->aliasthis = s;
 }
 
 const char *AliasThis::kind()
