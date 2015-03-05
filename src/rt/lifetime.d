@@ -1211,7 +1211,7 @@ extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct ti)
 unittest
 {
     __gshared size_t countDtor = 0;
-    struct S 
+    struct S
     {
         int x;
         ~this() { countDtor++; }
@@ -2247,49 +2247,6 @@ void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
         result = __arrayStart(info);
     }
     return result;
-}
-
-
-/**
- * Support for array.dup property.
- */
-struct Array2
-{
-    size_t length;
-    void*  ptr;
-}
-
-
-/**
- * Replaced by object.dup and object.idup.
- * Remove in 2.068.
- */
-deprecated extern (C) void[] _adDupT(const TypeInfo ti, void[] a)
-out (result)
-{
-    auto sizeelem = ti.next.tsize;              // array element size
-    assert(memcmp((*cast(Array2*)&result).ptr, a.ptr, a.length * sizeelem) == 0);
-}
-body
-{
-    Array2 r;
-
-    if (a.length)
-    {
-        auto tinext = unqualify(ti.next);
-        auto sizeelem = tinext.tsize;                  // array element size
-        auto size = a.length * sizeelem;
-        auto info = __arrayAlloc(size, ti, tinext);
-        auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-        __setArrayAllocLength(info, size, isshared, tinext);
-        r.ptr = __arrayStart(info);
-        r.length = a.length;
-        memcpy(r.ptr, a.ptr, size);
-
-        // do postblit processing
-        __doPostblit(r.ptr, size, tinext);
-    }
-    return *cast(void[]*)(&r);
 }
 
 
