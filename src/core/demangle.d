@@ -139,6 +139,16 @@ private struct Demangle
     }
 
 
+    static char val2HexDigit( ubyte val )
+    {
+        if (0x0 <= val && val <= 0x9)
+            return cast(char)(val + '0');
+        if (0xa <= val && val <= 0xf)
+            return cast(ubyte)(val + 'a' - 0xa);
+        assert(0);
+    }
+
+
     //////////////////////////////////////////////////////////////////////////
     // Data Output
     //////////////////////////////////////////////////////////////////////////
@@ -1134,7 +1144,15 @@ private struct Demangle
                 auto a = ascii2hex( tok() ); next();
                 auto b = ascii2hex( tok() ); next();
                 auto v = cast(char)((a << 4) | b);
-                put( __ctfe ? [v] : (cast(char*) &v)[0 .. 1] );
+                if (' ' <= v && v <= '~')   // ASCII printable
+                {
+                    put( __ctfe ? [v] : (cast(char*) &v)[0 .. 1] );
+                }
+                else
+                {
+                    char[4] buf = ['\\', 'x', val2HexDigit(v / 0x10), val2HexDigit(v % 0x10)];
+                    put( buf[] );
+                }
             }
             put( "\"" );
             if( 'a' != t )
@@ -1918,6 +1936,7 @@ version(unittest)
         ["_D3foo7__arrayZ", "foo.__array"],
         ["_D8link657428__T3fooVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
         ["_D8link657429__T3fooHVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
+        ["_D4test22__T4funcVAyaa3_610a62Z4funcFNaNbNiNfZAya", `pure nothrow @nogc @safe immutable(char)[] test.func!("a\x0ab").func()`],
     ];
 
     template staticIota(int x)
