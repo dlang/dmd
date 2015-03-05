@@ -1817,6 +1817,7 @@
                 "struct Statement",
                 "struct ErrorStatement",
                 "struct PeelStatement",
+                "function toStatement",
                 "struct ExpStatement",
                 "struct DtorExpStatement",
                 "struct CompileStatement",
