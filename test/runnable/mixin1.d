@@ -1397,6 +1397,21 @@ int test14243()
 static assert(test14243()); // changed to be workable
 
 /*******************************************/
+// 10492
+
+class TestClass10492 {}
+
+mixin template mix10492(string name)
+{
+    mixin("scope " ~ name ~ " = new TestClass10492;" );
+}
+
+void test10492()
+{
+    mixin mix10492!("var");
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1448,6 +1463,7 @@ int main()
     test11767();
     test12023();
     test14243();
+    test10492();
 
     printf("Success\n");
     return 0;
