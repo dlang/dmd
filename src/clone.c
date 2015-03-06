@@ -76,9 +76,8 @@ StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f)
 }
 
 /*******************************************
- * Check given opAssign symbol is really identity opAssign or not.
+ * Check given aggregate actually has an identity opAssign or not.
  */
-
 FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
 {
     Dsymbol *assign = search_function(ad, Id::assign);
@@ -134,7 +133,6 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
  * it has a destructor or a postblit.
  * We need to generate one if a user-specified one does not exist.
  */
-
 bool needOpAssign(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd->toChars());
@@ -178,9 +176,9 @@ Lneed:
  *
  * If S has copy copy construction and/or destructor,
  * the body will make bit-wise object swap:
- *          S __tmp = this; // bit copy
- *          this = s;       // bit copy
- *          __tmp.dtor();
+ *          S __swap = this; // bit copy
+ *          this = s;        // bit copy
+ *          __swap.dtor();
  * Instead of running the destructor on s, run it on tmp instead.
  *
  * Otherwise, the body will make member-wise assignments:
@@ -189,7 +187,6 @@ Lneed:
  *          this.field2 = s.field2;
  *          ...;
  */
-
 FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 {
     if (FuncDeclaration *f = hasIdentityOpAssign(sd, sc))
@@ -249,7 +246,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     else if (sd->dtor || sd->postblit)
     {
         /* Do swap this and rhs
-         *    tmp = this; this = s; tmp.dtor();
+         *    __swap = this; this = s; __swap.dtor();
          */
         //printf("\tswap copy\n");
         Identifier *idtmp = Identifier::generateId("__swap");
@@ -336,7 +333,6 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
  * any fields has an opEquals.
  * Generate one if a user-specified one does not exist.
  */
-
 bool needOpEquals(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needOpEquals() %s\n", sd->toChars());
@@ -386,6 +382,9 @@ Lneed:
     return true;
 }
 
+/*******************************************
+ * Check given aggregate actually has an identity opEquals or not.
+ */
 FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
 {
     Dsymbol *eq = search_function(ad, Id::eq);
@@ -445,7 +444,6 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
  *      s1.tupleof == s2.tupleof
  * to calculate structural equality. See EqualExp::semantic.
  */
-
 FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc)
 {
     if (hasIdentityOpEquals(sd, sc))
@@ -465,7 +463,6 @@ FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc)
  * This is called by TypeInfo.equals(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
-
 FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
 {
     if (!needOpEquals(sd))
@@ -554,7 +551,6 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
  * This is called by TypeInfo.compare(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
-
 FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
 {
     //printf("StructDeclaration::buildXopCmp() %s\n", toChars());
@@ -675,7 +671,6 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
  * any fields has a toHash.
  * Generate one if a user-specified one does not exist.
  */
-
 bool needToHash(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needToHash() %s\n", sd->toChars());
@@ -728,7 +723,6 @@ Lneed:
  * Build __xtoHash for non-bitwise hashing
  *      static hash_t xtoHash(ref const S p) nothrow @trusted;
  */
-
 FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
 {
     if (Dsymbol *s = search_function(sd, Id::tohash))
@@ -790,7 +784,6 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
  * Note the close similarity with AggregateDeclaration::buildDtor(),
  * and the ordering changes (runs forward instead of backwards).
  */
-
 FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", sd->toChars());
@@ -835,7 +828,8 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
                 ex = new DotVarExp(loc, ex, v, 0);
 
                 if (v->type->toBasetype()->ty == Tstruct)
-                {   // this.v.postblit()
+                {
+                    // this.v.__postblit()
                     ex = new DotVarExp(loc, ex, sd2->postblit, 0);
                     ex = new CallExp(loc, ex);
                 }
@@ -907,7 +901,6 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
  * Note the close similarity with StructDeclaration::buildPostBlit(),
  * and the ordering changes (runs backward instead of forwards).
  */
-
 FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad->toChars());
@@ -948,7 +941,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
 
                 if (v->type->toBasetype()->ty == Tstruct)
                 {
-                    // this.v.dtor()
+                    // this.v.__dtor()
                     ex = new DotVarExp(loc, ex, sd->dtor, 0);
                     ex = new CallExp(loc, ex);
                 }
@@ -1021,7 +1014,6 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
  *          invs[0](), invs[1](), ...;
  *      }
  */
-
 FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc)
 {
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
