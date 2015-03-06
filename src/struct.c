@@ -774,17 +774,6 @@ void StructDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-
-        /* If this is the last member, see if we can finish setting the size.
-         * This could be much better - finish setting the size after the last
-         * field was processed. The problem is the chicken-and-egg determination
-         * of when that is. See Bugzilla 7426 for more info.
-         */
-        if (i + 1 == members->dim)
-        {
-            if (sizeok == SIZEOKnone && s->isAliasDeclaration())
-                finalizeSize(sc2);
-        }
         s->semantic(sc2);
     }
     finalizeSize(sc2);
@@ -823,7 +812,7 @@ void StructDeclaration::semantic(Scope *sc)
     aggNew =       (NewDeclaration *)search(Loc(), Id::classNew);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
-    ctor = searchCtor();
+    // this->ctor is already set in finalizeSize()
 
     dtor = buildDtor(this, sc2);
     postblit = buildPostBlit(this, sc2);
@@ -981,6 +970,28 @@ void StructDeclaration::finalizeSize(Scope *sc)
                     break;
                 }
             }
+        }
+    }
+
+    // Look for the constructor, for the struct literal/constructor call expression
+    ctor = searchCtor();
+    if (ctor)
+    {
+        // Finish all constructors semantics to determine this->noDefaultCtor.
+        struct SearchCtor
+        {
+            static int fp(Dsymbol *s, void *ctxt)
+            {
+                CtorDeclaration *f = s->isCtorDeclaration();
+                if (f && f->semanticRun == PASSinit)
+                    f->semantic(NULL);
+                return 0;
+            }
+        };
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->apply(&SearchCtor::fp, NULL);
         }
     }
 }

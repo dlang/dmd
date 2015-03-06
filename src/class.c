@@ -738,9 +738,8 @@ Lancestorsdone:
     aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
-    ctor = searchCtor();
-    if (ctor && (ctor->toParent() != this || !(ctor->isCtorDeclaration() || ctor->isTemplateDeclaration())))
-        ctor = NULL;    // search() looks through ancestor classes
+    // this->ctor is already set in finalizeSize()
+
     if (!ctor && noDefaultCtor)
     {
         // A class object is always created by constructor, so this check is legitimate.
@@ -985,6 +984,30 @@ void ClassDeclaration::finalizeSize(Scope *sc)
     }
     structsize = offset;
     sizeok = SIZEOKdone;
+
+    // Look for the constructor
+    ctor = searchCtor();
+    if (ctor && ctor->toParent() != this)
+        ctor = NULL;    // search() looks through ancestor classes
+    if (ctor)
+    {
+        // Finish all constructors semantics to determine this->noDefaultCtor.
+        struct SearchCtor
+        {
+            static int fp(Dsymbol *s, void *ctxt)
+            {
+                CtorDeclaration *f = s->isCtorDeclaration();
+                if (f && f->semanticRun == PASSinit)
+                    f->semantic(NULL);
+                return 0;
+            }
+        };
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->apply(&SearchCtor::fp, NULL);
+        }
+    }
 }
 
 /**********************************************************

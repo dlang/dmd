@@ -4811,14 +4811,21 @@ Lagain:
     {
         TypeClass *tc = (TypeClass *)(tb);
         ClassDeclaration *cd = tc->sym->isClassDeclaration();
-        if (cd->scope)
-            cd->semantic(NULL);
+        cd->size(loc);
+        if (cd->sizeok != SIZEOKdone)
+            return new ErrorExp();
+        if (cd->noDefaultCtor && !nargs && !cd->defaultCtor)
+        {
+            error("default construction is disabled for type %s", cd->type->toChars());
+            goto Lerr;
+        }
+
         if (cd->isInterfaceDeclaration())
         {
             error("cannot create instance of interface %s", cd->toChars());
             goto Lerr;
         }
-        else if (cd->isAbstract())
+        if (cd->isAbstract())
         {
             error("cannot create instance of abstract class %s", cd->toChars());
             for (size_t i = 0; i < cd->vtbl.dim; i++)
@@ -4829,13 +4836,8 @@ Lagain:
             }
             goto Lerr;
         }
-
-        if (cd->noDefaultCtor && !nargs && !cd->defaultCtor)
-        {
-            error("default construction is disabled for type %s", cd->type->toChars());
-            goto Lerr;
-        }
         checkDeprecated(sc, cd);
+
         if (cd->isNested())
         {
             /* We need a 'this' pointer for the nested class.
@@ -8379,29 +8381,7 @@ Lagain:
         }
     }
 
-    t1 = NULL;
-    if (e1->type)
-    {
-        t1 = e1->type->toBasetype();
-
-        if (t1->ty == Tstruct)
-        {
-            AggregateDeclaration *ad = ((TypeStruct *)t1)->sym;
-            if (ad->sizeok == SIZEOKnone)
-            {
-                if (ad->scope)
-                    ad->semantic(ad->scope);
-                else if (!ad->ctor && ad->search(Loc(), Id::ctor))
-                {
-                    // The constructor hasn't been found yet, see bug 8741
-                    // This can happen if we are inferring type from
-                    // from VarDeclaration::semantic() in declaration.c
-                    error("cannot create a struct until its size is determined");
-                    return new ErrorExp();
-                }
-            }
-        }
-    }
+    t1 = e1->type ? e1->type->toBasetype() : NULL;
 
     if (e1->op == TOKerror)
         return e1;
@@ -8417,6 +8397,9 @@ Lagain:
         if (t1->ty == Tstruct)
         {
             StructDeclaration *sd = ((TypeStruct *)t1)->sym;
+            sd->size(loc);      // Resolve forward references to construct object
+            if (sd->sizeok != SIZEOKdone)
+                return new ErrorExp();
 
             // First look for constructor
             if (e1->op == TOKtype && sd->ctor)
