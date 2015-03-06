@@ -790,12 +790,12 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
     Loc declLoc = sd->postblits.dim ? sd->postblits[0]->loc : sd->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
-    Expression *e = NULL;
     for (size_t i = 0; i < sd->postblits.dim; i++)
     {
         stc |= sd->postblits[i]->storage_class & STCdisable;
     }
 
+    Statements *a = NULL;
     for (size_t i = 0; i < sd->fields.dim && !(stc & STCdisable); i++)
     {
         VarDeclaration *v = sd->fields[i];
@@ -809,11 +809,14 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             continue;
 
         stc = mergeFuncAttrs(stc, sdv->postblit);
+        stc = mergeFuncAttrs(stc, sdv->dtor);
         if (stc & STCdisable)
         {
-            e = NULL;
+            a = NULL;
             break;
         }
+        if (!a)
+            a = new Statements();
 
         Expression *ex = new ThisExp(loc);
         ex = new DotVarExp(loc, ex, v, 0);
@@ -833,16 +836,41 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             et = new DotIdExp(loc, et, Id::postblit);
             ex = new CallExp(loc, et, ea);
         }
-        e = Expression::combine(e, ex); // combine in forward order
+        a->push(new ExpStatement(loc, ex)); // combine in forward order
+
+        /* Bugzilla 10972: When the following field postblit calls fail,
+         * this field should be destructed for Excetion Safety.
+         */
+        if (!sdv->dtor)
+            continue;
+        ex = new ThisExp(loc);
+        ex = new DotVarExp(loc, ex, v, 0);
+        if (v->type->toBasetype()->ty == Tstruct)
+        {
+            // this.v.__dtor()
+            ex = new DotVarExp(loc, ex, sdv->dtor, 0);
+            ex = new CallExp(loc, ex);
+        }
+        else
+        {
+            // Typeinfo.destroy(cast(void*)&this.v);
+            Expression *ea = new AddrExp(loc, ex);
+            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+
+            Expression *et = getTypeInfo(v->type, sc);
+            et = new DotIdExp(loc, et, Id::destroy);
+            ex = new CallExp(loc, et, ea);
+        }
+        a->push(new OnScopeStatement(loc, TOKon_scope_failure, new ExpStatement(loc, ex)));
     }
 
-    /* Build our own "postblit" which executes e
+    /* Build our own "postblit" which executes a
      */
-    if (e || (stc & STCdisable))
+    if (a || (stc & STCdisable))
     {
         //printf("Building __fieldPostBlit()\n");
         PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Identifier::idPool("__fieldPostBlit"));
-        dd->fbody = new ExpStatement(loc, e);
+        dd->fbody = a ? new CompoundStatement(loc, a) : NULL;
         sd->postblits.shift(dd);
         sd->members->push(dd);
         dd->semantic(sc);
@@ -857,7 +885,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             return sd->postblits[0];
 
         default:
-            e = NULL;
+            Expression *e = NULL;
             stc = STCsafe | STCnothrow | STCpure | STCnogc;
             for (size_t i = 0; i < sd->postblits.dim; i++)
             {
