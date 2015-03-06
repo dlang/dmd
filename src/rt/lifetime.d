@@ -269,6 +269,8 @@ private class ArrayAllocLengthLock
   */
 bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength = ~0) pure nothrow
 {
+    import core.atomic;
+
     size_t typeInfoSize = structTypeInfoSize(tinext);
 
     if(info.size <= 256)
@@ -281,15 +283,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         {
             if(isshared)
             {
-                try synchronized(typeid(ArrayAllocLengthLock))
-                {
-                    if(*length == cast(ubyte)oldlength)
-                        *length = cast(ubyte)newlength;
-                    else
-                        return false;
-                }
-                catch (Throwable t)
-                    assert(0, "Failed to synchronize.");
+                return cas(cast(shared)length, cast(ubyte)oldlength, cast(ubyte)newlength);
             }
             else
             {
@@ -301,7 +295,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         }
         else
         {
-            // setting the initial length, no lock needed
+            // setting the initial length, no cas needed
             *length = cast(ubyte)newlength;
         }
         if (typeInfoSize)
@@ -320,15 +314,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         {
             if(isshared)
             {
-                try synchronized(typeid(ArrayAllocLengthLock))
-                {
-                    if(*length == oldlength)
-                        *length = cast(ushort)newlength;
-                    else
-                        return false;
-                }
-                catch (Throwable t)
-                    assert(0, "Failed to synchronize.");
+                return cas(cast(shared)length, cast(ushort)oldlength, cast(ushort)newlength);
             }
             else
             {
@@ -340,7 +326,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         }
         else
         {
-            // setting the initial length, no lock needed
+            // setting the initial length, no cas needed
             *length = cast(ushort)newlength;
         }
         if (typeInfoSize)
@@ -359,15 +345,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         {
             if(isshared)
             {
-                try synchronized(typeid(ArrayAllocLengthLock))
-                {
-                    if(*length == oldlength)
-                        *length = newlength;
-                    else
-                        return false;
-                }
-                catch (Throwable t)
-                    assert(0, "Failed to synchronize.");
+                return cas(cast(shared)length, cast(size_t)oldlength, cast(size_t)newlength);
             }
             else
             {
@@ -379,7 +357,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, co
         }
         else
         {
-            // setting the initial length, no lock needed
+            // setting the initial length, no cas needed
             *length = newlength;
         }
         if (typeInfoSize)
@@ -1211,7 +1189,7 @@ extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct ti)
 unittest
 {
     __gshared size_t countDtor = 0;
-    struct S 
+    struct S
     {
         int x;
         ~this() { countDtor++; }
