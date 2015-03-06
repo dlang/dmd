@@ -625,7 +625,7 @@ Dsymbol *AggregateDeclaration::searchCtor()
               s->isTemplateDeclaration() ||
               s->isOverloadSet()))
         {
-            error("%s %s is not a constructor; identifiers starting with __ are reserved for the implementation", s->kind(), s->toChars());
+            s->error("is not a constructor; identifiers starting with __ are reserved for the implementation");
             errors = true;
             s = NULL;
         }
