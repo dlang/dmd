@@ -32,6 +32,9 @@ Expression *getTypeInfo(Type *t, Scope *sc);
  */
 StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f)
 {
+    if (!f)
+        return s1;
+
     StorageClass s2 = (f->storage_class & STCdisable);
     TypeFunction *tf = (TypeFunction *)f->type;
     if (tf->trust == TRUSTsafe)
@@ -209,12 +212,9 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     {
         if (!sd->type->isAssignable())  // Bugzilla 13044
             return NULL;
-        if (sd->dtor)
-        {
-            stc = mergeFuncAttrs(stc, sd->dtor);
-            if (stc & STCsafe)
-                stc = (stc & ~STCsafe) | STCtrusted;
-        }
+        stc = mergeFuncAttrs(stc, sd->dtor);
+        if (stc & STCsafe)
+            stc = (stc & ~STCsafe) | STCtrusted;
     }
     else
     {
@@ -224,12 +224,11 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
             if (v->storage_class & STCref)
                 continue;
             Type *tv = v->type->baseElemOf();
-            if (tv->ty == Tstruct)
-            {
-                TypeStruct *ts = (TypeStruct *)tv;
-                if (FuncDeclaration *f = hasIdentityOpAssign(ts->sym, sc))
-                    stc = mergeFuncAttrs(stc, f);
-            }
+            if (tv->ty != Tstruct)
+                continue;
+
+            StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
+            stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
         }
     }
 
@@ -802,51 +801,39 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
-        Type *tv = v->type->toBasetype();
-        dinteger_t dim = 1;
-        while (tv->ty == Tsarray)
+        Type *tv = v->type->baseElemOf();
+        if (tv->ty != Tstruct || !v->type->size())
+            continue;
+        StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
+        if (!sdv->postblit)
+            continue;
+
+        stc = mergeFuncAttrs(stc, sdv->postblit);
+        if (stc & STCdisable)
         {
-            TypeSArray *tsa = (TypeSArray *)tv;
-            dim *= tsa->dim->toInteger();
-            tv = tsa->next->toBasetype();
+            e = NULL;
+            break;
         }
-        if (tv->ty == Tstruct)
+
+        Expression *ex = new ThisExp(loc);
+        ex = new DotVarExp(loc, ex, v, 0);
+        if (v->type->toBasetype()->ty == Tstruct)
         {
-            TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd2 = ts->sym;
-            if (sd2->postblit && dim)
-            {
-                stc = mergeFuncAttrs(stc, sd2->postblit);
-                if (stc & STCdisable)
-                {
-                    e = NULL;
-                    break;
-                }
-
-                // this.v
-                Expression *ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, v, 0);
-
-                if (v->type->toBasetype()->ty == Tstruct)
-                {
-                    // this.v.__postblit()
-                    ex = new DotVarExp(loc, ex, sd2->postblit, 0);
-                    ex = new CallExp(loc, ex);
-                }
-                else
-                {
-                    // Typeinfo.postblit(cast(void*)&this.v);
-                    Expression *ea = new AddrExp(loc, ex);
-                    ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
-
-                    Expression *et = getTypeInfo(v->type, sc);
-                    et = new DotIdExp(loc, et, Id::postblit);
-
-                    ex = new CallExp(loc, et, ea);
-                }
-                e = Expression::combine(e, ex); // combine in forward order
-            }
+            // this.v.__postblit()
+            ex = new DotVarExp(loc, ex, sdv->postblit, 0);
+            ex = new CallExp(loc, ex);
         }
+        else
+        {
+            // Typeinfo.postblit(cast(void*)&this.v);
+            Expression *ea = new AddrExp(loc, ex);
+            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+
+            Expression *et = getTypeInfo(v->type, sc);
+            et = new DotIdExp(loc, et, Id::postblit);
+            ex = new CallExp(loc, et, ea);
+        }
+        e = Expression::combine(e, ex); // combine in forward order
     }
 
     /* Build our own "postblit" which executes e
@@ -914,51 +901,39 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
         VarDeclaration *v = ad->fields[i];
         if (v->storage_class & STCref)
             continue;
-        Type *tv = v->type->toBasetype();
-        dinteger_t dim = 1;
-        while (tv->ty == Tsarray)
+        Type *tv = v->type->baseElemOf();
+        if (tv->ty != Tstruct || !v->type->size())
+            continue;
+        StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
+        if (!sdv->dtor)
+            continue;
+
+        stc = mergeFuncAttrs(stc, sdv->dtor);
+        if (stc & STCdisable)
         {
-            TypeSArray *tsa = (TypeSArray *)tv;
-            dim *= tsa->dim->toInteger();
-            tv = tsa->next->toBasetype();
+            e = NULL;
+            break;
         }
-        if (tv->ty == Tstruct)
+
+        Expression *ex = new ThisExp(loc);
+        ex = new DotVarExp(loc, ex, v, 0);
+        if (v->type->toBasetype()->ty == Tstruct)
         {
-            TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd = ts->sym;
-            if (sd->dtor && dim)
-            {
-                stc = mergeFuncAttrs(stc, sd->dtor);
-                if (stc & STCdisable)
-                {
-                    e = NULL;
-                    break;
-                }
-
-                // this.v
-                Expression *ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, v, 0);
-
-                if (v->type->toBasetype()->ty == Tstruct)
-                {
-                    // this.v.__dtor()
-                    ex = new DotVarExp(loc, ex, sd->dtor, 0);
-                    ex = new CallExp(loc, ex);
-                }
-                else
-                {
-                    // Typeinfo.destroy(cast(void*)&this.v);
-                    Expression *ea = new AddrExp(loc, ex);
-                    ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
-
-                    Expression *et = getTypeInfo(v->type, sc);
-                    et = new DotIdExp(loc, et, Id::destroy);
-
-                    ex = new CallExp(loc, et, ea);
-                }
-                e = Expression::combine(ex, e); // combine in reverse order
-            }
+            // this.v.__dtor()
+            ex = new DotVarExp(loc, ex, sdv->dtor, 0);
+            ex = new CallExp(loc, ex);
         }
+        else
+        {
+            // Typeinfo.destroy(cast(void*)&this.v);
+            Expression *ea = new AddrExp(loc, ex);
+            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+
+            Expression *et = getTypeInfo(v->type, sc);
+            et = new DotIdExp(loc, et, Id::destroy);
+            ex = new CallExp(loc, et, ea);
+        }
+        e = Expression::combine(ex, e); // combine in reverse order
     }
 
     /* Build our own "destructor" which executes e
