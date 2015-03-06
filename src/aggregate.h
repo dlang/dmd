@@ -104,6 +104,7 @@ public:
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     unsigned size(Loc loc);
+    virtual void finalizeSize(Scope *sc) = 0;
     static void alignmember(structalign_t salign, unsigned size, unsigned *poffset);
     static unsigned placeField(unsigned *nextoffset,
         unsigned memsize, unsigned memalignsize, structalign_t memalign,
@@ -274,6 +275,7 @@ public:
     bool isBaseInfoComplete();
     Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
     ClassDeclaration *searchBase(Loc, Identifier *ident);
+    void finalizeSize(Scope *sc);
     bool isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
@@ -300,6 +302,7 @@ public:
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
+    void finalizeSize(Scope *sc);
     bool isBaseOf(ClassDeclaration *cd, int *poffset);
     bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind();

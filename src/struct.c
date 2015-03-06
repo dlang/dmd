@@ -338,8 +338,7 @@ unsigned AggregateDeclaration::size(Loc loc)
     if (sizeok != SIZEOKdone && scope)
         semantic(NULL);
 
-    StructDeclaration *sd = isStructDeclaration();
-    if (sizeok != SIZEOKdone && sd && sd->members)
+    if (sizeok != SIZEOKdone && members)
     {
         /* See if enough is done to determine the size,
          * meaning all the fields are done.
@@ -374,7 +373,7 @@ unsigned AggregateDeclaration::size(Loc loc)
             if (s->apply(&SV::func, &sv))
                 goto L1;
         }
-        sd->finalizeSize(NULL);
+        finalizeSize(NULL);
 
       L1: ;
     }
@@ -796,12 +795,14 @@ void StructDeclaration::semantic(Scope *sc)
         // Unwind what we did, and defer it for later
         for (size_t i = 0; i < fields.dim; i++)
         {
-            VarDeclaration *vd = fields[i];
-            vd->offset = 0;
+            VarDeclaration *v = fields[i];
+            v->offset = 0;
         }
         fields.setDim(0);
         structsize = 0;
         alignsize = 0;
+
+        sc2->pop();
 
         scope = scx ? scx : sc->copy();
         scope->setNoFree();
@@ -817,29 +818,12 @@ void StructDeclaration::semantic(Scope *sc)
 
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
 
-    // Determine if struct is all zeros or not
-    zeroInit = 1;
-    for (size_t i = 0; i < fields.dim; i++)
-    {
-        VarDeclaration *vd = fields[i];
-        if (!vd->isDataseg())
-        {
-            if (vd->init)
-            {
-                // Should examine init to see if it is really all 0's
-                zeroInit = 0;
-                break;
-            }
-            else
-            {
-                if (!vd->type->isZeroInit(loc))
-                {
-                    zeroInit = 0;
-                    break;
-                }
-            }
-        }
-    }
+    /* Look for special member functions.
+     */
+    aggNew =       (NewDeclaration *)search(Loc(), Id::classNew);
+    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
+
+    ctor = searchCtor();
 
     dtor = buildDtor(this, sc2);
     postblit = buildPostBlit(this, sc2);
@@ -863,12 +847,6 @@ void StructDeclaration::semantic(Scope *sc)
     inv = buildInv(this, sc2);
 
     sc2->pop();
-
-    /* Look for special member functions.
-     */
-    ctor = searchCtor();
-    aggNew =       (NewDeclaration *)search(Loc(), Id::classNew);
-    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
     if (ctor)
     {
@@ -981,6 +959,30 @@ void StructDeclaration::finalizeSize(Scope *sc)
 
     // Calculate fields[i]->overlapped
     fill(loc, NULL, true);
+
+    // Determine if struct is all zeros or not
+    zeroInit = 1;
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+        VarDeclaration *vd = fields[i];
+        if (!vd->isDataseg())
+        {
+            if (vd->init)
+            {
+                // Should examine init to see if it is really all 0's
+                zeroInit = 0;
+                break;
+            }
+            else
+            {
+                if (!vd->type->isZeroInit(loc))
+                {
+                    zeroInit = 0;
+                    break;
+                }
+            }
+        }
+    }
 }
 
 /***************************************
