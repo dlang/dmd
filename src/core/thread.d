@@ -637,7 +637,8 @@ class Thread
         //       app without ever knowing that it should have waited for this
         //       starting thread.  In effect, not doing the add here risks
         //       having thread being treated like a daemon thread.
-        synchronized( slock )
+        slock.lock_nothrow();
+        scope(exit) slock.unlock_nothrow();
         {
             version( Windows )
             {
@@ -1638,7 +1639,8 @@ private:
 
         while( true )
         {
-            synchronized( slock )
+            slock.lock_nothrow();
+            scope(exit) slock.unlock_nothrow();
             {
                 if( !suspendDepth )
                 {
@@ -1728,7 +1730,8 @@ private:
 
         while( true )
         {
-            synchronized( slock )
+            slock.lock_nothrow();
+            scope(exit) slock.unlock_nothrow();
             {
                 if( !suspendDepth )
                 {
@@ -1758,7 +1761,7 @@ private:
     }
     body
     {
-        slock.lock();
+        slock.lock_nothrow();
         {
             // NOTE: When a thread is removed from the global thread list its
             //       main context is invalid and should be removed as well.
@@ -1785,7 +1788,7 @@ private:
         //       function, however, a thread should never be re-added to the
         //       list anyway and having next and prev be non-null is a good way
         //       to ensure that.
-        slock.unlock();
+        slock.unlock_nothrow();
     }
 }
 
@@ -2185,7 +2188,8 @@ unittest
  */
 static Thread thread_findByAddr( Thread.ThreadAddr addr )
 {
-    synchronized( Thread.slock )
+    Thread.slock.lock_nothrow();
+    scope(exit) Thread.slock.unlock_nothrow();
     {
         foreach( t; Thread )
         {
@@ -2561,7 +2565,7 @@ extern (C) void thread_suspendAll() nothrow
         return;
     }
 
-    Thread.slock.lock();
+    Thread.slock.lock_nothrow();
     {
         if( ++suspendDepth > 1 )
             return;
@@ -2574,7 +2578,7 @@ extern (C) void thread_suspendAll() nothrow
         //       cause the second suspend to fail, the garbage collection to
         //       abort, and Bad Things to occur.
 
-        Thread.criticalRegionLock.lock();
+        Thread.criticalRegionLock.lock_nothrow();
         for (Thread t = Thread.sm_tbeg; t !is null; t = t.next)
         {
             Duration waittime = dur!"usecs"(10);
@@ -2585,10 +2589,10 @@ extern (C) void thread_suspendAll() nothrow
             }
             else if (t.m_isInCriticalRegion)
             {
-                Thread.criticalRegionLock.unlock();
+                Thread.criticalRegionLock.unlock_nothrow();
                 Thread.sleep(waittime);
                 if (waittime < dur!"msecs"(10)) waittime *= 2;
-                Thread.criticalRegionLock.lock();
+                Thread.criticalRegionLock.lock_nothrow();
                 goto Lagain;
             }
             else
@@ -2596,7 +2600,7 @@ extern (C) void thread_suspendAll() nothrow
                 suspend(t);
             }
         }
-        Thread.criticalRegionLock.unlock();
+        Thread.criticalRegionLock.unlock_nothrow();
     }
 }
 
@@ -2695,7 +2699,7 @@ body
         return;
     }
 
-    scope(exit) Thread.slock.unlock();
+    scope(exit) Thread.slock.unlock_nothrow();
     {
         if( --suspendDepth > 0 )
             return;
@@ -4361,8 +4365,9 @@ private:
     {
         // NOTE: m_ctxt is guaranteed to be alive because it is held in the
         //       global context list.
-        synchronized( Thread.slock )
-            Thread.remove( m_ctxt );
+        Thread.slock.lock_nothrow();
+        scope(exit) Thread.slock.unlock_nothrow();
+        Thread.remove( m_ctxt );
 
         static if( __traits( compiles, VirtualAlloc ) )
         {
