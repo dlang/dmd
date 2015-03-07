@@ -38,6 +38,7 @@ LDFLAGS=-lm -lstdc++ -lpthread
 #endif
 CC=$(HOST_CC) $(MODEL_FLAG)
 GIT=git
+HOST_DC?=dmd
 
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
@@ -182,7 +183,7 @@ else
 endif
 
 SRC = win32.mak posix.mak osmodel.mak \
-	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
+	mars.c enum.c struct.c dsymbol.c import.c idgen.d impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
@@ -306,9 +307,8 @@ $(optabgen_output) : optabgen
 idgen_output = id.h id.c
 $(idgen_output) : idgen
 
-idgen : idgen.c
-	$(CC) idgen.c -o idgen
-	./idgen
+idgen : idgen.d
+	$(HOST_DC) -run idgen
 
 ######### impcnvgen generates some source
 

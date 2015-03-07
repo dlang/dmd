@@ -123,7 +123,7 @@ CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1 -DDMDV2=1
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
+DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) HOST_DC=$(HOST_DC)
 
 ############################### Rule Variables ###############################
 
@@ -174,7 +174,7 @@ ROOTOBJS= man.obj port.obj checkedint.obj \
 	$(GCOBJS)
 
 # D front end
-SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
+SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.d impcnvgen.c utf.h \
 	utf.c entity.c identifier.c mtype.c expression.c optimize.c \
 	template.h template.c lexer.c declaration.c cast.c \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
@@ -376,9 +376,8 @@ impcnvtab.c : impcnvgen.c
 	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
 	.\impcnvgen.exe
 
-id.h id.c : idgen.c
-	$(CC) -cpp -DDM_TARGET_CPU_X86=1 idgen
-	.\idgen.exe
+id.h id.c : idgen.d
+	$(HOST_DC) -run idgen
 
 verstr.h : ..\VERSION
 	echo "$(..\VERSION)" >verstr.h
