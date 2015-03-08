@@ -561,13 +561,13 @@ void EnumMember::semantic(Scope *sc)
                         continue;
 
                     //printf("[%d] em = %s, em->semanticRun = %d\n", i, toChars(), em->semanticRun);
-                    Expression *e = em->value;
-                    e = e->implicitCastTo(sc, ed->memtype);
-                    e = e->ctfeInterpret();
-                    e = e->castTo(sc, ed->type);
-                    if (e->op == TOKerror)
+                    Expression *ev = em->value;
+                    ev = ev->implicitCastTo(sc, ed->memtype);
+                    ev = ev->ctfeInterpret();
+                    ev = ev->castTo(sc, ed->type);
+                    if (ev->op == TOKerror)
                         ed->errors = true;
-                    em->value = e;
+                    em->value = ev;
                 }
                 if (ed->errors)
                 {
