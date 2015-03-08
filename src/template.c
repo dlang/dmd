@@ -6865,8 +6865,10 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         else if (tovers)
             error("does not match template overload set %s", tovers->toChars());
         else if (tdecl && !tdecl->overnext)
+        {
             // Only one template, so we can give better error message
             error("does not match template declaration %s", tdecl->toChars());
+        }
         else
             ::error(loc, "%s %s.%s does not match any template declaration",
                     tempdecl->kind(), tempdecl->parent->toPrettyChars(), tempdecl->ident->toChars());

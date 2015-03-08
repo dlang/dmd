@@ -101,9 +101,11 @@ Expression *expandVar(int result, VarDeclaration *v)
                     goto L1;
                 }
                 else
+                {
                     // Should remove the copy() operation by
                     // making all mods to expressions copy-on-write
                     e = ei->copy();
+                }
             }
             else
             {

@@ -1997,9 +1997,11 @@ size_t skiptoident(OutBuffer *buf, size_t i)
 
         size_t oi = i;
         if (utf_decodeChar((utf8_t *)buf->data, buf->offset, &i, &c))
+        {
             /* Ignore UTF errors, but still consume input
              */
             break;
+        }
         if (c >= 0x80)
         {
             if (!isUniAlpha(c))
@@ -2024,9 +2026,11 @@ size_t skippastident(OutBuffer *buf, size_t i)
 
         size_t oi = i;
         if (utf_decodeChar((utf8_t *)buf->data, buf->offset, &i, &c))
+        {
             /* Ignore UTF errors, but still consume input
              */
             break;
+        }
         if (c >= 0x80)
         {
             if (isUniAlpha(c))
@@ -2540,7 +2544,6 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     }
     if (inCode)
         s->error("unmatched --- in DDoc comment");
-    ;
 }
 
 /**************************************************

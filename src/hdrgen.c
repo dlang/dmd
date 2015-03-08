@@ -2476,7 +2476,7 @@ public:
         {
             for (size_t i = 0; i < e->args->dim; i++)
             {
-                buf->writestring(", ");;
+                buf->writestring(", ");
                 objectToBuffer((*e->args)[i]);
             }
         }

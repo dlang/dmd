@@ -967,7 +967,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 {
                     ExpInitializer *ie = vd->init->isExpInitializer();
                     assert(ie);
-                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));;
+                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
                 }
 
                 are->lengthVar = vto;
@@ -1000,7 +1000,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 {
                     ExpInitializer *ie = vd->init->isExpInitializer();
                     assert(ie);
-                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));;
+                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
                 }
 
                 are->lengthVar = vto;
@@ -1438,7 +1438,6 @@ public:
                      * of dve->e1, but this won't work if dve->e1 is
                      * a function call.
                      */
-                    ;
                 }
                 else
                 {

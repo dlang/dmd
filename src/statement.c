@@ -2740,9 +2740,11 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 
     Expression *increment = NULL;
     if (op == TOKforeach)
+    {
         // key += 1
         //increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(1));
         increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, key));
+    }
 
     if ((prm->storageClass & STCref) && prm->type->equals(key->type))
     {
@@ -3159,7 +3161,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         if (condition->op != TOKerror && !condition->type->isintegral())
         {
             error("'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
-            conditionError = true;;
+            conditionError = true;
         }
     }
     condition = condition->optimize(WANTvalue);
