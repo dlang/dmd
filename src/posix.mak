@@ -100,6 +100,8 @@ MMD=-MMD -MF $(basename $@).deps
 CFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
+# Default D compiler flags for all source files
+DFLAGS=
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
@@ -109,12 +111,14 @@ endif
 # ENABLE_DEBUG and ENABLE_PROFILING to enable profiling.
 ifdef ENABLE_DEBUG
 CFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
+DFLAGS += -g -debug
 ifdef ENABLE_PROFILING
 CFLAGS  += -pg -fprofile-arcs -ftest-coverage
 LDFLAGS += -pg -fprofile-arcs -ftest-coverage
 endif
 else
 CFLAGS += -O2
+DFLAGS += -O -inline
 endif
 
 # Uniqe extra flags if necessary
@@ -280,7 +284,8 @@ clean:
 	rm -f $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
 	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
 	tytab.c verstr.h core \
-	*.cov *.deps *.gcda *.gcno *.a
+	*.cov *.deps *.gcda *.gcno *.a \
+	$(GENSRC) $(MAGICPORT)
 
 ######## generate a default dmd.conf
 
@@ -493,3 +498,56 @@ endif
 zip:
 	-rm -f dmdsrc.zip
 	zip dmdsrc $(SRC) $(ROOT_SRC) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
+
+
+############################# DDMD stuff ############################
+
+MAGICPORTDIR = magicport
+MAGICPORTSRC = \
+	$(MAGICPORTDIR)/magicport2.d $(MAGICPORTDIR)/ast.d \
+	$(MAGICPORTDIR)/scanner.d $(MAGICPORTDIR)/tokens.d \
+	$(MAGICPORTDIR)/parser.d $(MAGICPORTDIR)/dprinter.d \
+	$(MAGICPORTDIR)/typenames.d $(MAGICPORTDIR)/visitor.d \
+	$(MAGICPORTDIR)/namer.d
+
+MAGICPORT = $(MAGICPORTDIR)/magicport2
+
+$(MAGICPORT) : $(MAGICPORTSRC)
+	$(HOST_DC) -of$(MAGICPORT) $(MAGICPORTSRC)
+
+GENSRC=access.d aggregate.d aliasthis.d apply.d \
+	argtypes.d arrayop.d arraytypes.d \
+	attrib.d builtin.d canthrow.d dcast.d \
+	dclass.d clone.d cond.d constfold.d \
+	cppmangle.d ctfeexpr.d declaration.d \
+	delegatize.d doc.d dsymbol.d \
+	denum.d expression.d func.d \
+	hdrgen.d id.d identifier.d imphint.d \
+	dimport.d dinifile.d inline.d init.d \
+	dinterpret.d json.d lexer.d link.d \
+	dmacro.d dmangle.d mars.d \
+	dmodule.d mtype.d opover.d optimize.d \
+	parse.d sapply.d dscope.d sideeffect.d \
+	statement.d staticassert.d dstruct.d \
+	target.d dtemplate.d traits.d dunittest.d \
+	utf.d dversion.d visitor.d lib.d \
+	nogc.d nspace.d errors.d tokens.d \
+	globals.d escape.d \
+	$(ROOT)/aav.d $(ROOT)/outbuffer.d $(ROOT)/stringtable.d \
+	$(ROOT)/file.d $(ROOT)/filename.d $(ROOT)/speller.d \
+	$(ROOT)/man.d $(ROOT)/response.d
+
+MANUALSRC= \
+	intrange.d complex.d \
+	entity.d backend.d \
+	$(ROOT)/array.d $(ROOT)/longdouble.d \
+	$(ROOT)/rootobject.d $(ROOT)/port.d \
+	$(ROOT)/rmem.d
+
+mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
+	$(MAGICPORT) . .
+
+DSRC= $(GENSRC) $(MANUALSRC)
+
+ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a
+	CC=$(HOST_CC) $(HOST_DC) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J.. -d $(DFLAGS)
