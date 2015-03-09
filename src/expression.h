@@ -747,8 +747,8 @@ public:
     Expression *binSemanticProp(Scope *sc);
     Expression *checkComplexOpAssign(Scope *sc);
     Expression *incompatibleTypes();
-    bool checkIntegral();
-    bool checkArithmetic();
+    bool checkIntegralBin();
+    bool checkArithmeticBin();
 
     Expression *reorderSettingAAElem(Scope *sc);
 

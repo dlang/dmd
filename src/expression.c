@@ -6725,14 +6725,14 @@ Expression *BinExp::incompatibleTypes()
     return this;
 }
 
-bool BinExp::checkIntegral()
+bool BinExp::checkIntegralBin()
 {
     bool r1 = e1->checkIntegral();
     bool r2 = e2->checkIntegral();
     return (r1 || r2);
 }
 
-bool BinExp::checkArithmetic()
+bool BinExp::checkArithmeticBin()
 {
     bool r1 = e1->checkArithmetic();
     bool r2 = e2->checkArithmetic();
@@ -6799,9 +6799,9 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (Expression *ex = typeCombine(this, sc))
         return ex;
 
-    if (arith && checkArithmetic())
+    if (arith && checkArithmeticBin())
         return new ErrorExp();
-    if ((bitwise || shift) && checkIntegral())
+    if ((bitwise || shift) && checkIntegralBin())
         return new ErrorExp();
     if (shift)
     {
@@ -12523,7 +12523,7 @@ Expression *MulExp::semantic(Scope *sc)
         return this;
     }
 
-    if (checkArithmetic())
+    if (checkArithmeticBin())
         return new ErrorExp();
 
     if (type->isfloating())
@@ -12607,7 +12607,7 @@ Expression *DivExp::semantic(Scope *sc)
         return this;
     }
 
-    if (checkArithmetic())
+    if (checkArithmeticBin())
         return new ErrorExp();
 
     if (type->isfloating())
@@ -12694,7 +12694,7 @@ Expression *ModExp::semantic(Scope *sc)
         return incompatibleTypes();
     }
 
-    if (checkArithmetic())
+    if (checkArithmeticBin())
         return new ErrorExp();
 
     if (type->isfloating())
@@ -12761,7 +12761,7 @@ Expression *PowExp::semantic(Scope *sc)
         return this;
     }
 
-    if (checkArithmetic())
+    if (checkArithmeticBin())
         return new ErrorExp();
 
     // For built-in numeric types, there are several cases.
@@ -12849,7 +12849,7 @@ Expression *ShlExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    if (checkIntegral())
+    if (checkIntegralBin())
         return new ErrorExp;
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
@@ -12881,7 +12881,7 @@ Expression *ShrExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    if (checkIntegral())
+    if (checkIntegralBin())
         return new ErrorExp();
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
@@ -12913,7 +12913,7 @@ Expression *UshrExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    if (checkIntegral())
+    if (checkIntegralBin())
         return new ErrorExp();
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
@@ -12967,7 +12967,7 @@ Expression *AndExp::semantic(Scope *sc)
         return this;
     }
 
-    if (checkIntegral())
+    if (checkIntegralBin())
         return new ErrorExp();
 
     return this;
@@ -13012,7 +13012,7 @@ Expression *OrExp::semantic(Scope *sc)
         return this;
     }
 
-    if (checkIntegral())
+    if (checkIntegralBin())
         return new ErrorExp();
 
     return this;
@@ -13057,7 +13057,7 @@ Expression *XorExp::semantic(Scope *sc)
         return this;
     }
 
-    if (checkIntegral())
+    if (checkIntegralBin())
         return new ErrorExp();
 
     return this;
