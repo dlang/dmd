@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13116.d(13): Error: this is not an lvalue
+fail_compilation/fail13116.d(14): Deprecation: this is not an lvalue
+fail_compilation/fail13116.d(14): Error: escaping reference to local variable this
 ---
 */
 struct S
@@ -19,7 +20,8 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13116.d(28): Error: super is not an lvalue
+fail_compilation/fail13116.d(30): Deprecation: super is not an lvalue
+fail_compilation/fail13116.d(30): Error: escaping reference to local variable this
 ---
 */
 class Base { }
