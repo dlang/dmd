@@ -7750,18 +7750,33 @@ bool TemplateInstance::needsCodegen()
         {
             minst = tinst->minst;   // cache result
             assert(minst);
+            assert(minst->isRoot() || minst->rootImports());
             return true;
         }
         if (tnext && tnext->needsCodegen())
         {
             minst = tnext->minst;   // cache result
             assert(minst);
+            assert(minst->isRoot() || minst->rootImports());
             return true;
         }
         return false;
     }
 
-    if (!minst->isRoot())
+    if (minst->isRoot())
+    {
+        // Prefer instantiation in non-root module, to minimize object code size
+        TemplateInstance *tnext = this->tnext;
+        this->tnext = NULL;
+
+        if (tnext && !tnext->needsCodegen() && tnext->minst)
+        {
+            minst = tnext->minst;   // cache result
+            assert(!minst->isRoot());
+            return false;
+        }
+    }
+    else
     {
         /* If a TemplateInstance is ever instantiated by non-root modules,
          * we do not have to generate code for it,
