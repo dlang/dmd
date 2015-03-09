@@ -42,8 +42,8 @@ class Object
 
     interface Monitor
     {
-        void lock() nothrow;
-        void unlock() nothrow;
+        void lock();
+        void unlock();
     }
 
     static Object factory(string classname);
