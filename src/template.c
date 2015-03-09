@@ -5760,6 +5760,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         !semanticTiargs(sc) ||
         !findBestMatch(sc, fargs))
     {
+Lerror:
         if (gagged)
         {
             // Bugzilla 13220: Rollback status for later semantic re-running.
@@ -5773,6 +5774,17 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
     assert(tempdecl);
 
+    // If tempdecl is a mixin, disallow it
+    if (tempdecl->ismixin)
+    {
+        error("mixin templates are not regular templates");
+        goto Lerror;
+    }
+
+    hasNestedArgs(tiargs, tempdecl->isstatic);
+    if (errors)
+        goto Lerror;
+
     if (Module *m = tempdecl->scope->module) // should use getModule() instead?
     {
         // Generate these functions as they may be used
@@ -5782,12 +5794,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         toModuleAssert(m);
         toModuleUnittest(m);
     }
-
-    // If tempdecl is a mixin, disallow it
-    if (tempdecl->ismixin)
-        error("mixin templates are not regular templates");
-
-    hasNestedArgs(tiargs, tempdecl->isstatic);
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
@@ -7079,6 +7085,7 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                 ea->op != TOKstructliteral)
             {
                 ea->error("expression %s is not a valid template value argument", ea->toChars());
+                errors = true;
             }
         }
         else if (sa)
@@ -7128,13 +7135,17 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                         }
                         error("%s is nested in both %s and %s",
                                 toChars(), enclosing->toChars(), dparent->toChars());
+                        errors = true;
                     }
                   L1:
                     //printf("\tnested inside %s\n", enclosing->toChars());
                     nested |= 1;
                 }
                 else
+                {
                     error("cannot use local '%s' as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
+                    errors = true;
+                }
             }
         }
         else if (va)
