@@ -355,6 +355,13 @@ unsigned AggregateDeclaration::size(Loc loc)
                 VarDeclaration *v = s->isVarDeclaration();
                 if (v)
                 {
+                    /* Bugzilla 12799: enum a = ...; is a VarDeclaration and
+                     * STCmanifest is already set in parssing stage. So we can
+                     * check this before the semantic() call.
+                     */
+                    if (v->storage_class & STCmanifest)
+                        return 0;
+
                     if (v->scope)
                         v->semantic(NULL);
                     if (v->storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
