@@ -52,9 +52,9 @@ fail_compilation/fail12378.d(63):        instantiated from here: mapI!(Result)
 fail_compilation/fail12378.d(143):        instantiated from here: __lambda1!int
 fail_compilation/fail12378.d(135):        instantiated from here: MapResultI!((y0) => iota(2).mapI!((x0) => ANYTHING - GOES), Result)
 fail_compilation/fail12378.d(62):        instantiated from here: mapI!(Result)
-fail_compilation/fail12378.d(143): Error: static function fail12378.testI.MapResultI!((y0) => iota(2).mapI!((x0) => ANYTHING - GOES), Result).MapResultI.front cannot access frame of function fail12378.testI
 ---
 */
+
 
 void testI()
 {

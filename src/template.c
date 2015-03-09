@@ -6101,11 +6101,8 @@ Lerror:
     if (global.errors != errorsave)
         goto Laftersemantic;
 
-    if (sc->func && (aliasdecl && aliasdecl->toAlias()->isFuncDeclaration() || !tinst))
+    if (sc->func && !tinst)
     {
-        /* Template function instantiation should run semantic3 immediately
-         * for attribute inference.
-         */
         /* If a template is instantiated inside function, the whole instantiation
          * should be done at that position. But, immediate running semantic3 of
          * dependent templates may cause unresolved forward reference (Bugzilla 9050).
@@ -6127,6 +6124,14 @@ Lerror:
     }
     else if (tinst)
     {
+        /* Template function instantiation should run semantic3 immediately
+         * for attribute inference.
+         */
+        if (sc->func && aliasdecl && aliasdecl->toAlias()->isFuncDeclaration())
+        {
+            trySemantic3(sc2);
+        }
+
         TemplateInstance *ti = tinst;
         int nest = 0;
         while (ti && !ti->deferred && ti->tinst)

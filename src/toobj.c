@@ -1100,7 +1100,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
         void visit(TemplateInstance *ti)
         {
         #if LOG
-            printf("TemplateInstance::toObjFile('%s', this = %p)\n", ti->toChars(), ti);
+            printf("TemplateInstance::toObjFile(%p, '%s')\n", ti, ti->toChars());
         #endif
             if (!isError(ti) && ti->members)
             {
@@ -1109,7 +1109,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     //printf("-speculative (%p, %s)\n", ti, ti->toPrettyChars());
                     return;
                 }
-                //printf("TemplateInstance::toObjFile('%s', this = %p)\n", ti->toChars(), this);
+                //printf("TemplateInstance::toObjFile(%p, '%s')\n", ti, ti->toPrettyChars());
 
                 if (multiobj)
                 {
