@@ -244,6 +244,15 @@ const uint GCVERSION = 1;       // increment every time we change interface
 // This just makes Mutex final to de-virtualize member function calls.
 final class GCMutex : Mutex
 {
+    final override void lock() nothrow @trusted
+    {
+        super.lock_nothrow();
+    }
+
+    final override void unlock() nothrow @trusted
+    {
+        super.unlock_nothrow();
+    }
 }
 
 struct GC

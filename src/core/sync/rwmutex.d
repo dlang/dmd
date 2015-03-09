@@ -54,7 +54,6 @@ else version( Posix )
  */
 class ReadWriteMutex
 {
-nothrow:
     /**
      * Defines the policy used by this mutex.  Currently, two policies are
      * defined.
@@ -168,7 +167,6 @@ nothrow:
     class Reader :
         Object.Monitor
     {
-    nothrow:
         /**
          * Initializes a read/write mutex reader proxy object.
          */
@@ -272,7 +270,6 @@ nothrow:
     class Writer :
         Object.Monitor
     {
-    nothrow:
         /**
          * Initializes a read/write mutex writer proxy object.
          */

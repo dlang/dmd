@@ -47,7 +47,6 @@ else
 class Mutex :
     Object.Monitor
 {
-nothrow:
     ////////////////////////////////////////////////////////////////////////////
     // Initialization
     ////////////////////////////////////////////////////////////////////////////
@@ -59,7 +58,7 @@ nothrow:
      * Throws:
      *  SyncError on error.
      */
-    this() @trusted
+    this() nothrow @trusted
     {
         version( Windows )
         {
@@ -90,7 +89,7 @@ nothrow:
      * In:
      *  o must not already have a monitor.
      */
-    this( Object o )
+    this( Object o ) nothrow @trusted
     in
     {
         assert( o.__monitor is null );
@@ -131,6 +130,12 @@ nothrow:
      */
     @trusted void lock()
     {
+        lock_nothrow();
+    }
+
+    // undocumented function for internal use
+    final void lock_nothrow() nothrow @trusted
+    {
         version( Windows )
         {
             EnterCriticalSection( &m_hndl );
@@ -143,10 +148,6 @@ nothrow:
         }
     }
 
-    // TBD in 2.067
-    // deprecated("Please use lock instead")
-    alias lock_nothrow = lock;
-
     /**
      * Decrements the internal lock count by one.  If this brings the count to
      * zero, the lock is released.
@@ -155,6 +156,12 @@ nothrow:
      *  SyncError on error.
      */
     @trusted void unlock()
+    {
+        unlock_nothrow();
+    }
+
+    // undocumented function for internal use
+    final void unlock_nothrow() nothrow @trusted
     {
         version( Windows )
         {
@@ -167,10 +174,6 @@ nothrow:
                 throw new SyncError( "Unable to unlock mutex" );
         }
     }
-
-    // TBD in 2.067
-    // deprecated("Please use unlock instead")
-    alias unlock_nothrow = unlock;
 
     /**
      * If the lock is held by another caller, the method returns.  Otherwise,

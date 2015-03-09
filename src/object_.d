@@ -111,8 +111,8 @@ class Object
 
     interface Monitor
     {
-        void lock() nothrow;
-        void unlock() nothrow;
+        void lock();
+        void unlock();
     }
 
     /**
@@ -1860,7 +1860,7 @@ extern (C) void _d_monitordelete(Object h, bool det)
     }
 }
 
-extern (C) void _d_monitorenter(Object h) nothrow
+extern (C) void _d_monitorenter(Object h)
 {
     Monitor* m = getMonitor(h);
 
@@ -1880,7 +1880,7 @@ extern (C) void _d_monitorenter(Object h) nothrow
     i.lock();
 }
 
-extern (C) void _d_monitorexit(Object h) nothrow
+extern (C) void _d_monitorexit(Object h)
 {
     Monitor* m = getMonitor(h);
     IMonitor i = m.impl;

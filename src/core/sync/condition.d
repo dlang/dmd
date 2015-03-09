@@ -55,7 +55,6 @@ else
  */
 class Condition
 {
-nothrow:
     ////////////////////////////////////////////////////////////////////////////
     // Initialization
     ////////////////////////////////////////////////////////////////////////////
@@ -70,7 +69,7 @@ nothrow:
      * Throws:
      *  SyncError on error.
      */
-    this( Mutex m ) @safe
+    this( Mutex m ) nothrow @safe
     {
         version( Windows )
         {
@@ -127,6 +126,12 @@ nothrow:
      *  The mutex associated with this condition.
      */
     @property Mutex mutex()
+    {
+        return m_assocMutex;
+    }
+
+    // undocumented function for internal use
+    final @property Mutex mutex_nothrow() pure nothrow @safe @nogc
     {
         return m_assocMutex;
     }
