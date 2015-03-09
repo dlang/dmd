@@ -62,7 +62,7 @@ static uint32_t calcHash(const char *key, size_t len)
     case 2: h ^= data[1] << 8;
     case 1: h ^= data[0];
         h *= m;
-    };
+    }
 
     // Do a few final mixes of the hash to ensure the last few
     // bytes are well-incorporated.

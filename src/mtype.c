@@ -5305,8 +5305,10 @@ Lcovariant:
     /* Can convert safe/trusted to system
      */
     if (t1->trust <= TRUSTsystem && t2->trust >= TRUSTtrusted)
+    {
         // Should we infer trusted or safe? Go with safe.
         stc |= STCsafe;
+    }
 
     if (stc)
     {   if (pstc)
@@ -5466,8 +5468,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
 
             if ((fparam->storageClass & (STCref | STCwild)) == (STCref | STCwild))
+            {
                 // 'ref inout' implies 'return'
                 fparam->storageClass |= STCreturn;
+            }
 
             if (fparam->storageClass & STCreturn &&
                 !(fparam->storageClass & (STCref | STCout)))

@@ -455,8 +455,10 @@ Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
     if (scope)
+    {
         // Try one last time to resolve this enum
         semantic(scope);
+    }
 
     if (!members || !symtab || scope)
     {

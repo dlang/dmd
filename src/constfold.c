@@ -1441,7 +1441,7 @@ UnionExp Index(Type *type, Expression *e1, Expression *e2)
                     new(&ue) CTFEExp(TOKcantexp);
                 else
                     new(&ue) UnionExp(e);
-                return ue;;
+                return ue;
             }
         }
         new(&ue) CTFEExp(TOKcantexp);
