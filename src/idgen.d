@@ -359,11 +359,6 @@ Msgtable[] msgtable =
 int main()
 {
     {
-        import std.stdio : writeln;
-        writeln("Generating id.c and id.h");
-    }
-
-    {
         auto fp = fopen("id.h","w");
         if (!fp)
         {
