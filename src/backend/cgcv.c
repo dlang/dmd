@@ -791,11 +791,10 @@ void cv4_initref(Classsym *s)
         unsigned char debsym[12];
 
         TOWORD(debsym, length - 2);
-        TOWORD(debsym + 2, S_LABEL32);
+        TOWORD(debsym + 2, S_SKIP);
         TOLONG(debsym + 4, 0); // offset
         TOWORD(debsym + 8, 0); // seg
-        debsym[10] = 0;     // flags
-        debsym[11] = 0;     // name-length
+        TOWORD(debsym + 10, 0); // pad
 
         unsigned soffset = Offset(DEBSYM);
         objmod->write_bytes(SegData[DEBSYM],length,debsym);

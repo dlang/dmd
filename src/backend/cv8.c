@@ -793,9 +793,9 @@ void cv8_flushinitref()
         Classsym* s = *(Classsym**)(initFixup->buf + u);
 
         Outbuffer *buf = currentfuncdata.f1buf;
-        buf->reserve(2 + 2 + 2 + 4 + 1 + 1);
-        buf->writeWordn( 2 + 2 + 4 + 1 + 1);
-        buf->writeWordn(S_LABEL32);
+        buf->reserve(2 + 2 + 2 + 4 + 2);
+        buf->writeWordn( 2 + 2 + 4 + 2);
+        buf->writeWordn(S_SKIP);
 
         F1_Fixups f1f;
         f1f.s = s->Sstruct->Sinit;
@@ -804,8 +804,7 @@ void cv8_flushinitref()
 
         buf->write32(0);            // offset
         buf->writeWordn(0);         // seg
-        buf->writeByten(0);         // flags
-        buf->writeByten(0);         // name.length
+        buf->writeWordn(0);         // pad
     }
     initFixup->reset();
 }
