@@ -79,7 +79,7 @@ public:
     Dsymbols *parseDeclDefs(int once, Dsymbol **pLastDecl = NULL, PrefixAttributes *pAttrs = NULL);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, const utf8_t *comment);
     Dsymbols *parseBlock(Dsymbol **pLastDecl, PrefixAttributes *pAttrs = NULL);
-    StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc);
+    StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc, bool deprec = false);
     StorageClass parseAttribute(Expressions **pexps);
     StorageClass parsePostfix(StorageClass storageClass, Expressions **pudas);
     StorageClass parseTypeCtor();
