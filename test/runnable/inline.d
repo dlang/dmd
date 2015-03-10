@@ -557,6 +557,31 @@ void test13503()
 }
 
 /**********************************/
+// 14267
+
+// EXTRA_SOURCES: imports/a14267.d
+import imports.a14267;
+
+void test14267()
+{
+    foreach (m; __traits(allMembers, SysTime14267))
+    {
+        static if (is(typeof(__traits(getMember, SysTime14267, m))))
+        {
+            foreach (func; __traits(getOverloads, SysTime14267, m))
+            {
+                auto prot = __traits(getProtection, func);
+                static if (__traits(isStaticFunction, func))
+                {
+                    static assert(func.stringof == "min()");
+                    auto result = func;
+                }
+            }
+        }
+    }
+}
+
+/**********************************/
 
 int main()
 {

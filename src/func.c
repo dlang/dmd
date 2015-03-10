@@ -4570,6 +4570,8 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 void CtorDeclaration::semantic(Scope *sc)
 {
     //printf("CtorDeclaration::semantic() %s\n", toChars());
+    if (semanticRun >= PASSsemanticdone)
+        return;
     if (scope)
     {
         sc = scope;
@@ -4662,6 +4664,8 @@ void PostBlitDeclaration::semantic(Scope *sc)
     //printf("PostBlitDeclaration::semantic() %s\n", toChars());
     //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
     //printf("stc = x%llx\n", sc->stc);
+    if (semanticRun >= PASSsemanticdone)
+        return;
     if (scope)
     {
         sc = scope;
@@ -4732,6 +4736,8 @@ void DtorDeclaration::semantic(Scope *sc)
 {
     //printf("DtorDeclaration::semantic() %s\n", toChars());
     //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
+    if (semanticRun >= PASSsemanticdone)
+        return;
     if (scope)
     {
         sc = scope;
@@ -4814,7 +4820,8 @@ Dsymbol *StaticCtorDeclaration::syntaxCopy(Dsymbol *s)
 void StaticCtorDeclaration::semantic(Scope *sc)
 {
     //printf("StaticCtorDeclaration::semantic()\n");
-
+    if (semanticRun >= PASSsemanticdone)
+        return;
     if (scope)
     {
         sc = scope;
@@ -4927,6 +4934,8 @@ Dsymbol *StaticDtorDeclaration::syntaxCopy(Dsymbol *s)
 
 void StaticDtorDeclaration::semantic(Scope *sc)
 {
+    if (semanticRun >= PASSsemanticdone)
+        return;
     if (scope)
     {
         sc = scope;
@@ -5034,6 +5043,8 @@ Dsymbol *InvariantDeclaration::syntaxCopy(Dsymbol *s)
 
 void InvariantDeclaration::semantic(Scope *sc)
 {
+    if (semanticRun >= PASSsemanticdone)
+        return;
     if (scope)
     {
         sc = scope;
@@ -5109,13 +5120,15 @@ Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
 
 void UnitTestDeclaration::semantic(Scope *sc)
 {
-    protection = sc->protection;
-
+    if (semanticRun >= PASSsemanticdone)
+        return;
     if (scope)
     {
         sc = scope;
         scope = NULL;
     }
+
+    protection = sc->protection;
 
     if (inNonRoot())
         return;
@@ -5186,7 +5199,8 @@ Dsymbol *NewDeclaration::syntaxCopy(Dsymbol *s)
 void NewDeclaration::semantic(Scope *sc)
 {
     //printf("NewDeclaration::semantic()\n");
-
+    if (semanticRun >= PASSsemanticdone)
+        return;
     if (scope)
     {
         sc = scope;
@@ -5262,7 +5276,8 @@ Dsymbol *DeleteDeclaration::syntaxCopy(Dsymbol *s)
 void DeleteDeclaration::semantic(Scope *sc)
 {
     //printf("DeleteDeclaration::semantic()\n");
-
+    if (semanticRun >= PASSsemanticdone)
+        return;
     if (scope)
     {
         sc = scope;
