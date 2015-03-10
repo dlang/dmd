@@ -5760,6 +5760,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         !semanticTiargs(sc) ||
         !findBestMatch(sc, fargs))
     {
+Lerror:
         if (gagged)
         {
             // Bugzilla 13220: Rollback status for later semantic re-running.
@@ -5773,6 +5774,17 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
     assert(tempdecl);
 
+    // If tempdecl is a mixin, disallow it
+    if (tempdecl->ismixin)
+    {
+        error("mixin templates are not regular templates");
+        goto Lerror;
+    }
+
+    hasNestedArgs(tiargs, tempdecl->isstatic);
+    if (errors)
+        goto Lerror;
+
     if (Module *m = tempdecl->scope->module) // should use getModule() instead?
     {
         // Generate these functions as they may be used
@@ -5782,12 +5794,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         toModuleAssert(m);
         toModuleUnittest(m);
     }
-
-    // If tempdecl is a mixin, disallow it
-    if (tempdecl->ismixin)
-        error("mixin templates are not regular templates");
-
-    hasNestedArgs(tiargs, tempdecl->isstatic);
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
@@ -6095,11 +6101,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     if (global.errors != errorsave)
         goto Laftersemantic;
 
-    if (sc->func && (aliasdecl && aliasdecl->toAlias()->isFuncDeclaration() || !tinst))
+    if (sc->func && !tinst)
     {
-        /* Template function instantiation should run semantic3 immediately
-         * for attribute inference.
-         */
         /* If a template is instantiated inside function, the whole instantiation
          * should be done at that position. But, immediate running semantic3 of
          * dependent templates may cause unresolved forward reference (Bugzilla 9050).
@@ -6121,6 +6124,14 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     }
     else if (tinst)
     {
+        /* Template function instantiation should run semantic3 immediately
+         * for attribute inference.
+         */
+        if (sc->func && aliasdecl && aliasdecl->toAlias()->isFuncDeclaration())
+        {
+            trySemantic3(sc2);
+        }
+
         TemplateInstance *ti = tinst;
         int nest = 0;
         while (ti && !ti->deferred && ti->tinst)
@@ -7081,6 +7092,7 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                 ea->op != TOKstructliteral)
             {
                 ea->error("expression %s is not a valid template value argument", ea->toChars());
+                errors = true;
             }
         }
         else if (sa)
@@ -7130,13 +7142,17 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                         }
                         error("%s is nested in both %s and %s",
                                 toChars(), enclosing->toChars(), dparent->toChars());
+                        errors = true;
                     }
                   L1:
                     //printf("\tnested inside %s\n", enclosing->toChars());
                     nested |= 1;
                 }
                 else
+                {
                     error("cannot use local '%s' as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
+                    errors = true;
+                }
             }
         }
         else if (va)
@@ -7736,18 +7752,33 @@ bool TemplateInstance::needsCodegen()
         {
             minst = tinst->minst;   // cache result
             assert(minst);
+            assert(minst->isRoot() || minst->rootImports());
             return true;
         }
         if (tnext && tnext->needsCodegen())
         {
             minst = tnext->minst;   // cache result
             assert(minst);
+            assert(minst->isRoot() || minst->rootImports());
             return true;
         }
         return false;
     }
 
-    if (!minst->isRoot())
+    if (minst->isRoot())
+    {
+        // Prefer instantiation in non-root module, to minimize object code size
+        TemplateInstance *tnext = this->tnext;
+        this->tnext = NULL;
+
+        if (tnext && !tnext->needsCodegen() && tnext->minst)
+        {
+            minst = tnext->minst;   // cache result
+            assert(!minst->isRoot());
+            return false;
+        }
+    }
+    else
     {
         /* If a TemplateInstance is ever instantiated by non-root modules,
          * we do not have to generate code for it,
