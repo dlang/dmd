@@ -1003,6 +1003,8 @@ idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx)
     /* Put out a struct:
      *    struct dAssocArray {
      *      void* ptr;
+     *      typedef key-type __key_t;
+     *      typedef val-type __val_t;
      *    }
      */
 
@@ -1028,12 +1030,24 @@ idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx)
         0x00, 0x00, 0x00, 0x00, // void*
         0x00, 0x00,             // offset
         'p','t','r',0,          // "ptr"
-        0xf2, 0xf1,             // align to 4-byte including length word before data
+        0xf2, 0xf1,             // align to 4-byte including field id
+        // offset 18
+        0x10, 0x15,             // LF_NESTTYPE_V3
+        0x00, 0x00,             // padding
+        0x00, 0x00, 0x00, 0x00, // key type
+        '_','_','k','e','y','_','t',0,  // "__key_t"
+        // offset 34
+        0x10, 0x15,             // LF_NESTTYPE_V3
+        0x00, 0x00,             // padding
+        0x00, 0x00, 0x00, 0x00, // value type
+        '_','_','v','a','l','_','t',0,  // "__val_t"
     };
 
     debtyp_t *f = debtyp_alloc(sizeof(fl));
     memcpy(f->data,fl,sizeof(fl));
     TOLONG(f->data + 6, pvidx);
+    TOLONG(f->data + 22, keyidx);
+    TOLONG(f->data + 38, validx);
     idx_t fieldlist = cv_debtyp(f);
 
     const char *id = "dAssocArray";
