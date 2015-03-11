@@ -2402,33 +2402,36 @@ static void asm_make_modrm_byte(
         unsigned usFlags,
         OPND *popnd, OPND *popnd2)
 {
-    #undef modregrm
-
-    union MODRM_BYTE
+    struct MODRM_BYTE
     {
-        unsigned char   uchOpcode;
-        struct
+        unsigned rm;
+        unsigned reg;
+        unsigned mod;
+        unsigned uchOpcode()
         {
-            unsigned rm  : 3;
-            unsigned reg : 3;
-            unsigned mod : 2;
-        } modregrm;
-    };                       // mrmb
-
-    union SIB_BYTE
-    {
-        unsigned char   uchOpcode;
-        struct
-        {
-            unsigned base  : 3;
-            unsigned index : 3;
-            unsigned ss    : 2;
-        } sib;
+            assert(rm < 8);
+            assert(reg < 8);
+            assert(mod < 4);
+            return (mod << 6) | (reg << 3) | rm;
+        }
     };
 
+    struct SIB_BYTE
+    {
+        unsigned base;
+        unsigned index;
+        unsigned ss;
+        unsigned uchOpcode()
+        {
+            assert(base < 8);
+            assert(index < 8);
+            assert(ss < 4);
+            return (ss << 6) | (index << 3) | base;
+        }
+    };
 
-    MODRM_BYTE  mrmb = { 0 };
-    SIB_BYTE    sib = { 0 };
+    MODRM_BYTE  mrmb = { 0, 0, 0 };
+    SIB_BYTE    sib = { 0, 0, 0 };
     bool                bSib = false;
     bool                bDisp = false;
 #ifdef DEBUG
@@ -2545,18 +2548,18 @@ static void asm_make_modrm_byte(
             }
         }
     }
-    mrmb.modregrm.reg = usFlags & NUM_MASK;
+    mrmb.reg = usFlags & NUM_MASK;
 
     if (s && (aopty == _m || aopty == _mnoi) && !s->isLabel())
     {
         if (s == asmstate.psLocalsize)
         {
     DATA_REF:
-            mrmb.modregrm.rm = BPRM;
+            mrmb.rm = BPRM;
             if (amod == _addr16 || amod == _addr32)
-                mrmb.modregrm.mod = 0x2;
+                mrmb.mod = 0x2;
             else
-                mrmb.modregrm.mod = 0x0;
+                mrmb.mod = 0x0;
         }
         else
         {
@@ -2568,15 +2571,15 @@ static void asm_make_modrm_byte(
                     error(asmstate.loc, "cannot have 16 bit addressing mode in 32 bit code");
                 goto DATA_REF;
             }
-            mrmb.modregrm.rm = BPRM;
-            mrmb.modregrm.mod = 0x2;
+            mrmb.rm = BPRM;
+            mrmb.mod = 0x2;
         }
     }
 
     if (aopty == _reg || amod == _rspecial)
     {
-        mrmb.modregrm.mod = 0x3;
-        mrmb.modregrm.rm |= popnd->base->val;
+        mrmb.mod = 0x3;
+        mrmb.rm |= popnd->base->val & NUM_MASK;
         if (popnd->base->val & NUM_MASKR)
             pc->Irex |= REX_B;
     }
@@ -2629,23 +2632,23 @@ static void asm_make_modrm_byte(
             #undef X
             #undef Y
         }
-        mrmb.modregrm.rm = rm;
+        mrmb.rm = rm;
 
 #ifdef DEBUG
         if (debuga)
             printf("This is an mod = %d, popnd->s =%p, popnd->disp = %lld\n",
-               mrmb.modregrm.mod, s, (long long)popnd->disp);
+               mrmb.mod, s, (long long)popnd->disp);
 #endif
-        if (!s || (!mrmb.modregrm.mod && popnd->disp))
+        if (!s || (!mrmb.mod && popnd->disp))
         {
             if ((!popnd->disp && !bDisp) ||
                 !popnd->pregDisp1)
-                mrmb.modregrm.mod = 0x0;
+                mrmb.mod = 0x0;
             else if (popnd->disp >= CHAR_MIN &&
                 popnd->disp <= SCHAR_MAX)
-                mrmb.modregrm.mod = 0x1;
+                mrmb.mod = 0x1;
             else
-                mrmb.modregrm.mod = 0X2;
+                mrmb.mod = 0X2;
         }
         else
             bOffsetsym = true;
@@ -2658,7 +2661,7 @@ static void asm_make_modrm_byte(
             printf("This is an ADDR32\n");
 #endif
         if (!popnd->pregDisp1)
-            mrmb.modregrm.rm = 0x5;
+            mrmb.rm = 0x5;
         else if (popnd->pregDisp2 ||
                  popnd->uchMultiplier ||
                  (popnd->pregDisp1->val & NUM_MASK) == _ESP)
@@ -2676,15 +2679,15 @@ static void asm_make_modrm_byte(
                 bDisp = true;
             }
 
-            mrmb.modregrm.rm = 0x4;
+            mrmb.rm = 0x4;
             bSib = true;
             if (bDisp)
             {
                 if (!popnd->uchMultiplier &&
                     (popnd->pregDisp1->val & NUM_MASK) == _ESP)
                 {
-                    sib.sib.base = 4;           // _ESP or _R12
-                    sib.sib.index = 0x4;
+                    sib.base = 4;           // _ESP or _R12
+                    sib.index = 0x4;
                     if (popnd->pregDisp1->val & NUM_MASKR)
                         pc->Irex |= REX_B;
                 }
@@ -2701,17 +2704,17 @@ static void asm_make_modrm_byte(
                     }
                     else
                     {
-                        mrmb.modregrm.mod = 0x0;
+                        mrmb.mod = 0x0;
                         bModset = true;
                     }
 
-                    sib.sib.base = 0x5;
-                    sib.sib.index = popnd->pregDisp1->val;
+                    sib.base = 0x5;
+                    sib.index = popnd->pregDisp1->val;
                 }
             }
             else
             {
-                sib.sib.base = popnd->pregDisp1->val & NUM_MASK;
+                sib.base = popnd->pregDisp1->val & NUM_MASK;
                 if (popnd->pregDisp1->val & NUM_MASKR)
                     pc->Irex |= REX_B;
                 //
@@ -2729,24 +2732,24 @@ static void asm_make_modrm_byte(
                     if (debuga)
                         printf("Setting the mod to 1 in the _EBP case\n");
 #endif
-                    mrmb.modregrm.mod = 0x1;
+                    mrmb.mod = 0x1;
                     bDisp = true;   // Need a
                                     // displacement
                     bModset = true;
                 }
 
-                sib.sib.index = popnd->pregDisp2->val & NUM_MASK;
+                sib.index = popnd->pregDisp2->val & NUM_MASK;
                 if (popnd->pregDisp2->val & NUM_MASKR)
                     pc->Irex |= REX_X;
 
             }
             switch (popnd->uchMultiplier)
             {
-                case 0: sib.sib.ss = 0; break;
-                case 1: sib.sib.ss = 0; break;
-                case 2: sib.sib.ss = 1; break;
-                case 4: sib.sib.ss = 2; break;
-                case 8: sib.sib.ss = 3; break;
+                case 0: sib.ss = 0; break;
+                case 1: sib.ss = 0; break;
+                case 2: sib.ss = 1; break;
+                case 4: sib.ss = 2; break;
+                case 8: sib.ss = 3; break;
 
                 default:
                     error(asmstate.loc, "scale factor must be one of 0,1,2,4,8");
@@ -2764,7 +2767,7 @@ static void asm_make_modrm_byte(
                 case _EBP:
                     if (!popnd->disp && !s)
                     {
-                        mrmb.modregrm.mod = 0x1;
+                        mrmb.mod = 0x1;
                         bDisp = true;   // Need a displacement
                         bModset = true;
                     }
@@ -2782,48 +2785,48 @@ static void asm_make_modrm_byte(
             }
             if (popnd->pregDisp1->val & NUM_MASKR)
                 pc->Irex |= REX_B;
-            mrmb.modregrm.rm = rm;
+            mrmb.rm = rm;
         }
 
         if (!bModset && (!s ||
-                (!mrmb.modregrm.mod && popnd->disp)))
+                (!mrmb.mod && popnd->disp)))
         {
-            if ((!popnd->disp && !mrmb.modregrm.mod) ||
+            if ((!popnd->disp && !mrmb.mod) ||
                 (!popnd->pregDisp1 && !popnd->pregDisp2))
             {
-                mrmb.modregrm.mod = 0x0;
+                mrmb.mod = 0x0;
                 bDisp = true;
             }
             else if (popnd->disp >= CHAR_MIN &&
                      popnd->disp <= SCHAR_MAX)
-                mrmb.modregrm.mod = 0x1;
+                mrmb.mod = 0x1;
             else
-                mrmb.modregrm.mod = 0x2;
+                mrmb.mod = 0x2;
         }
         else
             bOffsetsym = true;
     }
-    if (popnd2 && !mrmb.modregrm.reg &&
+    if (popnd2 && !mrmb.reg &&
         asmstate.ucItype != ITshift &&
         (ASM_GET_aopty(popnd2->usFlags) == _reg  ||
          ASM_GET_amod(popnd2->usFlags) == _rseg ||
          ASM_GET_amod(popnd2->usFlags) == _rspecial))
     {
-        mrmb.modregrm.reg =  popnd2->base->val;
+        mrmb.reg =  popnd2->base->val & NUM_MASK;
         if (popnd2->base->val & NUM_MASKR)
             pc->Irex |= REX_R;
     }
 #ifdef DEBUG
-    puchOpcode[ (*pusIdx)++ ] = mrmb.uchOpcode;
+    puchOpcode[ (*pusIdx)++ ] = mrmb.uchOpcode();
 #endif
-    pc->Irm = mrmb.uchOpcode;
+    pc->Irm = mrmb.uchOpcode();
     //printf("Irm = %02x\n", pc->Irm);
     if (bSib)
     {
 #ifdef DEBUG
-        puchOpcode[ (*pusIdx)++ ] = sib.uchOpcode;
+        puchOpcode[ (*pusIdx)++ ] = sib.uchOpcode();
 #endif
-        pc->Isib= sib.uchOpcode;
+        pc->Isib= sib.uchOpcode();
     }
     if ((!s || (popnd->pregDisp1 && !bOffsetsym)) &&
         aopty != _imm &&
