@@ -3366,6 +3366,13 @@ Lagain:
         }
         if ((v->storage_class & STCmanifest) && v->init)
         {
+            // Detect recursive initializers.
+            // BUG: The check for speculative gagging is not correct
+            if (v->inuse && !global.gag)
+            {
+                error("circular initialization of %s", v->toChars());
+                return new ErrorExp();
+            }
             if (v->scope)
             {
                 v->inuse++;
@@ -3382,13 +3389,6 @@ Lagain:
             e = e->copy();
             e->loc = loc;   // for better error message
 
-            // Detect recursive initializers.
-            // BUG: The check for speculative gagging is not correct
-            if (v->inuse && !global.gag)
-            {
-                e->error("circular initialization of %s", v->toChars());
-                return new ErrorExp();
-            }
             e = e->semantic(sc);
             return e;
         }
