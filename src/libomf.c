@@ -147,9 +147,6 @@ void LibOMF::addLibrary(void *buf, size_t buflen)
 /*****************************************************************************/
 /*****************************************************************************/
 
-#define LIBIDMAX (512 - 0x25 - 3 - 4)   // max size that will fit in dictionary
-
-
 struct ObjModule
 {
     unsigned char *base;        // where are we holding it in memory
@@ -556,6 +553,7 @@ static bool EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsign
 
 bool LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
 {
+    #define LIBIDMAX (512 - 0x25 - 3 - 4)   // max size that will fit in dictionary
     unsigned char entry[4 + LIBIDMAX + 2 + 1];
 
     //printf("FillDict()\n");
