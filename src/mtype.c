@@ -6138,6 +6138,9 @@ int TypeFunction::attributesApply(void *param, int (*fp)(void *, const char *), 
     if (isref) res = fp(param, "ref");
     if (res) return res;
 
+    if (isreturn) res = fp(param, "return");
+    if (res) return res;
+
     TRUST trustAttrib = trust;
 
     if (trustAttrib == TRUSTdefault)

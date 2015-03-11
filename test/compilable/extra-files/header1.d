@@ -443,3 +443,9 @@ pure clamp12266b(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
 
 // 13832
 alias Dg13832 = ref int delegate();
+
+struct S14253
+{
+    int x;
+    ref int foo() return { return x; }
+}
