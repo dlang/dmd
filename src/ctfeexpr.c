@@ -1358,7 +1358,7 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
     // If they aren't strings, we just need an equality check rather than
     // a full cmp.
     bool needCmp = ae1->type->nextOf()->isintegral();
-    for (size_t i = 0; i < len; i++)
+    for (size_t i = 0; i < (size_t)len; i++)
     {
         Expression *ee1 = (*ae1->elements)[(size_t)(lo1 + i)];
         Expression *ee2 = (*ae2->elements)[(size_t)(lo2 + i)];

@@ -385,7 +385,7 @@ Expression *pointerBitmap(TraitsExp *e)
             d_uns64 arrayoff = offset;
             d_uns64 nextsize = t->next->size();
             d_uns64 dim = t->dim->toInteger();
-            for (size_t i = 0; i < dim; i++)
+            for (d_uns64 i = 0; i < dim; i++)
             {
                 offset = arrayoff + i * nextsize;
                 t->next->accept(this);
