@@ -260,8 +260,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 return;
             }
 
+        #if TARGET_WINDOS
             if (global.params.symdebug)
                 toDebug(cd);
+        #endif
 
             assert(!cd->scope);     // semantic() should have been run to completion
 
@@ -652,8 +654,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (!id->members)
                 return;
 
+        #if TARGET_WINDOS
             if (global.params.symdebug)
                 toDebug(id);
+        #endif
 
             enum_SC scclass = SCglobal;
             if (id->isInstantiated())
@@ -831,8 +835,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             // do not output forward referenced structs's
             if (!sd->isAnonymous() && sd->members)
             {
+            #if TARGET_WINDOS
                 if (global.params.symdebug)
                     toDebug(sd);
+            #endif
 
                 genTypeInfo(sd->type, NULL);
 
@@ -986,8 +992,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (ed->isAnonymous())
                 return;
 
+        #if TARGET_WINDOS
             if (global.params.symdebug)
                 toDebug(ed);
+        #endif
 
             genTypeInfo(ed->type, NULL);
 
