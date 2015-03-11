@@ -196,7 +196,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.d impcnvgen.c utf.h \
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
-	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
+	libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
 	tk.c eh.c gluestub.c
 
 # D back end

@@ -153,7 +153,7 @@ ROOT_OBJS = \
 
 GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
-	toobj.o toctype.o toelfdebug.o toir.o \
+	toobj.o toctype.o toir.o \
 	irstate.o typinf.o iasm.o
 
 ifeq (osx,$(OS))
@@ -223,7 +223,7 @@ ROOT_SRC = $(ROOT)/root.h \
 GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
-	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
+	libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
 	tk.c eh.c gluestub.c
 
 BACK_SRC = \
@@ -468,7 +468,6 @@ endif
 	gcov todt.c
 	gcov toobj.c
 	gcov toctype.c
-	gcov toelfdebug.c
 	gcov typinf.c
 	gcov utf.c
 	gcov version.c
