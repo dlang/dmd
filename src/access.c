@@ -195,12 +195,12 @@ void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
     Prot access;
     if (smemberparent == ad)
     {
-        Prot access2 = smember->prot();
-        result = access2.kind >= PROTpublic ||
-                hasPrivateAccess(ad, f) ||
-                isFriendOf(ad, cdscope) ||
-                (access2.kind == PROTpackage && hasPackageAccess(sc, ad)) ||
-                ad->getAccessModule() == sc->module;
+        access = smember->prot();
+        result = access.kind >= PROTpublic ||
+                 hasPrivateAccess(ad, f) ||
+                 isFriendOf(ad, cdscope) ||
+                 (access.kind == PROTpackage && hasPackageAccess(sc, smember)) ||
+                 ad->getAccessModule() == sc->module;
 #if LOG
         printf("result1 = %d\n", result);
 #endif
