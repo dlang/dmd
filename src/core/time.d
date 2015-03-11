@@ -1669,6 +1669,48 @@ unittest
 }
 
 /++
+    Converts a $(D TickDuration) to the given units as either an integral
+    value or a floating point value.
+
+    Params:
+        units = The units to convert to. Accepts $(D "seconds") and smaller
+                only.
+        T     = The type to convert to (either an integral type or a
+                floating point type).
+
+        td    = The TickDuration to convert
+  +/
+T to(string units, T, D)(D td) @safe pure nothrow @nogc
+    if(is(_Unqual!D == TickDuration) &&
+       (units == "seconds" ||
+        units == "msecs" ||
+        units == "usecs" ||
+        units == "hnsecs" ||
+        units == "nsecs") &&
+       ((__traits(isIntegral, T) && T.sizeof >= 4) || __traits(isFloating, T)))
+{
+    static if(__traits(isIntegral, T) && T.sizeof >= 4)
+    {
+        enum unitsPerSec = convert!("seconds", units)(1);
+
+        return cast(T)(td.length / (TickDuration.ticksPerSec / cast(real)unitsPerSec));
+    }
+    else static if(__traits(isFloating, T))
+    {
+        static if(units == "seconds")
+            return td.length / cast(T)TickDuration.ticksPerSec;
+        else
+        {
+            enum unitsPerSec = convert!("seconds", units)(1);
+
+            return this.to!("seconds", T)() * unitsPerSec;
+        }
+    }
+    else
+        static assert(0, "Incorrect template constraint.");
+}
+
+/++
     These allow you to construct a $(D Duration) from the given time units
     with the given length.
 
@@ -2539,53 +2581,12 @@ struct TickDuration
       +/
     long length;
 
-
-    /++
-        Converts this $(D TickDuration) to the given units as either an integral
-        value or a floating point value.
-
-        Params:
-            units = The units to convert to. Accepts $(D "seconds") and smaller
-                    only.
-            T     = The type to convert to (either an integral type or a
-                    floating point type).
-      +/
-    T to(string units, T)() @safe const pure nothrow @nogc
-        if((units == "seconds" ||
-            units == "msecs" ||
-            units == "usecs" ||
-            units == "hnsecs" ||
-            units == "nsecs") &&
-           ((__traits(isIntegral, T) && T.sizeof >= 4) || __traits(isFloating, T)))
-    {
-        static if(__traits(isIntegral, T) && T.sizeof >= 4)
-        {
-            enum unitsPerSec = convert!("seconds", units)(1);
-
-            return cast(T)(length / (ticksPerSec / cast(real)unitsPerSec));
-        }
-        else static if(__traits(isFloating, T))
-        {
-            static if(units == "seconds")
-                return length / cast(T)ticksPerSec;
-            else
-            {
-                enum unitsPerSec = convert!("seconds", units)(1);
-
-                return to!("seconds", T)() * unitsPerSec;
-            }
-        }
-        else
-            static assert(0, "Incorrect template constraint.");
-    }
-
-
     /++
         Returns the total number of seconds in this $(D TickDuration).
       +/
     @property long seconds() @safe const pure nothrow @nogc
     {
-        return to!("seconds", long)();
+        return this.to!("seconds", long)();
     }
 
     unittest
@@ -2608,7 +2609,7 @@ struct TickDuration
       +/
     @property long msecs() @safe const pure nothrow @nogc
     {
-        return to!("msecs", long)();
+        return this.to!("msecs", long)();
     }
 
 
@@ -2617,7 +2618,7 @@ struct TickDuration
       +/
     @property long usecs() @safe const pure nothrow @nogc
     {
-        return to!("usecs", long)();
+        return this.to!("usecs", long)();
     }
 
 
@@ -2626,7 +2627,7 @@ struct TickDuration
       +/
     @property long hnsecs() @safe const pure nothrow @nogc
     {
-        return to!("hnsecs", long)();
+        return this.to!("hnsecs", long)();
     }
 
 
@@ -2635,7 +2636,7 @@ struct TickDuration
       +/
     @property long nsecs() @safe const pure nothrow @nogc
     {
-        return to!("nsecs", long)();
+        return this.to!("nsecs", long)();
     }
 
 
