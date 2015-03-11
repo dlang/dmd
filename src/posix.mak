@@ -2,47 +2,74 @@
 include osmodel.mak
 
 ifeq (,$(TARGET_CPU))
-    $(info no cpu specified, assuming X86)
-    TARGET_CPU=X86
+    $(info No cpu specified, assuming X86)
+    TARGET_CPU = X86
 endif
 
 ifeq (X86,$(TARGET_CPU))
-    TARGET_CH = $C/code_x86.h
     TARGET_OBJS = cg87.o cgxmm.o cgsched.o cod1.o cod2.o cod3.o cod4.o ptrntab.o
 else
     ifeq (stub,$(TARGET_CPU))
-        TARGET_CH = $C/code_stub.h
         TARGET_OBJS = platform_stub.o
     else
-        $(error unknown TARGET_CPU: '$(TARGET_CPU)')
+        $(error Unknown TARGET_CPU: '$(TARGET_CPU)')
     endif
 endif
-
-INSTALL_DIR=../../install
-# can be set to override the default /etc/
-SYSCONFDIR=/etc/
-
-C=backend
-TK=tk
-ROOT=root
 
 ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
 endif
-LDFLAGS=-lm -lstdc++ -lpthread
 
-#ifeq (osx,$(OS))
-#	HOST_CC=clang++
-#else
-	HOST_CC=g++
-#endif
-CC=$(HOST_CC) $(MODEL_FLAG)
-GIT=git
-HOST_DC?=dmd
 
-# Compiler Warnings
+# Directory configuration
+########################################################################
+INSTALL_DIR = ../../install
+SYSCONFDIR  = /etc/
+# Path prefixes for different source file types
+C           = backend
+TK          = tk
+ROOT        = root
+
+
+# Misc, applicatons and flags
+########################################################################
+HOST_CC   = g++
+CC        = $(HOST_CC) $(MODEL_FLAG)
+LDFLAGS   = -lm -lstdc++ -lpthread
+TARGET_OS = $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
+MMD       = -MMD -MF $(basename $@).deps
+GIT       = git
+HOST_DC  ?= dmd
+
+
+# Default compiler flags
+########################################################################
+CFLAGS := \
+	-fno-exceptions -fno-rtti \
+	-D__pascal= \
+	-DMARS=1 \
+	-DTARGET_$(TARGET_OS)=1 \
+	-DDM_TARGET_CPU_$(TARGET_CPU)=1 \
+	-DDMDV2=1
+
+
+# Compiler warning flags
+########################################################################
+WARNFLAGS := -Wno-deprecated -Wstrict-aliasing
+
+ifeq ($(HOST_CC), clang++)
+WARNFLAGS += \
+    -Wno-logical-op-parentheses \
+    -Wno-dynamic-class-memaccess \
+    -Wno-switch
+endif
+
+# Enable *additional* warnings when ENABLE_WARNINGS have been
+# defined. Can be set in the environment or specified on the make
+# command line.
 ifdef ENABLE_WARNINGS
-WARNINGS := -Wall -Wextra \
+WARNFLAGS += \
+	-Wall -Wextra \
 	-Wno-attributes \
 	-Wno-char-subscripts \
 	-Wno-deprecated \
@@ -64,222 +91,132 @@ WARNINGS := -Wall -Wextra \
 	-Wno-unused-parameter \
 	-Wno-unused-value \
 	-Wno-unused-variable
+
 # GCC Specific
 ifeq ($(HOST_CC), g++)
-WARNINGS := $(WARNINGS) \
+WARNFLAGS += \
 	-Wno-logical-op \
 	-Wno-narrowing \
 	-Wno-unused-but-set-variable \
 	-Wno-uninitialized
 endif
-# Clangn Specific
+
+# Clang Specific
 ifeq ($(HOST_CC), clang++)
-WARNINGS := $(WARNINGS) \
+WARNFLAGS += \
 	-Wno-tautological-constant-out-of-range-compare \
 	-Wno-tautological-compare \
 	-Wno-constant-logical-operand \
-	-Wno-self-assign -Wno-self-assign
-# -Wno-sometimes-uninitialized
-endif
-else
-# Default Warnings
-WARNINGS := -Wno-deprecated -Wstrict-aliasing
-ifeq ($(HOST_CC), clang++)
-WARNINGS := $(WARNINGS) \
-    -Wno-logical-op-parentheses \
-    -Wno-dynamic-class-memaccess \
-    -Wno-switch
+	-Wno-self-assign
 endif
 endif
 
-OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
+CFLAGS += $(WARNFLAGS)
 
-MMD=-MMD -MF $(basename $@).deps
 
-# Default compiler flags for all source files
-CFLAGS := $(WARNINGS) \
-	-fno-exceptions -fno-rtti \
-	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1 \
-
-ifneq (,$(DEBUG))
-ENABLE_DEBUG := 1
-endif
-
+# Compiler debug flags
+########################################################################
 # Append different flags for debugging, profiling and release. Define
 # ENABLE_DEBUG and ENABLE_PROFILING to enable profiling.
 ifdef ENABLE_DEBUG
-CFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
+$(info Debugging enabled)
+DEBUGFLAGS := -g -g3 -DDEBUG=1 -DUNITTEST
 ifdef ENABLE_PROFILING
-CFLAGS  += -pg -fprofile-arcs -ftest-coverage
-LDFLAGS += -pg -fprofile-arcs -ftest-coverage
+$(info Profiling enabled)
+DEBUGFLAGS += -pg -fprofile-arcs -ftest-coverage
+LDFLAGS    += -pg -fprofile-arcs -ftest-coverage
 endif
 else
+# Enable optimization when not debugging
 CFLAGS += -O2
 endif
 
-# Uniqe extra flags if necessary
-DMD_FLAGS  :=           -I$(ROOT) -Wuninitialized
-GLUE_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C)
-BACK_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C) -I.
-ROOT_FLAGS := -DDMDV2=1 -I$(ROOT)
+CFLAGS += $(DEBUGFLAGS)
 
 
-DMD_OBJS = \
-	access.o attrib.o \
-	cast.o \
-	class.o \
-	constfold.o cond.o \
-	declaration.o dsymbol.o \
-	enum.o expression.o func.o nogc.o \
-	id.o \
-	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
-	lexer.o link.o mangle.o mars.o module.o mtype.o \
-	cppmangle.o opover.o optimize.o \
-	parse.o scope.o statement.o \
-	struct.o template.o \
-	version.o utf.o staticassert.o \
-	entity.o doc.o macro.o \
-	hdrgen.o delegatize.o interpret.o traits.o \
-	builtin.o ctfeexpr.o clone.o aliasthis.o \
-	arrayop.o json.o unittests.o \
-	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
-	intrange.o canthrow.o target.o nspace.o errors.o \
-	escape.o tokens.o globals.o
+# Specific compiler flags
+########################################################################
+# Add extra flags for each category of source files.
+DMD_FLAGS  := -I$(ROOT) -Wuninitialized
+GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
+BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I.
+ROOT_FLAGS := -I$(ROOT)
 
-ROOT_OBJS = \
-	rmem.o port.o man.o stringtable.o response.o \
-	aav.o speller.o outbuffer.o object.o \
-	filename.o file.o async.o checkedint.o
 
-GLUE_OBJS = \
-	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
-	toobj.o toctype.o toelfdebug.o toir.o \
-	irstate.o typinf.o iasm.o
+# Source object files
+########################################################################
+# In alphabetical order ... Sadly $(wildcard *.c) cannot be used since
+# the source directories contains unused files, or is a mix of files not
+# used on all OS/ARCH. A possible adjustment would be to clean-up and
+# move Linux/Mac specific files to src_linux, src_mac and win32-files to
+# src_win32, etc for example.
+DMD_OBJS := \
+	access.o aliasthis.o apply.o argtypes.o	arrayop.o attrib.o \
+	builtin.o canthrow.o cast.o class.o clone.o cond.o constfold.o \
+	cppmangle.o ctfeexpr.o declaration.o delegatize.o doc.o dsymbol.o \
+	entity.o enum.o errors.o escape.o expression.o func.o globals.o \
+	hdrgen.o id.o identifier.o impcnvtab.o imphint.o import.o \
+	inifile.o init.o inline.o interpret.o intrange.o json.o lexer.o \
+	link.o macro.o mangle.o mars.o module.o mtype.o nogc.o nspace.o \
+	opover.o optimize.o parse.o sapply.o scope.o sideeffect.o \
+	statement.o staticassert.o struct.o target.o template.o tokens.o \
+	traits.o unittests.o utf.o version.o
 
-ifeq (osx,$(OS))
-    GLUE_OBJS += libmach.o scanmach.o
-else
-    GLUE_OBJS += libelf.o scanelf.o
-endif
+ROOT_OBJS := \
+	aav.o async.o checkedint.o file.o filename.o man.o object.o \
+	outbuffer.o port.o response.o rmem.o speller.o stringtable.o
 
-#GLUE_OBJS=gluestub.o
+GLUE_OBJS := \
+	e2ir.o glue.o iasm.o irstate.o msc.o s2ir.o tocsym.o toctype.o \
+	todt.o toelfdebug.o toir.o toobj.o typinf.o
 
-BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
-	glocal.o os.o nteh.o evalu8.o cgcs.o \
-	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
-	blockopt.o cg.o type.o dt.o \
-	debug.o code.o ee.o symbol.o \
-	cgcod.o cod5.o outbuf.o \
-	bcomplex.o aa.o ti_achar.o \
-	ti_pvoid.o pdata.o cv8.o backconfig.o \
-	divcoeff.o dwarf.o \
-	ph2.o util2.o eh.o tk.o strtold.o \
+BACK_OBJS := \
+	aa.o backconfig.o bcomplex.o blockopt.o cg.o cgcod.o cgcs.o cgelem.o \
+	cgen.o cgreg.o cod5.o code.o cv8.o debug.o divcoeff.o dt.o dwarf.o \
+	ee.o eh.o el.o evalu8.o gdag.o gflow.o glocal.o gloop.o go.o gother.o \
+	nteh.o os.o out.o outbuf.o pdata.o ph2.o rtlsym.o strtold.o symbol.o \
+	ti_achar.o ti_pvoid.o tk.o type.o util2.o var.o \
 	$(TARGET_OBJS)
 
+# Adjustments depending on OS
 ifeq (osx,$(OS))
-	BACK_OBJS += machobj.o
+    GLUE_OBJS += libmach.o scanmach.o
+    BACK_OBJS += machobj.o
 else
-	BACK_OBJS += elfobj.o
+    GLUE_OBJS += libelf.o scanelf.o
+    BACK_OBJS += elfobj.o
 endif
 
-SRC = win32.mak posix.mak osmodel.mak \
-	mars.c enum.c struct.c dsymbol.c import.c idgen.d impcnvgen.c \
-	identifier.c mtype.c expression.c optimize.c template.h \
-	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
-	aggregate.h parse.c statement.c constfold.c version.h version.c \
-	inifile.c module.c scope.c init.h init.c attrib.h \
-	attrib.c opover.c class.c mangle.c func.c nogc.c inline.c \
-	access.c complex_t.h \
-	identifier.h parse.h \
-	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
-	declaration.h lexer.h expression.h statement.h \
-	utf.h utf.c staticassert.h staticassert.c \
-	entity.c \
-	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
-	delegatize.c interpret.c traits.c cppmangle.c \
-	builtin.c clone.c lib.h arrayop.c \
-	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c apply.c sapply.c sideeffect.c \
-	intrange.h intrange.c canthrow.c target.c target.h \
-	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
-	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c errors.h errors.c \
-	escape.c tokens.h tokens.c globals.h globals.c
 
-ROOT_SRC = $(ROOT)/root.h \
-	$(ROOT)/array.h \
-	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
-	$(ROOT)/man.c \
-	$(ROOT)/checkedint.h $(ROOT)/checkedint.c \
-	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
-	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
-	$(ROOT)/aav.h $(ROOT)/aav.c \
-	$(ROOT)/longdouble.h $(ROOT)/longdouble.c \
-	$(ROOT)/speller.h $(ROOT)/speller.c \
-	$(ROOT)/outbuffer.h $(ROOT)/outbuffer.c \
-	$(ROOT)/object.h $(ROOT)/object.c \
-	$(ROOT)/filename.h $(ROOT)/filename.c \
-	$(ROOT)/file.h $(ROOT)/file.c
-
-GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
-	toobj.c toctype.c tocvdebug.c toir.h toir.c \
-	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
-	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
-	tk.c eh.c gluestub.c
-
-BACK_SRC = \
-	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
-	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
-	$C/el.h $C/iasm.h $C/rtlsym.h \
-	$C/bcomplex.c $C/blockopt.c $C/cg.c $C/cg87.c $C/cgxmm.c \
-	$C/cgcod.c $C/cgcs.c $C/cgcv.c $C/cgelem.c $C/cgen.c $C/cgobj.c \
-	$C/cgreg.c $C/var.c $C/strtold.c \
-	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.c \
-	$C/code.c $C/symbol.c $C/debug.c $C/dt.c $C/ee.c $C/el.c \
-	$C/evalu8.c $C/go.c $C/gflow.c $C/gdag.c \
-	$C/gother.c $C/glocal.c $C/gloop.c $C/newman.c \
-	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
-	$C/type.c $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
-	$C/cdeflnx.h $C/outbuf.h $C/token.h $C/tassert.h \
-	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
-	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
-	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
-	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.c \
-	$C/md5.c $C/md5.h \
-	$C/ph2.c $C/util2.c \
-	$(TARGET_CH)
-
-TK_SRC = \
-	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
-	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
-
-DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
-
+# Target dependencies
+########################################################################
 all: dmd
 
+$(DMD_OBJS) $(GLUE_OBJS): idgen impcnvgen
+$(BACK_OBJS): optabgen
+
 frontend.a: $(DMD_OBJS)
-	ar rcs frontend.a $(DMD_OBJS)
-
 root.a: $(ROOT_OBJS)
-	ar rcs root.a $(ROOT_OBJS)
-
 glue.a: $(GLUE_OBJS)
-	ar rcs glue.a $(GLUE_OBJS)
-
 backend.a: $(BACK_OBJS)
-	ar rcs backend.a $(BACK_OBJS)
 
 dmd: frontend.a root.a glue.a backend.a
+	@echo "  (LINK)  $@"
 	$(HOST_CC) -o dmd $(MODEL_FLAG) frontend.a root.a glue.a backend.a $(LDFLAGS)
 
-clean:
-	rm -f $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
-	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
-	tytab.c verstr.h core \
-	*.cov *.deps *.gcda *.gcno *.a
+clean: clean-optabgen clean-idgen clean-impcnvgen
+	rm -f dmd \
+	$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) \
+	verstr.h core *.deps *.gcda *.gcno *.gcov *.cov *.a *.o
+
+# Just include all deps-file, the compiler fixes this for us.
+-include $(wildcard *.deps)
+
+
+# Generating targets
+########################################################################
 
 ######## generate a default dmd.conf
-
 define DEFAULT_DMD_CONF
 [Environment32]
 DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/32$(if $(filter $(OS),osx),, -L--export-dynamic)
@@ -294,60 +231,41 @@ dmd.conf:
 	[ -f $@ ] || echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## optabgen generates some source
-
-optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(CC) $(CFLAGS) -I$(TK) $< -o optabgen
-	./optabgen
-
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
 $(optabgen_output) : optabgen
+optabgen: $C/optabgen.c $C/cc.h $C/oper.h
+	@echo "  Build and run $@ ..."
+	$(CC) $(CFLAGS) -I$(TK) $< -o $@
+	./$@
+clean-optabgen:
+	-rm -f optabgen $(optabgen_output)
 
 ######## idgen generates some source
-
 idgen_output = id.h id.c
 $(idgen_output) : idgen
-
 idgen : idgen.d
+	@echo "  Build and run $@ ..."
 	$(HOST_DC) -run idgen
+clean-idgen:
+	-rm -f idgen $(idgen_output)
 
 ######### impcnvgen generates some source
-
-impcnvtab_output = impcnvtab.c
-$(impcnvtab_output) : impcnvgen
-
-impcnvgen : mtype.h impcnvgen.c
-	$(CC) $(CFLAGS) -I$(ROOT) impcnvgen.c -o impcnvgen
-	./impcnvgen
-
-#########
-
-# Create (or update) the verstr.h file.
-# The file is only updated if the VERSION file changes, or, only when RELEASE=1
-# is not used, when the full version string changes (i.e. when the git hash or
-# the working tree dirty states changes).
-# The full version string have the form VERSION-devel-HASH(-dirty).
-# The "-dirty" part is only present when the repository had uncommitted changes
-# at the moment it was compiled (only files already tracked by git are taken
-# into account, untracked files don't affect the dirty state).
-VERSION := $(shell cat ../VERSION)
-ifneq (1,$(RELEASE))
-VERSION_GIT := $(shell printf "`$(GIT) rev-parse --short HEAD`"; \
-       test -n "`$(GIT) status --porcelain -uno`" && printf -- -dirty)
-VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
-endif
-$(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
-		&& printf \"$(VERSION)\" > verstr.h )
-
-#########
-
-$(DMD_OBJS) $(GLUE_OBJS) : $(idgen_output) $(impcnvgen_output)
-$(BACK_OBJS) : $(optabgen_output)
+impcnvgen_output = impcnvtab.c
+$(impcnvgen_output) : impcnvgen
+impcnvgen : impcnvgen.c mtype.h
+	@echo "  Build and run $@ ..."
+	$(CC) $(CFLAGS) -I$(ROOT) $< -o $@
+	./$@
+clean-impcnvgen:
+	-rm -f impcnvgen $(impcnvgen_output)
 
 
 # Specific dependencies other than the source file for all objects
 ########################################################################
 # If additional flags are needed for a specific file add a _CFLAGS as a
-# dependency to the object file and assign the appropriate content.
+# dependency to the object file and assign the appropriate
+# content. These files are compiled by the implicit targets in the next
+# section.
 
 cg.o: fltables.c
 
@@ -366,10 +284,11 @@ mars.o: verstr.h
 var.o: optab.c tytab.c
 
 
-# Generic rules for all source files
+# Generic (implicit) rules for all source files
 ########################################################################
 # Search the directory $(C) for .c-files when using implicit pattern
-# matching below.
+# matching below. The above specific deps slightly adjust the following
+# rules for some of the source files.
 vpath %.c $(C)
 
 $(DMD_OBJS): %.o: %.c posix.mak
@@ -388,10 +307,34 @@ $(ROOT_OBJS): %.o: $(ROOT)/%.c posix.mak
 	@echo "  (CC)  ROOT_OBJS  $<"
 	$(CC) -c $(CFLAGS) $(ROOT_FLAGS) $(MMD) $<
 
+%.a:
+	@echo "  (AR)  Archiving $@"
+	ar rcs $@ $?
 
--include $(DEPS)
 
-######################################################
+# Version string in verstr.h
+########################################################################
+# Create (or update) the verstr.h file.
+# The file is only updated if the VERSION file changes, or, only when RELEASE=1
+# is not used, when the full version string changes (i.e. when the git hash or
+# the working tree dirty states changes).
+# The full version string have the form VERSION-devel-HASH(-dirty).
+# The "-dirty" part is only present when the repository had uncommitted changes
+# at the moment it was compiled (only files already tracked by git are taken
+# into account, untracked files don't affect the dirty state).
+GIT     := git
+VERSION := $(shell cat ../VERSION)
+ifneq (1,$(RELEASE))
+VERSION_GIT := $(shell printf "`$(GIT) rev-parse --short HEAD`"; \
+       test -n "`$(GIT) status --porcelain -uno`" && printf -- -dirty)
+VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
+endif
+$(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
+		&& printf \"$(VERSION)\" > verstr.h )
+
+
+# Install target
+########################################################################
 
 install: all
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
@@ -401,85 +344,27 @@ install: all
 	cp backendlicense.txt $(INSTALL_DIR)/dmd-backendlicense.txt
 	cp boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
 
-######################################################
+
+# Gcov (coverage testing)
+########################################################################
+# Run gcov on all available gcno files if gcov is found, then run gcovr
+# if that one is found as well.
 
 gcov:
-	gcov access.c
-	gcov aliasthis.c
-	gcov apply.c
-	gcov arrayop.c
-	gcov attrib.c
-	gcov builtin.c
-	gcov canthrow.c
-	gcov cast.c
-	gcov class.c
-	gcov clone.c
-	gcov cond.c
-	gcov constfold.c
-	gcov declaration.c
-	gcov delegatize.c
-	gcov doc.c
-	gcov dsymbol.c
-	gcov e2ir.c
-	gcov eh.c
-	gcov entity.c
-	gcov enum.c
-	gcov expression.c
-	gcov func.c
-	gcov nogc.c
-	gcov glue.c
-	gcov iasm.c
-	gcov identifier.c
-	gcov imphint.c
-	gcov import.c
-	gcov inifile.c
-	gcov init.c
-	gcov inline.c
-	gcov interpret.c
-	gcov ctfeexpr.c
-	gcov irstate.c
-	gcov json.c
-	gcov lexer.c
-ifeq (osx,$(OS))
-	gcov libmach.c
-else
-	gcov libelf.c
-endif
-	gcov link.c
-	gcov macro.c
-	gcov mangle.c
-	gcov mars.c
-	gcov module.c
-	gcov msc.c
-	gcov mtype.c
-	gcov nspace.c
-	gcov opover.c
-	gcov optimize.c
-	gcov parse.c
-	gcov scope.c
-	gcov sideeffect.c
-	gcov statement.c
-	gcov staticassert.c
-	gcov s2ir.c
-	gcov struct.c
-	gcov template.c
-	gcov tk.c
-	gcov tocsym.c
-	gcov todt.c
-	gcov toobj.c
-	gcov toctype.c
-	gcov toelfdebug.c
-	gcov typinf.c
-	gcov utf.c
-	gcov version.c
-	gcov intrange.c
-	gcov target.c
+	files=*.gcno; \
+	[ $${#files[*]} -gt 0 ] && \
+		gcov -md *.gcno || \
+		echo "No gcno files, execute test suite"
 
-#	gcov hdrgen.c
-#	gcov tocvdebug.c
+gcovr: gcov
+	@echo "Creating gcov report: gcov-report.html"
+	gcovr --html -o gcov-report.html .
 
-######################################################
 
+# Zip source directory
+########################################################################
+# Zip's the whole 'src' directory skipping Win build files and some
+# other files not required.
 zip:
 	-rm -f dmdsrc.zip
-	zip dmdsrc $(SRC) $(ROOT_SRC) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
+	zip dmdsrc -r . -x dmd_msc\* vcbuild\* \*.zip \*.o \*.txt verstr.h
