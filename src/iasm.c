@@ -401,7 +401,6 @@ struct OPND
     REG *pregDisp1;         // if [register1]
     REG *pregDisp2;
     REG *segreg;            // if segment override
-    char indirect;          // if had a '*' or '->'
     bool bOffset;           // if 'offset' keyword
     bool bSeg;              // if 'segment' keyword
     bool bPtr;              // if 'ptr' keyword
@@ -4130,18 +4129,6 @@ static OPND *asm_una_exp()
 
     switch ((int)tok_value)
     {
-#if 0
-        case TOKand:
-            asm_token();
-            o1 = asm_una_exp();
-            break;
-
-        case TOKmul:
-            asm_token();
-            o1 = asm_una_exp();
-            ++o1->indirect;
-            break;
-#endif
         case TOKadd:
             asm_token();
             o1 = asm_una_exp();
@@ -4514,81 +4501,6 @@ static OPND *asm_primary_exp()
 Lret:
     return o1;
 }
-
-/*******************************
- */
-
-#if 0
-static OPND *asm_prim_post(OPND *o1)
-{
-    OPND *o2;
-    Declaration *d = o1->s ? o1->s->isDeclaration() : NULL;
-    Type *t;
-
-    t = d ? d->type : o1->ptype;
-    while (1)
-    {
-        switch (tok_value)
-        {
-#if 0
-            case TKarrow:
-                if (++o1->indirect > 1)
-                {
-                BAD_OPERAND:
-                    asmerr("bad operand");
-                }
-                if (s->Sclass != SCregister)
-                    goto BAD_OPERAND;
-                if (!typtr(t->Tty))
-                {
-                    asmerr("pointer",t,(type *) NULL);
-                }
-                else
-                    t = t->Tnext;
-            case TKcolcol:
-                if (tybasic(t->Tty) != TYstruct)
-                    asmerr("not struct");      // not a struct or union type
-                goto L1;
-
-            case TOKdot:
-                for (; t && tybasic(t->Tty) != TYstruct;
-                     t = t->Tnext)
-                        ;
-                if (!t)
-                    asmerr("not struct");
-            L1:
-                /* try to find the symbol */
-                asm_token();
-                if (tok_value != TOKidentifier)
-                    asmerr("identifier expected");
-                s = n2_searchmember(t->Ttag,tok.TKid);
-                if (!s)
-                {
-                    err_notamember(tok.TKid,t->Ttag);
-                }
-                else
-                {
-                    asm_merge_symbol(o1,s);
-                    t = s->Stype;
-                    asm_token();
-                }
-                break;
-#endif
-
-            case TOKlbracket:
-                asm_token();
-                asm_TKlbra_seen++;
-                o2 = asm_cond_exp();
-                asm_chktok(TOKrbracket,"] expected instead of '%s'");
-                asm_TKlbra_seen--;
-                return asm_merge_opnds(o1, o2);
-
-            default:
-                return o1;
-        }
-    }
-}
-#endif
 
 /*******************************
  */
