@@ -307,8 +307,9 @@ $(optabgen_output) : optabgen
 idgen_output = id.h id.c
 $(idgen_output) : idgen
 
-idgen : idgen.d
-	$(HOST_DC) -run idgen
+idgen: idgen.d
+	$(HOST_DC) idgen.d
+	./idgen
 
 ######### impcnvgen generates some source
 
