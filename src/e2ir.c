@@ -41,8 +41,6 @@
 #include        "type.h"
 #include        "toir.h"
 #include        "ctfe.h"
-static char __file__[] = __FILE__;      /* for tassert.h                */
-#include        "tassert.h"
 
 typedef Array<elem *> Elems;
 
