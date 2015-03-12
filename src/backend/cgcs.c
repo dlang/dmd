@@ -59,7 +59,7 @@ STATIC void touchfunc(int);
 STATIC void touchstar();
 STATIC void touchaccess(elem *);
 STATIC void touchall();
-
+
 /*******************************
  * Eliminate common subexpressions across extended basic blocks.
  * String together as many blocks as we can.
@@ -153,7 +153,7 @@ void cgcs_term()
     hcstab = NULL;
     hcsmax = 0;
 }
-
+
 /*************************
  * Eliminate common subexpressions for an element.
  */
@@ -503,7 +503,7 @@ STATIC void addhcstab(elem *e,int hash)
   hcstab[h].Hhash = hash;
   hcsarray.top++;
 }
-
+
 /***************************
  * "touch" the elem.
  * If it is a pointer, "touch" all the suspects
@@ -568,7 +568,7 @@ STATIC void touchlvalue(elem *e)
             assert(0);
     }
 }
-
+
 /**************************
  * "touch" variables that could be changed by a function call or
  * an indirect assignment.

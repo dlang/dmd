@@ -160,7 +160,7 @@ void builddags()
                 }
             }
 }
-
+
 /**********************************
  */
 
@@ -352,7 +352,7 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
             vec_setbit(n->Eexp,ae);     /* mark this elem as available  */
         }
 }
-
+
 /**************************
  * Remove a CSE.
  * Input:
@@ -558,7 +558,7 @@ L1:     e = *pe;
         pe = &(e->E1);
         goto L1;
 }
-
+
 /*****************************************
  * Do optimizations based on if we know an expression is
  * 0 or !=0, even though we don't know anything else.
@@ -635,7 +635,7 @@ void boolopt()
         vec_free(aevec);
         vec_free(aevecval);
 }
-
+
 /****************************
  * Walk tree, replacing bool expressions that we know
  *      ae = vector of available boolean expressions

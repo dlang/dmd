@@ -239,7 +239,7 @@ int elemisnegone(elem *e)
 nomatch:
     return FALSE;
 }
-
+
 /**********************************
  * Swap relational operators (like if we swapped the leaves).
  */
@@ -251,7 +251,7 @@ unsigned swaprel(unsigned op)
         op = rel_swap(op);
     return op;
 }
-
+
 /**************************
  * Replace e1 by t=e1, replace e2 by t.
  */
@@ -322,7 +322,7 @@ int fcost(elem *e)
         cost = 8;
     return cost;
 }
-
+
 /*******************************
  * The lvalue of an op= is a conversion operator. Since the code
  * generator cannot handle this, we will have to fix it here. The
@@ -523,7 +523,7 @@ STATIC elem *fixconvop(elem *e)
 //elem_print(e);
         return e;
 }
-
+
 STATIC elem * elerr(elem *e, goal_t goal)
 {
 #ifdef DEBUG
@@ -537,7 +537,7 @@ STATIC elem * elerr(elem *e, goal_t goal)
 
 STATIC elem * elzot(elem *e, goal_t goal)
 { return e; }
-
+
 /****************************
  */
 
@@ -769,7 +769,7 @@ STATIC elem * elmemxxx(elem *e, goal_t goal)
     return e;
 }
 
-
+
 /***********************
  *        +             #       (combine offsets with addresses)
  *       / \    =>      |
@@ -1045,7 +1045,7 @@ Lneg:
     again = 1;
     return e;
 }
-
+
 /************************
  * Subtract
  *        -               +
@@ -1850,7 +1850,7 @@ STATIC elem * elnot(elem *e, goal_t goal)
   }
   return e;
 }
-
+
 /*************************
  * Complement
  *      ~ ~ e => e
@@ -2219,7 +2219,7 @@ Lret:
     again = changes != 0;
     return e;
 }
-
+
 /********************************
  */
 
@@ -2342,7 +2342,7 @@ STATIC elem * eldiv(elem *e, goal_t goal)
 
     return e;
 }
-
+
 /**************************
  * Convert (a op b) op c to a op (b op c).
  */
@@ -2783,7 +2783,7 @@ L3:
 L1:
     return e;
 }
-
+
 /**************************
  * Reference to bit field
  *       bit
@@ -3041,7 +3041,7 @@ STATIC elem * elcall(elem *e, goal_t goal)
         e = cgel_lvalue(e);
     return e;
 }
-
+
 /***************************
  * Walk tree, converting types to tym.
  */
@@ -3596,7 +3596,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
   return optelem(eres,GOALvalue);
 #endif
 }
-
+
 /**********************************
  */
 
@@ -3605,7 +3605,7 @@ STATIC elem * elnegass(elem *e, goal_t goal)
     e = cgel_lvalue(e);
     return e;
 }
-
+
 /**************************
  * Add assignment. Replace bit field assignment with
  * equivalent tree.
@@ -3787,7 +3787,7 @@ STATIC elem * elopass(elem *e, goal_t goal)
     }
     return e;
 }
-
+
 /**************************
  * Add assignment. Replace bit field post assignment with
  * equivalent tree.
@@ -3823,7 +3823,7 @@ STATIC elem * elpost(elem *e, goal_t goal)
         e = el_bin(OPand,ty,e,el_long(ty,m));
     return optelem(e,GOALvalue);
 }
-
+
 /***************************
  * Take care of compares.
  *      (e == 0) => (!e)
@@ -4240,7 +4240,7 @@ STATIC elem * elvptrfptr(elem *e, goal_t goal)
 }
 
 #endif
-
+
 /************************
  * Optimize conversions of longs to ints.
  * Also used for (OPoffset) (TYfptr|TYvptr).
@@ -5400,7 +5400,7 @@ L1:
   return (*elxxx[op])(e, goal);
 #endif
 }
-
+
 /********************************
  * Optimize and canonicalize an expression tree.
  * Fiddle with double operators so that the rvalue is a pointer
