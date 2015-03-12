@@ -1137,38 +1137,11 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
         if (ty == Tpointer && popnd->ptype->nextOf()->ty == Tfunction &&
             !ps->isVarDeclaration())
         {
-#if 1
             return CONSTRUCT_FLAGS(_32, _m, _fn16, 0);
-#else
-            ty = popnd->ptype->Tnext->Tty;
-            if (tyfarfunc(tybasic(ty)))
-            {
-                return !global.params.is64bit
-                    ? CONSTRUCT_FLAGS(_48, _mnoi, _fn32, 0)
-                    : CONSTRUCT_FLAGS(_32, _mnoi, _fn32, 0);
-            }
-            else
-            {
-                return !global.params.is64bit
-                    ? CONSTRUCT_FLAGS(_32, _m, _fn16, 0)
-                    : CONSTRUCT_FLAGS(_16, _m, _fn16, 0);
-            }
-#endif
         }
         else if (ty == Tfunction)
         {
-#if 1
             return CONSTRUCT_FLAGS(_32, _rel, _fn16, 0);
-#else
-            if (tyfarfunc(tybasic(ty)))
-                return !global.params.is64bit
-                    ? CONSTRUCT_FLAGS(_48, _p, _fn32, 0)
-                    : CONSTRUCT_FLAGS(_32, _p, _fn32, 0);
-            else
-                return !global.params.is64bit
-                    ? CONSTRUCT_FLAGS(_32, _rel, _fn16, 0)
-                    : CONSTRUCT_FLAGS(_16, _rel, _fn16, 0);
-#endif
         }
         else if (asmstate.ucItype == ITjump)
         {
@@ -1295,7 +1268,7 @@ static code *asm_emit(Loc loc,
     switch (usNumops)
     {
         case 0:
-            if (((!global.params.is64bit | global.params.is64bit) && (ptb.pptb0->usFlags & _16_bit)))
+            if (ptb.pptb0->usFlags & _16_bit)
             {
                 emit(0x66);
                 pc->Iflags |= CFopsize;
@@ -1357,7 +1330,7 @@ static code *asm_emit(Loc loc,
 
             // If the size of the operand is unknown, assume that it is
             // the default size
-            if (((global.params.is64bit || !global.params.is64bit) && (ptb.pptb0->usFlags & _16_bit)))
+            if (ptb.pptb0->usFlags & _16_bit)
             {
                 //if (asmstate.ucItype != ITjump)
                 {
