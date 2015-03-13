@@ -1581,7 +1581,6 @@ unsigned dwarf_typidx(type *t)
     {
         DW_TAG_pointer_type,
         0,                      // no children
-        DW_AT_byte_size,        DW_FORM_data1,
         DW_AT_type,             DW_FORM_ref4,
         0,                      0,
     };
@@ -1589,7 +1588,6 @@ unsigned dwarf_typidx(type *t)
     {
         DW_TAG_pointer_type,
         0,                      // no children
-        DW_AT_byte_size,        DW_FORM_data1,
         0,                      0,
     };
 #ifdef USE_DWARF_D_EXTENSIONS
@@ -1715,7 +1713,6 @@ unsigned dwarf_typidx(type *t)
                 : dwarf_abbrev_code(abbrevTypePointerVoid, sizeof(abbrevTypePointerVoid));
             idx = infobuf->size();
             infobuf->writeuLEB128(code);        // abbreviation code
-            infobuf->writeByte(tysize(t->Tty)); // DW_AT_byte_size
             if (nextidx)
                 infobuf->write32(nextidx);      // DW_AT_type
             break;
