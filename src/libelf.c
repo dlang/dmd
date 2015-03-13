@@ -185,7 +185,7 @@ struct Header
 
 void OmToHeader(Header *h, ObjModule *om)
 {
-    char* buffer = reinterpret_cast<char*>(h);
+    char* buffer = (char*)h;
     // user_id and group_id are padded on 6 characters in Header struct.
     // Squashing to 0 if more than 999999.
     if (om->user_id > 999999)
