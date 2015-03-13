@@ -514,7 +514,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
         time(&om->file_time);
         om->user_id = uid;
         om->group_id = gid;
-        om->file_mode = 0100640;
+        om->file_mode = (1 << 15) | (6 << 6) | (4 << 3); // 0100640
     }
     objmodules.push(om);
 }

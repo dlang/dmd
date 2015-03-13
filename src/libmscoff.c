@@ -613,7 +613,7 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
         om->file_time = (long)file_time;
         om->user_id = 0;                // meaningless on Windows
         om->group_id = 0;               // meaningless on Windows
-        om->file_mode = 0100644;
+        om->file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
     }
     objmodules.push(om);
 }
