@@ -77,6 +77,8 @@ SCPDIR=..\backup
 
 # C++ compiler
 CC=dmc
+# D compiler (set with env variable)
+#HOST_DC=dmd
 # Make program
 MAKE=make
 # Librarian
