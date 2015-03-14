@@ -1489,7 +1489,7 @@
 				Name="gen"
 				>
 				<File
-					RelativePath=".\idgen.c"
+					RelativePath=".\idgen.d"
 					>
 					<FileConfiguration
 						Name="Debug|Win32"
@@ -1497,8 +1497,8 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
-							AdditionalDependencies="idgen.c"
+							CommandLine="dmd -od$(IntDir) -of$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							AdditionalDependencies="idgen.d"
 							Outputs="id.c;id.h;$(IntDir)\$(InputName).exe"
 						/>
 					</FileConfiguration>
@@ -1508,8 +1508,8 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
-							AdditionalDependencies="idgen.c"
+							CommandLine="dmd -od$(IntDir) -of$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							AdditionalDependencies="idgen.d"
 							Outputs="id.c;id.h;$(IntDir)\$(InputName).exe"
 						/>
 					</FileConfiguration>
@@ -1519,8 +1519,8 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
-							AdditionalDependencies="idgen.c"
+							CommandLine="dmd -od$(IntDir) -of$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							AdditionalDependencies="idgen.d"
 							Outputs="id.c;id.h;$(IntDir)\$(InputName).exe"
 						/>
 					</FileConfiguration>
@@ -1530,8 +1530,8 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
-							AdditionalDependencies="idgen.c"
+							CommandLine="dmd -od$(IntDir) -of$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							AdditionalDependencies="idgen.d"
 							Outputs="id.c;id.h;$(IntDir)\$(InputName).exe"
 						/>
 					</FileConfiguration>
