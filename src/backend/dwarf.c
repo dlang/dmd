@@ -100,7 +100,7 @@ void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
 void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 {
 #if ELFOBJ
-    ElfObj::addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg), val);
+    ElfObj::addrel(seg, offset, I64 ? R_X86_64_64 : R_386_32, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
     MachObj::addrel(seg, offset, NULL, targseg, RELaddr, val);
 #else
@@ -1421,8 +1421,8 @@ void cv_outsym(symbol *s)
             soffset = infobuf->size();
             infobuf->writeByte(2);                      // DW_FORM_block1
 
-            // append DW_OP_GNU_push_tls_address for tls variables
 #if ELFOBJ
+            // debug info for TLS variables
             assert(s->Sxtrnnum);
             if (s->Sfl == FLtlsdata)
             {
@@ -1447,8 +1447,7 @@ void cv_outsym(symbol *s)
 #endif
             {
                 infobuf->writeByte(DW_OP_addr);
-                dwarf_addrel(infoseg,infobuf->size(),s->Sseg);
-                append_addr(infobuf, s->Soffset);    // address of global
+                dwarf_appreladdr(infoseg, infobuf, s->Sseg, s->Soffset); // address of global
             }
 
             infobuf->buf[soffset] = infobuf->size() - soffset - 1;
