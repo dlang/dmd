@@ -55,6 +55,8 @@ struct TestArgs
     string[] objcSources;
     string   permuteArgs;
     string   compileOutput;
+    string   gdbScript;
+    string   gdbMatch;
     string   postScript;
     string   requiredArgs;
     string   requiredArgsForLink;
@@ -123,9 +125,9 @@ bool findOutputParameter(string file, string token, out string result, string se
         if (file[istart] == ':') ++istart;
 
         enum embed_sep = "---";
-
         auto n = std.string.indexOf(file[istart .. $], embed_sep);
-        enforce(n != -1, "invalid TEST_OUTPUT format");
+
+        enforce(n != -1, "invalid "~token~" format");
         istart += n + embed_sep.length;
         while (file[istart] == '-') ++istart;
         if (file[istart] == '\r') ++istart;
@@ -228,6 +230,9 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findTestParameter(file, "DISABLED", testArgs.disabled_reason);
 
     findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+
+    findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
+    findTestParameter(file, "GDB_MATCH", testArgs.gdbMatch);
 
     if (findTestParameter(file, "POST_SCRIPT", testArgs.postScript))
         testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
@@ -577,10 +582,27 @@ int main(string[] args)
                         toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".pdb";
                     }
 
-                string command = test_app_dmd;
-                if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
+                if (testArgs.gdbScript is null)
+                {
+                    string command = test_app_dmd;
+                    if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                execute(fThisRun, command, true, result_path);
+                    execute(fThisRun, command, true, result_path);
+                }
+                else version (linux)
+                {
+                    auto script = test_app_dmd_base ~ to!string(i) ~ ".gdb";
+                    toCleanup ~= script;
+                    with (File(script, "w"))
+                        write(testArgs.gdbScript);
+                    string command = "gdb "~test_app_dmd~" --batch -x "~script;
+                    auto gdb_output = execute(fThisRun, command, true, result_path);
+                    if (testArgs.gdbMatch !is null)
+                    {
+                        enforce(match(gdb_output, regex(testArgs.gdbMatch)),
+                                "\nGDB regex: '"~testArgs.gdbMatch~"' didn't match output:\n----\n"~gdb_output~"\n----\n");
+                    }
+                }
             }
 
             fThisRun.close();
@@ -619,4 +641,3 @@ int main(string[] args)
 
     return 0;
 }
-
