@@ -2157,7 +2157,8 @@ unsigned dwarf_typidx(type *t)
         case TYllong2:   tbase = tsllong;  goto Lvector;
         case TYullong2:  tbase = tsullong; goto Lvector;
         Lvector:
-        {   static unsigned char abbrevTypeArray[] =
+        {
+            static unsigned char abbrevTypeArray[] =
             {
                 DW_TAG_array_type,
                 1,                      // child (the subrange type)
@@ -2166,38 +2167,36 @@ unsigned dwarf_typidx(type *t)
                 DW_AT_sibling,          DW_FORM_ref4,
                 0,                      0,
             };
-            static unsigned char abbrevTypeBaseTypeSibling[] =
+            static unsigned char abbrevSubRange[] =
             {
-                DW_TAG_base_type,
-                0,                      // no children
-                DW_AT_byte_size,        DW_FORM_data1,  // sizeof(tssize_t)
-                DW_AT_encoding,         DW_FORM_data1,  // DW_ATE_unsigned
-                0,                      0,
+                DW_TAG_subrange_type,
+                0,                                // no children
+                DW_AT_upper_bound, DW_FORM_data1, // length of vector
+                0,                 0,
             };
 
-            unsigned code2 = dwarf_abbrev_code(abbrevTypeBaseTypeSibling, sizeof(abbrevTypeBaseTypeSibling));
-            unsigned code1 = dwarf_abbrev_code(abbrevTypeArray, sizeof(abbrevTypeArray));
+            unsigned code = dwarf_abbrev_code(abbrevTypeArray, sizeof(abbrevTypeArray));
             unsigned idxbase = dwarf_typidx(tbase);
-            unsigned idxsibling = 0;
             unsigned siblingoffset;
 
             idx = infobuf->size();
 
-            infobuf->writeuLEB128(code1);       // DW_TAG_array_type
+            infobuf->writeuLEB128(code);        // DW_TAG_array_type
             infobuf->writeByte(1);              // DW_AT_GNU_vector
             infobuf->write32(idxbase);          // DW_AT_type
             siblingoffset = infobuf->size();
-            infobuf->write32(idxsibling);       // DW_AT_sibling
+            infobuf->write32(0);                // DW_AT_sibling
+            // vector length stored as subrange type
+            code = dwarf_abbrev_code(abbrevSubRange, sizeof(abbrevSubRange));
+            infobuf->writeuLEB128(code);        // DW_TAG_subrange_type
+            unsigned char dim = tysize[tybasic(t->Tty)] / tysize[tybasic(tbase->Tty)];
+            infobuf->writeByte(dim - 1);        // DW_AT_upper_bound
 
-            idxsibling = infobuf->size();
-            *(unsigned *)(infobuf->buf + siblingoffset) = idxsibling;
-
-            // Not sure why this is necessary instead of using dwarf_typidx(tssize), but gcc does it
-            infobuf->writeuLEB128(code2);       // DW_TAG_base_type
-            infobuf->writeByte(tysize(tssize->Tty));              // DW_AT_byte_size
-            infobuf->writeByte(DW_ATE_unsigned);        // DT_AT_encoding
 
             infobuf->writeByte(0);              // no more siblings
+            unsigned idxsibling = infobuf->size();
+            *(unsigned *)(infobuf->buf + siblingoffset) = idxsibling;
+
             break;
         }
 
