@@ -2994,7 +2994,6 @@ Type *Parser::parseBasicType()
     Type *t;
     Loc loc;
     Identifier *id;
-    TypeQualified *tid;
 
     //printf("parseBasicType()\n");
     switch (token.value)
@@ -3038,45 +3037,23 @@ Type *Parser::parseBasicType()
                 // ident!(template_arguments)
                 TemplateInstance *tempinst = new TemplateInstance(loc, id);
                 tempinst->tiargs = parseTemplateArguments();
-                tid = new TypeInstance(loc, tempinst);
-                goto Lident2;
+                t = parseBasicTypeStartingAt(new TypeInstance(loc, tempinst));
             }
-        Lident:
-            tid = new TypeIdentifier(loc, id);
-        Lident2:
-            while (token.value == TOKdot)
+            else
             {
-                nextToken();
-                if (token.value != TOKidentifier)
-                {
-                    error("identifier expected following '.' instead of '%s'", token.toChars());
-                    break;
-                }
-                loc = token.loc;
-                id = token.ident;
-                nextToken();
-                if (token.value == TOKnot)
-                {
-                    TemplateInstance *tempinst = new TemplateInstance(loc, id);
-                    tempinst->tiargs = parseTemplateArguments();
-                    tid->addInst(tempinst);
-                }
-                else
-                    tid->addIdent(id);
+                t = parseBasicTypeStartingAt(new TypeIdentifier(loc, id));
             }
-            t = tid;
             break;
 
         case TOKdot:
             // Leading . as in .foo
-            loc = token.loc;
-            id = Id::empty;
-            goto Lident;
+            t = parseBasicTypeStartingAt(new TypeIdentifier(token.loc, Id::empty));
+            break;
 
         case TOKtypeof:
             // typeof(expression)
-            tid = parseTypeof();
-            goto Lident2;
+            t = parseBasicTypeStartingAt(parseTypeof());
+            break;
 
         case TOKvector:
             t = parseVector();
@@ -3120,6 +3097,31 @@ Type *Parser::parseBasicType()
             break;
     }
     return t;
+}
+
+Type* Parser::parseBasicTypeStartingAt(TypeQualified* tid)
+{
+    while (token.value == TOKdot)
+    {
+        nextToken();
+        if (token.value != TOKidentifier)
+        {
+            error("identifier expected following '.' instead of '%s'", token.toChars());
+            break;
+        }
+        Loc loc = token.loc;
+        Identifier *id = token.ident;
+        nextToken();
+        if (token.value == TOKnot)
+        {
+            TemplateInstance *tempinst = new TemplateInstance(loc, id);
+            tempinst->tiargs = parseTemplateArguments();
+            tid->addInst(tempinst);
+        }
+        else
+            tid->addIdent(id);
+    }
+    return tid;
 }
 
 /******************************************
