@@ -325,9 +325,9 @@ int tryMain(size_t argc, const char *argv[])
     global.params.mscoff = false;
     global.params.is64bit = false;
     global.params.defaultlibname = "phobos";
-#elif TARGET_LINUX
+#elif TARGET_LINUX || TARGET_FREEBSD
     global.params.defaultlibname = "libphobos2.a";
-#elif TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#elif TARGET_OSX || TARGET_OPENBSD || TARGET_SOLARIS
     global.params.defaultlibname = "phobos2";
 #else
 #error "fix this"
