@@ -1655,7 +1655,14 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (p->storageClass & STCref)
             {
-                arg = arg->toLvalue(sc, arg);
+                if (p->storageClass & STCauto &&
+                    (arg->op == TOKthis || arg->op == TOKsuper))
+                {
+                    // suppress deprecation message for auto ref parameter
+                    // temporary workaround for Bugzilla 14283
+                }
+                else
+                    arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)
             {
