@@ -6317,6 +6317,10 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
 
             ti = (TemplateInstance *)ti->syntaxCopy(NULL);
             id = ti;
+        } else if (id->dyncast() == DYNCAST_EXPRESSION) {
+            Expression* e = (Expression*)id;
+            e = e->syntaxCopy();
+            id = e;
         }
         idents[i] = id;
     }
@@ -6330,6 +6334,11 @@ void TypeQualified::addIdent(Identifier *ident)
 void TypeQualified::addInst(TemplateInstance *inst)
 {
     idents.push(inst);
+}
+
+void TypeQualified::addIndex(Expression *e)
+{
+    idents.push(e);
 }
 
 d_uns64 TypeQualified::size(Loc loc)

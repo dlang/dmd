@@ -3101,27 +3101,115 @@ Type *Parser::parseBasicType()
 
 Type* Parser::parseBasicTypeStartingAt(TypeQualified* tid)
 {
-    while (token.value == TOKdot)
+    TypeSArray* maybeSArray = NULL;
+    // See https://issues.dlang.org/show_bug.cgi?id=1215
+    // A basic type can look like MyType (typical case), but also:
+    //  MyType.T -> A type
+    //  MyType[expr] -> Either a static array of MyType or a type (iif MyType is a Ttuple)
+    //  MyType[expr].T -> A type.
+    //  MyType[expr].T[expr] ->  Either a static array of MyType[expr].T or a type
+    //                           (iif MyType[expr].T is a Ttuple)
+    while (1)
     {
-        nextToken();
-        if (token.value != TOKidentifier)
+        switch (token.value)
         {
-            error("identifier expected following '.' instead of '%s'", token.toChars());
-            break;
+            case TOKdot:
+            {
+                nextToken();
+                if (token.value != TOKidentifier)
+                {
+                    error("identifier expected following '.' instead of '%s'", token.toChars());
+                    break;
+                }
+                if (maybeSArray)
+                {
+                    // This is actually a TypeTuple index, not an sarray.
+                    // We need to have a while loop to unwind all index taking:
+                    // T[e1][e2].U   ->  T, addIndex(e1), addIndex(e2)
+                    Array<Expression*> dimStack;
+                    Type *t = (Type*)maybeSArray;
+                    while (t->ty == Tsarray)
+                    {
+                        // The SArray inner type is an SArray itself.
+                        TypeSArray* inner = (TypeSArray*)t;
+                        dimStack.push(inner->dim->syntaxCopy());
+                        t = inner->next->syntaxCopy();
+                    }
+                    assert(dimStack.dim > 0);
+                    // We're good. Replay indices in the reverse order.
+                    tid = (TypeQualified*)t;
+                    while (dimStack.dim)
+                    {
+                        Expression* dim = dimStack.pop();
+                        tid->addIndex(dim);
+                    }
+                    maybeSArray = NULL;
+                }
+                Loc loc = token.loc;
+                Identifier *id = token.ident;
+                nextToken();
+                if (token.value == TOKnot)
+                {
+                    TemplateInstance *tempinst = new TemplateInstance(loc, id);
+                    tempinst->tiargs = parseTemplateArguments();
+                    tid->addInst(tempinst);
+                }
+                else
+                    tid->addIdent(id);
+                continue;
+            }
+            case TOKlbracket:
+            {
+                nextToken();
+                Type* t = maybeSArray ? (Type*)maybeSArray : (Type*)tid;
+                if (token.value == TOKrbracket)
+                {
+                    // It's a dynamic array, and we're done:
+                    // T[].U does not make sense.
+                    t = new TypeDArray(t);
+                    nextToken();
+                    return t;
+                }
+                else if (isDeclaration(&token, 0, TOKrbracket, NULL))
+                {
+                    // It's an associative array declaration, and we're done.
+                    // T[type].U does not make sense.
+                    Type *index = parseType();          // [ type ]
+                    t = new TypeAArray(t, index);
+                    check(TOKrbracket);
+                    return t;
+                }
+                else
+                {
+                    //printf("it's type[expression]\n");
+                    inBrackets++;
+                    Expression *e = parseAssignExp();           // [ expression ]
+                    if (token.value == TOKslice)
+                    {
+                        // It's a slice, and we're done.
+                        nextToken();
+                        Expression *e2 = parseAssignExp();      // [ exp .. exp ]
+                        t = new TypeSlice(t, e, e2);
+                        inBrackets--;
+                        check(TOKrbracket);
+                        return t;
+                    }
+                    else
+                    {
+                        maybeSArray = new TypeSArray(t, e);
+                        inBrackets--;
+                        check(TOKrbracket);
+                        continue;
+                    }
+                }
+                break;
+            }
+            default:
+                goto Lend;
         }
-        Loc loc = token.loc;
-        Identifier *id = token.ident;
-        nextToken();
-        if (token.value == TOKnot)
-        {
-            TemplateInstance *tempinst = new TemplateInstance(loc, id);
-            tempinst->tiargs = parseTemplateArguments();
-            tid->addInst(tempinst);
-        }
-        else
-            tid->addIdent(id);
     }
-    return tid;
+    Lend:
+    return maybeSArray ? (Type*)maybeSArray : (Type*)tid;
 }
 
 /******************************************
@@ -3177,7 +3265,9 @@ Type *Parser::parseBasicType2(Type *t)
                         t = new TypeSlice(t, e, e2);
                     }
                     else
+                    {
                         t = new TypeSArray(t,e);
+                    }
                     inBrackets--;
                     check(TOKrbracket);
                 }
