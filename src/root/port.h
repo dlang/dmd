@@ -68,6 +68,13 @@ struct Port
     static float strtof(const char *p, char **endp);
     static double strtod(const char *p, char **endp);
     static longdouble strtold(const char *p, char **endp);
+
+    static void writelongLE(unsigned value, void* buffer);
+    static unsigned readlongLE(void* buffer);
+    static void writelongBE(unsigned value, void* buffer);
+    static unsigned readlongBE(void* buffer);
+    static unsigned readwordLE(void* buffer);
+    static unsigned readwordBE(void* buffer);
 };
 
 #endif

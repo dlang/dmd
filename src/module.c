@@ -297,32 +297,6 @@ bool Module::read(Loc loc)
     return true;
 }
 
-inline unsigned readwordLE(unsigned short *p)
-{
-    return (((unsigned char *)p)[1] << 8) | ((unsigned char *)p)[0];
-}
-
-inline unsigned readwordBE(unsigned short *p)
-{
-    return (((unsigned char *)p)[0] << 8) | ((unsigned char *)p)[1];
-}
-
-inline unsigned readlongLE(unsigned *p)
-{
-    return ((unsigned char *)p)[0] |
-        (((unsigned char *)p)[1] << 8) |
-        (((unsigned char *)p)[2] << 16) |
-        (((unsigned char *)p)[3] << 24);
-}
-
-inline unsigned readlongBE(unsigned *p)
-{
-    return ((unsigned char *)p)[3] |
-        (((unsigned char *)p)[2] << 8) |
-        (((unsigned char *)p)[1] << 16) |
-        (((unsigned char *)p)[0] << 24);
-}
-
 void Module::parse()
 {
     //printf("Module::parse()\n");
@@ -368,7 +342,7 @@ void Module::parse()
                 for (pu += bom; pu < pumax; pu++)
                 {   unsigned u;
 
-                    u = le ? readlongLE(pu) : readlongBE(pu);
+                    u = le ? Port::readlongLE(pu) : Port::readlongBE(pu);
                     if (u & ~0x7F)
                     {
                         if (u > 0x10FFFF)
@@ -403,7 +377,7 @@ void Module::parse()
                 for (pu += bom; pu < pumax; pu++)
                 {   unsigned u;
 
-                    u = le ? readwordLE(pu) : readwordBE(pu);
+                    u = le ? Port::readwordLE(pu) : Port::readwordBE(pu);
                     if (u & ~0x7F)
                     {   if (u >= 0xD800 && u <= 0xDBFF)
                         {   unsigned u2;
@@ -412,7 +386,7 @@ void Module::parse()
                             {   error("surrogate UTF-16 high value %04x at EOF", u);
                                 fatal();
                             }
-                            u2 = le ? readwordLE(pu) : readwordBE(pu);
+                            u2 = le ? Port::readwordLE(pu) : Port::readwordBE(pu);
                             if (u2 < 0xDC00 || u2 > 0xDFFF)
                             {   error("surrogate UTF-16 low value %04x out of range", u2);
                                 fatal();
