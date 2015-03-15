@@ -39,7 +39,6 @@
 
 #define LOGSEMANTIC     0
 
-
 /************************************************
  * Delegate to be passed to overloadApply() that looks
  * for functions matching a trait.

@@ -232,6 +232,12 @@ public:
 };
 
 /**************************************************************/
+struct IntRangeList
+{
+    IntRangeList(SignExtendedNumber lower, SignExtendedNumber upper, IntRangeList *n = NULL) : range(lower, upper), next(n) {}
+    IntRange range;
+    IntRangeList *next;
+};
 
 class VarDeclaration : public Declaration
 {
@@ -258,7 +264,7 @@ public:
                                 // if the destructor should be run. Used to prevent
                                 // dtor calls on postblitted vars
     Expression *edtor;          // if !=NULL, does the destruction of the variable
-    IntRange *range;            // if !NULL, the variable is known to be within the range
+    IntRangeList *rangeStack;   // if !NULL, the variable is known to be within the range
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
