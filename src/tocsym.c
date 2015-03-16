@@ -134,8 +134,8 @@ Symbol *toSymbol(Dsymbol *s)
                 TYPE *t;
                 if (vd->storage_class & (STCout | STCref))
                 {
-                    // should be TYref, but problems in back end
-                    t = type_pointer(Type_toCtype(vd->type));
+                    t = type_allocn(TYnref, Type_toCtype(vd->type));
+                    t->Tcount++;
                 }
                 else if (vd->storage_class & STClazy)
                 {
@@ -149,8 +149,8 @@ Symbol *toSymbol(Dsymbol *s)
                 {
                     if (config.exe == EX_WIN64 && vd->type->size(Loc()) > REGSIZE)
                     {
-                        // should be TYref, but problems in back end
-                        t = type_pointer(Type_toCtype(vd->type));
+                        t = type_allocn(TYnref, Type_toCtype(vd->type));
+                        t->Tcount++;
                     }
                     else
                     {

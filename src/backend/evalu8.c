@@ -201,6 +201,9 @@ int boolres(elem *e)
                 case TYnptr:
                     b = el_tolong(e) != 0;
                     break;
+                case TYnref: // reference can't be converted to bool
+                    assert(0);
+                    break;
                 case TYfloat:
                 case TYifloat:
                 case TYdouble:

@@ -571,6 +571,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
 #endif
         case TYnullptr:
         case TYnptr:
+        case TYnref:
 #if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
