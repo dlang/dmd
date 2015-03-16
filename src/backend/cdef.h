@@ -435,7 +435,7 @@ typedef long double longdouble;
 #endif
 
 #define TOOFFSET(a,b)   (I32 ? TOLONG(a,b) : TOWORD(a,b))
-
+
 /***************************
  * Target machine data types as they appear on the host.
  */
@@ -622,7 +622,7 @@ Written by Walter Bright"
 #endif
 #endif
 #endif
-
+
 /**********************************
  * Configuration
  */

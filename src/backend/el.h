@@ -116,7 +116,7 @@ struct elem
 #define Erd       EV.sp.spu.Erd         // reaching definition
 
 #define el_int(a,b)     el_long(a,b)
-
+
 typedef elem *elem_p;   /* try to reduce the symbol table size  */
 
 void el_init(void);

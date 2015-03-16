@@ -117,7 +117,7 @@ void WRBC(unsigned bc)
     assert(bc < BCMAX);
     dbg_printf("BC%s",bcs[bc]);
 }
-
+
 /************************
  * Write arglst
  */
@@ -133,7 +133,7 @@ void WRarglst(list_t a)
         n++;
   }
 }
-
+
 /***************************
  * Write out equation elem.
  */
@@ -251,7 +251,7 @@ void WRdefnod()
         dbg_printf(");\n");
   }
 }
-
+
 void WRFL(enum FL fl)
 { static char fls[FLMAX][7] =
         {"unde  ","const ","oper  ","func  ","data  ",

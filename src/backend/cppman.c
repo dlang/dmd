@@ -300,7 +300,7 @@ L1:
 }
 
 #endif
-
+
 /***********************************
  * Generate and return a pointer to a string constructed from
  * the type, appended to the prefix.
@@ -535,7 +535,7 @@ L1:
     cpp_name[i] = 0;                    // terminate the string
     return cpp_name;
 }
-
+
 /***********************************
  * Create mangled name for template instantiation.
  */
@@ -698,7 +698,7 @@ char *template_mangle(symbol *s,param_t *arglist)
 }
 
 #endif
-
+
 /*********************************
  * Mangle a vtbl or vbtbl name.
  * Returns:

@@ -172,7 +172,7 @@ void cgcs_term();
 /* errmsgs.c */
 extern char *dlcmsgs(int);
 extern void errmsgs_term();
-
+
 /* from evalu8.c */
 int boolres(elem *);
 int iftrue(elem *);

@@ -195,7 +195,7 @@ typedef struct SYMTAB_S symtab_t;
 struct code;
 
 extern Config config;
-
+
 /////////// Position in source file
 
 typedef struct Srcpos
@@ -361,7 +361,7 @@ typedef char enum_SC;
 #else
 typedef enum SC enum_SC;
 #endif
-
+
 /******************************************
  * Basic blocks:
  *      Basic blocks are a linked list of all the basic blocks
@@ -609,7 +609,7 @@ enum BC {
     BCjplace    = 19,   // Jupiter: placeholder
     BCMAX
 };
-
+
 /**********************************
  * Functions
  */
@@ -741,7 +741,7 @@ typedef struct MEMINIT
                                 /* called for it                        */
 } meminit_t;
 
-
+
 /************************************
  * Base classes are a list of these.
  */
@@ -930,7 +930,7 @@ typedef struct ENUM
                                 /*      typedef enum { ... } E;         */
     symlist_t SEenumlist;       // all members of enum
 } enum_t;
-
+
 /***********************************
  * Special information for structs.
  */
@@ -1064,7 +1064,7 @@ typedef struct STRUCT
 
 #define struct_calloc() ((struct_t *) mem_fcalloc(sizeof(struct_t)))
 #define struct_free(st) ((void)(st))
-
+
 /**********************************
  * Symbol Table
  */
@@ -1348,7 +1348,7 @@ struct Aliassym : Symbol { };
     inline char *prettyident(Symbol *s) { return s->Sident; }
 #endif
 
-
+
 /**********************************
  * Function parameters:
  *      Pident          identifier of parameter
@@ -1403,7 +1403,7 @@ struct PARAM
     void print();               // print this param_t
     void print_list();          // print this list of param_t's
 };
-
+
 /**************************************
  * Element types.
  * These should be combined with storage classes.
@@ -1459,7 +1459,7 @@ enum FL
 #endif
         FLMAX
 };
-
+
 ////////// Srcfiles
 
 #if !MARS

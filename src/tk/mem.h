@@ -53,7 +53,7 @@
 extern int mem_inited;          /* != 0 if mem package is initialized.  */
                                 /* Test this if you have other packages */
                                 /* that depend on mem being initialized */
-
+
 /********************* PUBLIC FUNCTIONS *************************/
 
 /***********************************
@@ -222,7 +222,7 @@ char *mem_fstrdup(const char *);
 extern int __mem_line;
 extern char *__mem_file;
 #endif
-
+
 /* The following stuff forms the implementation rather than the
  * definition, so ignore it.
  */

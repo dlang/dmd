@@ -166,7 +166,7 @@ void *globalrealloc(void *oldp,size_t newsize)
     dbg_printf("globalrealloc(oldp = %p, size = x%x) = %p\n",oldp,newsize,p);
     return p;
 }
-
+
 /*****************************************
  * Functions to manage allocating a single virtual address space.
  */

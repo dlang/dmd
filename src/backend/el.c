@@ -1769,7 +1769,7 @@ elem * el_ptr_offset(symbol *s,targ_size_t offset)
 }
 
 #endif
-
+
 /*************************
  * Returns:
  *      !=0     elem evaluates right-to-left
@@ -3030,7 +3030,7 @@ void el_check(elem *e)
 }
 
 #endif
-
+
 /*******************************
  * Write out expression elem.
  */

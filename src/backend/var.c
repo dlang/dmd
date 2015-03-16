@@ -153,7 +153,7 @@ int xc = ' ';           // character last read
  */
 
 int colnumber = 0;              /* current column number                */
-
+
 /* Other variables: */
 
 int level = 0;                  /* declaration level                    */

@@ -48,7 +48,7 @@
 #endif /* MPW */
 #endif /* VMS */
 #endif
-
+
 /**********************/
 
 char * filespecaddpath(const char *path,const char *filename)

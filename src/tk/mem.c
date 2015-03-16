@@ -71,7 +71,7 @@ void err_message(const char *,...);
 #define ferr    stderr
 #define PRINT   fprintf(ferr,
 #endif
-
+
 /*******************************/
 
 void mem_setexception(enum MEM_E flag,...)
@@ -129,7 +129,7 @@ int mem_exception()
         }
     }
 }
-
+
 /****************************/
 
 #if MEM_DEBUG
@@ -163,7 +163,7 @@ char *mem_strdup(const char *s)
 }
 
 #endif /* MEM_DEBUG */
-
+
 /************* C++ Implementation ***************/
 
 #if __cplusplus && !MEM_NONE
@@ -273,7 +273,7 @@ void __cdecl operator delete[](void *p)
 #endif
 }
 #endif
-
+
 #if MEM_DEBUG
 
 static size_t mem_maxalloc;       /* max # of bytes allocated             */
@@ -339,7 +339,7 @@ static struct mem_debug
 
 /* Convert from a mem_debug struct to a mem_ptr.        */
 #define mem_dltoptr(dl) ((void *) &((dl)->data[0]))
-
+
 /*****************************
  * Set new value of file,line
  */
@@ -374,7 +374,7 @@ static void mem_fillin(const char *fil, int lin)
         fflush(ferr);
 #endif
 }
-
+
 /****************************
  * If MEM_DEBUG is not on for some modules, these routines will get
  * called.
@@ -407,7 +407,7 @@ void mem_freefp(void *p)
 {
         mem_free(p);
 }
-
+
 /***********************
  * Debug versions of mem_calloc(), mem_free() and mem_realloc().
  */
@@ -453,7 +453,7 @@ void *mem_calloc_debug(size_t n, const char *fil, int lin)
         mem_maxalloc = mem_numalloc;
     return mem_dltoptr(dl);
 }
-
+
 void mem_free_debug(void *ptr, const char *fil, int lin)
 {
         struct mem_debug *dl;
@@ -509,7 +509,7 @@ err:
         assert(0);
         /* NOTREACHED */
 }
-
+
 /*******************
  * Debug version of mem_realloc().
  */
@@ -607,7 +607,7 @@ L1:
 }
 
 #else
-
+
 /***************************/
 
 void *mem_malloc(size_t numbytes)
@@ -655,7 +655,7 @@ void *mem_calloc(size_t numbytes)
         /*printf("calloc(%d) = x%lx, mem_count = %d\n",numbytes,p,mem_count);*/
         return p;
 }
-
+
 /***************************/
 
 void *mem_realloc(void *oldmem_ptr,size_t newnumbytes)
@@ -691,7 +691,7 @@ void mem_free(void *ptr)
         free(ptr);
     }
 }
-
+
 /***************************/
 /* This is our low-rent fast storage allocator  */
 
@@ -824,7 +824,7 @@ char *mem_fstrdup(const char *s)
 }
 
 #endif
-
+
 /***************************/
 
 void mem_init()
