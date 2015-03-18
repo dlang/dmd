@@ -937,6 +937,8 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
 #if LOG
         printf("arg[%d] = %s\n", i, earg->toChars());
 #endif
+        ctfeStack.push(v);
+
         if ((fparam->storageClass & (STCout | STCref)) &&
             earg->op == TOKvar && ((VarExp *)earg)->var->toParent2() == fd)
         {
@@ -964,13 +966,14 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
             ctfeStack.push(vx);
             assert(!hasValue(vx));  // vx is made uninitialized
 
+            // Bugzilla 14299: v->ctfeAdrOnStack should be saved already
+            // in the stack before the overwrite.
             v->ctfeAdrOnStack = oldadr;
             assert(hasValue(v));    // ref parameter v should refer existing value.
         }
         else
         {
             // Value parameters and non-trivial references
-            ctfeStack.push(v);
             setValueWithoutChecking(v, earg);
         }
 #if LOG || LOGASSIGN
