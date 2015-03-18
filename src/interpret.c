@@ -2245,21 +2245,34 @@ public:
                 !hasValue(v) &&
                 v->init && !v->isCTFE())
             {
-                if (v->scope && !v->inuse)
-                    v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
-                {
-                    e = v->init->toExpression(v->type);
-                }
                 if (v->inuse)
                 {
                     error(loc, "circular initialization of %s", v->toChars());
                     return CTFEExp::cantexp;
                 }
+                if (v->scope)
+                {
+                    v->inuse++;
+                    v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
+                    v->inuse--;
+                }
+                e = v->init->toExpression(v->type);
+                if (!e)
+                    return CTFEExp::cantexp;
+                assert(e->type);
 
-                if (e && (e->op == TOKconstruct || e->op == TOKblit))
+                if (e->op == TOKconstruct || e->op == TOKblit)
                 {
                     AssignExp *ae = (AssignExp *)e;
                     e = ae->e2;
+                }
+
+                if (e->op == TOKerror)
+                {
+                    // FIXME: Ultimately all errors should be detected in prior semantic analysis stage.
+                }
+                else
+                {
                     v->inuse++;
                     e = interpret(e, istate);
                     v->inuse--;
@@ -2267,26 +2280,12 @@ public:
                         errorSupplemental(loc, "while evaluating %s.init", v->toChars());
                     if (exceptionOrCantInterpret(e))
                         return e;
-                    e->type = v->type;
                 }
-                else
-                {
-                    if (e && !e->type)
-                        e->type = v->type;
-                    if (e && e->op != TOKerror)
-                    {
-                        v->inuse++;
-                        e = interpret(e, istate);
-                        v->inuse--;
-                    }
-                    if (CTFEExp::isCantExp(e) && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
-                        errorSupplemental(loc, "while evaluating %s.init", v->toChars());
-                }
-                if (e && !CTFEExp::isCantExp(e) && e->op != TOKthrownexception)
+
+                if (v->isDataseg() || (v->storage_class & STCmanifest))
                 {
                     e = copyLiteral(e).copy();
-                    if (v->isDataseg() || (v->storage_class & STCmanifest))
-                        ctfeStack.saveGlobalConstant(v, e);
+                    ctfeStack.saveGlobalConstant(v, e);
                 }
             }
             else if (v->isCTFE() && !hasValue(v))
@@ -2298,16 +2297,14 @@ public:
                         // var should have been initialized when it was created
                         error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
-                        e = CTFEExp::cantexp;
+                        return CTFEExp::cantexp;
                     }
-                    else
-                    {
-                        e = v->init->toExpression();
-                        e = interpret(e, istate);
-                    }
+                    e = v->init->toExpression();
                 }
                 else
                     e = v->type->defaultInitLiteral(e->loc);
+
+                e = interpret(e, istate);
             }
             else if (!(v->isDataseg() || v->storage_class & STCmanifest) && !v->isCTFE() && !istate)
             {
