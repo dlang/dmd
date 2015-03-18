@@ -5402,6 +5402,34 @@ int bug6037outer()
 static assert(bug6037outer() == 401);
 
 /**************************************************
+    14299 - [REG2.067a], more than one depth of recursive call with ref
+**************************************************/
+
+string gen14299(int max, int idx, ref string name)
+{
+    string ret;
+    name = [cast(char)(idx + '0')];
+    ret ~= name;
+    if (idx < max)
+    {
+        string subname;
+        ret ~= gen14299(max, idx + 1, subname);
+    }
+    ret ~= name;
+    return ret;
+}
+string test14299(int max)
+{
+    string n;
+    return gen14299(max, 0, n);
+}
+static assert(test14299(1) ==     "0110");      // OK <- fail
+static assert(test14299(2) ==    "012210");     // OK <- ICE
+static assert(test14299(3) ==   "01233210");
+static assert(test14299(4) ==  "0123443210");
+static assert(test14299(5) == "012345543210");
+
+/**************************************************
     7940 wrong code for complicated assign
 **************************************************/
 
