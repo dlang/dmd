@@ -6376,6 +6376,45 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         for (size_t i = 0; i < idents.dim; i++)
         {
             RootObject *id = idents[i];
+            if (id->dyncast() == DYNCAST_EXPRESSION)
+            {
+                Expression* expr = (Expression*)id;
+                TupleDeclaration* td = s->isTupleDeclaration();
+                if (!td)
+                {
+                    error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
+                          id->toChars(), s->toChars());
+                    *pt = Type::terror;
+                    return;
+                }
+                sc = sc->startCTFE();
+                expr = expr->semantic(sc);
+                sc = sc->endCTFE();
+
+                expr = expr->ctfeInterpret();
+                const uinteger_t d = expr->toUInteger();
+
+                if (d >= td->objects->dim)
+                {
+                    error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+                    *pt = Type::terror;
+                    return;
+                }
+                RootObject *o = (*td->objects)[(size_t)d];
+                if (o->dyncast() == DYNCAST_TYPE)
+                {
+                    *ps = NULL;
+                    *pt = ((Type *)o)->addMod(this->mod);
+                    s = (*pt)->toDsymbol(sc)->toAlias();
+                }
+                else
+                {
+                    assert(o->dyncast() == DYNCAST_DSYMBOL);
+                    *ps = (Dsymbol *)o;
+                    s = (*ps)->toAlias();
+                }
+                continue;
+            }
             Type *t = s->getType();     // type symbol, type alias, or type tuple?
             unsigned errorsave = global.errors;
             Dsymbol *sm = s->searchX(loc, sc, id);

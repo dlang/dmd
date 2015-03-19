@@ -470,6 +470,43 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             sm = s->search(loc, (Identifier *)id);
             break;
 
+        case DYNCAST_EXPRESSION:
+            {
+                Expression* expr = (Expression*)id;
+                TupleDeclaration* td = s->isTupleDeclaration();
+                if (!td)
+                {
+                    error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
+                          id->toChars(), s->toChars());
+                    return NULL;
+                }
+                sc = sc->startCTFE();
+                expr = expr->semantic(sc);
+                sc = sc->endCTFE();
+
+                expr = expr->ctfeInterpret();
+                const uinteger_t d = expr->toUInteger();
+
+                if (d >= td->objects->dim)
+                {
+                    error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+                    return NULL;
+                }
+                RootObject *o = (*td->objects)[(size_t)d];
+                if (o->dyncast() == DYNCAST_TYPE)
+                {
+                    sm = NULL;
+                    Type *t = (Type *)o;
+                    sm = t->toDsymbol(sc)->toAlias();
+                }
+                else
+                {
+                    assert(o->dyncast() == DYNCAST_DSYMBOL);
+                    sm = (Dsymbol *)o;
+                }
+            }
+            break;
+
         case DYNCAST_DSYMBOL:
         {
             // It's a template instance
