@@ -2284,8 +2284,12 @@ public:
 
                 if (v->isDataseg() || (v->storage_class & STCmanifest))
                 {
-                    e = copyLiteral(e).copy();
-                    ctfeStack.saveGlobalConstant(v, e);
+                    /* Bugzilla 14304: e is a value that owned by CTFE.
+                     * Even it's typed as non-mutable, it may be modified in later CTFE
+                     * by using unsafe casts. So copy it and drop ownedByCtfe flags.
+                     */
+                    Expression *ex = scrubReturnValue(v->loc, copyLiteral(e).copy());
+                    ctfeStack.saveGlobalConstant(v, ex);
                 }
             }
             else if (v->isCTFE() && !hasValue(v))
@@ -2335,6 +2339,14 @@ public:
                 }
                 if (goal != ctfeNeedLvalue && (v->isRef() || v->isOut()))
                     e = interpret(e, istate, goal);
+                else if (v->isDataseg() || (v->storage_class & STCmanifest))
+                {
+                    /* Bugzilla 14304: If e is a value comes from CtfeStack.globalValues,
+                     * run interpret due to copy it in the ctfe context, and
+                     * set the ownedByCtfe flags again.
+                     */
+                    e = interpret(e, istate);
+                }
             }
             if (!e)
                 e = CTFEExp::cantexp;
