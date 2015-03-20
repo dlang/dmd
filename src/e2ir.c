@@ -3182,6 +3182,8 @@ elem *DotVarExp::toElem(IRState *irs)
         //e = el_una(OPaddr, TYnptr, e);
         e = addressElem(e, tb1);
     e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v ? v->offset : 0));
+    if (ISREF(v))
+        e = el_una(OPind, TYptr, e);
     e = el_una(OPind, type->totym(), e);
     if (tybasic(e->Ety) == TYstruct)
     {
