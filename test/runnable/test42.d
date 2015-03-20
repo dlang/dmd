@@ -4756,9 +4756,19 @@ struct S14133a
     size_t[16 * 1024] data;
 }
 
+struct S14133b
+{
+    size_t[16 * 1024] data;
+    this(bool)
+    {
+    }
+}
+
 void test14133()
 {
     auto a = S14133a();
+    S14133b b;
+    b = S14133b(true);
 }
 
 /***************************************************/
