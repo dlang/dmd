@@ -582,6 +582,48 @@ void test14267()
 }
 
 /**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=14306
+
+struct MapResult(alias fun)
+{
+    void front()
+    {
+//	while (1) { break; }
+        fun(1);
+    }
+}
+
+void bar(R)(R r)
+{
+    foreach (i; 0..100)
+    {
+	r.front();
+    }
+}
+
+struct S {
+    int x;
+    int bump() {
+	while (1) { break; }
+	++x;
+	return x;
+    }
+}
+
+void fun(ref S s) {
+    MapResult!(y => s.bump())().bar;
+//    MapResult!((int x) => s.bump())().bar;
+
+
+    if (s.x != 100) assert(0);
+}
+
+void test14306() {
+    S t;
+    fun(t);
+}
+
+/**********************************/
 
 int main()
 {
@@ -603,6 +645,7 @@ int main()
     test11322();
     test11394();
     test13503();
+    test14306();
 
     printf("Success\n");
     return 0;
