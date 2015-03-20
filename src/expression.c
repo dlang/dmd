@@ -3691,7 +3691,7 @@ StringExp::StringExp(Loc loc, char *string)
     this->sz = 1;
     this->committed = 0;
     this->postfix = 0;
-    this->ownedByCtfe = false;
+    this->ownedByCtfe = 0;
 }
 
 StringExp::StringExp(Loc loc, void *string, size_t len)
@@ -3702,7 +3702,7 @@ StringExp::StringExp(Loc loc, void *string, size_t len)
     this->sz = 1;
     this->committed = 0;
     this->postfix = 0;
-    this->ownedByCtfe = false;
+    this->ownedByCtfe = 0;
 }
 
 StringExp::StringExp(Loc loc, void *string, size_t len, utf8_t postfix)
@@ -3713,7 +3713,7 @@ StringExp::StringExp(Loc loc, void *string, size_t len, utf8_t postfix)
     this->sz = 1;
     this->committed = 0;
     this->postfix = postfix;
-    this->ownedByCtfe = false;
+    this->ownedByCtfe = 0;
 }
 
 StringExp *StringExp::create(Loc loc, char *s)
@@ -4007,7 +4007,7 @@ ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expressions *elements)
     : Expression(loc, TOKarrayliteral, sizeof(ArrayLiteralExp))
 {
     this->elements = elements;
-    this->ownedByCtfe = false;
+    this->ownedByCtfe = 0;
 }
 
 ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *e)
@@ -4015,7 +4015,7 @@ ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *e)
 {
     elements = new Expressions;
     elements->push(e);
-    this->ownedByCtfe = false;
+    this->ownedByCtfe = 0;
 }
 
 bool ArrayLiteralExp::equals(RootObject *o)
@@ -4142,7 +4142,7 @@ AssocArrayLiteralExp::AssocArrayLiteralExp(Loc loc,
     assert(keys->dim == values->dim);
     this->keys = keys;
     this->values = values;
-    this->ownedByCtfe = false;
+    this->ownedByCtfe = 0;
 }
 
 bool AssocArrayLiteralExp::equals(RootObject *o)
@@ -4241,7 +4241,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->sym = NULL;
     this->soffset = 0;
     this->fillHoles = 1;
-    this->ownedByCtfe = false;
+    this->ownedByCtfe = 0;
     this->origin = this;
     this->stageflags = 0;
     this->inlinecopy = NULL;
