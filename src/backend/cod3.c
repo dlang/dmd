@@ -541,7 +541,7 @@ void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
 
 #endif
 
-
+
 /*****************************
  * Given a type, return a mask of
  * registers to hold that type.
@@ -723,7 +723,7 @@ void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
     }
 }
 
-
+
 /*******************************
  * Generate block exit code
  */
@@ -1830,7 +1830,7 @@ void outswitab(block *b)
   }
   assert(*poffset == offset + ncases * tysize[TYnptr]);
 }
-
+
 /*****************************
  * Return a jump opcode relevant to the elem for a JMP TRUE.
  */
@@ -1970,7 +1970,7 @@ L1:
   assert((jp & 0xF0) == 0x70);
   return jp;
 }
-
+
 /**********************************
  * Append code to *pc which validates pointer described by
  * addressing mode in *pcs. Modify addressing mode in *pcs.
@@ -4542,7 +4542,7 @@ void assignaddrc(code *c)
         {
 #if OMFOBJ
             case FLdata:
-                if (I64 || s->Sclass == SCcomdat)
+                if (config.objfmt == OBJ_MSCOFF || s->Sclass == SCcomdat)
                 {   c->IFL1 = FLextern;
                     goto do2;
                 }
@@ -4556,7 +4556,7 @@ void assignaddrc(code *c)
                 goto do2;
 
             case FLudata:
-                if (I64)
+                if (config.objfmt == OBJ_MSCOFF)
                 {   c->IFL1 = FLextern;
                     goto do2;
                 }
@@ -4785,7 +4785,7 @@ void assignaddrc(code *c)
         ;
     }
 }
-
+
 /*******************************
  * Return offset from BP of symbol s.
  */
@@ -4817,7 +4817,7 @@ targ_size_t cod3_bpoffset(symbol *s)
     return offset;
 }
 
-
+
 /*******************************
  * Find shorter versions of the same instructions.
  * Does these optimizations:
@@ -5483,7 +5483,7 @@ void jmpaddr(code *c)
         c = code_next(c);
   }
 }
-
+
 /*******************************
  * Calculate bl->Bsize.
  */
@@ -5791,7 +5791,7 @@ nomatch:
 }
 
 #endif
-
+
 /**************************
  * Write code to intermediate file.
  * Code starts at offset.
@@ -6955,7 +6955,7 @@ void code_dehydrate(code **pc)
     }
 }
 #endif
-
+
 /***************************
  * Debug code to dump code stucture.
  */
