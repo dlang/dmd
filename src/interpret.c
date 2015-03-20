@@ -237,7 +237,7 @@ void CtfeStack::popAll(size_t stackpointer)
 
 void CtfeStack::saveGlobalConstant(VarDeclaration *v, Expression *e)
 {
-     assert( v->init && (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && !v->isCTFE());
+     assert(v->init && (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && !v->isCTFE());
      v->ctfeAdrOnStack = (int)globalValues.dim;
      globalValues.push(e);
 }
@@ -273,6 +273,8 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
 Expression *evaluatePostblit(InterState *istate, Expression *e);
 Expression *evaluateDtor(InterState *istate, Expression *e);
 Expression *scrubReturnValue(Loc loc, Expression *e);
+
+Expression *scrubCacheValue(Loc loc, Expression *e);
 
 
 /*************************************
@@ -2245,21 +2247,42 @@ public:
                 !hasValue(v) &&
                 v->init && !v->isCTFE())
             {
-                if (v->scope && !v->inuse)
-                    v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
-                {
-                    e = v->init->toExpression(v->type);
-                }
                 if (v->inuse)
                 {
                     error(loc, "circular initialization of %s", v->toChars());
                     return CTFEExp::cantexp;
                 }
+                if (v->scope)
+                {
+                    v->inuse++;
+                    v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
+                    v->inuse--;
+                }
+                e = v->init->toExpression(v->type);
+                if (!e)
+                    return CTFEExp::cantexp;
+                assert(e->type);
 
-                if (e && (e->op == TOKconstruct || e->op == TOKblit))
+                if (e->op == TOKconstruct || e->op == TOKblit)
                 {
                     AssignExp *ae = (AssignExp *)e;
                     e = ae->e2;
+                }
+
+                if (e->op == TOKerror)
+                {
+                    // FIXME: Ultimately all errors should be detected in prior semantic analysis stage.
+                }
+                else if (v->isDataseg() || (v->storage_class & STCmanifest))
+                {
+                    /* Bugzilla 14304: e is a value that is not yet owned by CTFE.
+                     * Mark as "cached", and use it directly during interpretation.
+                     */
+                    e = scrubCacheValue(v->loc, e);
+                    ctfeStack.saveGlobalConstant(v, e);
+                }
+                else
+                {
                     v->inuse++;
                     e = interpret(e, istate);
                     v->inuse--;
@@ -2267,26 +2290,6 @@ public:
                         errorSupplemental(loc, "while evaluating %s.init", v->toChars());
                     if (exceptionOrCantInterpret(e))
                         return e;
-                    e->type = v->type;
-                }
-                else
-                {
-                    if (e && !e->type)
-                        e->type = v->type;
-                    if (e && e->op != TOKerror)
-                    {
-                        v->inuse++;
-                        e = interpret(e, istate);
-                        v->inuse--;
-                    }
-                    if (CTFEExp::isCantExp(e) && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
-                        errorSupplemental(loc, "while evaluating %s.init", v->toChars());
-                }
-                if (e && !CTFEExp::isCantExp(e) && e->op != TOKthrownexception)
-                {
-                    e = copyLiteral(e).copy();
-                    if (v->isDataseg() || (v->storage_class & STCmanifest))
-                        ctfeStack.saveGlobalConstant(v, e);
                 }
             }
             else if (v->isCTFE() && !hasValue(v))
@@ -2298,16 +2301,14 @@ public:
                         // var should have been initialized when it was created
                         error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
-                        e = CTFEExp::cantexp;
+                        return CTFEExp::cantexp;
                     }
-                    else
-                    {
-                        e = v->init->toExpression();
-                        e = interpret(e, istate);
-                    }
+                    e = v->init->toExpression();
                 }
                 else
                     e = v->type->defaultInitLiteral(e->loc);
+
+                e = interpret(e, istate);
             }
             else if (!(v->isDataseg() || v->storage_class & STCmanifest) && !v->isCTFE() && !istate)
             {
@@ -2659,7 +2660,7 @@ public:
             }
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, expsx);
             ae->type = e->type;
-            ae->ownedByCtfe = true;
+            ae->ownedByCtfe = 1;
             result = ae;
             return;
         }
@@ -2756,7 +2757,7 @@ public:
             AssocArrayLiteralExp *ae;
             ae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
             ae->type = e->type;
-            ae->ownedByCtfe = true;
+            ae->ownedByCtfe = 1;
             result = ae;
             return;
         }
@@ -2844,7 +2845,7 @@ public:
             }
             StructLiteralExp *se = new StructLiteralExp(e->loc, e->sd, expsx);
             se->type = e->type;
-            se->ownedByCtfe = true;
+            se->ownedByCtfe = 1;
             result = se;
             return;
         }
@@ -2874,7 +2875,7 @@ public:
                  (*elements)[i] = copyLiteral(elem).copy();
             ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
             ae->type = newtype;
-            ae->ownedByCtfe = true;
+            ae->ownedByCtfe = 1;
             return ae;
         }
         assert(argnum == arguments->dim - 1);
@@ -2941,7 +2942,7 @@ public:
 
                 StructLiteralExp *se = new StructLiteralExp(e->loc, sd, exps, e->newtype);
                 se->type = e->newtype;
-                se->ownedByCtfe = true;
+                se->ownedByCtfe = 1;
                 result = interpret(se, istate);
             }
             if (exceptionOrCant(result))
@@ -2989,7 +2990,7 @@ public:
             // Hack: we store a ClassDeclaration instead of a StructDeclaration.
             // We probably won't get away with this.
             StructLiteralExp *se = new StructLiteralExp(e->loc, (StructDeclaration *)cd, elems, e->newtype);
-            se->ownedByCtfe = true;
+            se->ownedByCtfe = 1;
             Expression *eref = new ClassReferenceExp(e->loc, se, e->type);
             if (e->member)
             {
@@ -3032,7 +3033,7 @@ public:
             (*elements)[0] = newval;
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
             ae->type = e->newtype->arrayOf();
-            ae->ownedByCtfe = true;
+            ae->ownedByCtfe = 1;
 
             result = new IndexExp(e->loc, ae, new IntegerExp(Loc(), 0, Type::tsize_t));
             result->type = e->newtype;
@@ -3514,6 +3515,14 @@ public:
                 return;
             if (aggregate->op == TOKassocarrayliteral)
             {
+                AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
+                if (existingAA->ownedByCtfe != 1)
+                {
+                    e->error("cannot modify read-only constant %s", existingAA->toChars());
+                    result = CTFEExp::cantexp;
+                    return;
+                }
+
                 // Normal case, ultimate parent AA already exists
                 // We need to walk from the deepest index up, checking that an AA literal
                 // already exists on each level.
@@ -3521,7 +3530,6 @@ public:
                 if (exceptionOrCant(index))
                     return;
                 index = resolveSlice(index);    // only happens with AA assignment
-                AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
                 while (depth > 0)
                 {
                     // Walk the syntax tree to find the indexExp at this depth
@@ -3545,7 +3553,7 @@ public:
                         Expressions *keysx = new Expressions();
                         newAA = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
                         newAA->type = xe->type;
-                        newAA->ownedByCtfe = true;
+                        newAA->ownedByCtfe = 1;
                         //... and insert it into the existing AA.
                         existingAA->keys->push(indx);
                         existingAA->values->push(newAA);
@@ -3580,7 +3588,7 @@ public:
                     valuesx->push(newval);
                     keysx->push(index);
                     AssocArrayLiteralExp *newaae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
-                    newaae->ownedByCtfe = true;
+                    newaae->ownedByCtfe = 1;
                     newaae->type = ((IndexExp *)e1)->e1->type;
                     newval = newaae;
                     e1 = ((IndexExp *)e1)->e1;
@@ -3698,6 +3706,11 @@ public:
                 e->error("CTFE internal error: dotvar assignment");
                 return CTFEExp::cantexp;
             }
+            if (sle->ownedByCtfe != 1)
+            {
+                e->error("cannot modify read-only constant %s", sle->toChars());
+                return CTFEExp::cantexp;
+            }
 
             int fieldi = ex->op == TOKstructliteral
                 ? findFieldIndexByName(sle->sd, v)
@@ -3744,7 +3757,7 @@ public:
             if (aggregate->op == TOKstring)
             {
                 StringExp *existingSE = (StringExp *)aggregate;
-                if (!existingSE->ownedByCtfe)
+                if (existingSE->ownedByCtfe != 1)
                 {
                     e->error("cannot modify read-only string literal %s", ie->e1->toChars());
                     return CTFEExp::cantexp;
@@ -3767,6 +3780,11 @@ public:
             }
 
             ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
+            if (existingAE->ownedByCtfe != 1)
+            {
+                e->error("cannot modify read-only constant %s", existingAE->toChars());
+                return CTFEExp::cantexp;
+            }
 
             payload = &(*existingAE->elements)[index];
             oldval = *payload;
@@ -3982,7 +4000,7 @@ public:
         if (aggregate->op == TOKstring)
         {
             StringExp *existingSE = (StringExp *)aggregate;
-            if (!existingSE->ownedByCtfe)
+            if (existingSE->ownedByCtfe != 1)
             {
                 e->error("cannot modify read-only string literal %s", existingSE->toChars());
                 return CTFEExp::cantexp;
@@ -4047,6 +4065,11 @@ public:
         if (aggregate->op == TOKarrayliteral)
         {
             ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
+            if (existingAE->ownedByCtfe != 1)
+            {
+                e->error("cannot modify read-only constant %s", existingAE->toChars());
+                return CTFEExp::cantexp;
+            }
 
             if (newval->op == TOKslice && !isBlockAssignment)
             {
@@ -5403,9 +5426,9 @@ public:
         }
         // We know we still own it, because we interpreted both e1 and e2
         if (result->op == TOKarrayliteral)
-            ((ArrayLiteralExp *)result)->ownedByCtfe = true;
+            ((ArrayLiteralExp *)result)->ownedByCtfe = 1;
         if (result->op == TOKstring)
-            ((StringExp *)result)->ownedByCtfe = true;
+            ((StringExp *)result)->ownedByCtfe = 1;
     }
 
 
@@ -6113,6 +6136,69 @@ Expression *scrubArray(Loc loc, Expressions *elems, bool structlit)
     return NULL;
 }
 
+Expression *scrubArrayCache(Loc loc, Expressions *elems);
+
+Expression *scrubCacheValue(Loc loc, Expression *e)
+{
+    if (e->op == TOKclassreference)
+    {
+        StructLiteralExp *sle = ((ClassReferenceExp*)e)->value;
+        sle->ownedByCtfe = 2;
+        if (!(sle->stageflags & stageScrub))
+        {
+            int old = sle->stageflags;
+            sle->stageflags |= stageScrub;
+            if (Expression *ex = scrubArrayCache(loc, sle->elements))
+                return ex;
+            sle->stageflags = old;
+        }
+    }
+    if (e->op == TOKstructliteral)
+    {
+        StructLiteralExp *sle = (StructLiteralExp *)e;
+        sle->ownedByCtfe = 2;
+        if (!(sle->stageflags & stageScrub))
+        {
+            int old = sle->stageflags;
+            sle->stageflags |= stageScrub;
+            if (Expression *ex = scrubArrayCache(loc, sle->elements))
+                return ex;
+            sle->stageflags = old;
+        }
+    }
+    if (e->op == TOKstring)
+    {
+        ((StringExp *)e)->ownedByCtfe = 2;
+    }
+    if (e->op == TOKarrayliteral)
+    {
+        ((ArrayLiteralExp *)e)->ownedByCtfe = 2;
+        if (Expression *ex = scrubArrayCache(loc, ((ArrayLiteralExp *)e)->elements))
+            return ex;
+    }
+    if (e->op == TOKassocarrayliteral)
+    {
+        AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
+        aae->ownedByCtfe = 2;
+        if (Expression *ex = scrubArrayCache(loc, aae->keys))
+            return ex;
+        if (Expression *ex = scrubArrayCache(loc, aae->values))
+            return ex;
+    }
+    return e;
+}
+
+Expression *scrubArrayCache(Loc loc, Expressions *elems)
+{
+    for (size_t i = 0; i < elems->dim; i++)
+    {
+        Expression *m = (*elems)[i];
+        if (!m)
+            continue;
+        (*elems)[i] = scrubCacheValue(loc, m);
+    }
+    return NULL;
+}
 
 /******************************* Special Functions ***************************/
 

@@ -354,7 +354,7 @@ public:
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     unsigned char committed;    // !=0 if type is committed
     utf8_t postfix;      // 'c', 'w', 'd'
-    bool ownedByCtfe;   // true = created in CTFE
+    int ownedByCtfe;    // 1: created in CTFE, 2: constant cached for CTFE
 
     StringExp(Loc loc, char *s);
     StringExp(Loc loc, void *s, size_t len);
@@ -403,7 +403,7 @@ class ArrayLiteralExp : public Expression
 {
 public:
     Expressions *elements;
-    bool ownedByCtfe;   // true = created in CTFE
+    int ownedByCtfe;    // 1: created in CTFE, 2: constant cached for CTFE
 
     ArrayLiteralExp(Loc loc, Expressions *elements);
     ArrayLiteralExp(Loc loc, Expression *e);
@@ -422,7 +422,7 @@ class AssocArrayLiteralExp : public Expression
 public:
     Expressions *keys;
     Expressions *values;
-    bool ownedByCtfe;   // true = created in CTFE
+    int ownedByCtfe;    // 1: created in CTFE, 2: constant cached for CTFE
 
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
     bool equals(RootObject *o);
@@ -458,7 +458,7 @@ public:
     Symbol *sym;                // back end symbol to initialize with literal
     size_t soffset;             // offset from start of s
     int fillHoles;              // fill alignment 'holes' with zero
-    bool ownedByCtfe;           // true = created in CTFE
+    int ownedByCtfe;            // 1: created in CTFE, 2: constant cached for CTFE
 
     // pointer to the origin instance of the expression.
     // once a new expression is created, origin is set to 'this'.

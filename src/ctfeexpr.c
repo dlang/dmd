@@ -211,11 +211,11 @@ bool needToCopyLiteral(Expression *expr)
         switch (expr->op)
         {
             case TOKarrayliteral:
-                return !((ArrayLiteralExp *)expr)->ownedByCtfe;
+                return ((ArrayLiteralExp *)expr)->ownedByCtfe == 0;
             case TOKassocarrayliteral:
-                return !((AssocArrayLiteralExp *)expr)->ownedByCtfe;
+                return ((AssocArrayLiteralExp *)expr)->ownedByCtfe == 0;
             case TOKstructliteral:
-                return !((StructLiteralExp *)expr)->ownedByCtfe;
+                return ((StructLiteralExp *)expr)->ownedByCtfe == 0;
             case TOKstring:
             case TOKthis:
             case TOKvar:
@@ -268,7 +268,7 @@ UnionExp copyLiteral(Expression *e)
         se2->postfix = se->postfix;
         se2->type = se->type;
         se2->sz = se->sz;
-        se2->ownedByCtfe = true;
+        se2->ownedByCtfe = 1;
         return ue;
     }
     if (e->op == TOKarrayliteral)
@@ -277,7 +277,7 @@ UnionExp copyLiteral(Expression *e)
         new(&ue) ArrayLiteralExp(e->loc, copyLiteralArray(ae->elements));
         ArrayLiteralExp *r = (ArrayLiteralExp *)ue.exp();
         r->type = e->type;
-        r->ownedByCtfe = true;
+        r->ownedByCtfe = 1;
         return ue;
     }
     if (e->op == TOKassocarrayliteral)
@@ -286,7 +286,7 @@ UnionExp copyLiteral(Expression *e)
         new(&ue) AssocArrayLiteralExp(e->loc, copyLiteralArray(aae->keys), copyLiteralArray(aae->values));
         AssocArrayLiteralExp *r = (AssocArrayLiteralExp *)ue.exp();
         r->type = e->type;
-        r->ownedByCtfe = true;
+        r->ownedByCtfe = 1;
         return ue;
     }
     if (e->op == TOKstructliteral)
@@ -322,7 +322,7 @@ UnionExp copyLiteral(Expression *e)
         new(&ue) StructLiteralExp(e->loc, se->sd, newelems, se->stype);
         StructLiteralExp *r = (StructLiteralExp *)ue.exp();
         r->type = e->type;
-        r->ownedByCtfe = true;
+        r->ownedByCtfe = 1;
         r->origin = ((StructLiteralExp *)e)->origin;
         return ue;
     }
@@ -373,7 +373,7 @@ UnionExp copyLiteral(Expression *e)
             assert(ue.exp()->op == TOKarrayliteral);
             ArrayLiteralExp *r = (ArrayLiteralExp *)ue.exp();
             r->elements = copyLiteralArray(r->elements);
-            r->ownedByCtfe = true;
+            r->ownedByCtfe = 1;
             return ue;
         }
         else
@@ -457,7 +457,7 @@ UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit)
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)lit;
         // TODO: we should be creating a reference to this AAExp, not
         // just a ref to the keys and values.
-        bool wasOwned = aae->ownedByCtfe;
+        int wasOwned = aae->ownedByCtfe;
         new(&ue) AssocArrayLiteralExp(lit->loc, aae->keys, aae->values);
         aae = (AssocArrayLiteralExp *)ue.exp();
         aae->ownedByCtfe = wasOwned;
@@ -545,7 +545,7 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
     }
     ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
     ae->type = type;
-    ae->ownedByCtfe = true;
+    ae->ownedByCtfe = 1;
     return ae;
 }
 
@@ -571,7 +571,7 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
     se->type = type;
     se->sz = sz;
     se->committed = true;
-    se->ownedByCtfe = true;
+    se->ownedByCtfe = 1;
     return se;
 }
 
@@ -1879,9 +1879,9 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     if (CTFEExp::isCantExp(r))
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
     if (e->op == TOKarrayliteral)
-        ((ArrayLiteralExp *)e)->ownedByCtfe = true;
+        ((ArrayLiteralExp *)e)->ownedByCtfe = 1;
     if (e->op == TOKstring)
-        ((StringExp *)e)->ownedByCtfe = true;
+        ((StringExp *)e)->ownedByCtfe = 1;
     return r;
 }
 
@@ -2082,7 +2082,7 @@ UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
         se->type = arrayType;
         se->sz = oldse->sz;
         se->committed = oldse->committed;
-        se->ownedByCtfe = true;
+        se->ownedByCtfe = 1;
     }
     else
     {
@@ -2107,7 +2107,7 @@ UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
         new(&ue) ArrayLiteralExp(loc, elements);
         ArrayLiteralExp *aae = (ArrayLiteralExp *)ue.exp();
         aae->type = arrayType;
-        aae->ownedByCtfe = true;
+        aae->ownedByCtfe = 1;
     }
     return ue;
 }
@@ -2137,11 +2137,11 @@ bool isCtfeValueValid(Expression *newval)
     if (newval->op == TOKstring)
         return true;    // CTFE would directly use the StringExp in AST.
     if (newval->op == TOKarrayliteral)
-        return ((ArrayLiteralExp *)newval)->ownedByCtfe;
+        return true;    //((ArrayLiteralExp *)newval)->ownedByCtfe;
     if (newval->op == TOKassocarrayliteral)
-        return ((AssocArrayLiteralExp *)newval)->ownedByCtfe;
+        return true;    //((AssocArrayLiteralExp *)newval)->ownedByCtfe;
     if (newval->op == TOKstructliteral)
-        return ((StructLiteralExp *)newval)->ownedByCtfe;
+        return true;    //((StructLiteralExp *)newval)->ownedByCtfe;
     if (newval->op == TOKclassreference)
         return true;
 
@@ -2363,7 +2363,7 @@ UnionExp voidInitLiteral(Type *t, VarDeclaration *var)
         new(&ue) ArrayLiteralExp(var->loc, elements);
         ArrayLiteralExp *ae = (ArrayLiteralExp *)ue.exp();
         ae->type = tsa;
-        ae->ownedByCtfe = true;
+        ae->ownedByCtfe = 1;
     }
     else if (t->ty == Tstruct)
     {
@@ -2377,7 +2377,7 @@ UnionExp voidInitLiteral(Type *t, VarDeclaration *var)
         new(&ue) StructLiteralExp(var->loc, ts->sym, exps);
         StructLiteralExp *se = (StructLiteralExp *)ue.exp();
         se->type = ts;
-        se->ownedByCtfe = true;
+        se->ownedByCtfe = 1;
     }
     else
         new(&ue) VoidInitExp(var, t);
