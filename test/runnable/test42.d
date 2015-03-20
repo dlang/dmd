@@ -4751,6 +4751,16 @@ void test7502()
     s7502 = s7502.init;
 }
 
+struct S14133a
+{
+    size_t[16 * 1024] data;
+}
+
+void test14133()
+{
+    auto a = S14133a();
+}
+
 /***************************************************/
 
 void nextis(void delegate() dg = {}) {}
@@ -5782,7 +5792,7 @@ void test11265()
 
 struct TimeOfDay
 {
-    void roll(int value) 
+    void roll(int value)
     {
         value %= 60;
         auto newVal = _seconds + value;
@@ -6173,4 +6183,3 @@ int main()
     writefln("Success");
     return 0;
 }
-
