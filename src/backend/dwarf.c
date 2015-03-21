@@ -1455,8 +1455,7 @@ void cv_outsym(symbol *s)
 #endif
             {
                 infobuf->writeByte(DW_OP_addr);
-                dwarf_addrel(infoseg,infobuf->size(),s->Sseg);
-                append_addr(infobuf, s->Soffset);    // address of global
+                dwarf_appreladdr(infoseg, infobuf, s->Sseg, s->Soffset); // address of global
             }
 
             infobuf->buf[soffset] = infobuf->size() - soffset - 1;
