@@ -4542,7 +4542,7 @@ void assignaddrc(code *c)
         {
 #if OMFOBJ
             case FLdata:
-                if (I64 || s->Sclass == SCcomdat)
+                if (config.objfmt == OBJ_MSCOFF || s->Sclass == SCcomdat)
                 {   c->IFL1 = FLextern;
                     goto do2;
                 }
@@ -4556,7 +4556,7 @@ void assignaddrc(code *c)
                 goto do2;
 
             case FLudata:
-                if (I64)
+                if (config.objfmt == OBJ_MSCOFF)
                 {   c->IFL1 = FLextern;
                     goto do2;
                 }
