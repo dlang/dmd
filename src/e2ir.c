@@ -3426,12 +3426,6 @@ elem *toElem(Expression *e, IRState *irs)
 
                 fd = dve->var->isFuncDeclaration();
 
-                if (dve->e1->op == TOKstructliteral)
-                {
-                    StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
-                    sle->sinit = NULL;          // don't modify initializer
-                }
-
                 ec = toElem(dve->e1, irs);
                 ectype = dve->e1->type->toBasetype();
 

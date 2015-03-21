@@ -8440,7 +8440,6 @@ Lagain:
                  */
                 if (sd->size(loc) > Target::ptrsize * 4 && !t1->needsNested())
                     sle->sinit = toInitializer(sd);
-
                 sle->type = type;
 
                 Expression *e = sle;
@@ -8482,9 +8481,13 @@ Lagain:
             /* It's a struct literal
              */
         Lx:
-            Expression *e = new StructLiteralExp(loc, sd, arguments, e1->type);
-            e = e->semantic(sc);
-            return e;
+            StructLiteralExp *sle = new StructLiteralExp(loc, sd, arguments, e1->type);
+            /* Copy from the initializer symbol for larger symbols,
+             * otherwise the literals expressed as code get excessively large.
+             */
+            if (sd->size(loc) > Target::ptrsize * 4 && !t1->needsNested())
+                sle->sinit = toInitializer(sd);
+            return sle->semantic(sc);
         }
         else if (t1->ty == Tclass)
         {
