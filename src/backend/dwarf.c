@@ -122,10 +122,10 @@ void dwarf_apprel32(int seg, Outbuffer *buf, int targseg, targ_size_t val)
 
 void append_addr(Outbuffer *buf, targ_size_t addr)
 {
-  if (I64)
-    buf->write64(addr);
-  else
-    buf->write32(addr);
+    if (I64)
+        buf->write64(addr);
+    else
+        buf->write32(addr);
 }
 
 
@@ -1421,8 +1421,8 @@ void cv_outsym(symbol *s)
             soffset = infobuf->size();
             infobuf->writeByte(2);                      // DW_FORM_block1
 
-            // append DW_OP_GNU_push_tls_address for tls variables
 #if ELFOBJ
+            // debug info for TLS variables
             assert(s->Sxtrnnum);
             if (s->Sfl == FLtlsdata)
             {
