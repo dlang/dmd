@@ -2162,6 +2162,7 @@ L1:
 #endif
 #if MARS
         case TYref:
+        case TYnref:
             attribute |= 0x20;          // indicate reference pointer
             tym = TYnptr;               // convert to C data type
             goto L1;                    // and try again
@@ -2617,6 +2618,7 @@ STATIC void cv4_func(Funcsym *s)
 #endif
             case TYnullptr:
             case TYnptr:
+            case TYnref:
                 if (I32)
                     goto case_eax;
                 else
@@ -2926,5 +2928,3 @@ unsigned cv_typidx(type *t)
 }
 
 #endif // !SPP
-
-

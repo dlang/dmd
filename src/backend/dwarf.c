@@ -1590,6 +1590,13 @@ unsigned dwarf_typidx(type *t)
         0,                      // no children
         0,                      0,
     };
+    static unsigned char abbrevTypeRef[] =
+    {
+        DW_TAG_reference_type,
+        0,                      // no children
+        DW_AT_type,             DW_FORM_ref4,
+        0,                      0,
+    };
 #ifdef USE_DWARF_D_EXTENSIONS
     static unsigned char abbrevTypeDArray[] =
     {
@@ -1883,6 +1890,14 @@ unsigned dwarf_typidx(type *t)
 
         case TYnref:
         case TYref:
+            nextidx = dwarf_typidx(t->Tnext);
+            assert(nextidx);
+            code = dwarf_abbrev_code(abbrevTypeRef, sizeof(abbrevTypeRef));
+            idx = infobuf->size();
+            infobuf->writeuLEB128(code);        // abbreviation code
+            infobuf->write32(nextidx);          // DW_AT_type
+            break;
+
         case TYnptr:
             if (!t->Tkey)
                 goto Lnptr;
