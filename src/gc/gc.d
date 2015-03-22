@@ -1610,73 +1610,20 @@ struct Gcx
     }
 
     /**
-     * Compute bin for size.
-     */
-    static Bins findBin(size_t size) nothrow
-    {
-        static const byte[2049] binTable = ctfeBins();
-
-        return (size <= 2048) ?
-            (cast(Bins) binTable[size]) :
-            B_PAGE;
-    }
-
-    static Bins findBinImpl(size_t size) nothrow
-    {   Bins bin;
-
-        if (size <= 256)
-        {
-            if (size <= 64)
-            {
-                if (size <= 16)
-                    bin = B_16;
-                else if (size <= 32)
-                    bin = B_32;
-                else
-                    bin = B_64;
-            }
-            else
-            {
-                if (size <= 128)
-                    bin = B_128;
-                else
-                    bin = B_256;
-            }
-        }
-        else
-        {
-            if (size <= 1024)
-            {
-                if (size <= 512)
-                    bin = B_512;
-                else
-                    bin = B_1024;
-            }
-            else
-            {
-                if (size <= 2048)
-                    bin = B_2048;
-                else
-                    bin = B_PAGE;
-            }
-        }
-        return bin;
-    }
-
-    /**
      * Computes the bin table using CTFE.
      */
     static byte[2049] ctfeBins() nothrow
     {
         byte[2049] ret;
-        for(size_t i = 0; i < 2049; i++)
-        {
-            ret[i] = cast(byte) findBinImpl(i);
-        }
+        size_t p = 0;
+        for (Bins b = B_16; b <= B_2048; b++)
+            for ( ; p <= binsize[b]; p++)
+                ret[p] = b;
 
         return ret;
     }
 
+    static const byte[2049] binTable = ctfeBins();
 
     /**
      * Allocate a new pool of at least size bytes.
@@ -1747,9 +1694,8 @@ struct Gcx
 
     void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
     {
-        immutable bin = findBin(size);
-        return bin < B_PAGE ? smallAlloc(bin, alloc_size, bits) :
-            bigAlloc(size, alloc_size, bits);
+        return size <= 2048 ? smallAlloc(binTable[size], alloc_size, bits)
+                            : bigAlloc(size, alloc_size, bits);
     }
 
     void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits) nothrow
