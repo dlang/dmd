@@ -279,7 +279,7 @@ unittest
 { /* Note: open_memstream is only useful for writing */
     import core.stdc.string : memcmp;
     char* ptr = null;
-    char[] testdata = ['h', 'e', 'l', 'l', 'o', 0];
+    char[6] testdata = ['h', 'e', 'l', 'l', 'o', 0];
     size_t sz = 0;
     auto f = open_memstream(&ptr, &sz);
     assert(f !is null);
@@ -294,7 +294,7 @@ unittest
     import core.stdc.string : memcmp;
     import core.stdc.wchar_ : fwprintf;
     wchar_t* ptr = null;
-    wchar_t[] testdata = ['h', 'e', 'l', 'l', 'o', 0];
+    wchar_t[6] testdata = ['h', 'e', 'l', 'l', 'o', 0];
     size_t sz = 0;
     auto f = open_wmemstream(&ptr, &sz);
     assert(f !is null);
