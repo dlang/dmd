@@ -5175,6 +5175,16 @@ elem *toElem(Expression *e, IRState *irs)
 
             elem *e = NULL;
 
+            /* If a field has explicit initializer (*sle->elements)[i] != NULL),
+             * any other overlapped fields won't have initializer. It's asserted by
+             * StructDeclaration::fill() function.
+             *
+             *  union U { int x; long y; }
+             *  U u1 = U(1);        // elements = [`1`, NULL]
+             *  U u2 = {y:2};       // elements = [NULL, `2`];
+             *  U u3 = U(1, 2);     // error
+             *  U u4 = {x:1, y:2};  // error
+             */
             size_t dim = sle->elements ? sle->elements->dim : 0;
             assert(dim <= sle->sd->fields.dim);
 
@@ -5190,6 +5200,12 @@ elem *toElem(Expression *e, IRState *irs)
                 for (size_t i = 0; i < sle->sd->fields.dim && offset < structsize; )
                 {
                     VarDeclaration *v = sle->sd->fields[i];
+
+                    /* If the field v has explicit initializer, [offset .. v->offset]
+                     * is a hole divided by the initializer.
+                     * However if the field size is zero (e.g. int[0] v;), we can merge
+                     * the two holes in the front and the back of the field v.
+                     */
                     if (i < dim && (*sle->elements)[i] && v->type->size())
                     {
                         //if (offset != v->offset) printf("  1 fillHole, %d .. %d\n", offset, v->offset);
@@ -5204,7 +5220,8 @@ elem *toElem(Expression *e, IRState *irs)
                         continue;
                     }
 
-                    /* Fill holes between overlapped fields. For example:
+                    /* AggregateDeclaration::fields holds the fields by the lexical order.
+                     * This code will minimize each hole sizes. For example:
                      *
                      *  struct S {
                      *    union { uint f1; ushort f2; }   // f1: 0..4,  f2: 0..2
