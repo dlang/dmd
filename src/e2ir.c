@@ -5130,6 +5130,7 @@ elem *toElem(Expression *e, IRState *irs)
                         break;
                     default:
                         ty = TYlong;
+                        // TODO: OPmemset is better if sz is much bigger than 4?
                         break;
                 }
                 e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, *poffset));
@@ -5174,27 +5175,78 @@ elem *toElem(Expression *e, IRState *irs)
 
             elem *e = NULL;
 
+            size_t dim = sle->elements ? sle->elements->dim : 0;
+            assert(dim <= sle->sd->fields.dim);
+
             if (sle->fillHoles)
             {
                 /* Initialize all alignment 'holes' to zero.
                  * Do before initializing fields, as the hole filling process
                  * can spill over into the fields.
-                 *
-                 * TODO: Currently any fields are conservatively filled to zero,
-                 * even if a field will be set immediately after.
                  */
+                const size_t structsize = sle->sd->structsize;
                 size_t offset = 0;
-                for (size_t i = 0; i < sle->sd->fields.dim; i++)
+                //printf("-- %s - fillHoles, structsize = %d\n", sle->toChars(), structsize);
+                for (size_t i = 0; i < sle->sd->fields.dim && offset < structsize; )
                 {
                     VarDeclaration *v = sle->sd->fields[i];
-                    size_t vend = v->offset + v->type->size();
-                    e = el_combine(e, fillHole(stmp, &offset, vend, sle->sd->structsize));
+                    if (i < dim && (*sle->elements)[i] && v->type->size())
+                    {
+                        //if (offset != v->offset) printf("  1 fillHole, %d .. %d\n", offset, v->offset);
+                        e = el_combine(e, fillHole(stmp, &offset, v->offset, structsize));
+                        offset = v->offset + v->type->size();
+                        i++;
+                        continue;
+                    }
+                    if (!v->overlapped)
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    /* Fill holes between overlapped fields. For example:
+                     *
+                     *  struct S {
+                     *    union { uint f1; ushort f2; }   // f1: 0..4,  f2: 0..2
+                     *    union { uint f3; ulong f4; }    // f3: 8..12, f4: 8..16
+                     *  }
+                     *  S s = {f2:x, f3:y};     // filled holes: 2..8 and 12..16
+                     */
+                    size_t vend = sle->sd->fields.dim;
+                Lagain:
+                    size_t holeEnd = structsize;
+                    size_t offset2 = structsize;
+                    for (size_t j = i + 1; j < vend; j++)
+                    {
+                        VarDeclaration *vx = sle->sd->fields[j];
+                        if (!vx->overlapped)
+                        {
+                            vend = j;
+                            break;
+                        }
+                        if (j < dim && (*sle->elements)[j] && vx->type->size())
+                        {
+                            // Find the lowest end offset of the hole.
+                            if (offset <= vx->offset && vx->offset < holeEnd)
+                            {
+                                holeEnd = vx->offset;
+                                offset2 = vx->offset + vx->type->size();
+                            }
+                        }
+                    }
+                    if (holeEnd < structsize)
+                    {
+                        //if (offset != holeEnd) printf("  2 fillHole, %d .. %d\n", offset, holeEnd);
+                        e = el_combine(e, fillHole(stmp, &offset, holeEnd, structsize));
+                        offset = offset2;
+                        goto Lagain;
+                    }
+                    i = vend;
                 }
+                //if (offset != sle->sd->structsize) printf("  3 fillHole, %d .. %d\n", offset, sle->sd->structsize);
                 e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
             }
 
-            size_t dim = sle->elements ? sle->elements->dim : 0;
-            assert(dim <= sle->sd->fields.dim);
             // CTFE may fill the hidden pointer by NullExp.
             {
                 for (size_t i = 0; i < dim; i++)
