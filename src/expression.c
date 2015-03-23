@@ -7396,10 +7396,11 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             return NULL;
         s = ie->sds->search_correct(ident);
         if (s)
-            error("undefined identifier '%s', did you mean '%s %s'?",
-                  ident->toChars(), s->kind(), s->toChars());
+            error("undefined identifier '%s' in %s '%s', did you mean %s '%s'?",
+                  ident->toChars(), ie->sds->kind(), ie->sds->toPrettyChars(), s->kind(), s->toChars());
         else
-            error("undefined identifier '%s'", ident->toChars());
+            error("undefined identifier '%s' in %s '%s'",
+                  ident->toChars(), ie->sds->kind(), ie->sds->toPrettyChars());
         return new ErrorExp();
     }
     else if (t1b->ty == Tpointer && e1->type->ty != Tenum &&
