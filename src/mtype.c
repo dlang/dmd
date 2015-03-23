@@ -6458,7 +6458,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         assert(id->dyncast() == DYNCAST_IDENTIFIER);
                         sm = s->search_correct((Identifier *)id);
                         if (sm)
-                            error(loc, "identifier '%s' of '%s' is not defined, did you mean '%s %s'?",
+                            error(loc, "identifier '%s' of '%s' is not defined, did you mean %s '%s'?",
                                   id->toChars(), toChars(), sm->kind(), sm->toChars());
                         else
                             error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
