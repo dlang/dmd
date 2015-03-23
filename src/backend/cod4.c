@@ -361,6 +361,21 @@ code *cdeq(elem *e,regm_t *pretregs)
   if (retregs == 0)                     /* if no return value           */
   {     int fl;
 
+        /* If registers are tight, and we might need them for the lvalue,
+         * prefer to not use them for the rvalue
+         */
+        bool plenty = true;
+        if (e1->Eoper == OPind)
+        {
+            /* Will need 1 register for evaluation, +2 registers for
+             * e1's addressing mode
+             */
+            regm_t m = allregs & ~regcon.mvar;  // mask of non-register variables
+            m &= m - 1;         // clear least significant bit
+            m &= m - 1;         // clear least significant bit
+            plenty = m != 0;    // at least 3 registers
+        }
+
         if ((e2oper == OPconst ||       /* if rvalue is a constant      */
              e2oper == OPrelconst &&
              !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64)) &&
@@ -370,7 +385,7 @@ code *cdeq(elem *e,regm_t *pretregs)
               && !(e2->EV.sp.Vsym->ty() & mTYcs)
 #endif
             ) &&
-            !evalinregister(e2) &&
+            !(evalinregister(e2) && plenty) &&
             !e1->Ecount)        /* and no CSE headaches */
         {
             // Look for special case of (*p++ = ...), where p is a register variable
