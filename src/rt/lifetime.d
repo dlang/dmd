@@ -2437,7 +2437,8 @@ unittest
     auto info = GC.query(arr.ptr);
     assert(info.attr & BlkAttr.NO_SCAN); // should be NO_SCAN
     arr ~= 0; // ensure array is inserted into cache
-    assert(arr.ptr is info.base);
+    debug(SENTINEL) {} else
+        assert(arr.ptr is info.base);
     GC.clrAttr(arr.ptr, BlkAttr.NO_SCAN); // remove the attribute
     auto arr2 = arr[0..1];
     assert(arr2.capacity == 0); // cannot append
@@ -2462,7 +2463,8 @@ unittest
     info = GC.query(carr.ptr);
     assert(info.attr & BlkAttr.NO_SCAN); // should be NO_SCAN
     carr ~= 0; // ensure array is inserted into cache
-    assert(carr.ptr is info.base);
+    debug(SENTINEL) {} else
+        assert(carr.ptr is info.base);
     GC.clrAttr(carr.ptr, BlkAttr.NO_SCAN); // remove the attribute
     auto carr2 = carr[0..1];
     assert(carr2.capacity == 0); // cannot append
@@ -2484,6 +2486,7 @@ unittest
 }
 
 // test struct finalizers
+debug(SENTINEL) {} else
 unittest
 {
     __gshared int dtorCount;
@@ -2588,6 +2591,7 @@ unittest
 }
 
 // test struct finalizers exception handling
+debug(SENTINEL) {} else
 unittest
 {
     if (!callStructDtorsDuringGC)
