@@ -110,8 +110,16 @@ void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 
 void dwarf_appreladdr(int seg, Outbuffer *buf, int targseg, targ_size_t val)
 {
-    dwarf_addrel64(seg, buf->size(), targseg, I64 ? val : 0);
-    I64 ? buf->write64(0) : buf->write32(val);
+    if (I64)
+    {
+        dwarf_addrel64(seg, buf->size(), targseg, val);
+        buf->write64(0);
+    }
+    else
+    {
+        dwarf_addrel(seg, buf->size(), targseg, 0);
+        buf->write32(val);
+    }
 }
 
 void dwarf_apprel32(int seg, Outbuffer *buf, int targseg, targ_size_t val)
@@ -122,10 +130,10 @@ void dwarf_apprel32(int seg, Outbuffer *buf, int targseg, targ_size_t val)
 
 void append_addr(Outbuffer *buf, targ_size_t addr)
 {
-  if (I64)
-    buf->write64(addr);
-  else
-    buf->write32(addr);
+    if (I64)
+        buf->write64(addr);
+    else
+        buf->write32(addr);
 }
 
 
@@ -1421,8 +1429,8 @@ void cv_outsym(symbol *s)
             soffset = infobuf->size();
             infobuf->writeByte(2);                      // DW_FORM_block1
 
-            // append DW_OP_GNU_push_tls_address for tls variables
 #if ELFOBJ
+            // debug info for TLS variables
             assert(s->Sxtrnnum);
             if (s->Sfl == FLtlsdata)
             {
@@ -1447,8 +1455,7 @@ void cv_outsym(symbol *s)
 #endif
             {
                 infobuf->writeByte(DW_OP_addr);
-                dwarf_addrel(infoseg,infobuf->size(),s->Sseg);
-                append_addr(infobuf, s->Soffset);    // address of global
+                dwarf_appreladdr(infoseg, infobuf, s->Sseg, s->Soffset); // address of global
             }
 
             infobuf->buf[soffset] = infobuf->size() - soffset - 1;
