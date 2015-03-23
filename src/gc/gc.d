@@ -1747,7 +1747,7 @@ struct Gcx
         if (bits)
             pool.setBits((p - pool.baseAddr) >> pool.shiftBy, bits);
         //debug(PRINTF) printf("\tmalloc => %p\n", p);
-        debug (MEMSTOMP) memset(p, 0xF0, size);
+        debug (MEMSTOMP) memset(p, 0xF0, alloc_size);
         return p;
     }
 
@@ -3062,7 +3062,7 @@ struct LargeObjectPool
             for (; pn + n < npages; ++n)
                 if (pagetable[pn + n] != B_PAGEPLUS)
                     break;
-            debug (MEMSTOMP) memset(pool.baseAddr + pn * PAGESIZE, 0xF3, n * PAGESIZE);
+            debug (MEMSTOMP) memset(baseAddr + pn * PAGESIZE, 0xF3, n * PAGESIZE);
             freePages(pn, n);
         }
     }
@@ -3261,4 +3261,15 @@ else
     {
         return p;
     }
+}
+
+debug (MEMSTOMP)
+unittest
+{
+	import core.memory;
+	auto p = cast(uint*)GC.malloc(uint.sizeof*3);
+	assert(*p == 0xF0F0F0F0);
+	p[2] = 0; // First two will be used for free list
+	GC.free(p);
+	assert(p[2] == 0xF2F2F2F2);
 }
