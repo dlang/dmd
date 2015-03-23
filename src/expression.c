@@ -3280,9 +3280,9 @@ Expression *IdentifierExp::semantic(Scope *sc)
     {
         s = sc->search_correct(ident);
         if (s)
-            error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
+            error("undefined identifier '%s', did you mean %s '%s'?", ident->toChars(), s->kind(), s->toChars());
         else
-            error("undefined identifier %s", ident->toChars());
+            error("undefined identifier '%s'", ident->toChars());
     }
     return new ErrorExp();
 }

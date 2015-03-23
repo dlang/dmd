@@ -6450,7 +6450,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 else
                 {
                     if (id->dyncast() == DYNCAST_DSYMBOL)
-                    {   // searchX already handles errors for template instances
+                    {
+                        // searchX already handles errors for template instances
                         assert(global.errors);
                     }
                     else
@@ -6554,7 +6555,7 @@ L1:
     }
     if (!s)
     {
-        const char *p = toChars();
+        const char *p = mutableOf()->unSharedOf()->toChars();
         const char *n = importHint(p);
         if (n)
             error(loc, "'%s' is not defined, perhaps you need to import %s; ?", p, n);
@@ -6563,9 +6564,9 @@ L1:
             Identifier *id = new Identifier(p, TOKidentifier);
             s = sc->search_correct(id);
             if (s)
-                error(loc, "undefined identifier %s, did you mean %s %s?", p, s->kind(), s->toChars());
+                error(loc, "undefined identifier '%s', did you mean %s '%s'?", p, s->kind(), s->toChars());
             else
-                error(loc, "undefined identifier %s", p);
+                error(loc, "undefined identifier '%s'", p);
         }
         *pt = Type::terror;
     }

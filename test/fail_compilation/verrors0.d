@@ -31,30 +31,30 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/verrors0.d(5): Error: undefined identifier T
-fail_compilation/verrors0.d(6): Error: undefined identifier T
-fail_compilation/verrors0.d(7): Error: undefined identifier T
-fail_compilation/verrors0.d(8): Error: undefined identifier T
-fail_compilation/verrors0.d(9): Error: undefined identifier T
-fail_compilation/verrors0.d(10): Error: undefined identifier T
-fail_compilation/verrors0.d(11): Error: undefined identifier T
-fail_compilation/verrors0.d(12): Error: undefined identifier T
-fail_compilation/verrors0.d(13): Error: undefined identifier T
-fail_compilation/verrors0.d(14): Error: undefined identifier T
-fail_compilation/verrors0.d(15): Error: undefined identifier T
-fail_compilation/verrors0.d(16): Error: undefined identifier T
-fail_compilation/verrors0.d(17): Error: undefined identifier T
-fail_compilation/verrors0.d(18): Error: undefined identifier T
-fail_compilation/verrors0.d(19): Error: undefined identifier T
-fail_compilation/verrors0.d(20): Error: undefined identifier T
-fail_compilation/verrors0.d(21): Error: undefined identifier T
-fail_compilation/verrors0.d(22): Error: undefined identifier T
-fail_compilation/verrors0.d(23): Error: undefined identifier T
-fail_compilation/verrors0.d(24): Error: undefined identifier T
-fail_compilation/verrors0.d(25): Error: undefined identifier T
-fail_compilation/verrors0.d(26): Error: undefined identifier T
-fail_compilation/verrors0.d(27): Error: undefined identifier T
-fail_compilation/verrors0.d(28): Error: undefined identifier T
-fail_compilation/verrors0.d(29): Error: undefined identifier T
+fail_compilation/verrors0.d(5): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(6): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(7): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(8): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(9): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(10): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(11): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(12): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(13): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(14): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(15): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(16): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(17): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(18): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(19): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(20): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(21): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(22): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(23): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(24): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(25): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(26): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(27): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(28): Error: undefined identifier 'T'
+fail_compilation/verrors0.d(29): Error: undefined identifier 'T'
 ---
 */
