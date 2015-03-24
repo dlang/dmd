@@ -637,7 +637,8 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
     auto tinext = unqualify(ti.next);
     auto size = tinext.tsize;                  // array element size
     auto cursize = arr.length * size;
-    auto bic = __getBlkInfo(arr.ptr);
+    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
+    auto bic = isshared ? null : __getBlkInfo(arr.ptr);
     auto info = bic ? *bic : GC.query(arr.ptr);
     if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
@@ -660,6 +661,10 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
         // Since it is not shared, we also know it won't throw (no lock).
         if (!__setArrayAllocLength(info, newsize, false, tinext))
             onInvalidMemoryOperationError();
+
+        // cache the block if not already done.
+        if (!isshared && !bic)
+            __insertBlkInfoCache(info, null);
     }
 }
 
@@ -714,7 +719,7 @@ body
 {
     // step 1, get the block
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-    auto bic = !isshared ? __getBlkInfo((*p).ptr) : null;
+    auto bic = isshared ? null : __getBlkInfo((*p).ptr);
     auto info = bic ? *bic : GC.query((*p).ptr);
     auto tinext = unqualify(ti.next);
     auto size = tinext.tsize;
@@ -1511,7 +1516,7 @@ body
             if (newlength > (*p).length)
             {
                 size_t size = (*p).length * sizeelem;
-                auto   bic = !isshared ? __getBlkInfo((*p).ptr) : null;
+                auto   bic = isshared ? null : __getBlkInfo((*p).ptr);
                 auto   info = bic ? *bic : GC.query((*p).ptr);
                 if(info.base && (info.attr & BlkAttr.APPENDABLE))
                 {
@@ -1693,7 +1698,7 @@ body
             newdata = (*p).ptr;
             if (newlength > (*p).length)
             {
-                auto   bic = !isshared ? __getBlkInfo((*p).ptr) : null;
+                auto   bic = isshared ? null : __getBlkInfo((*p).ptr);
                 auto   info = bic ? *bic : GC.query((*p).ptr);
 
                 // calculate the extent of the array given the base.
@@ -1928,7 +1933,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
     auto tinext = unqualify(ti.next);
     auto sizeelem = tinext.tsize;              // array element size
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
-    auto bic = !isshared ? __getBlkInfo(px.ptr) : null;
+    auto bic = isshared ? null : __getBlkInfo(px.ptr);
     auto info = bic ? *bic : GC.query(px.ptr);
     auto length = px.length;
     auto newlength = length + n;
