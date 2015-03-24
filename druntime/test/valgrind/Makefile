@@ -1,10 +1,11 @@
 include ../common.mak
 
-TESTS := ok_append no_use_after_free
+TESTS := ok_append no_use_after_free no_oob no_oob_sentinel
 
 GC_SRC = \
   ../../src/core/internal/gc/impl/conservative/gc.d \
-  ../../src/etc/valgrind/valgrind.d
+  ../../src/etc/valgrind/valgrind.d \
+  ../../src/rt/lifetime.d
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
@@ -28,6 +29,6 @@ $(ROOT)/no_%.done: $(ROOT)/no_%
 	$(QUIET)touch $@
 
 $(ROOT)/%: $(SRC)/%.d $(GC_SRC)
-	$(QUIET)$(DMD) -debug=VALGRIND $(DFLAGS) -of$@ $< $(GC_SRC)
+	$(QUIET)$(DMD) -debug=VALGRIND -debug=SENTINEL $(DFLAGS) -of$@ $< $(GC_SRC)
 clean:
 	rm -rf $(ROOT)

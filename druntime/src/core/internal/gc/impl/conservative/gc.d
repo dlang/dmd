@@ -2299,7 +2299,7 @@ struct Gcx
 
         for (;;)
         {
-            auto p = *cast(void**)(rng.pbot);
+            auto p = undefinedRead(*cast(void**)(rng.pbot));
             debug (VALGRIND) makeMemDefined((&p)[0 .. 1]);
 
             debug(MARK_PRINTF) printf("\tmark %p: %p\n", rng.pbot, p);
@@ -4830,13 +4830,22 @@ debug (SENTINEL)
     {
         assert(size <= uint.max);
         *sentinel_psize(p) = cast(uint)size;
-        *sentinel_pre(p) = SENTINEL_PRE;
-        *sentinel_post(p) = SENTINEL_POST;
+        debug (VALGRIND)
+        {
+            makeMemNoAccess(sentinel_pre(p)[0..1]);
+            makeMemNoAccess(sentinel_post(p)[0..1]);
+        }
+        else
+        {
+            *sentinel_pre(p) = SENTINEL_PRE;
+            *sentinel_post(p) = SENTINEL_POST;
+        }
     }
 
 
     void sentinel_Invariant(const void *p) nothrow @nogc
     {
+        debug (VALGRIND) {} else
         debug
         {
             assert(*sentinel_pre(p) == SENTINEL_PRE);
