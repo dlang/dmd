@@ -637,7 +637,8 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
     auto tinext = unqualify(ti.next);
     auto size = tinext.tsize;                  // array element size
     auto cursize = arr.length * size;
-    auto bic = __getBlkInfo(arr.ptr);
+    auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
+    auto bic = !isshared ? __getBlkInfo(arr.ptr) : null;
     auto info = bic ? *bic : GC.query(arr.ptr);
     if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
@@ -660,6 +661,10 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) /+nothrow+/
         // Since it is not shared, we also know it won't throw (no lock).
         if (!__setArrayAllocLength(info, newsize, false, tinext))
             onInvalidMemoryOperationError();
+
+        // cache the block if not already done.
+        if(!isshared && !bic)
+            __insertBlkInfoCache(info, bic);
     }
 }
 
