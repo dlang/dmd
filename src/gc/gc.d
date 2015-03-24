@@ -23,6 +23,8 @@ module gc.gc;
 //debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
 //debug = SENTINEL;             // add underrun/overrrun protection
+                                // note: this needs to be enabled globally in the makefiles
+                                // (-debug=SENTINEL) instead of uncommented here.
 //debug = PTRCHECK;             // more pointer checking
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = INVARIANT;            // enable invariants
@@ -700,8 +702,8 @@ struct GC
 
     /**
      * Attempt to in-place enlarge the memory block pointed to by p by at least
-     * minbytes beyond its current capacity, up to a maximum of maxsize.  This
-     * does not attempt to move the memory block (like realloc() does).
+     * minsize bytes, up to a maximum of maxsize additional bytes.
+     * This does not attempt to move the memory block (like realloc() does).
      *
      * Returns:
      *  0 if could not extend p,
