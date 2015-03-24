@@ -1290,6 +1290,43 @@ void test14144()
 }
 
 /************************************************/
+// 14321
+
+void test14321()
+{
+    struct Foo
+    {
+        static string op;
+
+        this(int id) { op ~= "c"; }
+        this(this) { op ~= "p"; }
+        ~this() { op ~= "d"; }
+    }
+    Foo[string] foos;
+    assert(Foo.op == "");
+    foos["test"] = Foo(42);     // initialization
+    assert(Foo.op == "c");
+    foos["test"] = Foo(42);     // assignment
+    assert(Foo.op == "ccd");
+
+    struct Bar
+    {
+        static string op;
+
+        int id;
+        //this(int id) { op ~= "c"; }
+        this(this) { op ~= "p"; }
+        ~this() { op ~= "d"; }
+    }
+    Bar[string] bars;
+    assert(Bar.op == "");
+    bars["test"] = Bar(42);     // initialization
+    assert(Bar.op == "");
+    bars["test"] = Bar(42);     // assignment
+    assert(Bar.op == "d");
+}
+
+/************************************************/
 
 int main()
 {
@@ -1339,6 +1376,7 @@ int main()
     test11359();
     test11730();
     test14089();
+    test14321();
 
     printf("Success\n");
     return 0;

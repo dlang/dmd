@@ -1280,6 +1280,14 @@ Expression *valueNoDtor(Expression *e)
             }
         }
     }
+    else if (e->op == TOKvar)
+    {
+        VarDeclaration *vtmp = ((VarExp *)e)->var->isVarDeclaration();
+        if (vtmp && vtmp->storage_class & STCrvalue)
+        {
+            vtmp->noscope = 1;
+        }
+    }
     return e;
 }
 
