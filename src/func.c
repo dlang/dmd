@@ -4299,7 +4299,9 @@ bool FuncDeclaration::needsClosure()
             for (Dsymbol *s = f; s && s != this; s = s->parent)
             {
                 FuncDeclaration *fx = s->isFuncDeclaration();
-                if (fx && (fx->isThis() || fx->tookAddressOf))
+                if (!fx)
+                    continue;
+                if (fx->isThis() || fx->tookAddressOf)
                 {
                     //printf("\t\tfx = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", fx->toChars(), fx->isVirtual(), fx->isThis(), fx->tookAddressOf);
 
@@ -4307,18 +4309,24 @@ bool FuncDeclaration::needsClosure()
                      */
                     markAsNeedingClosure( (fx == f) ? fx->parent : fx, this);
 
-                    goto Lyes;
+                    requiresClosure = true;
                 }
 
                 /* We also need to check if any sibling functions that
                  * called us, have escaped. This is recursive: we need
                  * to check the callers of our siblings.
                  */
-                if (fx && checkEscapingSiblings(fx, this))
-                    goto Lyes;
+                if (checkEscapingSiblings(fx, this))
+                    requiresClosure = true;
+
+                /* Bugzilla 12406: Iterate all closureVars to mark all descendant
+                 * nested functions that access to the closing context of this funciton.
+                 */
             }
         }
     }
+    if (requiresClosure)
+        goto Lyes;
 
     /* Look for case (5)
      */

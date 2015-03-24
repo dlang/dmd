@@ -809,6 +809,60 @@ void test9685b()
 }
 
 /************************************/
+// 12406
+
+auto createDg12406()
+{
+    static struct Dg
+    {
+        Dg delegate() action;
+    }
+
+    static void fn(void delegate()) { }
+
+    int x; fn({ x++; }); // required
+
+    Dg dg;
+
+    Dg createDg2()
+    {
+        int x; void unusedFun() { x++; } // required
+
+        return Dg(() => dg); // lambda returns garbage instead of dg
+    }
+
+    return dg = Dg(&createDg2);
+}
+
+void test12406()
+{
+    auto dgs = [createDg12406()];
+    //printf("dgs[%2d].action = %p:%p\n", 0, dgs[$-1].action.ptr, dgs[$-1].action.funcptr);
+    foreach (i; 1 .. 10+1)
+    {
+        dgs ~= dgs[i-1].action();
+        //printf("dgs[%2d].action = %p:%p\n", i, dgs[$-1].action.ptr, dgs[$-1].action.funcptr);
+    }
+
+    foreach (i, dgx; dgs)
+    {
+        if (i % 2 == 0)
+        {
+            // All closures are equal with dgs[0].
+            assert(dgx.action.ptr     is dgs[0].action.ptr);
+            assert(dgx.action.funcptr is dgs[0].action.funcptr);    // is: createDg2
+        }
+        else
+        {
+            // Each closures has unique context.
+            for (size_t j = i + 2; j < dgs.length; j += 2)
+                assert(dgx.action.ptr !is dgs[j].action.ptr);
+            assert(dgx.action.funcptr is dgs[1].action.funcptr);    // is: lambda () => dg
+        }
+    }
+}
+
+/************************************/
 
 int main()
 {
@@ -838,6 +892,7 @@ int main()
     test5911();
     test9685a();
     test9685b();
+    test12406();
 
     printf("Success\n");
     return 0;
