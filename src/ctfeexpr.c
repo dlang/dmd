@@ -1558,22 +1558,23 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         {
             Expression *k1 = (*es1->keys)[i];
             Expression *v1 = (*es1->values)[i];
-
+            Expression *v2 = NULL;
             for (size_t j = 0; j < dim; ++j)
             {
                 if (used[j])
                     continue;
                 Expression *k2 = (*es2->keys)[j];
-                Expression *v2 = (*es2->values)[j];
 
                 if (ctfeRawCmp(loc, k1, k2))
                     continue;
                 used[j] = true;
-                if (ctfeRawCmp(loc, v1, v2))
-                {
-                    mem.xfree(used);
-                    return 1;
-                }
+                v2 = (*es2->values)[j];
+                break;
+            }
+            if (!v2 || ctfeRawCmp(loc, v1, v2))
+            {
+                mem.xfree(used);
+                return 1;
             }
         }
         mem.xfree(used);
