@@ -3273,3 +3273,22 @@ unittest
 	GC.free(p);
 	assert(p[2] == 0xF2F2F2F2);
 }
+
+debug (SENTINEL)
+unittest
+{
+	import core.memory;
+	auto p = cast(ubyte*)GC.malloc(1);
+	assert(p[-1] == 0xF4);
+	assert(p[ 1] == 0xF5);
+/*
+	p[1] = 0;
+	bool thrown;
+	try
+		GC.free(p);
+	catch (Error e)
+		thrown = true;
+	p[1] = 0xF5;
+	assert(thrown);
+*/
+}
