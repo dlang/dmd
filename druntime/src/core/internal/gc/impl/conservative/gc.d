@@ -933,8 +933,8 @@ class ConservativeGC : GC
             // in case the page hasn't been recovered yet, don't add the object to the free list
             if (!gcx.recoverPool[bin] || pool.binPageChain[pagenum] == Pool.PageRecovered)
             {
-                list.next = gcx.bucket[bin];
-                list.pool = pool;
+                undefinedWrite(list.next, gcx.bucket[bin]);
+                undefinedWrite(list.pool, pool);
                 gcx.bucket[bin] = list;
             }
             pool.freebits.set(biti);
@@ -1968,8 +1968,8 @@ struct Gcx
         assert(p !is null);
     L_hasBin:
         // Return next item from free list
-        bucket[bin] = (cast(List*)p).next;
-        auto pool = (cast(List*)p).pool;
+        bucket[bin] = undefinedRead((cast(List*)p).next);
+        auto pool = undefinedRead((cast(List*)p).pool);
 
         auto biti = (p - pool.baseAddr) >> pool.shiftBy;
         assert(pool.freebits.test(biti));
@@ -2835,11 +2835,11 @@ struct Gcx
             if (!core.bitop.bt(freebitsdata, u / 16))
                 continue;
             auto elem = cast(List *)(p + u);
-            elem.pool = &pool.base;
-            *bucketTail = elem;
+            undefinedWrite(elem.pool, &pool.base);
+            undefinedWrite(*bucketTail, elem);
             bucketTail = &elem.next;
         }
-        *bucketTail = null;
+        undefinedWrite(*bucketTail, null);
         assert(bucket[bin] !is null);
         return true;
     }
@@ -4436,11 +4436,11 @@ struct SmallObjectPool
         void* ptop = p + PAGESIZE - 2 * size + 1;
         for (; p < ptop; p += size)
         {
-            (cast(List *)p).next = cast(List *)(p + size);
-            (cast(List *)p).pool = &base;
+            undefinedWrite((cast(List *)p).next, cast(List *)(p + size));
+            undefinedWrite((cast(List *)p).pool, &base);
         }
-        (cast(List *)p).next = null;
-        (cast(List *)p).pool = &base;
+        undefinedWrite((cast(List *)p).next, null);
+        undefinedWrite((cast(List *)p).pool, &base);
         return first;
     }
 }
@@ -5076,4 +5076,36 @@ void invalidate(void[] mem, ubyte pattern) nothrow @nogc
 {
     debug (MEMSTOMP) memset(mem.ptr, pattern, mem.length);
     debug (VALGRIND) makeMemUndefined(mem);
+}
+
+/// Read memory that should otherwise be marked as unreadable
+/// (e.g. free lists overlapped with unallocated heap objects).
+pragma(inline, true)
+T undefinedRead(T)(ref T var) nothrow
+{
+    debug (VALGRIND)
+    {
+        auto varArr = (&var)[0..1];
+        disableAddrReportingInRange(varArr);
+        T result = var;
+        enableAddrReportingInRange(varArr);
+        return result;
+    }
+    else
+        return var;
+}
+
+/// Write memory that should otherwise be marked as unwritable.
+pragma(inline, true)
+void undefinedWrite(T)(ref T var, T value) nothrow
+{
+    debug (VALGRIND)
+    {
+        auto varArr = (&var)[0..1];
+        disableAddrReportingInRange(varArr);
+        var = value;
+        enableAddrReportingInRange(varArr);
+    }
+    else
+        var = value;
 }

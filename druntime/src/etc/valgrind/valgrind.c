@@ -16,3 +16,23 @@ void _d_valgrind_make_mem_defined(const void* addr, size_t len)
 {
     VALGRIND_MAKE_MEM_DEFINED(addr, len);
 }
+
+void _d_valgrind_get_vbits(const void* addr, char* bits, size_t len)
+{
+    VALGRIND_GET_VBITS(addr, bits, len);
+}
+
+void _d_valgrind_set_vbits(const void* addr, char* bits, size_t len)
+{
+    VALGRIND_SET_VBITS(addr, bits, len);
+}
+
+void _d_valgrind_disable_addr_reporting_in_range(const void* addr, size_t len)
+{
+    VALGRIND_DISABLE_ADDR_ERROR_REPORTING_IN_RANGE(addr, len);
+}
+
+void _d_valgrind_enable_addr_reporting_in_range(const void* addr, size_t len)
+{
+    VALGRIND_ENABLE_ADDR_ERROR_REPORTING_IN_RANGE(addr, len);
+}
