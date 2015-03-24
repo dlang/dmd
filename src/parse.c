@@ -1753,6 +1753,7 @@ Dsymbol *Parser::parseSharedStaticDtor(PrefixAttributes *pAttrs)
 
 Dsymbol *Parser::parseInvariant(PrefixAttributes *pAttrs)
 {
+    Expressions *udas = NULL;
     Loc loc = token.loc;
     StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
@@ -1761,13 +1762,22 @@ Dsymbol *Parser::parseInvariant(PrefixAttributes *pAttrs)
     {
         nextToken();
         check(TOKrparen);
+
+        stc = parsePostfix(stc, &udas);
     }
 
     InvariantDeclaration *f = new InvariantDeclaration(loc, Loc(), stc);
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
     f->fbody = parseStatement(PScurly);
-    return f;
+    Dsymbol *s = f;
+    if (udas)
+    {
+        Dsymbols *a = new Dsymbols();
+        a->push(f);
+        s = new UserAttributeDeclaration(udas, a);
+    }
+    return s;
 }
 
 /*****************************************
@@ -1778,10 +1788,18 @@ Dsymbol *Parser::parseInvariant(PrefixAttributes *pAttrs)
 
 Dsymbol *Parser::parseUnitTest(PrefixAttributes *pAttrs)
 {
+    Expressions *udas = NULL;
     Loc loc = token.loc;
     StorageClass stc = pAttrs ? pAttrs->storageClass : STCundefined;
 
     nextToken();
+    if (token.value == TOKlparen)       // optional ()
+    {
+        nextToken();
+        check(TOKrparen);
+
+        stc = parsePostfix(stc, &udas);
+    }
 
     const utf8_t *begPtr = token.ptr + 1;  // skip '{'
     const utf8_t *endPtr = NULL;
@@ -1813,7 +1831,14 @@ Dsymbol *Parser::parseUnitTest(PrefixAttributes *pAttrs)
     if (pAttrs)
         pAttrs->storageClass = STCundefined;
     f->fbody = sbody;
-    return f;
+    Dsymbol *s = f;
+    if (udas)
+    {
+        Dsymbols *a = new Dsymbols();
+        a->push(f);
+        s = new UserAttributeDeclaration(udas, a);
+    }
+    return s;
 }
 
 /*****************************************
