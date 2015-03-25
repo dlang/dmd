@@ -239,6 +239,26 @@ pure string escapeShellArguments()
 }
 
 /***************************************************/
+// 8234
+
+void test8234()
+{
+    immutable int x = 0;
+
+    alias FP = typeof({ enum e = x; return e; });
+    static assert(is(FP : int function()));
+
+    auto fp = { enum e = x; return e; };
+    static assert(is(typeof(fp) : int function()));
+
+    alias DG = typeof({ auto e = x; return e; });
+    static assert(is(DG : int delegate()));
+
+    auto dg = { auto e = x; return e; };
+    static assert(is(typeof(dg) : int delegate()));
+}
+
+/***************************************************/
 // 8504
 
 void foo8504()()
