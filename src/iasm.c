@@ -51,13 +51,6 @@
 
 #if TX86
 
-// I32 isn't set correctly yet because this is the front end, and I32
-// is a backend flag
-#undef I32
-#undef I64
-#define I32 (!global.params.is64bit)
-#define I64 (global.params.is64bit)
-
 //#define EXTRA_DEBUG 1
 
 #undef ADDFWAIT
@@ -566,7 +559,7 @@ RETRY:
     switch (usActual)
     {
         case 0:
-            if (I64 && (pop->ptb.pptb0->usFlags & _i64_bit))
+            if (global.params.is64bit && (pop->ptb.pptb0->usFlags & _i64_bit))
                 asmerr("opcode %s is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
 
             if ((asmstate.ucItype == ITopt ||
@@ -597,7 +590,7 @@ RETRY:
                         continue;
 
                     // Check if match is invalid in 64bit mode
-                    if (I64 && (table1->usFlags & _i64_bit))
+                    if (global.params.is64bit && (table1->usFlags & _i64_bit))
                     {
                         bInvalid64bit = true;
                         continue;
@@ -709,7 +702,7 @@ TYPE_SIZE_ERROR:
             {
                 //printf("table1   = "); asm_output_flags(table2->usOp1); printf(" ");
                 //printf("table2   = "); asm_output_flags(table2->usOp2); printf("\n");
-                if (I64 && (table2->usFlags & _i64_bit))
+                if (global.params.is64bit && (table2->usFlags & _i64_bit))
                     asmerr("opcode %s is unavailable in 64bit mode", asm_opstr(pop));
 
                 bMatch1 = asm_match_flags(opflags1, table2->usOp1);
@@ -1105,7 +1098,7 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
                             popnd->disp <= CHAR_MAX)
                             us = CONSTRUCT_FLAGS(_8, _rel, _flbl,0);
                         else if (popnd->disp >= SHRT_MIN &&
-                            popnd->disp <= SHRT_MAX && !I64)
+                            popnd->disp <= SHRT_MAX && !global.params.is64bit)
                             us = CONSTRUCT_FLAGS(_16, _rel, _flbl,0);
                         else
                             us = CONSTRUCT_FLAGS(_32, _rel, _flbl,0);
@@ -1144,38 +1137,11 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
         if (ty == Tpointer && popnd->ptype->nextOf()->ty == Tfunction &&
             !ps->isVarDeclaration())
         {
-#if 1
             return CONSTRUCT_FLAGS(_32, _m, _fn16, 0);
-#else
-            ty = popnd->ptype->Tnext->Tty;
-            if (tyfarfunc(tybasic(ty)))
-            {
-                return I32
-                    ? CONSTRUCT_FLAGS(_48, _mnoi, _fn32, 0)
-                    : CONSTRUCT_FLAGS(_32, _mnoi, _fn32, 0);
-            }
-            else
-            {
-                return I32
-                    ? CONSTRUCT_FLAGS(_32, _m, _fn16, 0)
-                    : CONSTRUCT_FLAGS(_16, _m, _fn16, 0);
-            }
-#endif
         }
         else if (ty == Tfunction)
         {
-#if 1
             return CONSTRUCT_FLAGS(_32, _rel, _fn16, 0);
-#else
-            if (tyfarfunc(tybasic(ty)))
-                return I32
-                    ? CONSTRUCT_FLAGS(_48, _p, _fn32, 0)
-                    : CONSTRUCT_FLAGS(_32, _p, _fn32, 0);
-            else
-                return I32
-                    ? CONSTRUCT_FLAGS(_32, _rel, _fn16, 0)
-                    : CONSTRUCT_FLAGS(_16, _rel, _fn16, 0);
-#endif
         }
         else if (asmstate.ucItype == ITjump)
         {
@@ -1290,10 +1256,10 @@ static code *asm_emit(Loc loc,
 
     asmstate.statement->regs |= asm_modify_regs(ptb, popnd1, popnd2);
 
-    if (ptb.pptb0->usFlags & _64_bit && !I64)
+    if (ptb.pptb0->usFlags & _64_bit && !global.params.is64bit)
         error(asmstate.loc, "use -m64 to compile 64 bit instructions");
 
-    if (I64 && (ptb.pptb0->usFlags & _64_bit))
+    if (global.params.is64bit && (ptb.pptb0->usFlags & _64_bit))
     {
         emit(REX | REX_W);
         pc->Irex |= REX_W;
@@ -1302,7 +1268,7 @@ static code *asm_emit(Loc loc,
     switch (usNumops)
     {
         case 0:
-            if (((I32 | I64) && (ptb.pptb0->usFlags & _16_bit)))
+            if (ptb.pptb0->usFlags & _16_bit)
             {
                 emit(0x66);
                 pc->Iflags |= CFopsize;
@@ -1318,7 +1284,7 @@ static code *asm_emit(Loc loc,
         // an immediate and does not affect operation size
         case 3:
         case 2:
-            if ((I32 &&
+            if ((!global.params.is64bit &&
                   (amod2 == _addr16 ||
                    (uSizemaskTable2 & _16 && aoptyTable2 == _rel) ||
                    (uSizemaskTable2 & _32 && aoptyTable2 == _mnoi) ||
@@ -1329,7 +1295,7 @@ static code *asm_emit(Loc loc,
             {
                 emit(0x67);
                 pc->Iflags |= CFaddrsize;
-                if (I32)
+                if (!global.params.is64bit)
                     amod2 = _addr16;
                 else
                     amod2 = _addr32;
@@ -1346,7 +1312,7 @@ static code *asm_emit(Loc loc,
          */
 
         case 1:
-            if ((I32 &&
+            if ((!global.params.is64bit &&
                   (amod1 == _addr16 ||
                    (uSizemaskTable1 & _16 && aoptyTable1 == _rel) ||
                     (uSizemaskTable1 & _32 && aoptyTable1 == _mnoi) ||
@@ -1354,7 +1320,7 @@ static code *asm_emit(Loc loc,
             {
                 emit(0x67);     // address size prefix
                 pc->Iflags |= CFaddrsize;
-                if (I32)
+                if (!global.params.is64bit)
                     amod1 = _addr16;
                 else
                     amod1 = _addr32;
@@ -1364,7 +1330,7 @@ static code *asm_emit(Loc loc,
 
             // If the size of the operand is unknown, assume that it is
             // the default size
-            if (((I64 || I32) && (ptb.pptb0->usFlags & _16_bit)))
+            if (ptb.pptb0->usFlags & _16_bit)
             {
                 //if (asmstate.ucItype != ITjump)
                 {
@@ -1696,7 +1662,7 @@ L3: ;
                 {
                     reg &= 7;
                     pc->Irex |= REX_B;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc->Irm += reg;
@@ -1833,12 +1799,12 @@ L1:
                 {
                     reg &= 7;
                     pc->Irex |= REX_B;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 else if (popnd1->base->isSIL_DIL_BPL_SPL())
                 {
                     pc->Irex |= REX;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc->Irm += reg;
@@ -1857,12 +1823,12 @@ L1:
                 {
                     reg &= 7;
                     pc->Irex |= REX_B;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 else if (popnd1->base->isSIL_DIL_BPL_SPL())
                 {
                     pc->Irex |= REX;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc->Irm += reg;
@@ -1946,7 +1912,7 @@ L1:
                 {
                     reg &= 7;
                     pc->Irex |= REX_B;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc->Irm += reg;
@@ -1965,7 +1931,7 @@ L1:
                 {
                     reg &= 7;
                     pc->Irex |= REX_B;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc->Irm += reg;
@@ -2566,7 +2532,7 @@ static void asm_make_modrm_byte(
             assert(d);
             if (d->isDataseg() || d->isCodeseg())
             {
-                if (I32 && amod == _addr16)
+                if (!global.params.is64bit && amod == _addr16)
                     error(asmstate.loc, "cannot have 16 bit addressing mode in 32 bit code");
                 goto DATA_REF;
             }
@@ -2653,7 +2619,7 @@ static void asm_make_modrm_byte(
             bOffsetsym = true;
 
     }
-    else if (amod == _addr32 || (amod == _flbl && I32))
+    else if (amod == _addr32 || (amod == _flbl && !global.params.is64bit))
     {
 #ifdef DEBUG
         if (debuga)
@@ -3345,7 +3311,7 @@ static REG *asm_reg_lookup(char *s)
             return &regtab[i];
         }
     }
-    if (I64)
+    if (global.params.is64bit)
     {
         for (i = 0; i < sizeof(regtab64) / sizeof(regtab64[0]); i++)
         {
@@ -3413,7 +3379,7 @@ static unsigned asm_type_size(Type * ptype)
             case 2:     u = _16;        break;
             case 4:     u = _32;        break;
             case 6:     u = _48;        break;
-            case 8:     if (I64) u = _64;        break;
+            case 8:     if (global.params.is64bit) u = _64;        break;
         }
     }
     return u;
