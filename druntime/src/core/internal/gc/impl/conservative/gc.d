@@ -483,6 +483,8 @@ class ConservativeGC : GC
 
         auto p = runLocked!(mallocNoSync, mallocTime, numMallocs)(size, bits, localAllocSize, ti);
 
+        invalidate(p[0 .. localAllocSize], 0xF0, true);
+
         if (!(bits & BlkAttr.NO_SCAN))
         {
             memset(p + size, 0, localAllocSize - size);
@@ -569,6 +571,9 @@ class ConservativeGC : GC
         size_t localAllocSize = void;
 
         auto p = runLocked!(mallocNoSync, mallocTime, numMallocs)(size, bits, localAllocSize, ti);
+
+        debug (VALGRIND) makeMemUndefined(p[0..size]);
+        invalidate((p + size)[0 .. localAllocSize - size], 0xF0, true);
 
         memset(p, 0, size);
         if (!(bits & BlkAttr.NO_SCAN))
