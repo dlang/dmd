@@ -3099,9 +3099,9 @@ Type *Parser::parseBasicType()
     return t;
 }
 
-Type* Parser::parseBasicTypeStartingAt(TypeQualified* tid)
+Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
 {
-    TypeSArray* maybeSArray = NULL;
+    TypeSArray *maybeSArray = NULL;
     // See https://issues.dlang.org/show_bug.cgi?id=1215
     // A basic type can look like MyType (typical case), but also:
     //  MyType.T -> A type
@@ -3131,7 +3131,7 @@ Type* Parser::parseBasicTypeStartingAt(TypeQualified* tid)
                     while (t->ty == Tsarray)
                     {
                         // The SArray inner type is an SArray itself.
-                        TypeSArray* inner = (TypeSArray*)t;
+                        TypeSArray *inner = (TypeSArray*)t;
                         dimStack.push(inner->dim->syntaxCopy());
                         t = inner->next->syntaxCopy();
                     }
@@ -3140,7 +3140,7 @@ Type* Parser::parseBasicTypeStartingAt(TypeQualified* tid)
                     tid = (TypeQualified*)t;
                     while (dimStack.dim)
                     {
-                        Expression* dim = dimStack.pop();
+                        Expression *dim = dimStack.pop();
                         tid->addIndex(dim);
                     }
                     maybeSArray = NULL;
@@ -3161,7 +3161,7 @@ Type* Parser::parseBasicTypeStartingAt(TypeQualified* tid)
             case TOKlbracket:
             {
                 nextToken();
-                Type* t = maybeSArray ? (Type*)maybeSArray : (Type*)tid;
+                Type *t = maybeSArray ? (Type*)maybeSArray : (Type*)tid;
                 if (token.value == TOKrbracket)
                 {
                     // It's a dynamic array, and we're done:
@@ -3312,7 +3312,7 @@ Type *Parser::parseBasicType2(Type *t)
 }
 
 Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
-        TemplateParameters **tpl, StorageClass storageClass, int* pdisable, Expressions **pudas)
+        TemplateParameters **tpl, StorageClass storageClass, int *pdisable, Expressions **pudas)
 {
     //printf("parseDeclarator(tpl = %p)\n", tpl);
     t = parseBasicType2(t);

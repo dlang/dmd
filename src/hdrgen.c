@@ -958,7 +958,8 @@ public:
                 TemplateInstance *ti = (TemplateInstance *)id;
                 ti->accept(this);
             }
-            else if (id->dyncast() == DYNCAST_EXPRESSION) {
+            else if (id->dyncast() == DYNCAST_EXPRESSION)
+            {
                 buf->writeByte('[');
                 ((Expression*)id)->accept(this);
                 buf->writeByte(']');

@@ -1,9 +1,26 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS:
 
+/*
+TEST_OUTPUT:
+---
+TEST: base use case
+TEST: chained types
+TEST: chained packs
+TEST: expr
+TEST: Nested + index eval
+TEST: alias, base use case
+TEST: alias, chained types
+TEST: alias, chained packs
+TEST: alias, expr
+TEST: alias, Nested + index eval
+---
+*/
+
 import std.stdio;
 
-struct A(Args...) {
+struct A(Args...)
+{
     pragma(msg, "TEST: base use case");
     Args[0].T mBase;
     pragma(msg, "TEST: chained types");
@@ -33,31 +50,39 @@ struct A(Args...) {
     UNested aNested;
 }
 
-struct B {
-    struct T {
-        void f() {
+struct B
+{
+    struct T
+    {
+        void f()
+        {
             writeln("B.T.f");
         }
-        struct TT {
-            void f() {
+        struct TT
+        {
+            void f()
+            {
                 writeln("B.T.TT.f");
             }
         }
     }
     enum i = 6;
     enum i2 = 0;
-    void g() {
+    void g()
+    {
         writeln("B.g");
     }
 }
 
-struct C(Args...) {
+struct C(Args...)
+{
     alias FArgs = Args;
 }
 
 alias Z = A!(B,B,C!(B,B));
 
-void main() {
+void main()
+{
   Z z;
   z.mBase.f();       // B.T.f
   z.mChain.f();      // B.T.TT.f

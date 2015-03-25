@@ -416,7 +416,7 @@ Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
  * Search for symbol with correct spelling.
  */
 
-void *symbol_search_fp(void *arg, const char *seed, int* cost)
+void *symbol_search_fp(void *arg, const char *seed, int *cost)
 {
     /* If not in the lexer's string table, it certainly isn't in the symbol table.
      * Doing this first is a lot faster.
@@ -471,41 +471,41 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             break;
 
         case DYNCAST_EXPRESSION:
+        {
+            Expression *expr = (Expression*)id;
+            TupleDeclaration *td = s->isTupleDeclaration();
+            if (!td)
             {
-                Expression* expr = (Expression*)id;
-                TupleDeclaration* td = s->isTupleDeclaration();
-                if (!td)
-                {
-                    error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
-                          id->toChars(), s->toChars());
-                    return NULL;
-                }
-                sc = sc->startCTFE();
-                expr = expr->semantic(sc);
-                sc = sc->endCTFE();
+                error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
+                      id->toChars(), s->toChars());
+                return NULL;
+            }
+            sc = sc->startCTFE();
+            expr = expr->semantic(sc);
+            sc = sc->endCTFE();
 
-                expr = expr->ctfeInterpret();
-                const uinteger_t d = expr->toUInteger();
+            expr = expr->ctfeInterpret();
+            const uinteger_t d = expr->toUInteger();
 
-                if (d >= td->objects->dim)
-                {
-                    error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
-                    return NULL;
-                }
-                RootObject *o = (*td->objects)[(size_t)d];
-                if (o->dyncast() == DYNCAST_TYPE)
-                {
-                    sm = NULL;
-                    Type *t = (Type *)o;
-                    sm = t->toDsymbol(sc)->toAlias();
-                }
-                else
-                {
-                    assert(o->dyncast() == DYNCAST_DSYMBOL);
-                    sm = (Dsymbol *)o;
-                }
+            if (d >= td->objects->dim)
+            {
+                error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+                return NULL;
+            }
+            RootObject *o = (*td->objects)[(size_t)d];
+            if (o->dyncast() == DYNCAST_TYPE)
+            {
+                sm = NULL;
+                Type *t = (Type *)o;
+                sm = t->toDsymbol(sc)->toAlias();
+            }
+            else
+            {
+                assert(o->dyncast() == DYNCAST_DSYMBOL);
+                sm = (Dsymbol *)o;
             }
             break;
+        }
 
         case DYNCAST_DSYMBOL:
         {

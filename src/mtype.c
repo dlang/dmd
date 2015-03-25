@@ -6317,8 +6317,10 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
 
             ti = (TemplateInstance *)ti->syntaxCopy(NULL);
             id = ti;
-        } else if (id->dyncast() == DYNCAST_EXPRESSION) {
-            Expression* e = (Expression*)id;
+        }
+        else if (id->dyncast() == DYNCAST_EXPRESSION)
+        {
+            Expression *e = (Expression*)id;
             e = e->syntaxCopy();
             id = e;
         }
@@ -6378,8 +6380,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             RootObject *id = idents[i];
             if (id->dyncast() == DYNCAST_EXPRESSION)
             {
-                Expression* expr = (Expression*)id;
-                TupleDeclaration* td = s->isTupleDeclaration();
+                Expression *expr = (Expression*)id;
+                TupleDeclaration *td = s->isTupleDeclaration();
                 if (!td)
                 {
                     error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
