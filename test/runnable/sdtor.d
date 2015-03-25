@@ -3703,6 +3703,38 @@ void test13095()
 }
 
 /**********************************/
+// 14264
+
+void test14264()
+{
+    static int dtor;
+    static struct Foo
+    {
+        ~this() { ++dtor; }
+        T opCast(T:bool)() { return true; }
+    }
+
+    Foo makeFoo()
+    {
+        return Foo();
+    }
+
+    assert(dtor == 0);
+
+    makeFoo();
+    assert(dtor == 1);
+
+    makeFoo;
+    assert(dtor == 2);
+
+    if (makeFoo()) {}
+    assert(dtor == 3);
+
+    if (makeFoo) {}
+    assert(dtor == 4);
+}
+
+/**********************************/
 
 int main()
 {
@@ -3815,6 +3847,7 @@ int main()
     test14023();
     test13669();
     test13095();
+    test14264();
 
     printf("Success\n");
     return 0;

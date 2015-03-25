@@ -824,8 +824,8 @@ Statement *ExpStatement::semantic(Scope *sc)
 #endif
 
         exp = exp->semantic(sc);
-        exp = exp->addDtorHook(sc);
         exp = resolveProperties(sc, exp);
+        exp = exp->addDtorHook(sc);
         discardValue(exp);
         exp = exp->optimize(WANTvalue);
         exp = checkGC(sc, exp);
@@ -2849,8 +2849,8 @@ Statement *IfStatement::semantic(Scope *sc)
     else
     {
         condition = condition->semantic(sc);
-        condition = condition->addDtorHook(sc);
         condition = resolveProperties(sc, condition);
+        condition = condition->addDtorHook(sc);
     }
     condition = checkGC(sc, condition);
 
