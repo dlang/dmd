@@ -141,22 +141,6 @@ void LibElf::addLibrary(void *buf, size_t buflen)
 /*****************************************************************************/
 /*****************************************************************************/
 
-void sputl(int value, void* buffer)
-{
-    unsigned char *p = (unsigned char*)buffer;
-    p[0] = (unsigned char)(value >> 24);
-    p[1] = (unsigned char)(value >> 16);
-    p[2] = (unsigned char)(value >> 8);
-    p[3] = (unsigned char)(value);
-}
-
-int sgetl(void* buffer)
-{
-    unsigned char *p = (unsigned char*)buffer;
-    return (((((p[0] << 8) | p[1]) << 8) | p[2]) << 8) | p[3];
-}
-
-
 struct ObjModule
 {
     unsigned char *base;        // where are we holding it in memory
@@ -443,7 +427,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
          * go into the symbol table than we do.
          * This is also probably faster.
          */
-        unsigned nsymbols = sgetl(symtab);
+        unsigned nsymbols = Port::readlongBE(symtab);
         char *s = symtab + 4 + nsymbols * 4;
         if (4 + nsymbols * (4 + 1) > symtab_size)
         {   reason = __LINE__;
@@ -456,7 +440,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
             {   reason = __LINE__;
                 goto Lcorrupt;
             }
-            unsigned moff = sgetl(symtab + 4 + i * 4);
+            unsigned moff = Port::readlongBE(symtab + 4 + i * 4);
 //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + sizeof(Header), name);
             for (unsigned m = mstart; 1; m++)
             {   if (m == objmodules.dim)
@@ -616,13 +600,13 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
     OmToHeader(&h, &om);
     libbuf->write(&h, sizeof(h));
     char buf[4];
-    sputl(objsymbols.dim, buf);
+    Port::writelongBE(objsymbols.dim, buf);
     libbuf->write(buf, 4);
 
     for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
 
-        sputl(os->om->offset, buf);
+        Port::writelongBE(os->om->offset, buf);
         libbuf->write(buf, 4);
     }
 

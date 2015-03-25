@@ -167,41 +167,6 @@ void LibMSCoff::addLibrary(void *buf, size_t buflen)
 /*****************************************************************************/
 /*****************************************************************************/
 
-// Little endian
-void sputl(int value, void* buffer)
-{
-    unsigned char *p = (unsigned char*)buffer;
-    p[3] = (unsigned char)(value >> 24);
-    p[2] = (unsigned char)(value >> 16);
-    p[1] = (unsigned char)(value >> 8);
-    p[0] = (unsigned char)(value);
-}
-
-// Little endian
-int sgetl(void* buffer)
-{
-    unsigned char *p = (unsigned char*)buffer;
-    return (((((p[3] << 8) | p[2]) << 8) | p[1]) << 8) | p[0];
-}
-
-// Big endian
-void sputl_big(int value, void* buffer)
-{
-    unsigned char *p = (unsigned char*)buffer;
-    p[0] = (unsigned char)(value >> 24);
-    p[1] = (unsigned char)(value >> 16);
-    p[2] = (unsigned char)(value >> 8);
-    p[3] = (unsigned char)(value);
-}
-
-// Big endian
-int sgetl_big(void* buffer)
-{
-    unsigned char *p = (unsigned char*)buffer;
-    return (((((p[0] << 8) | p[1]) << 8) | p[2]) << 8) | p[3];
-}
-
-
 struct ObjModule
 {
     unsigned char *base;        // where are we holding it in memory
@@ -425,13 +390,13 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
                     {   reason = __LINE__;
                         goto Lcorrupt;
                     }
-                    number_of_members = sgetl((char *)buf + offset);
+                    number_of_members = Port::readlongLE((char *)buf + offset);
                     member_file_offsets = (unsigned *)((char *)buf + offset + 4);
                     if (size < 4 + number_of_members * 4 + 4)
                     {   reason = __LINE__;
                         goto Lcorrupt;
                     }
-                    number_of_symbols = sgetl((char *)buf + offset + 4 + number_of_members * 4);
+                    number_of_symbols = Port::readlongLE((char *)buf + offset + 4 + number_of_members * 4);
                     indices = (unsigned short *)((char *)buf + offset + 4 + number_of_members * 4 + 4);
                     string_table = (char *)((char *)buf + offset + 4 + number_of_members * 4 + 4 + number_of_symbols * 2);
                     if (size <= (4 + number_of_members * 4 + 4 + number_of_symbols * 2))
@@ -743,7 +708,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     libbuf->write(&h, sizeof(h));
 
     char buf[4];
-    sputl_big(objsymbols.dim, buf);
+    Port::writelongBE(objsymbols.dim, buf);
     libbuf->write(buf, 4);
 
     // Sort objsymbols[] in module offset order
@@ -758,7 +723,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
             // Should be sorted in module order
             assert(lastoffset <= os->om->offset);
         lastoffset = os->om->offset;
-        sputl_big(lastoffset, buf);
+        Port::writelongBE(lastoffset, buf);
         libbuf->write(buf, 4);
     }
 
@@ -780,18 +745,18 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     OmToHeader(&h, &om);
     libbuf->write(&h, sizeof(h));
 
-    sputl(objmodules.dim, buf);
+    Port::writelongLE(objmodules.dim, buf);
     libbuf->write(buf, 4);
 
     for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules[i];
 
         om->index = i;
-        sputl(om->offset, buf);
+        Port::writelongLE(om->offset, buf);
         libbuf->write(buf, 4);
     }
 
-    sputl(objsymbols.dim, buf);
+    Port::writelongLE(objsymbols.dim, buf);
     libbuf->write(buf, 4);
 
     // Sort objsymbols[] in lexical order
@@ -800,7 +765,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
 
-        sputl(os->om->index + 1, buf);
+        Port::writelongLE(os->om->index + 1, buf);
         libbuf->write(buf, 2);
     }
 
