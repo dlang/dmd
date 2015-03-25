@@ -689,6 +689,41 @@ void test22()
 }
 
 /************************************/
+// 1759
+
+void test1759()
+{
+    struct S { int a, b, c; }
+    struct SS { S obj; }
+
+    static int delegate() makeSum1(S s)
+    {
+        with (s) return { return a + b + c; };
+    }
+    static int delegate() makeSum2(S[1] sa)
+    {
+        with (sa[0]) return { return a + b + c; };
+    }
+    static int delegate() makeSum3(SS ss)
+    {
+        with (ss.obj) return { return a + b + c; };
+    }
+    static int delegate() makeSum4(SS[1] ssa)
+    {
+        with (ssa[0].obj) return { return a + b + c; };
+    }
+
+    S s = {15, 30, 45};
+    SS ss = {s};
+    int delegate() sum;
+
+    sum = makeSum1(s);      assert(sum() == 90);
+    sum = makeSum2([s]);    assert(sum() == 90);
+    sum = makeSum3(ss);     assert(sum() == 90);
+    sum = makeSum4([ss]);   assert(sum() == 90);
+}
+
+/************************************/
 // 1841
 
 int delegate() foo1841()
@@ -718,7 +753,7 @@ int delegate() foo1841b()
     return delegate int() { return more_nested(); };
 }
 
-void bug1841()
+void test1841()
 {
     auto z = foo1841();
     auto p = foo1841();
@@ -888,7 +923,8 @@ int main()
     test20();
     test21();
     test22();
-    bug1841();
+    test1759();
+    test1841();
     test5911();
     test9685a();
     test9685b();

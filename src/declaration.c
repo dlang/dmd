@@ -1747,6 +1747,8 @@ void VarDeclaration::checkCtorConstInit()
 #endif
 }
 
+bool lambdaCheckForNestedRef(Expression *e, Scope *sc);
+
 /************************************
  * Check to see if this variable is actually in an enclosing function
  * rather than the current one.
@@ -1853,6 +1855,16 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 {
                     ::error(loc, "cannnot use $ inside a function literal");
                     return true;
+                }
+
+                if (ident == Id::withSym)       // Bugzilla 1759
+                {
+                    ExpInitializer *ez = init->isExpInitializer();
+                    assert(ez);
+                    Expression *e = ez->exp;
+                    if (e->op == TOKconstruct || e->op == TOKblit)
+                        e = ((AssignExp *)e)->e2;
+                    return lambdaCheckForNestedRef(e, sc);
                 }
             }
         }
