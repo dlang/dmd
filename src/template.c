@@ -3703,10 +3703,15 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         if (tx)
                         {
                             s = tx->toDsymbol(sc);
-                            if (s)
+                            if (TemplateInstance *ti = s ? s->parent->isTemplateInstance() : NULL)
                             {
-                                TemplateInstance *ti = s->parent->isTemplateInstance();
-                                s = ti ? ti->tempdecl : NULL;
+                                // Bugzilla 14290: Try to match with ti->tempecl,
+                                // only when ti is an enclosing instance.
+                                Dsymbol *p = sc->parent;
+                                while (p && p != ti)
+                                    p = p->parent;
+                                if (p)
+                                    s = ti->tempdecl;
                             }
                         }
                         if (s)
