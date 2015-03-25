@@ -404,6 +404,11 @@ install: all
 
 ######################################################
 
+checkwhitespace:
+	$(HOST_DC) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
+
+######################################################
+
 gcov:
 	gcov access.c
 	gcov aliasthis.c

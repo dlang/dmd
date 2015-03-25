@@ -366,6 +366,8 @@ pvs:
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) /Tp $(BACKSRC) --source-file $(BACKSRC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) /Tp $(TKSRCC) --source-file $(TKSRCC)
 
+checkwhitespace:
+	$(HOST_DC) -run checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC)
 
 ############################## Generated Source ##############################
 
