@@ -548,6 +548,7 @@ void ClassDeclaration::semantic(Scope *sc)
         }
     }
 Lancestorsdone:
+    //printf("\tClassDeclaration::semantic(%s) doAncestorsSemantic = %d\n", toChars(), doAncestorsSemantic);
 
     if (!members)               // if opaque declaration
     {
@@ -555,7 +556,21 @@ Lancestorsdone:
         return;
     }
     if (!symtab)
+    {
         symtab = new DsymbolTable();
+
+        /* Bugzilla 12152: The semantic analysis of base classes should be finished
+         * before the members semantic analysis of this class, in order to determine
+         * vtbl in this class. However if a base class refers the member of this class,
+         * it can be resolved as a normal forward reference.
+         * Call addMember() to make this class members visible from the base classes.
+         */
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->addMember(sc, this, 1);
+        }
+    }
 
     for (size_t i = 0; i < baseclasses->dim; i++)
     {
@@ -596,12 +611,6 @@ Lancestorsdone:
                 vtbl.push(this);            // leave room for classinfo as first member
         }
         interfaceSemantic(sc);
-
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->addMember(sc, this, 1);
-        }
 
         /* If this is a nested class, add the hidden 'this'
          * member which is a pointer to the enclosing scope.
