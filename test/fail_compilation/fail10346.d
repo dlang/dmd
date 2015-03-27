@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10346.d(9): Error: undefined identifier T
+fail_compilation/fail10346.d(9): Error: undefined identifier 'T'
 ---
 */
 

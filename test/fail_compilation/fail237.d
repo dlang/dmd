@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail237.d(10): Error: undefined identifier 'a'
+fail_compilation/fail237.d(10): Error: undefined identifier 'a' in module 'fail237'
 ---
 */
 

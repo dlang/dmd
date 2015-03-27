@@ -280,7 +280,7 @@ void Import::semantic(Scope *sc)
             {
                 Dsymbol *s = mod->search_correct(names[i]);
                 if (s)
-                    mod->error(loc, "import '%s' not found, did you mean '%s %s'?", names[i]->toChars(), s->kind(), s->toChars());
+                    mod->error(loc, "import '%s' not found, did you mean %s '%s'?", names[i]->toChars(), s->kind(), s->toChars());
                 else
                     mod->error(loc, "import '%s' not found", names[i]->toChars());
                 ad->type = Type::terror;

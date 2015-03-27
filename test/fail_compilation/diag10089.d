@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag10089.d(15): Error: undefined identifier 'chunks'
+fail_compilation/diag10089.d(15): Error: undefined identifier 'chunks' in package 'imports'
 fail_compilation/diag10089.d(17): Error: no property 'chunks' for type 'void'
 ---
 */

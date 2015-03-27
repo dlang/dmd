@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice11726.d(16): Error: undefined identifier x
+fail_compilation/ice11726.d(16): Error: undefined identifier 'x'
 ---
 */
 

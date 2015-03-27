@@ -481,10 +481,10 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             {
                 sm = s->search_correct(ti->name);
                 if (sm)
-                    ::error(loc, "template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
+                    ::error(loc, "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?",
                           ti->name->toChars(), s->kind(), s->toPrettyChars(), sm->kind(), sm->toChars());
                 else
-                    ::error(loc, "template identifier '%s' is not a member of '%s %s'",
+                    ::error(loc, "template identifier '%s' is not a member of %s '%s'",
                           ti->name->toChars(), s->kind(), s->toPrettyChars());
                 return NULL;
             }
