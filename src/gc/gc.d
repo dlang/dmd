@@ -2944,7 +2944,7 @@ struct LargeObjectPool
         {
             assert(pagetable[i] == B_FREE);
             size_t p = 1;
-            while (p < n && pagetable[i + p] == B_FREE)
+            while (p < n && i + p < npages && pagetable[i + p] == B_FREE)
                 p++;
 
             if (p == n)
