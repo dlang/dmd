@@ -1757,8 +1757,9 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc);
 bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
-    if (parent && !isDataseg() && parent != sc->parent &&
-        !(storage_class & STCmanifest))
+    if (parent && parent != sc->parent &&
+        !isDataseg() && !(storage_class & STCmanifest) &&
+        sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
     {
         // The function that this variable is in
         FuncDeclaration *fdv = toParent()->isFuncDeclaration();
