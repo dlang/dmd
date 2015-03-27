@@ -10839,8 +10839,6 @@ Expression *PostExp::semantic(Scope *sc)
     }
 
     e1 = e1->optimize(WANTvalue);
-    if (e1->op != TOKarraylength)
-        e1 = e1->modifiableLvalue(sc, e1);
 
     Type *t1 = e1->type->toBasetype();
     if (t1->ty == Tclass || t1->ty == Tstruct || e1->op == TOKarraylength)
@@ -10885,6 +10883,8 @@ Expression *PostExp::semantic(Scope *sc)
         e = e->semantic(sc);
         return e;
     }
+
+    e1 = e1->modifiableLvalue(sc, e1);
 
     e = this;
     if (e1->checkScalar())
