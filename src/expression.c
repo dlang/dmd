@@ -11288,9 +11288,18 @@ Expression *AssignExp::semantic(Scope *sc)
             }
             else    // Bugzilla 11355
             {
-                Expression *e = op_overload(sc);
-                if (e)
-                    return e;
+                AggregateDeclaration *ad2 = isAggregate(e2x->type);
+                if (ad2 && ad2->aliasthis && !(att2 && e2x->type == att2))
+                {
+                    if (!att2 && e2->type->checkAliasThisRec())
+                        att2 = e2->type;
+
+                    /* Rewrite (e1 op e2) as:
+                     *      (e1 op e2.aliasthis)
+                     */
+                    e2 = new DotIdExp(e2->loc, e2, ad2->aliasthis->ident);
+                    return semantic(sc);
+                }
             }
         }
         else if (op == TOKassign)

@@ -1069,6 +1069,37 @@ void test12778()
 }
 
 /**************************************/
+// 14344
+
+struct S14344
+{
+    S14344 opBinary(string op)(S14344 v)
+    {
+        static assert(0);
+    }
+    S14344 opAssign()(S14344 v)
+    {
+        static assert(0);
+    }
+}
+
+struct S14344Mix
+{
+    S14344 s;
+    alias s this;
+}
+
+class C14344
+{
+    S14344Mix height() { return S14344Mix(); }
+
+    void update()
+    {
+        S14344 height = this.height;
+    }
+}
+
+/**************************************/
 
 int main()
 {
