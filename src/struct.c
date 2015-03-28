@@ -338,8 +338,7 @@ unsigned AggregateDeclaration::size(Loc loc)
     if (sizeok != SIZEOKdone && scope)
         semantic(NULL);
 
-    StructDeclaration *sd = isStructDeclaration();
-    if (sizeok != SIZEOKdone && sd && sd->members)
+    if (sizeok != SIZEOKdone && members)
     {
         /* See if enough is done to determine the size,
          * meaning all the fields are done.
@@ -381,7 +380,7 @@ unsigned AggregateDeclaration::size(Loc loc)
             if (s->apply(&SV::func, &sv))
                 goto L1;
         }
-        sd->finalizeSize(NULL);
+        finalizeSize(NULL);
 
       L1: ;
     }
@@ -633,7 +632,7 @@ Dsymbol *AggregateDeclaration::searchCtor()
               s->isTemplateDeclaration() ||
               s->isOverloadSet()))
         {
-            error("%s %s is not a constructor; identifiers starting with __ are reserved for the implementation", s->kind(), s->toChars());
+            s->error("is not a constructor; identifiers starting with __ are reserved for the implementation");
             errors = true;
             s = NULL;
         }
@@ -782,17 +781,6 @@ void StructDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-
-        /* If this is the last member, see if we can finish setting the size.
-         * This could be much better - finish setting the size after the last
-         * field was processed. The problem is the chicken-and-egg determination
-         * of when that is. See Bugzilla 7426 for more info.
-         */
-        if (i + 1 == members->dim)
-        {
-            if (sizeok == SIZEOKnone && s->isAliasDeclaration())
-                finalizeSize(sc2);
-        }
         s->semantic(sc2);
     }
     finalizeSize(sc2);
@@ -803,12 +791,14 @@ void StructDeclaration::semantic(Scope *sc)
         // Unwind what we did, and defer it for later
         for (size_t i = 0; i < fields.dim; i++)
         {
-            VarDeclaration *vd = fields[i];
-            vd->offset = 0;
+            VarDeclaration *v = fields[i];
+            v->offset = 0;
         }
         fields.setDim(0);
         structsize = 0;
         alignsize = 0;
+
+        sc2->pop();
 
         scope = scx ? scx : sc->copy();
         scope->setNoFree();
@@ -824,29 +814,12 @@ void StructDeclaration::semantic(Scope *sc)
 
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
 
-    // Determine if struct is all zeros or not
-    zeroInit = 1;
-    for (size_t i = 0; i < fields.dim; i++)
-    {
-        VarDeclaration *vd = fields[i];
-        if (!vd->isDataseg())
-        {
-            if (vd->init)
-            {
-                // Should examine init to see if it is really all 0's
-                zeroInit = 0;
-                break;
-            }
-            else
-            {
-                if (!vd->type->isZeroInit(loc))
-                {
-                    zeroInit = 0;
-                    break;
-                }
-            }
-        }
-    }
+    /* Look for special member functions.
+     */
+    aggNew =       (NewDeclaration *)search(Loc(), Id::classNew);
+    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
+
+    // this->ctor is already set in finalizeSize()
 
     dtor = buildDtor(this, sc2);
     postblit = buildPostBlit(this, sc2);
@@ -870,12 +843,6 @@ void StructDeclaration::semantic(Scope *sc)
     inv = buildInv(this, sc2);
 
     sc2->pop();
-
-    /* Look for special member functions.
-     */
-    ctor = searchCtor();
-    aggNew =       (NewDeclaration *)search(Loc(), Id::classNew);
-    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
     if (ctor)
     {
@@ -988,6 +955,52 @@ void StructDeclaration::finalizeSize(Scope *sc)
 
     // Calculate fields[i]->overlapped
     fill(loc, NULL, true);
+
+    // Determine if struct is all zeros or not
+    zeroInit = 1;
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+        VarDeclaration *vd = fields[i];
+        if (!vd->isDataseg())
+        {
+            if (vd->init)
+            {
+                // Should examine init to see if it is really all 0's
+                zeroInit = 0;
+                break;
+            }
+            else
+            {
+                if (!vd->type->isZeroInit(loc))
+                {
+                    zeroInit = 0;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Look for the constructor, for the struct literal/constructor call expression
+    ctor = searchCtor();
+    if (ctor)
+    {
+        // Finish all constructors semantics to determine this->noDefaultCtor.
+        struct SearchCtor
+        {
+            static int fp(Dsymbol *s, void *ctxt)
+            {
+                CtorDeclaration *f = s->isCtorDeclaration();
+                if (f && f->semanticRun == PASSinit)
+                    f->semantic(NULL);
+                return 0;
+            }
+        };
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->apply(&SearchCtor::fp, NULL);
+        }
+    }
 }
 
 /***************************************

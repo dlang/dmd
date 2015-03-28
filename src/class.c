@@ -707,26 +707,9 @@ Lancestorsdone:
         Dsymbol *s = (*members)[i];
         s->semantic(sc2);
     }
+    finalizeSize(sc2);
 
-    // Set the offsets of the fields and determine the size of the class
-
-    unsigned offset = structsize;
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->setFieldOffset(this, &offset, false);
-    }
-
-    if (global.errors != errors)
-    {
-        // The type is no good.
-        type = Type::terror;
-        this->errors = true;
-        if (deferred)
-            deferred->errors = true;
-    }
-
-    if (sizeok == SIZEOKfwd)            // failed due to forward references
+    if (sizeok == SIZEOKfwd)
     {
         // semantic() failed due to forward references
         // Unwind what we did, and defer it for later
@@ -746,21 +729,26 @@ Lancestorsdone:
         scope->module->addDeferredSemantic(this);
 
         Module::dprogress = dprogress_save;
-
         //printf("\tsemantic('%s') failed due to forward references\n", toChars());
         return;
     }
 
-    //printf("\tsemantic('%s') successful\n", toChars());
+    Module::dprogress++;
+    semanticRun = PASSsemanticdone;
 
+    //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
     //members->print();
 
     /* Look for special member functions.
      * They must be in this class, not in a base class.
      */
-    ctor = searchCtor();
-    if (ctor && (ctor->toParent() != this || !(ctor->isCtorDeclaration() || ctor->isTemplateDeclaration())))
-        ctor = NULL;    // search() looks through ancestor classes
+
+    // Can be in base class
+    aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
+    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
+
+    // this->ctor is already set in finalizeSize()
+
     if (!ctor && noDefaultCtor)
     {
         // A class object is always created by constructor, so this check is legitimate.
@@ -771,12 +759,6 @@ Lancestorsdone:
                 ::error(v->loc, "field %s must be initialized in constructor", v->toChars());
         }
     }
-
-    inv = buildInv(this, sc2);
-
-    // Can be in base class
-    aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
-    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
     // If this class has no constructor, but base class has a default
     // ctor, create a constructor:
@@ -807,43 +789,26 @@ Lancestorsdone:
         }
     }
 
-    // Allocate instance of each new interface
-    offset = structsize;
-    for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {
-        BaseClass *b = (*vtblInterfaces)[i];
-        unsigned thissize = Target::ptrsize;
-
-        alignmember(STRUCTALIGN_DEFAULT, thissize, &offset);
-        assert(b->offset == 0);
-        b->offset = offset;
-
-        // Take care of single inheritance offsets
-        while (b->baseInterfaces_dim)
-        {
-            b = &b->baseInterfaces[0];
-            b->offset = offset;
-        }
-
-        offset += thissize;
-        if (alignsize < thissize)
-            alignsize = thissize;
-    }
-    structsize = offset;
-    sizeok = SIZEOKdone;
-
-    Module::dprogress++;
-    semanticRun = PASSsemanticdone;
-
     dtor = buildDtor(this, sc2);
+
     if (FuncDeclaration *f = hasIdentityOpAssign(this, sc2))
     {
         if (!(f->storage_class & STCdisable))
             error(f->loc, "identity assignment operator overload is illegal");
     }
+
+    inv = buildInv(this, sc2);
+
     sc2->pop();
 
-    //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
+    if (global.errors != errors)
+    {
+        // The type is no good.
+        type = Type::terror;
+        this->errors = true;
+        if (deferred)
+            deferred->errors = true;
+    }
 
     if (deferred && !global.gag)
     {
@@ -987,6 +952,71 @@ ClassDeclaration *ClassDeclaration::searchBase(Loc loc, Identifier *ident)
             return cdb;
     }
     return NULL;
+}
+
+void ClassDeclaration::finalizeSize(Scope *sc)
+{
+    if (sizeok != SIZEOKnone)
+        return;
+
+    // Set the offsets of the fields and determine the size of the class
+    unsigned offset = structsize;
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        s->setFieldOffset(this, &offset, false);
+    }
+    if (sizeok == SIZEOKfwd)
+        return;
+
+    // Allocate instance of each new interface
+    offset = structsize;
+    for (size_t i = 0; i < vtblInterfaces->dim; i++)
+    {
+        BaseClass *b = (*vtblInterfaces)[i];
+        unsigned thissize = Target::ptrsize;
+
+        alignmember(STRUCTALIGN_DEFAULT, thissize, &offset);
+        assert(b->offset == 0);
+        b->offset = offset;
+
+        // Take care of single inheritance offsets
+        while (b->baseInterfaces_dim)
+        {
+            b = &b->baseInterfaces[0];
+            b->offset = offset;
+        }
+
+        offset += thissize;
+        if (alignsize < thissize)
+            alignsize = thissize;
+    }
+    structsize = offset;
+    sizeok = SIZEOKdone;
+
+    // Look for the constructor
+    ctor = searchCtor();
+    if (ctor && ctor->toParent() != this)
+        ctor = NULL;    // search() looks through ancestor classes
+    if (ctor)
+    {
+        // Finish all constructors semantics to determine this->noDefaultCtor.
+        struct SearchCtor
+        {
+            static int fp(Dsymbol *s, void *ctxt)
+            {
+                CtorDeclaration *f = s->isCtorDeclaration();
+                if (f && f->semanticRun == PASSinit)
+                    f->semantic(NULL);
+                return 0;
+            }
+        };
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->apply(&SearchCtor::fp, NULL);
+        }
+    }
 }
 
 /**********************************************************
@@ -1500,7 +1530,7 @@ Lancestorsdone:
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
 
-    structsize = Target::ptrsize * 2;
+    finalizeSize(sc2);
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -1552,6 +1582,11 @@ Lancestorsdone:
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
 }
 
+void InterfaceDeclaration::finalizeSize(Scope *sc)
+{
+    structsize = Target::ptrsize * 2;
+    sizeok = SIZEOKdone;
+}
 
 /*******************************************
  * Determine if 'this' is a base class of cd.
