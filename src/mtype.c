@@ -6873,10 +6873,12 @@ Type *TypeTypeof::syntaxCopy()
 Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
 {
     //printf("TypeTypeof::toDsymbol('%s')\n", toChars());
-    Type *t = semantic(loc, sc);
-    if (t == this)
-        return NULL;
-    return t->toDsymbol(sc);
+    Expression *e;
+    Type *t;
+    Dsymbol *s;
+    resolve(loc, sc, &e, &t, &s);
+
+    return s;
 }
 
 void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
@@ -7035,10 +7037,12 @@ Type *TypeReturn::syntaxCopy()
 
 Dsymbol *TypeReturn::toDsymbol(Scope *sc)
 {
-    Type *t = semantic(Loc(), sc);
-    if (t == this)
-        return NULL;
-    return t->toDsymbol(sc);
+    Expression *e;
+    Type *t;
+    Dsymbol *s;
+    resolve(loc, sc, &e, &t, &s);
+
+    return s;
 }
 
 void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)

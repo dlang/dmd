@@ -3600,6 +3600,29 @@ void test2540()
 }
 
 /***************************************************/
+
+class B14348
+{
+    int foo() { return 0; }
+}
+
+class C14348 : B14348
+{
+    override int foo() { return 1; }
+
+    alias superfoo = typeof(super).foo;
+    alias thisfoo = typeof(this).foo;
+}
+
+B14348 test14348()
+{
+    alias foo = typeof(return).foo;  // currently doesn't work.
+    assert(&B14348.foo is &C14348.superfoo);
+    assert(&C14348.foo is &C14348.thisfoo);
+    return null;
+}
+
+/***************************************************/
 // 7295
 
 struct S7295
@@ -7517,6 +7540,7 @@ int main()
     test2356();
     test11238();
     test2540();
+    test14348();
     test150();
     test151();
     test152();
