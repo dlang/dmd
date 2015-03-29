@@ -241,3 +241,19 @@ struct S12201b
 
     mixin TM12201;
 }
+
+/***************************************************/
+// 12531
+
+struct Node12531(T)
+{
+    T _val;
+}
+
+void test12531()
+{
+    static struct Foo
+    {
+        Node12531!Foo* node;
+    }
+}
