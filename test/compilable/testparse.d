@@ -143,3 +143,19 @@ void test11689()
 // 11751
 
 static assert(is(float == typeof(0x0.1p1F)));
+
+/***************************************************/
+// 11957
+
+extern(C++) class C11957
+{
+    void x() {}
+}
+
+void test11957()
+{
+    extern(C++) class D : C11957
+    {
+        override void x() {}
+    }
+}
