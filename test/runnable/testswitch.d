@@ -622,6 +622,43 @@ void test23()
 }
 
 /*****************************************/
+// 14352
+
+int transmogrify14352(int input)
+{
+    int output = 0;
+    switch (input)
+    {
+        case 0, 1:
+            if (input == 0)
+                goto case;
+            else
+                output++;
+            goto case;
+        case 2:
+            output += 5;
+            goto case;
+        case 3:
+            output += 5;
+            break;
+        case 4, 5, 6:
+            goto default;
+        case 7:
+        case 8:
+            output += 20;
+            break;
+        default:
+            return -1;
+    }
+    return output;
+}
+
+void test14352()
+{
+    assert(transmogrify14352(0) == 10);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -649,6 +686,7 @@ int main()
     test21();
     test22();
     test23();
+    test14352();
 
     printf("Success\n");
     return 0;
