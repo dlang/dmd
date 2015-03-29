@@ -290,3 +290,33 @@ alias MyB12983 = B12983!float;
 
 void f12983();
 void f12983(I12983);
+
+/***************************************************/
+// 13860
+
+/*
+TEST_OUTPUT:
+---
+pure nothrow @nogc @safe void()
+pure nothrow @nogc @safe void()
+---
+*/
+
+struct Foo13860(Bar...)
+{
+    Bar bars;
+    auto baz(size_t d)() {}
+    pragma(msg, typeof(baz!0));
+}
+
+auto bar13860(S, R)(S s, R r)
+{
+    pragma(msg, typeof(Foo13860!().baz!0));
+}
+
+void test13860()
+{
+    int[] x;
+    int[] y;
+    x.bar13860(y);
+}
