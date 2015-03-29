@@ -88,3 +88,19 @@ void test9679(inout int = 0)
 
     if (immutable(int)[] n = [1]) { static assert(is(typeof(n) == immutable(int)[])); }
 }
+
+/***************************************************/
+// 9901
+
+template isGood9901(T)
+{
+    enum isGood9901 = true;
+}
+void test9901()
+{
+    string foo(R)(R data) if (isGood9901!R)
+    {
+        return "";
+    }
+    foo(1);
+}
