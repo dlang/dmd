@@ -16,6 +16,38 @@ struct Bar6766
 }
 
 /***************************************************/
+// 8609
+
+struct Tuple8609(T)
+{
+    T arg;
+}
+
+// ----
+
+struct Foo8609a
+{
+    Bar8609a b;
+}
+struct Bar8609a
+{
+    int x;
+    Tuple8609!(Foo8609a) spam() { return Tuple8609!(Foo8609a)(); }
+}
+
+// ----
+
+struct Foo8609b
+{
+    Bar8609b b;
+}
+struct Bar8609b
+{
+    int x;
+    Tuple8609!(Foo8609b[1]) spam() { return Tuple8609!(Foo8609b[1])(); }
+}
+
+/***************************************************/
 // 12152
 
 class A12152
