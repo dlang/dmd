@@ -42,3 +42,19 @@ void test9401() nothrow pure @safe
     S9401a s1;
     S9401b s2;
 }
+
+/***************************************************/
+// 9649
+
+class Outer9649
+{
+    class Inner
+    {
+    }
+}
+
+void test9649()
+{
+    Outer9649 outer9649;
+    (outer9649).new Inner();
+}
