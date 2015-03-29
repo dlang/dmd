@@ -3328,11 +3328,13 @@ Statement *CaseStatement::semantic(Scope *sc)
         /* This is where variables are allowed as case expressions.
          */
         if (exp->op == TOKvar)
-        {   VarExp *ve = (VarExp *)exp;
+        {
+            VarExp *ve = (VarExp *)exp;
             VarDeclaration *v = ve->var->isVarDeclaration();
             Type *t = exp->type->toBasetype();
             if (v && (t->isintegral() || t->ty == Tclass))
-            {   /* Flag that we need to do special code generation
+            {
+                /* Flag that we need to do special code generation
                  * for this, i.e. generate a sequence of if-then-else
                  */
                 sw->hasVars = 1;
@@ -3372,7 +3374,7 @@ Statement *CaseStatement::semantic(Scope *sc)
         sw->cases->push(this);
 
         // Resolve any goto case's with no exp to this case statement
-        for (size_t i = 0; i < sw->gotoCases.dim; i++)
+        for (size_t i = 0; i < sw->gotoCases.dim; )
         {
             GotoCaseStatement *gcs = sw->gotoCases[i];
 
@@ -3380,7 +3382,9 @@ Statement *CaseStatement::semantic(Scope *sc)
             {
                 gcs->cs = this;
                 sw->gotoCases.remove(i);        // remove from array
+                continue;
             }
+            i++;
         }
 
         if (sc->sw->tf != sc->tf)
