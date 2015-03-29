@@ -48,6 +48,25 @@ struct Bar8609b
 }
 
 /***************************************************/
+// 8698
+
+interface IRoot8698a {}
+interface IClass8698a : IRoot8698a { }
+struct Struct8698a { }
+class Class8698a : IClass8698a { alias Struct8698a Value; }
+void test8698a(Class8698a.Value) { }
+//interface IRoot8698a {}
+
+// ----
+
+//interface IRoot8698b {}
+interface IClass8698b : IRoot8698b { }
+struct Struct8698b { }
+class Class8698b : IClass8698b { alias Struct8698b Value; }
+void test8698b(Class8698b.Value) { }
+interface IRoot8698b {}
+
+/***************************************************/
 // 12152
 
 class A12152
