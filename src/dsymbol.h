@@ -281,7 +281,7 @@ public:
     virtual void accept(Visitor *v) { v->visit(this); }
     
 private:
-    Dsymbol *takeTypeTupleIndex(Loc loc, Scope *sc, Dsymbol *s, RootObject *id, Expression *expr);
+    Dsymbol *indexExpr(Loc loc, Scope *sc, Dsymbol *s, RootObject *id, Expression *expr);
 };
 
 // Dsymbol that generates a scope

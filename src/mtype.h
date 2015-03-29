@@ -678,7 +678,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
     
 private:
-    bool resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *expr);
+    bool resolveIndexExpr(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *expr);
 };
 
 class TypeIdentifier : public TypeQualified

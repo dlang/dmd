@@ -445,7 +445,7 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
 /*************************************
  * Take an index in a TypeTuple.
  */
-Dsymbol *Dsymbol::takeTypeTupleIndex(Loc loc, Scope *sc, Dsymbol *s, RootObject *id, Expression *expr)
+Dsymbol *Dsymbol::indexExpr(Loc loc, Scope *sc, Dsymbol *s, RootObject *id, Expression *expr)
 {
     TupleDeclaration *td = s->isTupleDeclaration();
     if (!td)
@@ -517,23 +517,23 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             index->resolve(loc, sc, &expr, &t, &sym);
             if (expr)
             {
-                sm = takeTypeTupleIndex(loc, sc, s, id, expr);
+                sm = indexExpr(loc, sc, s, id, expr);
             }
             else if (t)
             {
-                index->error(loc, "Expected an expression as index, got a type (%s)", t->toChars());
+                index->error(loc, "expected an expression as index, got a type (%s)", t->toChars());
                 return NULL;
             }
             else
             {
-                index->error(loc, "index is not a an expression");
+                index->error(loc, "index is not an expression");
                 return NULL;
             }
             break;
         }
 
         case DYNCAST_EXPRESSION:
-            sm = takeTypeTupleIndex(loc, sc, s, id, (Expression*)id);
+            sm = indexExpr(loc, sc, s, id, (Expression*)id);
             if (!sm)
             {
                 return NULL;

@@ -6358,7 +6358,7 @@ d_uns64 TypeQualified::size(Loc loc)
 /*************************************
  * Resolve a TypeTuple index.
  */
-bool TypeQualified::resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *expr)
+bool TypeQualified::resolveIndexExpr(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *expr)
 {
     TupleDeclaration *td = (*s)->isTupleDeclaration();
     if (!td)
@@ -6428,7 +6428,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             RootObject *id = idents[i];
             if (id->dyncast() == DYNCAST_EXPRESSION)
             {
-                if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, (Expression*)id))
+                if (!resolveIndexExpr(loc, sc, &s, pt, ps, id, (Expression*)id))
                 {
                     return;
                 }
@@ -6444,7 +6444,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 index->resolve(loc, sc, &expr, &t, &sym);
                 if (expr)
                 {
-                    if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, expr))
+                    if (!resolveIndexExpr(loc, sc, &s, pt, ps, id, expr))
                     {
                         return;
                     }
