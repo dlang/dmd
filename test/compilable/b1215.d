@@ -112,7 +112,7 @@ void main()
   z.aChain.f();      // B.T.TT.f
   z.aChainPack.g();  // B.g
   writeln(z.aExpr);  // 6
-  z.aNestedCE.f();   // B.T.f 
+  z.aNested.f();     // B.T.f
   z.aCEIndex.f();    // B.T.f
   z.aNestedCE.f();   // B.T.f
 }
