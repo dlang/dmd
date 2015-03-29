@@ -7460,3 +7460,15 @@ void test14304()
     enum bt = Buggy14304.val.fun();
     static assert(bt == "fun");
 }
+
+/**************************************************
+    14371 - evaluate BinAssignExp as lvalue
+**************************************************/
+
+int test14371()
+{
+    int x;
+    ++(x += 1);
+    return x;
+}
+static assert(test14371() == 2);
