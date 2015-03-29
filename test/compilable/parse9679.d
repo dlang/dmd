@@ -1,3 +1,6 @@
+// REQUIRED_ARGS: -o-
+// PERMUTE_ARGS:
+
 void test9679(inout int = 0)
 {
     if (        auto n = 1) { static assert(is(typeof(n) ==              int)); }

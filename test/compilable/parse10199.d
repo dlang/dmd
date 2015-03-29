@@ -1,3 +1,5 @@
+// REQUIRED_ARGS: -o-
+// PERMUTE_ARGS:
 
 void main()
 {
