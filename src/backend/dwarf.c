@@ -1709,7 +1709,7 @@ unsigned dwarf_typidx(type *t)
 
     tym_t ty;
     ty = tybasic(t->Tty);
-    if (!(t->Tnext && (ty == TYucent || ty == TYcent)))
+    if (!(t->Tnext && (ty == TYdarray || ty == TYdelegate)))
     {   // use cached basic type if it's not TYdarray or TYdelegate
         idx = typidx_tab[ty];
         if (idx)
