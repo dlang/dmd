@@ -23,3 +23,22 @@ void test9232()
     foo.bar!int();     // OK
     (foo).baz();       // OK
 }
+
+/***************************************************/
+// 9401
+
+struct S9401a
+{
+    ~this() nothrow pure @safe { }
+}
+
+struct S9401b
+{
+    @safe ~this() pure nothrow { }
+}
+
+void test9401() nothrow pure @safe
+{
+    S9401a s1;
+    S9401b s2;
+}
