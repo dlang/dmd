@@ -257,3 +257,20 @@ void test12531()
         Node12531!Foo* node;
     }
 }
+
+/***************************************************/
+// 12543
+
+class C12543;
+static assert(C12543.sizeof == (void*).sizeof);
+static assert(C12543.alignof == (void*).sizeof);
+static assert(C12543.mangleof == "C10testfwdref6C12543");
+
+/***************************************************/
+// 14010
+
+enum E14010;
+static assert(E14010.mangleof == "E10testfwdref6E14010");
+
+struct S14010;
+static assert(S14010.mangleof == "S10testfwdref6S14010");
