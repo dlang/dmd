@@ -191,3 +191,53 @@ class B12152 : A12152
 }
 
 static assert(is(A12152.Y == int));
+
+/***************************************************/
+// 12201
+
+template T12201()
+{
+    alias imports.fwdref12201a.FILE* FP;
+}
+
+struct S12201a
+{
+    mixin T12201;
+    import imports.fwdref12201a;
+}
+
+union U12201
+{
+    mixin T12201;
+    import imports.fwdref12201a;
+}
+
+class C12201
+{
+    mixin T12201;
+    import imports.fwdref12201a;
+}
+
+interface I12201
+{
+    mixin T12201;
+    import imports.fwdref12201a;
+}
+
+
+template TI12201()
+{
+    mixin T12201;
+    import imports.fwdref12201a;
+}
+mixin template TM12201()
+{
+    mixin T12201;
+    import imports.fwdref12201a;
+}
+struct S12201b
+{
+    alias ti = TI12201!();
+
+    mixin TM12201;
+}
