@@ -120,6 +120,33 @@ alias Y10015 = s10015.X;
 S10015!int s10015;
 
 /***************************************************/
+// 10101
+
+int front10101(int);
+
+mixin template reflectRange10101()
+{
+    static if (is(typeof(this.front10101)))
+    {
+        int x;
+    }
+}
+
+struct S10101(R)
+{
+    R r_;
+
+    typeof(r_.front10101) front10101() @property { return r_.front10101; }
+
+    mixin reflectRange10101;
+}
+
+void test10101()
+{
+    S10101!(int) s;
+}
+
+/***************************************************/
 // 12152
 
 class A12152
