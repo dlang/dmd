@@ -4774,7 +4774,7 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
 {
-    //printf("TemplateTypeParameter::matchArg()\n");
+    //printf("TemplateTypeParameter::matchArg('%s')\n", ident->toChars());
     MATCH m = MATCHexact;
     Type *ta = isType(oarg);
     if (!ta)
@@ -4800,7 +4800,19 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
         if (m2 < m)
             m = m2;
         if ((*dedtypes)[i])
-            ta = (Type *)(*dedtypes)[i];
+        {
+            Type *t = (Type *)(*dedtypes)[i];
+
+            if (dependent && !t->equals(ta))    // Bugzilla 14357
+                goto Lnomatch;
+
+            /* This is a self-dependent parameter. For example:
+             *  template X(T : T*) {}
+             *  template X(T : S!T, alias S) {}
+             */
+            //printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
+            ta = t;
+        }
     }
     else
     {
@@ -4991,7 +5003,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
 {
-    //printf("TemplateAliasParameter::matchArg()\n");
+    //printf("TemplateAliasParameter::matchArg('%s')\n", ident->toChars());
     MATCH m = MATCHexact;
     Type *ta = isType(oarg);
     RootObject *sa = ta && !ta->deco ? NULL : getDsymbol(oarg);
@@ -5241,7 +5253,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
 {
-    //printf("TemplateValueParameter::matchArg()\n");
+    //printf("TemplateValueParameter::matchArg('%s')\n", ident->toChars());
 
     MATCH m = MATCHexact;
 
@@ -5468,7 +5480,7 @@ MATCH TemplateTupleParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
 {
-    //printf("TemplateTupleParameter::matchArg()\n");
+    //printf("TemplateTupleParameter::matchArg('%s')\n", ident->toChars());
     Tuple *ovar = isTuple(oarg);
     if (!ovar)
         return MATCHnomatch;
