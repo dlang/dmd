@@ -274,3 +274,19 @@ static assert(E14010.mangleof == "E10testfwdref6E14010");
 
 struct S14010;
 static assert(S14010.mangleof == "S10testfwdref6S14010");
+
+/***************************************************/
+// 12983
+
+alias I12983 = int;
+class B12983(T) { alias MyC = C12983!string; }
+
+class C12983(T) : B12983!float
+{
+    void m() { f12983(0); }
+}
+
+alias MyB12983 = B12983!float;
+
+void f12983();
+void f12983(I12983);
