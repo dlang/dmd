@@ -159,3 +159,10 @@ void test11957()
         override void x() {}
     }
 }
+
+/***************************************************/
+// 13049
+
+enum mangle13049(T) = T.mangleof;
+alias FP13049 = void function(scope int);                                       // OK
+static assert(mangle13049!FP13049 == mangle13049!(void function(scope int)));   // OK <- NG
