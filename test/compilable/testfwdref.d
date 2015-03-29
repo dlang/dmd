@@ -67,6 +67,51 @@ void test8698b(Class8698b.Value) { }
 interface IRoot8698b {}
 
 /***************************************************/
+// 9514
+
+template TStructHelpers9514a()
+{
+    void opEquals(Foo9514a)
+    {
+        auto n = FieldNames9514a!();
+    }
+}
+
+struct Foo9514a
+{
+    mixin TStructHelpers9514a!();
+}
+
+import imports.fwdref9514 : find9514;  // selective import without aliasing
+
+template FieldNames9514a()
+{
+    static if (find9514!`true`([1])) enum int FieldNames9514a = 1;
+}
+
+// ----
+
+template TStructHelpers9514b()
+{
+    void opEquals(Foo9514b)
+    {
+        auto n = FieldNames9514b!();
+    }
+}
+
+struct Foo9514b
+{
+    mixin TStructHelpers9514b!();
+}
+
+import imports.fwdref9514 : foo9514 = find9514;  // selective import with aliasing
+
+template FieldNames9514b()
+{
+    static if (foo9514!`true`([1])) enum int FieldNames9514b = 1;
+}
+
+/***************************************************/
 // 12152
 
 class A12152
