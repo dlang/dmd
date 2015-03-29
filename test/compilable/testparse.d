@@ -138,3 +138,8 @@ void test11689()
 {
     deprecated void foo() {}
 }
+
+/***************************************************/
+// 11751
+
+static assert(is(float == typeof(0x0.1p1F)));
