@@ -6324,6 +6324,12 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
             e = e->syntaxCopy();
             id = e;
         }
+        else if (id->dyncast() == DYNCAST_TYPE)
+        {
+            Type *t = (Type*)id;
+            t = t->syntaxCopy();
+            id = t;
+        }
         idents[i] = id;
     }
 }
@@ -6338,7 +6344,7 @@ void TypeQualified::addInst(TemplateInstance *inst)
     idents.push(inst);
 }
 
-void TypeQualified::addIndex(Expression *e)
+void TypeQualified::addIndex(RootObject *e)
 {
     idents.push(e);
 }
@@ -6347,6 +6353,48 @@ d_uns64 TypeQualified::size(Loc loc)
 {
     error(this->loc, "size of type %s is not known", toChars());
     return SIZE_INVALID;
+}
+
+/*************************************
+ * Resolve a TypeTuple index.
+ */
+bool TypeQualified::resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *expr)
+{
+    TupleDeclaration *td = (*s)->isTupleDeclaration();
+    if (!td)
+    {
+        error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
+              id->toChars(), (*s)->toChars());
+        *pt = Type::terror;
+        return false;
+    }
+    sc = sc->startCTFE();
+    expr = expr->semantic(sc);
+    sc = sc->endCTFE();
+
+    expr = expr->ctfeInterpret();
+    const uinteger_t d = expr->toUInteger();
+
+    if (d >= td->objects->dim)
+    {
+        error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+        *pt = Type::terror;
+        return false;
+    }
+    RootObject *o = (*td->objects)[(size_t)d];
+    if (o->dyncast() == DYNCAST_TYPE)
+    {
+        *ps = NULL;
+        *pt = ((Type *)o)->addMod(this->mod);
+        *s = (*pt)->toDsymbol(sc)->toAlias();
+    }
+    else
+    {
+        assert(o->dyncast() == DYNCAST_DSYMBOL);
+        *ps = (Dsymbol *)o;
+        *s = (*ps)->toAlias();
+    }
+    return true;
 }
 
 /*************************************
@@ -6380,40 +6428,38 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             RootObject *id = idents[i];
             if (id->dyncast() == DYNCAST_EXPRESSION)
             {
-                Expression *expr = (Expression*)id;
-                TupleDeclaration *td = s->isTupleDeclaration();
-                if (!td)
+                if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, (Expression*)id))
                 {
-                    error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
-                          id->toChars(), s->toChars());
-                    *pt = Type::terror;
                     return;
                 }
-                sc = sc->startCTFE();
-                expr = expr->semantic(sc);
-                sc = sc->endCTFE();
+                continue;
+            }
+            else if (id->dyncast() == DYNCAST_TYPE)
+            {
+                Type *index = (Type*)id;
+                Expression *expr = NULL;
+                Type *t = NULL;
+                Dsymbol *sym = NULL;
 
-                expr = expr->ctfeInterpret();
-                const uinteger_t d = expr->toUInteger();
-
-                if (d >= td->objects->dim)
+                index->resolve(loc, sc, &expr, &t, &sym);
+                if (expr)
                 {
-                    error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+                    if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, expr))
+                    {
+                        return;
+                    }
+                }
+                else if (t)
+                {
+                    index->error(loc, "Expected an expression as index, got a type (%s)", t->toChars());
                     *pt = Type::terror;
                     return;
-                }
-                RootObject *o = (*td->objects)[(size_t)d];
-                if (o->dyncast() == DYNCAST_TYPE)
-                {
-                    *ps = NULL;
-                    *pt = ((Type *)o)->addMod(this->mod);
-                    s = (*pt)->toDsymbol(sc)->toAlias();
                 }
                 else
                 {
-                    assert(o->dyncast() == DYNCAST_DSYMBOL);
-                    *ps = (Dsymbol *)o;
-                    s = (*ps)->toAlias();
+                    index->error(loc, "index is not a an expression");
+                    *pt = Type::terror;
+                    return;
                 }
                 continue;
             }

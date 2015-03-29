@@ -3101,7 +3101,7 @@ Type *Parser::parseBasicType()
 
 Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
 {
-    TypeSArray *maybeSArray = NULL;
+    Type *maybeArray = NULL;
     // See https://issues.dlang.org/show_bug.cgi?id=1215
     // A basic type can look like MyType (typical case), but also:
     //  MyType.T -> A type
@@ -3121,29 +3121,42 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
                     error("identifier expected following '.' instead of '%s'", token.toChars());
                     break;
                 }
-                if (maybeSArray)
+                if (maybeArray)
                 {
-                    // This is actually a TypeTuple index, not an sarray.
+                    // This is actually a TypeTuple index, not an {a/s}array.
                     // We need to have a while loop to unwind all index taking:
                     // T[e1][e2].U   ->  T, addIndex(e1), addIndex(e2)
-                    Array<Expression*> dimStack;
-                    Type *t = (Type*)maybeSArray;
-                    while (t->ty == Tsarray)
+                    Array<RootObject*> dimStack;
+                    Type *t = maybeArray;
+                    while (true)
                     {
-                        // The SArray inner type is an SArray itself.
-                        TypeSArray *inner = (TypeSArray*)t;
-                        dimStack.push(inner->dim->syntaxCopy());
-                        t = inner->next->syntaxCopy();
+                        if (t->ty == Tsarray)
+                        {
+                            // The index expression is an Expression.
+                            TypeSArray *a = (TypeSArray*)t;
+                            dimStack.push(a->dim->syntaxCopy());
+                            t = a->next->syntaxCopy();
+                        }
+                        else if (t->ty == Taarray)
+                        {
+                            // The index expression is a Type. It will be interpreted as an expression at semantic time.
+                            TypeAArray *a = (TypeAArray*)t;
+                            dimStack.push(a->index->syntaxCopy());
+                            t = a->next->syntaxCopy();
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
                     assert(dimStack.dim > 0);
                     // We're good. Replay indices in the reverse order.
                     tid = (TypeQualified*)t;
                     while (dimStack.dim)
                     {
-                        Expression *dim = dimStack.pop();
-                        tid->addIndex(dim);
+                        tid->addIndex(dimStack.pop());
                     }
-                    maybeSArray = NULL;
+                    maybeArray = NULL;
                 }
                 Loc loc = token.loc;
                 Identifier *id = token.ident;
@@ -3161,7 +3174,7 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
             case TOKlbracket:
             {
                 nextToken();
-                Type *t = maybeSArray ? (Type*)maybeSArray : (Type*)tid;
+                Type *t = maybeArray ? maybeArray : (Type*)tid;
                 if (token.value == TOKrbracket)
                 {
                     // It's a dynamic array, and we're done:
@@ -3172,15 +3185,21 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
                 }
                 else if (isDeclaration(&token, 0, TOKrbracket, NULL))
                 {
-                    // It's an associative array declaration, and we're done.
-                    // T[type].U does not make sense.
+                    // This can be one of two things:
+                    //  1 - an associative array declaration, T[type]
+                    //  2 - an associative array declaration, T[expr]
+                    // These  can only be disambiguated later.
                     Type *index = parseType();          // [ type ]
-                    t = new TypeAArray(t, index);
+                    maybeArray = new TypeAArray(t, index);
                     check(TOKrbracket);
-                    return t;
                 }
                 else
                 {
+                    // This can be one of three things:
+                    //  1 - an static array declaration, T[expr]
+                    //  2 - a slice, T[expr .. expr]
+                    //  3 - a template parameter pack index expression, T[expr].U
+                    // 1 and 3 can only be disambiguated later.
                     //printf("it's type[expression]\n");
                     inBrackets++;
                     Expression *e = parseAssignExp();           // [ expression ]
@@ -3196,7 +3215,7 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
                     }
                     else
                     {
-                        maybeSArray = new TypeSArray(t, e);
+                        maybeArray = new TypeSArray(t, e);
                         inBrackets--;
                         check(TOKrbracket);
                         continue;
@@ -3209,7 +3228,7 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
         }
     }
     Lend:
-    return maybeSArray ? (Type*)maybeSArray : (Type*)tid;
+    return maybeArray ? maybeArray : (Type*)tid;
 }
 
 /******************************************
@@ -3246,8 +3265,8 @@ Type *Parser::parseBasicType2(Type *t)
                     nextToken();
                 }
                 else if (isDeclaration(&token, 0, TOKrbracket, NULL))
-                {   // It's an associative array declaration
-
+                {
+                    // It's an associative array declaration
                     //printf("it's an associative array\n");
                     Type *index = parseType();          // [ type ]
                     t = new TypeAArray(t, index);
@@ -5842,8 +5861,7 @@ bool Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
     Token *t = *pt;
     int parens;
 
-    //printf("Parser::isDeclarator()\n");
-    //t->print();
+    //printf("Parser::isDeclarator() %s\n", t->toChars());
     if (t->value == TOKassign)
         return false;
 

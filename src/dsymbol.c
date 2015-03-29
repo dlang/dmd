@@ -442,6 +442,43 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
     return (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, (void *)this, idchars);
 }
 
+/*************************************
+ * Take an index in a TypeTuple.
+ */
+Dsymbol *Dsymbol::takeTypeTupleIndex(Loc loc, Scope *sc, Dsymbol *s, RootObject *id, Expression *expr)
+{
+    TupleDeclaration *td = s->isTupleDeclaration();
+    if (!td)
+    {
+        error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
+              id->toChars(), s->toChars());
+        return NULL;
+    }
+    sc = sc->startCTFE();
+    expr = expr->semantic(sc);
+    sc = sc->endCTFE();
+
+    expr = expr->ctfeInterpret();
+    const uinteger_t d = expr->toUInteger();
+
+    if (d >= td->objects->dim)
+    {
+        error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+        return NULL;
+    }
+    RootObject *o = (*td->objects)[(size_t)d];
+    if (o->dyncast() == DYNCAST_TYPE)
+    {
+        Type *t = (Type *)o;
+        return t->toDsymbol(sc)->toAlias();
+    }
+    else
+    {
+        assert(o->dyncast() == DYNCAST_DSYMBOL);
+        return (Dsymbol *)o;
+    }
+}
+
 /***************************************
  * Search for identifier id as a member of 'this'.
  * id may be a template instance.
@@ -470,42 +507,38 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             sm = s->search(loc, (Identifier *)id);
             break;
 
-        case DYNCAST_EXPRESSION:
+        case DYNCAST_TYPE:
         {
-            Expression *expr = (Expression*)id;
-            TupleDeclaration *td = s->isTupleDeclaration();
-            if (!td)
-            {
-                error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
-                      id->toChars(), s->toChars());
-                return NULL;
-            }
-            sc = sc->startCTFE();
-            expr = expr->semantic(sc);
-            sc = sc->endCTFE();
+            Type *index = (Type*)id;
+            Expression *expr = NULL;
+            Type *t = NULL;
+            Dsymbol *sym = NULL;
 
-            expr = expr->ctfeInterpret();
-            const uinteger_t d = expr->toUInteger();
-
-            if (d >= td->objects->dim)
+            index->resolve(loc, sc, &expr, &t, &sym);
+            if (expr)
             {
-                error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
-                return NULL;
+                sm = takeTypeTupleIndex(loc, sc, s, id, expr);
             }
-            RootObject *o = (*td->objects)[(size_t)d];
-            if (o->dyncast() == DYNCAST_TYPE)
+            else if (t)
             {
-                sm = NULL;
-                Type *t = (Type *)o;
-                sm = t->toDsymbol(sc)->toAlias();
+                index->error(loc, "Expected an expression as index, got a type (%s)", t->toChars());
+                return NULL;
             }
             else
             {
-                assert(o->dyncast() == DYNCAST_DSYMBOL);
-                sm = (Dsymbol *)o;
+                index->error(loc, "index is not a an expression");
+                return NULL;
             }
             break;
         }
+
+        case DYNCAST_EXPRESSION:
+            sm = takeTypeTupleIndex(loc, sc, s, id, (Expression*)id);
+            if (!sm)
+            {
+                return NULL;
+            }
+            break;
 
         case DYNCAST_DSYMBOL:
         {

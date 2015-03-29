@@ -964,6 +964,12 @@ public:
                 ((Expression*)id)->accept(this);
                 buf->writeByte(']');
             }
+            else if (id->dyncast() == DYNCAST_TYPE)
+            {
+                buf->writeByte('[');
+                ((Type*)id)->accept(this);
+                buf->writeByte(']');
+            }
             else
             {
                 buf->writeByte('.');
