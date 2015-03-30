@@ -2012,7 +2012,7 @@ Expression *modifyStructField(Type *type, StructLiteralExp *se, size_t offset, E
     return ee;
 }
 
-// Given an AA literal aae,  set arr[index] = newval and return the new array.
+// Given an AA literal aae,  set aae[index] = newval and return newval.
 Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
     Expression *index, Expression *newval)
 {
@@ -2088,10 +2088,12 @@ UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     else
     {
         if (oldlen != 0)
+        {
             assert(oldval->op == TOKarrayliteral);
-        ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
-        for (size_t i = 0; i < copylen; i++)
-            (*elements)[i] = (*ae->elements)[indxlo + i];
+            ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
+            for (size_t i = 0; i < copylen; i++)
+                (*elements)[i] = (*ae->elements)[indxlo + i];
+        }
         if (elemType->ty == Tstruct || elemType->ty == Tsarray)
         {
             /* If it is an aggregate literal representing a value type,
