@@ -6358,7 +6358,7 @@ d_uns64 TypeQualified::size(Loc loc)
 /*************************************
  * Resolve a TypeTuple index.
  */
-bool TypeQualified::resolveIndexExpr(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *expr)
+bool TypeQualified::resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *indexExpr)
 {
     TupleDeclaration *td = (*s)->isTupleDeclaration();
     if (!td)
@@ -6369,11 +6369,11 @@ bool TypeQualified::resolveIndexExpr(Loc loc, Scope *sc, Dsymbol **s, Type **pt,
         return false;
     }
     sc = sc->startCTFE();
-    expr = expr->semantic(sc);
+    indexExpr = indexExpr->semantic(sc);
     sc = sc->endCTFE();
 
-    expr = expr->ctfeInterpret();
-    const uinteger_t d = expr->toUInteger();
+    indexExpr = indexExpr->ctfeInterpret();
+    const uinteger_t d = indexExpr->toUInteger();
 
     if (d >= td->objects->dim)
     {
@@ -6428,7 +6428,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             RootObject *id = idents[i];
             if (id->dyncast() == DYNCAST_EXPRESSION)
             {
-                if (!resolveIndexExpr(loc, sc, &s, pt, ps, id, (Expression*)id))
+                if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, (Expression*)id))
                 {
                     return;
                 }
@@ -6444,7 +6444,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 index->resolve(loc, sc, &expr, &t, &sym);
                 if (expr)
                 {
-                    if (!resolveIndexExpr(loc, sc, &s, pt, ps, id, expr))
+                    if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, expr))
                     {
                         return;
                     }

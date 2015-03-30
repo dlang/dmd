@@ -445,7 +445,7 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
 /*************************************
  * Take an index in a TypeTuple.
  */
-Dsymbol *Dsymbol::indexExpr(Loc loc, Scope *sc, Dsymbol *s, RootObject *id, Expression *expr)
+Dsymbol *Dsymbol::takeTypeTupleIndex(Loc loc, Scope *sc, Dsymbol *s, RootObject *id, Expression *indexExpr)
 {
     TupleDeclaration *td = s->isTupleDeclaration();
     if (!td)
@@ -455,11 +455,11 @@ Dsymbol *Dsymbol::indexExpr(Loc loc, Scope *sc, Dsymbol *s, RootObject *id, Expr
         return NULL;
     }
     sc = sc->startCTFE();
-    expr = expr->semantic(sc);
+    indexExpr = indexExpr->semantic(sc);
     sc = sc->endCTFE();
 
-    expr = expr->ctfeInterpret();
-    const uinteger_t d = expr->toUInteger();
+    indexExpr = indexExpr->ctfeInterpret();
+    const uinteger_t d = indexExpr->toUInteger();
 
     if (d >= td->objects->dim)
     {
@@ -517,7 +517,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             index->resolve(loc, sc, &expr, &t, &sym);
             if (expr)
             {
-                sm = indexExpr(loc, sc, s, id, expr);
+                sm = takeTypeTupleIndex(loc, sc, s, id, expr);
             }
             else if (t)
             {
@@ -533,7 +533,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
         }
 
         case DYNCAST_EXPRESSION:
-            sm = indexExpr(loc, sc, s, id, (Expression*)id);
+            sm = takeTypeTupleIndex(loc, sc, s, id, (Expression*)id);
             if (!sm)
             {
                 return NULL;
