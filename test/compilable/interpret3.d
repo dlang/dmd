@@ -7472,3 +7472,14 @@ int test14371()
     return x;
 }
 static assert(test14371() == 2);
+
+/**************************************************
+    7151 - [CTFE] cannot compare classes with ==
+**************************************************/
+
+bool test7151()
+{
+    auto a = new Object;
+    return a == a && a != new Object;
+}
+static assert(test7151());
