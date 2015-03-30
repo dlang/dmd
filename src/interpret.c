@@ -3687,7 +3687,10 @@ public:
                 return;
 
             // Determine the return value
-            result = ctfeCast(e->loc, e->type, e->type, fp && post ? oldval : newval);
+            if (goal == ctfeNeedLvalue)     // Bugzilla 14371
+                result = e1;
+            else
+                result = ctfeCast(e->loc, e->type, e->type, fp && post ? oldval : newval);
             if (exceptionOrCant(result))
                 return;
         }
@@ -4290,15 +4293,6 @@ public:
 
     void visit(BinAssignExp *e)
     {
-        if (goal == ctfeNeedLvalue)
-        {
-            Expression *e1 = e->e1;
-            while (e->e1->op == TOKcast)
-                e1 = ((CastExp *)e1)->e1;
-            result = interpret(e1, istate, goal);
-            return;
-        }
-
         switch (e->op)
         {
         case TOKaddass:  interpretAssignCommon(e, &Add);        return;
