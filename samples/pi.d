@@ -11,7 +11,7 @@ int q;
 
 int main(string[] args)
 {
-    long startime, endtime;
+    time_t startime, endtime;
     int i;
 
     if (args.length == 2)
