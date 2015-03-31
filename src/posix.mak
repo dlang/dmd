@@ -257,8 +257,8 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-autotester: dmd
-.PHONY: autotester
+auto-tester-build: dmd
+.PHONY: auto-tester-build
 
 frontend.a: $(DMD_OBJS)
 	ar rcs frontend.a $(DMD_OBJS)

@@ -265,7 +265,7 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 defaulttarget: debdmd
 
-autotester: dmd
+auto-tester-build: dmd
 
 dmd: reldmd
 
