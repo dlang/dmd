@@ -1617,9 +1617,9 @@ LONG InterlockedExchangeAdd(LPLONG Addend, LONG Value);
 LONG InterlockedCompareExchange(LONG *Destination, LONG Exchange, LONG Comperand);
 
 void InitializeCriticalSection(CRITICAL_SECTION * lpCriticalSection) @trusted;
-void EnterCriticalSection(CRITICAL_SECTION * lpCriticalSection);
+void EnterCriticalSection(CRITICAL_SECTION * lpCriticalSection) @nogc;
 BOOL TryEnterCriticalSection(CRITICAL_SECTION * lpCriticalSection);
-void LeaveCriticalSection(CRITICAL_SECTION * lpCriticalSection);
+void LeaveCriticalSection(CRITICAL_SECTION * lpCriticalSection) @nogc;
 void DeleteCriticalSection(CRITICAL_SECTION * lpCriticalSection);
 }
 
