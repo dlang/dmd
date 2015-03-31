@@ -595,10 +595,6 @@ inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
     return (*aa).get(key, defaultValue);
 }
 
-// Explicitly undocumented. It will be removed in March 2015.
-deprecated("Please use destroy instead.")
-alias clear = destroy;
-
 void destroy(T)(T obj) if (is(T == class))
 {
     rt_finalize(cast(void*)obj);
