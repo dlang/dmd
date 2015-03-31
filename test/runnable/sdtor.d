@@ -3040,6 +3040,70 @@ void test10789()
 }
 
 /**********************************/
+// 10972
+
+int test10972()
+{
+    string result;
+
+    struct A
+    {
+        this(this)  { result ~= "pA"; version(none) printf("copied A\n"); }
+        ~this()     { result ~= "dA"; version(none) printf("destroy A\n"); }
+    }
+    struct B
+    {
+        this(this)
+        {
+            result ~= "(pB)"; version(none) printf("B says what?\n");
+            throw new Exception("BOOM!");
+        }
+        ~this() { result ~= "dB"; version(none) printf("destroy B\n"); }
+    }
+    struct S
+    {
+        A a;
+        B b;
+    }
+
+    result = "{";
+    {
+        S s1;
+        result ~= "[";
+        try
+        {
+            S s3 = s1;
+            assert(0);
+        }
+        catch (Exception e)
+        {}
+        result ~= "]";
+    }
+    result ~= "}";
+    assert(result == "{[pA(pB)dA]dBdA}", result);
+
+    result = "{";
+    {
+        S s1;
+        S s2;
+        result ~= "[";
+        try
+        {
+            s2 = s1;
+            assert(0);
+        }
+        catch (Exception e)
+        {}
+        result ~= "]";
+    }
+    result ~= "}";
+    assert(result == "{[pA(pB)dA]dBdAdBdA}", result);
+
+    return 1;
+}
+static assert(test10972()); // CTFE
+
+/**********************************/
 // 11134
 
 void test11134()
@@ -3828,6 +3892,7 @@ int main()
     test10244();
     test10694();
     test10789();
+    test10972();
     test11134();
     test11197();
     test7474();
