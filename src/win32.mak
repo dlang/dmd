@@ -167,13 +167,10 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 
 
 # Root package
-GCOBJS=rmem.obj
-# Removed garbage collector (look in history)
-#GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
 ROOTOBJS= man.obj port.obj checkedint.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj outbuffer.obj \
 	object.obj filename.obj file.obj \
-	$(GCOBJS)
+	rmem.obj newdelete.obj
 
 # D front end
 SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.d impcnvgen.c utf.h \
@@ -232,7 +229,7 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 ROOTSRCC=$(ROOT)\rmem.c $(ROOT)\stringtable.c \
 	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
 	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c \
-	$(ROOT)\checkedint.c \
+	$(ROOT)\checkedint.c $(ROOT)\newdelete.c \
 	$(ROOT)\outbuffer.c $(ROOT)\object.c $(ROOT)\filename.c $(ROOT)\file.c
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
@@ -637,6 +634,9 @@ man.obj : $(ROOT)\man.c
 
 rmem.obj : $(ROOT)\rmem.c
 	$(CC) -c $(CFLAGS) $(ROOT)\rmem.c
+
+newdelete.obj : $(ROOT)\newdelete.c
+	$(CC) -c $(CFLAGS) $(ROOT)\newdelete.c
 
 port.obj : $(ROOT)\port.c
 	$(CC) -c $(CFLAGS) $(ROOT)\port.c
