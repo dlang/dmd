@@ -565,13 +565,37 @@ Lancestorsdone:
          * before the members semantic analysis of this class, in order to determine
          * vtbl in this class. However if a base class refers the member of this class,
          * it can be resolved as a normal forward reference.
-         * Call addMember() to make this class members visible from the base classes.
+         * Call addMember() and setScope() to make this class members visible from the base classes.
          */
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
             s->addMember(sc, this, 1);
         }
+
+        Scope *sc2 = sc->push(this);
+        sc2->stc &= STCsafe | STCtrusted | STCsystem;
+        sc2->parent = this;
+        sc2->inunion = 0;
+        if (isCOMclass())
+        {
+            if (global.params.isWindows)
+                sc2->linkage = LINKwindows;
+            else
+                sc2->linkage = LINKc;
+        }
+        sc2->protection = Prot(PROTpublic);
+        sc2->explicitProtection = 0;
+        sc2->structalign = STRUCTALIGN_DEFAULT;
+        sc2->userAttribDecl = NULL;
+
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->setScope(sc2);
+        }
+
+        sc2->pop();
     }
 
     for (size_t i = 0; i < baseclasses->dim; i++)

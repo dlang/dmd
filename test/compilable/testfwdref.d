@@ -306,6 +306,27 @@ class E12984a(T) : D12984a!int
     }
 }
 
+static assert("B.instanceSize = ", __traits(classInstanceSize, B12984a) == (void*).sizeof * 2);
+static assert("C.instanceSize = ", __traits(classInstanceSize, C12984a) == (void*).sizeof * 2);
+
+// ----
+
+class B12984b { int b; alias MyD = D12984b!int; }
+class C12984b : B12984b { int c; }
+
+class D12984b(T) { int d; alias MyE = E12984b!float; }
+class E12984b(T) : D12984b!int
+{
+    int e;
+    void m()
+    {
+        auto c = new C12984b();
+    }
+}
+
+static assert("B.instanceSize = ", __traits(classInstanceSize, B12984b) == (void*).sizeof * 2 + (int).sizeof);
+static assert("C.instanceSize = ", __traits(classInstanceSize, C12984b) == (void*).sizeof * 2 + (int).sizeof);
+
 /***************************************************/
 // 13860
 
