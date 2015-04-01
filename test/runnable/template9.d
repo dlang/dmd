@@ -4400,6 +4400,18 @@ void test14174()
 }
 
 /******************************************/
+// 14357
+
+template Qux14357(T : U*, U : V*, V)
+{
+    pragma(msg, T);     // no match <- float**
+    pragma(msg, U);     // no match <- float*
+    pragma(msg, V);     // no match <- int
+    enum Qux14357 = T.sizeof + V.sizeof;
+}
+static assert(!__traits(compiles, Qux14357!(float**, int*)));
+
+/******************************************/
 
 int main()
 {
