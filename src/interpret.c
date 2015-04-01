@@ -6834,6 +6834,14 @@ void setValueWithoutChecking(VarDeclaration *vd, Expression *newval)
 
 void setValue(VarDeclaration *vd, Expression *newval)
 {
+#if 0
+    if (! ((vd->storage_class & (STCout | STCref))
+            ? isCtfeReferenceValid(newval)
+            : isCtfeValueValid(newval)) )
+    {
+        printf("[%s] vd = %s %s, newval = %s\n", vd->loc.toChars(), vd->type->toChars(), vd->toChars(), newval->toChars());
+    }
+#endif
     assert((vd->storage_class & (STCout | STCref))
             ? isCtfeReferenceValid(newval)
             : isCtfeValueValid(newval));
