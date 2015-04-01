@@ -546,6 +546,8 @@ void ClassDeclaration::semantic(Scope *sc)
                 ::error(loc, "C++ class '%s' cannot implement D interface '%s'", toPrettyChars(), b->base->toPrettyChars());
             }
         }
+
+        interfaceSemantic(sc);
     }
 Lancestorsdone:
     //printf("\tClassDeclaration::semantic(%s) doAncestorsSemantic = %d\n", toChars(), doAncestorsSemantic);
@@ -563,13 +565,37 @@ Lancestorsdone:
          * before the members semantic analysis of this class, in order to determine
          * vtbl in this class. However if a base class refers the member of this class,
          * it can be resolved as a normal forward reference.
-         * Call addMember() to make this class members visible from the base classes.
+         * Call addMember() and setScope() to make this class members visible from the base classes.
          */
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
             s->addMember(sc, this, 1);
         }
+
+        Scope *sc2 = sc->push(this);
+        sc2->stc &= STCsafe | STCtrusted | STCsystem;
+        sc2->parent = this;
+        sc2->inunion = 0;
+        if (isCOMclass())
+        {
+            if (global.params.isWindows)
+                sc2->linkage = LINKwindows;
+            else
+                sc2->linkage = LINKc;
+        }
+        sc2->protection = Prot(PROTpublic);
+        sc2->explicitProtection = 0;
+        sc2->structalign = STRUCTALIGN_DEFAULT;
+        sc2->userAttribDecl = NULL;
+
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->setScope(sc2);
+        }
+
+        sc2->pop();
     }
 
     for (size_t i = 0; i < baseclasses->dim; i++)
@@ -610,7 +636,6 @@ Lancestorsdone:
             if (vtblOffset())
                 vtbl.push(this);            // leave room for classinfo as first member
         }
-        interfaceSemantic(sc);
 
         /* If this is a nested class, add the hidden 'this'
          * member which is a pointer to the enclosing scope.
@@ -668,21 +693,6 @@ Lancestorsdone:
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
 
-    if (baseClass)
-    {
-        alignsize = baseClass->alignsize;
-        structsize = baseClass->structsize;
-        if (cpp && global.params.isWindows)
-            structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
-    }
-    else
-    {
-        alignsize = Target::ptrsize;
-        if (cpp)
-            structsize = Target::ptrsize;       // allow room for __vptr
-        else
-            structsize = Target::ptrsize * 2;   // allow room for __vptr and __monitor
-    }
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
 
@@ -960,6 +970,24 @@ void ClassDeclaration::finalizeSize(Scope *sc)
         return;
 
     // Set the offsets of the fields and determine the size of the class
+    if (baseClass)
+    {
+        assert(baseClass->sizeok == SIZEOKdone);
+
+        alignsize = baseClass->alignsize;
+        structsize = baseClass->structsize;
+        if (cpp && global.params.isWindows)
+            structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
+    }
+    else
+    {
+        alignsize = Target::ptrsize;
+        if (cpp)
+            structsize = Target::ptrsize;       // allow room for __vptr
+        else
+            structsize = Target::ptrsize * 2;   // allow room for __vptr and __monitor
+    }
+
     unsigned offset = structsize;
     for (size_t i = 0; i < members->dim; i++)
     {
@@ -971,6 +999,7 @@ void ClassDeclaration::finalizeSize(Scope *sc)
 
     // Allocate instance of each new interface
     offset = structsize;
+    assert(vtblInterfaces);     // Bugzilla 12984
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {
         BaseClass *b = (*vtblInterfaces)[i];
@@ -1441,6 +1470,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
             if (b->base->isCPPinterface())
                 cpp = true;
         }
+
+        interfaceSemantic(sc);
     }
 Lancestorsdone:
 
@@ -1473,8 +1504,6 @@ Lancestorsdone:
 
     {
         // initialize vtbl
-        interfaceSemantic(sc);
-
         if (vtblOffset())
             vtbl.push(this);                // leave room at vtbl[0] for classinfo
 
