@@ -1956,7 +1956,7 @@ public:
     void visit(Expression *e)
     {
     #if LOG
-        printf("%s Expression::interpret() %s\n", e->loc.toChars(), e->toChars());
+        printf("%s Expression::interpret() '%s' %s\n", e->loc.toChars(), Token::toChars(e->op), e->toChars());
         printf("type = %s\n", e->type->toChars());
         e->print();
     #endif

@@ -5710,7 +5710,7 @@ void TemplateInstance::trySemantic3(Scope *sc2)
 
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 {
-    //printf("TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", toChars(), this, global.gag, sc);
+    //printf("[%s] TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", loc.toChars(), toChars(), this, global.gag, sc);
 #if 0
     for (Dsymbol *s = this; s; s = s->parent)
     {
