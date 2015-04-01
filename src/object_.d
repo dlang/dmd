@@ -2439,10 +2439,6 @@ unittest
     }
 }
 
-// Explicitly undocumented. It will be removed in March 2015.
-deprecated("Please use destroy instead of clear.")
-alias destroy clear;
-
 /++
     Destroys the given object and puts it in an invalid state. It's used to
     destroy an object so that any cleanup which its destructor or finalizer
