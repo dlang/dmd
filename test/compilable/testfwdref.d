@@ -324,8 +324,8 @@ class E12984b(T) : D12984b!int
     }
 }
 
-static assert(__traits(classInstanceSize, B12984b) == (void*).sizeof * 2 + (int).sizeof);
-static assert(__traits(classInstanceSize, C12984b) == (void*).sizeof * 2 + (int).sizeof);
+static assert(__traits(classInstanceSize, B12984b) == (void*).sizeof * 2 + int.sizeof);
+static assert(__traits(classInstanceSize, C12984b) == (void*).sizeof * 2 + int.sizeof);
 
 /***************************************************/
 // 13860
