@@ -21,13 +21,12 @@ extern(Windows)
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int iCmdShow)
 {
     int result;
-    void exceptionHandler(Throwable e) { throw e; }
 
     try
     {
-        Runtime.initialize(&exceptionHandler);
+        Runtime.initialize();
         result = myWinMain(hInstance, hPrevInstance, lpCmdLine, iCmdShow);
-        Runtime.terminate(&exceptionHandler);
+        Runtime.terminate();
     }
     catch (Throwable e)
     {
