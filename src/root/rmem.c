@@ -117,16 +117,6 @@ void Mem::error()
 
 /* =================================================== */
 
-#if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-#define USE_ASAN_NEW_DELETE
-#endif
-#endif
-
-#if !defined(USE_ASAN_NEW_DELETE)
-
-#if 1
-
 /* Allocate, but never release
  */
 
@@ -137,7 +127,7 @@ void Mem::error()
 static size_t heapleft = 0;
 static void *heapp;
 
-void * operator new(size_t m_size)
+void *allocmemory(size_t m_size)
 {
     // 16 byte alignment is better (and sometimes needed) for doubles
     m_size = (m_size + 15) & ~15;
@@ -171,28 +161,3 @@ void * operator new(size_t m_size)
     }
     goto L1;
 }
-
-void operator delete(void *p)
-{
-}
-
-#else
-
-void * operator new(size_t m_size)
-{
-    void *p = malloc(m_size);
-    if (p)
-        return p;
-    printf("Error: out of memory\n");
-    exit(EXIT_FAILURE);
-    return p;
-}
-
-void operator delete(void *p)
-{
-    free(p);
-}
-
-#endif
-
-#endif

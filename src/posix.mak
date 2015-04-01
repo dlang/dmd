@@ -149,7 +149,8 @@ DMD_OBJS = \
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o object.o \
-	filename.o file.o async.o checkedint.o
+	filename.o file.o async.o checkedint.o \
+	newdelete.o
 
 GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
@@ -208,7 +209,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
-	$(ROOT)/man.c \
+	$(ROOT)/man.c $(ROOT)/newdelete.c \
 	$(ROOT)/checkedint.h $(ROOT)/checkedint.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
