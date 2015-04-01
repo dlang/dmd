@@ -336,7 +336,13 @@ unsigned AggregateDeclaration::size(Loc loc)
     if (loc.linnum == 0)
         loc = this->loc;
     if (sizeok != SIZEOKdone && scope)
+    {
         semantic(NULL);
+
+        // Determine the instance size of base class first.
+        if (ClassDeclaration *cd = isClassDeclaration())
+            cd->baseClass->size(loc);
+    }
 
     if (sizeok != SIZEOKdone && members)
     {
