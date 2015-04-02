@@ -542,6 +542,28 @@ static if (is(object.ModuleInfo == class))
 }
 
 /***************************************************/
+// 10158
+
+class Outer10158
+{
+    static struct Inner
+    {
+        int f;
+    }
+
+    void test()
+    {
+        static assert( Inner.f .offsetof == 0);  // OK <- NG
+        static assert((Inner.f).offsetof == 0);  // OK
+    }
+}
+
+void test10158()
+{
+    static assert(Outer10158.Inner.f.offsetof == 0);  // OK
+}
+
+/***************************************************/
 // 10326
 
 class C10326
