@@ -7376,6 +7376,42 @@ class Foo14165
 }
 
 /***************************************************/
+// 13985
+
+interface I13985
+{
+    void m1();
+    void m2();
+    void m3();
+
+    final void mf()
+    {
+        m3();
+    }
+}
+
+class C13985 : I13985
+{
+    void m1() {}
+    void m2() {}
+    void m3() {}
+}
+
+class D13985 : C13985
+{
+    void ml()
+    {
+        super.mf();
+    }
+}
+
+void test13985()
+{
+    auto d = new D13985();
+    d.ml();
+}
+
+/***************************************************/
 // 14211
 
 extern(C++) // all derived classes won't have invariants
@@ -7704,6 +7740,7 @@ int main()
     test13472();
     test13476();
     test13952();
+    test13985();
     test14211();
 
     printf("Success\n");
