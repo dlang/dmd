@@ -195,9 +195,24 @@ int    fileno(FILE*);
 char*  gets(char*);
 int    pclose(FILE*);
 FILE*  popen(in char*, in char*);
-FILE*  fmemopen(in void* buf, in size_t size, in char* mode);
-FILE*  open_memstream(char** ptr, size_t* sizeloc);
-FILE*  open_wmemstream(wchar_t** ptr, size_t* sizeloc);
+
+
+// memstream functions are conforming to POSIX.1-2008.  These functions are
+// not specified in POSIX.1-2001 and are not widely available on other
+// systems.
+version( linux )                             // as of glibc 1.0x
+    version = HaveMemstream;
+else version( FreeBSD )                      // as of FreeBSD 9.2
+    version = HaveMemstream;
+else version( OpenBSD )                      // as of OpenBSD 5.4
+    version = HaveMemstream;
+
+version( HaveMemstream )
+{
+    FILE*  fmemopen(in void* buf, in size_t size, in char* mode);
+    FILE*  open_memstream(char** ptr, size_t* sizeloc);
+    FILE*  open_wmemstream(wchar_t** ptr, size_t* sizeloc);
+}
 
 //
 // Thread-Safe Functions (TSF)
@@ -262,6 +277,7 @@ version( Solaris )
     enum P_tmpdir  = "/var/tmp/";
 }
 
+version( HaveMemstream )
 unittest
 { /* fmemopen */
     import core.stdc.string : memcmp;
@@ -275,6 +291,7 @@ unittest
     assert(fclose(f) == 0);
 }
 
+version( HaveMemstream )
 unittest
 { /* Note: open_memstream is only useful for writing */
     import core.stdc.string : memcmp;
@@ -289,6 +306,7 @@ unittest
     assert(fclose(f) == 0);
 }
 
+version( HaveMemstream )
 unittest
 { /* Note: open_wmemstream is only useful for writing */
     import core.stdc.string : memcmp;
