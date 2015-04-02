@@ -165,6 +165,9 @@ SRC = win32.mak posix.mak \
 
 all: dmd
 
+auto-tester-build: dmd
+.PHONY: auto-tester-build
+
 dmd: $(DMD_OBJS)
 	$(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(PROFILE) $(DMD_OBJS) $(LDFLAGS)
 
