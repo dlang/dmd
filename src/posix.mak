@@ -147,6 +147,9 @@ DMD_DEPS:=$(DMD_OBJS:.o=.deps)
 
 all: dmd
 
+auto-tester-build: dmd
+.PHONY: auto-tester-build
+
 dmd: $(DMD_OBJS)
 	$(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(PROFILE) $(DMD_OBJS) $(LDFLAGS)
 
