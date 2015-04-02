@@ -263,6 +263,8 @@ TESTS=UTFTest.exe # LexerTest.exe
 
 defaulttarget: debdmd
 
+auto-tester-build: dmd
+
 dmd: reldmd
 
 release:
