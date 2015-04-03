@@ -15,6 +15,8 @@ CP=cp
 DOCDIR=doc
 IMPDIR=import
 
+MAKE=make
+
 DFLAGS=-m$(MODEL) -conf= -O -release -dip25 -inline -w -Isrc -Iimport
 UDFLAGS=-m$(MODEL) -conf= -O -release -dip25 -w -Isrc -Iimport
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
@@ -653,9 +655,23 @@ $(GCSTUB) : src\gcstub\gc.d win64.mak
 $(DRUNTIME): $(OBJS) $(SRCS) win64.mak
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
+# due to -conf= on the command line, LINKCMD and LIB need to be set in the environment
 unittest : $(SRCS) $(DRUNTIME)
 	$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -ofunittest.exe -main $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME) user32.lib
 	unittest
+
+################### Win32 COFF support #########################
+
+# default to 32-bit compiler relative to 64-bit compiler, link and lib are architecture agnostic
+CC32=$(CC)\..\..\cl
+
+druntime32mscoff:
+	$(MAKE) -f win64.mak "DMD=$(DMD)" MODEL=32mscoff "CC=\$(CC32)"\"" "AR=\$(AR)"\"" "VCDIR=$(VCDIR)" "SDKDIR=$(SDKDIR)"
+
+unittest32mscoff:
+	$(MAKE) -f win64.mak "DMD=$(DMD)" MODEL=32mscoff "CC=\$(CC32)"\"" "AR=\$(AR)"\"" "VCDIR=$(VCDIR)" "SDKDIR=$(SDKDIR)" unittest
+
+################### zip/install/clean ##########################
 
 zip: druntime.zip
 
