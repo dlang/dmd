@@ -1939,7 +1939,23 @@ Ldone:
             #endif
             assert(0);
     }
-    t->uns64value = n;
+    switch(result)
+    {
+      case TOKint32v:
+        t->int32value = (d_int32)n;
+        break;
+      case TOKuns32v:
+        t->uns32value = (d_uns32)n;
+        break;
+      case TOKint64v:
+        t->int64value = (d_int64)n;
+        break;
+      case TOKuns64v:
+        t->uns64value = (d_uns64)n;
+        break;
+      default:
+        assert(0);
+    }
     return result;
 }
 

@@ -747,11 +747,11 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                 if (token.value == TOKlparen)
                 {
                     nextToken();
-                    if (token.value == TOKint32v && token.uns64value > 0)
+                    if (token.value == TOKint32v && token.int32value > 0)
                     {
-                        if (token.uns64value & (token.uns64value - 1))
+                        if (token.int32value & (token.int32value - 1))
                             error("align(%s) must be a power of 2", token.toChars());
-                        n = (unsigned)token.uns64value;
+                        n = (unsigned)token.int32value;
                     }
                     else
                     {
