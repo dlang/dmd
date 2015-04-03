@@ -112,7 +112,7 @@ extern (C) Object _d_newclass(const ClassInfo ci)
     }
 
     // initialize it
-    (cast(byte*) p)[0 .. ci.init.length] = ci.init[];
+    p[0 .. ci.init.length] = ci.init[];
 
     debug(PRINTF) printf("initialization done\n");
     return cast(Object) p;
@@ -1412,10 +1412,10 @@ extern (C) void rt_finalize2(void* p, bool det = true, bool resetMemory = true) 
         if (ppv[1]) // if monitor is not null
             _d_monitordelete(cast(Object) p, det);
 
-        if(resetMemory)
+        if (resetMemory)
         {
-            byte[] w = (*pc).init;
-            (cast(byte*) p)[0 .. w.length] = w[];
+            auto w = (*pc).init;
+            p[0 .. w.length] = w[];
         }
     }
     catch (Exception e)

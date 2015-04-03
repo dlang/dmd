@@ -268,7 +268,7 @@ struct GC
     // We can't allocate a Mutex on the GC heap because we are the GC.
     // Store it in the static data segment instead.
     __gshared GCMutex gcLock;    // global lock
-    __gshared byte[__traits(classInstanceSize, GCMutex)] mutexStorage;
+    __gshared void[__traits(classInstanceSize, GCMutex)] mutexStorage;
 
     __gshared Config config;
 
