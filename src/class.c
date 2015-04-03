@@ -589,9 +589,13 @@ Lancestorsdone:
         sc2->structalign = STRUCTALIGN_DEFAULT;
         sc2->userAttribDecl = NULL;
 
+        /* Set scope so if there are forward references, we still might be able to
+         * resolve individual members like enums.
+         */
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
+            //printf("[%d] setScope %s %s, sc2 = %p\n", i, s->kind(), s->toChars(), sc2);
             s->setScope(sc2);
         }
 
@@ -693,26 +697,13 @@ Lancestorsdone:
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
 
-    size_t members_dim = members->dim;
-    sizeok = SIZEOKnone;
-
-    /* Set scope so if there are forward references, we still might be able to
-     * resolve individual members like enums.
-     */
-    for (size_t i = 0; i < members_dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        //printf("[%d] setScope %s %s, sc2 = %p\n", i, s->kind(), s->toChars(), sc2);
-        s->setScope(sc2);
-    }
-
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->importAll(sc2);
     }
 
-    for (size_t i = 0; i < members_dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->semantic(sc2);
