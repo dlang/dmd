@@ -7682,6 +7682,7 @@ Expression *TypeStruct::defaultInit(Loc loc)
     Declaration *d = new SymbolDeclaration(sym->loc, sym);
     assert(d);
     d->type = this;
+    d->storage_class |= STCrvalue;      // Bugzilla 14398
     return new VarExp(sym->loc, d);
 }
 
