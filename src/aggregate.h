@@ -47,6 +47,7 @@ enum Baseok
     BASEOKnone,         // base classes not computed yet
     BASEOKin,           // in process of resolving base classes
     BASEOKdone,         // all base classes are resolved
+    BASEOKsemanticdone, // all base classes semantic done
 };
 
 enum StructPOD

@@ -343,6 +343,19 @@ static assert(__traits(classInstanceSize, B12984b) == (void*).sizeof * 2 + int.s
 static assert(__traits(classInstanceSize, C12984b) == (void*).sizeof * 2 + int.sizeof * 2);
 
 /***************************************************/
+// 14390
+
+class B14390a { alias MyD = D14390a!int; }
+class C14390a : B14390a { void f(int) {} }
+class D14390a(T) { alias MyE = E14390a!float; }
+class E14390a(T) : D14390a!int { void m() { auto c = new C14390a(); } }
+
+class B14390b { alias MyD = D14390b!int; }
+class C14390b : B14390b { static struct S {} }
+class D14390b(T) { alias MyE = E14390b!float; }
+class E14390b(T) : D14390b!int { void m() { auto c = new C14390b(); } }
+
+/***************************************************/
 // 13860
 
 /*

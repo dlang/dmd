@@ -321,13 +321,10 @@ void ClassDeclaration::semantic(Scope *sc)
         if (sc->linkage == LINKcpp)
             cpp = true;
     }
-    else if (symtab)
+    else if (symtab && !scx)
     {
-        if (sizeok == SIZEOKdone || !scx)
-        {
-            semanticRun = PASSsemanticdone;
-            return;
-        }
+        semanticRun = PASSsemanticdone;
+        return;
     }
     semanticRun = PASSsemantic;
 
@@ -622,8 +619,10 @@ Lancestorsdone:
         }
     }
 
-    if (sizeok == SIZEOKnone)
+    if (baseok == BASEOKdone)
     {
+        baseok = BASEOKsemanticdone;
+
         // initialize vtbl
         if (baseClass)
         {
@@ -673,6 +672,10 @@ Lancestorsdone:
         else
             makeNested();
     }
+
+    // it might be determined already, by AggregateDeclaration::size().
+    if (sizeok != SIZEOKdone)
+        sizeok = SIZEOKnone;
 
     Scope *sc2 = sc->push(this);
     //sc2->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
@@ -1493,7 +1496,10 @@ Lancestorsdone:
         }
     }
 
+    if (baseok == BASEOKdone)
     {
+        baseok = BASEOKsemanticdone;
+
         // initialize vtbl
         if (vtblOffset())
             vtbl.push(this);                // leave room at vtbl[0] for classinfo
