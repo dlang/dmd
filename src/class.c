@@ -232,7 +232,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     isscope = false;
     isabstract = false;
     inuse = 0;
-    doAncestorsSemantic = SemanticStart;
+    baseok = BASEOKnone;
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
@@ -331,9 +331,9 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     semanticRun = PASSsemantic;
 
-    if (doAncestorsSemantic != SemanticDone)
+    if (baseok < BASEOKdone)
     {
-        doAncestorsSemantic = SemanticIn;
+        baseok = BASEOKin;
 
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
@@ -366,7 +366,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 i++;
         }
 
-        if (doAncestorsSemantic == SemanticDone)
+        if (baseok >= BASEOKdone)
         {
             //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
             if (semanticRun >= PASSsemanticdone)
@@ -420,14 +420,14 @@ void ClassDeclaration::semantic(Scope *sc)
             baseClass = tc->sym;
             b->base = baseClass;
 
-            if (tc->sym->scope && tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->scope && tc->sym->baseok < BASEOKdone)
                 tc->sym->semantic(NULL);    // Try to resolve forward reference
-            if (tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                doAncestorsSemantic = SemanticStart;
+                baseok = BASEOKnone;
             }
          L7: ;
         }
@@ -472,18 +472,18 @@ void ClassDeclaration::semantic(Scope *sc)
 
             b->base = tc->sym;
 
-            if (tc->sym->scope && tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->scope && tc->sym->baseok < BASEOKdone)
                 tc->sym->semantic(NULL);    // Try to resolve forward reference
-            if (tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                doAncestorsSemantic = SemanticStart;
+                baseok = BASEOKnone;
             }
             i++;
         }
-        if (doAncestorsSemantic == SemanticStart)
+        if (baseok == BASEOKnone)
         {
             // Forward referencee of one or more bases, try again later
             scope = scx ? scx : sc->copy();
@@ -492,7 +492,7 @@ void ClassDeclaration::semantic(Scope *sc)
             //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
             return;
         }
-        doAncestorsSemantic = SemanticDone;
+        baseok = BASEOKdone;
 
         // If no base class, and this is not an Object, use Object as base class
         if (!baseClass && ident != Id::Object && !cpp)
@@ -550,7 +550,7 @@ void ClassDeclaration::semantic(Scope *sc)
         interfaceSemantic(sc);
     }
 Lancestorsdone:
-    //printf("\tClassDeclaration::semantic(%s) doAncestorsSemantic = %d\n", toChars(), doAncestorsSemantic);
+    //printf("\tClassDeclaration::semantic(%s) baseok = %d\n", toChars(), baseok);
 
     if (!members)               // if opaque declaration
     {
@@ -883,15 +883,15 @@ bool ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 
 bool ClassDeclaration::isBaseInfoComplete()
 {
-    return doAncestorsSemantic == SemanticDone;
+    return baseok >= BASEOKdone;
 }
 
 Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
 
-    //if (scope) printf("%s doAncestorsSemantic = %d\n", toChars(), doAncestorsSemantic);
-    if (scope && doAncestorsSemantic < SemanticDone)
+    //if (scope) printf("%s baseok = %d\n", toChars(), baseok);
+    if (scope && baseok < BASEOKdone)
     {
         if (!inuse)
         {
@@ -1337,9 +1337,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
     semanticRun = PASSsemantic;
 
-    if (doAncestorsSemantic != SemanticDone)
+    if (baseok < BASEOKdone)
     {
-        doAncestorsSemantic = SemanticIn;
+        baseok = BASEOKin;
 
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
@@ -1370,7 +1370,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 i++;
         }
 
-        if (doAncestorsSemantic == SemanticDone)
+        if (baseok >= BASEOKdone)
         {
             //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
             if (semanticRun >= PASSsemanticdone)
@@ -1427,18 +1427,18 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
             b->base = tc->sym;
 
-            if (tc->sym->scope && tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->scope && tc->sym->baseok < BASEOKdone)
                 tc->sym->semantic(NULL);    // Try to resolve forward reference
-            if (tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                doAncestorsSemantic = SemanticStart;
+                baseok = BASEOKnone;
             }
             i++;
         }
-        if (doAncestorsSemantic == SemanticStart)
+        if (baseok == BASEOKnone)
         {
             // Forward referencee of one or more bases, try again later
             scope = scx ? scx : sc->copy();
@@ -1446,7 +1446,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             scope->module->addDeferredSemantic(this);
             return;
         }
-        doAncestorsSemantic = SemanticDone;
+        baseok = BASEOKdone;
 
         interfaces_dim = baseclasses->dim;
         interfaces = baseclasses->tdata();
