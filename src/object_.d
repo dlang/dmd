@@ -824,6 +824,8 @@ class TypeInfo_Class : TypeInfo
         return Object.sizeof;
     }
 
+    override const(void)[] init() nothrow pure const @safe { return m_init; }
+
     override @property uint flags() nothrow pure const { return 1; }
 
     override @property const(OffsetTypeInfo)[] offTi() nothrow pure const
@@ -834,7 +836,7 @@ class TypeInfo_Class : TypeInfo
     @property auto info() @safe nothrow pure const { return this; }
     @property auto typeinfo() @safe nothrow pure const { return this; }
 
-    byte[]      init;           /** class static initializer
+    byte[]      m_init;         /** class static initializer
                                  * (init.length gives size in bytes of class)
                                  */
     string      name;           /// class name
@@ -902,6 +904,20 @@ class TypeInfo_Class : TypeInfo
 }
 
 alias TypeInfo_Class ClassInfo;
+
+unittest
+{
+    // Bugzilla 14401
+    static class X
+    {
+        int a;
+    }
+
+    assert(typeid(X).init is typeid(X).m_init);
+    assert(typeid(X).init.length == typeid(const(X)).init.length);
+    assert(typeid(X).init.length == typeid(shared(X)).init.length);
+    assert(typeid(X).init.length == typeid(immutable(X)).init.length);
+}
 
 class TypeInfo_Interface : TypeInfo
 {

@@ -183,7 +183,7 @@ class TypeInfo_Class : TypeInfo
     @property auto info() @safe nothrow pure const { return this; }
     @property auto typeinfo() @safe nothrow pure const { return this; }
 
-    byte[]      init;   // class static initializer
+    byte[]      m_init; // class static initializer
     string      name;   // class name
     void*[]     vtbl;   // virtual function pointer table
     Interface[] interfaces;
