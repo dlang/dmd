@@ -6338,12 +6338,12 @@ Expression *Parser::parsePrimaryExp()
             break;
 
         case TOKint32v:
-            e = new IntegerExp(loc, token.int32value, Type::tint32);
+            e = new IntegerExp(loc, (d_int32)token.int64value, Type::tint32);
             nextToken();
             break;
 
         case TOKuns32v:
-            e = new IntegerExp(loc, token.uns32value, Type::tuns32);
+            e = new IntegerExp(loc, (d_uns32)token.uns64value, Type::tuns32);
             nextToken();
             break;
 
@@ -6433,17 +6433,17 @@ Expression *Parser::parsePrimaryExp()
             break;
 
         case TOKcharv:
-            e = new IntegerExp(loc, token.uns32value, Type::tchar);
+            e = new IntegerExp(loc, (d_uns8)token.uns64value, Type::tchar);
             nextToken();
             break;
 
         case TOKwcharv:
-            e = new IntegerExp(loc, token.uns32value, Type::twchar);
+            e = new IntegerExp(loc, (d_uns16)token.uns64value, Type::twchar);
             nextToken();
             break;
 
         case TOKdcharv:
-            e = new IntegerExp(loc, token.uns32value, Type::tdchar);
+            e = new IntegerExp(loc, (d_uns32)token.uns64value, Type::tdchar);
             nextToken();
             break;
 

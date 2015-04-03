@@ -3479,10 +3479,10 @@ static code *asm_db_parse(OP *pop)
         switch (tok_value)
         {
             case TOKint32v:
-                dt.ul = asmtok->int32value;
+                dt.ul = (d_int32)asmtok->int64value;
                 goto L1;
             case TOKuns32v:
-                dt.ul = asmtok->uns32value;
+                dt.ul = (d_uns32)asmtok->uns64value;
                 goto L1;
             case TOKint64v:
                 dt.ul = asmtok->int64value;
@@ -3646,11 +3646,11 @@ int asm_getnum()
     switch (tok_value)
     {
         case TOKint32v:
-            v = asmtok->int32value;
+            v = (d_int32)asmtok->int64value;
             break;
 
         case TOKuns32v:
-            v = asmtok->uns32value;
+            v = (d_uns32)asmtok->uns64value;
             break;
 
         case TOKidentifier:
@@ -4422,7 +4422,7 @@ static OPND *asm_primary_exp()
         case TOKint32v:
         case TOKuns32v:
             o1 = new OPND();
-            o1->disp = asmtok->int32value;
+            o1->disp = (d_int32)asmtok->int64value;
             asm_token();
             break;
 
