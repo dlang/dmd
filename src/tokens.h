@@ -200,8 +200,6 @@ struct Token
     union
     {
         // Integers
-        d_int32 int32value;
-        d_uns32 uns32value;
         d_int64 int64value;
         d_uns64 uns64value;
 
