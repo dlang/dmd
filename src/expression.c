@@ -13724,6 +13724,7 @@ Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
     CondExp *e = (CondExp *)copy();
     e->e1 = e1->toLvalue(sc, NULL)->addressOf();
     e->e2 = e2->toLvalue(sc, NULL)->addressOf();
+    e->type = type->pointerTo();
     return new PtrExp(loc, e, type);
 }
 
