@@ -99,7 +99,7 @@ MMD=-MMD -MF $(basename $@).deps
 # Default compiler flags for all source files
 CFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
-	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1 \
+	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
@@ -118,10 +118,10 @@ CFLAGS += -O2
 endif
 
 # Uniqe extra flags if necessary
-DMD_FLAGS  :=           -I$(ROOT) -Wuninitialized
-GLUE_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C)
-BACK_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C) -I.
-ROOT_FLAGS := -DDMDV2=1 -I$(ROOT)
+DMD_FLAGS  := -I$(ROOT) -Wuninitialized
+GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
+BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I. -DDMDV2=1
+ROOT_FLAGS := -I$(ROOT)
 
 
 DMD_OBJS = \
