@@ -2547,6 +2547,8 @@ static void asm_make_modrm_byte(
         mrmb.rm |= popnd->base->val & NUM_MASK;
         if (popnd->base->val & NUM_MASKR)
             pc->Irex |= REX_B;
+        else if (popnd->base->isSIL_DIL_BPL_SPL())
+            pc->Irex |= REX;
     }
     else if (amod == _addr16)
     {
