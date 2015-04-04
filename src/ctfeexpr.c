@@ -652,8 +652,15 @@ bool isSafePointerCast(Type *srcPointee, Type *destPointee)
     // It's OK if they are the same size (static array of) integers, eg:
     //     int*     --> uint*
     //     int[5][] --> uint[5][]
-    return srcPointee->baseElemOf()->isintegral() &&
-           destPointee->baseElemOf()->isintegral() &&
+    if (srcPointee->ty == Tsarray && destPointee->ty == Tsarray)
+    {
+        if (srcPointee->size() != destPointee->size())
+            return false;
+        srcPointee = srcPointee->baseElemOf();
+        destPointee = destPointee->baseElemOf();
+    }
+    return srcPointee->isintegral() &&
+           destPointee->isintegral() &&
            srcPointee->size() == destPointee->size();
 }
 
