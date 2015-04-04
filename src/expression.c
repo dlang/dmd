@@ -1501,18 +1501,14 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                                 a = a->implicitCastTo(sc, tbn);
                             (*elements)[u] = a;
                         }
-                        ArrayLiteralExp *ale = new ArrayLiteralExp(loc, elements);
-                        ale->type = tsa;
-
-                        Identifier *id = Identifier::generateId("__arrayArg");
-                        VarDeclaration *v = new VarDeclaration(loc, tsa, id, new ExpInitializer(loc, ale));
-                        v->storage_class |= STCtemp | STCctfe;
-                        v->semantic(sc);
-                        v->parent = sc->parent;
-
-                        Expression *de = new DeclarationExp(loc, v);
-                        Expression *ve = new VarExp(loc, v);
-                        arg = Expression::combine(de, ve);
+                        // Bugzilla 14395: Convert to a static array literal, or its slice.
+                        arg = new ArrayLiteralExp(loc, elements);
+                        arg->type = tsa;
+                        if (tb->ty == Tarray)
+                        {
+                            arg = new SliceExp(loc, arg, NULL, NULL);
+                            arg->type = p->type;
+                        }
                         break;
                     }
                     case Tclass:
