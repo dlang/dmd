@@ -18,7 +18,7 @@ fail_compilation/nogc1.d(30): Error: cannot use 'new' in @nogc function testNew
 fail_compilation/nogc1.d(32): Error: cannot use 'new' in @nogc function testNew
 fail_compilation/nogc1.d(33): Error: @nogc function 'nogc1.testNew' cannot call non-@nogc function 'nogc1.S2.this'
 fail_compilation/nogc1.d(34): Error: cannot use 'new' in @nogc function testNew
-fail_compilation/nogc1.d(35): Error: operator new in @nogc function testNew may allocate
+fail_compilation/nogc1.d(35): Error: @nogc function 'nogc1.testNew' cannot call non-@nogc function 'nogc1.S4.new'
 fail_compilation/nogc1.d(38): Error: cannot use 'new' in @nogc function testNew
 ---
 */
@@ -47,7 +47,7 @@ fail_compilation/nogc1.d(58): Error: cannot use 'new' in @nogc function testNewS
 fail_compilation/nogc1.d(60): Error: cannot use 'new' in @nogc function testNewScope
 fail_compilation/nogc1.d(61): Error: @nogc function 'nogc1.testNewScope' cannot call non-@nogc function 'nogc1.S2.this'
 fail_compilation/nogc1.d(62): Error: cannot use 'new' in @nogc function testNewScope
-fail_compilation/nogc1.d(63): Error: operator new in @nogc function testNewScope may allocate
+fail_compilation/nogc1.d(63): Error: @nogc function 'nogc1.testNewScope' cannot call non-@nogc function 'nogc1.S4.new'
 ---
 */
 @nogc void testNewScope()

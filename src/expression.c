@@ -4824,8 +4824,7 @@ Lagain:
 
     if (tb->ty == Tclass)
     {
-        TypeClass *tc = (TypeClass *)(tb);
-        ClassDeclaration *cd = tc->sym->isClassDeclaration();
+        ClassDeclaration *cd = ((TypeClass *)tb)->sym;
         cd->size(loc);
         if (cd->sizeok != SIZEOKdone)
             return new ErrorExp();
@@ -4851,7 +4850,7 @@ Lagain:
             }
             goto Lerr;
         }
-        checkDeprecated(sc, cd);
+        // checkDeprecated() is already done in newtype->semantic().
 
         if (cd->isNested())
         {
@@ -4941,13 +4940,11 @@ Lagain:
             FuncDeclaration *f = resolveFuncCall(loc, sc, cd->aggNew, NULL, tb, newargs);
             if (!f || f->errors)
                 goto Lerr;
-        #if 0   // necessary?
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
             checkAccess(loc, sc, NULL, f);
-        #endif
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;
@@ -4997,8 +4994,7 @@ Lagain:
     }
     else if (tb->ty == Tstruct)
     {
-        TypeStruct *ts = (TypeStruct *)tb;
-        StructDeclaration *sd = ts->sym;
+        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
         sd->size(loc);
         if (sd->sizeok != SIZEOKdone)
             return new ErrorExp();
@@ -5007,6 +5003,7 @@ Lagain:
             error("default construction is disabled for type %s", sd->type->toChars());
             goto Lerr;
         }
+        // checkDeprecated() is already done in newtype->semantic().
 
         if (sd->aggNew)
         {
@@ -5019,13 +5016,11 @@ Lagain:
             FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, tb, newargs);
             if (!f || f->errors)
                 goto Lerr;
-        #if 0   // necessary?
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
             checkAccess(loc, sc, NULL, f);
-        #endif
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;
