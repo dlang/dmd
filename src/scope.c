@@ -318,16 +318,35 @@ bool mergeFieldInit(Loc loc, unsigned &fieldInit, unsigned fi, bool mustInit)
         bool aRet = (fi        & CSXreturn) != 0;
         bool bRet = (fieldInit & CSXreturn) != 0;
 
+        // Have any branches halted?
+        bool aHalt = (fi        & CSXhalt) != 0;
+        bool bHalt = (fieldInit & CSXhalt) != 0;
+
         bool ok;
 
-        if (aRet)
+        if (aHalt && bHalt)
+        {
+            ok = true;
+            fieldInit = CSXhalt;
+        }
+        else if (!aHalt && aRet)
         {
             ok = !mustInit || (fi & CSXthis_ctor);
             fieldInit = fieldInit;
         }
-        else if (bRet)
+        else if (!bHalt && bRet)
         {
             ok = !mustInit || (fieldInit & CSXthis_ctor);
+            fieldInit = fi;
+        }
+        else if (aHalt)
+        {
+            ok = !mustInit || (fieldInit & CSXthis_ctor);
+            fieldInit = fieldInit;
+        }
+        else if (bHalt)
+        {
+            ok = !mustInit || (fi & CSXthis_ctor);
             fieldInit = fi;
         }
         else

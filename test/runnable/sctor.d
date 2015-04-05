@@ -268,6 +268,32 @@ class C14409 : B14409
 }
 
 /***************************************************/
+// 14376
+
+auto map14376()
+{
+    return MapResult14376!(e => 0)();
+}
+
+struct MapResult14376(alias pred)
+{
+    @property int front() { return pred(0); }
+}
+
+struct S14376
+{
+    typeof(map14376()) x;
+
+    this(int dummy)
+    {
+        if (true)
+            this.x = map14376();
+        else
+            assert(0);
+    }
+}
+
+/***************************************************/
 
 int main()
 {

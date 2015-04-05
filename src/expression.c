@@ -7042,6 +7042,11 @@ Expression *AssertExp::semantic(Scope *sc)
         if (fd)
             fd->hasReturnExp |= 4;
         sc->callSuper |= CSXhalt;
+        if (sc->fieldinit)
+        {
+            for (size_t i = 0; i < sc->fieldinit_dim; i++)
+                sc->fieldinit[i] |= CSXhalt;
+        }
 
         if (!global.params.useAssert)
         {
