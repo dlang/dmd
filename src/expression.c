@@ -5011,7 +5011,7 @@ Lagain:
         if (sd->aggNew)
         {
             // Prepend the uint size argument to newargs[]
-            Expression *e = new IntegerExp(loc, sd->size(loc), Type::tuns32);
+            Expression *e = new IntegerExp(loc, sd->size(loc), Type::tsize_t);
             if (!newargs)
                 newargs = new Expressions();
             newargs->shift(e);
