@@ -7041,6 +7041,7 @@ Expression *AssertExp::semantic(Scope *sc)
         FuncDeclaration *fd = sc->parent->isFuncDeclaration();
         if (fd)
             fd->hasReturnExp |= 4;
+        sc->callSuper |= CSXhalt;
 
         if (!global.params.useAssert)
         {
@@ -8647,7 +8648,7 @@ Lagain:
             return new ErrorExp();
         }
 
-        if (!sc->intypeof)
+        if (!sc->intypeof && !(sc->callSuper & CSXhalt))
         {
             if (sc->noctor || sc->callSuper & CSXlabel)
                 error("constructor calls not allowed in loops or after labels");
@@ -8685,7 +8686,7 @@ Lagain:
             return new ErrorExp();
         }
 
-        if (!sc->intypeof)
+        if (!sc->intypeof && !(sc->callSuper & CSXhalt))
         {
             if (sc->noctor || sc->callSuper & CSXlabel)
                 error("constructor calls not allowed in loops or after labels");

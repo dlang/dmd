@@ -254,23 +254,31 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
         bool aRet = (cs        & CSXreturn) != 0;
         bool bRet = (callSuper & CSXreturn) != 0;
 
+        // Have any branches halted?
+        bool aHalt = (cs        & CSXhalt) != 0;
+        bool bHalt = (callSuper & CSXhalt) != 0;
+
         bool ok = true;
 
-        if ( (aRet && !aAny && bAny) ||
-             (bRet && !bAny && aAny))
+        if (aHalt && bHalt)
+        {
+            callSuper = CSXhalt;
+        }
+        else if ((!aHalt && aRet && !aAny && bAny) ||
+                 (!bHalt && bRet && !bAny && aAny))
         {
             // If one has returned without a constructor call, there must be never
             // have been ctor calls in the other.
             ok = false;
         }
-        else if (aRet && aAll)
+        else if (aHalt || aRet && aAll)
         {
             // If one branch has called a ctor and then exited, anything the
             // other branch has done is OK (except returning without a
             // ctor call, but we already checked that).
             callSuper |= cs & (CSXany_ctor | CSXlabel);
         }
-        else if (bRet && bAll)
+        else if (bHalt || bRet && bAll)
         {
             callSuper = cs | (callSuper & (CSXany_ctor | CSXlabel));
         }
