@@ -4930,35 +4930,6 @@ Lagain:
             goto Lerr;
         }
 
-        if (cd->ctor)
-        {
-            FuncDeclaration *f = resolveFuncCall(loc, sc, cd->ctor, NULL, tb, arguments, 0);
-            if (!f || f->errors)
-                goto Lerr;
-            checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
-            checkAccess(loc, sc, NULL, f);
-
-            TypeFunction *tf = (TypeFunction *)f->type;
-            if (!arguments)
-                arguments = new Expressions();
-            if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
-                return new ErrorExp();
-
-            member = f->isCtorDeclaration();
-            assert(member);
-        }
-        else
-        {
-            if (nargs)
-            {
-                error("no constructor for %s", cd->toChars());
-                goto Lerr;
-            }
-        }
-
         if (cd->aggNew)
         {
             // Prepend the size argument to newargs[]
@@ -4991,6 +4962,35 @@ Lagain:
             if (newargs && newargs->dim)
             {
                 error("no allocator for %s", cd->toChars());
+                goto Lerr;
+            }
+        }
+
+        if (cd->ctor)
+        {
+            FuncDeclaration *f = resolveFuncCall(loc, sc, cd->ctor, NULL, tb, arguments, 0);
+            if (!f || f->errors)
+                goto Lerr;
+            checkDeprecated(sc, f);
+            checkPurity(sc, f);
+            checkSafety(sc, f);
+            checkNogc(sc, f);
+            checkAccess(loc, sc, NULL, f);
+
+            TypeFunction *tf = (TypeFunction *)f->type;
+            if (!arguments)
+                arguments = new Expressions();
+            if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
+                return new ErrorExp();
+
+            member = f->isCtorDeclaration();
+            assert(member);
+        }
+        else
+        {
+            if (nargs)
+            {
+                error("no constructor for %s", cd->toChars());
                 goto Lerr;
             }
         }
