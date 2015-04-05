@@ -26,6 +26,7 @@ module gc.gc;
 //debug = PTRCHECK;             // more pointer checking
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = INVARIANT;            // enable invariants
+//debug = PROFILE_API;          // profile API calls for config.profile > 1
 
 /*************** Configuration *********************/
 
@@ -53,11 +54,12 @@ private alias BlkInfo = core.memory.GC.BlkInfo;
 
 version (GNU) import gcc.builtins;
 
-debug (PRINTF_TO_FILE) import core.stdc.stdio : fprintf, fopen, fflush, FILE;
-else                   import core.stdc.stdio : printf; // needed to output profiling results
+debug (PRINTF_TO_FILE) import core.stdc.stdio : sprintf, fprintf, fopen, fflush, FILE;
+else                   import core.stdc.stdio : sprintf, printf; // needed to output profiling results
 
 import core.time;
 alias currTime = MonoTime.currTime;
+long currTicks() { return MonoTime.ticksPerSecond ? MonoTime.currTime.ticks : 0; }
 
 debug(PRINTF_TO_FILE)
 {
@@ -109,6 +111,18 @@ __gshared Duration recoverTime;
 __gshared Duration maxPauseTime;
 __gshared size_t numCollections;
 __gshared size_t maxPoolMemory;
+
+__gshared long numMallocs;
+__gshared long numFrees;
+__gshared long numReallocs;
+__gshared long numExtends;
+__gshared long numOthers;
+__gshared long mallocTime; // using ticks instead of MonoTime for better performance
+__gshared long freeTime;
+__gshared long reallocTime;
+__gshared long extendTime;
+__gshared long otherTime;
+__gshared long lockTime;
 
 private
 {
@@ -331,6 +345,41 @@ struct GC
     }
 
 
+    mixin template doLock()
+    {
+        debug(PROFILE_API)
+        {
+            long tm = (GC.config.profile > 1 ? currTicks : 0);
+        }
+
+        bool locked = (gcLock.lock(), true);
+
+        debug(PROFILE_API)
+        {
+            long tm2 = (GC.config.profile > 1 ? currTicks : 0);
+        }
+    }
+
+    mixin template doUnlock(alias time, alias count)
+    {
+        debug(PROFILE_API)
+        {
+            bool unlocked = () {
+                if (GC.config.profile > 1)
+                {
+                    count++;
+                    long now = currTicks;
+                    lockTime += tm2 - tm;
+                    time += now - tm2;
+                }
+                gcLock.unlock();
+                return true;
+            }();
+        }
+        else
+            bool unlocked = (gcLock.unlock(), true);
+    }
+
     /**
      *
      */
@@ -356,9 +405,9 @@ struct GC
             return oldb;
         }
 
-        gcLock.lock();
-        auto rc = go();
-        gcLock.unlock();
+        mixin doLock!();
+        uint rc = go();
+        mixin doUnlock!(otherTime, numOthers);
         return rc;
     }
 
@@ -389,9 +438,9 @@ struct GC
             return oldb;
         }
 
-        gcLock.lock();
-        auto rc = go();
-        gcLock.unlock();
+        mixin doLock!();
+        uint rc = go();
+        mixin doUnlock!(otherTime, numOthers);
         return rc;
     }
 
@@ -422,12 +471,11 @@ struct GC
             return oldb;
         }
 
-        gcLock.lock();
-        auto rc = go();
-        gcLock.unlock();
+        mixin doLock!();
+        uint rc = go();
+        mixin doUnlock!(otherTime, numOthers);
         return rc;
     }
-
 
     /**
      *
@@ -448,11 +496,9 @@ struct GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        {
-            gcLock.lock();
-            p = mallocNoSync(size, bits, *alloc_size, ti);
-            gcLock.unlock();
-        }
+        mixin doLock!();
+        p = mallocNoSync(size, bits, *alloc_size, ti);
+        mixin doUnlock!(mallocTime, numMallocs);
 
         if (!(bits & BlkAttr.NO_SCAN))
         {
@@ -512,11 +558,9 @@ struct GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        {
-            gcLock.lock();
-            p = mallocNoSync(size, bits, *alloc_size, ti);
-            gcLock.unlock();
-        }
+        mixin doLock!();
+        p = mallocNoSync(size, bits, *alloc_size, ti);
+        mixin doUnlock!(mallocTime, numMallocs);
 
         memset(p, 0, size);
         if (!(bits & BlkAttr.NO_SCAN))
@@ -539,11 +583,9 @@ struct GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        {
-            gcLock.lock();
-            p = reallocNoSync(p, size, bits, *alloc_size, ti);
-            gcLock.unlock();
-        }
+        mixin doLock!();
+        p = reallocNoSync(p, size, bits, *alloc_size, ti);
+        mixin doUnlock!(mallocTime, numMallocs);
 
         if (p !is oldp && !(bits & BlkAttr.NO_SCAN))
         {
@@ -709,9 +751,10 @@ struct GC
      */
     size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti = null) nothrow
     {
-        gcLock.lock();
-        auto rc = extendNoSync(p, minsize, maxsize, ti);
-        gcLock.unlock();
+        mixin doLock!();
+        size_t rc = extendNoSync(p, minsize, maxsize, ti);
+        mixin doUnlock!(extendTime, numExtends);
+
         return rc;
     }
 
@@ -817,9 +860,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
+        mixin doLock!();
         freeNoSync(p);
-        gcLock.unlock();
+        mixin doUnlock!(freeTime, numFrees);
     }
 
 
@@ -900,9 +943,10 @@ struct GC
             return null;
         }
 
-        gcLock.lock();
-        auto rc = addrOfNoSync(p);
-        gcLock.unlock();
+        mixin doLock!();
+        void* rc = addrOfNoSync(p);
+        mixin doUnlock!(otherTime, numOthers);
+
         return rc;
     }
 
@@ -935,9 +979,10 @@ struct GC
             return 0;
         }
 
-        gcLock.lock();
-        auto rc = sizeOfNoSync(p);
-        gcLock.unlock();
+        mixin doLock!();
+        size_t rc = sizeOfNoSync(p);
+        mixin doUnlock!(otherTime, numOthers);
+
         return rc;
     }
 
@@ -989,9 +1034,10 @@ struct GC
             return  i;
         }
 
-        gcLock.lock();
-        auto rc = queryNoSync(p);
-        gcLock.unlock();
+        mixin doLock!();
+        BlkInfo rc = queryNoSync(p);
+        mixin doUnlock!(otherTime, numOthers);
+
         return rc;
     }
 
@@ -1029,9 +1075,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
+        mixin doLock!();
         checkNoSync(p);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
     }
 
 
@@ -1086,9 +1132,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
+        mixin doLock!();
         gcx.addRoot(p);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
     }
 
 
@@ -1102,9 +1148,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
+        mixin doLock!();
         gcx.removeRoot(p);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
     }
 
 
@@ -1137,9 +1183,9 @@ struct GC
 
         //debug(PRINTF) printf("+GC.addRange(p = %p, sz = 0x%zx), p + sz = %p\n", p, sz, p + sz);
 
-        gcLock.lock();
+        mixin doLock!();
         gcx.addRange(p, p + sz, ti);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
 
         //debug(PRINTF) printf("-GC.addRange()\n");
     }
@@ -1155,9 +1201,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
+        mixin doLock!();
         gcx.removeRange(p);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
     }
 
     /**
@@ -1165,9 +1211,9 @@ struct GC
      */
     void runFinalizers(in void[] segment) nothrow
     {
-        gcLock.lock();
+        mixin doLock!();
         gcx.runFinalizers(segment);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
     }
 
     private auto rangeIterImpl(scope int delegate(ref Range) nothrow dg) nothrow
@@ -1424,9 +1470,32 @@ struct Gcx
             long gcTime = (recoverTime + sweepTime + markTime + prepTime).total!("msecs");
             printf("\tGrand total GC time:  %lld milliseconds\n", gcTime);
             long pauseTime = (markTime + prepTime).total!("msecs");
-            printf("GC summary:%5lld MB,%5lld GC%5lld ms, Pauses%5lld ms <%5lld ms\n",
+
+            char[30] apitxt;
+            apitxt[0] = 0;
+            debug(PROFILE_API) if (GC.config.profile > 1)
+            {
+                static Duration toDuration(long dur)
+                {
+                    return MonoTime(dur) - MonoTime(0);
+                }
+
+                printf("\n");
+                printf("\tmalloc:  %llu calls, %lld ms\n", cast(ulong)numMallocs, toDuration(mallocTime).total!"msecs");
+                printf("\trealloc: %llu calls, %lld ms\n", cast(ulong)numReallocs, toDuration(reallocTime).total!"msecs");
+                printf("\tfree:    %llu calls, %lld ms\n", cast(ulong)numFrees, toDuration(freeTime).total!"msecs");
+                printf("\textend:  %llu calls, %lld ms\n", cast(ulong)numExtends, toDuration(extendTime).total!"msecs");
+                printf("\tother:   %llu calls, %lld ms\n", cast(ulong)numOthers, toDuration(otherTime).total!"msecs");
+                printf("\tlock time: %lld ms\n", toDuration(lockTime).total!"msecs");
+
+                long apiTime = mallocTime + reallocTime + freeTime + extendTime + otherTime + lockTime;
+                printf("\tGC API: %lld ms\n", toDuration(apiTime).total!"msecs");
+                sprintf(apitxt.ptr, " API%5ld ms", toDuration(apiTime).total!"msecs");
+            }
+
+            printf("GC summary:%5lld MB,%5lld GC%5lld ms, Pauses%5lld ms <%5lld ms%s\n",
                    cast(long) maxPoolMemory >> 20, cast(ulong)numCollections, gcTime,
-                   pauseTime, maxPause);
+                   pauseTime, maxPause, apitxt.ptr);
         }
 
         debug(INVARIANT) initialized = false;
