@@ -416,7 +416,7 @@ Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
  * Search for symbol with correct spelling.
  */
 
-void *symbol_search_fp(void *arg, const char *seed, int* cost)
+void *symbol_search_fp(void *arg, const char *seed, int *cost)
 {
     /* If not in the lexer's string table, it certainly isn't in the symbol table.
      * Doing this first is a lot faster.
@@ -440,6 +440,43 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
         return NULL;            // don't do it for speculative compiles; too time consuming
 
     return (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, (void *)this, idchars);
+}
+
+/*************************************
+ * Take an index in a TypeTuple.
+ */
+Dsymbol *Dsymbol::takeTypeTupleIndex(Loc loc, Scope *sc, Dsymbol *s, RootObject *id, Expression *indexExpr)
+{
+    TupleDeclaration *td = s->isTupleDeclaration();
+    if (!td)
+    {
+        error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
+              id->toChars(), s->toChars());
+        return NULL;
+    }
+    sc = sc->startCTFE();
+    indexExpr = indexExpr->semantic(sc);
+    sc = sc->endCTFE();
+
+    indexExpr = indexExpr->ctfeInterpret();
+    const uinteger_t d = indexExpr->toUInteger();
+
+    if (d >= td->objects->dim)
+    {
+        error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+        return NULL;
+    }
+    RootObject *o = (*td->objects)[(size_t)d];
+    if (o->dyncast() == DYNCAST_TYPE)
+    {
+        Type *t = (Type *)o;
+        return t->toDsymbol(sc)->toAlias();
+    }
+    else
+    {
+        assert(o->dyncast() == DYNCAST_DSYMBOL);
+        return (Dsymbol *)o;
+    }
 }
 
 /***************************************
@@ -468,6 +505,39 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
     {
         case DYNCAST_IDENTIFIER:
             sm = s->search(loc, (Identifier *)id);
+            break;
+
+        case DYNCAST_TYPE:
+        {
+            Type *index = (Type *)id;
+            Expression *expr = NULL;
+            Type *t = NULL;
+            Dsymbol *sym = NULL;
+
+            index->resolve(loc, sc, &expr, &t, &sym);
+            if (expr)
+            {
+                sm = takeTypeTupleIndex(loc, sc, s, id, expr);
+            }
+            else if (t)
+            {
+                index->error(loc, "expected an expression as index, got a type (%s)", t->toChars());
+                return NULL;
+            }
+            else
+            {
+                index->error(loc, "index is not an expression");
+                return NULL;
+            }
+            break;
+        }
+
+        case DYNCAST_EXPRESSION:
+            sm = takeTypeTupleIndex(loc, sc, s, id, (Expression *)id);
+            if (!sm)
+            {
+                return NULL;
+            }
             break;
 
         case DYNCAST_DSYMBOL:

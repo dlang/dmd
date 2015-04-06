@@ -951,15 +951,30 @@ public:
         for (size_t i = 0; i < t->idents.dim; i++)
         {
             RootObject *id = t->idents[i];
-            buf->writeByte('.');
 
             if (id->dyncast() == DYNCAST_DSYMBOL)
             {
+                buf->writeByte('.');
                 TemplateInstance *ti = (TemplateInstance *)id;
                 ti->accept(this);
             }
+            else if (id->dyncast() == DYNCAST_EXPRESSION)
+            {
+                buf->writeByte('[');
+                ((Expression *)id)->accept(this);
+                buf->writeByte(']');
+            }
+            else if (id->dyncast() == DYNCAST_TYPE)
+            {
+                buf->writeByte('[');
+                ((Type *)id)->accept(this);
+                buf->writeByte(']');
+            }
             else
+            {
+                buf->writeByte('.');
                 buf->writestring(id->toChars());
+            }
         }
     }
 

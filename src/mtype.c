@@ -4910,7 +4910,7 @@ MATCH TypePointer::implicitConvTo(Type *to)
     {
         if (to->ty == Tpointer)
         {
-            TypePointer *tp = (TypePointer*)to;
+            TypePointer *tp = (TypePointer *)to;
             if (tp->next->ty == Tfunction)
             {
                 if (next->equals(tp->next))
@@ -4972,7 +4972,7 @@ MATCH TypePointer::constConv(Type *to)
 {
     if (next->ty == Tfunction)
     {
-        if (to->nextOf() && next->equals(((TypeNext*)to)->next))
+        if (to->nextOf() && next->equals(((TypeNext *)to)->next))
             return Type::constConv(to);
         else
             return MATCHnomatch;
@@ -6318,6 +6318,18 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
             ti = (TemplateInstance *)ti->syntaxCopy(NULL);
             id = ti;
         }
+        else if (id->dyncast() == DYNCAST_EXPRESSION)
+        {
+            Expression *e = (Expression *)id;
+            e = e->syntaxCopy();
+            id = e;
+        }
+        else if (id->dyncast() == DYNCAST_TYPE)
+        {
+            Type *t = (Type *)id;
+            t = t->syntaxCopy();
+            id = t;
+        }
         idents[i] = id;
     }
 }
@@ -6332,10 +6344,57 @@ void TypeQualified::addInst(TemplateInstance *inst)
     idents.push(inst);
 }
 
+void TypeQualified::addIndex(RootObject *e)
+{
+    idents.push(e);
+}
+
 d_uns64 TypeQualified::size(Loc loc)
 {
     error(this->loc, "size of type %s is not known", toChars());
     return SIZE_INVALID;
+}
+
+/*************************************
+ * Resolve a TypeTuple index.
+ */
+bool TypeQualified::resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *indexExpr)
+{
+    TupleDeclaration *td = (*s)->isTupleDeclaration();
+    if (!td)
+    {
+        error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
+              id->toChars(), (*s)->toChars());
+        *pt = Type::terror;
+        return false;
+    }
+    sc = sc->startCTFE();
+    indexExpr = indexExpr->semantic(sc);
+    sc = sc->endCTFE();
+
+    indexExpr = indexExpr->ctfeInterpret();
+    const uinteger_t d = indexExpr->toUInteger();
+
+    if (d >= td->objects->dim)
+    {
+        error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+        *pt = Type::terror;
+        return false;
+    }
+    RootObject *o = (*td->objects)[(size_t)d];
+    if (o->dyncast() == DYNCAST_TYPE)
+    {
+        *ps = NULL;
+        *pt = ((Type *)o)->addMod(this->mod);
+        *s = (*pt)->toDsymbol(sc)->toAlias();
+    }
+    else
+    {
+        assert(o->dyncast() == DYNCAST_DSYMBOL);
+        *ps = (Dsymbol *)o;
+        *s = (*ps)->toAlias();
+    }
+    return true;
 }
 
 /*************************************
@@ -6367,6 +6426,43 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         for (size_t i = 0; i < idents.dim; i++)
         {
             RootObject *id = idents[i];
+            if (id->dyncast() == DYNCAST_EXPRESSION)
+            {
+                if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, (Expression *)id))
+                {
+                    return;
+                }
+                continue;
+            }
+            else if (id->dyncast() == DYNCAST_TYPE)
+            {
+                Type *index = (Type *)id;
+                Expression *expr = NULL;
+                Type *t = NULL;
+                Dsymbol *sym = NULL;
+
+                index->resolve(loc, sc, &expr, &t, &sym);
+                if (expr)
+                {
+                    if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, expr))
+                    {
+                        return;
+                    }
+                }
+                else if (t)
+                {
+                    index->error(loc, "Expected an expression as index, got a type (%s)", t->toChars());
+                    *pt = Type::terror;
+                    return;
+                }
+                else
+                {
+                    index->error(loc, "index is not a an expression");
+                    *pt = Type::terror;
+                    return;
+                }
+                continue;
+            }
             Type *t = s->getType();     // type symbol, type alias, or type tuple?
             unsigned errorsave = global.errors;
             Dsymbol *sm = s->searchX(loc, sc, id);

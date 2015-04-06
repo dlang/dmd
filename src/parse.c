@@ -2996,7 +2996,6 @@ Type *Parser::parseBasicType()
     Type *t;
     Loc loc;
     Identifier *id;
-    TypeQualified *tid;
 
     //printf("parseBasicType()\n");
     switch (token.value)
@@ -3040,45 +3039,23 @@ Type *Parser::parseBasicType()
                 // ident!(template_arguments)
                 TemplateInstance *tempinst = new TemplateInstance(loc, id);
                 tempinst->tiargs = parseTemplateArguments();
-                tid = new TypeInstance(loc, tempinst);
-                goto Lident2;
+                t = parseBasicTypeStartingAt(new TypeInstance(loc, tempinst));
             }
-        Lident:
-            tid = new TypeIdentifier(loc, id);
-        Lident2:
-            while (token.value == TOKdot)
+            else
             {
-                nextToken();
-                if (token.value != TOKidentifier)
-                {
-                    error("identifier expected following '.' instead of '%s'", token.toChars());
-                    break;
-                }
-                loc = token.loc;
-                id = token.ident;
-                nextToken();
-                if (token.value == TOKnot)
-                {
-                    TemplateInstance *tempinst = new TemplateInstance(loc, id);
-                    tempinst->tiargs = parseTemplateArguments();
-                    tid->addInst(tempinst);
-                }
-                else
-                    tid->addIdent(id);
+                t = parseBasicTypeStartingAt(new TypeIdentifier(loc, id));
             }
-            t = tid;
             break;
 
         case TOKdot:
             // Leading . as in .foo
-            loc = token.loc;
-            id = Id::empty;
-            goto Lident;
+            t = parseBasicTypeStartingAt(new TypeIdentifier(token.loc, Id::empty));
+            break;
 
         case TOKtypeof:
             // typeof(expression)
-            tid = parseTypeof();
-            goto Lident2;
+            t = parseBasicTypeStartingAt(parseTypeof());
+            break;
 
         case TOKvector:
             t = parseVector();
@@ -3124,6 +3101,138 @@ Type *Parser::parseBasicType()
     return t;
 }
 
+Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
+{
+    Type *maybeArray = NULL;
+    // See https://issues.dlang.org/show_bug.cgi?id=1215
+    // A basic type can look like MyType (typical case), but also:
+    //  MyType.T -> A type
+    //  MyType[expr] -> Either a static array of MyType or a type (iif MyType is a Ttuple)
+    //  MyType[expr].T -> A type.
+    //  MyType[expr].T[expr] ->  Either a static array of MyType[expr].T or a type
+    //                           (iif MyType[expr].T is a Ttuple)
+    while (1)
+    {
+        switch (token.value)
+        {
+            case TOKdot:
+            {
+                nextToken();
+                if (token.value != TOKidentifier)
+                {
+                    error("identifier expected following '.' instead of '%s'", token.toChars());
+                    break;
+                }
+                if (maybeArray)
+                {
+                    // This is actually a TypeTuple index, not an {a/s}array.
+                    // We need to have a while loop to unwind all index taking:
+                    // T[e1][e2].U   ->  T, addIndex(e1), addIndex(e2)
+                    Array<RootObject*> dimStack;
+                    Type *t = maybeArray;
+                    while (true)
+                    {
+                        if (t->ty == Tsarray)
+                        {
+                            // The index expression is an Expression.
+                            TypeSArray *a = (TypeSArray *)t;
+                            dimStack.push(a->dim->syntaxCopy());
+                            t = a->next->syntaxCopy();
+                        }
+                        else if (t->ty == Taarray)
+                        {
+                            // The index expression is a Type. It will be interpreted as an expression at semantic time.
+                            TypeAArray *a = (TypeAArray *)t;
+                            dimStack.push(a->index->syntaxCopy());
+                            t = a->next->syntaxCopy();
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    assert(dimStack.dim > 0);
+                    // We're good. Replay indices in the reverse order.
+                    tid = (TypeQualified *)t;
+                    while (dimStack.dim)
+                    {
+                        tid->addIndex(dimStack.pop());
+                    }
+                    maybeArray = NULL;
+                }
+                Loc loc = token.loc;
+                Identifier *id = token.ident;
+                nextToken();
+                if (token.value == TOKnot)
+                {
+                    TemplateInstance *tempinst = new TemplateInstance(loc, id);
+                    tempinst->tiargs = parseTemplateArguments();
+                    tid->addInst(tempinst);
+                }
+                else
+                    tid->addIdent(id);
+                continue;
+            }
+            case TOKlbracket:
+            {
+                nextToken();
+                Type *t = maybeArray ? maybeArray : (Type *)tid;
+                if (token.value == TOKrbracket)
+                {
+                    // It's a dynamic array, and we're done:
+                    // T[].U does not make sense.
+                    t = new TypeDArray(t);
+                    nextToken();
+                    return t;
+                }
+                else if (isDeclaration(&token, 0, TOKrbracket, NULL))
+                {
+                    // This can be one of two things:
+                    //  1 - an associative array declaration, T[type]
+                    //  2 - an associative array declaration, T[expr]
+                    // These  can only be disambiguated later.
+                    Type *index = parseType();          // [ type ]
+                    maybeArray = new TypeAArray(t, index);
+                    check(TOKrbracket);
+                }
+                else
+                {
+                    // This can be one of three things:
+                    //  1 - an static array declaration, T[expr]
+                    //  2 - a slice, T[expr .. expr]
+                    //  3 - a template parameter pack index expression, T[expr].U
+                    // 1 and 3 can only be disambiguated later.
+                    //printf("it's type[expression]\n");
+                    inBrackets++;
+                    Expression *e = parseAssignExp();           // [ expression ]
+                    if (token.value == TOKslice)
+                    {
+                        // It's a slice, and we're done.
+                        nextToken();
+                        Expression *e2 = parseAssignExp();      // [ exp .. exp ]
+                        t = new TypeSlice(t, e, e2);
+                        inBrackets--;
+                        check(TOKrbracket);
+                        return t;
+                    }
+                    else
+                    {
+                        maybeArray = new TypeSArray(t, e);
+                        inBrackets--;
+                        check(TOKrbracket);
+                        continue;
+                    }
+                }
+                break;
+            }
+            default:
+                goto Lend;
+        }
+    }
+    Lend:
+    return maybeArray ? maybeArray : (Type *)tid;
+}
+
 /******************************************
  * Parse things that follow the initial type t.
  *      t *
@@ -3158,8 +3267,8 @@ Type *Parser::parseBasicType2(Type *t)
                     nextToken();
                 }
                 else if (isDeclaration(&token, 0, TOKrbracket, NULL))
-                {   // It's an associative array declaration
-
+                {
+                    // It's an associative array declaration
                     //printf("it's an associative array\n");
                     Type *index = parseType();          // [ type ]
                     t = new TypeAArray(t, index);
@@ -3177,7 +3286,9 @@ Type *Parser::parseBasicType2(Type *t)
                         t = new TypeSlice(t, e, e2);
                     }
                     else
+                    {
                         t = new TypeSArray(t,e);
+                    }
                     inBrackets--;
                     check(TOKrbracket);
                 }
@@ -3222,7 +3333,7 @@ Type *Parser::parseBasicType2(Type *t)
 }
 
 Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
-        TemplateParameters **tpl, StorageClass storageClass, int* pdisable, Expressions **pudas)
+        TemplateParameters **tpl, StorageClass storageClass, int *pdisable, Expressions **pudas)
 {
     //printf("parseDeclarator(tpl = %p)\n", tpl);
     t = parseBasicType2(t);
@@ -3327,7 +3438,7 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
                  *   ts -> ... -> ta -> t
                  */
                 Type **pt;
-                for (pt = &ts; *pt != t; pt = &((TypeNext*)*pt)->next)
+                for (pt = &ts; *pt != t; pt = &((TypeNext *)*pt)->next)
                     ;
                 *pt = ta;
                 continue;
@@ -3377,7 +3488,7 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
                  *   ts -> ... -> tf -> t
                  */
                 Type **pt;
-                for (pt = &ts; *pt != t; pt = &((TypeNext*)*pt)->next)
+                for (pt = &ts; *pt != t; pt = &((TypeNext *)*pt)->next)
                     ;
                 *pt = tf;
                 break;
@@ -5756,8 +5867,7 @@ bool Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
     Token *t = *pt;
     int parens;
 
-    //printf("Parser::isDeclarator()\n");
-    //t->print();
+    //printf("Parser::isDeclarator() %s\n", t->toChars());
     if (t->value == TOKassign)
         return false;
 
