@@ -2769,6 +2769,11 @@ Lagain:
             error("expression %s of type %s does not have a boolean value", toChars(), t->toChars());
         return new ErrorExp();
     }
+
+    if (tb->ty == Tarray)
+        warning("implicit conversion of dynamic arrays to bool can be ambiguous and will be deprecated. Use one of: %s !is null, %s.length, or %s.ptr instead",
+            toChars(), toChars(), toChars());
+
     return e;
 }
 
