@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS:
+// REQUIRED_ARGS: -o-
 
 struct A(Args...)
 {
