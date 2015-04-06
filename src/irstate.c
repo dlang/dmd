@@ -222,21 +222,35 @@ FuncDeclaration *IRState::getFunc()
 
 
 /**********************
- * Return !=0 if do array bounds checking
+ * Returns true if do array bounds checking for the current function
  */
-int IRState::arrayBoundsCheck()
+bool IRState::arrayBoundsCheck()
 {
-    int result = global.params.useArrayBounds;
+    bool result;
+    switch (global.params.useArrayBounds)
+    {
+        case BOUNDSCHECKoff:
+            result = false;
+            break;
 
-    if (result == 1)
-    {   // For safe functions only
-        result = 0;
-        FuncDeclaration *fd = getFunc();
-        if (fd)
-        {   Type *t = fd->type;
-            if (t->ty == Tfunction && ((TypeFunction *)t)->trust == TRUSTsafe)
-                result = 1;
+        case BOUNDSCHECKon:
+            result = true;
+            break;
+
+        case BOUNDSCHECKsafeonly:
+        {
+            result = false;
+            FuncDeclaration *fd = getFunc();
+            if (fd)
+            {   Type *t = fd->type;
+                if (t->ty == Tfunction && ((TypeFunction *)t)->trust == TRUSTsafe)
+                    result = true;
+            }
+            break;
         }
+
+        default:
+            assert(0);
     }
     return result;
 }
