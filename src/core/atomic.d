@@ -628,6 +628,73 @@ else version( AsmX86_32 )
 }
 else version( AsmX86_64 )
 {
+    HeadUnshared!(T) atomicFetchAdd(T)( ref shared T val, T mod ) pure nothrow @nogc
+        if( __traits(isIntegral, T) )
+    in
+    {
+        // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
+        //       4 byte alignment, so use size_t as the align type here.
+        static if( T.sizeof > size_t.sizeof )
+            assert( atomicValueIsProperlyAligned!(size_t)( cast(size_t) &val ) );
+        else
+            assert( atomicValueIsProperlyAligned!(T)( cast(size_t) &val ) );
+    }
+    body
+    {
+        writeln("atomicFetchAdd");
+        HeadUnshared!(T) oval = void;
+        static if (T.sizeof == 1)
+        {
+            asm pure nothrow @nogc
+            {
+                mov AL, mod;
+                mov RDX, val;
+                lock;
+                xadd[RDX], AL;
+                mov oval, AL;
+            }
+        }
+        else static if (T.sizeof == 2)
+        {
+            asm pure nothrow @nogc
+            {
+                mov AX, mod;
+                mov RDX, val;
+                lock;
+                xadd[RDX], AX;
+                mov oval, AX;
+            }
+        }
+        else static if (T.sizeof == 4)
+        {
+            asm pure nothrow @nogc
+            {
+                mov EAX, mod;
+                mov RDX, val;
+                lock;
+                xadd[RDX], EAX;
+                mov oval, EAX;
+            }
+        }
+        else static if (T.sizeof == 8)
+        {
+            asm pure nothrow @nogc
+            {
+                mov RAX, mod;
+                mov RDX, val;
+                lock;
+                xadd[RDX], RAX;
+                mov oval, RAX;
+            }
+        }
+ 
+        oval += mod;
+        return oval;
+    }
+
+
+
+
     HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
         if( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
     in
@@ -661,6 +728,10 @@ else version( AsmX86_64 )
         //
         // +=   -=  *=  /=  %=  ^^= &=
         // |=   ^=  <<= >>= >>>=    ~=
+        static if( op == "+=" && __traits(isIntegral, T) && __traits(isSame,T,V1) ) {
+            return atomicFetchAdd!(T)(val, mod);
+        }
+        else
         static if( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
@@ -1429,5 +1500,26 @@ version( unittest )
         thr.join();
 
         assert(*r == 42);
+    }
+
+    unittest
+    {
+        shared ubyte u8 = 1;
+        shared ushort u16 = 2;
+        shared uint u32 = 3;
+        shared ulong u64 = 4;
+        shared byte i8 = 5;
+        shared short i16 = 6;
+        shared int i32 = 7;
+        shared long i64 = 8;
+     
+        assert(atomicOp!"+="(u8, 8) == 9);
+        assert(atomicOp!"+="(u16, 8) == 10);
+        assert(atomicOp!"+="(u32, 8) == 11);
+        assert(atomicOp!"+="(u64, 8) == 12);
+        assert(atomicOp!"+="(i8, 8) == 13);
+        assert(atomicOp!"+="(i16, 8) == 14);
+        assert(atomicOp!"+="(i32, 8) == 15);
+        assert(atomicOp!"+="(i64, 8) == 16);
     }
 }
