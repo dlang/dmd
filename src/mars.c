@@ -142,6 +142,7 @@ Usage:\n\
   files.d        D source files\n\
   @cmdfile       read arguments from cmdfile\n\
   -allinst       generate code for all template instantiations\n\
+  -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off\n\
   -c             do not link\n\
   -color[=on|off]   force colored console output on or off\n\
   -conf=path     use config file at path\n\
@@ -180,7 +181,6 @@ Usage:\n\
   -main          add default main() (e.g. for unittesting)\n\
   -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
-  -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off\n\
   -noboundscheck no array bounds checking (deprecated, use -boundscheck=off)\n\
   -O             optimize\n\
   -o-            do not write object file\n\
@@ -197,12 +197,12 @@ Usage:\n\
   -unittest      compile in unit tests\n\
   -v             verbose\n\
   -vcolumns      print character (column) numbers in diagnostics\n\
+  -verrors=num   limit the number of error messages (0 means unlimited)\n\
+  -vgc           list all gc allocations including hidden ones\n\
+  -vtls          list all variables going into thread local storage\n\
   --version      print compiler version and exit\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
-  -vtls          list all variables going into thread local storage\n\
-  -vgc           list all gc allocations including hidden ones\n\
-  -verrors=num   limit the number of error messages (0 means unlimited)\n\
   -w             warnings as errors (compilation will halt)\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
