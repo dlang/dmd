@@ -22,6 +22,16 @@
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
 
+// The state of array bounds checking
+enum BOUNDSCHECK
+{
+    BOUNDSCHECKdefault, // initial value
+    BOUNDSCHECKoff,     // never do bounds checking
+    BOUNDSCHECKon,      // always do bounds checking
+    BOUNDSCHECKsafeonly // do bounds checking only in @safe functions
+};
+
+
 // Put command line switches in here
 struct Param
 {
@@ -57,9 +67,6 @@ struct Param
     bool useInvariants; // generate class invariant checks
     bool useIn;         // generate precondition checks
     bool useOut;        // generate postcondition checks
-    char useArrayBounds; // 0: no array bounds checks
-                         // 1: array bounds checks for safe functions only
-                         // 2: array bounds checks for all functions
     bool stackstomp;    // add stack stomping code
     bool useSwitchError; // check for switches without a default
     bool useUnitTests;  // generate unittest code
@@ -80,6 +87,8 @@ struct Param
     bool betterC;       // be a "better C" compiler; no dependency on D runtime
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
+
+    BOUNDSCHECK useArrayBounds;
 
     const char *argv0;    // program name
     Array<const char *> *imppath;     // array of char*'s of where to look for import modules

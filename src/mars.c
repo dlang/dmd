@@ -142,6 +142,7 @@ Usage:\n\
   files.d        D source files\n\
   @cmdfile       read arguments from cmdfile\n\
   -allinst       generate code for all template instantiations\n\
+  -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off\n\
   -c             do not link\n\
   -color[=on|off]   force colored console output on or off\n\
   -conf=path     use config file at path\n\
@@ -180,7 +181,6 @@ Usage:\n\
   -main          add default main() (e.g. for unittesting)\n\
   -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
-  -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off\n\
   -noboundscheck no array bounds checking (deprecated, use -boundscheck=off)\n\
   -O             optimize\n\
   -o-            do not write object file\n\
@@ -267,8 +267,6 @@ int tryMain(size_t argc, const char *argv[])
     Strings libmodules;
     size_t argcstart = argc;
     bool setdebuglib = false;
-    bool setboundscheck = false;
-    char boundscheck = 2;
 #if TARGET_WINDOS
     bool setdefaultlib = false;
 #endif
@@ -306,7 +304,7 @@ int tryMain(size_t argc, const char *argv[])
     global.params.useInvariants = true;
     global.params.useIn = true;
     global.params.useOut = true;
-    global.params.useArrayBounds = 2;   // default to all functions
+    global.params.useArrayBounds = BOUNDSCHECKdefault;   // set correct value later
     global.params.useSwitchError = true;
     global.params.useInline = false;
     global.params.obj = true;
@@ -734,8 +732,7 @@ Language changes listed by -transition=id:\n\
                 global.params.betterC = true;
             else if (strcmp(p + 1, "noboundscheck") == 0)
             {
-                setboundscheck = true;
-                boundscheck = 0;
+                global.params.useArrayBounds = BOUNDSCHECKoff;
             }
             else if (memcmp(p + 1, "boundscheck", 11) == 0)
             {
@@ -745,18 +742,15 @@ Language changes listed by -transition=id:\n\
                 {
                     if (strcmp(p + 13, "on") == 0)
                     {
-                        setboundscheck = true;
-                        boundscheck = 2;
+                        global.params.useArrayBounds = BOUNDSCHECKon;
                     }
                     else if (strcmp(p + 13, "safeonly") == 0)
                     {
-                        setboundscheck = true;
-                        boundscheck = 1;
+                        global.params.useArrayBounds = BOUNDSCHECKsafeonly;
                     }
                     else if (strcmp(p + 13, "off") == 0)
                     {
-                        setboundscheck = true;
-                        boundscheck = 0;
+                        global.params.useArrayBounds = BOUNDSCHECKoff;
                     }
                     else
                         goto Lerror;
@@ -986,17 +980,20 @@ Language changes listed by -transition=id:\n\
         error(Loc(), "cannot mix -lib and -shared");
 #endif
 
+    if (global.params.useArrayBounds == BOUNDSCHECKdefault)
+    {
+        // Set the real default value
+        global.params.useArrayBounds = global.params.release ? BOUNDSCHECKsafeonly : BOUNDSCHECKon;
+    }
+
     if (global.params.release)
     {
         global.params.useInvariants = false;
         global.params.useIn = false;
         global.params.useOut = false;
         global.params.useAssert = false;
-        global.params.useArrayBounds = 1;
         global.params.useSwitchError = false;
     }
-    if (setboundscheck)
-        global.params.useArrayBounds = boundscheck;
 
     if (global.params.useUnitTests)
         global.params.useAssert = true;
@@ -1099,7 +1096,7 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("unittest");
     if (global.params.useAssert)
         VersionCondition::addPredefinedGlobalIdent("assert");
-    if (boundscheck == 0)
+    if (global.params.useArrayBounds == BOUNDSCHECKoff)
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
