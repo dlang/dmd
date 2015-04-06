@@ -7046,6 +7046,12 @@ Expression *AssertExp::semantic(Scope *sc)
         FuncDeclaration *fd = sc->parent->isFuncDeclaration();
         if (fd)
             fd->hasReturnExp |= 4;
+        sc->callSuper |= CSXhalt;
+        if (sc->fieldinit)
+        {
+            for (size_t i = 0; i < sc->fieldinit_dim; i++)
+                sc->fieldinit[i] |= CSXhalt;
+        }
 
         if (!global.params.useAssert)
         {
@@ -8648,40 +8654,36 @@ Lagain:
             error("super class constructor call must be in a constructor");
             return new ErrorExp();
         }
-        else
+        if (!cd->baseClass->ctor)
         {
-            if (!cd->baseClass->ctor)
-            {   error("no super class constructor for %s", cd->baseClass->toChars());
-                return new ErrorExp();
-            }
-            else
-            {
-                if (!sc->intypeof)
-                {
-                    if (sc->noctor || sc->callSuper & CSXlabel)
-                        error("constructor calls not allowed in loops or after labels");
-                    if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
-                        error("multiple constructor calls");
-                    if ((sc->callSuper & CSXreturn) && !(sc->callSuper & CSXany_ctor))
-                        error("an earlier return statement skips constructor");
-                    sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
-                }
-
-                tthis = cd->type->addMod(sc->func->type->mod);
-                f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, tthis, arguments, 0);
-                if (!f || f->errors)
-                    return new ErrorExp();
-                checkDeprecated(sc, f);
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
-                checkAccess(loc, sc, NULL, f);
-
-                e1 = new DotVarExp(e1->loc, e1, f);
-                e1 = e1->semantic(sc);
-                t1 = e1->type;
-            }
+            error("no super class constructor for %s", cd->baseClass->toChars());
+            return new ErrorExp();
         }
+
+        if (!sc->intypeof && !(sc->callSuper & CSXhalt))
+        {
+            if (sc->noctor || sc->callSuper & CSXlabel)
+                error("constructor calls not allowed in loops or after labels");
+            if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
+                error("multiple constructor calls");
+            if ((sc->callSuper & CSXreturn) && !(sc->callSuper & CSXany_ctor))
+                error("an earlier return statement skips constructor");
+            sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
+        }
+
+        tthis = cd->type->addMod(sc->func->type->mod);
+        f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, tthis, arguments, 0);
+        if (!f || f->errors)
+            return new ErrorExp();
+        checkDeprecated(sc, f);
+        checkPurity(sc, f);
+        checkSafety(sc, f);
+        checkNogc(sc, f);
+        checkAccess(loc, sc, NULL, f);
+
+        e1 = new DotVarExp(e1->loc, e1, f);
+        e1 = e1->semantic(sc);
+        t1 = e1->type;
     }
     else if (e1->op == TOKthis)
     {
@@ -8695,40 +8697,38 @@ Lagain:
             error("constructor call must be in a constructor");
             return new ErrorExp();
         }
-        else
+
+        if (!sc->intypeof && !(sc->callSuper & CSXhalt))
         {
-            if (!sc->intypeof)
-            {
-                if (sc->noctor || sc->callSuper & CSXlabel)
-                    error("constructor calls not allowed in loops or after labels");
-                if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
-                    error("multiple constructor calls");
-                if ((sc->callSuper & CSXreturn) && !(sc->callSuper & CSXany_ctor))
-                    error("an earlier return statement skips constructor");
-                sc->callSuper |= CSXany_ctor | CSXthis_ctor;
-            }
+            if (sc->noctor || sc->callSuper & CSXlabel)
+                error("constructor calls not allowed in loops or after labels");
+            if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
+                error("multiple constructor calls");
+            if ((sc->callSuper & CSXreturn) && !(sc->callSuper & CSXany_ctor))
+                error("an earlier return statement skips constructor");
+            sc->callSuper |= CSXany_ctor | CSXthis_ctor;
+        }
 
-            tthis = cd->type->addMod(sc->func->type->mod);
-            f = resolveFuncCall(loc, sc, cd->ctor, NULL, tthis, arguments, 0);
-            if (!f || f->errors)
-                return new ErrorExp();
-            checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
-            //checkAccess(loc, sc, NULL, f);    // necessary?
+        tthis = cd->type->addMod(sc->func->type->mod);
+        f = resolveFuncCall(loc, sc, cd->ctor, NULL, tthis, arguments, 0);
+        if (!f || f->errors)
+            return new ErrorExp();
+        checkDeprecated(sc, f);
+        checkPurity(sc, f);
+        checkSafety(sc, f);
+        checkNogc(sc, f);
+        //checkAccess(loc, sc, NULL, f);    // necessary?
 
-            e1 = new DotVarExp(e1->loc, e1, f);
-            e1 = e1->semantic(sc);
-            t1 = e1->type;
+        e1 = new DotVarExp(e1->loc, e1, f);
+        e1 = e1->semantic(sc);
+        t1 = e1->type;
 
-            // BUG: this should really be done by checking the static
-            // call graph
-            if (f == sc->func)
-            {
-                error("cyclic constructor call");
-                return new ErrorExp();
-            }
+        // BUG: this should really be done by checking the static
+        // call graph
+        if (f == sc->func)
+        {
+            error("cyclic constructor call");
+            return new ErrorExp();
         }
     }
     else if (e1->op == TOKoverloadset)
@@ -8758,7 +8758,8 @@ Lagain:
             }
         }
         if (!f)
-        {   /* No overload matches
+        {
+            /* No overload matches
              */
             error("no overload matches for %s", s->toChars());
             return new ErrorExp();
