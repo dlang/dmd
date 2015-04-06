@@ -197,12 +197,12 @@ Usage:\n\
   -unittest      compile in unit tests\n\
   -v             verbose\n\
   -vcolumns      print character (column) numbers in diagnostics\n\
+  -verrors=num   limit the number of error messages (0 means unlimited)\n\
+  -vgc           list all gc allocations including hidden ones\n\
+  -vtls          list all variables going into thread local storage\n\
   --version      print compiler version and exit\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
-  -vtls          list all variables going into thread local storage\n\
-  -vgc           list all gc allocations including hidden ones\n\
-  -verrors=num   limit the number of error messages (0 means unlimited)\n\
   -w             warnings as errors (compilation will halt)\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
