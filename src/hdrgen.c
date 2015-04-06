@@ -961,13 +961,13 @@ public:
             else if (id->dyncast() == DYNCAST_EXPRESSION)
             {
                 buf->writeByte('[');
-                ((Expression*)id)->accept(this);
+                ((Expression *)id)->accept(this);
                 buf->writeByte(']');
             }
             else if (id->dyncast() == DYNCAST_TYPE)
             {
                 buf->writeByte('[');
-                ((Type*)id)->accept(this);
+                ((Type *)id)->accept(this);
                 buf->writeByte(']');
             }
             else

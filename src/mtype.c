@@ -4910,7 +4910,7 @@ MATCH TypePointer::implicitConvTo(Type *to)
     {
         if (to->ty == Tpointer)
         {
-            TypePointer *tp = (TypePointer*)to;
+            TypePointer *tp = (TypePointer *)to;
             if (tp->next->ty == Tfunction)
             {
                 if (next->equals(tp->next))
@@ -4972,7 +4972,7 @@ MATCH TypePointer::constConv(Type *to)
 {
     if (next->ty == Tfunction)
     {
-        if (to->nextOf() && next->equals(((TypeNext*)to)->next))
+        if (to->nextOf() && next->equals(((TypeNext *)to)->next))
             return Type::constConv(to);
         else
             return MATCHnomatch;
@@ -6320,13 +6320,13 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
         }
         else if (id->dyncast() == DYNCAST_EXPRESSION)
         {
-            Expression *e = (Expression*)id;
+            Expression *e = (Expression *)id;
             e = e->syntaxCopy();
             id = e;
         }
         else if (id->dyncast() == DYNCAST_TYPE)
         {
-            Type *t = (Type*)id;
+            Type *t = (Type *)id;
             t = t->syntaxCopy();
             id = t;
         }
@@ -6428,7 +6428,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             RootObject *id = idents[i];
             if (id->dyncast() == DYNCAST_EXPRESSION)
             {
-                if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, (Expression*)id))
+                if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, (Expression *)id))
                 {
                     return;
                 }
@@ -6436,7 +6436,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             }
             else if (id->dyncast() == DYNCAST_TYPE)
             {
-                Type *index = (Type*)id;
+                Type *index = (Type *)id;
                 Expression *expr = NULL;
                 Type *t = NULL;
                 Dsymbol *sym = NULL;

@@ -509,7 +509,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
 
         case DYNCAST_TYPE:
         {
-            Type *index = (Type*)id;
+            Type *index = (Type *)id;
             Expression *expr = NULL;
             Type *t = NULL;
             Dsymbol *sym = NULL;
@@ -533,7 +533,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
         }
 
         case DYNCAST_EXPRESSION:
-            sm = takeTypeTupleIndex(loc, sc, s, id, (Expression*)id);
+            sm = takeTypeTupleIndex(loc, sc, s, id, (Expression *)id);
             if (!sm)
             {
                 return NULL;

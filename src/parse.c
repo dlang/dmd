@@ -3133,14 +3133,14 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
                         if (t->ty == Tsarray)
                         {
                             // The index expression is an Expression.
-                            TypeSArray *a = (TypeSArray*)t;
+                            TypeSArray *a = (TypeSArray *)t;
                             dimStack.push(a->dim->syntaxCopy());
                             t = a->next->syntaxCopy();
                         }
                         else if (t->ty == Taarray)
                         {
                             // The index expression is a Type. It will be interpreted as an expression at semantic time.
-                            TypeAArray *a = (TypeAArray*)t;
+                            TypeAArray *a = (TypeAArray *)t;
                             dimStack.push(a->index->syntaxCopy());
                             t = a->next->syntaxCopy();
                         }
@@ -3151,7 +3151,7 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
                     }
                     assert(dimStack.dim > 0);
                     // We're good. Replay indices in the reverse order.
-                    tid = (TypeQualified*)t;
+                    tid = (TypeQualified *)t;
                     while (dimStack.dim)
                     {
                         tid->addIndex(dimStack.pop());
@@ -3174,7 +3174,7 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
             case TOKlbracket:
             {
                 nextToken();
-                Type *t = maybeArray ? maybeArray : (Type*)tid;
+                Type *t = maybeArray ? maybeArray : (Type *)tid;
                 if (token.value == TOKrbracket)
                 {
                     // It's a dynamic array, and we're done:
@@ -3228,7 +3228,7 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
         }
     }
     Lend:
-    return maybeArray ? maybeArray : (Type*)tid;
+    return maybeArray ? maybeArray : (Type *)tid;
 }
 
 /******************************************
@@ -3436,7 +3436,7 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
                  *   ts -> ... -> ta -> t
                  */
                 Type **pt;
-                for (pt = &ts; *pt != t; pt = &((TypeNext*)*pt)->next)
+                for (pt = &ts; *pt != t; pt = &((TypeNext *)*pt)->next)
                     ;
                 *pt = ta;
                 continue;
@@ -3486,7 +3486,7 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
                  *   ts -> ... -> tf -> t
                  */
                 Type **pt;
-                for (pt = &ts; *pt != t; pt = &((TypeNext*)*pt)->next)
+                for (pt = &ts; *pt != t; pt = &((TypeNext *)*pt)->next)
                     ;
                 *pt = tf;
                 break;
