@@ -107,6 +107,7 @@ enum TOK
         // Numeric literals
         TOKint32v, TOKuns32v,
         TOKint64v, TOKuns64v,
+        TOKint128v, TOKuns128v,
         TOKfloat32v, TOKfloat64v, TOKfloat80v,
         TOKimaginary32v, TOKimaginary64v, TOKimaginary80v,
 
@@ -131,7 +132,7 @@ enum TOK
         TOKcomplex32, TOKcomplex64, TOKcomplex80,
         TOKchar, TOKwchar, TOKdchar, TOKbool,
 
-// 157
+// 159
         // Aggregates
         TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,
         TOKtypedef, TOKalias, TOKoverride, TOKdelegate, TOKfunction,
