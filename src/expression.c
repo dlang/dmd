@@ -7159,13 +7159,15 @@ Expression *DotIdExp::semanticX(Scope *sc)
         e1 = resolvePropertiesX(sc, e1);
     }
     if (e1->op == TOKtuple && ident == Id::offsetof)
-    {   /* 'distribute' the .offsetof to each of the tuple elements.
+    {
+        /* 'distribute' the .offsetof to each of the tuple elements.
          */
         TupleExp *te = (TupleExp *)e1;
         Expressions *exps = new Expressions();
         exps->setDim(te->exps->dim);
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = (*te->exps)[i];
+        {
+            Expression *e = (*te->exps)[i];
             e = e->semantic(sc);
             e = new DotIdExp(e->loc, e, Id::offsetof);
             (*exps)[i] = e;
@@ -7175,7 +7177,6 @@ Expression *DotIdExp::semanticX(Scope *sc)
         e = e->semantic(sc);
         return e;
     }
-
     if (e1->op == TOKtuple && ident == Id::length)
     {
         TupleExp *te = (TupleExp *)e1;
@@ -7184,15 +7185,16 @@ Expression *DotIdExp::semanticX(Scope *sc)
         return e;
     }
 
-    if (e1->op == TOKdottd)
+    // Bugzilla 14416: Template has no built-in properties except for 'stringof'.
+    if ((e1->op == TOKdottd || e1->op == TOKtemplate) && ident != Id::stringof)
     {
-        error("template %s does not have property %s", e1->toChars(), ident->toChars());
+        error("template %s does not have property '%s'", e1->toChars(), ident->toChars());
         return new ErrorExp();
     }
 
     if (!e1->type)
     {
-        error("expression %s does not have property %s", e1->toChars(), ident->toChars());
+        error("expression %s does not have property '%s'", e1->toChars(), ident->toChars());
         return new ErrorExp();
     }
 
