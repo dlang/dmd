@@ -1153,6 +1153,10 @@ Lnomatch:
         {
             error("field not allowed in interface");
         }
+        else if (aad && aad->sizeok == SIZEOKdone)
+        {
+            error("cannot be further field because it will change the determined %s size", aad->toChars());
+        }
 
         /* Templates cannot add fields to aggregates
          */
