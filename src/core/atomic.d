@@ -641,7 +641,6 @@ else version( AsmX86_64 )
     }
     body
     {
-        writeln("atomicFetchAdd");
         HeadUnshared!(T) oval = void;
         static if (T.sizeof == 1)
         {
