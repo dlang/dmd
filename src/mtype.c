@@ -2940,7 +2940,7 @@ unsigned TypeBasic::alignsize()
 Expression *TypeBasic::getProperty(Loc loc, Identifier *ident, int flag)
 {
     Expression *e;
-    d_int64 ivalue;
+    dinteger_t ivalue;
     d_float80 fvalue;
 
     //printf("TypeBasic::getProperty('%s')\n", ident->toChars());
