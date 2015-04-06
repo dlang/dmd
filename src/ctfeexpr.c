@@ -1028,7 +1028,7 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
             result = 1;
         }
         else if (e1->type->isunsigned() || e2->type->isunsigned())
-            result = ((d_uns64) n1) / ((d_uns64) n2);
+            result = ((dinteger_t) n1) / ((dinteger_t) n2);
         else
             result = n1 / n2;
         break;
@@ -1058,7 +1058,7 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
             }
         }
         if (e1->type->isunsigned() || e2->type->isunsigned())
-            result = ((d_uns64) n1) % ((d_uns64) n2);
+            result = ((dinteger_t) n1) % ((dinteger_t) n2);
         else
             result = n1 % n2;
         break;
@@ -1217,7 +1217,7 @@ bool isCtfeComparable(Expression *e)
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-int intUnsignedCmp(TOK op, d_uns64 n1, d_uns64 n2)
+int intUnsignedCmp(TOK op, dinteger_t n1, dinteger_t n2)
 {
     int n;
     switch (op)
