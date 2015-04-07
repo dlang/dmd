@@ -42,6 +42,7 @@ private
     extern (C) TraceHandler rt_getTraceHandler();
 
     alias void delegate( Throwable ) ExceptionHandler;
+    extern (C) void _d_print_throwable(Throwable t);
 
     extern (C) void* thread_stackBottom();
 
@@ -380,12 +381,6 @@ extern (C) bool runModuleUnitTests()
 
     if( Runtime.sm_moduleUnitTester is null )
     {
-        void printErr(in char[] buf)
-        {
-            import core.stdc.stdio : fprintf, stderr;
-            fprintf(stderr, "%.*s", cast(int)buf.length, buf.ptr);
-        }
-
         size_t failed = 0;
         foreach( m; ModuleInfo )
         {
@@ -401,7 +396,7 @@ extern (C) bool runModuleUnitTests()
                     }
                     catch( Throwable e )
                     {
-                        e.toString(&printErr); printErr("\n");
+                        _d_print_throwable(e);
                         failed++;
                     }
                 }
