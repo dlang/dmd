@@ -117,6 +117,10 @@ DEBUG=-gl -D -DUNITTEST
 LFLAGS=
 # Librarian flags
 BFLAGS=
+# D Optimizer flags
+DOPT=
+# D Debug flags
+DDEBUG=-debug -g
 
 ##### Implementation variables (do not modify)
 
@@ -124,6 +128,8 @@ BFLAGS=
 CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
+# D compile flags
+DFLAGS=$(DOPT) $(DDEBUG)
 # Recursive make
 DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) HOST_DC="$(HOST_DC)"
 
@@ -262,9 +268,10 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 defaulttarget: debdmd
 
-auto-tester-build: dmd
+auto-tester-build: dmd ddmd
 
 dmd: reldmd
+ddmd: relddmd
 
 release:
 	$(DMDMAKE) clean
@@ -272,13 +279,19 @@ release:
 	$(DMDMAKE) clean
 
 debdmd:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g" "DOPT=" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
 
 reldmd:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-inline -O" "LFLAGS=-L/delexe/la" $(TARGETEXE)
 
 trace:
-	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+
+debddmd:
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g" "DOPT=" "LFLAGS=-L/ma/co/la" ddmd.exe
+
+relddmd:
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-inline -O" "LFLAGS=-L/delexe/la" ddmd.exe
 
 ################################ Libraries ##################################
 
@@ -308,6 +321,8 @@ clean:
 	$(DEL) impcnvtab.c
 	$(DEL) id.h id.c
 	$(DEL) verstr.h
+	$(DEL) $(GENSRC)
+	$(DEL) $(MAGICPORT)
 
 install: detab install-copy
 
@@ -384,6 +399,58 @@ id.h id.c : idgen.d
 
 verstr.h : ..\VERSION
 	echo "$(..\VERSION)" >verstr.h
+
+############################# DDMD stuff ############################
+
+MAGICPORTDIR = magicport
+MAGICPORTSRC = \
+	$(MAGICPORTDIR)\magicport2.d $(MAGICPORTDIR)\ast.d \
+	$(MAGICPORTDIR)\scanner.d $(MAGICPORTDIR)\tokens.d \
+	$(MAGICPORTDIR)\parser.d $(MAGICPORTDIR)\dprinter.d \
+	$(MAGICPORTDIR)\typenames.d $(MAGICPORTDIR)\visitor.d \
+	$(MAGICPORTDIR)\namer.d
+
+MAGICPORT = $(MAGICPORTDIR)\magicport2.exe
+
+$(MAGICPORT) : $(MAGICPORTSRC)
+	$(HOST_DC) -of$(MAGICPORT) $(MAGICPORTSRC)
+
+GENSRC=access.d aggregate.d aliasthis.d apply.d \
+	argtypes.d arrayop.d arraytypes.d \
+	attrib.d builtin.d canthrow.d dcast.d \
+	dclass.d clone.d cond.d constfold.d \
+	cppmangle.d ctfeexpr.d declaration.d \
+	delegatize.d doc.d dsymbol.d \
+	denum.d expression.d func.d \
+	hdrgen.d id.d identifier.d imphint.d \
+	dimport.d dinifile.d inline.d init.d \
+	dinterpret.d json.d lexer.d link.d \
+	dmacro.d dmangle.d mars.d \
+	dmodule.d mtype.d opover.d optimize.d \
+	parse.d sapply.d dscope.d sideeffect.d \
+	statement.d staticassert.d dstruct.d \
+	target.d dtemplate.d traits.d dunittest.d \
+	utf.d dversion.d visitor.d lib.d \
+	nogc.d nspace.d errors.d tokens.d \
+	globals.d escape.d \
+	$(ROOT)\aav.d $(ROOT)\outbuffer.d $(ROOT)\stringtable.d \
+	$(ROOT)\file.d $(ROOT)\filename.d $(ROOT)\speller.d \
+	$(ROOT)\man.d $(ROOT)\response.d
+
+MANUALSRC= \
+	intrange.d complex.d \
+	entity.d backend.d \
+	$(ROOT)\array.d $(ROOT)\longdouble.d \
+	$(ROOT)\rootobject.d $(ROOT)\port.d \
+	$(ROOT)\rmem.d
+
+$(GENSRC) : $(SRCS) $(ROOTSRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
+	$(MAGICPORT) . .
+
+DSRC= $(GENSRC) $(MANUALSRC)
+
+ddmd.exe: $(DSRC) newdelete.obj glue.lib backend.lib
+	$(HOST_DC) $(DSRC) -ofddmd.exe newdelete.obj glue.lib backend.lib -vtls -J.. -d -L/STACK:8388608 $(DFLAGS)
 
 ############################# Intermediate Rules ############################
 
