@@ -42,7 +42,7 @@ private
     extern (C) TraceHandler rt_getTraceHandler();
 
     alias void delegate( Throwable ) ExceptionHandler;
-    extern (C) void printThrowable(Throwable t);
+    extern (C) void _d_print_throwable(Throwable t);
 
     extern (C) void* thread_stackBottom();
 
@@ -396,7 +396,7 @@ extern (C) bool runModuleUnitTests()
                     }
                     catch( Throwable e )
                     {
-                        printThrowable(e);
+                        _d_print_throwable(e);
                         failed++;
                     }
                 }

@@ -175,7 +175,7 @@ extern (C) int rt_init()
     catch (Throwable t)
     {
         _initCount = 0;
-        printThrowable(t);
+        _d_print_throwable(t);
     }
     _STD_critical_term();
     _STD_monitor_staticdtor();
@@ -201,7 +201,7 @@ extern (C) int rt_term()
     }
     catch (Throwable t)
     {
-        printThrowable(t);
+        _d_print_throwable(t);
     }
     finally
     {
@@ -398,7 +398,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
             }
             catch (Throwable t)
             {
-                printThrowable(t);
+                _d_print_throwable(t);
                 result = EXIT_FAILURE;
             }
         }
@@ -460,7 +460,7 @@ private void formatThrowable(Throwable t, void delegate(in char[] s) nothrow sin
     }
 }
 
-extern (C) void printThrowable(Throwable t)
+extern (C) void _d_print_throwable(Throwable t)
 {
     // On Windows, a console may not be present to print the output to.
     // Show a message box instead.
