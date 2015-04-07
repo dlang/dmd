@@ -239,6 +239,14 @@ else version( AsmX86_32 )
         // +    -   *   /   %   ^^  &
         // |    ^   <<  >>  >>> ~   in
         // ==   !=  <   <=  >   >=
+        static if( op == "+=" && __traits(isIntegral, T) && is(T==V1) ) {
+            return atomicFetchAdd!(T)(val, mod);
+        }
+        else
+        static if( op == "-=" && __traits(isIntegral, T) && is(T==V1) ) {
+            return atomicFetchAdd!(T)(val, -mod);
+        }
+        else
         static if( op == "+"  || op == "-"  || op == "*"  || op == "/"   ||
                    op == "%"  || op == "^^" || op == "&"  || op == "|"   ||
                    op == "^"  || op == "<<" || op == ">>" || op == ">>>" ||
