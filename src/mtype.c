@@ -6326,9 +6326,9 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
         }
         else if (id->dyncast() == DYNCAST_TYPE)
         {
-            Type *t = (Type *)id;
-            t = t->syntaxCopy();
-            id = t;
+            Type *tx = (Type *)id;
+            tx = tx->syntaxCopy();
+            id = tx;
         }
         idents[i] = id;
     }

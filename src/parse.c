@@ -3128,7 +3128,7 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
                     // This is actually a TypeTuple index, not an {a/s}array.
                     // We need to have a while loop to unwind all index taking:
                     // T[e1][e2].U   ->  T, addIndex(e1), addIndex(e2)
-                    Array<RootObject*> dimStack;
+                    Objects dimStack;
                     Type *t = maybeArray;
                     while (true)
                     {
