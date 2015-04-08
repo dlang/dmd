@@ -171,7 +171,7 @@ else
     extern (C) Object _d_newclass(const ClassInfo ci)
     {
         auto p = allocmemory(ci.init.length);
-        (cast(byte*)p)[0 .. ci.init.length] = ci.init[];
+        p[0 .. ci.init.length] = cast(void[])ci.init[];
         return cast(Object)p;
     }
 
