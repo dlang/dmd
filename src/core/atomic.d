@@ -174,7 +174,7 @@ else version( AsmX86_32 )
         size_t tmp = mod; // convert all operands to size_t
         asm pure nothrow @nogc
         {
-            mov RAX, tmp;
+            mov EAX, tmp;
             mov EDX, val;
         }
         static if (T.sizeof == 1) asm pure nothrow @nogc { lock; xadd[EDX], AL; }
