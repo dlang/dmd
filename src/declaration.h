@@ -155,6 +155,7 @@ public:
     bool isOverride()     { return (storage_class & STCoverride) != 0; }
     bool isResult()       { return (storage_class & STCresult) != 0; }
     bool isField()        { return (storage_class & STCfield) != 0; }
+    bool isShared()       { return (storage_class & STCshared) != 0; }
 
     bool isIn()    { return (storage_class & STCin) != 0; }
     bool isOut()   { return (storage_class & STCout) != 0; }

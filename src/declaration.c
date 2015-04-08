@@ -164,6 +164,23 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int fl
         // It's only modifiable if inside the right constructor
         if ((storage_class & (STCforeach | STCref)) == (STCforeach | STCref))
             return 2;
+        if (isCtorinit() && !isField())
+        {
+            if (sc->func->isStaticCtorDeclaration() &&
+                !sc->func->isSharedStaticCtorDeclaration() &&
+                !isThreadlocal())
+            {
+                const char *p = isImmutable() ? "immutable" : "shared";
+                error(loc, "can only initialize %s global variable inside shared static constructor",
+                    p);
+                return 0;
+            }
+            else if (sc->func->isSharedStaticCtorDeclaration() && isThreadlocal())
+            {
+                error(loc, "can only initialize thread local global variable inside static constructor");
+                return 0;
+            }
+        }
         return modifyFieldVar(loc, sc, v, e1) ? 2 : 1;
     }
     return 1;
