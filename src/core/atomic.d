@@ -159,7 +159,7 @@ else version( AsmX86_32 )
 {
     // Uses specialized asm for fast fetch and add operations
     private HeadUnshared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc
-        if( __traits(isIntegral, T) )
+        if( __traits(isIntegral, T) && T.sizeof <= 4)
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -222,11 +222,11 @@ else version( AsmX86_32 )
         //
         // +=   -=  *=  /=  %=  ^^= &=
         // |=   ^=  <<= >>= >>>=    ~=
-        static if( op == "+=" && __traits(isIntegral, T) ) {
+        static if( op == "+=" && __traits(isIntegral, T) && T.sizeof <= 4) {
             return atomicFetchAdd!(T)(val, mod);
         }
         else
-        static if( op == "-=" && __traits(isIntegral, T) ) {
+        static if( op == "-=" && __traits(isIntegral, T) && T.sizeof <= 4) {
             return atomicFetchAdd!(T)(val, -mod);
         }
         else
@@ -735,12 +735,10 @@ else version( AsmX86_64 )
         // +=   -=  *=  /=  %=  ^^= &=
         // |=   ^=  <<= >>= >>>=    ~=
         static if( op == "+=" && __traits(isIntegral, T) ) {
-            pragma(msg, T, " == ", V1, " = ", is(T == V1), " (op: ", op, ")");
             return atomicFetchAdd!(T)(val, mod);
         }
         else
         static if( op == "-=" && __traits(isIntegral, T) ) {
-            pragma(msg, T, " == ", V1, " = ", is(T == V1), " (op: ", op, ")");
             return atomicFetchAdd!(T)(val, -mod);
         }
         else
