@@ -885,6 +885,137 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
     return this;
 }
 
+/****************************************
+ * Convert TemplateMixin members (== Dsymbols) to Statements.
+ */
+Statement *toStatement(Dsymbol *s)
+{
+    class ToStmt : public Visitor
+    {
+    public:
+        Statement *result;
+
+        ToStmt()
+        {
+            this->result = NULL;
+        }
+
+        Statement *visitMembers(Loc loc, Dsymbols *a)
+        {
+            if (!a)
+                return NULL;
+
+            Statements *statements = new Statements();
+            for (size_t i = 0; i < a->dim; i++)
+            {
+                statements->push(toStatement((*a)[i]));
+            }
+            return new CompoundStatement(loc, statements);
+        }
+
+        void visit(Dsymbol *s)
+        {
+            ::error(Loc(), "Internal Compiler Error: cannot mixin %s %s\n", s->kind(), s->toChars());
+            result = new ErrorStatement();
+        }
+
+        void visit(TemplateMixin *tm)
+        {
+            Statements *a = new Statements();
+            for (size_t i = 0; i < tm->members->dim; i++)
+            {
+                Statement *s = toStatement((*tm->members)[i]);
+                if (s)
+                    a->push(s);
+            }
+            result = new CompoundStatement(tm->loc, a);
+        }
+
+        /* An actual declaration symbol will be converted to DeclarationExp
+         * with ExpStatement.
+         */
+        Statement *declStmt(Dsymbol *s)
+        {
+            DeclarationExp *de = new DeclarationExp(s->loc, s);
+            de->type = Type::tvoid;     // avoid repeated semantic
+            return new ExpStatement(s->loc, de);
+        }
+        void visit(VarDeclaration *d)       { result = declStmt(d); }
+        void visit(AggregateDeclaration *d) { result = declStmt(d); }
+        void visit(FuncDeclaration *d)      { result = declStmt(d); }
+        void visit(EnumDeclaration *d)      { result = declStmt(d); }
+        void visit(AliasDeclaration *d)     { result = declStmt(d); }
+        void visit(TemplateDeclaration *d)  { result = declStmt(d); }
+
+        /* All attributes have been already picked by the semantic analysis of
+         * 'bottom' declarations (function, struct, class, etc).
+         * So we don't have to copy them.
+         */
+        void visit(StorageClassDeclaration *d)  { result = visitMembers(d->loc, d->decl); }
+        void visit(DeprecatedDeclaration *d)    { result = visitMembers(d->loc, d->decl); }
+        void visit(LinkDeclaration *d)          { result = visitMembers(d->loc, d->decl); }
+        void visit(ProtDeclaration *d)          { result = visitMembers(d->loc, d->decl); }
+        void visit(AlignDeclaration *d)         { result = visitMembers(d->loc, d->decl); }
+        void visit(UserAttributeDeclaration *d) { result = visitMembers(d->loc, d->decl); }
+
+        void visit(StaticAssert *s) {}
+        void visit(Import *s) {}
+        void visit(PragmaDeclaration *d) {}
+
+        void visit(ConditionalDeclaration *d)
+        {
+            result = visitMembers(d->loc, d->include(NULL, NULL));
+        }
+
+        void visit(CompileDeclaration *d)
+        {
+            result = visitMembers(d->loc, d->include(NULL, NULL));
+        }
+    };
+
+    if (!s)
+        return NULL;
+
+    ToStmt v;
+    s->accept(&v);
+    return v.result;
+}
+
+Statements *ExpStatement::flatten(Scope *sc)
+{
+    /* Bugzilla 14243: expand template mixin in statement scope
+     * to handle variable destructors.
+     */
+    if (exp && exp->op == TOKdeclaration)
+    {
+        Dsymbol *d = ((DeclarationExp *)exp)->declaration;
+        if (TemplateMixin *tm = d->isTemplateMixin())
+        {
+            Expression *e = exp->semantic(sc);
+            if (e->op == TOKerror || tm->errors)
+            {
+                Statements *a = new Statements();
+                a->push(new ErrorStatement());
+                return a;
+            }
+            assert(tm->members);
+
+            Statement *s = toStatement(tm);
+        #if 0
+            OutBuffer buf;
+            buf.doindent = 1;
+            HdrGenState hgs;
+            hgs.hdrgen = true;
+            toCBuffer(s, &buf, &hgs);
+            printf("tm ==> s = %s\n", buf.peekString());
+        #endif
+            Statements *a = new Statements();
+            a->push(s);
+            return a;
+        }
+    }
+    return NULL;
+}
 
 /******************************** DtorExpStatement ***************************/
 
