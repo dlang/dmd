@@ -258,12 +258,12 @@ const uint GCVERSION = 1;       // increment every time we change interface
 // This just makes Mutex final to de-virtualize member function calls.
 final class GCMutex : Mutex
 {
-    final override void lock() nothrow @trusted
+    final override void lock() nothrow @trusted @nogc
     {
         super.lock_nothrow();
     }
 
-    final override void unlock() nothrow @trusted
+    final override void unlock() nothrow @trusted @nogc
     {
         super.unlock_nothrow();
     }
@@ -1174,7 +1174,7 @@ struct GC
     /**
      * add range to scan for roots
      */
-    void addRange(void *p, size_t sz, const TypeInfo ti = null) nothrow
+    void addRange(void *p, size_t sz, const TypeInfo ti = null) nothrow @nogc 
     {
         if (!p || !sz)
         {
@@ -1194,7 +1194,7 @@ struct GC
     /**
      * remove range
      */
-    void removeRange(void *p) nothrow
+    void removeRange(void *p) nothrow @nogc
     {
         if (!p)
         {
@@ -1564,7 +1564,7 @@ struct Gcx
     /**
      *
      */
-    void addRange(void *pbot, void *ptop, const TypeInfo ti) nothrow
+    void addRange(void *pbot, void *ptop, const TypeInfo ti) nothrow @nogc
     {
         //debug(PRINTF) printf("Thread %x ", pthread_self());
         debug(PRINTF) printf("%p.Gcx::addRange(%p, %p)\n", &this, pbot, ptop);
@@ -1575,7 +1575,7 @@ struct Gcx
     /**
      *
      */
-    void removeRange(void *pbot) nothrow
+    void removeRange(void *pbot) nothrow @nogc
     {
         //debug(PRINTF) printf("Thread %x ", pthread_self());
         debug(PRINTF) printf("Gcx.removeRange(%p)\n", pbot);

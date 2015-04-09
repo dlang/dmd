@@ -134,7 +134,7 @@ class Mutex :
     }
 
     // undocumented function for internal use
-    final void lock_nothrow() nothrow @trusted
+    final void lock_nothrow() nothrow @trusted @nogc
     {
         version( Windows )
         {
@@ -144,7 +144,11 @@ class Mutex :
         {
             int rc = pthread_mutex_lock( &m_hndl );
             if( rc )
-                throw new SyncError( "Unable to lock mutex" );
+            {
+                SyncError syncErr = cast(SyncError) cast(void*) typeid(SyncError).init;
+                syncErr.msg = "Unable to lock mutex.";
+                throw syncErr;
+            }
         }
     }
 
@@ -161,7 +165,7 @@ class Mutex :
     }
 
     // undocumented function for internal use
-    final void unlock_nothrow() nothrow @trusted
+    final void unlock_nothrow() nothrow @trusted @nogc
     {
         version( Windows )
         {
@@ -171,7 +175,11 @@ class Mutex :
         {
             int rc = pthread_mutex_unlock( &m_hndl );
             if( rc )
-                throw new SyncError( "Unable to unlock mutex" );
+            {
+                SyncError syncErr = cast(SyncError) cast(void*) typeid(SyncError).init;
+                syncErr.msg = "Unable to unlock mutex.";
+                throw syncErr;
+            }
         }
     }
 

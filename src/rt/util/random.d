@@ -24,19 +24,19 @@ nothrow:
         popFront();
     }
 
-    auto opCall()
+    auto opCall() @nogc 
     {
         auto result = front;
         popFront();
         return result;
     }
 
-    @property uint front()
+    @property uint front() @nogc 
     {
         return cast(uint)(rng_state >> 16);
     }
 
-    void popFront()
+    void popFront() @nogc 
     {
         immutable ulong a = 25214903917;
         immutable ulong c = 11;

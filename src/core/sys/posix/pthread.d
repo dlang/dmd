@@ -432,6 +432,7 @@ else version( Posix )
 
 version( Posix )
 {
+@nogc:
     int pthread_cond_broadcast(pthread_cond_t*);
     int pthread_cond_destroy(pthread_cond_t*);
     int pthread_cond_init(in pthread_cond_t*, pthread_condattr_t*) @trusted;
