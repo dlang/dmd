@@ -158,18 +158,8 @@ version( CoreDdoc )
 else version( AsmX86_32 )
 {
     // Uses specialized asm for fast fetch and add operations
-    private HeadUnshared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc
+    private HeadUnshared!(T) atomicFetchAdd(T)( ref shared T val, T mod ) pure nothrow @nogc
         if( __traits(isIntegral, T) && T.sizeof <= 4)
-    in
-    {
-        // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
-        //       4 byte alignment, so use size_t as the align type here.
-        static if( T.sizeof > size_t.sizeof )
-            assert( atomicValueIsProperlyAligned!(size_t)( cast(size_t) &val ) );
-        else
-            assert( atomicValueIsProperlyAligned!(T)( cast(size_t) &val ) );
-    }
-    body
     {
         size_t tmp = mod; // convert all operands to size_t
         asm pure nothrow @nogc
@@ -187,6 +177,12 @@ else version( AsmX86_32 )
         }
 
         return cast(T)(tmp + mod);
+    }
+
+    private HeadUnshared!(T) atomicSubFetch(T)( ref shared T val, size_t mod ) pure nothrow @nogc
+        if( __traits(isIntegral, T) && T.sizeof <= 4)
+    {
+        return atomicFetchAdd(val, -mod);
     }
 
     HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
