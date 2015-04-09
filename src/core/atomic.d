@@ -180,7 +180,7 @@ else version( AsmX86_32 )
         static if (T.sizeof == 1) asm pure nothrow @nogc { lock; xadd[EDX], AL; }
         else static if (T.sizeof == 2) asm pure nothrow @nogc { lock; xadd[EDX], AX; }
         else static if (T.sizeof == 4) asm pure nothrow @nogc { lock; xadd[EDX], EAX; }
-        
+            
         asm pure nothrow @nogc 
         { 
             mov mod, EAX; 
@@ -1518,20 +1518,20 @@ version( unittest )
         shared ubyte u8 = 1;
         shared ushort u16 = 2;
         shared uint u32 = 3;
-        shared ulong u64 = 4;
         shared byte i8 = 5;
         shared short i16 = 6;
         shared int i32 = 7;
-        shared long i64 = 8;
      
         assert(atomicOp!"+="(u8, 8) == 9);
         assert(atomicOp!"+="(u16, 8) == 10);
         assert(atomicOp!"+="(u32, 8) == 11);
-        assert(atomicOp!"+="(u64, 8) == 12);
         assert(atomicOp!"+="(i8, 8) == 13);
         assert(atomicOp!"+="(i16, 8) == 14);
         assert(atomicOp!"+="(i32, 8) == 15);
         version( AsmX86_64 ) {
+            shared ulong u64 = 4;
+            shared long i64 = 8;
+            assert(atomicOp!"+="(u64, 8) == 12);
             assert(atomicOp!"+="(i64, 8) == 16);
         }
     }
@@ -1541,20 +1541,20 @@ version( unittest )
         shared ubyte u8 = 1;
         shared ushort u16 = 2;
         shared uint u32 = 3;
-        shared ulong u64 = 4;
         shared byte i8 = 5;
         shared short i16 = 6;
         shared int i32 = 7;
-        shared long i64 = 8;
 
         assert(atomicOp!"-="(u8, 1) == 0);
         assert(atomicOp!"-="(u16, 1) == 1);
         assert(atomicOp!"-="(u32, 1) == 2);
-        assert(atomicOp!"-="(u64, 1) == 3);
         assert(atomicOp!"-="(i8, 1) == 4);
         assert(atomicOp!"-="(i16, 1) == 5);
         assert(atomicOp!"-="(i32, 1) == 6);
         version( AsmX86_64 ) {
+            shared ulong u64 = 4;
+            shared long i64 = 8;
+            assert(atomicOp!"-="(u64, 1) == 3);
             assert(atomicOp!"-="(i64, 1) == 7);
         }
     }
@@ -1564,20 +1564,20 @@ version( unittest )
         shared ubyte u8 = 1;
         shared ushort u16 = 2;
         shared uint u32 = 3;
-        shared ulong u64 = 4;
         shared byte i8 = 5;
         shared short i16 = 6;
         shared int i32 = 7;
-        shared long i64 = 8;
-
+        
         assert(atomicFetchAdd(u8, 8) == 9);
         assert(atomicFetchAdd(u16, 8) == 10);
         assert(atomicFetchAdd(u32, -1) == 2);
-        assert(atomicFetchAdd(u64, -1) == 3);
         assert(atomicFetchAdd(i8, -1) == 4);
         assert(atomicFetchAdd(i16, -1) == 5);
         assert(atomicFetchAdd(i32, -1) == 6);
         version( AsmX86_64 ) {
+            shared ulong u64 = 4;
+            shared long i64 = 8;
+            assert(atomicFetchAdd(u64, -1) == 3);
             assert(atomicFetchAdd(i64, -1) == 7);
         }
     }
