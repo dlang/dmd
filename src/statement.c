@@ -193,6 +193,7 @@ bool Statement::comeFrom()
         void visit(DefaultStatement *s) { stop = true; }
         void visit(LabelStatement *s)   { stop = true; }
         void visit(AsmStatement *s)     { stop = true; }
+        void visit(ExtAsmStatement *s)  { stop = true; }
     };
 
     ComeFrom cf;
@@ -5189,6 +5190,101 @@ AsmStatement::AsmStatement(Loc loc, Token *tokens)
 Statement *AsmStatement::syntaxCopy()
 {
     return new AsmStatement(loc, tokens);
+}
+
+/************************ ExtStatement ***************************************/
+
+ExtAsmStatement::ExtAsmStatement(Loc loc, Expression *insn,
+                                 Expressions *args, Identifiers *names,
+                                 Expressions *constraints, int outputargs,
+                                 Expressions *clobbers, Identifiers *labels)
+        : Statement(loc)
+{
+    this->insn = insn;
+    this->args = args;
+    this->names = names;
+    this->constraints = constraints;
+    this->outputargs = outputargs;
+    this->clobbers = clobbers;
+    this->labels = labels;
+    this->gotos = NULL;
+}
+
+Statement *ExtAsmStatement::syntaxCopy()
+{
+    Expressions *c_args = Expression::arraySyntaxCopy(args);
+    Expressions *c_constraints = Expression::arraySyntaxCopy(constraints);
+    Expressions *c_clobbers = Expression::arraySyntaxCopy(clobbers);
+
+    return new ExtAsmStatement(loc, insn->syntaxCopy(), c_args, names,
+                               c_constraints, outputargs, c_clobbers, labels);
+}
+
+Statement *ExtAsmStatement::semantic(Scope *sc)
+{
+    // Fold the instruction template string.
+    insn = insn->semantic(sc);
+    insn->optimize(WANTvalue);
+
+    if (insn->op != TOKstring || ((StringExp *) insn)->sz != 1)
+        error("instruction template must be a constant char string");
+
+    // Analyse all input and output operands.
+    if (args)
+    {
+        for (size_t i = 0; i < args->dim; i++)
+        {
+            Expression *e = (*args)[i];
+            e = e->semantic(sc);
+            if (i < outputargs)
+                e = e->modifiableLvalue(sc, NULL);
+            else
+                e = e->optimize(WANTvalue);
+            (*args)[i] = e;
+
+            e = (*constraints)[i];
+            e = e->semantic(sc);
+            e = e->optimize(WANTvalue);
+            if (e->op != TOKstring || ((StringExp *) e)->sz != 1)
+                error ("constraint must be a constant char string");
+            (*constraints)[i] = e;
+        }
+    }
+
+    // Fold all clobbers.
+    if (clobbers)
+    {
+        for (size_t i = 0; i < clobbers->dim; i++)
+        {
+            Expression *e = (*clobbers)[i];
+            e = e->semantic(sc);
+            e = e->optimize(WANTvalue);
+            if (e->op != TOKstring || ((StringExp *) e)->sz != 1)
+                error("clobber specification must be a constant char string");
+            (*clobbers)[i] = e;
+        }
+    }
+
+    // Analyse all goto labels.
+    if (labels)
+    {
+        for (size_t i = 0; i < labels->dim; i++)
+        {
+            Identifier *ident = (*labels)[i];
+            GotoStatement *s = new GotoStatement(loc, ident);
+            if (!gotos)
+                gotos = new GotoStatements();
+            gotos->push(s);
+            s->semantic(sc);
+        }
+    }
+
+#ifdef IN_GCC
+    return this;
+#else
+    error("Extended asm statements are not supported");
+    return new ErrorStatement();
+#endif
 }
 
 /************************ CompoundAsmStatement ***************************************/

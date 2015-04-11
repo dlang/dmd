@@ -5581,6 +5581,16 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
                         error("matching '}' expected, not end of file");
                         goto Lerror;
 
+                    case TOKstring:
+                        // If the first token is a string, parse as extended asm.
+                        if (!toklist)
+                        {
+                            s = parseExtAsm();
+                            statements->push(s);
+                            continue;
+                        }
+                        // ...else, drop through.
+
                     default:
                     Ldefault:
                         *ptoklist = Token::alloc();
@@ -5630,6 +5640,227 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
     }
 
     return s;
+}
+
+/***********************************
+ * Parse list of extended asm input or output operands.
+ * ExtAsmOperand:
+ *     [Identifier] StringLiteral (Identifier), ...
+ */
+int Parser::parseExtAsmOperands(Expressions *args, Identifiers *names, Expressions *constraints)
+{
+    int numargs = 0;
+
+    while (1)
+    {
+        Expression *arg = NULL;
+        Identifier *name = NULL;
+        Expression *constraint = NULL;
+
+        switch (token.value)
+        {
+            case TOKsemicolon:
+            case TOKcolon:
+            case TOKeof:
+                return numargs;
+
+            case TOKlbracket:
+                nextToken();
+                if (token.value == TOKidentifier)
+                {
+                    name = token.ident;
+                    nextToken();
+                }
+                else
+                {
+                    error("expected identifier after '['");
+                    return numargs;
+                }
+                check(TOKrbracket);
+                // fall through
+
+            default:
+                constraint = parsePrimaryExp();
+                if (constraint->op != TOKstring)
+                {
+                    error(constraint->loc, "expected constant string constraint for operand, not '%s'", constraint->toChars());
+                    goto Lerror;
+                }
+                arg = parseAssignExp();
+
+                args->push(arg);
+                names->push(name);
+                constraints->push(constraint);
+                numargs++;
+
+                if (token.value == TOKcomma)
+                    nextToken();
+                break;
+        }
+    }
+Lerror:
+    while (token.value != TOKrcurly &&
+           token.value != TOKsemicolon &&
+           token.value != TOKeof)
+        nextToken();
+
+    return numargs;
+}
+
+/***********************************
+ * Parse list of extended asm clobbers.
+ * ExtAsmClobbers:
+ *     StringLiteral, ...
+ */
+Expressions *Parser::parseExtAsmClobbers()
+{
+    Expressions *clobbers = NULL;
+
+    while (1)
+    {
+        Expression *clobber;
+
+        switch (token.value)
+        {
+            case TOKsemicolon:
+            case TOKcolon:
+            case TOKeof:
+                return clobbers;
+
+            case TOKstring:
+                clobber = parseAssignExp();
+                if (!clobbers)
+                    clobbers = new Expressions;
+                clobbers->push(clobber);
+
+                if (token.value == TOKcomma)
+                    nextToken();
+                break;
+
+            default:
+                error("expected constant string constraint for clobber name, not '%s'", token.toChars());
+                goto Lerror;
+        }
+    }
+Lerror:
+    while (token.value != TOKrcurly &&
+           token.value != TOKsemicolon &&
+           token.value != TOKeof)
+        nextToken();
+
+    return clobbers;
+}
+
+/***********************************
+ * Parse list of extended asm goto labels.
+ * ExtAsmGotoLabels:
+ *     Identifier, ...
+ */
+Identifiers *Parser::parseExtAsmGotoLabels()
+{
+    Identifiers *labels = NULL;
+
+    while (1)
+    {
+        switch (token.value)
+        {
+            case TOKsemicolon:
+            case TOKeof:
+                return labels;
+
+            case TOKidentifier:
+                if (!labels)
+                    labels = new Identifiers();
+                labels->push(token.ident);
+
+                if (nextToken() == TOKcomma)
+                    nextToken();
+                break;
+
+            default:
+                error("expected identifier for goto label name, not '%s'", token.toChars());
+                goto Lerror;
+        }
+    }
+Lerror:
+    while (token.value != TOKrcurly &&
+           token.value != TOKsemicolon &&
+           token.value != TOKeof)
+        nextToken();
+
+    return labels;
+}
+
+/***********************************
+ * Parse an extended asm statement.
+ * ExtAsmStatement:
+ *     asm { StringLiterals [ : InputOperands [ : OutputOperands [ : Clobbers [ : GotoLabels ] ] ] ] }
+ */
+
+Statement *Parser::parseExtAsm()
+{
+    Expressions *args = NULL;
+    Identifiers *names = NULL;
+    Expressions *constraints = NULL;
+    int outputargs = 0;
+    Expressions *clobbers = NULL;
+    Identifiers *labels = NULL;
+    Loc loc = token.loc;
+
+    Expression *insn = parseExpression();
+    if (token.value == TOKsemicolon)
+        goto Ldone;
+
+    for (int section = 0; section < 4; ++section)
+    {
+        check(TOKcolon);
+
+        switch (section)
+        {
+            case 0:
+                if (!args)
+                {
+                    args = new Expressions;
+                    constraints = new Expressions;
+                    names = new Identifiers;
+                }
+                outputargs = parseExtAsmOperands(args, names, constraints);
+                break;
+
+            case 1:
+                parseExtAsmOperands(args, names, constraints);
+                break;
+
+            case 2:
+                clobbers = parseExtAsmClobbers();
+                break;
+
+            case 3:
+                labels = parseExtAsmGotoLabels();
+                break;
+
+            default:
+                assert(0);
+        }
+
+        switch (token.value)
+        {
+            case TOKsemicolon:
+                goto Ldone;
+
+            case TOKeof:
+                error("matching '}' expected, not end of file");
+                goto Ldone;
+
+            default:
+                continue;
+        }
+    }
+  Ldone:
+    check(TOKsemicolon);
+
+    return new ExtAsmStatement(loc, insn, args, names,
+                               constraints, outputargs, clobbers, labels);
 }
 
 void Parser::check(TOK value)

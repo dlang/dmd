@@ -770,4 +770,26 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+// Assembler instructions with D expression operands
+class ExtAsmStatement : public Statement
+{
+public:
+    Expression *insn;
+    Expressions *args;
+    Identifiers *names;
+    Expressions *constraints;   // Array of StringExp's
+    int outputargs;
+    Expressions *clobbers;      // Array of StringExp's
+    Identifiers *labels;
+    GotoStatements *gotos;
+
+    ExtAsmStatement(Loc loc, Expression *insn, Expressions *args,
+                    Identifiers *names, Expressions *constraints,
+                    int outputargs, Expressions *clobbers, Identifiers *labels);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 #endif /* DMD_STATEMENT_H */
