@@ -296,16 +296,16 @@ relddmd:
 ################################ Libraries ##################################
 
 frontend.lib : $(FRONTOBJ)
-	$(LIB) -p512 -c frontend.lib $(FRONTOBJ)
+	$(LIB) -p512 -n -c frontend.lib $(FRONTOBJ)
 
 glue.lib : $(GLUEOBJ)
-	$(LIB) -p512 -c glue.lib $(GLUEOBJ)
+	$(LIB) -p512 -n -c glue.lib $(GLUEOBJ)
 
 backend.lib : $(BACKOBJ)
-	$(LIB) -p512 -c backend.lib $(BACKOBJ)
+	$(LIB) -p512 -n -c backend.lib $(BACKOBJ)
 
 root.lib : $(ROOTOBJS)
-	$(LIB) -p512 -c root.lib $(ROOTOBJS)
+	$(LIB) -p512 -n -c root.lib $(ROOTOBJS)
 
 LIBS= frontend.lib glue.lib backend.lib root.lib
 
@@ -367,14 +367,14 @@ ddmd.exe: $(DSRC) newdelete.obj glue.lib backend.lib
 ############################ Maintenance Targets #############################
 
 clean:
-	$(DEL) *.obj
+	$(DEL) *.obj *.lib *.map
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	$(DEL) impcnvtab.c
+	$(DEL) impcnvtab.c impcnvgen.exe optabgen.exe 
 	$(DEL) id.h id.c
 	$(DEL) verstr.h
 	$(DEL) $(GENSRC)
-	$(DEL) $(MAGICPORT)
+	$(DEL) $(MAGICPORT) $(MAGICPORTDIR)\*.obj
 
 install: detab install-copy
 
