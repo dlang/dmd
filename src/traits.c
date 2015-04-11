@@ -982,6 +982,11 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                         return 0;
                     }
 
+                    if (sm->ident == Id::empty)
+                    {
+                        return 0;
+                    }
+
                     //printf("\t%s\n", sm->ident->toChars());
                     Identifiers *idents = (Identifiers *)ctx;
 
