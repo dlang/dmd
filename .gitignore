@@ -44,7 +44,7 @@ ipch
 # Xcode files
 DerivedData/
 xcuserdata/
-dmd.xcodeproj/project.xcworkspace/xcuserdata
+dmd.xcodeproj/
 
 # Output files
 src/*.bak
