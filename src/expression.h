@@ -752,8 +752,8 @@ public:
     Expression *semantic(Scope *sc) = 0;
     Expression *binSemantic(Scope *sc);
     Expression *binSemanticProp(Scope *sc);
-    Expression *checkComplexOpAssign(Scope *sc);
     Expression *incompatibleTypes();
+    Expression *checkOpAssignTypes(Scope *sc);
     bool checkIntegralBin();
     bool checkArithmeticBin();
 
