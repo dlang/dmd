@@ -529,24 +529,23 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
 {
     Expressions *elements = new Expressions();
     elements->setDim(dim);
+    bool mustCopy = needToCopyLiteral(elem);
     if (type->ty == Tsarray && type->nextOf()->ty == Tsarray &&
         elem->type->ty != Tsarray)
     {
         // If it is a multidimensional array literal, do it recursively
         elem = createBlockDuplicatedArrayLiteral(loc, type->nextOf(), elem,
             (size_t)((TypeSArray *)type->nextOf())->dim->toInteger());
+        mustCopy = true;
     }
-    bool mustCopy = needToCopyLiteral(elem);
     for (size_t i = 0; i < dim; i++)
     {
-        if (mustCopy)
-            elem  = copyLiteral(elem).copy();
-        (*elements)[i] = elem;
+        (*elements)[i] = mustCopy ? copyLiteral(elem).copy() : elem;
     }
-    ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
-    ae->type = type;
-    ae->ownedByCtfe = 1;
-    return ae;
+    ArrayLiteralExp *ale = new ArrayLiteralExp(loc, elements);
+    ale->type = type;
+    ale->ownedByCtfe = 1;
+    return ale;
 }
 
 /******************************
