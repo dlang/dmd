@@ -183,7 +183,7 @@ extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf)
     {
         debug(PRINTF) printf("_d_delstruct(%p, %p)\n", *p, cast(void*)inf);
 
-        inf.destroy(p);
+        inf.destroy(*p);
         GC.free(*p);
         *p = null;
     }
