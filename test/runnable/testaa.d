@@ -1296,11 +1296,12 @@ void test14321()
 {
     struct Foo
     {
-        static string op;
+        static char[8] buf;
+        static char[] op;
 
-        this(int id) { op ~= "c"; }
-        this(this) { op ~= "p"; }
-        ~this() { op ~= "d"; }
+        this(int id) { buf[op.length] = 'c'; op = buf[0..op.length + 1]; }
+        this(this) { buf[op.length] = 'p'; op = buf[0..op.length + 1]; }
+        ~this() { buf[op.length] = 'd'; op = buf[0..op.length + 1]; }
     }
     Foo[string] foos;
     assert(Foo.op == "");
@@ -1311,12 +1312,13 @@ void test14321()
 
     struct Bar
     {
-        static string op;
+        static char[8] buf;
+        static char[] op;
 
         int id;
         //this(int id) { op ~= "c"; }
-        this(this) { op ~= "p"; }
-        ~this() { op ~= "d"; }
+        this(this) { buf[op.length] = 'p'; op = buf[0..op.length + 1]; }
+        ~this() { buf[op.length] = 'd'; op = buf[0..op.length + 1]; }
     }
     Bar[string] bars;
     assert(Bar.op == "");
