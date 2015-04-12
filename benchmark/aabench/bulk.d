@@ -66,7 +66,7 @@ void runTest(V)(ref V v)
         k += trot - 1;
     }
     stop();
-    aa.clear();
+    aa.destroy();
 
     start();
     foreach_reverse(ref k; 0 .. trot * (Size / V.sizeof))
@@ -75,7 +75,7 @@ void runTest(V)(ref V v)
         aa[k] = v;
     }
     stop();
-    aa.clear();
+    aa.destroy();
 
     version (VERBOSE) writeln();
 }
