@@ -4704,6 +4704,47 @@ int bug10198()
 }
 static assert(bug10198());
 
+/**************************************************
+    14440 Multidimensional block initialization should create distinct arrays for each elements
+**************************************************/
+
+struct Matrix14440(E, size_t row, size_t col)
+{
+    E[col][row] array2D;
+
+    @safe pure nothrow
+    this(E[row * col] numbers...)
+    {
+        foreach (r; 0 .. row)
+        {
+            foreach (c; 0 .. col)
+            {
+                array2D[r][c] = numbers[r * col + c];
+            }
+        }
+    }
+}
+
+void test14440()
+{
+    // Replace 'enum' with 'auto' here and it will work fine.
+    enum matrix = Matrix14440!(int, 3, 3)(
+        1, 2, 3,
+        4, 5, 6,
+        7, 8, 9
+    );
+
+    static assert(matrix.array2D[0][0] == 1);
+    static assert(matrix.array2D[0][1] == 2);
+    static assert(matrix.array2D[0][2] == 3);
+    static assert(matrix.array2D[1][0] == 4);
+    static assert(matrix.array2D[1][1] == 5);
+    static assert(matrix.array2D[1][2] == 6);
+    static assert(matrix.array2D[2][0] == 7);
+    static assert(matrix.array2D[2][1] == 8);
+    static assert(matrix.array2D[2][2] == 9);
+}
+
 /****************************************************
  * Exception chaining tests from xtest46.d
  ****************************************************/
