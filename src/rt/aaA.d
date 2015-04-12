@@ -19,7 +19,7 @@ private
     import core.stdc.string;
     import core.stdc.stdio;
     import core.memory;
-    import rt.lifetime : _d_newarrayU;
+    import rt.lifetime : _d_newarrayU, _d_newitemT, unqualify;
 
     // Convenience function to make sure the NO_INTERIOR gets set on the
     // bucket array.
@@ -64,14 +64,82 @@ struct Entry
     size_t hash;
     /* key   */
     /* value */
+
+    static void Dtor(void*p, const TypeInfo_Struct sti)
+    {
+        // key and value type info stored after the TypeInfo_Struct by tiEntry()
+        auto sizeti = __traits(classInstanceSize, TypeInfo_Struct);
+        auto extra = cast(const(TypeInfo)*) (cast(void*)sti + sizeti);
+        extra[0].destroy(p + Entry.sizeof);
+        extra[1].destroy(p + Entry.sizeof + aligntsize(extra[0].tsize));
+    }
+}
+
+private bool hasDtor(const TypeInfo ti)
+{
+    if (!ti)
+        return false;
+    if (typeid(ti) is typeid(TypeInfo_Struct))
+        if ((cast(TypeInfo_Struct)cast(void*)ti).xdtor)
+            return true;
+    if (typeid(ti) is typeid(TypeInfo_StaticArray))
+        return hasDtor(unqualify(ti.next()));
+
+    return false;
+}
+
+// build type info for Entry with additional key and value fields
+TypeInfo_Struct tiEntry(const TypeInfo keyti, const TypeInfo valti)
+{
+    auto kti = unqualify(keyti);
+    auto vti = unqualify(valti);
+    if (!hasDtor(kti) && !hasDtor(vti))
+        return null;
+
+    // save kti and vti after type info for struct
+    auto sizeti = __traits(classInstanceSize, TypeInfo_Struct);
+    auto sizeall = sizeti + 2 * (void*).sizeof;
+    void* p = GC.malloc(sizeall);
+    memcpy(p, typeid(TypeInfo_Struct).init().ptr, sizeti);
+
+    auto ti = cast(TypeInfo_Struct)p;
+    auto extra = cast(TypeInfo*) (p + sizeti);
+    extra[0] = cast() kti;
+    extra[1] = cast() vti;
+
+    static immutable tiName = __MODULE__ ~ ".Entry!(...)";
+    ti.name = tiName;
+
+    // we don't expect the Entry objects to be used outside of this module, so we have control
+    // over the non-usage of the callback methods and other entries and can keep these null
+    // xtoHash, xopEquals, xopCmp, xtoString and xpostblit
+    ti.m_RTInfo = null;
+    auto sizeEntry = Entry.sizeof + aligntsize(kti.tsize()) + valti.tsize();
+    ti.m_init = (cast(char*)null)[0..sizeEntry]; // init length, but not ptr
+
+    // xdtor needs to be built from the dtors of key and value for the GC
+    ti.xdtorti = &Entry.Dtor;
+
+    ti.m_flags = TypeInfo_Struct.StructFlags.hasPointers | TypeInfo_Struct.StructFlags.isDynamicType;
+    ti.m_align = cast(uint) aligntsize(1);
+
+    return ti;
 }
 
 struct Impl
 {
+    this(const TypeInfo_AssociativeArray ti)
+    {
+        _keyti = cast() ti.key;
+        _entryti = cast() tiEntry(_keyti, ti.next);
+    }
+
     Entry*[] buckets;
     size_t nodes;       // total number of entries
     size_t firstUsedBucket; // starting index for first used bucket.
-    TypeInfo _keyti;
+    TypeInfo _keyti;    // these should be const, but missing tail const for classes make this ugly
+    TypeInfo_Struct _entryti;
+
     Entry*[4] binit;    // initial value of buckets[]
 
     @property const(TypeInfo) keyti() const @safe pure nothrow @nogc
@@ -160,31 +228,13 @@ body
  * Get pointer to value in associative array indexed by key.
  * Add entry for key if it is not already there.
  */
-void* _aaGetX(AA* aa, const TypeInfo keyti, in size_t valuesize, in void* pkey)
-in
-{
-    assert(aa);
-}
-body
-{
-    if (aa.impl is null)
-    {
-        aa.impl = new Impl();
-        aa.impl.buckets = aa.impl.binit[];
-        aa.impl.firstUsedBucket = aa.impl.buckets.length;
-        aa.impl._keyti = cast() keyti;
-    }
-    return _aaGetImpl(aa, keyti, valuesize, pkey);
-}
-
 void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti, in size_t valuesize, in void* pkey)
 {
     if (aa.impl is null)
     {
-        aa.impl = new Impl();
+        aa.impl = new Impl(ti);
         aa.impl.buckets = aa.impl.binit[];
         aa.impl.firstUsedBucket = aa.impl.buckets.length;
-        aa.impl._keyti = cast() ti.key;
     }
     return _aaGetImpl(aa, ti.key, valuesize, pkey);
 }
@@ -202,13 +252,6 @@ body
     //printf("keyti = %p\n", keyti);
     //printf("aa = %p\n", aa);
 
-    if (aa.impl is null)
-    {
-        aa.impl = new Impl();
-        aa.impl.buckets = aa.impl.binit[];
-        aa.impl.firstUsedBucket = aa.impl.buckets.length;
-        aa.impl._keyti = cast() keyti;
-    }
     //printf("aa = %p\n", aa);
     //printf("aa.a = %p\n", aa.a);
 
@@ -234,7 +277,10 @@ body
         // Not found, create new elem
         //printf("create new one\n");
         size_t size = Entry.sizeof + aligntsize(keytitsize) + valuesize;
-        e = cast(Entry *) GC.malloc(size, 0); // TODO: needs typeid(Entry+)
+        if (aa.impl._entryti)
+            e = cast(Entry *) _d_newitemT(aa.impl._entryti);
+        else
+            e = cast(Entry *) GC.malloc(size, 0); // TODO: needs typeid(Entry+)
         e.next = null;
         e.hash = key_hash;
         ubyte* ptail = cast(ubyte*)(e + 1);
@@ -264,7 +310,8 @@ Lret:
 void* _aaGetZ(AA* aa, const TypeInfo keyti, in size_t valuesize, in void* pkey,
               void *function(void[], void[]) @trusted pure aaLiteral)
 {
-    return _aaGetX(aa, keyti, valuesize, pkey);
+    assert(false, "_aaGetZ not implemented");
+    //return _aaGetX(aa, keyti, valuesize, pkey);
 }
 
 // bug 13748
@@ -356,7 +403,7 @@ bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
         if (!(--aa.impl.nodes))
             // reset cache, we know there are no nodes in the aa.
             aa.impl.firstUsedBucket = aa.impl.buckets.length;
-        // ee could be freed here, but user code may 
+        // ee could be freed here, but user code may
         // hold pointers to it
         return true;
     }
@@ -450,6 +497,7 @@ body
 
             newImpl.nodes = oldImpl.nodes;
             newImpl._keyti = oldImpl._keyti;
+            newImpl._entryti = oldImpl._entryti;
 
             *paa.impl = newImpl;
         }
@@ -629,8 +677,7 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
     }
     else
     {
-        result = new Impl();
-        result._keyti = cast() keyti;
+        result = new Impl(ti);
 
         size_t i;
         for (i = 0; i < prime_list.length - 1; i++)
@@ -662,7 +709,10 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
                 {
                     // Not found, create new elem
                     //printf("create new one\n");
-                    e = cast(Entry *) GC.malloc(Entry.sizeof + keytsize + valuesize); // TODO: needs typeid(Entry+)
+                    if (result._entryti)
+                        e = cast(Entry *) _d_newitemT(result._entryti);
+                    else
+                        e = cast(Entry *) GC.malloc(Entry.sizeof + keytsize + valuesize); // TODO: needs typeid(Entry+)
                     memcpy(e + 1, pkey, keysize);
                     e.next = null;
                     e.hash = key_hash;

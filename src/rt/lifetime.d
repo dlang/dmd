@@ -183,8 +183,7 @@ extern (C) void _d_delstruct(void** p, TypeInfo_Struct inf)
     {
         debug(PRINTF) printf("_d_delstruct(%p, %p)\n", *p, cast(void*)inf);
 
-        inf.xdtor(*p);
-
+        inf.destroy(p);
         GC.free(*p);
         *p = null;
     }
@@ -1363,7 +1362,8 @@ void finalize_array(void* p, size_t size, const TypeInfo_Struct si)
     auto tsize = si.tsize;
     for (auto curP = p + size - tsize; curP >= p; curP -= tsize)
     {
-        si.xdtor(curP); // call destructor
+        // call destructor
+        si.destroy(curP);
     }
 }
 
@@ -1375,8 +1375,7 @@ void finalize_struct(void* p, size_t size) nothrow
     auto ti = *cast(TypeInfo_Struct*)(p + size - size_t.sizeof);
     try
     {
-        if (ti.xdtor)
-            ti.xdtor(p); // call destructor
+        ti.destroy(p); // call destructor
     }
     catch (Exception e)
     {
@@ -2494,6 +2493,8 @@ unittest
     __gshared int dtorCount;
     static struct S1
     {
+        int x;
+
         ~this()
         {
             dtorCount++;
@@ -2551,6 +2552,45 @@ unittest
         GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
         assert(dtorCount == 6);
         GC.free(blkinf.base);
+    }
+
+    // associative arrays
+    import rt.aaA;
+    // throw away all existing AA entries with dtor
+    GC.runFinalizers((cast(char*)(&Entry.Dtor))[0..1]);
+
+    S1[int] aa1;
+    aa1[0] = S1(0);
+    aa1[1] = S1(1);
+    if (callStructDtorsDuringGC)
+    {
+        dtorCount = 0;
+        aa1 = null;
+        GC.runFinalizers((cast(char*)(&Entry.Dtor))[0..1]);
+        assert(dtorCount == 2);
+    }
+
+    int[S1] aa2;
+    aa2[S1(0)] = 0;
+    aa2[S1(1)] = 1;
+    aa2[S1(2)] = 2;
+    if (callStructDtorsDuringGC)
+    {
+        dtorCount = 0;
+        aa2 = null;
+        GC.runFinalizers((cast(char*)(&Entry.Dtor))[0..1]);
+        assert(dtorCount == 3);
+    }
+
+    S1[2][int] aa3;
+    aa3[0] = [S1(0),S1(2)];
+    aa3[1] = [S1(1),S1(3)];
+    if (callStructDtorsDuringGC)
+    {
+        dtorCount = 0;
+        aa3 = null;
+        GC.runFinalizers((cast(char*)(&Entry.Dtor))[0..1]);
+        assert(dtorCount == 4);
     }
 }
 
