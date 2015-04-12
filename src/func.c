@@ -299,7 +299,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     v_arguments = NULL;
 #ifdef IN_GCC
     v_argptr = NULL;
-    v_arguments_var = NULL;
 #endif
     v_argsave = NULL;
     parameters = NULL;
@@ -1970,10 +1969,6 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             if (_arguments)
             {
-#ifdef IN_GCC
-                v_arguments_var = _arguments;
-                v_arguments_var->init = new VoidInitializer(loc);
-#endif
                 /* Advance to elements[] member of TypeInfo_Tuple with:
                  *  _arguments = v_arguments.elements;
                  */
@@ -1982,7 +1977,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                 Expression *e1 = new VarExp(Loc(), _arguments);
                 e = new ConstructExp(Loc(), e1, e);
                 e = e->semantic(sc2);
-                a->push(new ExpStatement(Loc(), e));
+
+                _arguments->init = new ExpInitializer(Loc(), e);
+                DeclarationExp *de = new DeclarationExp(Loc(), _arguments);
+                a->push(new ExpStatement(Loc(), de));
             }
 
             // Merge contracts together with body into one compound statement

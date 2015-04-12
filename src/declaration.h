@@ -535,7 +535,6 @@ public:
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
 #ifdef IN_GCC
-    VarDeclaration *v_arguments_var;    // '_arguments' variable
     VarDeclaration *v_argptr;           // '_argptr' variable
 #endif
     VarDeclaration *v_argsave;          // save area for args passed in registers for variadic functions
