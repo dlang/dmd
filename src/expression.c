@@ -47,7 +47,6 @@ bool isArrayOpValid(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 TypeTuple *toArgTypes(Type *t);
-bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Expression *getTypeInfo(Type *t, Scope *sc);
@@ -2654,7 +2653,7 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
             checkPurity(sc, sd->postblit);
             checkSafety(sc, sd->postblit);
             checkNogc(sc, sd->postblit);
-            //checkAccess(sd, loc, sc, sd->postblit);   // necessary?
+            //checkAccess(loc, sc, NULL, sd->postblit);   // necessary?
             return false;
         }
     }
@@ -4940,7 +4939,7 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            checkAccess(cd, loc, sc, f);
+            checkAccess(loc, sc, NULL, f);
 
             TypeFunction *tf = (TypeFunction *)f->type;
             if (!arguments)
@@ -4976,7 +4975,7 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            checkAccess(cd, loc, sc, f);
+            checkAccess(loc, sc, NULL, f);
         #endif
 
             TypeFunction *tf = (TypeFunction *)f->type;
@@ -5025,7 +5024,7 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            checkAccess(sd, loc, sc, f);
+            checkAccess(loc, sc, NULL, f);
         #endif
 
             TypeFunction *tf = (TypeFunction *)f->type;
@@ -5054,7 +5053,7 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            checkAccess(sd, loc, sc, f);
+            checkAccess(loc, sc, NULL, f);
 
             TypeFunction *tf = (TypeFunction *)f->type;
             if (!arguments)
