@@ -326,14 +326,13 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                }
              */
             dt_t *dt = NULL;
-            unsigned classinfo_size = global.params.isLP64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
-            unsigned offset = classinfo_size;
+            unsigned offset = Target::classinfosize;    // must be ClassInfo.size
             if (Type::typeinfoclass)
             {
-                if (Type::typeinfoclass->structsize != classinfo_size)
+                if (Type::typeinfoclass->structsize != Target::classinfosize)
                 {
         #ifdef DEBUG
-                    printf("CLASSINFO_SIZE = x%x, Type::typeinfoclass->structsize = x%x\n", offset, Type::typeinfoclass->structsize);
+                    printf("Target::classinfosize = x%x, Type::typeinfoclass->structsize = x%x\n", offset, Type::typeinfoclass->structsize);
         #endif
                     cd->error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
                     fatal();
@@ -503,7 +502,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     //dtxoff(&dt, toSymbol(id), 0, TYnptr);
 
                     // First entry is struct Interface reference
-                    dtxoff(&dt, cd->csym, classinfo_size + i * (4 * Target::ptrsize), TYnptr);
+                    dtxoff(&dt, cd->csym, Target::classinfosize + i * (4 * Target::ptrsize), TYnptr);
                     j = 1;
                 }
                 assert(id->vtbl.dim == b->vtbl.dim);
@@ -550,7 +549,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                             //dtxoff(&dt, toSymbol(id), 0, TYnptr);
 
                             // First entry is struct Interface reference
-                            dtxoff(&dt, toSymbol(pc), classinfo_size + k * (4 * Target::ptrsize), TYnptr);
+                            dtxoff(&dt, toSymbol(pc), Target::classinfosize + k * (4 * Target::ptrsize), TYnptr);
                             j = 1;
                         }
 
@@ -728,7 +727,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             dtsize_t(&dt, id->vtblInterfaces->dim);
             if (id->vtblInterfaces->dim)
             {
-                offset = global.params.isLP64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
+                offset = Target::classinfosize;    // must be ClassInfo.size
                 if (Type::typeinfoclass)
                 {
                     if (Type::typeinfoclass->structsize != offset)
@@ -1180,7 +1179,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc)
 {
     //printf("ClassDeclaration::baseVtblOffset('%s', bc = %p)\n", cd->toChars(), bc);
-    unsigned csymoffset = global.params.isLP64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
+    unsigned csymoffset = Target::classinfosize;    // must be ClassInfo.size
     csymoffset += cd->vtblInterfaces->dim * (4 * Target::ptrsize);
 
     for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)

@@ -143,8 +143,6 @@
             [
                 "function isf",
                 "struct BaseClass",
-                "variable CLASSINFO_SIZE_64",
-                "variable CLASSINFO_SIZE",
                 "struct ClassFlags",
                 "struct ClassDeclaration",
                 "struct InterfaceDeclaration"

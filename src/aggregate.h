@@ -218,9 +218,6 @@ struct BaseClass
     void copyBaseInterfaces(BaseClasses *);
 };
 
-#define CLASSINFO_SIZE_64  0x98         // value of ClassInfo.size
-#define CLASSINFO_SIZE  (0x3C+12+4)     // value of ClassInfo.size
-
 struct ClassFlags
 {
     typedef unsigned Type;
