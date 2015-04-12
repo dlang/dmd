@@ -534,9 +534,7 @@ public:
                                         // scopes from having the same name
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
-#ifdef IN_GCC
     VarDeclaration *v_argptr;           // '_argptr' variable
-#endif
     VarDeclaration *v_argsave;          // save area for args passed in registers for variadic functions
     VarDeclarations *parameters;        // Array of VarDeclaration's for parameters
     DsymbolTable *labtab;               // statement label symbol table

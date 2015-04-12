@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 2013-2014 by Digital Mars
+ * Copyright (c) 2013-2015 by Digital Mars
  * All Rights Reserved
  * written by Iain Buclaw
  * http://www.digitalmars.com
@@ -17,8 +17,11 @@
 // most or all target machine and target O/S specific information.
 
 class Expression;
+class Initializer;
+class FuncDeclaration;
 class Type;
 class Module;
+struct Scope;
 
 struct Target
 {
@@ -30,12 +33,16 @@ struct Target
     static int c_longsize;           // size of a C 'long' or 'unsigned long' type
     static int c_long_doublesize;    // size of a C 'long double'
     static int classinfosize;        // size of 'ClassInfo'
+    static bool va_argsave;          // whether to generate save area for variadic function args
 
     static void init();
     static unsigned alignsize(Type* type);
     static unsigned fieldalign(Type* type);
     static unsigned critsecsize();
-    static Type *va_listType();  // get type of va_list
+
+    static Type *va_listType();
+    static Initializer *XXXX(Scope *sc, FuncDeclaration *fd);
+
     static Expression *paintAsType(Expression *e, Type *type);
     static int checkVectorType(int sz, Type *type);
     static void loadModule(Module *m);
