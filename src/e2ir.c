@@ -2167,8 +2167,8 @@ elem *toElem(Expression *e, IRState *irs)
                     // Optimize comparisons of arrays of basic types
                     // For arrays of integers/characters, and void[],
                     // replace druntime call with:
-                    // For a==b: a.length==b.length && memcmp(a.ptr, b.ptr, size)==0
-                    // For a!=b: a.length!=b.length || memcmp(a.ptr, b.ptr, size)!=0
+                    // For a==b: a.length==b.length && (a.length == 0 || memcmp(a.ptr, b.ptr, size)==0)
+                    // For a!=b: a.length!=b.length || (a.length != 0 || memcmp(a.ptr, b.ptr, size)!=0)
                     // size is a.length*sizeof(a[0]) for dynamic arrays, or sizeof(a) for static arrays.
 
                     elem *earr1 = toElem(ee->e1, irs);
@@ -2211,6 +2211,10 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_param(eptr1, eptr2);
                     e = el_bin(OPmemcmp, TYint, e, esize);
                     e = el_bin(eop, TYint, e, el_long(TYint, 0));
+
+                    elem *elen = t2->ty == Tsarray ? elen2 : elen1;
+                    elem *esizecheck = el_bin(eop, TYint, el_same(&elen), el_long(TYsize_t, 0));
+                    e = el_bin(ee->op == TOKequal ? OPoror : OPandand, TYint, esizecheck, e);
 
                     if (t1->ty == Tsarray && t2->ty == Tsarray)
                         assert(t1->size() == t2->size());
