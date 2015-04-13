@@ -407,7 +407,7 @@ public:
 
     void visit(TypeInfoStructDeclaration *d)
     {
-        //printf("TypeInfoStructDeclaration::toDt() '%s'\n", toChars());
+        //printf("TypeInfoStructDeclaration::toDt() '%s'\n", d->toChars());
         if (global.params.is64bit)
             verifyStructSize(Type::typeinfostruct, 17 * Target::ptrsize);
         else
@@ -423,6 +423,17 @@ public:
 
         if (!sd->members)
             return;
+
+        if (TemplateInstance *ti = sd->isInstantiated())
+        {
+            /* Bugzilla 14425: TypeInfo_Struct would refer the members of
+             * struct (e.g. opEquals via xopEquals field), so if it's instantiated
+             * in speculative context, TypeInfo creation should also be
+             * stopped to avoid 'unresolved symbol' linker errors.
+             */
+            if (!ti->needsCodegen() && !ti->minst)
+                return;
+        }
 
         /* Put out:
          *  char[] name;
