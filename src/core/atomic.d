@@ -157,6 +157,34 @@ version( CoreDdoc )
 }
 else version( AsmX86_32 )
 {
+    // Uses specialized asm for fast fetch and add operations
+    private HeadUnshared!(T) atomicFetchAdd(T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
+        if( T.sizeof <= 4 && V1.sizeof <= 4)
+    {
+        size_t tmp = mod; // convert all operands to size_t
+        asm pure nothrow @nogc
+        {
+            mov EAX, tmp;
+            mov EDX, val;
+        }
+        static if (T.sizeof == 1) asm pure nothrow @nogc { lock; xadd[EDX], AL; }
+        else static if (T.sizeof == 2) asm pure nothrow @nogc { lock; xadd[EDX], AX; }
+        else static if (T.sizeof == 4) asm pure nothrow @nogc { lock; xadd[EDX], EAX; }
+            
+        asm pure nothrow @nogc 
+        { 
+            mov tmp, EAX; 
+        }
+
+        return cast(T)tmp;
+    }
+
+    private HeadUnshared!(T) atomicFetchSub(T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
+        if( T.sizeof <= 4 && V1.sizeof <= 4)
+    {
+        return atomicFetchAdd(val, -mod);
+    }
+
     HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
         if( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
     in
@@ -190,6 +218,14 @@ else version( AsmX86_32 )
         //
         // +=   -=  *=  /=  %=  ^^= &=
         // |=   ^=  <<= >>= >>>=    ~=
+        static if( op == "+=" && __traits(isIntegral, T) && T.sizeof <= 4 && V1.sizeof <= 4) {
+            return cast(T)(atomicFetchAdd!(T)(val, mod) + mod);
+        }
+        else
+        static if( op == "-=" && __traits(isIntegral, T) && T.sizeof <= 4 && V1.sizeof <= 4) {
+            return cast(T)(atomicFetchSub!(T)(val, mod) - mod);
+        }
+        else
         static if( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
@@ -628,6 +664,45 @@ else version( AsmX86_32 )
 }
 else version( AsmX86_64 )
 {
+    // Uses specialized asm for fast fetch and add operations
+    private HeadUnshared!(T) atomicFetchAdd(T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
+        if( __traits(isIntegral, T) && __traits(isIntegral, V1) )
+    in
+    {
+        // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
+        //       4 byte alignment, so use size_t as the align type here.
+        static if( T.sizeof > size_t.sizeof )
+            assert( atomicValueIsProperlyAligned!(size_t)( cast(size_t) &val ) );
+        else
+            assert( atomicValueIsProperlyAligned!(T)( cast(size_t) &val ) );
+    }
+    body
+    {
+        size_t tmp = mod; // convert all operands to size_t
+        asm pure nothrow @nogc
+        {
+            mov RAX, tmp;
+            mov RDX, val;
+        }
+        static if (T.sizeof == 1) asm pure nothrow @nogc { lock; xadd[RDX], AL; }
+        else static if (T.sizeof == 2) asm pure nothrow @nogc { lock; xadd[RDX], AX; }
+        else static if (T.sizeof == 4) asm pure nothrow @nogc { lock; xadd[RDX], EAX; }
+        else static if (T.sizeof == 8) asm pure nothrow @nogc { lock; xadd[RDX], RAX; }
+        
+        asm pure nothrow @nogc 
+        { 
+            mov tmp, RAX; 
+        }
+
+        return cast(T)tmp;
+    }
+
+    private HeadUnshared!(T) atomicFetchSub(T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
+        if( __traits(isIntegral, T) && __traits(isIntegral, V1) )
+    {
+        return atomicFetchAdd(val, -mod);
+    }
+
     HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
         if( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
     in
@@ -661,6 +736,14 @@ else version( AsmX86_64 )
         //
         // +=   -=  *=  /=  %=  ^^= &=
         // |=   ^=  <<= >>= >>>=    ~=
+        static if( op == "+=" && __traits(isIntegral, T) && __traits(isIntegral, V1)) {
+            return cast(T)(atomicFetchAdd!(T)(val, mod) + mod);
+        }
+        else
+        static if( op == "-=" && __traits(isIntegral, T) && __traits(isIntegral, V1)) {
+            return cast(T)(atomicFetchSub!(T)(val, mod) - mod);
+        }
+        else 
         static if( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
@@ -1429,5 +1512,52 @@ version( unittest )
         thr.join();
 
         assert(*r == 42);
+    }
+
+    // === atomicFetchAdd and atomicFetchSub operations ====
+    unittest
+    {
+        shared ubyte u8 = 1;
+        shared ushort u16 = 2;
+        shared uint u32 = 3;
+        shared byte i8 = 5;
+        shared short i16 = 6;
+        shared int i32 = 7;
+     
+        assert(atomicOp!"+="(u8, 8) == 9);
+        assert(atomicOp!"+="(u16, 8) == 10);
+        assert(atomicOp!"+="(u32, 8) == 11);
+        assert(atomicOp!"+="(i8, 8) == 13);
+        assert(atomicOp!"+="(i16, 8) == 14);
+        assert(atomicOp!"+="(i32, 8) == 15);
+        version( AsmX86_64 ) {
+            shared ulong u64 = 4;
+            shared long i64 = 8;
+            assert(atomicOp!"+="(u64, 8) == 12);
+            assert(atomicOp!"+="(i64, 8) == 16);
+        }
+    }
+
+    unittest
+    {
+        shared ubyte u8 = 1;
+        shared ushort u16 = 2;
+        shared uint u32 = 3;
+        shared byte i8 = 5;
+        shared short i16 = 6;
+        shared int i32 = 7;
+
+        assert(atomicOp!"-="(u8, 1) == 0);
+        assert(atomicOp!"-="(u16, 1) == 1);
+        assert(atomicOp!"-="(u32, 1) == 2);
+        assert(atomicOp!"-="(i8, 1) == 4);
+        assert(atomicOp!"-="(i16, 1) == 5);
+        assert(atomicOp!"-="(i32, 1) == 6);
+        version( AsmX86_64 ) {
+            shared ulong u64 = 4;
+            shared long i64 = 8;
+            assert(atomicOp!"-="(u64, 1) == 3);
+            assert(atomicOp!"-="(i64, 1) == 7);
+        }
     }
 }
