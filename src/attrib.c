@@ -512,6 +512,45 @@ void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 
+/********************************* DeprecatedDeclaration ****************************/
+
+DeprecatedDeclaration::DeprecatedDeclaration(Expression *msg, Dsymbols *decl)
+        : StorageClassDeclaration(STCdeprecated, decl)
+{
+    this->msg = msg;
+}
+
+Dsymbol *DeprecatedDeclaration::syntaxCopy(Dsymbol *s)
+{
+    assert(!s);
+    return new DeprecatedDeclaration(msg->syntaxCopy(), Dsymbol::arraySyntaxCopy(decl));
+}
+
+void DeprecatedDeclaration::setScope(Scope *sc)
+{
+    assert(msg);
+    char *depmsg = NULL;
+    if (msg->op == TOKstring)
+        depmsg = (char *)((StringExp *)msg)->string;
+    else
+    {
+        msg->error("string expected, not '%s'", msg->toChars());
+        depmsg = NULL;
+    }
+    Scope *scx = sc->push();
+    scx->depmsg = depmsg;
+    StorageClassDeclaration::setScope(scx);
+    scx->pop();
+}
+
+void DeprecatedDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("deprecated(");
+    msg->toCBuffer(buf, hgs);
+    buf->writestring(") ");
+    AttribDeclaration::toCBuffer(buf, hgs);
+}
+
 /********************************* LinkDeclaration ****************************/
 
 LinkDeclaration::LinkDeclaration(enum LINK p, Dsymbols *decl)

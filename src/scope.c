@@ -68,6 +68,7 @@ Scope::Scope()
     this->explicitProtection = 0;
     this->stc = 0;
     this->offset = 0;
+    this->depmsg = NULL;
     this->inunion = 0;
     this->incontract = 0;
     this->nofree = 0;

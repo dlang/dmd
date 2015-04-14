@@ -74,6 +74,17 @@ struct StorageClassDeclaration: AttribDeclaration
     static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
 };
 
+class DeprecatedDeclaration : public StorageClassDeclaration
+{
+public:
+    Expression *msg;
+
+    DeprecatedDeclaration(Expression *msg, Dsymbols *decl);
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    void setScope(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
 struct LinkDeclaration : AttribDeclaration
 {
     enum LINK linkage;

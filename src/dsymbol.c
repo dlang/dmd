@@ -46,6 +46,7 @@ Dsymbol::Dsymbol()
     this->comment = NULL;
     this->scope = NULL;
     this->errors = false;
+    this->depmsg = NULL;
 }
 
 Dsymbol::Dsymbol(Identifier *ident)
@@ -60,6 +61,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->comment = NULL;
     this->scope = NULL;
     this->errors = false;
+    this->depmsg = NULL;
 }
 
 int Dsymbol::equals(Object *o)
@@ -310,6 +312,8 @@ void Dsymbol::setScope(Scope *sc)
     if (!sc->nofree)
         sc->setNoFree();                // may need it even after semantic() finishes
     scope = sc;
+    if (sc->depmsg)
+        depmsg = sc->depmsg;
 }
 
 void Dsymbol::importAll(Scope *sc)
@@ -627,7 +631,18 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
                 goto L1;
         }
 
-        deprecation(loc, "is deprecated");
+        char *message = NULL;
+        for (Dsymbol *p = this; p; p = p->parent)
+        {
+            message = p->depmsg;
+            if (message)
+                break;
+        }
+
+        if (message)
+            deprecation(loc, "is deprecated - %s", message);
+        else
+            deprecation(loc, "is deprecated");
     }
 
   L1:

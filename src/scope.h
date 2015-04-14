@@ -86,6 +86,7 @@ struct Scope
     int explicitProtection;     // set if in an explicit protection attribute
 
     StorageClass stc;           // storage class
+    char *depmsg;               // customized deprecation message
 
     unsigned flags;
 #define SCOPEctor       1       // constructor type

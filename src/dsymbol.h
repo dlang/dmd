@@ -123,6 +123,7 @@ struct Dsymbol : Object
     Loc loc;                    // where defined
     Scope *scope;               // !=NULL means context to use for semantic()
     bool errors;                // this symbol failed to pass semantic()
+    char *depmsg;               // customized deprecation message
 
     Dsymbol();
     Dsymbol(Identifier *);

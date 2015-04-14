@@ -76,8 +76,9 @@ Dsymbols *Parser::parseModule()
 
     if (token.value == TOKdeprecated)
     {
-        Token *tk;
-        if (skipParensIf(peek(&token), &tk) && tk->value == TOKmodule)
+        Token *tk = NULL;
+        if (skipParensIf(peek(&token), &tk) &&
+            tk->value == TOKmodule)
         {
             // deprecated (...) module ...
             isdeprecated = true;
@@ -285,7 +286,6 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKoverride:     stc = STCoverride;     goto Lstc;
             case TOKabstract:     stc = STCabstract;     goto Lstc;
             case TOKsynchronized: stc = STCsynchronized; goto Lstc;
-            case TOKdeprecated:   stc = STCdeprecated;   goto Lstc;
 #if DMDV2
             case TOKnothrow:      stc = STCnothrow;      goto Lstc;
             case TOKpure:         stc = STCpure;         goto Lstc;
@@ -308,7 +308,6 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     case TOKoverride:     stc |= STCoverride;    goto Lstc;
                     case TOKabstract:     stc |= STCabstract;    goto Lstc;
                     case TOKsynchronized: stc |= STCsynchronized; goto Lstc;
-                    case TOKdeprecated:   stc |= STCdeprecated;  goto Lstc;
                     //case TOKinvariant:    stc |= STCimmutable;   goto Lstc;
                     default:
                         break;
@@ -356,6 +355,37 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     s = new StorageClassDeclaration(stc, a);
                 }
                 break;
+
+            case TOKdeprecated:
+            {
+                if (peek(&token)->value != TOKlparen)
+                {
+                    stc = STCdeprecated;
+                    goto Lstc;
+                }
+                nextToken();
+                check(TOKlparen);
+                Expression *e = parseAssignExp();
+                check(TOKrparen);
+#if 1
+                a = parseBlock();
+                s = new DeprecatedDeclaration(e, a);
+#else
+                if (pAttrs->depmsg)
+                {
+                    error("conflicting storage class 'deprecated(%s)' and 'deprecated(%s)'",
+                        pAttrs->depmsg->toChars(), e->toChars());
+                }
+                pAttrs->depmsg = e;
+                a = parseBlock(pLastDecl, pAttrs);
+                if (pAttrs->depmsg)
+                {
+                    s = new DeprecatedDeclaration(pAttrs->depmsg, a);
+                    pAttrs->depmsg = NULL;
+                }
+#endif
+                break;
+            }
 
             case TOKextern:
                 if (peek(&token)->value != TOKlparen)
@@ -4255,7 +4285,7 @@ int Parser::skipParens(Token *t, Token **pt)
     }
 
   Ldone:
-    if (*pt)
+    if (pt)
         *pt = t;
     return 1;
 
@@ -4269,7 +4299,7 @@ int Parser::skipParensIf(Token *t, Token **pt)
     {
         if (pt)
             *pt = t;
-            return 1;
+        return 1;
     }
     return skipParens(t, pt);
 }
