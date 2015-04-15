@@ -8108,7 +8108,7 @@ void TemplateMixin::semantic(Scope *sc)
     printf("\tdo semantic() on template instance members '%s'\n", toChars());
 #endif
     Scope *sc2 = argscope->push(this);
-    size_t deferred_dim = Module::deferred.dim;
+    //size_t deferred_dim = Module::deferred.dim;
 
     static int nest;
     //printf("%d\n", nest);

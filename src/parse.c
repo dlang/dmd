@@ -3404,7 +3404,6 @@ Type *Parser::parseDeclarator(Type *t, int *palt, Identifier **pident,
             case TOKlbracket:
             {
                 // This is the old C-style post [] syntax.
-                Loc loc = token.loc;
                 TypeNext *ta;
                 nextToken();
                 if (token.value == TOKrbracket)

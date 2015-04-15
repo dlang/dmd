@@ -3787,8 +3787,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
     //printf("ReturnStatement::semantic() %s\n", toChars());
 
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
-    Scope *scx = sc;
-    Expression *eorg = NULL;
 
     if (fd->fes)
         fd = fd->fes->func;             // fd is now function enclosing foreach

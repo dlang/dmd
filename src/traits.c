@@ -329,7 +329,6 @@ Lfalse:
  */
 Expression *pointerBitmap(TraitsExp *e)
 {
-    int result = 0;
     if (!e->args || e->args->dim != 1)
     {
         error(e->loc, "a single type expected for trait pointerBitmap");

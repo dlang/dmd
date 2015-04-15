@@ -1692,7 +1692,6 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
     Loc loc = e1->loc;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
-    Expression *e;
     UnionExp ue;
     if (e2->op == TOKstring && e1->op == TOKarrayliteral &&
         t1->nextOf()->isintegral())

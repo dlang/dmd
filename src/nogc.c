@@ -112,7 +112,6 @@ public:
 
     void visit(NewExp *e)
     {
-        bool needGC = false;
         if (e->member && !e->member->isNogc() && f->setGC())
         {
             // @nogc-ness is already checked in NewExp::semantic
