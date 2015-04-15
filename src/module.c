@@ -245,7 +245,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         fprintf(global.stdmsg, "%s\t(%s)\n", ident->toChars(), m->srcfile->toChars());
     }
 
-    m->parse();
+    m = m->parse();
 
     Target::loadModule(m);
 
@@ -297,9 +297,9 @@ bool Module::read(Loc loc)
     return true;
 }
 
-void Module::parse()
+Module *Module::parse()
 {
-    //printf("Module::parse()\n");
+    //printf("Module::parse(srcfile='%s') this=%p\n", srcfile->name->toChars(), this);
 
     char *srcname = srcfile->name->toChars();
     //printf("Module::parse(srcname = '%s')\n", srcname);
@@ -479,7 +479,7 @@ void Module::parse()
         isDocFile = 1;
         if (!docfile)
             setDocfile();
-        return;
+        return this;
     }
     {
         Parser p(this, buf, buflen, docfile != NULL);
@@ -577,6 +577,9 @@ void Module::parse()
             else
                 error(loc, "from file %s must be imported with 'import %s;'",
                     srcname, toPrettyChars());
+
+            // Bugzilla 14446: Return previously parsed module to avoid AST duplication ICE.
+            return mprev;
         }
         else if (Package *pkg = prev->isPackage())
         {
@@ -600,6 +603,7 @@ void Module::parse()
         // Add to global array of all modules
         amodules.push(this);
     }
+    return this;
 }
 
 void Module::importAll(Scope *prevsc)
