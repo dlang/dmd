@@ -29,7 +29,6 @@
 #include "tokens.h"
 
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *parameters);
-static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *parameters);
 static int inferApplyArgTypesY(TypeFunction *tf, Parameters *parameters, int flags = 0);
 Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id);
 
@@ -1606,13 +1605,6 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
         {
             sapply = inferApplyArgTypesX(ethis, fd, fes->parameters);
         }
-#if 0
-        TemplateDeclaration *td = sapply->isTemplateDeclaration();
-        if (td)
-        {
-            inferApplyArgTypesZ(td, fes->parameters);
-        }
-#endif
         return sapply != NULL;
     }
 
@@ -1837,35 +1829,3 @@ Lnomatch:
     return 0;
 }
 
-#if 0
-/*******************************************
- * Infer foreach parameter types from a template function opApply which looks like:
- *    int opApply(alias int func(ref uint))() { ... }
- */
-
-void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *parameters)
-{
-    for (TemplateDeclaration *td = tstart; td; td = td->overnext)
-    {
-        if (!td->scope)
-        {
-            error("forward reference to template %s", td->toChars());
-            return;
-        }
-        if (!td->onemember || !td->onemember->isFuncDeclaration())
-        {
-            error("is not a function template");
-            return;
-        }
-        if (!td->parameters || td->parameters->dim != 1)
-            continue;
-        TemplateParameter *tp = (*td->parameters)[0];
-        TemplateAliasParameter *tap = tp->isTemplateAliasParameter();
-        if (!tap || !tap->specType || tap->specType->ty != Tfunction)
-            continue;
-        TypeFunction *tf = (TypeFunction *)tap->specType;
-        if (inferApplyArgTypesY(tf, parameters) == 0)    // found it
-            return;
-    }
-}
-#endif

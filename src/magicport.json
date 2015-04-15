@@ -2911,8 +2911,7 @@
                 "function inferAggregate",
                 "function inferApplyArgTypes",
                 "function inferApplyArgTypesX",
-                "function inferApplyArgTypesY",
-                "version function inferApplyArgTypesZ"
+                "function inferApplyArgTypesY"
             ]
         },
         {

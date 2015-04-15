@@ -3975,8 +3975,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     Type *tbn = tn->toBasetype();
 
     if (dim)
-    {   dinteger_t n, n2;
-
+    {
         unsigned int errors = global.errors;
         dim = semanticLength(sc, tbn, dim);
         if (errors != global.errors)
