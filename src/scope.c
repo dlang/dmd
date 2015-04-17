@@ -116,6 +116,7 @@ Scope::Scope(Scope *enclosing)
     this->explicitProtection = enclosing->explicitProtection;
     this->stc = enclosing->stc;
     this->offset = 0;
+    this->depmsg = NULL;
     this->inunion = enclosing->inunion;
     this->incontract = enclosing->incontract;
     this->nofree = 0;
