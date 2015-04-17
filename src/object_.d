@@ -1054,11 +1054,14 @@ class TypeInfo_Struct : TypeInfo
 
     override @property size_t talign() nothrow pure const { return m_align; }
 
-    override void destroy(void* p) const
+    final override void destroy(void* p) const
     {
         if (xdtor)
         {
-            (*xdtor)(p);
+            if (m_flags & StructFlags.isDynamicType)
+                (*xdtorti)(p, this);
+            else
+                (*xdtor)(p);
         }
     }
 
@@ -1081,10 +1084,15 @@ class TypeInfo_Struct : TypeInfo
     enum StructFlags : uint
     {
         hasPointers = 0x1,
+        isDynamicType = 0x2, // built at runtime, needs type info in xdtor
     }
     StructFlags m_flags;
   }
-    void function(void*)                    xdtor;
+    union
+    {
+        void function(void*)                xdtor;
+        void function(void*, const TypeInfo_Struct ti) xdtorti;
+    }
     void function(void*)                    xpostblit;
 
     uint m_align;
@@ -1983,7 +1991,7 @@ extern (C)
     // from druntime/src/rt/aaA.d
 
     // size_t _aaLen(in void* p) pure nothrow @nogc;
-    private void* _aaGetX(void** paa, const TypeInfo keyti, in size_t valuesize, in void* pkey) pure nothrow;
+    private void* _aaGetY(void** paa, const TypeInfo_AssociativeArray ti, in size_t valuesize, in void* pkey) pure nothrow;
     // inout(void)* _aaGetRvalueX(inout void* p, in TypeInfo keyti, in size_t valuesize, in void* pkey);
     inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize, const TypeInfo tiValArray) pure nothrow;
     inout(void)[] _aaKeys(inout void* p, in size_t keysize, const TypeInfo tiKeyArray) pure nothrow;
@@ -2062,7 +2070,7 @@ V[K] dup(T : V[K], K, V)(T aa)
     {
         import core.stdc.string : memcpy;
 
-        void* pv = _aaGetX(cast(void**)&result, typeid(K), V.sizeof, &k);
+        void* pv = _aaGetY(cast(void**)&result, typeid(V[K]), V.sizeof, &k);
         memcpy(pv, &v, V.sizeof);
         return *cast(V*)pv;
     }
