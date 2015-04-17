@@ -8059,9 +8059,10 @@ Expression *DelegateExp::semantic(Scope *sc)
     e1 = e1->semantic(sc);
     type = new TypeDelegate(func->type);
     type = type->semantic(loc, sc);
-    AggregateDeclaration *ad = func->toParent()->isAggregateDeclaration();
-    if (func->needThis())
-        e1 = getRightThis(loc, sc, ad, e1, func);
+    FuncDeclaration *f = func->toAliasFunc();
+    AggregateDeclaration *ad = f->toParent()->isAggregateDeclaration();
+    if (f->needThis())
+        e1 = getRightThis(loc, sc, ad, e1, f);
     if (ad && ad->isClassDeclaration() && ad->type != e1->type)
     {
         // A downcast is required for interfaces, see Bugzilla 3706
