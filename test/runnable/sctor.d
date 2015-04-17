@@ -253,6 +253,47 @@ void test13515()
 }
 
 /***************************************************/
+// 14409
+
+class B14409 { this(int) {} }
+class C14409 : B14409
+{
+    this(int n)
+    {
+        if (true)
+            super(n);
+        else
+            assert(0);
+    }
+}
+
+/***************************************************/
+// 14376
+
+auto map14376()
+{
+    return MapResult14376!(e => 0)();
+}
+
+struct MapResult14376(alias pred)
+{
+    @property int front() { return pred(0); }
+}
+
+struct S14376
+{
+    typeof(map14376()) x;
+
+    this(int dummy)
+    {
+        if (true)
+            this.x = map14376();
+        else
+            assert(0);
+    }
+}
+
+/***************************************************/
 
 int main()
 {

@@ -1654,6 +1654,24 @@ void test13508() @safe @nogc
 }
 
 /***************************************/
+// 14395
+
+int v2u14395(uint[1] ar...)
+{
+    return ar[0];
+}
+
+void print14395(int size = v2u14395(7))
+{
+    assert(size == 7);
+}
+
+void test14395()
+{
+    print14395();
+}
+
+/***************************************/
 // 10414
 
 void foo10414(void delegate()[] ...) { }
@@ -1787,6 +1805,7 @@ int main()
     test7233();
     test7263();
     test9017();
+    test14395();
     test10414();
     test9495();
     testCopy();
