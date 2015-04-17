@@ -23,6 +23,8 @@ module gc.gc;
 //debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
 //debug = SENTINEL;             // add underrun/overrrun protection
+                                // NOTE: this needs to be enabled globally in the makefiles
+                                // (-debug=SENTINEL) to pass druntime's unittests.
 //debug = PTRCHECK;             // more pointer checking
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = INVARIANT;            // enable invariants
@@ -742,8 +744,8 @@ struct GC
 
     /**
      * Attempt to in-place enlarge the memory block pointed to by p by at least
-     * minbytes beyond its current capacity, up to a maximum of maxsize.  This
-     * does not attempt to move the memory block (like realloc() does).
+     * minsize bytes, up to a maximum of maxsize additional bytes.
+     * This does not attempt to move the memory block (like realloc() does).
      *
      * Returns:
      *  0 if could not extend p,
@@ -1174,7 +1176,7 @@ struct GC
     /**
      * add range to scan for roots
      */
-    void addRange(void *p, size_t sz, const TypeInfo ti = null) nothrow @nogc 
+    void addRange(void *p, size_t sz, const TypeInfo ti = null) nothrow @nogc
     {
         if (!p || !sz)
         {
@@ -1814,7 +1816,7 @@ struct Gcx
         if (bits)
             pool.setBits((p - pool.baseAddr) >> pool.shiftBy, bits);
         //debug(PRINTF) printf("\tmalloc => %p\n", p);
-        debug (MEMSTOMP) memset(p, 0xF0, size);
+        debug (MEMSTOMP) memset(p, 0xF0, alloc_size);
         return p;
     }
 
@@ -3129,7 +3131,7 @@ struct LargeObjectPool
             for (; pn + n < npages; ++n)
                 if (pagetable[pn + n] != B_PAGEPLUS)
                     break;
-            debug (MEMSTOMP) memset(pool.baseAddr + pn * PAGESIZE, 0xF3, n * PAGESIZE);
+            debug (MEMSTOMP) memset(baseAddr + pn * PAGESIZE, 0xF3, n * PAGESIZE);
             freePages(pn, n);
         }
     }
@@ -3328,4 +3330,34 @@ else
     {
         return p;
     }
+}
+
+debug (MEMSTOMP)
+unittest
+{
+	import core.memory;
+	auto p = cast(uint*)GC.malloc(uint.sizeof*3);
+	assert(*p == 0xF0F0F0F0);
+	p[2] = 0; // First two will be used for free list
+	GC.free(p);
+	assert(p[2] == 0xF2F2F2F2);
+}
+
+debug (SENTINEL)
+unittest
+{
+	import core.memory;
+	auto p = cast(ubyte*)GC.malloc(1);
+	assert(p[-1] == 0xF4);
+	assert(p[ 1] == 0xF5);
+/*
+	p[1] = 0;
+	bool thrown;
+	try
+		GC.free(p);
+	catch (Error e)
+		thrown = true;
+	p[1] = 0xF5;
+	assert(thrown);
+*/
 }
