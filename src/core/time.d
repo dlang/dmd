@@ -1710,6 +1710,51 @@ T to(string units, T, D)(D td) @safe pure nothrow @nogc
         static assert(0, "Incorrect template constraint.");
 }
 
+///
+unittest
+{
+    auto t = TickDuration.from!"seconds"(1000);
+
+    long tl = to!("seconds",long)(t);
+    assert(tl == 1000);
+
+    double td = to!("seconds",double)(t);
+    assert(_abs(td - 1000) < 0.001);
+}
+
+unittest
+{
+    auto t1v = 1000;
+    auto t2v = 333;
+    auto t1 = TickDuration.from!"seconds"(t1v);
+    auto t2 = TickDuration.from!"seconds"(t2v);
+
+    foreach(F; _TypeTuple!(int,uint,long,ulong,float,double,real))
+    {
+        F t1f = to!("seconds",F)(t1);
+        F t2f = to!("seconds",F)(t2);
+        auto t12d = t1 / t2v;
+        auto t12m = t1 - t2;
+        F t3f = to!("seconds",F)(t12d);
+        F t4f = to!("seconds",F)(t12m);
+
+        static if(is(F : float))
+        {
+            assert((t1f - cast(F)t1v) < 0.0001);
+            assert((t2f - cast(F)t2v) < 0.0001);
+            assert(t3f - (cast(F)t1v) / (cast(F)t2v) < 0.0001);
+            assert(t4f - (cast(F)(t1v - t2v)) < 0.0001);
+        }
+        else
+        {
+            assert(t1f == cast(F)t1v);
+            assert(t2f == cast(F)t2v);
+            assert(t3f == (cast(F)t1v) / (cast(F)t2v));
+            assert(t4f == (cast(F)t1v) - (cast(F)t2v));
+        }
+    }
+}
+
 /++
     These allow you to construct a $(D Duration) from the given time units
     with the given length.
@@ -4240,6 +4285,11 @@ unittest
 long _abs(long val) @safe pure nothrow @nogc
 {
     return val >= 0 ? val : -val;
+}
+
+double _abs(double val) @safe pure nothrow @nogc
+{
+    return val >= 0.0 ? val : -val;
 }
 
 
