@@ -19,7 +19,7 @@ private
     import core.stdc.string;
     import core.stdc.stdio;
     import core.memory;
-    import rt.lifetime : _d_newarrayU, _d_newitemT, unqualify;
+    import rt.lifetime : _d_newarrayU, _d_newitemT, unqualify, __doPostblit;
 
     // Convenience function to make sure the NO_INTERIOR gets set on the
     // bucket array.
@@ -285,6 +285,7 @@ body
         e.hash = key_hash;
         ubyte* ptail = cast(ubyte*)(e + 1);
         memcpy(ptail, pkey, keytitsize);
+        __doPostblit(ptail, keytitsize, unqualify(keyti));
         memset(ptail + aligntsize(keytitsize), 0, valuesize); // zero value
         *pe = e;
 
@@ -433,12 +434,13 @@ inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize,
                 memcpy(a.ptr + resi * valuesize,
                        cast(byte*)e + Entry.sizeof + alignsize,
                        valuesize);
-                // TODO: no postblit here?
                 resi++;
                 e = e.next;
             }
         }
         assert(resi == a.length);
+        // cannot postblit, it might not be pure
+        //__doPostblit(a.ptr, alignsize, unqualify(tiValueArray.next));
     }
     return *cast(inout ArrayRet_t*)(&a);
 }
@@ -530,12 +532,13 @@ inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize, const TypeInfo tiKeyAr
         while (e)
         {
             memcpy(&res[resi * keysize], cast(byte*)(e + 1), keysize);
-            // TODO: no postblit here?
             resi++;
             e = e.next;
         }
     }
     assert(resi == len);
+    // cannot postblit, it might not be pure
+    //__doPostblit(res, len * kisize, unqualify(tiKeyArray.next));
 
     Array a;
     a.length = len;
