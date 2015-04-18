@@ -194,13 +194,6 @@ struct Interface
 }
 
 /**
- * Runtime type information about a class. Can be retrieved for any class type
- * or instance by using the .classinfo property.
- * A pointer to this appears as the first entry in the class's vtbl[].
- */
-alias TypeInfo_Class Classinfo;
-
-/**
  * Array of pairs giving the offset and type information for each
  * member in an aggregate.
  */
