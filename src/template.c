@@ -1359,15 +1359,18 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
     // Loop through the function parameters
     {
-    //printf("%s nfargs=%d, nfparams=%d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
+    //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
     //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
     size_t argi = 0;
+    size_t nfargs2 = nfargs;    // nfargs + supplied defaultArgs
     for (size_t parami = 0; parami < nfparams; parami++)
     {
         Parameter *fparam = Parameter::getNth(fparameters, parami);
 
         // Apply function parameter storage classes to parameter types
         Type *prmtype = fparam->type->addStorageClass(fparam->storageClass);
+
+        Expression *farg;
 
         /* See function parameters which wound up
          * as part of a template tuple parameter.
@@ -1402,12 +1405,12 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                     }
                 }
 
-                if (nfargs - argi < rem)
+                if (nfargs2 - argi < rem)
                     goto Lnomatch;
-                declaredTuple->objects.setDim(nfargs - argi - rem);
+                declaredTuple->objects.setDim(nfargs2 - argi - rem);
                 for (size_t i = 0; i < declaredTuple->objects.dim; i++)
                 {
-                    Expression *farg = (*fargs)[argi + i];
+                    farg = (*fargs)[argi + i];
 
                     // Check invalid arguments to detect errors early.
                     if (farg->op == TOKerror || farg->type->ty == Terror)
@@ -1485,7 +1488,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                             continue;
                         goto Lnomatch;
                     }
-                    Expression *farg = (*fargs)[argi];
+                    farg = (*fargs)[argi];
                     if (!farg->implicitConvTo(p->type))
                         goto Lnomatch;
                 }
@@ -1495,18 +1498,111 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
         if (argi >= nfargs)                // if not enough arguments
         {
-            if (fparam->defaultArg)
+            if (!fparam->defaultArg)
+                goto Lnomatch;
+
+            /* Bugzilla 2803: Before the starting of type deduction from the function
+             * default arguments, set the already deduced parameters into paramscope.
+             * It's necessary to avoid breaking existing acceptable code. Cases:
+             *
+             * 1. Already deduced template parameters can appear in fparam->defaultArg:
+             *  auto foo(A, B)(A a, B b = A.stringof);
+             *  foo(1);
+             *  // at fparam == 'B b = A.string', A is equivalent with the deduced type 'int'
+             *
+             * 2. If prmtype depends on default-specified template parameter, the
+             * default type should be preferred.
+             *  auto foo(N = size_t, R)(R r, N start = 0)
+             *  foo([1,2,3]);
+             *  // at fparam `N start = 0`, N should be 'size_t' before
+             *  // the deduction result from fparam->defaultArg.
+             */
+            if (argi == nfargs)
             {
-                /* Default arguments do not participate in template argument
-                 * deduction.
-                 */
-                goto Lmatch;
+                for (size_t i = 0; i < dedtypes->dim; i++)
+                {
+                    Type *at = isType((*dedtypes)[i]);
+                    if (at && at->ty == Tnone)
+                    {
+                        TypeDeduced *xt = (TypeDeduced *)at;
+                        (*dedtypes)[i] = xt->tded;  // 'unbox'
+                        delete xt;
+                    }
+                }
+                for (size_t i = ntargs; i < dedargs->dim; i++)
+                {
+                    TemplateParameter *tparam = (*parameters)[i];
+
+                    RootObject *oarg = (*dedargs)[i];
+                    RootObject *oded = (*dedtypes)[i];
+                    if (!oarg)
+                    {
+                        if (oded)
+                        {
+                            if (tparam->specialization() || !tparam->isTemplateTypeParameter())
+                            {
+                                /* The specialization can work as long as afterwards
+                                 * the oded == oarg
+                                 */
+                                (*dedargs)[i] = oded;
+                                MATCH m2 = tparam->matchArg(loc, paramscope, dedargs, i, parameters, dedtypes, NULL);
+                                //printf("m2 = %d\n", m2);
+                                if (m2 <= MATCHnomatch)
+                                    goto Lnomatch;
+                                if (m2 < matchTiargs)
+                                    matchTiargs = m2;             // pick worst match
+                                if (!(*dedtypes)[i]->equals(oded))
+                                    error("specialization not allowed for deduced parameter %s", tparam->ident->toChars());
+                            }
+                            else
+                            {
+                                if (MATCHconvert < matchTiargs)
+                                    matchTiargs = MATCHconvert;
+                            }
+                            (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                        }
+                        else
+                        {
+                            oded = tparam->defaultArg(loc, paramscope);
+                            if (oded)
+                                (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                        }
+                    }
+                }
             }
+            nfargs2 = argi + 1;
+
+            /* If prmtype does not depend on any template parameters:
+             * 
+             *  auto foo(T)(T v, double x = 0);
+             *  foo("str");
+             *  // at fparam == 'double x = 0'
+             * 
+             * or, if all template parameters in the prmtype are already deduced:
+             *
+             *  auto foo(R)(R range, ElementType!R sum = 0);
+             *  foo([1,2,3]);
+             *  // at fparam == 'ElementType!R sum = 0'
+             *
+             * Deducing prmtype from fparam->defaultArg is not necessary.
+             */
+            if (prmtype->deco ||
+                prmtype->syntaxCopy()->trySemantic(loc, paramscope))
+            {
+                ++argi;
+                continue;
+            }
+
+            // Deduce prmtype from the defaultArg.
+            farg = fparam->defaultArg->syntaxCopy();
+            farg = farg->semantic(paramscope);
+            farg = resolveProperties(paramscope, farg);
         }
         else
         {
-            Expression *farg = (*fargs)[argi];
-
+            farg = (*fargs)[argi];
+        }
+        {
             // Check invalid arguments to detect errors early.
             if (farg->op == TOKerror || farg->type->ty == Terror)
                 goto Lnomatch;
@@ -1766,8 +1862,8 @@ Lretry:
         }
         ++argi;
     }
-    //printf("-> argi = %d, nfargs = %d\n", argi, nfargs);
-    if (argi != nfargs && !fvarargs)
+    //printf("-> argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
+    if (argi != nfargs2 && !fvarargs)
         goto Lnomatch;
     }
 
