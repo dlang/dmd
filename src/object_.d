@@ -1634,51 +1634,6 @@ class Throwable : Object
 }
 
 
-alias Throwable.TraceInfo function(void* ptr) TraceHandler;
-private __gshared TraceHandler traceHandler = null;
-
-
-/**
- * Overrides the default trace hander with a user-supplied version.
- *
- * Params:
- *  h = The new trace handler.  Set to null to use the default handler.
- */
-extern (C) void  rt_setTraceHandler(TraceHandler h)
-{
-    traceHandler = h;
-}
-
-/**
- * Return the current trace handler
- */
-extern (C) TraceHandler rt_getTraceHandler()
-{
-    return traceHandler;
-}
-
-/**
- * This function will be called when an exception is constructed.  The
- * user-supplied trace handler will be called if one has been supplied,
- * otherwise no trace will be generated.
- *
- * Params:
- *  ptr = A pointer to the location from which to generate the trace, or null
- *        if the trace should be generated from within the trace handler
- *        itself.
- *
- * Returns:
- *  An object describing the current calling context or null if no handler is
- *  supplied.
- */
-extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null)
-{
-    if (traceHandler is null)
-        return null;
-    return traceHandler(ptr);
-}
-
-
 /**
  * The base class of all errors that are safe to catch and handle.
  *
