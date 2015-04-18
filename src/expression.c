@@ -4824,8 +4824,7 @@ Lagain:
 
     if (tb->ty == Tclass)
     {
-        TypeClass *tc = (TypeClass *)(tb);
-        ClassDeclaration *cd = tc->sym->isClassDeclaration();
+        ClassDeclaration *cd = ((TypeClass *)tb)->sym;
         cd->size(loc);
         if (cd->sizeok != SIZEOKdone)
             return new ErrorExp();
@@ -4851,7 +4850,7 @@ Lagain:
             }
             goto Lerr;
         }
-        checkDeprecated(sc, cd);
+        // checkDeprecated() is already done in newtype->semantic().
 
         if (cd->isNested())
         {
@@ -4930,6 +4929,40 @@ Lagain:
             goto Lerr;
         }
 
+        if (cd->aggNew)
+        {
+            // Prepend the size argument to newargs[]
+            Expression *e = new IntegerExp(loc, cd->size(loc), Type::tsize_t);
+            if (!newargs)
+                newargs = new Expressions();
+            newargs->shift(e);
+
+            FuncDeclaration *f = resolveFuncCall(loc, sc, cd->aggNew, NULL, tb, newargs);
+            if (!f || f->errors)
+                goto Lerr;
+            checkDeprecated(sc, f);
+            checkPurity(sc, f);
+            checkSafety(sc, f);
+            checkNogc(sc, f);
+            checkAccess(loc, sc, NULL, f);
+
+            TypeFunction *tf = (TypeFunction *)f->type;
+            Type *rettype;
+            if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype, &newprefix))
+                return new ErrorExp();
+
+            allocator = f->isNewDeclaration();
+            assert(allocator);
+        }
+        else
+        {
+            if (newargs && newargs->dim)
+            {
+                error("no allocator for %s", cd->toChars());
+                goto Lerr;
+            }
+        }
+
         if (cd->ctor)
         {
             FuncDeclaration *f = resolveFuncCall(loc, sc, cd->ctor, NULL, tb, arguments, 0);
@@ -4958,47 +4991,10 @@ Lagain:
                 goto Lerr;
             }
         }
-
-        if (cd->aggNew)
-        {
-            // Prepend the size argument to newargs[]
-            Expression *e = new IntegerExp(loc, cd->size(loc), Type::tsize_t);
-            if (!newargs)
-                newargs = new Expressions();
-            newargs->shift(e);
-
-            FuncDeclaration *f = resolveFuncCall(loc, sc, cd->aggNew, NULL, tb, newargs);
-            if (!f || f->errors)
-                goto Lerr;
-        #if 0   // necessary?
-            checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
-            checkAccess(loc, sc, NULL, f);
-        #endif
-
-            TypeFunction *tf = (TypeFunction *)f->type;
-            Type *rettype;
-            if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype, &newprefix))
-                return new ErrorExp();
-
-            allocator = f->isNewDeclaration();
-            assert(allocator);
-        }
-        else
-        {
-            if (newargs && newargs->dim)
-            {
-                error("no allocator for %s", cd->toChars());
-                goto Lerr;
-            }
-        }
     }
     else if (tb->ty == Tstruct)
     {
-        TypeStruct *ts = (TypeStruct *)tb;
-        StructDeclaration *sd = ts->sym;
+        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
         sd->size(loc);
         if (sd->sizeok != SIZEOKdone)
             return new ErrorExp();
@@ -5007,11 +5003,12 @@ Lagain:
             error("default construction is disabled for type %s", sd->type->toChars());
             goto Lerr;
         }
+        // checkDeprecated() is already done in newtype->semantic().
 
         if (sd->aggNew)
         {
             // Prepend the uint size argument to newargs[]
-            Expression *e = new IntegerExp(loc, sd->size(loc), Type::tuns32);
+            Expression *e = new IntegerExp(loc, sd->size(loc), Type::tsize_t);
             if (!newargs)
                 newargs = new Expressions();
             newargs->shift(e);
@@ -5019,13 +5016,11 @@ Lagain:
             FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, tb, newargs);
             if (!f || f->errors)
                 goto Lerr;
-        #if 0   // necessary?
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
             checkAccess(loc, sc, NULL, f);
-        #endif
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;

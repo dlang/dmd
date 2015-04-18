@@ -119,17 +119,8 @@ public:
         }
         if (e->onstack)
             return;
-
         if (e->allocator)
-        {
-            if (!e->allocator->isNogc() && f->setGC())
-            {
-                e->error("operator new in @nogc function %s may allocate", f->toChars());
-                err = true;
-                return;
-            }
             return;
-        }
 
         if (f->setGC())
         {
