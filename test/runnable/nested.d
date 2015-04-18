@@ -2421,6 +2421,41 @@ void test13861()
 }
 
 /*******************************************/
+// 14398
+
+void test14398()
+{
+    int outer;
+
+    struct Inner
+    {
+        this(this)
+        {
+            outer += 42;
+        }
+    }
+
+    struct Outer
+    {
+        Inner inner;
+
+        this(int dummy)
+        {
+            inner = Inner();
+
+            // hidden fields correctly set
+            assert(this.tupleof[$-1] !is null);
+            assert(inner.tupleof[$-1] !is null);
+        }
+    }
+
+    Outer[1] arr1 = [Outer(0)];
+    assert(outer == 0);     // no postblit called on arr1 construction
+    auto arr2 = arr1;
+    assert(outer == 42);    // inner is copied successfully
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2510,6 +2545,7 @@ int main()
     test11297();
     test12234();
     test13861();
+    test14398();
 
     printf("Success\n");
     return 0;
