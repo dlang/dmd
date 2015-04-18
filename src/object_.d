@@ -21,7 +21,6 @@ module object;
 
 private
 {
-    import core.atomic;
     import core.stdc.string;
     import core.stdc.stdlib;
     import core.memory;
@@ -177,6 +176,13 @@ auto opEquals(const Object lhs, const Object rhs)
 {
     // A hack for the moment.
     return opEquals(cast()lhs, cast()rhs);
+}
+
+private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
+
+void setSameMutex(shared Object ownee, shared Object owner)
+{
+    _d_setSameMutex(ownee, owner);
 }
 
 /**
@@ -1783,206 +1789,6 @@ unittest
     }
 }
 
-
-///////////////////////////////////////////////////////////////////////////////
-// Monitor
-///////////////////////////////////////////////////////////////////////////////
-
-alias Object.Monitor        IMonitor;
-alias void delegate(Object) DEvent;
-
-// NOTE: The dtor callback feature is only supported for monitors that are not
-//       supplied by the user.  The assumption is that any object with a user-
-//       supplied monitor may have special storage or lifetime requirements and
-//       that as a result, storing references to local objects within Monitor
-//       may not be safe or desirable.  Thus, devt is only valid if impl is
-//       null.
-struct Monitor
-{
-    IMonitor impl;
-    /* internal */
-    DEvent[] devt;
-    size_t   refs;
-    /* stuff */
-}
-
-Monitor* getMonitor(Object h) pure nothrow
-{
-    return cast(Monitor*) h.__monitor;
-}
-
-void setMonitor(Object h, Monitor* m) pure nothrow
-{
-    h.__monitor = m;
-}
-
-void setSameMutex(shared Object ownee, shared Object owner) nothrow
-in
-{
-    assert(ownee.__monitor is null);
-}
-body
-{
-    auto m = cast(shared(Monitor)*) owner.__monitor;
-
-    if (m is null)
-    {
-        _d_monitor_create(cast(Object) owner);
-        m = cast(shared(Monitor)*) owner.__monitor;
-    }
-
-    auto i = m.impl;
-    if (i is null)
-    {
-        atomicOp!("+=")(m.refs, cast(size_t)1);
-        ownee.__monitor = owner.__monitor;
-        return;
-    }
-    // If m.impl is set (ie. if this is a user-created monitor), assume
-    // the monitor is garbage collected and simply copy the reference.
-    ownee.__monitor = owner.__monitor;
-}
-
-extern (C) void _d_monitor_create(Object) nothrow;
-extern (C) void _d_monitor_destroy(Object) nothrow;
-extern (C) void _d_monitor_lock(Object) nothrow;
-extern (C) int  _d_monitor_unlock(Object) nothrow;
-
-extern (C) void _d_monitordelete(Object h, bool det)
-{
-    // det is true when the object is being destroyed deterministically (ie.
-    // when it is explicitly deleted or is a scope object whose time is up).
-    Monitor* m = getMonitor(h);
-
-    if (m !is null)
-    {
-        IMonitor i = m.impl;
-        if (i is null)
-        {
-            auto s = cast(shared(Monitor)*) m;
-            if(!atomicOp!("-=")(s.refs, cast(size_t) 1))
-            {
-                _d_monitor_devt(m, h);
-                _d_monitor_destroy(h);
-                setMonitor(h, null);
-            }
-            return;
-        }
-        // NOTE: Since a monitor can be shared via setSameMutex it isn't safe
-        //       to explicitly delete user-created monitors--there's no
-        //       refcount and it may have multiple owners.
-        /+
-        if (det && (cast(void*) i) !is (cast(void*) h))
-        {
-            destroy(i);
-            GC.free(cast(void*)i);
-        }
-        +/
-        setMonitor(h, null);
-    }
-}
-
-extern (C) void _d_monitorenter(Object h)
-{
-    Monitor* m = getMonitor(h);
-
-    if (m is null)
-    {
-        _d_monitor_create(h);
-        m = getMonitor(h);
-    }
-
-    IMonitor i = m.impl;
-
-    if (i is null)
-    {
-        _d_monitor_lock(h);
-        return;
-    }
-    i.lock();
-}
-
-extern (C) void _d_monitorexit(Object h)
-{
-    Monitor* m = getMonitor(h);
-    IMonitor i = m.impl;
-
-    if (i is null)
-    {
-        _d_monitor_unlock(h);
-        return;
-    }
-    i.unlock();
-}
-
-extern (C) void _d_monitor_devt(Monitor* m, Object h)
-{
-    if (m.devt.length)
-    {
-        DEvent[] devt;
-
-        synchronized (h)
-        {
-            devt = m.devt;
-            m.devt = null;
-        }
-        foreach (v; devt)
-        {
-            if (v)
-                v(h);
-        }
-        free(devt.ptr);
-    }
-}
-
-extern (C) void rt_attachDisposeEvent(Object h, DEvent e)
-{
-    synchronized (h)
-    {
-        Monitor* m = getMonitor(h);
-        assert(m.impl is null);
-
-        foreach (ref v; m.devt)
-        {
-            if (v is null || v == e)
-            {
-                v = e;
-                return;
-            }
-        }
-
-        auto len = m.devt.length + 4; // grow by 4 elements
-        auto pos = m.devt.length;     // insert position
-        auto p = realloc(m.devt.ptr, DEvent.sizeof * len);
-        import core.exception : onOutOfMemoryError;
-        if (!p)
-            onOutOfMemoryError();
-        m.devt = (cast(DEvent*)p)[0 .. len];
-        m.devt[pos+1 .. len] = null;
-        m.devt[pos] = e;
-    }
-}
-
-extern (C) void rt_detachDisposeEvent(Object h, DEvent e)
-{
-    synchronized (h)
-    {
-        Monitor* m = getMonitor(h);
-        assert(m.impl is null);
-
-        foreach (p, v; m.devt)
-        {
-            if (v == e)
-            {
-                memmove(&m.devt[p],
-                        &m.devt[p+1],
-                        (m.devt.length - p - 1) * DEvent.sizeof);
-                m.devt[$ - 1] = null;
-                return;
-            }
-        }
-    }
-}
 
 extern (C)
 {
