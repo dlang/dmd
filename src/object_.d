@@ -17,17 +17,8 @@
  */
 module object;
 
-//debug=PRINTF;
-
 private
 {
-    import core.stdc.string;
-    import core.stdc.stdlib;
-    import core.memory;
-    import rt.util.hash;
-    import rt.util.string;
-    debug(PRINTF) import core.stdc.stdio;
-
     extern (C) Object _d_newclass(const TypeInfo_Class ci);
     extern (C) void rt_finalize(void *data, bool det=true);
 }
@@ -221,6 +212,7 @@ class TypeInfo
 
     override size_t toHash() @trusted const
     {
+        import rt.util.hash;
         try
         {
             auto data = this.toString();
@@ -237,6 +229,8 @@ class TypeInfo
 
     override int opCmp(Object o)
     {
+        import rt.util.string;
+
         if (this is o)
             return 0;
         TypeInfo ti = cast(TypeInfo)o;
@@ -501,6 +495,8 @@ class TypeInfo_StaticArray : TypeInfo
 {
     override string toString() const
     {
+        import rt.util.string;
+
         SizeStringBuff tmpBuff = void;
         return value.toString() ~ "[" ~ len.sizeToTempString(tmpBuff) ~ "]";
     }
@@ -551,6 +547,9 @@ class TypeInfo_StaticArray : TypeInfo
 
     override void swap(void* p1, void* p2) const
     {
+        import core.memory;
+        import core.stdc.string : memcpy;
+
         void* tmp;
         size_t sz = value.tsize;
         ubyte[16] buffer;
@@ -1002,12 +1001,15 @@ class TypeInfo_Struct : TypeInfo
         }
         else
         {
+            import rt.util.hash;
             return rt.util.hash.hashOf(p, init().length);
         }
     }
 
     override bool equals(in void* p1, in void* p2) @trusted pure nothrow const
     {
+        import core.stdc.string : memcmp;
+
         if (!p1 || !p2)
             return false;
         else if (xopEquals)
@@ -1021,6 +1023,8 @@ class TypeInfo_Struct : TypeInfo
 
     override int compare(in void* p1, in void* p2) @trusted pure nothrow const
     {
+        import core.stdc.string : memcmp;
+
         // Regard null references as always being "less than"
         if (p1 != p2)
         {
@@ -1369,6 +1373,8 @@ const:
     }
     body
     {
+        import core.stdc.string : strlen;
+
         void* p = cast(void*)&this + ModuleInfo.sizeof;
 
         if (flags & MItlsctor)
@@ -1419,7 +1425,7 @@ const:
         if (true || flags & MIname) // always available for now
         {
             if (flag == MIname) return p;
-            p += .strlen(cast(immutable char*)p);
+            p += strlen(cast(immutable char*)p);
         }
         assert(0);
     }
@@ -1487,8 +1493,10 @@ const:
     {
         if (true || flags & MIname) // always available for now
         {
+            import core.stdc.string : strlen;
+
             auto p = cast(immutable char*)addrOf(MIname);
-            return p[0 .. .strlen(p)];
+            return p[0 .. strlen(p)];
         }
         // return null;
     }
@@ -1595,6 +1603,8 @@ class Throwable : Object
      */
     void toString(scope void delegate(in char[]) sink) const
     {
+        import rt.util.string;
+
         SizeStringBuff tmpBuff = void;
 
         sink(typeid(this).name);
@@ -2764,6 +2774,7 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
             || cast(const TypeInfo_Interface) element;
     }
 
+    import rt.util.hash;
     if(!hasCustomToHash(element))
         return rt.util.hash.hashOf(ptr, elementSize * count);
 
