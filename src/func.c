@@ -5174,9 +5174,6 @@ void UnitTestDeclaration::semantic(Scope *sc)
         return;
     }
 
-    if (inNonRoot())
-        return;
-
     if (global.params.useUnitTests)
     {
         if (!type)
