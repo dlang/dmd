@@ -1287,6 +1287,13 @@ class MemberInfo_field : MemberInfo
 
 class MemberInfo_function : MemberInfo
 {
+    enum
+    {
+        Virtual = 1,
+        Member  = 2,
+        Static  = 4,
+    }
+
     this(string name, TypeInfo ti, void* fp, uint flags)
     {
         m_name = name;
@@ -2857,7 +2864,28 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
     return true;
 }
 
+/**
+Calculates the hash value of $(D arg) with $(D seed) initial value.
+Result may be non-equals with $(D typeid(T).getHash(&arg))
+The $(D seed) value may be used for hash chaining:
+----
+struct Test
+{
+    int a;
+    string b;
+    MyObject c;
 
+    size_t toHash() const @safe pure nothrow
+    {
+        size_t hash = a.hashOf();
+        hash = b.hashOf(hash);
+        size_t h1 = c.myMegaHash();
+        hash = h1.hashOf(hash); //Mix two hash values
+        return hash;
+    }
+}
+----
+*/
 size_t hashOf(T)(auto ref T arg, size_t seed = 0)
 {
     import core.internal.hash;
@@ -2873,6 +2901,9 @@ bool _xopCmp(in void*, in void*)
 {
     throw new Error("TypeInfo.compare is not implemented");
 }
+
+void __ctfeWrite(T...)(auto ref T) {}
+void __ctfeWriteln(T...)(auto ref T values) { __ctfeWrite(values, "\n"); }
 
 /******************************************
  * Create RTInfo for type T
