@@ -212,11 +212,13 @@ class TypeInfo
 
     override size_t toHash() @trusted const
     {
-        import rt.util.hash;
+        import core.internal.traits : externDFunc;
+        alias hashOf = externDFunc!("rt.util.hash.hashOf", 
+                                    size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
         try
         {
             auto data = this.toString();
-            return rt.util.hash.hashOf(data.ptr, data.length);
+            return hashOf(data.ptr, data.length, 0);
         }
         catch (Throwable)
         {
@@ -229,7 +231,9 @@ class TypeInfo
 
     override int opCmp(Object o)
     {
-        import rt.util.string;
+        import core.internal.traits : externDFunc;
+        alias dstrcmp = externDFunc!("rt.util.string.dstrcmp", 
+                                     int function(in char[] s1, in char[] s2) @trusted pure nothrow);
 
         if (this is o)
             return 0;
@@ -495,10 +499,12 @@ class TypeInfo_StaticArray : TypeInfo
 {
     override string toString() const
     {
-        import rt.util.string;
+        import core.internal.traits : externDFunc;
+        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString", 
+                                              char[] function(in size_t, char[]) @trusted pure nothrow);
 
-        SizeStringBuff tmpBuff = void;
-        return value.toString() ~ "[" ~ len.sizeToTempString(tmpBuff) ~ "]";
+        char[20] tmpBuff = void;
+        return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff) ~ "]";
     }
 
     override bool opEquals(Object o)
@@ -1001,8 +1007,10 @@ class TypeInfo_Struct : TypeInfo
         }
         else
         {
-            import rt.util.hash;
-            return rt.util.hash.hashOf(p, init().length);
+            import core.internal.traits : externDFunc;
+            alias hashOf = externDFunc!("rt.util.hash.hashOf", 
+                                        size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
+            return hashOf(p, init().length, 0);
         }
     }
 
@@ -1603,13 +1611,15 @@ class Throwable : Object
      */
     void toString(scope void delegate(in char[]) sink) const
     {
-        import rt.util.string;
+        import core.internal.traits : externDFunc;
+        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString", 
+                                              char[] function(in size_t, char[]) @trusted pure nothrow);
 
-        SizeStringBuff tmpBuff = void;
+        char[20] tmpBuff = void;
 
         sink(typeid(this).name);
         sink("@"); sink(file);
-        sink("("); sink(line.sizeToTempString(tmpBuff)); sink(")");
+        sink("("); sink(sizeToTempString(line, tmpBuff)); sink(")");
 
         if (msg.length)
         {
@@ -2729,9 +2739,11 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
             || cast(const TypeInfo_Interface) element;
     }
 
-    import rt.util.hash;
+    import core.internal.traits : externDFunc;
+    alias hashOf = externDFunc!("rt.util.hash.hashOf", 
+                                size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
     if(!hasCustomToHash(element))
-        return rt.util.hash.hashOf(ptr, elementSize * count);
+        return hashOf(ptr, elementSize * count, 0);
 
     size_t hash = 0;
     foreach(size_t i; 0 .. count)
