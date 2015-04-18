@@ -1696,9 +1696,8 @@ public:
         }
         else
         {
-            const char* id = d->ident->toChars();
-            declstring = (strcmp (id, "string") == 0 || strcmp (id, "wstring") == 0 || strcmp (id, "dstring") == 0);
-            buf->writestring(id);
+            declstring = (d->ident == Id::string || d->ident == Id::wstring || d->ident == Id::dstring);
+            buf->writestring(d->ident->toChars());
             buf->writestring(" = ");
             StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
             typeToBuffer(d->type, NULL);
