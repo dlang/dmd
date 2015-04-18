@@ -4350,7 +4350,7 @@ bool StructLiteralExp::equals(RootObject *o)
 
 Expression *StructLiteralExp::syntaxCopy()
 {
-    StructLiteralExp *exp = new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), stype);
+    StructLiteralExp *exp = new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), type ? type : stype);
     exp->origin = this;
     return exp;
 }

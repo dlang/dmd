@@ -848,3 +848,48 @@ pragma(msg, typeof(s14166.x ^^ 2));          // ok <- error
 pragma(msg, typeof(s14166.y ^^= 2.5));       // ok <- error
 pragma(msg, typeof(makeAA14166()[0] = 1));   // ok <- error
 pragma(msg, typeof(tup14166.field = makeTup14166()));   // ok <- error
+
+/***************************************************/
+// 14388
+
+@property immutable(T)[] idup14388(T)(T[] a)
+{
+    alias U = immutable(T);
+    U[] res;
+    foreach (ref e; a)
+        res ~= e;
+    return res;
+}
+
+struct Data14388(A14388 a)
+{
+    auto foo()
+    {
+        return Data14388!a.init;    // [B]
+    }
+}
+
+struct A14388
+{
+    struct Item {}
+
+    immutable(Item)[] items;
+
+    this(int dummy)
+    {
+        items = [Item()].idup14388;
+    }
+}
+
+void test14388()
+{
+    auto test = Data14388!(A14388(42)).init.foo();  // [A]
+    /*
+     * A(42) is interpreter to a struct literal A([immutable(Item)()]).
+     * The internal VarDeclaration with STCmanifest for the Data's template parameteter 'a'
+     * calls syntaxCopy() on its ((ExpInitializer *)init)->exp in VarDeclaration::semantic(),
+     * and 'immutable(Item)()'->syntaxCopy() had incorrectly removed the qualifier.
+     * Then, the arguments of two Data template instances at [A] and [B] had become unmatch,
+     * and the second instantiation had created the AST duplication.
+     */
+}
