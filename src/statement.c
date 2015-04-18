@@ -3872,11 +3872,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         if (checkNonAssignmentArrayOp(exp))
             exp = new ErrorExp();
-        if (exp->op == TOKcall)
-            exp = valueNoDtor(exp);
 
         // Extract side-effect part
         exp = Expression::extractLast(exp, &e0);
+        if (exp->op == TOKcall)
+            exp = valueNoDtor(exp);
 
         /* Void-return function can have void typed expression
          * on return statement.
