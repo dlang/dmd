@@ -3450,6 +3450,150 @@ void test13586()
 }
 
 /**********************************/
+// 14443
+
+T enforce14443(E : Throwable = Exception, T)(T value)
+{
+    if (!value)
+        throw new E("Enforcement failed");
+    return value;
+}
+
+struct RefCounted14443(T)
+if (!is(T == class) && !(is(T == interface)))
+{
+    struct RefCountedStore
+    {
+        private struct Impl
+        {
+            T _payload;
+            size_t _count;
+        }
+
+        private Impl* _store;
+
+        private void initialize(A...)(auto ref A args)
+        {
+            import core.stdc.stdlib : malloc;
+
+            // enforce is necessary
+            _store = cast(Impl*) enforce14443(malloc(Impl.sizeof));
+
+            // emulate 'emplace'
+            static if (args.length > 0)
+                _store._payload.tupleof = args;
+            else
+                _store._payload = T.init;
+
+            _store._count = 1;
+        }
+
+        @property bool isInitialized() const nothrow @safe
+        {
+            return _store !is null;
+        }
+
+        void ensureInitialized()
+        {
+            if (!isInitialized) initialize();
+        }
+
+    }
+    RefCountedStore _refCounted;
+
+    this(A...)(auto ref A args) if (A.length > 0)
+    {
+        _refCounted.initialize(args);
+    }
+
+    this(this)
+    {
+        if (!_refCounted.isInitialized)
+            return;
+        ++_refCounted._store._count;
+        //printf("RefCounted count = %d (inc)\n", _refCounted._store._count);
+    }
+
+    ~this()
+    {
+        if (!_refCounted.isInitialized)
+            return;
+        assert(_refCounted._store._count > 0);
+        if (--_refCounted._store._count)
+        {
+            //printf("RefCounted count = %u\n", _refCounted._store._count);
+            return;
+        }
+
+        import core.stdc.stdlib : free;
+        free(_refCounted._store);
+        _refCounted._store = null;
+    }
+
+    void opAssign(typeof(this) rhs) { assert(0); }
+    void opAssign(T rhs) { assert(0); }
+
+    @property ref T refCountedPayload()
+    {
+        _refCounted.ensureInitialized();
+        return _refCounted._store._payload;
+    }
+
+    alias refCountedPayload this;
+}
+
+struct Path14443
+{
+    struct Payload
+    {
+        int p;
+    }
+    RefCounted14443!Payload data;
+}
+
+struct PathRange14443
+{
+    Path14443 path;
+    size_t i;
+
+    @property PathElement14443 front()
+    {
+        return PathElement14443(this, path.data.p);
+    }
+}
+
+struct PathElement14443
+{
+    PathRange14443 range;
+
+    this(PathRange14443 range, int)
+    {
+        this.range = range;
+    }
+}
+
+void test14443()
+{
+    auto path = Path14443(RefCounted14443!(Path14443.Payload)(12));
+    assert(path.data.p == 12);
+
+    @property refCount() { return path.data._refCounted._store._count; }
+    assert(refCount == 1);
+
+    {
+        auto _r = PathRange14443(path);
+        assert(refCount == 2);
+        // foreach
+        {
+            auto element = _r.front;
+            assert(refCount == 3);  // fail with 2.067
+        }
+        assert(refCount == 2);
+    }
+    assert(refCount == 1);
+}
+
+/**********************************/
 // 13661, 14022, 14023 - postblit/dtor call on static array assignment
 
 bool test13661()
@@ -3809,6 +3953,7 @@ int main()
     test13303();
     test13673();
     test13586();
+    test14443();
     test13661();
     test13661a();
     test14022();
