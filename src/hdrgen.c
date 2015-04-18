@@ -77,9 +77,10 @@ class PrettyPrintVisitor : public Visitor
 public:
     OutBuffer *buf;
     HdrGenState *hgs;
+    bool declstring; // set while declaring alias for string,wstring or dstring
 
     PrettyPrintVisitor(OutBuffer *buf, HdrGenState *hgs)
-        : buf(buf), hgs(hgs)
+        : buf(buf), hgs(hgs), declstring(false)
     {
     }
 
@@ -762,6 +763,8 @@ public:
     void visit(TypeDArray *t)
     {
         Type *ut = t->castMod(0);
+        if (declstring)
+            goto L1;
         if (ut->equals(Type::tstring))
             buf->writestring("string");
         else if (ut->equals(Type::twstring))
@@ -770,6 +773,7 @@ public:
             buf->writestring("dstring");
         else
         {
+        L1:
             visitWithMask(t->next, t->mod);
             buf->writestring("[]");
         }
@@ -1692,10 +1696,13 @@ public:
         }
         else
         {
-            buf->writestring(d->ident->toChars());
+            const char* id = d->ident->toChars();
+            declstring = (strcmp (id, "string") == 0 || strcmp (id, "wstring") == 0 || strcmp (id, "dstring") == 0);
+            buf->writestring(id);
             buf->writestring(" = ");
             StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
             typeToBuffer(d->type, NULL);
+            declstring = false;
         }
         buf->writeByte(';');
         buf->writenl();
