@@ -1365,14 +1365,14 @@ class Throwable : Object
      */
     Throwable   next;
 
-    @safe pure nothrow this(string msg, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, Throwable next = null)
     {
         this.msg = msg;
         this.next = next;
         //this.info = _d_traceContext();
     }
 
-    @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
     {
         this(msg, next);
         this.file = file;
@@ -1491,12 +1491,12 @@ class Exception : Throwable
      * This constructor does not automatically throw the newly-created
      * Exception; the $(D throw) statement should be used for that purpose.
      */
-    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
     {
         super(msg, file, line, next);
     }
 
-    @safe pure nothrow this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
+    @nogc @safe pure nothrow this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
     {
         super(msg, file, line, next);
     }
@@ -1547,13 +1547,13 @@ class Error : Throwable
      * This constructor does not automatically throw the newly-created
      * Error; the $(D throw) statement should be used for that purpose.
      */
-    @safe pure nothrow this(string msg, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, Throwable next = null)
     {
         super(msg, next);
         bypassedException = null;
     }
 
-    @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
     {
         super(msg, file, line, next);
         bypassedException = null;
