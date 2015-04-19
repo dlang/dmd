@@ -4282,12 +4282,12 @@ unittest
 /+
     Local version of abs, since std.math.abs is in Phobos, not druntime.
   +/
-long _abs(long val) @safe pure nothrow @nogc
+private long _abs(long val) @safe pure nothrow @nogc
 {
     return val >= 0 ? val : -val;
 }
 
-double _abs(double val) @safe pure nothrow @nogc
+private double _abs(double val) @safe pure nothrow @nogc
 {
     return val >= 0.0 ? val : -val;
 }
