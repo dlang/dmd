@@ -617,6 +617,7 @@ Dsymbol *AliasDeclaration::toAlias()
 OverDeclaration::OverDeclaration(Dsymbol *s, bool hasOverloads)
     : Declaration(s->ident)
 {
+    this->overnext = NULL;
     this->aliassym = s;
 
     this->hasOverloads = hasOverloads;
