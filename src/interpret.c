@@ -4836,8 +4836,10 @@ public:
         }
         if (!exceptionOrCantInterpret(result))
         {
+            Expression* old = result;
             result = paintTypeOntoLiteral(e->type, result);
-            result->loc = e->loc;
+            if (result != old) // only change location if a conversion was necessary
+                result->loc = e->loc;
         }
         else if (CTFEExp::isCantExp(result) && !global.gag)
             showCtfeBackTrace(e, fd);   // Print a stack trace.
