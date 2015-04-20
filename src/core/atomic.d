@@ -218,15 +218,15 @@ else version( AsmX86_32 )
         //
         // +=   -=  *=  /=  %=  ^^= &=
         // |=   ^=  <<= >>= >>>=    ~=
-        static if( op == "+=" && __traits(isIntegral, T) && T.sizeof <= 4 && V1.sizeof <= 4) {
+        static if( op == "+=" && __traits(isIntegral, T) && T.sizeof <= 4 && V1.sizeof <= 4)
+        {
             return cast(T)(atomicFetchAdd!(T)(val, mod) + mod);
         }
-        else
-        static if( op == "-=" && __traits(isIntegral, T) && T.sizeof <= 4 && V1.sizeof <= 4) {
+        else static if( op == "-=" && __traits(isIntegral, T) && T.sizeof <= 4 && V1.sizeof <= 4)
+        {
             return cast(T)(atomicFetchSub!(T)(val, mod) - mod);
         }
-        else
-        static if( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
+        else static if( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
         {
@@ -736,15 +736,15 @@ else version( AsmX86_64 )
         //
         // +=   -=  *=  /=  %=  ^^= &=
         // |=   ^=  <<= >>= >>>=    ~=
-        static if( op == "+=" && __traits(isIntegral, T) && __traits(isIntegral, V1)) {
+        static if( op == "+=" && __traits(isIntegral, T) && __traits(isIntegral, V1))
+        {
             return cast(T)(atomicFetchAdd!(T)(val, mod) + mod);
         }
-        else
-        static if( op == "-=" && __traits(isIntegral, T) && __traits(isIntegral, V1)) {
+        else static if( op == "-=" && __traits(isIntegral, T) && __traits(isIntegral, V1))
+        {
             return cast(T)(atomicFetchSub!(T)(val, mod) - mod);
         }
-        else 
-        static if( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
+        else static if( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
         {
@@ -1523,14 +1523,15 @@ version( unittest )
         shared byte i8 = 5;
         shared short i16 = 6;
         shared int i32 = 7;
-     
+
         assert(atomicOp!"+="(u8, 8) == 9);
         assert(atomicOp!"+="(u16, 8) == 10);
         assert(atomicOp!"+="(u32, 8) == 11);
         assert(atomicOp!"+="(i8, 8) == 13);
         assert(atomicOp!"+="(i16, 8) == 14);
         assert(atomicOp!"+="(i32, 8) == 15);
-        version( AsmX86_64 ) {
+        version( AsmX86_64 )
+        {
             shared ulong u64 = 4;
             shared long i64 = 8;
             assert(atomicOp!"+="(u64, 8) == 12);
@@ -1553,7 +1554,8 @@ version( unittest )
         assert(atomicOp!"-="(i8, 1) == 4);
         assert(atomicOp!"-="(i16, 1) == 5);
         assert(atomicOp!"-="(i32, 1) == 6);
-        version( AsmX86_64 ) {
+        version( AsmX86_64 )
+        {
             shared ulong u64 = 4;
             shared long i64 = 8;
             assert(atomicOp!"-="(u64, 1) == 3);
