@@ -3155,6 +3155,7 @@ struct SmallObjectPool
 
         info.base = cast(void*)((cast(size_t)p) & notbinsize[bin]);
         info.size = binsize[bin];
+        offset = info.base - baseAddr;
         info.attr = getBits(cast(size_t)(offset >> shiftBy));
 
         return info;
@@ -3240,6 +3241,14 @@ struct SmallObjectPool
         (cast(List *)p).pool = &base;
         return first;
     }
+}
+
+unittest // bugzilla 14467
+{
+    int[] arr = new int[10];
+    assert(arr.capacity);
+    arr = arr[$..$];
+    assert(arr.capacity);
 }
 
 /* ============================ SENTINEL =============================== */
