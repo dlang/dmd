@@ -494,6 +494,9 @@ void normalize2803(R)(R range, ElementType2803!R sum = 1)
     static assert(is(typeof(sum) == double));
 }
 
+auto foo14468(T)(T[]...) { return 1; }
+auto foo14468(bool flag, T)(T[]...) { return 2; }
+
 void test2803()
 {
     assert(foo2803() == 0);
@@ -519,6 +522,8 @@ void test2803()
 
     double[] a = [];
     normalize2803(a);
+
+    assert(foo14468!int() == 1);
 }
 
 /**********************************/

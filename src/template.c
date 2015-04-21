@@ -1499,7 +1499,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         if (argi >= nfargs)                // if not enough arguments
         {
             if (!fparam->defaultArg)
-                goto Lnomatch;
+                goto Lvarargs;
 
             /* Bugzilla 2803: Before the starting of type deduction from the function
              * default arguments, set the already deduced parameters into paramscope.
