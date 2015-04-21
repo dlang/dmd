@@ -2003,7 +2003,7 @@ extern (C)
     // alias _dg2_t = extern(D) int delegate(void*, void*);
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
-    private struct AARange { void* impl, current; }
+    private struct AARange { void* impl; size_t idx; }
     AARange _aaRange(void* aa) pure nothrow @nogc;
     bool _aaRangeEmpty(AARange r) pure nothrow @nogc;
     void* _aaRangeFrontKey(AARange r) pure nothrow @nogc;
@@ -2139,7 +2139,9 @@ auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 {
     auto a = cast(void[])_aaKeys(cast(inout(void)*)aa, Key.sizeof, typeid(Key[]));
-    return *cast(Key[]*)&a;
+    auto res = *cast(Key[]*)&a;
+    _doPostblit(res);
+    return res;
 }
 
 Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
@@ -2150,12 +2152,41 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 Value[] values(T : Value[Key], Value, Key)(T aa) @property
 {
     auto a = cast(void[])_aaValues(cast(inout(void)*)aa, Key.sizeof, Value.sizeof, typeid(Value[]));
-    return *cast(Value[]*)&a;
+    auto res = *cast(Value[]*)&a;
+    _doPostblit(res);
+    return res;
 }
 
 Value[] values(T : Value[Key], Value, Key)(T *aa) @property
 {
     return (*aa).values;
+}
+
+unittest
+{
+    static struct T
+    {
+        static size_t count;
+        this(this) { ++count; }
+    }
+    T[int] aa;
+    T t;
+    aa[0] = t;
+    aa[1] = t;
+    assert(T.count == 2);
+    auto vals = aa.values;
+    assert(vals.length == 2);
+    assert(T.count == 4);
+
+    T.count = 0;
+    int[T] aa2;
+    aa2[t] = 0;
+    assert(T.count == 1);
+    aa2[t] = 1;
+    assert(T.count == 1);
+    auto keys = aa2.keys;
+    assert(keys.length == 1);
+    assert(T.count == 2);
 }
 
 auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc @property
