@@ -7,6 +7,9 @@
  */
 module rt.aaA;
 
+/// AA version for debuggers, bump whenever changing the layout
+extern (C) immutable int _aaVersion = 1;
+
 import core.memory : GC;
 
 // grow threshold
