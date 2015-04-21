@@ -2648,8 +2648,6 @@ L1:
             switch (value)
             {   case 0:
                     c = genclrreg(c,reg);
-                    if (flags & 64)
-                        code_orrex(c, REX_W);
                     break;
                 case 1:
                     if (I64)
@@ -2713,8 +2711,6 @@ L1:
             }
             if (value == 0 && !(flags & 8) && config.target_cpu >= TARGET_80486)
             {   c = genclrreg(c,reg);           // CLR reg
-                if (flags & 64)
-                    code_orrex(c, REX_W);
                 goto done;
             }
 
@@ -2751,8 +2747,6 @@ L1:
 
             if (value == 0 && !(flags & 8))
             {   c = genclrreg(c,reg);           // CLR reg
-                if (flags & 64)
-                    code_orrex(c, REX_W);
             }
             else
             {   /* See if we can just load a byte       */
