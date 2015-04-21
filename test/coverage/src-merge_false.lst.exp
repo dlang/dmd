@@ -1,0 +1,7 @@
+       |extern(C) void dmd_coverSetMerge(bool);
+       |
+       |void main()
+       |{
+      1|    dmd_coverSetMerge(false);
+       |}
+src/merge_false.d is 100% covered
