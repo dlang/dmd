@@ -537,12 +537,17 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
         {
             p = aa.findSlotInsert(hash);
             p.hash = hash;
-            p.entry = allocEntry(aa, pkey);
+            p.entry = allocEntry(aa, pkey); // move key, no postblit
             aa.firstUsed = min(aa.firstUsed, cast(uint)(p - aa.buckets.ptr));
+        }
+        else if (aa.entryTI && hasDtor(ti.value))
+        {
+            // destroy existing value before overwriting it
+            ti.value.destroy(p.entry + off);
         }
         // set hash and blit value
         auto pdst = p.entry + off;
-        pdst[0 .. valsz] = pval[0 .. valsz];
+        pdst[0 .. valsz] = pval[0 .. valsz]; // move value, no postblit
 
         pkey += keysz;
         pval += valsz;
@@ -865,4 +870,53 @@ unittest
     assert(aa.length == 4);
     foreach (i; 6 .. 10)
         assert(i in aa);
+}
+
+// test postblit for AA literals
+unittest
+{
+    static struct T
+    {
+        static size_t postblit, dtor;
+        this(this)
+        {
+            ++postblit;
+        }
+
+        ~this()
+        {
+            ++dtor;
+        }
+    }
+
+    T t;
+    auto aa1 = [0 : t, 1 : t];
+    assert(T.dtor == 0 && T.postblit == 2);
+    aa1[0] = t;
+    assert(T.dtor == 1 && T.postblit == 3);
+
+    T.dtor = 0;
+    T.postblit = 0;
+
+    auto aa2 = [0 : t, 1 : t, 0 : t]; // literal with duplicate key => value overwritten
+    assert(T.dtor == 1 && T.postblit == 3);
+
+    T.dtor = 0;
+    T.postblit = 0;
+
+    auto aa3 = [t : 0];
+    assert(T.dtor == 0 && T.postblit == 1);
+    aa3[t] = 1;
+    assert(T.dtor == 0 && T.postblit == 1);
+    aa3.remove(t);
+    assert(T.dtor == 0 && T.postblit == 1);
+    aa3[t] = 2;
+    assert(T.dtor == 0 && T.postblit == 2);
+
+    // dtor will be called by GC finalizers
+    aa1 = null;
+    aa2 = null;
+    aa3 = null;
+    GC.runFinalizers((cast(char*)(&entryDtor))[0 .. 1]);
+    assert(T.dtor == 6 && T.postblit == 2);
 }
