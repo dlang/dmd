@@ -2663,12 +2663,14 @@ L1:
                 L4:
                     if (flags & 64)
                     {
-                        c = genc2(c,0xC7,(REX_W << 16) | modregrmx(3,0,reg),value); // MOV reg,value64
+                        c = genc2(c,0xB8 + (reg&7),REX_W << 16 | (reg&8) << 13,value); // MOV reg,value64
                         gentstreg(c,reg);
                         code_orrex(c, REX_W);
                     }
                     else
-                    {   c = genc2(c,0xC7,modregrmx(3,0,reg),value); /* MOV reg,value */
+                    {
+                        value &= 0xFFFFFFFF;
+                        c = genc2(c,0xB8 + (reg&7),(reg&8) << 13,value); /* MOV reg,value */
                         gentstreg(c,reg);
                     }
                     break;
@@ -2766,11 +2768,11 @@ L1:
                     }
                 }
                 if (flags & 64)
-                    c = genc2(c,0xC7,(REX_W << 16) | modregrmx(3,0,reg),value); // MOV reg,value64
+                    c = genc2(c,0xB8 + (reg&7),REX_W << 16 | (reg&8) << 13,value); // MOV reg,value64
                 else
-                {   c = genc2(c,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
-                    if (I64)
-                        value &= 0xFFFFFFFF;
+                {
+                    value &= 0xFFFFFFFF;
+                    c = genc2(c,0xB8 + (reg&7),(reg&8) << 13,value); /* MOV reg,value */
                 }
             }
         }
@@ -5153,7 +5155,11 @@ void pinholeopt(code *c,block *b)
                 {   case 0xC6:  op = 0xB0 + ereg; break;
                     case 0xC7: // if no sign extension
                         if (!(c->Irex & REX_W && c->IEV2.Vint < 0))
+                        {
+                            c->Irm = 0;
+                            c->Irex &= ~REX_W;
                             op = 0xB8 + ereg;
+                        }
                         break;
                     case 0xFF:
                         switch (reg)
@@ -5169,6 +5175,15 @@ void pinholeopt(code *c,block *b)
                         break;
                 }
                 c->Iop = op;
+            }
+
+            // Look to remove redundant REX prefix on XOR
+            if (c->Irex == REX_W // ignore ops involving R8..R15
+                && (op == 0x31 || op == 0x33) // XOR
+                && ((rm & 0xC0) == 0xC0) // register direct
+                && ((reg >> 3) == ereg)) // register with itself
+            {
+                c->Irex = 0;
             }
 
             // Look to replace SHL reg,1 with ADD reg,reg
@@ -5261,6 +5276,22 @@ void pinholeopt(code *c,block *b)
             switch (op)
             {
                 default:
+                    // Look for MOV r64, immediate
+                    if ((c->Irex & REX_W) && (op & ~7) == 0xB8)
+                    {
+                        /* Look for zero extended immediate data */
+                        if (c->IEV2.Vsize_t == c->IEV2.Vuns)
+                        {
+                            c->Irex &= ~REX_W;
+                        }
+                        /* Look for sign extended immediate data */
+                        else if (c->IEV2.Vsize_t == c->IEV2.Vint)
+                        {
+                            c->Irm = modregrm(3,0,op & 7);
+                            c->Iop = op = 0xC7;
+                            c->IEV2.Vsize_t = c->IEV2.Vuns;
+                        }
+                    }
                     if ((op & ~0x0F) != 0x70)
                         break;
                 case JMP:
@@ -5321,7 +5352,11 @@ void pinholeopt(code *c,block *b)
 STATIC void pinholeopt_unittest()
 {
     //printf("pinholeopt_unittest()\n");
-    struct CS { unsigned model,op,ea,ev1,ev2,flags; } tests[][2] =
+    struct CS {
+        unsigned model,op,ea;
+        targ_size_t ev1,ev2;
+        unsigned flags;
+    } tests[][2] =
     {
         // XOR reg,immed                            NOT regL
         {{ 16,0x81,modregrm(3,6,BX),0,0xFF,0 },    { 0,0xF6,modregrm(3,2,BX),0,0xFF }},
@@ -5352,8 +5387,16 @@ STATIC void pinholeopt_unittest()
         {{ 32,0x68,0,0,0x10000,CFopsize },    { 0,0x6A,0,0,0x10000,CFopsize }},
         {{ 32,0x68,0,0,0x8000,CFopsize }, { 0,0x68,0,0,0x8000,CFopsize }},
 
+        // clear r64, for r64 != R8..R15
+        {{ 64,0x31,0x800C0,0,0,0 }, { 0,0x31,0xC0,0,0,0}},
+        {{ 64,0x33,0x800C0,0,0,0 }, { 0,0x33,0xC0,0,0,0}},
+
         // MOV r64, immed
         {{ 64,0xC7,0x800C0,0,0xFFFFFFFF,0 }, { 0,0xC7,0x800C0,0,0xFFFFFFFF,0}},
+        {{ 64,0xC7,0x800C0,0,0x7FFFFFFF,0 }, { 0,0xB8,0,0,0x7FFFFFFF,0}},
+        {{ 64,0xB8,0x80000,0,0xFFFFFFFF,0 }, { 0,0xB8,0,0,0xFFFFFFFF,0 }},
+        {{ 64,0xB8,0x80000,0,0x1FFFFFFFF,0 }, { 0,0xB8,0x80000,0,0x1FFFFFFFF,0 }},
+        {{ 64,0xB8,0x80000,0,0xFFFFFFFFFFFFFFFF,0 }, { 0,0xC7,0x800C0,0,0xFFFFFFFF,0}},
     };
 
     //config.flags4 |= CFG4space;
@@ -5376,8 +5419,8 @@ STATIC void pinholeopt_unittest()
         cs.Iea = pin->ea;
         cs.IFL1 = FLconst;
         cs.IFL2 = FLconst;
-        cs.IEV1.Vuns = pin->ev1;
-        cs.IEV2.Vuns = pin->ev2;
+        cs.IEV1.Vsize_t = pin->ev1;
+        cs.IEV2.Vsize_t = pin->ev2;
         cs.Iflags = pin->flags;
         pinholeopt(&cs, NULL);
         if (cs.Iop != pout->op)
@@ -5385,8 +5428,8 @@ STATIC void pinholeopt_unittest()
             assert(0);
         }
         assert(cs.Iea == pout->ea);
-        assert(cs.IEV1.Vuns == pout->ev1);
-        assert(cs.IEV2.Vuns == pout->ev2);
+        assert(cs.IEV1.Vsize_t == pout->ev1);
+        assert(cs.IEV2.Vsize_t == pout->ev2);
         assert(cs.Iflags == pout->flags);
     }
 }
