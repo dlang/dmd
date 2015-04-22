@@ -6561,6 +6561,19 @@ L1:     pop     RAX;
 
 /****************************************************/
 
+void testconst()
+{
+    ulong result;
+    asm
+    {
+        mov RAX, 0xFFFF_FFFFu;
+        mov result, RAX;
+    }
+    assert (result == 0xFFFF_FFFFu);
+}
+
+/****************************************************/
+
 void test9965()
 {
     ubyte* p;
@@ -6721,6 +6734,7 @@ int main()
     test9965();
     test12849();
     test12968();
+    testconst();
 
     printf("Success\n");
     return 0;
