@@ -5157,7 +5157,10 @@ void pinholeopt(code *c,block *b)
             if ((ins & R) && (rm & 0xC0) == 0xC0)
             {   switch (op)
                 {   case 0xC6:  op = 0xB0 + ereg; break;
-                    case 0xC7:  op = 0xB8 + ereg; break;
+                    case 0xC7: // if no sign extension
+                        if (!(c->Irex & REX_W && c->IEV2.Vint < 0))
+                            op = 0xB8 + ereg;
+                        break;
                     case 0xFF:
                         switch (reg)
                         {   case 6<<3: op = 0x50+ereg; break;/* PUSH*/
@@ -5354,6 +5357,9 @@ STATIC void pinholeopt_unittest()
         {{ 32,0x68,0,0,0x80,CFopsize }, { 0,0x68,0,0,0x80,CFopsize }},
         {{ 32,0x68,0,0,0x10000,CFopsize },    { 0,0x6A,0,0,0x10000,CFopsize }},
         {{ 32,0x68,0,0,0x8000,CFopsize }, { 0,0x68,0,0,0x8000,CFopsize }},
+
+        // MOV r64, immed
+        {{ 64,0xC7,0x800C0,0,0xFFFFFFFF,0 }, { 0,0xC7,0x800C0,0,0xFFFFFFFF,0}},
     };
 
     //config.flags4 |= CFG4space;
