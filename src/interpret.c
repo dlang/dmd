@@ -4176,9 +4176,9 @@ public:
                     newelem = paintTypeOntoLiteral(elemtype, newelem);
                     if (needsPostblit)
                     {
-                        newelem = evaluatePostblit(istate, newelem);
-                        if (exceptionOrCantInterpret(newelem))
-                            return newelem;
+                        Expression *x = evaluatePostblit(istate, newelem);
+                        if (exceptionOrCantInterpret(x))
+                            return x;
                     }
                     (*oldelems)[(size_t)(j + firstIndex)] = newelem;
                 }
