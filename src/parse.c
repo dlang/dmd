@@ -621,7 +621,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             {
                 if (peekNext() == TOKrbracket)
                     error("empty attribute list is not allowed");
-                deprecation("use @(attributes) instead of [attributes]");
+                error("use @(attributes) instead of [attributes]");
                 Expressions *exps = parseArguments();
                 // no redundant/conflicting check for UDAs
 
