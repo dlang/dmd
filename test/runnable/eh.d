@@ -580,6 +580,8 @@ void test9568()
 
 /****************************************************/
 
+version (DigitalMars)
+{
 void test8a()
 {
   int a;
@@ -631,6 +633,7 @@ void test8()
   test8a();
   test8b();
   test8c();
+}
 }
 
 /****************************************************/
@@ -769,7 +772,7 @@ int main()
     multicollide();
     test9568();
 
-    test8();
+    version(DigitalMars) test8();
     test9();
     test10964();
     test12989();
