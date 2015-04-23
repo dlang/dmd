@@ -4498,6 +4498,25 @@ template Qux14357(T : U*, U : V*, V)
 static assert(!__traits(compiles, Qux14357!(float**, int*)));
 
 /******************************************/
+// 14481
+
+template someT14481(alias e)
+{
+    alias someT14481 = e;
+}
+
+mixin template Mix14481(alias e)
+{
+    alias SomeAlias = someT14481!e;
+}
+
+struct Hoge14481
+{
+    mixin Mix14481!e;
+    enum e = 10;
+}
+
+/******************************************/
 
 int main()
 {
