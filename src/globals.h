@@ -47,6 +47,7 @@ struct Param
     bool vtls;          // identify thread local variables
     char vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
+    bool vcomplex;      // identify complex/imaginary type usage
     char symdebug;      // insert debug symbolic information
     bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer
