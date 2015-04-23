@@ -608,7 +608,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                             {
                                 TypeFunction *tf = (TypeFunction *)fd->type;
                                 if (tf->ty == Tfunction)
-                                    cd->deprecation("use of %s%s hidden by %s is deprecated; use 'alias %s = %s.%s;' to introduce base class overload set",
+                                    cd->error("use of %s%s is hidden by %s; use 'alias %s = %s.%s;' to introduce base class overload set",
                                         fd->toPrettyChars(),
                                         parametersTypeToChars(tf->parameters, tf->varargs),
                                         cd->toChars(),
@@ -617,8 +617,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                                         fd->parent->toChars(),
                                         fd->toChars());
                                 else
-                                    cd->deprecation("use of %s hidden by %s is deprecated", fd->toPrettyChars(), cd->toChars());
-                                s = rtlsym[RTLSYM_DHIDDENFUNC];
+                                    cd->error("use of %s is hidden by %s", fd->toPrettyChars(), cd->toChars());
                                 break;
                             }
                         }
