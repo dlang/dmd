@@ -659,8 +659,6 @@ L2:
         }
         else if (reg == 6)                      // if DIV
         {   cd = genregs(cd,0x33,DX,DX);        // XOR DX,DX
-            if (I64 && sz == 8)
-                code_orrex(cd, REX_W);
         }
   }
 

@@ -4422,9 +4422,14 @@ static OPND *asm_primary_exp()
             break;
 
         case TOKint32v:
-        case TOKuns32v:
             o1 = new OPND();
             o1->disp = (d_int32)asmtok->int64value;
+            asm_token();
+            break;
+
+        case TOKuns32v:
+            o1 = new OPND();
+            o1->disp = (d_uns32)asmtok->uns64value;
             asm_token();
             break;
 
