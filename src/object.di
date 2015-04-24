@@ -411,7 +411,7 @@ extern (C)
     // alias _dg2_t = extern(D) int delegate(void*, void*);
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
-    private struct AARange { void* impl, current; }
+    private struct AARange { void* impl; size_t idx; }
     AARange _aaRange(void* aa) pure nothrow @nogc;
     bool _aaRangeEmpty(AARange r) pure nothrow @nogc;
     void* _aaRangeFrontKey(AARange r) pure nothrow @nogc;
@@ -542,7 +542,9 @@ auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 {
     auto a = cast(void[])_aaKeys(cast(inout(void)*)aa, Key.sizeof, typeid(Key[]));
-    return *cast(Key[]*)&a;
+    auto res = *cast(Key[]*)&a;
+    _doPostblit(res);
+    return res;
 }
 
 Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
@@ -553,7 +555,9 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 Value[] values(T : Value[Key], Value, Key)(T aa) @property
 {
     auto a = cast(void[])_aaValues(cast(inout(void)*)aa, Key.sizeof, Value.sizeof, typeid(Value[]));
-    return *cast(Value[]*)&a;
+    auto res = *cast(Value[]*)&a;
+    _doPostblit(res);
+    return res;
 }
 
 Value[] values(T : Value[Key], Value, Key)(T *aa) @property
