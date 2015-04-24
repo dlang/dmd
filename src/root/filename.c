@@ -16,6 +16,7 @@
 #include "array.h"
 #include "file.h"
 #include "rmem.h"
+#include "utils.h"
 
 #if defined (__sun)
 #include <alloca.h>
@@ -24,12 +25,6 @@
 #if _MSC_VER ||__MINGW32__
 #include <malloc.h>
 #include <string>
-#endif
-
-#if _WIN32
-#include <windows.h>
-#include <direct.h>
-#include <errno.h>
 #endif
 
 #if POSIX
@@ -555,10 +550,20 @@ int FileName::exists(const char *name)
         return 2;
     return 1;
 #elif _WIN32
-    DWORD dw;
-    int result;
+    LPCWSTR wname = UTF8toWide(name);
+    int result = exists(wname);
+    ::free((void *)wname);
+    return result;
+#else
+    assert(0);
+#endif
+}
 
-    dw = GetFileAttributesA(name);
+#if _WIN32
+int FileName::exists(LPCWSTR name)
+{
+    int result;
+    DWORD dw = GetFileAttributesW(name);
     if (dw == -1L)
         result = 0;
     else if (dw & FILE_ATTRIBUTE_DIRECTORY)
@@ -566,10 +571,8 @@ int FileName::exists(const char *name)
     else
         result = 1;
     return result;
-#else
-    assert(0);
-#endif
 }
+#endif
 
 bool FileName::ensurePathExists(const char *path)
 {
@@ -602,12 +605,7 @@ bool FileName::ensurePathExists(const char *path)
             if (path[strlen(path) - 1] != sep)
             {
                 //printf("mkdir(%s)\n", path);
-#if _WIN32
-                int r = _mkdir(path);
-#endif
-#if POSIX
-                int r = mkdir(path, (7 << 6) | (7 << 3) | 7);
-#endif
+                int r = dmkdir(path);
                 if (r)
                 {
                     /* Don't error out if another instance of dmd just created
@@ -635,16 +633,20 @@ const char *FileName::canonicalName(const char *name)
     /* Apparently, there is no good way to do this on Windows.
      * GetFullPathName isn't it, but use it anyway.
      */
-    DWORD result = GetFullPathNameA(name, 0, NULL, NULL);
+    LPCWSTR wname = UTF8toWide(name);
+    DWORD result = GetFullPathNameW(wname, 0, NULL, NULL);
     if (result)
     {
-        char *buf = (char *)malloc(result);
-        result = GetFullPathNameA(name, result, buf, NULL);
+        LPWSTR wbuf = (LPWSTR)malloc(result * sizeof(WCHAR));
+        result = GetFullPathNameW(wname, result, wbuf, NULL);
         if (result == 0)
         {
-            ::free(buf);
+            ::free((void *)wname);
+            ::free(wbuf);
             return NULL;
         }
+        char *buf = wideToUTF8(wbuf);
+        ::free(wbuf);
         return buf;
     }
     return NULL;

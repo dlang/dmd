@@ -27,7 +27,8 @@
         "root/speller.h", "root/speller.c",
         "root/outbuffer.h", "root/outbuffer.c",
         "root/stringtable.h", "root/stringtable.c",
-        "root/man.c", "root/response.c"
+        "root/man.c", "root/response.c",
+        "root/utils.c"
     ],
     "mapping" :
     [
@@ -724,6 +725,7 @@
                 "root.array",
                 "root.filename",
                 "root.rmem",
+                "root.utils",
                 "core.sys.windows.windows",
                 "core.sys.posix.sys.types",
                 "core.sys.posix.utime",
@@ -1362,6 +1364,7 @@
                 "root.outbuffer",
                 "root.rmem",
                 "root.rootobject",
+                "root.utils",
                 "core.sys.windows.windows",
                 "core.sys.posix.sys.stat",
                 "core.sys.posix.stdlib"
@@ -1372,7 +1375,7 @@
                 "version (Windows) alias _mkdir = mkdir;",
                 "version (Posix) extern (C) char* canonicalize_file_name(const char*);",
                 "version (Windows) extern (C) int stricmp(const char*, const char*);",
-                "version (Windows) extern (Windows) DWORD GetFullPathNameA(LPCTSTR lpFileName, DWORD nBufferLength, LPTSTR lpBuffer, LPTSTR* lpFilePart);"
+                "version (Windows) extern (Windows) DWORD GetFullPathNameW(LPCWSTR lpFileName, DWORD nBufferLength, LPWSTR lpBuffer, LPWSTR* lpFilePart);"
             ],
             "members" :
             [
@@ -1699,6 +1702,7 @@
                 "root.filename",
                 "root.outbuffer",
                 "root.port",
+                "root.utils",
                 "core.sys.windows.windows",
                 "core.sys.posix.stdlib"
             ],
@@ -1964,6 +1968,7 @@
                 "root.filename",
                 "root.outbuffer",
                 "root.rmem",
+                "root.utils",
                 "core.sys.posix.sys.wait",
                 "core.sys.posix.stdlib",
                 "core.sys.posix.stdio",
@@ -1979,7 +1984,6 @@
             ],
             "members" :
             [
-                "version variable HAS_POSIX_SPAWN",
                 "function writeFilenameOutBuffer*char*size_t",
                 "function writeFilenameOutBuffer*char*",
                 "version function findNoMainError",
@@ -2512,6 +2516,7 @@
                 "root.outbuffer",
                 "root.rmem",
                 "root.response",
+                "root.utils",
                 "target",
                 "tokens",
                 "traits"
@@ -2533,6 +2538,7 @@
                 "function genCmain",
                 "function tryMain",
                 "function main",
+                "function wmain",
                 "function getenv_setargv",
                 "function escapePath",
                 "function parse_arch_arg",
@@ -3113,7 +3119,8 @@
                 "core.sys.windows.windows",
                 "globals",
                 "root.outbuffer",
-                "root.rmem"
+                "root.rmem",
+                "root.utils"
             ],
             "extra" :
             [
@@ -3122,7 +3129,8 @@
                 "version (Windows) int _fileno(FILE* f)",
                 "{",
                 "    return f._file;",
-                "}"
+                "}",
+                "version (Windows) extern (Windows) int fwprintf(FILE* _File, const wchar_t* _Format, ...);"
             ],
             "members" :
             [
@@ -3196,13 +3204,38 @@
                 "core.stdc.stdio",
                 "core.stdc.stdlib",
                 "core.stdc.string",
-                "root.file"
+                "root.file",
+                "root.utils"
             ],
             "members" :
             [
                 "struct Narg",
                 "function addargp",
                 "function response_expand"
+            ]
+        },
+        {
+            "module" : "utils",
+            "package" : "root",
+            "imports" : [
+                "core.stdc.stdio",
+                "core.stdc.stdlib",
+                "core.sys.windows.windows"
+            ],
+            "extra" :
+            [
+                "enum _MSC_VER = 0;",
+                "version (Windows) extern (Windows) wchar_t* _wgetenv(const wchar_t*);",
+                "version (Windows) extern (Windows) int _wputenv(const wchar_t*);",
+                "version (Windows) extern (Windows) int _wmkdir(const wchar_t*);",
+                "version (Windows) extern (Windows) int iswspace(short);",
+                "version (Windows) extern (Windows) intptr_t _wspawnlp(int, const wchar_t*, const wchar_t*, ...);",
+                "version (Windows) extern (Windows) intptr_t _wspawnl(int, const wchar_t*, const wchar_t*, ...);",
+                "version (Windows) extern (Windows) intptr_t _wspawnv(int, const wchar_t*, const wchar_t **);"
+            ],
+            "members" :
+            [
+                "version function wideToUTF8"
             ]
         }
     ],
@@ -3223,6 +3256,8 @@
 
         "size_t",
         "time_t",
+        "wchar_t",
+        "intptr_t",
         "longdouble",
         "volatile_longdouble",
         "uinteger_t",
@@ -3247,6 +3282,10 @@
         "hash_t",
         "DWORD",
         "WORD",
+        "WCHAR",
+        "LPSTR",
+        "LPWSTR",
+        "LPCWSTR",
         "HANDLE",
         "Key",
         "Value",

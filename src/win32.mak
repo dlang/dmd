@@ -175,7 +175,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 # Root package
 ROOTOBJS= man.obj port.obj checkedint.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj outbuffer.obj \
-	object.obj filename.obj file.obj \
+	object.obj filename.obj file.obj utils.obj \
 	rmem.obj newdelete.obj
 
 # D front end
@@ -236,7 +236,8 @@ ROOTSRCC=$(ROOT)\rmem.c $(ROOT)\stringtable.c \
 	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
 	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c \
 	$(ROOT)\checkedint.c $(ROOT)\newdelete.c \
-	$(ROOT)\outbuffer.c $(ROOT)\object.c $(ROOT)\filename.c $(ROOT)\file.c
+	$(ROOT)\outbuffer.c $(ROOT)\object.c $(ROOT)\filename.c \
+	$(ROOT)\file.c $(ROOT)\utils.c
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
 	$(ROOT)\stringtable.h \
@@ -250,6 +251,7 @@ ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\filename.h \
 	$(ROOT)\file.h \
 	$(ROOT)\array.h \
+	$(ROOT)\utils.h \
 	$(ROOTSRCC)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
@@ -347,7 +349,7 @@ GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	globals.d escape.d \
 	$(ROOT)\aav.d $(ROOT)\outbuffer.d $(ROOT)\stringtable.d \
 	$(ROOT)\file.d $(ROOT)\filename.d $(ROOT)\speller.d \
-	$(ROOT)\man.d $(ROOT)\response.d
+	$(ROOT)\man.d $(ROOT)\response.d $(ROOT)\utils.d
 
 MANUALSRC= \
 	intrange.d complex.d \
@@ -728,6 +730,9 @@ filename.obj : $(ROOT)\filename.c
 
 file.obj : $(ROOT)\file.c
 	$(CC) -c $(CFLAGS) $(ROOT)\file.c
+
+utils.obj : $(ROOT)\utils.c
+	$(CC) -c $(CFLAGS) $(ROOT)\utils.c
 
 # Root/GC -- Removed (look in history)
 #

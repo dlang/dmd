@@ -37,6 +37,7 @@
 #include "array.h"
 #include "port.h"
 #include "rmem.h"
+#include "utils.h"
 
 /****************************** File ********************************/
 
@@ -146,9 +147,10 @@ err1:
     DWORD size;
     DWORD numread;
 
-    char *name = this->name->toChars();
-    HANDLE h = CreateFileA(name,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,
+    LPCWSTR wname = UTF8toWide(this->name->toChars());
+    HANDLE h = CreateFileW(wname, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
+    free((void *)wname);
     if (h == INVALID_HANDLE_VALUE)
         goto err1;
 
@@ -224,8 +226,8 @@ err:
 #elif _WIN32
     DWORD numwritten;
 
-    char *name = this->name->toChars();
-    HANDLE h = CreateFileA(name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
+    LPCWSTR wname = UTF8toWide(this->name->toChars());
+    HANDLE h = CreateFileW(wname, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
         goto err;
@@ -238,12 +240,15 @@ err:
 
     if (!CloseHandle(h))
         goto err;
+
+    free((void *)wname);
     return false;
 
 err2:
     CloseHandle(h);
-    DeleteFileA(name);
+    DeleteFileW(wname);
 err:
+    free((void *)wname);
     return true;
 #else
     assert(0);
@@ -255,7 +260,9 @@ void File::remove()
 #if POSIX
     int dummy = ::remove(this->name->toChars());
 #elif _WIN32
-    DeleteFileA(this->name->toChars());
+    LPCWSTR wname = UTF8toWide(this->name->toChars());
+    DeleteFileW(wname);
+    free((void *)wname);
 #else
     assert(0);
 #endif

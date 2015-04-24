@@ -426,9 +426,6 @@
     <ClCompile Include="root\checkedint.c">
       <Filter>src\root</Filter>
     </ClCompile>
-    <ClCompile Include="root\dmgcmem.c">
-      <Filter>src\root</Filter>
-    </ClCompile>
     <ClCompile Include="root\longdouble.c">
       <Filter>src\root</Filter>
     </ClCompile>
@@ -460,6 +457,9 @@
       <Filter>src\root</Filter>
     </ClCompile>
     <ClCompile Include="root\stringtable.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\utils.c">
       <Filter>src\root</Filter>
     </ClCompile>
     <ClCompile Include="cdxxx.c">
@@ -758,6 +758,9 @@
     <ClInclude Include="root\stringtable.h">
       <Filter>src\root</Filter>
     </ClInclude>
+    <ClInclude Include="root\utils.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
     <ClInclude Include="id.h">
       <Filter>src\generated</Filter>
     </ClInclude>
@@ -779,9 +782,6 @@
     <ClInclude Include="nspace.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="backend\obj.h">
-      <Filter>src\backend</Filter>
-    </ClInclude>
     <ClInclude Include="tokens.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -790,9 +790,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="idgen.c">
-      <Filter>src\gen</Filter>
-    </CustomBuild>
     <CustomBuild Include="impcnvgen.c">
       <Filter>src\gen</Filter>
     </CustomBuild>
@@ -803,5 +800,6 @@
     <CustomBuild Include="vcbuild\ldfpu.asm">
       <Filter>src\vcbuild</Filter>
     </CustomBuild>
+    <CustomBuild Include="idgen.d" />
   </ItemGroup>
 </Project>

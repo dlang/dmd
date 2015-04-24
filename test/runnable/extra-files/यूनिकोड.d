@@ -1,0 +1,2 @@
+module unicode;
+void main() { }
