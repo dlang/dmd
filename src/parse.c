@@ -5071,16 +5071,6 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
                 check(TOKassign);
                 param = new Parameter(storageClass, at, ai, NULL);
             }
-            else if (storageClass == 0 &&
-                     token.value == TOKidentifier &&
-                     peek(&token)->value == TOKsemicolon)
-            {
-                // Check for " ident;"
-                param = new Parameter(0, NULL, token.ident, NULL);
-                nextToken();
-                nextToken();
-                error("use 'if (auto v = e)' instead of 'if (v; e)'");
-            }
             else if (isDeclaration(&token, 2, TOKassign, NULL))
             {
                 Identifier *ai;
