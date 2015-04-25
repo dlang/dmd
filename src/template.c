@@ -6652,6 +6652,13 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             }
             else if (ea->op == TOKvar)
             {
+                VarDeclaration *v = ((VarExp *)ea)->var->isVarDeclaration();
+                if (v && !(v->storage_class & STCtemplateparameter))
+                {
+                    if (v->sem < SemanticDone && v->scope)
+                        v->semantic(NULL);
+                }
+
                 /* This test is to skip substituting a const var with
                  * its initializer. The problem is the initializer won't
                  * match with an 'alias' parameter. Instead, do the
