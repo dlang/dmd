@@ -1144,44 +1144,6 @@ void test57()
 
 /************************************************/
 
-/+
-//import std.hiddenfunc;
-
-class B58
-{    long x;
-     void set(long i) { writeln("B58::set(long)"); x = i; }
-     void set(int i)  { writeln("B58::set(int)"); x = i; }
-     long squareIt()  { writeln("B58::squareit()"); return x * x; }
-}
-class D58 : B58
-{
-     long square;
-     void set(long i) { writeln("D58::set(long)"); B58.set(i); square = x * x; }
-     long squareIt()  { writeln("D58::squareit()"); return square; }
-}
-
-long foo58(B58 b)
-{   int i;
-    try
-    {
-	b.set(3);
-    }
-    catch (HiddenFuncError o)
-    {
-	i = 1;
-    }
-    assert(i == 1);
-    return b.squareIt();
-}
-
-void test58()
-{
-    writeln(foo58(new D58));
-}
-+/
-
-/************************************************/
-
 static this()
 {
    printf("one\n");
@@ -1330,7 +1292,6 @@ void main()
     test55();
     test56();
     test57();
-//    test58();
     test59();
     test60();
     test61();
