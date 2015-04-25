@@ -16,7 +16,6 @@
 module core.stdc.time;
 
 private import core.stdc.config;
-private import core.stdc.stddef; // for size_t
 
 extern (C):
 @trusted: // There are only a few functions here that use unsafe C strings.

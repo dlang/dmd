@@ -17,7 +17,7 @@ module core.sys.posix.sys.types;
 
 private import core.sys.posix.config;
 private import core.stdc.stdint;
-public import core.stdc.stddef; // for size_t
+public import core.stdc.stddef;
 
 version (Posix):
 extern (C):

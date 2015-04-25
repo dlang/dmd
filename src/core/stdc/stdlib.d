@@ -15,7 +15,7 @@
 module core.stdc.stdlib;
 
 private import core.stdc.config;
-public import core.stdc.stddef; // for size_t, wchar_t
+public import core.stdc.stddef; // for wchar_t
 
 extern (C):
 @system:

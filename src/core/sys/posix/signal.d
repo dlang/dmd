@@ -13,7 +13,6 @@ module core.sys.posix.signal;
 
 private import core.sys.posix.config;
 public import core.stdc.signal;
-public import core.stdc.stddef;         // for size_t
 public import core.sys.posix.sys.types; // for pid_t
 //public import core.sys.posix.time;      // for timespec, now defined here
 

@@ -14,8 +14,6 @@
 
 module core.stdc.string;
 
-private import core.stdc.stddef; // for size_t
-
 extern (C):
 @system:
 nothrow:

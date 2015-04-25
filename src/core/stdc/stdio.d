@@ -18,7 +18,6 @@ module core.stdc.stdio;
 private
 {
     import core.stdc.config;
-    import core.stdc.stddef; // for size_t
     import core.stdc.stdarg; // for va_list
     import core.stdc.stdint : intptr_t;
 

@@ -17,7 +17,6 @@ module core.sys.posix.sys.stat;
 private import core.sys.posix.config;
 private import core.stdc.stdint;
 private import core.sys.posix.time;     // for timespec
-public import core.stdc.stddef;          // for size_t
 public import core.sys.posix.sys.types; // for off_t, mode_t
 
 version (Posix):
