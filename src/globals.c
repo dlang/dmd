@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2015 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -60,7 +60,7 @@ void Global::init()
 #error "fix this"
 #endif
 
-    copyright = "Copyright (c) 1999-2014 by Digital Mars";
+    copyright = "Copyright (c) 1999-2015 by Digital Mars";
     written = "written by Walter Bright";
     version = "v"
 #include "verstr.h"
