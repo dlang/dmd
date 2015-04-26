@@ -27,7 +27,7 @@ struct StringValue
     char *lstring() { return (char *)(this + 1); }
 
     size_t len() const { return length; }
-    const char *toDchars() const { return (char *)(this + 1); }
+    const char *toDchars() const { return (const char *)(this + 1); }
 
     StringValue();  // not constructible
 };
