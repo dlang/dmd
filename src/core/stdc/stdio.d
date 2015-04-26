@@ -25,10 +25,6 @@ private
   {
     import core.sys.posix.sys.types;
   }
-  else version (Android)
-  {
-    import core.sys.posix.sys.types: off_t;
-  }
 }
 
 extern (C):
@@ -237,7 +233,7 @@ enum
 version( CRuntime_DigitalMars )
 {
     ///
-    alias int fpos_t; //check this
+    alias c_long fpos_t;
 
     ///
     struct _iobuf
@@ -258,7 +254,7 @@ version( CRuntime_DigitalMars )
 else version( CRuntime_Microsoft )
 {
     ///
-    alias int fpos_t; //check this
+    alias long fpos_t;
 
     ///
     struct _iobuf
@@ -278,8 +274,13 @@ else version( CRuntime_Microsoft )
 }
 else version( linux )
 {
+    import core.stdc.wchar_ : mbstate_t;
     ///
-    alias int fpos_t; //this is probably wrong, fix this
+    struct fpos_t
+    {
+        long __pos; // couldn't use off_t because of static if issue
+        mbstate_t __state;
+    }
 
     ///
     struct _IO_FILE
@@ -308,14 +309,14 @@ else version( linux )
     }
 
     ///
-    alias _IO_FILE _iobuf; //remove later
+    alias _IO_FILE _iobuf;
     ///
     alias shared(_IO_FILE) FILE;
 }
 else version( OSX )
 {
     ///
-    alias int fpos_t; //check this
+    alias long fpos_t;
 
     ///
     struct __sFILE
@@ -348,14 +349,14 @@ else version( OSX )
     }
 
     ///
-    alias __sFILE _iobuf; //remove later
+    alias __sFILE _iobuf;
     ///
     alias shared(__sFILE) FILE;
 }
 else version( FreeBSD )
 {
     ///
-    alias int fpos_t; //check this
+    alias off_t fpos_t;
 
     ///
     struct __sFILE
@@ -394,14 +395,14 @@ else version( FreeBSD )
     }
 
     ///
-    alias __sFILE _iobuf; //remove later
+    alias __sFILE _iobuf;
     ///
     alias shared(__sFILE) FILE;
 }
 else version (Solaris)
 {
     ///
-    alias int fpos_t; //check this
+    alias c_long fpos_t;
 
     ///
     struct _iobuf
@@ -424,6 +425,7 @@ else version (Solaris)
 }
 else version( Android )
 {
+    import core.sys.posix.sys.types : off_t;
     ///
     alias off_t fpos_t;
 
@@ -458,7 +460,7 @@ else version( Android )
     }
 
     ///
-    alias __sFILE _iobuf; //remove later
+    alias __sFILE _iobuf;
     ///
     alias shared(__sFILE) FILE;
 }
