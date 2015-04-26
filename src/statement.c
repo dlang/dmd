@@ -3273,6 +3273,28 @@ Statement *SwitchStatement::semantic(Scope *sc)
     bool conditionError = false;
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
+
+    /* resolve alias this */
+    {
+        Type *t = condition->type;
+        Type *tb = condition->type->toBasetype();
+        Type *att = NULL;
+    Lagain:
+        if (condition->type->ty == Tstruct)
+        {
+            AggregateDeclaration *ad = ((TypeStruct *)condition->type)->sym;
+            if (ad->aliasthis && tb != att)
+            {
+                if (!att && tb->checkAliasThisRec())
+                    att = tb;
+                condition = resolveAliasThis(sc, condition);
+                t = condition->type;
+                tb = condition->type->toBasetype();
+                goto Lagain;
+            }
+        }
+    }
+
     TypeEnum *te = NULL;
     // preserve enum type for final switches
     if (condition->type->ty == Tenum)
@@ -3456,12 +3478,26 @@ Statement *CaseStatement::semantic(Scope *sc)
         exp = exp->implicitCastTo(sc, sw->condition->type);
         exp = exp->optimize(WANTvalue);
 
+        while (exp->op == TOKcast)
+        {
+            CastExp *ce = (CastExp *)exp;
+            exp = ce->e1;
+        }
         /* This is where variables are allowed as case expressions.
          */
-        if (exp->op == TOKvar)
+        if (exp->op == TOKvar || exp->op == TOKdotvar)
         {
-            VarExp *ve = (VarExp *)exp;
-            VarDeclaration *v = ve->var->isVarDeclaration();
+            VarDeclaration *v;
+            if (exp->op == TOKvar)
+            {
+                VarExp *ve = (VarExp *)exp;
+                v = ve->var->isVarDeclaration();
+            } else
+            if (exp->op == TOKdotvar)
+            {
+                DotVarExp *ve = (DotVarExp *)exp;
+                v = ve->var->isVarDeclaration();
+            }
             Type *t = exp->type->toBasetype();
             if (v && (t->isintegral() || t->ty == Tclass))
             {

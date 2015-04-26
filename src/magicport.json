@@ -1752,6 +1752,7 @@
             "imports" :
             [
                 "aggregate",
+                "aliasthis",
                 "arraytypes",
                 "arrayop",
                 "attrib",
