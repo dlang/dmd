@@ -7388,6 +7388,20 @@ static assert(
 }());
 
 /**************************************************
+    14463 - ICE on slice assignment without postblit
+**************************************************/
+
+struct Boo14463
+{
+    private int[1] c;
+    this(int[] x)
+    {
+        c = x;
+    }
+}
+immutable Boo14463 a14463 = Boo14463([1]);
+
+/**************************************************
     13295 - Don't copy struct literal in VarExp::interpret()
 **************************************************/
 
