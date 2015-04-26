@@ -14,7 +14,7 @@
 
 module core.stdc.stdint;
 
-private import core.stdc.stddef; // for ptrdiff_t, size_t, wchar_t
+private import core.stdc.stddef; // for wchar_t
 private import core.stdc.signal; // for sig_atomic_t
 private import core.stdc.wchar_; // for wint_t
 
