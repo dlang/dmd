@@ -20,6 +20,7 @@ private
         import core.sys.posix.fcntl;
         import core.sys.posix.unistd;
     }
+    import core.stdc.config : c_long;
     import core.stdc.stdio;
     import core.stdc.stdlib;
     import rt.util.utf;
@@ -160,19 +161,20 @@ shared static ~this()
 
     foreach (c; gdata)
     {
-        if (merge && readFile(appendFN(dstpath, addExt(baseName(c.filename), "lst")), buf))
+        auto fname = appendFN(dstpath, addExt(baseName(c.filename), "lst"));
+        auto flst = openOrCreateFile(fname);
+        if (flst is null)
+            continue;
+        lockFile(fileno(flst)); // gets unlocked by fclose
+        scope(exit) fclose(flst);
+
+        if (merge && readFile(flst, buf))
         {
             splitLines(buf, lines);
 
             foreach (i, line; lines[0 .. min($, c.data.length)])
                 c.data[i] += parseNum(line);
         }
-
-        FILE* flst = fopen(appendFN(dstpath, (addExt(baseName(c.filename), "lst\0"))).ptr, "wb");
-
-        if (!flst)
-            continue;
-        scope(exit) fclose(flst);
 
         if (!readFile(appendFN(srcpath, c.filename), buf))
             continue;
@@ -191,6 +193,9 @@ shared static ~this()
 
         uint nno;
         uint nyes;
+
+        // rewind for overwriting
+        fseek(flst, 0, SEEK_SET);
 
         foreach (i, n; c.data[0 .. min($, lines.length)])
         {
@@ -215,6 +220,7 @@ shared static ~this()
                 fprintf(flst, "%*u|%.*s\n", maxDigits, n, cast(int)line.length, line.ptr);
             }
         }
+
         if (nyes + nno) // no divide by 0 bugs
         {
             uint percent = ( nyes * 100 ) / ( nyes + nno );
@@ -226,6 +232,11 @@ shared static ~this()
                 exit(EXIT_FAILURE);
             }
         }
+
+        version (Windows)
+            SetEndOfFile(handle(fileno(flst)));
+        else
+            ftruncate(fileno(flst), ftell(flst));
     }
 }
 
@@ -357,69 +368,79 @@ string chomp( string str, string delim = null )
     return str;
 }
 
-
-bool readFile( string name, ref char[] buf )
+// open/create file for read/write, pointer at beginning
+FILE* openOrCreateFile(string name)
 {
-    version( Windows )
-    {
-        auto    wnamez  = toUTF16z( name );
-        HANDLE  file    = CreateFileW( wnamez,
-                                       GENERIC_READ,
-                                       FILE_SHARE_READ,
-                                       null,
-                                       OPEN_EXISTING,
-                                       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-                                       cast(HANDLE) null );
+    import rt.util.utf : toUTF16z;
 
-        if( file == INVALID_HANDLE_VALUE )
-            return false;
-        scope( exit ) CloseHandle( file );
-
-        DWORD   num = 0;
-        DWORD   pos = 0;
-
-        buf.length = 4096;
-        while( true )
-        {
-            if( !ReadFile( file, &buf[pos], cast(DWORD)( buf.length - pos ), &num, null ) )
-                return false;
-            if( !num )
-                break;
-            pos += num;
-            buf.length = pos * 2;
-        }
-        buf.length = pos;
-        return true;
-    }
-    else version( Posix )
-    {
-        char[]  namez = new char[name.length + 1];
-                        namez[0 .. name.length] = name[];
-                        namez[$ - 1] = 0;
-        int     file = open( namez.ptr, O_RDONLY );
-
-        if( file == -1 )
-            return false;
-        scope( exit ) close( file );
-
-        uint pos = 0;
-
-        buf.length = 4096;
-        while( true )
-        {
-            auto num = read( file, &buf[pos], cast(uint)( buf.length - pos ) );
-            if( num == -1 )
-                return false;
-            if( !num )
-                break;
-            pos += num;
-            buf.length = pos * 2;
-        }
-        buf.length = pos;
-        return true;
-    }
+    version (Windows)
+        immutable fd = _wopen(toUTF16z(name), _O_RDWR | _O_CREAT | _O_BINARY, _S_IREAD | _S_IWRITE);
+    else
+        immutable fd = open((name ~ '\0').ptr, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    version (CRuntime_Microsoft)
+        alias fdopen = _fdopen;
+    version (Posix)
+        import core.sys.posix.stdio;
+    return fdopen(fd, "r+b");
 }
 
+version (Windows) HANDLE handle(int fd)
+{
+    version(CRuntime_DigitalMars)
+        return _fdToHandle(fd);
+    else
+        return cast(HANDLE)_get_osfhandle(fd);
+}
+
+void lockFile(int fd)
+{
+    version (Posix)
+        lockf(fd, F_LOCK, 0); // exclusive lock
+    else version (Windows)
+    {
+        OVERLAPPED off;
+        // exclusively lock first byte
+        LockFileEx(handle(fd), LOCKFILE_EXCLUSIVE_LOCK, 0, 1, 0, &off);
+    }
+    else
+        static assert(0, "unimplemented");
+}
+
+bool readFile(FILE* file, ref char[] buf)
+{
+    if (fseek(file, 0, SEEK_END) != 0)
+        assert(0, "fseek failed");
+    immutable len = ftell(file);
+    if (len == -1)
+        assert(0, "ftell failed");
+    else if (len == 0)
+        return false;
+
+    buf.length = len;
+    fseek(file, 0, SEEK_SET);
+    if (fread(buf.ptr, 1, buf.length, file) != buf.length)
+        assert(0, "fread failed");
+    if (fgetc(file) != EOF)
+        assert(0, "EOF not reached");
+    return true;
+}
+
+version(Windows) extern (C) nothrow @nogc FILE* _wfopen(in wchar* filename, in wchar* mode);
+version(Windows) extern (C) int chsize(int fd, c_long size);
+
+
+bool readFile(string name, ref char[] buf)
+{
+    import rt.util.utf : toUTF16z;
+
+    version (Windows)
+        auto file = _wfopen(toUTF16z(name), "rb"w.ptr);
+    else
+        auto file = fopen((name ~ '\0').ptr, "rb".ptr);
+    if (file is null) return false;
+    scope(exit) fclose(file);
+    return readFile(file, buf);
+}
 
 void splitLines( char[] buf, ref char[][] lines )
 {
