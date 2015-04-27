@@ -1541,6 +1541,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (f->checkRetType(loc))
                     fbody = new ErrorStatement();
             }
+            if (global.params.vcomplex && f->next != NULL)
+                f->next->checkComplexTransition(loc);
+
             if (returns && !fbody->isErrorStatement())
             {
                 for (size_t i = 0; i < returns->dim; )

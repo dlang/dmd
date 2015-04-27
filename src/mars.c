@@ -561,6 +561,8 @@ int tryMain(size_t argc, const char *argv[])
                     {
                         printf("\
 Language changes listed by -transition=id:\n\
+  =all           list information on all language changes\n\
+  =complex,14488 list all usages of complex or imaginary types\n\
   =field,3449    list all non-mutable fields which occupy an object instance\n\
   =tls           list all variables going into thread local storage\n\
 ");
@@ -579,16 +581,52 @@ Language changes listed by -transition=id:\n\
                             case 3449:
                                 global.params.vfield = true;
                                 break;
+                            case 14488:
+                                global.params.vcomplex = true;
+                                break;
                             default:
                                 goto Lerror;
                         }
                     }
                     else if (Lexer::isValidIdentifier(p + 12))
                     {
-                        if (strcmp(p + 12, "tls") == 0)
-                            global.params.vtls = 1;
-                        if (strcmp(p + 12, "field") == 0)
-                            global.params.vfield = 1;
+                        const char *ident = p + 12;
+                        switch (strlen(ident))
+                        {
+                            case 3:
+                                if (strcmp(ident, "all") == 0)
+                                {
+                                    global.params.vtls = true;
+                                    global.params.vfield = true;
+                                    global.params.vcomplex = true;
+                                    break;
+                                }
+                                if (strcmp(ident, "tls") == 0)
+                                {
+                                    global.params.vtls = true;
+                                    break;
+                                }
+                                goto Lerror;
+
+                            case 5:
+                                if (strcmp(ident, "field") == 0)
+                                {
+                                    global.params.vfield = true;
+                                    break;
+                                }
+                                goto Lerror;
+
+                            case 7:
+                                if (strcmp(ident, "complex") == 0)
+                                {
+                                    global.params.vcomplex = true;
+                                    break;
+                                }
+                                goto Lerror;
+
+                            default:
+                                goto Lerror;
+                        }
                     }
                     else
                         goto Lerror;

@@ -4568,6 +4568,9 @@ Expression *TypeExp::semantic(Scope *sc)
     else
         assert(0);
 
+    if (global.params.vcomplex)
+        type->checkComplexTransition(loc);
+
     return e;
 }
 
@@ -6088,6 +6091,9 @@ Expression *TypeidExp::semantic(Scope *sc)
         error("no type for typeid(%s)", ea ? ea->toChars() : (sa ? sa->toChars() : ""));
         return new ErrorExp();
     }
+
+    if (global.params.vcomplex)
+        ta->checkComplexTransition(loc);
 
     Expression *e;
     if (ea && ta->toBasetype()->ty == Tclass)

@@ -2407,6 +2407,48 @@ Type *Type::baseElemOf()
     return t;
 }
 
+/*************************************
+ * Bugzilla 14488: Check if the inner most base type is complex or imaginary.
+ * Should only give alerts when set to emit transitional messages.
+ */
+
+void Type::checkComplexTransition(Loc loc)
+{
+    Type *t = baseElemOf();
+    while (t->ty == Tpointer || t->ty == Tarray)
+        t = t->nextOf()->baseElemOf();
+
+    if (t->isimaginary() || t->iscomplex())
+    {
+        const char *p = loc.toChars();
+        Type *rt;
+        switch (t->ty)
+        {
+            case Tcomplex32:
+            case Timaginary32:
+                rt = Type::tfloat32; break;
+            case Tcomplex64:
+            case Timaginary64:
+                rt = Type::tfloat64; break;
+            case Tcomplex80:
+            case Timaginary80:
+                rt = Type::tfloat80; break;
+            default:
+                assert(0);
+        }
+        if (t->iscomplex())
+        {
+            fprintf(global.stdmsg, "%s: use of complex type '%s' is scheduled for deprecation, "
+                    "use 'std.complex.Complex!(%s)' instead\n", p ? p : "", toChars(), rt->toChars());
+        }
+        else
+        {
+            fprintf(global.stdmsg, "%s: use of imaginary type '%s' is scheduled for deprecation, "
+                    "use '%s' instead\n", p ? p : "", toChars(), rt->toChars());
+        }
+    }
+}
+
 /****************************************
  * Return the mask that an integral type will
  * fit into.
