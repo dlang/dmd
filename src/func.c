@@ -3549,6 +3549,12 @@ bool FuncDeclaration::isMain()
         linkage != LINKc && !isMember() && !isNested();
 }
 
+bool FuncDeclaration::isCMain()
+{
+    return ident == Id::main &&
+        linkage == LINKc && !isMember() && !isNested();
+}
+
 bool FuncDeclaration::isWinMain()
 {
     //printf("FuncDeclaration::isWinMain() %s\n", toChars());
