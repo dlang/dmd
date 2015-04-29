@@ -465,7 +465,7 @@ static ~this()
 
 shared static ~this()
 {
-    printf("shared static ~this() groot = %p\n", groot);
+    //printf("shared static ~this() groot = %p\n", groot);
     if (gtrace_inited == 1)
     {
         gtrace_inited = 2;
