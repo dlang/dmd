@@ -308,12 +308,22 @@ private size_t calcHash(in void* pkey, in TypeInfo keyti)
     return mix(hash) | HASH_FILLED_MARK;
 }
 
-private size_t nextpow2(size_t val) pure nothrow @nogc
+private size_t nextpow2(in size_t n) pure nothrow @nogc
 {
-    size_t res = 1;
-    while (res < val)
-        res <<= 1;
-    return res;
+    import core.bitop: bsr;
+
+    if(!n)
+        return 1;
+
+    const isPowerOf2 = !((n - 1) & n);
+    return 1 << (bsr(n) + !isPowerOf2);
+}
+
+pure nothrow @nogc unittest
+{
+    //                            0, 1, 2, 3, 4, 5, 6, 7, 8,  9
+    foreach(const n, const pow2; [1, 1, 2, 4, 4, 8, 8, 8, 8, 16])
+        assert(nextpow2(n) == pow2);
 }
 
 private T min(T)(T a, T b) pure nothrow @nogc
