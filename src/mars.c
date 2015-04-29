@@ -635,9 +635,15 @@ Language changes listed by -transition=id:\n\
                     goto Lerror;
             }
             else if (strcmp(p + 1, "w") == 0)
+            {
                 global.params.warnings = 1;
+                VersionCondition::addPredefinedGlobalIdent("D_Warnings");
+            }
             else if (strcmp(p + 1, "wi") == 0)
+            {
                 global.params.warnings = 2;
+                VersionCondition::addPredefinedGlobalIdent("D_Warnings");
+            }
             else if (strcmp(p + 1, "O") == 0)
                 global.params.optimize = true;
             else if (p[1] == 'o')

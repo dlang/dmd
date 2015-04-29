@@ -231,6 +231,7 @@ bool VersionCondition::isPredefined(const char *ident)
         "D_SIMD",
         "D_Version2",
         "D_NoBoundsChecks",
+        "D_Warnings",
         "unittest",
         "assert",
         "all",
