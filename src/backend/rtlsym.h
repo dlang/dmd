@@ -79,6 +79,7 @@ SYMBOL_MARS(SWITCH_STRING, FLfunc,FREGSAVED,"_d_switch_string", 0, t) \
 SYMBOL_MARS(SWITCH_USTRING,FLfunc,FREGSAVED,"_d_switch_ustring", 0, t) \
 SYMBOL_MARS(SWITCH_DSTRING,FLfunc,FREGSAVED,"_d_switch_dstring", 0, t) \
 SYMBOL_MARS(DSWITCHERR,    FLfunc,FREGSAVED,"_d_switch_error", SFLexit, t) \
+SYMBOL_MARS(DHIDDENFUNC,   FLfunc,FREGSAVED,"_d_hidden_func", 0, t) \
 SYMBOL_MARS(NEWCLASS,      FLfunc,FREGSAVED,"_d_newclass", 0, t) \
 SYMBOL_MARS(NEWARRAYT,     FLfunc,FREGSAVED,"_d_newarrayT", 0, t) \
 SYMBOL_MARS(NEWARRAYIT,    FLfunc,FREGSAVED,"_d_newarrayiT", 0, t) \
@@ -162,6 +163,8 @@ SYMBOL_Z(TRACE_EPI_N, FLfunc,ALLREGS|mBP|mES,"_trace_epi_n",0,tstrace) \
 SYMBOL_Z(TRACE_EPI_F, FLfunc,ALLREGS|mBP|mES,"_trace_epi_f",0,tstrace) \
 SYMBOL_MARS(TRACE_CPRO, FLfunc,FREGSAVED,"_c_trace_pro",0,t) \
 SYMBOL_MARS(TRACE_CEPI, FLfunc,FREGSAVED,"_c_trace_epi",0,t) \
+\
+SYMBOL_MARS(TRACENEWCLASS,      FLfunc,FREGSAVED,"_d_newclassTrace", 0, t) \
 
 
 
