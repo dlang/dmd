@@ -213,7 +213,7 @@ class TypeInfo
     override size_t toHash() @trusted const
     {
         import core.internal.traits : externDFunc;
-        alias hashOf = externDFunc!("rt.util.hash.hashOf", 
+        alias hashOf = externDFunc!("rt.util.hash.hashOf",
                                     size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
         try
         {
@@ -232,7 +232,7 @@ class TypeInfo
     override int opCmp(Object o)
     {
         import core.internal.traits : externDFunc;
-        alias dstrcmp = externDFunc!("rt.util.string.dstrcmp", 
+        alias dstrcmp = externDFunc!("rt.util.string.dstrcmp",
                                      int function(in char[] s1, in char[] s2) @trusted pure nothrow);
 
         if (this is o)
@@ -500,7 +500,7 @@ class TypeInfo_StaticArray : TypeInfo
     override string toString() const
     {
         import core.internal.traits : externDFunc;
-        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString", 
+        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString",
                                               char[] function(in size_t, char[]) @trusted pure nothrow);
 
         char[20] tmpBuff = void;
@@ -1008,7 +1008,7 @@ class TypeInfo_Struct : TypeInfo
         else
         {
             import core.internal.traits : externDFunc;
-            alias hashOf = externDFunc!("rt.util.hash.hashOf", 
+            alias hashOf = externDFunc!("rt.util.hash.hashOf",
                                         size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
             return hashOf(p, init().length, 0);
         }
@@ -1612,7 +1612,7 @@ class Throwable : Object
     void toString(scope void delegate(in char[]) sink) const
     {
         import core.internal.traits : externDFunc;
-        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString", 
+        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString",
                                               char[] function(in size_t, char[]) @trusted pure nothrow);
 
         char[20] tmpBuff = void;
@@ -2281,7 +2281,7 @@ private void _destructRecurse(S)(ref S s)
     static if (__traits(hasMember, S, "__dtor"))
         s.__dtor();
 
-    foreach_reverse (i, ref field; s.tupleof)
+    foreach_reverse (ref field; s.tupleof)
     {
         static if (hasElaborateDestructor!(typeof(field)))
             _destructRecurse(field);
@@ -2302,16 +2302,15 @@ private void _destructRecurse(E, size_t n)(ref E[n] arr)
 private string _genFieldPostblit(S)()
 {
     import core.internal.traits : hasElaborateCopyConstructor;
-    import core.internal.traits : FieldNameTuple;
 
     string code;
-    foreach(fieldName; FieldNameTuple!S)
+    foreach(i, FieldType; typeof(S.init.tupleof))
     {
-        static if(hasElaborateCopyConstructor!(typeof(__traits(getMember, S.init, fieldName))))
+        static if(hasElaborateCopyConstructor!FieldType)
         {
             code ~= `
-                _postblitRecurse(s.` ~ fieldName ~ `);
-                scope(failure) _destructRecurse(s. ` ~ fieldName ~ `);
+                _postblitRecurse(s.tupleof[` ~ i.stringof ~ `]);
+                scope(failure) _destructRecurse(s.tupleof[` ~ i.stringof ~ `]);
             `;
         }
     }
@@ -3064,7 +3063,7 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
     }
 
     import core.internal.traits : externDFunc;
-    alias hashOf = externDFunc!("rt.util.hash.hashOf", 
+    alias hashOf = externDFunc!("rt.util.hash.hashOf",
                                 size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
     if(!hasCustomToHash(element))
         return hashOf(ptr, elementSize * count, 0);
