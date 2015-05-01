@@ -65,6 +65,7 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags);
 Symbol* toSymbol(StructLiteralExp *sle);
 Symbol* toSymbol(ClassReferenceExp *cre);
 Expression *getTypeInfo(Type *t, Scope *sc);
+elem *filelinefunction(IRState *irs, Expression *e);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -1384,7 +1385,13 @@ elem *toElem(Expression *e, IRState *irs)
                 else
                 {
                     Symbol *csym = toSymbol(cd);
-                    ex = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_NEWCLASS]),el_ptr(csym));
+                    if (global.params.tracegc && ne->loc.filename)
+                    {
+                        elem *ep = filelinefunction(irs, ne);
+                        ex = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_TRACENEWCLASS]),el_param(el_ptr(csym), ep));
+                    }
+                    else
+                        ex = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_NEWCLASS]),el_ptr(csym));
                     ectype = NULL;
 
                     if (cd->isNested())
@@ -5519,4 +5526,36 @@ Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz)
     out_readonly(sida);
     outdata(sida);
     return sida;
+}
+
+/******************************************************
+ * Return an elem that is the file, line, and function suitable
+ * for insertion into the parameter list.
+ */
+
+elem *filelinefunction(IRState *irs, Expression *e)
+{
+    const char *id = e->loc.filename;
+    size_t len = strlen(id);
+    Symbol *si = toStringSymbol(id, len, 1);
+    elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
+    if (config.exe == EX_WIN64)
+        efilename = addressElem(efilename, Type::tstring, true);
+
+    elem *elinnum = el_long(TYint, e->loc.linnum);
+
+    const char *s = "";
+    FuncDeclaration *fd = irs->getFunc();
+    if (fd)
+    {
+        s = fd->toPrettyChars();
+    }
+
+    len = strlen(s);
+    si = toStringSymbol(s, len, 1);
+    elem *efunction = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
+    if (config.exe == EX_WIN64)
+        efunction = addressElem(efunction, Type::tstring, true);
+
+    return el_params(efunction, elinnum, efilename, NULL);
 }

@@ -163,6 +163,8 @@ SYMBOL_Z(TRACE_EPI_N, FLfunc,ALLREGS|mBP|mES,"_trace_epi_n",0,tstrace) \
 SYMBOL_Z(TRACE_EPI_F, FLfunc,ALLREGS|mBP|mES,"_trace_epi_f",0,tstrace) \
 SYMBOL_MARS(TRACE_CPRO, FLfunc,FREGSAVED,"_c_trace_pro",0,t) \
 SYMBOL_MARS(TRACE_CEPI, FLfunc,FREGSAVED,"_c_trace_epi",0,t) \
+\
+SYMBOL_MARS(TRACENEWCLASS,      FLfunc,FREGSAVED,"_d_newclassTrace", 0, t) \
 
 
 

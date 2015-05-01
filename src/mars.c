@@ -188,6 +188,7 @@ Usage:\n\
   -offilename    name output file to filename\n\
   -op            preserve source path for output files\n\
   -profile       profile runtime performance of generated code\n\
+  -profile=gc    profile runtime allocations\n\
   -property      enforce property syntax\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
@@ -526,8 +527,23 @@ int tryMain(size_t argc, const char *argv[])
                 error(Loc(), "-m32mscoff can only be used on windows");
             #endif
             }
-            else if (strcmp(p + 1, "profile") == 0)
-                global.params.trace = true;
+            else if (memcmp(p + 1, "profile", 7) == 0)
+            {
+                // Parse:
+                //      -profile
+                //      -profile=gc
+                if (p[8] == '=')
+                {
+                    if (strcmp(p + 9, "gc") == 0)
+                        global.params.tracegc = true;
+                    else
+                        goto Lerror;
+                }
+                else if (p[8])
+                    goto Lerror;
+                else
+                    global.params.trace = true;
+            }
             else if (strcmp(p + 1, "v") == 0)
                 global.params.verbose = true;
             else if (strcmp(p + 1, "vtls") == 0)

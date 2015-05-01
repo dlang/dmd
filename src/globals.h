@@ -42,6 +42,7 @@ struct Param
     bool multiobj;      // break one object file into multiple ones
     bool oneobj;        // write one object file instead of multiple ones
     bool trace;         // insert profiling hooks
+    bool tracegc;       // instrument calls to 'new'
     bool verbose;       // verbose compile
     bool showColumns;   // print character (column) numbers in diagnostics
     bool vtls;          // identify thread local variables
