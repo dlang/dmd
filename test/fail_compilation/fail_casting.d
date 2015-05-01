@@ -147,8 +147,8 @@ void test14154()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(179): Error: cannot cast expression __tup3.__expand_field_0 of type int to object.Object
-fail_compilation/fail_casting.d(179): Error: cannot cast expression __tup3.__expand_field_1 of type int to object.Object
+fail_compilation/fail_casting.d(179): Error: cannot cast expression __tup$n$.__expand_field_0 of type int to object.Object
+fail_compilation/fail_casting.d(179): Error: cannot cast expression __tup$n$.__expand_field_1 of type int to object.Object
 ---
 */
 alias TypeTuple14093(T...) = T;
