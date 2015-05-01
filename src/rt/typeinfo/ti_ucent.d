@@ -15,7 +15,7 @@ module rt.typeinfo.ti_ucent;
 
 private import rt.util.hash;
 
-static if (__traits(compiles, { ucent uc = 42; })):
+static if (is(ucent)):
 
 // ucent
 

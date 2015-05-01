@@ -15,7 +15,7 @@ module rt.typeinfo.ti_cent;
 
 private import rt.util.hash;
 
-static if(__traits(compiles, { cent c = 42; })):
+static if(is(cent)):
 
 // cent
 
