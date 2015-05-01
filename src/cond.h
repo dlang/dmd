@@ -18,7 +18,9 @@ struct OutBuffer;
 class Module;
 struct Scope;
 class ScopeDsymbol;
+class DVCondition;
 class DebugCondition;
+class VersionCondition;
 
 int findCondition(Strings *ids, Identifier *ident);
 
@@ -35,7 +37,9 @@ public:
 
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc, ScopeDsymbol *sds) = 0;
+    virtual DVCondition *isDVCondition() { return NULL; }
     virtual DebugCondition *isDebugCondition() { return NULL; }
+    virtual VersionCondition *isVersionCondition() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -49,6 +53,7 @@ public:
     DVCondition(Module *mod, unsigned level, Identifier *ident);
 
     Condition *syntaxCopy();
+    DVCondition *isDVCondition() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -81,6 +86,7 @@ public:
     VersionCondition(Module *mod, unsigned level, Identifier *ident);
 
     int include(Scope *sc, ScopeDsymbol *sds);
+    VersionCondition *isVersionCondition() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
