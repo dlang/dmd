@@ -194,7 +194,7 @@ deprecated class HiddenFuncError : Error
     }
 }
 
-unittest
+deprecated unittest
 {
     ClassInfo info = new ClassInfo;
     info.name = "testInfo";
@@ -484,7 +484,7 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
  */
 extern (C) void onFinalizeError( TypeInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @trusted nothrow
 {
-    // This error is thrown during a garbage collection, so no allocation must occur while 
+    // This error is thrown during a garbage collection, so no allocation must occur while
     //  generating this object. So we use a preallocated instance
     __gshared FinalizeError err = new FinalizeError( null );
     err.info = info;
