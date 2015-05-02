@@ -164,7 +164,31 @@ SYMBOL_Z(TRACE_EPI_F, FLfunc,ALLREGS|mBP|mES,"_trace_epi_f",0,tstrace) \
 SYMBOL_MARS(TRACE_CPRO, FLfunc,FREGSAVED,"_c_trace_pro",0,t) \
 SYMBOL_MARS(TRACE_CEPI, FLfunc,FREGSAVED,"_c_trace_epi",0,t) \
 \
-SYMBOL_MARS(TRACENEWCLASS,      FLfunc,FREGSAVED,"_d_newclassTrace", 0, t) \
+SYMBOL_MARS(TRACENEWCLASS,        FLfunc,FREGSAVED,"_d_newclassTrace", 0, t) \
+SYMBOL_MARS(TRACENEWARRAYT,       FLfunc,FREGSAVED,"_d_newarrayTTrace", 0, t) \
+SYMBOL_MARS(TRACENEWARRAYIT,      FLfunc,FREGSAVED,"_d_newarrayiTTrace", 0, t) \
+SYMBOL_MARS(TRACENEWARRAYMTX,     FLfunc,FREGSAVED,"_d_newarraymTXTrace", 0, t) \
+SYMBOL_MARS(TRACENEWARRAYMITX,    FLfunc,FREGSAVED,"_d_newarraymiTXTrace", 0, t) \
+SYMBOL_MARS(TRACENEWITEMT,        FLfunc,FREGSAVED,"_d_newitemTTrace", 0, t) \
+SYMBOL_MARS(TRACENEWITEMIT,       FLfunc,FREGSAVED,"_d_newitemiTTrace", 0, t) \
+SYMBOL_MARS(TRACECALLFINALIZER,   FLfunc,FREGSAVED,"_d_callfinalizerTrace", 0, t) \
+SYMBOL_MARS(TRACECALLINTERFACEFINALIZER, FLfunc,FREGSAVED,"_d_callinterfacefinalizerTrace", 0, t) \
+SYMBOL_MARS(TRACEDELCLASS,        FLfunc,FREGSAVED,"_d_delclassTrace", 0, t) \
+SYMBOL_MARS(TRACEDELINTERFACE,    FLfunc,FREGSAVED,"_d_delinterfaceTrace", 0, t) \
+SYMBOL_MARS(TRACEDELSTRUCT,       FLfunc,FREGSAVED,"_d_delstructTrace", 0, t) \
+SYMBOL_MARS(TRACEDELARRAYT,       FLfunc,FREGSAVED,"_d_delarray_tTrace", 0, t) \
+SYMBOL_MARS(TRACEDELMEMORY,       FLfunc,FREGSAVED,"_d_delmemoryTrace", 0, t) \
+SYMBOL_MARS(TRACEARRAYLITERALTX, FLfunc,FREGSAVED,"_d_arrayliteralTXTrace", 0, t) \
+SYMBOL_MARS(TRACEASSOCARRAYLITERALTX, FLfunc,FREGSAVED,"_d_assocarrayliteralTXTrace", 0, t) \
+SYMBOL_MARS(TRACEARRAYCATT,       FLfunc,FREGSAVED,"_d_arraycatTTrace", 0, t) \
+SYMBOL_MARS(TRACEARRAYCATNTX,     FLfunc,FREGSAVED,"_d_arraycatnTXTrace", 0, t) \
+SYMBOL_MARS(TRACEARRAYAPPENDT,    FLfunc,FREGSAVED,"_d_arrayappendTTrace", 0, t) \
+SYMBOL_MARS(TRACEARRAYAPPENDCTX,  FLfunc,FREGSAVED,"_d_arrayappendcTXTrace", 0, t) \
+SYMBOL_MARS(TRACEARRAYAPPENDCD,   FLfunc,FREGSAVED,"_d_arrayappendcdTrace", 0, t) \
+SYMBOL_MARS(TRACEARRAYAPPENDWD,   FLfunc,FREGSAVED,"_d_arrayappendwdTrace", 0, t) \
+SYMBOL_MARS(TRACEARRAYSETLENGTHT, FLfunc,FREGSAVED,"_d_arraysetlengthTTrace", 0, t) \
+SYMBOL_MARS(TRACEARRAYSETLENGTHIT,FLfunc,FREGSAVED,"_d_arraysetlengthiTTrace", 0, t) \
+SYMBOL_MARS(TRACEALLOCMEMORY,     FLfunc,FREGSAVED,"_d_allocmemoryTrace", 0, t) \
 
 
 
