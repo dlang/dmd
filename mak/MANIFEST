@@ -239,6 +239,7 @@ MANIFEST=\
 	src\rt\switch_.d \
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
+	src\rt\tracegc.d \
 	\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
