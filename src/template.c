@@ -6154,8 +6154,7 @@ Lerror:
 #if LOG
     printf("\tdo semantic() on template instance members '%s'\n", toChars());
 #endif
-    Scope *sc2;
-    sc2 = scope->push(this);
+    Scope *sc2 = scope->push(this);
     //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
     sc2->parent = this;
     sc2->tinst = this;
@@ -7860,67 +7859,63 @@ void unSpeculative(Scope *sc, RootObject *o)
  */
 bool TemplateInstance::needsCodegen()
 {
-    /* The issue is that if the importee is compiled with a different -debug
-     * setting than the importer, the importer may believe it exists
-     * in the compiled importee when it does not, when the instantiation
-     * is behind a conditional debug declaration.
-     */
-    // workaround for Bugzilla 11239
-    if (global.params.useUnitTests ||
-        global.params.allInst ||
-        global.params.debuglevel)
-    {
-        //printf("%s minst = %s, enclosing in nonRoot = %d\n",
-        //    toPrettyChars(), minst ? minst->toChars() : NULL,
-        //    enclosing && enclosing->inNonRoot());
-        if (enclosing)
-        {
-            // Bugzilla 13415: If and only if the enclosing scope needs codegen,
-            // the nested templates would need code generation.
-            if (TemplateInstance *ti = enclosing->isInstantiated())
-                return ti->needsCodegen();
-            else
-                return !enclosing->inNonRoot();
-        }
-        return true;
-    }
-
-    // If this may be a speculative instantiation:
+    // Prefer instantiation in root module if this is a speculative instantiation
     if (!minst)
     {
+L1:
+        // At first, disconnect chain first to prevent infinite recursion.
         TemplateInstance *tnext = this->tnext;
         TemplateInstance *tinst = this->tinst;
-        // At first, disconnect chain first to prevent infinite recursion.
         this->tnext = NULL;
         this->tinst = NULL;
 
         // Determine necessity of tinst before tnext.
         if (tinst && tinst->needsCodegen())
         {
-            minst = tinst->minst;   // cache result
-            assert(minst);
-            assert(minst->isRoot() || minst->rootImports());
+            minst = tinst->minst;           // cache result
+            assert(minst && minst->isRoot());
             return true;
         }
         if (tnext && tnext->needsCodegen())
         {
-            minst = tnext->minst;   // cache result
-            assert(minst);
-            assert(minst->isRoot() || minst->rootImports());
+            minst = tnext->minst;           // cache result
+            assert(minst && minst->isRoot());
             return true;
         }
         return false;
     }
 
+    // Bugzilla 13415: The codegen necessity of nested template instance
+    // fully depends on the enclosing scope.
+    if (enclosing)
+    {
+        //printf("%s minst = %s, enclosing in nonRoot = %d\n",
+        //    toPrettyChars(), minst ? minst->toChars() : NULL,
+        //    enclosing && enclosing->inNonRoot());
+        if (TemplateInstance *ti = enclosing->isInstantiated())
+        {
+            bool r = ti->needsCodegen();
+            minst = ti->minst;              // cache result
+            return r;
+        }
+        //assert(!tinst && !tnext);
+        if (minst)
+            minst = enclosing->getModule();
+        return minst && minst->isRoot();
+    }
+
+    if (global.params.allInst)
+        return true;
+
+    // Prefer instantiation in non-root module, to minimize object code size
     if (minst->isRoot())
     {
-        // Prefer instantiation in non-root module, to minimize object code size
         TemplateInstance *tnext = this->tnext;
         this->tnext = NULL;
 
         if (tnext && !tnext->needsCodegen() && tnext->minst)
         {
-            minst = tnext->minst;   // cache result
+            minst = tnext->minst;           // cache result
             assert(!minst->isRoot());
             return false;
         }
@@ -7945,6 +7940,8 @@ bool TemplateInstance::needsCodegen()
             //printf("instantiated by %s   %s\n", minst->toChars(), toChars());
             return false;
         }
+
+        minst = minst->importedFrom;        // cache result
     }
     return true;
 }

@@ -160,6 +160,7 @@ public:
 
     ConditionalDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    Scope *newScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     void addComment(const utf8_t *comment);

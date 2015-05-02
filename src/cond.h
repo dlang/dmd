@@ -35,6 +35,8 @@ public:
 
     Condition(Loc loc);
 
+    bool isUnitTestOrDebugLevel();
+
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc, ScopeDsymbol *sds) = 0;
     virtual DVCondition *isDVCondition() { return NULL; }

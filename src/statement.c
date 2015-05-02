@@ -30,6 +30,7 @@
 #include "parse.h"
 #include "template.h"
 #include "attrib.h"
+#include "module.h"
 #include "import.h"
 
 bool walkPostorder(Statement *s, StoppableVisitor *v);
@@ -3038,6 +3039,12 @@ Scope *ConditionalStatement::newScope(Scope *sc)
 {
     Scope *sc2 = sc;
 
+    if (sc->minst && !sc->minst->isRoot() &&
+        condition->isUnitTestOrDebugLevel())
+    {
+        sc2 = sc->copy();
+        sc2->minst = sc->minst->importedFrom;
+    }
     if (DebugCondition *dc = condition->isDebugCondition())
     {
         if (sc2 == sc)
