@@ -228,6 +228,7 @@ MANIFEST=\
 	src\rt\minit.asm \
 	src\rt\monitor_.d \
 	src\rt\obj.d \
+	src\rt\profilegc.d \
 	src\rt\qsort.d \
 	src\rt\sections.d \
 	src\rt\sections_android.d \
