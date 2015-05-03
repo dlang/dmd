@@ -89,6 +89,17 @@ version( GNUFP )
 
         alias fexcept_t = ushort;
     }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/aarch64/bits/fenv.h
+    else version (AArch64)
+    {
+        struct fenv_t
+        {
+            uint __fpcr;
+            uint __fpsr;
+        }
+
+        alias fexcept_t = uint;
+    }
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/arm/bits/fenv.h
     else version (ARM)
     {

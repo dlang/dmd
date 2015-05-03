@@ -62,6 +62,10 @@ version( linux )
     {
         alias int[3] __jmp_buf;
     }
+    else version (AArch64)
+    {
+        alias long[22] __jmp_buf;
+    }
     else version (ARM)
     {
         alias int[64] __jmp_buf;
