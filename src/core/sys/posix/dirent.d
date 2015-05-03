@@ -185,20 +185,13 @@ else version( Android )
         DT_WHT      = 14
     }
 
-    version (X86)
+    struct dirent
     {
-        struct dirent
-        {
-            ulong       d_ino;
-            long        d_off;
-            ushort      d_reclen;
-            ubyte       d_type;
-            char[256]   d_name;
-        }
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
+        ulong       d_ino;
+        long        d_off;
+        ushort      d_reclen;
+        ubyte       d_type;
+        char[256]   d_name;
     }
 
     struct DIR

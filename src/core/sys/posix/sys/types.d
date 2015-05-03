@@ -182,20 +182,31 @@ else version (Solaris)
 }
 else version( Android )
 {
+    alias c_ulong   blkcnt_t;
+    alias c_ulong   blksize_t;
+    alias uint      dev_t;
+    alias uint      gid_t;
+    alias c_ulong   ino_t;
+    alias c_long    off_t;
+    alias int       pid_t;
+    alias int       ssize_t;
+    alias c_long    time_t;
+    alias uint      uid_t;
+
     version(X86)
     {
-        alias c_ulong   blkcnt_t;
-        alias c_ulong   blksize_t;
-        alias uint      dev_t;
-        alias uint      gid_t;
-        alias c_ulong   ino_t;
         alias ushort    mode_t;
         alias ushort    nlink_t;
-        alias c_long    off_t;
-        alias int       pid_t;
-        alias c_long    ssize_t;
-        alias c_long    time_t;
-        alias uint      uid_t;
+    }
+    else version(ARM)
+    {
+        alias ushort    mode_t;
+        alias ushort    nlink_t;
+    }
+    else version(MIPS32)
+    {
+        alias uint      mode_t;
+        alias uint      nlink_t;
     }
     else
     {
@@ -285,20 +296,13 @@ else version (Solaris)
 }
 else version( Android )
 {
-    version(X86)
-    {
-        alias c_ulong  fsblkcnt_t;
-        alias c_ulong  fsfilcnt_t;
-        alias c_long   clock_t;
-        alias uint     id_t;
-        alias int      key_t;
-        alias c_long   suseconds_t;
-        alias c_long   useconds_t;
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
-    }
+    alias c_ulong  fsblkcnt_t;
+    alias c_ulong  fsfilcnt_t;
+    alias c_long   clock_t;
+    alias uint     id_t;
+    alias int      key_t;
+    alias c_long   suseconds_t;
+    alias c_long   useconds_t;
 }
 else
 {
@@ -733,21 +737,14 @@ else version (Solaris)
 }
 else version( Android )
 {
-    version(X86)
+    struct pthread_attr_t
     {
-        struct pthread_attr_t
-        {
-            uint    flags;
-            void*   stack_base;
-            size_t  stack_size;
-            size_t  guard_size;
-            int     sched_policy;
-            int     sched_priority;
-        }
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
+        uint    flags;
+        void*   stack_base;
+        size_t  stack_size;
+        size_t  guard_size;
+        int     sched_policy;
+        int     sched_priority;
     }
 
     struct pthread_cond_t

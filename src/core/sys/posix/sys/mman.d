@@ -343,6 +343,10 @@ else version (Android)
     {
         enum MAP_ANON       = 0x0020;
     }
+    else version (ARM)
+    {
+        enum MAP_ANON       = 0x0020;
+    }
     else
     {
         static assert(false, "Architecture not supported.");
