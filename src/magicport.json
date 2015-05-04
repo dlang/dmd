@@ -2726,6 +2726,7 @@
                 "function resolveOpDollarScope*ArrayExp*Expression**",
                 "function resolveOpDollarScope*SliceExp*Expression**",
                 "enum CtfeGoal",
+                "enum OwnedBy",
                 "variable WANTvalue",
                 "variable WANTexpand",
                 "struct Expression",
@@ -3281,6 +3282,7 @@
         "AliasThisRec",
         "StructPOD",
         "COLOR",
+        "OwnedBy",
 
         "LINK",
         "PREC",

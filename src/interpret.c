@@ -2603,7 +2603,7 @@ public:
     #if LOG
         printf("%s ArrayLiteralExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        if (e->ownedByCtfe) // We've already interpreted all the elements
+        if (e->ownedByCtfe >= OWNEDctfe)    // We've already interpreted all the elements
         {
             result = e;
             return;
@@ -2660,7 +2660,7 @@ public:
             }
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, expsx);
             ae->type = e->type;
-            ae->ownedByCtfe = 1;
+            ae->ownedByCtfe = OWNEDctfe;
             result = ae;
             return;
         }
@@ -2681,7 +2681,7 @@ public:
     #if LOG
         printf("%s AssocArrayLiteralExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        if (e->ownedByCtfe) // We've already interpreted all the elements
+        if (e->ownedByCtfe >= OWNEDctfe)    // We've already interpreted all the elements
         {
             result = e;
             return;
@@ -2757,7 +2757,7 @@ public:
             AssocArrayLiteralExp *ae;
             ae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
             ae->type = e->type;
-            ae->ownedByCtfe = 1;
+            ae->ownedByCtfe = OWNEDctfe;
             result = ae;
             return;
         }
@@ -2769,7 +2769,7 @@ public:
     #if LOG
         printf("%s StructLiteralExp::interpret() %s ownedByCtfe = %d\n", e->loc.toChars(), e->toChars(), e->ownedByCtfe);
     #endif
-        if (e->ownedByCtfe)
+        if (e->ownedByCtfe >= OWNEDctfe)
         {
             result = e;
             return;
@@ -2845,7 +2845,7 @@ public:
             }
             StructLiteralExp *se = new StructLiteralExp(e->loc, e->sd, expsx);
             se->type = e->type;
-            se->ownedByCtfe = 1;
+            se->ownedByCtfe = OWNEDctfe;
             result = se;
             return;
         }
@@ -2875,7 +2875,7 @@ public:
                  (*elements)[i] = copyLiteral(elem).copy();
             ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
             ae->type = newtype;
-            ae->ownedByCtfe = 1;
+            ae->ownedByCtfe = OWNEDctfe;
             return ae;
         }
         assert(argnum == arguments->dim - 1);
@@ -2942,7 +2942,7 @@ public:
 
                 StructLiteralExp *se = new StructLiteralExp(e->loc, sd, exps, e->newtype);
                 se->type = e->newtype;
-                se->ownedByCtfe = 1;
+                se->ownedByCtfe = OWNEDctfe;
                 result = interpret(se, istate);
             }
             if (exceptionOrCant(result))
@@ -2990,7 +2990,7 @@ public:
             // Hack: we store a ClassDeclaration instead of a StructDeclaration.
             // We probably won't get away with this.
             StructLiteralExp *se = new StructLiteralExp(e->loc, (StructDeclaration *)cd, elems, e->newtype);
-            se->ownedByCtfe = 1;
+            se->ownedByCtfe = OWNEDctfe;
             Expression *eref = new ClassReferenceExp(e->loc, se, e->type);
             if (e->member)
             {
@@ -3033,7 +3033,7 @@ public:
             (*elements)[0] = newval;
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
             ae->type = e->newtype->arrayOf();
-            ae->ownedByCtfe = 1;
+            ae->ownedByCtfe = OWNEDctfe;
 
             result = new IndexExp(e->loc, ae, new IntegerExp(Loc(), 0, Type::tsize_t));
             result->type = e->newtype;
@@ -3432,7 +3432,7 @@ public:
                         Expressions *valuesx = new Expressions();
                         newAA = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
                         newAA->type = xe->type;
-                        newAA->ownedByCtfe = 1;
+                        newAA->ownedByCtfe = OWNEDctfe;
                         //... and insert it into the existing AA.
                         existingAA->keys->push(ekey);
                         existingAA->values->push(newAA);
@@ -3469,7 +3469,7 @@ public:
                     valuesx->push(newaae);
                     AssocArrayLiteralExp *aae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
                     aae->type = ((IndexExp *)e1)->e1->type;
-                    aae->ownedByCtfe = 1;
+                    aae->ownedByCtfe = OWNEDctfe;
                     if (!existingAA)
                     {
                         existingAA = aae;
@@ -3621,7 +3621,7 @@ public:
 
         if (existingAA)
         {
-            if (existingAA->ownedByCtfe != 1)
+            if (existingAA->ownedByCtfe != OWNEDctfe)
             {
                 e->error("cannot modify read-only constant %s", existingAA->toChars());
                 result = CTFEExp::cantexp;
@@ -3752,7 +3752,7 @@ public:
                 e->error("CTFE internal error: dotvar assignment");
                 return CTFEExp::cantexp;
             }
-            if (sle->ownedByCtfe != 1)
+            if (sle->ownedByCtfe != OWNEDctfe)
             {
                 e->error("cannot modify read-only constant %s", sle->toChars());
                 return CTFEExp::cantexp;
@@ -3803,7 +3803,7 @@ public:
             if (aggregate->op == TOKstring)
             {
                 StringExp *existingSE = (StringExp *)aggregate;
-                if (existingSE->ownedByCtfe != 1)
+                if (existingSE->ownedByCtfe != OWNEDctfe)
                 {
                     e->error("cannot modify read-only string literal %s", ie->e1->toChars());
                     return CTFEExp::cantexp;
@@ -3826,7 +3826,7 @@ public:
             }
 
             ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
-            if (existingAE->ownedByCtfe != 1)
+            if (existingAE->ownedByCtfe != OWNEDctfe)
             {
                 e->error("cannot modify read-only constant %s", existingAE->toChars());
                 return CTFEExp::cantexp;
@@ -4046,7 +4046,7 @@ public:
         if (aggregate->op == TOKstring)
         {
             StringExp *existingSE = (StringExp *)aggregate;
-            if (existingSE->ownedByCtfe != 1)
+            if (existingSE->ownedByCtfe != OWNEDctfe)
             {
                 e->error("cannot modify read-only string literal %s", existingSE->toChars());
                 return CTFEExp::cantexp;
@@ -4111,7 +4111,7 @@ public:
         if (aggregate->op == TOKarrayliteral)
         {
             ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
-            if (existingAE->ownedByCtfe != 1)
+            if (existingAE->ownedByCtfe != OWNEDctfe)
             {
                 e->error("cannot modify read-only constant %s", existingAE->toChars());
                 return CTFEExp::cantexp;
@@ -5465,9 +5465,9 @@ public:
         }
         // We know we still own it, because we interpreted both e1 and e2
         if (result->op == TOKarrayliteral)
-            ((ArrayLiteralExp *)result)->ownedByCtfe = 1;
+            ((ArrayLiteralExp *)result)->ownedByCtfe = OWNEDctfe;
         if (result->op == TOKstring)
-            ((StringExp *)result)->ownedByCtfe = 1;
+            ((StringExp *)result)->ownedByCtfe = OWNEDctfe;
     }
 
 
@@ -6070,7 +6070,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     if (e->op == TOKclassreference)
     {
         StructLiteralExp *se = ((ClassReferenceExp*)e)->value;
-        se->ownedByCtfe = false;
+        se->ownedByCtfe = OWNEDcode;
         if (!(se->stageflags & stageScrub))
         {
             int old = se->stageflags;
@@ -6089,7 +6089,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     if (e->op == TOKstructliteral)
     {
         StructLiteralExp *se = (StructLiteralExp *)e;
-        se->ownedByCtfe = false;
+        se->ownedByCtfe = OWNEDcode;
         if (!(se->stageflags & stageScrub))
         {
             int old = se->stageflags;
@@ -6101,18 +6101,18 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     }
     if (e->op == TOKstring)
     {
-        ((StringExp *)e)->ownedByCtfe = false;
+        ((StringExp *)e)->ownedByCtfe = OWNEDcode;
     }
     if (e->op == TOKarrayliteral)
     {
-        ((ArrayLiteralExp *)e)->ownedByCtfe = false;
+        ((ArrayLiteralExp *)e)->ownedByCtfe = OWNEDcode;
         if (Expression *ex = scrubArray(loc, ((ArrayLiteralExp *)e)->elements))
             return ex;
     }
     if (e->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
-        aae->ownedByCtfe = false;
+        aae->ownedByCtfe = OWNEDcode;
         if (Expression *ex = scrubArray(loc, aae->keys))
             return ex;
         if (Expression *ex = scrubArray(loc, aae->values))
@@ -6182,7 +6182,7 @@ Expression *scrubCacheValue(Loc loc, Expression *e)
     if (e->op == TOKclassreference)
     {
         StructLiteralExp *sle = ((ClassReferenceExp*)e)->value;
-        sle->ownedByCtfe = 2;
+        sle->ownedByCtfe = OWNEDcache;
         if (!(sle->stageflags & stageScrub))
         {
             int old = sle->stageflags;
@@ -6195,7 +6195,7 @@ Expression *scrubCacheValue(Loc loc, Expression *e)
     if (e->op == TOKstructliteral)
     {
         StructLiteralExp *sle = (StructLiteralExp *)e;
-        sle->ownedByCtfe = 2;
+        sle->ownedByCtfe = OWNEDcache;
         if (!(sle->stageflags & stageScrub))
         {
             int old = sle->stageflags;
@@ -6207,18 +6207,18 @@ Expression *scrubCacheValue(Loc loc, Expression *e)
     }
     if (e->op == TOKstring)
     {
-        ((StringExp *)e)->ownedByCtfe = 2;
+        ((StringExp *)e)->ownedByCtfe = OWNEDcache;
     }
     if (e->op == TOKarrayliteral)
     {
-        ((ArrayLiteralExp *)e)->ownedByCtfe = 2;
+        ((ArrayLiteralExp *)e)->ownedByCtfe = OWNEDcache;
         if (Expression *ex = scrubArrayCache(loc, ((ArrayLiteralExp *)e)->elements))
             return ex;
     }
     if (e->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
-        aae->ownedByCtfe = 2;
+        aae->ownedByCtfe = OWNEDcache;
         if (Expression *ex = scrubArrayCache(loc, aae->keys))
             return ex;
         if (Expression *ex = scrubArrayCache(loc, aae->values))

@@ -110,6 +110,13 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
  */
 Expression *ctfeInterpretForPragmaMsg(Expression *e);
 
+enum OwnedBy
+{
+    OWNEDcode,      // normal code expression in AST
+    OWNEDctfe,      // value expression for CTFE
+    OWNEDcache,     // constant value cached for CTFE
+};
+
 #define WANTvalue   0   // default
 #define WANTexpand  1   // expand const/immutable variables if possible
 
@@ -354,7 +361,7 @@ public:
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     unsigned char committed;    // !=0 if type is committed
     utf8_t postfix;      // 'c', 'w', 'd'
-    int ownedByCtfe;    // 1: created in CTFE, 2: constant cached for CTFE
+    OwnedBy ownedByCtfe;
 
     StringExp(Loc loc, char *s);
     StringExp(Loc loc, void *s, size_t len);
@@ -403,7 +410,7 @@ class ArrayLiteralExp : public Expression
 {
 public:
     Expressions *elements;
-    int ownedByCtfe;    // 1: created in CTFE, 2: constant cached for CTFE
+    OwnedBy ownedByCtfe;
 
     ArrayLiteralExp(Loc loc, Expressions *elements);
     ArrayLiteralExp(Loc loc, Expression *e);
@@ -422,7 +429,7 @@ class AssocArrayLiteralExp : public Expression
 public:
     Expressions *keys;
     Expressions *values;
-    int ownedByCtfe;    // 1: created in CTFE, 2: constant cached for CTFE
+    OwnedBy ownedByCtfe;
 
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
     bool equals(RootObject *o);
@@ -458,7 +465,7 @@ public:
     Symbol *sym;                // back end symbol to initialize with literal
     size_t soffset;             // offset from start of s
     int fillHoles;              // fill alignment 'holes' with zero
-    int ownedByCtfe;            // 1: created in CTFE, 2: constant cached for CTFE
+    OwnedBy ownedByCtfe;
 
     // pointer to the origin instance of the expression.
     // once a new expression is created, origin is set to 'this'.
