@@ -2761,6 +2761,35 @@ Lagain:
             goto Lagain;
         }
     }
+    // Other non-scalar types that are valid for bool conditions
+    // should have their contents lowered to valid scalars.
+    if (tb->ty == Tarray)
+    {
+        // For arrays, we only care about the ptr, and not whether
+        // the length properties claims to have any contents.
+        if (checkNonAssignmentArrayOp(e))
+            e->type = Type::terror;
+        else
+        {
+            e = e->castTo(sc, tb->nextOf()->pointerTo());
+            tb = e->type->toBasetype();
+        }
+    }
+    else if (tb->ty == Tdelegate)
+    {
+        // For delegates, we only care about the function pointer,
+        // and not whether the 'this' object has a non-null value.
+        e = new DelegateFuncptrExp(e->loc, e);
+        e = e->semantic(sc);
+        tb = e->type->toBasetype();
+    }
+    else if (tb->ty == Taarray)
+    {
+        // For associative arrays, check the key count.
+        e = new DotIdExp(loc, e, Id::length);
+        e = e->semantic(sc);
+        tb = e->type->toBasetype();
+    }
 
     if (!t->isBoolean())
     {
