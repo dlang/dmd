@@ -131,12 +131,25 @@ bool isCVariadicParameter(Dsymbol *s, const utf8_t *p, size_t len)
     return tf && tf->varargs == 1 && cmp("...", p, len) == 0;
 }
 
-static TemplateDeclaration *getEponymousParentTemplate(Dsymbol *s)
+static Dsymbol *getEponymousMember(TemplateDeclaration *td)
+{
+    if (!td->onemember)
+        return NULL;
+
+    if (AggregateDeclaration *ad = td->onemember->isAggregateDeclaration())
+        return ad;
+    if (FuncDeclaration *fd = td->onemember->isFuncDeclaration())
+        return fd;
+
+    return NULL;
+}
+
+static TemplateDeclaration *getEponymousParent(Dsymbol *s)
 {
     if (!s->parent)
         return NULL;
     TemplateDeclaration *td = s->parent->isTemplateDeclaration();
-    return (td && td->onemember == s) ? td : NULL;
+    return (td && getEponymousMember(td)) ? td : NULL;
 }
 
 static const char ddoc_default[] = "\
@@ -545,7 +558,7 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s, Scope *sc)
         dot = emitAnchorName(buf, sc->scopesym, skipNonQualScopes(sc->enclosing));
 
     // Eponymous template members can share the parent anchor name
-    if (getEponymousParentTemplate(s))
+    if (getEponymousParent(s))
         return dot;
     if (dot)
         buf->writeByte('.');
@@ -575,7 +588,7 @@ static void emitAnchor(OutBuffer *buf, Dsymbol *s, Scope *sc)
         ident = Identifier::idPool(anc.peekString());
     }
     size_t *count = (size_t*)dmd_aaGet(&sc->anchorCounts, (void *)ident);
-    TemplateDeclaration *td = getEponymousParentTemplate(s);
+    TemplateDeclaration *td = getEponymousParent(s);
     // don't write an anchor for matching consecutive ditto symbols
     if (*count > 0 && sc->prevAnchor == ident &&
         sc->lastdc && (isDitto(s->comment) || (td && isDitto(td->comment))))
@@ -652,6 +665,14 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
 void emitDitto(Dsymbol *s, Scope *sc)
 {
     //printf("Dsymbol::emitDitto() %s %s\n", kind(), toChars());
+    if (TemplateDeclaration *td = s->isTemplateDeclaration())
+    {
+        if (Dsymbol *ss = getEponymousMember(td))
+        {
+            emitDitto(ss, sc);
+            return;
+        }
+    }
     OutBuffer *buf = sc->docbuf;
     OutBuffer b;
 
@@ -659,12 +680,9 @@ void emitDitto(Dsymbol *s, Scope *sc)
     size_t o = b.offset;
     toDocBuffer(s, &b, sc);
     //printf("b: '%.*s'\n", b.offset, b.data);
-    /* If 'this' is a function template, then highlightCode() was
-     * already run by FuncDeclaration::toDocbuffer().
-     */
-    if (!getEponymousParentTemplate(s))
-        highlightCode(sc, s, &b, o);
+    highlightCode(sc, s, &b, o);
     b.writeByte(')');
+
     buf->spread(sc->lastoffset, b.offset);
     memcpy(buf->data + sc->lastoffset, b.data, b.offset);
     sc->lastoffset += b.offset;
@@ -782,15 +800,25 @@ void emitComment(Dsymbol *s, Scope *sc)
         {
             //printf("Declaration::emitComment(%p '%s'), comment = '%s'\n", d, d->toChars(), d->comment);
             //printf("type = %p\n", d->type);
-
-            if (d->protection.kind == PROTprivate || sc->protection.kind == PROTprivate ||
-                !d->ident || (!d->type && !d->isCtorDeclaration() && !d->isAliasDeclaration()))
-                return;
-            if (!d->comment)
+            const utf8_t *com = d->comment;
+            if (TemplateDeclaration *td = getEponymousParent(d))
+            {
+                com = Lexer::combineComments(td->comment, com);
+            }
+            else
+            {
+                if (!d->ident)
+                    return;
+                if (!d->type && !d->isCtorDeclaration() && !d->isAliasDeclaration())
+                    return;
+                if (d->protection.kind == PROTprivate || sc->protection.kind == PROTprivate)
+                    return;
+            }
+            if (!com)
                 return;
 
             OutBuffer *buf = sc->docbuf;
-            DocComment *dc = DocComment::parse(sc, d, d->comment);
+            DocComment *dc = DocComment::parse(sc, d, com);
 
             if (!dc)
             {
@@ -814,13 +842,23 @@ void emitComment(Dsymbol *s, Scope *sc)
         void visit(AggregateDeclaration *ad)
         {
             //printf("AggregateDeclaration::emitComment() '%s'\n", ad->toChars());
-            if (ad->prot().kind == PROTprivate || sc->protection.kind == PROTprivate)
-                return;
-            if (!ad->comment)
+            const utf8_t *com = ad->comment;
+            if (TemplateDeclaration *td = getEponymousParent(ad))
+            {
+                com = Lexer::combineComments(td->comment, com);
+            }
+            else
+            {
+                if (ad->prot().kind == PROTprivate || sc->protection.kind == PROTprivate)
+                    return;
+                if (!ad->comment)
+                    return;
+            }
+            if (!com)
                 return;
 
             OutBuffer *buf = sc->docbuf;
-            DocComment *dc = DocComment::parse(sc, ad, ad->comment);
+            DocComment *dc = DocComment::parse(sc, ad, com);
 
             if (!dc)
             {
@@ -847,55 +885,34 @@ void emitComment(Dsymbol *s, Scope *sc)
             //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", td->toChars(), td->kind());
             if (td->prot().kind == PROTprivate || sc->protection.kind == PROTprivate)
                 return;
-
-            const utf8_t *com = td->comment;
-            bool hasmembers = true;
-
-            Dsymbol *ss = td;
-
-            if (td->onemember)
-            {
-                ss = td->onemember->isAggregateDeclaration();
-                if (!ss)
-                {
-                    ss = td->onemember->isFuncDeclaration();
-                    if (ss)
-                    {
-                        hasmembers = false;
-                        if (com != ss->comment)
-                            com = Lexer::combineComments(com, ss->comment);
-                    }
-                    else
-                        ss = td;
-                }
-            }
-
-            if (!com)
+            if (!td->comment)
                 return;
 
             OutBuffer *buf = sc->docbuf;
-            DocComment *dc = DocComment::parse(sc, td, com);
-            size_t o;
+            DocComment *dc = DocComment::parse(sc, td, td->comment);
 
             if (!dc)
             {
-                emitDitto(ss, sc);
+                emitDitto(td, sc);
+                return;
+            }
+            if (Dsymbol *ss = getEponymousMember(td))
+            {
+                ss->accept(this);
                 return;
             }
             dc->pmacrotable = &sc->module->macrotable;
 
             buf->writestring(ddoc_decl_s);
-            o = buf->offset;
-            toDocBuffer(ss, buf, sc);
-            if (ss == td)
-                highlightCode(sc, td, buf, o);
+            size_t o = buf->offset;
+            toDocBuffer(td, buf, sc);
+            highlightCode(sc, td, buf, o);
             sc->lastoffset = buf->offset;
             buf->writestring(ddoc_decl_e);
 
             buf->writestring(ddoc_decl_dd_s);
             dc->writeSections(sc, td, buf);
-            if (hasmembers)
-                emitMemberComments((ScopeDsymbol *)ss, sc);
+            emitMemberComments(td, sc);
             buf->writestring(ddoc_decl_dd_e);
         }
 
@@ -1219,13 +1236,11 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             if (!fd->ident)
                 return;
 
-            if (TemplateDeclaration *td = getEponymousParentTemplate(fd))
+            if (TemplateDeclaration *td = getEponymousParent(fd))
             {
                 /* It's a function template
                  */
-                size_t o = buf->offset;
                 declarationToDocBuffer(fd, td);
-                highlightCode(sc, fd, buf, o);
             }
             else
             {
@@ -1254,11 +1269,9 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
         #if 0
             emitProtection(buf, sd->protection);
         #endif
-            if (TemplateDeclaration *td = getEponymousParentTemplate(sd))
+            if (TemplateDeclaration *td = getEponymousParent(sd))
             {
-                size_t o = buf->offset;
                 toDocBuffer(td, buf, sc);
-                highlightCode(sc, sd, buf, o);
             }
             else
             {
@@ -1276,11 +1289,9 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
         #if 0
             emitProtection(buf, cd->protection);
         #endif
-            if (TemplateDeclaration *td = getEponymousParentTemplate(cd))
+            if (TemplateDeclaration *td = getEponymousParent(cd))
             {
-                size_t o = buf->offset;
                 toDocBuffer(td, buf, sc);
-                highlightCode(sc, cd, buf, o);
             }
             else
             {
@@ -2137,26 +2148,13 @@ TypeFunction *isTypeFunction(Dsymbol *s)
 {
     FuncDeclaration *f = s->isFuncDeclaration();
 
-    /* Check whether s refers to an eponymous function template.
-     */
-    if (f == NULL && s->isTemplateDeclaration() && s->isTemplateDeclaration()->onemember)
-    {
-        f = s->isTemplateDeclaration()->onemember->isFuncDeclaration();
-    }
-
     /* f->type may be NULL for template members.
      */
     if (f && f->type)
     {
-        TypeFunction *tf;
-        if (f->originalType)
-        {
-            tf = (TypeFunction *)f->originalType;
-        }
-        else
-            tf = (TypeFunction *)f->type;
-
-        return tf;
+        Type *t = f->originalType ? f->originalType : f->type;
+        if (t->ty == Tfunction)
+            return (TypeFunction *)t;
     }
     return NULL;
 }
@@ -2186,7 +2184,7 @@ Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len)
 
 TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len)
 {
-    TemplateDeclaration *td = s->isTemplateDeclaration();
+    TemplateDeclaration *td = getEponymousParent(s);
     if (td && td->origParameters)
     {
         for (size_t k = 0; k < td->origParameters->dim; k++)
