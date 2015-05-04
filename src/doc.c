@@ -1100,51 +1100,47 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             }
         }
 
-        void declarationToDocBuffer(Declaration *decl, TemplateDeclaration *td)
+        void visit(Declaration *d)
         {
-            //printf("declarationToDocBuffer() %s, originalType = %s, td = %s\n", decl->toChars(), decl->originalType ? decl->originalType->toChars() : "--", td ? td->toChars() : "--");
-            if (!decl->ident)
+            if (!d->ident)
                 return;
 
-            if (decl->isDeprecated())
+            TemplateDeclaration *td = getEponymousParent(d);
+            //printf("Declaration::toDocbuffer() %s, originalType = %s, td = %s\n", d->toChars(), d->originalType ? d->originalType->toChars() : "--", td ? td->toChars() : "--");
+
+            HdrGenState hgs;
+            hgs.ddoc = true;
+
+            if (d->isDeprecated())
                 buf->writestring("$(DEPRECATED ");
 
-            prefix(decl);
+            prefix(d);
 
-            if (decl->type)
+            if (d->type)
             {
-                HdrGenState hgs;
-                hgs.ddoc = true;
-                Type *origType = decl->originalType ? decl->originalType : decl->type;
+                Type *origType = d->originalType ? d->originalType : d->type;
                 if (origType->ty == Tfunction)
                 {
-                    functionToBufferFull((TypeFunction *)origType, buf, decl->ident, &hgs, td);
+                    functionToBufferFull((TypeFunction *)origType, buf, d->ident, &hgs, td);
                 }
                 else
-                    ::toCBuffer(origType, buf, decl->ident, &hgs);
+                    ::toCBuffer(origType, buf, d->ident, &hgs);
             }
             else
-                buf->writestring(decl->ident->toChars());
+                buf->writestring(d->ident->toChars());
 
             // emit constraints if declaration is a templated declaration
             if (td && td->constraint)
             {
-                HdrGenState hgs;
-                hgs.ddoc = true;
                 buf->writestring(" if (");
                 ::toCBuffer(td->constraint, buf, &hgs);
                 buf->writeByte(')');
             }
 
-            if (decl->isDeprecated())
+            if (d->isDeprecated())
                 buf->writestring(")");
 
             buf->writestring(";\n");
-        }
-
-        void visit(Declaration *d)
-        {
-            declarationToDocBuffer(d, NULL);
         }
 
         void visit(AliasDeclaration *ad)
@@ -1227,24 +1223,6 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
                 parentToBuffer(s->parent);
                 buf->writestring(s->toChars());
-            }
-        }
-
-        void visit(FuncDeclaration *fd)
-        {
-            //printf("FuncDeclaration::toDocbuffer() %s\n", fd->toChars());
-            if (!fd->ident)
-                return;
-
-            if (TemplateDeclaration *td = getEponymousParent(fd))
-            {
-                /* It's a function template
-                 */
-                declarationToDocBuffer(fd, td);
-            }
-            else
-            {
-                visit((Declaration *)fd);
             }
         }
 
