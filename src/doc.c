@@ -140,6 +140,8 @@ static Dsymbol *getEponymousMember(TemplateDeclaration *td)
         return ad;
     if (FuncDeclaration *fd = td->onemember->isFuncDeclaration())
         return fd;
+    if (VarDeclaration *vd = td->onemember->isVarDeclaration())
+        return td->constraint ? NULL : vd;
 
     return NULL;
 }
@@ -1096,6 +1098,9 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                         buf->writestring("immutable ");
                     if (d->isSynchronized())
                         buf->writestring("synchronized ");
+
+                    if (d->storage_class & STCmanifest)
+                        buf->writestring("enum ");
                 }
             }
         }
@@ -1128,6 +1133,21 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             }
             else
                 buf->writestring(d->ident->toChars());
+
+            if (d->isVarDeclaration() && td)
+            {
+                buf->writeByte('(');
+                if (td->origParameters && td->origParameters->dim)
+                {
+                    for (size_t i = 0; i < td->origParameters->dim; i++)
+                    {
+                        if (i)
+                            buf->writestring(", ");
+                        toCBuffer((*td->origParameters)[i], buf, &hgs);
+                    }
+                }
+                buf->writeByte(')');
+            }
 
             // emit constraints if declaration is a templated declaration
             if (td && td->constraint)
