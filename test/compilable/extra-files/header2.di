@@ -62,6 +62,15 @@ template MyClass4(T) if (is(typeof(T.subtype)))
 	{
 	}
 }
+enum isInt(T) = is(T == int);
+enum bool isString(T) = is(T == string);
+static immutable typeName(T) = T.stringof;
+int storageFor(T) = 0;
+enum int templateVariableFoo(T) = T.stringof.length;
+template templateVariableBar(T) if (is(T == int))
+{
+	enum int templateVariableBar = T.stringof.length;
+}
 auto flit = 3 / 2.00000;
 void foo11217()(const int[] arr)
 {

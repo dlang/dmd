@@ -74,6 +74,20 @@ template MyClass4(T)
     class MyClass4 {}
 }
 
+enum isInt(T) = is(T == int);
+enum bool isString(T) = is(T == string);
+static immutable typeName(T) = T.stringof;
+int storageFor(T) = 0;
+
+template templateVariableFoo(T)
+{
+    enum int templateVariableFoo = T.stringof.length;
+}
+template templateVariableBar(T) if (is(T == int))
+{
+    enum int templateVariableBar = T.stringof.length;
+}
+
 auto flit = 3 / 2.0;
 
 // 11217
