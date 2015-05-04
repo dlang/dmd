@@ -4013,14 +4013,19 @@ class Fiber
 
     /**
      * Resets this fiber so that it may be re-used, optionally with a
-     * new function/delegate.  This routine may only be called for
+     * new function/delegate.  This routine should only be called for
      * fibers that have terminated, as doing otherwise could result in
      * scope-dependent functionality that is not executed.
      * Stack-based classes, for example, may not be cleaned up
-     * properly if a fiber is reset before it has terminated.
+     * properly if a fiber is reset before it has terminated. Calling it
+     * for a fiber in state HOLD also won't cleanup the old stack, 
+     * so it may leak resources which will lead to stack overflow if reset
+     * is called too many times for such a fiber. It will 
+     * properly reset the stack though, so the fiber should behave like 
+     * a new one.
      *
      * In:
-     *  This fiber must be in state TERM.
+     *  This fiber must be in state TERM or HOLD.
      */
     final void reset() nothrow
     in
