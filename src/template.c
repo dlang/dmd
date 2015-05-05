@@ -5678,6 +5678,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->tinst = NULL;
     this->tnext = NULL;
     this->minst = NULL;
+    this->forceInst = false;
     this->deferred = NULL;
     this->argsym = NULL;
     this->aliasdecl = NULL;
@@ -5709,6 +5710,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->tinst = NULL;
     this->tnext = NULL;
     this->minst = NULL;
+    this->forceInst = false;
     this->deferred = NULL;
     this->argsym = NULL;
     this->aliasdecl = NULL;
@@ -7880,6 +7882,7 @@ L1:
         {
             minst = tnext->minst;           // cache result
             assert(minst && minst->isRoot());
+            forceInst = tnext->forceInst;
             return true;
         }
         return false;
@@ -7906,6 +7909,8 @@ L1:
 
     if (global.params.allInst)
         return true;
+    if (forceInst)
+        return true;
 
     // Prefer instantiation in non-root module, to minimize object code size
     if (minst->isRoot())
@@ -7917,6 +7922,7 @@ L1:
         {
             minst = tnext->minst;           // cache result
             assert(!minst->isRoot());
+            forceInst = tnext->forceInst;
             return false;
         }
     }

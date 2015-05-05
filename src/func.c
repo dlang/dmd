@@ -328,6 +328,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     flags = 0;
     returns = NULL;
     gotos = NULL;
+    forceInst = false;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)

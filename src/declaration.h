@@ -581,6 +581,8 @@ public:
 
     unsigned flags;                     // FUNCFLAGxxxxx
 
+    bool forceInst;
+
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);

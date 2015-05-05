@@ -3039,6 +3039,8 @@ Scope *ConditionalStatement::newScope(Scope *sc)
 {
     Scope *sc2 = sc;
 
+    if (sc->func && sc->tinst && condition->isUnitTestOrDebugLevel())
+        sc->func->forceInst = true;
     if (sc->minst && !sc->minst->isRoot() &&
         condition->isUnitTestOrDebugLevel())
     {
