@@ -27,21 +27,19 @@ version(D_LP64)
 else
     alias SizeStringBuff = UintStringBuff;
 
-char[] uintToTempString(size_t n)(in uint val, ref char[n] buff)
+char[] uintToTempString(in uint val, char[] buff)
 { return val._unsignedToTempString(buff); }
 
-char[] ulongToTempString(size_t n)(in ulong val, ref char[n] buff)
+char[] ulongToTempString(in ulong val, char[] buff)
 { return val._unsignedToTempString(buff); }
 
-version(D_LP64)
-    alias sizeToTempString = ulongToTempString;
-else
-    alias sizeToTempString = uintToTempString;
+char[] sizeToTempString(in size_t val, char[] buff)
+{ return val._unsignedToTempString(buff); }
 
-private char[] _unsignedToTempString(T, size_t n)(in T val, ref char[n] buff)
+private char[] _unsignedToTempString(T)(in T val, char[] buff)
 if(is(T == uint) || is(T == ulong))
 {
-    static assert(n >= (is(T == uint) ? 10 : 20), "Buffer is to small for `" ~ T.stringof ~ "`.");
+    assert(buff.length >= (is(T == uint) ? 10 : 20), "Buffer is too small for `" ~ T.stringof ~ "`.");
 
     char* p = buff.ptr + buff.length;
     T k = val;

@@ -17,21 +17,9 @@
  */
 module object;
 
-//debug=PRINTF;
-
 private
 {
-    import core.atomic;
-    import core.stdc.string;
-    import core.stdc.stdlib;
-    import core.memory;
-    import rt.util.hash;
-    import rt.util.string;
-    debug(PRINTF) import core.stdc.stdio;
-
     extern (C) Object _d_newclass(const TypeInfo_Class ci);
-    extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
-    extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
     extern (C) void rt_finalize(void *data, bool det=true);
 }
 
@@ -150,16 +138,7 @@ class Object
     }
 }
 
-/************************
- * Returns true if lhs and rhs are equal.
- */
-bool opEquals(const Object lhs, const Object rhs)
-{
-    // A hack for the moment.
-    return opEquals(cast()lhs, cast()rhs);
-}
-
-bool opEquals(Object lhs, Object rhs)
+auto opEquals(Object lhs, Object rhs)
 {
     // If aliased to the same object or both null => equal
     if (lhs is rhs) return true;
@@ -181,6 +160,22 @@ bool opEquals(Object lhs, Object rhs)
     return lhs.opEquals(rhs) && rhs.opEquals(lhs);
 }
 
+/************************
+* Returns true if lhs and rhs are equal.
+*/
+auto opEquals(const Object lhs, const Object rhs)
+{
+    // A hack for the moment.
+    return opEquals(cast()lhs, cast()rhs);
+}
+
+private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
+
+void setSameMutex(shared Object ownee, shared Object owner)
+{
+    _d_setSameMutex(ownee, owner);
+}
+
 /**
  * Information about an interface.
  * When an object is accessed via an interface, an Interface* appears as the
@@ -192,13 +187,6 @@ struct Interface
     void*[]     vtbl;
     size_t      offset;     /// offset to Interface 'this' from Object 'this'
 }
-
-/**
- * Runtime type information about a class. Can be retrieved for any class type
- * or instance by using the .classinfo property.
- * A pointer to this appears as the first entry in the class's vtbl[].
- */
-alias TypeInfo_Class Classinfo;
 
 /**
  * Array of pairs giving the offset and type information for each
@@ -224,10 +212,13 @@ class TypeInfo
 
     override size_t toHash() @trusted const
     {
+        import core.internal.traits : externDFunc;
+        alias hashOf = externDFunc!("rt.util.hash.hashOf", 
+                                    size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
         try
         {
             auto data = this.toString();
-            return rt.util.hash.hashOf(data.ptr, data.length);
+            return hashOf(data.ptr, data.length, 0);
         }
         catch (Throwable)
         {
@@ -240,6 +231,10 @@ class TypeInfo
 
     override int opCmp(Object o)
     {
+        import core.internal.traits : externDFunc;
+        alias dstrcmp = externDFunc!("rt.util.string.dstrcmp", 
+                                     int function(in char[] s1, in char[] s2) @trusted pure nothrow);
+
         if (this is o)
             return 0;
         TypeInfo ti = cast(TypeInfo)o;
@@ -504,8 +499,12 @@ class TypeInfo_StaticArray : TypeInfo
 {
     override string toString() const
     {
-        SizeStringBuff tmpBuff = void;
-        return value.toString() ~ "[" ~ len.sizeToTempString(tmpBuff) ~ "]";
+        import core.internal.traits : externDFunc;
+        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString", 
+                                              char[] function(in size_t, char[]) @trusted pure nothrow);
+
+        char[20] tmpBuff = void;
+        return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff) ~ "]";
     }
 
     override bool opEquals(Object o)
@@ -554,6 +553,9 @@ class TypeInfo_StaticArray : TypeInfo
 
     override void swap(void* p1, void* p2) const
     {
+        import core.memory;
+        import core.stdc.string : memcpy;
+
         void* tmp;
         size_t sz = value.tsize;
         ubyte[16] buffer;
@@ -1005,12 +1007,17 @@ class TypeInfo_Struct : TypeInfo
         }
         else
         {
-            return rt.util.hash.hashOf(p, init().length);
+            import core.internal.traits : externDFunc;
+            alias hashOf = externDFunc!("rt.util.hash.hashOf", 
+                                        size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
+            return hashOf(p, init().length, 0);
         }
     }
 
     override bool equals(in void* p1, in void* p2) @trusted pure nothrow const
     {
+        import core.stdc.string : memcmp;
+
         if (!p1 || !p2)
             return false;
         else if (xopEquals)
@@ -1024,6 +1031,8 @@ class TypeInfo_Struct : TypeInfo
 
     override int compare(in void* p1, in void* p2) @trusted pure nothrow const
     {
+        import core.stdc.string : memcmp;
+
         // Regard null references as always being "less than"
         if (p1 != p2)
         {
@@ -1296,6 +1305,13 @@ class MemberInfo_field : MemberInfo
 
 class MemberInfo_function : MemberInfo
 {
+    enum
+    {
+        Virtual = 1,
+        Member  = 2,
+        Static  = 4,
+    }
+
     this(string name, TypeInfo ti, void* fp, uint flags)
     {
         m_name = name;
@@ -1315,6 +1331,201 @@ class MemberInfo_function : MemberInfo
     uint     m_flags;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
+// ModuleInfo
+///////////////////////////////////////////////////////////////////////////////
+
+
+enum
+{
+    MIctorstart  = 0x1,   // we've started constructing it
+    MIctordone   = 0x2,   // finished construction
+    MIstandalone = 0x4,   // module ctor does not depend on other module
+                        // ctors being done first
+    MItlsctor    = 8,
+    MItlsdtor    = 0x10,
+    MIctor       = 0x20,
+    MIdtor       = 0x40,
+    MIxgetMembers = 0x80,
+    MIictor      = 0x100,
+    MIunitTest   = 0x200,
+    MIimportedModules = 0x400,
+    MIlocalClasses = 0x800,
+    MIname       = 0x1000,
+}
+
+
+struct ModuleInfo
+{
+    uint _flags;
+    uint _index; // index into _moduleinfo_array[]
+
+    version (all)
+    {
+        deprecated("ModuleInfo cannot be copy-assigned because it is a variable-sized struct.")
+        void opAssign(in ModuleInfo m) { _flags = m._flags; _index = m._index; }
+    }
+    else
+    {
+        @disable this();
+        @disable this(this) const;
+    }
+
+const:
+    private void* addrOf(int flag) nothrow pure
+    in
+    {
+        assert(flag >= MItlsctor && flag <= MIname);
+        assert(!(flag & (flag - 1)) && !(flag & ~(flag - 1) << 1));
+    }
+    body
+    {
+        import core.stdc.string : strlen;
+
+        void* p = cast(void*)&this + ModuleInfo.sizeof;
+
+        if (flags & MItlsctor)
+        {
+            if (flag == MItlsctor) return p;
+            p += typeof(tlsctor).sizeof;
+        }
+        if (flags & MItlsdtor)
+        {
+            if (flag == MItlsdtor) return p;
+            p += typeof(tlsdtor).sizeof;
+        }
+        if (flags & MIctor)
+        {
+            if (flag == MIctor) return p;
+            p += typeof(ctor).sizeof;
+        }
+        if (flags & MIdtor)
+        {
+            if (flag == MIdtor) return p;
+            p += typeof(dtor).sizeof;
+        }
+        if (flags & MIxgetMembers)
+        {
+            if (flag == MIxgetMembers) return p;
+            p += typeof(xgetMembers).sizeof;
+        }
+        if (flags & MIictor)
+        {
+            if (flag == MIictor) return p;
+            p += typeof(ictor).sizeof;
+        }
+        if (flags & MIunitTest)
+        {
+            if (flag == MIunitTest) return p;
+            p += typeof(unitTest).sizeof;
+        }
+        if (flags & MIimportedModules)
+        {
+            if (flag == MIimportedModules) return p;
+            p += size_t.sizeof + *cast(size_t*)p * typeof(importedModules[0]).sizeof;
+        }
+        if (flags & MIlocalClasses)
+        {
+            if (flag == MIlocalClasses) return p;
+            p += size_t.sizeof + *cast(size_t*)p * typeof(localClasses[0]).sizeof;
+        }
+        if (true || flags & MIname) // always available for now
+        {
+            if (flag == MIname) return p;
+            p += strlen(cast(immutable char*)p);
+        }
+        assert(0);
+    }
+
+    @property uint index() nothrow pure { return _index; }
+
+    @property uint flags() nothrow pure { return _flags; }
+
+    @property void function() tlsctor() nothrow pure
+    {
+        return flags & MItlsctor ? *cast(typeof(return)*)addrOf(MItlsctor) : null;
+    }
+
+    @property void function() tlsdtor() nothrow pure
+    {
+        return flags & MItlsdtor ? *cast(typeof(return)*)addrOf(MItlsdtor) : null;
+    }
+
+    @property void* xgetMembers() nothrow pure
+    {
+        return flags & MIxgetMembers ? *cast(typeof(return)*)addrOf(MIxgetMembers) : null;
+    }
+
+    @property void function() ctor() nothrow pure
+    {
+        return flags & MIctor ? *cast(typeof(return)*)addrOf(MIctor) : null;
+    }
+
+    @property void function() dtor() nothrow pure
+    {
+        return flags & MIdtor ? *cast(typeof(return)*)addrOf(MIdtor) : null;
+    }
+
+    @property void function() ictor() nothrow pure
+    {
+        return flags & MIictor ? *cast(typeof(return)*)addrOf(MIictor) : null;
+    }
+
+    @property void function() unitTest() nothrow pure
+    {
+        return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
+    }
+
+    @property immutable(ModuleInfo*)[] importedModules() nothrow pure
+    {
+        if (flags & MIimportedModules)
+        {
+            auto p = cast(size_t*)addrOf(MIimportedModules);
+            return (cast(immutable(ModuleInfo*)*)(p + 1))[0 .. *p];
+        }
+        return null;
+    }
+
+    @property TypeInfo_Class[] localClasses() nothrow pure
+    {
+        if (flags & MIlocalClasses)
+        {
+            auto p = cast(size_t*)addrOf(MIlocalClasses);
+            return (cast(TypeInfo_Class*)(p + 1))[0 .. *p];
+        }
+        return null;
+    }
+
+    @property string name() nothrow pure
+    {
+        if (true || flags & MIname) // always available for now
+        {
+            import core.stdc.string : strlen;
+
+            auto p = cast(immutable char*)addrOf(MIname);
+            return p[0 .. strlen(p)];
+        }
+        // return null;
+    }
+
+    static int opApply(scope int delegate(ModuleInfo*) dg)
+    {
+        import rt.minfo;
+        // Bugzilla 13084 - enforcing immutable ModuleInfo would break client code
+        return rt.minfo.moduleinfos_apply(
+            (immutable(ModuleInfo*)m) => dg(cast(ModuleInfo*)m));
+    }
+}
+
+unittest
+{
+    ModuleInfo* m1;
+    foreach (m; ModuleInfo)
+    {
+        m1 = m;
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Throwable
@@ -1400,11 +1611,15 @@ class Throwable : Object
      */
     void toString(scope void delegate(in char[]) sink) const
     {
-        SizeStringBuff tmpBuff = void;
+        import core.internal.traits : externDFunc;
+        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString", 
+                                              char[] function(in size_t, char[]) @trusted pure nothrow);
+
+        char[20] tmpBuff = void;
 
         sink(typeid(this).name);
         sink("@"); sink(file);
-        sink("("); sink(line.sizeToTempString(tmpBuff)); sink(")");
+        sink("("); sink(sizeToTempString(line, tmpBuff)); sink(")");
 
         if (msg.length)
         {
@@ -1426,51 +1641,6 @@ class Throwable : Object
             }
         }
     }
-}
-
-
-alias Throwable.TraceInfo function(void* ptr) TraceHandler;
-private __gshared TraceHandler traceHandler = null;
-
-
-/**
- * Overrides the default trace hander with a user-supplied version.
- *
- * Params:
- *  h = The new trace handler.  Set to null to use the default handler.
- */
-extern (C) void  rt_setTraceHandler(TraceHandler h)
-{
-    traceHandler = h;
-}
-
-/**
- * Return the current trace handler
- */
-extern (C) TraceHandler rt_getTraceHandler()
-{
-    return traceHandler;
-}
-
-/**
- * This function will be called when an exception is constructed.  The
- * user-supplied trace handler will be called if one has been supplied,
- * otherwise no trace will be generated.
- *
- * Params:
- *  ptr = A pointer to the location from which to generate the trace, or null
- *        if the trace should be generated from within the trace handler
- *        itself.
- *
- * Returns:
- *  An object describing the current calling context or null if no handler is
- *  supplied.
- */
-extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null)
-{
-    if (traceHandler is null)
-        return null;
-    return traceHandler(ptr);
 }
 
 
@@ -1594,397 +1764,6 @@ unittest
     }
 }
 
-
-///////////////////////////////////////////////////////////////////////////////
-// ModuleInfo
-///////////////////////////////////////////////////////////////////////////////
-
-
-enum
-{
-    MIctorstart  = 0x1,   // we've started constructing it
-    MIctordone   = 0x2,   // finished construction
-    MIstandalone = 0x4,   // module ctor does not depend on other module
-                        // ctors being done first
-    MItlsctor    = 8,
-    MItlsdtor    = 0x10,
-    MIctor       = 0x20,
-    MIdtor       = 0x40,
-    MIxgetMembers = 0x80,
-    MIictor      = 0x100,
-    MIunitTest   = 0x200,
-    MIimportedModules = 0x400,
-    MIlocalClasses = 0x800,
-    MIname       = 0x1000,
-}
-
-
-struct ModuleInfo
-{
-    uint _flags;
-    uint _index; // index into _moduleinfo_array[]
-
-    version (all)
-    {
-        deprecated("ModuleInfo cannot be copy-assigned because it is a variable-sized struct.")
-        void opAssign(in ModuleInfo m) { _flags = m._flags; _index = m._index; }
-    }
-    else
-    {
-        @disable this();
-        @disable this(this) const;
-    }
-
-const:
-    private void* addrOf(int flag) nothrow pure
-    in
-    {
-        assert(flag >= MItlsctor && flag <= MIname);
-        assert(!(flag & (flag - 1)) && !(flag & ~(flag - 1) << 1));
-    }
-    body
-    {
-        void* p = cast(void*)&this + ModuleInfo.sizeof;
-
-        if (flags & MItlsctor)
-        {
-            if (flag == MItlsctor) return p;
-            p += typeof(tlsctor).sizeof;
-        }
-        if (flags & MItlsdtor)
-        {
-            if (flag == MItlsdtor) return p;
-            p += typeof(tlsdtor).sizeof;
-        }
-        if (flags & MIctor)
-        {
-            if (flag == MIctor) return p;
-            p += typeof(ctor).sizeof;
-        }
-        if (flags & MIdtor)
-        {
-            if (flag == MIdtor) return p;
-            p += typeof(dtor).sizeof;
-        }
-        if (flags & MIxgetMembers)
-        {
-            if (flag == MIxgetMembers) return p;
-            p += typeof(xgetMembers).sizeof;
-        }
-        if (flags & MIictor)
-        {
-            if (flag == MIictor) return p;
-            p += typeof(ictor).sizeof;
-        }
-        if (flags & MIunitTest)
-        {
-            if (flag == MIunitTest) return p;
-            p += typeof(unitTest).sizeof;
-        }
-        if (flags & MIimportedModules)
-        {
-            if (flag == MIimportedModules) return p;
-            p += size_t.sizeof + *cast(size_t*)p * typeof(importedModules[0]).sizeof;
-        }
-        if (flags & MIlocalClasses)
-        {
-            if (flag == MIlocalClasses) return p;
-            p += size_t.sizeof + *cast(size_t*)p * typeof(localClasses[0]).sizeof;
-        }
-        if (true || flags & MIname) // always available for now
-        {
-            if (flag == MIname) return p;
-            p += .strlen(cast(immutable char*)p);
-        }
-        assert(0);
-    }
-
-    @property uint index() nothrow pure { return _index; }
-
-    @property uint flags() nothrow pure { return _flags; }
-
-    @property void function() tlsctor() nothrow pure
-    {
-        return flags & MItlsctor ? *cast(typeof(return)*)addrOf(MItlsctor) : null;
-    }
-
-    @property void function() tlsdtor() nothrow pure
-    {
-        return flags & MItlsdtor ? *cast(typeof(return)*)addrOf(MItlsdtor) : null;
-    }
-
-    @property void* xgetMembers() nothrow pure
-    {
-        return flags & MIxgetMembers ? *cast(typeof(return)*)addrOf(MIxgetMembers) : null;
-    }
-
-    @property void function() ctor() nothrow pure
-    {
-        return flags & MIctor ? *cast(typeof(return)*)addrOf(MIctor) : null;
-    }
-
-    @property void function() dtor() nothrow pure
-    {
-        return flags & MIdtor ? *cast(typeof(return)*)addrOf(MIdtor) : null;
-    }
-
-    @property void function() ictor() nothrow pure
-    {
-        return flags & MIictor ? *cast(typeof(return)*)addrOf(MIictor) : null;
-    }
-
-    @property void function() unitTest() nothrow pure
-    {
-        return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
-    }
-
-    @property immutable(ModuleInfo*)[] importedModules() nothrow pure
-    {
-        if (flags & MIimportedModules)
-        {
-            auto p = cast(size_t*)addrOf(MIimportedModules);
-            return (cast(immutable(ModuleInfo*)*)(p + 1))[0 .. *p];
-        }
-        return null;
-    }
-
-    @property TypeInfo_Class[] localClasses() nothrow pure
-    {
-        if (flags & MIlocalClasses)
-        {
-            auto p = cast(size_t*)addrOf(MIlocalClasses);
-            return (cast(TypeInfo_Class*)(p + 1))[0 .. *p];
-        }
-        return null;
-    }
-
-    @property string name() nothrow pure
-    {
-        if (true || flags & MIname) // always available for now
-        {
-            auto p = cast(immutable char*)addrOf(MIname);
-            return p[0 .. .strlen(p)];
-        }
-        // return null;
-    }
-
-    static int opApply(scope int delegate(ModuleInfo*) dg)
-    {
-        import rt.minfo;
-        // Bugzilla 13084 - enforcing immutable ModuleInfo would break client code
-        return rt.minfo.moduleinfos_apply(
-            (immutable(ModuleInfo*)m) => dg(cast(ModuleInfo*)m));
-    }
-}
-
-unittest
-{
-    ModuleInfo* m1;
-    foreach (m; ModuleInfo)
-    {
-        m1 = m;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Monitor
-///////////////////////////////////////////////////////////////////////////////
-
-alias Object.Monitor        IMonitor;
-alias void delegate(Object) DEvent;
-
-// NOTE: The dtor callback feature is only supported for monitors that are not
-//       supplied by the user.  The assumption is that any object with a user-
-//       supplied monitor may have special storage or lifetime requirements and
-//       that as a result, storing references to local objects within Monitor
-//       may not be safe or desirable.  Thus, devt is only valid if impl is
-//       null.
-struct Monitor
-{
-    IMonitor impl;
-    /* internal */
-    DEvent[] devt;
-    size_t   refs;
-    /* stuff */
-}
-
-Monitor* getMonitor(Object h) pure nothrow
-{
-    return cast(Monitor*) h.__monitor;
-}
-
-void setMonitor(Object h, Monitor* m) pure nothrow
-{
-    h.__monitor = m;
-}
-
-void setSameMutex(shared Object ownee, shared Object owner) nothrow
-in
-{
-    assert(ownee.__monitor is null);
-}
-body
-{
-    auto m = cast(shared(Monitor)*) owner.__monitor;
-
-    if (m is null)
-    {
-        _d_monitor_create(cast(Object) owner);
-        m = cast(shared(Monitor)*) owner.__monitor;
-    }
-
-    auto i = m.impl;
-    if (i is null)
-    {
-        atomicOp!("+=")(m.refs, cast(size_t)1);
-        ownee.__monitor = owner.__monitor;
-        return;
-    }
-    // If m.impl is set (ie. if this is a user-created monitor), assume
-    // the monitor is garbage collected and simply copy the reference.
-    ownee.__monitor = owner.__monitor;
-}
-
-extern (C) void _d_monitor_create(Object) nothrow;
-extern (C) void _d_monitor_destroy(Object) nothrow;
-extern (C) void _d_monitor_lock(Object) nothrow;
-extern (C) int  _d_monitor_unlock(Object) nothrow;
-
-extern (C) void _d_monitordelete(Object h, bool det)
-{
-    // det is true when the object is being destroyed deterministically (ie.
-    // when it is explicitly deleted or is a scope object whose time is up).
-    Monitor* m = getMonitor(h);
-
-    if (m !is null)
-    {
-        IMonitor i = m.impl;
-        if (i is null)
-        {
-            auto s = cast(shared(Monitor)*) m;
-            if(!atomicOp!("-=")(s.refs, cast(size_t) 1))
-            {
-                _d_monitor_devt(m, h);
-                _d_monitor_destroy(h);
-                setMonitor(h, null);
-            }
-            return;
-        }
-        // NOTE: Since a monitor can be shared via setSameMutex it isn't safe
-        //       to explicitly delete user-created monitors--there's no
-        //       refcount and it may have multiple owners.
-        /+
-        if (det && (cast(void*) i) !is (cast(void*) h))
-        {
-            destroy(i);
-            GC.free(cast(void*)i);
-        }
-        +/
-        setMonitor(h, null);
-    }
-}
-
-extern (C) void _d_monitorenter(Object h)
-{
-    Monitor* m = getMonitor(h);
-
-    if (m is null)
-    {
-        _d_monitor_create(h);
-        m = getMonitor(h);
-    }
-
-    IMonitor i = m.impl;
-
-    if (i is null)
-    {
-        _d_monitor_lock(h);
-        return;
-    }
-    i.lock();
-}
-
-extern (C) void _d_monitorexit(Object h)
-{
-    Monitor* m = getMonitor(h);
-    IMonitor i = m.impl;
-
-    if (i is null)
-    {
-        _d_monitor_unlock(h);
-        return;
-    }
-    i.unlock();
-}
-
-extern (C) void _d_monitor_devt(Monitor* m, Object h)
-{
-    if (m.devt.length)
-    {
-        DEvent[] devt;
-
-        synchronized (h)
-        {
-            devt = m.devt;
-            m.devt = null;
-        }
-        foreach (v; devt)
-        {
-            if (v)
-                v(h);
-        }
-        free(devt.ptr);
-    }
-}
-
-extern (C) void rt_attachDisposeEvent(Object h, DEvent e)
-{
-    synchronized (h)
-    {
-        Monitor* m = getMonitor(h);
-        assert(m.impl is null);
-
-        foreach (ref v; m.devt)
-        {
-            if (v is null || v == e)
-            {
-                v = e;
-                return;
-            }
-        }
-
-        auto len = m.devt.length + 4; // grow by 4 elements
-        auto pos = m.devt.length;     // insert position
-        auto p = realloc(m.devt.ptr, DEvent.sizeof * len);
-        import core.exception : onOutOfMemoryError;
-        if (!p)
-            onOutOfMemoryError();
-        m.devt = (cast(DEvent*)p)[0 .. len];
-        m.devt[pos+1 .. len] = null;
-        m.devt[pos] = e;
-    }
-}
-
-extern (C) void rt_detachDisposeEvent(Object h, DEvent e)
-{
-    synchronized (h)
-    {
-        Monitor* m = getMonitor(h);
-        assert(m.impl is null);
-
-        foreach (p, v; m.devt)
-        {
-            if (v == e)
-            {
-                memmove(&m.devt[p],
-                        &m.devt[p+1],
-                        (m.devt.length - p - 1) * DEvent.sizeof);
-                m.devt[$ - 1] = null;
-                return;
-            }
-        }
-    }
-}
 
 extern (C)
 {
@@ -2972,6 +2751,12 @@ version (unittest)
     }
 }
 
+private
+{
+    extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
+    extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
+}
+
 /**
  * (Property) Get the current capacity of a slice. The capacity is the size
  * that the slice can grow to before the underlying array must be
@@ -3184,7 +2969,28 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
     return true;
 }
 
+/**
+Calculates the hash value of $(D arg) with $(D seed) initial value.
+Result may be non-equals with $(D typeid(T).getHash(&arg))
+The $(D seed) value may be used for hash chaining:
+----
+struct Test
+{
+    int a;
+    string b;
+    MyObject c;
 
+    size_t toHash() const @safe pure nothrow
+    {
+        size_t hash = a.hashOf();
+        hash = b.hashOf(hash);
+        size_t h1 = c.myMegaHash();
+        hash = h1.hashOf(hash); //Mix two hash values
+        return hash;
+    }
+}
+----
+*/
 size_t hashOf(T)(auto ref T arg, size_t seed = 0)
 {
     import core.internal.hash;
@@ -3201,6 +3007,9 @@ bool _xopCmp(in void*, in void*)
     throw new Error("TypeInfo.compare is not implemented");
 }
 
+void __ctfeWrite(T...)(auto ref T) {}
+void __ctfeWriteln(T...)(auto ref T values) { __ctfeWrite(values, "\n"); }
+
 /******************************************
  * Create RTInfo for type T
  */
@@ -3213,9 +3022,7 @@ template RTInfo(T)
 
 // Helper functions
 
-private:
-
-inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
+private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
 {
     TypeInfo element = cast() value;
     for(;;)
@@ -3234,7 +3041,7 @@ inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
     return cast(inout) element;
 }
 
-size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted nothrow
+private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted nothrow
 {
     if(!count)
         return 0;
@@ -3256,8 +3063,11 @@ size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted
             || cast(const TypeInfo_Interface) element;
     }
 
+    import core.internal.traits : externDFunc;
+    alias hashOf = externDFunc!("rt.util.hash.hashOf", 
+                                size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
     if(!hasCustomToHash(element))
-        return rt.util.hash.hashOf(ptr, elementSize * count);
+        return hashOf(ptr, elementSize * count, 0);
 
     size_t hash = 0;
     foreach(size_t i; 0 .. count)
@@ -3305,8 +3115,6 @@ unittest
     int[S[]] aa = [[S(11)] : 13];
     assert(aa[[S(12)]] == 13); // fails
 }
-
-public:
 
 /// Provide the .dup array property.
 @property auto dup(T)(T[] a)

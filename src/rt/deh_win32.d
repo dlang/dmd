@@ -14,6 +14,7 @@ module rt.deh_win32;
 version (Win32):
 
 import core.sys.windows.windows;
+import rt.monitor_;
 //import core.stdc.stdio;
 
 version (D_InlineAsm_X86)

@@ -207,7 +207,7 @@ copydir: $(IMPDIR)
 
 copy: $(COPY)
 
-$(IMPDIR)\object.di : src\object.di
+$(IMPDIR)\object.di : src\object_.d
 	copy $** $@
 
 $(IMPDIR)\core\atomic.d : src\core\atomic.d

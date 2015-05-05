@@ -49,13 +49,7 @@ class Object
     static Object factory(string classname);
 }
 
-bool opEquals(const Object lhs, const Object rhs)
-{
-    // A hack for the moment.
-    return opEquals(cast()lhs, cast()rhs);
-}
-
-bool opEquals(Object lhs, Object rhs)
+auto opEquals(Object lhs, Object rhs)
 {
     // If aliased to the same object or both null => equal
     if (lhs is rhs) return true;
@@ -75,6 +69,12 @@ bool opEquals(Object lhs, Object rhs)
 
     // General case => symmetric calls to method opEquals
     return lhs.opEquals(rhs) && rhs.opEquals(lhs);
+}
+
+auto opEquals(const Object lhs, const Object rhs)
+{
+    // A hack for the moment.
+    return opEquals(cast()lhs, cast()rhs);
 }
 
 void setSameMutex(shared Object ownee, shared Object owner);

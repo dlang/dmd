@@ -145,6 +145,10 @@ $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 
 copy: $(COPY)
 
+$(IMPDIR)/object.di : src/object_.d
+	@mkdir -p `dirname $@`
+	cp $< $@
+
 $(IMPDIR)/%.di : src/%.di
 	@mkdir -p `dirname $@`
 	cp $< $@
