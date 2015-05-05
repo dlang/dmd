@@ -378,6 +378,7 @@ public:
 
     ConditionalStatement(Loc loc, Condition *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();
+    Scope *newScope(Scope *sc);
     Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
 
@@ -654,18 +655,6 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
 
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-class DebugStatement : public Statement
-{
-public:
-    Statement *statement;
-
-    DebugStatement(Loc loc, Statement *statement);
-    Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
-    Statements *flatten(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 

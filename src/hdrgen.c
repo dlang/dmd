@@ -582,14 +582,6 @@ public:
         buf->writenl();
     }
 
-    void visit(DebugStatement *s)
-    {
-        if (s->statement)
-        {
-            s->statement->accept(this);
-        }
-    }
-
     void visit(GotoStatement *s)
     {
         buf->writestring("goto ");

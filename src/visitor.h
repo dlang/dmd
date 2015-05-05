@@ -48,7 +48,6 @@ class TryCatchStatement;
 class TryFinallyStatement;
 class OnScopeStatement;
 class ThrowStatement;
-class DebugStatement;
 class GotoStatement;
 class LabelStatement;
 class AsmStatement;
@@ -334,7 +333,6 @@ public:
     virtual void visit(TryFinallyStatement *s) { visit((Statement *)s); }
     virtual void visit(OnScopeStatement *s) { visit((Statement *)s); }
     virtual void visit(ThrowStatement *s) { visit((Statement *)s); }
-    virtual void visit(DebugStatement *s) { visit((Statement *)s); }
     virtual void visit(GotoStatement *s) { visit((Statement *)s); }
     virtual void visit(LabelStatement *s) { visit((Statement *)s); }
     virtual void visit(AsmStatement *s) { visit((Statement *)s); }

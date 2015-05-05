@@ -180,11 +180,6 @@ public:
     }
     void visit(OnScopeStatement *s) {  }
     void visit(ThrowStatement *s) {  }
-    void visit(DebugStatement *s)
-    {
-        if (s->statement)
-            visitStmt(s->statement);
-    }
     void visit(GotoStatement *s) {  }
     void visit(LabelStatement *s)
     {
