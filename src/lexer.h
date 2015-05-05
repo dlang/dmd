@@ -62,7 +62,13 @@ public:
     void stringPostfix(Token *t);
     TOK number(Token *t);
     TOK inreal(Token *t);
-    Loc loc();
+
+    Loc loc()
+    {
+        scanloc.charnum = (unsigned)(1 + p-line);
+        return scanloc;
+    }
+
     void error(const char *format, ...);
     void error(Loc loc, const char *format, ...);
     void deprecation(const char *format, ...);
