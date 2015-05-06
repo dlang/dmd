@@ -1412,6 +1412,34 @@ public:
             hgs->tpltMember--;
             return true;
         }
+        if (VarDeclaration *vd = onemember->isVarDeclaration())
+        {
+            if (d->constraint)
+                return false;
+
+            StorageClassDeclaration::stcToCBuffer(buf, vd->storage_class);
+            if (vd->type)
+                typeToBuffer(vd->type, vd->ident);
+            else
+                buf->writestring(vd->ident->toChars());
+
+            buf->writeByte('(');
+            visitTemplateParameters(hgs->ddoc ? d->origParameters : d->parameters);
+            buf->writeByte(')');
+
+            if (vd->init)
+            {
+                buf->writestring(" = ");
+                ExpInitializer *ie = vd->init->isExpInitializer();
+                if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
+                    ((AssignExp *)ie->exp)->e2->accept(this);
+                else
+                    vd->init->accept(this);
+            }
+            buf->writeByte(';');
+            buf->writenl();
+            return true;
+        }
 
         return false;
     }
