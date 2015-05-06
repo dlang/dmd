@@ -1178,43 +1178,52 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
         Dsymbol::arraySyntaxCopy(elsedecl));
 }
 
+/****************************************
+ * Different from other AttribDeclaration subclasses, include() call requires
+ * the completion of addMember and setScope phases.
+ */
 Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 {
     //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
 
     if (condition->inc == 0)
     {
-        /* Bugzilla 10101: Condition evaluation may cause self-recursive
-         * condition evaluation. To resolve it, temporarily save sc into scope.
-         */
-        bool x = !scope && sc;
-        if (x) scope = sc;
-        Dsymbols *d = ConditionalDeclaration::include(sc, sds);
-        if (x) scope = NULL;
+        assert(scopesym);   // addMember is already done
+        assert(scope);      // setScope is already done
 
-        // Set the scopes lazily.
-        if (scope && d)
+        Dsymbols *d = ConditionalDeclaration::include(scope, scopesym);
+
+        if (d && !addisdone)
         {
-           for (size_t i = 0; i < d->dim; i++)
-           {
-               Dsymbol *s = (*d)[i];
+            // Add members lazily.
+            for (size_t i = 0; i < d->dim; i++)
+            {
+                Dsymbol *s = (*d)[i];
+                s->addMember(scope, scopesym, 1);
+            }
 
-               s->setScope(scope);
-           }
+            // Set the member scopes lazily.
+            for (size_t i = 0; i < d->dim; i++)
+            {
+                Dsymbol *s = (*d)[i];
+                s->setScope(scope);
+            }
+
+            addisdone = 1;
         }
         return d;
     }
     else
     {
-        return ConditionalDeclaration::include(sc, sds);
+        return ConditionalDeclaration::include(sc, scopesym);
     }
 }
 
 int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
-    //printf("StaticIfDeclaration::addMember() '%s'\n",toChars());
-    /* This is deferred until semantic(), so that
-     * expressions in the condition can refer to declarations
+    //printf("StaticIfDeclaration::addMember() '%s'\n", toChars());
+    /* This is deferred until the condition evaluated later (by the include() call),
+     * so that expressions in the condition can refer to declarations
      * in the same scope, such as:
      *
      * template Foo(int i)
@@ -1225,14 +1234,8 @@ int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
      * }
      */
     this->scopesym = sds;
-    int m = 0;
 
-    if (0 && memnum == 0)
-    {
-        m = AttribDeclaration::addMember(sc, sds, memnum);
-        addisdone = 1;
-    }
-    return m;
+    return 0;
 }
 
 void StaticIfDeclaration::importAll(Scope *sc)
@@ -1250,23 +1253,7 @@ void StaticIfDeclaration::setScope(Scope *sc)
 
 void StaticIfDeclaration::semantic(Scope *sc)
 {
-    Dsymbols *d = include(sc, scopesym);
-
-    //printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
-    if (d)
-    {
-        if (!addisdone)
-        {
-            AttribDeclaration::addMember(sc, scopesym, 1);
-            addisdone = 1;
-        }
-
-        for (size_t i = 0; i < d->dim; i++)
-        {
-            Dsymbol *s = (*d)[i];
-            s->semantic(sc);
-        }
-    }
+    AttribDeclaration::semantic(sc);
 }
 
 const char *StaticIfDeclaration::kind()
@@ -1301,6 +1288,7 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
         return 1;
 
     this->scopesym = sds;
+
     if (memnum == 0)
     {
         /* No members yet, so parse the mixin now

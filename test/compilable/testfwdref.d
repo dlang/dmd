@@ -434,3 +434,27 @@ static assert(
 
     return true;
 }());
+
+/***************************************************/
+// 14549
+
+string foo14549(T)()
+{
+    static if (T.tupleof.length >= 0)
+        return "";
+}
+
+class Frop14549
+{
+    mixin(foo14549!(typeof(this)));
+
+    static if (__traits(compiles, undefined))
+    {
+    }
+    else
+    {
+        int bar = 0;
+    }
+
+    static if (!__traits(isVirtualMethod, this.bar)) {}
+}
