@@ -1166,7 +1166,7 @@ StaticIfDeclaration::StaticIfDeclaration(Condition *condition,
         : ConditionalDeclaration(condition, decl, elsedecl)
 {
     //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
-    sds = NULL;
+    scopesym = NULL;
     addisdone = 0;
 }
 
@@ -1224,7 +1224,7 @@ int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
      *         const int k;
      * }
      */
-    this->sds = sds;
+    this->scopesym = sds;
     int m = 0;
 
     if (0 && memnum == 0)
@@ -1250,14 +1250,14 @@ void StaticIfDeclaration::setScope(Scope *sc)
 
 void StaticIfDeclaration::semantic(Scope *sc)
 {
-    Dsymbols *d = include(sc, sds);
+    Dsymbols *d = include(sc, scopesym);
 
     //printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
         if (!addisdone)
         {
-            AttribDeclaration::addMember(sc, sds, 1);
+            AttribDeclaration::addMember(sc, scopesym, 1);
             addisdone = 1;
         }
 
@@ -1284,7 +1284,7 @@ CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
     //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
     this->loc = loc;
     this->exp = exp;
-    this->sds = NULL;
+    this->scopesym = NULL;
     this->compiled = 0;
 }
 
@@ -1300,7 +1300,7 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
     if (compiled)
         return 1;
 
-    this->sds = sds;
+    this->scopesym = sds;
     if (memnum == 0)
     {
         /* No members yet, so parse the mixin now
@@ -1357,7 +1357,7 @@ void CompileDeclaration::semantic(Scope *sc)
     if (!compiled)
     {
         compileIt(sc);
-        AttribDeclaration::addMember(sc, sds, 0);
+        AttribDeclaration::addMember(sc, scopesym, 0);
         compiled = 1;
 
         if (scope && decl)
