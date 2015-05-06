@@ -5900,41 +5900,6 @@ void test7735()
 }
 
 /***************************************************/
-// 7815
-
-mixin template Helpers() {
-
-  static if (is(Flags!Move)) {
-    Flags!Move flags;
-  } else {
-    // DMD will happily instantiate the allegedly
-    // non-existent Flags!This here. (!)
-    pragma(msg, __traits(derivedMembers, Flags!Move));
-  }
-}
-
-template Flags(T) {
-  mixin({
-    int defs = 1;
-    foreach (name; __traits(derivedMembers, Move)) {
-        defs++;
-    }
-    if (defs) {
-      return "struct Flags { bool a; }";
-    } else {
-      return "";
-    }
-  }());
-}
-
-struct Move {
-  int a;
-  mixin Helpers!();
-}
-
-enum a7815 = Move.init.flags;
-
-/***************************************************/
 
 struct A7823 {
     long a;
