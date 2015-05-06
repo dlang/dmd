@@ -4017,12 +4017,7 @@ class Fiber
      * fibers that have terminated, as doing otherwise could result in
      * scope-dependent functionality that is not executed.
      * Stack-based classes, for example, may not be cleaned up
-     * properly if a fiber is reset before it has terminated. Calling it
-     * for a fiber in state HOLD also won't cleanup the old stack, 
-     * so it may leak resources which will lead to stack overflow if reset
-     * is called too many times for such a fiber. It will 
-     * properly reset the stack though, so the fiber should behave like 
-     * a new one.
+     * properly if a fiber is reset before it has terminated. 
      *
      * In:
      *  This fiber must be in state TERM or HOLD.
@@ -4031,10 +4026,10 @@ class Fiber
     in
     {
         assert( m_state == State.TERM || m_state == State.HOLD );
-        assert( m_ctxt.tstack == m_ctxt.bstack );
     }
     body
     {
+        m_ctxt.tstack = m_ctxt.bstack;
         m_state = State.HOLD;
         initStack();
         m_unhandled = null;
@@ -5041,6 +5036,17 @@ unittest
     expect(fib, "delegate");
 }
 
+// Test unsafe reset in hold state
+unittest
+{
+    auto fib = new Fiber({ubyte[2048] buf = void; Fiber.yield();}, 4096);
+    foreach (_; 0 .. 10)
+    {
+        fib.call();
+        assert(fib.state == Fiber.State.HOLD);
+        fib.reset();
+    }
+}
 
 // stress testing GC stack scanning
 unittest
