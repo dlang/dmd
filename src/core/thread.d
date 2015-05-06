@@ -5039,7 +5039,7 @@ unittest
 // Test unsafe reset in hold state
 unittest
 {
-    auto fib = new Fiber({ubyte[2048] buf = void; Fiber.yield();}, 4096);
+    auto fib = new Fiber(function {ubyte[2048] buf = void; Fiber.yield();}, 4096);
     foreach (_; 0 .. 10)
     {
         fib.call();
