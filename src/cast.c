@@ -3049,8 +3049,9 @@ Lcc:
         {
             e1 = integralPromotions(e1, sc);
             e2 = integralPromotions(e2, sc);
-            t1 = e1->type;  t1b = t1->toBasetype();
-            t2 = e2->type;  t2b = t2->toBasetype();
+            t1 = e1->type;
+            t2 = e2->type;
+            goto Lagain;
         }
         assert(t1->ty == t2->ty);
         if (!t1->isImmutable() && !t2->isImmutable() && t1->isShared() != t2->isShared())
