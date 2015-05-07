@@ -1493,15 +1493,6 @@ void Obj::user(const char *p)
 }
 
 /*******************************
- * Output a weak extern record.
- */
-
-void Obj::wkext(Symbol *s1,Symbol *s2)
-{
-    //dbg_printf("Obj::wkext(Symbol *%s,Symbol *s2)\n",s1->Sident,s2->Sident);
-}
-
-/*******************************
  * Output file name record.
  *
  * Currently assumes that obj_filename will not be called
@@ -2285,9 +2276,8 @@ int Obj::external(Symbol *s)
     }
 
     s->Sxtrnnum = elf_addsym(namidx, size, size, symtype,
-        /*(s->ty() & mTYweak) ? STB_WEAK : */STB_GLOBAL, sectype);
+                             (s->Sflags & SFLweak) ? STB_WEAK : STB_GLOBAL, sectype);
     return s->Sxtrnnum;
-
 }
 
 /*******************************

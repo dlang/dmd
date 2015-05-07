@@ -674,6 +674,13 @@ void build_syment_table(bool bigobj)
                 sym.n_value = s->Soffset;
                 break;
 
+            case SCcomdat:
+            case SCcomdef:
+                sym.n_sclass = IMAGE_SYM_CLASS_WEAK_EXTERNAL;
+                if (sym.n_scnum != IMAGE_SYM_UNDEFINED)
+                    sym.n_value = s->Soffset;
+                break;
+
             default:
                 sym.n_sclass = IMAGE_SYM_CLASS_EXTERNAL;
                 if (sym.n_scnum != IMAGE_SYM_UNDEFINED)
@@ -1217,15 +1224,6 @@ void MsCoffObj::exestr(const char *p)
 void MsCoffObj::user(const char *p)
 {
     //dbg_printf("MsCoffObj::user(char *%s)\n",p);
-}
-
-/*******************************
- * Output a weak extern record.
- */
-
-void MsCoffObj::wkext(Symbol *s1,Symbol *s2)
-{
-    //dbg_printf("MsCoffObj::wkext(Symbol *%s,Symbol *s2)\n",s1->Sident,s2->Sident);
 }
 
 /*******************************

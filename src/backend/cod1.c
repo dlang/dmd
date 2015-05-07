@@ -2314,9 +2314,9 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         if (I16 &&                                   // bug in Optlink for weak references
             config.flags3 & CFG3wkfloat &&
             (info[clib].flags & (INFfloat | INFwkdone)) == INFfloat)
-        {   info[clib].flags |= INFwkdone;
-            makeitextern(rtlsym[RTLSYM_INTONLY]);
-            objmod->wkext(s,rtlsym[RTLSYM_INTONLY]);
+        {
+            info[clib].flags |= INFwkdone;
+            objmod->external(s,rtlsym[RTLSYM_INTONLY]);
         }
 #endif
     }

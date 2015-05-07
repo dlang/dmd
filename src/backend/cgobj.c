@@ -1236,10 +1236,9 @@ STATIC void obj_defaultlib()
 
 /*******************************
  * Output a weak extern record.
- * s1 is the weak extern, s2 is its default resolution.
  */
 
-void Obj::wkext(Symbol *s1,Symbol *s2)
+static void wkext(Symbol *s1)
 {
     //printf("Obj::wkext(%s)\n", s1->Sident);
     if (I32)
@@ -1248,17 +1247,8 @@ void Obj::wkext(Symbol *s1,Symbol *s2)
         return;
     }
 
-    int x2;
-    if (s2)
-        x2 = s2->Sxtrnnum;
-    else
-    {
-        if (!obj.nullext)
-        {
-            obj.nullext = Obj::external_def("__nullext");
-        }
-        x2 = obj.nullext;
-    }
+    if (!obj.nullext)
+        obj.nullext = Obj::external_def("__nullext");
     outextdata();
 
     char buffer[2+2+2];
@@ -1266,7 +1256,7 @@ void Obj::wkext(Symbol *s1,Symbol *s2)
     buffer[1] = 0xA8;
     int i = 2;
     i += insidx(&buffer[2],s1->Sxtrnnum);
-    i += insidx(&buffer[i],x2);
+    i += insidx(&buffer[i],obj.nullext);
     objrecord(COMENT,buffer,i);
 }
 
@@ -2524,6 +2514,8 @@ int Obj::external(Symbol *s)
     e[len] = 0;                 // typidx = 0
     obj.extdatai += len + 1;
     s->Sxtrnnum = ++obj.extidx;
+    if (s->Sflags & SFLweak)
+        wkext(s);
     return obj.extidx;
 }
 

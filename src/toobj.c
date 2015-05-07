@@ -173,12 +173,9 @@ void genModuleInfo(Module *m)
                 continue;
 
             Symbol *s = toSymbol(mod);
-
-            /* Weak references don't pull objects in from the library,
-             * they resolve to 0 if not pulled in by something else.
-             * Don't pull in a module just because it was imported.
-             */
-            s->Sflags |= SFLweak;
+            // Ideally we'd use weak linkage for ModuleInfos, but as
+            // they contain the list ctors/dtors, they need to be
+            // linked whenever something of the module is used.
             dtxoff(&dt, s, 0, TYnptr);
         }
     }

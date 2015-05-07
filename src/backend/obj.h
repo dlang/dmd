@@ -41,7 +41,6 @@ struct Obj
     VIRTUAL void exestr(const char *p);
     VIRTUAL void user(const char *p);
     VIRTUAL void compiler();
-    VIRTUAL void wkext(Symbol *,Symbol *);
     VIRTUAL void lzext(Symbol *,Symbol *);
     VIRTUAL void alias(const char *n1,const char *n2);
     VIRTUAL void theadr(const char *modname);
@@ -135,7 +134,6 @@ struct MsCoffObj : Obj
     VIRTUAL void exestr(const char *p);
     VIRTUAL void user(const char *p);
     VIRTUAL void compiler();
-    VIRTUAL void wkext(Symbol *,Symbol *);
 //    VIRTUAL void lzext(Symbol *,Symbol *);
     VIRTUAL void alias(const char *n1,const char *n2);
 //    VIRTUAL void theadr(const char *modname);
@@ -154,7 +152,6 @@ struct MsCoffObj : Obj
     VIRTUAL void export_symbol(Symbol *s, unsigned argsize);
     VIRTUAL void pubdef(int seg, Symbol *s, targ_size_t offset);
     VIRTUAL void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
-//    VIRTUAL int external(const char *);
     VIRTUAL int external_def(const char *);
     VIRTUAL int data_start(Symbol *sdata, targ_size_t datasize, int seg);
     VIRTUAL int external(Symbol *);

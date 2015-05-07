@@ -727,10 +727,6 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
                 }
                 s->Sclass = SCextern;   /* make it external             */
                 objmod->external(s);
-                if (s->Sflags & SFLweak)
-                {
-                    objmod->wkext(s, NULL);
-                }
             }
 #if TARGET_OSX
             symbol *funcsymsave = funcsym_p;

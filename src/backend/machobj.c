@@ -1235,6 +1235,8 @@ void Obj::term(const char *objfilename)
         sym.n_type = N_EXT | N_UNDF;
         sym.n_desc = tyfunc(s->ty()) ? REFERENCE_FLAG_UNDEFINED_LAZY
                                      : REFERENCE_FLAG_UNDEFINED_NON_LAZY;
+        if (s->Sflags & SFLweak)
+            sym.n_desc |= N_WEAK_REF;
         sym.n_sect = 0;
         if (I64)
             fobjbuf->write(&sym, sizeof(sym));
@@ -1482,15 +1484,6 @@ void Obj::exestr(const char *p)
 void Obj::user(const char *p)
 {
     //dbg_printf("Obj::user(char *%s)\n",p);
-}
-
-/*******************************
- * Output a weak extern record.
- */
-
-void Obj::wkext(Symbol *s1,Symbol *s2)
-{
-    //dbg_printf("Obj::wkext(Symbol *%s,Symbol *s2)\n",s1->Sident,s2->Sident);
 }
 
 /*******************************

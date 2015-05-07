@@ -143,6 +143,7 @@ struct syment
 #define IMAGE_SYM_CLASS_LABEL           6
 #define IMAGE_SYM_CLASS_FUNCTION        101
 #define IMAGE_SYM_CLASS_FILE            103
+#define IMAGE_SYM_CLASS_WEAK_EXTERNAL   105
 
     unsigned char n_numaux;
 };
