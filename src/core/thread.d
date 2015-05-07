@@ -4013,23 +4013,23 @@ class Fiber
 
     /**
      * Resets this fiber so that it may be re-used, optionally with a
-     * new function/delegate.  This routine may only be called for
+     * new function/delegate.  This routine should only be called for
      * fibers that have terminated, as doing otherwise could result in
      * scope-dependent functionality that is not executed.
      * Stack-based classes, for example, may not be cleaned up
-     * properly if a fiber is reset before it has terminated.
+     * properly if a fiber is reset before it has terminated. 
      *
      * In:
-     *  This fiber must be in state TERM.
+     *  This fiber must be in state TERM or HOLD.
      */
     final void reset() nothrow
     in
     {
         assert( m_state == State.TERM || m_state == State.HOLD );
-        assert( m_ctxt.tstack == m_ctxt.bstack );
     }
     body
     {
+        m_ctxt.tstack = m_ctxt.bstack;
         m_state = State.HOLD;
         initStack();
         m_unhandled = null;
@@ -5036,6 +5036,17 @@ unittest
     expect(fib, "delegate");
 }
 
+// Test unsafe reset in hold state
+unittest
+{
+    auto fib = new Fiber(function {ubyte[2048] buf = void; Fiber.yield();}, 4096);
+    foreach (_; 0 .. 10)
+    {
+        fib.call();
+        assert(fib.state == Fiber.State.HOLD);
+        fib.reset();
+    }
+}
 
 // stress testing GC stack scanning
 unittest
