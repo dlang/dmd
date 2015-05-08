@@ -2648,7 +2648,14 @@ private immutable long[__traits(allMembers, ClockType).length] _ticksPerSecond;
 
 @trusted shared static this()
 {
-    version(Windows)
+    // If we try to do anything with ClockType in the documentation build, it'll
+    // trigger the static assertions related to ClockType, since the
+    // documentation build defines all of the possible ClockTypes, which won't
+    // work when they're used in the static ifs, because no system supports them
+    // all.
+    version(CoreDdoc)
+    {}
+    else version(Windows)
     {
         long ticksPerSecond;
         if(QueryPerformanceFrequency(&ticksPerSecond) != 0)
