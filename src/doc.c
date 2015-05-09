@@ -2230,8 +2230,6 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     //printf("highlightText()\n");
     const char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
-    utf8_t *p;
-    const char *se;
 
     int leadingBlank = 1;
     int inCode = 0;
@@ -2282,12 +2280,12 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 break;
 
             case '<':
+            {
                 leadingBlank = 0;
                 if (inCode)
                     break;
-                p = (utf8_t *)&buf->data[i];
-                se = sc->module->escapetable->escapeChar('<');
-
+                utf8_t *p = (utf8_t *)&buf->data[i];
+                const char *se = sc->module->escapetable->escapeChar('<');
                 if (se && strcmp(se, "&lt;") == 0)
                 {
                     // Generating HTML
@@ -2341,13 +2339,14 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     i--;        // point to ';'
                 }
                 break;
-
+            }
             case '>':
+            {
                 leadingBlank = 0;
                 if (inCode)
                     break;
                 // Replace '>' with '&gt;' character entity
-                se = sc->module->escapetable->escapeChar('>');
+                const char *se = sc->module->escapetable->escapeChar('>');
                 if (se)
                 {
                     size_t len = strlen(se);
@@ -2356,16 +2355,17 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     i--;        // point to ';'
                 }
                 break;
-
+            }
             case '&':
+            {
                 leadingBlank = 0;
                 if (inCode)
                     break;
-                p = (utf8_t *)&buf->data[i];
+                utf8_t *p = (utf8_t *)&buf->data[i];
                 if (p[1] == '#' || isalpha(p[1]))
                     break;                      // already a character entity
                 // Replace '&' with '&amp;' character entity
-                se = sc->module->escapetable->escapeChar('&');
+                const char *se = sc->module->escapetable->escapeChar('&');
                 if (se)
                 {
                     size_t len = strlen(se);
@@ -2374,7 +2374,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     i--;        // point to ';'
                 }
                 break;
-
+            }
             case '`':
             {
                 if (inBacktick)
@@ -2480,7 +2480,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                         // Remove leading indentations from all lines
                         bool lineStart = true;
                         utf8_t *endp = (utf8_t *)codebuf.data + codebuf.offset;
-                        for (p = (utf8_t *)codebuf.data; p < endp; )
+                        for (utf8_t *p = (utf8_t *)codebuf.data; p < endp; )
                         {
                             if (lineStart)
                             {
@@ -2522,52 +2522,53 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
             default:
                 leadingBlank = 0;
-                if (!sc->module->isDocFile &&
-                    !inCode && isIdStart((utf8_t *)&buf->data[i]))
+                if (sc->module->isDocFile || inCode)
+                    break;
+
+                utf8_t *start = (utf8_t *)buf->data + i;
+                if (isIdStart(start))
                 {
                     size_t j = skippastident(buf, i);
-                    if (j > i)
+                    if (i < j)
                     {
                         size_t k = skippastURL(buf, i);
-                        if (k > i)
+                        if (i < k)
                         {
                             i = k - 1;
                             break;
                         }
-
-                        // leading '_' means no highlight unless it's a reserved symbol name
-                        if (buf->data[i] == '_' && (i == 0 || !isdigit(buf->data[i-1])) &&
-                            (i == buf->size-1 || !isReservedName((utf8_t *)(buf->data + i), j - i)))
-                        {
-                            buf->remove(i, 1);
-                            i = j - 1;
-                        }
-                        else
-                        {
-                            if (cmp(sid, buf->data + i, j - i) == 0)
-                            {
-                                i = buf->bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
-                                break;
-                            }
-                            else if (isKeyword((utf8_t *)buf->data + i, j - i))
-                            {
-                                i = buf->bracket(i, "$(DDOC_KEYWORD ", j, ")") - 1;
-                                break;
-                            }
-                            else
-                            {
-                                utf8_t *start = (utf8_t *)buf->data + i;
-                                size_t end = j - i;
-                                if (f && (isFunctionParameter(f, start, end) || isCVariadicParameter(f, start, end)))
-                                {
-                                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
-                                    i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
-                                    break;
-                                }
-                            }
-                            i = j - 1;
-                        }
                     }
+                    else
+                        break;
+                    size_t len = j - i;
+
+                    // leading '_' means no highlight unless it's a reserved symbol name
+                    if (c == '_' &&
+                        (i == 0 || !isdigit(*(start - 1))) &&
+                        (i == buf->size - 1 || !isReservedName(start, len)))
+                    {
+                        buf->remove(i, 1);
+                        i = j - 1;
+                        break;
+                    }
+                    if (cmp(sid, start, len) == 0)
+                    {
+                        i = buf->bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
+                        break;
+                    }
+                    if (isKeyword(start, len))
+                    {
+                        i = buf->bracket(i, "$(DDOC_KEYWORD ", j, ")") - 1;
+                        break;
+                    }
+                    if (f && isFunctionParameter(f, start, len))
+                    {
+                        //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
+                        i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
+                        break;
+                    }
+
+                    i = j - 1;
                 }
                 break;
         }
@@ -2597,36 +2598,33 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
     for (size_t i = offset; i < buf->offset; i++)
     {
         utf8_t c = buf->data[i];
-        const char *se;
-
-        se = sc->module->escapetable->escapeChar(c);
+        const char *se = sc->module->escapetable->escapeChar(c);
         if (se)
         {
             size_t len = strlen(se);
             buf->remove(i, 1);
             i = buf->insert(i, se, len);
             i--;                // point to ';'
+            continue;
         }
-        else if (isIdStart((utf8_t *)&buf->data[i]))
+
+        utf8_t *start = (utf8_t *)buf->data + i;
+        if (isIdStart(start))
         {
             size_t j = skippastident(buf, i);
-            if (j > i)
+            if (i < j)
             {
-                if (cmp(sid, buf->data + i, j - i) == 0)
+                size_t len = j - i;
+                if (cmp(sid, start, len) == 0)
                 {
                     i = buf->bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
                     continue;
                 }
-                else if (f)
+                if (f && isFunctionParameter(f, start, len))
                 {
-                    utf8_t *start = (utf8_t *)buf->data + i;
-                    size_t end = j - i;
-                    if (isFunctionParameter(f, start, end) || isCVariadicParameter(f, start, end))
-                    {
-                        //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
-                        i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
-                        continue;
-                    }
+                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
+                    i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
+                    continue;
                 }
                 i = j - 1;
             }
@@ -2653,17 +2651,14 @@ void highlightCode3(Scope *sc, OutBuffer *buf, const utf8_t *p, const utf8_t *pe
  * Highlight code for CODE section.
  */
 
-
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 {
     const char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
     unsigned errorsave = global.errors;
     Lexer lex(NULL, (utf8_t *)buf->data, 0, buf->offset - 1, 0, 1);
-    Token tok;
     OutBuffer res;
     const utf8_t *lastp = (utf8_t *)buf->data;
-    const char *highlight;
 
     if (s->isModule() && ((Module *)s)->isDocFile)
         sid = "";
@@ -2672,31 +2667,31 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     res.reserve(buf->offset);
     while (1)
     {
+        Token tok;
         lex.scan(&tok);
         highlightCode3(sc, &res, lastp, tok.ptr);
-        highlight = NULL;
+
+        const char *highlight = NULL;
         switch (tok.value)
         {
             case TOKidentifier:
+            {
                 if (!sc)
                     break;
-                if (cmp(sid, tok.ptr, lex.p - tok.ptr) == 0)
+                size_t len = lex.p - tok.ptr;
+                if (cmp(sid, tok.ptr, len) == 0)
                 {
                     highlight = "$(D_PSYMBOL ";
                     break;
                 }
-                else if (f)
+                if (f && isFunctionParameter(f, tok.ptr, len))
                 {
-                    size_t end = lex.p - tok.ptr;
-                    if (isFunctionParameter(f, tok.ptr, end) || isCVariadicParameter(f, tok.ptr, end))
-                    {
-                        //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
-                        highlight = "$(D_PARAM ";
-                        break;
-                    }
+                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
+                    highlight = "$(D_PARAM ";
+                    break;
                 }
                 break;
-
+            }
             case TOKcomment:
                 highlight = "$(D_COMMENT ";
                 break;
