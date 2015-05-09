@@ -1,5 +1,5 @@
 COPY=\
-	$(IMPDIR)\object.di \
+	$(IMPDIR)\object.d \
 	$(IMPDIR)\core\atomic.d \
 	$(IMPDIR)\core\bitop.d \
 	$(IMPDIR)\core\checkedint.d \

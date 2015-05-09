@@ -13,8 +13,7 @@ MANIFEST=\
 	mak\MANIFEST \
 	mak\SRCS \
 	\
-	src\object_.d \
-	src\object.di \
+	src\object.d \
 	src\test_runner.d \
 	\
 	src\core\atomic.d \

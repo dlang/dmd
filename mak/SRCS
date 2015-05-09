@@ -1,5 +1,5 @@
 SRCS=\
-	src\object_.d \
+	src\object.d \
 	\
 	src\core\atomic.d \
 	src\core\bitop.d \

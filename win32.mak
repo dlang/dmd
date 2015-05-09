@@ -41,7 +41,7 @@ OBJS_TO_DELETE= errno_c.obj
 
 doc: $(DOCS)
 
-$(DOCDIR)\object.html : src\object_.d
+$(DOCDIR)\object.html : src\object.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_atomic.html : src\core\atomic.d
@@ -207,8 +207,9 @@ copydir: $(IMPDIR)
 
 copy: $(COPY)
 
-$(IMPDIR)\object.di : src\object_.d
+$(IMPDIR)\object.d : src\object.d
 	copy $** $@
+	if exist $(IMPDIR)\object.di del $(IMPDIR)\object.di
 
 $(IMPDIR)\core\atomic.d : src\core\atomic.d
 	copy $** $@
