@@ -131,12 +131,25 @@ bool isCVariadicParameter(Dsymbol *s, const utf8_t *p, size_t len)
     return tf && tf->varargs == 1 && cmp("...", p, len) == 0;
 }
 
-static TemplateDeclaration *getEponymousParentTemplate(Dsymbol *s)
+static Dsymbol *getEponymousMember(TemplateDeclaration *td)
+{
+    if (!td->onemember)
+        return NULL;
+
+    if (AggregateDeclaration *ad = td->onemember->isAggregateDeclaration())
+        return ad;
+    if (FuncDeclaration *fd = td->onemember->isFuncDeclaration())
+        return fd;
+
+    return NULL;
+}
+
+static TemplateDeclaration *getEponymousParent(Dsymbol *s)
 {
     if (!s->parent)
         return NULL;
     TemplateDeclaration *td = s->parent->isTemplateDeclaration();
-    return (td && td->onemember == s) ? td : NULL;
+    return (td && getEponymousMember(td)) ? td : NULL;
 }
 
 static const char ddoc_default[] = "\
@@ -494,9 +507,11 @@ void escapeStrayParenthesis(OutBuffer *buf, size_t start, Dsymbol *s)
     }
 
     if (par_open)                       // if any unmatched lparens
-    {   par_open = 0;
+    {
+        par_open = 0;
         for (size_t u = buf->offset; u > start;)
-        {   u--;
+        {
+            u--;
             utf8_t c = buf->data[u];
             switch(c)
             {
@@ -543,7 +558,7 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s, Scope *sc)
         dot = emitAnchorName(buf, sc->scopesym, skipNonQualScopes(sc->enclosing));
 
     // Eponymous template members can share the parent anchor name
-    if (getEponymousParentTemplate(s))
+    if (getEponymousParent(s))
         return dot;
     if (dot)
         buf->writeByte('.');
@@ -573,7 +588,7 @@ static void emitAnchor(OutBuffer *buf, Dsymbol *s, Scope *sc)
         ident = Identifier::idPool(anc.peekString());
     }
     size_t *count = (size_t*)dmd_aaGet(&sc->anchorCounts, (void *)ident);
-    TemplateDeclaration *td = getEponymousParentTemplate(s);
+    TemplateDeclaration *td = getEponymousParent(s);
     // don't write an anchor for matching consecutive ditto symbols
     if (*count > 0 && sc->prevAnchor == ident &&
         sc->lastdc && (isDitto(s->comment) || (td && isDitto(td->comment))))
@@ -650,6 +665,14 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
 void emitDitto(Dsymbol *s, Scope *sc)
 {
     //printf("Dsymbol::emitDitto() %s %s\n", kind(), toChars());
+    if (TemplateDeclaration *td = s->isTemplateDeclaration())
+    {
+        if (Dsymbol *ss = getEponymousMember(td))
+        {
+            emitDitto(ss, sc);
+            return;
+        }
+    }
     OutBuffer *buf = sc->docbuf;
     OutBuffer b;
 
@@ -657,12 +680,9 @@ void emitDitto(Dsymbol *s, Scope *sc)
     size_t o = b.offset;
     toDocBuffer(s, &b, sc);
     //printf("b: '%.*s'\n", b.offset, b.data);
-    /* If 'this' is a function template, then highlightCode() was
-     * already run by FuncDeclaration::toDocbuffer().
-     */
-    if (!getEponymousParentTemplate(s))
-        highlightCode(sc, s, &b, o);
+    highlightCode(sc, s, &b, o);
     b.writeByte(')');
+
     buf->spread(sc->lastoffset, b.offset);
     memcpy(buf->data + sc->lastoffset, b.data, b.offset);
     sc->lastoffset += b.offset;
@@ -697,47 +717,52 @@ static void expandTemplateMixinComments(TemplateMixin *tm, Scope *sc)
 
 void emitMemberComments(ScopeDsymbol *sds, Scope *sc)
 {
+    if (!sds->members)
+        return;
+
     //printf("ScopeDsymbol::emitMemberComments() %s\n", toChars());
     OutBuffer *buf = sc->docbuf;
 
-    if (sds->members)
+    const char *m = "$(DDOC_MEMBERS ";
+    if (sds->isTemplateDeclaration())
+        m = "$(DDOC_TEMPLATE_MEMBERS ";
+    else if (sds->isClassDeclaration())
+        m = "$(DDOC_CLASS_MEMBERS ";
+    else if (sds->isStructDeclaration())
+        m = "$(DDOC_STRUCT_MEMBERS ";
+    else if (sds->isEnumDeclaration())
+        m = "$(DDOC_ENUM_MEMBERS ";
+    else if (sds->isModule())
+        m = "$(DDOC_MODULE_MEMBERS ";
+
+    size_t offset1 = buf->offset;         // save starting offset
+    buf->writestring(m);
+    size_t offset2 = buf->offset;         // to see if we write anything
+
+    sc = sc->push(sds);
+
+    for (size_t i = 0; i < sds->members->dim; i++)
     {
-        const char *m = "$(DDOC_MEMBERS ";
-        if (sds->isModule())
-            m = "$(DDOC_MODULE_MEMBERS ";
-        else if (sds->isClassDeclaration())
-            m = "$(DDOC_CLASS_MEMBERS ";
-        else if (sds->isStructDeclaration())
-            m = "$(DDOC_STRUCT_MEMBERS ";
-        else if (sds->isEnumDeclaration())
-            m = "$(DDOC_ENUM_MEMBERS ";
-        else if (sds->isTemplateDeclaration())
-            m = "$(DDOC_TEMPLATE_MEMBERS ";
+        Dsymbol *s = (*sds->members)[i];
+        //printf("\ts = '%s'\n", s->toChars());
 
-        size_t offset1 = buf->offset;         // save starting offset
-        buf->writestring(m);
-        size_t offset2 = buf->offset;         // to see if we write anything
-        sc = sc->push(sds);
-        for (size_t i = 0; i < sds->members->dim; i++)
-        {
-            Dsymbol *s = (*sds->members)[i];
-            //printf("\ts = '%s'\n", s->toChars());
+        // only expand if parent is a non-template (semantic won't work)
+        if (s->comment && s->isTemplateMixin() && s->parent && !s->parent->isTemplateDeclaration())
+            expandTemplateMixinComments((TemplateMixin *)s, sc);
 
-            // only expand if parent is a non-template (semantic won't work)
-            if (s->comment && s->isTemplateMixin() && s->parent && !s->parent->isTemplateDeclaration())
-                expandTemplateMixinComments((TemplateMixin *)s, sc);
-            emitComment(s, sc);
-        }
-        sc->pop();
-        if (buf->offset == offset2)
-        {
-            /* Didn't write out any members, so back out last write
-             */
-            buf->offset = offset1;
-        }
-        else
-            buf->writestring(")\n");
+        emitComment(s, sc);
     }
+
+    sc->pop();
+
+    if (buf->offset == offset2)
+    {
+        /* Didn't write out any members, so back out last write
+         */
+        buf->offset = offset1;
+    }
+    else
+        buf->writestring(")\n");
 }
 
 void emitProtection(OutBuffer *buf, Prot prot)
@@ -775,15 +800,25 @@ void emitComment(Dsymbol *s, Scope *sc)
         {
             //printf("Declaration::emitComment(%p '%s'), comment = '%s'\n", d, d->toChars(), d->comment);
             //printf("type = %p\n", d->type);
-
-            if (d->protection.kind == PROTprivate || sc->protection.kind == PROTprivate ||
-                !d->ident || (!d->type && !d->isCtorDeclaration() && !d->isAliasDeclaration()))
-                return;
-            if (!d->comment)
+            const utf8_t *com = d->comment;
+            if (TemplateDeclaration *td = getEponymousParent(d))
+            {
+                com = Lexer::combineComments(td->comment, com);
+            }
+            else
+            {
+                if (!d->ident)
+                    return;
+                if (!d->type && !d->isCtorDeclaration() && !d->isAliasDeclaration())
+                    return;
+                if (d->protection.kind == PROTprivate || sc->protection.kind == PROTprivate)
+                    return;
+            }
+            if (!com)
                 return;
 
             OutBuffer *buf = sc->docbuf;
-            DocComment *dc = DocComment::parse(sc, d, d->comment);
+            DocComment *dc = DocComment::parse(sc, d, com);
 
             if (!dc)
             {
@@ -807,13 +842,23 @@ void emitComment(Dsymbol *s, Scope *sc)
         void visit(AggregateDeclaration *ad)
         {
             //printf("AggregateDeclaration::emitComment() '%s'\n", ad->toChars());
-            if (ad->prot().kind == PROTprivate || sc->protection.kind == PROTprivate)
-                return;
-            if (!ad->comment)
+            const utf8_t *com = ad->comment;
+            if (TemplateDeclaration *td = getEponymousParent(ad))
+            {
+                com = Lexer::combineComments(td->comment, com);
+            }
+            else
+            {
+                if (ad->prot().kind == PROTprivate || sc->protection.kind == PROTprivate)
+                    return;
+                if (!ad->comment)
+                    return;
+            }
+            if (!com)
                 return;
 
             OutBuffer *buf = sc->docbuf;
-            DocComment *dc = DocComment::parse(sc, ad, ad->comment);
+            DocComment *dc = DocComment::parse(sc, ad, com);
 
             if (!dc)
             {
@@ -840,55 +885,34 @@ void emitComment(Dsymbol *s, Scope *sc)
             //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", td->toChars(), td->kind());
             if (td->prot().kind == PROTprivate || sc->protection.kind == PROTprivate)
                 return;
-
-            const utf8_t *com = td->comment;
-            bool hasmembers = true;
-
-            Dsymbol *ss = td;
-
-            if (td->onemember)
-            {
-                ss = td->onemember->isAggregateDeclaration();
-                if (!ss)
-                {
-                    ss = td->onemember->isFuncDeclaration();
-                    if (ss)
-                    {
-                        hasmembers = false;
-                        if (com != ss->comment)
-                            com = Lexer::combineComments(com, ss->comment);
-                    }
-                    else
-                        ss = td;
-                }
-            }
-
-            if (!com)
+            if (!td->comment)
                 return;
 
             OutBuffer *buf = sc->docbuf;
-            DocComment *dc = DocComment::parse(sc, td, com);
-            size_t o;
+            DocComment *dc = DocComment::parse(sc, td, td->comment);
 
             if (!dc)
             {
-                emitDitto(ss, sc);
+                emitDitto(td, sc);
+                return;
+            }
+            if (Dsymbol *ss = getEponymousMember(td))
+            {
+                ss->accept(this);
                 return;
             }
             dc->pmacrotable = &sc->module->macrotable;
 
             buf->writestring(ddoc_decl_s);
-            o = buf->offset;
-            toDocBuffer(ss, buf, sc);
-            if (ss == td)
-                highlightCode(sc, td, buf, o);
+            size_t o = buf->offset;
+            toDocBuffer(td, buf, sc);
+            highlightCode(sc, td, buf, o);
             sc->lastoffset = buf->offset;
             buf->writestring(ddoc_decl_e);
 
             buf->writestring(ddoc_decl_dd_s);
             dc->writeSections(sc, td, buf);
-            if (hasmembers)
-                emitMemberComments((ScopeDsymbol *)ss, sc);
+            emitMemberComments(td, sc);
             buf->writestring(ddoc_decl_dd_e);
         }
 
@@ -1052,8 +1076,8 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
         {
             if (s->isDeprecated())
                 buf->writestring("deprecated ");
-            Declaration *d = s->isDeclaration();
-            if (d)
+
+            if (Declaration *d = s->isDeclaration())
             {
                 emitProtection(buf, d->protection);
 
@@ -1076,86 +1100,82 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             }
         }
 
-        void declarationToDocBuffer(Declaration *decl, TemplateDeclaration *td)
-        {
-            //printf("declarationToDocBuffer() %s, originalType = %s, td = %s\n", decl->toChars(), decl->originalType ? decl->originalType->toChars() : "--", td ? td->toChars() : "--");
-            if (decl->ident)
-            {
-                if (decl->isDeprecated())
-                    buf->writestring("$(DEPRECATED ");
-
-                prefix(decl);
-
-                if (decl->type)
-                {
-                    HdrGenState hgs;
-                    hgs.ddoc = true;
-                    Type *origType = decl->originalType ? decl->originalType : decl->type;
-                    if (origType->ty == Tfunction)
-                    {
-                        functionToBufferFull((TypeFunction *)origType, buf, decl->ident, &hgs, td);
-                    }
-                    else
-                        ::toCBuffer(origType, buf, decl->ident, &hgs);
-                }
-                else
-                    buf->writestring(decl->ident->toChars());
-
-                // emit constraints if declaration is a templated declaration
-                if (td && td->constraint)
-                {
-                    HdrGenState hgs;
-                    hgs.ddoc = true;
-                    buf->writestring(" if (");
-                    ::toCBuffer(td->constraint, buf, &hgs);
-                    buf->writeByte(')');
-                }
-
-                if (decl->isDeprecated())
-                    buf->writestring(")");
-
-                buf->writestring(";\n");
-            }
-        }
-
         void visit(Declaration *d)
         {
-            declarationToDocBuffer(d, NULL);
+            if (!d->ident)
+                return;
+
+            TemplateDeclaration *td = getEponymousParent(d);
+            //printf("Declaration::toDocbuffer() %s, originalType = %s, td = %s\n", d->toChars(), d->originalType ? d->originalType->toChars() : "--", td ? td->toChars() : "--");
+
+            HdrGenState hgs;
+            hgs.ddoc = true;
+
+            if (d->isDeprecated())
+                buf->writestring("$(DEPRECATED ");
+
+            prefix(d);
+
+            if (d->type)
+            {
+                Type *origType = d->originalType ? d->originalType : d->type;
+                if (origType->ty == Tfunction)
+                {
+                    functionToBufferFull((TypeFunction *)origType, buf, d->ident, &hgs, td);
+                }
+                else
+                    ::toCBuffer(origType, buf, d->ident, &hgs);
+            }
+            else
+                buf->writestring(d->ident->toChars());
+
+            // emit constraints if declaration is a templated declaration
+            if (td && td->constraint)
+            {
+                buf->writestring(" if (");
+                ::toCBuffer(td->constraint, buf, &hgs);
+                buf->writeByte(')');
+            }
+
+            if (d->isDeprecated())
+                buf->writestring(")");
+
+            buf->writestring(";\n");
         }
 
         void visit(AliasDeclaration *ad)
         {
             //printf("AliasDeclaration::toDocbuffer() %s\n", ad->toChars());
-            if (ad->ident)
+            if (!ad->ident)
+                return;
+
+            if (ad->isDeprecated())
+                buf->writestring("deprecated ");
+
+            emitProtection(buf, ad->protection);
+            buf->printf("alias %s = ", ad->toChars());
+
+            if (Dsymbol *s = ad->aliassym)  // ident alias
             {
-                if (ad->isDeprecated())
-                    buf->writestring("deprecated ");
-
-                emitProtection(buf, ad->protection);
-                buf->printf("alias %s = ", ad->toChars());
-
-                if (Dsymbol *s = ad->aliassym)  // ident alias
-                {
-                    prettyPrintDsymbol(s, ad->parent);
-                }
-                else if (Type *type = ad->getType())  // type alias
-                {
-                    if (type->ty == Tclass || type->ty == Tstruct || type->ty == Tenum)
-                    {
-                        if (Dsymbol *s = type->toDsymbol(NULL))  // elaborate type
-                            prettyPrintDsymbol(s, ad->parent);
-                        else
-                            buf->writestring(type->toChars());
-                    }
-                    else
-                    {
-                        // simple type
-                        buf->writestring(type->toChars());
-                    }
-                }
-
-                buf->writestring(";\n");
+                prettyPrintDsymbol(s, ad->parent);
             }
+            else if (Type *type = ad->getType())  // type alias
+            {
+                if (type->ty == Tclass || type->ty == Tstruct || type->ty == Tenum)
+                {
+                    if (Dsymbol *s = type->toDsymbol(NULL))  // elaborate type
+                        prettyPrintDsymbol(s, ad->parent);
+                    else
+                        buf->writestring(type->toChars());
+                }
+                else
+                {
+                    // simple type
+                    buf->writestring(type->toChars());
+                }
+            }
+
+            buf->writestring(";\n");
         }
 
         void parentToBuffer(Dsymbol *s)
@@ -1206,142 +1226,111 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             }
         }
 
-        void visit(FuncDeclaration *fd)
-        {
-            //printf("FuncDeclaration::toDocbuffer() %s\n", fd->toChars());
-            if (fd->ident)
-            {
-                TemplateDeclaration *td = getEponymousParentTemplate(fd);
-
-                if (td)
-                {
-                    /* It's a function template
-                     */
-                    size_t o = buf->offset;
-                    declarationToDocBuffer(fd, td);
-                    highlightCode(sc, fd, buf, o);
-                }
-                else
-                {
-                    visit((Declaration *)fd);
-                }
-            }
-        }
-
         void visit(AggregateDeclaration *ad)
         {
-            if (ad->ident)
-            {
+            if (!ad->ident)
+                return;
+
         #if 0
-                emitProtection(buf, ad->protection);
+            emitProtection(buf, ad->protection);
         #endif
-                buf->printf("%s %s", ad->kind(), ad->toChars());
-                buf->writestring(";\n");
-            }
+            buf->printf("%s %s", ad->kind(), ad->toChars());
+            buf->writestring(";\n");
         }
 
         void visit(StructDeclaration *sd)
         {
             //printf("StructDeclaration::toDocbuffer() %s\n", sd->toChars());
-            if (sd->ident)
-            {
-        #if 0
-                emitProtection(buf, sd->protection);
-        #endif
-                TemplateDeclaration *td = getEponymousParentTemplate(sd);
+            if (!sd->ident)
+                return;
 
-                if (td)
-                {
-                    size_t o = buf->offset;
-                    toDocBuffer(td, buf, sc);
-                    highlightCode(sc, sd, buf, o);
-                }
-                else
-                {
-                    buf->printf("%s %s", sd->kind(), sd->toChars());
-                }
-                buf->writestring(";\n");
+        #if 0
+            emitProtection(buf, sd->protection);
+        #endif
+            if (TemplateDeclaration *td = getEponymousParent(sd))
+            {
+                toDocBuffer(td, buf, sc);
             }
+            else
+            {
+                buf->printf("%s %s", sd->kind(), sd->toChars());
+            }
+            buf->writestring(";\n");
         }
 
         void visit(ClassDeclaration *cd)
         {
             //printf("ClassDeclaration::toDocbuffer() %s\n", cd->toChars());
-            if (cd->ident)
-            {
-        #if 0
-                emitProtection(buf, cd->protection);
-        #endif
-                TemplateDeclaration *td = getEponymousParentTemplate(cd);
+            if (!cd->ident)
+                return;
 
-                if (td)
+        #if 0
+            emitProtection(buf, cd->protection);
+        #endif
+            if (TemplateDeclaration *td = getEponymousParent(cd))
+            {
+                toDocBuffer(td, buf, sc);
+            }
+            else
+            {
+                if (!cd->isInterfaceDeclaration() && cd->isAbstract())
+                    buf->writestring("abstract ");
+                buf->printf("%s %s", cd->kind(), cd->toChars());
+            }
+            int any = 0;
+            for (size_t i = 0; i < cd->baseclasses->dim; i++)
+            {
+                BaseClass *bc = (*cd->baseclasses)[i];
+
+                if (bc->protection.kind == PROTprivate)
+                    continue;
+                if (bc->base && bc->base->ident == Id::Object)
+                    continue;
+
+                if (any)
+                    buf->writestring(", ");
+                else
                 {
-                    size_t o = buf->offset;
-                    toDocBuffer(td, buf, sc);
-                    highlightCode(sc, cd, buf, o);
+                    buf->writestring(": ");
+                    any = 1;
+                }
+                emitProtection(buf, bc->protection);
+                if (bc->base)
+                {
+                    buf->printf("$(DDOC_PSUPER_SYMBOL %s)", bc->base->toPrettyChars());
                 }
                 else
                 {
-                    if (!cd->isInterfaceDeclaration() && cd->isAbstract())
-                        buf->writestring("abstract ");
-                    buf->printf("%s %s", cd->kind(), cd->toChars());
+                    HdrGenState hgs;
+                    ::toCBuffer(bc->type, buf, NULL, &hgs);
                 }
-                int any = 0;
-                for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                {
-                    BaseClass *bc = (*cd->baseclasses)[i];
-
-                    if (bc->protection.kind == PROTprivate)
-                        continue;
-                    if (bc->base && bc->base->ident == Id::Object)
-                        continue;
-
-                    if (any)
-                        buf->writestring(", ");
-                    else
-                    {
-                        buf->writestring(": ");
-                        any = 1;
-                    }
-                    emitProtection(buf, bc->protection);
-                    if (bc->base)
-                    {
-                        buf->printf("$(DDOC_PSUPER_SYMBOL %s)", bc->base->toPrettyChars());
-                    }
-                    else
-                    {
-                        HdrGenState hgs;
-                        ::toCBuffer(bc->type, buf, NULL, &hgs);
-                    }
-                }
-                buf->writestring(";\n");
             }
+            buf->writestring(";\n");
         }
 
         void visit(EnumDeclaration *ed)
         {
-            if (ed->ident)
+            if (!ed->ident)
+                return;
+
+            buf->printf("%s %s", ed->kind(), ed->toChars());
+            if (ed->memtype)
             {
-                buf->printf("%s %s", ed->kind(), ed->toChars());
-                if (ed->memtype)
-                {
-                    buf->writestring(": $(DDOC_ENUM_BASETYPE ");
-                    HdrGenState hgs;
-                    ::toCBuffer(ed->memtype, buf, NULL, &hgs);
-                    buf->writestring(")");
-                }
-                buf->writestring(";\n");
+                buf->writestring(": $(DDOC_ENUM_BASETYPE ");
+                HdrGenState hgs;
+                ::toCBuffer(ed->memtype, buf, NULL, &hgs);
+                buf->writestring(")");
             }
+            buf->writestring(";\n");
         }
 
         void visit(EnumMember *em)
         {
-            if (em->ident)
-            {
-                buf->writestring(em->toChars());
-            }
-        }
+            if (!em->ident)
+                return;
 
+            buf->writestring(em->toChars());
+        }
     };
 
     ToDocBuffer v(buf, sc);
@@ -1363,7 +1352,8 @@ DocComment *DocComment::parse(Scope *sc, Dsymbol *s, const utf8_t *comment)
     dc->parseSections(comment);
 
     for (size_t i = 0; i < dc->sections.dim; i++)
-    {   Section *sec = dc->sections[i];
+    {
+        Section *sec = dc->sections[i];
 
         if (icmp("copyright", sec->name, sec->namelen) == 0)
         {
@@ -1419,7 +1409,8 @@ void DocComment::parseSections(const utf8_t *comment)
             if (*p == '-')
             {
                 if (!inCode)
-                {   // restore leading indentation
+                {
+                    // restore leading indentation
                     while (pstart0 < pstart && isIndentWS(pstart-1)) --pstart;
                 }
 
@@ -1441,10 +1432,12 @@ void DocComment::parseSections(const utf8_t *comment)
                 while (isIdTail(q))
                     q += utfStride(q);
                 if (*q == ':')  // identifier: ends it
-                {   idlen = q - p;
+                {
+                    idlen = q - p;
                     idstart = p;
                     for (pend = p; pend > pstart; pend--)
-                    {   if (pend[-1] == '\n')
+                    {
+                        if (pend[-1] == '\n')
                             break;
                     }
                     p = q + 1;
@@ -1456,7 +1449,8 @@ void DocComment::parseSections(const utf8_t *comment)
                 if (!*p)
                     goto L1;
                 if (*p == '\n')
-                {   p++;
+                {
+                    p++;
                     if (*p == '\n' && !summary && !namelen && !inCode)
                     {
                         pend = p;
@@ -1496,11 +1490,13 @@ void DocComment::parseSections(const utf8_t *comment)
         }
 
         if (idlen)
-        {   name = idstart;
+        {
+            name = idstart;
             namelen = idlen;
         }
         else
-        {   name = NULL;
+        {
+            name = NULL;
             namelen = 0;
             if (!*p)
                 break;
@@ -1515,7 +1511,8 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
     {
         buf->writestring("$(DDOC_SECTIONS ");
         for (size_t i = 0; i < sections.dim; i++)
-        {   Section *sec = sections[i];
+        {
+            Section *sec = sections[i];
 
             if (sec->nooutput)
                 continue;
@@ -1551,10 +1548,12 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
     if (namelen)
     {
         static const char *table[] =
-        {       "AUTHORS", "BUGS", "COPYRIGHT", "DATE",
-                "DEPRECATED", "EXAMPLES", "HISTORY", "LICENSE",
-                "RETURNS", "SEE_ALSO", "STANDARDS", "THROWS",
-                "VERSION", NULL };
+        {
+            "AUTHORS", "BUGS", "COPYRIGHT", "DATE",
+            "DEPRECATED", "EXAMPLES", "HISTORY", "LICENSE",
+            "RETURNS", "SEE_ALSO", "STANDARDS", "THROWS",
+            "VERSION", NULL
+        };
 
         for (size_t i = 0; table[i]; i++)
         {
@@ -1570,7 +1569,8 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
             buf->writestring("$(DDOC_SECTION_H ");
             size_t o = buf->offset;
             for (size_t u = 0; u < namelen; u++)
-            {   utf8_t c = name[u];
+            {
+                utf8_t c = name[u];
                 buf->writeByte((c == '_') ? ' ' : c);
             }
             escapeStrayParenthesis(buf, o, s);
@@ -1656,7 +1656,8 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
         p++;
 
         if (namelen)
-        {   // Output existing param
+        {
+            // Output existing param
 
         L1:
             //printf("param '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
@@ -1822,7 +1823,8 @@ void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, const u
         }
 
         if (*p != '=')
-        {   if (namelen)
+        {
+            if (namelen)
                 goto Ltext;             // continuation of prev macro
             goto Lskipline;
         }
@@ -1831,7 +1833,8 @@ void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, const u
             goto Ldone;
 
         if (namelen)
-        {   // Output existing macro
+        {
+            // Output existing macro
         L1:
             //printf("macro '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
             if (icmp("ESCAPES", namestart, namelen) == 0)
@@ -1880,10 +1883,12 @@ Ldone:
  */
 
 void DocComment::parseEscapes(Escape **pescapetable, const utf8_t *textstart, size_t textlen)
-{   Escape *escapetable = *pescapetable;
+{
+    Escape *escapetable = *pescapetable;
 
     if (!escapetable)
-    {   escapetable = new Escape;
+    {
+        escapetable = new Escape;
         memset(escapetable, 0, sizeof(Escape));
         *pescapetable = escapetable;
     }
@@ -1970,7 +1975,8 @@ bool isDitto(const utf8_t *comment)
 const utf8_t *skipwhitespace(const utf8_t *p)
 {
     for (; 1; p++)
-    {   switch (*p)
+    {
+        switch (*p)
         {
             case ' ':
             case '\t':
@@ -1993,7 +1999,8 @@ const utf8_t *skipwhitespace(const utf8_t *p)
 size_t skiptoident(OutBuffer *buf, size_t i)
 {
     while (i < buf->offset)
-    {   dchar_t c;
+    {
+        dchar_t c;
 
         size_t oi = i;
         if (utf_decodeChar((utf8_t *)buf->data, buf->offset, &i, &c))
@@ -2022,7 +2029,8 @@ size_t skiptoident(OutBuffer *buf, size_t i)
 size_t skippastident(OutBuffer *buf, size_t i)
 {
     while (i < buf->offset)
-    {   dchar_t c;
+    {
+        dchar_t c;
 
         size_t oi = i;
         if (utf_decodeChar((utf8_t *)buf->data, buf->offset, &i, &c))
@@ -2054,7 +2062,8 @@ size_t skippastident(OutBuffer *buf, size_t i)
  */
 
 size_t skippastURL(OutBuffer *buf, size_t i)
-{   size_t length = buf->offset - i;
+{
+    size_t length = buf->offset - i;
     utf8_t *p = (utf8_t *)&buf->data[i];
     size_t j;
     unsigned sawdot = 0;
@@ -2071,7 +2080,8 @@ size_t skippastURL(OutBuffer *buf, size_t i)
         goto Lno;
 
     for (; j < length; j++)
-    {   utf8_t c = p[j];
+    {
+        utf8_t c = p[j];
         if (isalnum(c))
             continue;
         if (c == '-' || c == '_' || c == '?' ||
@@ -2116,26 +2126,13 @@ TypeFunction *isTypeFunction(Dsymbol *s)
 {
     FuncDeclaration *f = s->isFuncDeclaration();
 
-    /* Check whether s refers to an eponymous function template.
-     */
-    if (f == NULL && s->isTemplateDeclaration() && s->isTemplateDeclaration()->onemember)
-    {
-        f = s->isTemplateDeclaration()->onemember->isFuncDeclaration();
-    }
-
     /* f->type may be NULL for template members.
      */
     if (f && f->type)
     {
-        TypeFunction *tf;
-        if (f->originalType)
-        {
-            tf = (TypeFunction *)f->originalType;
-        }
-        else
-            tf = (TypeFunction *)f->type;
-
-        return tf;
+        Type *t = f->originalType ? f->originalType : f->type;
+        if (t->ty == Tfunction)
+            return (TypeFunction *)t;
     }
     return NULL;
 }
@@ -2165,7 +2162,7 @@ Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len)
 
 TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len)
 {
-    TemplateDeclaration *td = s->isTemplateDeclaration();
+    TemplateDeclaration *td = getEponymousParent(s);
     if (td && td->origParameters)
     {
         for (size_t k = 0; k < td->origParameters->dim; k++)
@@ -2222,7 +2219,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     size_t iLineStart = offset;
 
     for (size_t i = offset; i < buf->offset; i++)
-    {   utf8_t c = buf->data[i];
+    {
+        utf8_t c = buf->data[i];
 
      Lcont:
         switch (c)
@@ -2312,7 +2310,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
             L1:
                 // Replace '<' with '&lt;' character entity
                 if (se)
-                {   size_t len = strlen(se);
+                {
+                    size_t len = strlen(se);
                     buf->remove(i, 1);
                     i = buf->insert(i, se, len);
                     i--;        // point to ';'
@@ -2326,7 +2325,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 // Replace '>' with '&gt;' character entity
                 se = sc->module->escapetable->escapeChar('>');
                 if (se)
-                {   size_t len = strlen(se);
+                {
+                    size_t len = strlen(se);
                     buf->remove(i, 1);
                     i = buf->insert(i, se, len);
                     i--;        // point to ';'
@@ -2343,7 +2343,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 // Replace '&' with '&amp;' character entity
                 se = sc->module->escapetable->escapeChar('&');
                 if (se)
-                {   size_t len = strlen(se);
+                {
+                    size_t len = strlen(se);
                     buf->remove(i, 1);
                     i = buf->insert(i, se, len);
                     i--;        // point to ';'
@@ -2396,7 +2397,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                  * inCode tells us if it is start or end of a code section.
                  */
                 if (leadingBlank)
-                {   size_t istart = i;
+                {
+                    size_t istart = i;
                     size_t eollen = 0;
 
                     leadingBlank = 0;
@@ -2407,7 +2409,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                             break;
                         c = buf->data[i];
                         if (c == '\n')
-                        {   eollen = 1;
+                        {
+                            eollen = 1;
                             break;
                         }
                         if (c == '\r')
@@ -2416,7 +2419,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                             if (i + 1 >= buf->offset)
                                 break;
                             if (buf->data[i + 1] == '\n')
-                            {   eollen = 2;
+                            {
+                                eollen = 2;
                                 break;
                             }
                         }
@@ -2434,7 +2438,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     i = iLineStart;
 
                     if (inCode && (i <= iCodeStart))
-                    {   // Empty code section, just remove it completely.
+                    {
+                        // Empty code section, just remove it completely.
                         inCode = 0;
                         break;
                     }
@@ -2501,7 +2506,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     {
                         size_t k = skippastURL(buf, i);
                         if (k > i)
-                        {   i = k - 1;
+                        {
+                            i = k - 1;
                             break;
                         }
 
@@ -2565,7 +2571,8 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
 
     //printf("highlightCode(s = '%s', kind = %s)\n", sid, s->kind());
     for (size_t i = offset; i < buf->offset; i++)
-    {   utf8_t c = buf->data[i];
+    {
+        utf8_t c = buf->data[i];
         const char *se;
 
         se = sc->module->escapetable->escapeChar(c);
@@ -2609,7 +2616,8 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
 void highlightCode3(Scope *sc, OutBuffer *buf, const utf8_t *p, const utf8_t *pend)
 {
     for (; p < pend; p++)
-    {   const char *s = sc->module->escapetable->escapeChar(*p);
+    {
+        const char *s = sc->module->escapetable->escapeChar(*p);
         if (s)
             buf->writestring(s);
         else
@@ -2748,7 +2756,8 @@ bool isIdStart(const utf8_t *p)
     if (isalpha(c) || c == '_')
         return true;
     if (c >= 0x80)
-    {   size_t i = 0;
+    {
+        size_t i = 0;
         if (utf_decodeChar(p, 4, &i, &c))
             return false;   // ignore errors
         if (isUniAlpha(c))
@@ -2767,7 +2776,8 @@ bool isIdTail(const utf8_t *p)
     if (isalnum(c) || c == '_')
         return true;
     if (c >= 0x80)
-    {   size_t i = 0;
+    {
+        size_t i = 0;
         if (utf_decodeChar(p, 4, &i, &c))
             return false;   // ignore errors
         if (isUniAlpha(c))
