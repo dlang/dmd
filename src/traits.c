@@ -318,11 +318,11 @@ Lfalse:
 }
 
 /**
- * get an array of size_t values that indicate possible pointer words in memory 
+ * get an array of size_t values that indicate possible pointer words in memory
  *  if interpreted as the type given as argument
  * the first array element is the size of the type for independent interpretation
  *  of the array
- * following elements bits represent one word (4/8 bytes depending on the target 
+ * following elements bits represent one word (4/8 bytes depending on the target
  *  architecture). If set the corresponding memory might contain a pointer/reference.
  *
  *  [T.sizeof, pointerbit0-31/63, pointerbit32/64-63/128, ...]
@@ -356,15 +356,15 @@ Expression *pointerBitmap(TraitsExp *e)
     {
     public:
         PointerBitmapVisitor(Array<d_uns64>* _data, d_uns64 _sz_size_t)
-            : data(_data), offset(0), sz_size_t(_sz_size_t) 
+            : data(_data), offset(0), sz_size_t(_sz_size_t)
         {}
-        
+
         void setpointer(d_uns64 off)
         {
             d_uns64 ptroff = off / sz_size_t;
             (*data)[(size_t)(ptroff / (8 * sz_size_t))] |= 1LL << (ptroff % (8 * sz_size_t));
         }
-        virtual void visit(Type *t) 
+        virtual void visit(Type *t)
         {
             Type *tb = t->toBasetype();
             if (tb != t)
@@ -393,7 +393,7 @@ Expression *pointerBitmap(TraitsExp *e)
         }
         virtual void visit(TypeDArray *t) { setpointer(offset + sz_size_t); } // dynamic array is {length,ptr}
         virtual void visit(TypeAArray *t) { setpointer(offset); }
-        virtual void visit(TypePointer *t) 
+        virtual void visit(TypePointer *t)
         {
             if (t->nextOf()->ty != Tfunction) // don't mark function pointers
                 setpointer(offset);

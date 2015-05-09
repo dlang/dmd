@@ -1962,7 +1962,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
              *  TypeTuple!(int, int) values;
              *  auto values2 = cast(long)values;
              *  // typeof(values2) == TypeTuple!(int, int) !!
-             * 
+             *
              * Only when the casted tuple is immediately expanded, it would work.
              *  auto arr = [cast(long)values];
              *  // typeof(arr) == long[]

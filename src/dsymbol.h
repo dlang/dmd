@@ -274,7 +274,7 @@ public:
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
-    
+
 private:
     Dsymbol *takeTypeTupleIndex(Loc loc, Scope *sc, Dsymbol *s, RootObject *id, Expression *indexExpr);
 };

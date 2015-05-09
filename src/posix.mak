@@ -262,7 +262,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-auto-tester-build: dmd ddmd
+auto-tester-build: dmd checkwhitespace ddmd
 .PHONY: auto-tester-build
 
 frontend.a: $(DMD_OBJS)
