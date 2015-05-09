@@ -2979,7 +2979,6 @@
                 "function emitAnchor",
                 "function getCodeIndent",
                 "function emitUnittestComment",
-                "function emitDitto",
                 "function expandTemplateMixinComments",
                 "function emitMemberComments",
                 "function emitProtection",
