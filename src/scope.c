@@ -84,7 +84,6 @@ Scope::Scope()
     this->fieldinit_dim = 0;
     this->flags = 0;
     this->lastdc = NULL;
-    this->lastoffset = 0;
     this->anchorCounts = NULL;
     this->prevAnchor = NULL;
     this->userAttribDecl = NULL;
@@ -155,7 +154,6 @@ Scope *Scope::push()
     s->fieldinit = saveFieldInit();
     s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint));
     s->lastdc = NULL;
-    s->lastoffset = 0;
 
     assert(this != s);
     return s;

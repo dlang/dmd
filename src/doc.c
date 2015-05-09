@@ -1493,10 +1493,7 @@ void DocComment::writeSections(Scope *sc, Dsymbols *a, OutBuffer *buf)
         buf->writestring("$(DDOC_BLANKLINE)\n");
     }
     else
-    {
-        sc->lastoffset2 = buf->offset;
         buf->writestring(")\n");
-    }
 }
 
 /***************************************************
