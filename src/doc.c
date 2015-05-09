@@ -101,7 +101,7 @@ struct DocComment
     static void parseEscapes(Escape **pescapetable, const utf8_t *textstart, size_t textlen);
 
     void parseSections(const utf8_t *comment);
-    void writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf);
+    void writeSections(Scope *sc, Dsymbols *a, OutBuffer *buf);
 };
 
 
@@ -350,7 +350,9 @@ void gendocfile(Module *m)
     }
     else
     {
-        dc->writeSections(sc, m, &buf);
+        Dsymbols a;
+        a.push(m);
+        dc->writeSections(sc, &a, &buf);
         emitMemberComments(m, &buf, sc);
     }
 
@@ -621,42 +623,6 @@ static size_t getCodeIndent(const char *src)
     return codeIndent;
 }
 
-void emitUnittestComment(OutBuffer *buf, Scope *sc, Dsymbol *s, size_t ofs)
-{
-    if (Dsymbol *td = getEponymousParent(s))
-        s = td;
-
-    for (UnitTestDeclaration *utd = s->ddocUnittest; utd; utd = utd->ddocUnittest)
-    {
-        if (utd->protection.kind == PROTprivate || !utd->comment || !utd->fbody)
-            continue;
-
-        // Strip whitespaces to avoid showing empty summary
-        const utf8_t *c = utd->comment;
-        while (*c == ' ' || *c == '\t' || *c == '\n' || *c == '\r') ++c;
-
-        OutBuffer codebuf;
-        codebuf.writestring("$(DDOC_EXAMPLES ");
-        size_t o = codebuf.offset;
-        codebuf.writestring((char *)c);
-
-        if (utd->codedoc)
-        {
-            size_t i = getCodeIndent(utd->codedoc);
-            while (i--) codebuf.writeByte(' ');
-            codebuf.writestring("----\n");
-            codebuf.writestring(utd->codedoc);
-            codebuf.writestring("----\n");
-            highlightText(sc, s, &codebuf, o);
-        }
-
-        codebuf.writestring(")");
-        buf->insert(ofs, codebuf.data, codebuf.offset);
-        ofs += codebuf.offset;
-        sc->lastoffset2 = ofs;
-    }
-}
-
 /** Recursively expand template mixin member docs into the scope. */
 static void expandTemplateMixinComments(TemplateMixin *tm, OutBuffer *buf, Scope *sc)
 {
@@ -797,9 +763,8 @@ void emitComment(Dsymbol *s, OutBuffer *buf, Scope *sc)
                 // Put the ddoc comment as the document 'description'
                 buf->writestring(ddoc_decl_dd_s);
                 {
-                    Dsymbol *sx = dc->a[0];
-                    dc->writeSections(sc, sx, buf);
-                    if (ScopeDsymbol *sds = sx->isScopeDsymbol())
+                    dc->writeSections(sc, &dc->a, buf);
+                    if (ScopeDsymbol *sds = dc->a[0]->isScopeDsymbol())
                         emitMemberComments(sds, buf, sc);
                 }
                 buf->writestring(ddoc_decl_dd_e);
@@ -1450,11 +1415,13 @@ void DocComment::parseSections(const utf8_t *comment)
     }
 }
 
-void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
+void DocComment::writeSections(Scope *sc, Dsymbols *a, OutBuffer *buf)
 {
+    assert(a->dim);
+
     //printf("DocComment::writeSections()\n");
-    Loc loc = s->loc;
-    if (Module *m = s->isModule())
+    Loc loc = (*a)[0]->loc;
+    if (Module *m = (*a)[0]->isModule())
     {
         if (m->md)
             loc = m->md->loc;
@@ -1477,13 +1444,46 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
             size_t o = buf->offset;
             buf->write(sec->body, sec->bodylen);
             escapeStrayParenthesis(loc, buf, o);
-            highlightText(sc, s, buf, o);
+            highlightText(sc, (*a)[0], buf, o);
             buf->writestring(")\n");
         }
         else
-            sec->write(loc, this, sc, s, buf);
+            sec->write(loc, this, sc, (*a)[0], buf);
     }
-    emitUnittestComment(buf, sc, s, buf->offset);
+
+    for (size_t i = 0; i < a->dim; i++)
+    {
+        Dsymbol *s = (*a)[i];
+        if (Dsymbol *td = getEponymousParent(s))
+            s = td;
+
+        for (UnitTestDeclaration *utd = s->ddocUnittest; utd; utd = utd->ddocUnittest)
+        {
+            if (utd->protection.kind == PROTprivate || !utd->comment || !utd->fbody)
+                continue;
+
+            // Strip whitespaces to avoid showing empty summary
+            const utf8_t *c = utd->comment;
+            while (*c == ' ' || *c == '\t' || *c == '\n' || *c == '\r') ++c;
+
+            buf->writestring("$(DDOC_EXAMPLES ");
+
+            size_t o = buf->offset;
+            buf->writestring((char *)c);
+
+            if (utd->codedoc)
+            {
+                size_t n = getCodeIndent(utd->codedoc);
+                while (n--) buf->writeByte(' ');
+                buf->writestring("----\n");
+                buf->writestring(utd->codedoc);
+                buf->writestring("----\n");
+                highlightText(sc, (*a)[0], buf, o);
+            }
+
+            buf->writestring(")");
+        }
+    }
 
     if (buf->offset == offset2)
     {
