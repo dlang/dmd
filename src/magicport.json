@@ -2991,6 +2991,7 @@
                 "function skiptoident",
                 "function skippastident",
                 "function skippastURL",
+                "function isIdentifier",
                 "function isKeyword",
                 "function isTypeFunction",
                 "function isFunctionParameter",

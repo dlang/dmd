@@ -118,8 +118,8 @@ void highlightCode(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset);
 void highlightCode2(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset);
 void highlightCode3(Scope *sc, OutBuffer *buf, const utf8_t *p, const utf8_t *pend);
 TypeFunction *isTypeFunction(Dsymbol *s);
-Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len);
-TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len);
+Parameter *isFunctionParameter(Dsymbols *a, const utf8_t *p, size_t len);
+TemplateParameter *isTemplateParameter(Dsymbols *a, const utf8_t *p, size_t len);
 
 bool isIdStart(const utf8_t *p);
 bool isCVariadicArg(const utf8_t *p, size_t len);
@@ -128,10 +128,15 @@ bool isIndentWS(const utf8_t *p);
 int utfStride(const utf8_t *p);
 
 // Workaround for missing Parameter instance for variadic params. (it's unnecessary to instantiate one).
-bool isCVariadicParameter(Dsymbol *s, const utf8_t *p, size_t len)
+bool isCVariadicParameter(Dsymbols *a, const utf8_t *p, size_t len)
 {
-    TypeFunction *tf = isTypeFunction(s);
-    return tf && tf->varargs == 1 && cmp("...", p, len) == 0;
+    for (size_t i = 0; i < a->dim; i++)
+    {
+        TypeFunction *tf = isTypeFunction((*a)[i]);
+        if (tf && tf->varargs == 1 && cmp("...", p, len) == 0)
+            return true;
+    }
+    return false;
 }
 
 static Dsymbol *getEponymousMember(TemplateDeclaration *td)
@@ -1572,7 +1577,6 @@ void ParamSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbols *a, OutBuf
     size_t textlen = 0;
 
     size_t paramcount = 0;
-    Parameter *fparam = NULL;
 
     buf->writestring("$(DDOC_PARAMS ");
     while (p < pend)
@@ -1633,8 +1637,8 @@ void ParamSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbols *a, OutBuf
                 buf->writestring("$(DDOC_PARAM_ID ");
                 {
                     size_t o = buf->offset;
-                    fparam = isFunctionParameter(s, namestart, namelen);
-                    bool isCVariadic = isCVariadicParameter(s, namestart, namelen);
+                    Parameter *fparam = isFunctionParameter(a, namestart, namelen);
+                    bool isCVariadic = isCVariadicParameter(a, namestart, namelen);
                     if (isCVariadic)
                     {
                         buf->writestring("...");
@@ -1645,7 +1649,7 @@ void ParamSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbols *a, OutBuf
                     }
                     else
                     {
-                        if (isTemplateParameter(s, namestart, namelen))
+                        if (isTemplateParameter(a, namestart, namelen))
                         {
                             // 10236: Don't count template parameters for params check
                             --paramcount;
@@ -2078,6 +2082,20 @@ Lno:
 /****************************************************
  */
 
+bool isIdentifier(Dsymbols *a, const utf8_t *p, size_t len)
+{
+    for (size_t i = 0; i < a->dim; i++)
+    {
+        const char *s = (*a)[i]->ident->toChars();
+        if (cmp(s, p, len) == 0)
+            return true;
+    }
+    return false;
+}
+
+/****************************************************
+ */
+
 bool isKeyword(utf8_t *p, size_t len)
 {
     static const char *table[] = { "true", "false", "null", NULL };
@@ -2111,17 +2129,20 @@ TypeFunction *isTypeFunction(Dsymbol *s)
 /****************************************************
  */
 
-Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len)
+Parameter *isFunctionParameter(Dsymbols *a, const utf8_t *p, size_t len)
 {
-    TypeFunction *tf = isTypeFunction(s);
-    if (tf && tf->parameters)
+    for (size_t i = 0; i < a->dim; i++)
     {
-        for (size_t k = 0; k < tf->parameters->dim; k++)
+        TypeFunction *tf = isTypeFunction((*a)[i]);
+        if (tf && tf->parameters)
         {
-            Parameter *fparam = (*tf->parameters)[k];
-            if (fparam->ident && cmp(fparam->ident->toChars(), p, len) == 0)
+            for (size_t k = 0; k < tf->parameters->dim; k++)
             {
-                return fparam;
+                Parameter *fparam = (*tf->parameters)[k];
+                if (fparam->ident && cmp(fparam->ident->toChars(), p, len) == 0)
+                {
+                    return fparam;
+                }
             }
         }
     }
@@ -2131,17 +2152,20 @@ Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len)
 /****************************************************
  */
 
-TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len)
+TemplateParameter *isTemplateParameter(Dsymbols *a, const utf8_t *p, size_t len)
 {
-    TemplateDeclaration *td = getEponymousParent(s);
-    if (td && td->origParameters)
+    for (size_t i = 0; i < a->dim; i++)
     {
-        for (size_t k = 0; k < td->origParameters->dim; k++)
+        TemplateDeclaration *td = getEponymousParent((*a)[i]);
+        if (td && td->origParameters)
         {
-            TemplateParameter *tp = (*td->origParameters)[k];
-            if (tp->ident && cmp(tp->ident->toChars(), p, len) == 0)
+            for (size_t k = 0; k < td->origParameters->dim; k++)
             {
-                return tp;
+                TemplateParameter *tp = (*td->origParameters)[k];
+                if (tp->ident && cmp(tp->ident->toChars(), p, len) == 0)
+                {
+                    return tp;
+                }
             }
         }
     }
@@ -2181,8 +2205,6 @@ void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
     Dsymbol *s = a->dim ? (*a)[0] : NULL;   // test
 
     //printf("highlightText()\n");
-    const char *sid = s ? s->ident->toChars() : "";
-    FuncDeclaration *f = s ? s->isFuncDeclaration() : NULL;
 
     int leadingBlank = 1;
     int inCode = 0;
@@ -2504,7 +2526,7 @@ void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
                         i = j - 1;
                         break;
                     }
-                    if (cmp(sid, start, len) == 0)
+                    if (isIdentifier(a, start, len))
                     {
                         i = buf->bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
                         break;
@@ -2514,7 +2536,7 @@ void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
                         i = buf->bracket(i, "$(DDOC_KEYWORD ", j, ")") - 1;
                         break;
                     }
-                    if (f && isFunctionParameter(f, start, len))
+                    if (isFunctionParameter(a, start, len))
                     {
                         //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
                         i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
@@ -2527,7 +2549,7 @@ void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
         }
     }
     if (inCode)
-        s->error("unmatched --- in DDoc comment");
+        error(s ? s->loc : Loc(), "unmatched --- in DDoc comment");
 }
 
 /**************************************************
@@ -2552,12 +2574,8 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
 void highlightCode(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
 {
-    Dsymbol *s = a->dim ? (*a)[0] : NULL;   // test
+    //printf("highlightCode(a = '%s')\n", a->toChars());
 
-    const char *sid = s ? s->ident->toChars() : "";
-    FuncDeclaration *f = s ? s->isFuncDeclaration() : NULL;
-
-    //printf("highlightCode(s = '%s', kind = %s)\n", sid, s->kind());
     for (size_t i = offset; i < buf->offset; i++)
     {
         utf8_t c = buf->data[i];
@@ -2578,12 +2596,12 @@ void highlightCode(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
             if (i < j)
             {
                 size_t len = j - i;
-                if (cmp(sid, start, len) == 0)
+                if (isIdentifier(a, start, len))
                 {
                     i = buf->bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
                     continue;
                 }
-                if (f && isFunctionParameter(f, start, len))
+                if (isFunctionParameter(a, start, len))
                 {
                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
                     i = buf->bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
@@ -2616,10 +2634,6 @@ void highlightCode3(Scope *sc, OutBuffer *buf, const utf8_t *p, const utf8_t *pe
 
 void highlightCode2(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
 {
-    Dsymbol *s = a->dim ? (*a)[0] : NULL;   // test
-
-    const char *sid = s ? s->ident->toChars() : "";
-    FuncDeclaration *f = s ? s->isFuncDeclaration() : NULL;
     unsigned errorsave = global.errors;
     Lexer lex(NULL, (utf8_t *)buf->data, 0, buf->offset - 1, 0, 1);
     OutBuffer res;
@@ -2641,12 +2655,12 @@ void highlightCode2(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
                 if (!sc)
                     break;
                 size_t len = lex.p - tok.ptr;
-                if (cmp(sid, tok.ptr, len) == 0)
+                if (isIdentifier(a, tok.ptr, len))
                 {
                     highlight = "$(D_PSYMBOL ";
                     break;
                 }
-                if (f && isFunctionParameter(f, tok.ptr, len))
+                if (isFunctionParameter(a, tok.ptr, len))
                 {
                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
                     highlight = "$(D_PARAM ";
