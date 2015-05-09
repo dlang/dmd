@@ -1528,36 +1528,43 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
             loc = m->md->loc;
     }
 
-    if (sections.dim || s->ddocUnittest)
-    {
-        buf->writestring("$(DDOC_SECTIONS ");
-        for (size_t i = 0; i < sections.dim; i++)
-        {
-            Section *sec = sections[i];
+    size_t offset1 = buf->offset;
+    buf->writestring("$(DDOC_SECTIONS ");
+    size_t offset2 = buf->offset;
 
-            if (sec->nooutput)
-                continue;
-            //printf("Section: '%.*s' = '%.*s'\n", sec->namelen, sec->name, sec->bodylen, sec->body);
-            if (sec->namelen || i)
-                sec->write(loc, this, sc, s, buf);
-            else
-            {
-                buf->writestring("$(DDOC_SUMMARY ");
-                    size_t o = buf->offset;
-                    buf->write(sec->body, sec->bodylen);
-                    escapeStrayParenthesis(loc, buf, o);
-                    highlightText(sc, s, buf, o);
-                buf->writestring(")\n");
-            }
+    for (size_t i = 0; i < sections.dim; i++)
+    {
+        Section *sec = sections[i];
+        if (sec->nooutput)
+            continue;
+
+        //printf("Section: '%.*s' = '%.*s'\n", sec->namelen, sec->name, sec->bodylen, sec->body);
+        if (!sec->namelen && i == 0)
+        {
+            buf->writestring("$(DDOC_SUMMARY ");
+            size_t o = buf->offset;
+            buf->write(sec->body, sec->bodylen);
+            escapeStrayParenthesis(loc, buf, o);
+            highlightText(sc, s, buf, o);
+            buf->writestring(")\n");
         }
-        if (s->ddocUnittest)
-            emitUnittestComment(sc, s, buf->offset);
-        sc->lastoffset2 = buf->offset;
-        buf->writestring(")\n");
+        else
+            sec->write(loc, this, sc, s, buf);
+    }
+    if (s->ddocUnittest)
+        emitUnittestComment(sc, s, buf->offset);
+
+    if (buf->offset == offset2)
+    {
+        /* Didn't write out any sections, so back out last write
+         */
+        buf->offset = offset1;
+        buf->writestring("$(DDOC_BLANKLINE)\n");
     }
     else
     {
-        buf->writestring("$(DDOC_BLANKLINE)\n");
+        sc->lastoffset2 = buf->offset;
+        buf->writestring(")\n");
     }
 }
 
