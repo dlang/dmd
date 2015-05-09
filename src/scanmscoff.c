@@ -66,7 +66,7 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
         struct filehdr_old *header_old;
         header_old = (filehdr_old *) malloc(sizeof(filehdr_old));
         memcpy(header_old, buf, sizeof(filehdr_old));
-        
+
         header = (filehdr *) malloc(sizeof(filehdr));
         memset(header, 0, sizeof(filehdr));
         header->f_magic = header_old->f_magic;
@@ -76,7 +76,7 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
         header->f_nsyms = header_old->f_nsyms;
         free(header_old);
     }
-    
+
     switch (header->f_magic)
     {
         case IMAGE_FILE_MACHINE_UNKNOWN:
@@ -115,9 +115,9 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
     string_len -= 4;
 
     for (int i = 0; i < header->f_nsyms; i++)
-    {   
+    {
         struct syment *n;
-        
+
         char s[8 + 1];
         char *p;
 
@@ -125,14 +125,14 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
         printf("Symbol %d:\n",i);
 #endif
         off = header->f_symptr + i * (is_old_coff?sizeof(syment_old):sizeof(syment));
-        
+
         if (off > buflen)
         {   reason = __LINE__;
             goto Lcorrupt;
         }
-        
+
         n = (struct syment *)(buf + off);
-        
+
         if (is_old_coff) {
             struct syment_old *n2;
             n2 = (syment_old *) malloc(sizeof(syment_old));

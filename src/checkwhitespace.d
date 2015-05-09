@@ -5,6 +5,7 @@ import std.string;
 import std.range;
 import std.regex;
 import std.algorithm;
+import std.path;
 
 int main(string[] args)
 {
@@ -18,7 +19,7 @@ int main(string[] args)
             writefln("Error - file '%s' contains windows line endings", a);
             error = true;
         }
-        if (str.canFind('\t'))
+        if (a.extension() != ".mak" && str.canFind('\t'))
         {
             writefln("Error - file '%s' contains tabs", a);
             error = true;

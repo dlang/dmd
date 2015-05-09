@@ -268,7 +268,7 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 defaulttarget: debdmd
 
-auto-tester-build: dmd ddmd
+auto-tester-build: dmd checkwhitespace ddmd
 
 dmd: reldmd
 ddmd: relddmd
@@ -370,7 +370,7 @@ clean:
 	$(DEL) *.obj *.lib *.map
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	$(DEL) impcnvtab.c impcnvgen.exe optabgen.exe 
+	$(DEL) impcnvtab.c impcnvgen.exe optabgen.exe
 	$(DEL) id.h id.c
 	$(DEL) verstr.h
 	$(DEL) $(GENSRC)

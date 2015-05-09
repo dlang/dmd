@@ -1573,11 +1573,11 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
             nfargs2 = argi + 1;
 
             /* If prmtype does not depend on any template parameters:
-             * 
+             *
              *  auto foo(T)(T v, double x = 0);
              *  foo("str");
              *  // at fparam == 'double x = 0'
-             * 
+             *
              * or, if all template parameters in the prmtype are already deduced:
              *
              *  auto foo(R)(R range, ElementType!R sum = 0);
