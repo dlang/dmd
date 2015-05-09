@@ -85,7 +85,6 @@ Scope::Scope()
     this->flags = 0;
     this->lastdc = NULL;
     this->lastoffset = 0;
-    this->docbuf = NULL;
     this->anchorCounts = NULL;
     this->prevAnchor = NULL;
     this->userAttribDecl = NULL;

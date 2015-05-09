@@ -41,9 +41,9 @@
 #include "mtype.h"
 #include "utf.h"
 
-void emitMemberComments(ScopeDsymbol *sds, Scope *sc);
+void emitMemberComments(ScopeDsymbol *sds, OutBuffer *buf, Scope *sc);
 void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc);
-void emitComment(Dsymbol *s, Scope *sc);
+void emitComment(Dsymbol *s, OutBuffer *buf, Scope *sc);
 
 struct Escape
 {
@@ -297,7 +297,6 @@ void gendocfile(Module *m)
     DocComment::parseMacros(&m->escapetable, &m->macrotable, (utf8_t *)mbuf.data, mbuf.offset);
 
     Scope *sc = Scope::createGlobal(m);      // create root scope
-    sc->docbuf = &buf;
 
     DocComment *dc = DocComment::parse(sc, m, m->comment);
     dc->pmacrotable = &m->macrotable;
@@ -341,15 +340,15 @@ void gendocfile(Module *m)
         if (dc->macros)
         {
             commentlen = dc->macros->name - m->comment;
-            dc->macros->write(loc, dc, sc, m, sc->docbuf);
+            dc->macros->write(loc, dc, sc, m, &buf);
         }
-        sc->docbuf->write(m->comment, commentlen);
-        highlightText(sc, m, sc->docbuf, 0);
+        buf.write(m->comment, commentlen);
+        highlightText(sc, m, &buf, 0);
     }
     else
     {
-        dc->writeSections(sc, m, sc->docbuf);
-        emitMemberComments(m, sc);
+        dc->writeSections(sc, m, &buf);
+        emitMemberComments(m, &buf, sc);
     }
 
     //printf("BODY= '%.*s'\n", buf.offset, buf.data);
@@ -619,10 +618,8 @@ static size_t getCodeIndent(const char *src)
     return codeIndent;
 }
 
-void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
+void emitUnittestComment(OutBuffer *buf, Scope *sc, Dsymbol *s, size_t ofs)
 {
-    OutBuffer *buf = sc->docbuf;
-
     for (UnitTestDeclaration *utd = s->ddocUnittest; utd; utd = utd->ddocUnittest)
     {
         if (utd->protection.kind == PROTprivate || !utd->comment || !utd->fbody)
@@ -658,18 +655,17 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
  * Emit doc comment to documentation file
  */
 
-void emitDitto(Dsymbol *s, Scope *sc)
+void emitDitto(Dsymbol *s, OutBuffer *buf, Scope *sc)
 {
     //printf("Dsymbol::emitDitto() %s %s\n", kind(), toChars());
     if (TemplateDeclaration *td = s->isTemplateDeclaration())
     {
         if (Dsymbol *ss = getEponymousMember(td))
         {
-            emitDitto(ss, sc);
+            emitDitto(ss, buf, sc);
             return;
         }
     }
-    OutBuffer *buf = sc->docbuf;
     OutBuffer b;
 
     b.writestring("$(DDOC_DITTO ");
@@ -688,11 +684,11 @@ void emitDitto(Dsymbol *s, Scope *sc)
     if (!s->ddocUnittest && s->parent)
         p = s->parent->isTemplateDeclaration();
     if (p)
-        emitUnittestComment(sc, p, sc->lastoffset2);
+        emitUnittestComment(buf, sc, p, sc->lastoffset2);
 }
 
 /** Recursively expand template mixin member docs into the scope. */
-static void expandTemplateMixinComments(TemplateMixin *tm, Scope *sc)
+static void expandTemplateMixinComments(TemplateMixin *tm, OutBuffer *buf, Scope *sc)
 {
     if (!tm->semanticRun) tm->semantic(sc);
     TemplateDeclaration *td = (tm && tm->tempdecl) ?
@@ -704,20 +700,19 @@ static void expandTemplateMixinComments(TemplateMixin *tm, Scope *sc)
             Dsymbol *sm = (*td->members)[i];
             TemplateMixin *tmc = sm->isTemplateMixin();
             if (tmc && tmc->comment)
-                expandTemplateMixinComments(tmc, sc);
+                expandTemplateMixinComments(tmc, buf, sc);
             else
-                emitComment(sm, sc);
+                emitComment(sm, buf, sc);
         }
     }
 }
 
-void emitMemberComments(ScopeDsymbol *sds, Scope *sc)
+void emitMemberComments(ScopeDsymbol *sds, OutBuffer *buf, Scope *sc)
 {
     if (!sds->members)
         return;
 
     //printf("ScopeDsymbol::emitMemberComments() %s\n", toChars());
-    OutBuffer *buf = sc->docbuf;
 
     const char *m = "$(DDOC_MEMBERS ";
     if (sds->isTemplateDeclaration())
@@ -744,9 +739,9 @@ void emitMemberComments(ScopeDsymbol *sds, Scope *sc)
 
         // only expand if parent is a non-template (semantic won't work)
         if (s->comment && s->isTemplateMixin() && s->parent && !s->parent->isTemplateDeclaration())
-            expandTemplateMixinComments((TemplateMixin *)s, sc);
+            expandTemplateMixinComments((TemplateMixin *)s, buf, sc);
 
-        emitComment(s, sc);
+        emitComment(s, buf, sc);
     }
 
     sc->pop();
@@ -770,15 +765,16 @@ void emitProtection(OutBuffer *buf, Prot prot)
     }
 }
 
-void emitComment(Dsymbol *s, Scope *sc)
+void emitComment(Dsymbol *s, OutBuffer *buf, Scope *sc)
 {
     class EmitComment : public Visitor
     {
     public:
+        OutBuffer *buf;
         Scope *sc;
 
-        EmitComment(Scope *sc)
-            : sc(sc)
+        EmitComment(OutBuffer *buf, Scope *sc)
+            : buf(buf), sc(sc)
         {
         }
 
@@ -813,12 +809,11 @@ void emitComment(Dsymbol *s, Scope *sc)
             if (!com)
                 return;
 
-            OutBuffer *buf = sc->docbuf;
             DocComment *dc = DocComment::parse(sc, d, com);
 
             if (!dc)
             {
-                emitDitto(d, sc);
+                emitDitto(d, buf, sc);
                 return;
             }
             dc->pmacrotable = &sc->module->macrotable;
@@ -853,12 +848,11 @@ void emitComment(Dsymbol *s, Scope *sc)
             if (!com)
                 return;
 
-            OutBuffer *buf = sc->docbuf;
             DocComment *dc = DocComment::parse(sc, ad, com);
 
             if (!dc)
             {
-                emitDitto(ad, sc);
+                emitDitto(ad, buf, sc);
                 return;
             }
             dc->pmacrotable = &sc->module->macrotable;
@@ -872,7 +866,7 @@ void emitComment(Dsymbol *s, Scope *sc)
 
             buf->writestring(ddoc_decl_dd_s);
             dc->writeSections(sc, ad, buf);
-            emitMemberComments(ad, sc);
+            emitMemberComments(ad, buf, sc);
             buf->writestring(ddoc_decl_dd_e);
         }
 
@@ -884,12 +878,11 @@ void emitComment(Dsymbol *s, Scope *sc)
             if (!td->comment)
                 return;
 
-            OutBuffer *buf = sc->docbuf;
             DocComment *dc = DocComment::parse(sc, td, td->comment);
 
             if (!dc)
             {
-                emitDitto(td, sc);
+                emitDitto(td, buf, sc);
                 return;
             }
             if (Dsymbol *ss = getEponymousMember(td))
@@ -908,7 +901,7 @@ void emitComment(Dsymbol *s, Scope *sc)
 
             buf->writestring(ddoc_decl_dd_s);
             dc->writeSections(sc, td, buf);
-            emitMemberComments(td, sc);
+            emitMemberComments(td, buf, sc);
             buf->writestring(ddoc_decl_dd_e);
         }
 
@@ -921,7 +914,7 @@ void emitComment(Dsymbol *s, Scope *sc)
                 for (size_t i = 0; i < ed->members->dim; i++)
                 {
                     Dsymbol *s = (*ed->members)[i];
-                    emitComment(s, sc);
+                    emitComment(s, buf, sc);
                 }
                 return;
             }
@@ -930,12 +923,11 @@ void emitComment(Dsymbol *s, Scope *sc)
             if (ed->isAnonymous())
                 return;
 
-            OutBuffer *buf = sc->docbuf;
             DocComment *dc = DocComment::parse(sc, ed, ed->comment);
 
             if (!dc)
             {
-                emitDitto(ed, sc);
+                emitDitto(ed, buf, sc);
                 return;
             }
             dc->pmacrotable = &sc->module->macrotable;
@@ -949,7 +941,7 @@ void emitComment(Dsymbol *s, Scope *sc)
 
             buf->writestring(ddoc_decl_dd_s);
             dc->writeSections(sc, ed, buf);
-            emitMemberComments(ed, sc);
+            emitMemberComments(ed, buf, sc);
             buf->writestring(ddoc_decl_dd_e);
         }
 
@@ -961,12 +953,11 @@ void emitComment(Dsymbol *s, Scope *sc)
             if (!em->comment)
                 return;
 
-            OutBuffer *buf = sc->docbuf;
             DocComment *dc = DocComment::parse(sc, em, em->comment);
 
             if (!dc)
             {
-                emitDitto(em, sc);
+                emitDitto(em, buf, sc);
                 return;
             }
             dc->pmacrotable = &sc->module->macrotable;
@@ -1003,7 +994,7 @@ void emitComment(Dsymbol *s, Scope *sc)
                 {
                     Dsymbol *s = (*d)[i];
                     //printf("AttribDeclaration::emitComment %s\n", s->toChars());
-                    emitComment(s, sc);
+                    emitComment(s, buf, sc);
                 }
             }
         }
@@ -1025,23 +1016,22 @@ void emitComment(Dsymbol *s, Scope *sc)
             if (cd->condition->inc)
             {
                 visit((AttribDeclaration *)cd);
+                return;
             }
-            else if (sc->docbuf)
+
+            /* If generating doc comment, be careful because if we're inside
+             * a template, then include(NULL, NULL) will fail.
+             */
+            Dsymbols *d = cd->decl ? cd->decl : cd->elsedecl;
+            for (size_t i = 0; i < d->dim; i++)
             {
-                /* If generating doc comment, be careful because if we're inside
-                 * a template, then include(NULL, NULL) will fail.
-                 */
-                Dsymbols *d = cd->decl ? cd->decl : cd->elsedecl;
-                for (size_t i = 0; i < d->dim; i++)
-                {
-                    Dsymbol *s = (*d)[i];
-                    emitComment(s, sc);
-                }
+                Dsymbol *s = (*d)[i];
+                emitComment(s, buf, sc);
             }
         }
     };
 
-    EmitComment v(sc);
+    EmitComment v(buf, sc);
     s->accept(&v);
 }
 
@@ -1552,7 +1542,7 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
             sec->write(loc, this, sc, s, buf);
     }
     if (s->ddocUnittest)
-        emitUnittestComment(sc, s, buf->offset);
+        emitUnittestComment(buf, sc, s, buf->offset);
 
     if (buf->offset == offset2)
     {

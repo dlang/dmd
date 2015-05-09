@@ -120,7 +120,6 @@ struct Scope
     DocComment *lastdc;         // documentation comment for last symbol at this scope
     size_t lastoffset;          // offset in docbuf of where to insert next dec (for ditto)
     size_t lastoffset2;         // offset in docbuf of where to insert next dec (for unittest)
-    OutBuffer *docbuf;          // buffer for documentation output
     AA *anchorCounts;           // lookup duplicate anchor name count
     Identifier *prevAnchor;     // qualified symbol name of last doc anchor
 
