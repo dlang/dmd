@@ -63,19 +63,19 @@ public:
 
     int nooutput;
 
-    virtual void write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
+    virtual void write(Loc loc, DocComment *dc, Scope *sc, Dsymbols *a, OutBuffer *buf);
 };
 
 class ParamSection : public Section
 {
 public:
-    void write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
+    void write(Loc loc, DocComment *dc, Scope *sc, Dsymbols *a, OutBuffer *buf);
 };
 
 class MacroSection : public Section
 {
 public:
-    void write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
+    void write(Loc loc, DocComment *dc, Scope *sc, Dsymbols *a, OutBuffer *buf);
 };
 
 typedef Array<Section *> Sections;
@@ -112,9 +112,10 @@ const utf8_t *skipwhitespace(const utf8_t *p);
 size_t skiptoident(OutBuffer *buf, size_t i);
 size_t skippastident(OutBuffer *buf, size_t i);
 size_t skippastURL(OutBuffer *buf, size_t i);
-void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
-void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool anchor = true);
-void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
+void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset);
+void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
+void highlightCode(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset);
+void highlightCode2(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset);
 void highlightCode3(Scope *sc, OutBuffer *buf, const utf8_t *p, const utf8_t *pend);
 TypeFunction *isTypeFunction(Dsymbol *s);
 Parameter *isFunctionParameter(Dsymbol *s, const utf8_t *p, size_t len);
@@ -340,13 +341,15 @@ void gendocfile(Module *m)
     {
         Loc loc = m->md ? m->md->loc : m->loc;
         size_t commentlen = strlen((char *)m->comment);
+        Dsymbols a;
+        // Bugzilla 9764: Don't push m in a, to prevent emphasize ddoc file name.
         if (dc->macros)
         {
             commentlen = dc->macros->name - m->comment;
-            dc->macros->write(loc, dc, sc, m, &buf);
+            dc->macros->write(loc, dc, sc, &a, &buf);
         }
         buf.write(m->comment, commentlen);
-        highlightText(sc, m, &buf, 0);
+        highlightText(sc, &a, &buf, 0);
     }
     else
     {
@@ -1444,11 +1447,11 @@ void DocComment::writeSections(Scope *sc, Dsymbols *a, OutBuffer *buf)
             size_t o = buf->offset;
             buf->write(sec->body, sec->bodylen);
             escapeStrayParenthesis(loc, buf, o);
-            highlightText(sc, (*a)[0], buf, o);
+            highlightText(sc, a, buf, o);
             buf->writestring(")\n");
         }
         else
-            sec->write(loc, this, sc, (*a)[0], buf);
+            sec->write(loc, this, sc, a, buf);
     }
 
     for (size_t i = 0; i < a->dim; i++)
@@ -1478,7 +1481,7 @@ void DocComment::writeSections(Scope *sc, Dsymbols *a, OutBuffer *buf)
                 buf->writestring("----\n");
                 buf->writestring(utd->codedoc);
                 buf->writestring("----\n");
-                highlightText(sc, (*a)[0], buf, o);
+                highlightText(sc, a, buf, o);
             }
 
             buf->writestring(")");
@@ -1499,8 +1502,10 @@ void DocComment::writeSections(Scope *sc, Dsymbols *a, OutBuffer *buf)
 /***************************************************
  */
 
-void Section::write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
+void Section::write(Loc loc, DocComment *dc, Scope *sc, Dsymbols *a, OutBuffer *buf)
 {
+    assert(a->dim);
+
     if (namelen)
     {
         static const char *table[] =
@@ -1521,6 +1526,7 @@ void Section::write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *b
         }
 
         buf->writestring("$(DDOC_SECTION ");
+
             // Replace _ characters with spaces
             buf->writestring("$(DDOC_SECTION_H ");
             size_t o = buf->offset;
@@ -1540,15 +1546,18 @@ void Section::write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *b
     size_t o = buf->offset;
     buf->write(body, bodylen);
     escapeStrayParenthesis(loc, buf, o);
-    highlightText(sc, s, buf, o);
+    highlightText(sc, a, buf, o);
     buf->writestring(")\n");
 }
 
 /***************************************************
  */
 
-void ParamSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
+void ParamSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbols *a, OutBuffer *buf)
 {
+    assert(a->dim);
+    Dsymbol *s = (*a)[0];   // test
+
     const utf8_t *p = body;
     size_t len = bodylen;
     const utf8_t *pend = p + len;
@@ -1648,7 +1657,7 @@ void ParamSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuff
                         buf->write(namestart, namelen);
                     }
                     escapeStrayParenthesis(loc, buf, o);
-                    highlightCode(sc, s, buf, o, false);
+                    highlightCode(sc, a, buf, o);
                 }
                 buf->writestring(")\n");
 
@@ -1657,7 +1666,7 @@ void ParamSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuff
                     size_t o = buf->offset;
                     buf->write(textstart, textlen);
                     escapeStrayParenthesis(loc, buf, o);
-                    highlightText(sc, s, buf, o);
+                    highlightText(sc, a, buf, o);
                 }
                 buf->writestring(")");
             }
@@ -1692,7 +1701,7 @@ void ParamSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuff
         goto L1;                // write out last one
     buf->writestring(")\n");
 
-    TypeFunction *tf = isTypeFunction(s);
+    TypeFunction *tf = a->dim == 1 ? isTypeFunction(s) : NULL;
     if (tf)
     {
         size_t pcount = (tf->parameters ? tf->parameters->dim : 0) + (int)(tf->varargs == 1);
@@ -1706,7 +1715,7 @@ void ParamSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuff
 /***************************************************
  */
 
-void MacroSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
+void MacroSection::write(Loc loc, DocComment *dc, Scope *sc, Dsymbols *a, OutBuffer *buf)
 {
     //printf("MacroSection::write()\n");
     DocComment::parseMacros(dc->pescapetable, dc->pmacrotable, body, bodylen);
@@ -2139,7 +2148,11 @@ TemplateParameter *isTemplateParameter(Dsymbol *s, const utf8_t *p, size_t len)
     return NULL;
 }
 
-/** Return true if str is a reserved symbol name that starts with a double underscore. */
+/****************************************************
+ * Return true if str is a reserved symbol name
+ * that starts with a double underscore.
+ */
+
 bool isReservedName(utf8_t *str, size_t len)
 {
     static const char *table[] = {
@@ -2163,11 +2176,13 @@ bool isReservedName(utf8_t *str, size_t len)
  * Highlight text section.
  */
 
-void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
+void highlightText(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
 {
+    Dsymbol *s = a->dim ? (*a)[0] : NULL;   // test
+
     //printf("highlightText()\n");
-    const char *sid = s->ident->toChars();
-    FuncDeclaration *f = s->isFuncDeclaration();
+    const char *sid = s ? s->ident->toChars() : "";
+    FuncDeclaration *f = s ? s->isFuncDeclaration() : NULL;
 
     int leadingBlank = 1;
     int inCode = 0;
@@ -2325,7 +2340,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     codebuf.write(buf->data + iCodeStart + 1, i - (iCodeStart + 1));
 
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
-                    highlightCode(sc, s, &codebuf, 0, false);
+                    highlightCode(sc, a, &codebuf, 0);
 
                     buf->remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
 
@@ -2438,7 +2453,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                             ++p;
                         }
 
-                        highlightCode2(sc, s, &codebuf, 0);
+                        highlightCode2(sc, a, &codebuf, 0);
                         buf->remove(iCodeStart, i - iCodeStart);
                         i = buf->insert(iCodeStart, codebuf.data, codebuf.offset);
                         i = buf->insert(i, (const char *)")\n", 2);
@@ -2519,18 +2534,28 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
  * Highlight code for DDOC section.
  */
 
-void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool anchor)
+void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 {
-    if (anchor)
-    {
-        OutBuffer ancbuf;
+    //printf("highlightCode(s = %s '%s')\n", s->kind(), s->toChars());
+    OutBuffer ancbuf;
+    emitAnchor(&ancbuf, s, sc);
+    buf->insert(offset, (char *)ancbuf.data, ancbuf.offset);
+    offset += ancbuf.offset;
 
-        emitAnchor(&ancbuf, s, sc);
-        buf->insert(offset, (char *)ancbuf.data, ancbuf.offset);
-        offset += ancbuf.offset;
-    }
-    char *sid = s->ident->toChars();
-    FuncDeclaration *f = s->isFuncDeclaration();
+    Dsymbols a;
+    a.push(s);
+    highlightCode(sc, &a, buf, offset);
+}
+
+/****************************************************
+ */
+
+void highlightCode(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
+{
+    Dsymbol *s = a->dim ? (*a)[0] : NULL;   // test
+
+    const char *sid = s ? s->ident->toChars() : "";
+    FuncDeclaration *f = s ? s->isFuncDeclaration() : NULL;
 
     //printf("highlightCode(s = '%s', kind = %s)\n", sid, s->kind());
     for (size_t i = offset; i < buf->offset; i++)
@@ -2589,17 +2614,16 @@ void highlightCode3(Scope *sc, OutBuffer *buf, const utf8_t *p, const utf8_t *pe
  * Highlight code for CODE section.
  */
 
-void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
+void highlightCode2(Scope *sc, Dsymbols *a, OutBuffer *buf, size_t offset)
 {
-    const char *sid = s->ident->toChars();
-    FuncDeclaration *f = s->isFuncDeclaration();
+    Dsymbol *s = a->dim ? (*a)[0] : NULL;   // test
+
+    const char *sid = s ? s->ident->toChars() : "";
+    FuncDeclaration *f = s ? s->isFuncDeclaration() : NULL;
     unsigned errorsave = global.errors;
     Lexer lex(NULL, (utf8_t *)buf->data, 0, buf->offset - 1, 0, 1);
     OutBuffer res;
     const utf8_t *lastp = (utf8_t *)buf->data;
-
-    if (s->isModule() && ((Module *)s)->isDocFile)
-        sid = "";
 
     //printf("highlightCode2('%.*s')\n", buf->offset - 1, buf->data);
     res.reserve(buf->offset);
