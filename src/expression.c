@@ -9558,7 +9558,7 @@ Expression *DeleteExp::semantic(Scope *sc)
                 Expression *ea = NULL;
                 Expression *eb = NULL;
                 Expression *ec = NULL;
-                VarDeclaration *v;
+                VarDeclaration *v = NULL;
 
                 if (fd && f)
                 {   Identifier *id = Identifier::idPool("__tmpea");
