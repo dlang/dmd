@@ -35,7 +35,7 @@ struct SymPair
 {
     SymPair* next;
     Symbol* sym;        // function that is called
-    uint count;         // number of times sym is called
+    ulong count;        // number of times sym is called
 }
 
 /////////////////////////////////////
@@ -160,21 +160,25 @@ private void stack_free(Stack *s)
 
 private int sympair_cmp(in void* e1, in void* e2)
 {
-    auto psp1 = cast(SymPair**)e1;
-    auto psp2 = cast(SymPair**)e2;
+    auto count1 = (*cast(SymPair**)e1).count;
+    auto count2 = (*cast(SymPair**)e2).count;
 
-    return (*psp2).count - (*psp1).count;
+    if (count1 < count2)
+        return -1;
+    else if (count1 > count2)
+        return 1;
+    return 0;
 }
 
 //////////////////////////////////////
 // Place symbol s, and then place any fan ins or fan outs with
 // counts greater than count.
 
-private void trace_place(FILE* fpdef, Symbol* s, uint count)
+private void trace_place(FILE* fpdef, Symbol* s, ulong count)
 {
     if (!(s.Sflags & SFvisited))
     {
-        //printf("\t%.*s\t%u\n", s.Sident.length, s.Sident.ptr, count);
+        //printf("\t%.*s\t%llu\n", s.Sident.length, s.Sident.ptr, count);
         fprintf(fpdef,"\t%.*s\n", s.Sident.length, s.Sident.ptr);
         s.Sflags |= SFvisited;
 
@@ -200,7 +204,7 @@ private void trace_place(FILE* fpdef, Symbol* s, uint count)
         qsort(base, num, (SymPair *).sizeof, &sympair_cmp);
 
         //for (u = 0; u < num; u++)
-            //printf("\t\t%.*s\t%u\n", base[u].sym.Sident.length, base[u].sym.Sident.ptr, base[u].count);
+            //printf("\t\t%.*s\t%llu\n", base[u].sym.Sident.length, base[u].sym.Sident.ptr, base[u].count);
 
         // Place symbols
         for (u = 0; u < num; u++)
@@ -236,16 +240,16 @@ private size_t trace_report(FILE* fplog, Symbol* s)
         if (s.Sl)
             nsymbols += trace_report(fplog, s.Sl);
         fprintf(fplog,"------------------\n");
-        uint count = 0;
+        ulong count = 0;
         for (auto sp = s.Sfanin; sp; sp = sp.next)
         {
-            fprintf(fplog,"\t%5d\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
+            fprintf(fplog,"\t%5llu\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
             count += sp.count;
         }
-        fprintf(fplog,"%.*s\t%u\t%lld\t%lld\n", s.Sident.length, s.Sident.ptr, count, s.totaltime, s.functime);
+        fprintf(fplog,"%.*s\t%llu\t%lld\t%lld\n", s.Sident.length, s.Sident.ptr, count, s.totaltime, s.functime);
         for (auto sp = s.Sfanout; sp; sp = sp.next)
         {
-            fprintf(fplog,"\t%5d\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
+            fprintf(fplog,"\t%5llu\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
         }
         s = s.Sr;
     }
@@ -301,7 +305,7 @@ private void trace_times(FILE* fplog, Symbol*[] psymbols)
         timer_t percall;
         char[8192] buf = void;
         SymPair* sp;
-        uint calls;
+        ulong calls;
         char[] id;
 
         calls = 0;
@@ -316,7 +320,7 @@ private void trace_times(FILE* fplog, Symbol*[] psymbols)
         percall = s.functime / calls;
         pl = (s.functime * 1000000) / calls / freq;
 
-        fprintf(fplog,"%7d%12lld%12lld%12lld     %.*s\n",
+        fprintf(fplog,"%7llu%12lld%12lld%12lld     %.*s\n",
                       calls, tl, fl, pl, id.length, id.ptr);
     }
 }
@@ -554,7 +558,7 @@ private Symbol* trace_addsym(Symbol** proot, const(char)[] id)
  * Add symbol s with count to SymPair list.
  */
 
-private void trace_sympair_add(SymPair** psp, Symbol* s, uint count)
+private void trace_sympair_add(SymPair** psp, Symbol* s, ulong count)
 {
     SymPair* sp;
 
@@ -738,7 +742,7 @@ private void trace_merge(Symbol** proot)
         SymPair* sfanin = null;
         auto psp = &sfanin;
         char *p;
-        uint count;
+        ulong count;
         Symbol *s;
 
         while (1)
@@ -754,7 +758,7 @@ private void trace_merge(Symbol** proot)
                     goto L1;
                 case ' ':
                 case '\t':              // fan in or fan out line
-                    count = cast(int)strtoul(buf,&p,10);
+                    count = strtoul(buf,&p,10);
                     if (p == buf)       // if invalid conversion
                         continue;
                     p = skipspace(p);
@@ -797,11 +801,10 @@ private void trace_merge(Symbol** proot)
                     sfanin = null;
                     psp = &s.Sfanout;
 
-                    {   timer_t t;
-
+                    {
                         p++;
-                        count = cast(int)strtoul(p,&p,10);
-                        t = cast(long)strtoull(p,&p,10);
+                        count = strtoul(p,&p,10);
+                        timer_t t = cast(long)strtoull(p,&p,10);
                         s.totaltime += t;
                         t = cast(long)strtoull(p,&p,10);
                         s.functime += t;
