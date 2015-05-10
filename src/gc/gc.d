@@ -70,6 +70,8 @@ debug(PROFILE_API)
         //return MonoTime.ticksPerSecond ? MonoTime.currTime.ticks : 0;
         version(Windows)
         {
+            import core.sys.windows.windows;
+
             long ticks;
             if(QueryPerformanceCounter(&ticks) == 0)
             {
@@ -1908,7 +1910,7 @@ struct Gcx
         }
         assert(pool);
 
-        debug(PRINTF) printFreeInfo(pool);
+        debug(PRINTF) printFreeInfo(&pool.base);
         pool.pagetable[pn] = B_PAGE;
         if (npages > 1)
             memset(&pool.pagetable[pn + 1], B_PAGEPLUS, npages - 1);
@@ -1916,7 +1918,7 @@ struct Gcx
         usedLargePages += npages;
         pool.freepages -= npages;
 
-        debug(PRINTF) printFreeInfo(pool);
+        debug(PRINTF) printFreeInfo(&pool.base);
 
         auto p = pool.baseAddr + pn * PAGESIZE;
         debug(PRINTF) printf("Got large alloc:  %p, pt = %d, np = %d\n", p, pool.pagetable[pn], npages);
