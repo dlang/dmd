@@ -103,7 +103,7 @@ private:
     {
         for (size_t i = hash & mask, j = 1;; ++j)
         {
-            if (buckets[i].empty || buckets[i].deleted)
+            if (!buckets[i].filled)
                 return &buckets[i];
             i = (i + j) & mask;
         }
@@ -174,9 +174,10 @@ private pure nothrow @nogc:
         return hash == HASH_DELETED;
     }
 
-    @property bool filled() const
+    // not returning bool to avoid gratuitious codegen
+    @property int filled() const
     {
-        return !!(hash & HASH_FILLED_MARK);
+        return hash & HASH_FILLED_MARK;
     }
 }
 
