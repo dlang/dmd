@@ -70,6 +70,8 @@ debug(PROFILE_API)
         //return MonoTime.ticksPerSecond ? MonoTime.currTime.ticks : 0;
         version(Windows)
         {
+            import core.sys.windows.windows;
+
             long ticks;
             if(QueryPerformanceCounter(&ticks) == 0)
             {
