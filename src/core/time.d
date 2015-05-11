@@ -1889,14 +1889,13 @@ T to(string units, T, D)(D td) @safe pure nothrow @nogc
         units == "msecs" ||
         units == "usecs" ||
         units == "hnsecs" ||
-        units == "nsecs") &&
-       ((__traits(isIntegral, T) && T.sizeof >= 4) || __traits(isFloating, T)))
+        units == "nsecs"))
 {
     static if(__traits(isIntegral, T) && T.sizeof >= 4)
     {
         enum unitsPerSec = convert!("seconds", units)(1);
 
-        return cast(T)(td.length / (TickDuration.ticksPerSec / cast(real)unitsPerSec));
+        return cast(T) (td.length / (TickDuration.ticksPerSec / cast(real) unitsPerSec));
     }
     else static if(__traits(isFloating, T))
     {
@@ -1906,7 +1905,8 @@ T to(string units, T, D)(D td) @safe pure nothrow @nogc
         {
             enum unitsPerSec = convert!("seconds", units)(1);
 
-            return this.to!("seconds", T)() * unitsPerSec;
+            return cast(T) (td.length /
+                (TickDuration.ticksPerSec / cast(real) unitsPerSec));
         }
     }
     else
@@ -1927,35 +1927,68 @@ unittest
 
 unittest
 {
-    auto t1v = 1000;
-    auto t2v = 333;
-    auto t1 = TickDuration.from!"seconds"(t1v);
-    auto t2 = TickDuration.from!"seconds"(t2v);
+    void testFun(string U)() {
+        auto t1v = 1000;
+        auto t2v = 333;
 
-    foreach(F; _TypeTuple!(int,uint,long,ulong,float,double,real))
-    {
-        F t1f = to!("seconds",F)(t1);
-        F t2f = to!("seconds",F)(t2);
-        auto t12d = t1 / t2v;
-        auto t12m = t1 - t2;
-        F t3f = to!("seconds",F)(t12d);
-        F t4f = to!("seconds",F)(t12m);
+        auto t1 = TickDuration.from!U(t1v);
+        auto t2 = TickDuration.from!U(t2v);
 
-        static if(is(F : float))
+        foreach (F; _TypeTuple!(int,uint,long,ulong,float,double,real))
         {
-            assert((t1f - cast(F)t1v) < 0.0001);
-            assert((t2f - cast(F)t2v) < 0.0001);
-            assert(t3f - (cast(F)t1v) / (cast(F)t2v) < 0.0001);
-            assert(t4f - (cast(F)(t1v - t2v)) < 0.0001);
-        }
-        else
-        {
-            assert(t1f == cast(F)t1v);
-            assert(t2f == cast(F)t2v);
-            assert(t3f == (cast(F)t1v) / (cast(F)t2v));
-            assert(t4f == (cast(F)t1v) - (cast(F)t2v));
+            F t1f = to!(U,F)(t1);
+            F t2f = to!(U,F)(t2);
+            auto t12d = t1 / t2v;
+            auto t12m = t1 - t2;
+            F t3f = to!(U,F)(t12d);
+            F t4f = to!(U,F)(t12m);
+
+            static if(is(F == float) || is(F == double) || is(F == real))
+            {
+                assert((t1f - cast(F)t1v) <= 3.0,
+                    F.stringof ~ " " ~ U ~ " " ~ numToString(t1f) ~ " " ~
+                    numToString(cast(F)t1v)
+                );
+                assert((t2f - cast(F)t2v) <= 3.0,
+                    F.stringof ~ " " ~ U ~ " " ~ numToString(t2f) ~ " " ~
+                    numToString(cast(F)t2v)
+                );
+                assert(t3f - (cast(F)t1v) / (cast(F)t2v) <= 3.0,
+                    F.stringof ~ " " ~ U ~ " " ~ numToString(t3f) ~ " " ~
+                    numToString((cast(F)t1v)/(cast(F)t2v))
+                );
+                assert(t4f - (cast(F)(t1v - t2v)) <= 3.0,
+                    F.stringof ~ " " ~ U ~ " " ~ numToString(t4f) ~ " " ~
+                    numToString(cast(F)(t1v - t2v))
+                );
+            }
+            else
+            {
+                // even though this should be exact math it is not as internal
+                // in "to" floating point is used
+                assert(_abs(t1f) - _abs(cast(F)t1v) <= 3,
+                    F.stringof ~ " " ~ U ~ " " ~ numToString(t1f) ~ " " ~
+                    numToString(cast(F)t1v)
+                );
+                assert(_abs(t2f) - _abs(cast(F)t2v) <= 3,
+                    F.stringof ~ " " ~ U ~ " " ~ numToString(t2f) ~ " " ~
+                    numToString(cast(F)t2v)
+                );
+                assert(_abs(t3f) - _abs((cast(F)t1v) / (cast(F)t2v)) <= 3,
+                    F.stringof ~ " " ~ U ~ " " ~ numToString(t3f) ~ " " ~
+                    numToString((cast(F)t1v) / (cast(F)t2v))
+                );
+                assert(_abs(t4f) - _abs((cast(F)t1v) - (cast(F)t2v)) <= 3,
+                    F.stringof ~ " " ~ U ~ " " ~ numToString(t4f) ~ " " ~
+                    numToString((cast(F)t1v) - (cast(F)t2v))
+                );
+            }
         }
     }
+
+    testFun!"seconds"();
+    testFun!"msecs"();
+    testFun!"usecs"();
 }
 
 /++
@@ -4775,6 +4808,47 @@ string numToString(long value) @safe pure nothrow
     }
     catch(Exception e)
         assert(0, "Something threw when nothing can throw.");
+}
+
+unittest
+{
+    string a = numToString(1);
+    assert(a == "1");
+
+    a = numToString(-1);
+    assert(a == "-1");
+}
+
+version(unittest)
+string numToString(double value) @safe pure nothrow
+{
+    immutable negative = value < 0;
+    string result = (negative ? "-" : "") ~ numToString(cast(long)value);
+    result ~= '.';
+    result ~= numToString(cast(long)(_abs((value - cast(long)value) * 1000000)));
+
+    int i = cast(int)result.length - 1;
+    for (; i >= 0; --i)
+    {
+        if(result[i] != '0')
+            break;
+    }
+    return result[0 .. (i > 0 ? i - 1 : 0)];
+}
+
+unittest
+{
+    auto a = 1.337;
+    auto aStr = numToString(a);
+    assert(aStr[0 .. 4] == "1.33", aStr);
+
+    a = 0.337;
+    aStr = numToString(a);
+    assert(aStr[0 .. 4] == "0.33", aStr);
+
+    a = -0.337;
+    aStr = numToString(a);
+    assert(aStr[0 .. 5] == "-0.33", aStr);
 }
 
 version(unittest) const(char)* numToStringz()(long value) @safe pure nothrow
