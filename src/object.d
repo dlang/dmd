@@ -879,6 +879,7 @@ class TypeInfo_Class : TypeInfo
             //writefln("module %s, %d", m.name, m.localClasses.length);
             foreach (c; m.localClasses)
             {
+                if (c is null) continue;
                 //writefln("\tclass %s", c.name);
                 if (c.name == classname)
                     return c;
