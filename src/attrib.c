@@ -1284,11 +1284,12 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
 int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
     //printf("CompileDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
+#if 0
     if (compiled)
         return 1;
-
+#endif
     this->scopesym = sds;
-
+#if 0
     if (memnum == 0)
     {
         /* No members yet, so parse the mixin now
@@ -1297,6 +1298,7 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
         memnum |= AttribDeclaration::addMember(sc, sds, memnum);
         compiled = 1;
     }
+#endif
     return memnum;
 }
 
