@@ -4582,11 +4582,11 @@ void test7212()
 
 void test242()
 {
-    foreach(v; long.max / 4 .. long.max / 4 + 1)
+    foreach(v; long.max / 8 .. long.max / 8 + 1)
     {
         immutable long t1 = v;
         long t2 = t1 + t1;
-        t2 *= 1.0;
+        t2 *= 1L << 1;
         assert(t2 > long.max / 4);
     }
 }
