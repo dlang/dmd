@@ -38,7 +38,26 @@ LDFLAGS=-lm -lstdc++ -lpthread
 #endif
 CC=$(HOST_CC) $(MODEL_FLAG)
 GIT=git
-HOST_DC?=dmd
+
+# Host D compiler for bootstrapping
+ifeq (,$(AUTO_BOOTSTRAP))
+  # No bootstrap, a $(HOST_DC) installation must be available
+  HOST_DC?=dmd
+  HOST_DC_FULL:=$(shell which $(HOST_DC))
+  ifeq (,$(HOST_DC_FULL))
+    $(error '$(HOST_DC)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
+  endif
+  HOST_DC:=$(HOST_DC_FULL)
+  HOST_DC_RUN=$(HOST_DC)
+else
+  # Auto-bootstrapping, will download dmd automatically
+  HOST_DMD_VER=2.067.1
+  HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
+  HOST_DMD_URL=http://downloads.dlang.org/releases/2015/dmd.$(HOST_DMD_VER).$(OS).zip
+  HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
+  HOST_DC=$(HOST_DMD)
+  HOST_DC_RUN=$(HOST_DC) -conf=$(dir $(HOST_DC))dmd.conf
+endif
 
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
@@ -282,10 +301,22 @@ dmd: frontend.a root.a glue.a backend.a
 
 clean:
 	rm -f $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
-	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
-	tytab.c verstr.h core \
-	*.cov *.deps *.gcda *.gcno *.a \
-	$(GENSRC) $(MAGICPORT)
+		impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
+		tytab.c verstr.h core \
+		*.cov *.deps *.gcda *.gcno *.a \
+		$(GENSRC) $(MAGICPORT)
+
+######## Download and install the last dmd buildable without dmd
+
+ifneq (,$(AUTO_BOOTSTRAP))
+.PHONY: host-dmd
+host-dmd: ${HOST_DMD}
+
+${HOST_DMD}:
+	mkdir -p ${HOST_DMD_ROOT}
+	TMPFILE=$$(mktemp deleteme.XXXXXXXX) && curl -fsSL ${HOST_DMD_URL} > $${TMPFILE}.zip && \
+		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip
+endif
 
 ######## generate a default dmd.conf
 
@@ -316,8 +347,8 @@ $(optabgen_output) : optabgen
 idgen_output = id.h id.c
 $(idgen_output) : idgen
 
-idgen: idgen.d
-	$(HOST_DC) idgen.d
+idgen: idgen.d $(HOST_DC)
+	$(HOST_DC_RUN) idgen.d
 	./idgen
 
 ######### impcnvgen generates some source
@@ -413,8 +444,8 @@ install: all
 
 ######################################################
 
-checkwhitespace:
-	$(HOST_DC) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
+checkwhitespace: $(HOST_DC)
+	$(HOST_DC_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
 
 ######################################################
 
@@ -512,8 +543,8 @@ MAGICPORTSRC = \
 
 MAGICPORT = $(MAGICPORTDIR)/magicport2
 
-$(MAGICPORT) : $(MAGICPORTSRC)
-	$(HOST_DC) -of$(MAGICPORT) $(MAGICPORTSRC)
+$(MAGICPORT) : $(MAGICPORTSRC) $(HOST_DC)
+	$(HOST_DC_RUN) -of$(MAGICPORT) $(MAGICPORTSRC)
 
 GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	argtypes.d arrayop.d arraytypes.d \
@@ -549,5 +580,5 @@ mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
 
 DSRC= $(GENSRC) $(MANUALSRC)
 
-ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a
-	CC=$(HOST_CC) $(HOST_DC) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J.. -d $(DFLAGS)
+ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a $(HOST_DC)
+	CC=$(HOST_CC) $(HOST_DC_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J.. -d $(DFLAGS)
