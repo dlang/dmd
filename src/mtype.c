@@ -1265,8 +1265,8 @@ Type *Type::aliasthisOf()
                 if (fd)
                 {
                     t = fd->type->nextOf();
-		    if (!t) // issue 14185
-		        return Type::terror;
+                    f (!t) // issue 14185
+                        return Type::terror;
                     t = t->substWildTo(mod == 0 ? MODmutable : mod);
                 }
                 else
