@@ -1,6 +1,6 @@
 /*
  * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2013 by Digital Mars
+ * Copyright (c) 1999-2015 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -117,13 +117,15 @@ const char *findConfFile(const char *argv0, const char *inifile)
 }
 
 /*****************************
- * Read and analyze .ini file, i.e. write the entries of the specified section
- *  into the process environment
- * Input:
- *      filename path to config file
- *      envsectionname  name of the section to process
+ * Read and analyze .ini file.
+ * Write the entries into the process environment as
+ * well as any entries in one of the specified section(s).
+ *
+ * Params:
+ *      filename = path to config file
+ *      sections[] = section namesdimension of array of section names
  */
-void parseConfFile(const char *filename, const char *envsectionname)
+void parseConfFile(const char *filename, Strings *sections)
 {
     const char *path = FileName::path(filename); // need path for @P macro
 #if LOG
@@ -136,8 +138,8 @@ void parseConfFile(const char *filename, const char *envsectionname)
         return; // error reading file
 
     // Parse into lines
-    bool envsection = true;
-    size_t envsectionnamelen = strlen(envsectionname);
+    bool envsection = true;     // default is to read
+
     OutBuffer buf;
     bool eof = false;
     for (size_t i = 0; i < file.len && !eof; i++)
@@ -238,14 +240,33 @@ void parseConfFile(const char *filename, const char *envsectionname)
                 char *pn;
                 for (pn = p; isalnum((utf8_t)*pn); pn++)
                     ;
-                if (pn - p == envsectionnamelen &&
-                    Port::memicmp(p, envsectionname, envsectionnamelen) == 0 &&
-                    *skipspace(pn) == ']')
+
+                if (*skipspace(pn) != ']')
                 {
-                    envsection = true;
-                }
-                else
+                    // malformed [sectionname], so just say we're not in a section
                     envsection = false;
+                    break;
+                }
+
+                /* Seach sectionnamev[] for p..pn and set envsection to true if it's there
+                 */
+                for (size_t j = 0; 1; ++j)
+                {
+                    if (j == sections->dim)
+                    {
+                        // Didn't find it
+                        envsection = false;
+                        break;
+                    }
+                    const char *sectionname = (*sections)[j];
+                    size_t len = strlen(sectionname);
+                    if (pn - p == len &&
+                        Port::memicmp(p, sectionname, len) == 0)
+                    {
+                        envsection = true;
+                        break;
+                    }
+                }
                 break;
 
             default:
