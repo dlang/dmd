@@ -200,7 +200,7 @@ FILE*  popen(in char*, in char*);
 // memstream functions are conforming to POSIX.1-2008.  These functions are
 // not specified in POSIX.1-2001 and are not widely available on other
 // systems.
-version( linux )                             // as of glibc 1.0x
+version( CRuntime_Glibc )                     // as of glibc 1.0x
     version = HaveMemstream;
 else version( FreeBSD )                      // as of FreeBSD 9.2
     version = HaveMemstream;
