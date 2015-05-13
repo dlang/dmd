@@ -434,3 +434,46 @@ static assert(
 
     return true;
 }());
+
+/***************************************************/
+// 14549
+
+string foo14549(T)()
+{
+    static if (T.tupleof.length >= 0)
+        return "";
+}
+
+class Frop14549
+{
+    mixin(foo14549!(typeof(this)));
+
+    static if (__traits(compiles, undefined))
+    {
+    }
+    else
+    {
+        int bar = 0;
+    }
+
+    static if (!__traits(isVirtualMethod, this.bar)) {}
+}
+
+// ----
+
+template Mix14549()
+{
+    mixin(code14549!(typeof(this)));
+}
+
+template code14549(T)
+{
+    enum string code14549 =
+        q{ static if (!__traits(isVirtualMethod, "boo")) {} };
+}
+
+class Bar14549
+{
+    mixin Mix14549;
+    int boo;
+}

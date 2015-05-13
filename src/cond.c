@@ -354,6 +354,11 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *sds)
         sc->pop();
         --nest;
 
+        // Prevent repeated condition evaluation.
+        // See: fail_compilation/fail7815.d
+        if (inc != 0)
+            return (inc == 1);
+
         if (!e->type->isBoolean())
         {
             if (e->type->toBasetype() != Type::terror)

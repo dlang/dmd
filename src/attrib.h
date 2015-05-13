@@ -170,7 +170,7 @@ public:
 class StaticIfDeclaration : public ConditionalDeclaration
 {
 public:
-    ScopeDsymbol *sds;
+    ScopeDsymbol *scopesym;
     int addisdone;
 
     StaticIfDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
@@ -191,7 +191,7 @@ class CompileDeclaration : public AttribDeclaration
 public:
     Expression *exp;
 
-    ScopeDsymbol *sds;
+    ScopeDsymbol *scopesym;
     int compiled;
 
     CompileDeclaration(Loc loc, Expression *exp);
