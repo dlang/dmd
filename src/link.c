@@ -16,28 +16,13 @@
 #include        <string.h>
 #include        <stdlib.h>
 
-#if _WIN32
-#include        <process.h>
-#ifdef _MSC_VER
-#include <windows.h>
-#endif
-#endif
-
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include        <sys/types.h>
 #include        <sys/wait.h>
 #include        <unistd.h>
 #endif
 
-#if __linux__ || __APPLE__
-    #define HAS_POSIX_SPAWN 1
-    #include        <spawn.h>
-    #if __APPLE__
-        #include <crt_externs.h>
-    #endif
-#else
-    #define HAS_POSIX_SPAWN 0
-#endif
+#include        "utils.h"
 
 #include        "root.h"
 
@@ -248,7 +233,7 @@ int runLINK()
 
         /* Append the path to the VC lib files, and then the SDK lib files
          */
-        const char *vcinstalldir = getenv("VCINSTALLDIR");
+        const char *vcinstalldir = dgetenv("VCINSTALLDIR");
         if (vcinstalldir)
         {   cmdbuf.writestring(" /LIBPATH:\"");
             cmdbuf.writestring(vcinstalldir);
@@ -258,7 +243,7 @@ int runLINK()
                 cmdbuf.writestring("\\lib\"");
         }
 
-        const char *windowssdkdir = getenv("WindowsSdkDir");
+        const char *windowssdkdir = dgetenv("WindowsSdkDir");
         if (windowssdkdir)
         {   cmdbuf.writestring(" /LIBPATH:\"");
             cmdbuf.writestring(windowssdkdir);
@@ -284,9 +269,9 @@ int runLINK()
                 sprintf(p, "@%s", lnkfilename);
         }
 
-        const char *linkcmd = getenv(global.params.is64bit ? "LINKCMD64" : "LINKCMD");
+        const char *linkcmd = dgetenv(global.params.is64bit ? "LINKCMD64" : "LINKCMD");
         if (!linkcmd)
-            linkcmd = getenv("LINKCMD"); // backward compatible
+            linkcmd = dgetenv("LINKCMD"); // backward compatible
         if (!linkcmd)
         {
             if (vcinstalldir)
@@ -435,7 +420,7 @@ int runLINK()
                 sprintf(p, "@%s", lnkfilename);
         }
 
-        const char *linkcmd = getenv("LINKCMD");
+        const char *linkcmd = dgetenv("LINKCMD");
         if (!linkcmd)
             linkcmd = "link";
         int status = executecmd(linkcmd, p);
@@ -747,7 +732,6 @@ int executecmd(const char *cmd, const char *args)
 {
     int status;
     size_t len;
-
     if (global.params.verbose)
         fprintf(global.stdmsg, "%s %s\n", cmd, args);
 
@@ -757,7 +741,7 @@ int executecmd(const char *cmd, const char *args)
         {
             char *q = (char *) alloca(8 + len + 1);
             sprintf(q,"_CMDLINE=%s", args);
-            status = putenv(q);
+            status = dputenv(q);
             if (status == 0)
             {
                 args = "@_CMDLINE";
@@ -772,23 +756,10 @@ int executecmd(const char *cmd, const char *args)
     // Normalize executable path separators, see Bugzilla 9330
     cmd = toWinPath(cmd);
 
-#ifdef _MSC_VER
-    if(strchr(cmd, ' '))
-    {
-        // MSVCRT: spawn does not work with spaces in the executable
-        size_t cmdlen = strlen(cmd);
-        char* shortName = new char[cmdlen + 1]; // enough space
-        DWORD len = GetShortPathName(cmd, shortName, cmdlen + 1);
-        if(len > 0 && len <= cmdlen)
-            cmd = shortName;
-    }
-#endif
-
     status = executearg0(cmd,args);
     if (status == -1)
     {
-        // spawnlp returns intptr_t in some systems, not int
-        status = spawnlp(0,cmd,cmd,args,NULL);
+        status = dspawnlp(0,cmd,cmd,args,NULL);
     }
 
 //    if (global.params.verbose)
@@ -827,8 +798,7 @@ int executearg0(const char *cmd, const char *args)
     file = FileName::replaceName(argv0, cmd);
 
     //printf("spawning '%s'\n",file);
-    // spawnlp returns intptr_t in some systems, not int
-    return spawnl(0,file,file,args,NULL);
+    return dspawnl(0,file,file,args,NULL);
 }
 #endif
 
@@ -854,15 +824,6 @@ int runProgram()
     argv.push(global.params.exefile);
     for (size_t i = 0; i < global.params.runargs_length; i++)
     {   const char *a = global.params.runargs[i];
-
-#if _WIN32
-        // BUG: what about " appearing in the string?
-        if (strchr(a, ' '))
-        {   char *b = (char *)mem.xmalloc(3 + strlen(a));
-            sprintf(b, "\"%s\"", a);
-            a = b;
-        }
-#endif
         argv.push(a);
     }
     argv.push(NULL);
@@ -873,8 +834,7 @@ int runProgram()
         ex = FileName::combine(".", ex);
     else
         ex = global.params.exefile;
-    // spawnlp returns intptr_t in some systems, not int
-    return spawnv(0,ex,argv.tdata());
+    return dspawnv(0,ex,argv.tdata());
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     pid_t childpid;
     int status;

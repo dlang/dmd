@@ -31,6 +31,7 @@
 #include        "root.h"
 #include        "rmem.h"
 #include        "port.h"
+#include        "utils.h"
 
 #define LOG     0
 
@@ -63,15 +64,17 @@ const char *findConfFile(const char *argv0, const char *inifile)
      *      o directory off of argv0
      *      o SYSCONFDIR (default=/etc/) (non-windows)
      */
-    const char *filename = FileName::combine(getenv("HOME"), inifile);
+    const char *filename = FileName::combine(dgetenv("HOME"), inifile);
     if (FileName::exists(filename))
         return filename;
 
 #if _WIN32 // This fix by Tim Matthews
-    char resolved_name[MAX_PATH + 1];
-    if (GetModuleFileNameA(NULL, resolved_name, MAX_PATH + 1) && FileName::exists(resolved_name))
+    WCHAR wresolved_name[MAX_PATH + 1];
+    if (GetModuleFileNameW(NULL, wresolved_name, MAX_PATH + 1) && FileName::exists(wresolved_name))
     {
+        char *resolved_name = wideToUTF8(wresolved_name);
         filename = FileName::replaceName(resolved_name, inifile);
+        free(resolved_name);
         if (FileName::exists(filename))
             return filename;
     }
@@ -206,7 +209,7 @@ void parseConfFile(const char *filename, Strings *sections)
                         memcpy(p, &line[k + 1], len2);
                         p[len2] = 0;
                         Port::strupr(p);
-                        char *penv = getenv(p);
+                        char *penv = dgetenv(p);
                         if (penv)
                             buf.writestring(penv);
                         free(p);
@@ -288,7 +291,7 @@ void parseConfFile(const char *filename, Strings *sections)
                         else if (p[0] == '?' && p[1] == '=')
                         {
                             *p = '\0';
-                            if (getenv(pn))
+                            if (dgetenv(pn))
                             {
                                 pn = NULL;
                                 break;
@@ -310,7 +313,7 @@ void parseConfFile(const char *filename, Strings *sections)
 
                     if (pn)
                     {
-                        putenv(strdup(pn));
+                        dputenv(strdup(pn));
 #if LOG
                         printf("\tputenv('%s')\n", pn);
                         //printf("getenv(\"TEST\") = '%s'\n",getenv("TEST"));

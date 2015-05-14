@@ -651,7 +651,7 @@ int os_file_exists(const char *name)
     DWORD dw;
     int result;
 
-    dw = GetFileAttributes(name);
+    dw = GetFileAttributesA(name);
     if (dw == -1L)
         result = 0;
     else if (dw & FILE_ATTRIBUTE_DIRECTORY)
@@ -710,7 +710,7 @@ char *file_8dot3name(const char *filename)
     char *buf;
     int i;
 
-    h = FindFirstFile(filename,&fileinfo);
+    h = FindFirstFileA(filename,&fileinfo);
     if (h == INVALID_HANDLE_VALUE)
         return NULL;
     if (fileinfo.cAlternateFileName[0])
@@ -770,7 +770,7 @@ err:
     HANDLE h;
     DWORD numwritten;
 
-    h = CreateFileA((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
+    h = CreateFileA((LPCSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
     {
@@ -778,7 +778,7 @@ err:
         {
             if (!file_createdirs(name))
             {
-                h = CreateFileA((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
+                h = CreateFileA((LPCSTR)name, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
                     FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
                 if (h != INVALID_HANDLE_VALUE)
                     goto Lok;

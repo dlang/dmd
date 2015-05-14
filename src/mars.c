@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
+#include <locale.h>
 
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <errno.h>
@@ -38,6 +39,7 @@
 #include "declaration.h"
 #include "hdrgen.h"
 #include "doc.h"
+#include "utils.h"
 
 bool response_expand(size_t *pargc, const char ***pargv);
 
@@ -1727,14 +1729,22 @@ Language changes listed by -transition=id:\n\
     return status;
 }
 
-int main(int argc, const char *argv[])
+
+#if _WIN32
+int wmain(int argc, const wchar_t *wargv[])
 {
-    int status = -1;
-
-    status = tryMain(argc, argv);
-
+    _wsetlocale(LC_ALL, L"");
+    const char **argv = getUTF8argvs(argc, wargv);
+    int status = tryMain(argc, argv);
+    freeUTF8argvs(argc, argv);
     return status;
 }
+#else
+int main(int argc, const char *argv[])
+{
+    return tryMain(argc, argv);
+}
+#endif
 
 
 /***********************************
@@ -1751,7 +1761,7 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
     int slash;
     char c;
 
-    char *env = getenv(envvar);
+    char *env = dgetenv(envvar);
     if (!env)
         return;
 

@@ -18,6 +18,7 @@
 #if _WIN32
 #include <tchar.h>
 #include <io.h>
+#include <windows.h>
 #endif
 
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
@@ -37,6 +38,7 @@
 #endif
 
 #include "file.h"
+#include "utils.h"
 
 /*********************************
  * #include <stdlib.h>
@@ -117,7 +119,7 @@ bool response_expand(size_t *pargc, const char ***pargv)
         char *bufend;
 
         cp++;
-        char *p = getenv(cp);
+        char *p = dgetenv(cp);
         if (p)
         {
             buffer = strdup(p);

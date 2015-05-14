@@ -49,6 +49,10 @@ struct FileName
     static const char *searchPath(Strings *path, const char *name, bool cwd);
     static const char *safeSearchPath(Strings *path, const char *name);
     static int exists(const char *name);
+#if _WIN32
+    typedef const wchar_t *LPCWSTR;
+    static int exists(LPCWSTR name);
+#endif
     static bool ensurePathExists(const char *path);
     static const char *canonicalName(const char *name);
 

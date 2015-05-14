@@ -25,6 +25,7 @@
 #include "errors.h"
 #include "outbuffer.h"
 #include "rmem.h"
+#include "utils.h"
 
 enum COLOR
 {
@@ -176,8 +177,15 @@ void verrorPrint(Loc loc, COLOR headerColor, const char *header, const char *for
 
     if (global.params.color)
         setConsoleColorBright(true);
-    if (*p)
+    if (*p) {
+#ifdef _WIN32
+        LPCWSTR wstr = UTF8toWide(p);
+        fwprintf(stderr, L"%s\n", wstr);
+        free((void *)wstr);
+#else
         fprintf(stderr, "%s: ", p);
+#endif
+    }
     mem.xfree(p);
 
     if (global.params.color)
@@ -191,7 +199,13 @@ void verrorPrint(Loc loc, COLOR headerColor, const char *header, const char *for
         fprintf(stderr, "%s ", p2);
     OutBuffer tmp;
     tmp.vprintf(format, ap);
+#ifdef _WIN32
+    LPCWSTR wstr = UTF8toWide(tmp.peekString());
+    fwprintf(stderr, L"%s\n", wstr);
+    free((void *)wstr);
+#else
     fprintf(stderr, "%s\n", tmp.peekString());
+#endif
     fflush(stderr);
 }
 
