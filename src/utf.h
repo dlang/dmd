@@ -11,8 +11,13 @@
 #ifndef DMD_UTF_H
 #define DMD_UTF_H
 
-
-typedef unsigned dchar_t;
+/// A UTF-8 code unit
+typedef unsigned char   utf8_t;
+/// A UTF-16 code unit
+typedef unsigned short  utf16_t;
+/// A UTF-32 code unit
+typedef unsigned int    utf32_t;
+typedef utf32_t         dchar_t;
 
 int utf_isValidDchar(dchar_t c);
 

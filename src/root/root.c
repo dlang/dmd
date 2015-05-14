@@ -1852,6 +1852,13 @@ char *OutBuffer::toChars()
     return (char *)data;
 }
 
+char *OutBuffer::peekString()
+{
+    if (!offset || data[offset-1] != '\0')
+        writeByte(0);
+    return (char *)data;
+}
+
 // TODO: Remove (only used by disabled GC)
 /********************************* Bits ****************************/
 

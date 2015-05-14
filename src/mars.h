@@ -203,7 +203,7 @@ struct Param
     char safe;          // enforce safe memory model
     char betterC;       // be a "better C" compiler; no dependency on D runtime
 
-    char *argv0;        // program name
+    const char *argv0;    // program name
     Strings *imppath;     // array of char*'s of where to look for import modules
     Strings *fileImppath; // array of char*'s of where to look for file import modules
     char *objdir;       // .obj/.lib file output directory
@@ -248,7 +248,7 @@ struct Param
 
     char run;           // run resulting executable
     size_t runargs_length;
-    char** runargs;     // arguments for executable
+    const char** runargs; // arguments for executable
 
     // Linker stuff
     Strings *objfiles;
@@ -266,6 +266,7 @@ typedef unsigned structalign_t;
 
 struct Global
 {
+    const char *inifilename;
     const char *mars_ext;
     const char *sym_ext;
     const char *obj_ext;
@@ -455,7 +456,6 @@ void err_nomem();
 int runLINK();
 void deleteExeFile();
 int runProgram();
-const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 void halt();
 void util_progress();
 

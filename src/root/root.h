@@ -274,6 +274,9 @@ struct OutBuffer : Object
     size_t insert(size_t offset, const void *data, size_t nbytes);
     void remove(size_t offset, size_t nbytes);
     char *toChars();
+    // Append terminating null if necessary and get view of internal buffer
+    char *peekString();
+    // Append terminating null if necessary and take ownership of data
     char *extractString();
 };
 

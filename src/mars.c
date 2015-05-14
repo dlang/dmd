@@ -15,7 +15,7 @@
 #include <limits.h>
 #include <string.h>
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <errno.h>
 #endif
 
@@ -39,16 +39,21 @@
 long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 #endif
 
-int response_expand(size_t *pargc, char ***pargv);
+int response_expand(size_t *pargc, char ** *pargv);
 void browse(const char *url);
-void getenv_setargv(const char *envvar, size_t *pargc, char** *pargv);
+void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
 
 void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);
 
 void printCtfePerformanceStats();
 
-static bool parse_arch(size_t argc, char** argv, bool is64bit);
+static const char* parse_arch_arg(size_t argc, const char** argv, const char* arch);
+static const char* parse_conf_arg(size_t argc, const char** argv);
+
+const char *findConfFile(const char *argv0, const char *inifile);
+void parseConfFile(const char *filename, const char* envsectionname);
+
 
 FILE *stdmsg;
 
@@ -68,6 +73,7 @@ Global global;
 
 Global::Global()
 {
+    inifilename = NULL;
     mars_ext = "d";
     sym_ext  = "d";
     hdr_ext  = "di";
@@ -339,6 +345,7 @@ Usage:\n\
   files.d        D source files\n\
   @cmdfile       read arguments from cmdfile\n\
   -c             do not link\n\
+  -conf=path     use config file at path\n\
   -cov           do code coverage analysis\n\
   -D             generate documentation\n\
   -Dddocdir      write documentation file to docdir directory\n\
@@ -407,7 +414,7 @@ extern "C"
 }
 #endif
 
-int main(int iargc, char *argv[])
+int main(int iargc, const char *argv[])
 {
     mem.init();                         // initialize storage allocator
     mem.setStackBottom(&argv);
@@ -424,7 +431,6 @@ int main(int iargc, char *argv[])
     size_t argcstart = argc;
     int setdebuglib = 0;
     int setdefaultlib = 0;
-    const char *inifilename = NULL;
 
 #ifdef DEBUG
     printf("DMD %s DEBUG\n", global.version);
@@ -444,7 +450,7 @@ int main(int iargc, char *argv[])
             goto Largs;
     }
 
-    if (response_expand(&argc,&argv))   // expand response files
+    if (response_expand(&argc, (char ***)&argv))   // expand response files
         error(0, "can't open response file");
 
     files.reserve(argc - 1);
@@ -527,39 +533,51 @@ int main(int iargc, char *argv[])
 #endif
     VersionCondition::addPredefinedGlobalIdent("all");
 
-// If we are in D1, try to find sc1.ini/dmd1.conf, if we don't find it, use the
-// regular sc.ini/dmd.conf
+    global.inifilename = parse_conf_arg(argc, argv);
+    if (global.inifilename)
+    {
+        // can be empty as in -conf=
+        if (strlen(global.inifilename) && !FileName::exists(global.inifilename))
+            error(Loc(), "Config file '%s' does not exist.", global.inifilename);
+    }
+    else
+    {
+        // If we are in D1, try to find sc1.ini/dmd1.conf, if we don't find it, use the
+        // regular sc.ini/dmd.conf
 #if !DMDV2
 #  if _WIN32
-    inifilename = inifile(argv[0], "sc1.ini", "Environment");
-#  elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    inifilename = inifile(argv[0], "dmd1.conf", "Environment");
+        global.inifilename = findConfFile(argv[0], "sc1.ini");
+#  elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+        global.inifilename = findConfFile(argv[0], "dmd1.conf");
 #  else
 #    error "fix this"
 #  endif
-    if (inifilename == NULL)
+        if (global.inifilename == NULL)
 #endif
-    {
+        {
 #if _WIN32
-    inifilename = inifile(argv[0], "sc.ini", "Environment");
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    inifilename = inifile(argv[0], "dmd.conf", "Environment");
+            global.inifilename = findConfFile(argv[0], "sc.ini");
+#elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+            global.inifilename = findConfFile(argv[0], "dmd.conf");
 #else
 #error "fix this"
 #endif
+        }
     }
+    parseConfFile(global.inifilename, "Environment");
 
     size_t dflags_argc = 0;
-    char** dflags_argv = NULL;
+    const char** dflags_argv = NULL;
     getenv_setargv("DFLAGS", &dflags_argc, &dflags_argv);
 
-    bool is64bit = global.params.is64bit; // use default
-    is64bit = parse_arch(argc, argv, is64bit);
-    is64bit = parse_arch(dflags_argc, dflags_argv, is64bit);
-    global.params.is64bit = is64bit;
+    const char *arch = global.params.is64bit ? "64" : "32"; // use default
+    arch = parse_arch_arg(argc, argv, arch);
+    arch = parse_arch_arg(dflags_argc, dflags_argv, arch);
+    bool is64bit = arch[0] == '6';
 
-    if (inifilename != NULL)
-        inifile(argv[0], inifilename, is64bit ? "Environment64" : "Environment32");
+    char envsection[80];
+    sprintf(envsection, "Environment%s", arch);
+    parseConfFile(global.inifilename, envsection);
 
     getenv_setargv("DFLAGS", &argc, &argv);
 
@@ -572,7 +590,7 @@ int main(int iargc, char *argv[])
 
     for (size_t i = 1; i < argc; i++)
     {
-        p = argv[i];
+        p = (char *)argv[i];
         if (*p == '-')
         {
             if (strcmp(p + 1, "d") == 0)
@@ -581,6 +599,10 @@ int main(int iargc, char *argv[])
                 global.params.useDeprecated = 2;
             else if (strcmp(p + 1, "c") == 0)
                 global.params.link = 0;
+            else if (memcmp(p + 1, "conf=", 5) == 0)
+            {
+                // ignore, already handled above
+            }
             else if (strcmp(p + 1, "cov") == 0)
                 global.params.cov = 1;
             else if (strcmp(p + 1, "shared") == 0
@@ -914,7 +936,7 @@ int main(int iargc, char *argv[])
                         break;
                     }
 
-                    files.push(argv[i + 1]);
+                    files.push((char *)argv[i + 1]);
                     global.params.runargs = &argv[i + 2];
                     i += global.params.runargs_length;
                     global.params.runargs_length--;
@@ -955,7 +977,8 @@ int main(int iargc, char *argv[])
 
     if(global.params.is64bit != is64bit)
         error(0, "the architecture must not be changed in the %s section of %s",
-              is64bit ? "Environment64" : "Environment32", inifilename);
+              envsection, global.inifilename);
+
 
     if (global.errors)
     {
@@ -1092,7 +1115,7 @@ int main(int iargc, char *argv[])
     if (global.params.verbose)
     {   printf("binary    %s\n", argv[0]);
         printf("version   %s\n", global.version);
-        printf("config    %s\n", inifilename ? inifilename : "(none)");
+        printf("config    %s\n", global.inifilename ? global.inifilename : "(none)");
     }
 
     //printf("%d source files\n",files.dim);
@@ -1576,7 +1599,7 @@ int main(int iargc, char *argv[])
  * The string is separated into arguments, processing \ and ".
  */
 
-void getenv_setargv(const char *envvar, size_t *pargc, char** *pargv)
+void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
 {
     char *p;
 
@@ -1595,7 +1618,7 @@ void getenv_setargv(const char *envvar, size_t *pargc, char** *pargv)
     argv->setDim(argc);
 
     for (size_t i = 0; i < argc; i++)
-        (*argv)[i] = (*pargv)[i];
+        (*argv)[i] = (char *)(*pargv)[i];
 
     size_t j = 1;               // leave argv[0] alone
     while (1)
@@ -1671,7 +1694,7 @@ void getenv_setargv(const char *envvar, size_t *pargc, char** *pargv)
 
 Ldone:
     *pargc = argc;
-    *pargv = argv->tdata();
+    *pargv = (const char**)argv->tdata();
 }
 
 /***********************************
@@ -1679,21 +1702,41 @@ Ldone:
  * to detect the desired architecture.
  */
 
-static bool parse_arch(size_t argc, char** argv, bool is64bit)
+static const char* parse_arch_arg(size_t argc, const char** argv, const char* arch)
 {
     for (size_t i = 0; i < argc; ++i)
-    {   char* p = argv[i];
+    {
+        const char* p = argv[i];
         if (p[0] == '-')
         {
-            if (strcmp(p + 1, "m32") == 0)
-                is64bit = 0;
-            else if (strcmp(p + 1, "m64") == 0)
-                is64bit = 1;
+            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
+                arch = p + 2;
             else if (strcmp(p + 1, "run") == 0)
                 break;
         }
     }
-    return is64bit;
+    return arch;
+}
+
+/***********************************
+ * Parse command line arguments for -conf=path.
+ */
+
+static const char* parse_conf_arg(size_t argc, const char** argv)
+{
+    const char *conf=NULL;
+    for (size_t i = 0; i < argc; ++i)
+    {
+        const char* p = argv[i];
+        if (p[0] == '-')
+        {
+            if (strncmp(p + 1, "conf=", 5) == 0)
+                conf = p + 6;
+            else if (strcmp(p + 1, "run") == 0)
+                break;
+        }
+    }
+    return conf;
 }
 
 #if WINDOWS_SEH

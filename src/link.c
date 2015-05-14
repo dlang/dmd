@@ -766,7 +766,7 @@ int executecmd(char *cmd, char *args, int useenv)
 int executearg0(char *cmd, char *args)
 {
     const char *file;
-    char *argv0 = global.params.argv0;
+    const char *argv0 = global.params.argv0;
 
     //printf("argv0='%s', cmd='%s', args='%s'\n",argv0,cmd,args);
 
@@ -822,7 +822,7 @@ int runProgram()
 
     argv.push(global.params.exefile);
     for (size_t i = 0; i < global.params.runargs_length; i++)
-    {   char *a = global.params.runargs[i];
+    {   const char *a = global.params.runargs[i];
 
 #if _WIN32
         // BUG: what about " appearing in the string?
@@ -832,7 +832,7 @@ int runProgram()
             a = b;
         }
 #endif
-        argv.push(a);
+        argv.push((char *)a);
     }
     argv.push(NULL);
 
