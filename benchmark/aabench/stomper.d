@@ -21,7 +21,7 @@ struct ExpRandom
 
     size_t front()
     {
-        return cast(size_t)lround(mean * -log(uniform!"()"(0.0, 1.0, gen)));
+        return cast(size_t)(mean * -log(uniform!"()"(0.0, 1.0, gen)) + 0.5);
     }
 
     alias gen this;
