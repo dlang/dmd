@@ -328,6 +328,10 @@ version( Windows )
         LeaveCriticalSection(&_monitor_critsec);
         if (cs)
             free(cs);
+        // Set the finalize bit so that the monitor gets collected (Bugzilla 14573)
+        import core.memory : GC;
+        if (!(typeid(h).m_flags & TypeInfo_Class.ClassFlags.hasDtor))
+            GC.setAttr(cast(void*)h, GC.BlkAttr.FINALIZE);
         debug(PRINTF) printf("-_d_monitor_create(%p)\n", h);
     }
 
@@ -412,6 +416,10 @@ version( USE_PTHREADS )
         pthread_mutex_unlock(&_monitor_critsec);
         if (cs)
             free(cs);
+        // Set the finalize bit so that the monitor gets collected (Bugzilla 14573)
+        import core.memory : GC;
+        if (!(typeid(h).m_flags & TypeInfo_Class.ClassFlags.hasDtor))
+            GC.setAttr(cast(void*)h, GC.BlkAttr.FINALIZE);
         debug(PRINTF) printf("-_d_monitor_create(%p)\n", h);
     }
 
@@ -440,4 +448,16 @@ version( USE_PTHREADS )
         pthread_mutex_unlock(&getMonitor(h).mon);
         debug(PRINTF) printf("-_d_monitor_release(%p)\n", h);
     }
+}
+
+// Bugzilla 14573
+unittest
+{
+    import core.memory : GC;
+
+    auto obj = new Object;
+    assert(!(GC.getAttr(cast(void*)obj) & GC.BlkAttr.FINALIZE));
+    _d_monitor_create(obj);
+    assert(getMonitor(obj) !is null);
+    assert(GC.getAttr(cast(void*)obj) & GC.BlkAttr.FINALIZE);
 }
