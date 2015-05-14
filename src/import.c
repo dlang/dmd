@@ -396,15 +396,13 @@ Dsymbol *Import::toAlias()
  * Add import to sd's symbol table.
  */
 
-int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+void Import::addMember(Scope *sc, ScopeDsymbol *sd)
 {
-    int result = 0;
-
     if (names.dim == 0)
-        return Dsymbol::addMember(sc, sd, memnum);
+        return Dsymbol::addMember(sc, sd);
 
     if (aliasId)
-        result = Dsymbol::addMember(sc, sd, memnum);
+        Dsymbol::addMember(sc, sd);
 
     /* Instead of adding the import to sd's symbol table,
      * add each of the alias=name pairs
@@ -420,12 +418,10 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
         TypeIdentifier *tname = new TypeIdentifier(loc, name);
         AliasDeclaration *ad = new AliasDeclaration(loc, alias, tname);
         ad->import = this;
-        result |= ad->addMember(sc, sd, memnum);
+        ad->addMember(sc, sd);
 
         aliasdecls.push(ad);
     }
-
-    return result;
 }
 
 Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)

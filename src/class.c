@@ -567,7 +567,7 @@ Lancestorsdone:
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
-            s->addMember(sc, this, 1);
+            s->addMember(sc, this);
         }
 
         Scope *sc2 = sc->push(this);
@@ -782,7 +782,7 @@ Lancestorsdone:
             CtorDeclaration *ctor = new CtorDeclaration(loc, Loc(), 0, tf);
             ctor->fbody = new CompoundStatement(Loc(), new Statements());
             members->push(ctor);
-            ctor->addMember(sc, this, 1);
+            ctor->addMember(sc, this);
             ctor->semantic(sc2);
             this->ctor = ctor;
             defaultCtor = ctor;
@@ -1540,7 +1540,7 @@ Lancestorsdone:
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        s->addMember(sc, this, 1);
+        s->addMember(sc, this);
     }
 
     Scope *sc2 = sc->push(this);

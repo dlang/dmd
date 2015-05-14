@@ -100,9 +100,8 @@ Scope *AttribDeclaration::newScope(Scope *sc)
     return sc;
 }
 
-int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
+void AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
 {
-    int m = 0;
     Dsymbols *d = include(sc, sds);
 
     if (d)
@@ -113,13 +112,12 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
         {
             Dsymbol *s = (*d)[i];
             //printf("\taddMember %s to %s\n", s->toChars(), sds->toChars());
-            m |= s->addMember(sc2, sds, m | memnum);
+            s->addMember(sc2, sds);
         }
 
         if (sc2 != sc)
             sc2->pop();
     }
-    return m;
 }
 
 void AttribDeclaration::setScope(Scope *sc)
@@ -585,7 +583,7 @@ Scope *ProtDeclaration::newScope(Scope *sc)
     return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign);
 }
 
-int ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
+void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
 {
     if (pkg_identifiers)
     {
@@ -604,7 +602,7 @@ int ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
                m->toPrettyChars(true));
     }
 
-    return AttribDeclaration::addMember(sc, sds, memnum);
+    return AttribDeclaration::addMember(sc, sds);
 }
 
 const char *ProtDeclaration::kind()
@@ -1199,7 +1197,7 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
             for (size_t i = 0; i < d->dim; i++)
             {
                 Dsymbol *s = (*d)[i];
-                s->addMember(scope, scopesym, 1);
+                s->addMember(scope, scopesym);
             }
 
             // Set the member scopes lazily.
@@ -1219,7 +1217,7 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
     }
 }
 
-int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
+void StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
 {
     //printf("StaticIfDeclaration::addMember() '%s'\n", toChars());
     /* This is deferred until the condition evaluated later (by the include() call),
@@ -1234,8 +1232,6 @@ int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
      * }
      */
     this->scopesym = sds;
-
-    return 0;
 }
 
 void StaticIfDeclaration::importAll(Scope *sc)
@@ -1281,25 +1277,10 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
     return new CompileDeclaration(loc, exp->syntaxCopy());
 }
 
-int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
+void CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
 {
     //printf("CompileDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
-#if 0
-    if (compiled)
-        return 1;
-#endif
     this->scopesym = sds;
-#if 0
-    if (memnum == 0)
-    {
-        /* No members yet, so parse the mixin now
-         */
-        compileIt(sc);
-        memnum |= AttribDeclaration::addMember(sc, sds, memnum);
-        compiled = 1;
-    }
-#endif
-    return memnum;
 }
 
 void CompileDeclaration::setScope(Scope *sc)
@@ -1347,7 +1328,7 @@ void CompileDeclaration::semantic(Scope *sc)
     if (!compiled)
     {
         compileIt(sc);
-        AttribDeclaration::addMember(sc, scopesym, 0);
+        AttribDeclaration::addMember(sc, scopesym);
         compiled = 1;
 
         if (scope && decl)

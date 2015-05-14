@@ -753,7 +753,7 @@ void StructDeclaration::semantic(Scope *sc)
         {
             Dsymbol *s = (*members)[i];
             //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
-            s->addMember(sc, this, 1);
+            s->addMember(sc, this);
         }
     }
 
@@ -1332,5 +1332,3 @@ const char *UnionDeclaration::kind()
 {
     return "union";
 }
-
-

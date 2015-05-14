@@ -57,7 +57,7 @@ void EnumDeclaration::setScope(Scope *sc)
     ScopeDsymbol::setScope(sc);
 }
 
-int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
+void EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
 {
 #if 0
     printf("EnumDeclaration::addMember() %s\n", toChars());
@@ -74,7 +74,7 @@ int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 
     if (!isAnonymous())
     {
-        ScopeDsymbol::addMember(sc, sds, memnum);
+        ScopeDsymbol::addMember(sc, sds);
 
         if (!symtab)
             symtab = new DsymbolTable();
@@ -87,11 +87,10 @@ int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
             EnumMember *em = (*members)[i]->isEnumMember();
             em->ed = this;
             //printf("add %s to scope %s\n", em->toChars(), scopesym->toChars());
-            em->addMember(sc, scopesym, 1);
+            em->addMember(sc, scopesym);
         }
     }
     added = true;
-    return 1;
 }
 
 
@@ -258,7 +257,7 @@ void EnumDeclaration::semantic(Scope *sc)
             if (em)
             {
                 em->ed = this;
-                em->addMember(sc, scopesym, 1);
+                em->addMember(sc, scopesym);
             }
         }
     }

@@ -6089,14 +6089,13 @@ Lerror:
     // Add members of template instance to template instance symbol table
 //    parent = scope->scopesym;
     symtab = new DsymbolTable();
-    int memnum = 0;
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
 #if LOG
-        printf("\t[%d] adding member '%s' %p kind %s to '%s', memnum = %d\n", i, s->toChars(), s, s->kind(), this->toChars(), memnum);
+        printf("\t[%d] adding member '%s' %p kind %s to '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
 #endif
-        memnum |= s->addMember(scope, this, memnum);
+        s->addMember(scope, this);
     }
 #if LOG
     printf("adding members done\n");
@@ -8201,7 +8200,7 @@ void TemplateMixin::semantic(Scope *sc)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        s->addMember(argscope, this, i != 0);
+        s->addMember(argscope, this);
         //printf("sc->parent = %p, sc->scopesym = %p\n", sc->parent, sc->scopesym);
         //printf("s->parent = %s\n", s->parent->toChars());
     }

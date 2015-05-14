@@ -6454,7 +6454,7 @@ Expression *IsExp::semantic(Scope *sc)
                     goto Lno;
                 s->semantic(sc);
                 if (sc->sds)
-                    s->addMember(sc, sc->sds, 1);
+                    s->addMember(sc, sc->sds);
                 else if (!sc->insert(s))
                     error("declaration %s is already defined", s->toChars());
 
@@ -6488,7 +6488,7 @@ Lyes:
         if (!tup && !sc->insert(s))
             error("declaration %s is already defined", s->toChars());
         if (sc->sds)
-            s->addMember(sc, sc->sds, 1);
+            s->addMember(sc, sc->sds);
 
         unSpeculative(sc, s);
     }

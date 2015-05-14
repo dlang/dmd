@@ -38,9 +38,9 @@ Dsymbol *StaticAssert::syntaxCopy(Dsymbol *s)
     return new StaticAssert(loc, exp->syntaxCopy(), msg ? msg->syntaxCopy() : NULL);
 }
 
-int StaticAssert::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
+void StaticAssert::addMember(Scope *sc, ScopeDsymbol *sds)
 {
-    return 0;           // we didn't add anything
+    // we didn't add anything
 }
 
 void StaticAssert::semantic(Scope *sc)

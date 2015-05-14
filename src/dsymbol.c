@@ -680,7 +680,7 @@ int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)
     return (*fp)(this, param);
 }
 
-int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
+void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds)
 {
     //printf("Dsymbol::addMember('%s')\n", toChars());
     //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds->toChars());
@@ -701,9 +701,7 @@ int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
             if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
                 error(".%s property cannot be redefined", ident->toChars());
         }
-        return 1;
     }
-    return 0;
 }
 
 void Dsymbol::error(const char *format, ...)

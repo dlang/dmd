@@ -39,7 +39,7 @@ public:
         StorageClass newstc, LINK linkage, Prot protection, int explictProtection,
         structalign_t structalign);
     virtual Scope *newScope(Scope *sc);
-    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
     void importAll(Scope *sc);
     void semantic(Scope *sc);
@@ -107,7 +107,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind();
     const char *toPrettyChars(bool unused);
     void accept(Visitor *v) { v->visit(this); }
@@ -176,7 +176,7 @@ public:
     StaticIfDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
-    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);
     void importAll(Scope *sc);
     void setScope(Scope *sc);
@@ -196,7 +196,7 @@ public:
 
     CompileDeclaration(Loc loc, Expression *exp);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
     void compileIt(Scope *sc);
     void semantic(Scope *sc);
