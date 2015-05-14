@@ -5225,6 +5225,7 @@ version (FreeBSD) unittest
 
 unittest
 {
-    auto thr = new Thread(function{}, 10).start();
+    // use >PAGESIZE to avoid stack overflow (e.g. in an syscall)
+    auto thr = new Thread(function{}, 4096 + 1).start();
     thr.join();
 }
