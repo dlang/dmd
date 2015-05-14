@@ -441,4 +441,3 @@ version( USE_PTHREADS )
         debug(PRINTF) printf("-_d_monitor_release(%p)\n", h);
     }
 }
-
