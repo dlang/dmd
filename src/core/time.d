@@ -3383,7 +3383,7 @@ struct TickDuration
         if(op == "*" &&
            (__traits(isIntegral, T) || __traits(isFloating, T)))
     {
-        length *= value;
+        length = cast(long)(length * value);
     }
 
     unittest
@@ -3434,7 +3434,7 @@ struct TickDuration
         if(value == 0)
             throw new TimeException("Attempted division by 0.");
 
-        length /= value;
+        length = cast(long)(length / value);
     }
 
     unittest
