@@ -28,7 +28,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
 
     char *toChars();
-    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
@@ -44,7 +44,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
 
     char *toChars();
-    int addMember(Scope *sc, ScopeDsymbol *sds, int memnum);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }

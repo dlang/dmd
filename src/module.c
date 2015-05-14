@@ -651,7 +651,7 @@ void Module::importAll(Scope *prevsc)
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
-            s->addMember(sc, sc->scopesym, 1);
+            s->addMember(sc, sc->scopesym);
         }
     }
     // anything else should be run after addMember, so version/debug symbols are defined
@@ -1258,5 +1258,3 @@ const char *lookForSourceFile(const char *filename)
     }
     return NULL;
 }
-
-
