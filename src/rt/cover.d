@@ -264,7 +264,7 @@ string appendFN( string path, string name )
 
     version( Windows )
         const char sep = '\\';
-    else
+    else version( Posix )
         const char sep = '/';
 
     auto dest = path;

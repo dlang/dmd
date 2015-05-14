@@ -843,7 +843,7 @@ bool hasCPUID()
 {
     version(D_InlineAsm_X86_64)
         return true;
-    else
+    else version(D_InlineAsm_X86)
     {
         uint flags;
         asm nothrow @nogc {

@@ -181,7 +181,7 @@ version( linux )
     off_t ftello(FILE*);
   }
 }
-else
+else version( Posix )
 {
     int   fseeko(FILE*, off_t, int);
     off_t ftello(FILE*);

@@ -47,7 +47,7 @@ public:
         {
             version(Win64)
                 static enum INTERNALFRAMES = 3;
-            else
+            else version(Win32)
                 static enum INTERNALFRAMES = 2;
 
             skip += INTERNALFRAMES; //skip the stack frames within the StackTrace class
@@ -57,7 +57,7 @@ public:
             //When a exception context is given the first stack frame is repeated for some reason
             version(Win64)
                 static enum INTERNALFRAMES = 1;
-            else
+            else version(Win32)
                 static enum INTERNALFRAMES = 1;
 
             skip += INTERNALFRAMES;
@@ -153,7 +153,7 @@ private:
                 {
                     return buffer[0..backtraceLength].dup;
                 }
-                else
+                else version(Win32)
                 {
                     auto result = new ulong[backtraceLength];
                     foreach(i, ref e; result)

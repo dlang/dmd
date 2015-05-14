@@ -26,7 +26,7 @@ version( Windows )
     ///
     alias wchar wchar_t;
 }
-else
+else version( Posix )
 {
     ///
     alias dchar wchar_t;
