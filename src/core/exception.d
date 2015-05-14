@@ -184,7 +184,7 @@ unittest
 /**
  * Thrown on hidden function error.
  * $(RED Deprecated.
- *   This feature is not longer part of the language.
+ *   This feature is not longer part of the language.)
  */
 deprecated class HiddenFuncError : Error
 {
@@ -499,7 +499,7 @@ extern (C) void onFinalizeError( TypeInfo info, Throwable e, string file = __FIL
  * A callback for hidden function errors in D.  A $(LREF HiddenFuncError) will be
  * thrown.
  * $(RED Deprecated.
- *   This feature is not longer part of the language.
+ *   This feature is not longer part of the language.)
  *
  * Throws:
  *  $(LREF HiddenFuncError).
