@@ -37,6 +37,7 @@
 #endif
 
 #include "file.h"
+#include "filename.h"
 
 /*********************************
  * #include <stdlib.h>
@@ -66,52 +67,21 @@
  *   !=0   failure (argc, argv unchanged)
  */
 
-struct Narg
+bool response_expand(Strings *args)
 {
-    size_t argc;      // arg count
-    size_t argvmax;   // dimension of nargv[]
-    const char **argv;
-};
-
-static bool addargp(Narg *n, const char *p)
-{
-    /* The 2 is to always allow room for a NULL argp at the end   */
-    if (n->argc + 2 > n->argvmax)
-    {
-        n->argvmax = n->argc + 2;
-        const char **ap = n->argv;
-        ap = (const char **) realloc(ap,n->argvmax * sizeof(char *));
-        if (!ap)
-        {
-            if (n->argv)
-                free(n->argv);
-            memset(n, 0, sizeof(*n));
-            return true;
-        }
-        n->argv = ap;
-    }
-    n->argv[n->argc++] = p;
-    return false;
-}
-
-bool response_expand(size_t *pargc, const char ***pargv)
-{
-    Narg n;
     const char *cp;
     int recurse = 0;
 
-    n.argc = 0;
-    n.argvmax = 0;      /* dimension of n.argv[]      */
-    n.argv = NULL;
-    for (size_t i = 0; i < *pargc; ++i)
+    for (size_t i = 0; i < args->dim; )
     {
-        cp = (*pargv)[i];
+        cp = (*args)[i];
         if (*cp != '@')
         {
-            if (addargp(&n,(*pargv)[i]))
-                goto noexpand;
+            ++i;
             continue;
         }
+
+        args->remove(i);
 
         char *buffer;
         char *bufend;
@@ -177,8 +147,8 @@ bool response_expand(size_t *pargc, const char ***pargv)
                     {
                         continue;
                     }
-                    if (addargp(&n,p))
-                        goto noexpand;
+                    args->insert(i, p);
+                    ++i;
                     instring = 0;
                     c = 0;
                     num_slashes = 0;
@@ -258,27 +228,15 @@ bool response_expand(size_t *pargc, const char ***pargv)
     L2:
         ;
     }
-    if (n.argvmax == 0)
-    {
-        n.argvmax = 1;
-        n.argv = (const char **) calloc(n.argvmax, sizeof(char *));
-        if (!n.argv)
-            return true;
-    }
-    else
-        n.argv[n.argc] = NULL;
     if (recurse)
     {
         /* Recursively expand @filename   */
-        if (response_expand(&n.argc,&n.argv))
+        if (response_expand(args))
             goto noexpand;
     }
-    *pargc = n.argc;
-    *pargv = n.argv;
     return false;            /* success         */
 
 noexpand:            /* error         */
-    free(n.argv);
     /* BUG: any file buffers are not free'd   */
     return true;
 }
