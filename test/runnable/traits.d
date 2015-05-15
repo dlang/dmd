@@ -1254,7 +1254,7 @@ struct S10096X
 }
 static assert(
     [__traits(allMembers, S10096X)] ==
-    ["str", "__ctor", "__postblit", "__dtor", "__xdtor", "opAssign"]);
+    ["str", "__ctor", "__postblit", "__dtor", "__xdtor", "__xpostblit", "opAssign"]);
 
 // --------
 

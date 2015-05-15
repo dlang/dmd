@@ -977,7 +977,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                         sm->ident != Id::ctor &&
                         sm->ident != Id::dtor &&
                         sm->ident != Id::__xdtor &&
-                        sm->ident != Id::_postblit)
+                        sm->ident != Id::postblit &&
+                        sm->ident != Id::__xpostblit)
                     {
                         return 0;
                     }
