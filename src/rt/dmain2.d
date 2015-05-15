@@ -50,6 +50,7 @@ extern (C) void rt_moduleDtor();
 extern (C) void rt_moduleTlsDtor();
 extern (C) void thread_joinAll();
 extern (C) bool runModuleUnitTests();
+extern (C) void _d_initMonoTime();
 
 version (OSX)
 {
@@ -165,6 +166,9 @@ extern (C) int rt_init()
     try
     {
         initSections();
+        // this initializes mono time before anything else to allow usage
+        // in other druntime systems.
+        _d_initMonoTime();
         gc_init();
         initStaticDataGC();
         lifetime_init();
