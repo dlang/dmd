@@ -470,6 +470,8 @@ int main(int iargc, const char *argv[])
     global.params.enabledV2hints = V2MODEnone;
     global.params.quiet = 1;
 
+    global.params.runargs = new Strings();
+
     global.params.linkswitches = new Strings();
     global.params.libfiles = new Strings();
     global.params.objfiles = new Strings();
@@ -933,9 +935,10 @@ int main(int iargc, const char *argv[])
                 exit(EXIT_SUCCESS);
             }
             else if (strcmp(p + 1, "run") == 0)
-            {   global.params.run = 1;
-                global.params.runargs_length = ((i >= argcstart) ? argc : argcstart) - i - 1;
-                if (global.params.runargs_length)
+            {
+                global.params.run = 1;
+                size_t length = ((i >= argcstart) ? argc : argcstart) - i - 1;
+                if (length)
                 {
                     const char *ext = FileName::ext(argv[i + 1]);
                     if (ext && FileName::equals(ext, "d") == 0
@@ -946,9 +949,12 @@ int main(int iargc, const char *argv[])
                     }
 
                     files.push((char *)argv[i + 1]);
-                    global.params.runargs = &argv[i + 2];
-                    i += global.params.runargs_length;
-                    global.params.runargs_length--;
+                    global.params.runargs->setDim(length - 1);
+                    for (size_t j = 0; j < length - 1; ++j)
+                    {
+                        (*global.params.runargs)[j] = (char *)argv[i + 2 + j];
+                    }
+                    i += length;
                 }
                 else
                 {   global.params.run = 0;
@@ -1791,6 +1797,7 @@ V2MODE V2MODE_from_name(const char* name)
 
     error(0, "-v2 mode '%s' unknown, aborting", name);
     exit(2);
+    return (V2MODE)0;
 }
 
 const char* V2MODE_name(V2MODE mode)

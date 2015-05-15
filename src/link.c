@@ -811,9 +811,9 @@ int runProgram()
     //printf("runProgram()\n");
     if (global.params.verbose)
     {
-        printf("%s", global.params.exefile);
-        for (size_t i = 0; i < global.params.runargs_length; i++)
-            printf(" %s", (char *)global.params.runargs[i]);
+        //printf("%s", global.params.exefile);
+        for (size_t i = 0; i < global.params.runargs->dim; ++i)
+            printf(" %s", (*global.params.runargs)[i]);
         printf("\n");
     }
 
@@ -821,8 +821,8 @@ int runProgram()
     Strings argv;
 
     argv.push(global.params.exefile);
-    for (size_t i = 0; i < global.params.runargs_length; i++)
-    {   const char *a = global.params.runargs[i];
+    for (size_t i = 0; i < global.params.runargs->dim; ++i)
+    {   const char *a = (*global.params.runargs)[i];
 
 #if _WIN32
         // BUG: what about " appearing in the string?

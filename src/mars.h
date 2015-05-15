@@ -247,8 +247,7 @@ struct Param
     char debugy;
 
     char run;           // run resulting executable
-    size_t runargs_length;
-    const char** runargs; // arguments for executable
+    Strings *runargs;   // arguments for executable
 
     // Linker stuff
     Strings *objfiles;
