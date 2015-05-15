@@ -974,8 +974,8 @@ Language changes listed by -transition=id:\n\
             else if (strcmp(p + 1, "run") == 0)
             {
                 global.params.run = true;
-                global.params.runargs_length = ((i >= argcstart) ? argc : argcstart) - i - 1;
-                if (global.params.runargs_length)
+                size_t length = ((i >= argcstart) ? argc : argcstart) - i - 1;
+                if (length)
                 {
                     const char *ext = FileName::ext(argv[i + 1]);
                     if (ext && FileName::equals(ext, "d") == 0
@@ -986,9 +986,12 @@ Language changes listed by -transition=id:\n\
                     }
 
                     files.push(argv[i + 1]);
-                    global.params.runargs = &argv[i + 2];
-                    i += global.params.runargs_length;
-                    global.params.runargs_length--;
+                    global.params.runargs.setDim(length - 1);
+                    for (size_t j = 0; j < length - 1; ++j)
+                    {
+                        global.params.runargs[j] = argv[i + 2 + j];
+                    }
+                    i += length;
                 }
                 else
                 {
