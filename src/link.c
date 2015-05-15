@@ -843,8 +843,8 @@ int runProgram()
     if (global.params.verbose)
     {
         fprintf(global.stdmsg, "%s", global.params.exefile);
-        for (size_t i = 0; i < global.params.runargs_length; i++)
-            fprintf(global.stdmsg, " %s", (char *)global.params.runargs[i]);
+        for (size_t i = 0; i < global.params.runargs.dim; ++i)
+            fprintf(global.stdmsg, " %s", global.params.runargs[i]);
         fprintf(global.stdmsg, "\n");
     }
 
@@ -852,7 +852,7 @@ int runProgram()
     Strings argv;
 
     argv.push(global.params.exefile);
-    for (size_t i = 0; i < global.params.runargs_length; i++)
+    for (size_t i = 0; i < global.params.runargs.dim; ++i)
     {   const char *a = global.params.runargs[i];
 
 #if _WIN32

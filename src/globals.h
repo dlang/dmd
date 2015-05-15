@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2015 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -18,6 +18,7 @@
 
 #include "longdouble.h"
 #include "outbuffer.h"
+#include "filename.h"
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
@@ -132,8 +133,7 @@ struct Param
     bool debugy;
 
     bool run;           // run resulting executable
-    size_t runargs_length;
-    const char** runargs; // arguments for executable
+    Strings runargs;    // arguments for executable
 
     // Linker stuff
     Array<const char *> *objfiles;
