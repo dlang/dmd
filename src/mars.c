@@ -52,7 +52,7 @@ static const char* parse_arch_arg(size_t argc, const char** argv, const char* ar
 static const char* parse_conf_arg(size_t argc, const char** argv);
 
 const char *findConfFile(const char *argv0, const char *inifile);
-void parseConfFile(const char *filename, const char* envsectionname);
+void parseConfFile(const char *filename, Strings *sections);
 
 
 FILE *stdmsg;
@@ -564,7 +564,14 @@ int main(int iargc, const char *argv[])
 #endif
         }
     }
-    parseConfFile(global.inifilename, "Environment");
+
+    Strings sections;
+
+    /* Read the [Environment] section, so we can later
+     * pick up any DFLAGS settings.
+     */
+    sections.push("Environment");
+    parseConfFile(global.inifilename, &sections);
 
     size_t dflags_argc = 0;
     const char** dflags_argv = NULL;
@@ -575,9 +582,11 @@ int main(int iargc, const char *argv[])
     arch = parse_arch_arg(dflags_argc, dflags_argv, arch);
     bool is64bit = arch[0] == '6';
 
+    sections.setDim(0);
     char envsection[80];
     sprintf(envsection, "Environment%s", arch);
-    parseConfFile(global.inifilename, envsection);
+    sections.push(envsection);
+    parseConfFile(global.inifilename, &sections);
 
     getenv_setargv("DFLAGS", &argc, &argv);
 
