@@ -95,7 +95,7 @@ int clock_nanosleep(clockid_t, int, in timespec*, timespec*);
 CLOCK_MONOTONIC
 */
 
-version( CRuntime_Glibc )
+version( linux )
 {
     enum CLOCK_MONOTONIC          = 1;
     // To be removed in December 2015.
@@ -122,12 +122,6 @@ else version (OSX)
 else version (Solaris)
 {
     enum CLOCK_MONOTONIC = 4;
-}
-else version (CRuntime_Bionic)
-{
-    enum CLOCK_MONOTONIC        = 1;
-    enum CLOCK_MONOTONIC_RAW    = 4;
-    enum CLOCK_MONOTONIC_COARSE = 6;
 }
 else
 {
