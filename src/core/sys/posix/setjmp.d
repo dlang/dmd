@@ -30,7 +30,7 @@ int  setjmp(ref jmp_buf);
 void longjmp(ref jmp_buf, int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     version( X86_64 )
     {
@@ -161,7 +161,7 @@ else version( FreeBSD )
     int  setjmp(ref jmp_buf);
     void longjmp(ref jmp_buf, int);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     // <machine/setjmp.h>
     version( X86 )
@@ -193,7 +193,7 @@ int  sigsetjmp(sigjmp_buf, int);
 void siglongjmp(sigjmp_buf, int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     alias jmp_buf sigjmp_buf;
 
@@ -229,7 +229,7 @@ else version( FreeBSD )
     int  sigsetjmp(ref sigjmp_buf);
     void siglongjmp(ref sigjmp_buf, int);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     alias c_long[_JBLEN + 1] sigjmp_buf;
 
@@ -245,7 +245,7 @@ int  _setjmp(jmp_buf);
 void _longjmp(jmp_buf, int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);
@@ -255,7 +255,7 @@ else version( FreeBSD )
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);

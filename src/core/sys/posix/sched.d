@@ -48,7 +48,7 @@ int sched_setparam(pid_t, in sched_param*);
 int sched_setscheduler(pid_t, int, in sched_param*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct sched_param
     {
@@ -103,7 +103,7 @@ else version (Solaris)
     enum SCHED_FX = 6;
     enum _SCHED_NEXT = 7;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     struct sched_param
     {
@@ -166,7 +166,7 @@ int sched_get_priority_min(int);
 int sched_rr_get_interval(pid_t, timespec*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int sched_get_priority_max(int);
     int sched_get_priority_min(int);
@@ -190,7 +190,7 @@ else version (Solaris)
     int sched_get_priority_min(int);
     int sched_rr_get_interval(pid_t, timespec*);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     int sched_get_priority_max(int);
     int sched_get_priority_min(int);

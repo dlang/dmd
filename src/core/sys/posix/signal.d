@@ -389,31 +389,6 @@ else version (Solaris)
     enum SIGUSR2 = 17;
     enum SIGURG = 21;
 }
-else version (Android)
-{
-    version (X86)
-    {
-        enum SIGALRM = 14;
-        enum SIGBUS  = 7;
-        enum SIGCHLD = 17;
-        enum SIGCONT = 18;
-        enum SIGHUP  = 1;
-        enum SIGKILL = 9;
-        enum SIGPIPE = 13;
-        enum SIGQUIT = 3;
-        enum SIGSTOP = 19;
-        enum SIGTSTP = 20;
-        enum SIGTTIN = 21;
-        enum SIGTTOU = 22;
-        enum SIGUSR1 = 10;
-        enum SIGUSR2 = 12;
-        enum SIGURG  = 23;
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
-    }
-}
 else
 {
     static assert(false, "Unsupported platform");
@@ -597,7 +572,7 @@ int sigwait(in sigset_t*, int*);
 nothrow @nogc
 {
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum SIG_HOLD = cast(sigfn_t2) 1;
 
@@ -965,7 +940,7 @@ else version (Solaris)
     int sigsuspend(in sigset_t*);
     int sigwait(in sigset_t*, int*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     public import core.sys.posix.time: timer_t;
     private import core.stdc.string : memset;
@@ -1192,7 +1167,7 @@ int sigpause(int);
 int sigrelse(int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     version (X86)
     {
@@ -1741,7 +1716,7 @@ else version (Solaris)
     int sigpause(int);
     int sigrelse(int);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     version (X86)
     {
@@ -1930,14 +1905,6 @@ else version (Solaris)
 
     alias timespec timestruc_t;
 }
-else version( Android )
-{
-    struct timespec
-    {
-        time_t  tv_sec;
-        c_long  tv_nsec;
-    }
-}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1964,7 +1931,7 @@ int sigwaitinfo(in sigset_t*, siginfo_t*);
 nothrow:
 @nogc:
 
-version( linux )
+version( CRuntime_Glibc )
 {
     private enum __SIGEV_MAX_SIZE = 64;
 
@@ -2042,7 +2009,7 @@ else version (Solaris)
     int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
     int sigwaitinfo(in sigset_t*, siginfo_t*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     private enum __ARCH_SIGEV_PREAMBLE_SIZE = (int.sizeof * 2) + sigval.sizeof;
     private enum SIGEV_MAX_SIZE = 64;

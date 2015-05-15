@@ -132,7 +132,7 @@ int     tcsendbreak(int, int);
 int     tcsetattr(int, int, in termios*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     alias ubyte cc_t;
     alias uint  speed_t;
@@ -497,7 +497,7 @@ FFDLY
 pid_t   tcgetsid(int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum IXANY      = 0x0000800; // 0004000
 

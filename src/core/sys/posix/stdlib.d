@@ -83,7 +83,7 @@ int     wctomb(char*, wchar_t);
 int posix_memalign(void**, size_t, size_t);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int posix_memalign(void**, size_t, size_t);
 }
@@ -147,7 +147,7 @@ else version( Solaris )
 int rand_r(uint*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int rand_r(uint*);
 }
@@ -208,7 +208,7 @@ void   srandom(uint);
 int    unlockpt(int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     //WNOHANG     (defined in core.sys.posix.sys.wait)
     //WUNTRACED   (defined in core.sys.posix.sys.wait)
@@ -338,7 +338,7 @@ else version( FreeBSD )
     void   srandom(uint);
     int    unlockpt(int);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     double  drand48();
     double  erand48(ref ushort[3]);

@@ -6,7 +6,7 @@
   * Authors: Danny Milosavljevic
   */
 module core.sys.linux.stdio;
-version (linux):
+version (CRuntime_Glibc):
 public import core.sys.posix.stdio;
 import core.sys.posix.sys.types : ssize_t, off64_t = off_t;
 import core.sys.linux.config : __USE_FILE_OFFSET64;

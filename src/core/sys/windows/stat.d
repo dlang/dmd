@@ -7,7 +7,7 @@ version (Windows):
 
 extern (C) nothrow @nogc:
 
-// linux version is in std.c.linux.linux
+// Posix version is in core.sys.posix.sys.stat
 
 const S_IFMT   = 0xF000;
 const S_IFDIR  = 0x4000;

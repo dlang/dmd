@@ -96,7 +96,7 @@ int    vsprintf(char*, in char*, va_list);
 int    vsscanf(in char*, in char*, va_list arg);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     /*
      * actually, if __USE_FILE_OFFSET64 && !_LARGEFILE64_SOURCE
@@ -132,7 +132,7 @@ version( linux )
         FILE* tmpfile();
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     int   fgetpos(FILE*, fpos_t *);
     FILE* fopen(in char*, in char*);
@@ -157,7 +157,7 @@ int    pclose(FILE*);
 FILE*  popen(in char*, in char*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum L_ctermid = 9;
 
@@ -227,7 +227,7 @@ int    putc_unlocked(int, FILE*);
 int    putchar_unlocked(int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     void   flockfile(FILE*);
     int    ftrylockfile(FILE*);
@@ -260,7 +260,7 @@ char*  tempnam(in char*, in char*);
 
 char*  tempnam(in char*, in char*);
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum P_tmpdir  = "/tmp";
 }

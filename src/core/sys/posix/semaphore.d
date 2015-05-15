@@ -40,7 +40,7 @@ int sem_unlink(in char*);
 int sem_wait(sem_t*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     private alias int __atomic_lock_t;
 
@@ -94,7 +94,7 @@ else version (Solaris)
 
     enum SEM_FAILED = cast(sem_t*)-1;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     struct sem_t
     {

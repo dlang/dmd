@@ -337,7 +337,7 @@ private:
 extern (C) bool runModuleUnitTests()
 {
     // backtrace
-    version( linux )
+    version( CRuntime_Glibc )
         import core.sys.linux.execinfo;
     else version( OSX )
         import core.sys.osx.execinfo;
@@ -419,7 +419,7 @@ extern (C) bool runModuleUnitTests()
 Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 {
     // backtrace
-    version( linux )
+    version( CRuntime_Glibc )
         import core.sys.linux.execinfo;
     else version( OSX )
         import core.sys.osx.execinfo;
@@ -557,7 +557,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                         }
                     }
                 }
-                else version( linux )
+                else version( CRuntime_Glibc )
                 {
                     // format is:  module(_D6module4funcAFZv) [0x00000000]
                     // or:         module(_D6module4funcAFZv+0x78) [0x00000000]

@@ -73,9 +73,10 @@ int setrlimit(int, const rlimit*);
 */
 
 
-version (linux)
+version (CRuntime_Glibc)
 {
-
+    // rusage and some other constants in the Bionic section below really
+    // come from the linux kernel headers, but they're all mixed right now.
     enum
     {
         PRIO_PROCESS = 0,
@@ -288,7 +289,7 @@ else version (Solaris)
         RLIMIT_AS     = 6,
     }
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     enum
     {

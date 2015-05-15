@@ -19,7 +19,7 @@ version (Posix):
 
 extern (C) nothrow @nogc:
 
-version(linux)
+version(CRuntime_Glibc)
 {
     //PRIORITY
     enum {

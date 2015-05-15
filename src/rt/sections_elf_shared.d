@@ -10,7 +10,7 @@
 
 module rt.sections_elf_shared;
 
-version (linux) enum SharedELF = true;
+version (CRuntime_Glibc) enum SharedELF = true;
 else version (FreeBSD) enum SharedELF = true;
 else enum SharedELF = false;
 static if (SharedELF):
