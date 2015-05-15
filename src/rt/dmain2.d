@@ -39,8 +39,8 @@ version (FreeBSD)
 
 extern (C) void _d_monitor_staticctor();
 extern (C) void _d_monitor_staticdtor();
-extern (C) void _STI_critical_init();
-extern (C) void _STD_critical_term();
+extern (C) void _d_critical_init();
+extern (C) void _d_critical_term();
 extern (C) void gc_init();
 extern (C) void gc_term();
 extern (C) void lifetime_init();
@@ -160,7 +160,7 @@ extern (C) int rt_init()
     if (atomicOp!"+="(_initCount, 1) > 1) return 1;
 
     _d_monitor_staticctor();
-    _STI_critical_init();
+    _d_critical_init();
 
     try
     {
@@ -177,7 +177,7 @@ extern (C) int rt_init()
         _initCount = 0;
         _d_print_throwable(t);
     }
-    _STD_critical_term();
+    _d_critical_term();
     _d_monitor_staticdtor();
     return 0;
 }
@@ -205,7 +205,7 @@ extern (C) int rt_term()
     }
     finally
     {
-        _STD_critical_term();
+        _d_critical_term();
         _d_monitor_staticdtor();
     }
     return 0;

@@ -143,7 +143,7 @@ extern (C) void _d_monitor_staticdtor()
         pthread_mutexattr_destroy(&gattr);
 }
 
-private:
+package:
 
 // This is what the monitor reference in Object points to
 alias IMonitor = Object.Monitor;
@@ -208,6 +208,8 @@ struct Monitor
     size_t refs; // reference count
     Mutex mtx;
 }
+
+private:
 
 @property ref shared(Monitor*) monitor(Object h) pure nothrow
 {
