@@ -897,6 +897,32 @@ else version( Android )
             ulong       st_ino;
         }
     }
+    else version (ARM)
+    {
+        struct stat_t
+        {
+            ulong       st_dev;
+            ubyte[4]    __pad0;
+            c_ulong     __st_ino;
+            uint        st_mode;
+            uint        st_nlink;
+            c_ulong     st_uid;
+            c_ulong     st_gid;
+            ulong       st_rdev;
+            ubyte[4]    __pad3;
+
+            long        st_size;
+            c_ulong     st_blksize;
+            ulong       st_blocks;
+            c_ulong     st_atime;
+            c_ulong     st_atime_nsec;
+            c_ulong     st_mtime;
+            c_ulong     st_mtime_nsec;
+            c_ulong     st_ctime;
+            c_ulong     st_ctime_nsec;
+            ulong       st_ino;
+        }
+    }
     else
     {
         static assert(false, "Architecture not supported.");

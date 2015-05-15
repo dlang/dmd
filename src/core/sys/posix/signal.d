@@ -489,6 +489,21 @@ else version (linux)
             void function() sa_restorer;
         }
     }
+    else version (ARM)
+    {
+        struct sigaction_t
+        {
+            union
+            {
+                sigfn_t    sa_handler;
+                sigactfn_t sa_sigaction;
+            }
+
+            sigset_t        sa_mask;
+            c_ulong         sa_flags;
+            void function() sa_restorer;
+        }
+    }
     else
     {
         static assert(false, "Architecture not supported.");
@@ -956,6 +971,11 @@ else version( Android )
     private import core.stdc.string : memset;
 
     version (X86)
+    {
+        alias c_ulong sigset_t;
+        enum int LONG_BIT = 32;
+    }
+    else version (ARM)
     {
         alias c_ulong sigset_t;
         enum int LONG_BIT = 32;
@@ -1724,6 +1744,34 @@ else version (Solaris)
 else version (Android)
 {
     version (X86)
+    {
+        enum SIGPOLL   = 29;
+        enum SIGPROF   = 27;
+        enum SIGSYS    = 31;
+        enum SIGTRAP   = 5;
+        enum SIGVTALRM = 26;
+        enum SIGXCPU   = 24;
+        enum SIGXFSZ   = 25;
+
+        enum SA_ONSTACK     = 0x08000000;
+        enum SA_RESETHAND   = 0x80000000;
+        enum SA_RESTART     = 0x10000000;
+        enum SA_SIGINFO     = 4;
+        enum SA_NOCLDWAIT   = 2;
+        enum SA_NODEFER     = 0x40000000;
+        enum SS_ONSTACK     = 1;
+        enum SS_DISABLE     = 2;
+        enum MINSIGSTKSZ    = 2048;
+        enum SIGSTKSZ       = 8192;
+
+        struct stack_t
+        {
+            void*   ss_sp;
+            int     ss_flags;
+            size_t  ss_size;
+        }
+    }
+    else version (ARM)
     {
         enum SIGPOLL   = 29;
         enum SIGPROF   = 27;

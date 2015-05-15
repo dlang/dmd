@@ -83,17 +83,10 @@ else version (Solaris)
 }
 else version( Android )
 {
-    version (X86)
+    struct iovec
     {
-        struct iovec
-        {
-            void* iov_base;
-            uint  iov_len;
-        }
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
+        void* iov_base;
+        uint  iov_len;
     }
 
     int readv(int, in iovec*, int);
