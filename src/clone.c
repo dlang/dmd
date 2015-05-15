@@ -969,20 +969,22 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
     if (e || (stc & STCdisable))
     {
         //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Identifier::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Id::__fieldDtor);
         dd->fbody = new ExpStatement(loc, e);
         ad->dtors.shift(dd);
         ad->members->push(dd);
         dd->semantic(sc);
     }
 
+    FuncDeclaration *xdtor = NULL;
     switch (ad->dtors.dim)
     {
         case 0:
-            return NULL;
+            break;
 
         case 1:
-            return ad->dtors[0];
+            xdtor = ad->dtors[0];
+            break;
 
         default:
             e = NULL;
@@ -1001,12 +1003,22 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Identifier::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Id::__aggrDtor);
             dd->fbody = new ExpStatement(loc, e);
             ad->members->push(dd);
             dd->semantic(sc);
-            return dd;
+            xdtor = dd;
+            break;
     }
+    // Add an __xdtor alias to make the inclusive dtor accessible
+    if (xdtor)
+    {
+        AliasDeclaration *alias = new AliasDeclaration(Loc(), Id::__xdtor, xdtor);
+        alias->semantic(sc);
+        ad->members->push(alias);
+        alias->addMember(sc, ad); // add to symbol table
+    }
+    return xdtor;
 }
 
 /******************************************

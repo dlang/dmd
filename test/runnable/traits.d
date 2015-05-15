@@ -427,7 +427,7 @@ void test14()
 {
     auto a = [__traits(derivedMembers, D14)];
     writeln(a);
-    assert(a == ["__ctor","__dtor","foo"]);
+    assert(a == ["__ctor","__dtor","foo", "__xdtor"]);
 }
 
 /********************************************************/
@@ -1254,7 +1254,7 @@ struct S10096X
 }
 static assert(
     [__traits(allMembers, S10096X)] ==
-    ["str", "__ctor", "__postblit", "__dtor", "opAssign"]);
+    ["str", "__ctor", "__postblit", "__dtor", "__xdtor", "opAssign"]);
 
 // --------
 

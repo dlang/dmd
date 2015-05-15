@@ -973,10 +973,11 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
-                    if (sm->ident != Id::ctor &&
+                    if (sm->ident->string[0] == '_' && sm->ident->string[1] == '_' &&
+                        sm->ident != Id::ctor &&
                         sm->ident != Id::dtor &&
-                        sm->ident != Id::_postblit &&
-                        memcmp(sm->ident->string, "__", 2) == 0)
+                        sm->ident != Id::__xdtor &&
+                        sm->ident != Id::_postblit)
                     {
                         return 0;
                     }
