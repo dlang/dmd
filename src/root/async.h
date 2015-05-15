@@ -22,10 +22,25 @@
 
 struct AsyncRead
 {
+    // Creates a new instance of a AsyncRead. `nfiles` is maximum
+    // number of files that can be queued for reading.
     static AsyncRead *create(size_t nfiles);
+
+    // Queues a file for reading. Can only be called before `start()`.
+    // Only `nfiles` can be added to the queue (`nfiles` is the
+    // parameter to `create()`).
     void addFile(File *file);
+
+    // Starts a background thread which reads (asynchronously) all queued files.
     void start();
+
+    // Blocks the calling thread until the background thread
+    // finishes reading the i-th file.
     int read(size_t i);
+
+    // Frees the object returned by `AsyncRead::create()`. It is safe to call
+    // only after `read()` is called for all queued files, because it doesn't
+    // wait for the background thread to finish.
     static void dispose(AsyncRead *);
 };
 
