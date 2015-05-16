@@ -55,10 +55,7 @@ private:
         buckets = allocBuckets(sz);
         firstUsed = cast(uint) buckets.length;
         entryTI = fakeEntryTI(ti.key, ti.value);
-        immutable pad = talign(keysz, ti.value.talign) - keysz;
-        if (pad >= ushort.max)
-            assert(0, "value alignment too big");
-        keypad = cast(ushort) pad;
+        valoff = cast(uint) talign(keysz, ti.value.talign);
 
         import rt.lifetime : hasPostblit, unqualify;
 
@@ -75,7 +72,7 @@ private:
     uint firstUsed;
     immutable uint keysz;
     immutable uint valsz;
-    ushort keypad;
+    immutable uint valoff;
     Flags flags;
 
     enum Flags : ubyte
@@ -106,7 +103,7 @@ private:
     {
         for (size_t i = hash & mask, j = 1;; ++j)
         {
-            if (buckets[i].empty || buckets[i].deleted)
+            if (!buckets[i].filled)
                 return &buckets[i];
             i = (i + j) & mask;
         }
@@ -179,7 +176,7 @@ private pure nothrow @nogc:
 
     @property bool filled() const
     {
-        return !!(hash & HASH_FILLED_MARK);
+        return cast(ptrdiff_t) hash < 0;
     }
 }
 
@@ -197,8 +194,9 @@ Bucket[] allocBuckets(size_t dim) @trusted pure nothrow
 private void* allocEntry(in Impl* aa, in void* pkey)
 {
     import rt.lifetime : _d_newitemU;
+    import rt.util.mem;
 
-    immutable akeysz = aa.keysz + aa.keypad;
+    immutable akeysz = aa.valoff;
     void* res = void;
     if (aa.entryTI)
         res = _d_newitemU(aa.entryTI);
@@ -208,9 +206,8 @@ private void* allocEntry(in Impl* aa, in void* pkey)
         res = GC.malloc(akeysz + aa.valsz, flags);
     }
 
-    res[0 .. aa.keysz] = pkey[0 .. aa.keysz]; // copy key
-    import core.stdc.string : memset; // explicitly use memset (Issue 14458)
-    memset(res + akeysz, 0, aa.valsz); // zero value
+    fastshortcopy(res, pkey, aa.keysz); // copy key
+    fastshortclear(res + akeysz, aa.valsz); // zero value
 
     return res;
 }
@@ -310,9 +307,9 @@ private size_t calcHash(in void* pkey, in TypeInfo keyti)
 
 private size_t nextpow2(in size_t n) pure nothrow @nogc
 {
-    import core.bitop: bsr;
+    import core.bitop : bsr;
 
-    if(!n)
+    if (!n)
         return 1;
 
     const isPowerOf2 = !((n - 1) & n);
@@ -322,7 +319,7 @@ private size_t nextpow2(in size_t n) pure nothrow @nogc
 pure nothrow @nogc unittest
 {
     //                            0, 1, 2, 3, 4, 5, 6, 7, 8,  9
-    foreach(const n, const pow2; [1, 1, 2, 4, 4, 8, 8, 8, 8, 16])
+    foreach (const n, const pow2; [1, 1, 2, 4, 4, 8, 8, 8, 8, 16])
         assert(nextpow2(n) == pow2);
 }
 
@@ -359,7 +356,7 @@ extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti, in size_t v
 
     // found a value => return it
     if (auto p = aa.findSlotLookup(hash, pkey, ti.key))
-        return p.entry + aa.keysz + aa.keypad;
+        return p.entry + aa.valoff;
 
     auto p = aa.findSlotInsert(hash);
     if (p.deleted)
@@ -384,7 +381,7 @@ extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti, in size_t v
         __doPostblit(p.entry, aa.keysz, unqualify(ti.key));
     }
     // return pointer to value
-    return p.entry + aa.keysz + aa.keypad;
+    return p.entry + aa.valoff;
 }
 
 /// Get RValue for key, returns null if not present
@@ -402,7 +399,7 @@ extern (C) inout(void)* _aaInX(inout AA aa, in TypeInfo keyti, in void* pkey)
 
     immutable hash = calcHash(pkey, keyti);
     if (auto p = aa.findSlotLookup(hash, pkey, keyti))
-        return p.entry + aa.keysz + aa.keypad;
+        return p.entry + aa.valoff;
     return null;
 }
 
@@ -448,7 +445,7 @@ extern (C) inout(void[]) _aaValues(inout AA aa, in size_t keysz, in size_t valsz
     auto res = _d_newarrayU(tiValueArray, aa.length).ptr;
     auto pval = res;
 
-    immutable off = aa.keysz + aa.keypad;
+    immutable off = aa.valoff;
     foreach (b; aa.buckets[aa.firstUsed .. $])
     {
         if (!b.filled)
@@ -492,7 +489,7 @@ extern (C) int _aaApply(AA aa, in size_t keysz, dg_t dg)
     if (aa.empty)
         return 0;
 
-    immutable off = aa.keysz + aa.keypad;
+    immutable off = aa.valoff;
     foreach (b; aa.buckets)
     {
         if (!b.filled)
@@ -509,7 +506,7 @@ extern (C) int _aaApply2(AA aa, in size_t keysz, dg2_t dg)
     if (aa.empty)
         return 0;
 
-    immutable off = aa.keysz + aa.keypad;
+    immutable off = aa.valoff;
     foreach (b; aa.buckets)
     {
         if (!b.filled)
@@ -537,7 +534,7 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
 
     void* pkey = keys.ptr;
     void* pval = vals.ptr;
-    immutable off = aa.keysz + aa.keypad;
+    immutable off = aa.valoff;
     foreach (_; 0 .. length)
     {
         immutable hash = calcHash(pkey, ti.key);
@@ -584,7 +581,7 @@ extern (C) int _aaEqual(in TypeInfo tiRaw, in AA aa1, in AA aa2)
     auto uti = unqualify(tiRaw);
     auto ti = *cast(TypeInfo_AssociativeArray*)&uti;
     // compare the entries
-    immutable off = aa1.keysz + aa1.keypad;
+    immutable off = aa1.valoff;
     foreach (b1; aa1.buckets)
     {
         if (!b1.filled)
@@ -606,7 +603,7 @@ extern (C) hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
 
     auto uti = unqualify(tiRaw);
     auto ti = *cast(TypeInfo_AssociativeArray*)&uti;
-    immutable off = aa.keysz + aa.keypad;
+    immutable off = aa.valoff;
     auto valHash = &ti.value.getHash;
 
     size_t h;
@@ -658,7 +655,7 @@ extern (C) pure nothrow @nogc
 
     void* _aaRangeFrontValue(Range r)
     {
-        return r.buckets[r.idx].entry + r.keysz + r.keypad;
+        return r.buckets[r.idx].entry + r.valoff;
     }
 
     void _aaRangePopFront(ref Range r)
