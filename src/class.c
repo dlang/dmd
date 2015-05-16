@@ -320,6 +320,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
         if (sc->linkage == LINKcpp)
             cpp = true;
+        if (sc->linkage == LINKpascal)
+            deprecation(loc, "linkage extern (Pascal) is deprecated");
     }
     else if (symtab && !scx)
     {

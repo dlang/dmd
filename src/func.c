@@ -519,6 +519,9 @@ void FuncDeclaration::semantic(Scope *sc)
 
         sc->linkage = linkage;
 
+        if (linkage == LINKpascal)
+            deprecation(loc, "linkage extern (Pascal) is deprecated");
+
         if (!tf->isNaked() && !(isThis() || isNested()))
         {
             OutBuffer buf;

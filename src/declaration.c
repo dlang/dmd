@@ -1483,6 +1483,9 @@ Lnomatch:
         sc = sc->pop();
     }
 
+    if (linkage == LINKpascal && isDataseg())
+        deprecation(loc, "linkage extern (Pascal) is deprecated");
+
 Ldtor:
     /* Build code to execute destruction, if necessary
      */
