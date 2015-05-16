@@ -64,9 +64,9 @@ Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags);
 Symbol* toSymbol(StructLiteralExp *sle);
 Symbol* toSymbol(ClassReferenceExp *cre);
-Expression *getTypeInfo(Type *t, Scope *sc);
 elem *filelinefunction(IRState *irs, Expression *e);
 void toTraceGC(IRState *irs, elem *e, Loc *loc);
+void genTypeInfo(Type *t, Scope *sc);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -690,6 +690,17 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
     return e;
 }
 
+/************************************
+ */
+
+elem *getTypeInfo(Type *t, IRState *irs)
+{
+    assert(t->ty != Terror);
+    genTypeInfo(t, NULL);
+    elem *e = el_ptr(toSymbol(t->vtinfo));
+    return e;
+}
+
 /********************************************
  * Determine if t is an array of structs that need a postblit.
  */
@@ -788,8 +799,7 @@ Lagain:
                      */
                     r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
-                    Expression *ti = getTypeInfo(tb, NULL);
-                    elem *eti = toElem(ti, irs);
+                    elem *eti = getTypeInfo(tb, irs);
                     e = el_params(eti, edim, evalue, eptr, NULL);
                     e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
                     return e;
@@ -1490,7 +1500,7 @@ elem *toElem(Expression *e, IRState *irs)
                     d_uns64 elemsize = sd->size(ne->loc);
 
                     // call _d_newitemT(ti)
-                    e = toElem(getTypeInfo(ne->newtype, NULL), irs);
+                    e = getTypeInfo(ne->newtype, irs);
 
                     int rtl = t->isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                     ex = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
@@ -1562,7 +1572,7 @@ elem *toElem(Expression *e, IRState *irs)
                     e = toElem(arg, irs);
 
                     // call _d_newT(ti, arg)
-                    e = el_param(e, toElem(getTypeInfo(ne->type, NULL), irs));
+                    e = el_param(e, getTypeInfo(ne->type, irs));
                     int rtl = tda->next->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
                     e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
                     toTraceGC(irs, e, &ne->loc);
@@ -1584,7 +1594,7 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_pair(TYdarray, el_long(TYsize_t, ne->arguments->dim), el_ptr(sdata));
                     if (config.exe == EX_WIN64)
                         e = addressElem(e, Type::tsize_t->arrayOf());
-                    e = el_param(e, toElem(getTypeInfo(ne->type, NULL), irs));
+                    e = el_param(e, getTypeInfo(ne->type, irs));
                     int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
                     e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
                     toTraceGC(irs, e, &ne->loc);
@@ -1600,7 +1610,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ezprefix = ne->argprefix ? toElem(ne->argprefix, irs) : NULL;
 
                 // call _d_newitemT(ti)
-                e = toElem(getTypeInfo(ne->newtype, NULL), irs);
+                e = getTypeInfo(ne->newtype, irs);
 
                 int rtl = tp->next->isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                 e = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
@@ -2012,7 +2022,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ep = el_pair(TYdarray, el_long(TYsize_t, elems.dim), el_ptr(sdata));
                 if (config.exe == EX_WIN64)
                     ep = addressElem(ep, Type::tvoid->arrayOf());
-                ep = el_param(ep, toElem(getTypeInfo(ta, NULL), irs));
+                ep = el_param(ep, getTypeInfo(ta, irs));
                 e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATNTX]), ep);
                 toTraceGC(irs, e, &ce->loc);
                 e = el_combine(earr, e);
@@ -2021,7 +2031,7 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 elem *e1 = eval_Darray(ce->e1);
                 elem *e2 = eval_Darray(ce->e2);
-                elem *ep = el_params(e2, e1, toElem(getTypeInfo(ta, NULL), irs), NULL);
+                elem *ep = el_params(e2, e1, getTypeInfo(ta, irs), NULL);
                 e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATT]), ep);
                 toTraceGC(irs, e, &ce->loc);
             }
@@ -2105,7 +2115,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ea1 = eval_Darray(ce->e1);
                 elem *ea2 = eval_Darray(ce->e2);
 
-                elem *ep = el_params(toElem(getTypeInfo(telement->arrayOf(), NULL), irs),
+                elem *ep = el_params(getTypeInfo(telement->arrayOf(), irs),
                         ea2, ea1, NULL);
                 int rtlfunc = RTLSYM_ARRAYCMP2;
                 e = el_bin(OPcall, TYint, el_var(rtlsym[rtlfunc]), ep);
@@ -2244,7 +2254,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ea1 = eval_Darray(ee->e1);
                 elem *ea2 = eval_Darray(ee->e2);
 
-                elem *ep = el_params(toElem(getTypeInfo(telement->arrayOf(), NULL), irs),
+                elem *ep = el_params(getTypeInfo(telement->arrayOf(), irs),
                         ea2, ea1, NULL);
                 int rtlfunc = RTLSYM_ARRAYEQ2;
                 e = el_bin(OPcall, TYint, el_var(rtlsym[rtlfunc]), ep);
@@ -2256,7 +2266,7 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 TypeAArray *taa = (TypeAArray *)t1;
                 Symbol *s = aaGetSymbol(taa, "Equal", 0);
-                elem *ti = toElem(getTypeInfo(taa, NULL), irs);
+                elem *ti = getTypeInfo(taa, irs);
                 elem *ea1 = toElem(ee->e1, irs);
                 elem *ea2 = toElem(ee->e2, irs);
                 // aaEqual(ti, e1, e2)
@@ -2339,7 +2349,7 @@ elem *toElem(Expression *e, IRState *irs)
             // aaInX(aa, keyti, key);
             key = addressElem(key, ie->e1->type);
             Symbol *s = aaGetSymbol(taa, "InX", 0);
-            elem *keyti = toElem(getTypeInfo(taa->index, NULL), irs);
+            elem *keyti = getTypeInfo(taa->index, irs);
             elem *ep = el_params(key, keyti, aa, NULL);
             elem *e = el_bin(OPcall, totym(ie->type), el_var(s), ep);
 
@@ -2360,7 +2370,7 @@ elem *toElem(Expression *e, IRState *irs)
 
             ekey = addressElem(ekey, re->e1->type);
             Symbol *s = aaGetSymbol(taa, "DelX", 0);
-            elem *keyti = toElem(getTypeInfo(taa->index, NULL), irs);
+            elem *keyti = getTypeInfo(taa->index, irs);
             elem *ep = el_params(ekey, keyti, ea, NULL);
             elem *e = el_bin(OPcall, TYnptr, el_var(s), ep);
 
@@ -2396,7 +2406,7 @@ elem *toElem(Expression *e, IRState *irs)
                 Type *t1 = ale->e1->type->toBasetype();
 
                 // call _d_arraysetlengthT(ti, e2, &ale->e1);
-                elem *p2 = toElem(getTypeInfo(t1, NULL), irs);
+                elem *p2 = getTypeInfo(t1, irs);
                 elem *ep = el_params(p3, p1, p2, NULL); // c function
                 int r = t1->nextOf()->isZeroInit() ? RTLSYM_ARRAYSETLENGTHT : RTLSYM_ARRAYSETLENGTHIT;
 
@@ -2575,13 +2585,13 @@ elem *toElem(Expression *e, IRState *irs)
                          *      _d_arrayctor(ti, efrom, eto)
                          */
                         el_free(esize);
-                        Expression *ti = getTypeInfo(t1->nextOf()->toBasetype(), NULL);
+                        elem *eti = getTypeInfo(t1->nextOf()->toBasetype(), irs);
                         if (config.exe == EX_WIN64)
                         {
                             eto   = addressElem(eto,   Type::tvoid->arrayOf());
                             efrom = addressElem(efrom, Type::tvoid->arrayOf());
                         }
-                        elem *ep = el_params(eto, efrom, toElem(ti, irs), NULL);
+                        elem *ep = el_params(eto, efrom, eti, NULL);
                         int rtl = (ae->op == TOKconstruct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
                         e = el_bin(OPcall, totym(ae->type), el_var(rtlsym[rtl]), ep);
                     }
@@ -2861,13 +2871,13 @@ elem *toElem(Expression *e, IRState *irs)
                     /* Generate:
                      *      _d_arrayctor(ti, e2, e1)
                      */
-                    Expression *ti = getTypeInfo(t1b->nextOf()->toBasetype(), NULL);
+                    elem *eti = getTypeInfo(t1b->nextOf()->toBasetype(), irs);
                     if (config.exe == EX_WIN64)
                     {
                         e1 = addressElem(e1, Type::tvoid->arrayOf());
                         e2 = addressElem(e2, Type::tvoid->arrayOf());
                     }
-                    elem *ep = el_params(e1, e2, toElem(ti, irs), NULL);
+                    elem *ep = el_params(e1, e2, eti, NULL);
                     e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCTOR]), ep);
                 }
                 else
@@ -2883,13 +2893,13 @@ elem *toElem(Expression *e, IRState *irs)
                      * or:
                      *      _d_arrayassign_r(ti, e2, e1, etmp)
                      */
-                    Expression *ti = getTypeInfo(t1b->nextOf()->toBasetype(), NULL);
+                    elem *eti = getTypeInfo(t1b->nextOf()->toBasetype(), irs);
                     if (config.exe == EX_WIN64)
                     {
                         e1 = addressElem(e1, Type::tvoid->arrayOf());
                         e2 = addressElem(e2, Type::tvoid->arrayOf());
                     }
-                    elem *ep = el_params(etmp, e1, e2, toElem(ti, irs), NULL);
+                    elem *ep = el_params(etmp, e1, e2, eti, NULL);
                     int rtl = lvalueElem ? RTLSYM_ARRAYASSIGN_L : RTLSYM_ARRAYASSIGN_R;
                     e = el_bin(OPcall, TYdarray, el_var(rtlsym[rtl]), ep);
                 }
@@ -2963,7 +2973,7 @@ elem *toElem(Expression *e, IRState *irs)
                         e2 = addressElem(e2, tb2, true);
                     else
                         e2 = useOPstrpar(e2);
-                    elem *ep = el_params(e2, e1, toElem(getTypeInfo(ce->e1->type, NULL), irs), NULL);
+                    elem *ep = el_params(e2, e1, getTypeInfo(ce->e1->type, irs), NULL);
                     e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDT]), ep);
                     toTraceGC(irs, e, &ce->loc);
                 }
@@ -2997,7 +3007,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                     // Extend array with _d_arrayappendcTX(TypeInfo ti, e1, 1)
                     e1 = el_una(OPaddr, TYnptr, e1);
-                    elem *ep = el_param(e1, toElem(getTypeInfo(ce->e1->type, NULL), irs));
+                    elem *ep = el_param(e1, getTypeInfo(ce->e1->type, irs));
                     ep = el_param(el_long(TYsize_t, 1), ep);
                     e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDCTX]), ep);
                     toTraceGC(irs, e, &ce->loc);
@@ -3683,7 +3693,7 @@ elem *toElem(Expression *e, IRState *irs)
                         TypeStruct *ts = (TypeStruct *)tv;
                         StructDeclaration *sd = ts->sym;
                         if (sd->dtor)
-                            et = toElem(getTypeInfo(tb->nextOf(), NULL), irs);
+                            et = getTypeInfo(tb->nextOf(), irs);
                     }
                     if (!et)                            // if no destructors needed
                         et = el_long(TYnptr, 0);        // pass null for TypeInfo
@@ -3720,7 +3730,7 @@ elem *toElem(Expression *e, IRState *irs)
                         if (ts->sym->dtor)
                         {
                             rtl = RTLSYM_DELSTRUCT;
-                            elem *et = toElem(getTypeInfo(tb, NULL), irs);
+                            elem *et = getTypeInfo(tb, irs);
                             e = el_params(et, e, NULL);
                         }
                     }
@@ -4655,12 +4665,12 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     n1 = el_una(OPaddr, TYnptr, n1);
                     s = aaGetSymbol(taa, "GetY", 1);
-                    ti = toElem(getTypeInfo(taa->unSharedOf()->mutableOf(), NULL), irs);
+                    ti = getTypeInfo(taa->unSharedOf()->mutableOf(), irs);
                 }
                 else
                 {
                     s = aaGetSymbol(taa, "GetRvalueX", 1);
-                    ti = toElem(getTypeInfo(taa->index, NULL), irs);
+                    ti = getTypeInfo(taa->index, irs);
                 }
                 //printf("taa->index = %s\n", taa->index->toChars());
                 //printf("ti:\n"); elem_print(ti);
@@ -4791,7 +4801,7 @@ elem *toElem(Expression *e, IRState *irs)
                 Elems args;
                 args.setDim(dim);           // +1 for number of args parameter
                 e = el_long(TYsize_t, dim);
-                e = el_param(e, toElem(getTypeInfo(ale->type, NULL), irs));
+                e = el_param(e, getTypeInfo(ale->type, irs));
                 // call _d_arrayliteralTX(ti, dim)
                 e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ARRAYLITERALTX]),e);
                 toTraceGC(irs, e, &ale->loc);
@@ -5088,7 +5098,7 @@ elem *toElem(Expression *e, IRState *irs)
                     ek = addressElem(ek, Type::tvoid->arrayOf());
                 }
                 elem *e = el_params(ev, ek,
-                                    toElem(getTypeInfo(ta, NULL), irs),
+                                    getTypeInfo(ta, irs),
                                     NULL);
 
                 // call _d_assocarrayliteralTX(ti, keys, values)
