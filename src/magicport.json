@@ -3198,12 +3198,11 @@
                 "core.stdc.stdio",
                 "core.stdc.stdlib",
                 "core.stdc.string",
+                "root.filename",
                 "root.file"
             ],
             "members" :
             [
-                "struct Narg",
-                "function addargp",
                 "function response_expand"
             ]
         }
