@@ -194,7 +194,7 @@ Bucket[] allocBuckets(size_t dim) @trusted pure nothrow
 private void* allocEntry(in Impl* aa, in void* pkey)
 {
     import rt.lifetime : _d_newitemU;
-    import rt.util.mem;
+    import core.stdc.string : memcpy, memset;
 
     immutable akeysz = aa.valoff;
     void* res = void;
@@ -206,8 +206,8 @@ private void* allocEntry(in Impl* aa, in void* pkey)
         res = GC.malloc(akeysz + aa.valsz, flags);
     }
 
-    fastshortcopy(res, pkey, aa.keysz); // copy key
-    fastshortclear(res + akeysz, aa.valsz); // zero value
+    memcpy(res, pkey, aa.keysz); // copy key
+    memset(res + akeysz, 0, aa.valsz); // zero value
 
     return res;
 }
