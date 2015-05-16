@@ -39,17 +39,17 @@
 long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 #endif
 
-int response_expand(size_t *pargc, char ** *pargv);
+bool response_expand(Strings *arguments);
 void browse(const char *url);
-void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
+void getenv_setargv(const char *envvar, Strings *args);
 
 void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);
 
 void printCtfePerformanceStats();
 
-static const char* parse_arch_arg(size_t argc, const char** argv, const char* arch);
-static const char* parse_conf_arg(size_t argc, const char** argv);
+static const char* parse_arch_arg(Strings *args, const char* arch);
+static const char* parse_conf_arg(Strings *args);
 
 const char *findConfFile(const char *argv0, const char *inifile);
 void parseConfFile(const char *filename, Strings *sections);
@@ -437,24 +437,31 @@ int main(int iargc, const char *argv[])
 #endif
 
     stdmsg = stdout;
+
     // Check for malformed input
     if (argc < 1 || !argv)
     {
       Largs:
-        error(0, "missing or null command line arguments");
+        error(Loc(), "missing or null command line arguments");
         fatal();
     }
+
+    // Convert argc/argv into arguments[] for easier handling
+    Strings arguments;
+    arguments.setDim(argc);
     for (size_t i = 0; i < argc; i++)
     {
         if (!argv[i])
             goto Largs;
+        arguments[i] = (char *)argv[i];
     }
 
-    if (response_expand(&argc, (char ***)&argv))   // expand response files
-        error(0, "can't open response file");
+    if (response_expand(&arguments))   // expand response files
+        error(Loc(), "can't open response file");
 
-    files.reserve(argc - 1);
+    //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
 
+    files.reserve(arguments.dim - 1);
     // Set default values
     global.params.argv0 = argv[0];
     global.params.link = 1;
@@ -535,7 +542,7 @@ int main(int iargc, const char *argv[])
 #endif
     VersionCondition::addPredefinedGlobalIdent("all");
 
-    global.inifilename = parse_conf_arg(argc, argv);
+    global.inifilename = parse_conf_arg(&arguments);
     if (global.inifilename)
     {
         // can be empty as in -conf=
@@ -548,9 +555,9 @@ int main(int iargc, const char *argv[])
         // regular sc.ini/dmd.conf
 #if !DMDV2
 #  if _WIN32
-        global.inifilename = findConfFile(argv[0], "sc1.ini");
+        global.inifilename = findConfFile(global.params.argv0, "sc1.ini");
 #  elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-        global.inifilename = findConfFile(argv[0], "dmd1.conf");
+        global.inifilename = findConfFile(global.params.argv0, "dmd1.conf");
 #  else
 #    error "fix this"
 #  endif
@@ -558,9 +565,9 @@ int main(int iargc, const char *argv[])
 #endif
         {
 #if _WIN32
-            global.inifilename = findConfFile(argv[0], "sc.ini");
+            global.inifilename = findConfFile(global.params.argv0, "sc.ini");
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-            global.inifilename = findConfFile(argv[0], "dmd.conf");
+            global.inifilename = findConfFile(global.params.argv0, "dmd.conf");
 #else
 #error "fix this"
 #endif
@@ -575,13 +582,12 @@ int main(int iargc, const char *argv[])
     sections.push("Environment");
     parseConfFile(global.inifilename, &sections);
 
-    size_t dflags_argc = 0;
-    const char** dflags_argv = NULL;
-    getenv_setargv("DFLAGS", &dflags_argc, &dflags_argv);
+    Strings dflags;
+    getenv_setargv("DFLAGS", &dflags);
 
     const char *arch = global.params.is64bit ? "64" : "32"; // use default
-    arch = parse_arch_arg(argc, argv, arch);
-    arch = parse_arch_arg(dflags_argc, dflags_argv, arch);
+    arch = parse_arch_arg(&arguments, arch);
+    arch = parse_arch_arg(&dflags, arch);
     bool is64bit = arch[0] == '6';
 
     sections.setDim(0);
@@ -590,18 +596,18 @@ int main(int iargc, const char *argv[])
     sections.push(envsection);
     parseConfFile(global.inifilename, &sections);
 
-    getenv_setargv("DFLAGS", &argc, &argv);
+    getenv_setargv("DFLAGS", &arguments);
 
 #if 0
-    for (size_t i = 0; i < argc; i++)
+    for (size_t i = 0; i < arguments.dim; i++)
     {
-        printf("argv[%d] = '%s'\n", i, argv[i]);
+        printf("arguments[%d] = '%s'\n", i, arguments[i]);
     }
 #endif
 
-    for (size_t i = 1; i < argc; i++)
+    for (size_t i = 1; i < arguments.dim; i++)
     {
-        p = (char *)argv[i];
+        p = (char *)arguments[i];
         if (*p == '-')
         {
             if (strcmp(p + 1, "d") == 0)
@@ -940,19 +946,19 @@ int main(int iargc, const char *argv[])
                 size_t length = ((i >= argcstart) ? argc : argcstart) - i - 1;
                 if (length)
                 {
-                    const char *ext = FileName::ext(argv[i + 1]);
+                    const char *ext = FileName::ext(arguments[i + 1]);
                     if (ext && FileName::equals(ext, "d") == 0
                             && FileName::equals(ext, "di") == 0)
                     {
-                        error(0, "-run must be followed by a source file, not '%s'", argv[i + 1]);
+                        error(0, "-run must be followed by a source file, not '%s'", arguments[i + 1]);
                         break;
                     }
 
-                    files.push((char *)argv[i + 1]);
+                    files.push((char *)arguments[i + 1]);
                     global.params.runargs->setDim(length - 1);
                     for (size_t j = 0; j < length - 1; ++j)
                     {
-                        (*global.params.runargs)[j] = (char *)argv[i + 2 + j];
+                        (*global.params.runargs)[j] = (char *)arguments[i + 2 + j];
                     }
                     i += length;
                 }
@@ -964,11 +970,11 @@ int main(int iargc, const char *argv[])
             else
             {
              Lerror:
-                error(0, "unrecognized switch '%s'", argv[i]);
+                error(0, "unrecognized switch '%s'", arguments[i]);
                 continue;
 
              Lnoarg:
-                error(0, "argument expected for switch '%s'", argv[i]);
+                error(0, "argument expected for switch '%s'", arguments[i]);
                 continue;
             }
         }
@@ -1128,7 +1134,7 @@ int main(int iargc, const char *argv[])
     initPrecedence();
 
     if (global.params.verbose)
-    {   printf("binary    %s\n", argv[0]);
+    {   printf("binary    %s\n", global.params.argv0);
         printf("version   %s\n", global.version);
         printf("config    %s\n", global.inifilename ? global.inifilename : "(none)");
     }
@@ -1610,11 +1616,11 @@ int main(int iargc, const char *argv[])
 
 /***********************************
  * Parse and append contents of environment variable envvar
- * to argc and argv[].
+ * to args[].
  * The string is separated into arguments, processing \ and ".
  */
 
-void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
+void getenv_setargv(const char *envvar, Strings *args)
 {
     char *p;
 
@@ -1628,17 +1634,8 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
 
     env = mem.strdup(env);      // create our own writable copy
 
-    size_t argc = *pargc;
-    Strings *argv = new Strings();
-    argv->setDim(argc);
-
-    for (size_t i = 0; i < argc; i++)
-        (*argv)[i] = (char *)(*pargv)[i];
-
-    size_t j = 1;               // leave argv[0] alone
     while (1)
     {
-        int wildcard = 1;       // do wildcard expansion
         switch (*env)
         {
             case ' ':
@@ -1647,15 +1644,10 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
                 break;
 
             case 0:
-                goto Ldone;
+                return;
 
-            case '"':
-                wildcard = 0;
             default:
-                argv->push(env);                // append
-                //argv->insert(j, env);         // insert at position j
-                j++;
-                argc++;
+                args->push(env);                // append
                 p = env;
                 slash = 0;
                 instring = 0;
@@ -1694,7 +1686,7 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
                             *p = 0;
                             //if (wildcard)
                                 //wildcardexpand();     // not implemented
-                            goto Ldone;
+                            return;
 
                         default:
                         Laddc:
@@ -1706,10 +1698,6 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
                 }
         }
     }
-
-Ldone:
-    *pargc = argc;
-    *pargv = (const char**)argv->tdata();
 }
 
 /***********************************
@@ -1717,11 +1705,11 @@ Ldone:
  * to detect the desired architecture.
  */
 
-static const char* parse_arch_arg(size_t argc, const char** argv, const char* arch)
+static const char* parse_arch_arg(Strings *args, const char* arch)
 {
-    for (size_t i = 0; i < argc; ++i)
+    for (size_t i = 0; i < args->dim; ++i)
     {
-        const char* p = argv[i];
+        const char* p = (*args)[i];
         if (p[0] == '-')
         {
             if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
@@ -1737,12 +1725,12 @@ static const char* parse_arch_arg(size_t argc, const char** argv, const char* ar
  * Parse command line arguments for -conf=path.
  */
 
-static const char* parse_conf_arg(size_t argc, const char** argv)
+static const char* parse_conf_arg(Strings *args)
 {
     const char *conf=NULL;
-    for (size_t i = 0; i < argc; ++i)
+    for (size_t i = 0; i < args->dim; ++i)
     {
-        const char* p = argv[i];
+        const char* p = (*args)[i];
         if (p[0] == '-')
         {
             if (strncmp(p + 1, "conf=", 5) == 0)
