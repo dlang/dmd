@@ -55,7 +55,7 @@ private:
         buckets = allocBuckets(sz);
         firstUsed = cast(uint) buckets.length;
         entryTI = fakeEntryTI(ti.key, ti.value);
-        valoff = talign(keysz, ti.value.talign);
+        valoff = cast(uint) talign(keysz, ti.value.talign);
 
         import rt.lifetime : hasPostblit, unqualify;
 
@@ -72,7 +72,7 @@ private:
     uint firstUsed;
     immutable uint keysz;
     immutable uint valsz;
-    uint valoff;
+    immutable uint valoff;
     Flags flags;
 
     enum Flags : ubyte
@@ -174,10 +174,9 @@ private pure nothrow @nogc:
         return hash == HASH_DELETED;
     }
 
-    // not returning bool to avoid gratuitious codegen
-    @property int filled() const
+    @property bool filled() const
     {
-        return hash & HASH_FILLED_MARK;
+        return cast(ptrdiff_t)hash < 0;
     }
 }
 
