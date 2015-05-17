@@ -170,10 +170,10 @@ else version( AsmX86_32 )
         static if (T.sizeof == 1) asm pure nothrow @nogc { lock; xadd[EDX], AL; }
         else static if (T.sizeof == 2) asm pure nothrow @nogc { lock; xadd[EDX], AX; }
         else static if (T.sizeof == 4) asm pure nothrow @nogc { lock; xadd[EDX], EAX; }
-            
-        asm pure nothrow @nogc 
-        { 
-            mov tmp, EAX; 
+
+        asm pure nothrow @nogc
+        {
+            mov tmp, EAX;
         }
 
         return cast(T)tmp;
@@ -688,10 +688,10 @@ else version( AsmX86_64 )
         else static if (T.sizeof == 2) asm pure nothrow @nogc { lock; xadd[RDX], AX; }
         else static if (T.sizeof == 4) asm pure nothrow @nogc { lock; xadd[RDX], EAX; }
         else static if (T.sizeof == 8) asm pure nothrow @nogc { lock; xadd[RDX], RAX; }
-        
-        asm pure nothrow @nogc 
-        { 
-            mov tmp, RAX; 
+
+        asm pure nothrow @nogc
+        {
+            mov tmp, RAX;
         }
 
         return cast(T)tmp;

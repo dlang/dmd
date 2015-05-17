@@ -390,7 +390,7 @@ int FD_ISSET(SOCKET fd, const(fd_set)* set) pure @nogc
 
 
 // Adds.
-void FD_SET(SOCKET fd, fd_set* set)	pure @nogc
+void FD_SET(SOCKET fd, fd_set* set)     pure @nogc
 {
     uint c = set.fd_count;
     set.fd_array.ptr[c] = fd;

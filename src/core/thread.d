@@ -4017,7 +4017,7 @@ class Fiber
      * fibers that have terminated, as doing otherwise could result in
      * scope-dependent functionality that is not executed.
      * Stack-based classes, for example, may not be cleaned up
-     * properly if a fiber is reset before it has terminated. 
+     * properly if a fiber is reset before it has terminated.
      *
      * In:
      *  This fiber must be in state TERM or HOLD.
