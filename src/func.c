@@ -289,6 +289,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     frequire = NULL;
     fdrequire = NULL;
     fdensure = NULL;
+    mangleString = NULL;
     outId = NULL;
     vresult = NULL;
     returnLabel = NULL;
