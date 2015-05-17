@@ -243,7 +243,6 @@ MANIFEST=\
 	\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
-	src\rt\util\mem.d \
 	src\rt\util\random.d \
 	src\rt\util\string.d \
 	src\rt\util\typeinfo.d \
