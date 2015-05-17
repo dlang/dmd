@@ -75,17 +75,6 @@ void backend_term()
 {
 }
 
-// typinf
-
-Expression *getTypeInfo(Type *t, Scope *sc)
-{
-    Declaration *ti = new TypeInfoDeclaration(t, 1);
-    Expression *e = new VarExp(Loc(), ti);
-    e = e->addressOf();
-    e->type = ti->type;
-    return e;
-}
-
 // lib
 
 Library *LibMSCoff_factory()

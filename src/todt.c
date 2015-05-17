@@ -32,6 +32,7 @@
 #include        "ctfe.h"
 #include        "arraytypes.h"
 #include        "visitor.h"
+#include        "template.h"
 // Back end
 #include        "dt.h"
 
@@ -53,6 +54,7 @@ void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toVtblSymbol(ClassDeclaration *cd);
 Symbol* toSymbol(StructLiteralExp *sle);
 Symbol* toSymbol(ClassReferenceExp *cre);
+void genTypeInfo(Type *t, Scope *sc);
 
 /* ================================================================ */
 
@@ -588,6 +590,18 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 return;
             }
             pdt = ClassReferenceExp_toDt(e, pdt, 0);
+        }
+
+        void visit(TypeidExp *e)
+        {
+            if (Type *t = isType(e->obj))
+            {
+                genTypeInfo(t, NULL);
+                Symbol *s = toSymbol(t->vtinfo);
+                pdt = dtxoff(pdt, s, 0);
+                return;
+            }
+            assert(0);
         }
     };
 
