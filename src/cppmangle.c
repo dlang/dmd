@@ -664,7 +664,8 @@ public:
     void visit(TypeVector *t)
     {
         is_top_level = false;
-        if (substitute(t)) return;
+        if (substitute(t))
+            return;
         store(t);
         if (t->isImmutable() || t->isShared())
         {
@@ -707,7 +708,8 @@ public:
     void visit(TypePointer *t)
     {
         is_top_level = false;
-        if (substitute(t)) return;
+        if (substitute(t))
+            return;
         if (t->isImmutable() || t->isShared())
         {
             visit((Type *)t);
@@ -722,7 +724,8 @@ public:
     void visit(TypeReference *t)
     {
         is_top_level = false;
-        if (substitute(t)) return;
+        if (substitute(t))
+            return;
         buf.writeByte('R');
         t->next->accept(this);
         store(t);
@@ -753,7 +756,8 @@ public:
             TypeFunctions for non-static member functions, and non-static
             member functions of different classes.
          */
-        if (substitute(t)) return;
+        if (substitute(t))
+            return;
         buf.writeByte('F');
         if (t->linkage == LINKc)
             buf.writeByte('Y');
@@ -809,7 +813,8 @@ public:
 
         is_top_level = false;
 
-        if (substitute(t)) return;
+        if (substitute(t))
+            return;
         if (t->isImmutable() || t->isShared())
         {
             visit((Type *)t);
@@ -834,7 +839,8 @@ public:
     void visit(TypeEnum *t)
     {
         is_top_level = false;
-        if (substitute(t)) return;
+        if (substitute(t))
+            return;
 
         if (t->isConst())
             buf.writeByte('K');
@@ -855,7 +861,8 @@ public:
 
     void visit(TypeClass *t)
     {
-        if (substitute(t)) return;
+        if (substitute(t))
+            return;
         if (t->isImmutable() || t->isShared())
         {
             visit((Type *)t);
@@ -960,7 +967,8 @@ public:
 
         if (type->isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
         {
-            if (checkTypeSaved(type)) return;
+            if (checkTypeSaved(type))
+                return;
         }
 
         if ((type->ty == Tbool) && checkTypeSaved(type))// try to replace long name with number
@@ -1008,7 +1016,8 @@ public:
     void visit(TypeVector *type)
     {
         //printf("visit(TypeVector); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        if (checkTypeSaved(type)) return;
+        if (checkTypeSaved(type))
+            return;
         buf.writestring("T__m128@@"); // may be better as __m128i or __m128d?
         flags &= ~IS_NOT_TOP_TYPE;
         flags &= ~IGNORE_CONST;
@@ -1018,7 +1027,8 @@ public:
     {
         // This method can be called only for static variable type mangling.
         //printf("visit(TypeSArray); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        if (checkTypeSaved(type)) return;
+        if (checkTypeSaved(type))
+            return;
         // first dimension always mangled as const pointer
         if (flags & IS_DMC)
             buf.writeByte('Q');
@@ -1114,7 +1124,8 @@ public:
     void visit(TypeReference *type)
     {
         //printf("visit(TypeReference); type = %s\n", type->toChars());
-        if (checkTypeSaved(type)) return;
+        if (checkTypeSaved(type))
+            return;
 
         if (type->isImmutable() || type->isShared())
         {
@@ -1144,7 +1155,8 @@ public:
 
         if ((flags & IS_DMC))
         {
-            if (checkTypeSaved(type)) return;
+            if (checkTypeSaved(type))
+                return;
         }
         else
         {
@@ -1177,7 +1189,8 @@ public:
 
             if (type->isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
             {
-                if (checkTypeSaved(type)) return;
+                if (checkTypeSaved(type))
+                    return;
             }
 
             mangleModifier(type);
@@ -1185,7 +1198,8 @@ public:
         }
         else
         {
-            if (checkTypeSaved(type)) return;
+            if (checkTypeSaved(type))
+                return;
             //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
             mangleModifier(type);
             if (type->sym->isUnionDeclaration())
@@ -1201,7 +1215,8 @@ public:
     void visit(TypeEnum *type)
     {
         //printf("visit(TypeEnum); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        if (checkTypeSaved(type)) return;
+        if (checkTypeSaved(type))
+            return;
         mangleModifier(type);
         buf.writeByte('W');
 
@@ -1247,7 +1262,8 @@ public:
     void visit(TypeClass *type)
     {
         //printf("visit(TypeClass); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
-        if (checkTypeSaved(type)) return;
+        if (checkTypeSaved(type))
+            return;
         if (flags & IS_NOT_TOP_TYPE)
             mangleModifier(type);
 
@@ -1600,7 +1616,8 @@ private:
             }
             else
             {
-                if (checkAndSaveIdent(name)) return;
+                if (checkAndSaveIdent(name))
+                    return;
             }
         }
         buf.writestring(name);
@@ -1711,8 +1728,10 @@ private:
 
     bool checkTypeSaved(Type *type)
     {
-        if (flags & IS_NOT_TOP_TYPE) return false;
-        if (flags & MANGLE_RETURN_TYPE) return false;
+        if (flags & IS_NOT_TOP_TYPE)
+            return false;
+        if (flags & MANGLE_RETURN_TYPE)
+            return false;
         for (size_t i = 0; i < VC_SAVED_TYPE_CNT; i++)
         {
             if (!saved_types[i]) // no saved same type
@@ -1733,7 +1752,8 @@ private:
 
     void mangleModifier(Type *type)
     {
-        if (flags & IGNORE_CONST) return;
+        if (flags & IGNORE_CONST)
+            return;
         if (type->isImmutable() || type->isShared())
         {
             visit((Type*)type);
