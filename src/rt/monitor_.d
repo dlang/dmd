@@ -1,23 +1,13 @@
 /**
  * Contains the implementation for object monitors.
  *
- * Copyright: Copyright Digital Mars 2000 - 2011.
+ * Copyright: Copyright Digital Mars 2000 - 2015.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
- * Authors:   Walter Bright, Sean Kelly
- */
-
-/*          Copyright Digital Mars 2000 - 2011.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
+ * Authors:   Walter Bright, Sean Kelly, Martin Nowak
  */
 module rt.monitor_;
 
-//debug=PRINTF;
-
-///////////////////////////////////////////////////////////////////////////////
-// Monitor
-///////////////////////////////////////////////////////////////////////////////
+import core.atomic, core.stdc.stdlib, core.stdc.string;
 
 // NOTE: The dtor callback feature is only supported for monitors that are not
 //       supplied by the user.  The assumption is that any object with a user-
@@ -26,25 +16,18 @@ module rt.monitor_;
 //       may not be safe or desirable.  Thus, devt is only valid if impl is
 //       null.
 
-extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow
+extern (C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow
 in
 {
     assert(ownee.__monitor is null);
 }
 body
 {
-    auto m = cast(shared(Monitor)*) owner.__monitor;
-
-    if (m is null)
-    {
-        _d_monitor_create(cast(Object) owner);
-        m = cast(shared(Monitor)*) owner.__monitor;
-    }
-
+    auto m = ensureMonitor(cast(Object) owner);
     auto i = m.impl;
     if (i is null)
     {
-        atomicOp!("+=")(m.refs, cast(size_t)1);
+        atomicOp!("+=")(m.refs, cast(size_t) 1);
         ownee.__monitor = owner.__monitor;
         return;
     }
@@ -55,96 +38,49 @@ body
 
 extern (C) void _d_monitordelete(Object h, bool det)
 {
-    // det is true when the object is being destroyed deterministically (ie.
-    // when it is explicitly deleted or is a scope object whose time is up).
-    Monitor* m = getMonitor(h);
+    auto m = getMonitor(h);
+    if (m is null)
+        return;
 
-    if (m !is null)
+    if (m.impl)
     {
-        IMonitor i = m.impl;
-        if (i is null)
-        {
-            auto s = cast(shared(Monitor)*) m;
-            if(!atomicOp!("-=")(s.refs, cast(size_t) 1))
-            {
-                _d_monitor_devt(m, h);
-                _d_monitor_destroy(h);
-                setMonitor(h, null);
-            }
-            return;
-        }
-        // NOTE: Since a monitor can be shared via setSameMutex it isn't safe
-        //       to explicitly delete user-created monitors--there's no
-        //       refcount and it may have multiple owners.
-        /+
-        if (det && (cast(void*) i) !is (cast(void*) h))
-        {
-            destroy(i);
-            GC.free(cast(void*)i);
-        }
-        +/
+        // let the GC collect the monitor
+        setMonitor(h, null);
+    }
+    else if (!atomicOp!("-=")(m.refs, cast(size_t) 1))
+    {
+        // refcount == 0 means unshared => no synchronization required
+        disposeEvent(cast(Monitor*) m, h);
+        deleteMonitor(cast(Monitor*) m);
         setMonitor(h, null);
     }
 }
 
 extern (C) void _d_monitorenter(Object h)
 {
-    Monitor* m = getMonitor(h);
-
-    if (m is null)
-    {
-        _d_monitor_create(h);
-        m = getMonitor(h);
-    }
-
-    IMonitor i = m.impl;
-
+    auto m = cast(Monitor*) ensureMonitor(h);
+    auto i = m.impl;
     if (i is null)
-    {
-        _d_monitor_lock(h);
-        return;
-    }
-    i.lock();
+        lockMutex(&m.mtx);
+    else
+        i.lock();
 }
 
 extern (C) void _d_monitorexit(Object h)
 {
-    Monitor* m = getMonitor(h);
-    IMonitor i = m.impl;
-
+    auto m = cast(Monitor*) getMonitor(h);
+    auto i = m.impl;
     if (i is null)
-    {
-        _d_monitor_unlock(h);
-        return;
-    }
-    i.unlock();
-}
-
-extern (C) void _d_monitor_devt(Monitor* m, Object h)
-{
-    if (m.devt.length)
-    {
-        DEvent[] devt;
-
-        synchronized (h)
-        {
-            devt = m.devt;
-            m.devt = null;
-        }
-        foreach (v; devt)
-        {
-            if (v)
-                v(h);
-        }
-        free(devt.ptr);
-    }
+        unlockMutex(&m.mtx);
+    else
+        i.unlock();
 }
 
 extern (C) void rt_attachDisposeEvent(Object h, DEvent e)
 {
     synchronized (h)
     {
-        Monitor* m = getMonitor(h);
+        auto m = cast(Monitor*) getMonitor(h);
         assert(m.impl is null);
 
         foreach (ref v; m.devt)
@@ -157,13 +93,14 @@ extern (C) void rt_attachDisposeEvent(Object h, DEvent e)
         }
 
         auto len = m.devt.length + 4; // grow by 4 elements
-        auto pos = m.devt.length;     // insert position
+        auto pos = m.devt.length; // insert position
         auto p = realloc(m.devt.ptr, DEvent.sizeof * len);
         import core.exception : onOutOfMemoryError;
+
         if (!p)
             onOutOfMemoryError();
-        m.devt = (cast(DEvent*)p)[0 .. len];
-        m.devt[pos+1 .. len] = null;
+        m.devt = (cast(DEvent*) p)[0 .. len];
+        m.devt[pos + 1 .. len] = null;
         m.devt[pos] = e;
     }
 }
@@ -172,16 +109,14 @@ extern (C) void rt_detachDisposeEvent(Object h, DEvent e)
 {
     synchronized (h)
     {
-        Monitor* m = getMonitor(h);
+        auto m = cast(Monitor*) getMonitor(h);
         assert(m.impl is null);
 
         foreach (p, v; m.devt)
         {
             if (v == e)
             {
-                memmove(&m.devt[p],
-                        &m.devt[p+1],
-                        (m.devt.length - p - 1) * DEvent.sizeof);
+                memmove(&m.devt[p], &m.devt[p + 1], (m.devt.length - p - 1) * DEvent.sizeof);
                 m.devt[$ - 1] = null;
                 return;
             }
@@ -191,263 +126,156 @@ extern (C) void rt_detachDisposeEvent(Object h, DEvent e)
 
 nothrow:
 
-private
+extern (C) void _d_monitor_staticctor()
 {
-    debug(PRINTF) import core.stdc.stdio;
-    import core.stdc.stdlib;
-    import core.stdc.string;
-    import core.atomic;
-
-    version( CRuntime_Glibc )
+    version (Posix)
     {
-        version = USE_PTHREADS;
+        pthread_mutexattr_init(&gattr);
+        pthread_mutexattr_settype(&gattr, PTHREAD_MUTEX_RECURSIVE);
     }
-    else version( FreeBSD )
-    {
-        version = USE_PTHREADS;
-    }
-    else version( OSX )
-    {
-        version = USE_PTHREADS;
-    }
-    else version( Solaris )
-    {
-        version = USE_PTHREADS;
-    }
-    else version( CRuntime_Bionic )
-    {
-        version = USE_PTHREADS;
-    }
-
-    // This is what the monitor reference in Object points to
-    alias Object.Monitor        IMonitor;
-    alias void delegate(Object) DEvent;
-
-    version( Windows )
-    {
-        version (CRuntime_DigitalMars)
-        {
-            pragma(lib, "snn.lib");
-        }
-        else version (CRuntime_Microsoft)
-        {
-            pragma(lib, "libcmt.lib");
-            pragma(lib, "oldnames.lib");
-        }
-        import core.sys.windows.windows;
-
-        struct Monitor
-        {
-            IMonitor impl; // for user-level monitors
-            DEvent[] devt; // for internal monitors
-            size_t   refs; // reference count
-            CRITICAL_SECTION mon;
-        }
-    }
-    else version( USE_PTHREADS )
-    {
-        import core.sys.posix.pthread;
-
-        struct Monitor
-        {
-            IMonitor impl; // for user-level monitors
-            DEvent[] devt; // for internal monitors
-            size_t   refs; // reference count
-            pthread_mutex_t mon;
-        }
-    }
-    else
-    {
-        static assert(0, "Unsupported platform");
-    }
-
-    Monitor* getMonitor(Object h) pure
-    {
-        return cast(Monitor*) h.__monitor;
-    }
-
-    void setMonitor(Object h, Monitor* m) pure
-    {
-        h.__monitor = m;
-    }
-
-    static __gshared int inited;
+    initMutex(&gmtx);
 }
 
-
-/* =============================== Win32 ============================ */
-
-version( Windows )
+extern (C) void _d_monitor_staticdtor()
 {
-    static __gshared CRITICAL_SECTION _monitor_critsec;
+    destroyMutex(&gmtx);
+    version (Posix)
+        pthread_mutexattr_destroy(&gattr);
+}
 
-    extern (C) void _STI_monitor_staticctor()
+private:
+
+// This is what the monitor reference in Object points to
+alias IMonitor = Object.Monitor;
+alias DEvent = void delegate(Object);
+
+version (Windows)
+{
+    version (CRuntime_DigitalMars)
     {
-        debug(PRINTF) printf("+_STI_monitor_staticctor()\n");
-        if (!inited)
-        {
-            InitializeCriticalSection(&_monitor_critsec);
-            inited = 1;
-        }
-        debug(PRINTF) printf("-_STI_monitor_staticctor()\n");
+        pragma(lib, "snn.lib");
+    }
+    else version (CRuntime_Microsoft)
+    {
+        pragma(lib, "libcmt.lib");
+        pragma(lib, "oldnames.lib");
+    }
+    import core.sys.windows.windows;
+
+    alias Mutex = CRITICAL_SECTION;
+
+    alias initMutex = InitializeCriticalSection;
+    alias destroyMutex = DeleteCriticalSection;
+    alias lockMutex = EnterCriticalSection;
+    alias unlockMutex = LeaveCriticalSection;
+}
+else version (Posix)
+{
+    import core.sys.posix.pthread;
+
+    alias Mutex = pthread_mutex_t;
+    __gshared pthread_mutexattr_t gattr;
+
+    void initMutex(pthread_mutex_t* mtx)
+    {
+        pthread_mutex_init(mtx, &gattr) && assert(0);
     }
 
-    extern (C) void _STD_monitor_staticdtor()
+    void destroyMutex(pthread_mutex_t* mtx)
     {
-        debug(PRINTF) printf("+_STI_monitor_staticdtor() - d\n");
-        if (inited)
-        {
-            inited = 0;
-            DeleteCriticalSection(&_monitor_critsec);
-        }
-        debug(PRINTF) printf("-_STI_monitor_staticdtor() - d\n");
+        pthread_mutex_destroy(mtx) && assert(0);
     }
 
-    extern (C) void _d_monitor_create(Object h)
+    void lockMutex(pthread_mutex_t* mtx)
     {
-        /*
-         * NOTE: Assume this is only called when h.__monitor is null prior to the
-         * call.  However, please note that another thread may call this function
-         * at the same time, so we can not assert this here.  Instead, try and
-         * create a lock, and if one already exists then forget about it.
-         */
+        pthread_mutex_lock(mtx) && assert(0);
+    }
 
-        debug(PRINTF) printf("+_d_monitor_create(%p)\n", h);
-        assert(h);
-        Monitor *cs;
-        EnterCriticalSection(&_monitor_critsec);
-        if (!h.__monitor)
-        {
-            cs = cast(Monitor *)calloc(Monitor.sizeof, 1);
-            assert(cs);
-            InitializeCriticalSection(&cs.mon);
-            setMonitor(h, cs);
-            cs.refs = 1;
-            cs = null;
-        }
-        LeaveCriticalSection(&_monitor_critsec);
-        if (cs)
-            free(cs);
+    void unlockMutex(pthread_mutex_t* mtx)
+    {
+        pthread_mutex_unlock(mtx) && assert(0);
+    }
+}
+else
+{
+    static assert(0, "Unsupported platform");
+}
+
+struct Monitor
+{
+    IMonitor impl; // for user-level monitors
+    DEvent[] devt; // for internal monitors
+    size_t refs; // reference count
+    Mutex mtx;
+}
+
+@property ref shared(Monitor*) monitor(Object h) pure nothrow
+{
+    return *cast(shared Monitor**)&h.__monitor;
+}
+
+private shared(Monitor)* getMonitor(Object h) pure
+{
+    return atomicLoad!(MemoryOrder.acq)(h.monitor);
+}
+
+void setMonitor(Object h, shared(Monitor)* m) pure
+{
+    atomicStore!(MemoryOrder.rel)(h.monitor, m);
+}
+
+__gshared Mutex gmtx;
+
+shared(Monitor)* ensureMonitor(Object h)
+{
+    if (auto m = getMonitor(h))
+        return m;
+
+    auto m = cast(Monitor*) calloc(Monitor.sizeof, 1);
+    assert(m);
+    initMutex(&m.mtx);
+
+    bool success;
+    lockMutex(&gmtx);
+    if (getMonitor(h) is null)
+    {
+        m.refs = 1;
+        setMonitor(h, cast(shared) m);
+        success = true;
+    }
+    unlockMutex(&gmtx);
+
+    if (success)
+    {
         // Set the finalize bit so that the monitor gets collected (Bugzilla 14573)
         import core.memory : GC;
+
         if (!(typeid(h).m_flags & TypeInfo_Class.ClassFlags.hasDtor))
-            GC.setAttr(cast(void*)h, GC.BlkAttr.FINALIZE);
-        debug(PRINTF) printf("-_d_monitor_create(%p)\n", h);
+            GC.setAttr(cast(void*) h, GC.BlkAttr.FINALIZE);
+        return cast(shared(Monitor)*) m;
     }
-
-    extern (C) void _d_monitor_destroy(Object h)
+    else // another thread succeeded instead
     {
-        debug(PRINTF) printf("+_d_monitor_destroy(%p)\n", h);
-        assert(h && h.__monitor && !getMonitor(h).impl);
-        DeleteCriticalSection(&getMonitor(h).mon);
-        free(h.__monitor);
-        setMonitor(h, null);
-        debug(PRINTF) printf("-_d_monitor_destroy(%p)\n", h);
-    }
-
-    extern (C) void _d_monitor_lock(Object h)
-    {
-        debug(PRINTF) printf("+_d_monitor_acquire(%p)\n", h);
-        assert(h && h.__monitor && !getMonitor(h).impl);
-        EnterCriticalSection(&getMonitor(h).mon);
-        debug(PRINTF) printf("-_d_monitor_acquire(%p)\n", h);
-    }
-
-    extern (C) void _d_monitor_unlock(Object h)
-    {
-        debug(PRINTF) printf("+_d_monitor_release(%p)\n", h);
-        assert(h && h.__monitor && !getMonitor(h).impl);
-        LeaveCriticalSection(&getMonitor(h).mon);
-        debug(PRINTF) printf("-_d_monitor_release(%p)\n", h);
+        deleteMonitor(m);
+        return getMonitor(h);
     }
 }
 
-/* =============================== linux ============================ */
-
-version( USE_PTHREADS )
+void deleteMonitor(Monitor* m)
 {
-    // Includes attribute fixes from David Friedman's GDC port
-    static __gshared pthread_mutex_t _monitor_critsec;
-    static __gshared pthread_mutexattr_t _monitors_attr;
+    destroyMutex(&m.mtx);
+    free(m);
+}
 
-    extern (C) void _STI_monitor_staticctor()
+void disposeEvent(Monitor* m, Object h)
+{
+    foreach (v; m.devt)
     {
-        if (!inited)
-        {
-            pthread_mutexattr_init(&_monitors_attr);
-            pthread_mutexattr_settype(&_monitors_attr, PTHREAD_MUTEX_RECURSIVE);
-            pthread_mutex_init(&_monitor_critsec, &_monitors_attr);
-            inited = 1;
-        }
+        if (v)
+            v(h);
     }
-
-    extern (C) void _STD_monitor_staticdtor()
-    {
-        if (inited)
-        {
-            inited = 0;
-            pthread_mutex_destroy(&_monitor_critsec);
-            pthread_mutexattr_destroy(&_monitors_attr);
-        }
-    }
-
-    extern (C) void _d_monitor_create(Object h)
-    {
-        /*
-         * NOTE: Assume this is only called when h.__monitor is null prior to the
-         * call.  However, please note that another thread may call this function
-         * at the same time, so we can not assert this here.  Instead, try and
-         * create a lock, and if one already exists then forget about it.
-         */
-
-        debug(PRINTF) printf("+_d_monitor_create(%p)\n", h);
-        assert(h);
-        Monitor *cs;
-        pthread_mutex_lock(&_monitor_critsec);
-        if (!h.__monitor)
-        {
-            cs = cast(Monitor *)calloc(Monitor.sizeof, 1);
-            assert(cs);
-            pthread_mutex_init(&cs.mon, &_monitors_attr);
-            setMonitor(h, cs);
-            cs.refs = 1;
-            cs = null;
-        }
-        pthread_mutex_unlock(&_monitor_critsec);
-        if (cs)
-            free(cs);
-        // Set the finalize bit so that the monitor gets collected (Bugzilla 14573)
-        import core.memory : GC;
-        if (!(typeid(h).m_flags & TypeInfo_Class.ClassFlags.hasDtor))
-            GC.setAttr(cast(void*)h, GC.BlkAttr.FINALIZE);
-        debug(PRINTF) printf("-_d_monitor_create(%p)\n", h);
-    }
-
-    extern (C) void _d_monitor_destroy(Object h)
-    {
-        debug(PRINTF) printf("+_d_monitor_destroy(%p)\n", h);
-        assert(h && h.__monitor && !getMonitor(h).impl);
-        pthread_mutex_destroy(&getMonitor(h).mon);
-        free(h.__monitor);
-        setMonitor(h, null);
-        debug(PRINTF) printf("-_d_monitor_destroy(%p)\n", h);
-    }
-
-    extern (C) void _d_monitor_lock(Object h)
-    {
-        debug(PRINTF) printf("+_d_monitor_acquire(%p)\n", h);
-        assert(h && h.__monitor && !getMonitor(h).impl);
-        pthread_mutex_lock(&getMonitor(h).mon);
-        debug(PRINTF) printf("-_d_monitor_acquire(%p)\n", h);
-    }
-
-    extern (C) void _d_monitor_unlock(Object h)
-    {
-        debug(PRINTF) printf("+_d_monitor_release(%p)\n", h);
-        assert(h && h.__monitor && !getMonitor(h).impl);
-        pthread_mutex_unlock(&getMonitor(h).mon);
-        debug(PRINTF) printf("-_d_monitor_release(%p)\n", h);
-    }
+    if (m.devt.ptr)
+        free(m.devt.ptr);
 }
 
 // Bugzilla 14573
@@ -456,8 +284,8 @@ unittest
     import core.memory : GC;
 
     auto obj = new Object;
-    assert(!(GC.getAttr(cast(void*)obj) & GC.BlkAttr.FINALIZE));
-    _d_monitor_create(obj);
+    assert(!(GC.getAttr(cast(void*) obj) & GC.BlkAttr.FINALIZE));
+    ensureMonitor(obj);
     assert(getMonitor(obj) !is null);
-    assert(GC.getAttr(cast(void*)obj) & GC.BlkAttr.FINALIZE);
+    assert(GC.getAttr(cast(void*) obj) & GC.BlkAttr.FINALIZE);
 }
