@@ -1393,6 +1393,8 @@ void doswitch(block *b)
         if (vmax - vmin != REGMASK)     /* if there is a maximum        */
         {                               /* CMP reg,vmax-vmin            */
             c = genc2(c,0x81,modregrm(3,7,reg),vmax-vmin);
+            if (I64)
+                code_orrex(c, REX_W);
             genjmp(c,JA,FLblock,list_block(b->Bsucc));  /* JA default   */
         }
         if (I64)
