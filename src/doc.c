@@ -620,6 +620,9 @@ static size_t getCodeIndent(const char *src)
 
 void emitUnittestComment(OutBuffer *buf, Scope *sc, Dsymbol *s, size_t ofs)
 {
+    if (Dsymbol *td = getEponymousParent(s))
+        s = td;
+
     for (UnitTestDeclaration *utd = s->ddocUnittest; utd; utd = utd->ddocUnittest)
     {
         if (utd->protection.kind == PROTprivate || !utd->comment || !utd->fbody)
@@ -680,11 +683,7 @@ void emitDitto(Dsymbol *s, OutBuffer *buf, Scope *sc)
     sc->lastoffset += b.offset;
     sc->lastoffset2 += b.offset;
 
-    Dsymbol *p = s;
-    if (!s->ddocUnittest && s->parent)
-        p = s->parent->isTemplateDeclaration();
-    if (p)
-        emitUnittestComment(buf, sc, p, sc->lastoffset2);
+    emitUnittestComment(buf, sc, s, sc->lastoffset2);
 }
 
 /** Recursively expand template mixin member docs into the scope. */
@@ -1541,8 +1540,7 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
         else
             sec->write(loc, this, sc, s, buf);
     }
-    if (s->ddocUnittest)
-        emitUnittestComment(buf, sc, s, buf->offset);
+    emitUnittestComment(buf, sc, s, buf->offset);
 
     if (buf->offset == offset2)
     {
