@@ -1470,7 +1470,7 @@ Dsymbol *Parser::parseCtor(PrefixAttributes *pAttrs)
         if (stc & STCstatic)
             error(loc, "postblit cannot be static");
 
-        PostBlitDeclaration *f = new PostBlitDeclaration(loc, Loc(), stc, Id::_postblit);
+        PostBlitDeclaration *f = new PostBlitDeclaration(loc, Loc(), stc, Id::postblit);
         if (pAttrs)
             pAttrs->storageClass = STCundefined;
         Dsymbol *s = parseContracts(f);

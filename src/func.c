@@ -4691,7 +4691,7 @@ void PostBlitDeclaration::semantic(Scope *sc)
         errors = true;
         return;
     }
-    if (ident == Id::_postblit && semanticRun < PASSsemantic)
+    if (ident == Id::postblit && semanticRun < PASSsemantic)
         ad->postblits.push(this);
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);

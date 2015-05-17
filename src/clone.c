@@ -833,13 +833,13 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
             ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
 
             Expression *et = getTypeInfo(v->type, sc);
-            et = new DotIdExp(loc, et, Id::postblit);
+            et = new DotIdExp(loc, et, Identifier::idPool("postblit"));
             ex = new CallExp(loc, et, ea);
         }
         a->push(new ExpStatement(loc, ex)); // combine in forward order
 
         /* Bugzilla 10972: When the following field postblit calls fail,
-         * this field should be destructed for Excetion Safety.
+         * this field should be destructed for Exception Safety.
          */
         if (!sdv->dtor)
             continue;
@@ -869,20 +869,22 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
     if (a || (stc & STCdisable))
     {
         //printf("Building __fieldPostBlit()\n");
-        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Identifier::idPool("__fieldPostBlit"));
+        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id::__fieldPostblit);
         dd->fbody = a ? new CompoundStatement(loc, a) : NULL;
         sd->postblits.shift(dd);
         sd->members->push(dd);
         dd->semantic(sc);
     }
 
+    FuncDeclaration *xpostblit = NULL;
     switch (sd->postblits.dim)
     {
         case 0:
-            return NULL;
+            break;
 
         case 1:
-            return sd->postblits[0];
+            xpostblit = sd->postblits[0];
+            break;
 
         default:
             Expression *e = NULL;
@@ -901,12 +903,22 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(e, ex);
             }
-            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Identifier::idPool("__aggrPostBlit"));
+            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id::__aggrPostblit);
             dd->fbody = new ExpStatement(loc, e);
             sd->members->push(dd);
             dd->semantic(sc);
-            return dd;
+            xpostblit = dd;
+            break;
     }
+    // Add an __xpostblit alias to make the inclusive postblit accessible
+    if (xpostblit)
+    {
+        AliasDeclaration *alias = new AliasDeclaration(Loc(), Id::__xpostblit, xpostblit);
+        alias->semantic(sc);
+        sd->members->push(alias);
+        alias->addMember(sc, sd); // add to symbol table
+    }
+    return xpostblit;
 }
 
 /*****************************************
@@ -969,20 +981,22 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
     if (e || (stc & STCdisable))
     {
         //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Identifier::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Id::__fieldDtor);
         dd->fbody = new ExpStatement(loc, e);
         ad->dtors.shift(dd);
         ad->members->push(dd);
         dd->semantic(sc);
     }
 
+    FuncDeclaration *xdtor = NULL;
     switch (ad->dtors.dim)
     {
         case 0:
-            return NULL;
+            break;
 
         case 1:
-            return ad->dtors[0];
+            xdtor = ad->dtors[0];
+            break;
 
         default:
             e = NULL;
@@ -1001,12 +1015,22 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Identifier::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Id::__aggrDtor);
             dd->fbody = new ExpStatement(loc, e);
             ad->members->push(dd);
             dd->semantic(sc);
-            return dd;
+            xdtor = dd;
+            break;
     }
+    // Add an __xdtor alias to make the inclusive dtor accessible
+    if (xdtor)
+    {
+        AliasDeclaration *alias = new AliasDeclaration(Loc(), Id::__xdtor, xdtor);
+        alias->semantic(sc);
+        ad->members->push(alias);
+        alias->addMember(sc, ad); // add to symbol table
+    }
+    return xdtor;
 }
 
 /******************************************

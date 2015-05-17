@@ -211,6 +211,10 @@
       "overrides" : [
        "json.Baz!(int, 2, null).Baz.t"
       ]
+     },
+     {
+      "name" : "__xdtor",
+      "kind" : "alias"
      }
     ]
    },
