@@ -2333,8 +2333,10 @@ Identifier *Type::getTypeInfoIdent(int internal)
     assert(strlen(name) < namelen);     // don't overflow the buffer
 
     size_t off = 0;
+#ifndef IN_GCC
     if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
         ++off;                 // C mangling will add '_' back in
+#endif
     Identifier *id = Identifier::idPool(name + off);
 
     if (name != namebuf)

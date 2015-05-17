@@ -373,7 +373,8 @@
                 "root.longdouble",
                 "globals",
                 "mtype",
-                "dmodule"
+                "dmodule",
+                "root.outbuffer"
             ],
             "members" :
             [
