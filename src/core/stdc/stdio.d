@@ -923,6 +923,8 @@ else version( CRuntime_DigitalMars )
     pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
     ///
     pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
+    ///
+    pure int  fileno(FILE* stream)   { return stream._file;                              }
   }
   ///
     int   _snprintf(char* s, size_t n, in char* fmt, ...);
@@ -1224,32 +1226,6 @@ version(CRuntime_DigitalMars)
     enum
     {
         ///
-        O_RDONLY = 0x000,
-        ///
-        O_WRONLY = 0x001,
-        ///
-        O_RDWR   = 0x002,
-        ///
-        O_APPEND = 0x008,
-        ///
-        O_CREAT  = 0x100,
-        ///
-        O_TRUNC  = 0x200,
-        ///
-        O_EXCL   = 0x400,
-    }
-
-    enum
-    {
-        ///
-        S_IREAD = 0x0100,
-        ///
-        S_IWRITE = 0x0080,
-    }
-
-    enum
-    {
-        ///
         STDIN_FILENO  = 0,
         ///
         STDOUT_FILENO = 1,
@@ -1257,10 +1233,72 @@ version(CRuntime_DigitalMars)
         STDERR_FILENO = 2,
     }
 
-    ///
-    int open(const(char)* filename, int flags, ...);
-    ///
-    int close(int fd);
-    ///
-    FILE *fdopen(int fd, const(char)* flags);
+    int open(const(char)* filename, int flags, ...); ///
+    alias _open = open; ///
+    int _wopen(const wchar* filename, int oflag, ...); ///
+    int sopen(const char* filename, int oflag, int shflag, ...); ///
+    alias _sopen = sopen; ///
+    int _wsopen(const wchar* filename, int oflag, int shflag, ...); ///
+    int close(int fd); ///
+    alias _close = close; ///
+    FILE *fdopen(int fd, const(char)* flags); ///
+    alias _fdopen = fdopen; ///
+    FILE *_wfdopen(int fd, const(wchar)* flags); ///
+
+}
+else version (CRuntime_Microsoft)
+{
+    int _open(const char* filename, int oflag, ...); ///
+    int _wopen(const wchar* filename, int oflag, ...); ///
+    int _sopen(const char* filename, int oflag, int shflag, ...); ///
+    int _wsopen(const wchar* filename, int oflag, int shflag, ...); ///
+    int _close(int fd); ///
+    FILE *_fdopen(int fd, const(char)* flags); ///
+    FILE *_wfdopen(int fd, const(wchar)* flags); ///
+}
+
+version (Windows)
+{
+    // file open flags
+    enum
+    {
+        _O_RDONLY = 0x0000, ///
+        O_RDONLY = _O_RDONLY, ///
+        _O_WRONLY = 0x0001, ///
+        O_WRONLY = _O_WRONLY, ///
+        _O_RDWR   = 0x0002, ///
+        O_RDWR = _O_RDWR, ///
+        _O_APPEND = 0x0008, ///
+        O_APPEND = _O_APPEND, ///
+        _O_CREAT  = 0x0100, ///
+        O_CREAT = _O_CREAT, ///
+        _O_TRUNC  = 0x0200, ///
+        O_TRUNC = _O_TRUNC, ///
+        _O_EXCL   = 0x0400, ///
+        O_EXCL = _O_EXCL, ///
+        _O_TEXT   = 0x4000, ///
+        O_TEXT = _O_TEXT, ///
+        _O_BINARY = 0x8000, ///
+        O_BINARY = _O_BINARY, ///
+    }
+
+    enum
+    {
+        _S_IREAD  = 0x0100, /// read permission, owner
+        S_IREAD = _S_IREAD, /// read permission, owner
+        _S_IWRITE = 0x0080, /// write permission, owner
+        S_IWRITE = _S_IWRITE, /// write permission, owner
+    }
+
+    enum
+    {
+        _SH_DENYRW = 0x10, /// deny read/write mode
+        SH_DENYRW = _SH_DENYRW, /// deny read/write mode
+        _SH_DENYWR = 0x20, /// deny write mode
+        SH_DENYWR = _SH_DENYWR, /// deny write mode
+        _SH_DENYRD = 0x30, /// deny read mode
+        SH_DENYRD = _SH_DENYRD, /// deny read mode
+        _SH_DENYNO = 0x40, /// deny none mode
+        SH_DENYNO = _SH_DENYNO, /// deny none mode
+    }
 }

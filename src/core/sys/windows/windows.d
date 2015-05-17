@@ -517,6 +517,7 @@ BOOL   MoveFileA(in char *from, in char *to);
 BOOL   MoveFileW(LPCWSTR lpExistingFileName, LPCWSTR lpNewFileName);
 BOOL   ReadFile(HANDLE hFile, void *lpBuffer, DWORD nNumberOfBytesToRead,
     DWORD *lpNumberOfBytesRead, OVERLAPPED *lpOverlapped);
+BOOL   SetEndOfFile(in HANDLE file);
 BOOL   SetFileAttributesA(in LPCSTR lpFileName, DWORD dwFileAttributes);
 BOOL   SetFileAttributesW(in LPCWSTR lpFileName, DWORD dwFileAttributes);
 DWORD  SetFilePointer(HANDLE hFile, LONG lDistanceToMove,
@@ -3959,23 +3960,4 @@ LPWSTR lstrcpynW(LPWSTR lpString1, LPCWSTR lpString2, int iMaxLength);
 
 int lstrlenA(LPCSTR lpString);
 int lstrlenW(LPCWSTR lpString);
-}
-
-enum
-{
-    _S_IREAD  = 0x0100, // read permission, owner
-    _S_IWRITE = 0x0080, // write permission, owner
-}
-
-enum
-{
-    _SH_DENYRW = 0x10, // deny read/write mode
-    _SH_DENYWR = 0x20, // deny write mode
-    _SH_DENYRD = 0x30, // deny read mode
-    _SH_DENYNO = 0x40, // deny none mode
-}
-
-extern(C) @nogc
-{
-    int _wsopen(const wchar* filename, int oflag, int shflag, ...);
 }
