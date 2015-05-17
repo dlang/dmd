@@ -637,7 +637,7 @@ public:
     TemplateDeclaration *td;
     TOK tok;
 
-    FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
+    FuncExp(Loc loc, Dsymbol *s);
     void genIdent(Scope *sc);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
