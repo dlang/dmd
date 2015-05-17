@@ -445,7 +445,6 @@
             [
                 "aggregate",
                 "arraytypes",
-                "backend",
                 "declaration",
                 "dscope",
                 "dstruct",
@@ -1506,7 +1505,6 @@
                 "aggregate",
                 "arraytypes",
                 "attrib",
-                "backend",
                 "core.stdc.stdio",
                 "cppmangle",
                 "ctfeexpr",
@@ -2845,8 +2843,7 @@
                 "struct LineInitExp",
                 "struct ModuleInitExp",
                 "struct FuncInitExp",
-                "struct PrettyFuncInitExp",
-                "function createTypeInfoArray"
+                "struct PrettyFuncInitExp"
             ]
         },
         {
