@@ -659,6 +659,27 @@ void test14352()
 }
 
 /*****************************************/
+// Issue 14587 - DMD 2.067.1 generating crashing binary on OSX
+
+struct Card {
+    int value;
+    int suit;
+}
+
+void foo14587(Card card) {
+    switch(card.value) {
+    case 4: case 5: case 6: case 11:
+        break;
+    default:
+    }
+}
+
+void test14587() {
+    auto card = Card(11, 1);
+    foo14587(card);
+} 
+
+/*****************************************/
 
 int main()
 {
@@ -687,6 +708,7 @@ int main()
     test22();
     test23();
     test14352();
+    test14587();
 
     printf("Success\n");
     return 0;
