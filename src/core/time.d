@@ -139,7 +139,7 @@ version(unittest) T copy(T)(T t)
     $(D ClockType), whereas with $(D std.datetime.Clock.currTime), its a runtime
     argument, since in the case of the monotonic time, the type of the clock
     affects the resolution of a $(LREF MonoTimeImpl) object, whereas with
-    $(D XREF datetime, SysTime), its resolution is always hecto-nanoseconds
+    $(XREF datetime, SysTime), its resolution is always hecto-nanoseconds
     regardless of the source of the time.
 
     $(D ClockType.normal), $(D ClockType.coarse), and $(D ClockType.precise)
