@@ -397,11 +397,10 @@ class CppMangleVisitor : public Visitor
 
     void mangle_variable(VarDeclaration *d, bool is_temp_arg_ref)
     {
-
         if (!(d->storage_class & (STCextern | STCgshared)))
         {
-            d->error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
-            assert(0);
+            d->error("extern (C++) static non- __gshared non-extern variables not supported");
+            return;
         }
 
         Dsymbol *p = d->toParent();
@@ -509,13 +508,10 @@ class CppMangleVisitor : public Visitor
         }
         if (t->ty == Tsarray)
         {
-            // Mangle static arrays as pointers
-            t->error(mangler->loc, "Internal Compiler Error: unable to pass static array to extern(C++) function.");
-            t->error(mangler->loc, "Use pointer instead.");
-            assert(0);
-            //t = t->nextOf()->pointerTo();
+            t->error(mangler->loc, "extern (C++) static array parameters not supported");
+            errorSupplemental(mangler->loc, "For ABI compatibility, use a pointer type instead");
+            return 1;
         }
-
         /* If it is a basic, enum or struct type,
          * then don't mark it const
          */
@@ -567,15 +563,15 @@ public:
 
     void visit(Type *t)
     {
-        if (t->isImmutable() || t->isShared())
-        {
-            t->error(loc, "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", t->toChars());
-        }
+        if (t->isImmutable())
+            t->error(loc, "extern (C++) immutable types are not supported");
+        else if (t->isShared())
+            t->error(loc, "extern (C++) shared types are not supported");
         else
         {
             t->error(loc, "Internal Compiler Error: unsupported type %s\n", t->toChars());
+            assert(0);  // should be handled in frontend
         }
-        assert(0); //Assert, because this error should be handled in frontend
     }
 
     void visit(TypeBasic *t)
@@ -946,15 +942,15 @@ public:
 
     void visit(Type *type)
     {
-        if (type->isImmutable() || type->isShared())
-        {
-            type->error(loc, "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", type->toChars());
-        }
+        if (type->isImmutable())
+            type->error(loc, "extern (C++) immutable types are not supported");
+        else if (type->isShared())
+            type->error(loc, "extern (C++) shared types are not supported");
         else
         {
-            type->error(loc, "Internal Compiler Error: unsupported type %s\n", type->toChars());
+            type->error(loc, "Internal Compiler Error: unsupported type %s\n", t->toChars());
+            assert(0);  // should be handled in frontend
         }
-        assert(0); // Assert, because this error should be handled in frontend
     }
 
     void visit(TypeBasic *type)
@@ -1388,8 +1384,8 @@ private:
         assert(d);
         if (!(d->storage_class & (STCextern | STCgshared)))
         {
-            d->error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
-            assert(0);
+            d->error("extern (C++) static non- __gshared non-extern variables not supported");
+            return;
         }
         buf.writeByte('?');
         mangleIdent(d);
@@ -1813,9 +1809,9 @@ private:
         }
         if (t->ty == Tsarray)
         {
-            t->error(loc, "Internal Compiler Error: unable to pass static array to extern(C++) function.");
-            t->error(loc, "Use pointer instead.");
-            assert(0);
+            t->error(mangler->loc, "extern (C++) static array parameters not supported");
+            errorSupplemental(mangler->loc, "For ABI compatibility, use a pointer type instead");
+            return 1;
         }
         mangler->flags &= ~IS_NOT_TOP_TYPE;
         mangler->flags &= ~IGNORE_CONST;
