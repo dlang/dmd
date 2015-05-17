@@ -48,6 +48,7 @@ class CppMangleVisitor : public Visitor
 {
     Objects components;
     OutBuffer buf;
+    Loc loc;
     bool is_top_level;
     bool components_on;
 
@@ -509,8 +510,8 @@ class CppMangleVisitor : public Visitor
         if (t->ty == Tsarray)
         {
             // Mangle static arrays as pointers
-            t->error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
-            t->error(Loc(), "Use pointer instead.");
+            t->error(mangler->loc, "Internal Compiler Error: unable to pass static array to extern(C++) function.");
+            t->error(mangler->loc, "Use pointer instead.");
             assert(0);
             //t = t->nextOf()->pointerTo();
         }
@@ -540,7 +541,7 @@ class CppMangleVisitor : public Visitor
 
 public:
     CppMangleVisitor()
-        : buf(), components(), is_top_level(false), components_on(true)
+        : components(), buf(), loc(Loc()), is_top_level(false), components_on(true)
     {
     }
 
@@ -548,6 +549,7 @@ public:
     {
         VarDeclaration *vd = s->isVarDeclaration();
         FuncDeclaration *fd = s->isFuncDeclaration();
+        this->loc = s->loc;
         if (vd)
         {
             mangle_variable(vd, false);
@@ -567,11 +569,11 @@ public:
     {
         if (t->isImmutable() || t->isShared())
         {
-            t->error(Loc(), "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", t->toChars());
+            t->error(loc, "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", t->toChars());
         }
         else
         {
-            t->error(Loc(), "Internal Compiler Error: unsupported type %s\n", t->toChars());
+            t->error(loc, "Internal Compiler Error: unsupported type %s\n", t->toChars());
         }
         assert(0); //Assert, because this error should be handled in frontend
     }
@@ -920,10 +922,10 @@ class VisualCPPMangler : public Visitor
 
     int flags;
     OutBuffer buf;
+    Loc loc;
 
     VisualCPPMangler(VisualCPPMangler *rvl)
-        : buf(),
-        flags(0)
+        : flags(0), buf(), loc(Loc())
     {
         flags |= (rvl->flags & IS_DMC);
         memcpy(&saved_idents, &rvl->saved_idents, sizeof(const char*) * VC_SAVED_IDENT_CNT);
@@ -932,8 +934,7 @@ class VisualCPPMangler : public Visitor
 public:
 
     VisualCPPMangler(bool isdmc)
-        : buf(),
-        flags(0)
+        : flags(0), buf(), loc(Loc())
     {
         if (isdmc)
         {
@@ -947,11 +948,11 @@ public:
     {
         if (type->isImmutable() || type->isShared())
         {
-            type->error(Loc(), "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", type->toChars());
+            type->error(loc, "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", type->toChars());
         }
         else
         {
-            type->error(Loc(), "Internal Compiler Error: unsupported type %s\n", type->toChars());
+            type->error(loc, "Internal Compiler Error: unsupported type %s\n", type->toChars());
         }
         assert(0); // Assert, because this error should be handled in frontend
     }
@@ -1289,6 +1290,7 @@ public:
     {
         VarDeclaration *vd = s->isVarDeclaration();
         FuncDeclaration *fd = s->isFuncDeclaration();
+        this->loc = s->loc;
         if (vd)
         {
             mangleVariable(vd);
@@ -1811,8 +1813,8 @@ private:
         }
         if (t->ty == Tsarray)
         {
-            t->error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
-            t->error(Loc(), "Use pointer instead.");
+            t->error(loc, "Internal Compiler Error: unable to pass static array to extern(C++) function.");
+            t->error(loc, "Use pointer instead.");
             assert(0);
         }
         mangler->flags &= ~IS_NOT_TOP_TYPE;
