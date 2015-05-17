@@ -628,7 +628,6 @@ public:
         }
     }
 
-    void visit(ClassInfoDeclaration *d) {}
     void visit(TypeInfoDeclaration *d) {}
     void visit(PostBlitDeclaration *d) {}
 

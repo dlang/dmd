@@ -784,7 +784,6 @@ void emitComment(Dsymbol *s, OutBuffer *buf, Scope *sc)
         void visit(DtorDeclaration *) {}
         void visit(StaticCtorDeclaration *) {}
         void visit(StaticDtorDeclaration *) {}
-        void visit(ClassInfoDeclaration *) {}
         void visit(TypeInfoDeclaration *) {}
 
         void visit(Declaration *d)

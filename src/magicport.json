@@ -1598,7 +1598,6 @@
                 "struct OverDeclaration",
                 "struct VarDeclaration",
                 "struct SymbolDeclaration",
-                "struct ClassInfoDeclaration",
                 "struct TypeInfoDeclaration",
                 "struct TypeInfoStructDeclaration",
                 "struct TypeInfoClassDeclaration",

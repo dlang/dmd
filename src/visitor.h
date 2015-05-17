@@ -127,7 +127,6 @@ class AliasDeclaration;
 class OverDeclaration;
 class VarDeclaration;
 class SymbolDeclaration;
-class ClassInfoDeclaration;
 class ThisDeclaration;
 
 class TypeInfoDeclaration;
@@ -414,7 +413,6 @@ public:
     virtual void visit(OverDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(VarDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(SymbolDeclaration *s) { visit((Declaration *)s); }
-    virtual void visit(ClassInfoDeclaration *s) { visit((VarDeclaration *)s); }
     virtual void visit(ThisDeclaration *s) { visit((VarDeclaration *)s); }
 
     virtual void visit(TypeInfoDeclaration *s) { visit((VarDeclaration *)s); }

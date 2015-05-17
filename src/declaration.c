@@ -2119,25 +2119,6 @@ SymbolDeclaration::SymbolDeclaration(Loc loc, StructDeclaration *dsym)
     storage_class |= STCconst;
 }
 
-/********************************* ClassInfoDeclaration ****************************/
-
-ClassInfoDeclaration::ClassInfoDeclaration(ClassDeclaration *cd)
-    : VarDeclaration(Loc(), Type::typeinfoclass->type, cd->ident, NULL)
-{
-    this->cd = cd;
-    storage_class = STCstatic | STCgshared;
-}
-
-Dsymbol *ClassInfoDeclaration::syntaxCopy(Dsymbol *s)
-{
-    assert(0);          // should never be produced by syntax
-    return NULL;
-}
-
-void ClassInfoDeclaration::semantic(Scope *sc)
-{
-}
-
 /********************************* TypeInfoDeclaration ****************************/
 
 TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo, int internal)

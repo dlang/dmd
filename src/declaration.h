@@ -303,18 +303,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class ClassInfoDeclaration : public VarDeclaration
-{
-public:
-    ClassDeclaration *cd;
-
-    ClassInfoDeclaration(ClassDeclaration *cd);
-    Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
-
-    void accept(Visitor *v) { v->visit(this); }
-};
-
 class TypeInfoDeclaration : public VarDeclaration
 {
 public:
