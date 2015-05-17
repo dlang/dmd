@@ -253,11 +253,6 @@ Symbol *toSymbol(Dsymbol *s)
             result = vd->csym;
         }
 
-        void visit(ClassInfoDeclaration *cid)
-        {
-            cid->cd->accept(this);
-        }
-
         void visit(TypeInfoDeclaration *tid)
         {
             //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", tid->toChars(), tid->linkage);
