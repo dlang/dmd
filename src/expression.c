@@ -44,7 +44,6 @@
 
 bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2);
 bool isArrayOpValid(Expression *e);
-Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 TypeTuple *toArgTypes(Type *t);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
@@ -1912,8 +1911,18 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     if (tf->linkage == LINKd && tf->varargs == 1)
     {
         assert(arguments->dim >= nparams);
-        Expression *e = createTypeInfoArray(sc, (Expression **)&arguments->tdata()[nparams],
-                arguments->dim - nparams);
+
+        Parameters *args = new Parameters;
+        args->setDim(arguments->dim - nparams);
+        for (size_t i = 0; i < arguments->dim - nparams; i++)
+        {
+            Parameter *arg = new Parameter(STCin, (*arguments)[nparams + i]->type, NULL, NULL);
+            (*args)[i] = arg;
+        }
+
+        TypeTuple *tup = new TypeTuple(args);
+        Expression *e = new TypeidExp(loc, tup);
+        e = e->semantic(sc);
         arguments->insert(0, e);
     }
 
@@ -14140,33 +14149,4 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     de = de->semantic(sc);
     //printf("-de = %s, be = %s\n", de->toChars(), be->toChars());
     return Expression::combine(de, be);
-}
-
-/***************************************
- * Create a static array of TypeInfo references
- * corresponding to an array of Expression's.
- * Used to supply hidden _arguments[] value for variadic D functions.
- */
-
-Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
-{
-    /*
-     * Pass a reference to the TypeInfo_Tuple corresponding to the types of the
-     * arguments. Source compatibility is maintained by computing _arguments[]
-     * at the start of the called function by offseting into the TypeInfo_Tuple
-     * reference.
-     */
-    Parameters *args = new Parameters;
-    args->setDim(dim);
-    for (size_t i = 0; i < dim; i++)
-    {
-        Parameter *arg = new Parameter(STCin, exps[i]->type, NULL, NULL);
-        (*args)[i] = arg;
-    }
-    TypeTuple *tup = new TypeTuple(args);
-    Expression *e = getTypeInfo(tup, sc);
-    e = e->optimize(WANTvalue);
-    assert(e->op == TOKsymoff);         // should be SymOffExp
-
-    return e;
 }

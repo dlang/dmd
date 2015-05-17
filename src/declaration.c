@@ -27,8 +27,6 @@
 #include "ctfe.h"
 #include "target.h"
 
-Expression *getTypeInfo(Type *t, Scope *sc);
-
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
  * accessible from the current scope.
@@ -2048,7 +2046,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
                 Expressions *args = new Expressions();
                 args->push(ea);
 
-                Expression *et = getTypeInfo(type, sc);
+                Expression *et = new TypeidExp(loc, type);
                 et = new DotIdExp(loc, et, Id::destroy);
 
                 e = new CallExp(loc, et, args);
