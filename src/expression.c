@@ -48,7 +48,7 @@ Expression *expandVar(int result, VarDeclaration *v);
 TypeTuple *toArgTypes(Type *t);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 Symbol *toInitializer(AggregateDeclaration *ad);
-Expression *getTypeInfo(Type *t, Scope *sc);
+Type *getTypeInfoType(Type *t, Scope *sc);
 
 #define LOGSEMANTIC     0
 
@@ -6095,8 +6095,9 @@ Expression *TypeidExp::semantic(Scope *sc)
     {
         /* Get the dynamic type, which is .classinfo
          */
-        e = new DotIdExp(ea->loc, ea, Id::classinfo);
-        e = e->semantic(sc);
+        ea = ea->semantic(sc);
+        e = new TypeidExp(ea->loc, ea);
+        e->type = Type::typeinfoclass->type;
     }
     else if (ta->ty == Terror)
     {
@@ -6104,11 +6105,9 @@ Expression *TypeidExp::semantic(Scope *sc)
     }
     else
     {
-        /* Get the static type
-         */
-        e = getTypeInfo(ta, sc);
-        if (e->loc.linnum == 0)
-            e->loc = loc;               // so there's at least some line number info
+        // Handle this in the glue layer
+        e = new TypeidExp(loc, ta);
+        e->type = getTypeInfoType(ta, sc);
         if (ea)
         {
             e = new CommaExp(loc, ea, e);       // execute ea

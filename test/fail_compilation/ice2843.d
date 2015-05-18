@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice2843.d(22): Error: incompatible types for ((1) is (&typeid(int))): 'int' and 'object.TypeInfo'
+fail_compilation/ice2843.d(22): Error: incompatible types for ((1) is (typeid(int))): 'int' and 'object.TypeInfo'
 ---
 */
 

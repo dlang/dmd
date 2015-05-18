@@ -331,7 +331,8 @@ UnionExp copyLiteral(Expression *e)
         e->op == TOKvar || e->op == TOKdotvar ||
         e->op == TOKint64 || e->op == TOKfloat64 ||
         e->op == TOKchar || e->op == TOKcomplex80 ||
-        e->op == TOKvoid || e->op == TOKvector)
+        e->op == TOKvoid || e->op == TOKvector ||
+        e->op == TOKtypeid)
     {
         // Simple value types
         // Keep e1 for DelegateExp and DotVarExp
@@ -1207,7 +1208,7 @@ bool isCtfeComparable(Expression *e)
             return true;
         }
         // Bugzilla 14123: TypeInfo object is comparable in CTFE
-        if (e->op == TOKsymoff && ((SymOffExp *)e)->var->isTypeInfoDeclaration())
+        if (e->op == TOKtypeid)
             return true;
 
         return false;
@@ -1417,6 +1418,16 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
             ((ClassReferenceExp *)e1)->value == ((ClassReferenceExp *)e2)->value)
             return 0;
         return 1;
+    }
+    if (e1->op == TOKtypeid && e2->op == TOKtypeid)
+    {
+        // printf("e1: %s\n", e1->toChars());
+        // printf("e2: %s\n", e2->toChars());
+        Type *t1 = isType(((TypeidExp *)e1)->obj);
+        Type *t2 = isType(((TypeidExp *)e2)->obj);
+        assert(t1);
+        assert(t2);
+        return t1 != t2;
     }
 
     // null == null, regardless of type
@@ -2172,6 +2183,11 @@ bool isCtfeValueValid(Expression *newval)
         // function pointer, or pointer to static variable
         Declaration *d = ((SymOffExp *)newval)->var;
         return d->isFuncDeclaration() || d->isDataseg();
+    }
+    if (newval->op == TOKtypeid)
+    {
+        // always valid
+        return true;
     }
     if (newval->op == TOKaddress)
     {

@@ -895,6 +895,19 @@ Expression *doInline(Expression *e, InlineDoState *ids)
             visit((Expression *)e);
         }
 
+        void visit(TypeidExp *e)
+        {
+            //printf("TypeidExp::doInline(): %s\n", e->toChars());
+            TypeidExp *te = (TypeidExp *)e->copy();
+            if (Expression *ex = isExpression(te->obj))
+            {
+                te->obj = doInline(ex, ids);
+            }
+            else
+                assert(isType(te->obj));
+            result = te;
+        }
+
         void visit(NewExp *e)
         {
             //printf("NewExp::doInline(): %s\n", e->toChars());

@@ -2543,6 +2543,45 @@ public:
     #endif
     }
 
+    void visit(TypeidExp *e)
+    {
+    #if LOG
+        printf("%s TypeidExp::interpret() %s\n", e->loc.toChars(), e->toChars());
+    #endif
+        if (Type *t = isType(e->obj))
+        {
+            result = e;
+            return;
+        }
+        if (Expression *ex = isExpression(e->obj))
+        {
+            result = interpret(ex, istate);
+            if (exceptionOrCant(ex))
+                return;
+
+            if (result->op == TOKnull)
+            {
+                e->error("null pointer dereference evaluating typeid. '%s' is null", ex->toChars());
+                result = CTFEExp::cantexp;
+                return;
+            }
+            if (result->op != TOKclassreference)
+            {
+                e->error("CTFE internal error: determining classinfo");
+                result = CTFEExp::cantexp;
+                return;
+            }
+
+            ClassDeclaration *cd = ((ClassReferenceExp *)result)->originalClass();
+            assert(cd);
+
+            result = new TypeidExp(e->loc, cd->type);
+            result->type = e->type;
+            return;
+        }
+        visit((Expression *)e);
+    }
+
     void visit(TupleExp *e)
     {
     #if LOG
@@ -4690,36 +4729,39 @@ public:
                 pthis = ((DotTypeExp *)dve->e1)->e1;
 
             // Special handling for: typeid(T[n]).destroy(ea)
-            TypeInfoDeclaration *tid;
-            if (pthis->op == TOKsymoff &&
-                (tid = ((SymOffExp *)pthis)->var->isTypeInfoDeclaration()) != NULL &&
-                tid->tinfo->toBasetype()->ty == Tsarray &&
-                fd->ident == Id::destroy &&
-                e->arguments->dim == 1)
+            if (pthis->op == TOKtypeid)
             {
-                Type *tb = tid->tinfo->baseElemOf();
-                if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->dtor)
+                TypeidExp *tie = (TypeidExp *)pthis;
+                Type *t = isType(tie->obj);
+                if (t &&
+                    t->toBasetype()->ty == Tsarray &&
+                    fd->ident == Id::destroy &&
+                    e->arguments->dim == 1)
                 {
-                    Expression *ea = (*e->arguments)[0];
-                    // ea would be:
-                    //  &var        <-- SymOffExp
-                    //  cast(void*)&var
-                    //  cast(void*)&this.field
-                    //  etc.
-                    if (ea->op == TOKcast)
-                        ea = ((CastExp *)ea)->e1;
-                    if (ea->op == TOKsymoff)
-                        result = getVarExp(e->loc, istate, ((SymOffExp *)ea)->var, ctfeNeedRvalue);
-                    else if (ea->op == TOKaddress)
-                        result = interpret(((AddrExp *)ea)->e1, istate);
-                    else
-                        assert(0);
-                    if (CTFEExp::isCantExp(result))
+                    Type *tb = t->baseElemOf();
+                    if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->dtor)
+                    {
+                        Expression *ea = (*e->arguments)[0];
+                        // ea would be:
+                        //  &var        <-- SymOffExp
+                        //  cast(void*)&var
+                        //  cast(void*)&this.field
+                        //  etc.
+                        if (ea->op == TOKcast)
+                            ea = ((CastExp *)ea)->e1;
+                        if (ea->op == TOKsymoff)
+                            result = getVarExp(e->loc, istate, ((SymOffExp *)ea)->var, ctfeNeedRvalue);
+                        else if (ea->op == TOKaddress)
+                            result = interpret(((AddrExp *)ea)->e1, istate);
+                        else
+                            assert(0);
+                        if (CTFEExp::isCantExp(result))
+                            return;
+                        result = evaluateDtor(istate, result);
+                        if (!result)
+                            result = CTFEExp::voidexp;
                         return;
-                    result = evaluateDtor(istate, result);
-                    if (!result)
-                        result = CTFEExp::voidexp;
-                    return;
+                    }
                 }
             }
         }
@@ -4771,15 +4813,11 @@ public:
             // Currently this is satisfied because closure is not yet supported.
             assert(!fd->isNested());
 
-            // 'typeid(T)' for the class type T is kept as SymOffExp.
-            // Therefore try to resolve it here and report CTFE error.
-            if (pthis->op == TOKsymoff)
+            if (pthis->op == TOKtypeid)
             {
-                VarDeclaration *vthis = ((SymOffExp *)pthis)->var->isVarDeclaration();
-                assert(vthis);
-                pthis = getVarExp(e->loc, istate, vthis, ctfeNeedLvalue);
-                if (exceptionOrCant(pthis))
-                    return;
+                pthis->error("static variable %s cannot be read at compile time", pthis->toChars());
+                result = CTFEExp::cantexp;
+                return;
             }
             assert(pthis);
 
@@ -5772,36 +5810,6 @@ public:
                         return;
                 }
             }
-        }
-
-        // Check for .classinfo, which is lowered in the semantic pass into **(class).
-        if (e->e1->op == TOKstar && e->e1->type->ty == Tpointer && isTypeInfo_Class(e->e1->type->nextOf()))
-        {
-            result = interpret(((PtrExp *)e->e1)->e1, istate);
-            if (exceptionOrCant(result))
-                return;
-            if (result->op == TOKnull)
-            {
-                e->error("null pointer dereference evaluating typeid. '%s' is null", ((PtrExp *)e->e1)->e1->toChars());
-                result = CTFEExp::cantexp;
-                return;
-            }
-            if (result->op != TOKclassreference)
-            {
-                e->error("CTFE internal error: determining classinfo");
-                result = CTFEExp::cantexp;
-                return;
-            }
-            ClassDeclaration *cd = ((ClassReferenceExp *)result)->originalClass();
-            assert(cd);
-
-            // Create the classinfo, if it doesn't yet exist.
-            // TODO: This belongs in semantic, CTFE should not have to do this.
-            if (!cd->vclassinfo)
-                cd->vclassinfo = new TypeInfoClassDeclaration(cd->type);
-            result = new SymOffExp(e->loc, cd->vclassinfo, 0);
-            result->type = e->type;
-            return;
         }
 
         // It's possible we have an array bounds error. We need to make sure it

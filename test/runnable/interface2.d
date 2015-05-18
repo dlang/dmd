@@ -1036,6 +1036,38 @@ void test11034()
 
 /*******************************************************/
 
+void testTypeid()
+{
+    interface I
+    {
+    }
+
+    interface J : I
+    {
+    }
+
+    class C : J
+    {
+    }
+
+    class D : C
+    {
+    }
+
+    D d = new D();
+    Object o = d;
+    I i = d;
+
+    assert(typeid(typeof(o)) is typeid(Object));
+    assert(typeid(o) is typeid(D));
+    assert(o.classinfo is typeid(D));
+    assert(typeid(typeof(i)) is typeid(I));
+    assert(typeid(i) !is typeid(J));
+    assert(i.classinfo !is typeid(J));
+}
+
+/*******************************************************/
+
 int main()
 {
     test1();
@@ -1067,6 +1099,7 @@ int main()
     test27();
     test2553();
     test11034();
+    testTypeid();
 
     printf("Success\n");
     return 0;

@@ -1122,6 +1122,33 @@ elem *toElem(Expression *e, IRState *irs)
         /***************************************
          */
 
+        void visit(TypeidExp *e)
+        {
+            //printf("TypeidExp::toElem() %s\n", e->toChars());
+            if (Type *t = isType(e->obj))
+            {
+                result = getTypeInfo(t, irs);
+                return;
+            }
+            if (Expression *ex = isExpression(e->obj))
+            {
+                Type *t = ex->type->toBasetype();
+                assert(t->ty == Tclass);
+                // generate **classptr to get the classinfo
+                result = toElem(ex, irs);
+                result = el_una(OPind,TYnptr,result);
+                result = el_una(OPind,TYnptr,result);
+                // Add extra indirection for interfaces
+                if (((TypeClass *)t)->sym->isInterfaceDeclaration())
+                    result = el_una(OPind,TYnptr,result);
+                return;
+            }
+            assert(0);
+        }
+
+        /***************************************
+         */
+
         void visit(ThisExp *te)
         {
             //printf("ThisExp::toElem()\n");
