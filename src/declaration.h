@@ -514,6 +514,8 @@ public:
     FuncDeclaration *fdrequire;         // function that does the in contract
     FuncDeclaration *fdensure;          // function that does the out contract
 
+    const char *mangleString;           // mangled symbol created from mangleExact()
+
     Identifier *outId;                  // identifier for out statement
     VarDeclaration *vresult;            // variable corresponding to outId
     LabelDsymbol *returnLabel;          // where the return goes

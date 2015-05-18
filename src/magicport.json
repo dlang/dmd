@@ -3016,6 +3016,7 @@
                 "dstruct",
                 "dsymbol",
                 "dtemplate",
+                "errors",
                 "expression",
                 "func",
                 "id",
