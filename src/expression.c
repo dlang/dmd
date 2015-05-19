@@ -6594,33 +6594,48 @@ Expression *BinExp::binSemanticProp(Scope *sc)
     return NULL;
 }
 
-Expression *BinExp::checkComplexOpAssign(Scope *sc)
+Expression *BinExp::checkOpAssignTypes(Scope *sc)
 {
+    // At that point t1 and t2 are the merged types. type is the original type of the lhs.
+    Type *t1 = e1->type;
+    Type *t2 = e2->type;
+
+    // T opAssign floating yields a floating. Prevent truncating conversions (float to int).
+    // See issue 3841.
+    // Should we also prevent double to float (type->isfloating() && type->size() < t2 ->size()) ?
+    if (op == TOKmulass || op == TOKdivass || op == TOKmodass || TOKaddass || op == TOKminass || op == TOKpowass)
+    {
+        if ((type->isintegral() && t2->isfloating()))
+        {
+            warning("%s %s %s is performing truncating conversion",
+                    type->toChars(), Token::toChars(op), t2->toChars());
+        }
+    }
+
     // generate an error if this is a nonsensical *=,/=, or %=, eg real *= imaginary
     if (op == TOKmulass || op == TOKdivass || op == TOKmodass)
     {
         // Any multiplication by an imaginary or complex number yields a complex result.
         // r *= c, i*=c, r*=i, i*=i are all forbidden operations.
         const char *opstr = Token::toChars(op);
-        if (e1->type->isreal() && e2->type->iscomplex())
+        if (t1->isreal() && t2->iscomplex())
         {
             error("%s %s %s is undefined. Did you mean %s %s %s.re ?",
-                e1->type->toChars(), opstr, e2->type->toChars(),
-                e1->type->toChars(), opstr, e2->type->toChars());
+                t1->toChars(), opstr, t2->toChars(),
+                t1->toChars(), opstr, t2->toChars());
             return new ErrorExp();
         }
-        else if (e1->type->isimaginary() && e2->type->iscomplex())
+        else if (t1->isimaginary() && t2->iscomplex())
         {
             error("%s %s %s is undefined. Did you mean %s %s %s.im ?",
-                e1->type->toChars(), opstr, e2->type->toChars(),
-                e1->type->toChars(), opstr, e2->type->toChars());
+                t1->toChars(), opstr, t2->toChars(),
+                t1->toChars(), opstr, t2->toChars());
             return new ErrorExp();
         }
-        else if ((e1->type->isreal() || e1->type->isimaginary()) &&
-            e2->type->isimaginary())
+        else if ((t1->isreal() || t1->isimaginary()) &&
+            t2->isimaginary())
         {
-            error("%s %s %s is an undefined operation", e1->type->toChars(),
-                    opstr, e2->type->toChars());
+            error("%s %s %s is an undefined operation", t1->toChars(), opstr, t2->toChars());
             return new ErrorExp();
         }
     }
@@ -6630,26 +6645,24 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
     {
         // Addition or subtraction of a real and an imaginary is a complex result.
         // Thus, r+=i, r+=c, i+=r, i+=c are all forbidden operations.
-        if ((e1->type->isreal() && (e2->type->isimaginary() || e2->type->iscomplex())) ||
-            (e1->type->isimaginary() && (e2->type->isreal() || e2->type->iscomplex())))
+        if ((t1->isreal() && (t2->isimaginary() || t2->iscomplex())) ||
+            (t1->isimaginary() && (t2->isreal() || t2->iscomplex())))
         {
             error("%s %s %s is undefined (result is complex)",
-                e1->type->toChars(), Token::toChars(op), e2->type->toChars());
+                t1->toChars(), Token::toChars(op), t2->toChars());
             return new ErrorExp();
         }
         if (type->isreal() || type->isimaginary())
         {
-            assert(global.errors || e2->type->isfloating());
-            e2 = e2->castTo(sc, e1->type);
+            assert(global.errors || t2->isfloating());
+            e2 = e2->castTo(sc, t1);
         }
     }
 
     if (op == TOKmulass)
     {
-        if (e2->type->isfloating())
+        if (t2->isfloating())
         {
-            Type *t1 = e1->type;
-            Type *t2 = e2->type;
             if (t1->isreal())
             {
                 if (t2->isimaginary() || t2->iscomplex())
@@ -6676,9 +6689,8 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
     }
     else if (op == TOKdivass)
     {
-        if (e2->type->isimaginary())
+        if (t2->isimaginary())
         {
-            Type *t1 = e1->type;
             if (t1->isreal())
             {
                 // x/iv = i(-x/v)
@@ -6691,16 +6703,16 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
             }
             else if (t1->isimaginary())
             {
-                Type *t2;
+                Type *t3;
                 switch (t1->ty)
                 {
-                    case Timaginary32: t2 = Type::tfloat32; break;
-                    case Timaginary64: t2 = Type::tfloat64; break;
-                    case Timaginary80: t2 = Type::tfloat80; break;
+                    case Timaginary32: t3 = Type::tfloat32; break;
+                    case Timaginary64: t3 = Type::tfloat64; break;
+                    case Timaginary80: t3 = Type::tfloat80; break;
                     default:
                         assert(0);
                 }
-                e2 = e2->castTo(sc, t2);
+                e2 = e2->castTo(sc, t3);
                 Expression *e = new AssignExp(loc, e1, e2);
                 e->type = t1;
                 return e;
@@ -6709,7 +6721,7 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
     }
     else if (op == TOKmodass)
     {
-        if (e2->type->iscomplex())
+        if (t2->iscomplex())
         {
             error("cannot perform modulo complex arithmetic");
             return new ErrorExp();
@@ -6845,7 +6857,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (e1->op == TOKerror || e2->op == TOKerror)
         return new ErrorExp();
 
-    e = checkComplexOpAssign(sc);
+    e = checkOpAssignTypes(sc);
     if (e->op == TOKerror)
         return e;
 
