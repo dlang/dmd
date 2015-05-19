@@ -1510,6 +1510,12 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             {
                 goto Lfail;
             }
+            // Bugzilla 14596: Tpointer --> T(s)array
+            if ((tob->ty == Tarray || tob->ty == Tsarray) && t1b->ty == Tpointer)
+            {
+                goto Lfail;
+            }
+
             // Bugzilla 10646: Tclass <--> (T[] or T[n])
             if (tob->ty == Tclass && (t1b->ty == Tarray || t1b->ty == Tsarray) ||
                 t1b->ty == Tclass && (tob->ty == Tarray || tob->ty == Tsarray))

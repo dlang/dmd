@@ -178,3 +178,17 @@ void test14093()
     Tuple14093!(int, "x", int, "y") point;
     auto newPoint = cast(Object)(point);
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_casting.d(192): Error: cannot cast expression p of type void* to char[]
+fail_compilation/fail_casting.d(193): Error: cannot cast expression p of type void* to char[2]
+---
+*/
+void test14596()
+{
+    void* p = null;
+    auto arr = cast(char[])p;
+    char[2] sarr = cast(char[2])p;
+}
