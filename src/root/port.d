@@ -25,8 +25,16 @@ extern (C++) struct Port
     enum ldbl_max = real.max;
     enum ldbl_nan = real.nan;
     enum ldbl_infinity = real.infinity;
-    static __gshared bool yl2x_supported = true;
-    static __gshared bool yl2xp1_supported = true;
+    version(DigitalMars)
+    {
+        static __gshared bool yl2x_supported = true;
+        static __gshared bool yl2xp1_supported = true;
+    }
+    else
+    {
+        static __gshared bool yl2x_supported = false;
+        static __gshared bool yl2xp1_supported = false;
+    }
     static __gshared real snan;
     static this()
     {
@@ -149,12 +157,14 @@ extern (C++) struct Port
 
     static void yl2x_impl(real* x, real* y, real* res)
     {
-        *res = yl2x(*x, *y);
+        version(DigitalMars)
+            *res = yl2x(*x, *y);
     }
 
     static void yl2xp1_impl(real* x, real* y, real* res)
     {
-        *res = yl2xp1(*x, *y);
+        version(DigitalMars)
+            *res = yl2xp1(*x, *y);
     }
 
     // Little endian
