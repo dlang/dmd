@@ -125,41 +125,33 @@ const char *findConfFile(const char *argv0, const char *inifile)
  * well as any entries in one of the specified section(s).
  *
  * Params:
- *      filename = path to config file
+ *      path = what @P will expand to
+ *      buffer[len] = contents of configuration file
  *      sections[] = section namesdimension of array of section names
  */
-void parseConfFile(const char *filename, Strings *sections)
+void parseConfFile(const char *path, size_t length, unsigned char *buffer, Strings *sections)
 {
-    const char *path = FileName::path(filename); // need path for @P macro
-#if LOG
-    printf("\tpath = '%s', filename = '%s'\n", path, filename);
-#endif
-
-    File file(filename);
-
-    if (file.read())
-        return; // error reading file
 
     // Parse into lines
     bool envsection = true;     // default is to read
 
     OutBuffer buf;
     bool eof = false;
-    for (size_t i = 0; i < file.len && !eof; i++)
+    for (size_t i = 0; i < length && !eof; i++)
     {
     Lstart:
         size_t linestart = i;
 
-        for (; i < file.len; i++)
+        for (; i < length; i++)
         {
-            switch (file.buffer[i])
+            switch (buffer[i])
             {
                 case '\r':
                     break;
 
                 case '\n':
                     // Skip if it was preceded by '\r'
-                    if (i && file.buffer[i - 1] == '\r')
+                    if (i && buffer[i - 1] == '\r')
                     {
                         i++;
                         goto Lstart;
@@ -184,8 +176,8 @@ void parseConfFile(const char *filename, Strings *sections)
 
         for (size_t k = 0; k < i - linestart; k++)
         {
-            // The line is file.buffer[linestart..i]
-            char *line = (char *)&file.buffer[linestart];
+            // The line is buffer[linestart..i]
+            char *line = (char *)&buffer[linestart];
             if (line[k] == '%')
             {
                 for (size_t j = k + 1; j < i - linestart; j++)

@@ -23,6 +23,8 @@
 #include "root.h"
 #include "async.h"
 #include "target.h"
+#include "file.h"
+#include "filename.h"
 
 #include "mars.h"
 #include "module.h"
@@ -52,7 +54,7 @@ static const char* parse_arch_arg(Strings *args, const char* arch);
 static const char* parse_conf_arg(Strings *args);
 
 const char *findConfFile(const char *argv0, const char *inifile);
-void parseConfFile(const char *filename, Strings *sections);
+void parseConfFile(const char *path, size_t len, unsigned char *buffer, Strings *sections);
 
 
 FILE *stdmsg;
@@ -574,13 +576,21 @@ int main(int iargc, const char *argv[])
         }
     }
 
+    // Read the configurarion file
+    File inifile(global.inifilename);
+    inifile.read();
+
+    /* Need path of configuration file, for use in expanding @P macro
+     */
+    const char *inifilepath = FileName::path(global.inifilename);
+
     Strings sections;
 
     /* Read the [Environment] section, so we can later
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    parseConfFile(global.inifilename, &sections);
+    parseConfFile(inifilepath, inifile.len, inifile.buffer, &sections);
 
     Strings dflags;
     getenv_setargv("DFLAGS", &dflags);
@@ -594,7 +604,7 @@ int main(int iargc, const char *argv[])
     char envsection[80];
     sprintf(envsection, "Environment%s", arch);
     sections.push(envsection);
-    parseConfFile(global.inifilename, &sections);
+    parseConfFile(inifilepath, inifile.len, inifile.buffer, &sections);
 
     getenv_setargv("DFLAGS", &arguments);
 
