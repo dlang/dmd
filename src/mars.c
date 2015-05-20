@@ -23,8 +23,6 @@
 #include "root.h"
 #include "async.h"
 #include "target.h"
-#include "file.h"
-#include "filename.h"
 
 #include "mars.h"
 #include "module.h"
