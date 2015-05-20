@@ -460,6 +460,7 @@ class Frop14549
 }
 
 // ----
+// regression case
 
 template Mix14549()
 {
@@ -476,4 +477,17 @@ class Bar14549
 {
     mixin Mix14549;
     int boo;
+}
+
+// ----
+// 14609 - regression case
+
+interface Foo14609(T)
+{
+    static if (is(T == int))
+        public int bar();
+}
+class Frop14609 : Foo14609!int
+{
+    public int bar() { return 0; }
 }
