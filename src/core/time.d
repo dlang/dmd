@@ -312,6 +312,51 @@ else
     static assert(0, "What are the clock types supported by this system?");
 }
 
+// private, used to translate clock type to proper argument to clock_xxx
+// functions on posix systems
+version(Posix)
+{
+    private auto _posixClock(ClockType clockType)
+    {
+        version(linux)
+        {
+            import core.sys.linux.time;
+            with(ClockType) final switch(clockType)
+            {
+            case bootTime: return CLOCK_BOOTTIME;
+            case coarse: return CLOCK_MONOTONIC_COARSE;
+            case normal: return CLOCK_MONOTONIC;
+            case precise: return CLOCK_MONOTONIC;
+            case processCPUTime: return CLOCK_PROCESS_CPUTIME_ID;
+            case raw: return CLOCK_MONOTONIC_RAW;
+            case threadCPUTime: return CLOCK_THREAD_CPUTIME_ID;
+            case second: assert(0);
+            }
+        }
+        else version(FreeBSD)
+        {
+            import core.sys.freebsd.time;
+            with(ClockType) final switch(clockType)
+            {
+            case coarse: return CLOCK_MONOTONIC_FAST;
+            case normal: return CLOCK_MONOTONIC;
+            case precise: return CLOCK_MONOTONIC_PRECISE;
+            case uptime: return CLOCK_UPTIME;
+            case uptimeCoarse: return CLOCK_UPTIME_FAST;
+            case uptimePrecise: return CLOCK_UPTIME_PRECISE;
+            case second: assert(0);
+            }
+        }
+        else
+            // It needs to be decided (and implemented in an appropriate
+            // version branch here) which clock types new platforms are going
+            // to support. Also, ClockType's documentation should be updated to
+            // mention it if a new platform uses anything that's not supported
+            // on all platforms..
+            assert(0, "What are the monotonic clock types supported by this system?");
+    }
+}
+
 unittest
 {
     // Make sure that the values are the same across platforms.
@@ -2083,6 +2128,34 @@ unittest
     }
 }
 
+// used in MonoTimeImpl
+private string _clockTypeName(ClockType clockType)
+{
+    final switch(clockType)
+    {
+        foreach(name; __traits(allMembers, ClockType))
+        {
+        case __traits(getMember, ClockType, name):
+            return name;
+        }
+    }
+    assert(0);
+}
+
+// used in MonoTimeImpl
+private size_t _clockTypeIdx(ClockType clockType)
+{
+    final switch(clockType)
+    {
+        foreach(i, name; __traits(allMembers, ClockType))
+        {
+        case __traits(getMember, ClockType, name):
+            return i;
+        }
+    }
+    assert(0);
+}
+
 
 /++
     alias for $(D MonoTimeImpl) instantiated with $(D ClockType.normal). This is
@@ -2141,25 +2214,8 @@ alias MonoTime = MonoTimeImpl!(ClockType.normal);
   +/
 struct MonoTimeImpl(ClockType clockType)
 {
-    // need this helper to get the index of the clock type in the array below
-    private static size_t _clockNameIndex()
-    {
-        foreach(i, strname; __traits(allMembers, ClockType))
-        {
-            mixin("alias val = ClockType." ~ strname ~ ";");
-            if(val == clockType)
-                return i;
-        }
-        assert(0);
-    }
-
-    private enum _clockIdx = _clockNameIndex();
-
-    unittest
-    {
-        mixin("alias val = ClockType." ~ __traits(allMembers, ClockType)[_clockIdx] ~ ";");
-        assert(val == clockType);
-    }
+    private enum _clockIdx = _clockTypeIdx(clockType);
+    private enum _clockName = _clockTypeName(clockType);
 
 @safe:
 
@@ -2169,7 +2225,7 @@ struct MonoTimeImpl(ClockType clockType)
                   clockType != ClockType.normal &&
                   clockType != ClockType.precise)
         {
-            static assert(0, "ClockType." ~ __traits(allMembers, ClockType)[_clockIdx] ~
+            static assert(0, "ClockType." ~ _clockName ~
                              " is not supported by MonoTimeImpl on this system.");
         }
     }
@@ -2179,46 +2235,13 @@ struct MonoTimeImpl(ClockType clockType)
                   clockType != ClockType.normal &&
                   clockType != ClockType.precise)
         {
-            static assert(0, "ClockType." ~ __traits(allMembers, ClockType)[_clockIdx] ~
+            static assert(0, "ClockType." ~ _clockName ~
                              " is not supported by MonoTimeImpl on this system.");
         }
     }
     else version(Posix)
     {
-        version(linux)
-        {
-            import core.sys.linux.time;
-            static if(clockType == ClockType.bootTime)            private alias clockArg = CLOCK_BOOTTIME;
-            else static if(clockType == ClockType.coarse)         private alias clockArg = CLOCK_MONOTONIC_COARSE;
-            else static if(clockType == ClockType.normal)         private alias clockArg = CLOCK_MONOTONIC;
-            else static if(clockType == ClockType.precise)        private alias clockArg = CLOCK_MONOTONIC;
-            else static if(clockType == ClockType.processCPUTime) private alias clockArg = CLOCK_PROCESS_CPUTIME_ID;
-            else static if(clockType == ClockType.raw)            private alias clockArg = CLOCK_MONOTONIC_RAW;
-            else static if(clockType == ClockType.threadCPUTime)  private alias clockArg = CLOCK_THREAD_CPUTIME_ID;
-            else static assert(0, "ClockType." ~ __traits(allMembers, ClockType)[_clockIdx] ~
-                                  " is not supported by MonoTimeImpl on this system.");
-        }
-        else version(FreeBSD)
-        {
-            import core.sys.freebsd.time;
-            static if(clockType == ClockType.coarse)             private alias clockArg = CLOCK_MONOTONIC_FAST;
-            else static if(clockType == ClockType.normal)        private alias clockArg = CLOCK_MONOTONIC;
-            else static if(clockType == ClockType.precise)       private alias clockArg = CLOCK_MONOTONIC_PRECISE;
-            else static if(clockType == ClockType.uptime)        private alias clockArg = CLOCK_UPTIME;
-            else static if(clockType == ClockType.uptimeCoarse)  private alias clockArg = CLOCK_UPTIME_FAST;
-            else static if(clockType == ClockType.uptimePrecise) private alias clockArg = CLOCK_UPTIME_PRECISE;
-            else static assert(0, "ClockType." ~ __traits(allMembers, ClockType)[_clockIdx] ~
-                                 " is not supported by MonoTimeImpl on this system.");
-        }
-        else
-        {
-            // It needs to be decided (and implemented in an appropriate
-            // version branch here) which clock types new platforms are
-            // going to support. Also, ClockType's documentation should be
-            // updated to mention it if a new platform uses anything that's
-            // not supported on all platforms..
-            static assert(0, "What are the monotonic clock types supported by this system?");
-        }
+        enum clockArg = _posixClock(clockType);
     }
     else
         static assert(0, "Unsupported platform");
@@ -2244,7 +2267,7 @@ struct MonoTimeImpl(ClockType clockType)
     {
         if(ticksPerSecond == 0)
         {
-            assert(0, "MonoTimeImpl!(ClockType." ~ __traits(allMembers, ClockType)[_clockIdx] ~
+            assert(0, "MonoTimeImpl!(ClockType." ~ _clockName ~
                       ") failed to get the frequency of the system's monotonic clock.");
         }
 
@@ -2594,11 +2617,8 @@ assert(before + timeElapsed == after).
         static if(clockType == ClockType.normal)
             return "MonoTime(" ~ numToString(_ticks) ~ " ticks, " ~ numToString(ticksPerSecond) ~ " ticks per second)";
         else
-        {
-            enum name = __traits(allMembers, ClockType)[_clockIdx];
-            return "MonoTimeImpl!(ClockType." ~ name ~ ")(" ~ numToString(_ticks) ~ " ticks, " ~
+            return "MonoTimeImpl!(ClockType." ~ _clockName ~ ")(" ~ numToString(_ticks) ~ " ticks, " ~
                    numToString(ticksPerSecond) ~ " ticks per second)";
-        }
     }
 
     unittest
@@ -2625,22 +2645,8 @@ assert(before + timeElapsed == after).
             enum len1 = "MonoTimeImpl!(ClockType.".length;
             assert(str[0 .. len1] == "MonoTimeImpl!(ClockType.");
 
-            string name;
-            final switch(clockType)
-            {
-                foreach(val; __traits(allMembers, ClockType))
-                {
-                    mixin("case ClockType." ~ val ~ ":");
-                    {
-                        name = val;
-                        break;
-                    }
-                }
-            }
-            assert(name.length > 0);
-
-            auto len2 = len1 + name.length;
-            assert(str[len1 .. len2] == name);
+            auto len2 = len1 + _clockName.length;
+            assert(str[len1 .. len2] == _clockName);
             assert(str[len2 .. len2 + 2] == ")(");
             str = str[len2 + 2 .. $];
         }
@@ -2673,14 +2679,26 @@ private:
 
 // This is supposed to be a static variable in MonoTimeImpl with the static
 // constructor being in there, but https://issues.dlang.org/show_bug.cgi?id=14517
-// prevents that from working. This is the workaround that Steven Schveighoffer
-// came up with. Once issue# 14517 has been fixed, this should be changed so
-// that _ticksPerSecond is a static long in MonoTimeImple rather than a static
-// array outside of it.
+// prevents that from working. However, moving it back to a static ctor will
+// reraise issues with other systems using MonoTime, so we should leave this
+// here even when that bug is fixed.
 private immutable long[__traits(allMembers, ClockType).length] _ticksPerSecond;
 
-@trusted shared static this()
+// This is called directly from the runtime initilization function (rt_init),
+// instead of using a static constructor. Other subsystems inside the runtime
+// (namely, the GC) may need time functionality, but cannot wait until the
+// static ctors have run. Therefore, we initialize these specially. Because
+// it's a normal function, we need to do some dangerous casting PLEASE take
+// care when modifying this function, and it should NOT be called except from
+// the runtime init.
+extern(C) void _d_initMonoTime()
 {
+    // We need a mutable pointer to the ticksPerSecond array. Although this
+    // would appear to break immutability, it is logically the same as a static
+    // ctor. So we should ONLY write these values once (we will check for 0
+    // values when setting to ensure this is truly only called once).
+    auto tps = cast(long[])_ticksPerSecond[];
+
     // If we try to do anything with ClockType in the documentation build, it'll
     // trigger the static assertions related to ClockType, since the
     // documentation build defines all of the possible ClockTypes, which won't
@@ -2694,7 +2712,12 @@ private immutable long[__traits(allMembers, ClockType).length] _ticksPerSecond;
         if(QueryPerformanceFrequency(&ticksPerSecond) != 0)
         {
             foreach(i, typeStr; __traits(allMembers, ClockType))
-                _ticksPerSecond[i] = ticksPerSecond;
+            {
+                // ensure we are only writing immutable data once
+                if(tps[i] != 0)
+                    assert(0, "_d_initMonoTime should only be called once!");
+                tps[i] = ticksPerSecond;
+            }
         }
         else
             assert(0, "Failed to get the frequency of the system's monotonic clock.");
@@ -2706,7 +2729,12 @@ private immutable long[__traits(allMembers, ClockType).length] _ticksPerSecond;
         {
             long ticksPerSecond = 1_000_000_000L * info.numer / info.denom;
             foreach(i, typeStr; __traits(allMembers, ClockType))
-                _ticksPerSecond[i] = ticksPerSecond;
+            {
+                // ensure we are only writing immutable data once
+                if(tps[i] != 0)
+                    assert(0, "_d_initMonoTime should only be called once!");
+                tps[i] = ticksPerSecond;
+            }
         }
         else
             assert(0, "Failed to get the frequency of the system's monotonic clock.");
@@ -2716,47 +2744,21 @@ private immutable long[__traits(allMembers, ClockType).length] _ticksPerSecond;
         timespec ts;
         foreach(i, typeStr; __traits(allMembers, ClockType))
         {
-            mixin("enum clockType = ClockType." ~ typeStr ~ ";");
-            static if(clockType != ClockType.second)
+            static if(typeStr != "second")
             {
-                // This needs to be kept in sync with the corresponding code at the
-                // top of MonoTimeImpl, since as long as we're forced to put the
-                // static constructor outside of MonoTimeImpl, we don't have access
-                // to clockArg.
-                version(linux)
-                {
-                    import core.sys.linux.time;
-                    static if(clockType == ClockType.bootTime)            alias clockArg = CLOCK_BOOTTIME;
-                    else static if(clockType == ClockType.coarse)         alias clockArg = CLOCK_MONOTONIC_COARSE;
-                    else static if(clockType == ClockType.normal)         alias clockArg = CLOCK_MONOTONIC;
-                    else static if(clockType == ClockType.precise)        alias clockArg = CLOCK_MONOTONIC;
-                    else static if(clockType == ClockType.processCPUTime) alias clockArg = CLOCK_PROCESS_CPUTIME_ID;
-                    else static if(clockType == ClockType.raw)            alias clockArg = CLOCK_MONOTONIC_RAW;
-                    else static if(clockType == ClockType.threadCPUTime)  alias clockArg = CLOCK_THREAD_CPUTIME_ID;
-                    else static assert(0, "ClockType." ~ typeStr ~ " is not supported by MonoTimeImpl on this system.");
-                }
-                else version(FreeBSD)
-                {
-                    import core.sys.freebsd.time;
-                    static if(clockType == ClockType.coarse)             alias clockArg = CLOCK_MONOTONIC_FAST;
-                    else static if(clockType == ClockType.normal)        alias clockArg = CLOCK_MONOTONIC;
-                    else static if(clockType == ClockType.precise)       alias clockArg = CLOCK_MONOTONIC_PRECISE;
-                    else static if(clockType == ClockType.uptime)        alias clockArg = CLOCK_UPTIME;
-                    else static if(clockType == ClockType.uptimeCoarse)  alias clockArg = CLOCK_UPTIME_FAST;
-                    else static if(clockType == ClockType.uptimePrecise) alias clockArg = CLOCK_UPTIME_PRECISE;
-                    else static assert(0, "ClockType." ~ typeStr ~ " is not supported by MonoTimeImpl on this system.");
-                }
-                else
-                    static assert(0, "What are the monotonic clock types supported by this system?");
-
+                enum clockArg = _posixClock(__traits(getMember, ClockType, typeStr));
                 if(clock_getres(clockArg, &ts) == 0)
                 {
+                    // ensure we are only writing immutable data once
+                    if(tps[i] != 0)
+                        assert(0, "_d_initMonoTime should only be called once!");
+
                     // For some reason, on some systems, clock_getres returns
                     // a resolution which is clearly wrong (it's a millisecond
                     // or worse, but the time is updated much more frequently
                     // than that). In such cases, we'll just use nanosecond
                     // resolution.
-                    _ticksPerSecond[i] = ts.tv_nsec >= 1000 ? 1_000_000_000L
+                    tps[i] = ts.tv_nsec >= 1000 ? 1_000_000_000L
                                                             : 1_000_000_000L / ts.tv_nsec;
                 }
                 else
