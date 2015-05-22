@@ -1164,6 +1164,7 @@ Ldone:
     TemplateInstance *ti;
     if (fbody &&
         (isFuncLiteralDeclaration() ||
+         (inferRetType && !isCtorDeclaration()) ||
          isInstantiated() && !isVirtualMethod() &&
          !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->tempdecl->ident != ident)))
     {
