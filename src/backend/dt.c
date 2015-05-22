@@ -300,6 +300,96 @@ dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset)
     return dtxoff(pdtend, s, offset);
 }
 
+/**************************************
+ * Repeat a list of dt_t's count times.
+ */
+dt_t **dtrepeat(dt_t **pdtend, dt_t *dt, size_t count)
+{
+    unsigned size = dt_size(dt);
+
+    if (dtallzeros(dt))
+        return dtnzeros(pdtend, size * count);
+
+    while (*pdtend)
+        pdtend = &((*pdtend)->DTnext);
+
+    if (count == 0)
+        return pdtend;
+
+    if (dtpointers(dt))
+    {
+        dt_t *dtp = NULL;
+        dt_t **pdt = &dtp;
+        for (size_t i = 0; i < count; ++i)
+        {
+            for (dt_t *dtn = dt; dtn; dtn = dtn->DTnext)
+            {
+                dt_t *dtx = dt_calloc(dtn->dt);
+                *dtx = *dtn;
+                dtx->DTnext = NULL;
+                switch (dtx->dt)
+                {
+                    case DT_abytes:
+                    case DT_nbytes:
+                        dtx->DTpbytes = (char *) MEM_PH_MALLOC(dtx->DTnbytes);
+                        memcpy(dtx->DTpbytes, dtn->DTpbytes, dtx->DTnbytes);
+                        break;
+                }
+
+                *pdt = dtx;
+                pdt = &dtx->DTnext;
+            }
+        }
+        *pdtend = dtp;
+        return pdt;
+    }
+
+    char *p = (char *)MEM_PH_MALLOC(size * count);
+    size_t offset = 0;
+
+    if (count)
+    {
+        for (dt_t *dtn = dt; dtn; dtn = dtn->DTnext)
+        {
+            switch (dtn->dt)
+            {
+                case DT_nbytes:
+                    memcpy(p + offset, dtn->DTpbytes, dtn->DTnbytes);
+                    offset += dtn->DTnbytes;
+                    break;
+                case DT_ibytes:
+                    memcpy(p + offset, dtn->DTdata, dtn->DTn);
+                    offset += dtn->DTn;
+                    break;
+                case DT_symsize:
+                case DT_azeros:
+                    memset(p + offset, 0, dtn->DTazeros);
+                    offset += dtn->DTazeros;
+                    break;
+                default:
+#ifdef DEBUG
+                    dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
+#endif
+                    assert(0);
+            }
+        }
+        assert(offset == size);
+    }
+
+    for (size_t i = 1; i < count; ++i)
+    {
+        memcpy(p + offset, p, size);
+        offset += size;
+    }
+
+    dt_t *dtx = dt_calloc(DT_nbytes);
+    dtx->DTnbytes = size * count;
+    dtx->DTpbytes = p;
+    *pdtend = dtx;
+    pdtend = &dtx->DTnext;
+    return pdtend;
+}
+
 /**************************
  * 'Optimize' a list of dt_t's.
  * (Try to collapse it into one DT_azeros object.)

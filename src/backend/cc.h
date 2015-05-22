@@ -1594,7 +1594,6 @@ extern Declar gdeclar;
  *                      w = symbol number (pointer for CPP)
  *                      a = offset
  *      DTcoff          offset into code segment
- *      DTend           mark end of list
  */
 
 struct dt_t
