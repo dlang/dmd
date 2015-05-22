@@ -258,6 +258,13 @@ static void encodeReal(Expression *e, unsigned char *buffer)
             *p = (double)e->toReal();
             break;
         }
+        case Tfloat80:
+        {
+            real_t *p = (real_t *)buffer;
+            *p = e->toReal();
+            break;
+        }
+
         default:
             assert(0);
     }
@@ -293,16 +300,17 @@ static Expression *decodeReal(Loc loc, Type *type, unsigned char *buffer)
 /******************************
  * Encode the given expression, which is assumed to be an rvalue literal
  * as another type for use in CTFE.
- * This corresponds roughly to the idiom *(Type *)&e.
+ * This corresponds roughly to the idiom ((Type *)&e)[offset] (i.e. *(Type *)&e for non-zero offset)
  */
 
-Expression *Target::paintAsType(Expression *e, Type *type)
+Expression *Target::paintAsType(Expression *e, Type *type, d_uns64 offset)
 {
     // We support up to 512-bit values.
+    // FIXME: this should be using alignas, there are no guarantees as such.
     unsigned char buffer[64];
 
     memset(buffer, 0, sizeof(buffer));
-    assert(e->type->size() == type->size());
+    assert((offset + 1) * type->size() <= e->type->size());
 
     // Write the expression into the buffer.
     switch (e->type->ty)
@@ -316,6 +324,7 @@ Expression *Target::paintAsType(Expression *e, Type *type)
 
         case Tfloat32:
         case Tfloat64:
+        case Tfloat80:
             encodeReal(e, buffer);
             break;
 
@@ -326,14 +335,19 @@ Expression *Target::paintAsType(Expression *e, Type *type)
     // Interpret the buffer as a new type.
     switch (type->ty)
     {
+        case Tint8:
+        case Tuns8:
+        case Tint16:
+        case Tuns16:
         case Tint32:
         case Tuns32:
         case Tint64:
         case Tuns64:
-            return decodeInteger(e->loc, type, buffer);
+            return decodeInteger(e->loc, type, buffer + offset * type->size());
 
         case Tfloat32:
         case Tfloat64:
+            assert(offset == 0);
             return decodeReal(e->loc, type, buffer);
 
         default:

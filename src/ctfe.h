@@ -220,7 +220,7 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
 bool isFloatIntPaint(Type *to, Type *from);
 
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
-Expression *paintFloatInt(Expression *fromVal, Type *to);
+Expression *paintFloatInt(Expression *fromVal, Type *to, d_uns64 offset);
 
 /// Return true if t is an AA
 bool isAssocArray(Type *t);
