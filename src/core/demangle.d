@@ -886,6 +886,9 @@ private struct Demangle
     FuncAttrNogc:
         Ni
 
+    FuncAttrReturn:
+        Nj
+
     Arguments:
         Argument
         Argument Arguments
@@ -979,6 +982,10 @@ private struct Demangle
             case 'i': // FuncAttrNogc
                 next();
                 put( "@nogc " );
+                continue;
+            case 'j': // FuncAttrReturn
+                next();
+                put( "return " );
                 continue;
             default:
                 error();
