@@ -972,8 +972,10 @@ private struct Demangle
                 continue;
             case 'g':
             case 'h':
+            case 'k':
                 // NOTE: The inout parameter type is represented as "Ng".
                 //       The vector parameter type is represented as "Nh".
+                //       The return parameter type is represented as "Nk".
                 //       These make it look like a FuncAttr, but infact
                 //       if we see these, then we know we're really in
                 //       the parameter list.  Rewind and break.
@@ -1023,6 +1025,17 @@ private struct Demangle
             {
                 next();
                 put( "scope " );
+            }
+            if( 'N' == tok() )
+            {
+                next();
+                if( 'k' == tok() ) // Return (Nk Parameter2)
+                {
+                    next();
+                    put( "return " );
+                }
+                else
+                    pos--;
             }
             switch( tok() )
             {
