@@ -34,9 +34,9 @@ LDFLAGS=-lm -lstdc++ -lpthread
 #ifeq (osx,$(OS))
 #	HOST_CC=clang++
 #else
-	HOST_CC=g++
+	HOST_CC=gcc
 #endif
-CC=$(HOST_CC) $(MODEL_FLAG)
+CC=$(HOST_CC) -x c++ $(MODEL_FLAG)
 GIT=git
 
 # Host D compiler for bootstrapping
@@ -84,7 +84,7 @@ WARNINGS := -Wall -Wextra \
 	-Wno-unused-value \
 	-Wno-unused-variable
 # GCC Specific
-ifeq ($(HOST_CC), g++)
+ifeq ($(HOST_CC), gcc)
 WARNINGS := $(WARNINGS) \
 	-Wno-logical-op \
 	-Wno-narrowing \
@@ -581,4 +581,4 @@ mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
 DSRC= $(GENSRC) $(MANUALSRC)
 
 ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a $(HOST_DC)
-	CC=$(HOST_CC) $(HOST_DC_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J.. -d $(DFLAGS)
+	CC=$(HOST_CC) -x c++ $(HOST_DC_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J.. -d $(DFLAGS)
