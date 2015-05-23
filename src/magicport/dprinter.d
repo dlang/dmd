@@ -416,6 +416,10 @@ class DPrinter : Visitor
             visitX(ast.type);
             print("()");
         }
+        else if (ast.type.id == "UnionExp")
+        {
+            print(" = void");
+        }
         if (!E)
         {
             if (ast.trailingcomment)
@@ -452,6 +456,10 @@ class DPrinter : Visitor
                 this.inittype = ast.types[i];
                 visitX(ast.inits[i]);
                 inittype = null;
+            }
+            else if (ast.types[i].id == "UnionExp")
+            {
+                print(" = void");
             }
         }
     }
