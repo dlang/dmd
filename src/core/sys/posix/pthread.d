@@ -162,8 +162,8 @@ else version( OSX )
         PTHREAD_EXPLICIT_SCHED  = 2
     }
 
-    enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
-    enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
+    enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t(0x32AAABA7);
+    enum PTHREAD_ONCE_INIT          = pthread_once_t(0x30b1bcba);
 
     enum
     {
