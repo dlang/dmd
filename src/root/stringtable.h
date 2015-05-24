@@ -52,6 +52,7 @@ public:
     StringValue *lookup(const char *s, size_t len);
     StringValue *insert(const char *s, size_t len);
     StringValue *update(const char *s, size_t len);
+    int apply(int (*fp)(StringValue *));
 
 private:
     uint32_t allocValue(const char *p, size_t length);

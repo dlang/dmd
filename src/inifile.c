@@ -31,6 +31,7 @@
 #include        "root.h"
 #include        "rmem.h"
 #include        "port.h"
+#include        "stringtable.h"
 
 #define LOG     0
 
@@ -116,19 +117,72 @@ const char *findConfFile(const char *argv0, const char *inifile)
     return filename;
 }
 
+/**********************************
+ * Read from environment, looking for cached value first.
+ */
+
+const char *readFromEnv(StringTable *environment, const char *name)
+{
+    size_t len = strlen(name);
+    StringValue *sv = environment->lookup(name, len);
+    if (sv)
+        return (const char *)sv->ptrvalue;   // get cached value
+
+    return getenv(name);
+}
+
+/*********************************
+ * Write to our copy of the environment, not the real environment
+ */
+
+static void writeToEnv(StringTable *environment, char *nameEqValue)
+{
+    char *p = strchr(nameEqValue, '=');
+    assert(p);
+    StringValue *sv = environment->insert(nameEqValue, p - nameEqValue);
+    sv->ptrvalue = (void *)(p + 1);
+}
+
+/************************************
+ * Update real enviroment with our copy.
+ */
+
+static int envput(StringValue *sv)
+{
+    const char *name = sv->toDchars();
+    size_t namelen = strlen(name);
+    const char *value = (const char *)sv->ptrvalue;
+    size_t valuelen = strlen(value);
+    char *s = (char *)malloc(namelen + 1 + valuelen + 1);
+    assert(s);
+    memcpy(s, name, namelen);
+    s[namelen] = '=';
+    memcpy(s + namelen + 1, value, valuelen);
+    s[namelen + 1 + valuelen] = 0;
+    //printf("envput('%s')\n", s);
+    putenv(s);
+
+    return 0;           // do all of them
+}
+
+void updateRealEnvironment(StringTable *environment)
+{
+    environment->apply(&envput);
+}
+
 /*****************************
  * Read and analyze .ini file.
- * Write the entries into the process environment as
+ * Write the entries into environment as
  * well as any entries in one of the specified section(s).
  *
  * Params:
+ *      environment = our own cache of the program environment
  *      path = what @P will expand to
  *      buffer[len] = contents of configuration file
  *      sections[] = section namesdimension of array of section names
  */
-void parseConfFile(const char *path, size_t length, unsigned char *buffer, Strings *sections)
+void parseConfFile(StringTable *environment, const char *path, size_t length, unsigned char *buffer, Strings *sections)
 {
-
     // Parse into lines
     bool envsection = true;     // default is to read
 
@@ -198,7 +252,7 @@ void parseConfFile(const char *path, size_t length, unsigned char *buffer, Strin
                         memcpy(p, &line[k + 1], len2);
                         p[len2] = 0;
                         Port::strupr(p);
-                        char *penv = getenv(p);
+                        const char *penv = readFromEnv(environment, p);
                         if (penv)
                             buf.writestring(penv);
                         free(p);
@@ -280,7 +334,7 @@ void parseConfFile(const char *path, size_t length, unsigned char *buffer, Strin
                         else if (p[0] == '?' && p[1] == '=')
                         {
                             *p = '\0';
-                            if (getenv(pn))
+                            if (readFromEnv(environment, pn))
                             {
                                 pn = NULL;
                                 break;
@@ -302,7 +356,7 @@ void parseConfFile(const char *path, size_t length, unsigned char *buffer, Strin
 
                     if (pn)
                     {
-                        putenv(strdup(pn));
+                        writeToEnv(environment, strdup(pn));
 #if LOG
                         printf("\tputenv('%s')\n", pn);
                         //printf("getenv(\"TEST\") = '%s'\n",getenv("TEST"));
@@ -312,7 +366,6 @@ void parseConfFile(const char *path, size_t length, unsigned char *buffer, Strin
                 break;
         }
     }
-    return;
 }
 
 /********************
