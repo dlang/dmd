@@ -130,6 +130,8 @@ dt_t *Initializer_toDt(Initializer *init)
                 n *= tsa->dim->toInteger();
             }
 
+            dt_t *dtdefault = NULL;
+
             dt_t **pdtend = &result;
             for (size_t i = 0; i < ai->dim; i++)
             {
@@ -138,8 +140,10 @@ dt_t *Initializer_toDt(Initializer *init)
                     pdtend = dtcat(pdtend, dt);
                 else
                 {
-                    for (size_t j = 0; j < n; j++)
-                        pdtend = Expression_toDt(edefault, pdtend);
+                    if (!dtdefault)
+                        Expression_toDt(edefault, &dtdefault);
+
+                    pdtend = dtrepeat(pdtend, dtdefault, n);
                 }
             }
             switch (tb->ty)
@@ -157,11 +161,10 @@ dt_t *Initializer_toDt(Initializer *init)
                         }
                         else
                         {
-                            for (size_t i = ai->dim; i < tadim; i++)
-                            {
-                                for (size_t j = 0; j < n; j++)
-                                    pdtend = Expression_toDt(edefault, pdtend);
-                            }
+                            if (!dtdefault)
+                                Expression_toDt(edefault, &dtdefault);
+
+                            pdtend = dtrepeat(pdtend, dtdefault, n * (tadim - ai->dim));
                         }
                     }
                     else if (ai->dim > tadim)
@@ -185,6 +188,7 @@ dt_t *Initializer_toDt(Initializer *init)
                 default:
                     assert(0);
             }
+            dt_free(dtdefault);
         }
 
         void visit(ExpInitializer *ei)
@@ -791,15 +795,7 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
             len /= ((StringExp *)e)->len;
         if (e->op == TOKarrayliteral)
             len /= ((ArrayLiteralExp *)e)->elements->dim;
-        if (dtallzeros(*pdt))
-            pdt = dtnzeros(pdt, dt_size(*pdt) * (len - 1));
-        else
-        {
-            for (size_t i = 1; i < len; i++)
-            {
-                pdt = Expression_toDt(e, pdt);
-            }
-        }
+        pdt = dtrepeat(pdt, *pdt, len - 1);
     }
     return pdt;
 }

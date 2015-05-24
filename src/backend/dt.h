@@ -21,6 +21,7 @@ dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset);
 dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset);
 dt_t **dtcoff(dt_t **pdtend,unsigned offset);
 dt_t ** dtcat(dt_t **pdtend,dt_t *dt);
+dt_t ** dtrepeat(dt_t **pdtend, dt_t *dt, size_t count);
 void dt_optimize(dt_t *dt);
 void dtsymsize(Symbol *);
 void init_common(Symbol *);
