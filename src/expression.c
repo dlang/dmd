@@ -8840,7 +8840,7 @@ Lagain:
         {
             s = ((TemplateExp *)e1)->td;
         L2:
-            f = resolveFuncCall(loc, sc, s, tiargs, NULL, arguments, 2);
+            f = resolveFuncCall(loc, sc, s, tiargs, NULL, arguments);
             if (!f || f->errors)
                 return new ErrorExp();
             if (f->needThis())
