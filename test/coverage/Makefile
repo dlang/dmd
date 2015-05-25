@@ -10,7 +10,7 @@ LINKDL:=
 SRC:=src
 ROOT:=./obj/$(OS)/$(MODEL)
 NORMAL_TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,basic))
-MERGE_TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,merge merge_false))
+MERGE_TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,merge merge_true))
 
 DIFF:=diff
 

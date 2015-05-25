@@ -314,11 +314,36 @@ struct Runtime
 
 
 private:
+
     // NOTE: This field will only ever be set in a static ctor and should
     //       never occur within any but the main thread, so it is safe to
     //       make it __gshared.
     __gshared ModuleUnitTester sm_moduleUnitTester = null;
 }
+
+/**
+ * Set source file path for coverage reports.
+ *
+ * Params:
+ *  path = The new path name.
+ */
+extern (C) void dmd_coverSourcePath(string path);
+
+/**
+ * Set output path for coverage reports.
+ *
+ * Params:
+ *  path = The new path name.
+ */
+extern (C) void dmd_coverDestPath(string path);
+
+/**
+ * Enable merging of coverage reports with existing data.
+ *
+ * Params:
+ *  merge = enable/disable coverage merge mode
+ */
+extern (C) void dmd_coverSetMerge(bool flag);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Overridable Callbacks

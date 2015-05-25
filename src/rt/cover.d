@@ -59,7 +59,7 @@ private
         Cover[] gdata;
         string  srcpath;
         string  dstpath;
-        bool    merge = true;
+        bool    merge;
     }
 }
 
