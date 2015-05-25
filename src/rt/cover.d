@@ -20,6 +20,7 @@ private
         import core.sys.posix.fcntl;
         import core.sys.posix.unistd;
     }
+    import core.stdc.config : c_long;
     import core.stdc.stdio;
     import core.stdc.stdlib;
     import rt.util.utf;
@@ -129,6 +130,25 @@ extern (C) void _d_cover_register( string filename, size_t[] valid, uint[] data 
     _d_cover_register2(filename, valid, data, 0);
 }
 
+private:
+
+// returns 0 if s isn't a number
+uint parseNum(const(char)[] s)
+{
+    while (s.length && s[0] == ' ')
+        s = s[1 .. $];
+    uint res;
+    while (s.length && s[0] >= '0' && s[0] <= '9')
+    {
+        res = 10 * res + s[0] - '0';
+        s = s[1 .. $];
+    }
+    return res;
+}
+
+T min(T)(T a, T b) { return a < b ? a : b; }
+T max(T)(T a, T b) { return b < a ? a : b; }
+
 shared static ~this()
 {
     if (!gdata.length) return;
@@ -136,126 +156,110 @@ shared static ~this()
     const NUMLINES = 16384 - 1;
     const NUMCHARS = 16384 * 16 - 1;
 
-    char[]      srcbuf      = new char[NUMCHARS];
-    char[][]    srclines    = new char[][NUMLINES];
-    char[]      lstbuf      = new char[NUMCHARS];
-    char[][]    lstlines    = new char[][NUMLINES];
+    auto buf = new char[NUMCHARS];
+    auto lines = new char[][NUMLINES];
 
-    foreach( Cover c; gdata )
+    foreach (c; gdata)
     {
-        if( !readFile( appendFN( srcpath, c.filename ), srcbuf ) )
+        auto fname = appendFN(dstpath, addExt(baseName(c.filename), "lst"));
+        auto flst = openOrCreateFile(fname);
+        if (flst is null)
             continue;
-        splitLines( srcbuf, srclines );
+        lockFile(fileno(flst)); // gets unlocked by fclose
+        scope(exit) fclose(flst);
 
-        if( merge )
+        if (merge && readFile(flst, buf))
         {
-            if( !readFile( appendFN(dstpath, addExt( baseName( c.filename ), "lst" )), lstbuf ) )
-                break;
-            splitLines( lstbuf, lstlines );
+            splitLines(buf, lines);
 
-            for( size_t i = 0; i < lstlines.length; ++i )
-            {
-                if( i >= c.data.length )
-                    break;
-
-                int count = 0;
-
-                foreach( char c2; lstlines[i] )
-                {
-                    switch( c2 )
-                    {
-                    case ' ':
-                        continue;
-                    case '0': case '1': case '2': case '3': case '4':
-                    case '5': case '6': case '7': case '8': case '9':
-                        count = count * 10 + c2 - '0';
-                        continue;
-                    default:
-                        break;
-                    }
-                }
-                c.data[i] += count;
-            }
+            foreach (i, line; lines[0 .. min($, c.data.length)])
+                c.data[i] += parseNum(line);
         }
 
-        FILE* flst = fopen( appendFN(dstpath, (addExt(baseName( c.filename ), "lst\0" ))).ptr, "wb" );
-
-        if( !flst )
-            continue; //throw new Exception( "Error opening file for write: " ~ lstfn );
+        if (!readFile(appendFN(srcpath, c.filename), buf))
+            continue;
+        splitLines(buf, lines);
 
         // Calculate the maximum number of digits in the line with the greatest
         // number of calls.
-        uint maxCallCount = 0;
-        foreach (i; 0..c.data.length)
-        {
-            if ( i < srclines.length )
-            {
-                const uint lineCallCount = c.data[i];
-                if (maxCallCount < lineCallCount)
-                    maxCallCount = lineCallCount;
-            }
-        }
+        uint maxCallCount;
+        foreach (n; c.data[0 .. min($, lines.length)])
+            maxCallCount = max(maxCallCount, n);
 
         // Make sure that there are a minimum of seven columns in each file so
         // that unless there are a very large number of calls, the columns in
         // each files lineup.
-        uint maxDigits = digits(maxCallCount);
-        if (maxDigits < 7)
-            maxDigits = 7;
+        immutable maxDigits = max(7, digits(maxCallCount));
 
         uint nno;
         uint nyes;
 
-        foreach (i; 0..c.data.length)
+        // rewind for overwriting
+        fseek(flst, 0, SEEK_SET);
+
+        foreach (i, n; c.data[0 .. min($, lines.length)])
         {
-            if( i < srclines.length )
+            auto line = lines[i];
+            line = expandTabs( line );
+
+            if (n == 0)
             {
-                uint    n    = c.data[i];
-                char[]  line = srclines[i];
-
-                line = expandTabs( line );
-
-                if( n == 0 )
+                if (c.valid[i])
                 {
-                    if( c.valid[i] )
-                    {
-                        nno++;
-                        fprintf( flst, "%0*u|%.*s\n", maxDigits, 0, cast(int)line.length, line.ptr );
-                    }
-                    else
-                    {
-                        fprintf( flst, "%*s|%.*s\n", maxDigits, " ".ptr, cast(int)line.length, line.ptr );
-                    }
+                    ++nno;
+                    fprintf(flst, "%0*u|%.*s\n", maxDigits, 0, cast(int)line.length, line.ptr);
                 }
                 else
                 {
-                    nyes++;
-                    fprintf( flst, "%*u|%.*s\n", maxDigits, n, cast(int)line.length, line.ptr );
+                    fprintf(flst, "%*s|%.*s\n", maxDigits, " ".ptr, cast(int)line.length, line.ptr);
                 }
             }
+            else
+            {
+                ++nyes;
+                fprintf(flst, "%*u|%.*s\n", maxDigits, n, cast(int)line.length, line.ptr);
+            }
         }
-        if( nyes + nno ) // no divide by 0 bugs
+
+        if (nyes + nno) // no divide by 0 bugs
         {
             uint percent = ( nyes * 100 ) / ( nyes + nno );
-            fprintf( flst, "%.*s is %d%% covered\n", cast(int)c.filename.length, c.filename.ptr, percent );
+            fprintf(flst, "%.*s is %d%% covered\n", cast(int)c.filename.length, c.filename.ptr, percent);
             if (percent < c.minPercent)
             {
-                fclose(flst);
                 fprintf(stderr, "Error: %.*s is %d%% covered, less than required %d%%\n",
                     cast(int)c.filename.length, c.filename.ptr, percent, c.minPercent);
                 exit(EXIT_FAILURE);
             }
         }
-        fclose( flst );
+
+        version (Windows)
+            SetEndOfFile(handle(fileno(flst)));
+        else
+            ftruncate(fileno(flst), ftell(flst));
     }
 }
 
-uint digits( uint number )
+uint digits(uint number)
 {
-    if (number < 10)
-        return 1;
+    import core.stdc.math;
+    return number ? cast(uint)floor(log10(number)) + 1 : 1;
+}
 
-    return digits(number / 10) + 1;
+unittest
+{
+    static void testDigits(uint num, uint dgts)
+    {
+        assert(digits(num) == dgts);
+        assert(digits(num - 1) == dgts - 1);
+        assert(digits(num + 1) == dgts);
+    }
+    assert(digits(0) == 1);
+    assert(digits(1) == 1);
+    testDigits(10, 2);
+    testDigits(1_000, 4);
+    testDigits(1_000_000, 7);
+    testDigits(1_000_000_000, 10);
 }
 
 string appendFN( string path, string name )
@@ -364,69 +368,79 @@ string chomp( string str, string delim = null )
     return str;
 }
 
-
-bool readFile( string name, ref char[] buf )
+// open/create file for read/write, pointer at beginning
+FILE* openOrCreateFile(string name)
 {
-    version( Windows )
-    {
-        auto    wnamez  = toUTF16z( name );
-        HANDLE  file    = CreateFileW( wnamez,
-                                       GENERIC_READ,
-                                       FILE_SHARE_READ,
-                                       null,
-                                       OPEN_EXISTING,
-                                       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-                                       cast(HANDLE) null );
+    import rt.util.utf : toUTF16z;
 
-        if( file == INVALID_HANDLE_VALUE )
-            return false;
-        scope( exit ) CloseHandle( file );
-
-        DWORD   num = 0;
-        DWORD   pos = 0;
-
-        buf.length = 4096;
-        while( true )
-        {
-            if( !ReadFile( file, &buf[pos], cast(DWORD)( buf.length - pos ), &num, null ) )
-                return false;
-            if( !num )
-                break;
-            pos += num;
-            buf.length = pos * 2;
-        }
-        buf.length = pos;
-        return true;
-    }
-    else version( Posix )
-    {
-        char[]  namez = new char[name.length + 1];
-                        namez[0 .. name.length] = name[];
-                        namez[$ - 1] = 0;
-        int     file = open( namez.ptr, O_RDONLY );
-
-        if( file == -1 )
-            return false;
-        scope( exit ) close( file );
-
-        uint pos = 0;
-
-        buf.length = 4096;
-        while( true )
-        {
-            auto num = read( file, &buf[pos], cast(uint)( buf.length - pos ) );
-            if( num == -1 )
-                return false;
-            if( !num )
-                break;
-            pos += num;
-            buf.length = pos * 2;
-        }
-        buf.length = pos;
-        return true;
-    }
+    version (Windows)
+        immutable fd = _wopen(toUTF16z(name), _O_RDWR | _O_CREAT | _O_BINARY, _S_IREAD | _S_IWRITE);
+    else
+        immutable fd = open((name ~ '\0').ptr, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    version (CRuntime_Microsoft)
+        alias fdopen = _fdopen;
+    version (Posix)
+        import core.sys.posix.stdio;
+    return fdopen(fd, "r+b");
 }
 
+version (Windows) HANDLE handle(int fd)
+{
+    version(CRuntime_DigitalMars)
+        return _fdToHandle(fd);
+    else
+        return cast(HANDLE)_get_osfhandle(fd);
+}
+
+void lockFile(int fd)
+{
+    version (Posix)
+        lockf(fd, F_LOCK, 0); // exclusive lock
+    else version (Windows)
+    {
+        OVERLAPPED off;
+        // exclusively lock first byte
+        LockFileEx(handle(fd), LOCKFILE_EXCLUSIVE_LOCK, 0, 1, 0, &off);
+    }
+    else
+        static assert(0, "unimplemented");
+}
+
+bool readFile(FILE* file, ref char[] buf)
+{
+    if (fseek(file, 0, SEEK_END) != 0)
+        assert(0, "fseek failed");
+    immutable len = ftell(file);
+    if (len == -1)
+        assert(0, "ftell failed");
+    else if (len == 0)
+        return false;
+
+    buf.length = len;
+    fseek(file, 0, SEEK_SET);
+    if (fread(buf.ptr, 1, buf.length, file) != buf.length)
+        assert(0, "fread failed");
+    if (fgetc(file) != EOF)
+        assert(0, "EOF not reached");
+    return true;
+}
+
+version(Windows) extern (C) nothrow @nogc FILE* _wfopen(in wchar* filename, in wchar* mode);
+version(Windows) extern (C) int chsize(int fd, c_long size);
+
+
+bool readFile(string name, ref char[] buf)
+{
+    import rt.util.utf : toUTF16z;
+
+    version (Windows)
+        auto file = _wfopen(toUTF16z(name), "rb"w.ptr);
+    else
+        auto file = fopen((name ~ '\0').ptr, "rb".ptr);
+    if (file is null) return false;
+    scope(exit) fclose(file);
+    return readFile(file, buf);
+}
 
 void splitLines( char[] buf, ref char[][] lines )
 {

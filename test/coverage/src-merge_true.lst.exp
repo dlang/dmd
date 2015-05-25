@@ -1,0 +1,7 @@
+       |import core.runtime;
+       |
+       |void main()
+       |{
+      2|    dmd_coverSetMerge(true);
+       |}
+src/merge_true.d is 100% covered
