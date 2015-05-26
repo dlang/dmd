@@ -2658,7 +2658,7 @@ elem *toElem(Expression *e, IRState *irs)
                         es = el_una(OPaddr, TYnptr, es);
                     es->Ety = TYnptr;
                     e = el_bin(OPeq, TYnptr, es, e);
-                    // BUG: type is struct, and e2 is TOKint64
+                    assert(!(t1b->ty == Tstruct && ae->e2->op == TOKint64));
 
                     el_setLoc(e, ae->loc);
                     result = e;
@@ -2716,6 +2716,8 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 if (ae->e2->op == TOKint64)
                 {
+                    assert(ae->op == TOKblit);
+
                     /* Implement:
                      *  (struct = 0)
                      * with:

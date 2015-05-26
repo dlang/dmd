@@ -624,6 +624,41 @@ void test14306() {
 }
 
 /**********************************/
+// 14606
+
+struct S14606
+{
+    this(long stdTime)
+    {
+        _stdTime = stdTime;
+    }
+
+    long _stdTime;
+}
+
+S14606 getS14606()
+{
+    S14606 sysTime = S14606(0);
+    return sysTime;
+}
+
+struct T14606
+{
+    this(string)
+    {
+        uint[3] arr;
+        s = getS14606();
+    }
+
+    S14606 s;
+}
+
+void test14606()
+{
+    auto t = T14606(null);
+}
+
+/**********************************/
 
 int main()
 {
@@ -646,6 +681,7 @@ int main()
     test11394();
     test13503();
     test14306();
+    test14606();
 
     printf("Success\n");
     return 0;
