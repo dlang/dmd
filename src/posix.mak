@@ -47,8 +47,8 @@ ifeq (,$(AUTO_BOOTSTRAP))
   ifeq (,$(HOST_DC_FULL))
     $(error '$(HOST_DC)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
   endif
+  HOST_DC_RUN:=$(HOST_DC)
   HOST_DC:=$(HOST_DC_FULL)
-  HOST_DC_RUN=$(HOST_DC)
 else
   # Auto-bootstrapping, will download dmd automatically
   HOST_DMD_VER=2.067.1
