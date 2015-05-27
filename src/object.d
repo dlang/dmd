@@ -1281,57 +1281,6 @@ class TypeInfo_Inout : TypeInfo_Const
     }
 }
 
-abstract class MemberInfo
-{
-    @property string name() nothrow pure;
-}
-
-class MemberInfo_field : MemberInfo
-{
-    this(string name, TypeInfo ti, size_t offset)
-    {
-        m_name = name;
-        m_typeinfo = ti;
-        m_offset = offset;
-    }
-
-    override @property string name() nothrow pure { return m_name; }
-    @property TypeInfo typeInfo() nothrow pure { return m_typeinfo; }
-    @property size_t offset() nothrow pure { return m_offset; }
-
-    string   m_name;
-    TypeInfo m_typeinfo;
-    size_t   m_offset;
-}
-
-class MemberInfo_function : MemberInfo
-{
-    enum
-    {
-        Virtual = 1,
-        Member  = 2,
-        Static  = 4,
-    }
-
-    this(string name, TypeInfo ti, void* fp, uint flags)
-    {
-        m_name = name;
-        m_typeinfo = ti;
-        m_fp = fp;
-        m_flags = flags;
-    }
-
-    override @property string name() nothrow pure { return m_name; }
-    @property TypeInfo typeInfo() nothrow pure { return m_typeinfo; }
-    @property void* fp() nothrow pure { return m_fp; }
-    @property uint flags() nothrow pure { return m_flags; }
-
-    string   m_name;
-    TypeInfo m_typeinfo;
-    void*    m_fp;
-    uint     m_flags;
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // ModuleInfo
