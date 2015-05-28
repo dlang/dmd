@@ -4377,7 +4377,7 @@ void TypeDArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         // It's really a slice expression
         if (Dsymbol *s = getDsymbol(*pe))
             *pe = new DsymbolExp(loc, s, 1);
-        *pe = new SliceExp(loc, *pe, NULL, NULL);
+        *pe = new ArrayExp(loc, *pe);
     }
     else if (*ps)
     {
@@ -8924,7 +8924,7 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
         // It's really a slice expression
         if (Dsymbol *s = getDsymbol(*pe))
             *pe = new DsymbolExp(loc, s, 1);
-        *pe = new SliceExp(loc, *pe, lwr, upr);
+        *pe = new ArrayExp(loc, *pe, new IntervalExp(loc, lwr, upr));
     }
     else if (*ps)
     {

@@ -2889,6 +2889,7 @@
             "imports" :
             [
                 "aggregate",
+                "aliasthis",
                 "arraytypes",
                 "core.stdc.stdio",
                 "core.stdc.string",
