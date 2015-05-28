@@ -10927,13 +10927,11 @@ Expression *AssignExp::semantic(Scope *sc)
         const bool maybeSlice =
             (ae->arguments->dim == 0 ||
              ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval);
-        Expression *lwr = NULL;
-        Expression *upr = NULL;
-        if (ae->arguments->dim)
+        IntervalExp *ie = NULL;
+        if (maybeSlice && ae->arguments->dim)
         {
-            IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
-            lwr = ie->lwr;
-            upr = ie->upr;
+            assert((*ae->arguments)[0]->op == TOKinterval);
+            ie = (IntervalExp *)(*ae->arguments)[0];
         }
 
         while (true)
@@ -10982,14 +10980,10 @@ Expression *AssignExp::semantic(Scope *sc)
         Lfallback:
             if (maybeSlice && search_function(ad, Id::sliceass))
             {
-                SliceExp *se = new SliceExp(loc, ae->e1, lwr, upr);
-
                 // Deal with $
-                Expression *e0x = NULL;
-                result = resolveOpDollar(sc, se, &e0x);
+                result = resolveOpDollar(sc, ae, ie, &e0);
                 if (result->op == TOKerror)
                     return result;
-                e0 = Expression::combine(e0, e0x);
 
                 result = e2->semantic(sc);
                 if (result->op == TOKerror)
@@ -11001,13 +10995,12 @@ Expression *AssignExp::semantic(Scope *sc)
                  */
                 Expressions *a = new Expressions();
                 a->push(e2);
-                assert(!se->lwr || se->upr);
-                if (se->lwr)
+                if (ie)
                 {
-                    a->push(se->lwr);
-                    a->push(se->upr);
+                    a->push(ie->lwr);
+                    a->push(ie->upr);
                 }
-                result = new DotIdExp(loc, se->e1, Id::sliceass);
+                result = new DotIdExp(loc, ae->e1, Id::sliceass);
                 result = new CallExp(loc, result, a);
                 result = result->semantic(sc);
                 result = Expression::combine(e0, result);
@@ -13958,7 +13951,6 @@ Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
  * Runs semantic on ae->arguments. Declares temporary variables
  * if '$' was used.
  */
-
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
 {
     assert(!ae->lengthVar);
@@ -14049,46 +14041,43 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
  * Runs semantic on se->lwr and se->upr. Declares a temporary variable
  * if '$' was used.
  */
-
-Expression *resolveOpDollar(Scope *sc, SliceExp *se, Expression **pe0)
+Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, IntervalExp *ie, Expression **pe0)
 {
-    assert(!se->lengthVar);
-    assert(!se->lwr || se->upr);
+    //assert(!ae->lengthVar);
+    if (!ie)
+        return ae;
 
-    if (!se->lwr)
-        return se;
-
-    *pe0 = extractOpDollarSideEffect(sc, se);
+    VarDeclaration *lengthVar = ae->lengthVar;
 
     // create scope for '$'
-    ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, se);
-    sym->loc = se->loc;
+    ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, ae);
+    sym->loc = ae->loc;
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
 
     for (size_t i = 0; i < 2; ++i)
     {
-        Expression *e = i == 0 ? se->lwr : se->upr;
+        Expression *e = i == 0 ? ie->lwr : ie->upr;
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
         if (!e->type)
         {
-            se->error("%s has no value", e->toChars());
+            ae->error("%s has no value", e->toChars());
             return new ErrorExp();
         }
-        (i == 0 ? se->lwr : se->upr) = e;
+        (i == 0 ? ie->lwr : ie->upr) = e;
     }
 
-    if (se->lengthVar && sc->func)
+    if (lengthVar != ae->lengthVar && sc->func)
     {
         // If $ was used, declare it now
-        Expression *de = new DeclarationExp(se->loc, se->lengthVar);
+        Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
         de = de->semantic(sc);
         *pe0 = Expression::combine(*pe0, de);
     }
     sc = sc->pop();
 
-    return se;
+    return ae;
 }
 
 Expression *BinExp::reorderSettingAAElem(Scope *sc)

@@ -249,13 +249,11 @@ Expression *op_overload(Expression *e, Scope *sc)
                 const bool maybeSlice =
                     (ae->arguments->dim == 0 ||
                      ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval);
-                Expression *lwr = NULL;
-                Expression *upr = NULL;
+                IntervalExp *ie = NULL;
                 if (maybeSlice && ae->arguments->dim)
                 {
-                    IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
-                    lwr = ie->lwr;
-                    upr = ie->upr;
+                    assert((*ae->arguments)[0]->op == TOKinterval);
+                    ie = (IntervalExp *)(*ae->arguments)[0];
                 }
 
                 while (true)
@@ -302,27 +300,22 @@ Expression *op_overload(Expression *e, Scope *sc)
                 Lfallback:
                     if (maybeSlice && search_function(ad, Id::opSliceUnary))
                     {
-                        SliceExp *se = new SliceExp(ae->loc, ae->e1, lwr, upr);
-
                         // Deal with $
-                        Expression *e0x = NULL;
-                        result = resolveOpDollar(sc, se, &e0x);
+                        result = resolveOpDollar(sc, ae, ie, &e0);
                         if (result->op == TOKerror)
                             return;
-                        e0 = Expression::combine(e0, e0x);
 
                         /* Rewrite op(a[i..j]) as:
                          *      a.opSliceUnary!(op)(i, j)
                          */
                         Expressions *a = new Expressions();
-                        assert(!se->lwr || se->upr);
-                        if (se->lwr)
+                        if (ie)
                         {
-                            a->push(se->lwr);
-                            a->push(se->upr);
+                            a->push(ie->lwr);
+                            a->push(ie->upr);
                         }
                         Objects *tiargs = opToArg(sc, e->op);
-                        result = new DotTemplateInstanceExp(e->loc, se->e1, Id::opSliceUnary, tiargs);
+                        result = new DotTemplateInstanceExp(e->loc, ae->e1, Id::opSliceUnary, tiargs);
                         result = new CallExp(e->loc, result, a);
                         result = result->semantic(sc);
                         result = Expression::combine(e0, result);
@@ -414,13 +407,11 @@ Expression *op_overload(Expression *e, Scope *sc)
             const bool maybeSlice =
                 (ae->arguments->dim == 0 ||
                  ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval);
-            Expression *lwr = NULL;
-            Expression *upr = NULL;
+            IntervalExp *ie = NULL;
             if (maybeSlice && ae->arguments->dim)
             {
-                IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
-                lwr = ie->lwr;
-                upr = ie->upr;
+                assert((*ae->arguments)[0]->op == TOKinterval);
+                ie = (IntervalExp *)(*ae->arguments)[0];
             }
 
             while (true)
@@ -450,7 +441,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         // Convert to SliceExp
                         if (maybeSlice)
                         {
-                            result = new SliceExp(ae->loc, ae->e1, lwr, upr);
+                            result = new SliceExp(ae->loc, ae->e1, ie);
                             result = result->semantic(sc);
                             return;
                         }
@@ -492,34 +483,29 @@ Expression *op_overload(Expression *e, Scope *sc)
             Lfallback:
                 if (maybeSlice && ae->e1->op == TOKtype)
                 {
-                    result = new SliceExp(ae->loc, ae->e1, lwr, upr);
+                    result = new SliceExp(ae->loc, ae->e1, ie);
                     result = result->semantic(sc);
                     result = Expression::combine(e0, result);
                     return;
                 }
                 if (maybeSlice && search_function(ad, Id::slice))
                 {
-                    SliceExp *se = new SliceExp(ae->loc, ae->e1, lwr, upr);
-
                     // Deal with $
-                    Expression *e0x = NULL;
-                    result = resolveOpDollar(sc, se, &e0x);
+                    result = resolveOpDollar(sc, ae, ie, &e0);
                     if (result->op == TOKerror)
                         return;
-                    e0 = Expression::combine(e0, e0x);
 
                     /* Rewrite a[i..j] as:
                      *      a.opSlice(i, j)
                      */
                     Expressions *a = new Expressions();
-                    assert(!se->lwr || se->upr);
-                    if (se->lwr)
+                    if (ie)
                     {
-                        a->push(se->lwr);
-                        a->push(se->upr);
+                        a->push(ie->lwr);
+                        a->push(ie->upr);
                     }
-                    result = new DotIdExp(se->loc, se->e1, Id::slice);
-                    result = new CallExp(se->loc, result, a);
+                    result = new DotIdExp(ae->loc, ae->e1, Id::slice);
+                    result = new CallExp(ae->loc, result, a);
                     result = result->semantic(sc);
                     result = Expression::combine(e0, result);
                     return;
@@ -987,13 +973,11 @@ Expression *op_overload(Expression *e, Scope *sc)
                 const bool maybeSlice =
                     (ae->arguments->dim == 0 ||
                      ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval);
-                Expression *lwr = NULL;
-                Expression *upr = NULL;
+                IntervalExp *ie = NULL;
                 if (maybeSlice && ae->arguments->dim)
                 {
-                    IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
-                    lwr = ie->lwr;
-                    upr = ie->upr;
+                    assert((*ae->arguments)[0]->op == TOKinterval);
+                    ie = (IntervalExp *)(*ae->arguments)[0];
                 }
 
                 while (true)
@@ -1046,14 +1030,10 @@ Expression *op_overload(Expression *e, Scope *sc)
                 Lfallback:
                     if (maybeSlice && search_function(ad, Id::opSliceOpAssign))
                     {
-                        SliceExp *se = new SliceExp(e->loc, ae->e1, lwr, upr);
-
                         // Deal with $
-                        Expression *e0x = NULL;
-                        result = resolveOpDollar(sc, se, &e0x);
+                        result = resolveOpDollar(sc, ae, ie, &e0);
                         if (result->op == TOKerror)
                             return;
-                        e0 = Expression::combine(e0, e0x);
 
                         result = e->e2->semantic(sc);
                         if (result->op == TOKerror)
@@ -1065,14 +1045,13 @@ Expression *op_overload(Expression *e, Scope *sc)
                          */
                         Expressions *a = new Expressions();
                         a->push(e->e2);
-                        assert(!se->lwr || se->upr);
-                        if (se->lwr)
+                        if (ie)
                         {
-                            a->push(se->lwr);
-                            a->push(se->upr);
+                            a->push(ie->lwr);
+                            a->push(ie->upr);
                         }
                         Objects *tiargs = opToArg(sc, e->op);
-                        result = new DotTemplateInstanceExp(e->loc, se->e1, Id::opSliceOpAssign, tiargs);
+                        result = new DotTemplateInstanceExp(e->loc, ae->e1, Id::opSliceOpAssign, tiargs);
                         result = new CallExp(e->loc, result, a);
                         result = result->semantic(sc);
                         result = Expression::combine(e0, result);
