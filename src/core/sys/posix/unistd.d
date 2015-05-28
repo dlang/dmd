@@ -1258,6 +1258,7 @@ else version( FreeBSD )
 else version( CRuntime_Bionic )
 {
     int        fchdir(int) @trusted;
+    int        flock(int, int) @trusted;
     pid_t      getpgid(pid_t) @trusted;
     int        lchown(in char*, uid_t, gid_t);
     int        nice(int) @trusted;

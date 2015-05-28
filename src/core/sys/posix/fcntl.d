@@ -486,6 +486,8 @@ else version( CRuntime_Bionic )
     enum F_WRLCK        = 1;
     enum F_UNLCK        = 2;
 
+    enum LOCK_EX        = 2;
+
     version (X86)
     {
         enum O_CREAT        = 0x40;     // octal     0100
