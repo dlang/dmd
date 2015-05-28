@@ -1980,6 +1980,36 @@ void test14624()
 }
 
 /**************************************/
+// 14625
+
+void test14625()
+{
+    struct R
+    {
+        @property bool empty() { return true; }
+        @property int front() { return 0; }
+        void popFront() {}
+    }
+
+    struct C1
+    {
+        R opIndex() { return R(); }
+        R opSlice() { assert(0); }
+    }
+    C1 c1;
+    foreach (e; c1) {}      // OK <- asserts in opSlice()
+    foreach (e; c1[]) {}    // OK, opIndex()
+
+    struct C2
+    {
+        R opIndex() { return R(); }
+    }
+    C2 c2;
+    foreach (e; c2) {}      // OK <- rejected
+    foreach (e; c2[]) {}    // OK, opIndex()
+}
+
+/**************************************/
 
 int main()
 {
@@ -2025,6 +2055,7 @@ int main()
     test20c();
     test20d();
     test14624();
+    test14625();
 
     printf("Success\n");
     return 0;

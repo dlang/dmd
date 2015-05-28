@@ -1480,12 +1480,12 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
                 {
                     sapply = search_function(ad, idapply);
                     if (sapply)
-                    {   // opApply aggregate
+                    {
+                        // opApply aggregate
                         break;
                     }
 
-                    Dsymbol *s = search_function(ad, Id::slice);
-                    if (s)
+                    if (fes->aggr->op != TOKtype)
                     {
                         Expression *rinit = new ArrayExp(fes->aggr->loc, fes->aggr);
                         rinit = rinit->trySemantic(sc);
