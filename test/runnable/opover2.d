@@ -1935,6 +1935,51 @@ void test20d()
 }
 
 /**************************************/
+// 14624
+
+void test14624()
+{
+    struct A1
+    {
+        int x;
+        ref int opIndex() { return x; }
+        ref int opSlice() { assert(0); }
+    }
+    {
+        A1 a = A1(1);
+        auto x = a[];       // a.opIndex()
+        assert(x == a.x);
+        auto y = -a[];      // -a.opIndex()        <-- not found: a.opIndexUnary!"-"
+        assert(y == -a.x);
+        a[] = 1;            // a.opIndex() = 1;    <-- not found: a.opIndexAssign(int)
+        assert(a.x == 1);
+        a[] += 1;           // a.opIndex() += 1;   <-- not found: a.opIndexOpAssign!"+"(int)
+        assert(a.x == 2);
+    }
+
+    struct A2
+    {
+        int x;
+        ref int opIndex() { x = 10; return x; }
+        ref int opSlice() { assert(0); }
+        ref int opSliceUnary(alias op)()       { x = 11; return x; }
+        ref int opSliceAssign(int)             { x = 12; return x; }
+        ref int opSliceOpAssign(alias op)(int) { x = 13; return x; }
+    }
+    {
+        A2 a = A2(1);
+        auto x = a[];       // a.opIndex()
+        assert(a.x == 10);
+        auto y = -a[];      // a.opSliceUnary!"-"()     is preferred than: -a.opIndex()
+        assert(a.x == 11);
+        a[] = 1;            // a.opSliceAssign(1)       is preferred than: a.opIndex() = 1;
+        assert(a.x == 12);
+        a[] += 1;           // a.opSliceOpAssign!"+"(1) is preferred than: a.opIndex() += 1;
+        assert(a.x == 13);
+    }
+}
+
+/**************************************/
 
 int main()
 {
@@ -1979,6 +2024,7 @@ int main()
     test20b();
     test20c();
     test20d();
+    test14624();
 
     printf("Success\n");
     return 0;
