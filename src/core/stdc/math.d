@@ -44,6 +44,13 @@ version (FreeBSD)
     ///
     enum int FP_ILOGBNAN      = int.max;
 }
+else version (CRuntime_Bionic)
+{
+    ///
+    enum int FP_ILOGB0        = -int.max;
+    ///
+    enum int FP_ILOGBNAN      = int.max;
+}
 else
 {
     ///
