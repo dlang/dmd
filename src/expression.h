@@ -1019,6 +1019,7 @@ public:
     bool upperIsInBounds;       // true if upr <= e1.length
     bool lowerIsLessThanUpper;  // true if lwr <= upr
 
+    SliceExp(Loc loc, Expression *e1, IntervalExp *ie);
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
@@ -1082,7 +1083,8 @@ public:
     size_t currentDimension;            // for opDollar
     VarDeclaration *lengthVar;
 
-    ArrayExp(Loc loc, Expression *e1, Expressions *arguments);
+    ArrayExp(Loc loc, Expression *e1, Expression *index = NULL);
+    ArrayExp(Loc loc, Expression *e1, Expressions *args);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     bool isLvalue();

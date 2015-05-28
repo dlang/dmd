@@ -9854,6 +9854,16 @@ Expression *VectorExp::semantic(Scope *sc)
 
 /************************************************************/
 
+SliceExp::SliceExp(Loc loc, Expression *e1, IntervalExp *ie)
+        : UnaExp(loc, TOKslice, sizeof(SliceExp), e1)
+{
+    this->upr = ie ? ie->upr : NULL;
+    this->lwr = ie ? ie->lwr : NULL;
+    lengthVar = NULL;
+    upperIsInBounds = false;
+    lowerIsLessThanUpper = false;
+}
+
 SliceExp::SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr)
         : UnaExp(loc, TOKslice, sizeof(SliceExp), e1)
 {
@@ -10376,6 +10386,16 @@ Expression *DelegateFuncptrExp::toLvalue(Scope *sc, Expression *e)
 /*********************** ArrayExp *************************************/
 
 // e1 [ i1, i2, i3, ... ]
+
+ArrayExp::ArrayExp(Loc loc, Expression *e1, Expression *index)
+        : UnaExp(loc, TOKarray, sizeof(ArrayExp), e1)
+{
+    arguments = new Expressions();
+    if (index)
+        arguments->push(index);
+    lengthVar = NULL;
+    currentDimension = 0;
+}
 
 ArrayExp::ArrayExp(Loc loc, Expression *e1, Expressions *args)
         : UnaExp(loc, TOKarray, sizeof(ArrayExp), e1)
