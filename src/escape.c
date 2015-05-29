@@ -153,16 +153,9 @@ bool checkEscape(Scope *sc, Expression *e, bool gag)
         {
             Type *tb = e->type->toBasetype();
             if (tb->ty == Tarray &&
-                e->e1->op == TOKvar &&
                 e->e1->type->toBasetype()->ty == Tsarray)
             {
-                VarExp *ve = (VarExp *)e->e1;
-                VarDeclaration *v = ve->var->isVarDeclaration();
-                if (v && v->toParent2() == sc->func)
-                {
-                    if (!v->isDataseg() && !v->isParameter())
-                        error(e->loc, "escaping reference to local %s", v);
-                }
+                result |= checkEscapeRef(sc, e->e1, gag);
             }
         }
 
@@ -252,10 +245,10 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
         {
         }
 
-        void error(Loc loc, const char *format, Dsymbol *s)
+        void error(Loc loc, const char *format, RootObject *o)
         {
             if (!gag)
-                ::error(loc, format, s->toChars());
+                ::error(loc, format, o->toChars());
             result = true;
         }
 
@@ -399,15 +392,12 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
             Type *t1 = e->e1->type->toBasetype();
             TypeFunction *tf;
             if (t1->ty == Tdelegate)
-            {
                 tf = (TypeFunction *)((TypeDelegate *)t1)->next;
-                assert(tf->ty == Tfunction);
-            }
             else if (t1->ty == Tfunction)
                 tf = (TypeFunction *)t1;
             else
-                tf = NULL;
-            if (tf && tf->isref)
+                return;
+            if (tf->isref)
             {
                 if (e->arguments && e->arguments->dim)
                 {
@@ -435,6 +425,11 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
                     DotVarExp *dve = (DotVarExp *)e->e1;
                     dve->e1->accept(this);
                 }
+            }
+            else
+            {
+                error(e->loc, "escaping reference to stack allocated value returned by %s", e);
+                return;
             }
         }
     };
