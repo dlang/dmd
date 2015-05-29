@@ -314,6 +314,9 @@ else
 
 // private, used to translate clock type to proper argument to clock_xxx
 // functions on posix systems
+version(CoreDdoc)
+    private int _posixClock(ClockType clockType) { return 0; }
+else
 version(Posix)
 {
     private auto _posixClock(ClockType clockType)
