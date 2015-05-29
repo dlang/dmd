@@ -680,6 +680,7 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
 
         if ((dim * fsize) % tsize != 0)
         {
+            // have to change to Internal Compiler Error?
             error(loc, "cannot cast %s to %s since sizes don't line up", tfrom->toChars(), tto->toChars());
         }
         dim = (dim * fsize) / tsize;

@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(12): Error: cannot cast expression x of type short[2] to int[2]
+fail_compilation/fail_casting.d(12): Error: cannot cast expression x of type short[2] to int[2] because of different sizes
 ---
 */
 void test3133()
@@ -63,7 +63,7 @@ fail_compilation/fail_casting.d(77): Error: cannot cast expression x of type flo
 fail_compilation/fail_casting.d(78): Error: cannot cast expression x of type int to float[]
 ---
 */
-void tst11484()
+void test11484()
 {
     // Tsarray <--> integer
     { int[1]   x; auto y = cast(int     ) x; }

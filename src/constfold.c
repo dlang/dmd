@@ -1302,7 +1302,11 @@ L1:
     else
     {
         if (type != Type::terror)
+        {
+            // have to change to Internal Compiler Error
+            // all invalid casts should be handled already in Expression::castTo().
             error(loc, "cannot cast %s to %s", e1->type->toChars(), type->toChars());
+        }
         new(&ue) ErrorExp();
     }
     return ue;
