@@ -59,44 +59,26 @@
 #                        considered to be enabled).
 #                        default: (none, enabled)
 
-ifeq (,$(OS))
-    OS:=$(shell uname)
-    ifeq (Darwin,$(OS))
-        OS:=osx
-    else
-        ifeq (Linux,$(OS))
-            OS:=linux
-        else
-            ifeq (FreeBSD,$(OS))
-                OS:=freebsd
-            else
-                ifeq (Solaris,$(OS))
-                    OS:=solaris
-                else
-                    ifeq (SunOS,$(OS))
-                        OS:=solaris
-                    else
-                        $(error Unrecognized or unsupported OS for uname: $(OS))
-                    endif
-                endif
-            endif
-        endif
-    endif
-else
-    ifeq (Windows_NT,$(OS))
-        ifeq ($(findstring WOW64, $(shell uname)),WOW64)
-            OS:=win64
-        else
-            OS:=win32
-        endif
-    endif
-    ifeq (Win_32,$(OS))
-	OS:=win32
-    endif
-    ifeq (Win_64,$(OS))
+ifeq (Windows_NT,$(OS))
+    ifeq ($(findstring WOW64, $(shell uname)),WOW64)
 	OS:=win64
+	MODEL:=64
+    else
+	OS:=win32
+	MODEL:=32
     endif
 endif
+ifeq (Win_32,$(OS))
+    OS:=win32
+    MODEL:=32
+endif
+ifeq (Win_64,$(OS))
+    OS:=win64
+    MODEL:=64
+endif
+
+include ../src/osmodel.mak
+
 export OS
 
 ifeq (freebsd,$(OS))
@@ -106,7 +88,7 @@ else
 endif
 QUIET=@
 export RESULTS_DIR=test_results
-export MODEL=32
+export MODEL
 export REQUIRED_ARGS=
 
 ifeq ($(findstring win,$(OS)),win)
@@ -238,6 +220,6 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(
 $(RESULTS_DIR)/d_do_test$(EXE): d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	@echo "OS: $(OS)"
-	$(QUIET)$(DMD) -conf= -m$(MODEL) -unittest -run d_do_test.d -unittest
-	$(QUIET)$(DMD) -conf= -m$(MODEL) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
+	$(QUIET)$(DMD) -conf= $(MODEL_FLAG) -unittest -run d_do_test.d -unittest
+	$(QUIET)$(DMD) -conf= $(MODEL_FLAG) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
 
