@@ -341,7 +341,7 @@ extern (C) void dmd_coverDestPath(string path);
  * Enable merging of coverage reports with existing data.
  *
  * Params:
- *  merge = enable/disable coverage merge mode
+ *  flag = enable/disable coverage merge mode
  */
 extern (C) void dmd_coverSetMerge(bool flag);
 
