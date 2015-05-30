@@ -31,7 +31,7 @@
 #include "rmem.h"
 #include "visitor.h"
 
-Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct);
+Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct);
 
 void genCmain(Scope *sc);
 
@@ -1468,7 +1468,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         Statement *fpreinv = NULL;
         if (addPreInvariant())
         {
-            Expression *e = addInvariant(sc, ad, vthis, isDtorDeclaration() != NULL);
+            Expression *e = addInvariant(loc, sc, ad, vthis, isDtorDeclaration() != NULL);
             if (e)
                 fpreinv = new ExpStatement(Loc(), e);
         }
@@ -1477,7 +1477,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         Statement *fpostinv = NULL;
         if (addPostInvariant())
         {
-            Expression *e = addInvariant(sc, ad, vthis, isCtorDeclaration() != NULL);
+            Expression *e = addInvariant(loc, sc, ad, vthis, isCtorDeclaration() != NULL);
             if (e)
                 fpostinv = new ExpStatement(Loc(), e);
         }
@@ -3993,8 +3993,10 @@ bool FuncDeclaration::addPostInvariant()
  *      ad      aggregate with the invariant
  *      vthis   variable with 'this'
  *      direct  call invariant directly
+ * Returns:
+ *      void expression that calls the invariant
  */
-Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct)
+Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct)
 {
     Expression *e = NULL;
     if (direct)
@@ -4051,7 +4053,7 @@ Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vt
         Expression *se = new StringExp(Loc(), (char *)"null this");
         se = se->semantic(sc);
         se->type = Type::tchar->arrayOf();
-        e = new AssertExp(Loc(), v, se);
+        e = new AssertExp(loc, v, se);
     }
     return e;
 }
