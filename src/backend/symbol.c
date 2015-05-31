@@ -601,7 +601,7 @@ symbol * lookupsym(const char *p)
 
 symbol * findsy(const char *p,symbol *rover)
 {
-#if __INTSIZE == 4 && TX86 && __DMC__
+#if TX86 && __DMC__
     volatile int len;
     __asm
     {
@@ -2170,12 +2170,6 @@ void symboltable_balance(symbol **ps)
     balance.nsyms = 0;
     count_symbols(*ps);
     //dbg_printf("Number of global symbols = %d\n",balance.nsyms);
-
-#if __INTSIZE == 2
-    // Don't balance tree if we get 16 bit overflow
-    if (balance.nsyms >= (unsigned)(0x10000 / sizeof(symbol *)))
-        goto Lret;
-#endif
 
     // Use malloc instead of mem because of pagesize limits
     balance.array = (symbol **) malloc(balance.nsyms * sizeof(symbol *));

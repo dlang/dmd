@@ -102,10 +102,6 @@ enum LANG
 #define LARGECODE 0
 #endif
 
-#ifndef __INTSIZE
-#define __INTSIZE       4       // host ints are 4 bytes
-#endif
-
 #if SPP || SCPP
 #include        "msgs2.h"
 #endif
