@@ -261,11 +261,7 @@ struct token_t
         int pragma;             // TKpragma: PRxxxx, pragma number
                                 // -1 if unrecognized pragma
         targ_long Vlong;        /* integer when TKnum           */
-#if LONGLONG
         targ_llong Vllong;
-#else
-#define Vllong Vlong
-#endif
         targ_float Vfloat;
         targ_double Vdouble;
         targ_ldouble Vldouble;

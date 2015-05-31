@@ -1036,7 +1036,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPs8_16:   case OP16_8:
         case OPd_u32:   case OPu32_d:
 
-#if LONGLONG
         case OPs32_64:  case OPu32_64:
         case OP64_32:
         case OPd_s64:   case OPd_u64:
@@ -1045,7 +1044,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OP128_64:
         case OPs64_128:
         case OPu64_128:
-#endif
+
         case OPabs:
         case OPrndtol:
         case OPrint:
@@ -2857,11 +2856,7 @@ STATIC void elimbasivs(loop *l)
                 // then we can't do it
                 if (fl->c1->Eoper == OPconst)
                 {
-#if LONGLONG
                     targ_llong c1;
-#else
-                    targ_long c1;
-#endif
                     int sz;
 
                     c1 = el_tolong(fl->c1);
@@ -2879,14 +2874,12 @@ STATIC void elimbasivs(loop *l)
                          c1 & ~0x7FFFFFFFL)
                        )
                         continue;
-#if LONGLONG && __INTSIZE >= 4
                     if (sz == LLONGSIZE &&
                         ((ref->E2->Eoper == OPconst &&
                         c1 * el_tolong(ref->E2) & ~0x7FFFFFFFFFFFFFFFLL) ||
                          c1 & ~0x7FFFFFFFFFFFFFFFLL)
                        )
                         continue;
-#endif
                 }
 
                 /* If loop started out with a signed conditional that was

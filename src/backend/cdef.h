@@ -250,14 +250,6 @@ One and only one of these macros must be set by the makefile:
 #define STATEMENT_SCOPES CPP
 
 #if __GNUC__
-#define LONGLONG        1
-#elif __SC__ > 0 && __SC__ < 0x700
-#define LONGLONG        0
-#else
-#define LONGLONG        1               // add in code to support 64 bit integral types
-#endif
-
-#if __GNUC__
 #define LDOUBLE                 0       // no support for true long doubles
 #else
 #define LDOUBLE         (config.exe == EX_NT)   // support true long doubles
@@ -447,13 +439,8 @@ typedef short           targ_short;
 typedef unsigned short  targ_ushort;
 typedef int             targ_long;
 typedef unsigned        targ_ulong;
-#if LONGLONG
-typedef long long               targ_llong;
+typedef long long       targ_llong;
 typedef unsigned long long      targ_ullong;
-#else
-#define targ_llong      targ_long
-#define targ_ullong     targ_ulong
-#endif
 typedef float           targ_float;
 typedef double          targ_double;
 typedef longdouble      targ_ldouble;
@@ -545,17 +532,10 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define LONGMASK        0xFFFFFFFF
 
 /* Common constants often checked for */
-#if LONGLONG
 #define LLONGMASK       0xFFFFFFFFFFFFFFFFLL
 #define ZEROLL          0LL
 #define MINLL           0x8000000000000000LL
 #define MAXLL           0x7FFFFFFFFFFFFFFFLL
-#else
-#define LLONGMASK       0xFFFFFFFFLL
-#define ZEROLL          0L
-#define MINLL           0x80000000
-#define MAXLL           0x7FFFFFFF
-#endif
 
 #define Smodel 0        /* 64k code, 64k data, or flat model           */
 

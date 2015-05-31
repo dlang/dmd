@@ -3946,10 +3946,8 @@ code *params(elem *e,unsigned stackalign)
         else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
             retregs = mSTACK;
   }
-#if LONGLONG
   else if (I16 && sz == 8)             // if long long
         retregs = mSTACK;
-#endif
   c = cat(c,scodelem(e,&retregs,0,TRUE));
   if (retregs != mSTACK)                /* if stackpush not already inc'd */
       stackpush += sz;
