@@ -566,9 +566,6 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYushort:
         case TYint:
         case TYuint:
-#if JHANDLE
-        case TYjhandle:
-#endif
         case TYnullptr:
         case TYnptr:
         case TYnref:
