@@ -1696,6 +1696,7 @@
                 "root.filename",
                 "root.outbuffer",
                 "root.port",
+                "root.stringtable",
                 "core.sys.windows.windows",
                 "core.sys.posix.stdlib"
             ],
@@ -1707,6 +1708,10 @@
             "members" :
             [
                 "function findConfFile",
+                "function readFromEnv",
+                "function writeToEnv",
+                "function envput",
+                "function updateRealEnvironment",
                 "function parseConfFile",
                 "function skipspace"
             ]
@@ -2509,6 +2514,7 @@
                 "root.outbuffer",
                 "root.rmem",
                 "root.response",
+                "root.stringtable",
                 "target",
                 "tokens",
                 "traits"

@@ -230,3 +230,26 @@ void StringTable::grow()
     }
     mem.xfree(otab);
 }
+
+/********************************
+ * Walk the contents of the string table,
+ * calling fp for each entry.
+ * Params:
+ *      fp = function to call. Returns !=0 to stop
+ * Returns:
+ *      last return value of fp call
+ */
+int StringTable::apply(int (*fp)(StringValue *))
+{
+    for (size_t i = 0; i < tabledim; ++i)
+    {
+        StringEntry *se = &table[i];
+        if (!se->vptr) continue;
+        StringValue *sv = getValue(se->vptr);
+        int result = (*fp)(sv);
+        if (result)
+            return result;
+    }
+    return 0;
+}
+
