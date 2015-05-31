@@ -132,9 +132,6 @@ int elemisone(elem *e)
             case TYllong:
             case TYullong:
             case TYnullptr:
-#if JHANDLE
-            case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
@@ -198,9 +195,6 @@ int elemisnegone(elem *e)
             case TYullong:
             case TYnullptr:
             case TYnptr:
-#if JHANDLE
-            case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:

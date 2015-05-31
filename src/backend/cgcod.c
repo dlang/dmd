@@ -2538,9 +2538,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
                 case TYuchar:
                     *pretregs |= BYTEREGS;
                     break;
-#if JHANDLE
-                case TYjhandle:
-#endif
+
                 case TYnptr:
 #if TARGET_SEGMENTED
                 case TYsptr:
