@@ -3504,13 +3504,11 @@ STATIC elem * eleq(elem *e, goal_t goal)
                     es->EV.Vlong = 0x80000000;
                     break;
                 case DOUBLESIZE:
-#if LONGLONG
                     if (I32)
                     {   ty = TYllong;
                         es->EV.Vllong = 0x8000000000000000LL;
                         break;
                     }
-#endif
                 default:
                     el_free(es);
                     goto L8;

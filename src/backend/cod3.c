@@ -1218,11 +1218,7 @@ void doswitch(block *b)
     code *c;
     code *ce = NULL;
 
-#if LONGLONG
     targ_ulong msw;
-#else
-    unsigned msw;
-#endif
 
 #if TARGET_SEGMENTED
     // If switch tables are in code segment and we need a CS: override to get at them
