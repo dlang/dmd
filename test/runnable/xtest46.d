@@ -7399,6 +7399,40 @@ void test14211()
 }
 
 /***************************************************/
+// 14552
+
+template map14552(fun...)
+{
+    template AppliedReturnType(alias f)
+    {
+        alias typeof(f(0)) AppliedReturnType;
+    }
+
+    auto map14552(int[] r)
+    {
+        assert(!is(AppliedReturnType!fun));
+        return MapResult14552!fun();
+    }
+}
+
+struct MapResult14552(alias fun)
+{
+    @property front()
+    {
+        fun(0);
+    }
+}
+
+class Outer14552
+{
+    auto test()
+    {
+        [1].map14552!(j => new Inner);
+    }
+    class Inner {}
+}
+
+/***************************************************/
 
 int main()
 {
