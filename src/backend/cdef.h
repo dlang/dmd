@@ -40,7 +40,6 @@
         _M_AMD64        AMD 64 processor
 
     Hosts no longer supported:
-        __INTSIZE==2    16 bit compilations
         __OS2__         IBM OS/2
         DOS386          32 bit DOS extended executable
         DOS16RM         Rational Systems 286 DOS extender

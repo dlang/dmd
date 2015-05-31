@@ -379,7 +379,7 @@ void too_many_symbols()
 #endif
 }
 
-#if !DEBUG && TX86 && __INTSIZE == 4 && !defined(_MSC_VER)
+#if !DEBUG && TX86 && !defined(_MSC_VER)
 __declspec(naked) int __pascal insidx(char *p,unsigned index)
 {
 #undef AL
@@ -936,19 +936,8 @@ void Obj::linnum(Srcpos srcpos,targ_size_t offset)
             obj.linvec = vec_realloc(obj.linvec,linnum + 1000);
         if (offset >= vec_numbits(obj.offvec))
         {
-#if __INTSIZE == 2
-            unsigned newsize = (unsigned)offset * 2;
-
-            if (offset >= 0x8000)
-            {   newsize = 0xFF00;
-                assert(offset < newsize);
-            }
-            if (newsize != vec_numbits(obj.offvec))
-                obj.offvec = vec_realloc(obj.offvec,newsize);
-#else
             if (offset < 0xFF00)        // otherwise we overflow ph_malloc()
                 obj.offvec = vec_realloc(obj.offvec,offset * 2);
-#endif
         }
         if (
 #if 1 // disallow multiple offsets per line
