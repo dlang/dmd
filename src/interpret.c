@@ -1023,7 +1023,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
          * statement, then go recursively down the AST looking
          * for that statement, then execute starting there.
          */
-        if (e && e->op == TOKgoto)
+        if (CTFEExp::isGotoExp(e))
         {
             istatex.start = istatex.gotoTarget; // set starting statement
             istatex.gotoTarget = NULL;
@@ -1749,7 +1749,7 @@ public:
                     setValue(ca->var, ex->thrown);
                 }
                 e = interpret(ca->handler, istate);
-                if (e && e->op == TOKgoto)
+                if (CTFEExp::isGotoExp(e))
                 {
                     /* This is an optimization that relies on the locality of the jump target.
                      * If the label is in the same catch handler, the following scan
@@ -1900,7 +1900,7 @@ public:
         ctfeStack.push(s->wthis);
         setValue(s->wthis, e);
         e = interpret(s->body, istate);
-        if (e && e->op == TOKgoto)
+        if (CTFEExp::isGotoExp(e))
         {
             /* This is an optimization that relies on the locality of the jump target.
              * If the label is in the same WithStatement, the following scan
