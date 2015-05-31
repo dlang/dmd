@@ -1826,6 +1826,28 @@ public:
             result = ex;
             return;
         }
+        while (CTFEExp::isGotoExp(ex))
+        {
+            // If the goto target is within the body, we must not interpret the finally statement,
+            // because that will call destructors for objects within the scope, which we should not do.
+            InterState istatex = *istate;
+            istatex.start = istate->gotoTarget; // set starting statement
+            istatex.gotoTarget = NULL;
+            Expression *bex = interpret(s->body, &istatex);
+            if (istatex.start)
+            {
+              // The goto target is outside the current scope.
+              break;
+            }
+            // The goto target was within the body.
+            if (CTFEExp::isCantExp(bex))
+            {
+                result = bex;
+                return;
+            }
+            *istate = istatex;
+            ex = bex;
+        }
         Expression *ey = interpret(s->finalbody, istate);
         if (CTFEExp::isCantExp(ey))
         {

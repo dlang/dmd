@@ -7538,3 +7538,117 @@ bool test7151()
     return a == a && a != new Object;
 }
 static assert(test7151());
+
+
+/**************************************************
+    12603 - [CTFE] goto does not correctly call dtors
+**************************************************/
+
+struct S12603
+{
+    this(uint* dtorCalled)
+    {
+        *dtorCalled = 0;
+        this.dtorCalled = dtorCalled;
+    }
+
+    @disable this();
+
+    ~this()
+    {
+        ++*dtorCalled;
+    }
+
+    uint* dtorCalled;
+}
+
+
+auto numDtorCallsByGotoWithinScope()
+{
+    uint dtorCalled;
+    {
+        S12603 s = S12603(&dtorCalled);
+        assert(dtorCalled == 0);
+        goto L_abc;
+        L_abc:
+        assert(dtorCalled == 0);
+    }
+    assert(dtorCalled == 1);
+    return dtorCalled;
+}
+static assert(numDtorCallsByGotoWithinScope() == 1);
+
+
+auto numDtorCallsByGotoOutOfScope()
+{
+    uint dtorCalled;
+    {
+        S12603 s = S12603(&dtorCalled);
+        assert(dtorCalled == 0);
+        goto L_abc;
+    }
+    L_abc:
+    assert(dtorCalled == 1);
+    return dtorCalled;
+}
+static assert(numDtorCallsByGotoOutOfScope() == 1);
+
+
+uint numDtorCallsByGotoDifferentScopeAfter()
+{
+    uint dtorCalled;
+    {
+        S12603 s = S12603(&dtorCalled);
+        assert(dtorCalled == 0);
+    }
+    assert(dtorCalled == 1);
+    goto L_abc;
+    L_abc:
+    assert(dtorCalled == 1);
+    return dtorCalled;
+}
+static assert(numDtorCallsByGotoDifferentScopeAfter() == 1);
+
+
+auto numDtorCallsByGotoDifferentScopeBefore()
+{
+    uint dtorCalled;
+    assert(dtorCalled == 0);
+    goto L_abc;
+    L_abc:
+    assert(dtorCalled == 0);
+    {
+        S12603 s = S12603(&dtorCalled);
+        assert(dtorCalled == 0);
+    }
+    assert(dtorCalled == 1);
+    return dtorCalled;
+}
+static assert(numDtorCallsByGotoDifferentScopeBefore() == 1);
+
+
+struct S12603_2
+{
+    ~this()
+    {
+        dtorCalled = true;
+    }
+
+    bool dtorCalled = false;
+}
+
+auto structInCaseScope()
+{
+    auto charsets = S12603_2();
+    switch(1)
+    {
+    case 0:
+        auto set = charsets;
+        break;
+    default:
+        break;
+    }
+    return charsets.dtorCalled;
+}
+
+static assert(!structInCaseScope());
