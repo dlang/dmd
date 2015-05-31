@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2012 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -66,8 +66,8 @@ STATIC void touchall();
  */
 
 void comsubs()
-{ register block *bl,*blc,*bln;
-  register int n;                       /* # of blocks to treat as one  */
+{ block *bl,*blc,*bln;
+  int n;                       /* # of blocks to treat as one  */
 
 //static int xx;
 //printf("comsubs() %d\n", ++xx);
@@ -455,7 +455,7 @@ STATIC void ecom(elem **pe)
  */
 
 STATIC unsigned cs_comphash(elem *e)
-{   register int hash;
+{   int hash;
     unsigned op;
 
     elem_debug(e);
@@ -653,8 +653,8 @@ STATIC void touchfunc(int flag)
  */
 
 STATIC void touchstar()
-{ register int i;
-  register elem *e;
+{ int i;
+  elem *e;
 
   for (i = hcsarray.touchstari; i < hcsarray.top; i++)
   {     e = hcstab[i].Helem;
@@ -686,8 +686,8 @@ STATIC void touchall()
  */
 
 STATIC void touchaccess(elem *ev)
-{ register int i;
-  register elem *e;
+{ int i;
+  elem *e;
 
   ev = ev->E1;
   for (i = 0; i < hcsarray.top; i++)

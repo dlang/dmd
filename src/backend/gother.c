@@ -1,5 +1,5 @@
 // Copyright (C) 1986-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -123,7 +123,7 @@ void constprop()
 static block *thisblock;
 
 STATIC void rd_compute()
-{       register unsigned i;
+{       unsigned i;
 
         cmes("constprop()\n");
         assert(dfo);
@@ -149,7 +149,7 @@ STATIC void rd_compute()
         }
 
         for (i = 0; i < dfotop; i++)    /* for each block               */
-        {       register block *b;
+        {       block *b;
 
                 b = dfo[i];
                 thisblock = b;
@@ -196,7 +196,7 @@ STATIC void rd_compute()
  */
 
 STATIC void conpropwalk(elem *n,vec_t IN)
-{       register unsigned op;
+{       unsigned op;
         Elemdata *pdata;
         vec_t L,R;
         elem *t;
@@ -419,7 +419,7 @@ STATIC void chkrd(elem *n,list_t rdlist)
         warerr(WM_used_b4_set, p2);     // variable used before set
     }
 #endif
-#if 1 && MARS
+#if MARS
     /* Watch out for:
         void test()
         {
@@ -485,12 +485,11 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
         //printf("\trd: "); WReqn(d); printf("\n");
         if (d->Eoper == OPasm)          /* OPasm elems ruin everything  */
             goto noprop;
-#if 0
+
         // Runs afoul of Buzilla 4506
-        if (OTassign(d->Eoper) && EBIN(d))      // if assignment elem
-#else
+        /*if (OTassign(d->Eoper) && EBIN(d))*/      // if assignment elem
+
         if (OTassign(d->Eoper))      // if assignment elem
-#endif
         {   elem *t = Elvalue(d);
 
             if (t->Eoper == OPvar)
@@ -780,8 +779,7 @@ STATIC void intranges()
             increment = -increment;
         relatop = rel->pelem->Eoper;
         final = el_tolong(rel->pelem->E2);
-//      dbg_printf("initial = %d, increment = %d, final = %d\n",
-//              initial,increment,final);
+        //printf("initial = %d, increment = %d, final = %d\n",initial,increment,final);
 
         /* Determine if we can make the relational an unsigned  */
         if (initial >= 0)
@@ -805,7 +803,7 @@ STATIC void intranges()
 #ifdef DEBUG
                         if (debugc)
                         {   WReqn(rel->pelem);
-                            dbg_printf(" made unsigned, initial = %ld, increment = %ld,\
+                            printf(" made unsigned, initial = %ld, increment = %ld,\
  final = %ld\n",(long int)initial,(long int)increment,(long int)final);
                         }
 #endif
@@ -853,9 +851,6 @@ STATIC int loopcheck(block *start,block *inc,block *rel)
 {   list_t list;
     block *b;
 
-#if __ZTC__
-    _chkstack();                /* always check stack on recursive routines */
-#endif
     if (!(start->Bflags & BFLvisited))
     {   start->Bflags |= BFLvisited;    /* guarantee eventual termination */
         for (list = start->Bsucc; list; list = list_next(list))
@@ -876,7 +871,7 @@ STATIC int loopcheck(block *start,block *inc,block *rel)
 static int recalc;
 
 void copyprop()
-{       register unsigned i;
+{       unsigned i;
 
         out_regcand(&globsym);
         cmes("copyprop()\n");
@@ -894,7 +889,7 @@ Lagain:
 #endif
         recalc = 0;
         for (i = 0; i < dfotop; i++)    /* for each block               */
-        {       register block *b;
+        {       block *b;
 
                 b = dfo[i];
                 if (b->Belem)
@@ -931,9 +926,9 @@ Lagain:
  * Keep IN up to date.
  */
 
-STATIC void cpwalk(register elem *n,vec_t IN)
-{       register unsigned op,i;
-        register elem *t;
+STATIC void cpwalk(elem *n,vec_t IN)
+{       unsigned op,i;
+        elem *t;
         vec_t L;
 
         static int nocp;
@@ -1147,13 +1142,13 @@ static vec_t ambigref;          /* vector of assignment elems that      */
                                 /* reference is done (as in *p or call) */
 
 void rmdeadass()
-{       register unsigned i,j;
+{       unsigned i,j;
         vec_t DEAD,POSS;
 
         cmes("rmdeadass()\n");
         flowlv();                       /* compute live variables       */
         for (i = 0; i < dfotop; i++)    /* for each block b             */
-        {       register block *b = dfo[i];
+        {       block *b = dfo[i];
 
                 if (!b->Belem)          /* if no elems at all           */
                         continue;
@@ -1178,18 +1173,18 @@ void rmdeadass()
                 vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
                 foreach (j,asstop,POSS) /* for each possible dead asg.  */
                 {       symbol *v;      /* v = target of assignment     */
-                        register elem *n,*nv;
+                        elem *n,*nv;
 
                         n = assnod[j];
                         nv = Elvalue(n);
                         v = nv->EV.sp.Vsym;
                         if (!symbol_isintab(v)) // not considered
                             continue;
-//printf("assnod[%d]: ",j); WReqn(n); printf("\n");
-//printf("\tPOSS\n");
+                        //printf("assnod[%d]: ",j); WReqn(n); printf("\n");
+                        //printf("\tPOSS\n");
                         /* If not positively dead but v is live on a    */
                         /* successor to b, then v is live.              */
-//printf("\tDEAD=%d, live=%d\n",vec_testbit(j,DEAD),vec_testbit(v->Ssymnum,b->Boutlv));
+                        //printf("\tDEAD=%d, live=%d\n",vec_testbit(j,DEAD),vec_testbit(v->Ssymnum,b->Boutlv));
                         if (!vec_testbit(j,DEAD) && vec_testbit(v->Ssymnum,b->Boutlv))
                                 continue;
                         /* volatile variables are not dead              */
@@ -1307,7 +1302,7 @@ STATIC unsigned numasg(elem *e)
 
 STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
 {       vec_t Pl,Pr,Dl,Dr;
-        register unsigned i,op,vecdim;
+        unsigned i,op,vecdim;
 
         /*chkvecdim(asstop,0);*/
         assert(n && DEAD && POSS);
@@ -1327,22 +1322,10 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 /*   = Pl & Pr | ~P & (Pl | Pr)         */
                 vecdim = vec_dim(DEAD);
                 for (i = 0; i < vecdim; i++)
-#if MPW
-                {
-                        unsigned tmp1,tmp2;
-                        tmp1 = POSS[i] & Dl[i] & Dr[i] ;
-                        tmp2 = ~POSS[i] & (Dl[i] | Dr[i]);
-                        DEAD[i] |= tmp1 | tmp2;
-                        tmp1 = Pl[i] & Pr[i];
-                        tmp2 = ~POSS[i] & (Pl[i] | Pr[i]);
-                        POSS[i] = tmp1 | tmp2;
-                }
-#else
                 {       DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
                                    (~POSS[i] & (Dl[i] | Dr[i]));
                         POSS[i] = (Pl[i] & Pr[i]) | (~POSS[i] & (Pl[i] | Pr[i]));
                 }
-#endif
                 vec_free(Pl); vec_free(Pr); vec_free(Dl); vec_free(Dr);
                 break;
 
@@ -1370,7 +1353,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 // could be referenced.
 
                 for (i = 0; i < assnum; i++)
-                {   register elem *ti;
+                {   elem *ti;
 
                     ti = Elvalue(assnod[i]);
                     if (v == ti->EV.sp.Vsym &&
@@ -1555,7 +1538,7 @@ void deadvar()
         /* if variable is in the IN set for that block.                 */
         flowlv();                       /* compute live variables       */
         for (i = 0; i < globsym.top; i++)
-        {       register unsigned j;
+        {       unsigned j;
 
                 if (globsym.tab[i]->Srange /*&& globsym.tab[i]->Sclass != CLMOS*/)
                         for (j = 0; j < dfotop; j++)
@@ -1565,7 +1548,7 @@ void deadvar()
 
         /* Print results        */
         for (i = 0; i < globsym.top; i++)
-        {       register char *p;
+        {       char *p;
                 symbol *s = globsym.tab[i];
 
                 if (s->Sflags & SFLdead && s->Sclass != SCparameter && s->Sclass != SCregpar)
@@ -1589,12 +1572,12 @@ void deadvar()
  *      i = block index
  */
 
-STATIC void dvwalk(register elem *n,register unsigned i)
+STATIC void dvwalk(elem *n,unsigned i)
 {
   for (; TRUE; n = n->E1)
   {     assert(n);
         if (n->Eoper == OPvar || n->Eoper == OPrelconst)
-        {       register symbol *s = n->EV.sp.Vsym;
+        {       symbol *s = n->EV.sp.Vsym;
 
                 s->Sflags &= ~SFLdead;
                 if (s->Srange)
@@ -1617,8 +1600,8 @@ static vec_t blockseen; /* which blocks we have visited         */
 
 void verybusyexp()
 {       elem **pn;
-        register int i;
-        register unsigned j,k,l;
+        int i;
+        unsigned j,k,l;
 
         cmes("verybusyexp()\n");
         flowvbe();                      /* compute VBEs                 */
@@ -1636,8 +1619,8 @@ void verybusyexp()
         /* Go backwards through dfo so that VBEs are evaluated as       */
         /* close as possible to where they are used.                    */
         for (i = dfotop; --i >= 0;)     /* for each block               */
-        {       register block *b = dfo[i];
-                register int done;
+        {       block *b = dfo[i];
+                int done;
 
                 /* Do not hoist things to blocks that do not            */
                 /* divide the flow of control.                          */
@@ -1696,7 +1679,7 @@ void verybusyexp()
 #endif
 
                 foreach (j,exptop,b->Bout)
-                {       register list_t bl;
+                {       list_t bl;
 
                         vec_clear(blockseen);
                         for (bl = expblk[j]->Bpred; bl; bl = list_next(bl))
@@ -1717,7 +1700,7 @@ void verybusyexp()
 #endif
 
                 foreach (j,exptop,b->Bout)
-                {       register list_t bl;
+                {       list_t bl;
 
                         vec_clear(blockseen);
                         for (bl = expblk[j]->Bpred; bl; bl = list_next(bl))
@@ -1784,8 +1767,8 @@ void verybusyexp()
  * between b and bp.
  */
 
-STATIC int killed(register unsigned j,register block *bp,block *b)
-{       register list_t bl;
+STATIC int killed(unsigned j,block *bp,block *b)
+{       list_t bl;
 
         if (bp == b || vec_testbit(bp->Bdfoidx,blockseen))
                 return FALSE;
@@ -1807,9 +1790,9 @@ STATIC int killed(register unsigned j,register block *bp,block *b)
  *      j =     VBE expression elem candidate (index into expnod[])
  */
 
-STATIC int ispath(register unsigned j,register block *bp,block *b)
-{       register list_t bl;
-        register unsigned i;
+STATIC int ispath(unsigned j,block *bp,block *b)
+{       list_t bl;
+        unsigned i;
 
         /*chkvecdim(exptop,0);*/
         if (bp == b) return TRUE;       /* the trivial case             */

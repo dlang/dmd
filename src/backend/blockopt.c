@@ -241,7 +241,7 @@ void block_pred()
         list_free(&b->Bpred,FPNULL);
 
     for (b = startblock; b; b = b->Bnext)       /* for each block        */
-    {   register list_t bp;
+    {   list_t bp;
 
         //printf("b = %p, BC = ",b); WRBC(b->BC); printf("\n");
         for (bp = b->Bsucc; bp; bp = list_next(bp))
@@ -944,9 +944,9 @@ STATIC void bropt()
                 }
                 else if (b->BC == BCswitch)
                 {       /* see we can evaluate this switch now  */
-                        register unsigned i,ncases;
+                        unsigned i,ncases;
                         targ_llong *p,value;
-                        register list_t bl;
+                        list_t bl;
 
                         while (n->Eoper == OPcomma)
                                 n = n->E2;
@@ -995,11 +995,11 @@ STATIC void bropt()
  */
 
 STATIC void brrear()
-{       register block *b;
+{       block *b;
 
         cmes("brrear()\n");
         for (b = startblock; b; b = b->Bnext)   /* for each block       */
-        {       register list_t bl;
+        {       list_t bl;
 
                 for (bl = b->Bsucc; bl; bl = list_next(bl))
                 {       /* For each transfer of control block pointer   */
@@ -1052,7 +1052,7 @@ STATIC void brrear()
                 /*      L1:                             */
 
                 if (b->BC == BCiftrue || b->BC == BCiffalse)
-                {       register block *bif,*belse;
+                {       block *bif,*belse;
 
                         bif = list_block(b->Bsucc);
                         belse = list_block(list_next(b->Bsucc));
@@ -1077,7 +1077,7 @@ STATIC void brrear()
 
 void compdfo()
 {
-  register int i;
+  int i;
 
   cmes("compdfo()\n");
   assert(OPTIMIZER);
@@ -1262,7 +1262,7 @@ STATIC int mergeblks()
 
                         /* fix up successor list of predecessors        */
                         for (bl = bL2->Bpred; bl; bl = list_next(bl))
-                        {   register list_t bs;
+                        {   list_t bs;
 
                             for (bs=list_block(bl)->Bsucc; bs; bs=list_next(bs))
                                 if (list_block(bs) == b)
