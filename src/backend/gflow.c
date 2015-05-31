@@ -69,9 +69,9 @@ STATIC void flowaecp(void);
  */
 
 void flowrd()
-{       register vec_t tmp;
-        register unsigned i;
-        register bool anychng;
+{       vec_t tmp;
+        unsigned i;
+        bool anychng;
 
         rdgenkill();            /* Compute Bgen and Bkill for RDs       */
         if (deftop == 0)        /* if no definition elems               */
@@ -89,8 +89,8 @@ void flowrd()
         do
         {       anychng = FALSE;
                 for (i = 0; i < dfotop; i++)    /* for each block       */
-                {       register block *b;
-                        register list_t bp;
+                {       block *b;
+                        list_t bp;
 
                         b = dfo[i];
 
@@ -118,7 +118,7 @@ void flowrd()
 #if 0
         dbg_printf("Reaching definitions\n");
         for (i = 0; i < dfotop; i++)
-        {       register block *b = dfo[i];
+        {       block *b = dfo[i];
 
                 assert(vec_numbits(b->Binrd) == deftop);
                 dbg_printf("B%d Bin ",i); vec_println(b->Binrd);
@@ -134,7 +134,7 @@ void flowrd()
  */
 
 STATIC void rdgenkill()
-{       register unsigned i,deftopsave;
+{       unsigned i,deftopsave;
 
         util_free(defnod);              /* free existing junk           */
 
@@ -163,7 +163,7 @@ STATIC void rdgenkill()
         assert(deftop == deftopsave);
 
         for (i = 0; i < dfotop; i++)    /* for each block               */
-        {       register block *b = dfo[i];
+        {       block *b = dfo[i];
 
                 /* dump any existing vectors */
                 vec_free(b->Bgen);
@@ -186,7 +186,7 @@ STATIC void rdgenkill()
  * Compute # of definition elems (deftop).
  */
 
-STATIC void numdefelems(register elem *n)
+STATIC void numdefelems(elem *n)
 {
   while (1)
   {     assert(n);
@@ -212,8 +212,8 @@ STATIC void numdefelems(register elem *n)
  * necessary.
  */
 
-STATIC void asgdefelems(block *b,register elem *n)
-{       register unsigned op;
+STATIC void asgdefelems(block *b,elem *n)
+{       unsigned op;
 
         assert(b && n);
         op = n->Eoper;
@@ -349,7 +349,7 @@ void flowcp()
 
 STATIC void flowaecp()
 {       vec_t tmp;
-        register unsigned i;
+        unsigned i;
         bool anychng;
 
         aecpgenkill();          /* Compute Bgen and Bkill for AEs or CPs */
@@ -368,7 +368,7 @@ STATIC void flowaecp()
 
         /* For all blocks except startblock     */
         for (i = 1; i < dfotop; i++)
-        {       register block *b = dfo[i];
+        {       block *b = dfo[i];
 
                 vec_set(b->Bin);        /* Bin = all expressions        */
 
@@ -467,7 +467,7 @@ static block *this_block;
  */
 
 STATIC void aecpgenkill()
-{       register unsigned i;
+{       unsigned i;
         unsigned exptopsave;
 
         util_free(expnod);              /* dump any existing one        */
@@ -518,7 +518,7 @@ STATIC void aecpgenkill()
 #endif
 
         for (i = 0; i < dfotop; i++)    /* for each block               */
-        {       register block *b = dfo[i];
+        {       block *b = dfo[i];
                 elem *e;
 
                 /* dump any existing vectors    */
@@ -621,8 +621,8 @@ STATIC void aecpgenkill()
  *      TRUE if this elem is a possible AE elem.
  */
 
-STATIC int numaeelems(register elem *n)
-{ register unsigned op;
+STATIC int numaeelems(elem *n)
+{ unsigned op;
   unsigned ae;
 
   assert(n);
@@ -723,8 +723,8 @@ STATIC void asgexpelems(elem *n)
  */
 
 STATIC void defstarkill()
-{       register unsigned i,op;
-        register elem *n;
+{       unsigned i,op;
+        elem *n;
 
         vec_free(vptrkill);
         vec_free(defkill);
@@ -850,12 +850,12 @@ void main()
  */
 
 void genkillae()
-{       register unsigned i;
+{       unsigned i;
 
         flowxx = AE;
         assert(exptop > 1);
         for (i = 0; i < dfotop; i++)
-        {       register block *b = dfo[i];
+        {       block *b = dfo[i];
 
                 assert(b);
                 vec_clear(b->Bgen);
@@ -1039,7 +1039,7 @@ STATIC void accumaecpx(elem *n)
             assert(t->Eoper == OPvar);
             s = t->EV.sp.Vsym;                  // ptr to var being def'd
             for (i = 1; i < exptop; i++)        /* for each ae elem      */
-            {   register elem *e = expnod[i];
+            {   elem *e = expnod[i];
 
                 /* If it could be changed by the definition,     */
                 /* set bit in KILL.                              */
@@ -1137,7 +1137,7 @@ STATIC void accumaecpx(elem *n)
 
 void flowlv()
 {       vec_t tmp,livexit;
-        register unsigned i;
+        unsigned i;
         bool anychng;
         unsigned cnt;
 
@@ -1170,8 +1170,8 @@ void flowlv()
 
                 /* For each block B in reverse DFO order        */
                 for (i = dfotop; i--;)
-                {       register block *b = dfo[i];
-                        register list_t bl = b->Bsucc;
+                {       block *b = dfo[i];
+                        list_t bl = b->Bsucc;
 
                         /* Bout = union of Bins of all successors to B. */
                         if (bl)
@@ -1268,7 +1268,7 @@ STATIC void lvelem(vec_t *pgen,vec_t *pkill,elem *n)
 
 STATIC void accumlv(vec_t GEN,vec_t KILL,elem *n)
 {   vec_t Gl,Kl,Gr,Kr;
-    register unsigned op;
+    unsigned op;
     elem *t;
 
     assert(GEN && KILL && n);
@@ -1518,8 +1518,8 @@ void flowvbe()
  */
 
 STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
-{       register unsigned op,i;
-        register elem *t;
+{       unsigned op,i;
+        elem *t;
 
         assert(GEN && KILL && n);
         op = n->Eoper;
