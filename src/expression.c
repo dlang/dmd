@@ -11299,13 +11299,16 @@ Expression *AssignExp::semantic(Scope *sc)
                      * initializer
                      */
                     AssignExp *ae = this;
-                    if (sd->zeroInit == 1)
-                        ae->e2 = new IntegerExp(loc, 0, Type::tint32);
-                    else if (sd->isNested())
-                        ae->e2 = t1->defaultInitLiteral(loc);
+                    if (sd->zeroInit == 1 && !sd->isNested())
+                    {
+                        // Bugzilla 14606: Always use BlitExp for the special expression: (struct = 0)
+                        ae = new BlitExp(ae->loc, ae->e1, new IntegerExp(loc, 0, Type::tint32));
+                    }
                     else
-                        ae->e2 = t1->defaultInit(loc);
-                    // Keep ae->op == TOKconstruct
+                    {
+                        // Keep ae->op == TOKconstruct
+                        ae->e2 = sd->isNested() ? t1->defaultInitLiteral(loc) : t1->defaultInit(loc);
+                    }
                     ae->type = e1x->type;
 
                     /* Replace __ctmp being constructed with e1.
