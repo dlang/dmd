@@ -490,7 +490,7 @@ STATIC void addhcstab(elem *e,int hash)
   {
         assert(h == hcsmax);
         // With 32 bit compiles, we've got memory to burn
-        hcsmax += (__INTSIZE == 4) ? (hcsmax + 128) : 100;
+        hcsmax += hcsmax + 128;
         assert(h < hcsmax);
 #if TX86
         hcstab = (hcs *) util_realloc(hcstab,hcsmax,sizeof(hcs));

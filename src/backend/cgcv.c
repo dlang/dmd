@@ -365,13 +365,11 @@ L1:
         debtypmax += 10;
 #else
         debtypmax += debtypmax + 16;
-#if __INTSIZE == 4
         if (debtypmax > 0xE000)
             debtypmax = 0xE000;
 #if SCPP
         if (debtyptop >= debtypmax)
             err_fatal(EM_2manytypes,debtypmax);         // too many types
-#endif
 #endif
 #endif
         // Don't use MEM here because we can allocate pretty big
