@@ -23,6 +23,7 @@
 #include "root.h"
 #include "async.h"
 #include "target.h"
+#include "stringtable.h"
 
 #include "mars.h"
 #include "module.h"
@@ -41,7 +42,7 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 
 bool response_expand(Strings *arguments);
 void browse(const char *url);
-void getenv_setargv(const char *envvar, Strings *args);
+void getenv_setargv(const char *envvalue, Strings *args);
 
 void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);
@@ -51,8 +52,20 @@ void printCtfePerformanceStats();
 static const char* parse_arch_arg(Strings *args, const char* arch);
 static const char* parse_conf_arg(Strings *args);
 
+void inlineScan(Module *m);
+
+// in traits.c
+void initTraitsStringTable();
+
+int runLINK();
+void deleteExeFile();
+int runProgram();
+
+// inifile.c
 const char *findConfFile(const char *argv0, const char *inifile);
-void parseConfFile(const char *path, size_t len, unsigned char *buffer, Strings *sections);
+const char *readFromEnv(StringTable *environment, const char *name);
+void updateRealEnvironment(StringTable *environment);
+void parseConfFile(StringTable *environment, const char *path, size_t len, unsigned char *buffer, Strings *sections);
 
 
 FILE *stdmsg;
@@ -584,27 +597,33 @@ int main(int iargc, const char *argv[])
 
     Strings sections;
 
+    StringTable environment;
+    environment._init(7);
+
     /* Read the [Environment] section, so we can later
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    parseConfFile(inifilepath, inifile.len, inifile.buffer, &sections);
+    parseConfFile(&environment, inifilepath, inifile.len, inifile.buffer, &sections);
 
     Strings dflags;
-    getenv_setargv("DFLAGS", &dflags);
+    getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
+    environment.reset(7);               // erase cached environment updates
 
     const char *arch = global.params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
     arch = parse_arch_arg(&dflags, arch);
     bool is64bit = arch[0] == '6';
 
-    sections.setDim(0);
     char envsection[80];
     sprintf(envsection, "Environment%s", arch);
     sections.push(envsection);
-    parseConfFile(inifilepath, inifile.len, inifile.buffer, &sections);
+    parseConfFile(&environment, inifilepath, inifile.len, inifile.buffer, &sections);
 
-    getenv_setargv("DFLAGS", &arguments);
+    getenv_setargv(readFromEnv(&environment, "DFLAGS"), &arguments);
+
+    updateRealEnvironment(&environment);
+    environment.reset(1);               // don't need environment cache any more
 
 #if 0
     for (size_t i = 0; i < arguments.dim; i++)
@@ -1623,24 +1642,23 @@ int main(int iargc, const char *argv[])
 
 
 /***********************************
- * Parse and append contents of environment variable envvar
- * to args[].
+ * Parse and append contents of command line string envvalue to args[].
  * The string is separated into arguments, processing \ and ".
  */
 
-void getenv_setargv(const char *envvar, Strings *args)
+void getenv_setargv(const char *envvalue, Strings *args)
 {
+    if (!envvalue)
+        return;
+
     char *p;
 
     int instring;
     int slash;
     char c;
 
-    char *env = getenv(envvar);
-    if (!env)
-        return;
-
-    env = mem.strdup(env);      // create our own writable copy
+    char *env = mem.strdup(envvalue);      // create our own writable copy
+    //printf("env = '%s'\n", env);
 
     while (1)
     {

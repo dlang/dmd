@@ -69,6 +69,16 @@ void StringTable::_init(size_t size)
     count = 0;
 }
 
+void StringTable::reset(size_t size)
+{
+    for (size_t i = 0; i < count; i++)
+        table[i] = NULL;
+
+    mem.free(table);
+    table = NULL;
+    _init(size);
+}
+
 StringTable::~StringTable()
 {
     // Zero out dangling pointers to help garbage collector.
@@ -174,3 +184,42 @@ StringValue *StringTable::insert(const char *s, size_t len)
     }
     return &se->value;
 }
+
+/********************************
+ * Walk the contents of the string table,
+ * calling fp for each entry.
+ * Params:
+ *      fp = function to call. Returns !=0 to stop
+ * Returns:
+ *      last return value of fp call
+ */
+
+static int walk(StringEntry *se, int (*fp)(StringValue *))
+{
+    int result = 0;
+    if (se)
+    {
+        StringValue *sv = &se->value;
+        result = (*fp)(sv);
+        if (result)
+            return result;
+
+        result = walk(se->left, fp);
+        if (!result)
+            result = walk(se->right, fp);
+    }
+    return result;
+}
+
+int StringTable::apply(int (*fp)(StringValue *))
+{
+    for (size_t i = 0; i < tabledim; ++i)
+    {
+        StringEntry *se = (StringEntry *)table[i];
+        int result = walk(se, fp);
+        if (result)
+            return result;
+    }
+    return 0;
+}
+
