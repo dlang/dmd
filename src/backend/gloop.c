@@ -118,10 +118,10 @@ STATIC void elimspecwalk(elem **pn);
 static  bool addblk;                    /* if TRUE, then we added a block */
 
 /* is elem loop invariant?      */
-#define isLI(n) ((n)->Nflags & NFLli)
+inline int isLI(elem *n) { return n->Nflags & NFLli; }
 
 /* make elem loop invariant     */
-#define makeLI(n) ((n)->Nflags |= NFLli)
+inline void makeLI(elem *n) { n->Nflags |= NFLli; }
 
 /******************************
  *      Only variables that could only be unambiguously defined
@@ -1686,7 +1686,7 @@ L3:
         goto Lret;
 
 #if 0
-printf("*pdomexit = %d\n",*pdomexit);
+    printf("*pdomexit = %d\n",*pdomexit);
     if (*pdomexit & 2)
     {
         // If any indirections, can't LI it
@@ -1695,8 +1695,8 @@ printf("*pdomexit = %d\n",*pdomexit);
         // it pass.
         Symbol *s;
 
-printf("looking at:\n");
-elem_print(n);
+        printf("looking at:\n");
+        elem_print(n);
         s = el_basesym(n->E1);
         if (s)
         {
@@ -1706,15 +1706,15 @@ elem_print(n);
 
                 el = list_elem(nl);
                 el = el->E2;
-elem_print(el);
+                elem_print(el);
                 if (el->Eoper == OPind && el_basesym(el->E1) == s)
                 {
-printf("  pass!\n");
+                    printf("  pass!\n");
                     goto Lpass;
                 }
             }
         }
-printf("  skip!\n");
+        printf("  skip!\n");
         goto Lret;
 
     Lpass:
@@ -1988,11 +1988,6 @@ STATIC famlist * newfamlist(tym_t ty)
             default:
                 c.Vlong = 1;
                 break;
-#if 0
-            default:
-                printf("ty = x%x\n", tybasic(ty));
-                assert(0);
-#endif
 #endif
         }
         fl->c1 = el_const(ty,&c);               /* c1 = 1               */
@@ -2526,17 +2521,17 @@ STATIC void elimfrivivs(loop *l)
         famlist *fl;
         int nrefs;
 
-cmes("elimfrivivs()\n");
+        cmes("elimfrivivs()\n");
         /* Compute number of family ivs for biv */
         nfams = 0;
         for (fl = biv->IVfamily; fl; fl = fl->FLnext)
                 nfams++;
-cmes2("nfams = %d\n",nfams);
+        cmes2("nfams = %d\n",nfams);
 
         /* Compute number of references to biv  */
         if (onlyref(biv->IVbasic,l,*biv->IVincr,&nrefs))
                 nrefs--;
-cmes2("nrefs = %d\n",nrefs);
+        cmes2("nrefs = %d\n",nrefs);
         assert(nrefs + 1 >= nfams);
         if (nrefs > nfams ||            // if we won't eliminate the biv
             (!I16 && nrefs == nfams))
@@ -2759,11 +2754,13 @@ L1:
                                     e2,
                                     el_copytree(fls->c2)));
         if (sz < tysize(tymin) && sz == tysize(e1->Ety))
+        {
 #if TARGET_SEGMENTED
             flse1->E2 = el_una(OPoffset,fl->FLty,flse1->E2);
 #else
             assert(0);
 #endif
+        }
 
         flse1 = doptelem(flse1,GOALvalue | GOALagain);
         fl->c2 = NULL;
@@ -2847,13 +2844,8 @@ STATIC void elimbasivs(loop *l)
                     flty = touns(flty);
 
                 if (ref->Eoper >= OPle && ref->Eoper <= OPge &&
-#if 1
                     !(tyuns(ref->E1->Ety) | tyuns(ref->E2->Ety)) &&
                      tyuns(flty))
-#else
-                    (tyuns(ref->E1->Ety) | tyuns(ref->E2->Ety)) !=
-                     tyuns(flty))
-#endif
                         continue;
 
                 /* if we have (e relop X), replace it with (X relop e)  */
