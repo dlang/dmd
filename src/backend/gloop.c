@@ -1921,28 +1921,6 @@ STATIC famlist * newfamlist(tym_t ty)
             case TYldouble:
                 c.Vldouble = 1;
                 break;
-#if _MSDOS || __OS2__ || _WIN32         // if no byte ordering problems
-#if TARGET_SEGMENTED
-            case TYsptr:
-            case TYcptr:
-            case TYnptr:
-            case TYfptr:
-            case TYvptr:
-#endif
-                /* Convert pointers to integrals to avoid things like   */
-                /* multiplying pointers                                 */
-                ty = TYptrdiff;
-                /* FALL-THROUGH */
-            default:
-                c.Vlong = 1;
-                break;
-#if TARGET_SEGMENTED
-            case TYhptr:
-                ty = TYlong;
-                c.Vlong = 1;
-                break;
-#endif
-#else
             case TYbool:
             case TYchar:
             case TYschar:
@@ -1982,7 +1960,6 @@ STATIC famlist * newfamlist(tym_t ty)
             default:
                 c.Vlong = 1;
                 break;
-#endif
         }
         fl->c1 = el_const(ty,&c);               /* c1 = 1               */
         c.Vldouble = 0;
