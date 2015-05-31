@@ -124,7 +124,6 @@ static  bool addblk;                    /* if TRUE, then we added a block */
 #define makeLI(n) ((n)->Nflags |= NFLli)
 
 /******************************
- * UNAMBIG being defined means that:
  *      Only variables that could only be unambiguously defined
  *      are candidates for loop invariant removal and induction
  *      variables.
@@ -134,8 +133,6 @@ static  bool addblk;                    /* if TRUE, then we added a block */
  *      is a lot faster to compute.
  */
 
-#define UNAMBIG 1
-
 /****************************
  */
 
@@ -1085,9 +1082,7 @@ STATIC void markinvar(elem *n,vec_t rd)
                 /*    than the current def)                             */
                 if (isLI(n->E2) && n1->Eoper == OPvar)          /* 1 & 2 */
                 {   v = n1->EV.sp.Vsym;
-#if UNAMBIG
                     if (v->Sflags & SFLunambig)
-#endif
                     {
                         tmp = vec_calloc(deftop);
                         //filterrd(tmp,rd,v);
@@ -1195,9 +1190,7 @@ STATIC void markinvar(elem *n,vec_t rd)
                 break;
         case OPvar:
                 v = n->EV.sp.Vsym;
-#if UNAMBIG
                 if (v->Sflags & SFLunambig)     // must be unambiguous to be LI
-#endif
                 {
                     tmp = vec_calloc(deftop);
                     //filterrd(tmp,rd,v);       // only the RDs pertaining to v
@@ -1392,7 +1385,6 @@ void filterrd(vec_t f,vec_t rd,symbol *s)
   register elem *n;
 
   vec_copy(f,rd);
-#if UNAMBIG
   foreach (i,deftop,f)                  /* for each def in f            */
   {     n = defnod[i].DNelem;           /* the definition elem          */
         elem_debug(n);
@@ -1407,9 +1399,6 @@ void filterrd(vec_t f,vec_t rd,symbol *s)
         else                            /* else ambiguous def           */
             vec_clearbit(i,f);          // and couldn't def this var
   }
-#else
-  assert(0);                            /* not implemented              */
-#endif
 }
 #endif
 
@@ -1429,7 +1418,6 @@ STATIC void filterrdind(vec_t f,vec_t rd,elem *e)
     tym_t jty = e->Ejty;
 
     vec_copy(f,rd);
-#if UNAMBIG
     foreach (i,deftop,f)                // for each def in f
     {   n = defnod[i].DNelem;           // the definition elem
         elem_debug(n);
@@ -1453,9 +1441,6 @@ STATIC void filterrdind(vec_t f,vec_t rd,elem *e)
         else if (OTcall(n->Eoper) && el_noreturn(n))
             vec_clearbit(i,f);
     }
-#else
-    assert(0);                          // not implemented
-#endif
 }
 
 #endif
@@ -1479,7 +1464,6 @@ STATIC bool refs(symbol *v,elem *n,elem *nstop)
   assert(n);
 
   op = n->Eoper;
-#if UNAMBIG
   if (refstop == 0)
         return FALSE;
   f = FALSE;
@@ -1512,9 +1496,6 @@ STATIC bool refs(symbol *v,elem *n,elem *nstop)
   else if (op == OPasm)                 /* everything is referenced     */
         return TRUE;
   return f;
-#else
-  assert(0);
-#endif
 }
 
 /*************************
@@ -1587,9 +1568,7 @@ Lnextlis:
             if (isLI(n) && n->E1->Eoper == OPvar)
             {   v = n->E1->EV.sp.Vsym;          // variable index number
 
-        #ifdef UNAMBIG
                 if (!(v->Sflags & SFLunambig)) goto L3;         // case 6
-        #endif
 
                 // If case 4 is not satisfied, return
 
