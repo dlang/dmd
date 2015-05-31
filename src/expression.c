@@ -9738,10 +9738,6 @@ Expression *CastExp::semantic(Scope *sc)
         return new VectorExp(loc, e1, to);
     }
 
-    if (tob->ty == Tpointer && t1b->ty == Tdelegate)
-        deprecation("casting from %s to %s is deprecated", e1->type->toChars(), to->toChars());
-
-
     Expression *ex = e1->castTo(sc, to);
     if (ex->op == TOKerror)
         return ex;

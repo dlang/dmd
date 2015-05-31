@@ -1,10 +1,12 @@
-void bug1176(){
+// REQUIRED_ARGS: -o-
 /*
-Error: void does not have a default initializer
-Error: integral constant must be scalar type, not void
-Error: cannot implicitly convert expression (0) of type int to const(void[])
-Error: cannot cast int to const(void[])
-Error: integral constant must be scalar type, not const(void[])
+TEST_OUTPUT:
+---
+fail_compilation/fail233.d(11): Error: variable fail233.bug1176.v void[1] does not have a default initializer
+---
 */
-        void[1] v;
+
+void bug1176()
+{
+    void[1] v;
 }

@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting.d(12): Error: cannot cast expression x of type short[2] to int[2]
+fail_compilation/fail_casting.d(12): Error: cannot cast expression x of type short[2] to int[2] because of different sizes
 ---
 */
 void test3133()
@@ -63,7 +63,7 @@ fail_compilation/fail_casting.d(77): Error: cannot cast expression x of type flo
 fail_compilation/fail_casting.d(78): Error: cannot cast expression x of type int to float[]
 ---
 */
-void tst11484()
+void test11484()
 {
     // Tsarray <--> integer
     { int[1]   x; auto y = cast(int     ) x; }
@@ -191,4 +191,33 @@ void test14596()
     void* p = null;
     auto arr = cast(char[])p;
     char[2] sarr = cast(char[2])p;
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_casting.d(217): Error: cannot cast expression c of type fail_casting.test14629.C to typeof(null)
+fail_compilation/fail_casting.d(218): Error: cannot cast expression p of type int* to typeof(null)
+fail_compilation/fail_casting.d(219): Error: cannot cast expression da of type int[] to typeof(null)
+fail_compilation/fail_casting.d(220): Error: cannot cast expression aa of type int[int] to typeof(null)
+fail_compilation/fail_casting.d(221): Error: cannot cast expression fp of type int function() to typeof(null)
+fail_compilation/fail_casting.d(222): Error: cannot cast expression dg of type int delegate() to typeof(null)
+---
+*/
+void test14629()
+{
+    alias P = int*;             P p;
+    alias DA = int[];           DA da;
+    alias AA = int[int];        AA aa;
+    alias FP = int function();  FP fp;
+    alias DG = int delegate();  DG dg;
+    class C {}                  C c;
+    alias N = typeof(null);
+
+    { auto x = cast(N)c;  }
+    { auto x = cast(N)p;  }
+    { auto x = cast(N)da; }
+    { auto x = cast(N)aa; }
+    { auto x = cast(N)fp; }
+    { auto x = cast(N)dg; }
 }
