@@ -1923,9 +1923,6 @@ STATIC famlist * newfamlist(tym_t ty)
                 c.Vldouble = 1;
                 break;
 #if _MSDOS || __OS2__ || _WIN32         // if no byte ordering problems
-#if JHANDLE
-            case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
@@ -1959,9 +1956,7 @@ STATIC famlist * newfamlist(tym_t ty)
             case TYwchar_t:             // BUG: what about 4 byte wchar_t's?
                 c.Vshort = 1;
                 break;
-#if JHANDLE
-            case TYjhandle:
-#endif
+
 #if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
@@ -3253,9 +3248,6 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
                         goto Lf2;
                 break;
 
-#if JHANDLE
-            case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:

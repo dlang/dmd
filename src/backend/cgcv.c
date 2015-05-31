@@ -1803,16 +1803,6 @@ L1:
             typidx = dt;
             break;
 
-#if JHANDLE
-        case TYjhandle:
-#if SYMDEB_TDB
-            if (config.fulltypes == CVTDB) {
-                attribute |= 20;
-                goto L2;
-            }
-#endif
-            goto Lptr;
-#endif
         case TYnptr:
 #if MARS
             if (t->Tkey)
@@ -2608,9 +2598,6 @@ STATIC void cv4_func(Funcsym *s)
 
             case TYint:
             case TYuint:
-#if JHANDLE
-            case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:

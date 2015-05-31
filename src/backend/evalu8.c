@@ -188,9 +188,6 @@ int boolres(elem *e)
                 case TYdchar:
                 case TYllong:
                 case TYullong:
-#if JHANDLE
-                case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
                 case TYsptr:
                 case TYcptr:

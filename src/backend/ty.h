@@ -153,11 +153,7 @@ extern int TYptrdiff, TYsize, TYsize_t;
 
 /* Modifiers to basic types     */
 
-#ifdef JHANDLE
-#define mTYarrayhandle  0x200
-#else
 #define mTYarrayhandle  0x0
-#endif
 #define mTYconst        0x100
 #define mTYvolatile     0x200
 #define mTYrestrict     0               // BUG: add for C99

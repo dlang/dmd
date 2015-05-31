@@ -2517,9 +2517,6 @@ L1:
                         else
                             goto case_long;
 
-#if JHANDLE
-                    case TYjhandle:
-#endif
                     case TYnullptr:
                     case TYnptr:
 #if TARGET_SEGMENTED
@@ -2798,9 +2795,6 @@ L1:
             goto L1;
 #endif
 
-#if JHANDLE
-        case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
@@ -3142,9 +3136,6 @@ case_tym:
         case TYuchar:
             dbg_printf("%d ",e->EV.Vuchar);
             break;
-#if JHANDLE
-        case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
