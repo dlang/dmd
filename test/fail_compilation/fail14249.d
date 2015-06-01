@@ -1,4 +1,5 @@
 /*
+REQUIRED_ARGS: -unittest
 TEST_OUTPUT:
 ---
 fail_compilation/fail14249.d(23): Error: shared static constructor can only be member of module/aggregate/template, not function main
@@ -17,7 +18,6 @@ fail_compilation/fail14249.d(35): Error: anonymous union can only be a part of a
 fail_compilation/fail14249.d(39): Error: mixin fail14249.main.Mix!() error instantiating
 ---
 */
-
 mixin template Mix()
 {
     shared static this() {}

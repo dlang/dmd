@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -w
+// REQUIRED_ARGS: -w -unittest
 // 4375: Dangling else
 
 unittest {  // disallowed
