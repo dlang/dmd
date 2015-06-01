@@ -142,7 +142,7 @@ static void writeToEnv(StringTable *environment, char *nameEqValue)
 {
     char *p = strchr(nameEqValue, '=');
     assert(p);
-    StringValue *sv = environment->insert(nameEqValue, p - nameEqValue);
+    StringValue *sv = environment->update(nameEqValue, p - nameEqValue);
     sv->ptrvalue = (void *)(p + 1);
 }
 
