@@ -1932,14 +1932,17 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd->toChars(), fd->type->toChars(),
         //    wildmatch, tf->isWild(), fd->isolateReturn());
         if (!tthis)
-        {   assert(sc->intypeof || global.errors);
+        {
+            assert(sc->intypeof || global.errors);
             tthis = fd->isThis()->type->addMod(fd->type->mod);
         }
         if (tf->isWild() && !fd->isolateReturn())
         {
             if (wildmatch)
                 tret = tret->substWildTo(wildmatch);
-            if (!tret->implicitConvTo(tthis))
+            int offset;
+            if (!tret->implicitConvTo(tthis) &&
+                !(MODimplicitConv(tret->mod, tthis->mod) && tret->isBaseOf(tthis, &offset) && offset == 0))
             {
                 const char* s1 = tret ->isNaked() ? " mutable" : tret ->modToChars();
                 const char* s2 = tthis->isNaked() ? " mutable" : tthis->modToChars();
@@ -1951,7 +1954,8 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         tret = tthis;
     }
     else if (wildmatch)
-    {   /* Adjust function return type based on wildmatch
+    {
+        /* Adjust function return type based on wildmatch
          */
         //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret->toChars());
         tret = tret->substWildTo(wildmatch);
