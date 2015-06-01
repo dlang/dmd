@@ -207,10 +207,6 @@ One and only one of these macros must be set by the makefile:
 #define SUFFIX  "a"
 #elif _WIN32
 #define SUFFIX  "n"
-#elif DOS386
-#define SUFFIX  "x"
-#elif DOS16RM
-#define SUFFIX  "r"
 #else
 #define SUFFIX  ""
 #endif
