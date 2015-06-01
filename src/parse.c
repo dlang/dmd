@@ -395,9 +395,43 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             }
 
             case TOKunittest:
-                s = parseUnitTest(pAttrs);
-                if (*pLastDecl)
-                    (*pLastDecl)->ddocUnittest = (UnitTestDeclaration *)s;
+                if (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration)
+                {
+                    s = parseUnitTest(pAttrs);
+                    if (*pLastDecl)
+                        (*pLastDecl)->ddocUnittest = (UnitTestDeclaration *)s;
+                }
+                else
+                {
+                    // Skip over unittest block by counting { }
+                    Loc loc = token.loc;
+                    int braces = 0;
+                    while (1)
+                    {
+                        nextToken();
+                        switch (token.value)
+                        {
+                            case TOKlcurly:
+                                ++braces;
+                                continue;
+
+                            case TOKrcurly:
+                                if (--braces)
+                                    continue;
+                                nextToken();
+                                break;
+
+                            case TOKeof:
+                                /* { */
+                                error(loc, "closing } of unittest not found before end of file");
+                                goto Lerror;
+
+                            default:
+                                continue;
+                        }
+                        break;
+                    }
+                }
                 break;
 
             case TOKnew:
