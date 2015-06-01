@@ -1596,12 +1596,13 @@ struct dt_t
 {   dt_t *DTnext;                       // next in list
     char dt;                            // type (DTxxxx)
     unsigned char Dty;                  // pointer type
+    unsigned char DTn;                  // DTibytes: number of bytes
     union
     {
         struct                          // DTibytes
-        {   char DTn_;                  // number of bytes
-            #define DTn _DU._DI.DTn_
-            char DTdata_[8];            // data
+        {
+            #define DTibytesMax (sizeof(char *) + sizeof(unsigned) + sizeof(int) + sizeof(targ_size_t))
+            char DTdata_[DTibytesMax];  // data
             #define DTdata _DU._DI.DTdata_
         }_DI;
         targ_size_t DTazeros_;          // DTazeros,DTcommon,DTsymsize
