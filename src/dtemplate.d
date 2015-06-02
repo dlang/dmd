@@ -2408,7 +2408,8 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
          * that it is implicitly convertible to tthis.
          */
         Type tthis_fd = fd.needThis() ? tthis : null;
-        if (tthis_fd && fd.isCtorDeclaration())
+        bool isCtorCall = tthis_fd && fd.isCtorDeclaration();
+        if (isCtorCall)
         {
             //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
             //        tf->mod, tthis_fd->mod, fd->isolateReturn());
@@ -2463,6 +2464,13 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             {
                 if (fd.fbody && !m.lastf.fbody) goto LfIsBetter;
                 if (!fd.fbody && m.lastf.fbody) goto LlastIsBetter;
+            }
+
+            // Bugzilla 14450: Prefer exact qualified constructor for the creating object type
+            if (isCtorCall && tf.mod != m.lastf.type.mod)
+            {
+                if (tthis.mod == tf.mod) goto LfIsBetter;
+                if (tthis.mod == m.lastf.type.mod) goto LlastIsBetter;
             }
 
             m.nextf = fd;
@@ -2645,23 +2653,21 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
 
             Type tthis_fd = fd.needThis() ? tthis : null;
 
-            if (fd.isCtorDeclaration())
+            bool isCtorCall = tthis_fd && fd.isCtorDeclaration();
+            if (isCtorCall)
             {
                 // Constructor call requires additional check.
 
                 auto tf = cast(TypeFunction)fd.type;
-                if (tthis_fd)
+                assert(tf.next);
+                if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
+                    tf.isWild() && tf.isShared() == tthis_fd.isShared() ||
+                    fd.isolateReturn())
                 {
-                    assert(tf.next);
-                    if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
-                        tf.isWild() && tf.isShared() == tthis_fd.isShared() ||
-                        fd.isolateReturn())
-                    {
-                        tthis_fd = null;
-                    }
-                    else
-                        continue;   // MATCHnomatch
+                    tthis_fd = null;
                 }
+                else
+                    continue;   // MATCHnomatch
             }
 
             if (mta < ta_last) goto Ltd_best;
@@ -2699,6 +2705,13 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
                 //printf("3: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
+            }
+
+            // Bugzilla 14450: Prefer exact qualified constructor for the creating object type
+            if (isCtorCall && fd.type.mod != m.lastf.type.mod)
+            {
+                if (tthis.mod == fd.type.mod) goto Ltd;
+                if (tthis.mod == m.lastf.type.mod) goto Ltd_best;
             }
 
             m.nextf = fd;
