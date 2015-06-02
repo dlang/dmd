@@ -139,7 +139,7 @@ dt_t ** dtnbytes(dt_t **pdtend,unsigned size,const char *ptr)
         pdtend = &((*pdtend)->DTnext);
     if (size)
     {
-        if (size <= 7)
+        if (size < DTibytesMax)
         {   dt = dt_calloc(DT_ibytes);
             dt->DTn = size;
             memcpy(dt->DTdata,ptr,size);
