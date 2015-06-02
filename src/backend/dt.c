@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2013 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -33,17 +33,25 @@ static dt_t *dt_freelist;
 
 static dt_t *dt_calloc(int dtx)
 {
-    dt_t *dt;
-    static dt_t dtzero;
-
-    if (dt_freelist)
+    dt_t *dt = dt_freelist;
+    if (!dt)
     {
-        dt = dt_freelist;
-        dt_freelist = dt->DTnext;
-        *dt = dtzero;
+        const size_t n = 4096 / sizeof(dt_t);
+        dt_t *chunk = (dt_t *)mem_fmalloc(n * sizeof(dt_t));
+        for (size_t i = 0; i < n - 1; ++i)
+        {
+            chunk[i].DTnext = &chunk[i + 1];
+        }
+        chunk[n - 1].DTnext = NULL;
+        dt_freelist = chunk;
+        dt = chunk;
     }
-    else
-        dt = (dt_t *) mem_fcalloc(sizeof(dt_t));
+
+    dt_freelist = dt->DTnext;
+#ifdef DEBUG
+    memset(dt, 0xBE, sizeof(*dt));
+#endif
+    dt->DTnext = NULL;
     dt->dt = dtx;
     return dt;
 }
@@ -53,19 +61,25 @@ static dt_t *dt_calloc(int dtx)
  */
 
 void dt_free(dt_t *dt)
-{   dt_t *dtn;
-
-    for (; dt; dt = dtn)
+{
+    if (dt)
     {
-        switch (dt->dt)
+        dt_t *dtn = dt;
+        while (1)
         {
-            case DT_abytes:
-            case DT_nbytes:
-                mem_free(dt->DTpbytes);
+            switch (dtn->dt)
+            {
+                case DT_abytes:
+                case DT_nbytes:
+                    mem_free(dtn->DTpbytes);
+                    break;
+            }
+            dt_t *dtnext = dtn->DTnext;
+            if (!dtnext)
                 break;
+            dtn = dtnext;
         }
-        dtn = dt->DTnext;
-        dt->DTnext = dt_freelist;
+        dtn->DTnext = dt_freelist;
         dt_freelist = dt;
     }
 }
@@ -76,7 +90,7 @@ void dt_free(dt_t *dt)
 
 void dt_term()
 {
-#if TERMCODE
+#if 0 && TERMCODE
     dt_t *dtn;
 
     while (dt_freelist)
