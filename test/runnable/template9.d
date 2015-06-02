@@ -4517,6 +4517,49 @@ struct Hoge14481
 }
 
 /******************************************/
+// 14568
+
+struct Interval14568()
+{
+    auto left = INVALID;
+
+    auto opAssign()(Interval14568) { left; }
+}
+
+auto interval14568(T)(T point)
+{
+    Interval14568!();
+}
+
+alias Instantiate14568(alias symbol, Args...) = symbol!Args;
+
+template Match14568(patterns...)
+{
+    static if (__traits(compiles, Instantiate14568!(patterns[0])))
+    {
+        alias Match14568 = patterns[0];
+    }
+    else static if (patterns.length == 1)
+    {}
+}
+
+template SubOps14568(Args...)
+{
+    auto opIndex()
+    {
+        template IntervalType(T...)
+        {
+            alias Point() = typeof(T.interval14568);
+
+            alias IntervalType = Match14568!(Point);
+        }
+        alias Subspace = IntervalType!(Args);
+    }
+}
+
+struct Nat14568 { mixin SubOps14568!(null); }
+
+/******************************************/
 
 int main()
 {
