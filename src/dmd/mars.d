@@ -257,6 +257,8 @@ private int tryMain(size_t argc, const(char)** argv)
     char[80] envsection;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
+    parse_conf_sections(&arguments, &sections);
+    parse_conf_sections(&dflags, &sections);
     parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
     getenv_setargv(readFromEnv(&environment, "DFLAGS"), &arguments);
     updateRealEnvironment(&environment);
@@ -1158,6 +1160,28 @@ private const(char)* parse_conf_arg(Strings* args)
 }
 
 
+/***********************************
+ * Parse command line arguments for -conf=path.
+ */
+
+static void parse_conf_sections(Strings *args, Strings *sections)
+{
+    for (size_t i = 0; i < args.dim; ++i)
+    {
+        const(char)* p = (*args)[i];
+        if (p[0] == '-' && memcmp(p + 1, cast(char*)"confsection=", 12) == 0)
+        {
+            p += 13;
+            if (*p)
+            {
+                printf("[%s]\n", p);
+                sections.push(p);
+            }
+        }
+    }
+}
+
+
 /**
  * Set the default and debug libraries to link against, if not already set
  *
@@ -1485,6 +1509,10 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     goto Lerror;
             }
             else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
+            {
+                // ignore, already handled above
+            }
+            else if (startsWith(p + 1, "confsection="))
             {
                 // ignore, already handled above
             }

@@ -105,6 +105,9 @@ struct Usage
         Option("conf=<filename>",
             "use config file at filename"
         ),
+        Option("confsection=section",
+            "include [section] in config file"
+        ),
         Option("cov",
             "do code coverage analysis"
         ),
