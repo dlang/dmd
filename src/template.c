@@ -6631,47 +6631,40 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Lexpr:
             //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
-            if (!(flags & 1)) sc = sc->startCTFE();
-            ea = ea->semantic(sc);
-            if (!(flags & 1)) sc = sc->endCTFE();
-            if (flags & 1) // only used by __traits, must not interpret the args
+            if (flags & 1) // only used by __traits
             {
-                VarDeclaration *v;
-                if (ea->op == TOKvar && (v = ((VarExp *)ea)->var->isVarDeclaration()) != NULL &&
-                    !(v->storage_class & STCtemplateparameter))
-                {
-                    if (v->sem < SemanticDone && v->scope)
-                        v->semantic(NULL);
-                    // skip optimization for variable symbols
-                }
-                else
+                ea = ea->semantic(sc);
+
+                // must not interpret the args, excepting template parameters
+                if (ea->op != TOKvar ||
+                    (((VarExp *)ea)->var->storage_class & STCtemplateparameter))
                 {
                     ea = ea->optimize(WANTvalue);
                 }
             }
-            else if (ea->op == TOKvar)
+            else
             {
-                VarDeclaration *v = ((VarExp *)ea)->var->isVarDeclaration();
-                if (v && !(v->storage_class & STCtemplateparameter))
-                {
-                    if (v->sem < SemanticDone && v->scope)
-                        v->semantic(NULL);
-                }
+                sc = sc->startCTFE();
+                ea = ea->semantic(sc);
+                sc = sc->endCTFE();
 
-                /* This test is to skip substituting a const var with
-                 * its initializer. The problem is the initializer won't
-                 * match with an 'alias' parameter. Instead, do the
-                 * const substitution in TemplateValueParameter::matchArg().
-                 */
-            }
-            else if (definitelyValueParameter(ea))
-            {
-                if (ea->checkValue())   // check void expression
-                    ea = new ErrorExp();
-                unsigned int olderrs = global.errors;
-                ea = ea->ctfeInterpret();
-                if (global.errors != olderrs)
-                    ea = new ErrorExp();
+                if (ea->op == TOKvar)
+                {
+                    /* This test is to skip substituting a const var with
+                     * its initializer. The problem is the initializer won't
+                     * match with an 'alias' parameter. Instead, do the
+                     * const substitution in TemplateValueParameter::matchArg().
+                     */
+                }
+                else if (definitelyValueParameter(ea))
+                {
+                    if (ea->checkValue())   // check void expression
+                        ea = new ErrorExp();
+                    unsigned int olderrs = global.errors;
+                    ea = ea->ctfeInterpret();
+                    if (global.errors != olderrs)
+                        ea = new ErrorExp();
+                }
             }
             //printf("-[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
             if (ea->op == TOKtuple)

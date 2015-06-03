@@ -728,6 +728,7 @@ Expression *ctfeInterpret(Expression *e)
 {
     if (e->op == TOKerror)
         return e;
+    assert(e->type);                    // Bugzilla 14642
     //assert(e->type->ty != Terror);    // FIXME
     if (e->type->ty == Terror)
         return new ErrorExp();
