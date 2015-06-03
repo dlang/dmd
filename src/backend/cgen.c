@@ -173,7 +173,7 @@ code *gen(code *c,code *cs)
 #if TX86
     assert(I64 || cs->Irex == 0);
 #endif
-    code* ce = code_calloc();
+    code* ce = code_malloc();
     *ce = *cs;
     //printf("ce = %p %02x\n", ce, ce->Iop);
     ccheck(ce);

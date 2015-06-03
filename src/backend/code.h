@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1996 by Symantec
-// Copyright (C) 2000-2012 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -75,11 +75,23 @@ union evc
 
 /********************** PUBLIC FUNCTIONS *******************/
 
-code *code_calloc(void);
+code *code_calloc();
 void code_free (code *);
-void code_term(void);
+void code_term();
 
 #define code_next(c)    ((c)->next)
+
+code *code_chunk_alloc();
+extern code *code_list;
+inline code *code_malloc()
+{
+    //printf("code %d\n", sizeof(code));
+    code *c = code_list ? code_list : code_chunk_alloc();
+    code_list = code_next(c);
+    //printf("code_malloc: %p\n",c);
+    return c;
+}
+
 
 extern con_t regcon;
 
