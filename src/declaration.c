@@ -1679,9 +1679,13 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         ad->sizeok = SIZEOKfwd;             // cannot finish; flag as forward referenced
         return;
     }
+
+    // List in ad->fields. Even if the type is error, it's necessary to avoid
+    // pointless error diagnostic "more initializers than fields" on struct literal.
+    ad->fields.push(this);
+
     if (t->ty == Terror)
         return;
-
 
     unsigned memsize      = (unsigned)t->size(loc);  // size of member
     unsigned memalignsize = Target::fieldalign(t);   // size of member for alignment purposes
@@ -1692,7 +1696,6 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
 
     //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad->toChars(), offset, memsize);
-    ad->fields.push(this);
 }
 
 const char *VarDeclaration::kind()

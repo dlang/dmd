@@ -6614,13 +6614,32 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 
         if (VarDeclaration *v = s->isVarDeclaration())
         {
-            if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
+            /* This is mostly same with DsymbolExp::semantic(), but we cannot use it
+             * because some variables used in type context need to prevent lowering
+             * to a literal or contextful expression. For example:
+             *
+             *  enum a = 1; alias b = a;
+             *  template X(alias e){ alias v = e; }  alias x = X!(1);
+             *  struct S { int v; alias w = v; }
+             *      // TypeIdentifier 'a', 'e', and 'v' should be TOKvar,
+             *      // because getDsymbol() need to work in AliasDeclaration::semantic().
+             */
+            if (!v->type || !v->type->deco)
             {
-                error(loc, "circular reference to '%s'", v->toPrettyChars());
-                *pe = new ErrorExp();
-                return;
+                if (v->inuse)   // Bugzilla 9494
+                {
+                    error(loc, "circular reference to '%s'", v->toPrettyChars());
+                    *pe = new ErrorExp();
+                    return;
+                }
+                if (v->sem < SemanticDone && v->scope)
+                    v->semantic(NULL);
             }
-            *pe = new VarExp(loc, v);
+            assert(v->type);        // Bugzilla 14642
+            if (v->type->ty == Terror)
+                *pt = Type::terror;
+            else
+                *pe = new VarExp(loc, v);
             return;
         }
 #if 0
