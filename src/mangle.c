@@ -832,13 +832,17 @@ public:
         // 'return inout ref' is the same as 'inout ref'
         if ((p->storageClass & (STCreturn | STCwild)) == STCreturn)
             buf->writestring("Nk");
-        switch (p->storageClass & (STCin | STCout | STCref | STClazy))
+        switch (p->storageClass & (STCin | STCout | STCref | STClazy | STCauto))
         {
             case 0:
             case STCin:
+            case STCauto:
                 break;
             case STCout:
                 buf->writeByte('J');
+                break;
+            case STCref | STCauto:
+                buf->writestring("KK");
                 break;
             case STCref:
                 buf->writeByte('K');
@@ -848,7 +852,7 @@ public:
                 break;
             default:
     #ifdef DEBUG
-                printf("storageClass = x%llx\n", p->storageClass & (STCin | STCout | STCref | STClazy));
+                printf("storageClass = x%llx\n", p->storageClass & (STCin | STCout | STCref | STClazy | STCauto));
                 halt();
     #endif
                 assert(0);

@@ -5633,11 +5633,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     else
                         fparam->storageClass &= ~STCref;        // value parameter
                 }
-                else
-                {
-                    error(loc, "auto can only be used for template function parameters");
-                    errors = true;
-                }
             }
 
             // Remove redundant storage classes for type, they are already applied
@@ -5947,6 +5942,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                         ta = tn->sarrayOf(dim);
                     }
                 }
+                else if (p->storageClass & STCauto)
+                    m = MATCHconvert;
                 else
                     goto Nomatch;
             }
