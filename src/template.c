@@ -5359,27 +5359,38 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
     if (!ei && oarg)
     {
         Dsymbol *si = isDsymbol(oarg);
-        FuncDeclaration *f;
-        if (si && (f = si->isFuncDeclaration()) != NULL)
-        {
-            ei = new VarExp(loc, f);
-            ei = ei->semantic(sc);
-            if (!f->needThis())
-            {
-                unsigned int errors = global.startGagging();
-                ei = resolveProperties(sc, ei);
-                if (global.endGagging(errors))
-                    goto Lnomatch;
-            }
-            /* If it was really a property, it will become a CallExp.
-             * If it stayed as a var, it cannot be interpreted.
-             */
-            if (ei->op == TOKvar)
-                goto Lnomatch;
-            ei = ei->ctfeInterpret();
-        }
-        else
+        FuncDeclaration *f = si ? si->isFuncDeclaration() : NULL;
+        if (!f || !f->fbody || f->needThis())
             goto Lnomatch;
+
+        ei = new VarExp(loc, f);
+        ei = ei->semantic(sc);
+
+        /* If a function is really property-like, and then
+         * it's CTFEable, ei will be a literal expression.
+         */
+        unsigned int olderrors = global.startGagging();
+        ei = resolveProperties(sc, ei);
+        ei = ei->ctfeInterpret();
+        if (global.endGagging(olderrors) || ei->op == TOKerror)
+            goto Lnomatch;
+
+        /* Bugzilla 14520: A property-like function can match to both
+         * TemplateAlias and ValueParameter. But for template overloads,
+         * it should always prefer alias parameter to be consistent
+         * template match result.
+         *
+         *   template X(alias f) { enum X = 1; }
+         *   template X(int val) { enum X = 2; }
+         *   int f1() { return 0; }  // CTFEable
+         *   int f2();               // body-less function is not CTFEable
+         *   enum x1 = X!f1;    // should be 1
+         *   enum x2 = X!f2;    // should be 1
+         *
+         * e.g. The x1 value must be same even if the f1 definition will be moved
+         *      into di while stripping body code.
+         */
+        m = MATCHconvert;
     }
 
     if (ei && ei->op == TOKvar)
@@ -5395,8 +5406,10 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
 
     if (ei->type)
     {
-        m = ei->implicitConvTo(vt);
+        MATCH m2 = ei->implicitConvTo(vt);
         //printf("m: %d\n", m);
+        if (m2 < m)
+            m = m2;
         if (m <= MATCHnomatch)
             goto Lnomatch;
         ei = ei->implicitCastTo(sc, vt);

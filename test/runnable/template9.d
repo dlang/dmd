@@ -4517,6 +4517,20 @@ struct Hoge14481
 }
 
 /******************************************/
+// 14520
+
+template M14520(alias  a) { enum M14520 = 1; }
+template M14520(string s) { enum M14520 = 2; }
+
+int f14520a();
+string f14520b() { assert(0); }
+string f14520c() { return "a"; }
+
+static assert(M14520!f14520a == 1);
+static assert(M14520!f14520b == 1);
+static assert(M14520!f14520c == 1);
+
+/******************************************/
 // 14568
 
 struct Interval14568()
