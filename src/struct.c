@@ -1239,7 +1239,14 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                 Type *telem = vx->type;
                 if (telem->ty == Tsarray)
                 {
-                    telem = telem->baseElemOf();
+                    /* We cannot use Type::baseElemOf() here.
+                     * If the bottom of the Tsarray is an enum type, baseElemOf()
+                     * will return the base of the enum, and its default initializer
+                     * would be different from the enum's.
+                     */
+                    while (telem->toBasetype()->ty == Tsarray)
+                        telem = ((TypeSArray *)telem->toBasetype())->next;
+
                     if (telem->ty == Tvoid)
                         telem = Type::tuns8->addMod(telem->mod);
                 }

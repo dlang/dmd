@@ -8446,14 +8446,14 @@ Lagain:
                 StructLiteralExp *sle = new StructLiteralExp(loc, sd, NULL, e1->type);
                 if (!sd->fill(loc, sle->elements, true))
                     return new ErrorExp();
+                // Bugzilla 14556: Set concrete type to avoid further redundant semantic().
+                sle->type = e1->type;
 
                 /* Copy from the initializer symbol for larger symbols,
                  * otherwise the literals expressed as code get excessively large.
                  */
                 if (sd->size(loc) > Target::ptrsize * 4 && !t1->needsNested())
                     sle->sinit = toInitializer(sd);
-
-                sle->type = type;
 
                 Expression *e = sle;
                 if (CtorDeclaration *cf = sd->ctor->isCtorDeclaration())
