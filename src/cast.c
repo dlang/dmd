@@ -1354,6 +1354,10 @@ MATCH implicitConvTo(Expression *e, Type *t)
                         result = MATCHconst;
                 }
             }
+
+            // Enhancement 10724
+            if (tb->ty == Tpointer && e->e1->op == TOKstring)
+                e->e1->accept(this);
         }
     };
 

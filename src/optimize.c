@@ -1060,19 +1060,33 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 {
                     // Convert slice of string literal into dynamic array
                     Type *t = e->e1->type->toBasetype();
-                    if (t->nextOf())
-                        ret = e->e1->castTo(NULL, t->nextOf()->arrayOf());
+                    if (Type *tn = t->nextOf())
+                        ret = e->e1->castTo(NULL, tn->arrayOf());
                 }
-                return;
             }
-            e->e1 = fromConstInitializer(result, e->e1);
-            // We might know $ now
-            setLengthVarIfKnown(e->lengthVar, e->e1);
-            e->lwr = e->lwr->optimize(WANTvalue);
-            e->upr = e->upr->optimize(WANTvalue);
-            ret = Slice(e->type, e->e1, e->lwr, e->upr).copy();
-            if (CTFEExp::isCantExp(ret))
+            else
+            {
+                e->e1 = fromConstInitializer(result, e->e1);
+                // We might know $ now
+                setLengthVarIfKnown(e->lengthVar, e->e1);
+                e->lwr = e->lwr->optimize(WANTvalue);
+                e->upr = e->upr->optimize(WANTvalue);
+                ret = Slice(e->type, e->e1, e->lwr, e->upr).copy();
+                if (CTFEExp::isCantExp(ret))
+                    ret = e;
+            }
+
+            // Bugzilla 14649: We need to leave the slice form so it might be
+            // a part of array operation.
+            // Assume that the backend codegen will handle the form `e[]`
+            // as an equal to `e` itself.
+            if (ret->op == TOKstring)
+            {
+                e->e1 = ret;
+                e->lwr = NULL;
+                e->upr = NULL;
                 ret = e;
+            }
             //printf("-SliceExp::optimize() %s\n", ret->toChars());
         }
 
@@ -1195,6 +1209,20 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                     e->e1 = ce1->e1;
                     e->e2 = ex;
                 }
+            }
+
+            // optimize "str"[] -> "str"
+            if (e->e1->op == TOKslice)
+            {
+                SliceExp *se1 = (SliceExp *)e->e1;
+                if (se1->e1->op == TOKstring && !se1->lwr)
+                    e->e1 = se1->e1;
+            }
+            if (e->e2->op == TOKslice)
+            {
+                SliceExp *se2 = (SliceExp *)e->e2;
+                if (se2->e1->op == TOKstring && !se2->lwr)
+                    e->e2 = se2->e1;
             }
 
             ret = Cat(e->type, e->e1, e->e2).copy();

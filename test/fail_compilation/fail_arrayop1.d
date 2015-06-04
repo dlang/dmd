@@ -130,3 +130,21 @@ void test11566()
     int[] a;
     a[] <<= 1;
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_arrayop1.d(147): Error: invalid array operation a + b (possible missing [])
+fail_compilation/fail_arrayop1.d(148): Error: invalid array operation x + y (possible missing [])
+fail_compilation/fail_arrayop1.d(149): Error: invalid array operation "hel" + "lo." (possible missing [])
+---
+*/
+void test14649()
+{
+    char[] a, b, r;
+    string x, y;
+
+    r[] = a + b;
+    r[] = x + y;
+    r[] = "hel" + "lo.";
+}

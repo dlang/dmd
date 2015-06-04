@@ -847,6 +847,31 @@ void test13497()
 }
 
 /************************************************************************/
+// 14649
+
+void test14649()
+{
+    char[] a = "abc".dup;
+    char[] b = [char(1), char(2), char(3)];
+    string x = "abc";
+    string y = [char(1), char(2), char(3)];
+    char[] r = new char[](3);
+
+    r[] = a[] + b[];
+    assert(r == "bdf");
+
+    r[] = x[] + y[];
+    assert(r == "bdf");
+
+    r[] = "hel"[] + "lo."[];
+    assert(r == [('h'+'l'), ('e'+'o'), ('l'+'.')]);
+
+    enum s = "abc";
+    r[] = s[0..3] + "def"[0..3];
+    assert(r == [('a'+'d'), ('b'+'e'), ('c'+'f')]);
+}
+
+/************************************************************************/
 
 int main()
 {
@@ -866,6 +891,7 @@ int main()
     test12250();
     test12780();
     test13497();
+    test14649();
 
     printf("Success\n");
     return 0;
