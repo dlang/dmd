@@ -11821,6 +11821,8 @@ Expression *AssignExp::semantic(Scope *sc)
             (isUnaArrayOp(e2->op) || isBinArrayOp(e2->op)))
         {
             type = e1->type;
+            if (op == TOKconstruct) // Bugzilla 10282: tweak mutability of e1 element
+                e1->type = e1->type->nextOf()->mutableOf()->arrayOf();
             return arrayOp(this, sc);
         }
 
