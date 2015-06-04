@@ -193,6 +193,7 @@ void   lcong48(ref ushort[7]);
 c_long lrand48();
 char*  mktemp(char*); // LEGACY
 int    mkstemp(char*);
+int    mkdtemp(char*); // Defined in IEEE 1003.1, 2008 Edition
 c_long mrand48();
 c_long nrand48(ref ushort[3]);
 int    posix_openpt(int);
@@ -234,6 +235,7 @@ version( CRuntime_Glibc )
     c_long lrand48();
     char*  mktemp(char*); // LEGACY
     //int    mkstemp(char*);
+    char*  mkdtemp(char*); // Defined in IEEE 1003.1, 2008 Edition
     c_long mrand48();
     c_long nrand48(ref ushort[3]);
     int    posix_openpt(int);
@@ -284,6 +286,7 @@ else version( OSX )
     c_long lrand48();
     char*  mktemp(char*); // LEGACY
     int    mkstemp(char*);
+    char*  mkdtemp(char*); // Defined in IEEE 1003.1, 2008 Edition
     c_long mrand48();
     c_long nrand48(ref ushort[3]);
     int    posix_openpt(int);
@@ -324,6 +327,7 @@ else version( FreeBSD )
     c_long lrand48();
     char*  mktemp(char*); // LEGACY
     int    mkstemp(char*);
+    char*  mkdtemp(char*); // Defined in IEEE 1003.1, 2008 Edition
     c_long mrand48();
     c_long nrand48(ref ushort[3]);
     int    posix_openpt(int);
@@ -347,6 +351,7 @@ else version( CRuntime_Bionic )
     c_long  lrand48();
     char*   mktemp(char*); // LEGACY
     int     mkstemp(char*);
+    char*   mkdtemp(char*); // Defined in IEEE 1003.1, 2008 Edition
     c_long  mrand48();
     c_long  nrand48(ref ushort[3]);
     char*   ptsname(int);
@@ -384,6 +389,7 @@ else version( Solaris )
     c_long lrand48();
     char*  mktemp(char*); // LEGACY
     //int    mkstemp(char*);
+    char*  mkdtemp(char*); // Defined in IEEE 1003.1, 2008 Edition
     c_long mrand48();
     c_long nrand48(ref ushort[3]);
     int    posix_openpt(int);
