@@ -662,3 +662,8 @@ install: druntime.zip
 clean:
 	del $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
 	rmdir /S /Q $(DOCDIR) $(IMPDIR)
+
+auto-tester-build: target
+
+auto-tester-test: unittest
+
