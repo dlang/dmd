@@ -1553,6 +1553,17 @@ void TypeInfo_Atype::swap(void *p1, void *p2)
     assert(0);
 }
 
+unsigned char dwarf_classify_struct(unsigned long sflags)
+{
+    if (sflags & STRclass)
+        return DW_TAG_class_type;
+
+    if (sflags & STRunion)
+        return DW_TAG_union_type;
+
+    return DW_TAG_structure_type;
+}
+
 /* ======================= Type Index ============================== */
 
 unsigned dwarf_typidx(type *t)
@@ -2220,8 +2231,7 @@ unsigned dwarf_typidx(type *t)
 
             if (t->Tflags & (TFsizeunknown | TFforward))
             {
-                abbrevTypeStruct1[0] = (st->Sflags & STRunion)
-                        ? DW_TAG_union_type : DW_TAG_structure_type;
+                abbrevTypeStruct1[0] = dwarf_classify_struct(st->Sflags);
                 code = dwarf_abbrev_code(abbrevTypeStruct1, sizeof(abbrevTypeStruct1));
                 idx = infobuf->size();
                 infobuf->writeuLEB128(code);
@@ -2250,8 +2260,7 @@ unsigned dwarf_typidx(type *t)
             t->Tflags &= ~TFforward;
             if (nfields == 0)
             {
-                abbrevTypeStruct0[0] = (st->Sflags & STRunion)
-                        ? DW_TAG_union_type : DW_TAG_structure_type;
+                abbrevTypeStruct0[0] = dwarf_classify_struct(st->Sflags);
                 abbrevTypeStruct0[1] = 0;               // no children
                 abbrevTypeStruct0[5] = DW_FORM_data1;   // DW_AT_byte_size
                 code = dwarf_abbrev_code(abbrevTypeStruct0, sizeof(abbrevTypeStruct0));
@@ -2263,8 +2272,7 @@ unsigned dwarf_typidx(type *t)
             else
             {
                 Outbuffer abuf;         // for abbrev
-                abuf.writeByte((st->Sflags & STRunion)
-                        ? DW_TAG_union_type : DW_TAG_structure_type);
+                abuf.writeByte(dwarf_classify_struct(st->Sflags));
                 abuf.writeByte(1);              // children
                 abuf.writeByte(DW_AT_name);     abuf.writeByte(DW_FORM_string);
                 abuf.writeByte(DW_AT_byte_size);
