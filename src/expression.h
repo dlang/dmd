@@ -124,8 +124,8 @@ class Expression : public RootObject
 {
 public:
     Loc loc;                    // file location
-    TOK op;                // handy to minimize use of dynamic_cast
     Type *type;                 // !=NULL means that semantic() has been run
+    TOK op;                     // to minimize use of dynamic_cast
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
 
