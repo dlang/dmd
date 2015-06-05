@@ -1901,6 +1901,7 @@ unittest
 * Mangles a C function or variable.
 *
 * Params:
+*  sym = The C symbol to mangle.
 *  dst = An optional destination buffer.
 *
 * Returns:
