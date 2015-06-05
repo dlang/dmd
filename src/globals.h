@@ -292,6 +292,13 @@ enum MATCH
     MATCHexact          // exact match
 };
 
+enum PINLINE
+{
+    PINLINEdefault,      // as specified on the command line
+    PINLINEnever,        // never inline
+    PINLINEalways        // always inline
+};
+
 typedef uinteger_t StorageClass;
 
 #endif /* DMD_GLOBALS_H */

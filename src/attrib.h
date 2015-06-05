@@ -37,7 +37,7 @@ public:
     int apply(Dsymbol_apply_ft_t fp, void *param);
     static Scope *createNewScope(Scope *sc,
         StorageClass newstc, LINK linkage, Prot protection, int explictProtection,
-        structalign_t structalign);
+        structalign_t structalign, PINLINE inlining);
     virtual Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
@@ -147,7 +147,7 @@ public:
     PragmaDeclaration(Loc loc, Identifier *ident, Expressions *args, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    void setScope(Scope *sc);
+    Scope *newScope(Scope *sc);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };

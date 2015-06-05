@@ -29,6 +29,7 @@
 #include "parse.h"
 #include "template.h"
 #include "utf.h"
+#include "mtype.h"
 
 
 /********************************* AttribDeclaration ****************************/
@@ -71,14 +72,15 @@ int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
  */
 Scope *AttribDeclaration::createNewScope(Scope *sc,
         StorageClass stc, LINK linkage, Prot protection, int explicitProtection,
-        structalign_t structalign)
+        structalign_t structalign, PINLINE inlining)
 {
     Scope *sc2 = sc;
     if (stc != sc->stc ||
         linkage != sc->linkage ||
         !protection.isSubsetOf(sc->protection) ||
         explicitProtection != sc->explicitProtection ||
-        structalign != sc->structalign)
+        structalign != sc->structalign ||
+        inlining != sc->inlining)
     {
         // create new one for changes
         sc2 = sc->copy();
@@ -87,6 +89,7 @@ Scope *AttribDeclaration::createNewScope(Scope *sc,
         sc2->protection = protection;
         sc2->explicitProtection = explicitProtection;
         sc2->structalign = structalign;
+        sc2->inlining = inlining;
     }
     return sc2;
 }
@@ -388,7 +391,7 @@ Scope *StorageClassDeclaration::newScope(Scope *sc)
     scstc |= stc;
     //printf("scstc = x%llx\n", scstc);
 
-    return createNewScope(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
+    return createNewScope(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign, sc->inlining);
 }
 
 /*************************************************
@@ -527,7 +530,7 @@ Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)
 
 Scope *LinkDeclaration::newScope(Scope *sc)
 {
-    return createNewScope(sc, sc->stc, this->linkage, sc->protection, sc->explicitProtection, sc->structalign);
+    return createNewScope(sc, sc->stc, this->linkage, sc->protection, sc->explicitProtection, sc->structalign, sc->inlining);
 }
 
 char *LinkDeclaration::toChars()
@@ -580,7 +583,7 @@ Scope *ProtDeclaration::newScope(Scope *sc)
 {
     if (pkg_identifiers)
         semantic(sc);
-    return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign);
+    return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign, sc->inlining);
 }
 
 void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
@@ -637,7 +640,7 @@ Dsymbol *AlignDeclaration::syntaxCopy(Dsymbol *s)
 
 Scope *AlignDeclaration::newScope(Scope *sc)
 {
-    return createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, this->salign);
+    return createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, this->salign, sc->inlining);
 }
 
 /********************************* AnonDeclaration ****************************/
@@ -786,8 +789,48 @@ Dsymbol *PragmaDeclaration::syntaxCopy(Dsymbol *s)
         Dsymbol::arraySyntaxCopy(decl));
 }
 
-void PragmaDeclaration::setScope(Scope *sc)
+Scope *PragmaDeclaration::newScope(Scope *sc)
 {
+    if (ident == Id::Pinline)
+    {
+        PINLINE inlining = PINLINEdefault;
+        if (!args || args->dim == 0)
+            inlining = PINLINEdefault;
+        else if (args->dim != 1)
+        {
+            error("one boolean expression expected for pragma(inline), not %d", args->dim);
+            args->setDim(1);
+            (*args)[0] = new ErrorExp();
+        }
+        else
+        {
+            Expression *e = (*args)[0];
+
+            if (e->op != TOKint64 || !e->type->equals(Type::tbool))
+            {
+                if (e->op != TOKerror)
+                {
+                    error("pragma(inline, true or false) expected, not %s", e->toChars());
+                    (*args)[0] = new ErrorExp();
+                }
+            }
+            else if (e->isBool(true))
+                inlining = PINLINEalways;
+            else if (e->isBool(false))
+                inlining = PINLINEnever;
+        }
+
+        if (decl)
+        {
+            for (size_t i = 0; i < decl->dim; i++)
+            {
+                Dsymbol *s = (*decl)[i];
+                s->semantic(sc);
+            }
+        }
+        return createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign, inlining);
+    }
+    return sc;
 }
 
 static unsigned setMangleOverride(Dsymbol *s, char *sym)
@@ -917,6 +960,10 @@ void PragmaDeclaration::semantic(Scope *sc)
                 error("function name expected for start address, not '%s'", e->toChars());
         }
         goto Lnodecl;
+    }
+    else if (ident == Id::Pinline)
+    {
+        goto Ldecl;
     }
     else if (ident == Id::mangle)
     {

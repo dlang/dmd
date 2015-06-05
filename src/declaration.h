@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2015 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -35,6 +35,7 @@ enum LINK;
 enum TOK;
 enum MATCH;
 enum PURE;
+enum PINLINE;
 
 #define STCundefined    0LL
 #define STCstatic       1LL
@@ -537,6 +538,7 @@ public:
     bool naked;                         // true if naked
     ILS inlineStatusStmt;
     ILS inlineStatusExp;
+    PINLINE inlining;
 
     CompiledCtfeFunction *ctfeCode;     // Compiled code for interpreter
     int inlineNest;                     // !=0 if nested inline

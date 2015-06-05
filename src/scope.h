@@ -40,6 +40,7 @@ class TemplateInstance;
 #include "mars.h"
 #else
 enum LINK;
+enum PINLINE;
 #endif
 
 #define CSXthis_ctor    1       // called this()
@@ -104,10 +105,11 @@ struct Scope
     unsigned *fieldinit;
     size_t fieldinit_dim;
 
-    structalign_t structalign;       // alignment for struct members
-    LINK linkage;          // linkage for external functions
+    structalign_t structalign;  // alignment for struct members
+    LINK linkage;               // linkage for external functions
+    PINLINE inlining;            // inlining strategy for functions
 
-    Prot protection;       // protection for class members
+    Prot protection;            // protection for class members
     int explicitProtection;     // set if in an explicit protection attribute
 
     StorageClass stc;           // storage class

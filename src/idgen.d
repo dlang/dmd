@@ -267,10 +267,11 @@ Msgtable[] msgtable =
     { "_ArrayEq" },
 
     // For pragma's
+    { "Pinline", "inline" },
     { "lib" },
+    { "mangle" },
     { "msg" },
     { "startaddress" },
-    { "mangle" },
 
     // For special functions
     { "tohash", "toHash" },

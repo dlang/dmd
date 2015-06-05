@@ -70,6 +70,7 @@ Scope::Scope()
     this->func = NULL;
     this->slabel = NULL;
     this->linkage = LINKd;
+    this->inlining = PINLINEdefault;
     this->protection = Prot(PROTpublic);
     this->explicitProtection = 0;
     this->stc = 0;
@@ -108,6 +109,7 @@ Scope *Scope::createGlobal(Module *module)
 
     sc->structalign = STRUCTALIGN_DEFAULT;
     sc->linkage = LINKd;
+    sc->inlining = PINLINEdefault;
     sc->protection = Prot(PROTpublic);
 
     sc->module = module;
