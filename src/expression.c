@@ -1617,26 +1617,26 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     arg = arg->optimize(WANTvalue, (p->storageClass & (STCref | STCout)) != 0);
                 }
             }
+
             if (p->storageClass & STCref)
             {
-                if (p->storageClass & STCauto)
+                if (p->storageClass & STCauto &&
+                    (arg->op == TOKthis || arg->op == TOKsuper))
                 {
-                    if (arg->op == TOKthis || arg->op == TOKsuper)
-                    {
-                        // suppress deprecation message for auto ref parameter
-                        // temporary workaround for Bugzilla 14283
-                    }
-                    else
-                    {
-                        Identifier *idtmp = Identifier::generateId("__tmpref");
-                        VarDeclaration *vtmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(loc, arg));
-                        vtmp->storage_class |= STCctfe;
-                        Expression *ae = new DeclarationExp(loc, vtmp);
-                        Expression *e = new CommaExp(loc, ae, new VarExp(loc, vtmp));
-                        arg = e->semantic(sc);
-                        arg = arg->toLvalue(sc, arg);
-                    }
-                } else
+                    // suppress deprecation message for auto ref parameter
+                    // temporary workaround for Bugzilla 14283
+                }
+                else if (!arg->isLvalue() && p->storageClass & STCrvref)
+                {
+                    Identifier *idtmp = Identifier::generateId("__tmpref");
+                    VarDeclaration *vtmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(loc, arg));
+                    vtmp->storage_class |= STCctfe;
+                    Expression *ae = new DeclarationExp(loc, vtmp);
+                    Expression *e = new CommaExp(loc, ae, new VarExp(loc, vtmp));
+                    arg = e->semantic(sc);
+                    arg = arg->toLvalue(sc, arg);
+                }
+                else
                     arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)
