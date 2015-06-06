@@ -2,10 +2,15 @@ INSTALL_DIR=$(PWD)/../install
 ECTAGS_LANGS = Make,C,C++,Sh
 ECTAGS_FILES = src/*.[ch] src/backend/*.[ch] src/root/*.[ch] src/tk/*.[ch]
 
-.PHONY: all clean test install
+.PHONY: all clean test install auto-tester-build auto-tester-test
 
 all:
 	$(QUIET)$(MAKE) -C src -f posix.mak
+
+auto-tester-build:
+	$(QUIET)$(MAKE) -C src -f posix.mak $<
+
+auto-tester-test: test
 
 clean:
 	$(QUIET)$(MAKE) -C src -f posix.mak clean
