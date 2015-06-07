@@ -4609,6 +4609,19 @@ template SubOps14568(Args...)
 struct Nat14568 { mixin SubOps14568!(null); }
 
 /******************************************/
+// 14603
+
+struct S14603
+{
+    template opDispatch(string name)
+    {
+        void opDispatch()() {}
+    }
+}
+alias a14603 = S14603.opDispatch!"go";  // OK
+alias b14603 = S14603.go;               // OK <- NG
+
+/******************************************/
 // 14735
 
 enum CS14735 { yes, no }
