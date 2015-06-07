@@ -348,12 +348,6 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     else if (e1.op == TOKscope)
     {
         s = (cast(ScopeExp)e1).sds;
-        if (s.isTemplateDeclaration())
-        {
-            tiargs = null;
-            tthis = null;
-            goto Lfd;
-        }
         TemplateInstance ti = s.isTemplateInstance();
         if (ti && !ti.semanticRun && ti.tempdecl)
         {
@@ -592,9 +586,6 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     else if (e1.op == TOKscope)
     {
         Dsymbol s = (cast(ScopeExp)e1).sds;
-        td = s.isTemplateDeclaration();
-        if (td)
-            goto Ltd;
         TemplateInstance ti = s.isTemplateInstance();
         if (ti && !ti.semanticRun && ti.tempdecl)
         {
@@ -5396,7 +5387,12 @@ public:
 }
 
 /***********************************************************
- * Mainly just a placeholder
+ * Mainly just a placeholder of
+ *  Package, Module, Nspace, and TemplateInstance (including TemplateMixin)
+ *
+ * A template instance that requires IFTI:
+ *      foo!tiargs(fargs)       // foo!tiargs
+ * is left until CallExp::semantic() or resolveProperties()
  */
 extern (C++) final class ScopeExp : Expression
 {
@@ -5409,6 +5405,7 @@ public:
         //printf("ScopeExp::ScopeExp(sds = '%s')\n", sds.toChars());
         //static int count; if (++count == 38) *(char*)0=0;
         this.sds = sds;
+        assert(!sds.isTemplateDeclaration());   // instead, you should use TemplateExp
     }
 
     override Expression syntaxCopy()
@@ -5535,6 +5532,9 @@ public:
 
         if (auto t = sds2.getType())    // (Aggregate|Enum)Declaration
             return (new TypeExp(loc, t)).semantic(sc);
+
+        if (auto td = sds2.isTemplateDeclaration())
+            return (new TemplateExp(loc, td)).semantic(sc);
 
         sds = sds2;
         type = Type.tvoid;
@@ -8367,6 +8367,15 @@ public:
                     }
                     return e;
                 }
+                if (auto td = s.isTemplateDeclaration())
+                {
+                    if (eleft)
+                        e = new DotTemplateExp(loc, eleft, td);
+                    else
+                        e = new TemplateExp(loc, td);
+                    e = e.semantic(sc);
+                    return e;
+                }
                 if (OverDeclaration od = s.isOverDeclaration())
                 {
                     e = new VarExp(loc, od, true);
@@ -8858,7 +8867,7 @@ public:
                 TemplateDeclaration td = fd.findTemplateDeclRoot();
                 if (td)
                 {
-                    e = new ScopeExp(ve.loc, td);
+                    e = new TemplateExp(ve.loc, td);
                     e = e.semantic(sc);
                 }
             }
@@ -8895,16 +8904,9 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        else if (e.op == TOKscope)
+        else if (e.op == TOKtemplate)
         {
-            ScopeExp se = cast(ScopeExp)e;
-            TemplateDeclaration td = se.sds.isTemplateDeclaration();
-            if (!td)
-            {
-                error("%s is not a template", e.toChars());
-                return new ErrorExp();
-            }
-            ti.tempdecl = td;
+            ti.tempdecl = (cast(TemplateExp)e).td;
             e = new ScopeExp(loc, ti);
             e = e.semantic(sc);
             return e;
@@ -9297,13 +9299,7 @@ public:
                 if (v && ve.checkPurity(sc, v))
                     return new ErrorExp();
             }
-            if (e1.op == TOKscope)
-            {
-                // Perhaps this should be moved to ScopeExp::semantic()
-                ScopeExp se = cast(ScopeExp)e1;
-                e1 = DsymbolExp.resolve(loc, sc, se.sds, false);
-            }
-            else if (e1.op == TOKsymoff && (cast(SymOffExp)e1).hasOverloads)
+            if (e1.op == TOKsymoff && (cast(SymOffExp)e1).hasOverloads)
             {
                 SymOffExp se = cast(SymOffExp)e1;
                 e1 = new VarExp(se.loc, se.var, true);
@@ -11273,17 +11269,6 @@ public:
             auto td = (cast(TemplateExp)e2).td;
             Expression e = new DotTemplateExp(loc, e1, td);
             return e.semantic(sc);
-        }
-        if (e2.op == TOKscope)
-        {
-            ScopeExp se = cast(ScopeExp)e2;
-            TemplateDeclaration td = se.sds.isTemplateDeclaration();
-            if (td)
-            {
-                Expression e = new DotTemplateExp(loc, e1, td);
-                e = e.semantic(sc);
-                return e;
-            }
         }
         if (!type)
             type = e2.type;

@@ -7905,7 +7905,7 @@ public:
         if (td)
         {
             if (e.op == TOKtype)
-                e = new ScopeExp(e.loc, td);
+                e = new TemplateExp(e.loc, td);
             else
                 e = new DotTemplateExp(e.loc, e, td);
             e = e.semantic(sc);
@@ -8761,7 +8761,7 @@ public:
         if (td)
         {
             if (e.op == TOKtype)
-                e = new ScopeExp(e.loc, td);
+                e = new TemplateExp(e.loc, td);
             else
                 e = new DotTemplateExp(e.loc, e, td);
             e = e.semantic(sc);

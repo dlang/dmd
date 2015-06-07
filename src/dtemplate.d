@@ -157,6 +157,8 @@ extern (C++) Dsymbol getDsymbol(RootObject oarg)
             else
                 sa = (cast(FuncExp)ea).fd;
         }
+        else if (ea.op == TOKtemplate)
+            sa = (cast(TemplateExp)ea).td;
         else
             sa = null;
     }
