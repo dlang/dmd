@@ -148,15 +148,15 @@ private:
      */
     static void verifyStructSize(ClassDeclaration *typeclass, size_t expected)
     {
-            if (typeclass->structsize != expected)
-            {
-#ifdef DEBUG
-                printf("expected = x%x, %s.structsize = x%x\n", (unsigned)expected,
-                    typeclass->toChars(), (unsigned)typeclass->structsize);
-#endif
-                error(typeclass->loc, "mismatch between compiler and object.d or object.di found. Check installation and import paths with -v compiler switch.");
-                fatal();
-            }
+//             if (typeclass->structsize != expected)
+//             {
+// #ifdef DEBUG
+//                 printf("expected = x%x, %s.structsize = x%x\n", (unsigned)expected,
+//                     typeclass->toChars(), (unsigned)typeclass->structsize);
+// #endif
+//                 error(typeclass->loc, "mismatch between compiler and object.d or object.di found. Check installation and import paths with -v compiler switch.");
+//                 fatal();
+//             }
     }
 
 public:
