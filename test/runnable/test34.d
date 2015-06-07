@@ -49,7 +49,7 @@ struct Struct
 {
     int langID;
     long _force_nrvo;
-}       
+}
 
 Struct[1] table;
 
@@ -107,11 +107,11 @@ void test4()
 /************************************************/
 
 int status5;
- 
+
 struct MyStruct5
 {
 }
- 
+
 void rec5(int i, MyStruct5 s)
 {
     if( i > 0 )
@@ -120,7 +120,7 @@ void rec5(int i, MyStruct5 s)
 	rec5(i-1, s);
     }
 }
- 
+
 void test5()
 {
     assert(status5==0);
@@ -379,7 +379,7 @@ void test17()
     S17!(int).iterator i;
     auto x = insert17(a, i);
     assert(x == 3);
-} 
+}
 
 /************************************************/
 
@@ -619,7 +619,7 @@ class RangeCoder
     }
 
     void encode(uint symbol) {
-	uint total = cumCount[$ - 1];              
+	uint total = cumCount[$ - 1];
 	// "Error: Access Violation" in following line
 	upper = lower + cast(uint)((cumCount[symbol+1] * range) / total) - 1;
 	lower = lower + cast(uint)((cumCount[symbol]   * range) / total);
@@ -687,7 +687,7 @@ class Foo34
 }
 
 void test34()
-{   
+{
     Foo34 f = new Foo34();
     f.foo();
 }
@@ -797,7 +797,7 @@ void test39()
 
 /************************************************/
 
-void test40() 
+void test40()
 {
     int[char] x;
     x['b'] = 123;
@@ -1003,14 +1003,6 @@ void test49()
 
 /************************************************/
 
-int[] foo50(int[2] x) { return x; }
-
-void test50()
-{
-}
-
-/************************************************/
-
 struct S51
 {
     int i = 3;
@@ -1026,12 +1018,12 @@ void test51()
 
 void test52()
 {
-    struct Foo {  
+    struct Foo {
 	alias int Y;
-    }  
+    }
     with (Foo) {
-         Y y;  
-    }  
+         Y y;
+    }
 }
 
 /************************************************/
@@ -1284,7 +1276,6 @@ void main()
     test47();
     test48();
     test49();
-    test50();
     test51();
     test52();
     test53();

@@ -3166,6 +3166,7 @@
                 "declaration",
                 "func",
                 "mtype",
+                "root.rootobject",
                 "tokens",
                 "errors",
                 "init"

@@ -128,14 +128,64 @@ int* testEscape3(
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(151): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(152): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(156): Error: escaping reference to local variable sa1
+fail_compilation/fail13902.d(150): Error: escaping reference to local variable sa1
+fail_compilation/fail13902.d(151): Error: escaping reference to local variable sa1
+fail_compilation/fail13902.d(152): Error: escaping reference to local variable sa1
+fail_compilation/fail13902.d(155): Error: escaping reference to local variable sa2
+fail_compilation/fail13902.d(156): Error: escaping reference to local variable sa2
 fail_compilation/fail13902.d(157): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(158): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(159): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(160): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(161): Error: escaping reference to local variable s1
+fail_compilation/fail13902.d(161): Error: escaping reference to local variable s
+fail_compilation/fail13902.d(162): Error: escaping reference to local variable s
+fail_compilation/fail13902.d(163): Error: escaping reference to local variable s
+fail_compilation/fail13902.d(166): Error: escaping reference to stack allocated value returned by makeSA()
+fail_compilation/fail13902.d(167): Error: escaping reference to stack allocated value returned by makeSA()
+fail_compilation/fail13902.d(168): Error: escaping reference to stack allocated value returned by makeSA()
+fail_compilation/fail13902.d(171): Error: escaping reference to stack allocated value returned by makeS()
+fail_compilation/fail13902.d(172): Error: escaping reference to stack allocated value returned by makeS()
+fail_compilation/fail13902.d(173): Error: escaping reference to stack allocated value returned by makeS()
+---
+*/
+int[] testEscape4(int[3] sa1)       // Bugzilla 9279
+{
+    if (0) return sa1;                      // error <- no error
+    if (0) return cast(int[])sa1;           // error <- no error
+    if (0) return sa1[];                    // error
+
+    int[3] sa2;
+    if (0) return sa2;                      // error
+    if (0) return cast(int[])sa2;           // error
+    if (0) return sa2[];                    // error
+
+    struct S { int[3] sa; }
+    S s;
+    if (0) return s.sa;                     // error <- no error
+    if (0) return cast(int[])s.sa;          // error <- no error
+    if (0) return s.sa[];                   // error
+
+    int[3] makeSA() { int[3] ret; return ret; }
+    if (0) return makeSA();                 // error <- no error
+    if (0) return cast(int[])makeSA();      // error <- no error
+    if (0) return makeSA()[];               // error <- no error
+
+    S makeS() { S s; return s; }
+    if (0) return makeS().sa;               // error <- no error
+    if (0) return cast(int[])makeS().sa;    // error <- no error
+    if (0) return makeS().sa[];             // error <- no error
+
+    return null;
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail13902.d(201): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(202): Error: escaping reference to local variable s1
+fail_compilation/fail13902.d(206): Error: escaping reference to local variable sa1
+fail_compilation/fail13902.d(207): Error: escaping reference to local variable sa2
+fail_compilation/fail13902.d(208): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(209): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(210): Error: escaping reference to local variable s1
+fail_compilation/fail13902.d(211): Error: escaping reference to local variable s1
 ---
 */
 ref int testEscapeRef1()
@@ -167,14 +217,14 @@ ref int testEscapeRef1()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(190): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(191): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(195): Error: escaping reference to local variable sa1
-fail_compilation/fail13902.d(196): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(197): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(198): Error: escaping reference to local variable x
-fail_compilation/fail13902.d(199): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(200): Error: escaping reference to local variable s1
+fail_compilation/fail13902.d(240): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(241): Error: escaping reference to local variable s1
+fail_compilation/fail13902.d(245): Error: escaping reference to local variable sa1
+fail_compilation/fail13902.d(246): Error: escaping reference to local variable sa2
+fail_compilation/fail13902.d(247): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(248): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(249): Error: escaping reference to local variable s1
+fail_compilation/fail13902.d(250): Error: escaping reference to local variable s1
 ---
 */
 ref int testEscapeRef2(
@@ -237,8 +287,8 @@ ref int testEscapeRef2(
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(244): Error: escaping reference to local x
-fail_compilation/fail13902.d(245): Error: escaping reference to local x
+fail_compilation/fail13902.d(294): Error: escaping reference to local x
+fail_compilation/fail13902.d(295): Error: escaping reference to local x
 ---
 */
 int*[]  testArrayLiteral1() { int x; return [&x]; }
@@ -247,8 +297,8 @@ int*[1] testArrayLiteral2() { int x; return [&x]; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(254): Error: escaping reference to local x
-fail_compilation/fail13902.d(255): Error: escaping reference to local x
+fail_compilation/fail13902.d(304): Error: escaping reference to local x
+fail_compilation/fail13902.d(305): Error: escaping reference to local x
 ---
 */
 S2  testStructLiteral1() { int x; return     S2(&x); }
@@ -257,8 +307,8 @@ S2* testStructLiteral2() { int x; return new S2(&x); }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(264): Error: escaping reference to local variable sa
-fail_compilation/fail13902.d(265): Error: escaping reference to local variable sa
+fail_compilation/fail13902.d(314): Error: escaping reference to local variable sa
+fail_compilation/fail13902.d(315): Error: escaping reference to local variable sa
 ---
 */
 int[] testSlice1() { int[3] sa; return sa[]; }
@@ -267,8 +317,8 @@ int[] testSlice2() { int[3] sa; int n; return sa[n..2][1..2]; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(274): Error: escaping reference to the payload of variadic parameter vda
-fail_compilation/fail13902.d(275): Error: escaping reference to the payload of variadic parameter vda
+fail_compilation/fail13902.d(324): Error: escaping reference to the payload of variadic parameter vda
+fail_compilation/fail13902.d(325): Error: escaping reference to the payload of variadic parameter vda
 ---
 */
 ref int testDynamicArrayVariadic1(int[] vda...) { return vda[0]; }
@@ -278,8 +328,8 @@ int[3]  testDynamicArrayVariadic3(int[] vda...) { return vda[0..3]; }   // no er
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(285): Error: escaping reference to the payload of variadic parameter vsa
-fail_compilation/fail13902.d(286): Error: escaping reference to the payload of variadic parameter vsa
+fail_compilation/fail13902.d(335): Error: escaping reference to the payload of variadic parameter vsa
+fail_compilation/fail13902.d(336): Error: escaping reference to the payload of variadic parameter vsa
 ---
 */
 ref int testStaticArrayVariadic1(int[3] vsa...) { return vsa[0]; }
