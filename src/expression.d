@@ -8890,11 +8890,6 @@ public:
                 e = e.semantic(sc);
                 return e;
             }
-            if (e1.op == TOKtype)
-            {
-                e = DsymbolExp.resolve(loc, sc, s, false);
-                return e;
-            }
             e = new ScopeExp(loc, ti);
             e = new DotExp(loc, e1, e);
             e = e.semantic(sc);
@@ -8917,7 +8912,7 @@ public:
         else if (e.op == TOKdot)
         {
             DotExp de = cast(DotExp)e;
-            e1 = de.e1; // pull semantic() result
+
             if (de.e2.op == TOKoverloadset)
             {
                 if (!findTempDecl(sc) || !ti.semanticTiargs(sc))
@@ -8944,23 +8939,6 @@ public:
                 e = e.semantic(sc);
                 return e;
             }
-            if (de.e2.op == TOKscope)
-            {
-                // This should *really* be moved to ScopeExp::semantic()
-                ScopeExp se = cast(ScopeExp)de.e2;
-                de.e2 = DsymbolExp.resolve(loc, sc, se.sds, false);
-            }
-            if (de.e2.op == TOKtemplate)
-            {
-                TemplateExp te = cast(TemplateExp)de.e2;
-                e = new DotTemplateExp(loc, de.e1, te.td);
-            }
-            else
-                goto Lerr;
-            e = e.semantic(sc);
-            if (e == de)
-                goto Lerr;
-            goto L1;
         }
         else if (e.op == TOKoverloadset)
         {
@@ -9340,17 +9318,6 @@ public:
                     tthis = de.e1.type;
                     e1 = de.e2;
                 }
-                if (de.e2.op == TOKscope)
-                {
-                    // This should *really* be moved to ScopeExp::semantic()
-                    ScopeExp se = cast(ScopeExp)de.e2;
-                    de.e2 = DsymbolExp.resolve(loc, sc, se.sds, false);
-                }
-                if (de.e2.op == TOKtemplate)
-                {
-                    TemplateExp te = cast(TemplateExp)de.e2;
-                    e1 = new DotTemplateExp(loc, de.e1, te.td);
-                }
             }
             else if (e1.op == TOKstar && e1.type.ty == Tfunction)
             {
@@ -9534,12 +9501,7 @@ public:
             checkAccess(loc, sc, ue.e1, f);
             if (!f.needThis())
             {
-                auto ve = new VarExp(loc, f, false);
-                if (ue.e1.op == TOKtype) // just a FQN
-                    e1 = ve;
-                else // things like (new Foo).bar()
-                    e1 = new CommaExp(loc, ue.e1, ve);
-                e1.type = f.type;
+                e1 = Expression.combine(ue.e1, new VarExp(loc, f, false));
             }
             else
             {
@@ -11300,6 +11262,18 @@ public:
         }
         e1 = e1.semantic(sc);
         e2 = e2.semantic(sc);
+
+        if (e1.op == TOKtype)
+            return e2;
+        if (e2.op == TOKtype)
+            return e2;
+
+        if (e2.op == TOKtemplate)
+        {
+            auto td = (cast(TemplateExp)e2).td;
+            Expression e = new DotTemplateExp(loc, e1, td);
+            return e.semantic(sc);
+        }
         if (e2.op == TOKscope)
         {
             ScopeExp se = cast(ScopeExp)e2;
@@ -11311,8 +11285,6 @@ public:
                 return e;
             }
         }
-        if (e2.op == TOKtype)
-            return e2;
         if (!type)
             type = e2.type;
         return this;
