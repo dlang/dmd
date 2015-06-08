@@ -296,6 +296,26 @@ void test10734()
 
 }
 
+void test14656()
+{
+    void unaryFun()(auto int a) pure nothrow @safe @nogc {}
+    alias Identity(F) = F;
+    unaryFun!()(41);
+    static void fun(int n) pure nothrow @safe @nogc {}
+    alias F = typeof(fun);
+    assert(Identity!F.stringof == "pure nothrow @nogc @safe void(int)");
+}
+
+void test14656_ref()
+{
+    void unaryFun()(auto ref int a) pure nothrow @safe @nogc {}
+    alias Identity(F) = F;
+    unaryFun!()(41);
+    static void fun(int n) pure nothrow @safe @nogc {}
+    alias F = typeof(fun);
+    assert(Identity!F.stringof == "pure nothrow @nogc @safe void(int)");
+}
+
 /***************************************************/
 
 int main()
@@ -309,6 +329,8 @@ int main()
     test3866();
     test8579();
     test14210();
+    test14656();
+    test14656_ref();
 
     printf("Success\n");
     return 0;

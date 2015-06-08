@@ -1582,7 +1582,8 @@ Type *stripDefaultArgs(Type *t)
                         for (size_t j = 0; j < params->dim; j++)
                             (*params)[j] = (*parameters)[j];
                     }
-                    (*params)[i] = new Parameter(p->storageClass, ta, NULL, NULL);
+                    StorageClass stc = p->storageClass & (~STCauto); // issue 14656
+                    (*params)[i] = new Parameter(stc, ta, NULL, NULL);
                 }
             }
         }
