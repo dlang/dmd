@@ -6095,7 +6095,7 @@ Expression *TypeidExp::semantic(Scope *sc)
         ta->checkComplexTransition(loc);
 
     Expression *e;
-    if (ea && ta->toBasetype()->ty == Tclass)
+    if (ea && ta->toBasetype()->ty == Tclass && Type::typeinfoclass)
     {
         /* Get the dynamic type, which is .classinfo
          */
@@ -6111,7 +6111,7 @@ Expression *TypeidExp::semantic(Scope *sc)
     {
         // Handle this in the glue layer
         e = new TypeidExp(loc, ta);
-        e->type = getTypeInfoType(ta, sc);
+        e->type = Type::dtypeinfo ? getTypeInfoType(ta, sc) : Type::tnull;
         if (ea)
         {
             e = new CommaExp(loc, ea, e);       // execute ea

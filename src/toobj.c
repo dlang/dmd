@@ -296,7 +296,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            genTypeInfo(cd->type, NULL);
+            if (Type::typeinfoclass)
+            {
+                genTypeInfo(cd->type, NULL);
+            }
             //toObjFile(cd->type->vtinfo, multiobj);
 
             //////////////////////////////////////////////
