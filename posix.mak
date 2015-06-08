@@ -229,3 +229,10 @@ clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 
 test/%/.clean: test/%/Makefile
 	$(MAKE) -C test/$* clean
+
+.PHONY : auto-tester-build
+auto-tester-build: target
+
+.PHONY : auto-tester-test
+auto-tester-test: unittest
+
