@@ -229,7 +229,7 @@ private bool hasDtor(const TypeInfo ti)
         if ((cast(TypeInfo_Struct) cast(void*) ti).xdtor)
             return true;
     if (typeid(ti) is typeid(TypeInfo_StaticArray))
-        return hasDtor(unqualify(ti.next()));
+        return hasDtor(unqualify(ti.next));
 
     return false;
 }
