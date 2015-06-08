@@ -1689,6 +1689,20 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
             assert(0);
     }
 
+    switch (fd->inlining)
+    {
+        case PINLINEdefault:
+            break;
+
+        case PINLINEalways:
+            break;
+
+        case PINLINEnever:
+            return false;
+        default:
+            assert(0);
+    }
+
     if (fd->type)
     {
         assert(fd->type->ty == Tfunction);
@@ -1786,6 +1800,9 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
     return true;
 
 Lno:
+    if (fd->inlining == PINLINEalways)
+        fd->error("cannot inline function");
+
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
     {
         if (statementsToo)

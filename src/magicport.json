@@ -2093,6 +2093,7 @@
                 "id",
                 "identifier",
                 "dinterpret",
+                "mtype",
                 "tokens",
                 "globals",
                 "mars",
@@ -2609,6 +2610,7 @@
                 "enum LINK",
                 "enum DYNCAST",
                 "enum MATCH",
+                "enum PINLINE",
                 "typedef StorageClass",
                 "variable global"
             ]
@@ -3288,6 +3290,7 @@
         "OwnedBy",
 
         "LINK",
+        "PINLINE",
         "PREC",
         "BUILTIN",
         "PASS",

@@ -3206,6 +3206,40 @@ Statement *PragmaStatement::semantic(Scope *sc)
             return this;
         }
     }
+    else if (ident == Id::Pinline)
+    {
+        PINLINE inlining = PINLINEdefault;
+        if (!args || args->dim == 0)
+            inlining = PINLINEdefault;
+        else if (!args || args->dim != 1)
+        {
+            error("boolean expression expected for pragma(inline)");
+            goto Lerror;
+        }
+        else
+        {
+            Expression *e = (*args)[0];
+
+            if (e->op != TOKint64 || !e->type->equals(Type::tbool))
+            {
+                error("pragma(inline, true or false) expected, not %s", e->toChars());
+                goto Lerror;
+            }
+
+            if (e->isBool(true))
+                inlining = PINLINEalways;
+            else if (e->isBool(false))
+                inlining = PINLINEnever;
+
+            FuncDeclaration *fd = sc->func;
+            if (!fd)
+            {
+                error("pragma(inline) is not inside a function");
+                goto Lerror;
+            }
+            fd->inlining = inlining;
+        }
+    }
     else
     {
         error("unrecognized pragma(%s)", ident->toChars());

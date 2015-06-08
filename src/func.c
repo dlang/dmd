@@ -311,6 +311,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     naked = false;
     inlineStatusExp = ILSuninitialized;
     inlineStatusStmt = ILSuninitialized;
+    inlining = PINLINEdefault;
     inlineNest = 0;
     ctfeCode = NULL;
     isArrayOp = 0;
@@ -425,6 +426,7 @@ void FuncDeclaration::semantic(Scope *sc)
     }
     else
         linkage = sc->linkage;
+    inlining = sc->inlining;
     protection = sc->protection;
     userAttribDecl = sc->userAttribDecl;
 
