@@ -697,9 +697,9 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
 elem *getTypeInfo(Type *t, IRState *irs)
 {
     assert(t->ty != Terror);
-    
+
     elem *e;
-    
+
     if (Type::dtypeinfo)
     {
         genTypeInfo(t, NULL);
@@ -709,7 +709,7 @@ elem *getTypeInfo(Type *t, IRState *irs)
     {
         e = el_ptr(symbol_genauto(TYnptr));
     }
-    
+
     return e;
 }
 
