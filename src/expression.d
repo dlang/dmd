@@ -1522,7 +1522,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             }
             if (p.storageClass & STCref)
             {
-                if (p.storageClass & STCauto && (arg.op == TOKthis || arg.op == TOKsuper))
+                if (p.storageClass & STCautoref &&
+                    (arg.op == TOKthis || arg.op == TOKsuper))
                 {
                     // suppress deprecation message for auto ref parameter
                     // temporary workaround for Bugzilla 14283

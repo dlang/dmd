@@ -6278,7 +6278,7 @@ public:
                 {
                     Parameter fparam = Parameter.getNth(fparameters, j);
                     Expression farg = (*fargs)[j];
-                    if (fparam.storageClass & STCauto) // if "auto ref"
+                    if (fparam.storageClass & STCautoref)   // if "auto ref"
                     {
                         if (farg.isLvalue())
                         {

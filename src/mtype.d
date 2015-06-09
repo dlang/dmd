@@ -250,8 +250,7 @@ extern (C++) Type stripDefaultArgs(Type t)
                             for (size_t j = 0; j < params.dim; j++)
                                 (*params)[j] = (*parameters)[j];
                         }
-                        StorageClass stc = p.storageClass & (~STCauto); // issue 14656
-                        (*params)[i] = new Parameter(stc, ta, null, null);
+                        (*params)[i] = new Parameter(p.storageClass, ta, null, null);
                     }
                 }
             }
@@ -6001,7 +6000,7 @@ public:
                  */
                 if (fparam.storageClass & STCauto)
                 {
-                    if (fargs && i < fargs.dim)
+                    if (fargs && i < fargs.dim && (fparam.storageClass & STCref))
                     {
                         Expression farg = (*fargs)[i];
                         if (farg.isLvalue())
@@ -6010,6 +6009,8 @@ public:
                         }
                         else
                             fparam.storageClass &= ~STCref; // value parameter
+                        fparam.storageClass &= ~STCauto;    // issue 14656
+                        fparam.storageClass |= STCautoref;
                     }
                     else
                     {

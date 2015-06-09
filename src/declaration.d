@@ -176,6 +176,8 @@ enum STCvolatile = 0x80000000000L;
 // destined for volatile in the back end
 enum STCreturn = 0x100000000000L;
 // 'return ref' for function parameters
+enum STCautoref = 0x200000000000L;
+// Mark for the already deduced 'auto ref' parameter
 extern (C++) __gshared const(StorageClass) STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 
 struct Match
