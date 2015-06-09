@@ -6169,6 +6169,24 @@ Lerror:
         }
     }
 
+    FuncDeclaration *fd = aliasdecl ? aliasdecl->isFuncDeclaration() : NULL;
+    if (fd && fd->type && fd->type->ty == Tfunction)
+    {
+        TypeFunction *tf = (TypeFunction *)fd->type;
+        if (tf)
+        {
+            size_t dim = Parameter::dim(tf->parameters);
+            for (size_t i = 0; i < dim; i++)
+            {
+                Parameter *fparam = Parameter::getNth(tf->parameters, i);
+                if (fparam->storageClass & STCrvref)
+                {
+                    error("cannot instantiate without function arguments so it has auto ref parameters");
+                }
+            }
+        }
+    }
+
     if (global.errors != errorsave)
         goto Laftersemantic;
 
