@@ -46,6 +46,7 @@ bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2)
 bool isArrayOpValid(Expression *e);
 Expression *expandVar(int result, VarDeclaration *v);
 TypeTuple *toArgTypes(Type *t);
+bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Type *getTypeInfoType(Type *t, Scope *sc);
@@ -2666,7 +2667,7 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
             checkPurity(sc, sd->postblit);
             checkSafety(sc, sd->postblit);
             checkNogc(sc, sd->postblit);
-            //checkAccess(loc, sc, NULL, sd->postblit);   // necessary?
+            //checkAccess(sd, loc, sc, sd->postblit);   // necessary?
             return false;
         }
     }
@@ -4955,7 +4956,7 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            checkAccess(loc, sc, NULL, f);
+            checkAccess(cd, loc, sc, f);
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;
@@ -4983,7 +4984,7 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            checkAccess(loc, sc, NULL, f);
+            checkAccess(cd, loc, sc, f);
 
             TypeFunction *tf = (TypeFunction *)f->type;
             if (!arguments)
@@ -5031,7 +5032,7 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            checkAccess(loc, sc, NULL, f);
+            checkAccess(sd, loc, sc, f);
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;
@@ -5059,7 +5060,7 @@ Lagain:
             checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            checkAccess(loc, sc, NULL, f);
+            checkAccess(sd, loc, sc, f);
 
             TypeFunction *tf = (TypeFunction *)f->type;
             if (!arguments)

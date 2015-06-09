@@ -1,14 +1,14 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag5385.d(3): Error: class imports.fail5385.C member privX is not accessible from module diag5385
-fail_compilation/diag5385.d(4): Error: class imports.fail5385.C member packX is not accessible from module diag5385
-fail_compilation/diag5385.d(5): Error: class imports.fail5385.C member privX2 is not accessible from module diag5385
-fail_compilation/diag5385.d(6): Error: class imports.fail5385.C member packX2 is not accessible from module diag5385
-fail_compilation/diag5385.d(7): Error: struct imports.fail5385.S member privX is not accessible from module diag5385
-fail_compilation/diag5385.d(8): Error: struct imports.fail5385.S member packX is not accessible from module diag5385
-fail_compilation/diag5385.d(9): Error: struct imports.fail5385.S member privX2 is not accessible from module diag5385
-fail_compilation/diag5385.d(10): Error: struct imports.fail5385.S member packX2 is not accessible from module diag5385
+fail_compilation/diag5385.d(3): Error: class imports.fail5385.C member privX is not accessible
+fail_compilation/diag5385.d(4): Error: class imports.fail5385.C member packX is not accessible
+fail_compilation/diag5385.d(5): Error: class imports.fail5385.C member privX2 is not accessible
+fail_compilation/diag5385.d(6): Error: class imports.fail5385.C member packX2 is not accessible
+fail_compilation/diag5385.d(7): Error: struct imports.fail5385.S member privX is not accessible
+fail_compilation/diag5385.d(8): Error: struct imports.fail5385.S member packX is not accessible
+fail_compilation/diag5385.d(9): Error: struct imports.fail5385.S member privX2 is not accessible
+fail_compilation/diag5385.d(10): Error: struct imports.fail5385.S member packX2 is not accessible
 ---
 */
 
