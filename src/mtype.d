@@ -6014,7 +6014,7 @@ public:
                     }
                     else
                     {
-                        error(loc, "auto can only be used for template function parameters");
+                        error(loc, "'auto' can only be used as part of 'auto ref' for template function parameters");
                         errors = true;
                     }
                 }
