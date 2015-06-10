@@ -5633,10 +5633,14 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     else
                         fparam->storageClass &= ~STCref;        // value parameter
                 }
-                else
+                else if (fparam->storageClass & STCref)
                 {
                     fparam->storageClass &= ~STCauto;
                     fparam->storageClass |= STCrvref;
+                }
+                else
+                {
+                    error(loc, "'auto' can only be used along with 'ref' for function parameters");
                 }
             }
 
