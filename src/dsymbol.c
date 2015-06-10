@@ -271,10 +271,17 @@ const char *Dsymbol::kind()
  * If this symbol is really an alias for another,
  * return that other.
  */
-
 Dsymbol *Dsymbol::toAlias()
 {
     return this;
+}
+
+/*********************************
+ * Resolve recursive tuple expansion in eponymous template.
+ */
+Dsymbol *Dsymbol::toAlias2()
+{
+    return toAlias();
 }
 
 Dsymbol *Dsymbol::toParent()

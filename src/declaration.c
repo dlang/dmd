@@ -257,6 +257,22 @@ Type *TupleDeclaration::getType()
     return tupletype;
 }
 
+Dsymbol *TupleDeclaration::toAlias2()
+{
+    //printf("TupleDeclaration::toAlias2() '%s' objects = %s\n", toChars(), objects->toChars());
+
+    for (size_t i = 0; i < objects->dim; i++)
+    {
+        RootObject *o = (*objects)[i];
+        if (Dsymbol *s = isDsymbol(o))
+        {
+            s = s->toAlias2();
+            (*objects)[i] = s;
+        }
+    }
+    return this;
+}
+
 bool TupleDeclaration::needThis()
 {
     //printf("TupleDeclaration::needThis(%s)\n", toChars());
@@ -603,6 +619,19 @@ Dsymbol *AliasDeclaration::toAlias()
         semantic(scope);
     inuse = 1;
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
+    inuse = 0;
+    return s;
+}
+
+Dsymbol *AliasDeclaration::toAlias2()
+{
+    if (inuse)
+    {
+        error("recursive alias declaration");
+        return this;
+    }
+    inuse = 1;
+    Dsymbol *s  = aliassym ? aliassym->toAlias2() : this;
     inuse = 0;
     return s;
 }

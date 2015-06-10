@@ -181,6 +181,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind();
     Type *getType();
+    Dsymbol *toAlias2();
     bool needThis();
 
     TupleDeclaration *isTupleDeclaration() { return this; }
@@ -204,6 +205,7 @@ public:
     const char *kind();
     Type *getType();
     Dsymbol *toAlias();
+    Dsymbol *toAlias2();
 
     AliasDeclaration *isAliasDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }

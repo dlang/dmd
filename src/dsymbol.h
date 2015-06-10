@@ -190,6 +190,7 @@ public:
     virtual const char *toPrettyChars(bool QualifyTypes = false);
     virtual const char *kind();
     virtual Dsymbol *toAlias();                 // resolve real symbol
+    virtual Dsymbol *toAlias2();
     virtual int apply(Dsymbol_apply_ft_t fp, void *param);
     virtual void addMember(Scope *sc, ScopeDsymbol *sds);
     virtual void setScope(Scope *sc);
