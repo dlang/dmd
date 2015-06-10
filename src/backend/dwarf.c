@@ -1615,41 +1615,6 @@ unsigned dwarf_typidx(type *t)
         DW_AT_type,             DW_FORM_ref4,
         0,                      0,
     };
-#ifdef USE_DWARF_D_EXTENSIONS
-    static unsigned char abbrevTypeDArray[] =
-    {
-        DW_TAG_darray_type,
-        0,                      // no children
-        DW_AT_byte_size,        DW_FORM_data1,
-        DW_AT_type,             DW_FORM_ref4,
-        0,                      0,
-    };
-    static unsigned char abbrevTypeDArrayVoid[] =
-    {
-        DW_TAG_darray_type,
-        0,                      // no children
-        DW_AT_byte_size,        DW_FORM_data1,
-        0,                      0,
-    };
-    static unsigned char abbrevTypeAArray[] =
-    {
-        DW_TAG_aarray_type,
-        0,                      // no children
-        DW_AT_byte_size,        DW_FORM_data1,
-        DW_AT_type,             DW_FORM_ref4,   // element type
-        DW_AT_containing_type,  DW_FORM_ref4,   // key type
-        0,                      0,
-    };
-    static unsigned char abbrevTypeDelegate[] =
-    {
-        DW_TAG_delegate_type,
-        0,                      // no children
-        DW_AT_byte_size,        DW_FORM_data1,
-        DW_AT_containing_type,  DW_FORM_ref4,   // this type
-        DW_AT_type,             DW_FORM_ref4,   // function type
-        0,                      0,
-    };
-#endif // USE_DWARF_D_EXTENSIONS
     static unsigned char abbrevTypeConst[] =
     {
         DW_TAG_const_type,
@@ -1749,7 +1714,6 @@ unsigned dwarf_typidx(type *t)
                 goto Lsigned;
             }
 
-#ifndef USE_DWARF_D_EXTENSIONS
             static unsigned char abbrevTypeStruct[] =
             {
                 DW_TAG_structure_type,
@@ -1768,22 +1732,10 @@ unsigned dwarf_typidx(type *t)
                 DW_AT_data_member_location, DW_FORM_block1,
                 0,                      0,
             };
-#endif
 
             /* It's really TYdarray, and Tnext is the
              * element type
              */
-#ifdef USE_DWARF_D_EXTENSIONS
-            nextidx = dwarf_typidx(t->Tnext);
-            code = nextidx
-                ? dwarf_abbrev_code(abbrevTypeDArray, sizeof(abbrevTypeDArray))
-                : dwarf_abbrev_code(abbrevTypeDArrayVoid, sizeof(abbrevTypeDArrayVoid));
-            idx = infobuf->size();
-            infobuf->writeuLEB128(code);        // abbreviation code
-            infobuf->writeByte(tysize(t->Tty)); // DW_AT_byte_size
-            if (nextidx)
-                infobuf->write32(nextidx);      // DW_AT_type
-#else
             {
             unsigned lenidx = I64 ? dwarf_typidx(tsulong) : dwarf_typidx(tsuns);
 
@@ -1827,7 +1779,6 @@ unsigned dwarf_typidx(type *t)
 
             infobuf->writeByte(0);              // no more children
             }
-#endif
             break;
 
         case TYllong:
@@ -1839,21 +1790,6 @@ unsigned dwarf_typidx(type *t)
             /* It's really TYdelegate, and Tnext is the
              * function type
              */
-#ifdef USE_DWARF_D_EXTENSIONS
-            {   type *tv = type_fake(TYnptr);
-                tv->Tcount++;
-                pvoididx = dwarf_typidx(tv);    // void* is the 'this' type
-                type_free(tv);
-            }
-            nextidx = dwarf_typidx(t->Tnext);
-            code = dwarf_abbrev_code(abbrevTypeDelegate, sizeof(abbrevTypeDelegate));
-            idx = infobuf->size();
-            infobuf->writeuLEB128(code);        // abbreviation code
-            infobuf->writeByte(tysize(t->Tty)); // DW_AT_byte_size
-            infobuf->write32(pvoididx);         // DW_AT_containing_type
-            infobuf->write32(nextidx);          // DW_AT_type
-#else
-            {
             {
                 type *tp = type_fake(TYnptr);
                 tp->Tcount++;
@@ -1891,8 +1827,6 @@ unsigned dwarf_typidx(type *t)
             infobuf->writeByte(I64 ? 8 : 4);
 
             infobuf->writeByte(0);              // no more children
-            }
-#endif
             break;
 
         case TYnref:
@@ -1912,17 +1846,6 @@ unsigned dwarf_typidx(type *t)
             /* It's really TYaarray, and Tnext is the
              * element type, Tkey is the key type
              */
-#ifdef USE_DWARF_D_EXTENSIONS
-            keyidx = dwarf_typidx(t->Tkey);
-            nextidx = dwarf_typidx(t->Tnext);
-            code = dwarf_abbrev_code(abbrevTypeAArray, sizeof(abbrevTypeAArray));
-            idx = infobuf->size();
-            infobuf->writeuLEB128(code);        // abbreviation code
-            infobuf->writeByte(tysize(t->Tty)); // DW_AT_byte_size
-            infobuf->write32(nextidx);          // DW_AT_type
-            infobuf->write32(keyidx);           // DW_AT_containing_type
-#else
-            {
             {
                 type *tp = type_fake(TYnptr);
                 tp->Tcount++;
@@ -1959,8 +1882,6 @@ unsigned dwarf_typidx(type *t)
             infobuf->writeByte(0);
 
             infobuf->writeByte(0);              // no more children
-            }
-#endif
             break;
 
         case TYvoid:        return 0;
