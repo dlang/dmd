@@ -1446,11 +1446,7 @@ void cv_outsym(symbol *s)
                     ElfObj::addrel(infoseg, infobuf->size(), R_386_TLS_LDO_32, s->Sxtrnnum, 0);
                     infobuf->write32(0);
                 }
-            #if (DWARF_VERSION <= 2)
                 infobuf->writeByte(DW_OP_GNU_push_tls_address);
-            #else
-                infobuf->writeByte(DW_OP_form_tls_address);
-            #endif
             } else
 #endif
             {
