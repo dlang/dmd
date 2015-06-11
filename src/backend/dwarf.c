@@ -1170,7 +1170,11 @@ void dwarf_func_term(Symbol *sfunc)
             abuf.writeByte(DW_AT_sibling);  abuf.writeByte(DW_FORM_ref4);
         }
         abuf.writeByte(DW_AT_name);      abuf.writeByte(DW_FORM_string);
-        abuf.writeuLEB128(DW_AT_MIPS_linkage_name);      abuf.writeByte(DW_FORM_string);
+#if (DWARF_VERSION >= 4)
+        abuf.writeuLEB128(DW_AT_linkage_name);      abuf.writeByte(DW_FORM_string);
+#else
+        abuf.writeuLEB128(DW_AT_MIPS_linkage_name); abuf.writeByte(DW_FORM_string);
+#endif
         abuf.writeByte(DW_AT_decl_file); abuf.writeByte(DW_FORM_data1);
         abuf.writeByte(DW_AT_decl_line); abuf.writeByte(DW_FORM_data2);
         if (ret_type)
