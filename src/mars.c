@@ -858,9 +858,52 @@ Language changes listed by -transition=id:\n\
             }
             else if (p[1] == 'J')
             {
-                if (!global.params.fileImppath)
-                    global.params.fileImppath = new Strings();
-                global.params.fileImppath->push(p + 2);
+                if (p[2] == ':')
+                {
+                    char *key = mem.xstrdup(p+3);
+                    if (*key == '=' || !*key)
+                    {
+                        error(Loc(), "-J:key=value cannot have an empty key");
+                        break;
+                    }
+                    char *value = key + 1;
+                    while (*value && *value != '=')
+                        value++;
+                    if (*value == '=')
+                    {
+                        *value = 0;
+                        value++;
+                    }
+                    if (!Lexer::isValidIdentifier(key))
+                    {
+                        error(Loc(), "key for -J:key=value must be a valid identifier");
+                        break;
+                    }
+                    if (!global.params.importStringKeys)
+                    {
+                        global.params.importStringKeys = new Strings();
+                        global.params.importStringValues = new Strings();
+                    }
+                    else
+                    {
+                        for (size_t i = 0; i < global.params.importStringKeys->dim; i++)
+                        {
+                            if (!strcmp((*global.params.importStringKeys)[i], key))
+                            {
+                                error(Loc(), "-J:%s specified multiple times", key);
+                                break;
+                            }
+                        }
+                    }
+                    global.params.importStringKeys->push(key);
+                    global.params.importStringValues->push(value);
+                }
+                else
+                {
+                    if (!global.params.fileImppath)
+                        global.params.fileImppath = new Strings();
+                    global.params.fileImppath->push(p + 2);
+                }
             }
             else if (memcmp(p + 1, "debug", 5) == 0 && p[6] != 'l')
             {

@@ -96,6 +96,8 @@ struct Param
     const char *argv0;    // program name
     Array<const char *> *imppath;     // array of char*'s of where to look for import modules
     Array<const char *> *fileImppath; // array of char*'s of where to look for file import modules
+    Array<const char *> *importStringKeys;   // array of keys for -J:key=value
+    Array<const char *> *importStringValues; // array of values for -J:key=value
     const char *objdir;   // .obj/.lib file output directory
     const char *objname;  // .obj file output name
     const char *libname;  // .lib file output name

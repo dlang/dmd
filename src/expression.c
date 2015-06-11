@@ -6961,6 +6961,25 @@ Expression *FileExp::semantic(Scope *sc)
     se = se->toUTF8(sc);
     name = (char *)se->string;
 
+    if (name[0] == ':')
+    {
+        if (global.params.importStringKeys)
+        {
+            for (size_t i = 0; i < global.params.importStringKeys->dim; i++)
+            {
+                if (!strcmp((*global.params.importStringKeys)[i], name+1))
+                {
+                    const char *str = (*global.params.importStringValues)[i];
+                    se = new StringExp(loc, (char *)str, strlen(str));
+                    return se->semantic(sc);
+                }
+            }
+        }
+
+        error("key '%s' not specified on the command line", name+1);
+        goto Lerror;
+    }
+
     if (!global.params.fileImppath)
     {   error("need -Jpath switch to import text file %s", name);
         goto Lerror;
