@@ -382,7 +382,7 @@ unittest
     (e.g. 22 days or 700 seconds).
 
     It is used when representing a duration of time - such as how long to
-    sleep with $(CXREF Thread, sleep).
+    sleep with $(CXREF thread, Thread.sleep).
 
     In std.datetime, it is also used as the result of various arithmetic
     operations on time points.
