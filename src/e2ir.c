@@ -4654,7 +4654,12 @@ elem *toElem(Expression *e, IRState *irs)
             else
             {
                 assert(t1->ty == tb->ty);   // Tarray or Tsarray
-                assert(t1->nextOf()->equivalent(tb->nextOf()));
+
+                // Bugzilla 14672: If se is in left side operand of element-wise
+                // assignment, the element type can be painted to the base class.
+                int offset;
+                assert(t1->nextOf()->equivalent(tb->nextOf()) ||
+                       tb->nextOf()->isBaseOf(t1->nextOf(), &offset) && offset == 0);
             }
             el_setLoc(e, se->loc);
             result = e;
