@@ -6285,6 +6285,19 @@ Lerror:
         }
     }
 
+    if (aliasdecl)
+    {
+        /* Bugzilla 13816: AliasDeclaration tries to resolve forward reference
+         * twice (See inuse check in AliasDeclaration::toAlias()). It's
+         * necessary to resolve mutual references of instantiated symbols, but
+         * it will left a true recursive alias in tuple declaration - an
+         * AliasDeclaration A refers TupleDeclaration B, and B contains A
+         * in its elements.  To correctly make it an error, we strictly need to
+         * resolve the alias of eponymous member.
+         */
+        aliasdecl = aliasdecl->toAlias2();
+    }
+
   Laftersemantic:
     sc2->pop();
 

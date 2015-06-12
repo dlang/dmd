@@ -257,6 +257,22 @@ Type *TupleDeclaration::getType()
     return tupletype;
 }
 
+Dsymbol *TupleDeclaration::toAlias2()
+{
+    //printf("TupleDeclaration::toAlias2() '%s' objects = %s\n", toChars(), objects->toChars());
+
+    for (size_t i = 0; i < objects->dim; i++)
+    {
+        RootObject *o = (*objects)[i];
+        if (Dsymbol *s = isDsymbol(o))
+        {
+            s = s->toAlias2();
+            (*objects)[i] = s;
+        }
+    }
+    return this;
+}
+
 bool TupleDeclaration::needThis()
 {
     //printf("TupleDeclaration::needThis(%s)\n", toChars());
@@ -280,7 +296,6 @@ bool TupleDeclaration::needThis()
     return false;
 }
 
-
 /********************************* AliasDeclaration ****************************/
 
 AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
@@ -293,7 +308,6 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
     this->aliassym = NULL;
     this->import = NULL;
     this->overnext = NULL;
-    this->inSemantic = 0;
     assert(type);
 }
 
@@ -307,7 +321,6 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     this->aliassym = s;
     this->import = NULL;
     this->overnext = NULL;
-    this->inSemantic = 0;
     assert(s);
 }
 
@@ -331,7 +344,7 @@ void AliasDeclaration::semantic(Scope *sc)
             aliassym->semantic(sc);
         return;
     }
-    this->inSemantic = 1;
+    inuse = 1;
 
     storage_class |= sc->stc & STCdeprecated;
     protection = sc->protection;
@@ -411,7 +424,7 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     if (overnext)
         ScopeDsymbol::multiplyDefined(Loc(), overnext, this);
-    this->inSemantic = 0;
+    inuse = 0;
 
     if (global.gag && errors != global.errors)
         type = savedtype;
@@ -492,7 +505,7 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
     aliassym = s;
-    this->inSemantic = 0;
+    inuse = 0;
 }
 
 bool AliasDeclaration::overloadInsert(Dsymbol *s)
@@ -548,13 +561,13 @@ Type *AliasDeclaration::getType()
 
 Dsymbol *AliasDeclaration::toAlias()
 {
-    //printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inSemantic = %d)\n",
-    //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym->kind() : "", inSemantic);
+    //printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inuse = %d)\n",
+    //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym->kind() : "", inuse);
     assert(this != aliassym);
     //static int count; if (++count == 10) *(char*)0=0;
-    if (inSemantic == 1 && type && scope)
+    if (inuse == 1 && type && scope)
     {
-        inSemantic = 2;
+        inuse = 2;
         unsigned olderrors = global.errors;
         Dsymbol *s = type->toDsymbol(scope);
         //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type->toChars(), s, this);
@@ -566,7 +579,7 @@ Dsymbol *AliasDeclaration::toAlias()
             if (global.errors != olderrors)
                 goto Lerr;
             aliassym = s;
-            inSemantic = 0;
+            inuse = 0;
         }
         else
         {
@@ -576,10 +589,10 @@ Dsymbol *AliasDeclaration::toAlias()
             if (global.errors != olderrors)
                 goto Lerr;
             //printf("t = %s\n", t->toChars());
-            inSemantic = 0;
+            inuse = 0;
         }
     }
-    if (inSemantic)
+    if (inuse)
     {
         error("recursive alias declaration");
 
@@ -604,9 +617,22 @@ Dsymbol *AliasDeclaration::toAlias()
     }
     else if (scope)
         semantic(scope);
-    inSemantic = 1;
+    inuse = 1;
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
-    inSemantic = 0;
+    inuse = 0;
+    return s;
+}
+
+Dsymbol *AliasDeclaration::toAlias2()
+{
+    if (inuse)
+    {
+        error("recursive alias declaration");
+        return this;
+    }
+    inuse = 1;
+    Dsymbol *s  = aliassym ? aliassym->toAlias2() : this;
+    inuse = 0;
     return s;
 }
 

@@ -181,6 +181,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind();
     Type *getType();
+    Dsymbol *toAlias2();
     bool needThis();
 
     TupleDeclaration *isTupleDeclaration() { return this; }
@@ -195,7 +196,6 @@ public:
     Dsymbol *aliassym;
     Dsymbol *overnext;          // next in overload list
     Dsymbol *import;            // !=NULL if unresolved internal alias for selective import
-    int inSemantic;
 
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
@@ -205,6 +205,7 @@ public:
     const char *kind();
     Type *getType();
     Dsymbol *toAlias();
+    Dsymbol *toAlias2();
 
     AliasDeclaration *isAliasDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
