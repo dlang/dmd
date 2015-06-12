@@ -2325,7 +2325,7 @@ Dsymbols *Parser::parseDeclarations()
         return a;
     }
 
-    if (token.value == TOKclass)
+    if (token.value == TOKclass || token.value == TOKstruct)
     {   AggregateDeclaration *s;
 
         s = (AggregateDeclaration *)parseAggregate();
