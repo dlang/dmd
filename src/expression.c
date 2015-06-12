@@ -12410,15 +12410,25 @@ Expression *CatExp::semantic(Scope *sc)
 
     if (tb1next && tb2next &&
         (tb1next->implicitConvTo(tb2next) >= MATCHconst ||
-         tb2next->implicitConvTo(tb1next) >= MATCHconst)
+         tb2next->implicitConvTo(tb1next) >= MATCHconst ||
+         e1->op == TOKarrayliteral && e1->implicitConvTo(tb2) ||
+         e2->op == TOKarrayliteral && e2->implicitConvTo(tb1)
+        )
        )
     {
-        /* Here to avoid the case of:
+        /* Bugzilla 9248: Here to avoid the case of:
          *    void*[] a = [cast(void*)1];
          *    void*[] b = [cast(void*)2];
          *    a ~ b;
          * becoming:
          *    a ~ [cast(void*)b];
+         */
+
+        /* Bugzilla 14682: Also to avoid the case of:
+         *    int[][] a;
+         *    a ~ [];
+         * becoming:
+         *    a ~ cast(int[])[];
          */
     }
     else if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
