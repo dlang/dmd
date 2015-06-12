@@ -4,7 +4,6 @@
 
 /* ==================== Dwarf debug ======================= */
 
-// #define USE_DWARF_D_EXTENSIONS
 #define DWARF_VERSION 3
 
 void dwarf_initfile(const char *filename);
