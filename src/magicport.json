@@ -523,10 +523,14 @@
                 "declaration",
                 "dmodule",
                 "dscope",
+                "dstruct",
                 "dsymbol",
                 "errors",
                 "expression",
-                "globals"
+                "func",
+                "tokens",
+                "globals",
+                "mtype"
             ],
             "extra" :
             [
@@ -534,10 +538,13 @@
             ],
             "members" :
             [
-                "function isMember",
-                "function hasProtectedAccess",
+                "function getAccess",
+                "function isAccessible",
+                "function checkAccessAggregateDeclaration*LocScope*Dsymbol*",
+                "function isFriendOf",
                 "function hasPackageAccess",
-                "function checkAccess"
+                "function hasPrivateAccess",
+                "function checkAccessLocScope*Expression*Declaration*"
             ]
         },
         {

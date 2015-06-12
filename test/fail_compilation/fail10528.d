@@ -5,10 +5,10 @@ fail_compilation/fail10528.d(19): Error: module fail10528 variable a10528.a is p
 fail_compilation/fail10528.d(20): Error: variable a10528.a is not accessible from module fail10528
 fail_compilation/fail10528.d(22): Error: variable a10528.b is not accessible from module fail10528
 fail_compilation/fail10528.d(23): Error: variable a10528.b is not accessible from module fail10528
-fail_compilation/fail10528.d(25): Error: struct a10528.S member c is not accessible from module fail10528
-fail_compilation/fail10528.d(26): Error: struct a10528.S member c is not accessible from module fail10528
-fail_compilation/fail10528.d(28): Error: class a10528.C member d is not accessible from module fail10528
-fail_compilation/fail10528.d(29): Error: class a10528.C member d is not accessible from module fail10528
+fail_compilation/fail10528.d(25): Error: variable a10528.S.c is not accessible from module fail10528
+fail_compilation/fail10528.d(26): Error: variable a10528.S.c is not accessible from module fail10528
+fail_compilation/fail10528.d(28): Error: variable a10528.C.d is not accessible from module fail10528
+fail_compilation/fail10528.d(29): Error: variable a10528.C.d is not accessible from module fail10528
 ---
 */
 
