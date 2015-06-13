@@ -5493,6 +5493,38 @@ void test14682a()
 
 void test14682b()
 {
+    // operands
+    int[]       a1;
+    int[][]     a2;
+    int[][][]   a3;
+    int[][][][] a4;
+
+    // results
+    int[][]     r2a = [[],   []  ]; assert(r2a.length == 2 && r2a[0].length == 0 && r2a[1].length == 0);
+  //int[][][]   r3a = [[],  [[]] ]; // should work, but doesn't
+  //int[][][][] r4a = [[], [[[]]]]; // should work, but doesn't
+    int[][][]   r3a;  { r3a.length = 2; r3a[0] = []; r3a[1] =  [[]] ; }
+                                    assert(r3a.length == 2 && r3a[0].length == 0 && r3a[1].length == 1 && r3a[1][0].length == 0);
+    int[][][][] r4a;  { r4a.length = 2; r4a[0] = []; r4a[1] = [[[]]]; }
+                                    assert(r4a.length == 2 && r4a[0].length == 0 && r4a[1].length == 1 && r4a[1][0].length == 1 && r4a[1][0][0].length == 0);
+    // ----
+    int[][]     r2b = [  []  , []]; assert(r2b.length == 2 && r2b[1].length == 0 && r2b[0].length == 0);
+  //int[][][]   r3b = [ [[]] , []]; // should work, but doesn't
+  //int[][][][] r4b = [[[[]]], []]; // should work, but doesn't
+    int[][][]   r3b;  { r3b.length = 2; r3b[0] =  [[]] ; r3b[1] = []; }
+                                    assert(r3b.length == 2 && r3b[1].length == 0 && r3b[0].length == 1 && r3b[0][0].length == 0);
+    int[][][][] r4b;  { r4b.length = 2; r4b[0] = [[[]]]; r4b[1] = []; }
+                                    assert(r4b.length == 2 && r4b[1].length == 0 && r4b[0].length == 1 && r4b[0][0].length == 1 && r4b[0][0][0].length == 0);
+
+    // ArrayLiteralExp conforms to the typeof(LHS)->arrayOf().
+    { auto x = a1 ~   [[]]  ;   static assert(is(typeof(x) == typeof(a1)[])); assert(x == r2a); } // fix
+    { auto x = a2 ~  [[[]]] ;   static assert(is(typeof(x) == typeof(a2)[])); assert(x == r3a); } // fix
+    { auto x = a3 ~ [[[[]]]];   static assert(is(typeof(x) == typeof(a3)[])); assert(x == r4a); } // fix
+
+    // ArrayLiteralExp conforms to the typeof(RHS)->arrayOf().
+    { auto x =   [[]]   ~ a1;   static assert(is(typeof(x) == typeof(a1)[])); assert(x == r2b); } // fix
+    { auto x =  [[[]]]  ~ a2;   static assert(is(typeof(x) == typeof(a2)[])); assert(x == r3b); } // fix
+    { auto x = [[[[]]]] ~ a3;   static assert(is(typeof(x) == typeof(a3)[])); assert(x == r4b); } // fix
 }
 
 /***************************************************/
