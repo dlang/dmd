@@ -506,7 +506,8 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
         {
             //printf("ReturnStatement::inlineAsStatement() '%s'\n", s->exp ? s->exp->toChars() : "");
             ids->foundReturn = true;
-            result = new ReturnStatement(s->loc, s->exp ? doInline(s->exp, ids) : NULL);
+            if (s->exp) // Bugzilla 14560: 'return' must not leave in the expand result
+                result = new ReturnStatement(s->loc, doInline(s->exp, ids));
         }
 
         void visit(ImportStatement *s)
@@ -1718,6 +1719,11 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
             (!(fd->hasReturnExp & 1) || statementsToo) &&
             !hdrscan)
             goto Lno;
+
+        /* Bugzilla 14560: If fd returns void, all explicit `return;`s
+         * must not appear in the expanded result.
+         * See also ReturnStatement::inlineAsStatement().
+         */
     }
 
     // cannot inline constructor calls because we need to convert:
