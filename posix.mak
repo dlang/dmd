@@ -30,3 +30,5 @@ install: all
 	cp -r samples $(INSTALL_DIR)
 	mkdir -p $(INSTALL_DIR)/man
 	cp -r docs/man/* $(INSTALL_DIR)/man/
+
+.DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
