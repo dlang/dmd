@@ -2588,7 +2588,19 @@ L1:
                         if (memcmp(&n1->EV,&n2->EV,sizeof(n1->EV.Vcdouble)))
                             goto nomatch;
                         break;
-
+                    case TYfloat4:
+                    case TYdouble2:
+                    case TYschar16:
+                    case TYuchar16:
+                    case TYshort8:
+                    case TYushort8:
+                    case TYlong4:
+                    case TYulong4:
+                    case TYllong2:
+                    case TYullong2:
+                        if(n1->EV.Vcent.msw != n2->EV.Vcent.msw || n1->EV.Vcent.lsw != n2->EV.Vcent.lsw)
+			                goto nomatch;
+			            break;
                     case TYcldouble:
 #if LNGDBLSIZE > 10
                         /* sizeof is 12, but actual size of each part is 10 */
