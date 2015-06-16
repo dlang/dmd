@@ -45,12 +45,12 @@ enum
     EPOLL_CTL_MOD = 3, // Change file descriptor epoll_event structure.
 }
 
-struct epoll_event
+align(1) struct epoll_event
 {
-    align(1):
-      uint events;
-      epoll_data_t data;
-};
+align(1):
+    uint events;
+    epoll_data_t data;
+}
 
 union epoll_data_t
 {
@@ -58,7 +58,7 @@ union epoll_data_t
     int fd;
     uint u32;
     ulong u64;
-};
+}
 
 int epoll_create (int size);
 int epoll_create1 (int flags);
