@@ -186,12 +186,17 @@ Symbol *toSymbol(Dsymbol *s)
                     s->Sclass = SCextern;
                     s->Sfl = FLextern;
                     slist_add(s);
-                    /* if it's global or static, then it needs to have a qualified but unmangled name.
-                     * This gives some explanation of the separation in treating name mangling.
-                     * It applies to PDB format, but should apply to CV as PDB derives from CV.
-                     *    http://msdn.microsoft.com/en-us/library/ff553493(VS.85).aspx
-                     */
-                    s->prettyIdent = vd->toPrettyChars(true);
+                    if (global.params.isWindows)
+                    {
+                        /* if it's global or static, then it needs to have a qualified but unmangled name.
+                         * This gives some explanation of the separation in treating name mangling.
+                         * It applies to PDB format, but should apply to CV as PDB derives from CV.
+                         *    http://msdn.microsoft.com/en-us/library/ff553493(VS.85).aspx
+                         */
+                        s->prettyIdent = vd->toPrettyChars(true);
+                    }
+                    else
+                        s->prettyIdent = vd->toChars();
                 }
                 else
                 {
@@ -285,7 +290,10 @@ Symbol *toSymbol(Dsymbol *s)
                 Symbol *s = symbol_calloc(id);
                 slist_add(s);
 
-                s->prettyIdent = fd->toPrettyChars(true);
+                if (global.params.isWindows)
+                    s->prettyIdent = fd->toPrettyChars(true);
+                else
+                    s->prettyIdent = fd->toChars();
                 s->Sclass = SCglobal;
                 symbol_func(s);
                 func_t *f = s->Sfunc;

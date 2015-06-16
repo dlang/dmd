@@ -757,13 +757,13 @@ int dwarf_line_addfile(const char* filename)
 
 void dwarf_initmodule(const char *filename, const char *modname)
 {
+#if (DWARF_VERSION >= 3)
     if (modname)
     {
         static unsigned char abbrevModule[] =
         {
             DW_TAG_module,
-            //1,                // one children
-            0,                  // no children
+            1,                // one children
             DW_AT_name,         DW_FORM_string, // module name
             0,                  0,
         };
@@ -772,9 +772,10 @@ void dwarf_initmodule(const char *filename, const char *modname)
         abbrevbuf->write(abbrevModule,sizeof(abbrevModule));
         infobuf->writeuLEB128(abbrevcode);      // abbreviation code
         infobuf->writeString(modname);          // DW_AT_name
-        //hasModname = 1;
+        hasModname = 1;
     }
     else
+#endif
         hasModname = 0;
 
     dwarf_line_addfile(filename);
@@ -1411,6 +1412,7 @@ void cv_outsym(symbol *s)
     unsigned code;
     unsigned typidx;
     unsigned soffset;
+    const char *name;
     switch (s->Sclass)
     {
         case SCglobal:
@@ -1426,7 +1428,12 @@ void cv_outsym(symbol *s)
             code = dwarf_abbrev_code(abuf.buf, abuf.size());
 
             infobuf->writeuLEB128(code);        // abbreviation code
+#if MARS
+            name = s->prettyIdent ? s->prettyIdent : s->Sident;
+            infobuf->writeString(name);         // DW_AT_name
+#else
             infobuf->writeString(s->Sident);    // DW_AT_name
+#endif
             infobuf->write32(typidx);           // DW_AT_type
             infobuf->writeByte(1);              // DW_AT_external
 
