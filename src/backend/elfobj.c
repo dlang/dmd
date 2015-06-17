@@ -3172,6 +3172,16 @@ void Obj::moduleinfo(Symbol *scc)
 #endif // !REQUIRE_DSO_REGISTRY
 }
 
+/*************************************
+ * Emit an imported module or declaration.
+ */
+
+void Obj::importmodule(const char *decl, const char *name)
+{
+    if (config.fulltypes)
+        dwarf_importmodule(decl, name);
+}
+
 
 /***************************************
  * Create startup/shutdown code to register an executable/shared

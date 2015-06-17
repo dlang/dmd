@@ -2587,6 +2587,14 @@ void MsCoffObj::moduleinfo(Symbol *scc)
 #endif
 
 /*************************************
+ * Emit an imported module or declaration.
+ */
+
+void Obj::importmodule(const char *decl, const char *name)
+{
+}
+
+/*************************************
  */
 
 #if 0

@@ -52,6 +52,7 @@ struct Obj
     VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
+    VIRTUAL void importmodule(const char *mod, const char *name);
     VIRTUAL int  comdat(Symbol *);
     VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
     VIRTUAL void setcodeseg(int seg);

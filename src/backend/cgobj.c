@@ -1843,6 +1843,14 @@ void Obj::moduleinfo(Symbol *scc)
 
 #endif
 
+/*************************************
+ * Emit an imported module or declaration.
+ */
+
+void Obj::importmodule(const char *decl, const char *name)
+{
+}
+
 
 /*********************************
  * Setup for Symbol s to go into a COMDAT segment.

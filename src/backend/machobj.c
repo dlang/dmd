@@ -2669,6 +2669,16 @@ void Obj::moduleinfo(Symbol *scc)
 #endif
 
 /*************************************
+ * Emit an imported module or declaration.
+ */
+
+void Obj::importmodule(const char *decl, const char *name)
+{
+    if (config.fulltypes)
+        dwarf_importmodule(decl, name);
+}
+
+/*************************************
  */
 
 void Obj::gotref(symbol *s)
