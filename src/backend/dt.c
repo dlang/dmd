@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2013 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -33,17 +33,25 @@ static dt_t *dt_freelist;
 
 static dt_t *dt_calloc(int dtx)
 {
-    dt_t *dt;
-    static dt_t dtzero;
-
-    if (dt_freelist)
+    dt_t *dt = dt_freelist;
+    if (!dt)
     {
-        dt = dt_freelist;
-        dt_freelist = dt->DTnext;
-        *dt = dtzero;
+        const size_t n = 4096 / sizeof(dt_t);
+        dt_t *chunk = (dt_t *)mem_fmalloc(n * sizeof(dt_t));
+        for (size_t i = 0; i < n - 1; ++i)
+        {
+            chunk[i].DTnext = &chunk[i + 1];
+        }
+        chunk[n - 1].DTnext = NULL;
+        dt_freelist = chunk;
+        dt = chunk;
     }
-    else
-        dt = (dt_t *) mem_fcalloc(sizeof(dt_t));
+
+    dt_freelist = dt->DTnext;
+#ifdef DEBUG
+    memset(dt, 0xBE, sizeof(*dt));
+#endif
+    dt->DTnext = NULL;
     dt->dt = dtx;
     return dt;
 }
@@ -53,19 +61,25 @@ static dt_t *dt_calloc(int dtx)
  */
 
 void dt_free(dt_t *dt)
-{   dt_t *dtn;
-
-    for (; dt; dt = dtn)
+{
+    if (dt)
     {
-        switch (dt->dt)
+        dt_t *dtn = dt;
+        while (1)
         {
-            case DT_abytes:
-            case DT_nbytes:
-                mem_free(dt->DTpbytes);
+            switch (dtn->dt)
+            {
+                case DT_abytes:
+                case DT_nbytes:
+                    mem_free(dtn->DTpbytes);
+                    break;
+            }
+            dt_t *dtnext = dtn->DTnext;
+            if (!dtnext)
                 break;
+            dtn = dtnext;
         }
-        dtn = dt->DTnext;
-        dt->DTnext = dt_freelist;
+        dtn->DTnext = dt_freelist;
         dt_freelist = dt;
     }
 }
@@ -76,7 +90,7 @@ void dt_free(dt_t *dt)
 
 void dt_term()
 {
-#if TERMCODE
+#if 0 && TERMCODE
     dt_t *dtn;
 
     while (dt_freelist)
@@ -139,7 +153,7 @@ dt_t ** dtnbytes(dt_t **pdtend,unsigned size,const char *ptr)
         pdtend = &((*pdtend)->DTnext);
     if (size)
     {
-        if (size <= 7)
+        if (size < DTibytesMax)
         {   dt = dt_calloc(DT_ibytes);
             dt->DTn = size;
             memcpy(dt->DTdata,ptr,size);
@@ -298,6 +312,96 @@ dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset)
     slist_add(s);
     outdata(s);
     return dtxoff(pdtend, s, offset);
+}
+
+/**************************************
+ * Repeat a list of dt_t's count times.
+ */
+dt_t **dtrepeat(dt_t **pdtend, dt_t *dt, size_t count)
+{
+    unsigned size = dt_size(dt);
+
+    if (dtallzeros(dt))
+        return dtnzeros(pdtend, size * count);
+
+    while (*pdtend)
+        pdtend = &((*pdtend)->DTnext);
+
+    if (count == 0)
+        return pdtend;
+
+    if (dtpointers(dt))
+    {
+        dt_t *dtp = NULL;
+        dt_t **pdt = &dtp;
+        for (size_t i = 0; i < count; ++i)
+        {
+            for (dt_t *dtn = dt; dtn; dtn = dtn->DTnext)
+            {
+                dt_t *dtx = dt_calloc(dtn->dt);
+                *dtx = *dtn;
+                dtx->DTnext = NULL;
+                switch (dtx->dt)
+                {
+                    case DT_abytes:
+                    case DT_nbytes:
+                        dtx->DTpbytes = (char *) MEM_PH_MALLOC(dtx->DTnbytes);
+                        memcpy(dtx->DTpbytes, dtn->DTpbytes, dtx->DTnbytes);
+                        break;
+                }
+
+                *pdt = dtx;
+                pdt = &dtx->DTnext;
+            }
+        }
+        *pdtend = dtp;
+        return pdt;
+    }
+
+    char *p = (char *)MEM_PH_MALLOC(size * count);
+    size_t offset = 0;
+
+    if (count)
+    {
+        for (dt_t *dtn = dt; dtn; dtn = dtn->DTnext)
+        {
+            switch (dtn->dt)
+            {
+                case DT_nbytes:
+                    memcpy(p + offset, dtn->DTpbytes, dtn->DTnbytes);
+                    offset += dtn->DTnbytes;
+                    break;
+                case DT_ibytes:
+                    memcpy(p + offset, dtn->DTdata, dtn->DTn);
+                    offset += dtn->DTn;
+                    break;
+                case DT_symsize:
+                case DT_azeros:
+                    memset(p + offset, 0, dtn->DTazeros);
+                    offset += dtn->DTazeros;
+                    break;
+                default:
+#ifdef DEBUG
+                    dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
+#endif
+                    assert(0);
+            }
+        }
+        assert(offset == size);
+    }
+
+    for (size_t i = 1; i < count; ++i)
+    {
+        memcpy(p + offset, p, size);
+        offset += size;
+    }
+
+    dt_t *dtx = dt_calloc(DT_nbytes);
+    dtx->DTnbytes = size * count;
+    dtx->DTpbytes = p;
+    *pdtend = dtx;
+    pdtend = &dtx->DTnext;
+    return pdtend;
 }
 
 /**************************

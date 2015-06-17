@@ -24,6 +24,9 @@
 #include "root.h"
 #include "async.h"
 #include "target.h"
+#include "file.h"
+#include "filename.h"
+#include "stringtable.h"
 
 #include "mars.h"
 #include "module.h"
@@ -39,16 +42,16 @@
 #include "hdrgen.h"
 #include "doc.h"
 
-bool response_expand(size_t *pargc, const char ***pargv);
+bool response_expand(Strings *arguments);
 
 
 void browse(const char *url);
-void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
+void getenv_setargv(const char *envvalue, Strings *args);
 
 void printCtfePerformanceStats();
 
-static const char* parse_arch_arg(size_t argc, const char** argv, const char* arch);
-static const char* parse_conf_arg(size_t argc, const char** argv);
+static const char* parse_arch_arg(Strings *args, const char* arch);
+static const char* parse_conf_arg(Strings *args);
 
 void inlineScan(Module *m);
 
@@ -58,8 +61,12 @@ void initTraitsStringTable();
 int runLINK();
 void deleteExeFile();
 int runProgram();
+
+// inifile.c
 const char *findConfFile(const char *argv0, const char *inifile);
-void parseConfFile(const char *filename, const char* envsectionname);
+const char *readFromEnv(StringTable *environment, const char *name);
+void updateRealEnvironment(StringTable *environment);
+void parseConfFile(StringTable *environment, const char *path, size_t len, unsigned char *buffer, Strings *sections);
 
 void genObjFile(Module *m, bool multiobj);
 void genhelpers(Module *m, bool iscomdat);
@@ -142,6 +149,7 @@ Usage:\n\
   files.d        D source files\n\
   @cmdfile       read arguments from cmdfile\n\
   -allinst       generate code for all template instantiations\n\
+  -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off\n\
   -c             do not link\n\
   -color[=on|off]   force colored console output on or off\n\
   -conf=path     use config file at path\n\
@@ -180,7 +188,6 @@ Usage:\n\
   -main          add default main() (e.g. for unittesting)\n\
   -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
-  -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off\n\
   -noboundscheck no array bounds checking (deprecated, use -boundscheck=off)\n\
   -O             optimize\n\
   -o-            do not write object file\n\
@@ -188,6 +195,7 @@ Usage:\n\
   -offilename    name output file to filename\n\
   -op            preserve source path for output files\n\
   -profile       profile runtime performance of generated code\n\
+  -profile=gc    profile runtime allocations\n\
   -property      enforce property syntax\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
@@ -197,12 +205,12 @@ Usage:\n\
   -unittest      compile in unit tests\n\
   -v             verbose\n\
   -vcolumns      print character (column) numbers in diagnostics\n\
+  -verrors=num   limit the number of error messages (0 means unlimited)\n\
+  -vgc           list all gc allocations including hidden ones\n\
+  -vtls          list all variables going into thread local storage\n\
   --version      print compiler version and exit\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
-  -vtls          list all variables going into thread local storage\n\
-  -vgc           list all gc allocations including hidden ones\n\
-  -verrors=num   limit the number of error messages (0 means unlimited)\n\
   -w             warnings as errors (compilation will halt)\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
@@ -267,8 +275,6 @@ int tryMain(size_t argc, const char *argv[])
     Strings libmodules;
     size_t argcstart = argc;
     bool setdebuglib = false;
-    bool setboundscheck = false;
-    char boundscheck = 2;
 #if TARGET_WINDOS
     bool setdefaultlib = false;
 #endif
@@ -287,26 +293,33 @@ int tryMain(size_t argc, const char *argv[])
         error(Loc(), "missing or null command line arguments");
         fatal();
     }
+
+    // Convert argc/argv into arguments[] for easier handling
+    Strings arguments;
+    arguments.setDim(argc);
     for (size_t i = 0; i < argc; i++)
     {
         if (!argv[i])
             goto Largs;
+        arguments[i] = argv[i];
     }
 
-    if (response_expand(&argc,&argv))   // expand response files
+    if (response_expand(&arguments))   // expand response files
         error(Loc(), "can't open response file");
 
-    files.reserve(argc - 1);
+    //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
+
+    files.reserve(arguments.dim - 1);
 
     // Set default values
-    global.params.argv0 = argv[0];
+    global.params.argv0 = arguments[0];
     global.params.color = isConsoleColorSupported();
     global.params.link = true;
     global.params.useAssert = true;
     global.params.useInvariants = true;
     global.params.useIn = true;
     global.params.useOut = true;
-    global.params.useArrayBounds = 2;   // default to all functions
+    global.params.useArrayBounds = BOUNDSCHECKdefault;   // set correct value later
     global.params.useSwitchError = true;
     global.params.useInline = false;
     global.params.obj = true;
@@ -375,7 +388,7 @@ int tryMain(size_t argc, const char *argv[])
     VersionCondition::addPredefinedGlobalIdent("D_Version2");
     VersionCondition::addPredefinedGlobalIdent("all");
 
-    global.inifilename = parse_conf_arg(argc, argv);
+    global.inifilename = parse_conf_arg(&arguments);
     if (global.inifilename)
     {
         // can be empty as in -conf=
@@ -385,40 +398,62 @@ int tryMain(size_t argc, const char *argv[])
     else
     {
 #if _WIN32
-        global.inifilename = findConfFile(argv[0], "sc.ini");
+        global.inifilename = findConfFile(global.params.argv0, "sc.ini");
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-        global.inifilename = findConfFile(argv[0], "dmd.conf");
+        global.inifilename = findConfFile(global.params.argv0, "dmd.conf");
 #else
 #error "fix this"
 #endif
     }
-    parseConfFile(global.inifilename, "Environment");
 
-    size_t dflags_argc = 0;
-    const char** dflags_argv = NULL;
-    getenv_setargv("DFLAGS", &dflags_argc, &dflags_argv);
+    // Read the configurarion file
+    File inifile(global.inifilename);
+    inifile.read();
+
+    /* Need path of configuration file, for use in expanding @P macro
+     */
+    const char *inifilepath = FileName::path(global.inifilename);
+
+    Strings sections;
+
+    StringTable environment;
+    environment._init(7);
+
+    /* Read the [Environment] section, so we can later
+     * pick up any DFLAGS settings.
+     */
+    sections.push("Environment");
+    parseConfFile(&environment, inifilepath, inifile.len, inifile.buffer, &sections);
+
+    Strings dflags;
+    getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
+    environment.reset(7);               // erase cached environment updates
 
     const char *arch = global.params.is64bit ? "64" : "32"; // use default
-    arch = parse_arch_arg(argc, argv, arch);
-    arch = parse_arch_arg(dflags_argc, dflags_argv, arch);
+    arch = parse_arch_arg(&arguments, arch);
+    arch = parse_arch_arg(&dflags, arch);
     bool is64bit = arch[0] == '6';
 
     char envsection[80];
     sprintf(envsection, "Environment%s", arch);
-    parseConfFile(global.inifilename, envsection);
+    sections.push(envsection);
+    parseConfFile(&environment, inifilepath, inifile.len, inifile.buffer, &sections);
 
-    getenv_setargv("DFLAGS", &argc, &argv);
+    getenv_setargv(readFromEnv(&environment, "DFLAGS"), &arguments);
+
+    updateRealEnvironment(&environment);
+    environment.reset(1);               // don't need environment cache any more
 
 #if 0
-    for (size_t i = 0; i < argc; i++)
+    for (size_t i = 0; i < arguments.dim; i++)
     {
-        printf("argv[%d] = '%s'\n", i, argv[i]);
+        printf("arguments[%d] = '%s'\n", i, arguments[i]);
     }
 #endif
 
-    for (size_t i = 1; i < argc; i++)
+    for (size_t i = 1; i < arguments.dim; i++)
     {
-        const char *p = argv[i];
+        const char *p = arguments[i];
         if (*p == '-')
         {
             if (strcmp(p + 1, "allinst") == 0)
@@ -528,8 +563,23 @@ int tryMain(size_t argc, const char *argv[])
                 error(Loc(), "-m32mscoff can only be used on windows");
             #endif
             }
-            else if (strcmp(p + 1, "profile") == 0)
-                global.params.trace = true;
+            else if (memcmp(p + 1, "profile", 7) == 0)
+            {
+                // Parse:
+                //      -profile
+                //      -profile=gc
+                if (p[8] == '=')
+                {
+                    if (strcmp(p + 9, "gc") == 0)
+                        global.params.tracegc = true;
+                    else
+                        goto Lerror;
+                }
+                else if (p[8])
+                    goto Lerror;
+                else
+                    global.params.trace = true;
+            }
             else if (strcmp(p + 1, "v") == 0)
                 global.params.verbose = true;
             else if (strcmp(p + 1, "vtls") == 0)
@@ -563,6 +613,8 @@ int tryMain(size_t argc, const char *argv[])
                     {
                         printf("\
 Language changes listed by -transition=id:\n\
+  =all           list information on all language changes\n\
+  =complex,14488 list all usages of complex or imaginary types\n\
   =field,3449    list all non-mutable fields which occupy an object instance\n\
   =tls           list all variables going into thread local storage\n\
 ");
@@ -581,16 +633,52 @@ Language changes listed by -transition=id:\n\
                             case 3449:
                                 global.params.vfield = true;
                                 break;
+                            case 14488:
+                                global.params.vcomplex = true;
+                                break;
                             default:
                                 goto Lerror;
                         }
                     }
                     else if (Lexer::isValidIdentifier(p + 12))
                     {
-                        if (strcmp(p + 12, "tls") == 0)
-                            global.params.vtls = 1;
-                        if (strcmp(p + 12, "field") == 0)
-                            global.params.vfield = 1;
+                        const char *ident = p + 12;
+                        switch (strlen(ident))
+                        {
+                            case 3:
+                                if (strcmp(ident, "all") == 0)
+                                {
+                                    global.params.vtls = true;
+                                    global.params.vfield = true;
+                                    global.params.vcomplex = true;
+                                    break;
+                                }
+                                if (strcmp(ident, "tls") == 0)
+                                {
+                                    global.params.vtls = true;
+                                    break;
+                                }
+                                goto Lerror;
+
+                            case 5:
+                                if (strcmp(ident, "field") == 0)
+                                {
+                                    global.params.vfield = true;
+                                    break;
+                                }
+                                goto Lerror;
+
+                            case 7:
+                                if (strcmp(ident, "complex") == 0)
+                                {
+                                    global.params.vcomplex = true;
+                                    break;
+                                }
+                                goto Lerror;
+
+                            default:
+                                goto Lerror;
+                        }
                     }
                     else
                         goto Lerror;
@@ -734,8 +822,7 @@ Language changes listed by -transition=id:\n\
                 global.params.betterC = true;
             else if (strcmp(p + 1, "noboundscheck") == 0)
             {
-                setboundscheck = true;
-                boundscheck = 0;
+                global.params.useArrayBounds = BOUNDSCHECKoff;
             }
             else if (memcmp(p + 1, "boundscheck", 11) == 0)
             {
@@ -745,18 +832,15 @@ Language changes listed by -transition=id:\n\
                 {
                     if (strcmp(p + 13, "on") == 0)
                     {
-                        setboundscheck = true;
-                        boundscheck = 2;
+                        global.params.useArrayBounds = BOUNDSCHECKon;
                     }
                     else if (strcmp(p + 13, "safeonly") == 0)
                     {
-                        setboundscheck = true;
-                        boundscheck = 1;
+                        global.params.useArrayBounds = BOUNDSCHECKsafeonly;
                     }
                     else if (strcmp(p + 13, "off") == 0)
                     {
-                        setboundscheck = true;
-                        boundscheck = 0;
+                        global.params.useArrayBounds = BOUNDSCHECKoff;
                     }
                     else
                         goto Lerror;
@@ -911,21 +995,24 @@ Language changes listed by -transition=id:\n\
             else if (strcmp(p + 1, "run") == 0)
             {
                 global.params.run = true;
-                global.params.runargs_length = ((i >= argcstart) ? argc : argcstart) - i - 1;
-                if (global.params.runargs_length)
+                size_t length = ((i >= argcstart) ? argc : argcstart) - i - 1;
+                if (length)
                 {
-                    const char *ext = FileName::ext(argv[i + 1]);
+                    const char *ext = FileName::ext(arguments[i + 1]);
                     if (ext && FileName::equals(ext, "d") == 0
                             && FileName::equals(ext, "di") == 0)
                     {
-                        error(Loc(), "-run must be followed by a source file, not '%s'", argv[i + 1]);
+                        error(Loc(), "-run must be followed by a source file, not '%s'", arguments[i + 1]);
                         break;
                     }
 
-                    files.push(argv[i + 1]);
-                    global.params.runargs = &argv[i + 2];
-                    i += global.params.runargs_length;
-                    global.params.runargs_length--;
+                    files.push(arguments[i + 1]);
+                    global.params.runargs.setDim(length - 1);
+                    for (size_t j = 0; j < length - 1; ++j)
+                    {
+                        global.params.runargs[j] = arguments[i + 2 + j];
+                    }
+                    i += length;
                 }
                 else
                 {
@@ -936,11 +1023,11 @@ Language changes listed by -transition=id:\n\
             else
             {
              Lerror:
-                error(Loc(), "unrecognized switch '%s'", argv[i]);
+                error(Loc(), "unrecognized switch '%s'", arguments[i]);
                 continue;
 
              Lnoarg:
-                error(Loc(), "argument expected for switch '%s'", argv[i]);
+                error(Loc(), "argument expected for switch '%s'", arguments[i]);
                 continue;
             }
         }
@@ -986,17 +1073,20 @@ Language changes listed by -transition=id:\n\
         error(Loc(), "cannot mix -lib and -shared");
 #endif
 
+    if (global.params.useArrayBounds == BOUNDSCHECKdefault)
+    {
+        // Set the real default value
+        global.params.useArrayBounds = global.params.release ? BOUNDSCHECKsafeonly : BOUNDSCHECKon;
+    }
+
     if (global.params.release)
     {
         global.params.useInvariants = false;
         global.params.useIn = false;
         global.params.useOut = false;
         global.params.useAssert = false;
-        global.params.useArrayBounds = 1;
         global.params.useSwitchError = false;
     }
-    if (setboundscheck)
-        global.params.useArrayBounds = boundscheck;
 
     if (global.params.useUnitTests)
         global.params.useAssert = true;
@@ -1099,7 +1189,7 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("unittest");
     if (global.params.useAssert)
         VersionCondition::addPredefinedGlobalIdent("assert");
-    if (boundscheck == 0)
+    if (global.params.useArrayBounds == BOUNDSCHECKoff)
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
@@ -1116,7 +1206,7 @@ Language changes listed by -transition=id:\n\
     initTraitsStringTable();
 
     if (global.params.verbose)
-    {   fprintf(global.stdmsg, "binary    %s\n", argv[0]);
+    {   fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);
         fprintf(global.stdmsg, "version   %s\n", global.version);
         fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename
                                                                     : "(none)");
@@ -1672,33 +1762,24 @@ int main(int argc, const char *argv[])
 
 
 /***********************************
- * Parse and append contents of environment variable envvar
- * to argc and argv[].
+ * Parse and append contents of command line string envvalue to args[].
  * The string is separated into arguments, processing \ and ".
  */
 
-void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
+void getenv_setargv(const char *envvalue, Strings *args)
 {
+    if (!envvalue)
+        return;
+
     char *p;
 
     int instring;
     int slash;
     char c;
 
-    char *env = getenv(envvar);
-    if (!env)
-        return;
+    char *env = mem.xstrdup(envvalue);      // create our own writable copy
+    //printf("env = '%s'\n", env);
 
-    env = mem.xstrdup(env);      // create our own writable copy
-
-    size_t argc = *pargc;
-    Strings *argv = new Strings();
-    argv->setDim(argc);
-
-    for (size_t i = 0; i < argc; i++)
-        (*argv)[i] = (*pargv)[i];
-
-    size_t j = 1;               // leave argv[0] alone
     while (1)
     {
         switch (*env)
@@ -1709,13 +1790,10 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
                 break;
 
             case 0:
-                goto Ldone;
+                return;
 
             default:
-                argv->push(env);                // append
-                //argv->insert(j, env);         // insert at position j
-                j++;
-                argc++;
+                args->push(env);                // append
                 p = env;
                 slash = 0;
                 instring = 0;
@@ -1754,7 +1832,7 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
                             *p = 0;
                             //if (wildcard)
                                 //wildcardexpand();     // not implemented
-                            goto Ldone;
+                            return;
 
                         default:
                         Laddc:
@@ -1766,10 +1844,6 @@ void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv)
                 }
         }
     }
-
-Ldone:
-    *pargc = argc;
-    *pargv = argv->tdata();
 }
 
 void escapePath(OutBuffer *buf, const char *fname)
@@ -1798,11 +1872,11 @@ void escapePath(OutBuffer *buf, const char *fname)
  * to detect the desired architecture.
  */
 
-static const char* parse_arch_arg(size_t argc, const char** argv, const char* arch)
+static const char* parse_arch_arg(Strings *args, const char* arch)
 {
-    for (size_t i = 0; i < argc; ++i)
+    for (size_t i = 0; i < args->dim; ++i)
     {
-        const char* p = argv[i];
+        const char* p = (*args)[i];
         if (p[0] == '-')
         {
             if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
@@ -1818,12 +1892,12 @@ static const char* parse_arch_arg(size_t argc, const char** argv, const char* ar
  * Parse command line arguments for -conf=path.
  */
 
-static const char* parse_conf_arg(size_t argc, const char** argv)
+static const char* parse_conf_arg(Strings *args)
 {
     const char *conf=NULL;
-    for (size_t i = 0; i < argc; ++i)
+    for (size_t i = 0; i < args->dim; ++i)
     {
-        const char* p = argv[i];
+        const char* p = (*args)[i];
         if (p[0] == '-')
         {
             if (strncmp(p + 1, "conf=", 5) == 0)

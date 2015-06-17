@@ -1,6 +1,6 @@
 /*
  * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2013 by Digital Mars
+ * Copyright (c) 1999-2015 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -31,6 +31,7 @@
 #include        "root.h"
 #include        "rmem.h"
 #include        "port.h"
+#include        "stringtable.h"
 
 #define LOG     0
 
@@ -116,45 +117,92 @@ const char *findConfFile(const char *argv0, const char *inifile)
     return filename;
 }
 
-/*****************************
- * Read and analyze .ini file, i.e. write the entries of the specified section
- *  into the process environment
- * Input:
- *      filename path to config file
- *      envsectionname  name of the section to process
+/**********************************
+ * Read from environment, looking for cached value first.
  */
-void parseConfFile(const char *filename, const char *envsectionname)
+
+const char *readFromEnv(StringTable *environment, const char *name)
 {
-    const char *path = FileName::path(filename); // need path for @P macro
-#if LOG
-    printf("\tpath = '%s', filename = '%s'\n", path, filename);
-#endif
+    size_t len = strlen(name);
+    StringValue *sv = environment->lookup(name, len);
+    if (sv)
+        return (const char *)sv->ptrvalue;   // get cached value
 
-    File file(filename);
+    return getenv(name);
+}
 
-    if (file.read())
-        return; // error reading file
+/*********************************
+ * Write to our copy of the environment, not the real environment
+ */
 
+static void writeToEnv(StringTable *environment, char *nameEqValue)
+{
+    char *p = strchr(nameEqValue, '=');
+    assert(p);
+    StringValue *sv = environment->update(nameEqValue, p - nameEqValue);
+    sv->ptrvalue = (void *)(p + 1);
+}
+
+/************************************
+ * Update real enviroment with our copy.
+ */
+
+static int envput(StringValue *sv)
+{
+    const char *name = sv->toDchars();
+    size_t namelen = strlen(name);
+    const char *value = (const char *)sv->ptrvalue;
+    size_t valuelen = strlen(value);
+    char *s = (char *)malloc(namelen + 1 + valuelen + 1);
+    assert(s);
+    memcpy(s, name, namelen);
+    s[namelen] = '=';
+    memcpy(s + namelen + 1, value, valuelen);
+    s[namelen + 1 + valuelen] = 0;
+    //printf("envput('%s')\n", s);
+    putenv(s);
+
+    return 0;           // do all of them
+}
+
+void updateRealEnvironment(StringTable *environment)
+{
+    environment->apply(&envput);
+}
+
+/*****************************
+ * Read and analyze .ini file.
+ * Write the entries into environment as
+ * well as any entries in one of the specified section(s).
+ *
+ * Params:
+ *      environment = our own cache of the program environment
+ *      path = what @P will expand to
+ *      buffer[len] = contents of configuration file
+ *      sections[] = section namesdimension of array of section names
+ */
+void parseConfFile(StringTable *environment, const char *path, size_t length, unsigned char *buffer, Strings *sections)
+{
     // Parse into lines
-    bool envsection = true;
-    size_t envsectionnamelen = strlen(envsectionname);
+    bool envsection = true;     // default is to read
+
     OutBuffer buf;
     bool eof = false;
-    for (size_t i = 0; i < file.len && !eof; i++)
+    for (size_t i = 0; i < length && !eof; i++)
     {
     Lstart:
         size_t linestart = i;
 
-        for (; i < file.len; i++)
+        for (; i < length; i++)
         {
-            switch (file.buffer[i])
+            switch (buffer[i])
             {
                 case '\r':
                     break;
 
                 case '\n':
                     // Skip if it was preceded by '\r'
-                    if (i && file.buffer[i - 1] == '\r')
+                    if (i && buffer[i - 1] == '\r')
                     {
                         i++;
                         goto Lstart;
@@ -179,8 +227,8 @@ void parseConfFile(const char *filename, const char *envsectionname)
 
         for (size_t k = 0; k < i - linestart; k++)
         {
-            // The line is file.buffer[linestart..i]
-            char *line = (char *)&file.buffer[linestart];
+            // The line is buffer[linestart..i]
+            char *line = (char *)&buffer[linestart];
             if (line[k] == '%')
             {
                 for (size_t j = k + 1; j < i - linestart; j++)
@@ -204,7 +252,7 @@ void parseConfFile(const char *filename, const char *envsectionname)
                         memcpy(p, &line[k + 1], len2);
                         p[len2] = 0;
                         Port::strupr(p);
-                        char *penv = getenv(p);
+                        const char *penv = readFromEnv(environment, p);
                         if (penv)
                             buf.writestring(penv);
                         free(p);
@@ -238,14 +286,33 @@ void parseConfFile(const char *filename, const char *envsectionname)
                 char *pn;
                 for (pn = p; isalnum((utf8_t)*pn); pn++)
                     ;
-                if (pn - p == envsectionnamelen &&
-                    Port::memicmp(p, envsectionname, envsectionnamelen) == 0 &&
-                    *skipspace(pn) == ']')
+
+                if (*skipspace(pn) != ']')
                 {
-                    envsection = true;
-                }
-                else
+                    // malformed [sectionname], so just say we're not in a section
                     envsection = false;
+                    break;
+                }
+
+                /* Seach sectionnamev[] for p..pn and set envsection to true if it's there
+                 */
+                for (size_t j = 0; 1; ++j)
+                {
+                    if (j == sections->dim)
+                    {
+                        // Didn't find it
+                        envsection = false;
+                        break;
+                    }
+                    const char *sectionname = (*sections)[j];
+                    size_t len = strlen(sectionname);
+                    if (pn - p == len &&
+                        Port::memicmp(p, sectionname, len) == 0)
+                    {
+                        envsection = true;
+                        break;
+                    }
+                }
                 break;
 
             default:
@@ -267,7 +334,7 @@ void parseConfFile(const char *filename, const char *envsectionname)
                         else if (p[0] == '?' && p[1] == '=')
                         {
                             *p = '\0';
-                            if (getenv(pn))
+                            if (readFromEnv(environment, pn))
                             {
                                 pn = NULL;
                                 break;
@@ -289,7 +356,7 @@ void parseConfFile(const char *filename, const char *envsectionname)
 
                     if (pn)
                     {
-                        putenv(strdup(pn));
+                        writeToEnv(environment, strdup(pn));
 #if LOG
                         printf("\tputenv('%s')\n", pn);
                         //printf("getenv(\"TEST\") = '%s'\n",getenv("TEST"));
@@ -299,7 +366,6 @@ void parseConfFile(const char *filename, const char *envsectionname)
                 break;
         }
     }
-    return;
 }
 
 /********************

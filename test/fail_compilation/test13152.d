@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test13152.d(11): Error: undefined identifier x
+fail_compilation/test13152.d(11): Error: undefined identifier 'x'
 ---
 */
 import imports.test13152a;

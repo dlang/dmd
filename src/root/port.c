@@ -982,6 +982,8 @@ void Port::yl2xp1_impl(long double* x, long double* y, long double* res)
                      :                          // output: empty
                      :"r"(x), "r"(y), "r"(res)  // input: x => %0, y => %1, res => %2
                      :"%eax", "%ebx", "%ecx");  // clobbered register: eax, ebc, ecx
+}
+
 #elif __x86_64__
 void Port::yl2x_impl(long double* x, long double* y, long double* res)
 {
@@ -1093,3 +1095,51 @@ longdouble Port::strtold(const char *p, char **endp)
 }
 
 #endif
+
+// Little endian
+void Port::writelongLE(unsigned value, void* buffer)
+{
+    unsigned char *p = (unsigned char*)buffer;
+    p[3] = (unsigned char)(value >> 24);
+    p[2] = (unsigned char)(value >> 16);
+    p[1] = (unsigned char)(value >> 8);
+    p[0] = (unsigned char)(value);
+}
+
+// Little endian
+unsigned Port::readlongLE(void* buffer)
+{
+    unsigned char *p = (unsigned char*)buffer;
+    return (((((p[3] << 8) | p[2]) << 8) | p[1]) << 8) | p[0];
+}
+
+// Big endian
+void Port::writelongBE(unsigned value, void* buffer)
+{
+    unsigned char *p = (unsigned char*)buffer;
+    p[0] = (unsigned char)(value >> 24);
+    p[1] = (unsigned char)(value >> 16);
+    p[2] = (unsigned char)(value >> 8);
+    p[3] = (unsigned char)(value);
+}
+
+// Big endian
+unsigned Port::readlongBE(void* buffer)
+{
+    unsigned char *p = (unsigned char*)buffer;
+    return (((((p[0] << 8) | p[1]) << 8) | p[2]) << 8) | p[3];
+}
+
+// Little endian
+unsigned Port::readwordLE(void *buffer)
+{
+    unsigned char *p = (unsigned char*)buffer;
+    return (p[1] << 8) | p[0];
+}
+
+// Big endian
+unsigned Port::readwordBE(void *buffer)
+{
+    unsigned char *p = (unsigned char*)buffer;
+    return (p[0] << 8) | p[1];
+}

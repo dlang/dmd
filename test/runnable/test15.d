@@ -4,8 +4,8 @@ import std.array;
 import core.stdc.math : cos, fabs, sin, sqrt;
 import core.vararg;
 import std.math: rndtol, rint;
-import std.stream: File;
 import std.string;
+import std.stdio : File;
 
 extern (C)
 {
@@ -279,11 +279,11 @@ void test20()
 void test21()
 {
     int[string] esdom;
-    auto f = new File("runnable/extra-files/test15.txt");
+    auto f = File("runnable/extra-files/test15.txt", "r");
 
-    while(!f.eof())
-	esdom[cast(string)f.readLine()] = 0;
-    f.close();
+    foreach(it; f.byLine())
+        esdom[it.idup] = 0;
+
     esdom.rehash;
 }
 

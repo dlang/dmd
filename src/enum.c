@@ -57,7 +57,7 @@ void EnumDeclaration::setScope(Scope *sc)
     ScopeDsymbol::setScope(sc);
 }
 
-int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
+void EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
 {
 #if 0
     printf("EnumDeclaration::addMember() %s\n", toChars());
@@ -74,7 +74,7 @@ int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 
     if (!isAnonymous())
     {
-        ScopeDsymbol::addMember(sc, sds, memnum);
+        ScopeDsymbol::addMember(sc, sds);
 
         if (!symtab)
             symtab = new DsymbolTable();
@@ -87,11 +87,10 @@ int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
             EnumMember *em = (*members)[i]->isEnumMember();
             em->ed = this;
             //printf("add %s to scope %s\n", em->toChars(), scopesym->toChars());
-            em->addMember(sc, scopesym, 1);
+            em->addMember(sc, scopesym);
         }
     }
     added = true;
-    return 1;
 }
 
 
@@ -154,7 +153,8 @@ void EnumDeclaration::semantic(Scope *sc)
         /* Check to see if memtype is forward referenced
          */
         if (memtype->ty == Tenum)
-        {   EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
+        {
+            EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
             if (!sym->memtype || !sym->members || !sym->symtab || sym->scope)
             {
                 // memtype is forward referenced, so try again later
@@ -257,7 +257,7 @@ void EnumDeclaration::semantic(Scope *sc)
             if (em)
             {
                 em->ed = this;
-                em->addMember(sc, scopesym, 1);
+                em->addMember(sc, scopesym);
             }
         }
     }
@@ -271,7 +271,7 @@ void EnumDeclaration::semantic(Scope *sc)
     //printf("defaultval = %lld\n", defaultval);
 
     //if (defaultval) printf("defaultval: %s %s\n", defaultval->toChars(), defaultval->type->toChars());
-    //members->print();
+    //printf("members = %s\n", members->toChars());
 }
 
 /******************************
@@ -454,8 +454,10 @@ Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
     if (scope)
+    {
         // Try one last time to resolve this enum
         semantic(scope);
+    }
 
     if (!members || !symtab || scope)
     {
@@ -544,6 +546,33 @@ void EnumMember::semantic(Scope *sc)
             {
                 ed->errors = true;
                 goto Lerrors;
+            }
+            if (ed->memtype->ty != Terror)
+            {
+                /* Bugzilla 11746: All of named enum members should have same type
+                 * with the first member. If the following members were referenced
+                 * during the first member semantic, their types should be unified.
+                 */
+                for (size_t i = 0; i < ed->members->dim; i++)
+                {
+                    EnumMember *em = (*ed->members)[i]->isEnumMember();
+                    if (!em || em == this || em->semanticRun < PASSsemanticdone || em->type)
+                        continue;
+
+                    //printf("[%d] em = %s, em->semanticRun = %d\n", i, toChars(), em->semanticRun);
+                    Expression *ev = em->value;
+                    ev = ev->implicitCastTo(sc, ed->memtype);
+                    ev = ev->ctfeInterpret();
+                    ev = ev->castTo(sc, ed->type);
+                    if (ev->op == TOKerror)
+                        ed->errors = true;
+                    em->value = ev;
+                }
+                if (ed->errors)
+                {
+                    ed->memtype = Type::terror;
+                    goto Lerrors;
+                }
             }
         }
 
@@ -685,7 +714,7 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
         vd->parent = ed->isAnonymous() ? ed->parent : ed;
         vd->userAttribDecl = ed->isAnonymous() ? ed->userAttribDecl : NULL;
     }
-    accessCheck(loc, sc, NULL, vd);
+    checkAccess(loc, sc, NULL, vd);
     Expression *e = new VarExp(loc, vd);
     return e->semantic(sc);
 }

@@ -114,8 +114,10 @@ public:
                     if (c < 0x20)
                         buf->printf("\\u%04x", c);
                     else
+                    {
                         // Note that UTF-8 chars pass through here just fine
                         buf->writeByte(c);
+                    }
                     break;
             }
         }
@@ -626,7 +628,6 @@ public:
         }
     }
 
-    void visit(ClassInfoDeclaration *d) {}
     void visit(TypeInfoDeclaration *d) {}
     void visit(PostBlitDeclaration *d) {}
 

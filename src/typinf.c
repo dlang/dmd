@@ -37,7 +37,6 @@ void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toVtblSymbol(ClassDeclaration *cd);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *toInitializer(EnumDeclaration *ed);
-Expression *getTypeInfo(Type *t, Scope *sc);
 TypeInfoDeclaration *getTypeInfoDeclaration(Type *t);
 static bool builtinTypeInfo(Type *t);
 
@@ -104,14 +103,11 @@ void genTypeInfo(Type *torig, Scope *sc)
     assert(torig->vtinfo);
 }
 
-Expression *getTypeInfo(Type *t, Scope *sc)
+Type *getTypeInfoType(Type *t, Scope *sc)
 {
     assert(t->ty != Terror);
     genTypeInfo(t, sc);
-    Expression *e = VarExp::create(Loc(), t->vtinfo);
-    e = e->addressOf();
-    e->type = t->vtinfo->type;     // do this so we don't get redundant dereference
-    return e;
+    return t->vtinfo->type;
 }
 
 TypeInfoDeclaration *getTypeInfoDeclaration(Type *t)
@@ -407,7 +403,7 @@ public:
 
     void visit(TypeInfoStructDeclaration *d)
     {
-        //printf("TypeInfoStructDeclaration::toDt() '%s'\n", toChars());
+        //printf("TypeInfoStructDeclaration::toDt() '%s'\n", d->toChars());
         if (global.params.is64bit)
             verifyStructSize(Type::typeinfostruct, 17 * Target::ptrsize);
         else
@@ -423,6 +419,17 @@ public:
 
         if (!sd->members)
             return;
+
+        if (TemplateInstance *ti = sd->isInstantiated())
+        {
+            /* Bugzilla 14425: TypeInfo_Struct would refer the members of
+             * struct (e.g. opEquals via xopEquals field), so if it's instantiated
+             * in speculative context, TypeInfo creation should also be
+             * stopped to avoid 'unresolved symbol' linker errors.
+             */
+            if (!ti->needsCodegen() && !ti->minst)
+                return;
+        }
 
         /* Put out:
          *  char[] name;
@@ -589,9 +596,10 @@ public:
         for (size_t i = 0; i < dim; i++)
         {
             Parameter *arg = (*tu->arguments)[i];
-            Expression *e = getTypeInfo(arg->type, NULL);
-            e = e->optimize(WANTvalue);
-            Expression_toDt(e, &dt);
+
+            genTypeInfo(arg->type, NULL);
+            Symbol *s = toSymbol(arg->type->vtinfo);
+            dtxoff(&dt, s, 0);
         }
 
         dtdtoff(pdt, dt, 0);              // elements.ptr

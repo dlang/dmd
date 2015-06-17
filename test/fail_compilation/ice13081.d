@@ -1,9 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice13081.d(17): Error: undefined identifier node
-fail_compilation/ice13081.d(17): Error: undefined identifier data
-fail_compilation/ice13081.d(17): Error: undefined identifier node
+fail_compilation/ice13081.d(17): Error: undefined identifier 'node'
+fail_compilation/ice13081.d(17): Error: undefined identifier 'data'
+fail_compilation/ice13081.d(17): Error: undefined identifier 'node'
 fail_compilation/ice13081.d(28): Error: template instance ice13081.Cube!(SparseDataStore) error instantiating
 ---
 */

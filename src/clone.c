@@ -25,13 +25,14 @@
 #include "template.h"
 #include "tokens.h"
 
-Expression *getTypeInfo(Type *t, Scope *sc);
-
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, @nogc, and @disable
  */
 StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f)
 {
+    if (!f)
+        return s1;
+
     StorageClass s2 = (f->storage_class & STCdisable);
     TypeFunction *tf = (TypeFunction *)f->type;
     if (tf->trust == TRUSTsafe)
@@ -76,9 +77,8 @@ StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f)
 }
 
 /*******************************************
- * Check given opAssign symbol is really identity opAssign or not.
+ * Check given aggregate actually has an identity opAssign or not.
  */
-
 FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
 {
     Dsymbol *assign = search_function(ad, Id::assign);
@@ -134,7 +134,6 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
  * it has a destructor or a postblit.
  * We need to generate one if a user-specified one does not exist.
  */
-
 bool needOpAssign(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd->toChars());
@@ -178,9 +177,9 @@ Lneed:
  *
  * If S has copy copy construction and/or destructor,
  * the body will make bit-wise object swap:
- *          S __tmp = this; // bit copy
- *          this = s;       // bit copy
- *          __tmp.dtor();
+ *          S __swap = this; // bit copy
+ *          this = s;        // bit copy
+ *          __swap.dtor();
  * Instead of running the destructor on s, run it on tmp instead.
  *
  * Otherwise, the body will make member-wise assignments:
@@ -189,7 +188,6 @@ Lneed:
  *          this.field2 = s.field2;
  *          ...;
  */
-
 FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 {
     if (FuncDeclaration *f = hasIdentityOpAssign(sd, sc))
@@ -212,12 +210,9 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     {
         if (!sd->type->isAssignable())  // Bugzilla 13044
             return NULL;
-        if (sd->dtor)
-        {
-            stc = mergeFuncAttrs(stc, sd->dtor);
-            if (stc & STCsafe)
-                stc = (stc & ~STCsafe) | STCtrusted;
-        }
+        stc = mergeFuncAttrs(stc, sd->dtor);
+        if (stc & STCsafe)
+            stc = (stc & ~STCsafe) | STCtrusted;
     }
     else
     {
@@ -227,12 +222,11 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
             if (v->storage_class & STCref)
                 continue;
             Type *tv = v->type->baseElemOf();
-            if (tv->ty == Tstruct)
-            {
-                TypeStruct *ts = (TypeStruct *)tv;
-                if (FuncDeclaration *f = hasIdentityOpAssign(ts->sym, sc))
-                    stc = mergeFuncAttrs(stc, f);
-            }
+            if (tv->ty != Tstruct)
+                continue;
+
+            StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
+            stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
         }
     }
 
@@ -249,7 +243,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     else if (sd->dtor || sd->postblit)
     {
         /* Do swap this and rhs
-         *    tmp = this; this = s; tmp.dtor();
+         *    __swap = this; this = s; __swap.dtor();
          */
         //printf("\tswap copy\n");
         Identifier *idtmp = Identifier::generateId("__swap");
@@ -306,7 +300,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     }
 
     sd->members->push(fop);
-    fop->addMember(sc, sd, 1);
+    fop->addMember(sc, sd);
     sd->hasIdentityAssign = true;        // temporary mark identity assignable
 
     unsigned errors = global.startGagging();    // Do not report errors, even if the
@@ -336,7 +330,6 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
  * any fields has an opEquals.
  * Generate one if a user-specified one does not exist.
  */
-
 bool needOpEquals(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needOpEquals() %s\n", sd->toChars());
@@ -386,6 +379,9 @@ Lneed:
     return true;
 }
 
+/*******************************************
+ * Check given aggregate actually has an identity opEquals or not.
+ */
 FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
 {
     Dsymbol *eq = search_function(ad, Id::eq);
@@ -399,7 +395,7 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
         a->setDim(1);
         for (size_t i = 0; ; i++)
         {
-            Type *tthis;
+            Type *tthis = NULL;         // dead-store to prevent spurious warning
             if (i == 0) tthis = ad->type;
             if (i == 1) tthis = ad->type->constOf();
             if (i == 2) tthis = ad->type->immutableOf();
@@ -445,7 +441,6 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
  *      s1.tupleof == s2.tupleof
  * to calculate structural equality. See EqualExp::semantic.
  */
-
 FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc)
 {
     if (hasIdentityOpEquals(sd, sc))
@@ -465,7 +460,6 @@ FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc)
  * This is called by TypeInfo.equals(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
-
 FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
 {
     if (!needOpEquals(sd))
@@ -554,7 +548,6 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
  * This is called by TypeInfo.compare(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
-
 FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
 {
     //printf("StructDeclaration::buildXopCmp() %s\n", toChars());
@@ -675,7 +668,6 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
  * any fields has a toHash.
  * Generate one if a user-specified one does not exist.
  */
-
 bool needToHash(StructDeclaration *sd)
 {
     //printf("StructDeclaration::needToHash() %s\n", sd->toChars());
@@ -728,7 +720,6 @@ Lneed:
  * Build __xtoHash for non-bitwise hashing
  *      static hash_t xtoHash(ref const S p) nothrow @trusted;
  */
-
 FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
 {
     if (Dsymbol *s = search_function(sd, Id::tohash))
@@ -790,7 +781,6 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
  * Note the close similarity with AggregateDeclaration::buildDtor(),
  * and the ordering changes (runs forward instead of backwards).
  */
-
 FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", sd->toChars());
@@ -798,85 +788,104 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
     Loc declLoc = sd->postblits.dim ? sd->postblits[0]->loc : sd->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
-    Expression *e = NULL;
     for (size_t i = 0; i < sd->postblits.dim; i++)
     {
         stc |= sd->postblits[i]->storage_class & STCdisable;
     }
 
+    Statements *a = NULL;
     for (size_t i = 0; i < sd->fields.dim && !(stc & STCdisable); i++)
     {
         VarDeclaration *v = sd->fields[i];
         if (v->storage_class & STCref)
             continue;
-        Type *tv = v->type->toBasetype();
-        dinteger_t dim = 1;
-        while (tv->ty == Tsarray)
+        Type *tv = v->type->baseElemOf();
+        if (tv->ty != Tstruct || !v->type->size())
+            continue;
+        StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
+        if (!sdv->postblit)
+            continue;
+
+        stc = mergeFuncAttrs(stc, sdv->postblit);
+        stc = mergeFuncAttrs(stc, sdv->dtor);
+        if (stc & STCdisable)
         {
-            TypeSArray *tsa = (TypeSArray *)tv;
-            dim *= tsa->dim->toInteger();
-            tv = tsa->next->toBasetype();
+            a = NULL;
+            break;
         }
-        if (tv->ty == Tstruct)
+        if (!a)
+            a = new Statements();
+
+        Expression *ex = new ThisExp(loc);
+        ex = new DotVarExp(loc, ex, v, 0);
+        if (v->type->toBasetype()->ty == Tstruct)
         {
-            TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd2 = ts->sym;
-            if (sd2->postblit && dim)
-            {
-                stc = mergeFuncAttrs(stc, sd2->postblit);
-                if (stc & STCdisable)
-                {
-                    e = NULL;
-                    break;
-                }
-
-                // this.v
-                Expression *ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, v, 0);
-
-                if (v->type->toBasetype()->ty == Tstruct)
-                {   // this.v.postblit()
-                    ex = new DotVarExp(loc, ex, sd2->postblit, 0);
-                    ex = new CallExp(loc, ex);
-                }
-                else
-                {
-                    // Typeinfo.postblit(cast(void*)&this.v);
-                    Expression *ea = new AddrExp(loc, ex);
-                    ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
-
-                    Expression *et = getTypeInfo(v->type, sc);
-                    et = new DotIdExp(loc, et, Id::postblit);
-
-                    ex = new CallExp(loc, et, ea);
-                }
-                e = Expression::combine(e, ex); // combine in forward order
-            }
+            // this.v.__postblit()
+            ex = new DotVarExp(loc, ex, sdv->postblit, 0);
+            ex = new CallExp(loc, ex);
         }
+        else
+        {
+            // typeid(typeof(v)).postblit(cast(void*)&this.v);
+            Expression *ea = new AddrExp(loc, ex);
+            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+
+            Expression *et = new TypeidExp(loc, v->type);
+            et = new DotIdExp(loc, et, Identifier::idPool("postblit"));
+            ex = new CallExp(loc, et, ea);
+        }
+        a->push(new ExpStatement(loc, ex)); // combine in forward order
+
+        /* Bugzilla 10972: When the following field postblit calls fail,
+         * this field should be destructed for Exception Safety.
+         */
+        if (!sdv->dtor)
+            continue;
+        ex = new ThisExp(loc);
+        ex = new DotVarExp(loc, ex, v, 0);
+        if (v->type->toBasetype()->ty == Tstruct)
+        {
+            // this.v.__dtor()
+            ex = new DotVarExp(loc, ex, sdv->dtor, 0);
+            ex = new CallExp(loc, ex);
+        }
+        else
+        {
+            // Typeinfo.destroy(cast(void*)&this.v);
+            Expression *ea = new AddrExp(loc, ex);
+            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+
+            Expression *et = new TypeidExp(loc, v->type);
+            et = new DotIdExp(loc, et, Id::destroy);
+            ex = new CallExp(loc, et, ea);
+        }
+        a->push(new OnScopeStatement(loc, TOKon_scope_failure, new ExpStatement(loc, ex)));
     }
 
-    /* Build our own "postblit" which executes e
+    /* Build our own "postblit" which executes a
      */
-    if (e || (stc & STCdisable))
+    if (a || (stc & STCdisable))
     {
         //printf("Building __fieldPostBlit()\n");
-        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Identifier::idPool("__fieldPostBlit"));
-        dd->fbody = new ExpStatement(loc, e);
+        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id::__fieldPostblit);
+        dd->fbody = a ? new CompoundStatement(loc, a) : NULL;
         sd->postblits.shift(dd);
         sd->members->push(dd);
         dd->semantic(sc);
     }
 
+    FuncDeclaration *xpostblit = NULL;
     switch (sd->postblits.dim)
     {
         case 0:
-            return NULL;
+            break;
 
         case 1:
-            return sd->postblits[0];
+            xpostblit = sd->postblits[0];
+            break;
 
         default:
-            e = NULL;
+            Expression *e = NULL;
             stc = STCsafe | STCnothrow | STCpure | STCnogc;
             for (size_t i = 0; i < sd->postblits.dim; i++)
             {
@@ -892,12 +901,22 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(e, ex);
             }
-            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Identifier::idPool("__aggrPostBlit"));
+            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id::__aggrPostblit);
             dd->fbody = new ExpStatement(loc, e);
             sd->members->push(dd);
             dd->semantic(sc);
-            return dd;
+            xpostblit = dd;
+            break;
     }
+    // Add an __xpostblit alias to make the inclusive postblit accessible
+    if (xpostblit)
+    {
+        AliasDeclaration *alias = new AliasDeclaration(Loc(), Id::__xpostblit, xpostblit);
+        alias->semantic(sc);
+        sd->members->push(alias);
+        alias->addMember(sc, sd); // add to symbol table
+    }
+    return xpostblit;
 }
 
 /*****************************************
@@ -907,7 +926,6 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
  * Note the close similarity with StructDeclaration::buildPostBlit(),
  * and the ordering changes (runs backward instead of forwards).
  */
-
 FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad->toChars());
@@ -921,51 +939,39 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
         VarDeclaration *v = ad->fields[i];
         if (v->storage_class & STCref)
             continue;
-        Type *tv = v->type->toBasetype();
-        dinteger_t dim = 1;
-        while (tv->ty == Tsarray)
+        Type *tv = v->type->baseElemOf();
+        if (tv->ty != Tstruct || !v->type->size())
+            continue;
+        StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
+        if (!sdv->dtor)
+            continue;
+
+        stc = mergeFuncAttrs(stc, sdv->dtor);
+        if (stc & STCdisable)
         {
-            TypeSArray *tsa = (TypeSArray *)tv;
-            dim *= tsa->dim->toInteger();
-            tv = tsa->next->toBasetype();
+            e = NULL;
+            break;
         }
-        if (tv->ty == Tstruct)
+
+        Expression *ex = new ThisExp(loc);
+        ex = new DotVarExp(loc, ex, v, 0);
+        if (v->type->toBasetype()->ty == Tstruct)
         {
-            TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd = ts->sym;
-            if (sd->dtor && dim)
-            {
-                stc = mergeFuncAttrs(stc, sd->dtor);
-                if (stc & STCdisable)
-                {
-                    e = NULL;
-                    break;
-                }
-
-                // this.v
-                Expression *ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, v, 0);
-
-                if (v->type->toBasetype()->ty == Tstruct)
-                {
-                    // this.v.dtor()
-                    ex = new DotVarExp(loc, ex, sd->dtor, 0);
-                    ex = new CallExp(loc, ex);
-                }
-                else
-                {
-                    // Typeinfo.destroy(cast(void*)&this.v);
-                    Expression *ea = new AddrExp(loc, ex);
-                    ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
-
-                    Expression *et = getTypeInfo(v->type, sc);
-                    et = new DotIdExp(loc, et, Id::destroy);
-
-                    ex = new CallExp(loc, et, ea);
-                }
-                e = Expression::combine(ex, e); // combine in reverse order
-            }
+            // this.v.__dtor()
+            ex = new DotVarExp(loc, ex, sdv->dtor, 0);
+            ex = new CallExp(loc, ex);
         }
+        else
+        {
+            // Typeinfo.destroy(cast(void*)&this.v);
+            Expression *ea = new AddrExp(loc, ex);
+            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+
+            Expression *et = new TypeidExp(loc, v->type);
+            et = new DotIdExp(loc, et, Id::destroy);
+            ex = new CallExp(loc, et, ea);
+        }
+        e = Expression::combine(ex, e); // combine in reverse order
     }
 
     /* Build our own "destructor" which executes e
@@ -973,20 +979,22 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
     if (e || (stc & STCdisable))
     {
         //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Identifier::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Id::__fieldDtor);
         dd->fbody = new ExpStatement(loc, e);
         ad->dtors.shift(dd);
         ad->members->push(dd);
         dd->semantic(sc);
     }
 
+    FuncDeclaration *xdtor = NULL;
     switch (ad->dtors.dim)
     {
         case 0:
-            return NULL;
+            break;
 
         case 1:
-            return ad->dtors[0];
+            xdtor = ad->dtors[0];
+            break;
 
         default:
             e = NULL;
@@ -1005,12 +1013,22 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Identifier::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Id::__aggrDtor);
             dd->fbody = new ExpStatement(loc, e);
             ad->members->push(dd);
             dd->semantic(sc);
-            return dd;
+            xdtor = dd;
+            break;
     }
+    // Add an __xdtor alias to make the inclusive dtor accessible
+    if (xdtor)
+    {
+        AliasDeclaration *alias = new AliasDeclaration(Loc(), Id::__xdtor, xdtor);
+        alias->semantic(sc);
+        ad->members->push(alias);
+        alias->addMember(sc, ad); // add to symbol table
+    }
+    return xdtor;
 }
 
 /******************************************
@@ -1021,7 +1039,6 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
  *          invs[0](), invs[1](), ...;
  *      }
  */
-
 FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc)
 {
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;

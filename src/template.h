@@ -48,6 +48,8 @@ public:
 
     // kludge for template.isType()
     int dyncast() { return DYNCAST_TUPLE; }
+
+    char *toChars() { return objects.toChars(); }
 };
 
 struct TemplatePrevious

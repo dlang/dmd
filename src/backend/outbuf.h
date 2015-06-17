@@ -155,9 +155,7 @@ struct Outbuffer
     /**
      * Writes a 64 bit long.
      */
-#if __INTSIZE == 4
     void write64(long long v);
-#endif
 
     /**
      * Writes a 32 bit float.

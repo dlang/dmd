@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2015 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -59,7 +59,7 @@ struct IRState
     block *getDefaultBlock();
     block *getFinallyBlock();
     FuncDeclaration *getFunc();
-    int arrayBoundsCheck();
+    bool arrayBoundsCheck();
 };
 
 #endif /* DMD_CONTEXT_H */

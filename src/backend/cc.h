@@ -102,10 +102,6 @@ enum LANG
 #define LARGECODE 0
 #endif
 
-#ifndef __INTSIZE
-#define __INTSIZE       4       // host ints are 4 bytes
-#endif
-
 #if SPP || SCPP
 #include        "msgs2.h"
 #endif
@@ -195,7 +191,7 @@ typedef struct SYMTAB_S symtab_t;
 struct code;
 
 extern Config config;
-
+
 /////////// Position in source file
 
 typedef struct Srcpos
@@ -361,7 +357,7 @@ typedef char enum_SC;
 #else
 typedef enum SC enum_SC;
 #endif
-
+
 /******************************************
  * Basic blocks:
  *      Basic blocks are a linked list of all the basic blocks
@@ -609,7 +605,7 @@ enum BC {
     BCjplace    = 19,   // Jupiter: placeholder
     BCMAX
 };
-
+
 /**********************************
  * Functions
  */
@@ -741,7 +737,7 @@ typedef struct MEMINIT
                                 /* called for it                        */
 } meminit_t;
 
-
+
 /************************************
  * Base classes are a list of these.
  */
@@ -930,7 +926,7 @@ typedef struct ENUM
                                 /*      typedef enum { ... } E;         */
     symlist_t SEenumlist;       // all members of enum
 } enum_t;
-
+
 /***********************************
  * Special information for structs.
  */
@@ -1064,7 +1060,7 @@ typedef struct STRUCT
 
 #define struct_calloc() ((struct_t *) mem_fcalloc(sizeof(struct_t)))
 #define struct_free(st) ((void)(st))
-
+
 /**********************************
  * Symbol Table
  */
@@ -1348,7 +1344,7 @@ struct Aliassym : Symbol { };
     inline char *prettyident(Symbol *s) { return s->Sident; }
 #endif
 
-
+
 /**********************************
  * Function parameters:
  *      Pident          identifier of parameter
@@ -1403,7 +1399,7 @@ struct PARAM
     void print();               // print this param_t
     void print_list();          // print this list of param_t's
 };
-
+
 /**************************************
  * Element types.
  * These should be combined with storage classes.
@@ -1459,7 +1455,7 @@ enum FL
 #endif
         FLMAX
 };
-
+
 ////////// Srcfiles
 
 #if !MARS
@@ -1594,19 +1590,19 @@ extern Declar gdeclar;
  *                      w = symbol number (pointer for CPP)
  *                      a = offset
  *      DTcoff          offset into code segment
- *      DTend           mark end of list
  */
 
 struct dt_t
 {   dt_t *DTnext;                       // next in list
     char dt;                            // type (DTxxxx)
     unsigned char Dty;                  // pointer type
+    unsigned char DTn;                  // DTibytes: number of bytes
     union
     {
         struct                          // DTibytes
-        {   char DTn_;                  // number of bytes
-            #define DTn _DU._DI.DTn_
-            char DTdata_[8];            // data
+        {
+            #define DTibytesMax (sizeof(char *) + sizeof(unsigned) + sizeof(int) + sizeof(targ_size_t))
+            char DTdata_[DTibytesMax];  // data
             #define DTdata _DU._DI.DTdata_
         }_DI;
         targ_size_t DTazeros_;          // DTazeros,DTcommon,DTsymsize

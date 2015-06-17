@@ -51,13 +51,6 @@
 
 #if TX86
 
-// I32 isn't set correctly yet because this is the front end, and I32
-// is a backend flag
-#undef I32
-#undef I64
-#define I32 (!global.params.is64bit)
-#define I64 (global.params.is64bit)
-
 //#define EXTRA_DEBUG 1
 
 #undef ADDFWAIT
@@ -186,69 +179,69 @@ static REG aregFp[] =
 
 static REG regtab[] =
 {
-    "AL",   _AL,    _r8 | _al,
-    "AH",   _AH,    _r8,
-    "AX",   _AX,    _r16 | _ax,
-    "EAX",  _EAX,   _r32 | _eax,
-    "BL",   _BL,    _r8,
-    "BH",   _BH,    _r8,
-    "BX",   _BX,    _r16,
-    "EBX",  _EBX,   _r32,
-    "CL",   _CL,    _r8 | _cl,
-    "CH",   _CH,    _r8,
-    "CX",   _CX,    _r16,
-    "ECX",  _ECX,   _r32,
-    "DL",   _DL,    _r8,
-    "DH",   _DH,    _r8,
-    "DX",   _DX,    _r16 | _dx,
-    "EDX",  _EDX,   _r32,
-    "BP",   _BP,    _r16,
-    "EBP",  _EBP,   _r32,
-    "SP",   _SP,    _r16,
-    "ESP",  _ESP,   _r32,
-    "DI",   _DI,    _r16,
-    "EDI",  _EDI,   _r32,
-    "SI",   _SI,    _r16,
-    "ESI",  _ESI,   _r32,
-    "ES",   _ES,    _seg | _es,
-    "CS",   _CS,    _seg | _cs,
-    "SS",   _SS,    _seg | _ss ,
-    "DS",   _DS,    _seg | _ds,
-    "GS",   _GS,    _seg | _gs,
-    "FS",   _FS,    _seg | _fs,
-    "CR0",  0,      _special | _crn,
-    "CR2",  2,      _special | _crn,
-    "CR3",  3,      _special | _crn,
-    "CR4",  4,      _special | _crn,
-    "DR0",  0,      _special | _drn,
-    "DR1",  1,      _special | _drn,
-    "DR2",  2,      _special | _drn,
-    "DR3",  3,      _special | _drn,
-    "DR4",  4,      _special | _drn,
-    "DR5",  5,      _special | _drn,
-    "DR6",  6,      _special | _drn,
-    "DR7",  7,      _special | _drn,
-    "TR3",  3,      _special | _trn,
-    "TR4",  4,      _special | _trn,
-    "TR5",  5,      _special | _trn,
-    "TR6",  6,      _special | _trn,
-    "TR7",  7,      _special | _trn,
-    "MM0",  0,      _mm,
-    "MM1",  1,      _mm,
-    "MM2",  2,      _mm,
-    "MM3",  3,      _mm,
-    "MM4",  4,      _mm,
-    "MM5",  5,      _mm,
-    "MM6",  6,      _mm,
-    "MM7",  7,      _mm,
-    "XMM0", 0,      _xmm | _xmm0,
-    "XMM1", 1,      _xmm,
-    "XMM2", 2,      _xmm,
-    "XMM3", 3,      _xmm,
-    "XMM4", 4,      _xmm,
-    "XMM5", 5,      _xmm,
-    "XMM6", 6,      _xmm,
-    "XMM7", 7,      _xmm,
+    {"AL",   _AL,    _r8 | _al},
+    {"AH",   _AH,    _r8},
+    {"AX",   _AX,    _r16 | _ax},
+    {"EAX",  _EAX,   _r32 | _eax},
+    {"BL",   _BL,    _r8},
+    {"BH",   _BH,    _r8},
+    {"BX",   _BX,    _r16},
+    {"EBX",  _EBX,   _r32},
+    {"CL",   _CL,    _r8 | _cl},
+    {"CH",   _CH,    _r8},
+    {"CX",   _CX,    _r16},
+    {"ECX",  _ECX,   _r32},
+    {"DL",   _DL,    _r8},
+    {"DH",   _DH,    _r8},
+    {"DX",   _DX,    _r16 | _dx},
+    {"EDX",  _EDX,   _r32},
+    {"BP",   _BP,    _r16},
+    {"EBP",  _EBP,   _r32},
+    {"SP",   _SP,    _r16},
+    {"ESP",  _ESP,   _r32},
+    {"DI",   _DI,    _r16},
+    {"EDI",  _EDI,   _r32},
+    {"SI",   _SI,    _r16},
+    {"ESI",  _ESI,   _r32},
+    {"ES",   _ES,    _seg | _es},
+    {"CS",   _CS,    _seg | _cs},
+    {"SS",   _SS,    _seg | _ss },
+    {"DS",   _DS,    _seg | _ds},
+    {"GS",   _GS,    _seg | _gs},
+    {"FS",   _FS,    _seg | _fs},
+    {"CR0",  0,      _special | _crn},
+    {"CR2",  2,      _special | _crn},
+    {"CR3",  3,      _special | _crn},
+    {"CR4",  4,      _special | _crn},
+    {"DR0",  0,      _special | _drn},
+    {"DR1",  1,      _special | _drn},
+    {"DR2",  2,      _special | _drn},
+    {"DR3",  3,      _special | _drn},
+    {"DR4",  4,      _special | _drn},
+    {"DR5",  5,      _special | _drn},
+    {"DR6",  6,      _special | _drn},
+    {"DR7",  7,      _special | _drn},
+    {"TR3",  3,      _special | _trn},
+    {"TR4",  4,      _special | _trn},
+    {"TR5",  5,      _special | _trn},
+    {"TR6",  6,      _special | _trn},
+    {"TR7",  7,      _special | _trn},
+    {"MM0",  0,      _mm},
+    {"MM1",  1,      _mm},
+    {"MM2",  2,      _mm},
+    {"MM3",  3,      _mm},
+    {"MM4",  4,      _mm},
+    {"MM5",  5,      _mm},
+    {"MM6",  6,      _mm},
+    {"MM7",  7,      _mm},
+    {"XMM0", 0,      _xmm | _xmm0},
+    {"XMM1", 1,      _xmm},
+    {"XMM2", 2,      _xmm},
+    {"XMM3", 3,      _xmm},
+    {"XMM4", 4,      _xmm},
+    {"XMM5", 5,      _xmm},
+    {"XMM6", 6,      _xmm},
+    {"XMM7", 7,      _xmm},
 };
 
 // 64 bit only registers
@@ -302,79 +295,79 @@ static REG regtab[] =
 
 static REG regtab64[] =
 {
-    "RAX",  _RAX,   _r64 | _rax,
-    "RBX",  _RBX,   _r64,
-    "RCX",  _RCX,   _r64,
-    "RDX",  _RDX,   _r64,
-    "RSI",  _RSI,   _r64,
-    "RDI",  _RDI,   _r64,
-    "RBP",  _RBP,   _r64,
-    "RSP",  _RSP,   _r64,
-    "R8",   _R8,    _r64,
-    "R9",   _R9,    _r64,
-    "R10",  _R10,   _r64,
-    "R11",  _R11,   _r64,
-    "R12",  _R12,   _r64,
-    "R13",  _R13,   _r64,
-    "R14",  _R14,   _r64,
-    "R15",  _R15,   _r64,
+    {"RAX",  _RAX,   _r64 | _rax},
+    {"RBX",  _RBX,   _r64},
+    {"RCX",  _RCX,   _r64},
+    {"RDX",  _RDX,   _r64},
+    {"RSI",  _RSI,   _r64},
+    {"RDI",  _RDI,   _r64},
+    {"RBP",  _RBP,   _r64},
+    {"RSP",  _RSP,   _r64},
+    {"R8",   _R8,    _r64},
+    {"R9",   _R9,    _r64},
+    {"R10",  _R10,   _r64},
+    {"R11",  _R11,   _r64},
+    {"R12",  _R12,   _r64},
+    {"R13",  _R13,   _r64},
+    {"R14",  _R14,   _r64},
+    {"R15",  _R15,   _r64},
 
-    "R8D",  _R8D,   _r32,
-    "R9D",  _R9D,   _r32,
-    "R10D", _R10D,  _r32,
-    "R11D", _R11D,  _r32,
-    "R12D", _R12D,  _r32,
-    "R13D", _R13D,  _r32,
-    "R14D", _R14D,  _r32,
-    "R15D", _R15D,  _r32,
+    {"R8D",  _R8D,   _r32},
+    {"R9D",  _R9D,   _r32},
+    {"R10D", _R10D,  _r32},
+    {"R11D", _R11D,  _r32},
+    {"R12D", _R12D,  _r32},
+    {"R13D", _R13D,  _r32},
+    {"R14D", _R14D,  _r32},
+    {"R15D", _R15D,  _r32},
 
-    "R8W",  _R8W,   _r16,
-    "R9W",  _R9W,   _r16,
-    "R10W", _R10W,  _r16,
-    "R11W", _R11W,  _r16,
-    "R12W", _R12W,  _r16,
-    "R13W", _R13W,  _r16,
-    "R14W", _R14W,  _r16,
-    "R15W", _R15W,  _r16,
+    {"R8W",  _R8W,   _r16},
+    {"R9W",  _R9W,   _r16},
+    {"R10W", _R10W,  _r16},
+    {"R11W", _R11W,  _r16},
+    {"R12W", _R12W,  _r16},
+    {"R13W", _R13W,  _r16},
+    {"R14W", _R14W,  _r16},
+    {"R15W", _R15W,  _r16},
 
-    "SIL",  _SIL,   _r8,
-    "DIL",  _DIL,   _r8,
-    "BPL",  _BPL,   _r8,
-    "SPL",  _SPL,   _r8,
-    "R8B",  _R8B,   _r8,
-    "R9B",  _R9B,   _r8,
-    "R10B", _R10B,  _r8,
-    "R11B", _R11B,  _r8,
-    "R12B", _R12B,  _r8,
-    "R13B", _R13B,  _r8,
-    "R14B", _R14B,  _r8,
-    "R15B", _R15B,  _r8,
+    {"SIL",  _SIL,   _r8},
+    {"DIL",  _DIL,   _r8},
+    {"BPL",  _BPL,   _r8},
+    {"SPL",  _SPL,   _r8},
+    {"R8B",  _R8B,   _r8},
+    {"R9B",  _R9B,   _r8},
+    {"R10B", _R10B,  _r8},
+    {"R11B", _R11B,  _r8},
+    {"R12B", _R12B,  _r8},
+    {"R13B", _R13B,  _r8},
+    {"R14B", _R14B,  _r8},
+    {"R15B", _R15B,  _r8},
 
-    "XMM8",   8,    _xmm,
-    "XMM9",   9,    _xmm,
-    "XMM10", 10,    _xmm,
-    "XMM11", 11,    _xmm,
-    "XMM12", 12,    _xmm,
-    "XMM13", 13,    _xmm,
-    "XMM14", 14,    _xmm,
-    "XMM15", 15,    _xmm,
+    {"XMM8",   8,    _xmm},
+    {"XMM9",   9,    _xmm},
+    {"XMM10", 10,    _xmm},
+    {"XMM11", 11,    _xmm},
+    {"XMM12", 12,    _xmm},
+    {"XMM13", 13,    _xmm},
+    {"XMM14", 14,    _xmm},
+    {"XMM15", 15,    _xmm},
 
-    "YMM0",   0,    _ymm,
-    "YMM1",   1,    _ymm,
-    "YMM2",   2,    _ymm,
-    "YMM3",   3,    _ymm,
-    "YMM4",   4,    _ymm,
-    "YMM5",   5,    _ymm,
-    "YMM6",   6,    _ymm,
-    "YMM7",   7,    _ymm,
-    "YMM8",   8,    _ymm,
-    "YMM9",   9,    _ymm,
-    "YMM10", 10,    _ymm,
-    "YMM11", 11,    _ymm,
-    "YMM12", 12,    _ymm,
-    "YMM13", 13,    _ymm,
-    "YMM14", 14,    _ymm,
-    "YMM15", 15,    _ymm,
+    {"YMM0",   0,    _ymm},
+    {"YMM1",   1,    _ymm},
+    {"YMM2",   2,    _ymm},
+    {"YMM3",   3,    _ymm},
+    {"YMM4",   4,    _ymm},
+    {"YMM5",   5,    _ymm},
+    {"YMM6",   6,    _ymm},
+    {"YMM7",   7,    _ymm},
+    {"YMM8",   8,    _ymm},
+    {"YMM9",   9,    _ymm},
+    {"YMM10", 10,    _ymm},
+    {"YMM11", 11,    _ymm},
+    {"YMM12", 12,    _ymm},
+    {"YMM13", 13,    _ymm},
+    {"YMM14", 14,    _ymm},
+    {"YMM15", 15,    _ymm},
 };
 
 bool REG::isSIL_DIL_BPL_SPL()
@@ -401,7 +394,6 @@ struct OPND
     REG *pregDisp1;         // if [register1]
     REG *pregDisp2;
     REG *segreg;            // if segment override
-    char indirect;          // if had a '*' or '->'
     bool bOffset;           // if 'offset' keyword
     bool bSeg;              // if 'segment' keyword
     bool bPtr;              // if 'ptr' keyword
@@ -567,7 +559,7 @@ RETRY:
     switch (usActual)
     {
         case 0:
-            if (I64 && (pop->ptb.pptb0->usFlags & _i64_bit))
+            if (global.params.is64bit && (pop->ptb.pptb0->usFlags & _i64_bit))
                 asmerr("opcode %s is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
 
             if ((asmstate.ucItype == ITopt ||
@@ -598,7 +590,7 @@ RETRY:
                         continue;
 
                     // Check if match is invalid in 64bit mode
-                    if (I64 && (table1->usFlags & _i64_bit))
+                    if (global.params.is64bit && (table1->usFlags & _i64_bit))
                     {
                         bInvalid64bit = true;
                         continue;
@@ -710,7 +702,7 @@ TYPE_SIZE_ERROR:
             {
                 //printf("table1   = "); asm_output_flags(table2->usOp1); printf(" ");
                 //printf("table2   = "); asm_output_flags(table2->usOp2); printf("\n");
-                if (I64 && (table2->usFlags & _i64_bit))
+                if (global.params.is64bit && (table2->usFlags & _i64_bit))
                     asmerr("opcode %s is unavailable in 64bit mode", asm_opstr(pop));
 
                 bMatch1 = asm_match_flags(opflags1, table2->usOp1);
@@ -1106,7 +1098,7 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
                             popnd->disp <= CHAR_MAX)
                             us = CONSTRUCT_FLAGS(_8, _rel, _flbl,0);
                         else if (popnd->disp >= SHRT_MIN &&
-                            popnd->disp <= SHRT_MAX && !I64)
+                            popnd->disp <= SHRT_MAX && !global.params.is64bit)
                             us = CONSTRUCT_FLAGS(_16, _rel, _flbl,0);
                         else
                             us = CONSTRUCT_FLAGS(_32, _rel, _flbl,0);
@@ -1145,38 +1137,11 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
         if (ty == Tpointer && popnd->ptype->nextOf()->ty == Tfunction &&
             !ps->isVarDeclaration())
         {
-#if 1
             return CONSTRUCT_FLAGS(_32, _m, _fn16, 0);
-#else
-            ty = popnd->ptype->Tnext->Tty;
-            if (tyfarfunc(tybasic(ty)))
-            {
-                return I32
-                    ? CONSTRUCT_FLAGS(_48, _mnoi, _fn32, 0)
-                    : CONSTRUCT_FLAGS(_32, _mnoi, _fn32, 0);
-            }
-            else
-            {
-                return I32
-                    ? CONSTRUCT_FLAGS(_32, _m, _fn16, 0)
-                    : CONSTRUCT_FLAGS(_16, _m, _fn16, 0);
-            }
-#endif
         }
         else if (ty == Tfunction)
         {
-#if 1
             return CONSTRUCT_FLAGS(_32, _rel, _fn16, 0);
-#else
-            if (tyfarfunc(tybasic(ty)))
-                return I32
-                    ? CONSTRUCT_FLAGS(_48, _p, _fn32, 0)
-                    : CONSTRUCT_FLAGS(_32, _p, _fn32, 0);
-            else
-                return I32
-                    ? CONSTRUCT_FLAGS(_32, _rel, _fn16, 0)
-                    : CONSTRUCT_FLAGS(_16, _rel, _fn16, 0);
-#endif
         }
         else if (asmstate.ucItype == ITjump)
         {
@@ -1291,10 +1256,10 @@ static code *asm_emit(Loc loc,
 
     asmstate.statement->regs |= asm_modify_regs(ptb, popnd1, popnd2);
 
-    if (ptb.pptb0->usFlags & _64_bit && !I64)
+    if (ptb.pptb0->usFlags & _64_bit && !global.params.is64bit)
         error(asmstate.loc, "use -m64 to compile 64 bit instructions");
 
-    if (I64 && (ptb.pptb0->usFlags & _64_bit))
+    if (global.params.is64bit && (ptb.pptb0->usFlags & _64_bit))
     {
         emit(REX | REX_W);
         pc->Irex |= REX_W;
@@ -1303,7 +1268,7 @@ static code *asm_emit(Loc loc,
     switch (usNumops)
     {
         case 0:
-            if (((I32 | I64) && (ptb.pptb0->usFlags & _16_bit)))
+            if (ptb.pptb0->usFlags & _16_bit)
             {
                 emit(0x66);
                 pc->Iflags |= CFopsize;
@@ -1319,7 +1284,7 @@ static code *asm_emit(Loc loc,
         // an immediate and does not affect operation size
         case 3:
         case 2:
-            if ((I32 &&
+            if ((!global.params.is64bit &&
                   (amod2 == _addr16 ||
                    (uSizemaskTable2 & _16 && aoptyTable2 == _rel) ||
                    (uSizemaskTable2 & _32 && aoptyTable2 == _mnoi) ||
@@ -1330,7 +1295,7 @@ static code *asm_emit(Loc loc,
             {
                 emit(0x67);
                 pc->Iflags |= CFaddrsize;
-                if (I32)
+                if (!global.params.is64bit)
                     amod2 = _addr16;
                 else
                     amod2 = _addr32;
@@ -1347,7 +1312,7 @@ static code *asm_emit(Loc loc,
          */
 
         case 1:
-            if ((I32 &&
+            if ((!global.params.is64bit &&
                   (amod1 == _addr16 ||
                    (uSizemaskTable1 & _16 && aoptyTable1 == _rel) ||
                     (uSizemaskTable1 & _32 && aoptyTable1 == _mnoi) ||
@@ -1355,7 +1320,7 @@ static code *asm_emit(Loc loc,
             {
                 emit(0x67);     // address size prefix
                 pc->Iflags |= CFaddrsize;
-                if (I32)
+                if (!global.params.is64bit)
                     amod1 = _addr16;
                 else
                     amod1 = _addr32;
@@ -1365,7 +1330,7 @@ static code *asm_emit(Loc loc,
 
             // If the size of the operand is unknown, assume that it is
             // the default size
-            if (((I64 || I32) && (ptb.pptb0->usFlags & _16_bit)))
+            if (ptb.pptb0->usFlags & _16_bit)
             {
                 //if (asmstate.ucItype != ITjump)
                 {
@@ -1697,7 +1662,7 @@ L3: ;
                 {
                     reg &= 7;
                     pc->Irex |= REX_B;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc->Irm += reg;
@@ -1834,12 +1799,12 @@ L1:
                 {
                     reg &= 7;
                     pc->Irex |= REX_B;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 else if (popnd1->base->isSIL_DIL_BPL_SPL())
                 {
                     pc->Irex |= REX;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc->Irm += reg;
@@ -1858,12 +1823,12 @@ L1:
                 {
                     reg &= 7;
                     pc->Irex |= REX_B;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 else if (popnd1->base->isSIL_DIL_BPL_SPL())
                 {
                     pc->Irex |= REX;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc->Irm += reg;
@@ -1947,7 +1912,7 @@ L1:
                 {
                     reg &= 7;
                     pc->Irex |= REX_B;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc->Irm += reg;
@@ -1966,7 +1931,7 @@ L1:
                 {
                     reg &= 7;
                     pc->Irex |= REX_B;
-                    assert(I64);
+                    assert(global.params.is64bit);
                 }
                 if (asmstate.ucItype == ITfloat)
                     pc->Irm += reg;
@@ -2402,33 +2367,36 @@ static void asm_make_modrm_byte(
         unsigned usFlags,
         OPND *popnd, OPND *popnd2)
 {
-    #undef modregrm
-
-    union MODRM_BYTE
+    struct MODRM_BYTE
     {
-        unsigned char   uchOpcode;
-        struct
+        unsigned rm;
+        unsigned reg;
+        unsigned mod;
+        unsigned uchOpcode()
         {
-            unsigned rm  : 3;
-            unsigned reg : 3;
-            unsigned mod : 2;
-        } modregrm;
-    };                       // mrmb
-
-    union SIB_BYTE
-    {
-        unsigned char   uchOpcode;
-        struct
-        {
-            unsigned base  : 3;
-            unsigned index : 3;
-            unsigned ss    : 2;
-        } sib;
+            assert(rm < 8);
+            assert(reg < 8);
+            assert(mod < 4);
+            return (mod << 6) | (reg << 3) | rm;
+        }
     };
 
+    struct SIB_BYTE
+    {
+        unsigned base;
+        unsigned index;
+        unsigned ss;
+        unsigned uchOpcode()
+        {
+            assert(base < 8);
+            assert(index < 8);
+            assert(ss < 4);
+            return (ss << 6) | (index << 3) | base;
+        }
+    };
 
-    MODRM_BYTE  mrmb = { 0 };
-    SIB_BYTE    sib = { 0 };
+    MODRM_BYTE  mrmb = { 0, 0, 0 };
+    SIB_BYTE    sib = { 0, 0, 0 };
     bool                bSib = false;
     bool                bDisp = false;
 #ifdef DEBUG
@@ -2545,18 +2513,18 @@ static void asm_make_modrm_byte(
             }
         }
     }
-    mrmb.modregrm.reg = usFlags & NUM_MASK;
+    mrmb.reg = usFlags & NUM_MASK;
 
     if (s && (aopty == _m || aopty == _mnoi) && !s->isLabel())
     {
         if (s == asmstate.psLocalsize)
         {
     DATA_REF:
-            mrmb.modregrm.rm = BPRM;
+            mrmb.rm = BPRM;
             if (amod == _addr16 || amod == _addr32)
-                mrmb.modregrm.mod = 0x2;
+                mrmb.mod = 0x2;
             else
-                mrmb.modregrm.mod = 0x0;
+                mrmb.mod = 0x0;
         }
         else
         {
@@ -2564,21 +2532,23 @@ static void asm_make_modrm_byte(
             assert(d);
             if (d->isDataseg() || d->isCodeseg())
             {
-                if (I32 && amod == _addr16)
+                if (!global.params.is64bit && amod == _addr16)
                     error(asmstate.loc, "cannot have 16 bit addressing mode in 32 bit code");
                 goto DATA_REF;
             }
-            mrmb.modregrm.rm = BPRM;
-            mrmb.modregrm.mod = 0x2;
+            mrmb.rm = BPRM;
+            mrmb.mod = 0x2;
         }
     }
 
     if (aopty == _reg || amod == _rspecial)
     {
-        mrmb.modregrm.mod = 0x3;
-        mrmb.modregrm.rm |= popnd->base->val;
+        mrmb.mod = 0x3;
+        mrmb.rm |= popnd->base->val & NUM_MASK;
         if (popnd->base->val & NUM_MASKR)
             pc->Irex |= REX_B;
+        else if (popnd->base->isSIL_DIL_BPL_SPL())
+            pc->Irex |= REX;
     }
     else if (amod == _addr16)
     {
@@ -2629,36 +2599,36 @@ static void asm_make_modrm_byte(
             #undef X
             #undef Y
         }
-        mrmb.modregrm.rm = rm;
+        mrmb.rm = rm;
 
 #ifdef DEBUG
         if (debuga)
             printf("This is an mod = %d, popnd->s =%p, popnd->disp = %lld\n",
-               mrmb.modregrm.mod, s, (long long)popnd->disp);
+               mrmb.mod, s, (long long)popnd->disp);
 #endif
-        if (!s || (!mrmb.modregrm.mod && popnd->disp))
+        if (!s || (!mrmb.mod && popnd->disp))
         {
             if ((!popnd->disp && !bDisp) ||
                 !popnd->pregDisp1)
-                mrmb.modregrm.mod = 0x0;
+                mrmb.mod = 0x0;
             else if (popnd->disp >= CHAR_MIN &&
                 popnd->disp <= SCHAR_MAX)
-                mrmb.modregrm.mod = 0x1;
+                mrmb.mod = 0x1;
             else
-                mrmb.modregrm.mod = 0X2;
+                mrmb.mod = 0X2;
         }
         else
             bOffsetsym = true;
 
     }
-    else if (amod == _addr32 || (amod == _flbl && I32))
+    else if (amod == _addr32 || (amod == _flbl && !global.params.is64bit))
     {
 #ifdef DEBUG
         if (debuga)
             printf("This is an ADDR32\n");
 #endif
         if (!popnd->pregDisp1)
-            mrmb.modregrm.rm = 0x5;
+            mrmb.rm = 0x5;
         else if (popnd->pregDisp2 ||
                  popnd->uchMultiplier ||
                  (popnd->pregDisp1->val & NUM_MASK) == _ESP)
@@ -2676,15 +2646,15 @@ static void asm_make_modrm_byte(
                 bDisp = true;
             }
 
-            mrmb.modregrm.rm = 0x4;
+            mrmb.rm = 0x4;
             bSib = true;
             if (bDisp)
             {
                 if (!popnd->uchMultiplier &&
                     (popnd->pregDisp1->val & NUM_MASK) == _ESP)
                 {
-                    sib.sib.base = 4;           // _ESP or _R12
-                    sib.sib.index = 0x4;
+                    sib.base = 4;           // _ESP or _R12
+                    sib.index = 0x4;
                     if (popnd->pregDisp1->val & NUM_MASKR)
                         pc->Irex |= REX_B;
                 }
@@ -2701,17 +2671,17 @@ static void asm_make_modrm_byte(
                     }
                     else
                     {
-                        mrmb.modregrm.mod = 0x0;
+                        mrmb.mod = 0x0;
                         bModset = true;
                     }
 
-                    sib.sib.base = 0x5;
-                    sib.sib.index = popnd->pregDisp1->val;
+                    sib.base = 0x5;
+                    sib.index = popnd->pregDisp1->val;
                 }
             }
             else
             {
-                sib.sib.base = popnd->pregDisp1->val & NUM_MASK;
+                sib.base = popnd->pregDisp1->val & NUM_MASK;
                 if (popnd->pregDisp1->val & NUM_MASKR)
                     pc->Irex |= REX_B;
                 //
@@ -2729,24 +2699,24 @@ static void asm_make_modrm_byte(
                     if (debuga)
                         printf("Setting the mod to 1 in the _EBP case\n");
 #endif
-                    mrmb.modregrm.mod = 0x1;
+                    mrmb.mod = 0x1;
                     bDisp = true;   // Need a
                                     // displacement
                     bModset = true;
                 }
 
-                sib.sib.index = popnd->pregDisp2->val & NUM_MASK;
+                sib.index = popnd->pregDisp2->val & NUM_MASK;
                 if (popnd->pregDisp2->val & NUM_MASKR)
                     pc->Irex |= REX_X;
 
             }
             switch (popnd->uchMultiplier)
             {
-                case 0: sib.sib.ss = 0; break;
-                case 1: sib.sib.ss = 0; break;
-                case 2: sib.sib.ss = 1; break;
-                case 4: sib.sib.ss = 2; break;
-                case 8: sib.sib.ss = 3; break;
+                case 0: sib.ss = 0; break;
+                case 1: sib.ss = 0; break;
+                case 2: sib.ss = 1; break;
+                case 4: sib.ss = 2; break;
+                case 8: sib.ss = 3; break;
 
                 default:
                     error(asmstate.loc, "scale factor must be one of 0,1,2,4,8");
@@ -2764,7 +2734,7 @@ static void asm_make_modrm_byte(
                 case _EBP:
                     if (!popnd->disp && !s)
                     {
-                        mrmb.modregrm.mod = 0x1;
+                        mrmb.mod = 0x1;
                         bDisp = true;   // Need a displacement
                         bModset = true;
                     }
@@ -2782,48 +2752,48 @@ static void asm_make_modrm_byte(
             }
             if (popnd->pregDisp1->val & NUM_MASKR)
                 pc->Irex |= REX_B;
-            mrmb.modregrm.rm = rm;
+            mrmb.rm = rm;
         }
 
         if (!bModset && (!s ||
-                (!mrmb.modregrm.mod && popnd->disp)))
+                (!mrmb.mod && popnd->disp)))
         {
-            if ((!popnd->disp && !mrmb.modregrm.mod) ||
+            if ((!popnd->disp && !mrmb.mod) ||
                 (!popnd->pregDisp1 && !popnd->pregDisp2))
             {
-                mrmb.modregrm.mod = 0x0;
+                mrmb.mod = 0x0;
                 bDisp = true;
             }
             else if (popnd->disp >= CHAR_MIN &&
                      popnd->disp <= SCHAR_MAX)
-                mrmb.modregrm.mod = 0x1;
+                mrmb.mod = 0x1;
             else
-                mrmb.modregrm.mod = 0x2;
+                mrmb.mod = 0x2;
         }
         else
             bOffsetsym = true;
     }
-    if (popnd2 && !mrmb.modregrm.reg &&
+    if (popnd2 && !mrmb.reg &&
         asmstate.ucItype != ITshift &&
         (ASM_GET_aopty(popnd2->usFlags) == _reg  ||
          ASM_GET_amod(popnd2->usFlags) == _rseg ||
          ASM_GET_amod(popnd2->usFlags) == _rspecial))
     {
-        mrmb.modregrm.reg =  popnd2->base->val;
+        mrmb.reg =  popnd2->base->val & NUM_MASK;
         if (popnd2->base->val & NUM_MASKR)
             pc->Irex |= REX_R;
     }
 #ifdef DEBUG
-    puchOpcode[ (*pusIdx)++ ] = mrmb.uchOpcode;
+    puchOpcode[ (*pusIdx)++ ] = mrmb.uchOpcode();
 #endif
-    pc->Irm = mrmb.uchOpcode;
+    pc->Irm = mrmb.uchOpcode();
     //printf("Irm = %02x\n", pc->Irm);
     if (bSib)
     {
 #ifdef DEBUG
-        puchOpcode[ (*pusIdx)++ ] = sib.uchOpcode;
+        puchOpcode[ (*pusIdx)++ ] = sib.uchOpcode();
 #endif
-        pc->Isib= sib.uchOpcode;
+        pc->Isib= sib.uchOpcode();
     }
     if ((!s || (popnd->pregDisp1 && !bOffsetsym)) &&
         aopty != _imm &&
@@ -3343,7 +3313,7 @@ static REG *asm_reg_lookup(char *s)
             return &regtab[i];
         }
     }
-    if (I64)
+    if (global.params.is64bit)
     {
         for (i = 0; i < sizeof(regtab64) / sizeof(regtab64[0]); i++)
         {
@@ -3411,7 +3381,7 @@ static unsigned asm_type_size(Type * ptype)
             case 2:     u = _16;        break;
             case 4:     u = _32;        break;
             case 6:     u = _48;        break;
-            case 8:     if (I64) u = _64;        break;
+            case 8:     if (global.params.is64bit) u = _64;        break;
         }
     }
     return u;
@@ -3511,10 +3481,10 @@ static code *asm_db_parse(OP *pop)
         switch (tok_value)
         {
             case TOKint32v:
-                dt.ul = asmtok->int32value;
+                dt.ul = (d_int32)asmtok->int64value;
                 goto L1;
             case TOKuns32v:
-                dt.ul = asmtok->uns32value;
+                dt.ul = (d_uns32)asmtok->uns64value;
                 goto L1;
             case TOKint64v:
                 dt.ul = asmtok->int64value;
@@ -3678,11 +3648,11 @@ int asm_getnum()
     switch (tok_value)
     {
         case TOKint32v:
-            v = asmtok->int32value;
+            v = (d_int32)asmtok->int64value;
             break;
 
         case TOKuns32v:
-            v = asmtok->uns32value;
+            v = (d_uns32)asmtok->uns64value;
             break;
 
         case TOKidentifier:
@@ -4127,18 +4097,6 @@ static OPND *asm_una_exp()
 
     switch ((int)tok_value)
     {
-#if 0
-        case TOKand:
-            asm_token();
-            o1 = asm_una_exp();
-            break;
-
-        case TOKmul:
-            asm_token();
-            o1 = asm_una_exp();
-            ++o1->indirect;
-            break;
-#endif
         case TOKadd:
             asm_token();
             o1 = asm_una_exp();
@@ -4464,9 +4422,14 @@ static OPND *asm_primary_exp()
             break;
 
         case TOKint32v:
+            o1 = new OPND();
+            o1->disp = (d_int32)asmtok->int64value;
+            asm_token();
+            break;
+
         case TOKuns32v:
             o1 = new OPND();
-            o1->disp = asmtok->int32value;
+            o1->disp = (d_uns32)asmtok->uns64value;
             asm_token();
             break;
 
@@ -4511,81 +4474,6 @@ static OPND *asm_primary_exp()
 Lret:
     return o1;
 }
-
-/*******************************
- */
-
-#if 0
-static OPND *asm_prim_post(OPND *o1)
-{
-    OPND *o2;
-    Declaration *d = o1->s ? o1->s->isDeclaration() : NULL;
-    Type *t;
-
-    t = d ? d->type : o1->ptype;
-    while (1)
-    {
-        switch (tok_value)
-        {
-#if 0
-            case TKarrow:
-                if (++o1->indirect > 1)
-                {
-                BAD_OPERAND:
-                    asmerr("bad operand");
-                }
-                if (s->Sclass != SCregister)
-                    goto BAD_OPERAND;
-                if (!typtr(t->Tty))
-                {
-                    asmerr("pointer",t,(type *) NULL);
-                }
-                else
-                    t = t->Tnext;
-            case TKcolcol:
-                if (tybasic(t->Tty) != TYstruct)
-                    asmerr("not struct");      // not a struct or union type
-                goto L1;
-
-            case TOKdot:
-                for (; t && tybasic(t->Tty) != TYstruct;
-                     t = t->Tnext)
-                        ;
-                if (!t)
-                    asmerr("not struct");
-            L1:
-                /* try to find the symbol */
-                asm_token();
-                if (tok_value != TOKidentifier)
-                    asmerr("identifier expected");
-                s = n2_searchmember(t->Ttag,tok.TKid);
-                if (!s)
-                {
-                    err_notamember(tok.TKid,t->Ttag);
-                }
-                else
-                {
-                    asm_merge_symbol(o1,s);
-                    t = s->Stype;
-                    asm_token();
-                }
-                break;
-#endif
-
-            case TOKlbracket:
-                asm_token();
-                asm_TKlbra_seen++;
-                o2 = asm_cond_exp();
-                asm_chktok(TOKrbracket,"] expected instead of '%s'");
-                asm_TKlbra_seen--;
-                return asm_merge_opnds(o1, o2);
-
-            default:
-                return o1;
-        }
-    }
-}
-#endif
 
 /*******************************
  */

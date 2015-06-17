@@ -25,5 +25,7 @@ do
 		exit 1;
 	fi
 
-	rm ${output_file}.2
+	rm ${output_file}{,.2}
 done
+
+echo Success >${dir}/`basename $0`.out

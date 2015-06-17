@@ -287,7 +287,7 @@ auto bar12352()
 
     return S();
 }
-static assert(       bar12352        .mangleof == "_D6mangle8bar12352FZS6mangle8bar12352FZ1S");
+static assert(       bar12352        .mangleof == "_D6mangle8bar12352FNaNbNiNfZS6mangle8bar12352FZ1S");
 static assert(typeof(bar12352())     .mangleof ==  "S6mangle8bar12352FZ1S");
 static assert(typeof(bar12352()).func.mangleof == "_D6mangle8bar12352FZ1S4funcMFZv");
 
@@ -301,7 +301,7 @@ auto baz12352()
 
     return new C();
 }
-static assert(       baz12352        .mangleof == "_D6mangle8baz12352FZC6mangle8baz12352FZ1C");
+static assert(       baz12352        .mangleof == "_D6mangle8baz12352FNaNbNfZC6mangle8baz12352FZ1C");
 static assert(typeof(baz12352())     .mangleof ==  "C6mangle8baz12352FZ1C");
 static assert(typeof(baz12352()).func.mangleof == "_D6mangle8baz12352FZ1C4funcMFZv");
 

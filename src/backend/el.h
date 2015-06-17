@@ -116,7 +116,7 @@ struct elem
 #define Erd       EV.sp.spu.Erd         // reaching definition
 
 #define el_int(a,b)     el_long(a,b)
-
+
 typedef elem *elem_p;   /* try to reduce the symbol table size  */
 
 void el_init(void);
@@ -142,13 +142,8 @@ elem_p el_scancommas(elem_p);
 int el_countCommas(elem_p);
 int el_sideeffect(elem_p);
 int el_depends(elem *ea,elem *eb);
-#if LONGLONG
 targ_llong el_tolongt(elem_p);
 targ_llong el_tolong(elem_p);
-#else
-targ_long el_tolongt(elem_p);
-targ_long el_tolong(elem_p);
-#endif
 int el_allbits(elem_p,int);
 int el_signx32(elem_p);
 targ_ldouble el_toldouble(elem_p);
@@ -167,11 +162,7 @@ elem_p el_bint(unsigned,type *,elem_p ,elem_p);
 elem_p el_unat(unsigned,type *,elem_p);
 elem_p el_bin(unsigned,tym_t,elem_p ,elem_p);
 elem_p el_una(unsigned,tym_t,elem_p);
-#if LONGLONG    // DJB
 elem_p el_longt(type *,targ_llong);
-#else
-elem_p el_longt(type *,targ_long);
-#endif
 symbol *el_alloc_localgot();
 elem_p el_var(symbol *);
 elem_p el_settype(elem_p ,type *);
@@ -182,11 +173,7 @@ elem * el_ptr_offset(symbol *s,targ_size_t offset);
 void el_replacesym(elem *,symbol *,symbol *);
 elem_p el_nelems(type *);
 
-#if LONGLONG
 elem_p el_long(tym_t,targ_llong);
-#else
-elem_p el_long(tym_t,targ_long);
-#endif
 
 int ERTOL(elem_p);
 int el_noreturn(elem_p);

@@ -237,10 +237,10 @@
     <ClCompile Include="root\outbuffer.c" />
     <ClCompile Include="root\speller.c" />
     <ClCompile Include="root\stringtable.c" />
-    <CustomBuild Include="idgen.c">
+    <CustomBuild Include="idgen.d">
       <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Command>cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension) &amp;&amp; $(IntDir)%(Filename).exe</Command>
-      <AdditionalInputs>idgen.c;%(AdditionalInputs)</AdditionalInputs>
+      <Command>dmd -od$(IntDir) -of$(IntDir)%(Filename).exe %(Filename)%(Extension) &amp;&amp; $(IntDir)%(Filename).exe</Command>
+      <AdditionalInputs>idgen.d;%(AdditionalInputs)</AdditionalInputs>
       <Outputs>id.c;id.h;$(IntDir)%(Filename).exe;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="impcnvgen.c">

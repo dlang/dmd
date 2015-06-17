@@ -453,7 +453,7 @@ Lret:
 }
 
 #endif
-
+
 /***********************************
  * Generate and return a pointer to a string constructed from
  * the type, appended to the prefix.
@@ -522,7 +522,7 @@ char *cpp_mangle(symbol *s)
         return mangle.buf;
     }
 }
-
+
 ///////////////////////////////////////////////////////
 
 /*********************************
@@ -584,7 +584,7 @@ STATIC int cpp_protection(symbol *s)
     }
     return i;
 }
-
+
 /***********************************
  * Create mangled name for template instantiation.
  */
@@ -749,7 +749,7 @@ char *template_mangle(symbol *s,param_t *arglist)
 }
 
 #endif
-
+
 //////////////////////////////////////////////////////
 // Functions corresponding to the name mangling grammar in the
 // "Microsoft Object Mapping Specification"
@@ -1662,7 +1662,7 @@ STATIC void cpp_decorated_name(symbol *s)
     CHAR('@');
     cpp_type_encoding(s);
 }
-
+
 /*********************************
  * Mangle a vtbl or vbtbl name.
  * Returns:

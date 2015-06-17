@@ -153,6 +153,7 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    Statements *flatten(Scope *sc);
 
     ExpStatement *isExpStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }

@@ -53,6 +53,7 @@ enum
         DW_TAG_variable                 = 0x34,
         DW_TAG_volatile_type            = 0x35,
 
+        /* DWARF v3 */
         DW_TAG_dwarf_procedure          = 0x36,
         DW_TAG_restrict_type            = 0x37,
         DW_TAG_interface_type           = 0x38,
@@ -64,12 +65,10 @@ enum
         DW_TAG_condition                = 0x3F,
         DW_TAG_shared_type              = 0x40,
 
-        // D programming language extensions
-#ifdef USE_DWARF_D_EXTENSIONS
-        DW_TAG_darray_type              = 0x41,
-        DW_TAG_aarray_type              = 0x42,
-        DW_TAG_delegate_type            = 0x43,
-#endif
+        /* DWARF v4 */
+        DW_TAG_type_unit                = 0x41,
+        DW_TAG_rvalue_reference_type    = 0x42,
+        DW_TAG_template_alias           = 0x43,
 
         DW_TAG_lo_user                  = 0x4080,
         DW_TAG_hi_user                  = 0xFFFF,
@@ -143,6 +142,7 @@ enum
         DW_AT_virtuality                = 0x4C,
         DW_AT_vtable_elem_location      = 0x4D,
 
+        /* DWARF v3 */
         DW_AT_allocated                 = 0x4E,
         DW_AT_associated                = 0x4F,
         DW_AT_data_location             = 0x50,
@@ -171,6 +171,14 @@ enum
         DW_AT_pure                      = 0x67,
         DW_AT_recursive                 = 0x68,
 
+        /* DWARF v4 */
+        DW_AT_signature                 = 0x69,
+        DW_AT_main_subprogram           = 0x6a,
+        DW_AT_data_bit_offset           = 0x6b,
+        DW_AT_const_expr                = 0x6c,
+        DW_AT_enum_class                = 0x6d,
+        DW_AT_linkage_name              = 0x6e,
+
         DW_AT_lo_user                   = 0x2000,
         DW_AT_MIPS_linkage_name         = 0x2007,
         DW_AT_GNU_vector                = 0x2107,
@@ -179,27 +187,33 @@ enum
 
 enum
 {
-        DW_FORM_addr      = 0x01,
-        DW_FORM_block2    = 0x03,
-        DW_FORM_block4    = 0x04,
-        DW_FORM_data2     = 0x05,
-        DW_FORM_data4     = 0x06,
-        DW_FORM_data8     = 0x07,
-        DW_FORM_string    = 0x08,
-        DW_FORM_block     = 0x09,
-        DW_FORM_block1    = 0x0A,
-        DW_FORM_data1     = 0x0B,
-        DW_FORM_flag      = 0x0C,
-        DW_FORM_sdata     = 0x0D,
-        DW_FORM_strp      = 0x0E,
-        DW_FORM_udata     = 0x0F,
-        DW_FORM_ref_addr  = 0x10,
-        DW_FORM_ref1      = 0x11,
-        DW_FORM_ref2      = 0x12,
-        DW_FORM_ref4      = 0x13,
-        DW_FORM_ref8      = 0x14,
-        DW_FORM_ref_udata = 0x15,
-        DW_FORM_indirect  = 0x16,
+        DW_FORM_addr         = 0x01,
+        DW_FORM_block2       = 0x03,
+        DW_FORM_block4       = 0x04,
+        DW_FORM_data2        = 0x05,
+        DW_FORM_data4        = 0x06,
+        DW_FORM_data8        = 0x07,
+        DW_FORM_string       = 0x08,
+        DW_FORM_block        = 0x09,
+        DW_FORM_block1       = 0x0A,
+        DW_FORM_data1        = 0x0B,
+        DW_FORM_flag         = 0x0C,
+        DW_FORM_sdata        = 0x0D,
+        DW_FORM_strp         = 0x0E,
+        DW_FORM_udata        = 0x0F,
+        DW_FORM_ref_addr     = 0x10,
+        DW_FORM_ref1         = 0x11,
+        DW_FORM_ref2         = 0x12,
+        DW_FORM_ref4         = 0x13,
+        DW_FORM_ref8         = 0x14,
+        DW_FORM_ref_udata    = 0x15,
+        DW_FORM_indirect     = 0x16,
+
+        /* DWARF v4 */
+        DW_FORM_sec_offset   = 0x17,
+        DW_FORM_exprloc      = 0x18,
+        DW_FORM_flag_present = 0x19,
+        DW_FORM_ref_sig8     = 0x20,
 };
 
 enum
@@ -263,6 +277,8 @@ enum
         DW_OP_deref_size        = 0x94,
         DW_OP_xderef_size       = 0x95,
         DW_OP_nop               = 0x96,
+
+        /* DWARF v3 */
         DW_OP_push_object_address = 0x97,
         DW_OP_call2             = 0x98,
         DW_OP_call4             = 0x99,
@@ -270,6 +286,11 @@ enum
         DW_OP_form_tls_address  = 0x9b,
         DW_OP_call_frame_cfa    = 0x9c,
         DW_OP_bit_piece         = 0x9d,
+
+        /* DWARF v4 */
+        DW_OP_implicit_value    = 0x9e,
+        DW_OP_stack_value       = 0x9f,
+
         DW_OP_lo_user   = 0xe0,
         DW_OP_hi_user   = 0xff,
 
@@ -287,6 +308,8 @@ enum
         DW_ATE_signed_char      = 0x06,
         DW_ATE_unsigned         = 0x07,
         DW_ATE_unsigned_char    = 0x08,
+
+        /* DWARF v3 */
         DW_ATE_imaginary_float  = 0x09,
         DW_ATE_packed_decimal   = 0x0a,
         DW_ATE_numeric_string   = 0x0b,
@@ -294,6 +317,10 @@ enum
         DW_ATE_signed_fixed     = 0x0d,
         DW_ATE_unsigned_fixed   = 0x0e,
         DW_ATE_decimal_float    = 0x0f,
+
+        /* DWARF v4 */
+        DW_ATE_UTF              = 0x10,
+
         DW_ATE_lo_user          = 0x80,
         DW_ATE_hi_user          = 0xff,
 };
@@ -453,6 +480,8 @@ enum
         DW_CFA_def_cfa                  = 0x0c,
         DW_CFA_def_cfa_register         = 0x0d,
         DW_CFA_def_cfa_offset           = 0x0e,
+
+        /* DWARF v3 */
         DW_CFA_def_cfa_expression       = 0x0f,
         DW_CFA_expression               = 0x10,
         DW_CFA_offset_extended_sf       = 0x11,
@@ -462,6 +491,7 @@ enum
         DW_CFA_val_offset_sf            = 0x15,
         DW_CFA_val_expression           = 0x16,
 
+        /* GNU extensions. */
         DW_CFA_GNU_window_save          = 0x2d,
         DW_CFA_GNU_args_size            = 0x2e,
         DW_CFA_GNU_negative_offset_extended = 0x2f,

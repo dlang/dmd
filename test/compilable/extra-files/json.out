@@ -181,7 +181,7 @@
       "storageClass" : [
        "static"
       ],
-      "deco" : "FZv",
+      "deco" : "FNaNbNiNfZv",
       "originalType" : "()",
       "endline" : 26,
       "endchar" : 19
@@ -211,6 +211,10 @@
       "overrides" : [
        "json.Baz!(int, 2, null).Baz.t"
       ]
+     },
+     {
+      "name" : "__xdtor",
+      "kind" : "alias"
      }
     ]
    },

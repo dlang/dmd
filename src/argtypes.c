@@ -75,6 +75,8 @@ TypeTuple *toArgTypes(Type *t)
                 case Tfloat32:
                 case Tint64:
                 case Tuns64:
+                case Tint128:
+                case Tuns128:
                 case Tfloat64:
                 case Tfloat80:
                     t1 = t;

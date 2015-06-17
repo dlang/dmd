@@ -1354,6 +1354,10 @@ MATCH implicitConvTo(Expression *e, Type *t)
                         result = MATCHconst;
                 }
             }
+
+            // Enhancement 10724
+            if (tb->ty == Tpointer && e->e1->op == TOKstring)
+                e->e1->accept(this);
         }
     };
 
@@ -1439,15 +1443,26 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
-            // Do (type *) cast of (type [dim])
-            if (tob->ty == Tpointer &&
-                t1b->ty == Tsarray)
-            {
-                //printf("Converting [dim] to *\n");
-                result = new AddrExp(e->loc, e);
-                result->type = t;
-                return;
-            }
+            /* Make semantic error against invalid cast between concrete types.
+             * Assume that 'e' is never be any placeholder expressions.
+             * The result of these checks should be consistent with CastExp::toElem().
+             */
+
+            // Fat Value types
+            const bool tob_isFV = (tob->ty == Tstruct || tob->ty == Tsarray);
+            const bool t1b_isFV = (t1b->ty == Tstruct || t1b->ty == Tsarray);
+
+            // Fat Reference types
+            const bool tob_isFR = (tob->ty == Tarray || tob->ty == Tdelegate);
+            const bool t1b_isFR = (t1b->ty == Tarray || t1b->ty == Tdelegate);
+
+            // Reference types
+            const bool tob_isR = (tob_isFR || tob->ty == Tpointer || tob->ty == Taarray || tob->ty == Tclass);
+            const bool t1b_isR = (t1b_isFR || t1b->ty == Tpointer || t1b->ty == Taarray || t1b->ty == Tclass);
+
+            // Arithmetic types (== valueable basic types)
+            const bool tob_isA = (tob->isintegral() || tob->isfloating());
+            const bool t1b_isA = (t1b->isintegral() || t1b->isfloating());
 
             if (AggregateDeclaration *t1ad = isAggregate(t1b))
             {
@@ -1460,7 +1475,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         ClassDeclaration *tocd = tob->isClassHandle();
                         int offset;
                         if (tocd->isBaseOf(t1cd, &offset))
-                             goto L1;
+                             goto Lok;
                     }
 
                     /* Forward the cast to our alias this member, rewrite to:
@@ -1468,8 +1483,6 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                      */
                     result = resolveAliasThis(sc, e);
                     result = result->castTo(sc, t);
-                    //result = new CastExp(e->loc, ex, t);
-                    //result = result->semantic(sc);
                     return;
                 }
             }
@@ -1482,6 +1495,16 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 result = result->semantic(sc);
                 return;
             }
+            else if (tob->ty != Tvector && t1b->ty == Tvector)
+            {
+                // T[n] <-- __vector(U[m])
+                if (tob->ty == Tsarray)
+                {
+                    if (t1b->size(e->loc) == tob->size(e->loc))
+                        goto Lok;
+                }
+                goto Lfail;
+            }
             else if (t1b->implicitConvTo(tob) == MATCHconst && t->equals(e->type->constOf()))
             {
                 result = e->copy();
@@ -1489,42 +1512,104 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
-            // Bugzlla 3133: Struct casts are possible only when the sizes match
-            // Same with static array -> static array
-            if ((t1b->ty == Tsarray || t1b->ty == Tstruct) &&
-                (tob->ty == Tsarray || tob->ty == Tstruct))
+            // arithmetic values vs. other arithmetic values
+            // arithmetic values vs. T*
+            if (tob_isA && (t1b_isA || t1b->ty == Tpointer) ||
+                t1b_isA && (tob_isA || tob->ty == Tpointer))
             {
-                if (t1b->size(e->loc) != tob->size(e->loc))
-                    goto Lfail;
+                goto Lok;
             }
-            // Bugzilla 9178: Tsarray <--> typeof(null)
-            // Bugzilla 9904: Tstruct <--> typeof(null)
-            if (t1b->ty == Tnull && (tob->ty == Tsarray || tob->ty == Tstruct) ||
-                tob->ty == Tnull && (t1b->ty == Tsarray || t1b->ty == Tstruct))
-            {
-                goto Lfail;
-            }
-            // Bugzilla 13959: Tstruct <--> Tpointer
-            if ((tob->ty == Tstruct && t1b->ty == Tpointer) ||
-                (t1b->ty == Tstruct && tob->ty == Tpointer))
+
+            // arithmetic values vs. references or fat values
+            if (tob_isA && (t1b_isR || t1b_isFV) ||
+                t1b_isA && (tob_isR || tob_isFV))
             {
                 goto Lfail;
             }
-            // Bugzilla 10646: Tclass <--> (T[] or T[n])
-            if (tob->ty == Tclass && (t1b->ty == Tarray || t1b->ty == Tsarray) ||
-                t1b->ty == Tclass && (tob->ty == Tarray || tob->ty == Tsarray))
+
+            // Bugzlla 3133: A cast between fat values is possible only when the sizes match.
+            if (tob_isFV && t1b_isFV)
             {
+                if (t1b->size(e->loc) == tob->size(e->loc))
+                    goto Lok;
+                e->error("cannot cast expression %s of type %s to %s because of different sizes",
+                    e->toChars(), e->type->toChars(), t->toChars());
+                result = new ErrorExp();
+                return;
+            }
+
+            // Fat values vs. null or references
+            if (tob_isFV && (t1b->ty == Tnull || t1b_isR) ||
+                t1b_isFV && (tob->ty == Tnull || tob_isR))
+            {
+                if (tob->ty == Tpointer && t1b->ty == Tsarray)
+                {
+                    // T[n] sa;
+                    // cast(U*)sa; // ==> cast(U*)sa.ptr;
+                    result = new AddrExp(e->loc, e);
+                    result->type = t;
+                    return;
+                }
+                if (tob->ty == Tarray && t1b->ty == Tsarray)
+                {
+                    // T[n] sa;
+                    // cast(U[])sa; // ==> cast(U[])sa[];
+                    d_uns64 fsize = t1b->nextOf()->size();
+                    d_uns64 tsize = tob->nextOf()->size();
+                    if ((((TypeSArray *)t1b)->dim->toInteger() * fsize) % tsize != 0)
+                    {
+                        // copied from sarray_toDarray() in e2ir.c
+                        e->error("cannot cast expression %s of type %s to %s since sizes don't line up",
+                            e->toChars(), e->type->toChars(), t->toChars());
+                        result = new ErrorExp();
+                        return;
+                    }
+                    goto Lok;
+                }
                 goto Lfail;
             }
-            // Bugzilla 11484: (T[] or T[n]) <--> TypeBasic
-            // Bugzilla 11485, 7472: Tclass <--> TypeBasic
-            // Bugzilla 14154L Tstruct <--> TypeBasic
-            if (t1b->isTypeBasic() && (tob->ty == Tarray || tob->ty == Tsarray || tob->ty == Tclass || tob->ty == Tstruct) ||
-                tob->isTypeBasic() && (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Tclass || t1b->ty == Tstruct))
+
+            /* For references, any reinterpret casts are allowed to same 'ty' type.
+             *      T* to U*
+             *      R1 function(P1) to R2 function(P2)
+             *      R1 delegate(P1) to R2 delegate(P2)
+             *      T[] to U[]
+             *      V1[K1] to V2[K2]
+             *      class/interface A to B  (will be a dynamic cast if possible)
+             */
+            if (tob->ty == t1b->ty && tob_isR && t1b_isR)
+                goto Lok;
+
+            // typeof(null) <-- non-null references or values
+            if (tob->ty == Tnull && t1b->ty != Tnull)
+                goto Lfail;     // Bugzilla 14629
+            // typeof(null) --> non-null references or arithmetic values
+            if (t1b->ty == Tnull && tob->ty != Tnull)
+                goto Lok;
+
+            // Check size mismatch of references.
+            // Tarray and Tdelegate are (void*).sizeof*2, but others have (void*).sizeof.
+            if (tob_isFR && t1b_isR ||
+                t1b_isFR && tob_isR)
             {
+                if (tob->ty == Tpointer && t1b->ty == Tarray)
+                {
+                    // T[] da;
+                    // cast(U*)da; // ==> cast(U*)da.ptr;
+                    goto Lok;
+                }
+                if (tob->ty == Tpointer && t1b->ty == Tdelegate)
+                {
+                    // void delegate() dg;
+                    // cast(U*)dg; // ==> cast(U*)dg.ptr;
+                    // Note that it happens even when U is a Tfunction!
+                    e->deprecation("casting from %s to %s is deprecated", e->type->toChars(), t->toChars());
+                    goto Lok;
+                }
                 goto Lfail;
             }
-            if (t1b->ty == Tvoid && tob->ty != Tvoid && e->op != TOKfunction)
+
+            if (t1b->ty == Tvoid && tob->ty != Tvoid)
             {
             Lfail:
                 e->error("cannot cast expression %s of type %s to %s",
@@ -1533,7 +1618,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
-        L1:
+        Lok:
             result = new CastExp(e->loc, e, tob);
             result->type = t;       // Don't call semantic()
             //printf("Returning: %s\n", result->toChars());
@@ -1962,7 +2047,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
              *  TypeTuple!(int, int) values;
              *  auto values2 = cast(long)values;
              *  // typeof(values2) == TypeTuple!(int, int) !!
-             * 
+             *
              * Only when the casted tuple is immediately expanded, it would work.
              *  auto arr = [cast(long)values];
              *  // typeof(arr) == long[]
@@ -3049,8 +3134,9 @@ Lcc:
         {
             e1 = integralPromotions(e1, sc);
             e2 = integralPromotions(e2, sc);
-            t1 = e1->type;  t1b = t1->toBasetype();
-            t2 = e2->type;  t2b = t2->toBasetype();
+            t1 = e1->type;
+            t2 = e2->type;
+            goto Lagain;
         }
         assert(t1->ty == t2->ty);
         if (!t1->isImmutable() && !t2->isImmutable() && t1->isShared() != t2->isShared())

@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13336a.d(27): Error: choose(true) is not an lvalue
+fail_compilation/fail13336a.d(28): Error: choose(true) is not an lvalue
 ---
 */
 
@@ -22,7 +22,8 @@ auto ref choose(bool f)
 
 void main()
 {
-    static assert(is(typeof(&choose) == Animal function(bool)));    // pass
+    //pragma(msg, typeof(&choose));
+    static assert(is(typeof(&choose) == Animal function(bool) nothrow @nogc @safe));    // pass
 
     choose(true) = new Dog();
 }

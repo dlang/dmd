@@ -31,60 +31,60 @@
 char *toCppMangle(Dsymbol *s);
 void mangleToBuffer(Type *t, OutBuffer *buf);
 
-static unsigned char mangleChar[TMAX];
+static const char *mangleChar[TMAX];
 
 void initTypeMangle()
 {
-    mangleChar[Tarray] = 'A';
-    mangleChar[Tsarray] = 'G';
-    mangleChar[Taarray] = 'H';
-    mangleChar[Tpointer] = 'P';
-    mangleChar[Treference] = 'R';
-    mangleChar[Tfunction] = 'F';
-    mangleChar[Tident] = 'I';
-    mangleChar[Tclass] = 'C';
-    mangleChar[Tstruct] = 'S';
-    mangleChar[Tenum] = 'E';
-    mangleChar[Tdelegate] = 'D';
+    mangleChar[Tarray] = "A";
+    mangleChar[Tsarray] = "G";
+    mangleChar[Taarray] = "H";
+    mangleChar[Tpointer] = "P";
+    mangleChar[Treference] = "R";
+    mangleChar[Tfunction] = "F";
+    mangleChar[Tident] = "I";
+    mangleChar[Tclass] = "C";
+    mangleChar[Tstruct] = "S";
+    mangleChar[Tenum] = "E";
+    mangleChar[Tdelegate] = "D";
 
-    mangleChar[Tnone] = 'n';
-    mangleChar[Tvoid] = 'v';
-    mangleChar[Tint8] = 'g';
-    mangleChar[Tuns8] = 'h';
-    mangleChar[Tint16] = 's';
-    mangleChar[Tuns16] = 't';
-    mangleChar[Tint32] = 'i';
-    mangleChar[Tuns32] = 'k';
-    mangleChar[Tint64] = 'l';
-    mangleChar[Tuns64] = 'm';
-    mangleChar[Tfloat32] = 'f';
-    mangleChar[Tfloat64] = 'd';
-    mangleChar[Tfloat80] = 'e';
+    mangleChar[Tnone] = "n";
+    mangleChar[Tvoid] = "v";
+    mangleChar[Tint8] = "g";
+    mangleChar[Tuns8] = "h";
+    mangleChar[Tint16] = "s";
+    mangleChar[Tuns16] = "t";
+    mangleChar[Tint32] = "i";
+    mangleChar[Tuns32] = "k";
+    mangleChar[Tint64] = "l";
+    mangleChar[Tuns64] = "m";
+    mangleChar[Tint128] = "zi";
+    mangleChar[Tuns128] = "zk";
+    mangleChar[Tfloat32] = "f";
+    mangleChar[Tfloat64] = "d";
+    mangleChar[Tfloat80] = "e";
 
-    mangleChar[Timaginary32] = 'o';
-    mangleChar[Timaginary64] = 'p';
-    mangleChar[Timaginary80] = 'j';
-    mangleChar[Tcomplex32] = 'q';
-    mangleChar[Tcomplex64] = 'r';
-    mangleChar[Tcomplex80] = 'c';
+    mangleChar[Timaginary32] = "o";
+    mangleChar[Timaginary64] = "p";
+    mangleChar[Timaginary80] = "j";
+    mangleChar[Tcomplex32] = "q";
+    mangleChar[Tcomplex64] = "r";
+    mangleChar[Tcomplex80] = "c";
 
-    mangleChar[Tbool] = 'b';
-    mangleChar[Tchar] = 'a';
-    mangleChar[Twchar] = 'u';
-    mangleChar[Tdchar] = 'w';
+    mangleChar[Tbool] = "b";
+    mangleChar[Tchar] = "a";
+    mangleChar[Twchar] = "u";
+    mangleChar[Tdchar] = "w";
 
     // '@' shouldn't appear anywhere in the deco'd names
-    mangleChar[Tinstance] = '@';
-    mangleChar[Terror] = '@';
-    mangleChar[Ttypeof] = '@';
-    mangleChar[Ttuple] = 'B';
-    mangleChar[Tslice] = '@';
-    mangleChar[Treturn] = '@';
-    mangleChar[Tvector] = '@';
-    mangleChar[Tint128] = '@';
-    mangleChar[Tuns128] = '@';
+    mangleChar[Tinstance] = "@";
+    mangleChar[Terror] = "@";
+    mangleChar[Ttypeof] = "@";
+    mangleChar[Ttuple] = "B";
+    mangleChar[Tslice] = "@";
+    mangleChar[Treturn] = "@";
+    mangleChar[Tvector] = "@";
 
-    mangleChar[Tnull] = 'n';    // same as TypeNone
+    mangleChar[Tnull] = "n";    // same as TypeNone
 
     for (size_t i = 0; i < TMAX; i++)
     {
@@ -160,7 +160,7 @@ public:
 
     void visit(Type *t)
     {
-        buf->writeByte(mangleChar[t->ty]);
+        buf->writestring(mangleChar[t->ty]);
     }
 
     void visit(TypeNext *t)
@@ -870,10 +870,14 @@ const char *mangle(Dsymbol *s)
  */
 const char *mangleExact(FuncDeclaration *fd)
 {
-    OutBuffer buf;
-    Mangler v(&buf);
-    v.mangleExact(fd);
-    return buf.extractString();
+    if (!fd->mangleString)
+    {
+        OutBuffer buf;
+        Mangler v(&buf);
+        v.mangleExact(fd);
+        fd->mangleString = buf.extractString();
+    }
+    return fd->mangleString;
 }
 
 void mangleToBuffer(Type *t, OutBuffer *buf)
@@ -886,9 +890,9 @@ void mangleToBuffer(Type *t, OutBuffer *buf, bool internal)
 {
     if (internal)
     {
-        buf->writeByte(mangleChar[t->ty]);
+        buf->writestring(mangleChar[t->ty]);
         if (t->ty == Tarray)
-            buf->writeByte(mangleChar[((TypeArray *)t)->next->ty]);
+            buf->writestring(mangleChar[((TypeArray *)t)->next->ty]);
     }
     else if (t->deco)
         buf->writestring(t->deco);

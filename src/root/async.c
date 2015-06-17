@@ -109,7 +109,15 @@ unsigned __stdcall startthread(void *p)
     AsyncRead *aw = (AsyncRead *)p;
 
     //printf("aw->filesdim = %p %d\n", aw, aw->filesdim);
-    for (size_t i = 0; i < aw->filesdim; i++)
+
+    // We need to cache aw->filesdim in order to prevent it from
+    // being accessed after aw is freed. (It is possible that just
+    // before the loop finishes the main thread calls
+    // AsyncRead::dispose() and frees aw before it is accessed
+    // for the last time.
+    size_t dim = aw->filesdim;
+
+    for (size_t i = 0; i < dim; i++)
     {   FileData *f = &aw->files[i];
 
         f->result = f->file->read();
@@ -243,7 +251,14 @@ void *startthread(void *p)
     AsyncRead *aw = (AsyncRead *)p;
 
     //printf("startthread: aw->filesdim = %p %d\n", aw, aw->filesdim);
+
+    // We need to cache aw->filesdim in order to prevent it from
+    // being accessed after aw is freed. (It is possible that just
+    // before the loop finishes the main thread calls
+    // AsyncRead::dispose() and frees aw before it is accessed
+    // for the last time.
     size_t dim = aw->filesdim;
+
     for (size_t i = 0; i < dim; i++)
     {   FileData *f = &aw->files[i];
 

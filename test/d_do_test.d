@@ -396,6 +396,25 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
     return true;
 }
 
+// compare output string to reference string, but ignore places
+// marked by $n$ that contain compiler generated unique numbers
+bool compareOutput(string output, string refoutput)
+{
+    for ( ; ; )
+    {
+        auto pos = refoutput.indexOf("$n$");
+        if (pos < 0)
+            return refoutput == output;
+        if (output.length < pos)
+            return false;
+        if (refoutput[0..pos] != output[0..pos])
+            return false;
+        refoutput = refoutput[pos + 3 ..$];
+        output = output[pos..$];
+        munch(output, "0123456789");
+    }
+}
+
 int main(string[] args)
 {
     if (args.length != 4)
@@ -568,7 +587,7 @@ int main(string[] args)
 
             if (testArgs.compileOutput !is null)
             {
-                enforce(compile_output == testArgs.compileOutput,
+                enforce(compareOutput(compile_output, testArgs.compileOutput),
                         "\nexpected:\n----\n"~testArgs.compileOutput~"\n----\nactual:\n----\n"~compile_output~"\n----\n");
             }
 

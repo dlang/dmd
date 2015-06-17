@@ -188,9 +188,6 @@ int boolres(elem *e)
                 case TYdchar:
                 case TYllong:
                 case TYullong:
-#if JHANDLE
-                case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
                 case TYsptr:
                 case TYcptr:
@@ -200,6 +197,9 @@ int boolres(elem *e)
 #endif
                 case TYnptr:
                     b = el_tolong(e) != 0;
+                    break;
+                case TYnref: // reference can't be converted to bool
+                    assert(0);
                     break;
                 case TYfloat:
                 case TYifloat:
@@ -261,10 +261,9 @@ int boolres(elem *e)
 
                 case TYfloat4:
                 {   b = 0;
-                    targ_float *pf = (targ_float *)&e->EV.Vcent;
                     for (size_t i = 0; i < 4; i++)
                     {
-                        if (isnan(pf[i]) || pf[i] != 0)
+                        if (isnan(e->EV.Vfloat4[i]) || e->EV.Vfloat4[i] != 0)
                         {   b = 1;
                             break;
                         }
@@ -333,7 +332,7 @@ int iffalse(elem *e)
                 }
         }
 }
-
+
 /******************************
  * Constant fold expression tree.
  * Calculate &symbol and &*e1 if we can.

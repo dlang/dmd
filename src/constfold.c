@@ -414,7 +414,7 @@ UnionExp Div(Type *type, Expression *e1, Expression *e2)
             n2 = 1;
         }
         if (e1->type->isunsigned() || e2->type->isunsigned())
-            n = ((d_uns64) n1) / ((d_uns64) n2);
+            n = ((dinteger_t) n1) / ((dinteger_t) n2);
         else
             n = n1 / n2;
         new(&ue) IntegerExp(loc, n, type);
@@ -483,7 +483,7 @@ UnionExp Mod(Type *type, Expression *e1, Expression *e2)
             }
         }
         if (e1->type->isunsigned() || e2->type->isunsigned())
-            n = ((d_uns64) n1) % ((d_uns64) n2);
+            n = ((dinteger_t) n1) % ((dinteger_t) n2);
         else
             n = n1 % n2;
         new(&ue) IntegerExp(loc, n, type);
@@ -1108,19 +1108,19 @@ UnionExp Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
         {
             switch (op)
             {
-                case TOKlt:     n = ((d_uns64) n1) <  ((d_uns64) n2);   break;
-                case TOKle:     n = ((d_uns64) n1) <= ((d_uns64) n2);   break;
-                case TOKgt:     n = ((d_uns64) n1) >  ((d_uns64) n2);   break;
-                case TOKge:     n = ((d_uns64) n1) >= ((d_uns64) n2);   break;
+                case TOKlt:     n = ((dinteger_t) n1) <  ((dinteger_t) n2);   break;
+                case TOKle:     n = ((dinteger_t) n1) <= ((dinteger_t) n2);   break;
+                case TOKgt:     n = ((dinteger_t) n1) >  ((dinteger_t) n2);   break;
+                case TOKge:     n = ((dinteger_t) n1) >= ((dinteger_t) n2);   break;
 
-                case TOKleg:    n = 1;                                  break;
-                case TOKlg:     n = ((d_uns64) n1) != ((d_uns64) n2);   break;
-                case TOKunord:  n = 0;                                  break;
-                case TOKue:     n = ((d_uns64) n1) == ((d_uns64) n2);   break;
-                case TOKug:     n = ((d_uns64) n1) >  ((d_uns64) n2);   break;
-                case TOKuge:    n = ((d_uns64) n1) >= ((d_uns64) n2);   break;
-                case TOKul:     n = ((d_uns64) n1) <  ((d_uns64) n2);   break;
-                case TOKule:    n = ((d_uns64) n1) <= ((d_uns64) n2);   break;
+                case TOKleg:    n = 1;                                        break;
+                case TOKlg:     n = ((dinteger_t) n1) != ((dinteger_t) n2);   break;
+                case TOKunord:  n = 0;                                        break;
+                case TOKue:     n = ((dinteger_t) n1) == ((dinteger_t) n2);   break;
+                case TOKug:     n = ((dinteger_t) n1) >  ((dinteger_t) n2);   break;
+                case TOKuge:    n = ((dinteger_t) n1) >= ((dinteger_t) n2);   break;
+                case TOKul:     n = ((dinteger_t) n1) <  ((dinteger_t) n2);   break;
+                case TOKule:    n = ((dinteger_t) n1) <= ((dinteger_t) n2);   break;
 
                 default:
                     assert(0);
@@ -1161,7 +1161,6 @@ UnionExp Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
 UnionExp Cast(Type *type, Type *to, Expression *e1)
 {
     UnionExp ue;
-    Expression *e = CTFEExp::cantexp;
     Loc loc = e1->loc;
 
     Type *tb = to->toBasetype();
@@ -1303,7 +1302,11 @@ L1:
     else
     {
         if (type != Type::terror)
+        {
+            // have to change to Internal Compiler Error
+            // all invalid casts should be handled already in Expression::castTo().
             error(loc, "cannot cast %s to %s", e1->type->toChars(), type->toChars());
+        }
         new(&ue) ErrorExp();
     }
     return ue;
@@ -1441,7 +1444,7 @@ UnionExp Index(Type *type, Expression *e1, Expression *e2)
                     new(&ue) CTFEExp(TOKcantexp);
                 else
                     new(&ue) UnionExp(e);
-                return ue;;
+                return ue;
             }
         }
         new(&ue) CTFEExp(TOKcantexp);

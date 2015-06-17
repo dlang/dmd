@@ -254,6 +254,26 @@ void test8579()
 }
 
 /***************************************************/
+// 14210
+
+string foo14210a(DT)(string name, DT dg)
+{
+    return name ~ " :: " ~ typeof(dg).stringof;
+}
+string foo14210b(DT)(string name, DT dg)
+{
+    return name ~ " :: " ~ typeof(dg).stringof;
+}
+void test14210()
+{
+    assert(foo14210a("1", (int a)    => a+0) == "1 :: int function(int) pure nothrow @nogc @safe");
+    assert(foo14210a("2", (int a=40) => a+2) == "2 :: int function(int) pure nothrow @nogc @safe");
+
+    assert(foo14210b("2", (int a=40) => a+2) == "2 :: int function(int) pure nothrow @nogc @safe");
+    assert(foo14210b("1", (int a)    => a+0) == "1 :: int function(int) pure nothrow @nogc @safe");
+}
+
+/***************************************************/
 // 10734
 
 // There's no platform independent export symbol, so
@@ -276,6 +296,26 @@ void test10734()
 
 }
 
+void test14656()
+{
+    void unaryFun()(auto int a) pure nothrow @safe @nogc {}
+    alias Identity(F) = F;
+    unaryFun!()(41);
+    static void fun(int n) pure nothrow @safe @nogc {}
+    alias F = typeof(fun);
+    assert(Identity!F.stringof == "pure nothrow @nogc @safe void(int)");
+}
+
+void test14656_ref()
+{
+    void unaryFun()(auto ref int a) pure nothrow @safe @nogc {}
+    alias Identity(F) = F;
+    unaryFun!()(41);
+    static void fun(int n) pure nothrow @safe @nogc {}
+    alias F = typeof(fun);
+    assert(Identity!F.stringof == "pure nothrow @nogc @safe void(int)");
+}
+
 /***************************************************/
 
 int main()
@@ -288,6 +328,9 @@ int main()
     test3646();
     test3866();
     test8579();
+    test14210();
+    test14656();
+    test14656_ref();
 
     printf("Success\n");
     return 0;

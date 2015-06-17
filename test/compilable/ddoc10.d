@@ -175,3 +175,36 @@ struct T
     ///
     this(int){}
 }
+
+
+// 14547
+
+/// doc-comment
+int x14547 = 1;
+
+/// ditto
+enum int y14547 = 2;
+
+/// doc-comment
+enum isInt14547(T) = is(T == int);
+
+/// ditto
+enum bool isString14547(T) = is(T == string);
+
+/// ditto
+static immutable typeName14547(T) = T.stringof;
+
+/// ditto
+int storageFor14547(T) = 0;
+
+/// doc-comment
+template foo14547(T)
+{
+    enum int foo14547 = T.stringof.length;
+}
+
+/// ditto
+template bar14547(T) if (is(T == int))
+{
+    enum int bar14547 = T.stringof.length;
+}

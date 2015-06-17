@@ -434,9 +434,14 @@ void test35()
 {
     auto ti = typeid(shared(int));
 
-    assert(cast(TypeInfo_Shared)ti);
+    auto sti = cast(TypeInfo_Shared)ti;
+    assert(sti);
 
-    assert((cast(TypeInfo_Shared)ti).next == typeid(int));
+    // allow both next and base as field names in TypeInfo_Const
+    static if (is(typeof(&sti.base) == TypeInfo*))
+        assert(sti.base == typeid(int));
+    else
+        assert(sti.next == typeid(int));
 }
 
 /******************************************************/

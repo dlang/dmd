@@ -570,7 +570,7 @@ L1:
 }
 
 #endif
-
+
 /*************************************
  * Search for symbol in multiple symbol tables,
  * starting with most recently nested one.
@@ -601,7 +601,7 @@ symbol * lookupsym(const char *p)
 
 symbol * findsy(const char *p,symbol *rover)
 {
-#if __INTSIZE == 4 && TX86 && __DMC__
+#if TX86 && __DMC__
     volatile int len;
     __asm
     {
@@ -692,7 +692,7 @@ L6:     mov     EAX,EBX
 }
 
 #endif
-
+
 /***********************************
  * Create a new symbol table.
  */
@@ -749,7 +749,7 @@ void deletesymtab()
 }
 
 #endif
-
+
 /*********************************
  * Delete symbol from symbol table, taking care to delete
  * all children of a symbol.
@@ -1145,7 +1145,7 @@ symbol *symbol_search(const char *id)
 }
 
 #endif
-
+
 /*******************************************
  * Hydrate a symbol tree.
  */
@@ -1166,7 +1166,7 @@ void symbol_tree_hydrate(symbol **ps)
 
 }
 #endif
-
+
 /*******************************************
  * Dehydrate a symbol tree.
  */
@@ -1189,7 +1189,7 @@ void symbol_tree_dehydrate(symbol **ps)
     }
 }
 #endif
-
+
 /*******************************************
  * Hydrate a symbol.
  */
@@ -1392,7 +1392,7 @@ symbol *symbol_hydrate(symbol **ps)
     return s;
 }
 #endif
-
+
 /*******************************************
  * Dehydrate a symbol.
  */
@@ -1617,7 +1617,7 @@ void symbol_dehydrate(symbol **ps)
     }
 }
 #endif
-
+
 /***************************
  * Dehydrate threaded list of symbols.
  */
@@ -1773,7 +1773,7 @@ void symbol_symdefs_hydrate(symbol **ps,symbol **parent,int flag)
 }
 
 #endif
-
+
 #if 0
 
 /*************************************
@@ -1859,7 +1859,7 @@ void symboltable_hydrate(symbol *s,symbol **parent)
 }
 
 #endif
-
+
 
 /************************************
  * Hydrate/dehydrate an mptr_t.
@@ -2000,7 +2000,7 @@ int baseclass_nitems(baseclass_t *b)
 
 #endif
 
-
+
 /*****************************
  * Go through symbol table preparing it to be written to a precompiled
  * header. That means removing references to things in the .OBJ file.
@@ -2072,7 +2072,7 @@ void symboltable_clean(symbol *s)
 }
 
 #endif
-
+
 #if SCPP
 
 /*
@@ -2171,12 +2171,6 @@ void symboltable_balance(symbol **ps)
     count_symbols(*ps);
     //dbg_printf("Number of global symbols = %d\n",balance.nsyms);
 
-#if __INTSIZE == 2
-    // Don't balance tree if we get 16 bit overflow
-    if (balance.nsyms >= (unsigned)(0x10000 / sizeof(symbol *)))
-        goto Lret;
-#endif
-
     // Use malloc instead of mem because of pagesize limits
     balance.array = (symbol **) malloc(balance.nsyms * sizeof(symbol *));
     if (!balance.array)
@@ -2198,7 +2192,7 @@ Lret:
 }
 
 #endif
-
+
 /*****************************************
  * Symbol table search routine for members of structs, given that
  * we don't know which struct it is in.
@@ -2262,7 +2256,7 @@ symbol *symbol_membersearch(const char *id)
     }
     return pb.sm;
 }
-
+
 /*******************************************
  * Generate debug info for global struct tag symbols.
  */

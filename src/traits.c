@@ -318,18 +318,17 @@ Lfalse:
 }
 
 /**
- * get an array of size_t values that indicate possible pointer words in memory 
+ * get an array of size_t values that indicate possible pointer words in memory
  *  if interpreted as the type given as argument
  * the first array element is the size of the type for independent interpretation
  *  of the array
- * following elements bits represent one word (4/8 bytes depending on the target 
+ * following elements bits represent one word (4/8 bytes depending on the target
  *  architecture). If set the corresponding memory might contain a pointer/reference.
  *
  *  [T.sizeof, pointerbit0-31/63, pointerbit32/64-63/128, ...]
  */
 Expression *pointerBitmap(TraitsExp *e)
 {
-    int result = 0;
     if (!e->args || e->args->dim != 1)
     {
         error(e->loc, "a single type expected for trait pointerBitmap");
@@ -357,15 +356,15 @@ Expression *pointerBitmap(TraitsExp *e)
     {
     public:
         PointerBitmapVisitor(Array<d_uns64>* _data, d_uns64 _sz_size_t)
-            : data(_data), offset(0), sz_size_t(_sz_size_t) 
+            : data(_data), offset(0), sz_size_t(_sz_size_t)
         {}
-        
+
         void setpointer(d_uns64 off)
         {
             d_uns64 ptroff = off / sz_size_t;
             (*data)[(size_t)(ptroff / (8 * sz_size_t))] |= 1LL << (ptroff % (8 * sz_size_t));
         }
-        virtual void visit(Type *t) 
+        virtual void visit(Type *t)
         {
             Type *tb = t->toBasetype();
             if (tb != t)
@@ -385,7 +384,7 @@ Expression *pointerBitmap(TraitsExp *e)
             d_uns64 arrayoff = offset;
             d_uns64 nextsize = t->next->size();
             d_uns64 dim = t->dim->toInteger();
-            for (size_t i = 0; i < dim; i++)
+            for (d_uns64 i = 0; i < dim; i++)
             {
                 offset = arrayoff + i * nextsize;
                 t->next->accept(this);
@@ -394,7 +393,7 @@ Expression *pointerBitmap(TraitsExp *e)
         }
         virtual void visit(TypeDArray *t) { setpointer(offset + sz_size_t); } // dynamic array is {length,ptr}
         virtual void visit(TypeAArray *t) { setpointer(offset); }
-        virtual void visit(TypePointer *t) 
+        virtual void visit(TypePointer *t)
         {
             if (t->nextOf()->ty != Tfunction) // don't mark function pointers
                 setpointer(offset);
@@ -974,10 +973,12 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
-                    if (sm->ident != Id::ctor &&
+                    if (sm->ident->string[0] == '_' && sm->ident->string[1] == '_' &&
+                        sm->ident != Id::ctor &&
                         sm->ident != Id::dtor &&
-                        sm->ident != Id::_postblit &&
-                        memcmp(sm->ident->string, "__", 2) == 0)
+                        sm->ident != Id::__xdtor &&
+                        sm->ident != Id::postblit &&
+                        sm->ident != Id::__xpostblit)
                     {
                         return 0;
                     }

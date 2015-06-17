@@ -419,5 +419,78 @@ unittest
 }
 
 // ------------------------------------
+// 14594
+
+/*******************
+ * testA
+ */
+void fun14594a()() {}
+///
+unittest { fun14594a(); }
+
+/*******************
+ * testB
+ */
+void fun14594b()() {}
+/// ditto
+void fun14594b(T)(T) {}
+///
+unittest { fun14594b(); fun14594b(1); }
+
+/*******************
+ * testC
+ */
+void fun14594c()() {}
+///
+unittest { fun14594c(); fun14594c(1); }
+/// ditto
+void fun14594c(T)(T) {}
+
+/*******************
+ * testD
+ */
+void fun14594d()() {}
+///
+unittest { fun14594d(); }
+/// ditto
+void fun14594d(T)(T) {}
+///
+unittest { fun14594d(1); }
+
+/*******************
+ * testE
+ */
+template fun14594e()
+{
+    /// concatenated doc-comment fun14594e
+    void fun14594e() {}
+    /// ignored-unittest fun14594e
+    unittest { fun14594e(); }
+}
+/// doc-unittest fun14594e
+unittest { fun14594e(); }
+
+/*******************
+ * testF
+ */
+template fun14594f()
+{
+    /// concatenated doc-comment fun14594f
+    void fun14594f() {}
+    /// ignored-unittest fun14594f
+    unittest { fun14594f(); }
+}
+/// ditto
+template fun14594f(T)
+{
+    /// ignored doc-comment fun14594f
+    void fun14594f(T) {}
+    /// ignored-unittest fun14594f
+    unittest { fun14594f(1); }
+}
+/// doc-unittest fun14594f
+unittest { fun14594f(); }
+
+// ------------------------------------
 
 void main() { }

@@ -659,8 +659,6 @@ L2:
         }
         else if (reg == 6)                      // if DIV
         {   cd = genregs(cd,0x33,DX,DX);        // XOR DX,DX
-            if (I64 && sz == 8)
-                code_orrex(cd, REX_W);
         }
   }
 
@@ -3946,10 +3944,8 @@ code *params(elem *e,unsigned stackalign)
         else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
             retregs = mSTACK;
   }
-#if LONGLONG
   else if (I16 && sz == 8)             // if long long
         retregs = mSTACK;
-#endif
   c = cat(c,scodelem(e,&retregs,0,TRUE));
   if (retregs != mSTACK)                /* if stackpush not already inc'd */
       stackpush += sz;

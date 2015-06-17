@@ -1095,6 +1095,41 @@ void test12500()
 }
 
 /***************************************************/
+// 14672
+
+void test14672()
+{
+    interface I {}
+
+    class B {}
+    class D : B, I {}
+
+    D d = new D();
+    D[] da = [d];
+    B[] ba = [null];
+    I[] ia = [null];
+
+    // ba and da points different payloads,
+    // so element-wise assignment should work.
+    ba[] = da[];    // OK <- e2ir ICE
+    assert(ba[0] is d);
+
+    // Today element-wise assignment is implemented as memcpy, For that reason
+    // the conversion from derived classes to base interfaces is disallowed
+    // because it requries offset adjustments.
+    static assert(!__traits(compiles, { ia[] = da[]; }));
+
+    // after the assignment, ba will wongly point the payload of da,
+    // that's typed as D[]. To aboid type system breaking, it's disallowed.
+    static assert(!__traits(compiles, { ba = da; }));
+
+    // the assigned array literal is a new payload,
+    // so rebinding ba should work.
+    ba = [d];       // OK
+    assert(ba[0] is d);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1123,8 +1158,8 @@ int main()
     test12212();
     test12650();
     test13044();
-
     test12500();
+    test14672();
 
     printf("Success\n");
     return 0;

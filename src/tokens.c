@@ -59,14 +59,14 @@ const char *Token::toChars()
     switch (value)
     {
         case TOKint32v:
-            sprintf(&buffer[0],"%d",int32value);
+            sprintf(&buffer[0],"%d",(d_int32)int64value);
             break;
 
         case TOKuns32v:
         case TOKcharv:
         case TOKwcharv:
         case TOKdcharv:
-            sprintf(&buffer[0],"%uU",uns32value);
+            sprintf(&buffer[0],"%uU",(d_uns32)uns64value);
             break;
 
         case TOKint64v:

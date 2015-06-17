@@ -70,6 +70,7 @@ Scope::Scope()
     this->func = NULL;
     this->slabel = NULL;
     this->linkage = LINKd;
+    this->inlining = PINLINEdefault;
     this->protection = Prot(PROTpublic);
     this->explicitProtection = 0;
     this->stc = 0;
@@ -84,8 +85,6 @@ Scope::Scope()
     this->fieldinit_dim = 0;
     this->flags = 0;
     this->lastdc = NULL;
-    this->lastoffset = 0;
-    this->docbuf = NULL;
     this->anchorCounts = NULL;
     this->prevAnchor = NULL;
     this->userAttribDecl = NULL;
@@ -110,6 +109,7 @@ Scope *Scope::createGlobal(Module *module)
 
     sc->structalign = STRUCTALIGN_DEFAULT;
     sc->linkage = LINKd;
+    sc->inlining = PINLINEdefault;
     sc->protection = Prot(PROTpublic);
 
     sc->module = module;
@@ -124,7 +124,7 @@ Scope *Scope::createGlobal(Module *module)
     Dsymbol *m = module;
     while (m->parent)
         m = m->parent;
-    m->addMember(NULL, sc->scopesym, 1);
+    m->addMember(NULL, sc->scopesym);
     m->parent = NULL;                   // got changed by addMember()
 
     // Create the module scope underneath the global scope
@@ -156,7 +156,6 @@ Scope *Scope::push()
     s->fieldinit = saveFieldInit();
     s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint));
     s->lastdc = NULL;
-    s->lastoffset = 0;
 
     assert(this != s);
     return s;

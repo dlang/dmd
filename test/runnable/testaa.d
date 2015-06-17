@@ -1290,6 +1290,45 @@ void test14144()
 }
 
 /************************************************/
+// 14321
+
+void test14321()
+{
+    struct Foo
+    {
+        static char[8] buf;
+        static char[] op;
+
+        this(int id) { buf[op.length] = 'c'; op = buf[0..op.length + 1]; }
+        this(this) { buf[op.length] = 'p'; op = buf[0..op.length + 1]; }
+        ~this() { buf[op.length] = 'd'; op = buf[0..op.length + 1]; }
+    }
+    Foo[string] foos;
+    assert(Foo.op == "");
+    foos["test"] = Foo(42);     // initialization
+    assert(Foo.op == "c");
+    foos["test"] = Foo(42);     // assignment
+    assert(Foo.op == "ccd");
+
+    struct Bar
+    {
+        static char[8] buf;
+        static char[] op;
+
+        int id;
+        //this(int id) { op ~= "c"; }
+        this(this) { buf[op.length] = 'p'; op = buf[0..op.length + 1]; }
+        ~this() { buf[op.length] = 'd'; op = buf[0..op.length + 1]; }
+    }
+    Bar[string] bars;
+    assert(Bar.op == "");
+    bars["test"] = Bar(42);     // initialization
+    assert(Bar.op == "");
+    bars["test"] = Bar(42);     // assignment
+    assert(Bar.op == "d");
+}
+
+/************************************************/
 
 int main()
 {
@@ -1339,6 +1378,7 @@ int main()
     test11359();
     test11730();
     test14089();
+    test14321();
 
     printf("Success\n");
     return 0;

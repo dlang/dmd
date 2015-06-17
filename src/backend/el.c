@@ -1769,7 +1769,7 @@ elem * el_ptr_offset(symbol *s,targ_size_t offset)
 }
 
 #endif
-
+
 /*************************
  * Returns:
  *      !=0     elem evaluates right-to-left
@@ -2517,11 +2517,9 @@ L1:
                         else
                             goto case_long;
 
-#if JHANDLE
-                    case TYjhandle:
-#endif
                     case TYnullptr:
                     case TYnptr:
+                    case TYnref:
 #if TARGET_SEGMENTED
                     case TYsptr:
                     case TYcptr:
@@ -2590,7 +2588,19 @@ L1:
                         if (memcmp(&n1->EV,&n2->EV,sizeof(n1->EV.Vcdouble)))
                             goto nomatch;
                         break;
-
+                    case TYfloat4:
+                    case TYdouble2:
+                    case TYschar16:
+                    case TYuchar16:
+                    case TYshort8:
+                    case TYushort8:
+                    case TYlong4:
+                    case TYulong4:
+                    case TYllong2:
+                    case TYullong2:
+                        if(n1->EV.Vcent.msw != n2->EV.Vcent.msw || n1->EV.Vcent.lsw != n2->EV.Vcent.lsw)
+			                goto nomatch;
+			            break;
                     case TYcldouble:
 #if LNGDBLSIZE > 10
                         /* sizeof is 12, but actual size of each part is 10 */
@@ -2798,15 +2808,13 @@ L1:
             goto L1;
 #endif
 
-#if JHANDLE
-        case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
 #endif
         case TYnptr:
         case TYnullptr:
+        case TYnref:
             if (NPTRSIZE == SHORTSIZE)
                 goto Ushort;
             if (NPTRSIZE == LONGSIZE)
@@ -3030,7 +3038,7 @@ void el_check(elem *e)
 }
 
 #endif
-
+
 /*******************************
  * Write out expression elem.
  */
@@ -3142,15 +3150,13 @@ case_tym:
         case TYuchar:
             dbg_printf("%d ",e->EV.Vuchar);
             break;
-#if JHANDLE
-        case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
 #endif
         case TYnullptr:
         case TYnptr:
+        case TYnref:
             if (NPTRSIZE == LONGSIZE)
                 goto L1;
             if (NPTRSIZE == SHORTSIZE)

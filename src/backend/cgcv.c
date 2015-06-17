@@ -365,13 +365,11 @@ L1:
         debtypmax += 10;
 #else
         debtypmax += debtypmax + 16;
-#if __INTSIZE == 4
         if (debtypmax > 0xE000)
             debtypmax = 0xE000;
 #if SCPP
         if (debtyptop >= debtypmax)
             err_fatal(EM_2manytypes,debtypmax);         // too many types
-#endif
 #endif
 #endif
         // Don't use MEM here because we can allocate pretty big
@@ -561,7 +559,7 @@ void cv_init()
 #endif
         cv_debtyp(d);
 }
-
+
 /////////////////////////// CodeView 4 ///////////////////////////////
 
 /***********************************
@@ -1803,16 +1801,6 @@ L1:
             typidx = dt;
             break;
 
-#if JHANDLE
-        case TYjhandle:
-#if SYMDEB_TDB
-            if (config.fulltypes == CVTDB) {
-                attribute |= 20;
-                goto L2;
-            }
-#endif
-            goto Lptr;
-#endif
         case TYnptr:
 #if MARS
             if (t->Tkey)
@@ -2162,6 +2150,7 @@ L1:
 #endif
 #if MARS
         case TYref:
+        case TYnref:
             attribute |= 0x20;          // indicate reference pointer
             tym = TYnptr;               // convert to C data type
             goto L1;                    // and try again
@@ -2226,7 +2215,7 @@ L1:
     assert(typidx);
     return typidx;
 }
-
+
 /******************************************
  * Write out symbol s.
  */
@@ -2608,15 +2597,13 @@ STATIC void cv4_func(Funcsym *s)
 
             case TYint:
             case TYuint:
-#if JHANDLE
-            case TYjhandle:
-#endif
 #if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
 #endif
             case TYnullptr:
             case TYnptr:
+            case TYnref:
                 if (I32)
                     goto case_eax;
                 else
@@ -2747,7 +2734,7 @@ STATIC void cv4_func(Funcsym *s)
 
     cv_outlist();
 }
-
+
 //////////////////////////////////////////////////////////
 
 /******************************************
@@ -2926,5 +2913,3 @@ unsigned cv_typidx(type *t)
 }
 
 #endif // !SPP
-
-

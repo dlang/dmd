@@ -343,8 +343,18 @@ longdouble strtold_dm(const char *p,char **endp)
                     }
 
                     // Stuff mantissa directly into long double
-                    *(long long *)&ldval = msdec;
-                    ((unsigned short *)&ldval)[4] = e2;
+                    union U
+                    {
+                        longdouble ld;
+                        struct S
+                        {
+                            long long mantissa;
+                            unsigned short exp;
+                        } s;
+                    } u;
+                    u.s.mantissa = msdec;
+                    u.s.exp = e2;
+                    ldval = u.ld;
 #endif
 
 #if 0
