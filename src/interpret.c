@@ -728,6 +728,7 @@ Expression *ctfeInterpret(Expression *e)
 {
     if (e->op == TOKerror)
         return e;
+    assert(e->type);                    // Bugzilla 14642
     //assert(e->type->ty != Terror);    // FIXME
     if (e->type->ty == Terror)
         return new ErrorExp();
@@ -1023,7 +1024,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
          * statement, then go recursively down the AST looking
          * for that statement, then execute starting there.
          */
-        if (e && e->op == TOKgoto)
+        if (CTFEExp::isGotoExp(e))
         {
             istatex.start = istatex.gotoTarget; // set starting statement
             istatex.gotoTarget = NULL;
@@ -1749,7 +1750,7 @@ public:
                     setValue(ca->var, ex->thrown);
                 }
                 e = interpret(ca->handler, istate);
-                if (e && e->op == TOKgoto)
+                if (CTFEExp::isGotoExp(e))
                 {
                     /* This is an optimization that relies on the locality of the jump target.
                      * If the label is in the same catch handler, the following scan
@@ -1826,6 +1827,28 @@ public:
             result = ex;
             return;
         }
+        while (CTFEExp::isGotoExp(ex))
+        {
+            // If the goto target is within the body, we must not interpret the finally statement,
+            // because that will call destructors for objects within the scope, which we should not do.
+            InterState istatex = *istate;
+            istatex.start = istate->gotoTarget; // set starting statement
+            istatex.gotoTarget = NULL;
+            Expression *bex = interpret(s->body, &istatex);
+            if (istatex.start)
+            {
+              // The goto target is outside the current scope.
+              break;
+            }
+            // The goto target was within the body.
+            if (CTFEExp::isCantExp(bex))
+            {
+                result = bex;
+                return;
+            }
+            *istate = istatex;
+            ex = bex;
+        }
         Expression *ey = interpret(s->finalbody, istate);
         if (CTFEExp::isCantExp(ey))
         {
@@ -1900,7 +1923,7 @@ public:
         ctfeStack.push(s->wthis);
         setValue(s->wthis, e);
         e = interpret(s->body, istate);
-        if (e && e->op == TOKgoto)
+        if (CTFEExp::isGotoExp(e))
         {
             /* This is an optimization that relies on the locality of the jump target.
              * If the label is in the same WithStatement, the following scan
@@ -1956,7 +1979,7 @@ public:
     void visit(Expression *e)
     {
     #if LOG
-        printf("%s Expression::interpret() %s\n", e->loc.toChars(), e->toChars());
+        printf("%s Expression::interpret() '%s' %s\n", e->loc.toChars(), Token::toChars(e->op), e->toChars());
         printf("type = %s\n", e->type->toChars());
         e->print();
     #endif
@@ -2543,6 +2566,45 @@ public:
     #endif
     }
 
+    void visit(TypeidExp *e)
+    {
+    #if LOG
+        printf("%s TypeidExp::interpret() %s\n", e->loc.toChars(), e->toChars());
+    #endif
+        if (Type *t = isType(e->obj))
+        {
+            result = e;
+            return;
+        }
+        if (Expression *ex = isExpression(e->obj))
+        {
+            result = interpret(ex, istate);
+            if (exceptionOrCant(ex))
+                return;
+
+            if (result->op == TOKnull)
+            {
+                e->error("null pointer dereference evaluating typeid. '%s' is null", ex->toChars());
+                result = CTFEExp::cantexp;
+                return;
+            }
+            if (result->op != TOKclassreference)
+            {
+                e->error("CTFE internal error: determining classinfo");
+                result = CTFEExp::cantexp;
+                return;
+            }
+
+            ClassDeclaration *cd = ((ClassReferenceExp *)result)->originalClass();
+            assert(cd);
+
+            result = new TypeidExp(e->loc, cd->type);
+            result->type = e->type;
+            return;
+        }
+        visit((Expression *)e);
+    }
+
     void visit(TupleExp *e)
     {
     #if LOG
@@ -2603,7 +2665,7 @@ public:
     #if LOG
         printf("%s ArrayLiteralExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        if (e->ownedByCtfe) // We've already interpreted all the elements
+        if (e->ownedByCtfe >= OWNEDctfe)    // We've already interpreted all the elements
         {
             result = e;
             return;
@@ -2660,7 +2722,7 @@ public:
             }
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, expsx);
             ae->type = e->type;
-            ae->ownedByCtfe = 1;
+            ae->ownedByCtfe = OWNEDctfe;
             result = ae;
             return;
         }
@@ -2681,7 +2743,7 @@ public:
     #if LOG
         printf("%s AssocArrayLiteralExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        if (e->ownedByCtfe) // We've already interpreted all the elements
+        if (e->ownedByCtfe >= OWNEDctfe)    // We've already interpreted all the elements
         {
             result = e;
             return;
@@ -2757,7 +2819,7 @@ public:
             AssocArrayLiteralExp *ae;
             ae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
             ae->type = e->type;
-            ae->ownedByCtfe = 1;
+            ae->ownedByCtfe = OWNEDctfe;
             result = ae;
             return;
         }
@@ -2769,7 +2831,7 @@ public:
     #if LOG
         printf("%s StructLiteralExp::interpret() %s ownedByCtfe = %d\n", e->loc.toChars(), e->toChars(), e->ownedByCtfe);
     #endif
-        if (e->ownedByCtfe)
+        if (e->ownedByCtfe >= OWNEDctfe)
         {
             result = e;
             return;
@@ -2845,7 +2907,7 @@ public:
             }
             StructLiteralExp *se = new StructLiteralExp(e->loc, e->sd, expsx);
             se->type = e->type;
-            se->ownedByCtfe = 1;
+            se->ownedByCtfe = OWNEDctfe;
             result = se;
             return;
         }
@@ -2875,7 +2937,7 @@ public:
                  (*elements)[i] = copyLiteral(elem).copy();
             ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
             ae->type = newtype;
-            ae->ownedByCtfe = 1;
+            ae->ownedByCtfe = OWNEDctfe;
             return ae;
         }
         assert(argnum == arguments->dim - 1);
@@ -2942,7 +3004,7 @@ public:
 
                 StructLiteralExp *se = new StructLiteralExp(e->loc, sd, exps, e->newtype);
                 se->type = e->newtype;
-                se->ownedByCtfe = 1;
+                se->ownedByCtfe = OWNEDctfe;
                 result = interpret(se, istate);
             }
             if (exceptionOrCant(result))
@@ -2990,7 +3052,7 @@ public:
             // Hack: we store a ClassDeclaration instead of a StructDeclaration.
             // We probably won't get away with this.
             StructLiteralExp *se = new StructLiteralExp(e->loc, (StructDeclaration *)cd, elems, e->newtype);
-            se->ownedByCtfe = 1;
+            se->ownedByCtfe = OWNEDctfe;
             Expression *eref = new ClassReferenceExp(e->loc, se, e->type);
             if (e->member)
             {
@@ -3033,7 +3095,7 @@ public:
             (*elements)[0] = newval;
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
             ae->type = e->newtype->arrayOf();
-            ae->ownedByCtfe = 1;
+            ae->ownedByCtfe = OWNEDctfe;
 
             result = new IndexExp(e->loc, ae, new IntegerExp(Loc(), 0, Type::tsize_t));
             result->type = e->newtype;
@@ -3368,12 +3430,133 @@ public:
         // ---------------------------------------
         //      Interpret left hand side
         // ---------------------------------------
+        AssocArrayLiteralExp *existingAA = NULL;
+        Expression *lastIndex = NULL;
+        Expression *oldval = NULL;
         if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
         {
-            assert(((IndexExp *)e1)->modifiable);
+            // ---------------------------------------
+            //      Deal with AA index assignment
+            // ---------------------------------------
+            /* This needs special treatment if the AA doesn't exist yet.
+             * There are two special cases:
+             * (1) If the AA is itself an index of another AA, we may need to create
+             *     multiple nested AA literals before we can insert the new value.
+             * (2) If the ultimate AA is null, no insertion happens at all. Instead,
+             *     we create nested AA literals, and change it into a assignment.
+             */
+            IndexExp *ie = (IndexExp *)e1;
+            int depth = 0;   // how many nested AA indices are there?
+            while (ie->e1->op == TOKindex &&
+                   ((IndexExp *)ie->e1)->e1->type->toBasetype()->ty == Taarray)
+            {
+                assert(ie->modifiable);
+                ie = (IndexExp *)ie->e1;
+                ++depth;
+            }
+
+            // Get the AA value to be modified.
+            Expression *aggregate = interpret(ie->e1, istate);
+            if (exceptionOrCant(aggregate))
+                return;
+            if (aggregate->op == TOKassocarrayliteral)
+            {
+                existingAA = (AssocArrayLiteralExp *)aggregate;
+
+                // Normal case, ultimate parent AA already exists
+                // We need to walk from the deepest index up, checking that an AA literal
+                // already exists on each level.
+                lastIndex = interpret(((IndexExp *)e1)->e2, istate);
+                lastIndex = resolveSlice(lastIndex);    // only happens with AA assignment
+                if (exceptionOrCant(lastIndex))
+                    return;
+
+                while (depth > 0)
+                {
+                    // Walk the syntax tree to find the indexExp at this depth
+                    IndexExp *xe = (IndexExp *)e1;
+                    for (int d= 0; d < depth; ++d)
+                        xe = (IndexExp *)xe->e1;
+
+                    Expression *ekey = interpret(xe->e2, istate);
+                    if (exceptionOrCant(ekey))
+                        return;
+                    ekey = resolveSlice(ekey);  // only happens with AA assignment
+
+                    // Look up this index in it up in the existing AA, to get the next level of AA.
+                    AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(e->loc, existingAA, ekey);
+                    if (exceptionOrCant(newAA))
+                        return;
+                    if (!newAA)
+                    {
+                        // Doesn't exist yet, create an empty AA...
+                        Expressions *keysx = new Expressions();
+                        Expressions *valuesx = new Expressions();
+                        newAA = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
+                        newAA->type = xe->type;
+                        newAA->ownedByCtfe = OWNEDctfe;
+                        //... and insert it into the existing AA.
+                        existingAA->keys->push(ekey);
+                        existingAA->values->push(newAA);
+                    }
+                    existingAA = newAA;
+                    --depth;
+                }
+
+                if (fp)
+                    oldval = findKeyInAA(e->loc, existingAA, lastIndex);
+            }
+            else
+            {
+                /* The AA is currently null. 'aggregate' is actually a reference to
+                 * whatever contains it. It could be anything: var, dotvarexp, ...
+                 * We rewrite the assignment from:
+                 *     aa[i][j] op= newval;
+                 * into:
+                 *     aa = [i:[j:T.init]];
+                 *     aa[j] op= newval;
+                 */
+                oldval = copyLiteral(e->e1->type->defaultInitLiteral(e->loc)).copy();
+
+                Expression *newaae = oldval;
+                while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+                {
+                    Expression *ekey = interpret(((IndexExp *)e1)->e2, istate);
+                    if (exceptionOrCant(ekey))
+                        return;
+                    ekey = resolveSlice(ekey);  // only happens with AA assignment
+                    Expressions *keysx = new Expressions();
+                    Expressions *valuesx = new Expressions();
+                    keysx->push(ekey);
+                    valuesx->push(newaae);
+                    AssocArrayLiteralExp *aae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
+                    aae->type = ((IndexExp *)e1)->e1->type;
+                    aae->ownedByCtfe = OWNEDctfe;
+                    if (!existingAA)
+                    {
+                        existingAA = aae;
+                        lastIndex = ekey;
+                    }
+                    newaae = aae;
+                    e1 = ((IndexExp *)e1)->e1;
+                }
+
+                // We must set to aggregate with newaae
+                e1 = interpret(e1, istate, ctfeNeedLvalue);
+                if (exceptionOrCant(e1))
+                    return;
+                e1 = assignToLvalue(e, e1, newaae);
+                if (exceptionOrCant(e1))
+                    return;
+            }
+            assert(existingAA && lastIndex);
+            e1 = NULL;  // stomp
         }
         else if (e1->op == TOKarraylength)
         {
+            oldval = interpret(e1, istate);
+            if (exceptionOrCant(oldval))
+                return;
         }
         else if (e->op == TOKconstruct || e->op == TOKblit)
         {
@@ -3403,6 +3586,22 @@ public:
         L1:
             e1 = interpret(e1, istate, ctfeNeedLvalue);
             if (exceptionOrCant(e1))
+                return;
+
+            if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+            {
+                IndexExp *ie = (IndexExp *)e1;
+                assert(ie->e1->op == TOKassocarrayliteral);
+                existingAA = (AssocArrayLiteralExp *)ie->e1;
+                lastIndex = ie->e2;
+            }
+        }
+
+        // If it isn't a simple assignment, we need the existing value
+        if (fp && !oldval)
+        {
+            oldval = interpret(e1, istate);
+            if (exceptionOrCant(oldval))
                 return;
         }
 
@@ -3435,16 +3634,9 @@ public:
         //  Also determine the return value (except for slice
         //  assignments, which are more complicated)
         // ----------------------------------------------------
-        Expression *oldval = NULL;
-        if (fp || e1->op == TOKarraylength)
-        {
-            // If it isn't a simple assignment, we need the existing value
-            oldval = interpret(e1, istate);
-            if (exceptionOrCant(oldval))
-                return;
-        }
         if (fp)
         {
+            assert(oldval);
             if (e->e1->type->ty != Tpointer)
             {
                 // ~= can create new values (see bug 6052)
@@ -3489,118 +3681,24 @@ public:
             }
         }
 
-        // ---------------------------------------
-        //      Deal with AA index assignment
-        // ---------------------------------------
-        /* This needs special treatment if the AA doesn't exist yet.
-         * There are two special cases:
-         * (1) If the AA is itself an index of another AA, we may need to create
-         *     multiple nested AA literals before we can insert the new value.
-         * (2) If the ultimate AA is null, no insertion happens at all. Instead,
-         *     we create nested AA literals, and change it into a assignment.
-         */
-        if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+        if (existingAA)
         {
-            IndexExp *ie = (IndexExp *)e1;
-            int depth = 0; // how many nested AA indices are there?
-            while (ie->e1->op == TOKindex && ((IndexExp *)ie->e1)->e1->type->toBasetype()->ty == Taarray)
+            if (existingAA->ownedByCtfe != OWNEDctfe)
             {
-                ie = (IndexExp *)ie->e1;
-                ++depth;
-            }
-
-            // Get the AA value to be modified.
-            Expression *aggregate = interpret(ie->e1, istate);
-            if (exceptionOrCant(aggregate))
-                return;
-            if (aggregate->op == TOKassocarrayliteral)
-            {
-                AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
-                if (existingAA->ownedByCtfe != 1)
-                {
-                    e->error("cannot modify read-only constant %s", existingAA->toChars());
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-
-                // Normal case, ultimate parent AA already exists
-                // We need to walk from the deepest index up, checking that an AA literal
-                // already exists on each level.
-                Expression *index = interpret(((IndexExp *)e1)->e2, istate);
-                if (exceptionOrCant(index))
-                    return;
-                index = resolveSlice(index);    // only happens with AA assignment
-                while (depth > 0)
-                {
-                    // Walk the syntax tree to find the indexExp at this depth
-                    IndexExp *xe = (IndexExp *)e1;
-                    for (int d= 0; d < depth; ++d)
-                        xe = (IndexExp *)xe->e1;
-
-                    Expression *indx = interpret(xe->e2, istate);
-                    if (exceptionOrCant(indx))
-                        return;
-                    indx = resolveSlice(indx);  // only happens with AA assignment
-
-                    // Look up this index in it up in the existing AA, to get the next level of AA.
-                    AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(e->loc, existingAA, indx);
-                    if (exceptionOrCant(newAA))
-                        return;
-                    if (!newAA)
-                    {
-                        // Doesn't exist yet, create an empty AA...
-                        Expressions *valuesx = new Expressions();
-                        Expressions *keysx = new Expressions();
-                        newAA = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
-                        newAA->type = xe->type;
-                        newAA->ownedByCtfe = 1;
-                        //... and insert it into the existing AA.
-                        existingAA->keys->push(indx);
-                        existingAA->values->push(newAA);
-                    }
-                    existingAA = newAA;
-                    --depth;
-                }
-                result = assignAssocArrayElement(e->loc, existingAA, index, newval);
+                e->error("cannot modify read-only constant %s", existingAA->toChars());
+                result = CTFEExp::cantexp;
                 return;
             }
-            else
-            {
-                /* The AA is currently null. 'aggregate' is actually a reference to
-                 * whatever contains it. It could be anything: var, dotvarexp, ...
-                 * We rewrite the assignment from: aggregate[i][j] = newval;
-                 *                           into: aggregate = [i:[j: newval]];
-                 */
 
-                // Determine the return value
-                result = ctfeCast(e->loc, e->type, e->type, fp && post ? oldval : newval);
-                if (exceptionOrCant(result))
-                    return;
+            //printf("\t+L%d existingAA = %s, lastIndex = %s, oldval = %s, newval = %s\n",
+            //    __LINE__, existingAA->toChars(), lastIndex->toChars(), oldval ? oldval->toChars() : NULL, newval->toChars());
+            assignAssocArrayElement(e->loc, existingAA, lastIndex, newval);
 
-                while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
-                {
-                    Expression *index = interpret(((IndexExp *)e1)->e2, istate);
-                    if (exceptionOrCant(index))
-                        return;
-                    index = resolveSlice(index);    // only happens with AA assignment
-                    Expressions *valuesx = new Expressions();
-                    Expressions *keysx = new Expressions();
-                    valuesx->push(newval);
-                    keysx->push(index);
-                    AssocArrayLiteralExp *newaae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
-                    newaae->ownedByCtfe = 1;
-                    newaae->type = ((IndexExp *)e1)->e1->type;
-                    newval = newaae;
-                    e1 = ((IndexExp *)e1)->e1;
-                }
-
-                // We must return to the original aggregate, in case it was a reference
-                e1 = interpret(ie->e1, istate, ctfeNeedLvalue);
-                if (exceptionOrCant(e1))
-                    return;
-            }
+            // Determine the return value
+            result = ctfeCast(e->loc, e->type, e->type, fp && post ? oldval : newval);
+            return;
         }
-        else if (e1->op == TOKarraylength)
+        if (e1->op == TOKarraylength)
         {
             /* Change the assignment from:
              *  arr.length = n;
@@ -3636,15 +3734,25 @@ public:
                 oldval = interpret(e1, istate);
             newval = changeArrayLiteralLength(e->loc, (TypeArray *)t, oldval,
                 oldlen,  newlen).copy();
+
+            e1 = assignToLvalue(e, e1, newval);
+            if (exceptionOrCant(e1))
+                return;
+
+            return;
         }
-        else if (!isBlockAssignment)
+
+        if (!isBlockAssignment)
         {
             newval = ctfeCast(e->loc, e->type, e->type, newval);
             if (exceptionOrCant(newval))
                 return;
 
             // Determine the return value
-            result = ctfeCast(e->loc, e->type, e->type, fp && post ? oldval : newval);
+            if (goal == ctfeNeedLvalue)     // Bugzilla 14371
+                result = e1;
+            else
+                result = ctfeCast(e->loc, e->type, e->type, fp && post ? oldval : newval);
             if (exceptionOrCant(result))
                 return;
         }
@@ -3683,7 +3791,7 @@ public:
     Expression *assignToLvalue(BinExp *e, Expression *e1, Expression *newval)
     {
         VarDeclaration *vd = NULL;
-        Expression **payload;
+        Expression **payload = NULL;    // dead-store to prevent spurious warning
         Expression *oldval;
 
         if (e1->op == TOKvar)
@@ -3706,7 +3814,7 @@ public:
                 e->error("CTFE internal error: dotvar assignment");
                 return CTFEExp::cantexp;
             }
-            if (sle->ownedByCtfe != 1)
+            if (sle->ownedByCtfe != OWNEDctfe)
             {
                 e->error("cannot modify read-only constant %s", sle->toChars());
                 return CTFEExp::cantexp;
@@ -3757,7 +3865,7 @@ public:
             if (aggregate->op == TOKstring)
             {
                 StringExp *existingSE = (StringExp *)aggregate;
-                if (existingSE->ownedByCtfe != 1)
+                if (existingSE->ownedByCtfe != OWNEDctfe)
                 {
                     e->error("cannot modify read-only string literal %s", ie->e1->toChars());
                     return CTFEExp::cantexp;
@@ -3780,7 +3888,7 @@ public:
             }
 
             ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
-            if (existingAE->ownedByCtfe != 1)
+            if (existingAE->ownedByCtfe != OWNEDctfe)
             {
                 e->error("cannot modify read-only constant %s", existingAE->toChars());
                 return CTFEExp::cantexp;
@@ -4000,7 +4108,7 @@ public:
         if (aggregate->op == TOKstring)
         {
             StringExp *existingSE = (StringExp *)aggregate;
-            if (existingSE->ownedByCtfe != 1)
+            if (existingSE->ownedByCtfe != OWNEDctfe)
             {
                 e->error("cannot modify read-only string literal %s", existingSE->toChars());
                 return CTFEExp::cantexp;
@@ -4065,7 +4173,7 @@ public:
         if (aggregate->op == TOKarrayliteral)
         {
             ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
-            if (existingAE->ownedByCtfe != 1)
+            if (existingAE->ownedByCtfe != OWNEDctfe)
             {
                 e->error("cannot modify read-only constant %s", existingAE->toChars());
                 return CTFEExp::cantexp;
@@ -4247,15 +4355,6 @@ public:
 
     void visit(BinAssignExp *e)
     {
-        if (goal == ctfeNeedLvalue)
-        {
-            Expression *e1 = e->e1;
-            while (e->e1->op == TOKcast)
-                e1 = ((CastExp *)e1)->e1;
-            result = interpret(e1, istate, goal);
-            return;
-        }
-
         switch (e->op)
         {
         case TOKaddass:  interpretAssignCommon(e, &Add);        return;
@@ -4635,19 +4734,8 @@ public:
 
         Expression *pthis = NULL;
         FuncDeclaration *fd = NULL;
-        bool directcall = false;
 
-        Expression *ecall = e->e1;
-        if (ecall->op == TOKdotvar)
-        {
-            // Check that is a direct call
-            DotVarExp *dve = (DotVarExp *)ecall;
-            Expression *ex = dve->e1;
-            while (ex->op == TOKcast)
-                ex = ((CastExp *)ex)->e1;
-            directcall = (ex->op == TOKsuper || ex->op == TOKdottype);
-        }
-        ecall = interpret(ecall, istate);
+        Expression *ecall = interpret(e->e1, istate);
         if (exceptionOrCant(ecall))
             return;
 
@@ -4664,36 +4752,39 @@ public:
                 pthis = ((DotTypeExp *)dve->e1)->e1;
 
             // Special handling for: typeid(T[n]).destroy(ea)
-            TypeInfoDeclaration *tid;
-            if (pthis->op == TOKsymoff &&
-                (tid = ((SymOffExp *)pthis)->var->isTypeInfoDeclaration()) != NULL &&
-                tid->tinfo->toBasetype()->ty == Tsarray &&
-                fd->ident == Id::destroy &&
-                e->arguments->dim == 1)
+            if (pthis->op == TOKtypeid)
             {
-                Type *tb = tid->tinfo->baseElemOf();
-                if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->dtor)
+                TypeidExp *tie = (TypeidExp *)pthis;
+                Type *t = isType(tie->obj);
+                if (t &&
+                    t->toBasetype()->ty == Tsarray &&
+                    fd->ident == Id::destroy &&
+                    e->arguments->dim == 1)
                 {
-                    Expression *ea = (*e->arguments)[0];
-                    // ea would be:
-                    //  &var        <-- SymOffExp
-                    //  cast(void*)&var
-                    //  cast(void*)&this.field
-                    //  etc.
-                    if (ea->op == TOKcast)
-                        ea = ((CastExp *)ea)->e1;
-                    if (ea->op == TOKsymoff)
-                        result = getVarExp(e->loc, istate, ((SymOffExp *)ea)->var, ctfeNeedRvalue);
-                    else if (ea->op == TOKaddress)
-                        result = interpret(((AddrExp *)ea)->e1, istate);
-                    else
-                        assert(0);
-                    if (CTFEExp::isCantExp(result))
+                    Type *tb = t->baseElemOf();
+                    if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->dtor)
+                    {
+                        Expression *ea = (*e->arguments)[0];
+                        // ea would be:
+                        //  &var        <-- SymOffExp
+                        //  cast(void*)&var
+                        //  cast(void*)&this.field
+                        //  etc.
+                        if (ea->op == TOKcast)
+                            ea = ((CastExp *)ea)->e1;
+                        if (ea->op == TOKsymoff)
+                            result = getVarExp(e->loc, istate, ((SymOffExp *)ea)->var, ctfeNeedRvalue);
+                        else if (ea->op == TOKaddress)
+                            result = interpret(((AddrExp *)ea)->e1, istate);
+                        else
+                            assert(0);
+                        if (CTFEExp::isCantExp(result))
+                            return;
+                        result = evaluateDtor(istate, result);
+                        if (!result)
+                            result = CTFEExp::voidexp;
                         return;
-                    result = evaluateDtor(istate, result);
-                    if (!result)
-                        result = CTFEExp::voidexp;
-                    return;
+                    }
                 }
             }
         }
@@ -4745,15 +4836,11 @@ public:
             // Currently this is satisfied because closure is not yet supported.
             assert(!fd->isNested());
 
-            // 'typeid(T)' for the class type T is kept as SymOffExp.
-            // Therefore try to resolve it here and report CTFE error.
-            if (pthis->op == TOKsymoff)
+            if (pthis->op == TOKtypeid)
             {
-                VarDeclaration *vthis = ((SymOffExp *)pthis)->var->isVarDeclaration();
-                assert(vthis);
-                pthis = getVarExp(e->loc, istate, vthis, ctfeNeedLvalue);
-                if (exceptionOrCant(pthis))
-                    return;
+                pthis->error("static variable %s cannot be read at compile time", pthis->toChars());
+                result = CTFEExp::cantexp;
+                return;
             }
             assert(pthis);
 
@@ -4766,7 +4853,7 @@ public:
             }
             assert(pthis->op == TOKstructliteral || pthis->op == TOKclassreference);
 
-            if (fd->isVirtual() && !directcall)
+            if (fd->isVirtual() && !e->directcall)
             {
                 // Make a virtual function call.
                 // Get the function from the vtable of the original class
@@ -4810,8 +4897,10 @@ public:
         }
         if (!exceptionOrCantInterpret(result))
         {
+            Expression* old = result;
             result = paintTypeOntoLiteral(e->type, result);
-            result->loc = e->loc;
+            if (result != old) // only change location if a conversion was necessary
+                result->loc = e->loc;
         }
         else if (CTFEExp::isCantExp(result) && !global.gag)
             showCtfeBackTrace(e, fd);   // Print a stack trace.
@@ -5437,9 +5526,9 @@ public:
         }
         // We know we still own it, because we interpreted both e1 and e2
         if (result->op == TOKarrayliteral)
-            ((ArrayLiteralExp *)result)->ownedByCtfe = 1;
+            ((ArrayLiteralExp *)result)->ownedByCtfe = OWNEDctfe;
         if (result->op == TOKstring)
-            ((StringExp *)result)->ownedByCtfe = 1;
+            ((StringExp *)result)->ownedByCtfe = OWNEDctfe;
     }
 
 
@@ -5746,36 +5835,6 @@ public:
             }
         }
 
-        // Check for .classinfo, which is lowered in the semantic pass into **(class).
-        if (e->e1->op == TOKstar && e->e1->type->ty == Tpointer && isTypeInfo_Class(e->e1->type->nextOf()))
-        {
-            result = interpret(((PtrExp *)e->e1)->e1, istate);
-            if (exceptionOrCant(result))
-                return;
-            if (result->op == TOKnull)
-            {
-                e->error("null pointer dereference evaluating typeid. '%s' is null", ((PtrExp *)e->e1)->e1->toChars());
-                result = CTFEExp::cantexp;
-                return;
-            }
-            if (result->op != TOKclassreference)
-            {
-                e->error("CTFE internal error: determining classinfo");
-                result = CTFEExp::cantexp;
-                return;
-            }
-            ClassDeclaration *cd = ((ClassReferenceExp *)result)->originalClass();
-            assert(cd);
-
-            // Create the classinfo, if it doesn't yet exist.
-            // TODO: This belongs in semantic, CTFE should not have to do this.
-            if (!cd->vclassinfo)
-                cd->vclassinfo = new TypeInfoClassDeclaration(cd->type);
-            result = new SymOffExp(e->loc, cd->vclassinfo, 0);
-            result->type = e->type;
-            return;
-        }
-
         // It's possible we have an array bounds error. We need to make sure it
         // errors with this line number, not the one where the pointer was set.
         result = interpret(e->e1, istate);
@@ -6042,7 +6101,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     if (e->op == TOKclassreference)
     {
         StructLiteralExp *se = ((ClassReferenceExp*)e)->value;
-        se->ownedByCtfe = false;
+        se->ownedByCtfe = OWNEDcode;
         if (!(se->stageflags & stageScrub))
         {
             int old = se->stageflags;
@@ -6061,7 +6120,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     if (e->op == TOKstructliteral)
     {
         StructLiteralExp *se = (StructLiteralExp *)e;
-        se->ownedByCtfe = false;
+        se->ownedByCtfe = OWNEDcode;
         if (!(se->stageflags & stageScrub))
         {
             int old = se->stageflags;
@@ -6073,18 +6132,18 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     }
     if (e->op == TOKstring)
     {
-        ((StringExp *)e)->ownedByCtfe = false;
+        ((StringExp *)e)->ownedByCtfe = OWNEDcode;
     }
     if (e->op == TOKarrayliteral)
     {
-        ((ArrayLiteralExp *)e)->ownedByCtfe = false;
+        ((ArrayLiteralExp *)e)->ownedByCtfe = OWNEDcode;
         if (Expression *ex = scrubArray(loc, ((ArrayLiteralExp *)e)->elements))
             return ex;
     }
     if (e->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
-        aae->ownedByCtfe = false;
+        aae->ownedByCtfe = OWNEDcode;
         if (Expression *ex = scrubArray(loc, aae->keys))
             return ex;
         if (Expression *ex = scrubArray(loc, aae->values))
@@ -6154,7 +6213,7 @@ Expression *scrubCacheValue(Loc loc, Expression *e)
     if (e->op == TOKclassreference)
     {
         StructLiteralExp *sle = ((ClassReferenceExp*)e)->value;
-        sle->ownedByCtfe = 2;
+        sle->ownedByCtfe = OWNEDcache;
         if (!(sle->stageflags & stageScrub))
         {
             int old = sle->stageflags;
@@ -6167,7 +6226,7 @@ Expression *scrubCacheValue(Loc loc, Expression *e)
     if (e->op == TOKstructliteral)
     {
         StructLiteralExp *sle = (StructLiteralExp *)e;
-        sle->ownedByCtfe = 2;
+        sle->ownedByCtfe = OWNEDcache;
         if (!(sle->stageflags & stageScrub))
         {
             int old = sle->stageflags;
@@ -6179,18 +6238,18 @@ Expression *scrubCacheValue(Loc loc, Expression *e)
     }
     if (e->op == TOKstring)
     {
-        ((StringExp *)e)->ownedByCtfe = 2;
+        ((StringExp *)e)->ownedByCtfe = OWNEDcache;
     }
     if (e->op == TOKarrayliteral)
     {
-        ((ArrayLiteralExp *)e)->ownedByCtfe = 2;
+        ((ArrayLiteralExp *)e)->ownedByCtfe = OWNEDcache;
         if (Expression *ex = scrubArrayCache(loc, ((ArrayLiteralExp *)e)->elements))
             return ex;
     }
     if (e->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
-        aae->ownedByCtfe = 2;
+        aae->ownedByCtfe = OWNEDcache;
         if (Expression *ex = scrubArrayCache(loc, aae->keys))
             return ex;
         if (Expression *ex = scrubArrayCache(loc, aae->values))
@@ -6408,7 +6467,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     Expressions args;
     args.setDim(numParams);
 
-    Expression *eresult;
+    Expression *eresult = NULL;         // ded-store to prevent spurious warning
 
     // Buffers for encoding; also used for decoding array literals
     utf8_t utf8buf[4];
@@ -6808,6 +6867,14 @@ void setValueWithoutChecking(VarDeclaration *vd, Expression *newval)
 
 void setValue(VarDeclaration *vd, Expression *newval)
 {
+#if 0
+    if (! ((vd->storage_class & (STCout | STCref))
+            ? isCtfeReferenceValid(newval)
+            : isCtfeValueValid(newval)) )
+    {
+        printf("[%s] vd = %s %s, newval = %s\n", vd->loc.toChars(), vd->type->toChars(), vd->toChars(), newval->toChars());
+    }
+#endif
     assert((vd->storage_class & (STCout | STCref))
             ? isCtfeReferenceValid(newval)
             : isCtfeValueValid(newval));

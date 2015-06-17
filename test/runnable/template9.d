@@ -457,6 +457,92 @@ void test2579()
 }
 
 /**********************************/
+// 2803
+
+auto foo2803(T)(T t = 0) { return t; }
+
+struct S2803 {}
+S2803 s2803;
+ref S2803 getS2803() { return s2803; }
+auto fun2803(T, U)(T t, ref U u = getS2803)
+{
+    static assert(is(U == S2803));
+    return &u;
+}
+
+// from the past version of std.conv
+template to2803(T) { T to2803(S)(S src) { return T.init; } }
+auto toImpl2803a(T, S)(S s, in T left, in T sep = ", ", in T right = "]") {}
+auto toImpl2803b(T, S)(S s, in T left = to2803!T(S.stringof~"("), in T right = ")") {}
+auto toImpl2803c(T, S)(S s, in T left =          S.stringof~"(" , in T right = ")") {}  // combination with enh 13944
+
+// from std.range.package in 2.067a.
+auto enumerate2803(En = size_t, R)(R r, En start = 0)
+{
+    // The type of 'start' should be size_t, it's the defaultArg of En,
+    // rather than the deduced type from its defualtArg '0'.
+    static assert(is(typeof(start) == size_t));
+    return start;
+}
+
+// from std.numeric.
+alias ElementType2803(R) = typeof(R.init[0].init);
+void normalize2803(R)(R range, ElementType2803!R sum = 1)
+{
+    // The type of 'sum' should be determined to ElementType!(double[]) == double
+    // before the type deduction from its defaultArg '1'.
+    static assert(is(typeof(sum) == double));
+}
+
+auto foo14468(T)(T[]...) { return 1; }
+auto foo14468(bool flag, T)(T[]...) { return 2; }
+
+void test2803()
+{
+    assert(foo2803() == 0);
+    assert(foo2803(1) == 1);
+
+    S2803 s;
+    assert(fun2803(1)    is &s2803);
+    assert(fun2803(1, s) is &s);
+
+    // regression cases
+
+    toImpl2803a!string(1, "[");
+
+    toImpl2803b! string(1);
+    toImpl2803b!wstring(1);
+    toImpl2803b!dstring(1);
+
+    toImpl2803c! string(1);
+    toImpl2803c!wstring(1); // requires enhancement 13944
+    toImpl2803c!dstring(1); // requires enhancement 13944
+
+    enumerate2803([1]);
+
+    double[] a = [];
+    normalize2803(a);
+
+    assert(foo14468!int() == 1);
+}
+
+/**********************************/
+// 6613
+
+alias Tuple6613(T...) = T;
+
+void f6613(T...)(int x = 0, T xs = Tuple6613!())
+{
+    assert(x == 0);
+    static assert(T.length == 0);
+}
+
+void test6613()
+{
+    f6613();
+}
+
+/**********************************/
 // 4953
 
 void bug4953(T = void)(short x) {}
@@ -855,6 +941,20 @@ void test6780()
 
     bar6780 = 10;
     assert(g6780 == 10);
+}
+
+/**********************************/
+// 6810
+
+int f6810(int n)(int) { return 1;}
+int f6810(U...)(U)    { assert(0); }
+int f6810(U...)(U a)  { assert(0); }
+int f6810(U...)(U)   if (true) { assert(0); }
+int f6810(U...)(U a) if (true) { assert(0); }
+
+void test6810()
+{
+    assert(f6810!0(0) == 1);
 }
 
 /**********************************/
@@ -1577,6 +1677,13 @@ void test12()
     Tuple12!(int, string) t;
     t.foo!Tuple12();
 }
+
+/**********************************/
+// 14290
+
+struct Foo14290(int i) {}
+alias Foo14290a = Foo14290!1;
+static assert(!is(Foo14290!2 == Foo14290a!T, T...));
 
 /**********************************/
 // 8125
@@ -4344,6 +4451,129 @@ void test13807()
 }
 
 /******************************************/
+// 14174
+
+struct Config14174(a, b) {}
+
+struct N14174 {}
+
+alias defConfig14174 = Config14174!(N14174, N14174);
+
+void accepter14174a(Config : Config14174!(T) = defConfig14174, T...)()
+{
+    static assert(accepter14174a.mangleof
+        == "_D7breaker131__T14"~
+           "accepter14174a"~
+           "HTS7breaker51__T11Config14174TS7breaker6N14174TS7breaker6N14174Z11Config14174TS7breaker6N14174TS7breaker6N14174Z14"~
+           "accepter14174a"~
+           "FZv");
+}
+
+void accepter14174b(Config : Config14174!(T) = defConfig14174, T...)()
+{
+    static assert(accepter14174b.mangleof
+        == "_D7breaker131__T14"~
+           "accepter14174b"~
+           "HTS7breaker51__T11Config14174TS7breaker6N14174TS7breaker6N14174Z11Config14174TS7breaker6N14174TS7breaker6N14174Z14"~
+           "accepter14174b"~
+           "FZv");
+}
+
+void test14174()
+{
+    accepter14174a!()(); // ok
+    accepter14174b();    // error
+}
+
+/******************************************/
+// 14357
+
+template Qux14357(T : U*, U : V*, V)
+{
+    pragma(msg, T);     // no match <- float**
+    pragma(msg, U);     // no match <- float*
+    pragma(msg, V);     // no match <- int
+    enum Qux14357 = T.sizeof + V.sizeof;
+}
+static assert(!__traits(compiles, Qux14357!(float**, int*)));
+
+/******************************************/
+// 14481
+
+template someT14481(alias e)
+{
+    alias someT14481 = e;
+}
+
+mixin template Mix14481(alias e)
+{
+    alias SomeAlias = someT14481!e;
+}
+
+struct Hoge14481
+{
+    mixin Mix14481!e;
+    enum e = 10;
+}
+
+/******************************************/
+// 14520
+
+template M14520(alias  a) { enum M14520 = 1; }
+template M14520(string s) { enum M14520 = 2; }
+
+int f14520a();
+string f14520b() { assert(0); }
+string f14520c() { return "a"; }
+
+static assert(M14520!f14520a == 1);
+static assert(M14520!f14520b == 1);
+static assert(M14520!f14520c == 1);
+
+/******************************************/
+// 14568
+
+struct Interval14568()
+{
+    auto left = INVALID;
+
+    auto opAssign()(Interval14568) { left; }
+}
+
+auto interval14568(T)(T point)
+{
+    Interval14568!();
+}
+
+alias Instantiate14568(alias symbol, Args...) = symbol!Args;
+
+template Match14568(patterns...)
+{
+    static if (__traits(compiles, Instantiate14568!(patterns[0])))
+    {
+        alias Match14568 = patterns[0];
+    }
+    else static if (patterns.length == 1)
+    {}
+}
+
+template SubOps14568(Args...)
+{
+    auto opIndex()
+    {
+        template IntervalType(T...)
+        {
+            alias Point() = typeof(T.interval14568);
+
+            alias IntervalType = Match14568!(Point);
+        }
+        alias Subspace = IntervalType!(Args);
+    }
+}
+
+struct Nat14568 { mixin SubOps14568!(null); }
+
+/******************************************/
 
 int main()
 {
@@ -4364,6 +4594,8 @@ int main()
     test2296();
     bug4984();
     test2579();
+    test2803();
+    test6613();
     test5886();
     test5393();
     test5896();
@@ -4377,6 +4609,7 @@ int main()
     test6208c();
     test6738();
     test6780();
+    test6810();
     test6891();
     test6994();
     test6764();

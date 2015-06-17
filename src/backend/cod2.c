@@ -2103,7 +2103,7 @@ Lret:
   cgstate.stackclean--;
   return c;
 }
-
+
 /*********************
  * Comma operator
  */
@@ -3315,7 +3315,7 @@ code *cdmemcmp(elem *e,regm_t *pretregs)
     *pretregs &= ~mPSW;
     return cat4(c1,c2,c3,fixresult(e,mAX,pretregs));
 }
-
+
 /*********************************
  * Generate code for strcpy(s1,s2) intrinsic.
  */

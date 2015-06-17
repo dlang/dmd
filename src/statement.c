@@ -824,8 +824,8 @@ Statement *ExpStatement::semantic(Scope *sc)
 #endif
 
         exp = exp->semantic(sc);
-        exp = exp->addDtorHook(sc);
         exp = resolveProperties(sc, exp);
+        exp = exp->addDtorHook(sc);
         discardValue(exp);
         exp = exp->optimize(WANTvalue);
         exp = checkGC(sc, exp);
@@ -885,6 +885,137 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
     return this;
 }
 
+/****************************************
+ * Convert TemplateMixin members (== Dsymbols) to Statements.
+ */
+Statement *toStatement(Dsymbol *s)
+{
+    class ToStmt : public Visitor
+    {
+    public:
+        Statement *result;
+
+        ToStmt()
+        {
+            this->result = NULL;
+        }
+
+        Statement *visitMembers(Loc loc, Dsymbols *a)
+        {
+            if (!a)
+                return NULL;
+
+            Statements *statements = new Statements();
+            for (size_t i = 0; i < a->dim; i++)
+            {
+                statements->push(toStatement((*a)[i]));
+            }
+            return new CompoundStatement(loc, statements);
+        }
+
+        void visit(Dsymbol *s)
+        {
+            ::error(Loc(), "Internal Compiler Error: cannot mixin %s %s\n", s->kind(), s->toChars());
+            result = new ErrorStatement();
+        }
+
+        void visit(TemplateMixin *tm)
+        {
+            Statements *a = new Statements();
+            for (size_t i = 0; i < tm->members->dim; i++)
+            {
+                Statement *s = toStatement((*tm->members)[i]);
+                if (s)
+                    a->push(s);
+            }
+            result = new CompoundStatement(tm->loc, a);
+        }
+
+        /* An actual declaration symbol will be converted to DeclarationExp
+         * with ExpStatement.
+         */
+        Statement *declStmt(Dsymbol *s)
+        {
+            DeclarationExp *de = new DeclarationExp(s->loc, s);
+            de->type = Type::tvoid;     // avoid repeated semantic
+            return new ExpStatement(s->loc, de);
+        }
+        void visit(VarDeclaration *d)       { result = declStmt(d); }
+        void visit(AggregateDeclaration *d) { result = declStmt(d); }
+        void visit(FuncDeclaration *d)      { result = declStmt(d); }
+        void visit(EnumDeclaration *d)      { result = declStmt(d); }
+        void visit(AliasDeclaration *d)     { result = declStmt(d); }
+        void visit(TemplateDeclaration *d)  { result = declStmt(d); }
+
+        /* All attributes have been already picked by the semantic analysis of
+         * 'bottom' declarations (function, struct, class, etc).
+         * So we don't have to copy them.
+         */
+        void visit(StorageClassDeclaration *d)  { result = visitMembers(d->loc, d->decl); }
+        void visit(DeprecatedDeclaration *d)    { result = visitMembers(d->loc, d->decl); }
+        void visit(LinkDeclaration *d)          { result = visitMembers(d->loc, d->decl); }
+        void visit(ProtDeclaration *d)          { result = visitMembers(d->loc, d->decl); }
+        void visit(AlignDeclaration *d)         { result = visitMembers(d->loc, d->decl); }
+        void visit(UserAttributeDeclaration *d) { result = visitMembers(d->loc, d->decl); }
+
+        void visit(StaticAssert *s) {}
+        void visit(Import *s) {}
+        void visit(PragmaDeclaration *d) {}
+
+        void visit(ConditionalDeclaration *d)
+        {
+            result = visitMembers(d->loc, d->include(NULL, NULL));
+        }
+
+        void visit(CompileDeclaration *d)
+        {
+            result = visitMembers(d->loc, d->include(NULL, NULL));
+        }
+    };
+
+    if (!s)
+        return NULL;
+
+    ToStmt v;
+    s->accept(&v);
+    return v.result;
+}
+
+Statements *ExpStatement::flatten(Scope *sc)
+{
+    /* Bugzilla 14243: expand template mixin in statement scope
+     * to handle variable destructors.
+     */
+    if (exp && exp->op == TOKdeclaration)
+    {
+        Dsymbol *d = ((DeclarationExp *)exp)->declaration;
+        if (TemplateMixin *tm = d->isTemplateMixin())
+        {
+            Expression *e = exp->semantic(sc);
+            if (e->op == TOKerror || tm->errors)
+            {
+                Statements *a = new Statements();
+                a->push(new ErrorStatement());
+                return a;
+            }
+            assert(tm->members);
+
+            Statement *s = toStatement(tm);
+        #if 0
+            OutBuffer buf;
+            buf.doindent = 1;
+            HdrGenState hgs;
+            hgs.hdrgen = true;
+            toCBuffer(s, &buf, &hgs);
+            printf("tm ==> s = %s\n", buf.peekString());
+        #endif
+            Statements *a = new Statements();
+            a->push(s);
+            return a;
+        }
+    }
+    return NULL;
+}
 
 /******************************** DtorExpStatement ***************************/
 
@@ -1416,7 +1547,7 @@ Statement *DoStatement::semantic(Scope *sc)
     condition = condition->optimize(WANTvalue);
     condition = checkGC(sc, condition);
 
-    condition = condition->checkToBoolean(sc);
+    condition = condition->toBoolean(sc);
 
     if (condition->op == TOKerror)
         return new ErrorStatement();
@@ -1506,7 +1637,7 @@ Statement *ForStatement::semantic(Scope *sc)
         condition = resolveProperties(sc, condition);
         condition = condition->optimize(WANTvalue);
         condition = checkGC(sc, condition);
-        condition = condition->checkToBoolean(sc);
+        condition = condition->toBoolean(sc);
     }
     if (increment)
     {
@@ -1712,7 +1843,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 TY keyty = p->type->ty;
                 if (keyty != Tint32 && keyty != Tuns32)
                 {
-                    if (global.params.is64bit)
+                    if (global.params.isLP64)
                     {
                         if (keyty != Tint64 && keyty != Tuns64)
                         {
@@ -1842,7 +1973,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         case Tarray:
         case Tsarray:
         {
-            if (!checkForArgTypes())
+            if (checkForArgTypes())
                 return this;
 
             if (dim < 1 || dim > 2)
@@ -2047,7 +2178,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         case Taarray:
             if (op == TOKforeach_reverse)
                 warning("cannot use foreach_reverse with an associative array");
-            if (!checkForArgTypes())
+            if (checkForArgTypes())
                 return this;
 
             taa = (TypeAArray *)tab;
@@ -2218,7 +2349,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             Expression *ec;
             Expression *e;
 
-            if (!checkForArgTypes())
+            if (checkForArgTypes())
             {
                 body = body->semanticNoScope(sc);
                 return this;
@@ -2542,7 +2673,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
 bool ForeachStatement::checkForArgTypes()
 {
-    bool result = true;
+    bool result = false;
 
     for (size_t i = 0; i < parameters->dim; i++)
     {
@@ -2551,7 +2682,7 @@ bool ForeachStatement::checkForArgTypes()
         {
             error("cannot infer type for %s", p->ident->toChars());
             p->type = Type::terror;
-            result = false;
+            result = true;
         }
     }
     return result;
@@ -2740,9 +2871,11 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 
     Expression *increment = NULL;
     if (op == TOKforeach)
+    {
         // key += 1
         //increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(1));
         increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, key));
+    }
 
     if ((prm->storageClass & STCref) && prm->type->equals(key->type))
     {
@@ -2847,15 +2980,15 @@ Statement *IfStatement::semantic(Scope *sc)
     else
     {
         condition = condition->semantic(sc);
-        condition = condition->addDtorHook(sc);
         condition = resolveProperties(sc, condition);
+        condition = condition->addDtorHook(sc);
     }
     condition = checkGC(sc, condition);
 
     // Convert to boolean after declaring prm so this works:
     //  if (S prm = S()) {}
     // where S is a struct that defines opCast!bool.
-    condition = condition->checkToBoolean(sc);
+    condition = condition->toBoolean(sc);
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -3073,6 +3206,40 @@ Statement *PragmaStatement::semantic(Scope *sc)
             return this;
         }
     }
+    else if (ident == Id::Pinline)
+    {
+        PINLINE inlining = PINLINEdefault;
+        if (!args || args->dim == 0)
+            inlining = PINLINEdefault;
+        else if (!args || args->dim != 1)
+        {
+            error("boolean expression expected for pragma(inline)");
+            goto Lerror;
+        }
+        else
+        {
+            Expression *e = (*args)[0];
+
+            if (e->op != TOKint64 || !e->type->equals(Type::tbool))
+            {
+                error("pragma(inline, true or false) expected, not %s", e->toChars());
+                goto Lerror;
+            }
+
+            if (e->isBool(true))
+                inlining = PINLINEalways;
+            else if (e->isBool(false))
+                inlining = PINLINEnever;
+
+            FuncDeclaration *fd = sc->func;
+            if (!fd)
+            {
+                error("pragma(inline) is not inside a function");
+                goto Lerror;
+            }
+            fd->inlining = inlining;
+        }
+    }
     else
     {
         error("unrecognized pragma(%s)", ident->toChars());
@@ -3159,7 +3326,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         if (condition->op != TOKerror && !condition->type->isintegral())
         {
             error("'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
-            conditionError = true;;
+            conditionError = true;
         }
     }
     condition = condition->optimize(WANTvalue);
@@ -3255,7 +3422,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         hasNoDefault = 1;
 
         if (!isFinal && !body->isErrorStatement())
-           deprecation("switch statement without a default is deprecated; use 'final switch' or add 'default: assert(0);' or add 'default: break;'");
+           error("switch statement without a default; use 'final switch' or add 'default: assert(0);' or add 'default: break;'");
 
         // Generate runtime error if the default is hit
         Statements *a = new Statements();
@@ -3326,11 +3493,13 @@ Statement *CaseStatement::semantic(Scope *sc)
         /* This is where variables are allowed as case expressions.
          */
         if (exp->op == TOKvar)
-        {   VarExp *ve = (VarExp *)exp;
+        {
+            VarExp *ve = (VarExp *)exp;
             VarDeclaration *v = ve->var->isVarDeclaration();
             Type *t = exp->type->toBasetype();
             if (v && (t->isintegral() || t->ty == Tclass))
-            {   /* Flag that we need to do special code generation
+            {
+                /* Flag that we need to do special code generation
                  * for this, i.e. generate a sequence of if-then-else
                  */
                 sw->hasVars = 1;
@@ -3370,7 +3539,7 @@ Statement *CaseStatement::semantic(Scope *sc)
         sw->cases->push(this);
 
         // Resolve any goto case's with no exp to this case statement
-        for (size_t i = 0; i < sw->gotoCases.dim; i++)
+        for (size_t i = 0; i < sw->gotoCases.dim; )
         {
             GotoCaseStatement *gcs = sw->gotoCases[i];
 
@@ -3378,7 +3547,9 @@ Statement *CaseStatement::semantic(Scope *sc)
             {
                 gcs->cs = this;
                 sw->gotoCases.remove(i);        // remove from array
+                continue;
             }
+            i++;
         }
 
         if (sc->sw->tf != sc->tf)
@@ -3650,8 +3821,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
     //printf("ReturnStatement::semantic() %s\n", toChars());
 
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
-    Scope *scx = sc;
-    Expression *eorg = NULL;
 
     if (fd->fes)
         fd = fd->fes->func;             // fd is now function enclosing foreach
@@ -3731,7 +3900,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (exp->type && exp->type->ty != Tvoid ||
             exp->op == TOKfunction || exp->op == TOKtype || exp->op == TOKtemplate)
         {
-            if (!exp->rvalue()) // don't make error for void expression
+            // don't make error for void expression
+            if (exp->checkValue())
                 exp = new ErrorExp();
         }
         if (checkNonAssignmentArrayOp(exp))
@@ -3939,7 +4109,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         {
             fd->buildResultVar(NULL, exp->type);
             bool r = fd->vresult->checkNestedReference(sc, Loc());
-            assert(r);  // vresult should be always accessible
+            assert(!r);  // vresult should be always accessible
 
             // Send out "case receiver" statement to the foreach.
             //  return vresult;
@@ -5141,7 +5311,7 @@ Statement *ImportStatement::semantic(Scope *sc)
         }
 
         s->semantic(sc);
-        s->semantic2(sc);
+        //s->semantic2(sc);     // Bugzilla 14666
         sc->insert(s);
 
         for (size_t j = 0; j < s->aliasdecls.dim; j++)

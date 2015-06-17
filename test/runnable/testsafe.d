@@ -411,6 +411,9 @@ void classcast()
     static assert( __traits(compiles, cast(F)f));
 }
 
+/***************************************************/
+// 6278
+
 @safe
 {
 
@@ -427,6 +430,9 @@ class B6278 : A6278 {
 
 }
 
+/***************************************************/
+// 7803
+
 @safe int f7803() {
     scope(success) {/* ... */}
     return 3;
@@ -437,8 +443,25 @@ nothrow int g7803() {
     return 3;
 }
 
+/***************************************************/
+// 6405
+
 void foo6405(int[][] args...) @trusted { }
 void test6405() @safe { foo6405([1,2,3], [1,2,3]); }
+
+/***************************************************/
+// 12502
+
+void test12502() @safe
+{
+    const char[1] arr;
+    auto ax = cast(const(char) []) arr[]; // ok
+    auto a1 = cast(const(ubyte)[]) arr[]; // ok
+    auto a2 = cast(const(char) []) arr;   // ok
+    auto a3 = cast(const(ubyte)[]) arr;   // ok <- error
+}
+
+/***************************************************/
 
 void main() { }
 

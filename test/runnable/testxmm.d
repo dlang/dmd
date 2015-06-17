@@ -58,6 +58,17 @@ void test1()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/
@@ -107,6 +118,17 @@ void test2()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/
@@ -156,6 +178,17 @@ void test2b()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/
@@ -205,6 +238,17 @@ void test2c()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/
@@ -254,6 +298,17 @@ void test2d()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/
@@ -303,6 +358,17 @@ void test2e()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/
@@ -352,6 +418,17 @@ void test2f()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/
@@ -401,6 +478,17 @@ void test2g()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/
@@ -450,6 +538,17 @@ void test2h()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/
@@ -499,6 +598,17 @@ void test2i()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/
@@ -548,6 +658,17 @@ void test2j()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+
+    //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
+    static assert(!__traits(compiles, cast(byte)v1));       // 1byte
+    static assert(!__traits(compiles, cast(short)v1));      // 2byte
+    static assert(!__traits(compiles, cast(int)v1));        // 4byte
+    static assert(!__traits(compiles, cast(long)v1));       // 8byte
+    static assert(!__traits(compiles, cast(float)v1));      // 4byte
+    static assert(!__traits(compiles, cast(double)v1));     // 8byte
+    static assert(!__traits(compiles, cast(int[2])v1));     // 8byte Tsarray
+    static assert( __traits(compiles, cast(int[4])v1));     // 16byte Tsarray, OK
+    static assert( __traits(compiles, cast(long[2])v1));    // 16byte Tsarray, OK
 }
 
 /*****************************************/

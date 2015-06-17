@@ -160,7 +160,6 @@ void Outbuffer::write32(int v)
  * Writes a 64 bit long.
  */
 
-#if __INTSIZE == 4
 void Outbuffer::write64(long long v)
 {
     if (pend - p < 8)
@@ -168,7 +167,6 @@ void Outbuffer::write64(long long v)
     *(long long *)p = v;
     p += 8;
 }
-#endif
 
 /**
  * Writes a 32 bit float.

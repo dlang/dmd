@@ -301,6 +301,16 @@ public:
             cost++;
     }
 
+    void visit(NewExp *e)
+    {
+        //printf("NewExp::inlineCost3() %s\n", e->toChars());
+        AggregateDeclaration *ad = isAggregate(e->newtype);
+        if (ad && ad->isNested())
+            cost = COST_MAX;
+        else
+            cost++;
+    }
+
     void visit(FuncExp *e)
     {
         //printf("FuncExp::inlineCost3()\n");
@@ -496,7 +506,8 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
         {
             //printf("ReturnStatement::inlineAsStatement() '%s'\n", s->exp ? s->exp->toChars() : "");
             ids->foundReturn = true;
-            result = new ReturnStatement(s->loc, s->exp ? doInline(s->exp, ids) : NULL);
+            if (s->exp) // Bugzilla 14560: 'return' must not leave in the expand result
+                result = new ReturnStatement(s->loc, doInline(s->exp, ids));
         }
 
         void visit(ImportStatement *s)
@@ -885,6 +896,19 @@ Expression *doInline(Expression *e, InlineDoState *ids)
             visit((Expression *)e);
         }
 
+        void visit(TypeidExp *e)
+        {
+            //printf("TypeidExp::doInline(): %s\n", e->toChars());
+            TypeidExp *te = (TypeidExp *)e->copy();
+            if (Expression *ex = isExpression(te->obj))
+            {
+                te->obj = doInline(ex, ids);
+            }
+            else
+                assert(isType(te->obj));
+            result = te;
+        }
+
         void visit(NewExp *e)
         {
             //printf("NewExp::doInline(): %s\n", e->toChars());
@@ -957,7 +981,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 {
                     ExpInitializer *ie = vd->init->isExpInitializer();
                     assert(ie);
-                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));;
+                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
                 }
 
                 are->lengthVar = vto;
@@ -990,7 +1014,7 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 {
                     ExpInitializer *ie = vd->init->isExpInitializer();
                     assert(ie);
-                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));;
+                    vto->init = new ExpInitializer(ie->loc, doInline(ie->exp, ids));
                 }
 
                 are->lengthVar = vto;
@@ -1428,7 +1452,6 @@ public:
                      * of dve->e1, but this won't work if dve->e1 is
                      * a function call.
                      */
-                    ;
                 }
                 else
                 {
@@ -1667,6 +1690,20 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
             assert(0);
     }
 
+    switch (fd->inlining)
+    {
+        case PINLINEdefault:
+            break;
+
+        case PINLINEalways:
+            break;
+
+        case PINLINEnever:
+            return false;
+        default:
+            assert(0);
+    }
+
     if (fd->type)
     {
         assert(fd->type->ty == Tfunction);
@@ -1682,6 +1719,11 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
             (!(fd->hasReturnExp & 1) || statementsToo) &&
             !hdrscan)
             goto Lno;
+
+        /* Bugzilla 14560: If fd returns void, all explicit `return;`s
+         * must not appear in the expanded result.
+         * See also ReturnStatement::inlineAsStatement().
+         */
     }
 
     // cannot inline constructor calls because we need to convert:
@@ -1764,6 +1806,9 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo)
     return true;
 
 Lno:
+    if (fd->inlining == PINLINEalways)
+        fd->error("cannot inline function");
+
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
     {
         if (statementsToo)

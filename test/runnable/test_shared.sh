@@ -22,5 +22,5 @@ die()
 $DMD -m${MODEL} -of${dmddir}${SEP}test_shared${EXE} -defaultlib=libphobos2.so runnable/extra-files/test_shared.d >> ${output_file}
 if [ $? -ne 0 ]; then die; fi
 
-LD_LIBRARY_PATH=../../phobos/generated/${OS}/release/${MODEL} ./${dmddir}${SEP}test_shared${EXE}
+LD_LIBRARY_PATH=../../phobos/generated/${OS}/release/${MODEL} ${dmddir}${SEP}test_shared${EXE}
 if [ $? -ne 0 ]; then die; fi

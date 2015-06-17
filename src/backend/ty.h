@@ -153,11 +153,7 @@ extern int TYptrdiff, TYsize, TYsize_t;
 
 /* Modifiers to basic types     */
 
-#ifdef JHANDLE
-#define mTYarrayhandle  0x200
-#else
 #define mTYarrayhandle  0x0
-#endif
 #define mTYconst        0x100
 #define mTYvolatile     0x200
 #define mTYrestrict     0               // BUG: add for C99
@@ -222,7 +218,7 @@ extern unsigned tytab[];
 
 #define tyaggregate(ty) (tytab[(ty) & 0xFF] & TYFLaggregate)
 
-#define tyscalar(ty)    (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr))
+#define tyscalar(ty)    (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr | TYFLref))
 
 #define tyfloating(ty)  (tytab[(ty) & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex))
 
@@ -233,7 +229,7 @@ extern unsigned tytab[];
 #define tyreal(ty)      (tytab[(ty) & 0xFF] & TYFLreal)
 
 // Fits into 64 bit register
-#define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr) && tysize(ty) <= NPTRSIZE)
+#define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr | TYFLref) && tysize(ty) <= NPTRSIZE)
 
 // Can go in XMM floating point register
 #if TX86
@@ -370,4 +366,3 @@ extern unsigned short dttab4[];
 #endif
 
 #endif /* TY_H */
-

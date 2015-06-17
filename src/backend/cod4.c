@@ -2586,7 +2586,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
   freenode(e);
   return cat6(cl,cr,c,cmsw,clsw,ce);
 }
-
+
 /*****************************
  * Do conversions.
  * Depends on OPd_s32 and CLIBdbllng being in sequence.

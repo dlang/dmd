@@ -62,7 +62,7 @@ block *curblock;        /* current block being read in                  */
 block *block_last;      // last block read in
 
 static block * block_freelist;
-
+
 ////////////////////////////
 // Storage allocator.
 
@@ -207,7 +207,7 @@ void block_goto(block *bgoto,block *bnew)
 }
 
 #endif
-
+
 /**********************************
  * Replace block numbers with block pointers.
  * Also compute numblks and maxblks.
@@ -228,7 +228,7 @@ void block_ptr()
     }
     maxblks = 3 * numblks;              /* allow for increase in # of blocks */
 }
-
+
 /*******************************
  * Build predecessor list (Bpred) for each block.
  */
@@ -241,7 +241,7 @@ void block_pred()
         list_free(&b->Bpred,FPNULL);
 
     for (b = startblock; b; b = b->Bnext)       /* for each block        */
-    {   register list_t bp;
+    {   list_t bp;
 
         //printf("b = %p, BC = ",b); WRBC(b->BC); printf("\n");
         for (bp = b->Bsucc; bp; bp = list_next(bp))
@@ -291,7 +291,7 @@ void block_compbcount()
     block_visit(startblock);                    // visit all reachable blocks
     elimblks();                                 // eliminate unvisited blocks
 }
-
+
 /*******************************
  * Free list of blocks.
  */
@@ -567,7 +567,7 @@ void block_endfunc(int flag)
     curblock = NULL;                    // undefined from now on
     block_last = NULL;
 }
-
+
 /******************************
  * Perform branch optimization on basic blocks.
  */
@@ -655,7 +655,7 @@ void blockopt(int iter)
 #endif
     }
 }
-
+
 /***********************************
  * Try to remove control structure.
  * That is, try to resolve if-else, goto and return statements
@@ -872,7 +872,7 @@ void brcombine()
         }
     } while (0);
 }
-
+
 /***********************
  * Branch optimization.
  */
@@ -944,9 +944,9 @@ STATIC void bropt()
                 }
                 else if (b->BC == BCswitch)
                 {       /* see we can evaluate this switch now  */
-                        register unsigned i,ncases;
+                        unsigned i,ncases;
                         targ_llong *p,value;
-                        register list_t bl;
+                        list_t bl;
 
                         while (n->Eoper == OPcomma)
                                 n = n->E2;
@@ -989,17 +989,17 @@ STATIC void bropt()
                 }
         }
 }
-
+
 /*********************************
  * Do branch rearrangement.
  */
 
 STATIC void brrear()
-{       register block *b;
+{       block *b;
 
         cmes("brrear()\n");
         for (b = startblock; b; b = b->Bnext)   /* for each block       */
-        {       register list_t bl;
+        {       list_t bl;
 
                 for (bl = b->Bsucc; bl; bl = list_next(bl))
                 {       /* For each transfer of control block pointer   */
@@ -1052,7 +1052,7 @@ STATIC void brrear()
                 /*      L1:                             */
 
                 if (b->BC == BCiftrue || b->BC == BCiffalse)
-                {       register block *bif,*belse;
+                {       block *bif,*belse;
 
                         bif = list_block(b->Bsucc);
                         belse = list_block(list_next(b->Bsucc));
@@ -1068,7 +1068,7 @@ STATIC void brrear()
 #endif
         } /* for */
 }
-
+
 /*************************
  * Compute depth first order (DFO).
  * Equivalent to Aho & Ullman Fig. 13.8.
@@ -1077,7 +1077,7 @@ STATIC void brrear()
 
 void compdfo()
 {
-  register int i;
+  int i;
 
   cmes("compdfo()\n");
   assert(OPTIMIZER);
@@ -1130,7 +1130,7 @@ STATIC void search(block *b)
   dfo[--dfotop] = b;                    // add to dfo[]
   b->Bdfoidx = dfotop;                  // link back
 }
-
+
 /*************************
  * Remove blocks not marked as visited (they aren't in dfo[]).
  * A block is not in dfo[] if not visited.
@@ -1262,7 +1262,7 @@ STATIC int mergeblks()
 
                         /* fix up successor list of predecessors        */
                         for (bl = bL2->Bpred; bl; bl = list_next(bl))
-                        {   register list_t bs;
+                        {   list_t bs;
 
                             for (bs=list_block(bl)->Bsucc; bs; bs=list_next(bs))
                                 if (list_block(bs) == b)
@@ -1299,7 +1299,7 @@ STATIC int mergeblks()
         }
         return merge;
 }
-
+
 /*******************************
  * Combine together blocks that are identical.
  */
@@ -1462,7 +1462,7 @@ STATIC void blident()
         }
     }
 }
-
+
 /**********************************
  * Split out return blocks so the returns can be combined into a
  * single block by blident().
@@ -1534,7 +1534,7 @@ STATIC void blreturn()
         blident();                      /* combine return blocks        */
     }
 }
-
+
 /*****************************************
  * Convert expression into a list.
  * Construct the list in reverse, that is, so that the right-most

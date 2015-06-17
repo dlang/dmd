@@ -32,6 +32,7 @@
 #include        "ctfe.h"
 #include        "arraytypes.h"
 #include        "visitor.h"
+#include        "template.h"
 // Back end
 #include        "dt.h"
 
@@ -53,6 +54,7 @@ void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toVtblSymbol(ClassDeclaration *cd);
 Symbol* toSymbol(StructLiteralExp *sle);
 Symbol* toSymbol(ClassReferenceExp *cre);
+void genTypeInfo(Type *t, Scope *sc);
 
 /* ================================================================ */
 
@@ -128,6 +130,8 @@ dt_t *Initializer_toDt(Initializer *init)
                 n *= tsa->dim->toInteger();
             }
 
+            dt_t *dtdefault = NULL;
+
             dt_t **pdtend = &result;
             for (size_t i = 0; i < ai->dim; i++)
             {
@@ -136,8 +140,10 @@ dt_t *Initializer_toDt(Initializer *init)
                     pdtend = dtcat(pdtend, dt);
                 else
                 {
-                    for (size_t j = 0; j < n; j++)
-                        pdtend = Expression_toDt(edefault, pdtend);
+                    if (!dtdefault)
+                        Expression_toDt(edefault, &dtdefault);
+
+                    pdtend = dtrepeat(pdtend, dtdefault, n);
                 }
             }
             switch (tb->ty)
@@ -155,11 +161,10 @@ dt_t *Initializer_toDt(Initializer *init)
                         }
                         else
                         {
-                            for (size_t i = ai->dim; i < tadim; i++)
-                            {
-                                for (size_t j = 0; j < n; j++)
-                                    pdtend = Expression_toDt(edefault, pdtend);
-                            }
+                            if (!dtdefault)
+                                Expression_toDt(edefault, &dtdefault);
+
+                            pdtend = dtrepeat(pdtend, dtdefault, n * (tadim - ai->dim));
                         }
                     }
                     else if (ai->dim > tadim)
@@ -183,6 +188,7 @@ dt_t *Initializer_toDt(Initializer *init)
                 default:
                     assert(0);
             }
+            dt_free(dtdefault);
         }
 
         void visit(ExpInitializer *ei)
@@ -589,6 +595,18 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             }
             pdt = ClassReferenceExp_toDt(e, pdt, 0);
         }
+
+        void visit(TypeidExp *e)
+        {
+            if (Type *t = isType(e->obj))
+            {
+                genTypeInfo(t, NULL);
+                Symbol *s = toSymbol(t->vtinfo);
+                pdt = dtxoff(pdt, s, 0);
+                return;
+            }
+            assert(0);
+        }
     };
 
     ExpToDt v(pdt);
@@ -777,15 +795,7 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
             len /= ((StringExp *)e)->len;
         if (e->op == TOKarrayliteral)
             len /= ((ArrayLiteralExp *)e)->elements->dim;
-        if (dtallzeros(*pdt))
-            pdt = dtnzeros(pdt, dt_size(*pdt) * (len - 1));
-        else
-        {
-            for (size_t i = 1; i < len; i++)
-            {
-                pdt = Expression_toDt(e, pdt);
-            }
-        }
+        pdt = dtrepeat(pdt, *pdt, len - 1);
     }
     return pdt;
 }

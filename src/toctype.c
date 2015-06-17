@@ -85,7 +85,7 @@ public:
             Parameter *p = Parameter::getNth(t->parameters, i);
             type *tp = Type_toCtype(p->type);
             if (p->storageClass & (STCout | STCref))
-                tp = type_allocn(TYref, tp);
+                tp = type_allocn(TYnref, tp);
             else if (p->storageClass & STClazy)
             {
                 // Mangle as delegate

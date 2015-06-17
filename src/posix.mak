@@ -39,6 +39,26 @@ LDFLAGS=-lm -lstdc++ -lpthread
 CC=$(HOST_CC) $(MODEL_FLAG)
 GIT=git
 
+# Host D compiler for bootstrapping
+ifeq (,$(AUTO_BOOTSTRAP))
+  # No bootstrap, a $(HOST_DC) installation must be available
+  HOST_DC?=dmd
+  HOST_DC_FULL:=$(shell which $(HOST_DC))
+  ifeq (,$(HOST_DC_FULL))
+    $(error '$(HOST_DC)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
+  endif
+  HOST_DC_RUN:=$(HOST_DC)
+  HOST_DC:=$(HOST_DC_FULL)
+else
+  # Auto-bootstrapping, will download dmd automatically
+  HOST_DMD_VER=2.067.1
+  HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
+  HOST_DMD_URL=http://downloads.dlang.org/releases/2015/dmd.$(HOST_DMD_VER).$(OS).zip
+  HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
+  HOST_DC=$(HOST_DMD)
+  HOST_DC_RUN=$(HOST_DC) -conf=$(dir $(HOST_DC))dmd.conf
+endif
+
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
 WARNINGS := -Wall -Wextra \
@@ -98,7 +118,9 @@ MMD=-MMD -MF $(basename $@).deps
 # Default compiler flags for all source files
 CFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
-	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -DDMDV2=1 \
+	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
+# Default D compiler flags for all source files
+DFLAGS=
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
@@ -108,19 +130,21 @@ endif
 # ENABLE_DEBUG and ENABLE_PROFILING to enable profiling.
 ifdef ENABLE_DEBUG
 CFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
+DFLAGS += -g -debug
 ifdef ENABLE_PROFILING
 CFLAGS  += -pg -fprofile-arcs -ftest-coverage
 LDFLAGS += -pg -fprofile-arcs -ftest-coverage
 endif
 else
 CFLAGS += -O2
+DFLAGS += -O -inline
 endif
 
 # Uniqe extra flags if necessary
-DMD_FLAGS  :=           -I$(ROOT) -Wuninitialized
-GLUE_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C)
-BACK_FLAGS := -DDMDV2=1 -I$(ROOT) -I$(TK) -I$(C) -I.
-ROOT_FLAGS := -DDMDV2=1 -I$(ROOT)
+DMD_FLAGS  := -I$(ROOT) -Wuninitialized
+GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
+BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I. -DDMDV2=1
+ROOT_FLAGS := -I$(ROOT)
 
 
 DMD_OBJS = \
@@ -148,7 +172,8 @@ DMD_OBJS = \
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
 	aav.o speller.o outbuffer.o object.o \
-	filename.o file.o async.o checkedint.o
+	filename.o file.o async.o checkedint.o \
+	newdelete.o
 
 GLUE_OBJS = \
 	glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o \
@@ -182,7 +207,7 @@ else
 endif
 
 SRC = win32.mak posix.mak osmodel.mak \
-	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
+	mars.c enum.c struct.c dsymbol.c import.c idgen.d impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
@@ -207,7 +232,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
-	$(ROOT)/man.c \
+	$(ROOT)/man.c $(ROOT)/newdelete.c \
 	$(ROOT)/checkedint.h $(ROOT)/checkedint.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
@@ -256,7 +281,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-auto-tester-build: dmd
+auto-tester-build: dmd checkwhitespace ddmd
 .PHONY: auto-tester-build
 
 frontend.a: $(DMD_OBJS)
@@ -276,9 +301,22 @@ dmd: frontend.a root.a glue.a backend.a
 
 clean:
 	rm -f $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
-	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
-	tytab.c verstr.h core \
-	*.cov *.deps *.gcda *.gcno *.a
+		impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
+		tytab.c verstr.h core \
+		*.cov *.deps *.gcda *.gcno *.a \
+		$(GENSRC) $(MAGICPORT)
+
+######## Download and install the last dmd buildable without dmd
+
+ifneq (,$(AUTO_BOOTSTRAP))
+.PHONY: host-dmd
+host-dmd: ${HOST_DMD}
+
+${HOST_DMD}:
+	mkdir -p ${HOST_DMD_ROOT}
+	TMPFILE=$$(mktemp deleteme.XXXXXXXX) && curl -fsSL ${HOST_DMD_URL} > $${TMPFILE}.zip && \
+		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip
+endif
 
 ######## generate a default dmd.conf
 
@@ -309,8 +347,8 @@ $(optabgen_output) : optabgen
 idgen_output = id.h id.c
 $(idgen_output) : idgen
 
-idgen : idgen.c
-	$(CC) idgen.c -o idgen
+idgen: idgen.d $(HOST_DC)
+	$(HOST_DC_RUN) idgen.d
 	./idgen
 
 ######### impcnvgen generates some source
@@ -406,6 +444,11 @@ install: all
 
 ######################################################
 
+checkwhitespace: $(HOST_DC)
+	$(HOST_DC_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
+
+######################################################
+
 gcov:
 	gcov access.c
 	gcov aliasthis.c
@@ -486,3 +529,60 @@ endif
 zip:
 	-rm -f dmdsrc.zip
 	zip dmdsrc $(SRC) $(ROOT_SRC) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
+
+
+############################# DDMD stuff ############################
+
+MAGICPORTDIR = magicport
+MAGICPORTSRC = \
+	$(MAGICPORTDIR)/magicport2.d $(MAGICPORTDIR)/ast.d \
+	$(MAGICPORTDIR)/scanner.d $(MAGICPORTDIR)/tokens.d \
+	$(MAGICPORTDIR)/parser.d $(MAGICPORTDIR)/dprinter.d \
+	$(MAGICPORTDIR)/typenames.d $(MAGICPORTDIR)/visitor.d \
+	$(MAGICPORTDIR)/namer.d
+
+MAGICPORT = $(MAGICPORTDIR)/magicport2
+
+$(MAGICPORT) : $(MAGICPORTSRC) $(HOST_DC)
+	$(HOST_DC_RUN) -of$(MAGICPORT) $(MAGICPORTSRC)
+
+GENSRC=access.d aggregate.d aliasthis.d apply.d \
+	argtypes.d arrayop.d arraytypes.d \
+	attrib.d builtin.d canthrow.d dcast.d \
+	dclass.d clone.d cond.d constfold.d \
+	cppmangle.d ctfeexpr.d declaration.d \
+	delegatize.d doc.d dsymbol.d \
+	denum.d expression.d func.d \
+	hdrgen.d id.d identifier.d imphint.d \
+	dimport.d dinifile.d inline.d init.d \
+	dinterpret.d json.d lexer.d link.d \
+	dmacro.d dmangle.d mars.d \
+	dmodule.d mtype.d opover.d optimize.d \
+	parse.d sapply.d dscope.d sideeffect.d \
+	statement.d staticassert.d dstruct.d \
+	target.d dtemplate.d traits.d dunittest.d \
+	utf.d dversion.d visitor.d lib.d \
+	nogc.d nspace.d errors.d tokens.d \
+	globals.d escape.d \
+	$(ROOT)/aav.d $(ROOT)/outbuffer.d $(ROOT)/stringtable.d \
+	$(ROOT)/file.d $(ROOT)/filename.d $(ROOT)/speller.d \
+	$(ROOT)/man.d $(ROOT)/response.d
+
+MANUALSRC= \
+	intrange.d complex.d \
+	entity.d backend.d \
+	$(ROOT)/array.d $(ROOT)/longdouble.d \
+	$(ROOT)/rootobject.d $(ROOT)/port.d \
+	$(ROOT)/rmem.d
+
+mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
+	$(MAGICPORT) . .
+
+DSRC= $(GENSRC) $(MANUALSRC)
+
+ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a $(HOST_DC)
+	CC=$(HOST_CC) $(HOST_DC_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J.. -d $(DFLAGS)
+
+#############################
+
+.DELETE_ON_ERROR: # GNU Make directive (delete output files on error)

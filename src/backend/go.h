@@ -37,7 +37,7 @@ typedef unsigned mftype;        /* a type big enough for all the flags  */
 #define MFtree  0x1000          // optelem (tree optimization)
 #define MFlocal 0x2000          // localize expressions
 #define MFall   (~0)            // do everything
-
+
 /**********************************
  * Definition elem vector, used for reaching definitions.
  */

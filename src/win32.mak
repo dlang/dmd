@@ -77,6 +77,8 @@ SCPDIR=..\backup
 
 # C++ compiler
 CC=dmc
+# D compiler (set with env variable)
+#HOST_DC=dmd
 # Make program
 MAKE=make
 # Librarian
@@ -115,15 +117,21 @@ DEBUG=-gl -D -DUNITTEST
 LFLAGS=
 # Librarian flags
 BFLAGS=
+# D Optimizer flags
+DOPT=
+# D Debug flags
+DDEBUG=-debug -g
 
 ##### Implementation variables (do not modify)
 
 # Compile flags
 CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # Compile flags for modules with backend/toolkit dependencies
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1 -DDMDV2=1
+MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
+# D compile flags
+DFLAGS=$(DOPT) $(DDEBUG)
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
+DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) HOST_DC="$(HOST_DC)"
 
 ############################### Rule Variables ###############################
 
@@ -165,16 +173,13 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 
 
 # Root package
-GCOBJS=rmem.obj
-# Removed garbage collector (look in history)
-#GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
 ROOTOBJS= man.obj port.obj checkedint.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj outbuffer.obj \
 	object.obj filename.obj file.obj \
-	$(GCOBJS)
+	rmem.obj newdelete.obj
 
 # D front end
-SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
+SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.d impcnvgen.c utf.h \
 	utf.c entity.c identifier.c mtype.c expression.c optimize.c \
 	template.h template.c lexer.c declaration.c cast.c \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
@@ -230,7 +235,7 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 ROOTSRCC=$(ROOT)\rmem.c $(ROOT)\stringtable.c \
 	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
 	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c \
-	$(ROOT)\checkedint.c \
+	$(ROOT)\checkedint.c $(ROOT)\newdelete.c \
 	$(ROOT)\outbuffer.c $(ROOT)\object.c $(ROOT)\filename.c $(ROOT)\file.c
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
@@ -263,9 +268,10 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 defaulttarget: debdmd
 
-auto-tester-build: dmd
+auto-tester-build: dmd checkwhitespace ddmd
 
 dmd: reldmd
+ddmd: relddmd
 
 release:
 	$(DMDMAKE) clean
@@ -273,42 +279,102 @@ release:
 	$(DMDMAKE) clean
 
 debdmd:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g" "DOPT=" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
 
 reldmd:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-inline -O" "LFLAGS=-L/delexe/la" $(TARGETEXE)
 
 trace:
-	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+
+debddmd:
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g" "DOPT=" "LFLAGS=-L/ma/co/la" ddmd.exe
+
+relddmd:
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-inline -O" "LFLAGS=-L/delexe/la" ddmd.exe
 
 ################################ Libraries ##################################
 
 frontend.lib : $(FRONTOBJ)
-	$(LIB) -p512 -c frontend.lib $(FRONTOBJ)
+	$(LIB) -p512 -n -c frontend.lib $(FRONTOBJ)
 
 glue.lib : $(GLUEOBJ)
-	$(LIB) -p512 -c glue.lib $(GLUEOBJ)
+	$(LIB) -p512 -n -c glue.lib $(GLUEOBJ)
 
 backend.lib : $(BACKOBJ)
-	$(LIB) -p512 -c backend.lib $(BACKOBJ)
+	$(LIB) -p512 -n -c backend.lib $(BACKOBJ)
 
 root.lib : $(ROOTOBJS)
-	$(LIB) -p512 -c root.lib $(ROOTOBJS)
+	$(LIB) -p512 -n -c root.lib $(ROOTOBJS)
 
 LIBS= frontend.lib glue.lib backend.lib root.lib
 
 $(TARGETEXE): mars.obj $(LIBS) win32.mak
 	$(CC) -o$(TARGETEXE) mars.obj $(LIBS) -cpp -mn -Ar -L/STACK:8388608 $(LFLAGS)
 
+############################# DDMD stuff ############################
+
+MAGICPORTDIR = magicport
+MAGICPORTSRC = \
+	$(MAGICPORTDIR)\magicport2.d $(MAGICPORTDIR)\ast.d \
+	$(MAGICPORTDIR)\scanner.d $(MAGICPORTDIR)\tokens.d \
+	$(MAGICPORTDIR)\parser.d $(MAGICPORTDIR)\dprinter.d \
+	$(MAGICPORTDIR)\typenames.d $(MAGICPORTDIR)\visitor.d \
+	$(MAGICPORTDIR)\namer.d
+
+MAGICPORT = $(MAGICPORTDIR)\magicport2.exe
+
+$(MAGICPORT) : $(MAGICPORTSRC)
+	$(HOST_DC) -of$(MAGICPORT) $(MAGICPORTSRC)
+
+GENSRC=access.d aggregate.d aliasthis.d apply.d \
+	argtypes.d arrayop.d arraytypes.d \
+	attrib.d builtin.d canthrow.d dcast.d \
+	dclass.d clone.d cond.d constfold.d \
+	cppmangle.d ctfeexpr.d declaration.d \
+	delegatize.d doc.d dsymbol.d \
+	denum.d expression.d func.d \
+	hdrgen.d id.d identifier.d imphint.d \
+	dimport.d dinifile.d inline.d init.d \
+	dinterpret.d json.d lexer.d link.d \
+	dmacro.d dmangle.d mars.d \
+	dmodule.d mtype.d opover.d optimize.d \
+	parse.d sapply.d dscope.d sideeffect.d \
+	statement.d staticassert.d dstruct.d \
+	target.d dtemplate.d traits.d dunittest.d \
+	utf.d dversion.d visitor.d lib.d \
+	nogc.d nspace.d errors.d tokens.d \
+	globals.d escape.d \
+	$(ROOT)\aav.d $(ROOT)\outbuffer.d $(ROOT)\stringtable.d \
+	$(ROOT)\file.d $(ROOT)\filename.d $(ROOT)\speller.d \
+	$(ROOT)\man.d $(ROOT)\response.d
+
+MANUALSRC= \
+	intrange.d complex.d \
+	entity.d backend.d \
+	$(ROOT)\array.d $(ROOT)\longdouble.d \
+	$(ROOT)\rootobject.d $(ROOT)\port.d \
+	$(ROOT)\rmem.d
+
+$(GENSRC) : $(SRCS) $(ROOTSRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
+	$(MAGICPORT) . .
+
+DSRC= $(GENSRC) $(MANUALSRC)
+
+ddmd.exe: $(DSRC) newdelete.obj glue.lib backend.lib
+	$(HOST_DC) $(DSRC) -ofddmd.exe newdelete.obj glue.lib backend.lib -vtls -J.. -d -L/STACK:8388608 $(DFLAGS)
+
 ############################ Maintenance Targets #############################
 
 clean:
-	$(DEL) *.obj
+	$(DEL) *.obj *.lib *.map
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	$(DEL) impcnvtab.c
+	$(DEL) impcnvtab.c impcnvgen.exe optabgen.exe
 	$(DEL) id.h id.c
 	$(DEL) verstr.h
+	$(DEL) $(GENSRC)
+	$(DEL) $(MAGICPORT) $(MAGICPORTDIR)\*.obj
 
 install: detab install-copy
 
@@ -366,6 +432,8 @@ pvs:
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) /Tp $(BACKSRC) --source-file $(BACKSRC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) /Tp $(TKSRCC) --source-file $(TKSRCC)
 
+checkwhitespace:
+	$(HOST_DC) -run checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC)
 
 ############################## Generated Source ##############################
 
@@ -378,9 +446,8 @@ impcnvtab.c : impcnvgen.c
 	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
 	.\impcnvgen.exe
 
-id.h id.c : idgen.c
-	$(CC) -cpp -DDM_TARGET_CPU_X86=1 idgen
-	.\idgen.exe
+id.h id.c : idgen.d
+	$(HOST_DC) -run idgen
 
 verstr.h : ..\VERSION
 	echo "$(..\VERSION)" >verstr.h
@@ -634,6 +701,9 @@ man.obj : $(ROOT)\man.c
 
 rmem.obj : $(ROOT)\rmem.c
 	$(CC) -c $(CFLAGS) $(ROOT)\rmem.c
+
+newdelete.obj : $(ROOT)\newdelete.c
+	$(CC) -c $(CFLAGS) $(ROOT)\newdelete.c
 
 port.obj : $(ROOT)\port.c
 	$(CC) -c $(CFLAGS) $(ROOT)\port.c

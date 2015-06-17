@@ -3600,6 +3600,29 @@ void test2540()
 }
 
 /***************************************************/
+
+class B14348
+{
+    int foo() { return 0; }
+}
+
+class C14348 : B14348
+{
+    override int foo() { return 1; }
+
+    alias superfoo = typeof(super).foo;
+    alias thisfoo = typeof(this).foo;
+}
+
+B14348 test14348()
+{
+    alias foo = typeof(return).foo;  // currently doesn't work.
+    assert(&B14348.foo is &C14348.superfoo);
+    assert(&C14348.foo is &C14348.thisfoo);
+    return null;
+}
+
+/***************************************************/
 // 7295
 
 struct S7295
@@ -3816,7 +3839,7 @@ void test2486()
     S s;
     s[];
     // opSlice should return rvalue
-    static assert(is(typeof(&S.opSlice) == int[] function()));
+    static assert(is(typeof(&S.opSlice) == int[] function() pure nothrow @nogc @safe));
     static assert(!__traits(compiles, foo(s[])));       // should be NG
 }
 
@@ -4795,10 +4818,10 @@ int dummyfunc5933();
 alias typeof(dummyfunc5933) FuncType5933;
 
 struct S5933a { auto x() { return 0; } }
-static assert(is(typeof(&S5933a.init.x) == int delegate()));
+static assert(is(typeof(&S5933a.init.x) == int delegate() pure nothrow @nogc @safe));
 
 struct S5933b { auto x() { return 0; } }
-static assert(is(typeof(S5933b.init.x) == FuncType5933));
+//static assert(is(typeof(S5933b.init.x) == FuncType5933));
 
 struct S5933c { auto x() { return 0; } }
 static assert(is(typeof(&S5933c.x) == int function()));
@@ -4808,10 +4831,10 @@ static assert(is(typeof(S5933d.x) == FuncType5933));
 
 
 class C5933a { auto x() { return 0; } }
-static assert(is(typeof(&(new C5933b()).x) == int delegate()));
+static assert(is(typeof(&(new C5933b()).x) == int delegate() pure nothrow @nogc @safe));
 
 class C5933b { auto x() { return 0; } }
-static assert(is(typeof((new C5933b()).x) == FuncType5933));
+//static assert(is(typeof((new C5933b()).x) == FuncType5933));
 
 class C5933c { auto x() { return 0; } }
 static assert(is(typeof(&C5933c.x) == int function()));
@@ -4996,6 +5019,18 @@ void test6488()
 {
     TickDuration d;
     d.seconds();
+}
+
+/***************************************************/
+// 6565
+
+void foo6565(out int[2][2] m) {}
+
+void test6565()
+{
+    int[2][2] mat = [[1, 2], [3, 4]];
+    foo6565(mat);
+    assert(mat == [[0, 0], [0, 0]]);
 }
 
 /***************************************************/
@@ -5479,6 +5514,15 @@ void test7073()
 }
 
 /***************************************************/
+// 7104
+
+void test7104()
+{
+    typeof(new class {}) c;
+    c = new typeof(c);
+}
+
+/***************************************************/
 // 7150
 
 struct A7150
@@ -5854,41 +5898,6 @@ void test7735()
     a7735([]);
     a7735([]);
 }
-
-/***************************************************/
-// 7815
-
-mixin template Helpers() {
-
-  static if (is(Flags!Move)) {
-    Flags!Move flags;
-  } else {
-    // DMD will happily instantiate the allegedly
-    // non-existent Flags!This here. (!)
-    pragma(msg, __traits(derivedMembers, Flags!Move));
-  }
-}
-
-template Flags(T) {
-  mixin({
-    int defs = 1;
-    foreach (name; __traits(derivedMembers, Move)) {
-        defs++;
-    }
-    if (defs) {
-      return "struct Flags { bool a; }";
-    } else {
-      return "";
-    }
-  }());
-}
-
-struct Move {
-  int a;
-  mixin Helpers!();
-}
-
-enum a7815 = Move.init.flags;
 
 /***************************************************/
 
@@ -7091,6 +7100,26 @@ void test11888()
 }
 
 /***************************************************/
+// 12036
+
+template T12036(alias a)
+{
+    string value;
+}
+
+struct S12036
+{
+    auto fun() { }
+    mixin T12036!fun;
+}
+
+void test12036()
+{
+    S12036 s;
+    assert(s.value == "");
+}
+
+/***************************************************/
 // 12153
 
 void test12153()
@@ -7312,6 +7341,98 @@ class Foo14165
 }
 
 /***************************************************/
+// 13985
+
+interface I13985
+{
+    void m1();
+    void m2();
+    void m3();
+
+    final void mf()
+    {
+        m3();
+    }
+}
+
+class C13985 : I13985
+{
+    void m1() {}
+    void m2() {}
+    void m3() {}
+}
+
+class D13985 : C13985
+{
+    void ml()
+    {
+        super.mf();
+    }
+}
+
+void test13985()
+{
+    auto d = new D13985();
+    d.ml();
+}
+
+/***************************************************/
+// 14211
+
+extern(C++) // all derived classes won't have invariants
+class B14211
+{
+    void func()
+    {
+    }
+}
+
+final class C14211 : B14211
+{
+}
+
+void test14211()
+{
+    auto c = new C14211();
+    *cast(void**)c = null;
+    c.func();   // called without vtbl access
+}
+
+/***************************************************/
+// 14552
+
+template map14552(fun...)
+{
+    template AppliedReturnType(alias f)
+    {
+        alias typeof(f(0)) AppliedReturnType;
+    }
+
+    auto map14552(int[] r)
+    {
+        assert(!is(AppliedReturnType!fun));
+        return MapResult14552!fun();
+    }
+}
+
+struct MapResult14552(alias fun)
+{
+    @property front()
+    {
+        fun(0);
+    }
+}
+
+class Outer14552
+{
+    auto test()
+    {
+        [1].map14552!(j => new Inner);
+    }
+    class Inner {}
+}
+
+/***************************************************/
 
 int main()
 {
@@ -7486,6 +7607,7 @@ int main()
     test2356();
     test11238();
     test2540();
+    test14348();
     test150();
     test151();
     test152();
@@ -7525,6 +7647,7 @@ int main()
     test5696();
     test6084();
     test6488();
+    test6565();
     test6836();
     test6837();
     test6927();
@@ -7541,6 +7664,7 @@ int main()
     test6056();
     test6356();
     test7073();
+    test7104();
     test7150();
     test7160();
     test7168();
@@ -7607,6 +7731,7 @@ int main()
     test11181();
     test11317();
     test11888();
+    test12036();
     test12153();
     test12937();
     test13154();
@@ -7614,6 +7739,8 @@ int main()
     test13472();
     test13476();
     test13952();
+    test13985();
+    test14211();
 
     printf("Success\n");
     return 0;

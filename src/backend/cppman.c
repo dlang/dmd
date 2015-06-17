@@ -300,7 +300,7 @@ L1:
 }
 
 #endif
-
+
 /***********************************
  * Generate and return a pointer to a string constructed from
  * the type, appended to the prefix.
@@ -354,10 +354,8 @@ char *cpp_typetostring(type *t,char *prefix)
             case TYshort:       c2 = 's';       break;
             case TYuint:        c1 = 'U';
             case TYint:         c2 = 'i';       break;
-#if LONGLONG && __INTSIZE == 4 // DJB
             case TYullong:      c1 = 'U';
             case TYllong:       c2 = 'x';       break;
-#endif
             case TYulong:       c1 = 'U';
             case TYlong:        c2 = 'l';       break;
 #if M_UNIX
@@ -535,7 +533,7 @@ L1:
     cpp_name[i] = 0;                    // terminate the string
     return cpp_name;
 }
-
+
 /***********************************
  * Create mangled name for template instantiation.
  */
@@ -698,7 +696,7 @@ char *template_mangle(symbol *s,param_t *arglist)
 }
 
 #endif
-
+
 /*********************************
  * Mangle a vtbl or vbtbl name.
  * Returns:

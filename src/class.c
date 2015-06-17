@@ -232,7 +232,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     isscope = false;
     isabstract = false;
     inuse = 0;
-    doAncestorsSemantic = SemanticStart;
+    baseok = BASEOKnone;
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
@@ -321,19 +321,16 @@ void ClassDeclaration::semantic(Scope *sc)
         if (sc->linkage == LINKcpp)
             cpp = true;
     }
-    else if (symtab)
+    else if (symtab && !scx)
     {
-        if (sizeok == SIZEOKdone || !scx)
-        {
-            semanticRun = PASSsemanticdone;
-            return;
-        }
+        semanticRun = PASSsemanticdone;
+        return;
     }
     semanticRun = PASSsemantic;
 
-    if (doAncestorsSemantic != SemanticDone)
+    if (baseok < BASEOKdone)
     {
-        doAncestorsSemantic = SemanticIn;
+        baseok = BASEOKin;
 
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
@@ -366,7 +363,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 i++;
         }
 
-        if (doAncestorsSemantic == SemanticDone)
+        if (baseok >= BASEOKdone)
         {
             //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
             if (semanticRun >= PASSsemanticdone)
@@ -420,14 +417,14 @@ void ClassDeclaration::semantic(Scope *sc)
             baseClass = tc->sym;
             b->base = baseClass;
 
-            if (tc->sym->scope && tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->scope && tc->sym->baseok < BASEOKdone)
                 tc->sym->semantic(NULL);    // Try to resolve forward reference
-            if (tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                doAncestorsSemantic = SemanticStart;
+                baseok = BASEOKnone;
             }
          L7: ;
         }
@@ -472,18 +469,18 @@ void ClassDeclaration::semantic(Scope *sc)
 
             b->base = tc->sym;
 
-            if (tc->sym->scope && tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->scope && tc->sym->baseok < BASEOKdone)
                 tc->sym->semantic(NULL);    // Try to resolve forward reference
-            if (tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                doAncestorsSemantic = SemanticStart;
+                baseok = BASEOKnone;
             }
             i++;
         }
-        if (doAncestorsSemantic == SemanticStart)
+        if (baseok == BASEOKnone)
         {
             // Forward referencee of one or more bases, try again later
             scope = scx ? scx : sc->copy();
@@ -492,7 +489,7 @@ void ClassDeclaration::semantic(Scope *sc)
             //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
             return;
         }
-        doAncestorsSemantic = SemanticDone;
+        baseok = BASEOKdone;
 
         // If no base class, and this is not an Object, use Object as base class
         if (!baseClass && ident != Id::Object && !cpp)
@@ -546,8 +543,11 @@ void ClassDeclaration::semantic(Scope *sc)
                 ::error(loc, "C++ class '%s' cannot implement D interface '%s'", toPrettyChars(), b->base->toPrettyChars());
             }
         }
+
+        interfaceSemantic(sc);
     }
 Lancestorsdone:
+    //printf("\tClassDeclaration::semantic(%s) baseok = %d\n", toChars(), baseok);
 
     if (!members)               // if opaque declaration
     {
@@ -555,7 +555,49 @@ Lancestorsdone:
         return;
     }
     if (!symtab)
+    {
         symtab = new DsymbolTable();
+
+        /* Bugzilla 12152: The semantic analysis of base classes should be finished
+         * before the members semantic analysis of this class, in order to determine
+         * vtbl in this class. However if a base class refers the member of this class,
+         * it can be resolved as a normal forward reference.
+         * Call addMember() and setScope() to make this class members visible from the base classes.
+         */
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->addMember(sc, this);
+        }
+
+        Scope *sc2 = sc->push(this);
+        sc2->stc &= STCsafe | STCtrusted | STCsystem;
+        sc2->parent = this;
+        sc2->inunion = 0;
+        if (isCOMclass())
+        {
+            if (global.params.isWindows)
+                sc2->linkage = LINKwindows;
+            else
+                sc2->linkage = LINKc;
+        }
+        sc2->protection = Prot(PROTpublic);
+        sc2->explicitProtection = 0;
+        sc2->structalign = STRUCTALIGN_DEFAULT;
+        sc2->userAttribDecl = NULL;
+
+        /* Set scope so if there are forward references, we still might be able to
+         * resolve individual members like enums.
+         */
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            //printf("[%d] setScope %s %s, sc2 = %p\n", i, s->kind(), s->toChars(), sc2);
+            s->setScope(sc2);
+        }
+
+        sc2->pop();
+    }
 
     for (size_t i = 0; i < baseclasses->dim; i++)
     {
@@ -577,8 +619,10 @@ Lancestorsdone:
         }
     }
 
-    if (sizeok == SIZEOKnone)
+    if (baseok == BASEOKdone)
     {
+        baseok = BASEOKsemanticdone;
+
         // initialize vtbl
         if (baseClass)
         {
@@ -594,13 +638,6 @@ Lancestorsdone:
             vtbl.setDim(0);
             if (vtblOffset())
                 vtbl.push(this);            // leave room for classinfo as first member
-        }
-        interfaceSemantic(sc);
-
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->addMember(sc, this, 1);
         }
 
         /* If this is a nested class, add the hidden 'this'
@@ -636,6 +673,10 @@ Lancestorsdone:
             makeNested();
     }
 
+    // it might be determined already, by AggregateDeclaration::size().
+    if (sizeok != SIZEOKdone)
+        sizeok = SIZEOKnone;
+
     Scope *sc2 = sc->push(this);
     //sc2->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
     //sc2->stc |= storage_class & STC_TYPECTOR;
@@ -659,65 +700,20 @@ Lancestorsdone:
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
 
-    if (baseClass)
-    {
-        alignsize = baseClass->alignsize;
-        structsize = baseClass->structsize;
-        if (cpp && global.params.isWindows)
-            structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
-    }
-    else
-    {
-        alignsize = Target::ptrsize;
-        if (cpp)
-            structsize = Target::ptrsize;       // allow room for __vptr
-        else
-            structsize = Target::ptrsize * 2;   // allow room for __vptr and __monitor
-    }
-    size_t members_dim = members->dim;
-    sizeok = SIZEOKnone;
-
-    /* Set scope so if there are forward references, we still might be able to
-     * resolve individual members like enums.
-     */
-    for (size_t i = 0; i < members_dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        //printf("[%d] setScope %s %s, sc2 = %p\n", i, s->kind(), s->toChars(), sc2);
-        s->setScope(sc2);
-    }
-
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->importAll(sc2);
     }
 
-    for (size_t i = 0; i < members_dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->semantic(sc2);
     }
+    finalizeSize(sc2);
 
-    // Set the offsets of the fields and determine the size of the class
-
-    unsigned offset = structsize;
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->setFieldOffset(this, &offset, false);
-    }
-
-    if (global.errors != errors)
-    {
-        // The type is no good.
-        type = Type::terror;
-        this->errors = true;
-        if (deferred)
-            deferred->errors = true;
-    }
-
-    if (sizeok == SIZEOKfwd)            // failed due to forward references
+    if (sizeok == SIZEOKfwd)
     {
         // semantic() failed due to forward references
         // Unwind what we did, and defer it for later
@@ -737,21 +733,26 @@ Lancestorsdone:
         scope->module->addDeferredSemantic(this);
 
         Module::dprogress = dprogress_save;
-
         //printf("\tsemantic('%s') failed due to forward references\n", toChars());
         return;
     }
 
-    //printf("\tsemantic('%s') successful\n", toChars());
+    Module::dprogress++;
+    semanticRun = PASSsemanticdone;
 
+    //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
     //members->print();
 
     /* Look for special member functions.
      * They must be in this class, not in a base class.
      */
-    ctor = searchCtor();
-    if (ctor && (ctor->toParent() != this || !(ctor->isCtorDeclaration() || ctor->isTemplateDeclaration())))
-        ctor = NULL;    // search() looks through ancestor classes
+
+    // Can be in base class
+    aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
+    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
+
+    // this->ctor is already set in finalizeSize()
+
     if (!ctor && noDefaultCtor)
     {
         // A class object is always created by constructor, so this check is legitimate.
@@ -762,12 +763,6 @@ Lancestorsdone:
                 ::error(v->loc, "field %s must be initialized in constructor", v->toChars());
         }
     }
-
-    inv = buildInv(this, sc2);
-
-    // Can be in base class
-    aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
-    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete);
 
     // If this class has no constructor, but base class has a default
     // ctor, create a constructor:
@@ -787,7 +782,7 @@ Lancestorsdone:
             CtorDeclaration *ctor = new CtorDeclaration(loc, Loc(), 0, tf);
             ctor->fbody = new CompoundStatement(Loc(), new Statements());
             members->push(ctor);
-            ctor->addMember(sc, this, 1);
+            ctor->addMember(sc, this);
             ctor->semantic(sc2);
             this->ctor = ctor;
             defaultCtor = ctor;
@@ -798,43 +793,26 @@ Lancestorsdone:
         }
     }
 
-    // Allocate instance of each new interface
-    offset = structsize;
-    for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {
-        BaseClass *b = (*vtblInterfaces)[i];
-        unsigned thissize = Target::ptrsize;
-
-        alignmember(STRUCTALIGN_DEFAULT, thissize, &offset);
-        assert(b->offset == 0);
-        b->offset = offset;
-
-        // Take care of single inheritance offsets
-        while (b->baseInterfaces_dim)
-        {
-            b = &b->baseInterfaces[0];
-            b->offset = offset;
-        }
-
-        offset += thissize;
-        if (alignsize < thissize)
-            alignsize = thissize;
-    }
-    structsize = offset;
-    sizeok = SIZEOKdone;
-
-    Module::dprogress++;
-    semanticRun = PASSsemanticdone;
-
     dtor = buildDtor(this, sc2);
+
     if (FuncDeclaration *f = hasIdentityOpAssign(this, sc2))
     {
         if (!(f->storage_class & STCdisable))
             error(f->loc, "identity assignment operator overload is illegal");
     }
+
+    inv = buildInv(this, sc2);
+
     sc2->pop();
 
-    //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
+    if (global.errors != errors)
+    {
+        // The type is no good.
+        type = Type::terror;
+        this->errors = true;
+        if (deferred)
+            deferred->errors = true;
+    }
 
     if (deferred && !global.gag)
     {
@@ -908,15 +886,15 @@ bool ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 
 bool ClassDeclaration::isBaseInfoComplete()
 {
-    return doAncestorsSemantic == SemanticDone;
+    return baseok >= BASEOKdone;
 }
 
 Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
 
-    //if (scope) printf("%s doAncestorsSemantic = %d\n", toChars(), doAncestorsSemantic);
-    if (scope && doAncestorsSemantic < SemanticDone)
+    //if (scope) printf("%s baseok = %d\n", toChars(), baseok);
+    if (scope && baseok < BASEOKdone)
     {
         if (!inuse)
         {
@@ -978,6 +956,90 @@ ClassDeclaration *ClassDeclaration::searchBase(Loc loc, Identifier *ident)
             return cdb;
     }
     return NULL;
+}
+
+void ClassDeclaration::finalizeSize(Scope *sc)
+{
+    if (sizeok != SIZEOKnone)
+        return;
+
+    // Set the offsets of the fields and determine the size of the class
+    if (baseClass)
+    {
+        assert(baseClass->sizeok == SIZEOKdone);
+
+        alignsize = baseClass->alignsize;
+        structsize = baseClass->structsize;
+        if (cpp && global.params.isWindows)
+            structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
+    }
+    else
+    {
+        alignsize = Target::ptrsize;
+        if (cpp)
+            structsize = Target::ptrsize;       // allow room for __vptr
+        else
+            structsize = Target::ptrsize * 2;   // allow room for __vptr and __monitor
+    }
+
+    unsigned offset = structsize;
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        s->setFieldOffset(this, &offset, false);
+    }
+    if (sizeok == SIZEOKfwd)
+        return;
+
+    // Allocate instance of each new interface
+    offset = structsize;
+    assert(vtblInterfaces);     // Bugzilla 12984
+    for (size_t i = 0; i < vtblInterfaces->dim; i++)
+    {
+        BaseClass *b = (*vtblInterfaces)[i];
+        unsigned thissize = Target::ptrsize;
+
+        alignmember(STRUCTALIGN_DEFAULT, thissize, &offset);
+        assert(b->offset == 0);
+        b->offset = offset;
+
+        // Take care of single inheritance offsets
+        while (b->baseInterfaces_dim)
+        {
+            b = &b->baseInterfaces[0];
+            b->offset = offset;
+        }
+
+        offset += thissize;
+        if (alignsize < thissize)
+            alignsize = thissize;
+    }
+    structsize = offset;
+    sizeok = SIZEOKdone;
+
+    // Look for the constructor
+    ctor = searchCtor();
+    if (ctor && ctor->toParent() != this)
+        ctor = NULL;    // search() looks through ancestor classes
+    if (ctor)
+    {
+        // Finish all constructors semantics to determine this->noDefaultCtor.
+        struct SearchCtor
+        {
+            static int fp(Dsymbol *s, void *ctxt)
+            {
+                CtorDeclaration *f = s->isCtorDeclaration();
+                if (f && f->semanticRun == PASSinit)
+                    f->semantic(NULL);
+                return 0;
+            }
+        };
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->apply(&SearchCtor::fp, NULL);
+        }
+    }
 }
 
 /**********************************************************
@@ -1278,9 +1340,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
     semanticRun = PASSsemantic;
 
-    if (doAncestorsSemantic != SemanticDone)
+    if (baseok < BASEOKdone)
     {
-        doAncestorsSemantic = SemanticIn;
+        baseok = BASEOKin;
 
         // Expand any tuples in baseclasses[]
         for (size_t i = 0; i < baseclasses->dim; )
@@ -1311,7 +1373,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 i++;
         }
 
-        if (doAncestorsSemantic == SemanticDone)
+        if (baseok >= BASEOKdone)
         {
             //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
             if (semanticRun >= PASSsemanticdone)
@@ -1368,18 +1430,18 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
             b->base = tc->sym;
 
-            if (tc->sym->scope && tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->scope && tc->sym->baseok < BASEOKdone)
                 tc->sym->semantic(NULL);    // Try to resolve forward reference
-            if (tc->sym->doAncestorsSemantic != SemanticDone)
+            if (tc->sym->baseok < BASEOKdone)
             {
                 //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                doAncestorsSemantic = SemanticStart;
+                baseok = BASEOKnone;
             }
             i++;
         }
-        if (doAncestorsSemantic == SemanticStart)
+        if (baseok == BASEOKnone)
         {
             // Forward referencee of one or more bases, try again later
             scope = scx ? scx : sc->copy();
@@ -1387,7 +1449,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             scope->module->addDeferredSemantic(this);
             return;
         }
-        doAncestorsSemantic = SemanticDone;
+        baseok = BASEOKdone;
 
         interfaces_dim = baseclasses->dim;
         interfaces = baseclasses->tdata();
@@ -1402,6 +1464,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
             if (b->base->isCPPinterface())
                 cpp = true;
         }
+
+        interfaceSemantic(sc);
     }
 Lancestorsdone:
 
@@ -1432,10 +1496,11 @@ Lancestorsdone:
         }
     }
 
+    if (baseok == BASEOKdone)
     {
-        // initialize vtbl
-        interfaceSemantic(sc);
+        baseok = BASEOKsemanticdone;
 
+        // initialize vtbl
         if (vtblOffset())
             vtbl.push(this);                // leave room at vtbl[0] for classinfo
 
@@ -1475,7 +1540,7 @@ Lancestorsdone:
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        s->addMember(sc, this, 1);
+        s->addMember(sc, this);
     }
 
     Scope *sc2 = sc->push(this);
@@ -1491,7 +1556,7 @@ Lancestorsdone:
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
 
-    structsize = Target::ptrsize * 2;
+    finalizeSize(sc2);
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -1499,14 +1564,8 @@ Lancestorsdone:
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        /* There are problems doing this in the general case because
-         * Scope keeps track of things like 'offset'
-         */
-        if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
-        {
-            //printf("setScope %s %s\n", s->kind(), s->toChars());
-            s->setScope(sc2);
-        }
+        //printf("setScope %s %s\n", s->kind(), s->toChars());
+        s->setScope(sc2);
     }
 
     for (size_t i = 0; i < members->dim; i++)
@@ -1543,6 +1602,11 @@ Lancestorsdone:
     assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
 }
 
+void InterfaceDeclaration::finalizeSize(Scope *sc)
+{
+    structsize = Target::ptrsize * 2;
+    sizeok = SIZEOKdone;
+}
 
 /*******************************************
  * Determine if 'this' is a base class of cd.

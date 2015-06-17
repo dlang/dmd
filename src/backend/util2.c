@@ -163,7 +163,7 @@ void util_progress(int linnum)
  *      else -1
  */
 
-#if TX86 && __INTSIZE == 4 && __DMC__ && !_DEBUG_TRACE
+#if TX86 && __DMC__ && !_DEBUG_TRACE
 
 int binary(const char *p, const char **table,int high)
 {

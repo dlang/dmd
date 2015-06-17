@@ -72,7 +72,7 @@ void Nspace::semantic(Scope *sc)
         {
             Dsymbol *s = (*members)[i];
             //printf("add %s to scope %s\n", s->toChars(), toChars());
-            s->addMember(sc, this, 1);
+            s->addMember(sc, this);
         }
 
         for (size_t i = 0; i < members->dim; i++)

@@ -113,6 +113,7 @@ public:
     static CTFEExp *gotoexp;
 
     static bool isCantExp(Expression *e) { return e && e->op == TOKcantexp; }
+    static bool isGotoExp(Expression *e) { return e && e->op == TOKgoto; }
 };
 
 /****************************************************************/

@@ -77,9 +77,10 @@ class PrettyPrintVisitor : public Visitor
 public:
     OutBuffer *buf;
     HdrGenState *hgs;
+    bool declstring; // set while declaring alias for string,wstring or dstring
 
     PrettyPrintVisitor(OutBuffer *buf, HdrGenState *hgs)
-        : buf(buf), hgs(hgs)
+        : buf(buf), hgs(hgs), declstring(false)
     {
     }
 
@@ -762,6 +763,8 @@ public:
     void visit(TypeDArray *t)
     {
         Type *ut = t->castMod(0);
+        if (declstring)
+            goto L1;
         if (ut->equals(Type::tstring))
             buf->writestring("string");
         else if (ut->equals(Type::twstring))
@@ -770,6 +773,7 @@ public:
             buf->writestring("dstring");
         else
         {
+        L1:
             visitWithMask(t->next, t->mod);
             buf->writestring("[]");
         }
@@ -951,15 +955,30 @@ public:
         for (size_t i = 0; i < t->idents.dim; i++)
         {
             RootObject *id = t->idents[i];
-            buf->writeByte('.');
 
             if (id->dyncast() == DYNCAST_DSYMBOL)
             {
+                buf->writeByte('.');
                 TemplateInstance *ti = (TemplateInstance *)id;
                 ti->accept(this);
             }
+            else if (id->dyncast() == DYNCAST_EXPRESSION)
+            {
+                buf->writeByte('[');
+                ((Expression *)id)->accept(this);
+                buf->writeByte(']');
+            }
+            else if (id->dyncast() == DYNCAST_TYPE)
+            {
+                buf->writeByte('[');
+                ((Type *)id)->accept(this);
+                buf->writeByte(']');
+            }
             else
+            {
+                buf->writeByte('.');
                 buf->writestring(id->toChars());
+            }
         }
     }
 
@@ -1393,6 +1412,34 @@ public:
             hgs->tpltMember--;
             return true;
         }
+        if (VarDeclaration *vd = onemember->isVarDeclaration())
+        {
+            if (d->constraint)
+                return false;
+
+            StorageClassDeclaration::stcToCBuffer(buf, vd->storage_class);
+            if (vd->type)
+                typeToBuffer(vd->type, vd->ident);
+            else
+                buf->writestring(vd->ident->toChars());
+
+            buf->writeByte('(');
+            visitTemplateParameters(hgs->ddoc ? d->origParameters : d->parameters);
+            buf->writeByte(')');
+
+            if (vd->init)
+            {
+                buf->writestring(" = ");
+                ExpInitializer *ie = vd->init->isExpInitializer();
+                if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
+                    ((AssignExp *)ie->exp)->e2->accept(this);
+                else
+                    vd->init->accept(this);
+            }
+            buf->writeByte(';');
+            buf->writenl();
+            return true;
+        }
 
         return false;
     }
@@ -1677,10 +1724,12 @@ public:
         }
         else
         {
+            declstring = (d->ident == Id::string || d->ident == Id::wstring || d->ident == Id::dstring);
             buf->writestring(d->ident->toChars());
             buf->writestring(" = ");
             StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
             typeToBuffer(d->type, NULL);
+            declstring = false;
         }
         buf->writeByte(';');
         buf->writenl();
@@ -2476,7 +2525,7 @@ public:
         {
             for (size_t i = 0; i < e->args->dim; i++)
             {
-                buf->writestring(", ");;
+                buf->writestring(", ");
                 objectToBuffer((*e->args)[i]);
             }
         }
@@ -3039,8 +3088,6 @@ void protectionToBuffer(OutBuffer *buf, Prot prot)
 
     if (prot.kind == PROTpackage && prot.pkg)
     {
-        Package *ppkg = prot.pkg;
-
         buf->writeByte('(');
         buf->writestring(prot.pkg->toPrettyChars(true));
         buf->writeByte(')');

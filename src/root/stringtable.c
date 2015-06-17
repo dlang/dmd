@@ -62,7 +62,7 @@ static uint32_t calcHash(const char *key, size_t len)
     case 2: h ^= data[1] << 8;
     case 1: h ^= data[0];
         h *= m;
-    };
+    }
 
     // Do a few final mixes of the hash to ensure the last few
     // bytes are well-incorporated.
@@ -230,3 +230,26 @@ void StringTable::grow()
     }
     mem.xfree(otab);
 }
+
+/********************************
+ * Walk the contents of the string table,
+ * calling fp for each entry.
+ * Params:
+ *      fp = function to call. Returns !=0 to stop
+ * Returns:
+ *      last return value of fp call
+ */
+int StringTable::apply(int (*fp)(StringValue *))
+{
+    for (size_t i = 0; i < tabledim; ++i)
+    {
+        StringEntry *se = &table[i];
+        if (!se->vptr) continue;
+        StringValue *sv = getValue(se->vptr);
+        int result = (*fp)(sv);
+        if (result)
+            return result;
+    }
+    return 0;
+}
+

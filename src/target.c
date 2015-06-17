@@ -22,6 +22,7 @@ int Target::realalignsize;
 bool Target::reverseCppOverloads;
 int Target::c_longsize;
 int Target::c_long_doublesize;
+int Target::classinfosize;
 
 
 void Target::init()
@@ -29,8 +30,13 @@ void Target::init()
     // These have default values for 32 bit code, they get
     // adjusted for 64 bit code.
     ptrsize = 4;
+    classinfosize = 0x4C;   // 76
+
     if (global.params.isLP64)
+    {
         ptrsize = 8;
+        classinfosize = 0x98;   // 152
+    }
 
     if (global.params.isLinux || global.params.isFreeBSD
         || global.params.isOpenBSD || global.params.isSolaris)

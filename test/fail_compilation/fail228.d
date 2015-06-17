@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail228.d(22): Error: undefined identifier localVariable
+fail_compilation/fail228.d(22): Error: undefined identifier 'localVariable'
 ---
 */
 

@@ -1,5 +1,5 @@
 // Copyright (C) 1986-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -65,8 +65,8 @@ inline int cse_float(elem *e)
  */
 
 void builddags()
-{       register unsigned i;
-        register vec_t aevec;
+{       unsigned i;
+        vec_t aevec;
 
         cmes("builddags()\n");
         assert(dfo);
@@ -92,7 +92,7 @@ void builddags()
         /* This is the 'correct' algorithm for CSEs. We can't use it    */
         /* till we fix the code generator.                              */
         for (i = 0; i < dfotop; i++)
-        {       register block *b;
+        {       block *b;
 
                 b = dfo[i];
                 if (b->Belem)
@@ -119,7 +119,7 @@ void builddags()
         /* properly across extended basic blocks.                       */
         aevec = vec_calloc(exptop);
         for (i = 0; i < dfotop; i++)
-        {       register block *b;
+        {       block *b;
 
                 b = dfo[i];
                 /* if not first block and (there are more than one      */
@@ -148,7 +148,7 @@ void builddags()
         // Need 2 passes to converge on solution
         for (int j = 0; j < 2; j++)
             for (i = 0; i < dfotop; i++)
-            {   register block *b;
+            {   block *b;
 
                 b = dfo[i];
                 if (b->Belem)
@@ -160,7 +160,7 @@ void builddags()
                 }
             }
 }
-
+
 /**********************************
  */
 
@@ -187,10 +187,10 @@ STATIC void aeclear(elem *n,vec_t ae)
  *      ae = vector of available expressions
  */
 
-STATIC void aewalk(register elem **pn,register vec_t ae)
-{       register vec_t aer;
-        register unsigned i,op;
-        register elem *n,*t;
+STATIC void aewalk(elem **pn,vec_t ae)
+{       vec_t aer;
+        unsigned i,op;
+        elem *n,*t;
 
         n = *pn;
         assert(n && ae);
@@ -305,7 +305,7 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
                         if (!(s->Sflags & SFLunambig))
                                 vec_subass(ae,starkill);
                         foreach (i,exptop,ae)   /* for each ae elem     */
-                        {       register elem *e = expnod[i];
+                        {       elem *e = expnod[i];
 
                                 if (!e) continue;
                                 if (OTunary(e->Eoper))
@@ -352,7 +352,7 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
             vec_setbit(n->Eexp,ae);     /* mark this elem as available  */
         }
 }
-
+
 /**************************
  * Remove a CSE.
  * Input:
@@ -558,7 +558,7 @@ L1:     e = *pe;
         pe = &(e->E1);
         goto L1;
 }
-
+
 /*****************************************
  * Do optimizations based on if we know an expression is
  * 0 or !=0, even though we don't know anything else.
@@ -608,7 +608,7 @@ void boolopt()
         }
 
         for (i = 0; i < dfotop; i++)
-        {       register block *b;
+        {       block *b;
 
                 b = dfo[i];
                 /* if not first block and (there are more than one      */
@@ -635,7 +635,7 @@ void boolopt()
         vec_free(aevec);
         vec_free(aevecval);
 }
-
+
 /****************************
  * Walk tree, replacing bool expressions that we know
  *      ae = vector of available boolean expressions
@@ -797,29 +797,8 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
                 {       elem *e = expnod[i];
 
                         if (!e) continue;
-#if 1
                         if (el_appears(e,s))
                             vec_clearbit(i,ae);
-#else
-                        if (OTunary(e->Eoper))
-                        {
-                                if (vec_testbit(e->E1->Eexp,ae))
-                                        continue;
-                        }
-                        else if (OTbinary(e->Eoper))
-                        {
-                                if (vec_testbit(e->E1->Eexp,ae) &&
-                                    vec_testbit(e->E2->Eexp,ae))
-                                        continue;
-                        }
-                        else if (e->Eoper == OPvar)
-                        {       if (e->EV.sp.Vsym != s)
-                                        continue;
-                        }
-                        else
-                                continue;
-                        vec_clearbit(i,ae);
-#endif
                 }
         }
         else                    /* else ambiguous definition    */
@@ -829,7 +808,6 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
                 vec_subass(ae,vptrkill);
         }
         /* GEN the lvalue of an assignment operator     */
-#if 1
         if (op == OPeq && (i1 = t->Eexp) != 0 && (i2 = n->E2->Eexp) != 0)
         {
             if (vec_testbit(i2,ae))
@@ -841,13 +819,6 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
                     vec_clearbit(i1,aeval);
             }
         }
-#else
-        if ((OTopeq(op) || op == OPeq || op == OPnegass) && n->E1->Eexp)
-        {       vec_setbit(t->Eexp,ae);
-                if (n->E1->Eoper == OPbit)
-                        vec_setbit(n->E1->Eexp,ae);
-        }
-#endif
     }
     else if (n->Eexp)           /* if an AE                     */
     {

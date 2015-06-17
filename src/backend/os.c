@@ -1,5 +1,5 @@
 // Copyright (C) 1994-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -19,11 +19,6 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
-
-#if DOS386
-#include <dos.h>
-#include <sys\stat.h>
-#endif
 
 #if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <sys/types.h>
@@ -166,7 +161,7 @@ void *globalrealloc(void *oldp,size_t newsize)
     dbg_printf("globalrealloc(oldp = %p, size = x%x) = %p\n",oldp,newsize,p);
     return p;
 }
-
+
 /*****************************************
  * Functions to manage allocating a single virtual address space.
  */
@@ -610,32 +605,6 @@ unsigned long os_unique()
     return x;
 }
 
-#elif DOS386
-
-//////////////////////////////////////////
-// Return a value that will hopefully be unique every time
-// we call it.
-
-unsigned long os_unique()
-{
-    if (cputype() >= 5)                 // if cpuid instruction supported
-    {
-        __asm
-        {
-                mov     EAX,1
-                cpuid
-                test    EDX,0x20        // is rdtsc supported?
-                jz      L1              // no
-                rdtsc
-        }
-    }
-    else
-    {
-L1:     time(NULL);
-    }
-    return _EAX;
-}
-
 #endif
 
 /*******************************************
@@ -651,7 +620,7 @@ int os_file_exists(const char *name)
     DWORD dw;
     int result;
 
-    dw = GetFileAttributes(name);
+    dw = GetFileAttributesA(name);
     if (dw == -1L)
         result = 0;
     else if (dw & FILE_ATTRIBUTE_DIRECTORY)
@@ -659,13 +628,6 @@ int os_file_exists(const char *name)
     else
         result = 1;
     return result;
-#elif DOS386
-    struct FIND *find;
-
-    find = findfirst(name,FA_DIREC | FA_SYSTEM | FA_HIDDEN);
-    if (!find)
-        return 0;
-    return (find->attribute & FA_DIREC) ? 2 : 1;
 #elif __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     struct stat buf;
 
@@ -710,7 +672,7 @@ char *file_8dot3name(const char *filename)
     char *buf;
     int i;
 
-    h = FindFirstFile(filename,&fileinfo);
+    h = FindFirstFileA(filename,&fileinfo);
     if (h == INVALID_HANDLE_VALUE)
         return NULL;
     if (fileinfo.cAlternateFileName[0])
@@ -770,7 +732,7 @@ err:
     HANDLE h;
     DWORD numwritten;
 
-    h = CreateFileA((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
+    h = CreateFileA((LPCSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
     {
@@ -778,7 +740,7 @@ err:
         {
             if (!file_createdirs(name))
             {
-                h = CreateFileA((LPTSTR)name,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,
+                h = CreateFileA((LPCSTR)name, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
                     FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
                 if (h != INVALID_HANDLE_VALUE)
                     goto Lok;
@@ -801,9 +763,6 @@ Lok:
 err2:
     CloseHandle(h);
 err:
-    return 1;
-#endif
-#if _MSDOS
     return 1;
 #endif
 }
@@ -851,9 +810,6 @@ int file_createdirs(char *name)
     }
 
 Lfail:
-    return 1;
-#endif
-#if _MSDOS
     return 1;
 #endif
 }

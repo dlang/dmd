@@ -6561,6 +6561,19 @@ L1:     pop     RAX;
 
 /****************************************************/
 
+void testconst()
+{
+    ulong result;
+    asm
+    {
+        mov RAX, 0xFFFF_FFFFu;
+        mov result, RAX;
+    }
+    assert (result == 0xFFFF_FFFFu);
+}
+
+/****************************************************/
+
 void test9965()
 {
     ubyte* p;
@@ -6572,6 +6585,7 @@ void test9965()
 	0x40, 0xB5, 0x01,       // mov	BPL,1
 	0x40, 0xB4, 0x01,       // mov	SPL,1
 	0x41, 0xB0, 0x01,       // mov	R8B,1
+	0x40, 0x80, 0xE6, 0x01, // and  SIL,1 (issue 12971)
     ];
 
     asm
@@ -6584,6 +6598,7 @@ void test9965()
 	mov BPL, 1;
 	mov SPL, 1;
 	mov R8B, 1;
+	and SIL, 1;
 
 L1:     pop     RAX;
         mov     p[RBP],RAX;
@@ -6719,6 +6734,7 @@ int main()
     test9965();
     test12849();
     test12968();
+    testconst();
 
     printf("Success\n");
     return 0;

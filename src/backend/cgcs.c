@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2012 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -59,15 +59,15 @@ STATIC void touchfunc(int);
 STATIC void touchstar();
 STATIC void touchaccess(elem *);
 STATIC void touchall();
-
+
 /*******************************
  * Eliminate common subexpressions across extended basic blocks.
  * String together as many blocks as we can.
  */
 
 void comsubs()
-{ register block *bl,*blc,*bln;
-  register int n;                       /* # of blocks to treat as one  */
+{ block *bl,*blc,*bln;
+  int n;                       /* # of blocks to treat as one  */
 
 //static int xx;
 //printf("comsubs() %d\n", ++xx);
@@ -153,7 +153,7 @@ void cgcs_term()
     hcstab = NULL;
     hcsmax = 0;
 }
-
+
 /*************************
  * Eliminate common subexpressions for an element.
  */
@@ -455,7 +455,7 @@ STATIC void ecom(elem **pe)
  */
 
 STATIC unsigned cs_comphash(elem *e)
-{   register int hash;
+{   int hash;
     unsigned op;
 
     elem_debug(e);
@@ -490,7 +490,7 @@ STATIC void addhcstab(elem *e,int hash)
   {
         assert(h == hcsmax);
         // With 32 bit compiles, we've got memory to burn
-        hcsmax += (__INTSIZE == 4) ? (hcsmax + 128) : 100;
+        hcsmax += hcsmax + 128;
         assert(h < hcsmax);
 #if TX86
         hcstab = (hcs *) util_realloc(hcstab,hcsmax,sizeof(hcs));
@@ -503,7 +503,7 @@ STATIC void addhcstab(elem *e,int hash)
   hcstab[h].Hhash = hash;
   hcsarray.top++;
 }
-
+
 /***************************
  * "touch" the elem.
  * If it is a pointer, "touch" all the suspects
@@ -568,7 +568,7 @@ STATIC void touchlvalue(elem *e)
             assert(0);
     }
 }
-
+
 /**************************
  * "touch" variables that could be changed by a function call or
  * an indirect assignment.
@@ -653,8 +653,8 @@ STATIC void touchfunc(int flag)
  */
 
 STATIC void touchstar()
-{ register int i;
-  register elem *e;
+{ int i;
+  elem *e;
 
   for (i = hcsarray.touchstari; i < hcsarray.top; i++)
   {     e = hcstab[i].Helem;
@@ -686,8 +686,8 @@ STATIC void touchall()
  */
 
 STATIC void touchaccess(elem *ev)
-{ register int i;
-  register elem *e;
+{ int i;
+  elem *e;
 
   ev = ev->E1;
   for (i = 0; i < hcsarray.top; i++)

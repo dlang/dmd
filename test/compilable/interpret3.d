@@ -3637,7 +3637,7 @@ static assert({
     S6693 s;
     s.m[2] = 4;
     return 6693;
- }() == 6693);
+}() == 6693);
 
 /**************************************************
     7602   Segfault AA.keys on null AA
@@ -4585,6 +4585,15 @@ immutable string[] splitterNames13141 = MapResult13141!(e => "4")([4]).array1314
 **************************************************/
 
 static assert([1:2, 3:4] == [3:4, 1:2]);
+
+/**************************************************
+    14325 more AA comparisons
+**************************************************/
+
+static assert([1:1] != [1:2, 2:1]);      // OK
+static assert([1:1] != [1:2]);           // OK
+static assert([1:1] != [2:1]);           // OK <- Error
+static assert([1:1, 2:2] != [3:3, 4:4]); // OK <- Error
 
 /**************************************************
     7147 typeid()
@@ -7506,3 +7515,140 @@ void test14304()
     enum bt = Buggy14304.val.fun();
     static assert(bt == "fun");
 }
+
+/**************************************************
+    14371 - evaluate BinAssignExp as lvalue
+**************************************************/
+
+int test14371()
+{
+    int x;
+    ++(x += 1);
+    return x;
+}
+static assert(test14371() == 2);
+
+/**************************************************
+    7151 - [CTFE] cannot compare classes with ==
+**************************************************/
+
+bool test7151()
+{
+    auto a = new Object;
+    return a == a && a != new Object;
+}
+static assert(test7151());
+
+
+/**************************************************
+    12603 - [CTFE] goto does not correctly call dtors
+**************************************************/
+
+struct S12603
+{
+    this(uint* dtorCalled)
+    {
+        *dtorCalled = 0;
+        this.dtorCalled = dtorCalled;
+    }
+
+    @disable this();
+
+    ~this()
+    {
+        ++*dtorCalled;
+    }
+
+    uint* dtorCalled;
+}
+
+
+auto numDtorCallsByGotoWithinScope()
+{
+    uint dtorCalled;
+    {
+        S12603 s = S12603(&dtorCalled);
+        assert(dtorCalled == 0);
+        goto L_abc;
+        L_abc:
+        assert(dtorCalled == 0);
+    }
+    assert(dtorCalled == 1);
+    return dtorCalled;
+}
+static assert(numDtorCallsByGotoWithinScope() == 1);
+
+
+auto numDtorCallsByGotoOutOfScope()
+{
+    uint dtorCalled;
+    {
+        S12603 s = S12603(&dtorCalled);
+        assert(dtorCalled == 0);
+        goto L_abc;
+    }
+    L_abc:
+    assert(dtorCalled == 1);
+    return dtorCalled;
+}
+static assert(numDtorCallsByGotoOutOfScope() == 1);
+
+
+uint numDtorCallsByGotoDifferentScopeAfter()
+{
+    uint dtorCalled;
+    {
+        S12603 s = S12603(&dtorCalled);
+        assert(dtorCalled == 0);
+    }
+    assert(dtorCalled == 1);
+    goto L_abc;
+    L_abc:
+    assert(dtorCalled == 1);
+    return dtorCalled;
+}
+static assert(numDtorCallsByGotoDifferentScopeAfter() == 1);
+
+
+auto numDtorCallsByGotoDifferentScopeBefore()
+{
+    uint dtorCalled;
+    assert(dtorCalled == 0);
+    goto L_abc;
+    L_abc:
+    assert(dtorCalled == 0);
+    {
+        S12603 s = S12603(&dtorCalled);
+        assert(dtorCalled == 0);
+    }
+    assert(dtorCalled == 1);
+    return dtorCalled;
+}
+static assert(numDtorCallsByGotoDifferentScopeBefore() == 1);
+
+
+struct S12603_2
+{
+    ~this()
+    {
+        dtorCalled = true;
+    }
+
+    bool dtorCalled = false;
+}
+
+auto structInCaseScope()
+{
+    auto charsets = S12603_2();
+    switch(1)
+    {
+    case 0:
+        auto set = charsets;
+        break;
+    default:
+        break;
+    }
+    return charsets.dtorCalled;
+}
+
+static assert(!structInCaseScope());

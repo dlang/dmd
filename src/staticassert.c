@@ -38,9 +38,9 @@ Dsymbol *StaticAssert::syntaxCopy(Dsymbol *s)
     return new StaticAssert(loc, exp->syntaxCopy(), msg ? msg->syntaxCopy() : NULL);
 }
 
-int StaticAssert::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
+void StaticAssert::addMember(Scope *sc, ScopeDsymbol *sds)
 {
-    return 0;           // we didn't add anything
+    // we didn't add anything
 }
 
 void StaticAssert::semantic(Scope *sc)
@@ -65,7 +65,7 @@ void StaticAssert::semantic2(Scope *sc)
     // Simplify expression, to make error messages nicer if CTFE fails
     e = e->optimize(WANTvalue);
 
-    if (!e->type->checkBoolean())
+    if (!e->type->isBoolean())
     {
         if (e->type->toBasetype() != Type::terror)
             exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());

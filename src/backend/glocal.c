@@ -1,5 +1,5 @@
 // Copyright (C) 1993-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -9,15 +9,11 @@
  * For any other uses, please contact Digital Mars.
  */
 
-#if !DEMO && !SPP
+#if !SPP
 
 #include        <stdio.h>
 #include        <stdlib.h>
 #include        <time.h>
-
-#if __sun || _MSC_VER
-#include        <alloca.h>
-#endif
 
 #include        "cc.h"
 #include        "global.h"
@@ -82,7 +78,7 @@ void localize()
 
     // Table should not get any larger than the symbol table
     locmax = globsym.symmax;
-    loctab = (loc_t *) alloca(locmax * sizeof(*loctab));
+    loctab = (loc_t *) malloc(locmax * sizeof(*loctab));
 
     for (b = startblock; b; b = b->Bnext)       /* for each block        */
     {
@@ -100,6 +96,8 @@ void localize()
             local_exp(b->Belem,0);
         }
     }
+    free(loctab);
+    locmax = 0;
 }
 
 //////////////////////////////////////

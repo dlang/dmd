@@ -708,6 +708,49 @@ extern(C++, N13337.M13337)
 }
 
 /****************************************/
+// 14195
+
+struct Delegate1(T) {}
+struct Delegate2(T1, T2) {}
+
+template Signature(T)
+{
+    alias Signature = typeof(*(T.init));
+}
+
+extern(C++)
+{
+    alias del1_t = Delegate1!(Signature!(void function()));
+    alias del2_t = Delegate2!(Signature!(int function(float, double)), Signature!(int function(float, double)));
+    void test14195a(del1_t);
+    void test14195b(del2_t);
+}
+
+void test14195()
+{
+    test14195a(del1_t());
+    test14195b(del2_t());
+}
+
+
+/****************************************/
+// 14200
+
+template Tuple14200(T...)
+{
+  alias Tuple14200 = T;
+}
+
+extern(C++) void test14200a(Tuple14200!(int));
+extern(C++) void test14200b(float, Tuple14200!(int, double));
+
+void test14200()
+{
+  test14200a(1);
+  test14200b(1.0f, 1, 1.0);
+}
+
+/****************************************/
 
 void main()
 {
@@ -736,6 +779,8 @@ void main()
     func13707();
     func13932(S13932!(-1)(0));
     foo13337(S13337());
+    test14195();
+    test14200();
 
     printf("Success\n");
 }

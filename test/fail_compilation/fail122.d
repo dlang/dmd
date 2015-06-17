@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail122.d(12): Error: undefined identifier y
+fail_compilation/fail122.d(12): Error: undefined identifier 'y'
 ---
 */
 

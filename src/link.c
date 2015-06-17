@@ -584,10 +584,12 @@ int runLINK()
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
     {   const char *p = (*global.params.linkswitches)[i];
         if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
+        {
             // Don't need -Xlinker if switch starts with -l or -L.
             // Eliding -Xlinker is significant for -L since it allows our paths
             // to take precedence over gcc defaults.
             argv.push("-Xlinker");
+        }
         argv.push(p);
     }
 
@@ -784,8 +786,10 @@ int executecmd(const char *cmd, const char *args)
 
     status = executearg0(cmd,args);
     if (status == -1)
+    {
         // spawnlp returns intptr_t in some systems, not int
         status = spawnlp(0,cmd,cmd,args,NULL);
+    }
 
 //    if (global.params.verbose)
 //      fprintf(global.stdmsg, "\n");
@@ -839,8 +843,8 @@ int runProgram()
     if (global.params.verbose)
     {
         fprintf(global.stdmsg, "%s", global.params.exefile);
-        for (size_t i = 0; i < global.params.runargs_length; i++)
-            fprintf(global.stdmsg, " %s", (char *)global.params.runargs[i]);
+        for (size_t i = 0; i < global.params.runargs.dim; ++i)
+            fprintf(global.stdmsg, " %s", global.params.runargs[i]);
         fprintf(global.stdmsg, "\n");
     }
 
@@ -848,7 +852,7 @@ int runProgram()
     Strings argv;
 
     argv.push(global.params.exefile);
-    for (size_t i = 0; i < global.params.runargs_length; i++)
+    for (size_t i = 0; i < global.params.runargs.dim; ++i)
     {   const char *a = global.params.runargs[i];
 
 #if _WIN32

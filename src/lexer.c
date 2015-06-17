@@ -130,11 +130,6 @@ void Lexer::endOfLine()
     line = p;
 }
 
-Loc Lexer::loc()
-{
-    scanloc.charnum = (unsigned)(1 + p-line);
-    return scanloc;
-}
 
 void Lexer::error(const char *format, ...)
 {

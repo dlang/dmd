@@ -4,9 +4,9 @@ TEST_OUTPUT:
 fail_compilation/fail3672.d(28): Deprecation: read-modify-write operations are not allowed for shared variables. Use core.atomic.atomicOp!"+="(*p, 1) instead.
 fail_compilation/fail3672.d(32): Deprecation: read-modify-write operations are not allowed for shared variables. Use core.atomic.atomicOp!"+="(*sfp, 1) instead.
 fail_compilation/fail3672.d(32): Error: '*sfp += 1' is not a scalar, it is a shared(SF)
-fail_compilation/fail3672.d(32): Error: incompatible types for ((*sfp) += (1)): 'shared(SF)' and 'int'
 ---
 */
+
 struct SF  // should fail
 {
     void opOpAssign(string op, T)(T rhs)

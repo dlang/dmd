@@ -1403,6 +1403,32 @@ void test13021()
 }
 
 /********************************************/
+// 14556
+
+enum E14556 { a = 1 }
+
+struct S14556a
+{
+    this(int) {}
+    E14556[1] data;
+}
+
+struct S14556b
+{
+    this(int) {}
+    void[1] data;
+}
+
+void test14556()
+{
+    auto sa = S14556a(0);
+    assert(sa.data == [E14556.a]);
+
+    auto sb = S14556b(0);
+    assert(sb.data[] == cast(ubyte[1])[0]);
+}
+
+/********************************************/
 
 int main()
 {
@@ -1448,6 +1474,7 @@ int main()
     test11147();
     test11256();
     test13021();
+    test14556();
 
     printf("Success\n");
     return 0;

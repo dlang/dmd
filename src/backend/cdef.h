@@ -40,7 +40,6 @@
         _M_AMD64        AMD 64 processor
 
     Hosts no longer supported:
-        __INTSIZE==2    16 bit compilations
         __OS2__         IBM OS/2
         DOS386          32 bit DOS extended executable
         DOS16RM         Rational Systems 286 DOS extender
@@ -208,10 +207,6 @@ One and only one of these macros must be set by the makefile:
 #define SUFFIX  "a"
 #elif _WIN32
 #define SUFFIX  "n"
-#elif DOS386
-#define SUFFIX  "x"
-#elif DOS16RM
-#define SUFFIX  "r"
 #else
 #define SUFFIX  ""
 #endif
@@ -248,14 +243,6 @@ One and only one of these macros must be set by the makefile:
 
 
 #define STATEMENT_SCOPES CPP
-
-#if __GNUC__
-#define LONGLONG        1
-#elif __SC__ > 0 && __SC__ < 0x700
-#define LONGLONG        0
-#else
-#define LONGLONG        1               // add in code to support 64 bit integral types
-#endif
 
 #if __GNUC__
 #define LDOUBLE                 0       // no support for true long doubles
@@ -346,7 +333,6 @@ typedef long double longdouble;
 #endif
 #define ARG_TRUE
 #define ARG_FALSE
-#define T68000(x)
 #define T80x86(x)       x
 
 // For Share MEM_ macros - default to mem_xxx package
@@ -435,7 +421,7 @@ typedef long double longdouble;
 #endif
 
 #define TOOFFSET(a,b)   (I32 ? TOLONG(a,b) : TOWORD(a,b))
-
+
 /***************************
  * Target machine data types as they appear on the host.
  */
@@ -447,13 +433,8 @@ typedef short           targ_short;
 typedef unsigned short  targ_ushort;
 typedef int             targ_long;
 typedef unsigned        targ_ulong;
-#if LONGLONG
-typedef long long               targ_llong;
+typedef long long       targ_llong;
 typedef unsigned long long      targ_ullong;
-#else
-#define targ_llong      targ_long
-#define targ_ullong     targ_ulong
-#endif
 typedef float           targ_float;
 typedef double          targ_double;
 typedef longdouble      targ_ldouble;
@@ -545,17 +526,10 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define LONGMASK        0xFFFFFFFF
 
 /* Common constants often checked for */
-#if LONGLONG
 #define LLONGMASK       0xFFFFFFFFFFFFFFFFLL
 #define ZEROLL          0LL
 #define MINLL           0x8000000000000000LL
 #define MAXLL           0x7FFFFFFFFFFFFFFFLL
-#else
-#define LLONGMASK       0xFFFFFFFFLL
-#define ZEROLL          0L
-#define MINLL           0x80000000
-#define MAXLL           0x7FFFFFFF
-#endif
 
 #define Smodel 0        /* 64k code, 64k data, or flat model           */
 
@@ -622,7 +596,7 @@ Written by Walter Bright"
 #endif
 #endif
 #endif
-
+
 /**********************************
  * Configuration
  */
@@ -947,6 +921,8 @@ union eve
         targ_llong      Vllong;
         targ_ullong     Vullong;
         Cent            Vcent;
+        targ_float      Vfloat4[4];
+        targ_double     Vdouble2[2];
         targ_float      Vfloat;
         targ_double     Vdouble;
         targ_ldouble    Vldouble;

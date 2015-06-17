@@ -186,7 +186,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
                 {
                     s = sd->search_correct(id);
                     if (s)
-                        error(loc, "'%s' is not a member of '%s', did you mean '%s %s'?",
+                        error(loc, "'%s' is not a member of '%s', did you mean %s '%s'?",
                               id->toChars(), sd->toChars(), s->kind(), s->toChars());
                     else
                         error(loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());

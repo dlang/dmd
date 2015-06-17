@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -29,11 +29,7 @@
 #include        "tytab.c"
 
 #if __SC__ && _MSDOS
-#if __INTSIZE == 4
 unsigned __cdecl _stack = 100000;       // set default stack size
-#else
-unsigned __cdecl _stack = 60000;        // set default stack size
-#endif
 #endif
 
 /* Global flags:
@@ -153,7 +149,7 @@ int xc = ' ';           // character last read
  */
 
 int colnumber = 0;              /* current column number                */
-
+
 /* Other variables: */
 
 int level = 0;                  /* declaration level                    */

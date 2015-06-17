@@ -294,6 +294,29 @@ struct S14376
 }
 
 /***************************************************/
+// 14351
+
+class B14351
+{
+    this(inout int[]) inout { }
+}
+
+class D14351a : B14351
+{
+    this(int[] arr) { super(arr); }
+}
+
+class D14351b : B14351
+{
+    this(const int[] arr) const { super(arr); }
+}
+
+class D14351c : B14351
+{
+    this(inout int[] arr) inout { super(arr); }
+}
+
+/***************************************************/
 
 int main()
 {
