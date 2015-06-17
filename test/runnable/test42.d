@@ -5412,6 +5412,7 @@ void test9171()
 }
 
 /***************************************************/
+// 9248
 
 void test9248()
 {
@@ -5419,6 +5420,111 @@ void test9248()
     void*[] b = [cast(void*)2];
     auto c = a ~ b;
     assert(c == [cast(void*)1, cast(void*)2]);
+}
+
+/***************************************************/
+// 14682
+
+void test14682a()
+{
+    // operands
+    int[]       a1;
+    int[][]     a2;
+    int[][][]   a3;
+    int[][][][] a4;
+
+    // results
+    int[]       r1w =    [];    assert(r1w.length == 0);
+    int[][]     r2w =    [];    assert(r2w.length == 0);
+    int[][][]   r3w =    [];    assert(r3w.length == 0);
+    int[][][][] r4w =    [];    assert(r4w.length == 0);
+    // ----
+    int[][]     r2x =   [[]];   assert(r2x.length == 1 && r2x[0].length == 0);
+    int[][][]   r3x =   [[]];   assert(r3x.length == 1 && r3x[0].length == 0);
+    int[][][][] r4x =   [[]];   assert(r4x.length == 1 && r4x[0].length == 0);
+    // ----
+    int[][][]   r3y =  [[[]]];  assert(r3y.length == 1 && r3y[0].length == 1 && r3y[0][0].length == 0);
+    int[][][][] r4y =  [[[]]];  assert(r4y.length == 1 && r4y[0].length == 1 && r4y[0][0].length == 0);
+    // ----
+    int[][][][] r4z = [[[[]]]]; assert(r4z.length == 1 && r4z[0].length == 1 && r4z[0][0].length == 1 && r4z[0][0][0].length == 0);
+
+    // ArrayLiteralExp conforms to the type of LHS.
+    { auto x = a1 ~    []   ;   static assert(is(typeof(x) == typeof(a1))); assert(x == r1w); } // no ambiguity
+    { auto x = a2 ~    []   ;   static assert(is(typeof(x) == typeof(a2))); assert(x == r2w); } // fix <- ambiguity
+    { auto x = a3 ~    []   ;   static assert(is(typeof(x) == typeof(a3))); assert(x == r3w); } // fix <- ambiguity
+    { auto x = a4 ~    []   ;   static assert(is(typeof(x) == typeof(a4))); assert(x == r4w); } // fix <- ambiguity
+    // ----
+  //{ auto x = a1 ~   [[]]  ; } // (see test14682b)
+    { auto x = a2 ~   [[]]  ;   static assert(is(typeof(x) == typeof(a2))); assert(x == r2x); } // no ambiguity
+    { auto x = a3 ~   [[]]  ;   static assert(is(typeof(x) == typeof(a3))); assert(x == r3x); } // fix <- ambiguity
+    { auto x = a4 ~   [[]]  ;   static assert(is(typeof(x) == typeof(a4))); assert(x == r4x); } // fix <- ambiguity
+    // ----
+    static assert(!__traits(compiles, { auto x = a1 ~   [[[]]] ; }));
+  //{ auto x = a2 ~  [[[]]] ; } // (see test14682b)
+    { auto x = a3 ~  [[[]]] ;   static assert(is(typeof(x) == typeof(a3))); assert(x == r3y); } // no ambiguity
+    { auto x = a4 ~  [[[]]] ;   static assert(is(typeof(x) == typeof(a4))); assert(x == r4y); } // fix <- ambiguity
+    // ----
+    static assert(!__traits(compiles, { auto x = a1 ~  [[[[]]]]; }));
+    static assert(!__traits(compiles, { auto x = a2 ~  [[[[]]]]; }));
+  //{ auto x = a3 ~ [[[[]]]]; } // (see test14682b)
+    { auto x = a4 ~ [[[[]]]];   static assert(is(typeof(x) == typeof(a4))); assert(x == r4z); } // no ambiguity
+
+    // ArrayLiteralExp conforms to the type of RHS.
+    { auto x =    []    ~ a1;   static assert(is(typeof(x) == typeof(a1))); assert(x == r1w); } // no ambiguity
+    { auto x =    []    ~ a2;   static assert(is(typeof(x) == typeof(a2))); assert(x == r2w); } // fix <- ambiguity
+    { auto x =    []    ~ a3;   static assert(is(typeof(x) == typeof(a3))); assert(x == r3w); } // fix <- ambiguity
+    { auto x =    []    ~ a4;   static assert(is(typeof(x) == typeof(a4))); assert(x == r4w); } // fix <- ambiguity
+    // ----
+  //{ auto x =   [[]]   ~ a1; } // (see test14682b)
+    { auto x =   [[]]   ~ a2;   static assert(is(typeof(x) == typeof(a2))); assert(x == r2x); } // no ambiguity
+    { auto x =   [[]]   ~ a3;   static assert(is(typeof(x) == typeof(a3))); assert(x == r3x); } // fix <- ambiguity
+    { auto x =   [[]]   ~ a4;   static assert(is(typeof(x) == typeof(a4))); assert(x == r4x); } // fix <- ambiguity
+    // ----
+    static assert(!__traits(compiles, { auto x =  [[[]]]  ~ a1; }));
+  //{ auto x =  [[[]]]  ~ a2; } // (see test14682b)
+    { auto x =  [[[]]]  ~ a3;   static assert(is(typeof(x) == typeof(a3))); assert(x == r3y); } // no ambiguity
+    { auto x =  [[[]]]  ~ a4;   static assert(is(typeof(x) == typeof(a4))); assert(x == r4y); } // fix <- ambiguity
+    // ----
+    static assert(!__traits(compiles, { auto x = [[[[]]]] ~ a1; }));
+    static assert(!__traits(compiles, { auto x = [[[[]]]] ~ a2; }));
+  //{ auto x = [[[[]]]] ~ a3; } // (see test14682b)
+    { auto x = [[[[]]]] ~ a4;   static assert(is(typeof(x) == typeof(a4))); assert(x == r4z); } // no ambiguity
+}
+
+void test14682b()
+{
+    // operands
+    int[]       a1;
+    int[][]     a2;
+    int[][][]   a3;
+    int[][][][] a4;
+
+    // results
+    int[][]     r2a = [[],   []  ]; assert(r2a.length == 2 && r2a[0].length == 0 && r2a[1].length == 0);
+  //int[][][]   r3a = [[],  [[]] ]; // should work, but doesn't
+  //int[][][][] r4a = [[], [[[]]]]; // should work, but doesn't
+    int[][][]   r3a;  { r3a.length = 2; r3a[0] = []; r3a[1] =  [[]] ; }
+                                    assert(r3a.length == 2 && r3a[0].length == 0 && r3a[1].length == 1 && r3a[1][0].length == 0);
+    int[][][][] r4a;  { r4a.length = 2; r4a[0] = []; r4a[1] = [[[]]]; }
+                                    assert(r4a.length == 2 && r4a[0].length == 0 && r4a[1].length == 1 && r4a[1][0].length == 1 && r4a[1][0][0].length == 0);
+    // ----
+    int[][]     r2b = [  []  , []]; assert(r2b.length == 2 && r2b[1].length == 0 && r2b[0].length == 0);
+  //int[][][]   r3b = [ [[]] , []]; // should work, but doesn't
+  //int[][][][] r4b = [[[[]]], []]; // should work, but doesn't
+    int[][][]   r3b;  { r3b.length = 2; r3b[0] =  [[]] ; r3b[1] = []; }
+                                    assert(r3b.length == 2 && r3b[1].length == 0 && r3b[0].length == 1 && r3b[0][0].length == 0);
+    int[][][][] r4b;  { r4b.length = 2; r4b[0] = [[[]]]; r4b[1] = []; }
+                                    assert(r4b.length == 2 && r4b[1].length == 0 && r4b[0].length == 1 && r4b[0][0].length == 1 && r4b[0][0][0].length == 0);
+
+    // ArrayLiteralExp conforms to the typeof(LHS)->arrayOf().
+    { auto x = a1 ~   [[]]  ;   static assert(is(typeof(x) == typeof(a1)[])); assert(x == r2a); } // fix
+    { auto x = a2 ~  [[[]]] ;   static assert(is(typeof(x) == typeof(a2)[])); assert(x == r3a); } // fix
+    { auto x = a3 ~ [[[[]]]];   static assert(is(typeof(x) == typeof(a3)[])); assert(x == r4a); } // fix
+
+    // ArrayLiteralExp conforms to the typeof(RHS)->arrayOf().
+    { auto x =   [[]]   ~ a1;   static assert(is(typeof(x) == typeof(a1)[])); assert(x == r2b); } // fix
+    { auto x =  [[[]]]  ~ a2;   static assert(is(typeof(x) == typeof(a2)[])); assert(x == r3b); } // fix
+    { auto x = [[[[]]]] ~ a3;   static assert(is(typeof(x) == typeof(a3)[])); assert(x == r4b); } // fix
 }
 
 /***************************************************/
@@ -6151,6 +6257,8 @@ int main()
     test8796();
     test9171();
     test9248();
+    test14682a();
+    test14682b();
     test9739();
     testdbl_to_ulong();
     testdbl_to_uint();
