@@ -12408,52 +12408,89 @@ Expression *CatExp::semantic(Scope *sc)
     Type *tb1next = tb1->nextOf();
     Type *tb2next = tb2->nextOf();
 
+    // Check for: array ~ array
     if (tb1next && tb2next &&
         (tb1next->implicitConvTo(tb2next) >= MATCHconst ||
-         tb2next->implicitConvTo(tb1next) >= MATCHconst)
+         tb2next->implicitConvTo(tb1next) >= MATCHconst ||
+         e1->op == TOKarrayliteral && e1->implicitConvTo(tb2) ||
+         e2->op == TOKarrayliteral && e2->implicitConvTo(tb1)
+        )
        )
     {
-        /* Here to avoid the case of:
+        /* Bugzilla 9248: Here to avoid the case of:
          *    void*[] a = [cast(void*)1];
          *    void*[] b = [cast(void*)2];
          *    a ~ b;
          * becoming:
          *    a ~ [cast(void*)b];
          */
-    }
-    else if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
-        e2->implicitConvTo(tb1next) >= MATCHconvert &&
-        tb2->ty != Tvoid)
-    {
-        if (e2->checkPostblit(sc, tb2))
-            return new ErrorExp();
-        e2 = e2->implicitCastTo(sc, tb1next);
-        type = tb1next->arrayOf();
-        if (tb2->ty == Tarray || tb2->ty == Tsarray)
-        {
-            // Make e2 into [e2]
-            e2 = new ArrayLiteralExp(e2->loc, e2);
-            e2->type = type;
-        }
-        return this;
-    }
-    else if ((tb2->ty == Tsarray || tb2->ty == Tarray) &&
-        e1->implicitConvTo(tb2next) >= MATCHconvert &&
-        tb1->ty != Tvoid)
-    {
-        if (e1->checkPostblit(sc, tb1))
-            return new ErrorExp();
-        e1 = e1->implicitCastTo(sc, tb2next);
-        type = tb2next->arrayOf();
-        if (tb1->ty == Tarray || tb1->ty == Tsarray)
-        {
-            // Make e1 into [e1]
-            e1 = new ArrayLiteralExp(e1->loc, e1);
-            e1->type = type;
-        }
-        return this;
+
+        /* Bugzilla 14682: Also to avoid the case of:
+         *    int[][] a;
+         *    a ~ [];
+         * becoming:
+         *    a ~ cast(int[])[];
+         */
+        goto Lpeer;
     }
 
+    // Check for: array ~ element
+    if ((tb1->ty == Tsarray || tb1->ty == Tarray) && tb2->ty != Tvoid)
+    {
+        if (e1->op == TOKarrayliteral && e1->implicitConvTo(tb2->arrayOf()))
+        {
+            if (e2->checkPostblit(sc, tb2))
+                return new ErrorExp();
+            e1 = e1->implicitCastTo(sc, tb2->arrayOf());
+            type = tb2->arrayOf();
+            goto L2elem;
+        }
+        if (e2->implicitConvTo(tb1next) >= MATCHconvert)
+        {
+            if (e2->checkPostblit(sc, tb2))
+                return new ErrorExp();
+            e2 = e2->implicitCastTo(sc, tb1next);
+            type = tb1next->arrayOf();
+        L2elem:
+            if (tb2->ty == Tarray || tb2->ty == Tsarray)
+            {
+                // Make e2 into [e2]
+                e2 = new ArrayLiteralExp(e2->loc, e2);
+                e2->type = type;
+            }
+            return this;
+        }
+    }
+    // Check for: element ~ array
+    if ((tb2->ty == Tsarray || tb2->ty == Tarray) && tb1->ty != Tvoid)
+    {
+        if (e2->op == TOKarrayliteral &&
+            e2->implicitConvTo(tb1->arrayOf()))
+        {
+            if (e1->checkPostblit(sc, tb1))
+                return new ErrorExp();
+            e2 = e2->implicitCastTo(sc, tb1->arrayOf());
+            type = tb1->arrayOf();
+            goto L1elem;
+        }
+        if (e1->implicitConvTo(tb2next) >= MATCHconvert)
+        {
+            if (e1->checkPostblit(sc, tb1))
+                return new ErrorExp();
+            e1 = e1->implicitCastTo(sc, tb2next);
+            type = tb2next->arrayOf();
+        L1elem:
+            if (tb1->ty == Tarray || tb1->ty == Tsarray)
+            {
+                // Make e1 into [e1]
+                e1 = new ArrayLiteralExp(e1->loc, e1);
+                e1->type = type;
+            }
+            return this;
+        }
+    }
+
+Lpeer:
     if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
         (tb2->ty == Tsarray || tb2->ty == Tarray) &&
         (tb1next->mod || tb2next->mod) &&
