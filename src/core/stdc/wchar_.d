@@ -17,7 +17,7 @@ module core.stdc.wchar_;
 private import core.stdc.config;
 private import core.stdc.stdarg; // for va_list
 private import core.stdc.stdio;  // for FILE, not exposed per spec
-public import core.stdc.stddef;  // for size_t, wchar_t
+public import core.stdc.stddef;  // for wchar_t
 public import core.stdc.time;    // for tm
 public import core.stdc.stdint;  // for WCHAR_MIN, WCHAR_MAX
 
@@ -26,8 +26,26 @@ extern (C):
 nothrow:
 @nogc:
 
-///
-alias int     mbstate_t;
+version( CRuntime_Glibc )
+{
+    ///
+    struct mbstate_t
+    {
+        int __count;
+        union ___value
+        {
+            wint_t __wch;
+            char[4] __wchb;
+        }
+        ___value __value;
+    }
+}
+else
+{
+    ///
+    alias int mbstate_t;
+}
+
 ///
 alias wchar_t wint_t;
 

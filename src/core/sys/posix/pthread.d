@@ -93,7 +93,7 @@ int pthread_setcanceltype(int, int*);
 int pthread_setspecific(pthread_key_t, in void*);
 void pthread_testcancel();
 */
-version( linux )
+version( CRuntime_Glibc )
 {
     enum
     {
@@ -162,8 +162,8 @@ else version( OSX )
         PTHREAD_EXPLICIT_SCHED  = 2
     }
 
-    enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
-    enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
+    enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t(0x32AAABA7);
+    enum PTHREAD_ONCE_INIT          = pthread_once_t(0x30b1bcba);
 
     enum
     {
@@ -239,7 +239,7 @@ else version (Solaris)
     enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
     enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum
     {
@@ -261,19 +261,16 @@ else
     static assert(false, "Unsupported platform");
 }
 
-version( Posix )
-{
-    int pthread_atfork(void function(), void function(), void function());
-    int pthread_attr_destroy(pthread_attr_t*);
-    int pthread_attr_getdetachstate(in pthread_attr_t*, int*);
-    int pthread_attr_getschedparam(in pthread_attr_t*, sched_param*);
-    int pthread_attr_init(pthread_attr_t*);
-    int pthread_attr_setdetachstate(pthread_attr_t*, int);
-    int pthread_attr_setschedparam(in pthread_attr_t*, sched_param*);
-    int pthread_cancel(pthread_t);
-}
+int pthread_atfork(void function(), void function(), void function());
+int pthread_attr_destroy(pthread_attr_t*);
+int pthread_attr_getdetachstate(in pthread_attr_t*, int*);
+int pthread_attr_getschedparam(in pthread_attr_t*, sched_param*);
+int pthread_attr_init(pthread_attr_t*);
+int pthread_attr_setdetachstate(pthread_attr_t*, int);
+int pthread_attr_setschedparam(in pthread_attr_t*, sched_param*);
+int pthread_cancel(pthread_t);
 
-version( linux )
+version( CRuntime_Glibc )
 {
     alias void function(void*) _pthread_cleanup_routine;
 
@@ -394,7 +391,7 @@ else version (Solaris)
     void __pthread_cleanup_push(_pthread_cleanup_routine, void*, caddr_t, _pthread_cleanup_info*);
     void __pthread_cleanup_pop(int, _pthread_cleanup_info*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     alias void function(void*) __pthread_cleanup_func_t;
 
@@ -424,13 +421,12 @@ else version( Android )
         }
     }
 }
-else version( Posix )
+else
 {
-    void pthread_cleanup_push(void function(void*), void*);
-    void pthread_cleanup_pop(int);
+    static assert(false, "Unsupported platform");
 }
 
-version( Posix )
+@nogc
 {
     int pthread_cond_broadcast(pthread_cond_t*);
     int pthread_cond_destroy(pthread_cond_t*);
@@ -487,7 +483,7 @@ int pthread_barrierattr_init(pthread_barrierattr_t*);
 int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int); (BAR|TSH)
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum PTHREAD_BARRIER_SERIAL_THREAD = -1;
 
@@ -526,7 +522,7 @@ else version (Solaris)
     int pthread_barrierattr_init(pthread_barrierattr_t*);
     int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
 }
 else
@@ -553,7 +549,7 @@ int pthread_spin_trylock(pthread_spinlock_t*);
 int pthread_spin_unlock(pthread_spinlock_t*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int pthread_spin_destroy(pthread_spinlock_t*);
     int pthread_spin_init(pthread_spinlock_t*, int);
@@ -580,7 +576,7 @@ else version (Solaris)
     int pthread_spin_trylock(pthread_spinlock_t*);
     int pthread_spin_unlock(pthread_spinlock_t*);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
 }
 else
@@ -605,7 +601,7 @@ int pthread_mutexattr_settype(pthread_mutexattr_t*, int);
 int pthread_setconcurrency(int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum PTHREAD_MUTEX_NORMAL       = 0;
     enum PTHREAD_MUTEX_RECURSIVE    = 1;
@@ -670,7 +666,7 @@ else version (Solaris)
     int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
     int pthread_setconcurrency(int);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     enum PTHREAD_MUTEX_NORMAL     = 0;
     enum PTHREAD_MUTEX_RECURSIVE  = 1;
@@ -694,7 +690,7 @@ else
 int pthread_getcpuclockid(pthread_t, clockid_t*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
@@ -708,7 +704,7 @@ else version (OSX)
 else version (Solaris)
 {
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
@@ -726,7 +722,7 @@ int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
 int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
@@ -750,7 +746,7 @@ else version (Solaris)
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
@@ -826,7 +822,7 @@ int pthread_setschedparam(pthread_t, int, in sched_param*);
 int pthread_setschedprio(pthread_t, int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum
     {
@@ -898,7 +894,7 @@ else version (Solaris)
     int pthread_setschedparam(pthread_t, int, sched_param*);
     int pthread_setschedprio(pthread_t, int);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     enum
     {
@@ -930,7 +926,7 @@ int pthread_attr_setstackaddr(pthread_attr_t*, void*); (TSA)
 int pthread_attr_setstacksize(pthread_attr_t*, size_t); (TSS)
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_getstackaddr(in pthread_attr_t*, void**);
@@ -966,7 +962,7 @@ else version (Solaris)
     int pthread_attr_setstackaddr(pthread_attr_t*, void*);
     int pthread_attr_setstacksize(pthread_attr_t*, size_t);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_getstackaddr(in pthread_attr_t*, void**);

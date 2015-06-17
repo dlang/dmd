@@ -144,7 +144,6 @@ nothrow:
         return pools[npools .. len];
     }
 
-    debug (INVARIANT)
     void Invariant() const
     {
         if (!npools) return;

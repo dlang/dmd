@@ -16,7 +16,6 @@
 module core.stdc.time;
 
 private import core.stdc.config;
-private import core.stdc.stddef; // for size_t
 
 extern (C):
 @trusted: // There are only a few functions here that use unsafe C strings.
@@ -39,7 +38,7 @@ version( Windows )
         int     tm_isdst;   /// Daylight Saving Time flag
     }
 }
-else
+else version( Posix )
 {
     ///
     struct tm
@@ -62,7 +61,7 @@ version ( Posix )
 {
     public import core.sys.posix.sys.types : time_t, clock_t;
 }
-else
+else version ( Windows )
 {
     ///
     alias c_long time_t;
@@ -83,11 +82,11 @@ else version( FreeBSD )
 {
     enum clock_t CLOCKS_PER_SEC = 128;
 }
-else version (linux)
+else version (CRuntime_Glibc)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
 }
@@ -132,7 +131,7 @@ else version( OSX )
     ///
     extern __gshared const(char)*[2] tzname; // non-standard
 }
-else version( linux )
+else version( CRuntime_Glibc )
 {
     ///
     void tzset();                            // non-standard
@@ -153,7 +152,7 @@ else version (Solaris)
     ///
     extern __gshared const(char)*[2] tzname;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     ///
     void tzset();

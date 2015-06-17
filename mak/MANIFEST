@@ -5,6 +5,7 @@ MANIFEST=\
 	posix.mak \
 	win32.mak \
 	win64.mak \
+	osmodel.mak \
 	project.ddoc \
 	\
 	mak\COPY \
@@ -13,8 +14,7 @@ MANIFEST=\
 	mak\MANIFEST \
 	mak\SRCS \
 	\
-	src\object_.d \
-	src\object.di \
+	src\object.d \
 	src\test_runner.d \
 	\
 	src\core\atomic.d \
@@ -228,6 +228,7 @@ MANIFEST=\
 	src\rt\minit.asm \
 	src\rt\monitor_.d \
 	src\rt\obj.d \
+	src\rt\profilegc.d \
 	src\rt\qsort.d \
 	src\rt\sections.d \
 	src\rt\sections_android.d \
@@ -239,6 +240,7 @@ MANIFEST=\
 	src\rt\switch_.d \
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
+	src\rt\tracegc.d \
 	\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
@@ -265,6 +267,7 @@ MANIFEST=\
 	src\rt\typeinfo\ti_byte.d \
 	src\rt\typeinfo\ti_C.d \
 	src\rt\typeinfo\ti_cdouble.d \
+	src\rt\typeinfo\ti_cent.d \
 	src\rt\typeinfo\ti_cfloat.d \
 	src\rt\typeinfo\ti_char.d \
 	src\rt\typeinfo\ti_creal.d \
@@ -281,6 +284,7 @@ MANIFEST=\
 	src\rt\typeinfo\ti_real.d \
 	src\rt\typeinfo\ti_short.d \
 	src\rt\typeinfo\ti_ubyte.d \
+	src\rt\typeinfo\ti_ucent.d \
 	src\rt\typeinfo\ti_uint.d \
 	src\rt\typeinfo\ti_ulong.d \
 	src\rt\typeinfo\ti_ushort.d \

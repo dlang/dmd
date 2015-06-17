@@ -96,7 +96,7 @@ int    vsprintf(char*, in char*, va_list);
 int    vsscanf(in char*, in char*, va_list arg);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     /*
      * actually, if __USE_FILE_OFFSET64 && !_LARGEFILE64_SOURCE
@@ -132,7 +132,7 @@ version( linux )
         FILE* tmpfile();
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     int   fgetpos(FILE*, fpos_t *);
     FILE* fopen(in char*, in char*);
@@ -157,7 +157,7 @@ int    pclose(FILE*);
 FILE*  popen(in char*, in char*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum L_ctermid = 9;
 
@@ -181,7 +181,7 @@ version( linux )
     off_t ftello(FILE*);
   }
 }
-else
+else version( Posix )
 {
     int   fseeko(FILE*, off_t, int);
     off_t ftello(FILE*);
@@ -195,9 +195,24 @@ int    fileno(FILE*);
 char*  gets(char*);
 int    pclose(FILE*);
 FILE*  popen(in char*, in char*);
-FILE*  fmemopen(in void* buf, in size_t size, in char* mode);
-FILE*  open_memstream(char** ptr, size_t* sizeloc);
-FILE*  open_wmemstream(wchar_t** ptr, size_t* sizeloc);
+
+
+// memstream functions are conforming to POSIX.1-2008.  These functions are
+// not specified in POSIX.1-2001 and are not widely available on other
+// systems.
+version( CRuntime_Glibc )                     // as of glibc 1.0x
+    version = HaveMemstream;
+else version( FreeBSD )                      // as of FreeBSD 9.2
+    version = HaveMemstream;
+else version( OpenBSD )                      // as of OpenBSD 5.4
+    version = HaveMemstream;
+
+version( HaveMemstream )
+{
+    FILE*  fmemopen(in void* buf, in size_t size, in char* mode);
+    FILE*  open_memstream(char** ptr, size_t* sizeloc);
+    FILE*  open_wmemstream(wchar_t** ptr, size_t* sizeloc);
+}
 
 //
 // Thread-Safe Functions (TSF)
@@ -212,7 +227,7 @@ int    putc_unlocked(int, FILE*);
 int    putchar_unlocked(int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     void   flockfile(FILE*);
     int    ftrylockfile(FILE*);
@@ -245,7 +260,7 @@ char*  tempnam(in char*, in char*);
 
 char*  tempnam(in char*, in char*);
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum P_tmpdir  = "/tmp";
 }
@@ -262,6 +277,7 @@ version( Solaris )
     enum P_tmpdir  = "/var/tmp/";
 }
 
+version( HaveMemstream )
 unittest
 { /* fmemopen */
     import core.stdc.string : memcmp;
@@ -275,11 +291,12 @@ unittest
     assert(fclose(f) == 0);
 }
 
+version( HaveMemstream )
 unittest
 { /* Note: open_memstream is only useful for writing */
     import core.stdc.string : memcmp;
     char* ptr = null;
-    char[] testdata = ['h', 'e', 'l', 'l', 'o', 0];
+    char[6] testdata = ['h', 'e', 'l', 'l', 'o', 0];
     size_t sz = 0;
     auto f = open_memstream(&ptr, &sz);
     assert(f !is null);
@@ -289,12 +306,13 @@ unittest
     assert(fclose(f) == 0);
 }
 
+version( HaveMemstream )
 unittest
 { /* Note: open_wmemstream is only useful for writing */
     import core.stdc.string : memcmp;
     import core.stdc.wchar_ : fwprintf;
     wchar_t* ptr = null;
-    wchar_t[] testdata = ['h', 'e', 'l', 'l', 'o', 0];
+    wchar_t[6] testdata = ['h', 'e', 'l', 'l', 'o', 0];
     size_t sz = 0;
     auto f = open_wmemstream(&ptr, &sz);
     assert(f !is null);

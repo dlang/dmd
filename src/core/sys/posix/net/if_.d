@@ -37,7 +37,7 @@ if_nameindex_t* if_nameindex();
 void            if_freenameindex(if_nameindex_t*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct if_nameindex_t
     {
@@ -82,7 +82,7 @@ else version( FreeBSD )
     if_nameindex_t* if_nameindex();
     void            if_freenameindex(if_nameindex_t*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum IF_NAMESIZE = 16;
 

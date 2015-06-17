@@ -441,7 +441,7 @@ struct servent
         char* s_proto;
         short s_port;
     }
-    else
+    else version (Win32)
     {
         short s_port;
         char* s_proto;

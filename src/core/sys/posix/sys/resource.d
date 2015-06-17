@@ -73,9 +73,10 @@ int setrlimit(int, const rlimit*);
 */
 
 
-version (linux)
+version (CRuntime_Glibc)
 {
-
+    // rusage and some other constants in the Bionic section below really
+    // come from the linux kernel headers, but they're all mixed right now.
     enum
     {
         PRIO_PROCESS = 0,
@@ -288,7 +289,7 @@ else version (Solaris)
         RLIMIT_AS     = 6,
     }
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     enum
     {
@@ -345,23 +346,33 @@ struct rlimit
     rlim_t rlim_max;
 }
 
-version (FreeBSD)
+version (CRuntime_Glibc)
+{
+    int getpriority(int, id_t);
+    int setpriority(int, id_t, int);
+}
+else version (FreeBSD)
 {
     int getpriority(int, int);
     int setpriority(int, int, int);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     int getpriority(int, int);
     int setpriority(int, int, int);
 }
-else
+else version (Solaris)
+{
+    int getpriority(int, id_t);
+    int setpriority(int, id_t, int);
+}
+else version (OSX)
 {
     int getpriority(int, id_t);
     int setpriority(int, id_t, int);
 }
 
-version (linux)
+version (CRuntime_Glibc)
 {
     static if (__USE_FILE_OFFSET64)
     {
@@ -377,7 +388,25 @@ version (linux)
     }
     int getrusage(int, rusage*);
 }
-else
+else version (CRuntime_Bionic)
+{
+    int getrlimit(int, rlimit*);
+    int getrusage(int, rusage*);
+    int setrlimit(int, in rlimit*);
+}
+else version (OSX)
+{
+    int getrlimit(int, rlimit*);
+    int getrusage(int, rusage*);
+    int setrlimit(int, in rlimit*);
+}
+else version (FreeBSD)
+{
+    int getrlimit(int, rlimit*);
+    int getrusage(int, rusage*);
+    int setrlimit(int, in rlimit*);
+}
+else version (Solaris)
 {
     int getrlimit(int, rlimit*);
     int getrusage(int, rusage*);

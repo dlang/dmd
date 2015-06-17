@@ -15,7 +15,6 @@
 module core.sys.posix.sys.mman;
 
 private import core.sys.posix.config;
-public import core.stdc.stddef;          // for size_t
 public import core.sys.posix.sys.types; // for off_t, mode_t
 
 version (Posix):
@@ -39,7 +38,7 @@ POSIX_MADV_WILLNEED
 POSIX_MADV_DONTNEED
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     version (Alpha)
         private enum __POSIX_MADV_DONTNEED = 6;
@@ -80,7 +79,7 @@ else version( FreeBSD )
 else version (Solaris)
 {
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
 }
 else
@@ -146,7 +145,7 @@ void* mmap(void*, size_t, int, int, int, off_t);
 int munmap(void*, size_t);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     static if (__USE_LARGEFILE64) void* mmap64(void*, size_t, int, int, int, off_t);
     static if (__USE_FILE_OFFSET64)
@@ -170,7 +169,7 @@ else version (Solaris)
     void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
@@ -196,7 +195,7 @@ MS_INVALIDATE (MF|SIO)
 int msync(void*, size_t, int); (MF|SIO)
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum MAP_SHARED     = 0x01;
     enum MAP_PRIVATE    = 0x02;
@@ -334,13 +333,17 @@ else version (Solaris)
 
     int msync(void*, size_t, int);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     enum MAP_SHARED     = 0x0001;
     enum MAP_PRIVATE    = 0x0002;
     enum MAP_FIXED      = 0x0010;
 
     version (X86)
+    {
+        enum MAP_ANON       = 0x0020;
+    }
+    else version (ARM)
     {
         enum MAP_ANON       = 0x0020;
     }
@@ -373,7 +376,7 @@ int mlockall(int);
 int munlockall();
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     version (SPARC) enum
     {
@@ -434,7 +437,7 @@ else version (Solaris)
     int mlockall(int);
     int munlockall();
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     enum MCL_CURRENT = 1;
     enum MCL_FUTURE  = 2;
@@ -492,7 +495,7 @@ else
 int mprotect(void*, size_t, int);
 */
 
-version (linux)
+version (CRuntime_Glibc)
 {
     int mprotect(void*, size_t, int);
 }
@@ -508,7 +511,7 @@ else version (Solaris)
 {
     int mprotect(void*, size_t, int);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     int mprotect(in void*, size_t, int);
 }
@@ -525,7 +528,7 @@ int shm_open(in char*, int, mode_t);
 int shm_unlink(in char*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);
@@ -545,7 +548,7 @@ else version (Solaris)
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
 }
 else

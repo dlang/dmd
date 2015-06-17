@@ -1,7 +1,7 @@
 /**
  * Contains support code for code profiling.
  *
- * Copyright: Copyright Digital Mars 1995 - 2012.
+ * Copyright: Copyright Digital Mars 1995 - 2015.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
@@ -9,8 +9,6 @@
  * Source: $(DRUNTIMESRC src/rt/_trace.d)
  */
 
-/*          Copyright Digital Mars 1995 - 2011.
- */
 module rt.trace;
 
 private
@@ -37,7 +35,7 @@ struct SymPair
 {
     SymPair* next;
     Symbol* sym;        // function that is called
-    uint count;         // number of times sym is called
+    ulong count;        // number of times sym is called
 }
 
 /////////////////////////////////////
@@ -50,12 +48,12 @@ struct Symbol
         SymPair* Sfanout;       // list of called functions
         timer_t totaltime;      // aggregate time
         timer_t functime;       // time excluding subfunction calls
-        ubyte Sflags;
+        ubyte Sflags;           // SFxxxx
         uint recursion;         // call recursion level
-        char[] Sident;          // name of symbol
+        const(char)[] Sident;   // name of symbol
 }
 
-const ubyte SFvisited = 1;      // visited
+enum ubyte SFvisited = 1;      // visited
 
 
 //////////////////////////////////
@@ -70,23 +68,21 @@ struct Stack
     timer_t subtime;            // time used by all subfunctions
 }
 
-__gshared                       // doesn't work with multithreaded code anyway
-{
-    Symbol* root;               // root of symbol table
+Symbol* root;               // root of symbol table
+bool trace_inited;
 
-    Stack* stack_freelist;
-    Stack* trace_tos;           // top of stack
-    int trace_inited;           // !=0 if initialized
+Stack* stack_freelist;
+Stack* trace_tos;           // top of stack
+
+__gshared
+{
+    Symbol* groot;              // merged symbol table
+    int gtrace_inited;          // !=0 if initialized
+
     timer_t trace_ohd;
 
-    Symbol** psymbols;
-    uint nsymbols;              // number of symbols
-
     string trace_logfilename = "trace.log";
-    FILE* fplog;
-
     string trace_deffilename = "trace.def";
-    FILE* fpdef;
 }
 
 ////////////////////////////////////////
@@ -118,13 +114,13 @@ int trace_setdeffilename(string name)
 ////////////////////////////////////////
 // Output optimal function link order.
 
-static void trace_order(Symbol *s)
+private void trace_order(FILE* fpdef, Symbol *s)
 {
     while (s)
     {
-        trace_place(s,0);
+        trace_place(fpdef, s, 0);
         if (s.Sl)
-            trace_order(s.Sl);
+            trace_order(fpdef, s.Sl);
         s = s.Sr;
     }
 }
@@ -132,22 +128,28 @@ static void trace_order(Symbol *s)
 //////////////////////////////////////////////
 //
 
-static Stack* stack_malloc()
-{   Stack *s;
+private Stack* stack_push()
+{
+    Stack *s;
 
     if (stack_freelist)
-    {   s = stack_freelist;
+    {
+        s = stack_freelist;
         stack_freelist = s.prev;
     }
     else
+    {
         s = cast(Stack *)trace_malloc(Stack.sizeof);
+    }
+    s.prev = trace_tos;
+    trace_tos = s;
     return s;
 }
 
 //////////////////////////////////////////////
 //
 
-static void stack_free(Stack *s)
+private void stack_free(Stack *s)
 {
     s.prev = stack_freelist;
     stack_freelist = s;
@@ -156,67 +158,64 @@ static void stack_free(Stack *s)
 //////////////////////////////////////
 // Qsort() comparison routine for array of pointers to SymPair's.
 
-static int sympair_cmp(in void* e1, in void* e2)
-{   SymPair** psp1;
-    SymPair** psp2;
+private int sympair_cmp(in void* e1, in void* e2)
+{
+    auto count1 = (*cast(SymPair**)e1).count;
+    auto count2 = (*cast(SymPair**)e2).count;
 
-    psp1 = cast(SymPair**)e1;
-    psp2 = cast(SymPair**)e2;
-
-    return (*psp2).count - (*psp1).count;
+    if (count1 < count2)
+        return -1;
+    else if (count1 > count2)
+        return 1;
+    return 0;
 }
 
 //////////////////////////////////////
 // Place symbol s, and then place any fan ins or fan outs with
 // counts greater than count.
 
-static void trace_place(Symbol *s, uint count)
-{   SymPair* sp;
-    SymPair** base;
-
+private void trace_place(FILE* fpdef, Symbol* s, ulong count)
+{
     if (!(s.Sflags & SFvisited))
-    {   size_t num;
-        uint u;
-
-        //printf("\t%.*s\t%u\n", s.Sident.length, s.Sident.ptr, count);
+    {
+        //printf("\t%.*s\t%llu\n", s.Sident.length, s.Sident.ptr, count);
         fprintf(fpdef,"\t%.*s\n", s.Sident.length, s.Sident.ptr);
         s.Sflags |= SFvisited;
 
         // Compute number of items in array
-        num = 0;
-        for (sp = s.Sfanin; sp; sp = sp.next)
+        size_t num = 0;
+        for (auto sp = s.Sfanin; sp; sp = sp.next)
             num++;
-        for (sp = s.Sfanout; sp; sp = sp.next)
+        for (auto sp = s.Sfanout; sp; sp = sp.next)
             num++;
         if (!num)
             return;
 
         // Allocate and fill array
-        base = cast(SymPair**)trace_malloc(SymPair.sizeof * num);
-        u = 0;
-        for (sp = s.Sfanin; sp; sp = sp.next)
+        auto base = cast(SymPair**)trace_malloc(SymPair.sizeof * num);
+        size_t u = 0;
+        for (auto sp = s.Sfanin; sp; sp = sp.next)
             base[u++] = sp;
-        for (sp = s.Sfanout; sp; sp = sp.next)
+        for (auto sp = s.Sfanout; sp; sp = sp.next)
             base[u++] = sp;
+        assert(u == num);
 
         // Sort array
         qsort(base, num, (SymPair *).sizeof, &sympair_cmp);
 
         //for (u = 0; u < num; u++)
-            //printf("\t\t%.*s\t%u\n", base[u].sym.Sident.length, base[u].sym.Sident.ptr, base[u].count);
+            //printf("\t\t%.*s\t%llu\n", base[u].sym.Sident.length, base[u].sym.Sident.ptr, base[u].count);
 
         // Place symbols
         for (u = 0; u < num; u++)
         {
             if (base[u].count >= count)
-            {   uint u2;
-                uint c2;
-
-                u2 = (u + 1 < num) ? u + 1 : u;
-                c2 = base[u2].count;
+            {
+                auto u2 = (u + 1 < num) ? u + 1 : u;
+                auto c2 = base[u2].count;
                 if (c2 < count)
                     c2 = count;
-                trace_place(base[u].sym,c2);
+                trace_place(fpdef, base[u].sym,c2);
             }
             else
                 break;
@@ -227,58 +226,45 @@ static void trace_place(Symbol *s, uint count)
     }
 }
 
-/////////////////////////////////////
-// Terminate.
-
-shared static ~this()
-{
-    trace_term();
-}
-
 ///////////////////////////////////
 // Report results.
-// Also compute nsymbols.
+// Also compute and return number of symbols.
 
-static void trace_report(Symbol* s)
-{   SymPair* sp;
-    uint count;
-
+private size_t trace_report(FILE* fplog, Symbol* s)
+{
     //printf("trace_report()\n");
+    size_t nsymbols;
     while (s)
-    {   nsymbols++;
+    {
+        ++nsymbols;
         if (s.Sl)
-            trace_report(s.Sl);
+            nsymbols += trace_report(fplog, s.Sl);
         fprintf(fplog,"------------------\n");
-        count = 0;
-        for (sp = s.Sfanin; sp; sp = sp.next)
+        ulong count = 0;
+        for (auto sp = s.Sfanin; sp; sp = sp.next)
         {
-            fprintf(fplog,"\t%5d\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
+            fprintf(fplog,"\t%5llu\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
             count += sp.count;
         }
-        fprintf(fplog,"%.*s\t%u\t%lld\t%lld\n", s.Sident.length, s.Sident.ptr, count, s.totaltime, s.functime);
-        for (sp = s.Sfanout; sp; sp = sp.next)
+        fprintf(fplog,"%.*s\t%llu\t%lld\t%lld\n", s.Sident.length, s.Sident.ptr, count, s.totaltime, s.functime);
+        for (auto sp = s.Sfanout; sp; sp = sp.next)
         {
-            fprintf(fplog,"\t%5d\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
+            fprintf(fplog,"\t%5llu\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
         }
         s = s.Sr;
     }
+    return nsymbols;
 }
 
 ////////////////////////////////////
 // Allocate and fill array of symbols.
 
-static void trace_array(Symbol *s)
+private void trace_array(Symbol*[] psymbols, Symbol *s, ref uint u)
 {
-    __gshared uint u;
-
-    if (!psymbols)
-    {   u = 0;
-        psymbols = cast(Symbol **)trace_malloc((Symbol *).sizeof * nsymbols);
-    }
     while (s)
     {
         psymbols[u++] = s;
-        trace_array(s.Sl);
+        trace_array(psymbols, s.Sl, u);
         s = s.Sr;
     }
 }
@@ -287,15 +273,12 @@ static void trace_array(Symbol *s)
 //////////////////////////////////////
 // Qsort() comparison routine for array of pointers to Symbol's.
 
-static int symbol_cmp(in void* e1, in void* e2)
-{   Symbol** ps1;
-    Symbol** ps2;
-    timer_t diff;
+private int symbol_cmp(in void* e1, in void* e2)
+{
+    auto ps1 = cast(Symbol **)e1;
+    auto ps2 = cast(Symbol **)e2;
 
-    ps1 = cast(Symbol **)e1;
-    ps2 = cast(Symbol **)e2;
-
-    diff = (*ps2).functime - (*ps1).functime;
+    auto diff = (*ps2).functime - (*ps1).functime;
     return (diff == 0) ? 0 : ((diff > 0) ? 1 : -1);
 }
 
@@ -303,28 +286,26 @@ static int symbol_cmp(in void* e1, in void* e2)
 ///////////////////////////////////
 // Report function timings
 
-static void trace_times(Symbol* root)
-{   uint u;
-    timer_t freq;
-
+private void trace_times(FILE* fplog, Symbol*[] psymbols)
+{
     // Sort array
-    qsort(psymbols, nsymbols, (Symbol *).sizeof, &symbol_cmp);
+    qsort(psymbols.ptr, psymbols.length, (Symbol *).sizeof, &symbol_cmp);
 
     // Print array
+    timer_t freq;
     QueryPerformanceFrequency(&freq);
     fprintf(fplog,"\n======== Timer Is %lld Ticks/Sec, Times are in Microsecs ========\n\n",freq);
     fprintf(fplog,"  Num          Tree        Func        Per\n");
     fprintf(fplog,"  Calls        Time        Time        Call\n\n");
-    for (u = 0; u < nsymbols; u++)
+    foreach (s; psymbols)
     {
-        Symbol* s = psymbols[u];
         timer_t tl,tr;
         timer_t fl,fr;
         timer_t pl,pr;
         timer_t percall;
-        char[8192] buf;
+        char[8192] buf = void;
         SymPair* sp;
-        uint calls;
+        ulong calls;
         char[] id;
 
         calls = 0;
@@ -339,7 +320,7 @@ static void trace_times(Symbol* root)
         percall = s.functime / calls;
         pl = (s.functime * 1000000) / calls / freq;
 
-        fprintf(fplog,"%7d%12lld%12lld%12lld     %.*s\n",
+        fprintf(fplog,"%7llu%12lld%12lld%12lld     %.*s\n",
                       calls, tl, fl, pl, id.length, id.ptr);
     }
 }
@@ -348,31 +329,34 @@ static void trace_times(Symbol* root)
 ///////////////////////////////////
 // Initialize.
 
-static void trace_init()
+private void trace_init()
 {
-    if (!trace_inited)
+    synchronized        // protects gtrace_inited
     {
-        trace_inited = 1;
+        if (!gtrace_inited)
+        {
+            gtrace_inited = 1;
 
-        {   // See if we can determine the overhead.
-            timer_t starttime;
-            timer_t endtime;
+            {   // See if we can determine the overhead.
+                timer_t starttime;
+                timer_t endtime;
 
-            auto st = trace_tos;
-            trace_tos = null;
-            QueryPerformanceCounter(&starttime);
-            uint u;
-            for (u = 0; u < 100; u++)
-            {
-                _c_trace_pro(0,null);
-                _c_trace_epi();
+                auto st = trace_tos;
+                trace_tos = null;
+                QueryPerformanceCounter(&starttime);
+                uint u;
+                for (u = 0; u < 100; u++)
+                {
+                    _c_trace_pro(0,null);
+                    _c_trace_epi();
+                }
+                QueryPerformanceCounter(&endtime);
+                trace_ohd = (endtime - starttime) / u;
+                //printf("trace_ohd = %lld\n",trace_ohd);
+                if (trace_ohd > 0)
+                    trace_ohd--;            // round down
+                trace_tos = st;
             }
-            QueryPerformanceCounter(&endtime);
-            trace_ohd = (endtime - starttime) / u;
-            //printf("trace_ohd = %lld\n",trace_ohd);
-            if (trace_ohd > 0)
-                trace_ohd--;            // round down
-            trace_tos = st;
         }
     }
 }
@@ -380,68 +364,164 @@ static void trace_init()
 /////////////////////////////////
 // Terminate.
 
-void trace_term()
+static ~this()
 {
-    //printf("trace_term()\n");
-    if (trace_inited == 1)
-    {   Stack *n;
+    // Free remainder of the thread local stack
+    while (trace_tos)
+    {
+        auto n = trace_tos.prev;
+        stack_free(trace_tos);
+        trace_tos = n;
+    }
 
-        trace_inited = 2;
+    // And free the thread local stack's memory
+    while (stack_freelist)
+    {
+        auto n = stack_freelist.prev;
+        stack_free(stack_freelist);
+        stack_freelist = n;
+    }
 
-        // Free remainder of the stack
-        while (trace_tos)
+    synchronized        // protects groot
+    {
+        // Merge thread local root into global groot
+
+        if (!groot)
         {
-            n = trace_tos.prev;
-            stack_free(trace_tos);
-            trace_tos = n;
+            groot = root;       // that was easy
+            root = null;
         }
-
-        while (stack_freelist)
+        else
         {
-            n = stack_freelist.prev;
-            stack_free(stack_freelist);
-            stack_freelist = n;
+            void mergeSymbol(Symbol** proot, const(Symbol)* s)
+            {
+                while (s)
+                {
+                    auto gs = trace_addsym(proot, s.Sident);
+                    gs.totaltime += s.totaltime;
+                    gs.functime  += s.functime;
+
+                    static void mergeFan(Symbol** proot, SymPair** pgf, const(SymPair)* sf)
+                    {
+                        for (; sf; sf = sf.next)
+                        {
+                            auto sym = trace_addsym(proot, sf.sym.Sident);
+                            for (auto gf = *pgf; 1; gf = gf.next)
+                            {
+                                if (!gf)
+                                {
+                                    auto sp = cast(SymPair *)trace_malloc(SymPair.sizeof);
+                                    sp.next = *pgf;
+                                    *pgf = sp;
+                                    sp.sym = sym;
+                                    sp.count = sf.count;
+                                    break;
+                                }
+                                if (gf.sym == sym)
+                                {
+                                    gf.count += sf.count;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    mergeFan(proot, &gs.Sfanin, s.Sfanin);
+                    mergeFan(proot, &gs.Sfanout, s.Sfanout);
+
+                    mergeSymbol(proot, s.Sl);
+                    s = s.Sr;
+                }
+            }
+
+            mergeSymbol(&groot, root);
         }
+    }
+
+    // Free the memory for the thread local symbol table (root)
+    static void freeSymbol(Symbol* s)
+    {
+        while (s)
+        {
+            freeSymbol(s.Sl);
+            auto next = s.Sr;
+
+            static void freeSymPair(SymPair* sp)
+            {
+                while (sp)
+                {
+                    auto spnext = sp.next;
+                    trace_free(sp);
+                    sp = spnext;
+                }
+            }
+
+            freeSymPair(s.Sfanin);
+            freeSymPair(s.Sfanout);
+            trace_free(s);
+            s = next;
+        }
+    }
+
+    freeSymbol(root);
+    root = null;
+}
+
+shared static ~this()
+{
+    //printf("shared static ~this() groot = %p\n", groot);
+    if (gtrace_inited == 1)
+    {
+        gtrace_inited = 2;
 
         // Merge in data from any existing file
-        trace_merge();
+        trace_merge(&groot);
 
         // Report results
-        fplog = fopen(trace_logfilename.ptr, "w");
+        FILE* fplog = fopen(trace_logfilename.ptr, "w");
         if (fplog)
-        {   nsymbols = 0;
-            trace_report(root);
-            trace_array(root);
-            trace_times(root);
+        {
+            auto nsymbols = trace_report(fplog, groot);
+
+            auto p = cast(Symbol **)trace_malloc((Symbol *).sizeof * nsymbols);
+            auto psymbols = p[0 .. nsymbols];
+
+            uint u;
+            trace_array(psymbols, groot, u);
+            trace_times(fplog, psymbols);
             fclose(fplog);
+
+            trace_free(psymbols.ptr);
+            psymbols = null;
         }
+        else
+            fprintf(stderr, "cannot write '%s'", trace_logfilename.ptr);
 
         // Output function link order
-        fpdef = fopen(trace_deffilename.ptr,"w");
+        FILE* fpdef = fopen(trace_deffilename.ptr,"w");
         if (fpdef)
-        {   fprintf(fpdef,"\nFUNCTIONS\n");
-            trace_order(root);
+        {
+            fprintf(fpdef,"\nFUNCTIONS\n");
+            trace_order(fpdef, groot);
             fclose(fpdef);
         }
-
-        trace_free(psymbols);
-        psymbols = null;
+        else
+            fprintf(stderr, "cannot write '%s'", trace_deffilename.ptr);
     }
 }
 
 /////////////////////////////////
 // Our storage allocator.
 
-static void *trace_malloc(size_t nbytes)
-{   void *p;
-
-    p = malloc(nbytes);
+private void *trace_malloc(size_t nbytes)
+{
+    auto p = malloc(nbytes);
     if (!p)
         exit(EXIT_FAILURE);
     return p;
 }
 
-static void trace_free(void *p)
+private void trace_free(void *p)
 {
     free(p);
 }
@@ -449,20 +529,14 @@ static void trace_free(void *p)
 //////////////////////////////////////////////
 //
 
-static Symbol* trace_addsym(char[] id)
+private Symbol* trace_addsym(Symbol** proot, const(char)[] id)
 {
-    Symbol** parent;
-    Symbol* rover;
-    Symbol* s;
-    int cmp;
-    char c;
-
     //printf("trace_addsym('%s',%d)\n",p,len);
-    parent = &root;
-    rover = *parent;
+    auto parent = proot;
+    auto rover = *parent;
     while (rover !is null)               // while we haven't run out of tree
     {
-        cmp = dstrcmp(id, rover.Sident);
+        auto cmp = dstrcmp(id, rover.Sident);
         if (cmp == 0)
         {
             return rover;
@@ -473,7 +547,7 @@ static Symbol* trace_addsym(char[] id)
         rover = *parent;                /* get child                    */
     }
     /* not in table, so insert into table       */
-    s = cast(Symbol *)trace_malloc(Symbol.sizeof);
+    auto s = cast(Symbol *)trace_malloc(Symbol.sizeof);
     memset(s,0,Symbol.sizeof);
     s.Sident = id;
     *parent = s;                        // link new symbol into tree
@@ -484,8 +558,9 @@ static Symbol* trace_addsym(char[] id)
  * Add symbol s with count to SymPair list.
  */
 
-static void trace_sympair_add(SymPair** psp, Symbol* s, uint count)
-{   SymPair* sp;
+private void trace_sympair_add(SymPair** psp, Symbol* s, ulong count)
+{
+    SymPair* sp;
 
     for (; 1; psp = &sp.next)
     {
@@ -508,47 +583,44 @@ static void trace_sympair_add(SymPair** psp, Symbol* s, uint count)
 }
 
 //////////////////////////////////////////////
-//
+// This one is called by DMD
 
-static void trace_pro(char[] id)
+private void trace_pro(char[] id)
 {
     //printf("trace_pro(ptr = %p, length = %lld)\n", id.ptr, id.length);
     //printf("trace_pro(id = '%.*s')\n", id.length, id.ptr);
-    Stack* n;
-    Symbol* s;
-    timer_t starttime;
-    timer_t t;
 
     if (!trace_inited)
+    {
+        trace_inited = true;
         trace_init();                   // initialize package
+    }
 
+    timer_t starttime;
     QueryPerformanceCounter(&starttime);
     if (id.length == 0)
         return;
-    n = stack_malloc();
-    n.prev = trace_tos;
-    trace_tos = n;
-    s = trace_addsym(id);
-    trace_tos.sym = s;
-    if (trace_tos.prev)
+    auto tos = stack_push();
+    auto s = trace_addsym(&root, id);
+    tos.sym = s;
+    if (tos.prev)
     {
-        Symbol* prev;
-        int i;
-
         // Accumulate Sfanout and Sfanin
-        prev = trace_tos.prev.sym;
+        auto prev = tos.prev.sym;
         trace_sympair_add(&prev.Sfanout,s,1);
         trace_sympair_add(&s.Sfanin,prev,1);
     }
+    timer_t t;
     QueryPerformanceCounter(&t);
-    trace_tos.starttime = starttime;
-    trace_tos.ohd = trace_ohd + t - starttime;
-    trace_tos.subtime = 0;
-    s.recursion++;
-    //printf("trace_tos.ohd=%lld, trace_ohd=%lld + t=%lld - starttime=%lld\n",
-    //  trace_tos.ohd,trace_ohd,t,starttime);
+    tos.starttime = starttime;
+    tos.ohd = trace_ohd + t - starttime;
+    tos.subtime = 0;
+    ++s.recursion;
+    //printf("tos.ohd=%lld, trace_ohd=%lld + t=%lld - starttime=%lld\n",
+    //  tos.ohd,trace_ohd,t,starttime);
 }
 
+// Called by some old versions of DMD
 void _c_trace_pro(size_t idlen, char* idptr)
 {
     char[] id = idptr[0 .. idlen];
@@ -556,44 +628,41 @@ void _c_trace_pro(size_t idlen, char* idptr)
 }
 
 /////////////////////////////////////////
-//
+// Called by DMD generated code
 
 void _c_trace_epi()
-{   Stack* n;
-    timer_t endtime;
-    timer_t t;
-    timer_t ohd;
-
+{
     //printf("_c_trace_epi()\n");
-    if (trace_tos)
+    auto tos = trace_tos;
+    if (tos)
     {
-        timer_t starttime;
-        timer_t totaltime;
-
+        timer_t endtime;
         QueryPerformanceCounter(&endtime);
-        starttime = trace_tos.starttime;
-        totaltime = endtime - starttime - trace_tos.ohd;
+        auto starttime = tos.starttime;
+        auto totaltime = endtime - starttime - tos.ohd;
         if (totaltime < 0)
-        {   //printf("endtime=%lld - starttime=%lld - trace_tos.ohd=%lld < 0\n",
-            //  endtime,starttime,trace_tos.ohd);
+        {   //printf("endtime=%lld - starttime=%lld - tos.ohd=%lld < 0\n",
+            //  endtime,starttime,tos.ohd);
             totaltime = 0;              // round off error, just make it 0
         }
 
         // totaltime is time spent in this function + all time spent in
         // subfunctions - bookkeeping overhead.
-        trace_tos.sym.recursion--;
-        if(trace_tos.sym.recursion == 0)
-            trace_tos.sym.totaltime += totaltime;
+        --tos.sym.recursion;
+        if(tos.sym.recursion == 0)
+            tos.sym.totaltime += totaltime;
 
-        //if (totaltime < trace_tos.subtime)
-        //printf("totaltime=%lld < trace_tos.subtime=%lld\n",totaltime,trace_tos.subtime);
-        trace_tos.sym.functime  += totaltime - trace_tos.subtime;
-        ohd = trace_tos.ohd;
-        n = trace_tos.prev;
-        stack_free(trace_tos);
+        //if (totaltime < tos.subtime)
+        //printf("totaltime=%lld < tos.subtime=%lld\n",totaltime,tos.subtime);
+        tos.sym.functime  += totaltime - tos.subtime;
+        auto ohd = tos.ohd;
+        auto n = tos.prev;
+        stack_free(tos);
         trace_tos = n;
         if (n)
-        {   QueryPerformanceCounter(&t);
+        {
+            timer_t t;
+            QueryPerformanceCounter(&t);
             n.ohd += ohd + t - endtime;
             n.subtime += totaltime;
             //printf("n.ohd = %lld\n",n.ohd);
@@ -610,28 +679,24 @@ void _c_trace_epi()
 //      trace_malloc'd line buffer
 //      null if end of file
 
-static char* trace_readline(FILE* fp)
-{   int c;
+private char* trace_readline(FILE* fp)
+{
     int dim;
     int i;
     char *buf;
 
     //printf("trace_readline(%p)\n", fp);
-    i = 0;
-    dim = 0;
-    buf = null;
     while (1)
     {
         if (i == dim)
-        {   char *p;
-
+        {
             dim += 80;
-            p = cast(char *)trace_malloc(dim);
+            auto p = cast(char *)trace_malloc(dim);
             memcpy(p,buf,i);
             trace_free(buf);
             buf = p;
         }
-        c = fgetc(fp);
+        int c = fgetc(fp);
         switch (c)
         {
             case EOF:
@@ -657,7 +722,7 @@ L1:
 //////////////////////////////////////
 // Skip space
 
-static char *skipspace(char *p)
+private char *skipspace(char *p)
 {
     while (isspace(*p))
         p++;
@@ -667,20 +732,19 @@ static char *skipspace(char *p)
 ////////////////////////////////////////////////////////
 // Merge in profiling data from existing file.
 
-static void trace_merge()
-{   FILE *fp;
-    char *buf;
-    char *p;
-    uint count;
-    Symbol *s;
-    SymPair *sfanin;
-    SymPair **psp;
+private void trace_merge(Symbol** proot)
+{
+    FILE *fp;
 
     if (trace_logfilename.length && (fp = fopen(trace_logfilename.ptr,"r")) !is null)
     {
-        buf = null;
-        sfanin = null;
-        psp = &sfanin;
+        char* buf = null;
+        SymPair* sfanin = null;
+        auto psp = &sfanin;
+        char *p;
+        ulong count;
+        Symbol *s;
+
         while (1)
         {
             trace_free(buf);
@@ -694,13 +758,13 @@ static void trace_merge()
                     goto L1;
                 case ' ':
                 case '\t':              // fan in or fan out line
-                    count = cast(int)strtoul(buf,&p,10);
+                    count = strtoul(buf,&p,10);
                     if (p == buf)       // if invalid conversion
                         continue;
                     p = skipspace(p);
                     if (!*p)
                         continue;
-                    s = trace_addsym(p[0 .. strlen(p)]);
+                    s = trace_addsym(proot, p[0 .. strlen(p)]);
                     trace_sympair_add(psp,s,count);
                     break;
                 default:
@@ -720,7 +784,7 @@ static void trace_merge()
                         p++;
                     *p = 0;
                     //printf("trace_addsym('%s')\n",buf);
-                    s = trace_addsym(buf[0 .. strlen(buf)]);
+                    s = trace_addsym(proot, buf[0 .. strlen(buf)]);
                     if (s.Sfanin)
                     {   SymPair *sp;
 
@@ -737,11 +801,10 @@ static void trace_merge()
                     sfanin = null;
                     psp = &s.Sfanout;
 
-                    {   timer_t t;
-
+                    {
                         p++;
-                        count = cast(int)strtoul(p,&p,10);
-                        t = cast(long)strtoull(p,&p,10);
+                        count = strtoul(p,&p,10);
+                        timer_t t = cast(long)strtoull(p,&p,10);
                         s.totaltime += t;
                         t = cast(long)strtoull(p,&p,10);
                         s.functime += t;
@@ -755,136 +818,6 @@ static void trace_merge()
 }
 
 ////////////////////////// COMPILER INTERFACE /////////////////////
-
-/////////////////////////////////////////////
-// Function called by trace code in function prolog.
-
-
-/////////////////////////////////////////////
-// Function called by trace code in function epilog.
-
-
-void _trace_epi_n()
-{
-    version (OSX)
-    { // 16 byte align stack
-        version (D_InlineAsm_X86)
-        {
-            asm
-            {
-                naked           ;
-                pushad          ;
-                sub     ESP,12  ;
-            }
-            _c_trace_epi();
-            asm
-            {
-                add     ESP,12  ;
-                popad           ;
-                ret             ;
-            }
-        }
-        else version (D_InlineAsm_X86_64)
-        {
-            asm
-            {   naked           ;
-                push    RAX     ;
-                push    RCX     ;
-                push    RDX     ;
-                push    RSI     ;
-                push    RDI     ;
-                push    R8      ;
-                push    R9      ;
-                push    R10     ;
-                push    R11     ;
-                sub     RSP, 2*16 ;
-                movdqu  0*16[RSP], XMM0;
-                movdqu  1*16[RSP], XMM1;
-                /* Don't worry about saving ST0/1
-                 * Hope _c_trace_epi() doesn't change them
-                 */
-            }
-            _c_trace_epi();
-            asm
-            {
-                movdqu  XMM0, 0*16[RSP];
-                movdqu  XMM1, 1*16[RSP];
-                add     RSP, 2*16 ;
-                pop     R11     ;
-                pop     R10     ;
-                pop     R9      ;
-                pop     R8      ;
-                pop     RDI     ;
-                pop     RSI     ;
-                pop     RDX     ;
-                pop     RCX     ;
-                pop     RAX     ;
-                ret             ;
-            }
-        }
-        else
-            static assert(0);
-    }
-    else
-    {
-        version (D_InlineAsm_X86)
-        {
-            asm
-            {
-                naked           ;
-                pushad          ;
-            }
-            _c_trace_epi();
-            asm
-            {
-                popad           ;
-                ret             ;
-            }
-        }
-        else version (D_InlineAsm_X86_64)
-        {
-            asm
-            {
-                naked           ;
-                push    RAX     ;
-                push    RCX     ;
-                push    RDX     ;
-                push    RSI     ;
-                push    RDI     ;
-                push    R8      ;
-                push    R9      ;
-                push    R10     ;
-                push    R11     ;
-                sub     RSP, 2*16 ;
-                movdqu  0*16[RSP], XMM0;
-                movdqu  1*16[RSP], XMM1;
-                /* Don't worry about saving ST0/1
-                 * Hope _c_trace_epi() doesn't change them
-                 */
-            }
-            _c_trace_epi();
-            asm
-            {
-                movdqu  XMM0, 0*16[RSP];
-                movdqu  XMM1, 1*16[RSP];
-                add     RSP, 2*16 ;
-                pop     R11     ;
-                pop     R10     ;
-                pop     R9      ;
-                pop     R8      ;
-                pop     RDI     ;
-                pop     RSI     ;
-                pop     RDX     ;
-                pop     RCX     ;
-                pop     RAX     ;
-                ret             ;
-            }
-        }
-        else
-            static assert(0);
-    }
-}
-
 
 version (Windows)
 {

@@ -16,7 +16,6 @@ module core.sys.posix.fcntl;
 
 private import core.sys.posix.config;
 private import core.stdc.stdint;
-public import core.stdc.stddef;         // for size_t
 public import core.sys.posix.sys.types; // for off_t, mode_t
 public import core.sys.posix.sys.stat;  // for S_IFMT, etc.
 
@@ -76,7 +75,7 @@ int creat(in char*, mode_t);
 int fcntl(int, int, ...);
 int open(in char*, int, ...);
 */
-version( linux )
+version( CRuntime_Glibc )
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -466,8 +465,10 @@ else version (Solaris)
         }
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
+    // All these except for the two functions open and creat really come from
+    // the linux kernel and can probably be merged.
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
     enum F_SETFD        = 2;
@@ -485,7 +486,20 @@ else version( Android )
     enum F_WRLCK        = 1;
     enum F_UNLCK        = 2;
 
+    enum LOCK_EX        = 2;
+
     version (X86)
+    {
+        enum O_CREAT        = 0x40;     // octal     0100
+        enum O_EXCL         = 0x80;     // octal     0200
+        enum O_NOCTTY       = 0x100;    // octal     0400
+        enum O_TRUNC        = 0x200;    // octal    01000
+
+        enum O_APPEND       = 0x400;    // octal    02000
+        enum O_NONBLOCK     = 0x800;    // octal    04000
+        enum O_SYNC         = 0x1000;   // octal   010000
+    }
+    else version (ARM)
     {
         enum O_CREAT        = 0x40;     // octal     0100
         enum O_EXCL         = 0x80;     // octal     0200

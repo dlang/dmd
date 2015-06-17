@@ -15,7 +15,7 @@
 module core.sys.posix.sys.uio;
 
 private import core.sys.posix.config;
-public import core.sys.posix.sys.types; // for ssize_t, size_t
+public import core.sys.posix.sys.types; // for ssize_t
 
 version (Posix):
 extern (C) nothrow @nogc:
@@ -37,7 +37,7 @@ ssize_t readv(int, in iovec*, int);
 ssize_t writev(int, in iovec*, int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct iovec
     {
@@ -81,19 +81,12 @@ else version (Solaris)
     ssize_t readv(int, in iovec*, int);
     ssize_t writev(int, in iovec*, int);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
-    version (X86)
+    struct iovec
     {
-        struct iovec
-        {
-            void* iov_base;
-            uint  iov_len;
-        }
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
+        void* iov_base;
+        uint  iov_len;
     }
 
     int readv(int, in iovec*, int);

@@ -10,7 +10,8 @@ import core.sys.posix.sys.ipc;
 public import core.sys.posix.sys.types;
 public import core.stdc.config;
 
-version (linux):
+version (CRuntime_Glibc):
+// Some of these may be from linux kernel headers.
 extern (C):
 
 public enum MSG_STAT = 11;
@@ -82,12 +83,53 @@ else version(HPPA)
 	};
 
 }
-else version(MIPS) 
+else version(MIPS)
 {
-	// I have no idea what to do here regarding msqid_ds
-	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/mips/bits/msq.h
-	alias c_ulong msgqnum_t;	
-	alias c_ulong msglen_t;
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/mips/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
+
+    struct msqid_ds
+    {
+        ipc_perm  msg_perm;
+        version(BigEndian) c_ulong __glibc_reserved1;
+        time_t    msg_stime;
+        version(LittleEndian) c_ulong __glibc_reserved1;
+        version(BigEndian) c_ulong __glibc_reserved2;
+        time_t    msg_rtime;
+        version(LittleEndian) c_ulong __glibc_reserved2;
+        version(BigEndian) c_ulong __glibc_reserved3;
+        time_t    msg_ctime;
+        version(LittleEndian) c_ulong __glibc_reserved3;
+        c_ulong   __msg_cbytes;
+        msgqnum_t msg_qnum;
+        msglen_t  msg_qbytes;
+        pid_t     msg_lspid;
+        pid_t     msg_lrpid;
+        c_ulong   __glibc_reserved4;
+        c_ulong   __glibc_reserved5;
+    };
+}
+else version(MIPS64)
+{
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/mips/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
+
+    struct msqid_ds
+    {
+        ipc_perm  msg_perm;
+        time_t    msg_stime;
+        time_t    msg_rtime;
+        time_t    msg_ctime;
+        c_ulong   __msg_cbytes;
+        msgqnum_t msg_qnum;
+        msglen_t  msg_qbytes;
+        pid_t     msg_lspid;
+        pid_t     msg_lrpid;
+        c_ulong   __glibc_reserved4;
+        c_ulong   __glibc_reserved5;
+    };
 }
 else version (PPC) 
 {
@@ -112,6 +154,26 @@ else version (PPC)
 		c_ulong __glibc_reserved4;
 		c_ulong __glibc_reserved5;
 	};
+}
+else version (PPC64)
+{
+    //  https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/powerpc/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
+
+    struct msqid_ds {
+        ipc_perm  msg_perm;
+        time_t    msg_stime;
+        time_t    msg_rtime;
+        time_t    msg_ctime;
+        c_ulong   __msg_cbytes;
+        msgqnum_t msg_qnum;
+        msglen_t  msg_qbytes;
+        pid_t     msg_lspid;
+        pid_t     msg_lrpid;
+        c_ulong   __glibc_reserved4;
+        c_ulong   __glibc_reserved5;
+    };
 }
 else version (S390) 
 {
@@ -205,6 +267,26 @@ else version (X86_64)
 		c_ulong __glibc_reserved5;
 	};
 } 
+else version (AArch64)
+{
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
+	alias c_ulong msgqnum_t;
+	alias c_ulong msglen_t;
+
+	struct msqid_ds {
+		ipc_perm msg_perm;
+		time_t          msg_stime;
+		time_t          msg_rtime;
+		time_t          msg_ctime;
+		c_ulong         __msg_cbytes;
+		msgqnum_t       msg_qnum;
+		msglen_t        msg_qbytes;
+		pid_t           msg_lspid;
+		pid_t           msg_lrpid;
+		c_ulong __glibc_reserved4;
+		c_ulong __glibc_reserved5;
+	};
+}
 else version (ARM) 
 {
 	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h

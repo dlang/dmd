@@ -183,8 +183,10 @@ unittest
 
 /**
  * Thrown on hidden function error.
+ * $(RED Deprecated.
+ *   This feature is not longer part of the language.)
  */
-class HiddenFuncError : Error
+deprecated class HiddenFuncError : Error
 {
     @safe pure nothrow this( ClassInfo ci )
     {
@@ -192,7 +194,7 @@ class HiddenFuncError : Error
     }
 }
 
-unittest
+deprecated unittest
 {
     ClassInfo info = new ClassInfo;
     info.name = "testInfo";
@@ -482,7 +484,7 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
  */
 extern (C) void onFinalizeError( TypeInfo info, Throwable e, string file = __FILE__, size_t line = __LINE__ ) @trusted nothrow
 {
-    // This error is thrown during a garbage collection, so no allocation must occur while 
+    // This error is thrown during a garbage collection, so no allocation must occur while
     //  generating this object. So we use a preallocated instance
     __gshared FinalizeError err = new FinalizeError( null );
     err.info = info;
@@ -496,11 +498,13 @@ extern (C) void onFinalizeError( TypeInfo info, Throwable e, string file = __FIL
 /**
  * A callback for hidden function errors in D.  A $(LREF HiddenFuncError) will be
  * thrown.
+ * $(RED Deprecated.
+ *   This feature is not longer part of the language.)
  *
  * Throws:
  *  $(LREF HiddenFuncError).
  */
-extern (C) void onHiddenFuncError( Object o ) @safe pure nothrow
+deprecated extern (C) void onHiddenFuncError( Object o ) @safe pure nothrow
 {
     throw new HiddenFuncError( typeid(o) );
 }
@@ -643,24 +647,5 @@ extern (C)
     void _d_switch_error(immutable(ModuleInfo)* m, uint line)
     {
         onSwitchError(m.name, line);
-    }
-
-    void _d_hidden_func()
-    {
-        Object o;
-        version(D_InlineAsm_X86)
-            asm
-            {
-                mov o, EAX;
-            }
-        else version(D_InlineAsm_X86_64)
-            asm
-            {
-                mov o, RDI;
-            }
-        else
-            static assert(0, "unknown os");
-
-        onHiddenFuncError(o);
     }
 }

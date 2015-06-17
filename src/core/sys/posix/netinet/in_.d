@@ -64,8 +64,11 @@ ntohl() // from core.sys.posix.arpa.inet
 ntohs() // from core.sys.posix.arpa.inet
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
+    // Some networking constants are subtly different for glibc, linux kernel
+    // constants are also provided below.
+
     //alias uint16_t in_port_t;
     //alias uint32_t in_addr_t;
 
@@ -231,7 +234,7 @@ else version( Solaris )
         INADDR_NONE      = 0xffffffff
     }
 }
-else version( Android )
+else version( linux )
 {
     private enum __SOCK_SIZE__ = 16;
 
@@ -251,6 +254,7 @@ else version( Android )
         IPPROTO_IP   = 0,
         IPPROTO_ICMP = 1,
         IPPROTO_IGMP = 2,
+        IPPROTO_GGP  = 3,
         IPPROTO_TCP  = 6,
         IPPROTO_PUP  = 12,
         IPPROTO_UDP  = 17,
@@ -323,7 +327,7 @@ int IN6_IS_ADDR_MC_ORGLOCAL(in6_addr*)
 int IN6_IS_ADDR_MC_GLOBAL(in6_addr*)
 */
 
-version ( linux )
+version ( CRuntime_Glibc )
 {
     struct in6_addr
     {
@@ -820,7 +824,7 @@ else version( Solaris )
         return a.s6_addr8[0] == 0xff && (a.s6_addr8[1] & 0x0f) == 0x0e;
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     struct in6_addr
     {

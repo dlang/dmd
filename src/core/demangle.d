@@ -139,6 +139,16 @@ private struct Demangle
     }
 
 
+    static char val2HexDigit( ubyte val )
+    {
+        if (0x0 <= val && val <= 0x9)
+            return cast(char)(val + '0');
+        if (0xa <= val && val <= 0xf)
+            return cast(ubyte)(val + 'a' - 0xa);
+        assert(0);
+    }
+
+
     //////////////////////////////////////////////////////////////////////////
     // Data Output
     //////////////////////////////////////////////////////////////////////////
@@ -513,6 +523,8 @@ private struct Demangle
         TypeUint
         TypeLong
         TypeUlong
+        TypeCent
+        TypeUcent
         TypeFloat
         TypeDouble
         TypeReal
@@ -605,6 +617,12 @@ private struct Demangle
 
     TypeUlong:
         m
+
+    TypeCent
+        zi
+
+    TypeUcent
+        zk
 
     TypeFloat:
         f
@@ -797,6 +815,26 @@ private struct Demangle
                 pad( name );
                 return dst[beg .. len];
             }
+            else if (t == 'z')
+            {
+                next();
+                switch( tok() )
+                {
+                case 'i':
+                    next();
+                    put( "cent" );
+                    pad( name );
+                    return dst[beg .. len];
+                case 'k':
+                    next();
+                    put( "ucent" );
+                    pad( name );
+                    return dst[beg .. len];
+                default:
+                    error();
+                    assert( 0 );
+                }
+            }
             error();
             return null;
         }
@@ -847,6 +885,9 @@ private struct Demangle
 
     FuncAttrNogc:
         Ni
+
+    FuncAttrReturn:
+        Nj
 
     Arguments:
         Argument
@@ -931,8 +972,10 @@ private struct Demangle
                 continue;
             case 'g':
             case 'h':
+            case 'k':
                 // NOTE: The inout parameter type is represented as "Ng".
                 //       The vector parameter type is represented as "Nh".
+                //       The return parameter type is represented as "Nk".
                 //       These make it look like a FuncAttr, but infact
                 //       if we see these, then we know we're really in
                 //       the parameter list.  Rewind and break.
@@ -941,6 +984,10 @@ private struct Demangle
             case 'i': // FuncAttrNogc
                 next();
                 put( "@nogc " );
+                continue;
+            case 'j': // FuncAttrReturn
+                next();
+                put( "return " );
                 continue;
             default:
                 error();
@@ -978,6 +1025,17 @@ private struct Demangle
             {
                 next();
                 put( "scope " );
+            }
+            if( 'N' == tok() )
+            {
+                next();
+                if( 'k' == tok() ) // Return (Nk Parameter2)
+                {
+                    next();
+                    put( "return " );
+                }
+                else
+                    pos--;
             }
             switch( tok() )
             {
@@ -1134,7 +1192,15 @@ private struct Demangle
                 auto a = ascii2hex( tok() ); next();
                 auto b = ascii2hex( tok() ); next();
                 auto v = cast(char)((a << 4) | b);
-                put( __ctfe ? [v] : (cast(char*) &v)[0 .. 1] );
+                if (' ' <= v && v <= '~')   // ASCII printable
+                {
+                    put( __ctfe ? [v] : (cast(char*) &v)[0 .. 1] );
+                }
+                else
+                {
+                    char[4] buf = ['\\', 'x', val2HexDigit(v / 0x10), val2HexDigit(v % 0x10)];
+                    put( buf[] );
+                }
             }
             put( "\"" );
             if( 'a' != t )
@@ -1835,6 +1901,7 @@ unittest
 * Mangles a C function or variable.
 *
 * Params:
+*  sym = The C symbol to mangle.
 *  dst = An optional destination buffer.
 *
 * Returns:
@@ -1883,9 +1950,9 @@ version(unittest)
         ["_D6plugin8generateFiiZAya", "immutable(char)[] plugin.generate(int, int)"],
         ["_D6plugin8generateFiiZAxa", "const(char)[] plugin.generate(int, int)"],
         ["_D6plugin8generateFiiZAOa", "shared(char)[] plugin.generate(int, int)"],
-        ["_D8demangle3fnAFZv3fnBMFZv", "void demangle.fnA().fnB()"],
-        ["_D8demangle4mainFZv1S3fnCFZv", "void demangle.main().S.fnC()"],
-        ["_D8demangle4mainFZv1S3fnDMFZv", "void demangle.main().S.fnD()"],
+        ["_D8demangle3fnAFZ3fnBMFZv", "void demangle.fnA().fnB()"],
+        ["_D8demangle4mainFZ1S3fnCMFZv", "void demangle.main().S.fnC()"],
+        ["_D8demangle4mainFZ1S3fnDMFZv", "void demangle.main().S.fnD()"],
         ["_D8demangle20__T2fnVAiA4i1i2i3i4Z2fnFZv", "void demangle.fn!([1, 2, 3, 4]).fn()"],
         ["_D8demangle10__T2fnVi1Z2fnFZv", "void demangle.fn!(1).fn()"],
         ["_D8demangle26__T2fnVS8demangle1SS2i1i2Z2fnFZv", "void demangle.fn!(demangle.S(1, 2)).fn()"],
@@ -1897,9 +1964,9 @@ version(unittest)
         ["_D8demangle29__T2fnVa97Va9Va0Vu257Vw65537Z2fnFZv", "void demangle.fn!('a', '\\t', \\x00, '\\u0101', '\\U00010001').fn()"],
         ["_D2gc11gctemplates56__T8mkBitmapTS3std5range13__T4iotaTiTiZ4iotaFiiZ6ResultZ8mkBitmapFNbNiNfPmmZv",
          "nothrow @nogc @safe void gc.gctemplates.mkBitmap!(std.range.iota!(int, int).iota(int, int).Result).mkBitmap(ulong*, ulong)"],
-        ["_D8serenity9persister6Sqlite70__T15SqlitePersisterTS8serenity9persister6Sqlite11__unittest6FZv4TestZ15SqlitePersister12__T7opIndexZ7opIndexMFmZS8serenity9persister6Sqlite11__unittest6FZv4Test",
+        ["_D8serenity9persister6Sqlite69__T15SqlitePersisterTS8serenity9persister6Sqlite11__unittest6FZ4TestZ15SqlitePersister12__T7opIndexZ7opIndexMFmZS8serenity9persister6Sqlite11__unittest6FZ4Test",
          "serenity.persister.Sqlite.__unittest6().Test serenity.persister.Sqlite.SqlitePersister!(serenity.persister.Sqlite.__unittest6().Test).SqlitePersister.opIndex!().opIndex(ulong)"],
-        ["_D8bug100274mainFZv5localMFZi","int bug10027.main().local()"],
+        ["_D8bug100274mainFZ5localMFZi","int bug10027.main().local()"],
         ["_D8demangle4testFNhG16gZv", "void demangle.test(__vector(byte[16]))"],
         ["_D8demangle4testFNhG8sZv", "void demangle.test(__vector(short[8]))"],
         ["_D8demangle4testFNhG4iZv", "void demangle.test(__vector(int[4]))"],
@@ -1918,6 +1985,8 @@ version(unittest)
         ["_D3foo7__arrayZ", "foo.__array"],
         ["_D8link657428__T3fooVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
         ["_D8link657429__T3fooHVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
+        ["_D4test22__T4funcVAyaa3_610a62Z4funcFNaNbNiNfZAya", `pure nothrow @nogc @safe immutable(char)[] test.func!("a\x0ab").func()`],
+        ["_D3foo3barFzkZzi", "cent foo.bar(ucent)"],
     ];
 
     template staticIota(int x)

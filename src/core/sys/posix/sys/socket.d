@@ -15,7 +15,7 @@
 module core.sys.posix.sys.socket;
 
 private import core.sys.posix.config;
-public import core.sys.posix.sys.types; // for ssize_t, size_t
+public import core.sys.posix.sys.types; // for ssize_t
 public import core.sys.posix.sys.uio;   // for iovec
 
 version (Posix):
@@ -132,8 +132,10 @@ int     sockatmark(int);
 int     socketpair(int, int, int, ref int[2]);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
+    // Some of the constants below and from the Bionic section are really from
+    // the linux kernel headers.
     alias uint   socklen_t;
     alias ushort sa_family_t;
 
@@ -430,6 +432,40 @@ version( linux )
             SO_SNDBUF       = 7,
             SO_SNDLOWAT     = 17,
             SO_SNDTIMEO     = 19,
+            SO_TYPE         = 3
+        }
+    }
+    else version (AArch64)
+    {
+        enum
+        {
+            SOCK_DGRAM      = 2,
+            SOCK_SEQPACKET  = 5,
+            SOCK_STREAM     = 1
+        }
+
+        enum
+        {
+            SOL_SOCKET      = 1
+        }
+
+        enum
+        {
+            SO_ACCEPTCONN   = 30,
+            SO_BROADCAST    = 6,
+            SO_DEBUG        = 1,
+            SO_DONTROUTE    = 5,
+            SO_ERROR        = 4,
+            SO_KEEPALIVE    = 9,
+            SO_LINGER       = 13,
+            SO_OOBINLINE    = 10,
+            SO_RCVBUF       = 8,
+            SO_RCVLOWAT     = 18,
+            SO_RCVTIMEO     = 20,
+            SO_REUSEADDR    = 2,
+            SO_SNDBUF       = 7,
+            SO_SNDLOWAT     = 19,
+            SO_SNDTIMEO     = 21,
             SO_TYPE         = 3
         }
     }
@@ -1005,7 +1041,7 @@ else version (Solaris)
     int sockatmark(int);
     int socketpair(int, int, int, ref int[2]);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     alias int    socklen_t;
     alias ushort sa_family_t;
@@ -1061,25 +1097,63 @@ else version( Android )
         int l_linger;
     }
 
+    struct msghdr
+    {
+        void*           msg_name;
+        int             msg_namelen;
+        iovec*          msg_iov;
+        __kernel_size_t msg_iovlen;
+        void*           msg_control;
+        __kernel_size_t msg_controllen;
+        uint            msg_flags;
+    }
+
+    struct cmsghdr
+    {
+        __kernel_size_t cmsg_len;
+        int             cmsg_level;
+        int             cmsg_type;
+    }
+
     version (X86)
     {
-        struct msghdr
+        alias uint __kernel_size_t;
+
+        enum
         {
-            void*  msg_name;
-            int    msg_namelen;
-            iovec* msg_iov;
-            uint   msg_iovlen;
-            void*  msg_control;
-            uint   msg_controllen;
-            uint   msg_flags;
+            SOCK_DGRAM      = 2,
+            SOCK_SEQPACKET  = 5,
+            SOCK_STREAM     = 1
         }
 
-        struct cmsghdr
+        enum
         {
-            uint cmsg_len;
-            int  cmsg_level;
-            int  cmsg_type;
+            SOL_SOCKET      = 1
         }
+
+        enum
+        {
+            SO_ACCEPTCONN   = 30,
+            SO_BROADCAST    = 6,
+            SO_DEBUG        = 1,
+            SO_DONTROUTE    = 5,
+            SO_ERROR        = 4,
+            SO_KEEPALIVE    = 9,
+            SO_LINGER       = 13,
+            SO_OOBINLINE    = 10,
+            SO_RCVBUF       = 8,
+            SO_RCVLOWAT     = 18,
+            SO_RCVTIMEO     = 20,
+            SO_REUSEADDR    = 2,
+            SO_SNDBUF       = 7,
+            SO_SNDLOWAT     = 19,
+            SO_SNDTIMEO     = 21,
+            SO_TYPE         = 3
+        }
+    }
+    else version (ARM)
+    {
+        alias uint __kernel_size_t;
 
         enum
         {
@@ -1182,7 +1256,7 @@ else
 AF_INET6
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum
     {
@@ -1210,7 +1284,7 @@ else version (Solaris)
         AF_INET6 = 26,
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum
     {
@@ -1229,7 +1303,7 @@ else
 SOCK_RAW
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum
     {
@@ -1257,7 +1331,7 @@ else version (Solaris)
         SOCK_RAW = 4,
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum
     {

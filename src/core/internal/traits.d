@@ -95,3 +95,63 @@ template dtorIsNothrow(T)
 {
     enum dtorIsNothrow = is(typeof(function{T t=void;}) : void function() nothrow);
 }
+
+template anySatisfy(alias F, T...)
+{
+    static if (T.length == 0)
+    {
+        enum anySatisfy = false;
+    }
+    else static if (T.length == 1)
+    {
+        enum anySatisfy = F!(T[0]);
+    }
+    else
+    {
+        enum anySatisfy =
+            anySatisfy!(F, T[ 0  .. $/2]) ||
+            anySatisfy!(F, T[$/2 ..  $ ]);
+    }
+}
+
+// Somehow fails for non-static nested structs without support for aliases
+template hasElaborateDestructor(T...)
+{
+    static if (is(T[0]))
+        alias S = T[0];
+    else
+        alias S = typeof(T[0]);
+
+    static if (is(S : E[n], E, size_t n) && S.length)
+    {
+        enum bool hasElaborateDestructor = hasElaborateDestructor!E;
+    }
+    else static if (is(S == struct))
+    {
+        enum hasElaborateDestructor = __traits(hasMember, S, "__dtor")
+            || anySatisfy!(.hasElaborateDestructor, S.tupleof);
+    }
+    else
+        enum bool hasElaborateDestructor = false;
+}
+
+// Somehow fails for non-static nested structs without support for aliases
+template hasElaborateCopyConstructor(T...)
+{
+    static if (is(T[0]))
+        alias S = T[0];
+    else
+        alias S = typeof(T[0]);
+
+    static if (is(S : E[n], E, size_t n) && S.length)
+    {
+        enum bool hasElaborateCopyConstructor = hasElaborateCopyConstructor!E;
+    }
+    else static if (is(S == struct))
+    {
+        enum hasElaborateCopyConstructor = __traits(hasMember, S, "__postblit")
+            || anySatisfy!(.hasElaborateCopyConstructor, S.tupleof);
+    }
+    else
+        enum bool hasElaborateCopyConstructor = false;
+}

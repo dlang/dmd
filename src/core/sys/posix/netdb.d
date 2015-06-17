@@ -135,7 +135,7 @@ void         setprotoent(int);
 void         setservent(int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct hostent
     {
@@ -477,7 +477,7 @@ else version (Solaris)
     enum EAI_PROTOCOL = 13;
     enum EAI_MAX = 14;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     struct hostent
     {

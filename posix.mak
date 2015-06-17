@@ -5,47 +5,7 @@
 
 QUIET:=@
 
-ifeq (,$(OS))
-  uname_S:=$(shell uname -s)
-  ifeq (Darwin,$(uname_S))
-    OS:=osx
-  endif
-  ifeq (Linux,$(uname_S))
-    OS:=linux
-  endif
-  ifeq (FreeBSD,$(uname_S))
-    OS:=freebsd
-  endif
-  ifeq (OpenBSD,$(uname_S))
-    OS:=openbsd
-  endif
-  ifeq (Solaris,$(uname_S))
-    OS:=solaris
-  endif
-  ifeq (SunOS,$(uname_S))
-    OS:=solaris
-  endif
-  ifeq (,$(OS))
-    $(error Unrecognized or unsupported OS for uname: $(uname_S))
-  endif
-endif
-
-ifeq (,$(MODEL))
-  ifeq ($(OS),solaris)
-    uname_M:=$(shell isainfo -n)
-  else
-    uname_M:=$(shell uname -m)
-  endif
-  ifneq (,$(findstring $(uname_M),x86_64 amd64))
-    MODEL:=64
-  endif
-  ifneq (,$(findstring $(uname_M),i386 i586 i686))
-    MODEL:=32
-  endif
-  ifeq (,$(MODEL))
-    $(error Cannot figure 32/64 model from uname -m: $(uname_M))
-  endif
-endif
+include osmodel.mak
 
 DMD=../dmd/src/dmd
 INSTALL_DIR=../install
@@ -53,7 +13,6 @@ INSTALL_DIR=../install
 DOCDIR=doc
 IMPDIR=import
 
-MODEL_FLAG:=-m$(MODEL)
 override PIC:=$(if $(PIC),-fPIC,)
 
 ifeq (osx,$(OS))
@@ -121,7 +80,7 @@ endif
 
 doc: $(DOCS)
 
-$(DOCDIR)/object.html : src/object_.d
+$(DOCDIR)/object.html : src/object.d
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_%.html : src/core/%.d
@@ -144,6 +103,11 @@ $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 ######################## Header .di file copy ##############################
 
 copy: $(COPY)
+
+$(IMPDIR)/object.d : src/object.d
+	@mkdir -p `dirname $@`
+	@rm -f $(IMPDIR)/object.di
+	cp $< $@
 
 $(IMPDIR)/%.di : src/%.di
 	@mkdir -p `dirname $@`
@@ -188,7 +152,7 @@ $(DRUNTIME): $(OBJS) $(SRCS)
 UT_MODULES:=$(patsubst src/%.d,$(OBJDIR)/%,$(SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
-	ADDITIONAL_TESTS:=test/init_fini test/exceptions
+	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage
 	ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
 endif
 
@@ -265,3 +229,11 @@ clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 
 test/%/.clean: test/%/Makefile
 	$(MAKE) -C test/$* clean
+
+.PHONY : auto-tester-build
+auto-tester-build: target
+
+.PHONY : auto-tester-test
+auto-tester-test: unittest
+
+.DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
