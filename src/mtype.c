@@ -7870,7 +7870,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
             error(loc, "circular reference to '%s'", vd->toPrettyChars());
             return new ErrorExp();
         }
-        if (vd->offset < offset)
+        if (vd->offset < offset || vd->type->size() == 0)
             e = NULL;
         else if (vd->init)
         {
