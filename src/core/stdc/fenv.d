@@ -21,12 +21,8 @@ nothrow:
 
 version( MinGW )
     version = GNUFP;
-version( linux )
+version( CRuntime_Glibc )
     version = GNUFP;
-
-version( DigitalMars )
-    version( Win32 )
-        version = DMC_RUNTIME;
 
 version( GNUFP )
 {
@@ -93,6 +89,17 @@ version( GNUFP )
 
         alias fexcept_t = ushort;
     }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/aarch64/bits/fenv.h
+    else version (AArch64)
+    {
+        struct fenv_t
+        {
+            uint __fpcr;
+            uint __fpsr;
+        }
+
+        alias fexcept_t = uint;
+    }
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/arm/bits/fenv.h
     else version (ARM)
     {
@@ -114,7 +121,7 @@ version( GNUFP )
         static assert(0, "Unimplemented architecture");
     }
 }
-else version( DMC_RUNTIME )
+else version( CRuntime_DigitalMars )
 {
     struct fenv_t
     {
@@ -125,9 +132,8 @@ else version( DMC_RUNTIME )
     }
     alias fexcept_t = int;
 }
-else version( Windows )
+else version( CRuntime_Microsoft )
 {
-    // MSVCRT
     struct fenv_t
     {
         uint ctl;
@@ -170,7 +176,7 @@ else version ( FreeBSD )
 
     alias ushort fexcept_t;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     version(X86)
     {
@@ -185,6 +191,11 @@ else version( Android )
         }
 
         alias ushort fexcept_t;
+    }
+    else version(ARM)
+    {
+        alias uint fenv_t;
+        alias uint fexcept_t;
     }
     else
     {
@@ -216,43 +227,56 @@ else
     static assert( false, "Unsupported platform" );
 }
 
-enum
+version( CRuntime_Microsoft )
 {
-    FE_INVALID      = 1, ///
-    FE_DENORMAL     = 2, /// non-standard
-    FE_DIVBYZERO    = 4, ///
-    FE_OVERFLOW     = 8, ///
-    FE_UNDERFLOW    = 0x10, ///
-    FE_INEXACT      = 0x20, ///
-    FE_ALL_EXCEPT   = 0x3F, ///
-    FE_TONEAREST    = 0, ///
-    FE_UPWARD       = 0x800, ///
-    FE_DOWNWARD     = 0x400, ///
-    FE_TOWARDZERO   = 0xC00, ///
+    enum
+    {
+        FE_INEXACT      = 1, ///
+        FE_UNDERFLOW    = 2, ///
+        FE_OVERFLOW     = 4, ///
+        FE_DIVBYZERO    = 8, ///
+        FE_INVALID      = 0x10, ///
+        FE_ALL_EXCEPT   = 0x1F, ///
+        FE_TONEAREST    = 0, ///
+        FE_UPWARD       = 0x100, ///
+        FE_DOWNWARD     = 0x200, ///
+        FE_TOWARDZERO   = 0x300, ///
+    }
+}
+else
+{
+    enum
+    {
+        FE_INVALID      = 1, ///
+        FE_DENORMAL     = 2, /// non-standard
+        FE_DIVBYZERO    = 4, ///
+        FE_OVERFLOW     = 8, ///
+        FE_UNDERFLOW    = 0x10, ///
+        FE_INEXACT      = 0x20, ///
+        FE_ALL_EXCEPT   = 0x3F, ///
+        FE_TONEAREST    = 0, ///
+        FE_UPWARD       = 0x800, ///
+        FE_DOWNWARD     = 0x400, ///
+        FE_TOWARDZERO   = 0xC00, ///
+    }
 }
 
-version( DMC_RUNTIME )
+version( GNUFP )
+{
+    ///
+    enum FE_DFL_ENV = cast(fenv_t*)(-1);
+}
+else version( CRuntime_DigitalMars )
 {
     private extern __gshared fenv_t _FE_DFL_ENV;
     ///
     enum fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
 }
-else version( Windows )
+else version( CRuntime_Microsoft )
 {
-    version( MinGW )
-        ///
-        enum FE_DFL_ENV = cast(fenv_t*)(-1);
-    else
-    {
-        private immutable fenv_t _Fenv0 = {0, 0};
-        ///
-        enum FE_DFL_ENV = &_Fenv0;
-    }
-}
-else version( linux )
-{
+    private extern __gshared fenv_t _Fenv0;
     ///
-    enum FE_DFL_ENV = cast(fenv_t*)(-1);
+    enum FE_DFL_ENV = &_Fenv0;
 }
 else version( OSX )
 {
@@ -266,7 +290,7 @@ else version( FreeBSD )
     ///
     enum FE_DFL_ENV = &__fe_dfl_env;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     private extern const fenv_t __fe_dfl_env;
     ///
@@ -284,9 +308,7 @@ else
 }
 
 ///
-void feraiseexcept(int excepts);
-///
-void feclearexcept(int excepts);
+int feclearexcept(int excepts);
 
 ///
 int fetestexcept(int excepts);
@@ -294,9 +316,9 @@ int fetestexcept(int excepts);
 int feholdexcept(fenv_t* envp);
 
 ///
-void fegetexceptflag(fexcept_t* flagp, int excepts);
+int fegetexceptflag(fexcept_t* flagp, int excepts);
 ///
-void fesetexceptflag(in fexcept_t* flagp, int excepts);
+int fesetexceptflag(in fexcept_t* flagp, int excepts);
 
 ///
 int fegetround();
@@ -304,8 +326,56 @@ int fegetround();
 int fesetround(int round);
 
 ///
-void fegetenv(fenv_t* envp);
+int fegetenv(fenv_t* envp);
 ///
-void fesetenv(in fenv_t* envp);
-///
-void feupdateenv(in fenv_t* envp);
+int fesetenv(in fenv_t* envp);
+
+// MS define feraiseexcept() and feupdateenv() inline.
+version( CRuntime_Microsoft ) // supported since MSVCRT 12 (VS 2013) only
+{
+    ///
+    int feraiseexcept()(int excepts)
+    {
+        struct Entry
+        {
+            int    exceptVal;
+            double num;
+            double denom;
+        }
+        static __gshared immutable(Entry[5]) table =
+        [ // Raise exception by evaluating num / denom:
+            { FE_INVALID,   0.0,    0.0    },
+            { FE_DIVBYZERO, 1.0,    0.0    },
+            { FE_OVERFLOW,  1e+300, 1e-300 },
+            { FE_UNDERFLOW, 1e-300, 1e+300 },
+            { FE_INEXACT,   2.0,    3.0    }
+        ];
+
+        if ((excepts &= FE_ALL_EXCEPT) == 0)
+            return 0;
+
+        // Raise the exceptions not masked:
+        double ans = void;
+        foreach (i; 0 .. table.length)
+        {
+            if ((excepts & table[i].exceptVal) != 0)
+                ans = table[i].num / table[i].denom;
+        }
+
+        return 0;
+    }
+
+    ///
+    int feupdateenv()(in fenv_t* envp)
+    {
+        int excepts = fetestexcept(FE_ALL_EXCEPT);
+        return (fesetenv(envp) != 0 || feraiseexcept(excepts) != 0 ? 1 : 0);
+    }
+}
+else
+{
+    ///
+    int feraiseexcept(int excepts);
+    ///
+    int feupdateenv(in fenv_t* envp);
+}

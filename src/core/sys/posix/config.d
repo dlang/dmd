@@ -24,7 +24,7 @@ enum _XOPEN_SOURCE     = 600;
 enum _POSIX_SOURCE     = true;
 enum _POSIX_C_SOURCE   = 200112L;
 
-version (linux)
+version (CRuntime_Glibc)
 {
     // man 7 feature_test_macros
     // http://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html

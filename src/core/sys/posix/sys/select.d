@@ -48,7 +48,7 @@ int  pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
 int  select(int, fd_set*, fd_set*, fd_set*, timeval*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     private
     {
@@ -261,7 +261,7 @@ else version (Solaris)
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     private
     {

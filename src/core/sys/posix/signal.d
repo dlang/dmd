@@ -13,7 +13,6 @@ module core.sys.posix.signal;
 
 private import core.sys.posix.config;
 public import core.stdc.signal;
-public import core.stdc.stddef;         // for size_t
 public import core.sys.posix.sys.types; // for pid_t
 //public import core.sys.posix.time;      // for timespec, now defined here
 
@@ -83,51 +82,48 @@ int raise(int sig);                    (defined in core.stdc.signal)
 
 //sig_atomic_t (defined in core.stdc.signal)
 
-version( Posix )
+private alias void function(int) sigfn_t;
+private alias void function(int, siginfo_t*, void*) sigactfn_t;
+
+// nothrow versions
+nothrow @nogc
 {
-    private alias void function(int) sigfn_t;
-    private alias void function(int, siginfo_t*, void*) sigactfn_t;
+    private alias void function(int) sigfn_t2;
+    private alias void function(int, siginfo_t*, void*) sigactfn_t2;
+}
 
-    // nothrow versions
-    nothrow @nogc
+enum
+{
+  SIGEV_SIGNAL,
+  SIGEV_NONE,
+  SIGEV_THREAD
+}
+
+union sigval
+{
+    int     sival_int;
+    void*   sival_ptr;
+}
+
+version( Solaris )
+{
+    import core.sys.posix.unistd;
+    private int _sigrtmin() { return cast(int) sysconf(_SC_SIGRT_MIN); }
+    private int _sigrtmax() { return cast(int) sysconf(_SC_SIGRT_MAX); }
+
+    alias _sigrtmin SIGRTMIN;
+    alias _sigrtmax SIGRTMAX;
+}
+else version( Posix )
+{
+    private extern (C) nothrow @nogc
     {
-        private alias void function(int) sigfn_t2;
-        private alias void function(int, siginfo_t*, void*) sigactfn_t2;
+        int __libc_current_sigrtmin();
+        int __libc_current_sigrtmax();
     }
 
-    enum
-    {
-      SIGEV_SIGNAL,
-      SIGEV_NONE,
-      SIGEV_THREAD
-    }
-
-    union sigval
-    {
-        int     sival_int;
-        void*   sival_ptr;
-    }
-
-    version( Solaris )
-    {
-        import core.sys.posix.unistd;
-        private int _sigrtmin() { return cast(int) sysconf(_SC_SIGRT_MIN); }
-        private int _sigrtmax() { return cast(int) sysconf(_SC_SIGRT_MAX); }
-
-        alias _sigrtmin SIGRTMIN;
-        alias _sigrtmax SIGRTMAX;
-    }
-    else
-    {
-        private extern (C) nothrow @nogc
-        {
-            int __libc_current_sigrtmin();
-            int __libc_current_sigrtmax();
-        }
-
-        alias __libc_current_sigrtmin SIGRTMIN;
-        alias __libc_current_sigrtmax SIGRTMAX;
-    }
+    alias __libc_current_sigrtmin SIGRTMIN;
+    alias __libc_current_sigrtmax SIGRTMAX;
 }
 
 version( linux )
@@ -393,37 +389,34 @@ else version (Solaris)
     enum SIGUSR2 = 17;
     enum SIGURG = 21;
 }
-else version (Android)
-{
-    version (X86)
-    {
-        enum SIGALRM = 14;
-        enum SIGBUS  = 7;
-        enum SIGCHLD = 17;
-        enum SIGCONT = 18;
-        enum SIGHUP  = 1;
-        enum SIGKILL = 9;
-        enum SIGPIPE = 13;
-        enum SIGQUIT = 3;
-        enum SIGSTOP = 19;
-        enum SIGTSTP = 20;
-        enum SIGTTIN = 21;
-        enum SIGTTOU = 22;
-        enum SIGUSR1 = 10;
-        enum SIGUSR2 = 12;
-        enum SIGURG  = 23;
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
-    }
-}
 else
 {
     static assert(false, "Unsupported platform");
 }
 
-version( FreeBSD )
+version( CRuntime_Glibc )
+{
+    struct sigaction_t
+    {
+        static if( true /* __USE_POSIX199309 */ )
+        {
+            union
+            {
+                sigfn_t     sa_handler;
+                sigactfn_t  sa_sigaction;
+            }
+        }
+        else
+        {
+            sigfn_t     sa_handler;
+        }
+        sigset_t        sa_mask;
+        int             sa_flags;
+
+        void function() sa_restorer;
+    }
+}
+else version( FreeBSD )
 {
     struct sigaction_t
     {
@@ -454,9 +447,24 @@ else version (Solaris)
             int[2] sa_resv;
     }
 }
-else version (Android)
+else version (linux)
 {
     version (X86)
+    {
+        struct sigaction_t
+        {
+            union
+            {
+                sigfn_t    sa_handler;
+                sigactfn_t sa_sigaction;
+            }
+
+            sigset_t        sa_mask;
+            c_ulong         sa_flags;
+            void function() sa_restorer;
+        }
+    }
+    else version (ARM)
     {
         struct sigaction_t
         {
@@ -476,7 +484,7 @@ else version (Android)
         static assert(false, "Architecture not supported.");
     }
 }
-else version( Posix )
+else version( OSX )
 {
     struct sigaction_t
     {
@@ -494,10 +502,6 @@ else version( Posix )
         }
         sigset_t        sa_mask;
         int             sa_flags;
-
-        version( OSX ) {} else {
-        void function() sa_restorer;
-        }
     }
 }
 else
@@ -568,7 +572,7 @@ int sigwait(in sigset_t*, int*);
 nothrow @nogc
 {
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum SIG_HOLD = cast(sigfn_t2) 1;
 
@@ -936,12 +940,17 @@ else version (Solaris)
     int sigsuspend(in sigset_t*);
     int sigwait(in sigset_t*, int*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     public import core.sys.posix.time: timer_t;
     private import core.stdc.string : memset;
 
     version (X86)
+    {
+        alias c_ulong sigset_t;
+        enum int LONG_BIT = 32;
+    }
+    else version (ARM)
     {
         alias c_ulong sigset_t;
         enum int LONG_BIT = 32;
@@ -1158,7 +1167,7 @@ int sigpause(int);
 int sigrelse(int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     version (X86)
     {
@@ -1707,9 +1716,37 @@ else version (Solaris)
     int sigpause(int);
     int sigrelse(int);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     version (X86)
+    {
+        enum SIGPOLL   = 29;
+        enum SIGPROF   = 27;
+        enum SIGSYS    = 31;
+        enum SIGTRAP   = 5;
+        enum SIGVTALRM = 26;
+        enum SIGXCPU   = 24;
+        enum SIGXFSZ   = 25;
+
+        enum SA_ONSTACK     = 0x08000000;
+        enum SA_RESETHAND   = 0x80000000;
+        enum SA_RESTART     = 0x10000000;
+        enum SA_SIGINFO     = 4;
+        enum SA_NOCLDWAIT   = 2;
+        enum SA_NODEFER     = 0x40000000;
+        enum SS_ONSTACK     = 1;
+        enum SS_DISABLE     = 2;
+        enum MINSIGSTKSZ    = 2048;
+        enum SIGSTKSZ       = 8192;
+
+        struct stack_t
+        {
+            void*   ss_sp;
+            int     ss_flags;
+            size_t  ss_size;
+        }
+    }
+    else version (ARM)
     {
         enum SIGPOLL   = 29;
         enum SIGPROF   = 27;
@@ -1868,14 +1905,6 @@ else version (Solaris)
 
     alias timespec timestruc_t;
 }
-else version( Android )
-{
-    struct timespec
-    {
-        time_t  tv_sec;
-        c_long  tv_nsec;
-    }
-}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1902,7 +1931,7 @@ int sigwaitinfo(in sigset_t*, siginfo_t*);
 nothrow:
 @nogc:
 
-version( linux )
+version( CRuntime_Glibc )
 {
     private enum __SIGEV_MAX_SIZE = 64;
 
@@ -1980,7 +2009,7 @@ else version (Solaris)
     int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
     int sigwaitinfo(in sigset_t*, siginfo_t*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     private enum __ARCH_SIGEV_PREAMBLE_SIZE = (int.sizeof * 2) + sigval.sizeof;
     private enum SIGEV_MAX_SIZE = 64;

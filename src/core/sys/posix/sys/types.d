@@ -17,7 +17,7 @@ module core.sys.posix.sys.types;
 
 private import core.sys.posix.config;
 private import core.stdc.stdint;
-public import core.stdc.stddef; // for size_t
+public import core.stdc.stddef;
 
 version (Posix):
 extern (C):
@@ -29,7 +29,7 @@ extern (C):
 __syscall_slong_t
 __syscall_ulong_t
 */
-version (linux)
+version (CRuntime_Glibc)
 {
     version (X86_64)
     {
@@ -76,7 +76,7 @@ time_t
 uid_t
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
   static if( __USE_FILE_OFFSET64 )
   {
@@ -180,22 +180,33 @@ else version (Solaris)
     alias c_long time_t;
     alias uint uid_t;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
+    alias c_ulong   blkcnt_t;
+    alias c_ulong   blksize_t;
+    alias uint      dev_t;
+    alias uint      gid_t;
+    alias c_ulong   ino_t;
+    alias c_long    off_t;
+    alias int       pid_t;
+    alias int       ssize_t;
+    alias c_long    time_t;
+    alias uint      uid_t;
+
     version(X86)
     {
-        alias c_ulong   blkcnt_t;
-        alias c_ulong   blksize_t;
-        alias uint      dev_t;
-        alias uint      gid_t;
-        alias c_ulong   ino_t;
         alias ushort    mode_t;
         alias ushort    nlink_t;
-        alias c_long    off_t;
-        alias int       pid_t;
-        alias c_long    ssize_t;
-        alias c_long    time_t;
-        alias uint      uid_t;
+    }
+    else version(ARM)
+    {
+        alias ushort    mode_t;
+        alias ushort    nlink_t;
+    }
+    else version(MIPS32)
+    {
+        alias uint      mode_t;
+        alias uint      nlink_t;
     }
     else
     {
@@ -220,7 +231,7 @@ suseconds_t
 useconds_t
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
   static if( __USE_FILE_OFFSET64 )
   {
@@ -283,22 +294,15 @@ else version (Solaris)
     alias id_t zoneid_t;
     alias id_t ctid_t;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
-    version(X86)
-    {
-        alias c_ulong  fsblkcnt_t;
-        alias c_ulong  fsfilcnt_t;
-        alias c_long   clock_t;
-        alias uint     id_t;
-        alias int      key_t;
-        alias c_long   suseconds_t;
-        alias c_long   useconds_t;
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
-    }
+    alias c_ulong  fsblkcnt_t;
+    alias c_ulong  fsfilcnt_t;
+    alias c_long   clock_t;
+    alias uint     id_t;
+    alias int      key_t;
+    alias c_long   suseconds_t;
+    alias c_long   useconds_t;
 }
 else
 {
@@ -321,7 +325,7 @@ pthread_rwlockattr_t
 pthread_t
 */
 
-version (linux)
+version (CRuntime_Glibc)
 {
     version (X86)
     {
@@ -731,23 +735,16 @@ else version (Solaris)
 
     alias uint pthread_key_t;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
-    version(X86)
+    struct pthread_attr_t
     {
-        struct pthread_attr_t
-        {
-            uint    flags;
-            void*   stack_base;
-            size_t  stack_size;
-            size_t  guard_size;
-            int     sched_policy;
-            int     sched_priority;
-        }
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
+        uint    flags;
+        void*   stack_base;
+        size_t  stack_size;
+        size_t  guard_size;
+        int     sched_policy;
+        int     sched_priority;
     }
 
     struct pthread_cond_t
@@ -793,7 +790,7 @@ pthread_barrier_t
 pthread_barrierattr_t
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct pthread_barrier_t
     {
@@ -832,7 +829,7 @@ else version (Solaris)
         void* __pthread_barrierattrp;
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
 }
 else
@@ -847,7 +844,7 @@ else
 pthread_spinlock_t
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     alias int pthread_spinlock_t; // volatile
 }

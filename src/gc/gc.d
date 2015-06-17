@@ -23,9 +23,12 @@ module gc.gc;
 //debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
 //debug = SENTINEL;             // add underrun/overrrun protection
+                                // NOTE: this needs to be enabled globally in the makefiles
+                                // (-debug=SENTINEL) to pass druntime's unittests.
 //debug = PTRCHECK;             // more pointer checking
 //debug = PTRCHECK2;            // thorough but slow pointer checking
 //debug = INVARIANT;            // enable invariants
+//debug = PROFILE_API;          // profile API calls for config.profile > 1
 
 /*************** Configuration *********************/
 
@@ -53,8 +56,8 @@ private alias BlkInfo = core.memory.GC.BlkInfo;
 
 version (GNU) import gcc.builtins;
 
-debug (PRINTF_TO_FILE) import core.stdc.stdio : fprintf, fopen, fflush, FILE;
-else                   import core.stdc.stdio : printf; // needed to output profiling results
+debug (PRINTF_TO_FILE) import core.stdc.stdio : sprintf, fprintf, fopen, fflush, FILE;
+else                   import core.stdc.stdio : sprintf, printf; // needed to output profiling results
 
 import core.time;
 alias currTime = MonoTime.currTime;
@@ -109,6 +112,18 @@ __gshared Duration recoverTime;
 __gshared Duration maxPauseTime;
 __gshared size_t numCollections;
 __gshared size_t maxPoolMemory;
+
+__gshared long numMallocs;
+__gshared long numFrees;
+__gshared long numReallocs;
+__gshared long numExtends;
+__gshared long numOthers;
+__gshared long mallocTime; // using ticks instead of MonoTime for better performance
+__gshared long freeTime;
+__gshared long reallocTime;
+__gshared long extendTime;
+__gshared long otherTime;
+__gshared long lockTime;
 
 private
 {
@@ -244,12 +259,12 @@ const uint GCVERSION = 1;       // increment every time we change interface
 // This just makes Mutex final to de-virtualize member function calls.
 final class GCMutex : Mutex
 {
-    final override void lock() nothrow @trusted
+    final override void lock() nothrow @trusted @nogc
     {
         super.lock_nothrow();
     }
 
-    final override void unlock() nothrow @trusted
+    final override void unlock() nothrow @trusted @nogc
     {
         super.unlock_nothrow();
     }
@@ -268,7 +283,7 @@ struct GC
     // We can't allocate a Mutex on the GC heap because we are the GC.
     // Store it in the static data segment instead.
     __gshared GCMutex gcLock;    // global lock
-    __gshared byte[__traits(classInstanceSize, GCMutex)] mutexStorage;
+    __gshared void[__traits(classInstanceSize, GCMutex)] mutexStorage;
 
     __gshared Config config;
 
@@ -331,6 +346,41 @@ struct GC
     }
 
 
+    mixin template doLock()
+    {
+        debug(PROFILE_API)
+        {
+            long tm = (GC.config.profile > 1 ? currTime.ticks : 0);
+        }
+
+        bool locked = (gcLock.lock(), true);
+
+        debug(PROFILE_API)
+        {
+            long tm2 = (GC.config.profile > 1 ? currTime.ticks : 0);
+        }
+    }
+
+    mixin template doUnlock(alias time, alias count)
+    {
+        debug(PROFILE_API)
+        {
+            bool unlocked = () {
+                if (GC.config.profile > 1)
+                {
+                    count++;
+                    long now = currTicks;
+                    lockTime += tm2 - tm;
+                    time += now - tm2;
+                }
+                gcLock.unlock();
+                return true;
+            }();
+        }
+        else
+            bool unlocked = (gcLock.unlock(), true);
+    }
+
     /**
      *
      */
@@ -356,9 +406,9 @@ struct GC
             return oldb;
         }
 
-        gcLock.lock();
-        auto rc = go();
-        gcLock.unlock();
+        mixin doLock!();
+        uint rc = go();
+        mixin doUnlock!(otherTime, numOthers);
         return rc;
     }
 
@@ -389,9 +439,9 @@ struct GC
             return oldb;
         }
 
-        gcLock.lock();
-        auto rc = go();
-        gcLock.unlock();
+        mixin doLock!();
+        uint rc = go();
+        mixin doUnlock!(otherTime, numOthers);
         return rc;
     }
 
@@ -422,12 +472,11 @@ struct GC
             return oldb;
         }
 
-        gcLock.lock();
-        auto rc = go();
-        gcLock.unlock();
+        mixin doLock!();
+        uint rc = go();
+        mixin doUnlock!(otherTime, numOthers);
         return rc;
     }
-
 
     /**
      *
@@ -448,11 +497,9 @@ struct GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        {
-            gcLock.lock();
-            p = mallocNoSync(size, bits, *alloc_size, ti);
-            gcLock.unlock();
-        }
+        mixin doLock!();
+        p = mallocNoSync(size, bits, *alloc_size, ti);
+        mixin doUnlock!(mallocTime, numMallocs);
 
         if (!(bits & BlkAttr.NO_SCAN))
         {
@@ -512,11 +559,9 @@ struct GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        {
-            gcLock.lock();
-            p = mallocNoSync(size, bits, *alloc_size, ti);
-            gcLock.unlock();
-        }
+        mixin doLock!();
+        p = mallocNoSync(size, bits, *alloc_size, ti);
+        mixin doUnlock!(mallocTime, numMallocs);
 
         memset(p, 0, size);
         if (!(bits & BlkAttr.NO_SCAN))
@@ -539,11 +584,9 @@ struct GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        {
-            gcLock.lock();
-            p = reallocNoSync(p, size, bits, *alloc_size, ti);
-            gcLock.unlock();
-        }
+        mixin doLock!();
+        p = reallocNoSync(p, size, bits, *alloc_size, ti);
+        mixin doUnlock!(mallocTime, numMallocs);
 
         if (p !is oldp && !(bits & BlkAttr.NO_SCAN))
         {
@@ -700,8 +743,8 @@ struct GC
 
     /**
      * Attempt to in-place enlarge the memory block pointed to by p by at least
-     * minbytes beyond its current capacity, up to a maximum of maxsize.  This
-     * does not attempt to move the memory block (like realloc() does).
+     * minsize bytes, up to a maximum of maxsize additional bytes.
+     * This does not attempt to move the memory block (like realloc() does).
      *
      * Returns:
      *  0 if could not extend p,
@@ -709,9 +752,10 @@ struct GC
      */
     size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti = null) nothrow
     {
-        gcLock.lock();
-        auto rc = extendNoSync(p, minsize, maxsize, ti);
-        gcLock.unlock();
+        mixin doLock!();
+        size_t rc = extendNoSync(p, minsize, maxsize, ti);
+        mixin doUnlock!(extendTime, numExtends);
+
         return rc;
     }
 
@@ -817,9 +861,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
+        mixin doLock!();
         freeNoSync(p);
-        gcLock.unlock();
+        mixin doUnlock!(freeTime, numFrees);
     }
 
 
@@ -900,9 +944,10 @@ struct GC
             return null;
         }
 
-        gcLock.lock();
-        auto rc = addrOfNoSync(p);
-        gcLock.unlock();
+        mixin doLock!();
+        void* rc = addrOfNoSync(p);
+        mixin doUnlock!(otherTime, numOthers);
+
         return rc;
     }
 
@@ -935,9 +980,10 @@ struct GC
             return 0;
         }
 
-        gcLock.lock();
-        auto rc = sizeOfNoSync(p);
-        gcLock.unlock();
+        mixin doLock!();
+        size_t rc = sizeOfNoSync(p);
+        mixin doUnlock!(otherTime, numOthers);
+
         return rc;
     }
 
@@ -989,9 +1035,10 @@ struct GC
             return  i;
         }
 
-        gcLock.lock();
-        auto rc = queryNoSync(p);
-        gcLock.unlock();
+        mixin doLock!();
+        BlkInfo rc = queryNoSync(p);
+        mixin doUnlock!(otherTime, numOthers);
+
         return rc;
     }
 
@@ -1029,9 +1076,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
+        mixin doLock!();
         checkNoSync(p);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
     }
 
 
@@ -1086,9 +1133,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
+        mixin doLock!();
         gcx.addRoot(p);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
     }
 
 
@@ -1102,9 +1149,9 @@ struct GC
             return;
         }
 
-        gcLock.lock();
+        mixin doLock!();
         gcx.removeRoot(p);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
     }
 
 
@@ -1128,7 +1175,7 @@ struct GC
     /**
      * add range to scan for roots
      */
-    void addRange(void *p, size_t sz, const TypeInfo ti = null) nothrow
+    void addRange(void *p, size_t sz, const TypeInfo ti = null) nothrow @nogc
     {
         if (!p || !sz)
         {
@@ -1137,9 +1184,9 @@ struct GC
 
         //debug(PRINTF) printf("+GC.addRange(p = %p, sz = 0x%zx), p + sz = %p\n", p, sz, p + sz);
 
-        gcLock.lock();
+        mixin doLock!();
         gcx.addRange(p, p + sz, ti);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
 
         //debug(PRINTF) printf("-GC.addRange()\n");
     }
@@ -1148,16 +1195,16 @@ struct GC
     /**
      * remove range
      */
-    void removeRange(void *p) nothrow
+    void removeRange(void *p) nothrow @nogc
     {
         if (!p)
         {
             return;
         }
 
-        gcLock.lock();
+        mixin doLock!();
         gcx.removeRange(p);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
     }
 
     /**
@@ -1165,9 +1212,9 @@ struct GC
      */
     void runFinalizers(in void[] segment) nothrow
     {
-        gcLock.lock();
+        mixin doLock!();
         gcx.runFinalizers(segment);
-        gcLock.unlock();
+        mixin doUnlock!(otherTime, numOthers);
     }
 
     private auto rangeIterImpl(scope int delegate(ref Range) nothrow dg) nothrow
@@ -1424,9 +1471,32 @@ struct Gcx
             long gcTime = (recoverTime + sweepTime + markTime + prepTime).total!("msecs");
             printf("\tGrand total GC time:  %lld milliseconds\n", gcTime);
             long pauseTime = (markTime + prepTime).total!("msecs");
-            printf("GC summary:%5lld MB,%5lld GC%5lld ms, Pauses%5lld ms <%5lld ms\n",
+
+            char[30] apitxt;
+            apitxt[0] = 0;
+            debug(PROFILE_API) if (GC.config.profile > 1)
+            {
+                static Duration toDuration(long dur)
+                {
+                    return MonoTime(dur) - MonoTime(0);
+                }
+
+                printf("\n");
+                printf("\tmalloc:  %llu calls, %lld ms\n", cast(ulong)numMallocs, toDuration(mallocTime).total!"msecs");
+                printf("\trealloc: %llu calls, %lld ms\n", cast(ulong)numReallocs, toDuration(reallocTime).total!"msecs");
+                printf("\tfree:    %llu calls, %lld ms\n", cast(ulong)numFrees, toDuration(freeTime).total!"msecs");
+                printf("\textend:  %llu calls, %lld ms\n", cast(ulong)numExtends, toDuration(extendTime).total!"msecs");
+                printf("\tother:   %llu calls, %lld ms\n", cast(ulong)numOthers, toDuration(otherTime).total!"msecs");
+                printf("\tlock time: %lld ms\n", toDuration(lockTime).total!"msecs");
+
+                long apiTime = mallocTime + reallocTime + freeTime + extendTime + otherTime + lockTime;
+                printf("\tGC API: %lld ms\n", toDuration(apiTime).total!"msecs");
+                sprintf(apitxt.ptr, " API%5ld ms", toDuration(apiTime).total!"msecs");
+            }
+
+            printf("GC summary:%5lld MB,%5lld GC%5lld ms, Pauses%5lld ms <%5lld ms%s\n",
                    cast(long) maxPoolMemory >> 20, cast(ulong)numCollections, gcTime,
-                   pauseTime, maxPause);
+                   pauseTime, maxPause, apitxt.ptr);
         }
 
         debug(INVARIANT) initialized = false;
@@ -1495,7 +1565,7 @@ struct Gcx
     /**
      *
      */
-    void addRange(void *pbot, void *ptop, const TypeInfo ti) nothrow
+    void addRange(void *pbot, void *ptop, const TypeInfo ti) nothrow @nogc
     {
         //debug(PRINTF) printf("Thread %x ", pthread_self());
         debug(PRINTF) printf("%p.Gcx::addRange(%p, %p)\n", &this, pbot, ptop);
@@ -1506,7 +1576,7 @@ struct Gcx
     /**
      *
      */
-    void removeRange(void *pbot) nothrow
+    void removeRange(void *pbot) nothrow @nogc
     {
         //debug(PRINTF) printf("Thread %x ", pthread_self());
         debug(PRINTF) printf("Gcx.removeRange(%p)\n", pbot);
@@ -1610,73 +1680,20 @@ struct Gcx
     }
 
     /**
-     * Compute bin for size.
-     */
-    static Bins findBin(size_t size) nothrow
-    {
-        static const byte[2049] binTable = ctfeBins();
-
-        return (size <= 2048) ?
-            (cast(Bins) binTable[size]) :
-            B_PAGE;
-    }
-
-    static Bins findBinImpl(size_t size) nothrow
-    {   Bins bin;
-
-        if (size <= 256)
-        {
-            if (size <= 64)
-            {
-                if (size <= 16)
-                    bin = B_16;
-                else if (size <= 32)
-                    bin = B_32;
-                else
-                    bin = B_64;
-            }
-            else
-            {
-                if (size <= 128)
-                    bin = B_128;
-                else
-                    bin = B_256;
-            }
-        }
-        else
-        {
-            if (size <= 1024)
-            {
-                if (size <= 512)
-                    bin = B_512;
-                else
-                    bin = B_1024;
-            }
-            else
-            {
-                if (size <= 2048)
-                    bin = B_2048;
-                else
-                    bin = B_PAGE;
-            }
-        }
-        return bin;
-    }
-
-    /**
      * Computes the bin table using CTFE.
      */
     static byte[2049] ctfeBins() nothrow
     {
         byte[2049] ret;
-        for(size_t i = 0; i < 2049; i++)
-        {
-            ret[i] = cast(byte) findBinImpl(i);
-        }
+        size_t p = 0;
+        for (Bins b = B_16; b <= B_2048; b++)
+            for ( ; p <= binsize[b]; p++)
+                ret[p] = b;
 
         return ret;
     }
 
+    static const byte[2049] binTable = ctfeBins();
 
     /**
      * Allocate a new pool of at least size bytes.
@@ -1747,9 +1764,8 @@ struct Gcx
 
     void* alloc(size_t size, ref size_t alloc_size, uint bits) nothrow
     {
-        immutable bin = findBin(size);
-        return bin < B_PAGE ? smallAlloc(bin, alloc_size, bits) :
-            bigAlloc(size, alloc_size, bits);
+        return size <= 2048 ? smallAlloc(binTable[size], alloc_size, bits)
+                            : bigAlloc(size, alloc_size, bits);
     }
 
     void* smallAlloc(Bins bin, ref size_t alloc_size, uint bits) nothrow
@@ -1799,7 +1815,7 @@ struct Gcx
         if (bits)
             pool.setBits((p - pool.baseAddr) >> pool.shiftBy, bits);
         //debug(PRINTF) printf("\tmalloc => %p\n", p);
-        debug (MEMSTOMP) memset(p, 0xF0, size);
+        debug (MEMSTOMP) memset(p, 0xF0, alloc_size);
         return p;
     }
 
@@ -1863,7 +1879,7 @@ struct Gcx
         }
         assert(pool);
 
-        debug(PRINTF) printFreeInfo(pool);
+        debug(PRINTF) printFreeInfo(&pool.base);
         pool.pagetable[pn] = B_PAGE;
         if (npages > 1)
             memset(&pool.pagetable[pn + 1], B_PAGEPLUS, npages - 1);
@@ -1871,7 +1887,7 @@ struct Gcx
         usedLargePages += npages;
         pool.freepages -= npages;
 
-        debug(PRINTF) printFreeInfo(pool);
+        debug(PRINTF) printFreeInfo(&pool.base);
 
         auto p = pool.baseAddr + pn * PAGESIZE;
         debug(PRINTF) printf("Got large alloc:  %p, pt = %d, np = %d\n", p, pool.pagetable[pn], npages);
@@ -2998,7 +3014,7 @@ struct LargeObjectPool
         {
             assert(pagetable[i] == B_FREE);
             size_t p = 1;
-            while (p < n && pagetable[i + p] == B_FREE)
+            while (p < n && i + p < npages && pagetable[i + p] == B_FREE)
                 p++;
 
             if (p == n)
@@ -3114,7 +3130,7 @@ struct LargeObjectPool
             for (; pn + n < npages; ++n)
                 if (pagetable[pn + n] != B_PAGEPLUS)
                     break;
-            debug (MEMSTOMP) memset(pool.baseAddr + pn * PAGESIZE, 0xF3, n * PAGESIZE);
+            debug (MEMSTOMP) memset(baseAddr + pn * PAGESIZE, 0xF3, n * PAGESIZE);
             freePages(pn, n);
         }
     }
@@ -3322,4 +3338,34 @@ else
     {
         return p;
     }
+}
+
+debug (MEMSTOMP)
+unittest
+{
+	import core.memory;
+	auto p = cast(uint*)GC.malloc(uint.sizeof*3);
+	assert(*p == 0xF0F0F0F0);
+	p[2] = 0; // First two will be used for free list
+	GC.free(p);
+	assert(p[2] == 0xF2F2F2F2);
+}
+
+debug (SENTINEL)
+unittest
+{
+	import core.memory;
+	auto p = cast(ubyte*)GC.malloc(1);
+	assert(p[-1] == 0xF4);
+	assert(p[ 1] == 0xF5);
+/*
+	p[1] = 0;
+	bool thrown;
+	try
+		GC.free(p);
+	catch (Error e)
+		thrown = true;
+	p[1] = 0xF5;
+	assert(thrown);
+*/
 }

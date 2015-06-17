@@ -36,7 +36,7 @@ void* dlopen(in char*, int);
 void* dlsym(void*, in char*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     version (X86)
     {
@@ -179,7 +179,7 @@ else version( Solaris )
         void*        dli_saddr;
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum
     {

@@ -104,7 +104,7 @@ int getgrnam_r(in char*, group*, char*, size_t, group**);
 int getgrgid_r(gid_t, group*, char*, size_t, group**);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
@@ -124,7 +124,7 @@ else version( Solaris )
     int getgrnam_r(in char*, group*, char*, int, group**);
     int getgrgid_r(gid_t, group*, char*, int, group**);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
 }
 else
@@ -141,7 +141,7 @@ void           endgrent(void);
 void           setgrent(void);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     group* getgrent();
     @trusted void endgrent();
@@ -165,7 +165,7 @@ else version( Solaris )
     @trusted void endgrent();
     @trusted void setgrent();
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
 }
 else

@@ -48,7 +48,7 @@ version( Posix )
     ///
     enum SIGTERM    = 15; // Termination
 }
-else
+else version( Windows )
 {
     ///
     enum SIG_ERR    = cast(sigfn_t) -1;

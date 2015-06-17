@@ -1585,7 +1585,7 @@ private:
         return cast(Mutex)_locks[1].ptr;
     }
 
-    __gshared byte[__traits(classInstanceSize, Mutex)][2] _locks;
+    __gshared void[__traits(classInstanceSize, Mutex)][2] _locks;
 
     static void initLocks()
     {
@@ -3039,10 +3039,10 @@ extern(C) void thread_processGCMarks( scope IsMarkedDg isMarked ) nothrow
 extern (C)
 {
 nothrow:
-    version (linux) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
+    version (CRuntime_Glibc) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
     version (FreeBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
     version (Solaris) int thr_stksegment(stack_t* stk);
-    version (Android) int pthread_getattr_np(pthread_t thid, pthread_attr_t* attr);
+    version (CRuntime_Bionic) int pthread_getattr_np(pthread_t thid, pthread_attr_t* attr);
 }
 
 
@@ -3080,7 +3080,7 @@ private void* getStackBottom() nothrow
         import core.sys.osx.pthread;
         return pthread_get_stackaddr_np(pthread_self());
     }
-    else version (linux)
+    else version (CRuntime_Glibc)
     {
         pthread_attr_t attr;
         void* addr; size_t size;
@@ -3108,7 +3108,7 @@ private void* getStackBottom() nothrow
         thr_stksegment(&stk);
         return stk.ss_sp;
     }
-    else version (Android)
+    else version (CRuntime_Bionic)
     {
         pthread_attr_t attr;
         void* addr; size_t size;
@@ -4013,23 +4013,23 @@ class Fiber
 
     /**
      * Resets this fiber so that it may be re-used, optionally with a
-     * new function/delegate.  This routine may only be called for
+     * new function/delegate.  This routine should only be called for
      * fibers that have terminated, as doing otherwise could result in
      * scope-dependent functionality that is not executed.
      * Stack-based classes, for example, may not be cleaned up
-     * properly if a fiber is reset before it has terminated.
+     * properly if a fiber is reset before it has terminated. 
      *
      * In:
-     *  This fiber must be in state TERM.
+     *  This fiber must be in state TERM or HOLD.
      */
     final void reset() nothrow
     in
     {
         assert( m_state == State.TERM || m_state == State.HOLD );
-        assert( m_ctxt.tstack == m_ctxt.bstack );
     }
     body
     {
+        m_ctxt.tstack = m_ctxt.bstack;
         m_state = State.HOLD;
         initStack();
         m_unhandled = null;
@@ -4306,7 +4306,7 @@ private:
         {
             version (Posix) import core.sys.posix.sys.mman; // mmap
             version (FreeBSD) import core.sys.freebsd.sys.mman : MAP_ANON;
-            version (linux) import core.sys.linux.sys.mman : MAP_ANON;
+            version (CRuntime_Glibc) import core.sys.linux.sys.mman : MAP_ANON;
             version (OSX) import core.sys.osx.sys.mman : MAP_ANON;
 
             static if( __traits( compiles, mmap ) )
@@ -5036,6 +5036,17 @@ unittest
     expect(fib, "delegate");
 }
 
+// Test unsafe reset in hold state
+unittest
+{
+    auto fib = new Fiber(function {ubyte[2048] buf = void; Fiber.yield();}, 4096);
+    foreach (_; 0 .. 10)
+    {
+        fib.call();
+        assert(fib.state == Fiber.State.HOLD);
+        fib.reset();
+    }
+}
 
 // stress testing GC stack scanning
 unittest
@@ -5214,6 +5225,7 @@ version (FreeBSD) unittest
 
 unittest
 {
-    auto thr = new Thread(function{}, 10).start();
+    // use >PAGESIZE to avoid stack overflow (e.g. in an syscall)
+    auto thr = new Thread(function{}, 4096 + 1).start();
     thr.join();
 }

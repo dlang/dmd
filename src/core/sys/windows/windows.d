@@ -77,7 +77,7 @@ version (Win64)
     alias  long * PLONG_PTR;
     alias ulong * PULONG_PTR;
 }
-else // Win32
+else version (Win32)
 {
     alias  int INT_PTR;
     alias uint UINT_PTR;
@@ -133,7 +133,7 @@ else // Win32
 
     version (Win64)
         alias INT_PTR function() FARPROC;
-    else
+    else version (Win32)
         alias int function() FARPROC;
 
     alias UINT_PTR WPARAM;
@@ -517,6 +517,7 @@ BOOL   MoveFileA(in char *from, in char *to);
 BOOL   MoveFileW(LPCWSTR lpExistingFileName, LPCWSTR lpNewFileName);
 BOOL   ReadFile(HANDLE hFile, void *lpBuffer, DWORD nNumberOfBytesToRead,
     DWORD *lpNumberOfBytesRead, OVERLAPPED *lpOverlapped);
+BOOL   SetEndOfFile(in HANDLE file);
 BOOL   SetFileAttributesA(in LPCSTR lpFileName, DWORD dwFileAttributes);
 BOOL   SetFileAttributesW(in LPCWSTR lpFileName, DWORD dwFileAttributes);
 DWORD  SetFilePointer(HANDLE hFile, LONG lDistanceToMove,
@@ -1311,7 +1312,7 @@ version (Win64)
         DWORD64 LastExceptionFromRip;
     }
 }
-else // Win32
+else version (Win32)
 {
     enum
     {
@@ -1617,9 +1618,9 @@ LONG InterlockedExchangeAdd(LPLONG Addend, LONG Value);
 LONG InterlockedCompareExchange(LONG *Destination, LONG Exchange, LONG Comperand);
 
 void InitializeCriticalSection(CRITICAL_SECTION * lpCriticalSection) @trusted;
-void EnterCriticalSection(CRITICAL_SECTION * lpCriticalSection);
+void EnterCriticalSection(CRITICAL_SECTION * lpCriticalSection) @nogc;
 BOOL TryEnterCriticalSection(CRITICAL_SECTION * lpCriticalSection);
-void LeaveCriticalSection(CRITICAL_SECTION * lpCriticalSection);
+void LeaveCriticalSection(CRITICAL_SECTION * lpCriticalSection) @nogc;
 void DeleteCriticalSection(CRITICAL_SECTION * lpCriticalSection);
 }
 
@@ -3932,6 +3933,7 @@ BOOL LockFile(HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD
 BOOL UnlockFile(HANDLE hFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh);
 BOOL LockFileEx(HANDLE hFile, DWORD dwFlags, DWORD dwReserved, DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh, LPOVERLAPPED lpOverlapped);
 BOOL UnlockFileEx(HANDLE hFile, DWORD dwReserved, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh, LPOVERLAPPED lpOverlapped);
+BOOL FlushFileBuffers(HANDLE hFile);
 }
 
 enum LOCKFILE_FAIL_IMMEDIATELY = 1;
@@ -3958,23 +3960,4 @@ LPWSTR lstrcpynW(LPWSTR lpString1, LPCWSTR lpString2, int iMaxLength);
 
 int lstrlenA(LPCSTR lpString);
 int lstrlenW(LPCWSTR lpString);
-}
-
-enum
-{
-    _S_IREAD  = 0x0100, // read permission, owner
-    _S_IWRITE = 0x0080, // write permission, owner
-}
-
-enum
-{
-    _SH_DENYRW = 0x10, // deny read/write mode
-    _SH_DENYWR = 0x20, // deny write mode
-    _SH_DENYRD = 0x30, // deny read mode
-    _SH_DENYNO = 0x40, // deny none mode
-}
-
-extern(C) @nogc
-{
-    int _wsopen(const wchar* filename, int oflag, int shflag, ...);
 }

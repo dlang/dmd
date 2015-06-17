@@ -37,10 +37,10 @@ version (FreeBSD)
     import core.stdc.fenv;
 }
 
-extern (C) void _STI_monitor_staticctor();
-extern (C) void _STD_monitor_staticdtor();
-extern (C) void _STI_critical_init();
-extern (C) void _STD_critical_term();
+extern (C) void _d_monitor_staticctor();
+extern (C) void _d_monitor_staticdtor();
+extern (C) void _d_critical_init();
+extern (C) void _d_critical_term();
 extern (C) void gc_init();
 extern (C) void gc_term();
 extern (C) void lifetime_init();
@@ -50,6 +50,7 @@ extern (C) void rt_moduleDtor();
 extern (C) void rt_moduleTlsDtor();
 extern (C) void thread_joinAll();
 extern (C) bool runModuleUnitTests();
+extern (C) void _d_initMonoTime();
 
 version (OSX)
 {
@@ -159,12 +160,15 @@ extern (C) int rt_init()
        rt_init. */
     if (atomicOp!"+="(_initCount, 1) > 1) return 1;
 
-    _STI_monitor_staticctor();
-    _STI_critical_init();
+    _d_monitor_staticctor();
+    _d_critical_init();
 
     try
     {
         initSections();
+        // this initializes mono time before anything else to allow usage
+        // in other druntime systems.
+        _d_initMonoTime();
         gc_init();
         initStaticDataGC();
         lifetime_init();
@@ -175,10 +179,10 @@ extern (C) int rt_init()
     catch (Throwable t)
     {
         _initCount = 0;
-        printThrowable(t);
+        _d_print_throwable(t);
     }
-    _STD_critical_term();
-    _STD_monitor_staticdtor();
+    _d_critical_term();
+    _d_monitor_staticdtor();
     return 0;
 }
 
@@ -201,14 +205,61 @@ extern (C) int rt_term()
     }
     catch (Throwable t)
     {
-        printThrowable(t);
+        _d_print_throwable(t);
     }
     finally
     {
-        _STD_critical_term();
-        _STD_monitor_staticdtor();
+        _d_critical_term();
+        _d_monitor_staticdtor();
     }
     return 0;
+}
+
+/**********************************************
+ * Trace handler
+ */
+alias Throwable.TraceInfo function(void* ptr) TraceHandler;
+private __gshared TraceHandler traceHandler = null;
+
+
+/**
+ * Overrides the default trace hander with a user-supplied version.
+ *
+ * Params:
+ *  h = The new trace handler.  Set to null to use the default handler.
+ */
+extern (C) void  rt_setTraceHandler(TraceHandler h)
+{
+    traceHandler = h;
+}
+
+/**
+ * Return the current trace handler
+ */
+extern (C) TraceHandler rt_getTraceHandler()
+{
+    return traceHandler;
+}
+
+/**
+ * This function will be called when an exception is constructed.  The
+ * user-supplied trace handler will be called if one has been supplied,
+ * otherwise no trace will be generated.
+ *
+ * Params:
+ *  ptr = A pointer to the location from which to generate the trace, or null
+ *        if the trace should be generated from within the trace handler
+ *        itself.
+ *
+ * Returns:
+ *  An object describing the current calling context or null if no handler is
+ *  supplied.
+ */
+extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null)
+{
+    if (traceHandler is null)
+        return null;
+    return traceHandler(ptr);
 }
 
 /***********************************
@@ -398,7 +449,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
             }
             catch (Throwable t)
             {
-                printThrowable(t);
+                _d_print_throwable(t);
                 result = EXIT_FAILURE;
             }
         }
@@ -460,7 +511,7 @@ private void formatThrowable(Throwable t, void delegate(in char[] s) nothrow sin
     }
 }
 
-private void printThrowable(Throwable t)
+extern (C) void _d_print_throwable(Throwable t)
 {
     // On Windows, a console may not be present to print the output to.
     // Show a message box instead.

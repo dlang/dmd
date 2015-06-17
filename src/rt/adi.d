@@ -1,16 +1,14 @@
 /**
  * Implementation of dynamic array property support routines.
  *
- * Copyright: Copyright Digital Mars 2000 - 2010.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Copyright: Copyright Digital Mars 2000 - 2015.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Walter Bright
+ * Source: $(DRUNTIMESRC src/rt/_adi.d)
  */
 
-/*          Copyright Digital Mars 2000 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE_1_0.txt or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.adi;
 
 //debug=adi;            // uncomment to turn on debugging printf's
@@ -308,15 +306,8 @@ private dchar[] mallocUTF32(C)(in C[] s)
     size_t j = 0;
     auto p = cast(dchar*)malloc(dchar.sizeof * s.length);
     auto r = p[0..s.length]; // r[] will never be longer than s[]
-    for (size_t i = 0; i < s.length; )
-    {
-        dchar c = s[i];
-        if (c >= 0x80)
-            c = decode(s, i);
-        else
-            i++;                // c is ascii, no need for decode
+    foreach (dchar c; s)
         r[j++] = c;
-    }
     return r[0 .. j];
 }
 

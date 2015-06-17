@@ -46,7 +46,7 @@ IPC_STAT
 key_t ftok(in char*, int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct ipc_perm
     {
@@ -115,9 +115,23 @@ else version( FreeBSD )
 
     key_t ftok(in char*, int);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
+    // All except ftok are from the linux kernel headers.
     version (X86)
+    {
+        struct ipc_perm
+        {
+            key_t   key;
+            ushort  uid;
+            ushort  gid;
+            ushort  cuid;
+            ushort  cgid;
+            mode_t  mode;
+            ushort  seq;
+        }
+    }
+    else version (ARM)
     {
         struct ipc_perm
         {

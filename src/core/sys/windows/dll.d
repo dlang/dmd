@@ -316,7 +316,7 @@ public:
     {
         version (Win64)
             return true;                // fixed
-        else
+        else version (Win32)
         {
         /* If the OS has allocated a TLS slot for us, we don't have to do anything
          * tls_index 0 means: the OS has not done anything, or it has allocated slot 0
@@ -398,7 +398,7 @@ public:
             return dll_process_attach( hInstance, attach_threads,
                                        null, null, null, null );
         }
-        else
+        else version (Win32)
         {
             return dll_process_attach( hInstance, attach_threads,
                                        &_tlsstart, &_tlsend, &_tls_callbacks_a, &_tls_index );

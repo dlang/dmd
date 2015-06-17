@@ -17,21 +17,9 @@
  */
 module object;
 
-//debug=PRINTF;
-
 private
 {
-    import core.atomic;
-    import core.stdc.string;
-    import core.stdc.stdlib;
-    import core.memory;
-    import rt.util.hash;
-    import rt.util.string;
-    debug(PRINTF) import core.stdc.stdio;
-
     extern (C) Object _d_newclass(const TypeInfo_Class ci);
-    extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
-    extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
     extern (C) void rt_finalize(void *data, bool det=true);
 }
 
@@ -150,16 +138,7 @@ class Object
     }
 }
 
-/************************
- * Returns true if lhs and rhs are equal.
- */
-bool opEquals(const Object lhs, const Object rhs)
-{
-    // A hack for the moment.
-    return opEquals(cast()lhs, cast()rhs);
-}
-
-bool opEquals(Object lhs, Object rhs)
+auto opEquals(Object lhs, Object rhs)
 {
     // If aliased to the same object or both null => equal
     if (lhs is rhs) return true;
@@ -181,6 +160,22 @@ bool opEquals(Object lhs, Object rhs)
     return lhs.opEquals(rhs) && rhs.opEquals(lhs);
 }
 
+/************************
+* Returns true if lhs and rhs are equal.
+*/
+auto opEquals(const Object lhs, const Object rhs)
+{
+    // A hack for the moment.
+    return opEquals(cast()lhs, cast()rhs);
+}
+
+private extern(C) void _d_setSameMutex(shared Object ownee, shared Object owner) nothrow;
+
+void setSameMutex(shared Object ownee, shared Object owner)
+{
+    _d_setSameMutex(ownee, owner);
+}
+
 /**
  * Information about an interface.
  * When an object is accessed via an interface, an Interface* appears as the
@@ -192,13 +187,6 @@ struct Interface
     void*[]     vtbl;
     size_t      offset;     /// offset to Interface 'this' from Object 'this'
 }
-
-/**
- * Runtime type information about a class. Can be retrieved for any class type
- * or instance by using the .classinfo property.
- * A pointer to this appears as the first entry in the class's vtbl[].
- */
-alias TypeInfo_Class Classinfo;
 
 /**
  * Array of pairs giving the offset and type information for each
@@ -224,10 +212,13 @@ class TypeInfo
 
     override size_t toHash() @trusted const
     {
+        import core.internal.traits : externDFunc;
+        alias hashOf = externDFunc!("rt.util.hash.hashOf",
+                                    size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
         try
         {
             auto data = this.toString();
-            return rt.util.hash.hashOf(data.ptr, data.length);
+            return hashOf(data.ptr, data.length, 0);
         }
         catch (Throwable)
         {
@@ -240,6 +231,10 @@ class TypeInfo
 
     override int opCmp(Object o)
     {
+        import core.internal.traits : externDFunc;
+        alias dstrcmp = externDFunc!("rt.util.string.dstrcmp",
+                                     int function(in char[] s1, in char[] s2) @trusted pure nothrow);
+
         if (this is o)
             return 0;
         TypeInfo ti = cast(TypeInfo)o;
@@ -504,8 +499,12 @@ class TypeInfo_StaticArray : TypeInfo
 {
     override string toString() const
     {
-        SizeStringBuff tmpBuff = void;
-        return value.toString() ~ "[" ~ len.sizeToTempString(tmpBuff) ~ "]";
+        import core.internal.traits : externDFunc;
+        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString",
+                                              char[] function(in size_t, char[]) @trusted pure nothrow);
+
+        char[20] tmpBuff = void;
+        return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff) ~ "]";
     }
 
     override bool opEquals(Object o)
@@ -554,6 +553,9 @@ class TypeInfo_StaticArray : TypeInfo
 
     override void swap(void* p1, void* p2) const
     {
+        import core.memory;
+        import core.stdc.string : memcpy;
+
         void* tmp;
         size_t sz = value.tsize;
         ubyte[16] buffer;
@@ -824,6 +826,8 @@ class TypeInfo_Class : TypeInfo
         return Object.sizeof;
     }
 
+    override const(void)[] init() nothrow pure const @safe { return m_init; }
+
     override @property uint flags() nothrow pure const { return 1; }
 
     override @property const(OffsetTypeInfo)[] offTi() nothrow pure const
@@ -834,7 +838,7 @@ class TypeInfo_Class : TypeInfo
     @property auto info() @safe nothrow pure const { return this; }
     @property auto typeinfo() @safe nothrow pure const { return this; }
 
-    byte[]      init;           /** class static initializer
+    byte[]      m_init;         /** class static initializer
                                  * (init.length gives size in bytes of class)
                                  */
     string      name;           /// class name
@@ -875,6 +879,7 @@ class TypeInfo_Class : TypeInfo
             //writefln("module %s, %d", m.name, m.localClasses.length);
             foreach (c; m.localClasses)
             {
+                if (c is null) continue;
                 //writefln("\tclass %s", c.name);
                 if (c.name == classname)
                     return c;
@@ -902,6 +907,20 @@ class TypeInfo_Class : TypeInfo
 }
 
 alias TypeInfo_Class ClassInfo;
+
+unittest
+{
+    // Bugzilla 14401
+    static class X
+    {
+        int a;
+    }
+
+    assert(typeid(X).init is typeid(X).m_init);
+    assert(typeid(X).init.length == typeid(const(X)).init.length);
+    assert(typeid(X).init.length == typeid(shared(X)).init.length);
+    assert(typeid(X).init.length == typeid(immutable(X)).init.length);
+}
 
 class TypeInfo_Interface : TypeInfo
 {
@@ -989,12 +1008,17 @@ class TypeInfo_Struct : TypeInfo
         }
         else
         {
-            return rt.util.hash.hashOf(p, init().length);
+            import core.internal.traits : externDFunc;
+            alias hashOf = externDFunc!("rt.util.hash.hashOf",
+                                        size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
+            return hashOf(p, init().length, 0);
         }
     }
 
     override bool equals(in void* p1, in void* p2) @trusted pure nothrow const
     {
+        import core.stdc.string : memcmp;
+
         if (!p1 || !p2)
             return false;
         else if (xopEquals)
@@ -1008,6 +1032,8 @@ class TypeInfo_Struct : TypeInfo
 
     override int compare(in void* p1, in void* p2) @trusted pure nothrow const
     {
+        import core.stdc.string : memcmp;
+
         // Regard null references as always being "less than"
         if (p1 != p2)
         {
@@ -1038,11 +1064,14 @@ class TypeInfo_Struct : TypeInfo
 
     override @property size_t talign() nothrow pure const { return m_align; }
 
-    override void destroy(void* p) const
+    final override void destroy(void* p) const
     {
         if (xdtor)
         {
-            (*xdtor)(p);
+            if (m_flags & StructFlags.isDynamicType)
+                (*xdtorti)(p, this);
+            else
+                (*xdtor)(p);
         }
     }
 
@@ -1065,10 +1094,15 @@ class TypeInfo_Struct : TypeInfo
     enum StructFlags : uint
     {
         hasPointers = 0x1,
+        isDynamicType = 0x2, // built at runtime, needs type info in xdtor
     }
     StructFlags m_flags;
   }
-    void function(void*)                    xdtor;
+    union
+    {
+        void function(void*)                xdtor;
+        void function(void*, const TypeInfo_Struct ti) xdtorti;
+    }
     void function(void*)                    xpostblit;
 
     uint m_align;
@@ -1247,329 +1281,6 @@ class TypeInfo_Inout : TypeInfo_Const
     }
 }
 
-abstract class MemberInfo
-{
-    @property string name() nothrow pure;
-}
-
-class MemberInfo_field : MemberInfo
-{
-    this(string name, TypeInfo ti, size_t offset)
-    {
-        m_name = name;
-        m_typeinfo = ti;
-        m_offset = offset;
-    }
-
-    override @property string name() nothrow pure { return m_name; }
-    @property TypeInfo typeInfo() nothrow pure { return m_typeinfo; }
-    @property size_t offset() nothrow pure { return m_offset; }
-
-    string   m_name;
-    TypeInfo m_typeinfo;
-    size_t   m_offset;
-}
-
-class MemberInfo_function : MemberInfo
-{
-    this(string name, TypeInfo ti, void* fp, uint flags)
-    {
-        m_name = name;
-        m_typeinfo = ti;
-        m_fp = fp;
-        m_flags = flags;
-    }
-
-    override @property string name() nothrow pure { return m_name; }
-    @property TypeInfo typeInfo() nothrow pure { return m_typeinfo; }
-    @property void* fp() nothrow pure { return m_fp; }
-    @property uint flags() nothrow pure { return m_flags; }
-
-    string   m_name;
-    TypeInfo m_typeinfo;
-    void*    m_fp;
-    uint     m_flags;
-}
-
-
-///////////////////////////////////////////////////////////////////////////////
-// Throwable
-///////////////////////////////////////////////////////////////////////////////
-
-
-/**
- * The base class of all thrown objects.
- *
- * All thrown objects must inherit from Throwable. Class $(D Exception), which
- * derives from this class, represents the category of thrown objects that are
- * safe to catch and handle. In principle, one should not catch Throwable
- * objects that are not derived from $(D Exception), as they represent
- * unrecoverable runtime errors. Certain runtime guarantees may fail to hold
- * when these errors are thrown, making it unsafe to continue execution after
- * catching them.
- */
-class Throwable : Object
-{
-    interface TraceInfo
-    {
-        int opApply(scope int delegate(ref const(char[]))) const;
-        int opApply(scope int delegate(ref size_t, ref const(char[]))) const;
-        string toString() const;
-    }
-
-    string      msg;    /// A message describing the error.
-
-    /**
-     * The _file name and line number of the D source code corresponding with
-     * where the error was thrown from.
-     */
-    string      file;
-    size_t      line;   /// ditto
-
-    /**
-     * The stack trace of where the error happened. This is an opaque object
-     * that can either be converted to $(D string), or iterated over with $(D
-     * foreach) to extract the items in the stack trace (as strings).
-     */
-    TraceInfo   info;
-
-    /**
-     * A reference to the _next error in the list. This is used when a new
-     * $(D Throwable) is thrown from inside a $(D catch) block. The originally
-     * caught $(D Exception) will be chained to the new $(D Throwable) via this
-     * field.
-     */
-    Throwable   next;
-
-    @safe pure nothrow this(string msg, Throwable next = null)
-    {
-        this.msg = msg;
-        this.next = next;
-        //this.info = _d_traceContext();
-    }
-
-    @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
-    {
-        this(msg, next);
-        this.file = file;
-        this.line = line;
-        //this.info = _d_traceContext();
-    }
-
-    /**
-     * Overrides $(D Object.toString) and returns the error message.
-     * Internally this forwards to the $(D toString) overload that
-     * takes a $(PARAM sink) delegate.
-     */
-    override string toString()
-    {
-        string s;
-        toString((buf) { s ~= buf; });
-        return s;
-    }
-
-    /**
-     * The Throwable hierarchy uses a toString overload that takes a
-     * $(PARAM sink) delegate to avoid GC allocations, which cannot be
-     * performed in certain error situations.  Override this $(D
-     * toString) method to customize the error message.
-     */
-    void toString(scope void delegate(in char[]) sink) const
-    {
-        SizeStringBuff tmpBuff = void;
-
-        sink(typeid(this).name);
-        sink("@"); sink(file);
-        sink("("); sink(line.sizeToTempString(tmpBuff)); sink(")");
-
-        if (msg.length)
-        {
-            sink(": "); sink(msg);
-        }
-        if (info)
-        {
-            try
-            {
-                sink("\n----------------");
-                foreach (t; info)
-                {
-                    sink("\n"); sink(t);
-                }
-            }
-            catch (Throwable)
-            {
-                // ignore more errors
-            }
-        }
-    }
-}
-
-
-alias Throwable.TraceInfo function(void* ptr) TraceHandler;
-private __gshared TraceHandler traceHandler = null;
-
-
-/**
- * Overrides the default trace hander with a user-supplied version.
- *
- * Params:
- *  h = The new trace handler.  Set to null to use the default handler.
- */
-extern (C) void  rt_setTraceHandler(TraceHandler h)
-{
-    traceHandler = h;
-}
-
-/**
- * Return the current trace handler
- */
-extern (C) TraceHandler rt_getTraceHandler()
-{
-    return traceHandler;
-}
-
-/**
- * This function will be called when an exception is constructed.  The
- * user-supplied trace handler will be called if one has been supplied,
- * otherwise no trace will be generated.
- *
- * Params:
- *  ptr = A pointer to the location from which to generate the trace, or null
- *        if the trace should be generated from within the trace handler
- *        itself.
- *
- * Returns:
- *  An object describing the current calling context or null if no handler is
- *  supplied.
- */
-extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null)
-{
-    if (traceHandler is null)
-        return null;
-    return traceHandler(ptr);
-}
-
-
-/**
- * The base class of all errors that are safe to catch and handle.
- *
- * In principle, only thrown objects derived from this class are safe to catch
- * inside a $(D catch) block. Thrown objects not derived from Exception
- * represent runtime errors that should not be caught, as certain runtime
- * guarantees may not hold, making it unsafe to continue program execution.
- */
-class Exception : Throwable
-{
-
-    /**
-     * Creates a new instance of Exception. The next parameter is used
-     * internally and should always be $(D null) when passed by user code.
-     * This constructor does not automatically throw the newly-created
-     * Exception; the $(D throw) statement should be used for that purpose.
-     */
-    @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
-    {
-        super(msg, file, line, next);
-    }
-
-    @safe pure nothrow this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
-    {
-        super(msg, file, line, next);
-    }
-}
-
-unittest
-{
-    {
-        auto e = new Exception("msg");
-        assert(e.file == __FILE__);
-        assert(e.line == __LINE__ - 2);
-        assert(e.next is null);
-        assert(e.msg == "msg");
-    }
-
-    {
-        auto e = new Exception("msg", new Exception("It's an Excepton!"), "hello", 42);
-        assert(e.file == "hello");
-        assert(e.line == 42);
-        assert(e.next !is null);
-        assert(e.msg == "msg");
-    }
-
-    {
-        auto e = new Exception("msg", "hello", 42, new Exception("It's an Exception!"));
-        assert(e.file == "hello");
-        assert(e.line == 42);
-        assert(e.next !is null);
-        assert(e.msg == "msg");
-    }
-}
-
-
-/**
- * The base class of all unrecoverable runtime errors.
- *
- * This represents the category of $(D Throwable) objects that are $(B not)
- * safe to catch and handle. In principle, one should not catch Error
- * objects, as they represent unrecoverable runtime errors.
- * Certain runtime guarantees may fail to hold when these errors are
- * thrown, making it unsafe to continue execution after catching them.
- */
-class Error : Throwable
-{
-    /**
-     * Creates a new instance of Error. The next parameter is used
-     * internally and should always be $(D null) when passed by user code.
-     * This constructor does not automatically throw the newly-created
-     * Error; the $(D throw) statement should be used for that purpose.
-     */
-    @safe pure nothrow this(string msg, Throwable next = null)
-    {
-        super(msg, next);
-        bypassedException = null;
-    }
-
-    @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
-    {
-        super(msg, file, line, next);
-        bypassedException = null;
-    }
-
-    /// The first $(D Exception) which was bypassed when this Error was thrown,
-    /// or $(D null) if no $(D Exception)s were pending.
-    Throwable   bypassedException;
-}
-
-unittest
-{
-    {
-        auto e = new Error("msg");
-        assert(e.file is null);
-        assert(e.line == 0);
-        assert(e.next is null);
-        assert(e.msg == "msg");
-        assert(e.bypassedException is null);
-    }
-
-    {
-        auto e = new Error("msg", new Exception("It's an Excepton!"));
-        assert(e.file is null);
-        assert(e.line == 0);
-        assert(e.next !is null);
-        assert(e.msg == "msg");
-        assert(e.bypassedException is null);
-    }
-
-    {
-        auto e = new Error("msg", "hello", 42, new Exception("It's an Exception!"));
-        assert(e.file == "hello");
-        assert(e.line == 42);
-        assert(e.next !is null);
-        assert(e.msg == "msg");
-        assert(e.bypassedException is null);
-    }
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // ModuleInfo
@@ -1620,6 +1331,8 @@ const:
     }
     body
     {
+        import core.stdc.string : strlen;
+
         void* p = cast(void*)&this + ModuleInfo.sizeof;
 
         if (flags & MItlsctor)
@@ -1670,7 +1383,7 @@ const:
         if (true || flags & MIname) // always available for now
         {
             if (flag == MIname) return p;
-            p += .strlen(cast(immutable char*)p);
+            p += strlen(cast(immutable char*)p);
         }
         assert(0);
     }
@@ -1738,8 +1451,10 @@ const:
     {
         if (true || flags & MIname) // always available for now
         {
+            import core.stdc.string : strlen;
+
             auto p = cast(immutable char*)addrOf(MIname);
-            return p[0 .. .strlen(p)];
+            return p[0 .. strlen(p)];
         }
         // return null;
     }
@@ -1763,211 +1478,249 @@ unittest
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Monitor
+// Throwable
 ///////////////////////////////////////////////////////////////////////////////
 
-alias Object.Monitor        IMonitor;
-alias void delegate(Object) DEvent;
 
-// NOTE: The dtor callback feature is only supported for monitors that are not
-//       supplied by the user.  The assumption is that any object with a user-
-//       supplied monitor may have special storage or lifetime requirements and
-//       that as a result, storing references to local objects within Monitor
-//       may not be safe or desirable.  Thus, devt is only valid if impl is
-//       null.
-struct Monitor
+/**
+ * The base class of all thrown objects.
+ *
+ * All thrown objects must inherit from Throwable. Class $(D Exception), which
+ * derives from this class, represents the category of thrown objects that are
+ * safe to catch and handle. In principle, one should not catch Throwable
+ * objects that are not derived from $(D Exception), as they represent
+ * unrecoverable runtime errors. Certain runtime guarantees may fail to hold
+ * when these errors are thrown, making it unsafe to continue execution after
+ * catching them.
+ */
+class Throwable : Object
 {
-    IMonitor impl;
-    /* internal */
-    DEvent[] devt;
-    size_t   refs;
-    /* stuff */
-}
-
-Monitor* getMonitor(Object h) pure nothrow
-{
-    return cast(Monitor*) h.__monitor;
-}
-
-void setMonitor(Object h, Monitor* m) pure nothrow
-{
-    h.__monitor = m;
-}
-
-void setSameMutex(shared Object ownee, shared Object owner) nothrow
-in
-{
-    assert(ownee.__monitor is null);
-}
-body
-{
-    auto m = cast(shared(Monitor)*) owner.__monitor;
-
-    if (m is null)
+    interface TraceInfo
     {
-        _d_monitor_create(cast(Object) owner);
-        m = cast(shared(Monitor)*) owner.__monitor;
+        int opApply(scope int delegate(ref const(char[]))) const;
+        int opApply(scope int delegate(ref size_t, ref const(char[]))) const;
+        string toString() const;
     }
 
-    auto i = m.impl;
-    if (i is null)
+    string      msg;    /// A message describing the error.
+
+    /**
+     * The _file name and line number of the D source code corresponding with
+     * where the error was thrown from.
+     */
+    string      file;
+    size_t      line;   /// ditto
+
+    /**
+     * The stack trace of where the error happened. This is an opaque object
+     * that can either be converted to $(D string), or iterated over with $(D
+     * foreach) to extract the items in the stack trace (as strings).
+     */
+    TraceInfo   info;
+
+    /**
+     * A reference to the _next error in the list. This is used when a new
+     * $(D Throwable) is thrown from inside a $(D catch) block. The originally
+     * caught $(D Exception) will be chained to the new $(D Throwable) via this
+     * field.
+     */
+    Throwable   next;
+
+    @nogc @safe pure nothrow this(string msg, Throwable next = null)
     {
-        atomicOp!("+=")(m.refs, cast(size_t)1);
-        ownee.__monitor = owner.__monitor;
-        return;
+        this.msg = msg;
+        this.next = next;
+        //this.info = _d_traceContext();
     }
-    // If m.impl is set (ie. if this is a user-created monitor), assume
-    // the monitor is garbage collected and simply copy the reference.
-    ownee.__monitor = owner.__monitor;
-}
 
-extern (C) void _d_monitor_create(Object) nothrow;
-extern (C) void _d_monitor_destroy(Object) nothrow;
-extern (C) void _d_monitor_lock(Object) nothrow;
-extern (C) int  _d_monitor_unlock(Object) nothrow;
-
-extern (C) void _d_monitordelete(Object h, bool det)
-{
-    // det is true when the object is being destroyed deterministically (ie.
-    // when it is explicitly deleted or is a scope object whose time is up).
-    Monitor* m = getMonitor(h);
-
-    if (m !is null)
+    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
     {
-        IMonitor i = m.impl;
-        if (i is null)
+        this(msg, next);
+        this.file = file;
+        this.line = line;
+        //this.info = _d_traceContext();
+    }
+
+    /**
+     * Overrides $(D Object.toString) and returns the error message.
+     * Internally this forwards to the $(D toString) overload that
+     * takes a $(PARAM sink) delegate.
+     */
+    override string toString()
+    {
+        string s;
+        toString((buf) { s ~= buf; });
+        return s;
+    }
+
+    /**
+     * The Throwable hierarchy uses a toString overload that takes a
+     * $(PARAM sink) delegate to avoid GC allocations, which cannot be
+     * performed in certain error situations.  Override this $(D
+     * toString) method to customize the error message.
+     */
+    void toString(scope void delegate(in char[]) sink) const
+    {
+        import core.internal.traits : externDFunc;
+        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString",
+                                              char[] function(in size_t, char[]) @trusted pure nothrow);
+
+        char[20] tmpBuff = void;
+
+        sink(typeid(this).name);
+        sink("@"); sink(file);
+        sink("("); sink(sizeToTempString(line, tmpBuff)); sink(")");
+
+        if (msg.length)
         {
-            auto s = cast(shared(Monitor)*) m;
-            if(!atomicOp!("-=")(s.refs, cast(size_t) 1))
+            sink(": "); sink(msg);
+        }
+        if (info)
+        {
+            try
             {
-                _d_monitor_devt(m, h);
-                _d_monitor_destroy(h);
-                setMonitor(h, null);
+                sink("\n----------------");
+                foreach (t; info)
+                {
+                    sink("\n"); sink(t);
+                }
             }
-            return;
-        }
-        // NOTE: Since a monitor can be shared via setSameMutex it isn't safe
-        //       to explicitly delete user-created monitors--there's no
-        //       refcount and it may have multiple owners.
-        /+
-        if (det && (cast(void*) i) !is (cast(void*) h))
-        {
-            destroy(i);
-            GC.free(cast(void*)i);
-        }
-        +/
-        setMonitor(h, null);
-    }
-}
-
-extern (C) void _d_monitorenter(Object h)
-{
-    Monitor* m = getMonitor(h);
-
-    if (m is null)
-    {
-        _d_monitor_create(h);
-        m = getMonitor(h);
-    }
-
-    IMonitor i = m.impl;
-
-    if (i is null)
-    {
-        _d_monitor_lock(h);
-        return;
-    }
-    i.lock();
-}
-
-extern (C) void _d_monitorexit(Object h)
-{
-    Monitor* m = getMonitor(h);
-    IMonitor i = m.impl;
-
-    if (i is null)
-    {
-        _d_monitor_unlock(h);
-        return;
-    }
-    i.unlock();
-}
-
-extern (C) void _d_monitor_devt(Monitor* m, Object h)
-{
-    if (m.devt.length)
-    {
-        DEvent[] devt;
-
-        synchronized (h)
-        {
-            devt = m.devt;
-            m.devt = null;
-        }
-        foreach (v; devt)
-        {
-            if (v)
-                v(h);
-        }
-        free(devt.ptr);
-    }
-}
-
-extern (C) void rt_attachDisposeEvent(Object h, DEvent e)
-{
-    synchronized (h)
-    {
-        Monitor* m = getMonitor(h);
-        assert(m.impl is null);
-
-        foreach (ref v; m.devt)
-        {
-            if (v is null || v == e)
+            catch (Throwable)
             {
-                v = e;
-                return;
-            }
-        }
-
-        auto len = m.devt.length + 4; // grow by 4 elements
-        auto pos = m.devt.length;     // insert position
-        auto p = realloc(m.devt.ptr, DEvent.sizeof * len);
-        import core.exception : onOutOfMemoryError;
-        if (!p)
-            onOutOfMemoryError();
-        m.devt = (cast(DEvent*)p)[0 .. len];
-        m.devt[pos+1 .. len] = null;
-        m.devt[pos] = e;
-    }
-}
-
-extern (C) void rt_detachDisposeEvent(Object h, DEvent e)
-{
-    synchronized (h)
-    {
-        Monitor* m = getMonitor(h);
-        assert(m.impl is null);
-
-        foreach (p, v; m.devt)
-        {
-            if (v == e)
-            {
-                memmove(&m.devt[p],
-                        &m.devt[p+1],
-                        (m.devt.length - p - 1) * DEvent.sizeof);
-                m.devt[$ - 1] = null;
-                return;
+                // ignore more errors
             }
         }
     }
 }
+
+
+/**
+ * The base class of all errors that are safe to catch and handle.
+ *
+ * In principle, only thrown objects derived from this class are safe to catch
+ * inside a $(D catch) block. Thrown objects not derived from Exception
+ * represent runtime errors that should not be caught, as certain runtime
+ * guarantees may not hold, making it unsafe to continue program execution.
+ */
+class Exception : Throwable
+{
+
+    /**
+     * Creates a new instance of Exception. The next parameter is used
+     * internally and should always be $(D null) when passed by user code.
+     * This constructor does not automatically throw the newly-created
+     * Exception; the $(D throw) statement should be used for that purpose.
+     */
+    @nogc @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
+        super(msg, file, line, next);
+    }
+
+    @nogc @safe pure nothrow this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line, next);
+    }
+}
+
+unittest
+{
+    {
+        auto e = new Exception("msg");
+        assert(e.file == __FILE__);
+        assert(e.line == __LINE__ - 2);
+        assert(e.next is null);
+        assert(e.msg == "msg");
+    }
+
+    {
+        auto e = new Exception("msg", new Exception("It's an Excepton!"), "hello", 42);
+        assert(e.file == "hello");
+        assert(e.line == 42);
+        assert(e.next !is null);
+        assert(e.msg == "msg");
+    }
+
+    {
+        auto e = new Exception("msg", "hello", 42, new Exception("It's an Exception!"));
+        assert(e.file == "hello");
+        assert(e.line == 42);
+        assert(e.next !is null);
+        assert(e.msg == "msg");
+    }
+}
+
+
+/**
+ * The base class of all unrecoverable runtime errors.
+ *
+ * This represents the category of $(D Throwable) objects that are $(B not)
+ * safe to catch and handle. In principle, one should not catch Error
+ * objects, as they represent unrecoverable runtime errors.
+ * Certain runtime guarantees may fail to hold when these errors are
+ * thrown, making it unsafe to continue execution after catching them.
+ */
+class Error : Throwable
+{
+    /**
+     * Creates a new instance of Error. The next parameter is used
+     * internally and should always be $(D null) when passed by user code.
+     * This constructor does not automatically throw the newly-created
+     * Error; the $(D throw) statement should be used for that purpose.
+     */
+    @nogc @safe pure nothrow this(string msg, Throwable next = null)
+    {
+        super(msg, next);
+        bypassedException = null;
+    }
+
+    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
+    {
+        super(msg, file, line, next);
+        bypassedException = null;
+    }
+
+    /// The first $(D Exception) which was bypassed when this Error was thrown,
+    /// or $(D null) if no $(D Exception)s were pending.
+    Throwable   bypassedException;
+}
+
+unittest
+{
+    {
+        auto e = new Error("msg");
+        assert(e.file is null);
+        assert(e.line == 0);
+        assert(e.next is null);
+        assert(e.msg == "msg");
+        assert(e.bypassedException is null);
+    }
+
+    {
+        auto e = new Error("msg", new Exception("It's an Excepton!"));
+        assert(e.file is null);
+        assert(e.line == 0);
+        assert(e.next !is null);
+        assert(e.msg == "msg");
+        assert(e.bypassedException is null);
+    }
+
+    {
+        auto e = new Error("msg", "hello", 42, new Exception("It's an Exception!"));
+        assert(e.file == "hello");
+        assert(e.line == 42);
+        assert(e.next !is null);
+        assert(e.msg == "msg");
+        assert(e.bypassedException is null);
+    }
+}
+
 
 extern (C)
 {
     // from druntime/src/rt/aaA.d
 
     // size_t _aaLen(in void* p) pure nothrow @nogc;
-    private void* _aaGetX(void** paa, const TypeInfo keyti, in size_t valuesize, in void* pkey) pure nothrow;
+    private void* _aaGetY(void** paa, const TypeInfo_AssociativeArray ti, in size_t valuesize, in void* pkey) pure nothrow;
     // inout(void)* _aaGetRvalueX(inout void* p, in TypeInfo keyti, in size_t valuesize, in void* pkey);
     inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize, const TypeInfo tiValArray) pure nothrow;
     inout(void)[] _aaKeys(inout void* p, in size_t keysize, const TypeInfo tiKeyArray) pure nothrow;
@@ -1979,7 +1732,7 @@ extern (C)
     // alias _dg2_t = extern(D) int delegate(void*, void*);
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
-    private struct AARange { void* impl, current; }
+    private struct AARange { void* impl; size_t idx; }
     AARange _aaRange(void* aa) pure nothrow @nogc;
     bool _aaRangeEmpty(AARange r) pure nothrow @nogc;
     void* _aaRangeFrontKey(AARange r) pure nothrow @nogc;
@@ -2046,7 +1799,7 @@ V[K] dup(T : V[K], K, V)(T aa)
     {
         import core.stdc.string : memcpy;
 
-        void* pv = _aaGetX(cast(void**)&result, typeid(K), V.sizeof, &k);
+        void* pv = _aaGetY(cast(void**)&result, typeid(V[K]), V.sizeof, &k);
         memcpy(pv, &v, V.sizeof);
         return *cast(V*)pv;
     }
@@ -2115,7 +1868,9 @@ auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
 Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 {
     auto a = cast(void[])_aaKeys(cast(inout(void)*)aa, Key.sizeof, typeid(Key[]));
-    return *cast(Key[]*)&a;
+    auto res = *cast(Key[]*)&a;
+    _doPostblit(res);
+    return res;
 }
 
 Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
@@ -2126,12 +1881,41 @@ Key[] keys(T : Value[Key], Value, Key)(T *aa) @property
 Value[] values(T : Value[Key], Value, Key)(T aa) @property
 {
     auto a = cast(void[])_aaValues(cast(inout(void)*)aa, Key.sizeof, Value.sizeof, typeid(Value[]));
-    return *cast(Value[]*)&a;
+    auto res = *cast(Value[]*)&a;
+    _doPostblit(res);
+    return res;
 }
 
 Value[] values(T : Value[Key], Value, Key)(T *aa) @property
 {
     return (*aa).values;
+}
+
+unittest
+{
+    static struct T
+    {
+        static size_t count;
+        this(this) { ++count; }
+    }
+    T[int] aa;
+    T t;
+    aa[0] = t;
+    aa[1] = t;
+    assert(T.count == 2);
+    auto vals = aa.values;
+    assert(vals.length == 2);
+    assert(T.count == 4);
+
+    T.count = 0;
+    int[T] aa2;
+    aa2[t] = 0;
+    assert(T.count == 1);
+    aa2[t] = 1;
+    assert(T.count == 1);
+    auto keys = aa2.keys;
+    assert(keys.length == 1);
+    assert(T.count == 2);
 }
 
 auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc @property
@@ -2439,9 +2223,295 @@ unittest
     }
 }
 
-// Explicitly undocumented. It will be removed in March 2015.
-deprecated("Please use destroy instead of clear.")
-alias destroy clear;
+private void _destructRecurse(S)(ref S s)
+    if (is(S == struct))
+{
+    import core.internal.traits : hasElaborateDestructor;
+
+    static if (__traits(hasMember, S, "__dtor"))
+        s.__dtor();
+
+    foreach_reverse (ref field; s.tupleof)
+    {
+        static if (hasElaborateDestructor!(typeof(field)))
+            _destructRecurse(field);
+    }
+}
+
+private void _destructRecurse(E, size_t n)(ref E[n] arr)
+{
+    import core.internal.traits : hasElaborateDestructor;
+
+    static if (hasElaborateDestructor!E)
+    {
+        foreach_reverse (ref elem; arr)
+            _destructRecurse(elem);
+    }
+}
+
+private string _genFieldPostblit(S)()
+{
+    import core.internal.traits : hasElaborateCopyConstructor;
+
+    string code;
+    foreach(i, FieldType; typeof(S.init.tupleof))
+    {
+        static if(hasElaborateCopyConstructor!FieldType)
+        {
+            code ~= `
+                _postblitRecurse(s.tupleof[` ~ i.stringof ~ `]);
+                scope(failure) _destructRecurse(s.tupleof[` ~ i.stringof ~ `]);
+            `;
+        }
+    }
+    return code;
+}
+
+// Public and explicitly undocumented
+void _postblitRecurse(S)(ref S s)
+    if (is(S == struct))
+{
+    mixin(_genFieldPostblit!S());
+
+    static if (__traits(hasMember, S, "__postblit"))
+        s.__postblit();
+}
+
+// Ditto
+void _postblitRecurse(E, size_t n)(ref E[n] arr)
+{
+    import core.internal.traits : hasElaborateCopyConstructor;
+
+    static if (hasElaborateCopyConstructor!E)
+    {
+        size_t i;
+        scope(failure)
+        {
+            for (; i != 0; --i)
+            {
+                _destructRecurse(arr[i - 1]); // What to do if this throws?
+            }
+        }
+
+        for (i = 0; i < arr.length; ++i)
+            _postblitRecurse(arr[i]);
+    }
+}
+
+// Test destruction/postblit order
+@safe nothrow pure unittest
+{
+    string[] order;
+
+    struct InnerTop
+    {
+        ~this() @safe nothrow pure
+        {
+            order ~= "destroy inner top";
+        }
+
+        this(this) @safe nothrow pure
+        {
+            order ~= "copy inner top";
+        }
+    }
+
+    struct InnerMiddle {}
+
+    version(none) // @@@BUG@@@ 14242
+    struct InnerElement
+    {
+        static char counter = '1';
+
+        ~this() @safe nothrow pure
+        {
+            order ~= "destroy inner element #" ~ counter++;
+        }
+
+        this(this) @safe nothrow pure
+        {
+            order ~= "copy inner element #" ~ counter++;
+        }
+    }
+
+    struct InnerBottom
+    {
+        ~this() @safe nothrow pure
+        {
+            order ~= "destroy inner bottom";
+        }
+
+        this(this) @safe nothrow pure
+        {
+            order ~= "copy inner bottom";
+        }
+    }
+
+    struct S
+    {
+        char[] s;
+        InnerTop top;
+        InnerMiddle middle;
+        version(none) InnerElement[3] array; // @@@BUG@@@ 14242
+        int a;
+        InnerBottom bottom;
+        ~this() @safe nothrow pure { order ~= "destroy outer"; }
+        this(this) @safe nothrow pure { order ~= "copy outer"; }
+    }
+
+    string[] destructRecurseOrder;
+    {
+        S s;
+        _destructRecurse(s);
+        destructRecurseOrder = order;
+        order = null;
+    }
+
+    assert(order.length);
+    assert(destructRecurseOrder == order);
+    order = null;
+
+    S s;
+    _postblitRecurse(s);
+    assert(order.length);
+    auto postblitRecurseOrder = order;
+    order = null;
+    S s2 = s;
+    assert(order.length);
+    assert(postblitRecurseOrder == order);
+}
+
+// Test static struct
+nothrow @safe @nogc unittest
+{
+    static int i = 0;
+    static struct S { ~this() nothrow @safe @nogc { i = 42; } }
+    S s;
+    _destructRecurse(s);
+    assert(i == 42);
+}
+
+// Test handling of fixed-length arrays
+// Separate from first test because of @@@BUG@@@ 14242
+unittest
+{
+    string[] order;
+
+    struct S
+    {
+        char id;
+
+        this(this)
+        {
+            order ~= "copy #" ~ id;
+        }
+
+        ~this()
+        {
+            order ~= "destroy #" ~ id;
+        }
+    }
+
+    string[] destructRecurseOrder;
+    {
+        S[3] arr = [S('1'), S('2'), S('3')];
+        _destructRecurse(arr);
+        destructRecurseOrder = order;
+        order = null;
+    }
+    assert(order.length);
+    assert(destructRecurseOrder == order);
+    order = null;
+
+    S[3] arr = [S('1'), S('2'), S('3')];
+    _postblitRecurse(arr);
+    assert(order.length);
+    auto postblitRecurseOrder = order;
+    order = null;
+
+    auto arrCopy = arr;
+    assert(order.length);
+    assert(postblitRecurseOrder == order);
+}
+
+// Test handling of failed postblit
+// Not nothrow or @safe because of @@@BUG@@@ 14242
+/+ nothrow @safe +/ unittest
+{
+    static class FailedPostblitException : Exception { this() nothrow @safe { super(null); } }
+    static string[] order;
+    static struct Inner
+    {
+        char id;
+
+        @safe:
+        this(this)
+        {
+            order ~= "copy inner #" ~ id;
+            if(id == '2')
+                throw new FailedPostblitException();
+        }
+
+        ~this() nothrow
+        {
+            order ~= "destroy inner #" ~ id;
+        }
+    }
+
+    static struct Outer
+    {
+        Inner inner1, inner2, inner3;
+
+        nothrow @safe:
+        this(char first, char second, char third)
+        {
+            inner1 = Inner(first);
+            inner2 = Inner(second);
+            inner3 = Inner(third);
+        }
+
+        this(this)
+        {
+            order ~= "copy outer";
+        }
+
+        ~this()
+        {
+            order ~= "destroy outer";
+        }
+    }
+
+    auto outer = Outer('1', '2', '3');
+
+    try _postblitRecurse(outer);
+    catch(FailedPostblitException) {}
+    catch(Exception) assert(false);
+
+    auto postblitRecurseOrder = order;
+    order = null;
+
+    try auto copy = outer;
+    catch(FailedPostblitException) {}
+    catch(Exception) assert(false);
+
+    assert(postblitRecurseOrder == order);
+    order = null;
+
+    Outer[3] arr = [Outer('1', '1', '1'), Outer('1', '2', '3'), Outer('3', '3', '3')];
+
+    try _postblitRecurse(arr);
+    catch(FailedPostblitException) {}
+    catch(Exception) assert(false);
+
+    postblitRecurseOrder = order;
+    order = null;
+
+    try auto arrCopy = arr;
+    catch(FailedPostblitException) {}
+    catch(Exception) assert(false);
+
+    assert(postblitRecurseOrder == order);
+}
 
 /++
     Destroys the given object and puts it in an invalid state. It's used to
@@ -2516,16 +2586,18 @@ version(unittest) unittest
 
 void destroy(T)(ref T obj) if (is(T == struct))
 {
-    typeid(T).destroy( &obj );
-    auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
-    auto init = cast(ubyte[])typeid(T).init();
-    if(init.ptr is null) // null ptr means initialize to 0s
-        buf[] = 0;
-    else
-        buf[] = init[];
+    _destructRecurse(obj);
+    () @trusted {
+        auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
+        auto init = cast(ubyte[])typeid(T).init();
+        if (init.ptr is null) // null ptr means initialize to 0s
+            buf[] = 0;
+        else
+            buf[] = init[];
+    } ();
 }
 
-version(unittest) unittest
+version(unittest) nothrow @safe @nogc unittest
 {
    {
        struct A { string s = "A";  }
@@ -2539,7 +2611,7 @@ version(unittest) unittest
        struct C
        {
            string s = "C";
-           ~this()
+           ~this() nothrow @safe @nogc
            {
                destroyed ++;
            }
@@ -2549,7 +2621,7 @@ version(unittest) unittest
        {
            C c;
            string s = "B";
-           ~this()
+           ~this() nothrow @safe @nogc
            {
                destroyed ++;
            }
@@ -2626,6 +2698,12 @@ version (unittest)
     {
         return x != x;
     }
+}
+
+private
+{
+    extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
+    extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
 }
 
 /**
@@ -2840,7 +2918,28 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
     return true;
 }
 
+/**
+Calculates the hash value of $(D arg) with $(D seed) initial value.
+Result may be non-equals with $(D typeid(T).getHash(&arg))
+The $(D seed) value may be used for hash chaining:
+----
+struct Test
+{
+    int a;
+    string b;
+    MyObject c;
 
+    size_t toHash() const @safe pure nothrow
+    {
+        size_t hash = a.hashOf();
+        hash = b.hashOf(hash);
+        size_t h1 = c.myMegaHash();
+        hash = h1.hashOf(hash); //Mix two hash values
+        return hash;
+    }
+}
+----
+*/
 size_t hashOf(T)(auto ref T arg, size_t seed = 0)
 {
     import core.internal.hash;
@@ -2857,6 +2956,9 @@ bool _xopCmp(in void*, in void*)
     throw new Error("TypeInfo.compare is not implemented");
 }
 
+void __ctfeWrite(T...)(auto ref T) {}
+void __ctfeWriteln(T...)(auto ref T values) { __ctfeWrite(values, "\n"); }
+
 /******************************************
  * Create RTInfo for type T
  */
@@ -2869,9 +2971,7 @@ template RTInfo(T)
 
 // Helper functions
 
-private:
-
-inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
+private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
 {
     TypeInfo element = cast() value;
     for(;;)
@@ -2890,7 +2990,7 @@ inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
     return cast(inout) element;
 }
 
-size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted nothrow
+private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted nothrow
 {
     if(!count)
         return 0;
@@ -2912,8 +3012,11 @@ size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted
             || cast(const TypeInfo_Interface) element;
     }
 
+    import core.internal.traits : externDFunc;
+    alias hashOf = externDFunc!("rt.util.hash.hashOf",
+                                size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
     if(!hasCustomToHash(element))
-        return rt.util.hash.hashOf(ptr, elementSize * count);
+        return hashOf(ptr, elementSize * count, 0);
 
     size_t hash = 0;
     foreach(size_t i; 0 .. count)
@@ -2961,8 +3064,6 @@ unittest
     int[S[]] aa = [[S(11)] : 13];
     assert(aa[[S(12)]] == 13); // fails
 }
-
-public:
 
 /// Provide the .dup array property.
 @property auto dup(T)(T[] a)

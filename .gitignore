@@ -7,3 +7,6 @@ druntime.json
 trace.def
 trace.log
 Makefile
+/errno_c.obj
+make
+test/*

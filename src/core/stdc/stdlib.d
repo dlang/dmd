@@ -15,7 +15,7 @@
 module core.stdc.stdlib;
 
 private import core.stdc.config;
-public import core.stdc.stddef; // for size_t, wchar_t
+public import core.stdc.stddef; // for wchar_t
 
 extern (C):
 @system:
@@ -63,11 +63,11 @@ enum MB_CUR_MAX   = 1;
 
 ///
 version(Windows)      enum RAND_MAX = 0x7fff;
-else version(linux)   enum RAND_MAX = 0x7fffffff;
+else version(CRuntime_Glibc)  enum RAND_MAX = 0x7fffffff;
 else version(OSX)     enum RAND_MAX = 0x7fffffff;
 else version(FreeBSD) enum RAND_MAX = 0x7fffffff;
 else version(Solaris) enum RAND_MAX = 0x7fff;
-else version(Android) enum RAND_MAX = 0x7fffffff;
+else version(CRuntime_Bionic) enum RAND_MAX = 0x7fffffff;
 else static assert( false, "Unsupported platform" );
 
 ///
@@ -108,7 +108,7 @@ else version (MinGW)
     ///
     alias __mingw_strtold strtold;
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     ///
     real strtold(in char* nptr, char** endptr)
@@ -125,7 +125,7 @@ else
 // No unsafe pointer manipulation.
 @trusted
 {
-    version(Android)
+    version(CRuntime_Bionic)
     {
        import core.sys.posix.stdlib: lrand48, srand48;
        ///

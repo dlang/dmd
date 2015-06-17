@@ -48,7 +48,7 @@ int setitimer(int, in itimerval*, itimerval*);
 int utimes(in char*, ref const(timeval)[2]); // LEGACY
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct timeval
     {
@@ -142,7 +142,7 @@ else version (Solaris)
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, ref const(timeval)[2]);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     struct timeval
     {

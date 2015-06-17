@@ -20,7 +20,7 @@ version (Posix):
 
 extern (C) nothrow @nogc:
 
-version (linux)
+version (CRuntime_Glibc)
 {
     import core.sys.posix.termios; // tcflag_t, speed_t, cc_t
 
@@ -363,7 +363,7 @@ else version (Solaris)
 {
     int ioctl(int fildes, int request, ...);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     int ioctl(int, int, ...);
 }

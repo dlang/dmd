@@ -1,0 +1,5 @@
+       |int main()
+       |{
+      1|    return 0;
+       |}
+src/merge.d is 100% covered

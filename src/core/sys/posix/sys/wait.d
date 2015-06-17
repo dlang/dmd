@@ -41,7 +41,7 @@ pid_t wait(int*);
 pid_t waitpid(pid_t, int*, int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum WNOHANG        = 1;
     enum WUNTRACED      = 2;
@@ -126,7 +126,7 @@ else version (Solaris)
     extern (D) int WSTOPSIG(int status) { return (status >> 8) & 0x7f; }
     extern (D) int WTERMSIG(int status) { return (status & 0x7f); }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum WNOHANG   = 1;
     enum WUNTRACED = 2;
@@ -165,7 +165,7 @@ enum idtype_t
 int waitid(idtype_t, id_t, siginfo_t*, int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum WEXITED    = 4;
     enum WSTOPPED   = 2;
@@ -236,7 +236,7 @@ else version (Solaris)
 
     int waitid(idtype_t, id_t, siginfo_t*, int);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum WEXITED    = 4;
     enum WSTOPPED   = 2;

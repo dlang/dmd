@@ -22,7 +22,7 @@ void* xrealloc(void* ptr, size_t sz)
     assert(0);
 }
 
-void* xmalloc(size_t sz) nothrow
+void* xmalloc(size_t sz) nothrow @nogc
 {
     import core.exception;
     if (auto nptr = .malloc(sz))

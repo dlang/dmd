@@ -1,6 +1,6 @@
 /**
  * Written in the D programming language.
- * This module provides Android-specific support for sections.
+ * This module provides bionic-specific support for sections.
  *
  * Copyright: Copyright Martin Nowak 2012-2013.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
@@ -10,7 +10,7 @@
 
 module rt.sections_android;
 
-version (Android):
+version (CRuntime_Bionic):
 
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;

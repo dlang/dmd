@@ -1,5 +1,5 @@
 SRCS=\
-	src\object_.d \
+	src\object.d \
 	\
 	src\core\atomic.d \
 	src\core\bitop.d \
@@ -113,6 +113,7 @@ SRCS=\
 	src\rt\minfo.d \
 	src\rt\monitor_.d \
 	src\rt\obj.d \
+	src\rt\profilegc.d \
 	src\rt\qsort.d \
 	src\rt\sections.d \
 	src\rt\sections_android.d \
@@ -124,6 +125,7 @@ SRCS=\
 	src\rt\switch_.d \
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
+	src\rt\tracegc.d \
 	\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
@@ -150,6 +152,7 @@ SRCS=\
 	src\rt\typeinfo\ti_byte.d \
 	src\rt\typeinfo\ti_C.d \
 	src\rt\typeinfo\ti_cdouble.d \
+	src\rt\typeinfo\ti_cent.d \
 	src\rt\typeinfo\ti_cfloat.d \
 	src\rt\typeinfo\ti_char.d \
 	src\rt\typeinfo\ti_creal.d \
@@ -166,6 +169,7 @@ SRCS=\
 	src\rt\typeinfo\ti_real.d \
 	src\rt\typeinfo\ti_short.d \
 	src\rt\typeinfo\ti_ubyte.d \
+	src\rt\typeinfo\ti_ucent.d \
 	src\rt\typeinfo\ti_uint.d \
 	src\rt\typeinfo\ti_ulong.d \
 	src\rt\typeinfo\ti_ushort.d \

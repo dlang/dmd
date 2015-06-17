@@ -17,7 +17,6 @@ module core.sys.posix.sys.stat;
 private import core.sys.posix.config;
 private import core.stdc.stdint;
 private import core.sys.posix.time;     // for timespec
-public import core.stdc.stddef;          // for size_t
 public import core.sys.posix.sys.types; // for off_t, mode_t
 
 version (Posix):
@@ -79,7 +78,7 @@ int    stat(in char*, stat*);
 mode_t umask(mode_t);
  */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     version (X86)
     {
@@ -870,9 +869,35 @@ else version (Solaris)
     extern (D) bool S_ISDOOR(mode_t mode) { return S_ISTYPE(mode, S_IFDOOR); }
     extern (D) bool S_ISPORT(mode_t mode) { return S_ISTYPE(mode, S_IFPORT); }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     version (X86)
+    {
+        struct stat_t
+        {
+            ulong       st_dev;
+            ubyte[4]    __pad0;
+            c_ulong     __st_ino;
+            uint        st_mode;
+            uint        st_nlink;
+            c_ulong     st_uid;
+            c_ulong     st_gid;
+            ulong       st_rdev;
+            ubyte[4]    __pad3;
+
+            long        st_size;
+            c_ulong     st_blksize;
+            ulong       st_blocks;
+            c_ulong     st_atime;
+            c_ulong     st_atime_nsec;
+            c_ulong     st_mtime;
+            c_ulong     st_mtime_nsec;
+            c_ulong     st_ctime;
+            c_ulong     st_ctime_nsec;
+            ulong       st_ino;
+        }
+    }
+    else version (ARM)
     {
         struct stat_t
         {
@@ -952,7 +977,7 @@ int    mkfifo(in char*, mode_t);
 //int    stat(in char*, stat_t*);
 mode_t umask(mode_t);
 
-version( linux )
+version( CRuntime_Glibc )
 {
   static if( __USE_LARGEFILE64 )
   {
@@ -1008,7 +1033,19 @@ else version (Solaris)
         }
     }
 }
-else version( Posix )
+else version( OSX )
+{
+    int   fstat(int, stat_t*);
+    int   lstat(in char*, stat_t*);
+    int   stat(in char*, stat_t*);
+}
+else version( FreeBSD )
+{
+    int   fstat(int, stat_t*);
+    int   lstat(in char*, stat_t*);
+    int   stat(in char*, stat_t*);
+}
+else version( CRuntime_Bionic )
 {
     int   fstat(int, stat_t*) @trusted;
     int   lstat(in char*, stat_t*);
@@ -1038,7 +1075,7 @@ S_IFSOCK
 int mknod(in 3char*, mode_t, dev_t);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000
@@ -1092,7 +1129,7 @@ else version (Solaris)
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000
