@@ -1429,6 +1429,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\root\newdelete.c"
+					>
+				</File>
+				<File
 					RelativePath=".\root\object.c"
 					>
 				</File>
