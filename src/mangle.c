@@ -28,62 +28,84 @@
 char *cpp_mangle(Dsymbol *s);
 #endif
 
-char *mangle(Declaration *sthis)
+void mangleFunc(OutBuffer *buf, FuncDeclaration *fd, bool inParent)
 {
-    OutBuffer buf;
-    char *id;
-    Dsymbol *s;
-
-    //printf("::mangle(%s), type %s\n", sthis->toChars(), sthis->type->toChars());
-    s = sthis;
-    do
+    //printf("deco = '%s'\n", fd->type->deco ? fd->type->deco : "null");
+    //printf("fd->type = %s\n", fd->type->toChars());
+    if (fd->needThis() || fd->isNested())
+        buf->writeByte(Type::needThisPrefix());
+    if (inParent)
     {
-        //printf("mangle: s = %p, '%s', parent = %p\n", s, s->toChars(), s->parent);
-        if (s->ident)
-        {
-            FuncDeclaration *fd = s->isFuncDeclaration();
-            if (s != sthis && fd)
-            {
-                id = mangle(fd);
-                buf.prependstring(id);
-                goto L1;
-            }
-            else
-            {
-                id = s->ident->toChars();
-                int len = strlen(id);
-                char tmp[sizeof(len) * 3 + 1];
-                buf.prependstring(id);
-                sprintf(tmp, "%d", len);
-                buf.prependstring(tmp);
-            }
-        }
-        else
-            buf.prependstring("0");
-        s = s->parent;
-    } while (s);
+        TypeFunction *tfx = (TypeFunction *)fd->type;
+        TypeFunction *tf = (TypeFunction *)fd->originalType;
 
-//    buf.prependstring("_D");
-L1:
-    //printf("deco = '%s'\n", sthis->type->deco ? sthis->type->deco : "null");
-    //printf("sthis->type = %s\n", sthis->type->toChars());
-    FuncDeclaration *fd = sthis->isFuncDeclaration();
-    if (fd && (fd->needThis() || fd->isNested()))
-        buf.writeByte(Type::needThisPrefix());
-    if (sthis->type->deco)
-        buf.writestring(sthis->type->deco);
+        // replace with the actual parameter types
+        Parameters *prms = tf->parameters;
+        tf->parameters = tfx->parameters;
+
+        // do not mangle return type
+        Type *tret = tf->next;
+        tf->next = NULL;
+
+        tf->toDecoBuffer(buf);
+
+        tf->parameters = prms;
+        tf->next = tret;
+    }
+    else if (fd->type->deco)
+    {
+        buf->writestring(fd->type->deco);
+    }
     else
     {
-#ifdef DEBUG
-        if (!fd->inferRetType)
-            printf("%s\n", fd->toChars());
-#endif
-        assert(fd && fd->inferRetType);
+        printf("[%s] %s %s\n", fd->loc.toChars(), fd->toChars(), fd->type->toChars());
+        assert(0);  // don't mangle function until semantic3 done.
     }
+}
 
-    id = buf.toChars();
-    buf.data = NULL;
-    return id;
+void mangleParent(OutBuffer *buf, Dsymbol *s)
+{
+    Dsymbol *p;
+    if (TemplateInstance *ti = s->isTemplateInstance())
+        p = ti->isnested || ti->isTemplateMixin() ? ti->parent : ti->tempdecl->parent;
+    else
+        p = s->parent;
+
+    if (p)
+    {
+        mangleParent(buf, p);
+
+        if (p->ident)
+        {
+            const char *id = p->ident->toChars();
+            buf->printf("%llu%s", (ulonglong)strlen(id), id);
+
+            if (FuncDeclaration *f = p->isFuncDeclaration())
+                mangleFunc(buf, f, true);
+        }
+        else
+            buf->writeByte('0');
+    }
+}
+
+void mangleDecl(OutBuffer *buf, Declaration *sthis)
+{
+    mangleParent(buf, sthis);
+
+    assert(sthis->ident);
+    const char *id = sthis->ident->toChars();
+    buf->printf("%llu%s", (ulonglong)strlen(id), id);
+
+    if (FuncDeclaration *fd = sthis->isFuncDeclaration())
+    {
+        mangleFunc(buf, fd, false);
+    }
+    else if (sthis->type->deco)
+    {
+        buf->writestring(sthis->type->deco);
+    }
+    else
+        assert(0);
 }
 
 char *Declaration::mangle()
@@ -135,11 +157,10 @@ char *Declaration::mangle()
                     assert(0);
             }
         }
-        char *p = ::mangle(this);
         OutBuffer buf;
         buf.writestring("_D");
-        buf.writestring(p);
-        p = buf.toChars();
+        mangleDecl(&buf, this);
+        char *p = buf.toChars();
         buf.data = NULL;
         //printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d) = %s\n", this, toChars(), parent ? parent->toChars() : "null", linkage, p);
         return p;
@@ -212,28 +233,20 @@ char *ClassDeclaration::mangle()
 
 char *TemplateInstance::mangle()
 {
-    OutBuffer buf;
-
 #if 0
     printf("TemplateInstance::mangle() %s", toChars());
     if (parent)
         printf("  parent = %s %s", parent->kind(), parent->toChars());
     printf("\n");
 #endif
-    char *id = ident ? ident->toChars() : toChars();
+
+    OutBuffer buf;
     if (!tempdecl)
         error("is not defined");
     else
-    {
-        Dsymbol *par = isnested || isTemplateMixin() ? parent : tempdecl->parent;
-        if (par)
-        {
-            char *p = par->mangle();
-            if (p[0] == '_' && p[1] == 'D')
-                p += 2;
-            buf.writestring(p);
-        }
-    }
+        mangleParent(&buf, this);
+
+    char *id = ident ? ident->toChars() : toChars();
     buf.printf("%zu%s", strlen(id), id);
     id = buf.toChars();
     buf.data = NULL;
@@ -245,23 +258,16 @@ char *TemplateInstance::mangle()
 
 char *Dsymbol::mangle()
 {
-    OutBuffer buf;
-    char *id;
-
 #if 0
     printf("Dsymbol::mangle() '%s'", toChars());
     if (parent)
         printf("  parent = %s %s", parent->kind(), parent->toChars());
     printf("\n");
 #endif
-    id = ident ? ident->toChars() : toChars();
-    if (parent)
-    {
-        char *p = parent->mangle();
-        if (p[0] == '_' && p[1] == 'D')
-            p += 2;
-        buf.writestring(p);
-    }
+    OutBuffer buf;
+    mangleParent(&buf, this);
+
+    char *id = ident ? ident->toChars() : toChars();
     buf.printf("%zu%s", strlen(id), id);
     id = buf.toChars();
     buf.data = NULL;
