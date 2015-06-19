@@ -1592,16 +1592,16 @@ Language changes listed by -transition=id:\n\
     {
         library = Library::factory();
 
-        // Path component (if any) of global.params.libname should override global.params.objdir
-        const char *libname = NULL;
-        const char *libpath = NULL;
-        if(global.params.libname)
+        // For the library file, global.params.libname should override global.params.objdir.
+        if (global.params.libname && *global.params.libname)
         {
-            libname = FileName::name(global.params.libname);
-            libpath = FileName::path(global.params.libname);
-        }
-        if (libname && libpath) // global.params.libname contains both path and filename?
+            const char *libname = FileName::name(global.params.libname);
+            const char *libpath = FileName::path(global.params.libname);
+            if (!*libpath)
+                libpath = ".";
+
             library->setFilename(libpath, libname);
+        }
         else
             library->setFilename(global.params.objdir, global.params.libname);
 
