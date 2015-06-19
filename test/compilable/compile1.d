@@ -119,6 +119,19 @@ static assert(!is(typeof(bug6650!(int)(6))));
 static assert(!is(typeof(bug6650!(int)(18))));
 
 /**************************************************
+    14710    VC-built DMD crashes on templated variadic function IFTI
+**************************************************/
+
+void bug14710a(T)(T val, T[] arr...)
+{
+}
+
+void bug14710b()
+{
+    bug14710a("", "");
+}
+
+/**************************************************
   6661 Templates instantiated only through is(typeof()) shouldn't cause errors
 **************************************************/
 
