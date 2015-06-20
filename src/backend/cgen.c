@@ -92,7 +92,7 @@ code *setOpcode(code *c, code *cs, unsigned op)
  * Concatenate two code lists together. Return pointer to result.
  */
 
-#if TX86 && __INTSIZE == 4 && __SC__
+#if TX86 && __INTSIZE == 4 && __DMC__
 __declspec(naked) code * __pascal cat(code *c1,code *c2)
 {
     _asm

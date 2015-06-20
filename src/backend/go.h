@@ -9,7 +9,7 @@
  * For any other uses, please contact Digital Mars.
  */
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
 

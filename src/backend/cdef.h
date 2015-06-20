@@ -13,7 +13,6 @@
 /* Macros defined by the compiler, not the code:
 
     Compiler:
-        __SC__          Symantec compiler
         __DMC__         Digital Mars compiler
         _MSC_VER        Microsoft compiler
         __GNUC__        Gnu compiler
