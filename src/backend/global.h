@@ -161,7 +161,7 @@ char *unsstr(unsigned);
 int isignore(int);
 int isillegal(int);
 
-#if !defined(__SC__) && !defined(_MSC_VER)
+#if !defined(__DMC__) && !defined(_MSC_VER)
 int ishex(int);
 #endif
 

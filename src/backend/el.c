@@ -2598,9 +2598,9 @@ L1:
                     case TYulong4:
                     case TYllong2:
                     case TYullong2:
-                        if(n1->EV.Vcent.msw != n2->EV.Vcent.msw || n1->EV.Vcent.lsw != n2->EV.Vcent.lsw)
-			                goto nomatch;
-			            break;
+                        if (n1->EV.Vcent.msw != n2->EV.Vcent.msw || n1->EV.Vcent.lsw != n2->EV.Vcent.lsw)
+                            goto nomatch;
+                        break;
                     case TYcldouble:
 #if LNGDBLSIZE > 10
                         /* sizeof is 12, but actual size of each part is 10 */

@@ -1646,7 +1646,7 @@ elem * evalu8(elem *e, goal_t goal)
                 break;
             case TYfloat:
             case TYifloat:
-#if __SC__
+#if __DMC__
                 e->EV.Vfloat = fabsf(e1->EV.Vfloat);
 #else
                 e->EV.Vfloat = fabs(e1->EV.Vfloat);

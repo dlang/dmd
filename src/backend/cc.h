@@ -9,7 +9,7 @@
  * For any other uses, please contact Digital Mars.
  */
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
 
@@ -352,7 +352,7 @@ extern Cstate cstate;
 //  done on it, so it is stack and register variables.)
 #define symbol_isintab(s)       (sytab[(s)->Sclass] & SCSS)
 
-#if defined(__SC__) || defined(_MSC_VER)
+#if defined(__DMC__) || defined(_MSC_VER)
 typedef char enum_SC;
 #else
 typedef enum SC enum_SC;
