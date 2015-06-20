@@ -464,19 +464,21 @@ void test11322()
 
 debug(NRVO) static void* p11394a, p11394b, p11394c;
 
-static int[3] make11394(in int x) pure
+static int[5] make11394(in int x) pure
 {
     typeof(return) a;
     a[0] = x;
     a[1] = x + 1;
     a[2] = x + 2;
+    a[3] = x + 3;
+    a[4] = x + 4;
     debug(NRVO) p11394a = cast(void*)a.ptr;
     return a;
 }
 
 struct Bar11394
 {
-    immutable int[3] arr;
+    immutable int[5] arr;
 
     this(int x)
     {
