@@ -10,7 +10,7 @@
  */
 
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
 

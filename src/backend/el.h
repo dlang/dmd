@@ -11,7 +11,7 @@
 
 /* Routines to handle elems.                            */
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
 
