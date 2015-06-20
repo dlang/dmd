@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 2013-2014 by Digital Mars
+ * Copyright (c) 2013-2015 by Digital Mars
  * All Rights Reserved
  * written by Iain Buclaw
  * http://www.digitalmars.com
@@ -13,6 +13,8 @@
 
 #include "target.h"
 #include "mars.h"
+#include "declaration.h"
+#include "init.h"
 #include "mtype.h"
 
 int Target::ptrsize;
@@ -23,6 +25,7 @@ bool Target::reverseCppOverloads;
 int Target::c_longsize;
 int Target::c_long_doublesize;
 int Target::classinfosize;
+bool Target::va_argsave;
 
 
 void Target::init()
@@ -64,8 +67,14 @@ void Target::init()
     else
         assert(0);
 
+    c_long_doublesize = realsize;
+    va_argsave = false;
+
     if (global.params.is64bit)
     {
+        if (!global.params.isWindows)
+            va_argsave = true;
+
         if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris)
         {
             realsize = 16;
@@ -77,11 +86,9 @@ void Target::init()
         {
             c_longsize = 8;
         }
+        else if (global.params.isWindows)
+            c_long_doublesize = 8;
     }
-
-    c_long_doublesize = realsize;
-    if (global.params.is64bit && global.params.isWindows)
-        c_long_doublesize = 8;
 }
 
 /******************************
@@ -207,6 +214,91 @@ Type *Target::va_listType()
         return NULL;
     }
 }
+
+/***********************************
+ * Return an initializer for the '_argptr' variable declared in 'fd'.
+ * Code generated roughly corresponds to va_start(_argptr, param).
+ */
+Initializer *Target::XXXX(Scope *sc, FuncDeclaration *fd)
+{
+    if (Target::va_argsave)
+    {
+        // Initialize _argptr to point to v_argsave
+        Expression *e1 = new VarExp(Loc(), fd->v_argptr);
+        Expression *e = new SymOffExp(Loc(), fd->v_argsave, 6*8 + 8*16);
+        e->type = fd->v_argptr->type;
+        e = new AssignExp(Loc(), e1, e);
+        e = e->semantic(sc);
+        return new ExpInitializer(Loc(), e);
+    }
+    else
+    {
+        // Initialize _argptr to point past non-variadic arg
+        VarDeclaration *p;
+        unsigned offset = 0;
+        Expression *e;
+
+        Expression *e1 = new VarExp(Loc(), fd->v_argptr);
+        // Find the last non-ref parameter
+        if (fd->parameters && fd->parameters->dim)
+        {
+            size_t lastNonref = fd->parameters->dim -1;
+            p = (*fd->parameters)[lastNonref];
+            /* The trouble with out and ref parameters is that taking
+             * the address of it doesn't work, because later processing
+             * adds in an extra level of indirection. So we skip over them.
+             */
+            while (p->storage_class & (STCout | STCref))
+            {
+                offset += Target::ptrsize;
+                if (lastNonref-- == 0)
+                {
+                    p = fd->v_arguments;
+                    break;
+                }
+                p = (*fd->parameters)[lastNonref];
+            }
+        }
+        else
+            p = fd->v_arguments;            // last parameter is _arguments[]
+
+        p->isargptr = true;
+
+        if (global.params.is64bit && global.params.isWindows)
+        {
+            offset += Target::ptrsize;
+            if (p->storage_class & STClazy || p->type->size() > Target::ptrsize)
+            {
+                /* Necessary to offset the extra level of indirection the Win64
+                 * ABI demands
+                 */
+                e = new SymOffExp(Loc(), p, 0);
+                e->type = Type::tvoidptr;
+                e = new AddrExp(Loc(), e);
+                e->type = Type::tvoidptr;
+                e = new AddExp(Loc(), e, new IntegerExp(offset));
+                e->type = Type::tvoidptr;
+                goto L1;
+            }
+        }
+        else if (p->storage_class & STClazy)
+        {
+            // If the last parameter is lazy, it's the size of a delegate
+            offset += Target::ptrsize * 2;
+        }
+        else
+            offset += p->type->size();
+        offset = (offset + Target::ptrsize - 1) & ~(Target::ptrsize - 1);  // assume stack aligns on pointer size
+        e = new SymOffExp(Loc(), p, offset);
+        e->type = Type::tvoidptr;
+	//e = e->semantic(sc);
+    L1:
+        e = new AssignExp(Loc(), e1, e);
+        e->type = fd->v_argptr->type;
+        return new ExpInitializer(Loc(), e);
+    }
+}
+
 
 /******************************
  * Private helpers for Target::paintAsType.

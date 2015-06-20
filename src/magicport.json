@@ -368,8 +368,12 @@
             "imports" :
             [
                 "core.stdc.string",
+                "declaration",
+                "dscope",
                 "expression",
+                "func",
                 "identifier",
+                "init",
                 "root.longdouble",
                 "globals",
                 "mtype",
