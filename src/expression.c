@@ -45,6 +45,7 @@
 bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2);
 bool isArrayOpValid(Expression *e);
 Expression *expandVar(int result, VarDeclaration *v);
+bool walkPostorder(Expression *e, StoppableVisitor *v);
 TypeTuple *toArgTypes(Type *t);
 bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
@@ -13727,7 +13728,90 @@ Expression *CondExp::semantic(Scope *sc)
     printf("e1 : %s\n", e1->type->toChars());
     printf("e2 : %s\n", e2->type->toChars());
 #endif
+
+    /* Bugzilla 14696: If either e1 or e2 contain temporaries which need dtor,
+     * make them conditional.
+     * Rewrite:
+     *      cond ? (__tmp1 = ..., __tmp1) : (__tmp2 = ..., __tmp2)
+     * to:
+     *      (auto __cond = cond) ? (... __tmp1) : (... __tmp2)
+     * and replace edtors of __tmp1 and __tmp2 with:
+     *      __tmp1->edtor --> __cond && __tmp1.dtor()
+     *      __tmp2->edtor --> __cond || __tmp2.dtor()
+     */
+    hookDtors(sc);
+
     return this;
+}
+
+void CondExp::hookDtors(Scope *sc)
+{
+    class DtorVisitor : public StoppableVisitor
+    {
+    public:
+        Scope *sc;
+        CondExp *ce;
+        VarDeclaration *vcond;
+        bool isThen;
+
+        DtorVisitor(Scope *sc, CondExp *ce)
+        {
+            this->sc = sc;
+            this->ce = ce;
+            this->vcond = NULL;
+        }
+
+        void visit(Expression *e)
+        {
+            //printf("(e = %s)\n", e->toChars());
+        }
+
+        void visit(DeclarationExp *e)
+        {
+            VarDeclaration *v = e->declaration->isVarDeclaration();
+            if (v && !v->noscope && !v->isDataseg())
+            {
+                if (v->init)
+                {
+                    ExpInitializer *ei = v->init->isExpInitializer();
+                    if (ei)
+                        ei->exp->accept(this);
+                }
+
+                if (v->edtor)
+                {
+                    if (!vcond)
+                    {
+                        vcond = new VarDeclaration(ce->econd->loc, ce->econd->type,
+                            Identifier::generateId("__cond"), new ExpInitializer(ce->econd->loc, ce->econd));
+                        vcond->storage_class |= STCtemp | STCctfe | STCvolatile;
+                        vcond->semantic(sc);
+
+                        Expression *de = new DeclarationExp(ce->econd->loc, vcond);
+                        de = de->semantic(sc);
+
+                        Expression *ve = new VarExp(ce->econd->loc, vcond);
+                        ce->econd = Expression::combine(de, ve);
+                    }
+
+                    //printf("\t++v = %s, v->edtor = %s\n", v->toChars(), v->edtor->toChars());
+                    Expression *ve = new VarExp(vcond->loc, vcond);
+                    if (isThen)
+                        v->edtor = new AndAndExp(v->edtor->loc, ve, v->edtor);
+                    else
+                        v->edtor = new OrOrExp(v->edtor->loc, ve, v->edtor);
+                    v->edtor = v->edtor->semantic(sc);
+                    //printf("\t--v = %s, v->edtor = %s\n", v->toChars(), v->edtor->toChars());
+                }
+            }
+        }
+    };
+
+    DtorVisitor v(sc, this);
+    //printf("+%s\n", toChars());
+    v.isThen = true;    walkPostorder(e1, &v);
+    v.isThen = false;   walkPostorder(e2, &v);
+    //printf("-%s\n", toChars());
 }
 
 bool CondExp::isLvalue()
