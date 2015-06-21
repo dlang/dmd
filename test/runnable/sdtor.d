@@ -3943,6 +3943,55 @@ void test14264()
 }
 
 /**********************************/
+// 14708
+
+bool dtor14708 = false;
+
+struct S14708
+{
+    int n;
+
+    void* get(void* p = null)
+    {
+        return null;
+    }
+
+    ~this()
+    {
+        //printf("dtor\n");
+        dtor14708 = true;
+    }
+}
+
+S14708 makeS14708(int n)
+{
+    return S14708(n);
+}
+
+void foo14708(void* x)
+{
+    throw new Exception("fail!");
+}
+
+void bar14708()
+{
+    foo14708(makeS14708(1).get());
+    // A temporary is allocated on stack for the
+    // return value from makeS(1).
+    // When foo throws exception, it's dtor should be called
+    // during unwinding stack, but it does not happen in Win64.
+}
+
+void test14708()
+{
+    try
+    {
+        bar14708();
+    } catch (Exception e) {}
+    assert(dtor14708);  // fails!
+}
+
+/**********************************/
 // 14838
 
 int test14838() pure nothrow @safe
@@ -4111,6 +4160,7 @@ int main()
     test13669();
     test13095();
     test14264();
+    test14708();
     test14838();
 
     printf("Success\n");
