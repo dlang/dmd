@@ -5942,22 +5942,35 @@ Lerror:
         this->tnext = inst->tnext;
         inst->tnext = this;
 
-        // If the first instantiation was in speculative context, but this is not:
-        if (tinst && !inst->tinst && !inst->minst)
+        if (minst && minst->isRoot() && !(inst->minst && inst->minst->isRoot()))
         {
-            // Reconnect the chain if this instantiation is not in speculative context.
+            /* Swap the position of 'inst' and 'this' in the instantiation graph.
+             * Then, the primary instance `inst` will be changed to a root instance.
+             *
+             * Before:
+             *  non-root -> A!() -> B!()[inst] -> C!()
+             *                      |
+             *  root     -> D!() -> B!()[this]
+             *
+             * After:
+             *  non-root -> A!() -> B!()[this]
+             *                      |
+             *  root     -> D!() -> B!()[inst] -> C!()
+             */
+            Module *mi = minst;
             TemplateInstance *ti = tinst;
-            while (ti && ti != inst)
-                ti = ti->tinst;
-            if (ti != inst)    // Bugzilla 13379: Prevent circular chain
-                inst->tinst = tinst;
-        }
+            minst = inst->minst;
+            tinst = inst->tinst;
+            inst->minst = mi;
+            inst->tinst = ti;
 
-        // If the first instantiation was speculative, but this is not:
-        if (!inst->minst)
-        {
-            // Mark it is a non-speculative instantiation.
-            inst->minst = minst;
+            if (minst)  // if inst was not speculative
+            {
+                /* Add 'inst' once again to the root module members[], then the
+                 * instance members will get codegen chances.
+                 */
+                inst->appendToModuleMember();
+            }
         }
 
 #if LOG
@@ -5979,66 +5992,10 @@ Lerror:
 
     //getIdent();
 
-    // Add 'this' to the enclosing scope's members[] so the semantic routines
-    // will get called on the instance members. Store the place we added it to
-    // in target_symbol_list(_idx) so we can remove it later if we encounter
-    // an error.
-#if 1
-    Dsymbols *target_symbol_list;
-    size_t target_symbol_list_idx = 0;
-    //if (sc->scopesym) printf("3: sc is %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
-    if (0 && !tinst && sc->scopesym && sc->scopesym->members)
-    {
-        /* A module can have explicit template instance and its alias
-         * in module scope (e,g, `alias Base64Impl!('+', '/') Base64;`).
-         * When the module is just imported, normally compiler can assume that
-         * its instantiated code would be contained in the separately compiled
-         * obj/lib file (e.g. phobos.lib).
-         * Bugzilla 2644: However, if the template is instantiated in both
-         * modules of root and non-root, compiler should generate its objcode.
-         * Therefore, always conservatively insert this instance to the member of
-         * a root module, then calculate the necessity by TemplateInstance::needsCodegen().
-         */
-        //if (sc->scopesym->isModule())
-        //    printf("module level instance %s\n", toChars());
-
-        //printf("\t1: adding to %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
-        target_symbol_list = sc->scopesym->members;
-    }
-    else
-    {
-        Dsymbol *s = enclosing ? enclosing : tempdecl->parent;
-        while (s && !s->isModule())
-            s = s->toParent2();
-        assert(s);
-        Module *m = (Module *)s;
-        if (!m->isRoot())
-            m = m->importedFrom;
-
-        //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
-        target_symbol_list = m->members;
-
-        /* Defer semantic3 running in order to avoid mutual forward reference.
-         * See test/runnable/test10736.d
-         */
-        if (m->semanticRun >= PASSsemantic3done)
-            Module::addDeferredSemantic3(this);
-    }
-    for (size_t i = 0; 1; i++)
-    {
-        if (i == target_symbol_list->dim)
-        {
-            target_symbol_list_idx = i;
-            target_symbol_list->push(this);
-            break;
-        }
-        if (this == (*target_symbol_list)[i])   // if already in Array
-        {
-            target_symbol_list = NULL;
-            break;
-        }
-    }
-#endif
+    // Store the place we added it to in target_symbol_list(_idx) so we can
+    // remove it later if we encounter an error.
+    Dsymbols *target_symbol_list = appendToModuleMember();
+    size_t target_symbol_list_idx = target_symbol_list ? target_symbol_list->dim - 1 : 0;
 
     // Copy the syntax trees from the TemplateDeclaration
     members = Dsymbol::arraySyntaxCopy(tempdecl->members);
@@ -7286,6 +7243,83 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
     }
     //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl->ident->toChars(), nested);
     return nested != 0;
+}
+
+/*****************************************
+ * Append 'this' to the enclosing module members[] so the semantic routines
+ * will get called on the instance members.
+ */
+Dsymbols *TemplateInstance::appendToModuleMember()
+{
+    Module *md = tempdecl->getModule();
+
+    Module *mi = minst;
+    if (mi)
+    {
+        if (mi->isRoot())
+        {
+            /* If both modules mi and md where the template is declared are
+             * roots, instead use md to store the generated code in it.
+             */
+            if (md && md->isRoot())
+                mi = md;
+        }
+        else
+        {
+            /* A module can have explicit template instance and its alias
+             * in module scope (e,g, `alias Base64Impl!('+', '/') Base64;`).
+             * When the module is just imported, normally compiler can assume that
+             * its instantiated code would be contained in the separately compiled
+             * obj/lib file (e.g. phobos.lib).
+             */
+            /*
+             * Bugzilla 2644: However, if the template is instantiated in both
+             * modules of root and non-root, compiler should generate its objcode.
+             * Therefore, always conservatively insert this instance to the member of
+             * a root module, then calculate the necessity by TemplateInstance::needsCodegen().
+             */
+        }
+        //printf("\t1: adding to %s\n", mi->toPrettyChars());
+    }
+    else
+    {
+        // 'this' is speculative instance
+        if (md && md->isRoot())
+        {
+            mi = md;
+        }
+        else
+        {
+            // select arbitrary root module
+            Dsymbol *s = enclosing ? enclosing : tempdecl->parent;
+            while (s && !s->isModule())
+                s = s->toParent2();
+            assert(s);
+            mi = (Module *)s;
+            if (!mi->isRoot())
+                mi = mi->importedFrom;
+        }
+        assert(mi->isRoot());
+        //printf("\t2: adding to module %s instead of module %s\n", mi->toPrettyChars(), sc->module->toPrettyChars());
+    }
+
+    Dsymbols *a = mi->members;
+    for (size_t i = 0; 1; i++)
+    {
+        if (i == a->dim)
+        {
+            a->push(this);
+            if (mi->semanticRun >= PASSsemantic3done && mi->isRoot())
+                Module::addDeferredSemantic3(this);
+            break;
+        }
+        if (this == (*a)[i])    // if already in Array
+        {
+            a = NULL;
+            break;
+        }
+    }
+    return a;
 }
 
 /****************************************

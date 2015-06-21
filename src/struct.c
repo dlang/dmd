@@ -100,8 +100,12 @@ void semanticTypeInfo(Scope *sc, Type *t)
 
             // If the struct is in a non-root module, run semantic3 to get
             // correct symbols for the member function.
-            // Note that, all instantiated symbols will run semantic3.
-            if (sd->inNonRoot())
+            if (TemplateInstance *ti = sd->isInstantiated())
+            {
+                if (ti->minst && !ti->minst->isRoot())
+                    Module::addDeferredSemantic3(sd);
+            }
+            else if (sd->inNonRoot())
             {
                 //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
                 Module::addDeferredSemantic3(sd);
