@@ -1228,9 +1228,7 @@ STATIC void markinvar(elem *n,vec_t rd)
                 break;
 
         default:
-#ifdef DEBUG
                 WROP(n->Eoper);
-#endif
                 //printf("n->Eoper = %d, OPconst = %d\n", n->Eoper, OPconst);
                 assert(0);
   }

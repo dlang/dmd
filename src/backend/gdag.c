@@ -416,10 +416,6 @@ STATIC elem * delcse(elem **pe)
 #endif
         (*pe)->Nflags |= NFLdelcse;     // not generating node
         e->Ecount = 0;
-#if FLOATS_IN_CODE
-        if (FLT_CODESEG_CELEM(e))
-            flt_record_const(e);
-#endif
         *pe = e;
         return *pe;
 }
