@@ -852,9 +852,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 e1isadd = e1->Eoper == OPadd;
                 break;
             default:
-#ifdef DEBUG
                 elem_print(e);
-#endif
                 assert(0);
         }
         e1ty = tybasic(e1->Ety);
@@ -1483,8 +1481,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         break;
 
     default:
-#ifdef DEBUG
         WRFL((enum FL)fl);
+#ifdef DEBUG
         symbol_print(s);
 #endif
         assert(0);
@@ -3006,9 +3004,8 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     {   /* Call function directly       */
         code *c1;
 
-#ifdef DEBUG
-        if (!tyfunc(tym1)) WRTYxx(tym1);
-#endif
+        if (!tyfunc(tym1))
+            WRTYxx(tym1);
         assert(tyfunc(tym1));
         s = e1->EV.sp.Vsym;
         if (s->Sflags & SFLexit)
@@ -3109,10 +3106,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
   else
   {     /* Call function via pointer    */
 
-#ifdef DEBUG
-        if (e1->Eoper != OPind
-                ) { WRFL((enum FL)el_fl(e1)); WROP(e1->Eoper); }
-#endif
+        if (e1->Eoper != OPind) { WRFL((enum FL)el_fl(e1)); WROP(e1->Eoper); }
         c = save87();                   // assume 8087 regs are all trashed
         assert(e1->Eoper == OPind);
         elem *e11 = e1->E1;
@@ -3305,9 +3299,7 @@ targ_size_t paramsize(elem *e,unsigned stackalign)
         szb = type_size(e->ET);
     else
     {
-#ifdef DEBUG
         WRTYxx(tym);
-#endif
         assert(0);
     }
     psize += align(stackalign,szb);     /* align on word stack boundary */
@@ -3358,9 +3350,7 @@ code *params(elem *e,unsigned stackalign)
         szb = type_size(e->ET);
   else
   {
-#ifdef DEBUG
         WRTYxx(tym);
-#endif
         assert(0);
   }
   sz = align(stackalign,szb);           /* align on word stack boundary */
@@ -3524,9 +3514,7 @@ code *params(elem *e,unsigned stackalign)
                         c1 = codelem(e1,&retregs,FALSE);
                         break;
                     default:
-#ifdef DEBUG
                         elem_print(e1);
-#endif
                         assert(0);
                 }
                 reg = findreglsw(retregs);
@@ -4138,9 +4126,7 @@ code *loaddata(elem *e,regm_t *pretregs)
             return load87(e,0,pretregs,NULL,-1);
         else
         {
-#ifdef DEBUG
             elem_print(e);
-#endif
             assert(0);
         }
         return c;

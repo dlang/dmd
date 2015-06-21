@@ -175,10 +175,6 @@ L1:
     switch (op)
     {
         case OPconst:
-#if FLOATS_IN_CODE
-            if (!PARSER && FLT_CODESEG_CELEM(e))
-                flt_free_elem(e);
-#endif
             break;
 
         case OPvar:
@@ -2619,9 +2615,7 @@ L1:
                         goto nomatch;
 #endif
                     default:
-#ifdef DEBUG
                         elem_print(n1);
-#endif
                         assert(0);
                 }
                 break;
@@ -2673,9 +2667,7 @@ L1:
                 break;
 #endif
             default:
-#ifdef DEBUG
                 WROP(op);
-#endif
                 assert(0);
         }
 ismatch:
@@ -2770,10 +2762,8 @@ targ_llong el_tolong(elem *e)
         e->EV.Vllong = type_size(e->EV.sp.Vsym->Stype);
     }
 #endif
-#ifdef DEBUG
     if (e->Eoper != OPconst)
         elem_print(e);
-#endif
     assert(e->Eoper == OPconst);
     ty = tybasic(typemask(e));
 L1:
@@ -2883,9 +2873,7 @@ L1:
             // Can happen as result of syntax errors
             assert(errcnt);
 #else
-#ifdef DEBUG
             elem_print(e);
-#endif
             assert(0);
 #endif
     }

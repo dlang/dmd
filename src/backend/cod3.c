@@ -1960,8 +1960,10 @@ int jmpopcode(elem *e)
 L1:
 #if DEBUG
   if ((jp & 0xF0) != 0x70)
-        WROP(op),
+  {
+        WROP(op);
         printf("i %d zero %d op x%x jp x%x\n",i,zero,op,jp);
+  }
 #endif
   assert((jp & 0xF0) == 0x70);
   return jp;
@@ -4799,8 +4801,8 @@ targ_size_t cod3_bpoffset(symbol *s)
             offset += Auto.size + BPoff;
             break;
         default:
-#ifdef DEBUG
             WRFL((enum FL)s->Sfl);
+#ifdef DEBUG
             symbol_print(s);
 #endif
             assert(0);
@@ -5308,9 +5310,7 @@ void pinholeopt(code *c,block *b)
                         case FLextern:
                                 break;
                         default:
-#ifdef DEBUG
                                 WRFL((enum FL)c->IFL2);
-#endif
                                 assert(0);
                     }
                     break;
@@ -6382,9 +6382,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
             break;
 
         default:
-#ifdef DEBUG
             WRFL(fl);
-#endif
             assert(0);
     }
     offset += 8;
@@ -6526,9 +6524,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, int val)
         break;
 
     default:
-#ifdef DEBUG
         WRFL(fl);
-#endif
         assert(0);
   }
   offset += 4;
@@ -6606,9 +6602,7 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
         break;
 
     default:
-#ifdef DEBUG
         WRFL(fl);
-#endif
         assert(0);
   }
   offset += 2;
@@ -6757,9 +6751,7 @@ void code_hydrate(code **pc)
                 (void) ph_hydrate(&c->IEV1.as.bytes);
                 break;
             default:
-#ifdef DEBUG
                 WRFL(fl);
-#endif
                 assert(0);
                 break;
         }
@@ -6809,9 +6801,7 @@ void code_hydrate(code **pc)
                 (void) ph_hydrate(&c->IEV2.Vblock);
                 break;
             default:
-#ifdef DEBUG
                 WRFL(fl);
-#endif
                 assert(0);
                 break;
         }
@@ -6931,9 +6921,7 @@ void code_dehydrate(code **pc)
                 ph_dehydrate(&c->IEV1.as.bytes);
                 break;
             default:
-#ifdef DEBUG
                 WRFL(fl);
-#endif
                 assert(0);
                 break;
         }
@@ -6982,9 +6970,7 @@ void code_dehydrate(code **pc)
                 ph_dehydrate(&c->IEV2.Vblock);
                 break;
             default:
-#ifdef DEBUG
                 WRFL(fl);
-#endif
                 assert(0);
                 break;
         }
