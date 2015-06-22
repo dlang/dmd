@@ -38,10 +38,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 extern targ_size_t retsize;
 STATIC void pinholeopt_unittest();
-STATIC void do8bit (enum FL,union evc *);
-STATIC void do16bit (enum FL,union evc *,int);
-STATIC void do32bit (enum FL,union evc *,int,int = 0);
-STATIC void do64bit (enum FL,union evc *,int);
 
 #if ELFOBJ || MACHOBJ
 #define JMPSEG  CDATA
@@ -5838,28 +5834,43 @@ nomatch:
  *      addr of end of code
  */
 
-static targ_size_t offset;              /* to save code use a global    */
-static char bytes[100];
-static char *pgen;
-
-#define GEN(c)          (*pgen++ = (c))
-#define GENP(n,p)       (memcpy(pgen,(p),(n)), pgen += (n))
-#if ELFOBJ || MACHOBJ || _MSC_VER
-#define FLUSH()         if (pgen-bytes) cod3_flush()
-#else
-#define FLUSH()         ((pgen - bytes) && cod3_flush())
-#endif
-#define OFFSET()        (offset + (pgen - bytes))
-
-STATIC void cod3_flush()
+struct MiniCodeBuf
 {
-    // Emit accumulated bytes to code segment
-#ifdef DEBUG
-    assert(pgen - bytes < sizeof(bytes));
-#endif
-    offset += objmod->bytes(cseg,offset,pgen - bytes,bytes);
-    pgen = bytes;
-}
+    size_t index;
+    size_t offset;
+    char bytes[100];
+
+    MiniCodeBuf(size_t offset)
+    {
+        index = 0;
+        this->offset = offset;
+    }
+
+    void flushx()
+    {
+        // Emit accumulated bytes to code segment
+    #ifdef DEBUG
+        assert(index < sizeof(bytes));
+    #endif
+        offset += objmod->bytes(cseg, offset, index, bytes);
+        index = 0;
+    }
+
+    void gen(char c) { bytes[index++] = c; }
+
+    void genp(size_t n, void *p) { memcpy(&bytes[index], p, n); index += n; }
+
+    void flush() { if (index) flushx(); }
+
+    unsigned getOffset() { return offset + index; }
+
+    unsigned available() { return sizeof(bytes) - index; }
+};
+
+static void do8bit(MiniCodeBuf *pbuf, enum FL,union evc *);
+static void do16bit(MiniCodeBuf *pbuf, enum FL,union evc *,int);
+static void do32bit(MiniCodeBuf *pbuf, enum FL,union evc *,int,int = 0);
+static void do64bit(MiniCodeBuf *pbuf, enum FL,union evc *,int);
 
 unsigned codout(code *c)
 { unsigned op;
@@ -5873,13 +5884,13 @@ unsigned codout(code *c)
   if (debugc) printf("codout(%p), Coffset = x%llx\n",c,(unsigned long long)Coffset);
 #endif
 
-  pgen = bytes;
-  offset = Coffset;
+  MiniCodeBuf ggen(Coffset);
+
   for (; c; c = code_next(c))
   {
 #ifdef DEBUG
-        if (debugc) { printf("off=%02lx, sz=%ld, ",(long)OFFSET(),(long)calccodsize(c)); c->print(); }
-        unsigned startoffset = OFFSET();
+        if (debugc) { printf("off=%02lx, sz=%ld, ",(long)ggen.getOffset(),(long)calccodsize(c)); c->print(); }
+        unsigned startoffset = ggen.getOffset();
 #endif
         op = c->Iop;
         ins = inssize[op & 0xFF];
@@ -5891,7 +5902,7 @@ unsigned codout(code *c)
                 switch (op & 0xFFFF00)
                 {   case ESClinnum:
                         /* put out line number stuff    */
-                        objmod->linnum(c->IEV1.Vsrcpos,OFFSET());
+                        objmod->linnum(c->IEV1.Vsrcpos,ggen.getOffset());
                         break;
 #if SCPP
 #if 1
@@ -5899,7 +5910,7 @@ unsigned codout(code *c)
                     case ESCdtor:
                     case ESCoffset:
                         if (config.exe != EX_NT)
-                            except_pair_setoffset(c,OFFSET() - funcoffset);
+                            except_pair_setoffset(c,ggen.getOffset() - funcoffset);
                         break;
                     case ESCmark:
                     case ESCrelease:
@@ -5908,10 +5919,10 @@ unsigned codout(code *c)
                         break;
 #else
                     case ESCctor:
-                        except_push(OFFSET() - funcoffset,c->IEV1.Vtor,NULL);
+                        except_push(ggen.getOffset() - funcoffset,c->IEV1.Vtor,NULL);
                         break;
                     case ESCdtor:
-                        except_pop(OFFSET() - funcoffset,c->IEV1.Vtor,NULL);
+                        except_pop(ggen.getOffset() - funcoffset,c->IEV1.Vtor,NULL);
                         break;
                     case ESCmark:
                         except_mark();
@@ -5936,14 +5947,14 @@ unsigned codout(code *c)
             case ASM:
                 if (op != ASM)
                     break;
-                FLUSH();
+                ggen.flush();
                 if (c->Iflags == CFaddrsize)    // kludge for DA inline asm
                 {
-                    do32bit(FLblockoff,&c->IEV1,0);
+                    do32bit(&ggen, FLblockoff,&c->IEV1,0);
                 }
                 else
                 {
-                    offset += objmod->bytes(cseg,offset,c->IEV1.as.len,c->IEV1.as.bytes);
+                    ggen.offset += objmod->bytes(cseg,ggen.offset,c->IEV1.as.len,c->IEV1.as.bytes);
                 }
 #ifdef DEBUG
                 assert(calccodsize(c) == c->IEV1.as.len);
@@ -5953,15 +5964,15 @@ unsigned codout(code *c)
         flags = c->Iflags;
 
         // See if we need to flush (don't have room for largest code sequence)
-        if (pgen - bytes > sizeof(bytes) - (1+4+4+8+8))
-            FLUSH();
+        if (ggen.available() < (1+4+4+8+8))
+            ggen.flush();
 
         // see if we need to put out prefix bytes
         if (flags & (CFwait | CFPREFIX | CFjmp16))
         {   int override;
 
             if (flags & CFwait)
-                GEN(0x9B);                      // FWAIT
+                ggen.gen(0x9B);                      // FWAIT
                                                 /* ? SEGES : SEGSS      */
             switch (flags & CFSEG)
             {   case CFes:      override = SEGES;       goto segover;
@@ -5970,16 +5981,16 @@ unsigned codout(code *c)
                 case CFds:      override = SEGDS;       goto segover;
                 case CFfs:      override = SEGFS;       goto segover;
                 case CFgs:      override = SEGGS;       goto segover;
-                segover:        GEN(override);
+                segover:        ggen.gen(override);
                                 break;
             }
 
             if (flags & CFaddrsize)
-                GEN(0x67);
+                ggen.gen(0x67);
 
             // Do this last because of instructions like ADDPD
             if (flags & CFopsize)
-                GEN(0x66);                      /* operand size         */
+                ggen.gen(0x66);                      /* operand size         */
 
             if ((op & ~0x0F) == 0x70 && flags & CFjmp16) /* long condit jmp */
             {
@@ -6008,16 +6019,16 @@ unsigned codout(code *c)
         {
             if (flags & CFvex3)
             {
-                GEN(0xC4);
-                GEN(VEX3_B1(c->Ivex));
-                GEN(VEX3_B2(c->Ivex));
-                GEN(c->Ivex.op);
+                ggen.gen(0xC4);
+                ggen.gen(VEX3_B1(c->Ivex));
+                ggen.gen(VEX3_B2(c->Ivex));
+                ggen.gen(c->Ivex.op);
             }
             else
             {
-                GEN(0xC5);
-                GEN(VEX2_B1(c->Ivex));
-                GEN(c->Ivex.op);
+                ggen.gen(0xC5);
+                ggen.gen(VEX2_B1(c->Ivex));
+                ggen.gen(c->Ivex.op);
             }
             ins = vex_inssize(c);
             goto Lmodrm;
@@ -6035,57 +6046,57 @@ unsigned codout(code *c)
                 unsigned char op1 = op >> 24;
                 if (op1 == 0xF2 || op1 == 0xF3 || op1 == 0x66)
                 {
-                    GEN(op1);
+                    ggen.gen(op1);
                     if (c->Irex)
-                        GEN(c->Irex | REX);
+                        ggen.gen(c->Irex | REX);
                 }
                 else
                 {
                     if (c->Irex)
-                        GEN(c->Irex | REX);
-                    GEN(op1);
+                        ggen.gen(c->Irex | REX);
+                    ggen.gen(op1);
                 }
-                GEN((op >> 16) & 0xFF);
-                GEN((op >> 8) & 0xFF);
-                GEN(op & 0xFF);
+                ggen.gen((op >> 16) & 0xFF);
+                ggen.gen((op >> 8) & 0xFF);
+                ggen.gen(op & 0xFF);
             }
             else if (op & 0xFF0000)
             {
                 unsigned char op1 = op >> 16;
                 if (op1 == 0xF2 || op1 == 0xF3 || op1 == 0x66)
                 {
-                    GEN(op1);
+                    ggen.gen(op1);
                     if (c->Irex)
-                        GEN(c->Irex | REX);
+                        ggen.gen(c->Irex | REX);
                 }
                 else
                 {
                     if (c->Irex)
-                        GEN(c->Irex | REX);
-                    GEN(op1);
+                        ggen.gen(c->Irex | REX);
+                    ggen.gen(op1);
                 }
-                GEN((op >> 8) & 0xFF);
-                GEN(op & 0xFF);
+                ggen.gen((op >> 8) & 0xFF);
+                ggen.gen(op & 0xFF);
             }
             else
             {
                 if (c->Irex)
-                    GEN(c->Irex | REX);
-                GEN((op >> 8) & 0xFF);
-                GEN(op & 0xFF);
+                    ggen.gen(c->Irex | REX);
+                ggen.gen((op >> 8) & 0xFF);
+                ggen.gen(op & 0xFF);
             }
         }
         else
         {
             if (c->Irex)
-                GEN(c->Irex | REX);
-            GEN(op);
+                ggen.gen(c->Irex | REX);
+            ggen.gen(op);
         }
   Lmodrm:
         if (ins & M)            /* if modregrm byte             */
         {
             rm = c->Irm;
-            GEN(rm);
+            ggen.gen(rm);
 
             // Look for an address size override when working with the
             // MOD R/M and SIB bytes
@@ -6093,10 +6104,10 @@ unsigned codout(code *c)
             if (is32bitaddr( I32, flags))
             {
                 if (issib(rm))
-                    GEN(c->Isib);
+                    ggen.gen(c->Isib);
                 switch (rm & 0xC0)
                 {   case 0x40:
-                        do8bit((enum FL) c->IFL1,&c->IEV1);     // 8 bit
+                        do8bit(&ggen, (enum FL) c->IFL1,&c->IEV1);     // 8 bit
                         break;
                     case 0:
                         if (!(issib(rm) && (c->Isib & 7) == 5 ||
@@ -6128,7 +6139,7 @@ unsigned codout(code *c)
 #endif
                             }
                         }
-                        do32bit((enum FL)c->IFL1,&c->IEV1,flags,val);
+                        do32bit(&ggen, (enum FL)c->IFL1,&c->IEV1,flags,val);
                         break;
                     }
                 }
@@ -6137,13 +6148,13 @@ unsigned codout(code *c)
             {
                 switch (rm & 0xC0)
                 {   case 0x40:
-                        do8bit((enum FL) c->IFL1,&c->IEV1);     // 8 bit
+                        do8bit(&ggen, (enum FL) c->IFL1,&c->IEV1);     // 8 bit
                         break;
                     case 0:
                         if ((rm & 7) != 6)
                             break;
                     case 0x80:
-                        do16bit((enum FL)c->IFL1,&c->IEV1,CFoff);
+                        do16bit(&ggen, (enum FL)c->IFL1,&c->IEV1,CFoff);
                         break;
                 }
             }
@@ -6151,19 +6162,19 @@ unsigned codout(code *c)
         else
         {
             if (op == 0xC8)
-                do16bit((enum FL)c->IFL1,&c->IEV1,0);
+                do16bit(&ggen, (enum FL)c->IFL1,&c->IEV1,0);
         }
         flags &= CFseg | CFoff | CFselfrel;
         if (ins & T)                    /* if second operand            */
         {       if (ins & E)            /* if data-8                    */
-                    do8bit((enum FL) c->IFL2,&c->IEV2);
+                    do8bit(&ggen, (enum FL) c->IFL2,&c->IEV2);
                 else if (!I16)
                 {
                     switch (op)
                     {   case 0xC2:              /* RETN imm16           */
                         case 0xCA:              /* RETF imm16           */
                         do16:
-                            do16bit((enum FL)c->IFL2,&c->IEV2,flags);
+                            do16bit(&ggen, (enum FL)c->IFL2,&c->IEV2,flags);
                             break;
 
                         case 0xA1:
@@ -6171,7 +6182,7 @@ unsigned codout(code *c)
                             if (I64 && c->Irex)
                             {
                         do64:
-                                do64bit((enum FL)c->IFL2,&c->IEV2,flags);
+                                do64bit(&ggen, (enum FL)c->IFL2,&c->IEV2,flags);
                                 break;
                             }
                         case 0xA0:              /* MOV AL,byte ptr []   */
@@ -6180,7 +6191,7 @@ unsigned codout(code *c)
                                 goto do16;
                             else
                         do32:
-                                do32bit((enum FL)c->IFL2,&c->IEV2,flags);
+                                do32bit(&ggen, (enum FL)c->IFL2,&c->IEV2,flags);
                             break;
                         case 0x9A:
                         case 0xEA:
@@ -6241,17 +6252,17 @@ unsigned codout(code *c)
                         ptr1616:
                         ptr1632:
                             //assert(c->IFL2 == FLfunc);
-                            FLUSH();
+                            ggen.flush();
                             if (c->IFL2 == FLdatseg)
                             {
-                                objmod->reftodatseg(cseg,offset,c->IEVpointer2,
+                                objmod->reftodatseg(cseg,ggen.offset,c->IEVpointer2,
                                         c->IEVseg2,flags);
-                                offset += 4;
+                                ggen.offset += 4;
                             }
                             else
                             {
                                 s = c->IEVsym2;
-                                offset += objmod->reftoident(cseg,offset,s,0,flags);
+                                ggen.offset += objmod->reftoident(cseg,ggen.offset,s,0,flags);
                             }
                             break;
 
@@ -6278,34 +6289,34 @@ unsigned codout(code *c)
         }
         else if (op == 0xF6)            /* TEST mem8,immed8             */
         {       if ((rm & (7<<3)) == 0)
-                        do8bit((enum FL)c->IFL2,&c->IEV2);
+                        do8bit(&ggen, (enum FL)c->IFL2,&c->IEV2);
         }
         else if (op == 0xF7)
         {   if ((rm & (7<<3)) == 0)     /* TEST mem16/32,immed16/32     */
             {
                 if ((I32 || I64) ^ ((c->Iflags & CFopsize) != 0))
-                    do32bit((enum FL)c->IFL2,&c->IEV2,flags);
+                    do32bit(&ggen, (enum FL)c->IFL2,&c->IEV2,flags);
                 else
-                    do16bit((enum FL)c->IFL2,&c->IEV2,flags);
+                    do16bit(&ggen, (enum FL)c->IFL2,&c->IEV2,flags);
             }
         }
 #ifdef DEBUG
-        if (OFFSET() - startoffset != calccodsize(c))
+        if (ggen.getOffset() - startoffset != calccodsize(c))
         {
-            printf("actual: %d, calc: %d\n", (int)(OFFSET() - startoffset), (int)calccodsize(c));
+            printf("actual: %d, calc: %d\n", (int)(ggen.getOffset() - startoffset), (int)calccodsize(c));
             c->print();
             assert(0);
         }
 #endif
     }
-    FLUSH();
-    Coffset = offset;
+    ggen.flush();
+    Coffset = ggen.offset;
     //printf("-codout(), Coffset = x%x\n", Coffset);
-    return offset;                      /* ending address               */
+    return ggen.offset;                      /* ending address               */
 }
 
 
-STATIC void do64bit(enum FL fl,union evc *uev,int flags)
+static void do64bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
 {   char *p;
     symbol *s;
     targ_size_t ad;
@@ -6316,23 +6327,23 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
         case FLconst:
             ad = * (targ_size_t *) uev;
         L1:
-            GENP(8,&ad);
+            pbuf->genp(8,&ad);
             return;
         case FLdatseg:
-            FLUSH();
-            objmod->reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,CFoffset64 | flags);
+            pbuf->flush();
+            objmod->reftodatseg(cseg,pbuf->offset,uev->_EP.Vpointer,uev->_EP.Vseg,CFoffset64 | flags);
             break;
         case FLframehandler:
-            framehandleroffset = OFFSET();
+            framehandleroffset = pbuf->getOffset();
             ad = 0;
             goto L1;
         case FLswitch:
-            FLUSH();
+            pbuf->flush();
             ad = uev->Vswitch->Btableoffset;
             if (config.flags & CFGromable)
-                    objmod->reftocodeseg(cseg,offset,ad);
+                    objmod->reftocodeseg(cseg,pbuf->offset,ad);
             else
-                    objmod->reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
+                    objmod->reftodatseg(cseg,pbuf->offset,ad,JMPSEG,CFoff);
             break;
 #if TARGET_SEGMENTED
         case FLcsdata:
@@ -6350,14 +6361,14 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
         case FLgot:
         case FLgotoff:
 #endif
-            FLUSH();
+            pbuf->flush();
             s = uev->sp.Vsym;               /* symbol pointer               */
-            objmod->reftoident(cseg,offset,s,uev->sp.Voffset,CFoffset64 | flags);
+            objmod->reftoident(cseg,pbuf->offset,s,uev->sp.Voffset,CFoffset64 | flags);
             break;
 
 #if TARGET_OSX
         case FLgot:
-            funcsym_p->Slocalgotoffset = OFFSET();
+            funcsym_p->Slocalgotoffset = pbuf->getOffset();
             ad = 0;
             goto L1;
 #endif
@@ -6365,31 +6376,31 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
         case FLfunc:                        /* function call                */
             s = uev->sp.Vsym;               /* symbol pointer               */
             assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
-            FLUSH();
-            objmod->reftoident(cseg,offset,s,0,CFoffset64 | flags);
+            pbuf->flush();
+            objmod->reftoident(cseg,pbuf->offset,s,0,CFoffset64 | flags);
             break;
 
         case FLblock:                       /* displacement to another block */
-            ad = uev->Vblock->Boffset - OFFSET() - 4;
-            //printf("FLblock: funcoffset = %x, OFFSET = %x, Boffset = %x, ad = %x\n", funcoffset, OFFSET(), uev->Vblock->Boffset, ad);
+            ad = uev->Vblock->Boffset - pbuf->getOffset() - 4;
+            //printf("FLblock: funcoffset = %x, pbuf->getOffset = %x, Boffset = %x, ad = %x\n", funcoffset, pbuf->getOffset(), uev->Vblock->Boffset, ad);
             goto L1;
 
         case FLblockoff:
-            FLUSH();
+            pbuf->flush();
             assert(uev->Vblock);
-            //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", offset, uev->Vblock->Boffset, funcoffset);
-            objmod->reftocodeseg(cseg,offset,uev->Vblock->Boffset);
+            //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf->offset, uev->Vblock->Boffset, funcoffset);
+            objmod->reftocodeseg(cseg,pbuf->offset,uev->Vblock->Boffset);
             break;
 
         default:
             WRFL(fl);
             assert(0);
     }
-    offset += 8;
+    pbuf->offset += 8;
 }
 
 
-STATIC void do32bit(enum FL fl,union evc *uev,int flags, int val)
+static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int val)
 { char *p;
   symbol *s;
   targ_size_t ad;
@@ -6401,50 +6412,50 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, int val)
         assert(sizeof(targ_size_t) == 4 || sizeof(targ_size_t) == 8);
         ad = * (targ_size_t *) uev;
     L1:
-        GENP(4,&ad);
+        pbuf->genp(4,&ad);
         return;
     case FLdatseg:
-        FLUSH();
-        objmod->reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
+        pbuf->flush();
+        objmod->reftodatseg(cseg,pbuf->offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
         break;
     case FLframehandler:
-        framehandleroffset = OFFSET();
+        framehandleroffset = pbuf->getOffset();
         ad = 0;
         goto L1;
     case FLswitch:
-        FLUSH();
+        pbuf->flush();
         ad = uev->Vswitch->Btableoffset;
         if (config.flags & CFGromable)
         {
 #if TARGET_OSX
             // These are magic values based on the exact code generated for the switch jump
             if (I64)
-                uev->Vswitch->Btablebase = OFFSET() + 4;
+                uev->Vswitch->Btablebase = pbuf->getOffset() + 4;
             else
-                uev->Vswitch->Btablebase = OFFSET() + 4 - 8;
+                uev->Vswitch->Btablebase = pbuf->getOffset() + 4 - 8;
             ad -= uev->Vswitch->Btablebase;
             goto L1;
 #elif TARGET_WINDOS
             if (I64)
             {
-                uev->Vswitch->Btablebase = OFFSET() + 4;
+                uev->Vswitch->Btablebase = pbuf->getOffset() + 4;
                 ad -= uev->Vswitch->Btablebase;
                 goto L1;
             }
             else
-                objmod->reftocodeseg(cseg,offset,ad);
+                objmod->reftocodeseg(cseg,pbuf->offset,ad);
 #else
-            objmod->reftocodeseg(cseg,offset,ad);
+            objmod->reftocodeseg(cseg,pbuf->offset,ad);
 #endif
         }
         else
-                objmod->reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
+                objmod->reftodatseg(cseg,pbuf->offset,ad,JMPSEG,CFoff);
         break;
     case FLcode:
         assert(JMPJMPTABLE);            // the only use case
-        FLUSH();
-        ad = * (targ_size_t *) uev + OFFSET();
-        objmod->reftocodeseg(cseg,offset,ad);
+        pbuf->flush();
+        ad = * (targ_size_t *) uev + pbuf->getOffset();
+        objmod->reftocodeseg(cseg,pbuf->offset,ad);
         break;
 #if TARGET_SEGMENTED
     case FLcsdata:
@@ -6462,7 +6473,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, int val)
     case FLgot:
     case FLgotoff:
 #endif
-        FLUSH();
+        pbuf->flush();
         s = uev->sp.Vsym;               /* symbol pointer               */
 #if TARGET_WINDOS
         if (I64 && (flags & CFpc32))
@@ -6473,16 +6484,16 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, int val)
             assert(val >= -5 && val <= 0);
             flags |= (-val & 7) << 24;          // set CFREL value
             assert(CFREL == (7 << 24));
-            objmod->reftoident(cseg,offset,s,uev->sp.Voffset,flags);
+            objmod->reftoident(cseg,pbuf->offset,s,uev->sp.Voffset,flags);
         }
         else
 #endif
-            objmod->reftoident(cseg,offset,s,uev->sp.Voffset + val,flags);
+            objmod->reftoident(cseg,pbuf->offset,s,uev->sp.Voffset + val,flags);
         break;
 
 #if TARGET_OSX
     case FLgot:
-        funcsym_p->Slocalgotoffset = OFFSET();
+        funcsym_p->Slocalgotoffset = pbuf->getOffset();
         ad = 0;
         goto L1;
 #endif
@@ -6492,46 +6503,46 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, int val)
 #if TARGET_SEGMENTED
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
-                FLUSH();
-                offset += objmod->reftoident(cseg,offset,s,0,flags) - 4;
+                pbuf->flush();
+                pbuf->offset += objmod->reftoident(cseg,pbuf->offset,s,0,flags) - 4;
         }
         else if (s->Sseg == cseg &&
                  (s->Sclass == SCstatic || s->Sclass == SCglobal) &&
                  s->Sxtrnnum == 0 && flags & CFselfrel)
         {       /* if we know it's relative address     */
-                ad = s->Soffset - OFFSET() - 4;
+                ad = s->Soffset - pbuf->getOffset() - 4;
                 goto L1;
         }
         else
 #endif
         {
                 assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
-                FLUSH();
-                objmod->reftoident(cseg,offset,s,val,flags);
+                pbuf->flush();
+                objmod->reftoident(cseg,pbuf->offset,s,val,flags);
         }
         break;
 
     case FLblock:                       /* displacement to another block */
-        ad = uev->Vblock->Boffset - OFFSET() - 4;
-        //printf("FLblock: funcoffset = %x, OFFSET = %x, Boffset = %x, ad = %x\n", funcoffset, OFFSET(), uev->Vblock->Boffset, ad);
+        ad = uev->Vblock->Boffset - pbuf->getOffset() - 4;
+        //printf("FLblock: funcoffset = %x, pbuf->getOffset = %x, Boffset = %x, ad = %x\n", funcoffset, pbuf->getOffset(), uev->Vblock->Boffset, ad);
         goto L1;
 
     case FLblockoff:
-        FLUSH();
+        pbuf->flush();
         assert(uev->Vblock);
-        //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", offset, uev->Vblock->Boffset, funcoffset);
-        objmod->reftocodeseg(cseg,offset,uev->Vblock->Boffset);
+        //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf->offset, uev->Vblock->Boffset, funcoffset);
+        objmod->reftocodeseg(cseg,pbuf->offset,uev->Vblock->Boffset);
         break;
 
     default:
         WRFL(fl);
         assert(0);
   }
-  offset += 4;
+  pbuf->offset += 4;
 }
 
 
-STATIC void do16bit(enum FL fl,union evc *uev,int flags)
+static void do16bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
 { char *p;
   symbol *s;
   targ_size_t ad;
@@ -6539,19 +6550,19 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
   switch (fl)
   {
     case FLconst:
-        GENP(2,(char *) uev);
+        pbuf->genp(2,(char *) uev);
         return;
     case FLdatseg:
-        FLUSH();
-        objmod->reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
+        pbuf->flush();
+        objmod->reftodatseg(cseg,pbuf->offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
         break;
     case FLswitch:
-        FLUSH();
+        pbuf->flush();
         ad = uev->Vswitch->Btableoffset;
         if (config.flags & CFGromable)
-                objmod->reftocodeseg(cseg,offset,ad);
+                objmod->reftocodeseg(cseg,pbuf->offset,ad);
         else
-                objmod->reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
+                objmod->reftodatseg(cseg,pbuf->offset,ad,JMPSEG,CFoff);
         break;
 #if TARGET_SEGMENTED
     case FLcsdata:
@@ -6560,55 +6571,55 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
     case FLextern:                      /* external data symbol         */
     case FLtlsdata:
         assert(SIXTEENBIT || TARGET_SEGMENTED);
-        FLUSH();
+        pbuf->flush();
         s = uev->sp.Vsym;               /* symbol pointer               */
-        objmod->reftoident(cseg,offset,s,uev->sp.Voffset,flags);
+        objmod->reftoident(cseg,pbuf->offset,s,uev->sp.Voffset,flags);
         break;
     case FLfunc:                        /* function call                */
         assert(SIXTEENBIT || TARGET_SEGMENTED);
         s = uev->sp.Vsym;               /* symbol pointer               */
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
-                FLUSH();
-                offset += objmod->reftoident(cseg,offset,s,0,flags) - 2;
+                pbuf->flush();
+                pbuf->offset += objmod->reftoident(cseg,pbuf->offset,s,0,flags) - 2;
         }
         else if (s->Sseg == cseg &&
                  (s->Sclass == SCstatic || s->Sclass == SCglobal) &&
                  s->Sxtrnnum == 0 && flags & CFselfrel)
         {       /* if we know it's relative address     */
-                ad = s->Soffset - OFFSET() - 2;
+                ad = s->Soffset - pbuf->getOffset() - 2;
                 goto L1;
         }
         else
-        {       FLUSH();
-                objmod->reftoident(cseg,offset,s,0,flags);
+        {       pbuf->flush();
+                objmod->reftoident(cseg,pbuf->offset,s,0,flags);
         }
         break;
     case FLblock:                       /* displacement to another block */
-        ad = uev->Vblock->Boffset - OFFSET() - 2;
+        ad = uev->Vblock->Boffset - pbuf->getOffset() - 2;
 #ifdef DEBUG
         {
-            targ_ptrdiff_t delta = uev->Vblock->Boffset - OFFSET() - 2;
+            targ_ptrdiff_t delta = uev->Vblock->Boffset - pbuf->getOffset() - 2;
             assert((signed short)delta == delta);
         }
 #endif
     L1:
-        GENP(2,&ad);                    // displacement
+        pbuf->genp(2,&ad);                    // displacement
         return;
 
     case FLblockoff:
-        FLUSH();
-        objmod->reftocodeseg(cseg,offset,uev->Vblock->Boffset);
+        pbuf->flush();
+        objmod->reftocodeseg(cseg,pbuf->offset,uev->Vblock->Boffset);
         break;
 
     default:
         WRFL(fl);
         assert(0);
   }
-  offset += 2;
+  pbuf->offset += 2;
 }
 
-STATIC void do8bit(enum FL fl,union evc *uev)
+static void do8bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev)
 { char c;
   targ_ptrdiff_t delta;
 
@@ -6618,7 +6629,7 @@ STATIC void do8bit(enum FL fl,union evc *uev)
         c = uev->Vuns;
         break;
     case FLblock:
-        delta = uev->Vblock->Boffset - OFFSET() - 1;
+        delta = uev->Vblock->Boffset - pbuf->getOffset() - 1;
         if ((signed char)delta != delta)
         {
 #if MARS
@@ -6630,7 +6641,7 @@ STATIC void do8bit(enum FL fl,union evc *uev)
         }
         c = delta;
 #ifdef DEBUG
-        assert(uev->Vblock->Boffset > OFFSET() || c != 0x7F);
+        assert(uev->Vblock->Boffset > pbuf->getOffset() || c != 0x7F);
 #endif
         break;
     default:
@@ -6639,7 +6650,7 @@ STATIC void do8bit(enum FL fl,union evc *uev)
 #endif
         assert(0);
   }
-  GEN(c);
+  pbuf->gen(c);
 }
 
 
