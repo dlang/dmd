@@ -47,7 +47,7 @@ struct Loc
 void error(Loc loc, const char *format, ...);
 #endif
 
-#if OMFOBJ
+#if TARGET_WINDOS
 
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
