@@ -1477,9 +1477,6 @@ symbol *param_search(const char *name, param_t **pp)
             s->Sclass = SCparameter;
             s->Stype = p->Ptype;
             s->Stype->Tcount++;
-#if SOURCE_4PARAMS
-            s->Ssrcpos = p->Psrcpos;
-#endif
             p->Psym = s;
         }
     }
@@ -1500,9 +1497,6 @@ void param_hydrate(param_t **pp)
     {   while (*pp)
         {   assert(isdehydrated(*pp));
             p = (param_t *) ph_hydrate(pp);
-#if SOURCE_4PARAMS
-            p->Psrcpos.Sfilnum += File_Hydrate_Num;     /* file number relative header build */
-#endif
             param_debug(p);
 
             type_hydrate(&p->Ptype);

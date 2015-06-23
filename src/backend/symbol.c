@@ -1210,9 +1210,6 @@ symbol *symbol_hydrate(symbol **ps)
         symbol_debug(s);
         if (!isdehydrated(s->Stype))    // if this symbol is already dehydrated
             return s;                   // no need to do it again
-#if SOURCE_4SYMS
-        s->Ssrcpos.Sfilnum += File_Hydrate_Num; /* file number relative header build */
-#endif
         if (pstate.SThflag != FLAG_INPLACE && s->Sfl != FLreg)
             s->Sxtrnnum = 0;            // not written to .OBJ file yet
         type_hydrate(&s->Stype);
