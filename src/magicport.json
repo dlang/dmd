@@ -677,6 +677,8 @@
                 "function toCBufferDsymbol*OutBuffer*HdrGenState*",
                 "function toCBufferInstance",
                 "function toCBufferInitializer*OutBuffer*HdrGenState*",
+                "function stcToBuffer",
+                "function stcToChars",
                 "function trustToBuffer",
                 "function trustToChars",
                 "function linkageToBuffer",

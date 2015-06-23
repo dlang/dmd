@@ -255,7 +255,8 @@ public:
             Parameter *p = (*s->parameters)[i];
             if (i)
                 buf->writestring(", ");
-            StorageClassDeclaration::stcToCBuffer(buf, p->storageClass);
+            if (stcToBuffer(buf, p->storageClass))
+                buf->writeByte(' ');
             if (p->type)
                 typeToBuffer(p->type, p->ident);
             else
@@ -309,7 +310,8 @@ public:
             StorageClass stc = p->storageClass;
             if (!p->type && !stc)
                 stc = STCauto;
-            StorageClassDeclaration::stcToCBuffer(buf, stc);
+            if (stcToBuffer(buf, stc))
+                buf->writeByte(' ');
             if (p->type)
                 typeToBuffer(p->type, p->ident);
             else
@@ -1197,7 +1199,8 @@ public:
 
     void visit(StorageClassDeclaration *d)
     {
-        StorageClassDeclaration::stcToCBuffer(buf, d->stc);
+        if (stcToBuffer(buf, d->stc))
+            buf->writeByte(' ');
         visit((AttribDeclaration *)d);
     }
 
@@ -1374,7 +1377,8 @@ public:
         if (FuncDeclaration *fd = onemember->isFuncDeclaration())
         {
             assert(fd->type);
-            StorageClassDeclaration::stcToCBuffer(buf, fd->storage_class);
+            if (stcToBuffer(buf, fd->storage_class))
+                buf->writeByte(' ');
             functionToBufferFull((TypeFunction *)fd->type, buf, d->ident, hgs, d);
             visitTemplateConstraint(d->constraint);
 
@@ -1417,7 +1421,8 @@ public:
             if (d->constraint)
                 return false;
 
-            StorageClassDeclaration::stcToCBuffer(buf, vd->storage_class);
+            if (stcToBuffer(buf, vd->storage_class))
+                buf->writeByte(' ');
             if (vd->type)
                 typeToBuffer(vd->type, vd->ident);
             else
@@ -1714,12 +1719,14 @@ public:
         {
             buf->writestring(d->ident->toChars());
             buf->writestring(" = ");
-            StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
+            if (stcToBuffer(buf, d->storage_class))
+                buf->writeByte(' ');
             d->aliassym->accept(this);
         }
         else if (d->type->ty == Tfunction)
         {
-            StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
+            if (stcToBuffer(buf, d->storage_class))
+                buf->writeByte(' ');
             typeToBuffer(d->type, d->ident);
         }
         else
@@ -1727,7 +1734,8 @@ public:
             declstring = (d->ident == Id::string || d->ident == Id::wstring || d->ident == Id::dstring);
             buf->writestring(d->ident->toChars());
             buf->writestring(" = ");
-            StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
+            if (stcToBuffer(buf, d->storage_class))
+                buf->writeByte(' ');
             typeToBuffer(d->type, NULL);
             declstring = false;
         }
@@ -1750,7 +1758,8 @@ public:
         }
         else
         {
-            StorageClassDeclaration::stcToCBuffer(buf, v->storage_class);
+            if (stcToBuffer(buf, v->storage_class))
+                buf->writeByte(' ');
             if (v->type)
                 typeToBuffer(v->type, v->ident);
             else
@@ -1771,7 +1780,8 @@ public:
     {
         //printf("FuncDeclaration::toCBuffer() '%s'\n", f->toChars());
 
-        StorageClassDeclaration::stcToCBuffer(buf, f->storage_class);
+        if (stcToBuffer(buf, f->storage_class))
+            buf->writeByte(' ');
         typeToBuffer(f->type, f->ident);
         if (hgs->hdrgen == 1)
         {
@@ -1905,7 +1915,8 @@ public:
 
     void visit(StaticCtorDeclaration *d)
     {
-        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
+        if (stcToBuffer(buf, d->storage_class & ~STCstatic))
+            buf->writeByte(' ');
         if (d->isSharedStaticCtorDeclaration())
             buf->writestring("shared ");
         buf->writestring("static this()");
@@ -1922,7 +1933,8 @@ public:
     {
         if (hgs->hdrgen)
             return;
-        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
+        if (stcToBuffer(buf, d->storage_class & ~STCstatic))
+            buf->writeByte(' ');
         if (d->isSharedStaticDtorDeclaration())
             buf->writestring("shared ");
         buf->writestring("static ~this()");
@@ -1933,7 +1945,8 @@ public:
     {
         if (hgs->hdrgen)
             return;
-        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
+        if (stcToBuffer(buf, d->storage_class))
+            buf->writeByte(' ');
         buf->writestring("invariant");
         bodyToBuffer(d);
     }
@@ -1942,14 +1955,16 @@ public:
     {
         if (hgs->hdrgen)
             return;
-        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class);
+        if (stcToBuffer(buf, d->storage_class))
+            buf->writeByte(' ');
         buf->writestring("unittest");
         bodyToBuffer(d);
     }
 
     void visit(NewDeclaration *d)
     {
-        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
+        if (stcToBuffer(buf, d->storage_class & ~STCstatic))
+            buf->writeByte(' ');
         buf->writestring("new");
         parametersToBuffer(d->parameters, d->varargs);
         bodyToBuffer(d);
@@ -1957,7 +1972,8 @@ public:
 
     void visit(DeleteDeclaration *d)
     {
-        StorageClassDeclaration::stcToCBuffer(buf, d->storage_class & ~STCstatic);
+        if (stcToBuffer(buf, d->storage_class & ~STCstatic))
+            buf->writeByte(' ');
         buf->writestring("delete");
         parametersToBuffer(d->parameters, 0);
         bodyToBuffer(d);
@@ -2918,8 +2934,8 @@ public:
         if (p->type && p->type->mod & MODshared)
             stc &= ~STCshared;
 
-        StorageClassDeclaration::stcToCBuffer(buf,
-            stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope));
+        if (stcToBuffer(buf, stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope)))
+            buf->writeByte(' ');
 
         if (p->storageClass & STCalias)
         {
@@ -3032,6 +3048,92 @@ void toCBuffer(Initializer *iz, OutBuffer *buf, HdrGenState *hgs)
 {
     PrettyPrintVisitor v(buf, hgs);
     iz->accept(&v);
+}
+
+bool stcToBuffer(OutBuffer *buf, StorageClass stc)
+{
+    bool result = false;
+    while (stc)
+    {
+        if (!result)
+            result = true;
+        else
+            buf->writeByte(' ');
+        const char *p = stcToChars(stc);
+        if (!p)
+            break;
+        buf->writestring(p);
+    }
+    return result;
+}
+
+/*************************************************
+ * Pick off one of the storage classes from stc,
+ * and return a pointer to a string representation of it.
+ * stc is reduced by the one picked.
+ */
+const char *stcToChars(StorageClass& stc)
+{
+    struct SCstring
+    {
+        StorageClass stc;
+        TOK tok;
+        const char *id;
+    };
+
+    static SCstring table[] =
+    {
+        { STCauto,         TOKauto },
+        { STCscope,        TOKscope },
+        { STCstatic,       TOKstatic },
+        { STCextern,       TOKextern },
+        { STCconst,        TOKconst },
+        { STCfinal,        TOKfinal },
+        { STCabstract,     TOKabstract },
+        { STCsynchronized, TOKsynchronized },
+        { STCdeprecated,   TOKdeprecated },
+        { STCoverride,     TOKoverride },
+        { STClazy,         TOKlazy },
+        { STCalias,        TOKalias },
+        { STCout,          TOKout },
+        { STCin,           TOKin },
+        { STCmanifest,     TOKenum },
+        { STCimmutable,    TOKimmutable },
+        { STCshared,       TOKshared },
+        { STCnothrow,      TOKnothrow },
+        { STCwild,         TOKwild },
+        { STCpure,         TOKpure },
+        { STCref,          TOKref },
+        { STCtls },
+        { STCgshared,      TOKgshared },
+        { STCnogc,         TOKat,       "@nogc" },
+        { STCproperty,     TOKat,       "@property" },
+        { STCsafe,         TOKat,       "@safe" },
+        { STCtrusted,      TOKat,       "@trusted" },
+        { STCsystem,       TOKat,       "@system" },
+        { STCdisable,      TOKat,       "@disable" },
+        { 0,               TOKreserved }
+    };
+
+    for (int i = 0; table[i].stc; i++)
+    {
+        StorageClass tbl = table[i].stc;
+        assert(tbl & STCStorageClass);
+        if (stc & tbl)
+        {
+            stc &= ~tbl;
+            if (tbl == STCtls)  // TOKtls was removed
+                return "__thread";
+
+            TOK tok = table[i].tok;
+            if (tok == TOKat)
+                return table[i].id;
+            else
+                return Token::toChars(tok);
+        }
+    }
+    //printf("stc = %llx\n", stc);
+    return NULL;
 }
 
 void trustToBuffer(OutBuffer *buf, TRUST trust)

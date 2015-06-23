@@ -976,9 +976,7 @@ StorageClass Parser::appendStorageClass(StorageClass storageClass, StorageClass 
         (stc & STCin && storageClass & (STCconst | STCscope)))
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, stc);
-        if (buf.data[buf.offset - 1] == ' ')
-            buf.data[buf.offset - 1] = '\0';
+        stcToBuffer(&buf, stc);
         if (deprec)
             deprecation("redundant attribute '%s'", buf.peekString());
         else
@@ -1636,9 +1634,7 @@ Dsymbol *Parser::parseStaticCtor(PrefixAttributes *pAttrs)
     else if (StorageClass modStc = stc & STC_TYPECTOR)
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
-        if (buf.data[buf.offset - 1] == ' ')
-            buf.data[buf.offset - 1] = '\0';
+        stcToBuffer(&buf, modStc);
         error(loc, "static constructor cannot be %s", buf.peekString());
     }
     stc &= ~(STCstatic | STC_TYPECTOR);
@@ -1676,9 +1672,7 @@ Dsymbol *Parser::parseStaticDtor(PrefixAttributes *pAttrs)
     else if (StorageClass modStc = stc & STC_TYPECTOR)
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
-        if (buf.data[buf.offset - 1] == ' ')
-            buf.data[buf.offset - 1] = '\0';
+        stcToBuffer(&buf, modStc);
         error(loc, "static destructor cannot be %s", buf.peekString());
     }
     stc &= ~(STCstatic | STC_TYPECTOR);
@@ -1720,9 +1714,7 @@ Dsymbol *Parser::parseSharedStaticCtor(PrefixAttributes *pAttrs)
     else if (StorageClass modStc = stc & STC_TYPECTOR)
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
-        if (buf.data[buf.offset - 1] == ' ')
-            buf.data[buf.offset - 1] = '\0';
+        stcToBuffer(&buf, modStc);
         error(loc, "shared static constructor cannot be %s", buf.peekString());
     }
     stc &= ~(STCstatic | STC_TYPECTOR);
@@ -1759,9 +1751,7 @@ Dsymbol *Parser::parseSharedStaticDtor(PrefixAttributes *pAttrs)
     else if (StorageClass modStc = stc & STC_TYPECTOR)
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, modStc);
-        if (buf.data[buf.offset - 1] == ' ')
-            buf.data[buf.offset - 1] = '\0';
+        stcToBuffer(&buf, modStc);
         error(loc, "shared static destructor cannot be %s", buf.peekString());
     }
     stc &= ~(STCstatic | STC_TYPECTOR);
