@@ -272,7 +272,10 @@ void except_fillInEHTable(symbol *s)
                 unsigned foffset;
                 for (; 1; c2 = code_next(c2))
                 {
-                    assert(c2);
+                    // Bugzilla 13720: optimizer might elide the corresponding ddtor
+                    if (!c2)
+                        goto Lnodtor;
+
                     if (c2->Iop == (ESCAPE | ESCddtor))
                     {
                         if (n)
@@ -337,6 +340,7 @@ void except_fillInEHTable(symbol *s)
                 stacki--;
                 assert(stacki != 0);
             }
+        Lnodtor:
             boffset += calccodsize(c);
         }
     }
