@@ -1839,6 +1839,15 @@ int ElfObj::getsegment(const char *name, const char *suffix, int type, int flags
     return seg;
 }
 
+/**********************************
+ * Reset code seg to existing seg.
+ * Used after a COMDAT for a function is done.
+ */
+
+void Obj::setcodeseg(int seg)
+{
+}
+
 /********************************
  * Define a new code segment.
  * Input:

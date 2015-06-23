@@ -4530,41 +4530,40 @@ void assignaddrc(code *c)
         s = c->IEVsym1;
         switch (c->IFL1)
         {
-#if OMFOBJ
             case FLdata:
-                if (config.objfmt == OBJ_MSCOFF || s->Sclass == SCcomdat)
-                {   c->IFL1 = FLextern;
-                    goto do2;
-                }
+                if (config.objfmt == OBJ_OMF && s->Sclass != SCcomdat)
+                {
 #if MARS
-                c->IEVseg1 = s->Sseg;
+                    c->IEVseg1 = s->Sseg;
 #else
-                c->IEVseg1 = DATA;
+                    c->IEVseg1 = DATA;
 #endif
-                c->IEVpointer1 += s->Soffset;
-                c->IFL1 = FLdatseg;
+                    c->IEVpointer1 += s->Soffset;
+                    c->IFL1 = FLdatseg;
+                }
+                else
+                    c->IFL1 = FLextern;
                 goto do2;
 
             case FLudata:
-                if (config.objfmt == OBJ_MSCOFF)
-                {   c->IFL1 = FLextern;
-                    goto do2;
-                }
+                if (config.objfmt == OBJ_OMF)
+                {
 #if MARS
-                c->IEVseg1 = s->Sseg;
+                    c->IEVseg1 = s->Sseg;
 #else
-                c->IEVseg1 = UDATA;
+                    c->IEVseg1 = UDATA;
 #endif
-                c->IEVpointer1 += s->Soffset;
-                c->IFL1 = FLdatseg;
+                    c->IEVpointer1 += s->Soffset;
+                    c->IFL1 = FLdatseg;
+                }
+                else
+                    c->IFL1 = FLextern;
                 goto do2;
-#else                                   // don't loose symbol information
-            case FLdata:
-            case FLudata:
+
             case FLtlsdata:
-                c->IFL1 = FLextern;
+                if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+                    c->IFL1 = FLextern;
                 goto do2;
-#endif
             case FLdatseg:
                 c->IEVseg1 = DATA;
                 goto do2;
