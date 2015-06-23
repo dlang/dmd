@@ -1483,9 +1483,6 @@ void Srcpos::print(const char *func)
     printf("Sfilptr = %p (filename = %s)", sf, sf ? sf->SFname : "null");
 #endif
     printf(", Slinnum = %u", Slinnum);
-#if SOURCE_OFFSETS
-    printf(", Sfiloff = %d", Sfiloff);
-#endif
     printf(")\n");
 }
 
