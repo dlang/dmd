@@ -2322,9 +2322,7 @@ void slist_reset()
     {
         Symbol *s = slist[i];
 
-#if MACHOBJ
         s->Soffset = 0;
-#endif
         s->Sxtrnnum = 0;
         s->Stypidx = 0;
         s->Sflags &= ~(STRoutdef | SFLweak);

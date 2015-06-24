@@ -679,8 +679,8 @@ struct Config
     unsigned objfmt;            // target object format
 #define OBJ_OMF         1
 #define OBJ_MSCOFF      2
-#define OBJ_ELF         3
-#define OBJ_MACH        4
+#define OBJ_ELF         4
+#define OBJ_MACH        8
     unsigned exe;               // target operating system
 #define EX_DOSX         1       // DOSX 386 program
 #define EX_ZPM          2       // ZPM 286 program

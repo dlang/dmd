@@ -694,12 +694,10 @@ again:
         }
         else if (s->Sdt)                /* if initializer for symbol    */
             outdata(s);                 // write out data for symbol
-#if ELFOBJ || MACHOBJ
         if (config.flags3 & CFG3pic)
         {
             objmod->gotref(s);
         }
-#endif
 #endif
         break;
     case OPstring:

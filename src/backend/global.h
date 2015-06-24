@@ -527,12 +527,12 @@ void rtlsym_init();
 void rtlsym_reset();
 void rtlsym_term();
 
-#if SYMDEB_DWARF
+// Dwarf
 void dwarf_CFA_set_loc(size_t location);
 void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);
-#endif
+
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 elem * exp_isconst();

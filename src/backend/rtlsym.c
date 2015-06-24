@@ -75,14 +75,6 @@ void rtlsym_init()
         tv->Tcount++;
 #endif
 
-#if MACHOBJ
-        type *tw = type_fake(TYnpfunc);
-        tw->Tmangle = mTYman_sys;
-        tw->Tcount++;
-#else
-        type *tw = NULL;
-#endif
-
 #undef SYMBOL_Z
 #define SYMBOL_Z(e, fl, saved, n, flags, ty)                                \
         if (ty) rtlsym[RTLSYM_##e]->Stype = (ty);                           \

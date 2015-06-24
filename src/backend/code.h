@@ -606,8 +606,6 @@ struct seg_data
 
 
 
-#if 1 //ELFOBJ || MACHOBJ
-
 struct linnum_data
 {
     const char *filename;
@@ -618,7 +616,6 @@ struct linnum_data
     unsigned (*linoff)[2];      // [0] = line number, [1] = offset
 };
 
-#endif
 
 extern seg_data **SegData;
 #define Offset(seg) SegData[seg]->SDoffset
