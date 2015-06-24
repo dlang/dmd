@@ -36,7 +36,7 @@
 #include        "aa.h"
 #include        "tinfo.h"
 
-#if OMFOBJ
+#if TARGET_WINDOS
 
 #if MARS
 #include        "mars.h"
@@ -567,12 +567,30 @@ static void syment_set_name(syment *sym, const char *name)
     }
 }
 
-void build_syment_table()
+void write_sym(struct syment* sym, bool bigobj)
+{
+    assert(sizeof(*sym) == 20);
+    if (bigobj)
+    {
+        syment_buf->write(sym, sizeof(*sym));
+    }
+    else
+    {
+        // the only difference between syment and syment_old
+        // is that field n_scnum is long instead of short
+        unsigned scoff = (char*)&sym->n_scnum - (char*)sym;
+        syment_buf->write(sym, scoff + 2);
+        syment_buf->write((char*)sym + scoff + 4, sizeof(*sym) - scoff - 4);
+    }
+}
+
+void build_syment_table(bool bigobj)
 {
     /* The @comp.id symbol appears to be the version of VC that generated the .obj file.
      * Anything we put in there would have no relevance, so we'll not put out this symbol.
      */
 
+    unsigned symsize = bigobj ? sizeof(syment) : sizeof(syment_old);
     /* Now goes one symbol per section.
      */
     for (segidx_t seg = 1; seg <= seg_count; seg++)
@@ -588,8 +606,7 @@ void build_syment_table()
         sym.n_sclass = IMAGE_SYM_CLASS_STATIC;
         sym.n_numaux = 1;
 
-        assert(sizeof(sym) == 20);
-        syment_buf->write(&sym, sizeof(sym));
+        write_sym(&sym, bigobj);
 
         union auxent aux;
         memset(&aux, 0, sizeof(aux));
@@ -616,7 +633,7 @@ void build_syment_table()
 
         memset(&aux.x_section.Zeros, 0, 2);
 
-        syment_buf->write(&aux, sizeof(aux));
+        syment_buf->write(&aux, symsize);
 
         assert(sizeof(aux) == 20);
     }
@@ -628,7 +645,7 @@ void build_syment_table()
     size_t dim = symbuf->size() / sizeof(symbol *);
     for (size_t i = 0; i < dim; i++)
     {   symbol *s = ((symbol **)symbuf->buf)[i];
-        s->Sxtrnnum = syment_buf->size() / sizeof(syment);
+        s->Sxtrnnum = syment_buf->size() / symsize;
         n++;
 
         struct syment sym;
@@ -665,7 +682,7 @@ void build_syment_table()
         }
         sym.n_numaux = 0;
 
-        syment_buf->write(&sym, sizeof(sym));
+        write_sym(&sym, bigobj);
     }
 }
 
@@ -707,8 +724,12 @@ void MsCoffObj::term(const char *objfilename)
     if (errcnt)
         return;
 #endif
-
-    build_syment_table();
+    // To allow tooling support for most output files
+    // switch to new object file format (similar to C++ with /bigobj)
+    // only when exceeding the limit for 16-bit section count according to
+    // https://msdn.microsoft.com/en-us/library/8578y171%28v=vs.71%29.aspx
+    bool bigobj = scnhdr_cnt > 65279;
+    build_syment_table(bigobj);
 
     /* Write out the object file in the following order:
      *  Header
@@ -723,30 +744,45 @@ void MsCoffObj::term(const char *objfilename)
     // Write out the bytes for the header
 
     struct filehdr header;
+    struct filehdr_old header_old;
 
-    header.f_sig1 = IMAGE_FILE_MACHINE_UNKNOWN;
-    header.f_sig2 = 0xFFFF;
-    header.f_minver = 2;
-    header.f_magic = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
-    header.f_nscns = scnhdr_cnt;
     time_t f_timedat = 0;
     time(&f_timedat);
-    header.f_timdat = (unsigned long)f_timedat;
-    header.f_symptr = 0;        // offset to symbol table
-    header.f_nsyms = 0;
-    unsigned char uuid[16] = { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
-                                '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
-    memcpy(header.f_uuid, uuid, 16);
-    memset(header.f_unused, 0, sizeof(header.f_unused));
+    unsigned symtable_offset;
 
-
-    foffset = sizeof(header);       // start after header
-
-    foffset += ScnhdrBuf->size();   // section headers
-
-    header.f_symptr = foffset;
-    header.f_nsyms = syment_buf->size() / sizeof(struct syment);
-    foffset += header.f_nsyms * sizeof(struct syment);  // symbol table
+    if (bigobj)
+    {
+        header.f_sig1 = IMAGE_FILE_MACHINE_UNKNOWN;
+        header.f_sig2 = 0xFFFF;
+        header.f_minver = 2;
+        header.f_magic = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
+        header.f_nscns = scnhdr_cnt;
+        header.f_timdat = (unsigned long)f_timedat;
+        unsigned char uuid[16] = { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
+                                    '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
+        memcpy(header.f_uuid, uuid, 16);
+        memset(header.f_unused, 0, sizeof(header.f_unused));
+        foffset = sizeof(header);       // start after header
+        foffset += ScnhdrBuf->size();   // section headers
+        header.f_symptr = foffset;      // offset to symbol table
+        symtable_offset = foffset;
+        header.f_nsyms = syment_buf->size() / sizeof(struct syment);
+        foffset += header.f_nsyms * sizeof(struct syment);  // symbol table
+    }
+    else
+    {
+        header_old.f_magic = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
+        header_old.f_nscns = scnhdr_cnt;
+        header_old.f_timdat = (unsigned long)f_timedat;
+        header_old.f_opthdr = 0;
+        header_old.f_flags = 0;
+        foffset = sizeof(header_old);   // start after header
+        foffset += ScnhdrBuf->size();   // section headers
+        header_old.f_symptr = foffset;  // offset to symbol table
+        symtable_offset = foffset;
+        header_old.f_nsyms = syment_buf->size() / sizeof(struct syment_old);
+        foffset += header_old.f_nsyms * sizeof(struct syment_old);  // symbol table
+    }
 
     unsigned string_table_offset = foffset;
     foffset += string_table->size();            // string table
@@ -796,15 +832,23 @@ void MsCoffObj::term(const char *objfilename)
     assert(fobjbuf->size() == 0);
 
     // Write the header
-    fobjbuf->write(&header, sizeof(header));
-    foffset = sizeof(header);
+    if (bigobj)
+    {
+        fobjbuf->write(&header, sizeof(header));
+        foffset = sizeof(header);
+    }
+    else
+    {
+        fobjbuf->write(&header_old, sizeof(header_old));
+        foffset = sizeof(header_old);
+    }
 
     // Write the section headers
     fobjbuf->write(ScnhdrBuf);
     foffset += ScnhdrBuf->size();
 
     // Write the symbol table
-    assert(foffset == header.f_symptr);
+    assert(foffset == symtable_offset);
     fobjbuf->write(syment_buf);
     foffset += syment_buf->size();
 

@@ -160,7 +160,7 @@ void builddags()
                 }
             }
 }
-
+
 /**********************************
  */
 
@@ -352,7 +352,7 @@ STATIC void aewalk(elem **pn,vec_t ae)
             vec_setbit(n->Eexp,ae);     /* mark this elem as available  */
         }
 }
-
+
 /**************************
  * Remove a CSE.
  * Input:
@@ -416,10 +416,6 @@ STATIC elem * delcse(elem **pe)
 #endif
         (*pe)->Nflags |= NFLdelcse;     // not generating node
         e->Ecount = 0;
-#if FLOATS_IN_CODE
-        if (FLT_CODESEG_CELEM(e))
-            flt_record_const(e);
-#endif
         *pe = e;
         return *pe;
 }
@@ -558,7 +554,7 @@ L1:     e = *pe;
         pe = &(e->E1);
         goto L1;
 }
-
+
 /*****************************************
  * Do optimizations based on if we know an expression is
  * 0 or !=0, even though we don't know anything else.
@@ -635,7 +631,7 @@ void boolopt()
         vec_free(aevec);
         vec_free(aevecval);
 }
-
+
 /****************************
  * Walk tree, replacing bool expressions that we know
  *      ae = vector of available boolean expressions

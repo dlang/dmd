@@ -2586,7 +2586,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
   freenode(e);
   return cat6(cl,cr,c,cmsw,clsw,ce);
 }
-
+
 /*****************************
  * Do conversions.
  * Depends on OPd_s32 and CLIBdbllng being in sequence.
@@ -3186,8 +3186,10 @@ code *cdlngsht(elem *e,regm_t *pretregs)
 
 #ifdef DEBUG
   if (!(!*pretregs || retregs))
+  {
         WROP(e->Eoper),
         printf(" *pretregs = %s, retregs = %s, e = %p\n",regm_str(*pretregs),regm_str(retregs),e);
+  }
 #endif
   assert(!*pretregs || retregs);
   return cat(c,fixresult(e,retregs,pretregs));  /* lsw only             */

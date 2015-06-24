@@ -9,7 +9,7 @@
  * For any other uses, please contact Digital Mars.
  */
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
 
@@ -70,9 +70,6 @@ struct TYPE
     list_t Texcspec;            // tyfunc(): list of types of exception specification
 #if 0
     unsigned short Tstabidx;    // Index into stab types
-#endif
-#if SOURCE_4TYPES
-    Srcpos Tsrcpos;             /* position of type definition */
 #endif
 #if HTOD
     Symbol *Ttypedef;           // if this type came from a typedef, this is

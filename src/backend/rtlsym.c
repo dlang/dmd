@@ -75,13 +75,8 @@ void rtlsym_init()
         tv->Tcount++;
 #endif
 
-#if MACHOBJ
-        type *tw = type_fake(TYnpfunc);
-        tw->Tmangle = mTYman_sys;
-        tw->Tcount++;
-#else
+        // Only used by dmd1 for RTLSYM_THROWC
         type *tw = NULL;
-#endif
 
 #undef SYMBOL_Z
 #define SYMBOL_Z(e, fl, saved, n, flags, ty)                                \

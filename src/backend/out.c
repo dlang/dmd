@@ -188,15 +188,10 @@ void outdata(symbol *s)
                         {   seg_data *pseg = objmod->tlsseg_bss();
                             s->Sseg = pseg->SDseg;
                             objmod->data_start(s, datasize, pseg->SDseg);
-#if ELFOBJ || MACHOBJ
-                            objmod->lidata(pseg->SDseg, pseg->SDoffset, datasize);
-#endif
-#if OMFOBJ
-                            if (config.objfmt == OBJ_MSCOFF)
-                                objmod->lidata(pseg->SDseg, pseg->SDoffset, datasize);
-                            else
+                            if (config.objfmt == OBJ_OMF)
                                 pseg->SDoffset += datasize;
-#endif
+                            else
+                                objmod->lidata(pseg->SDseg, pseg->SDoffset, datasize);
                             s->Sfl = FLtlsdata;
                             break;
                         }
@@ -208,12 +203,7 @@ void outdata(symbol *s)
                             break;
                     }
                     assert(s->Sseg && s->Sseg != UNKNOWN);
-#if ELFOBJ || MACHOBJ
-                    if (s->Sclass == SCglobal || s->Sclass == SCstatic) // if a pubdef to be done
-#endif
-#if OMFOBJ
-                    if (s->Sclass == SCglobal || (s->Sclass == SCstatic && config.objfmt == OBJ_MSCOFF)) // if a pubdef to be done
-#endif
+                    if (s->Sclass == SCglobal || (s->Sclass == SCstatic && config.objfmt != OBJ_OMF)) // if a pubdef to be done
                         objmod->pubdefsize(s->Sseg,s,s->Soffset,datasize);   // do the definition
                     searchfixlist(s);
                     if (config.fulltypes &&
@@ -320,26 +310,16 @@ void outdata(symbol *s)
             assert(0);
       }
     }
-#if ELFOBJ || MACHOBJ
-    if (s->Sseg == UNKNOWN)
+    if (s->Sseg == UNKNOWN && (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH))
+        s->Sseg = seg;
+    else if (config.objfmt == OBJ_OMF)
         s->Sseg = seg;
     else
         seg = s->Sseg;
-#endif
-#if OMFOBJ
-    s->Sseg = seg;
-#endif
-    if (s->Sclass == SCglobal
-#if ELFOBJ || MACHOBJ
-        || s->Sclass == SCstatic
-#endif
-#if OMFOBJ
-        || (s->Sclass == SCstatic && config.objfmt == OBJ_MSCOFF)
-#endif
-        )
-    {
+
+    if (s->Sclass == SCglobal || (s->Sclass == SCstatic && config.objfmt != OBJ_OMF))
         objmod->pubdefsize(seg,s,s->Soffset,datasize);    /* do the definition            */
-    }
+
     assert(s->Sseg != UNKNOWN);
     if (config.fulltypes &&
         !(s->Sclass == SCstatic && funcsym_p)) // not local static
@@ -462,31 +442,29 @@ void outcommon(symbol *s,targ_size_t n)
 #endif
         if (s->ty() & mTYthread) // if store in thread local segment
         {
-#if ELFOBJ
-            s->Sclass = SCcomdef;
-            objmod->common_block(s, 0, n, 1);
-#else
-            /* COMDEFs not supported in tls segment
-             * so put them out as COMDATs with initialized 0s
-             */
-            s->Sclass = SCcomdat;
-            dtnzeros(&s->Sdt,n);
-            outdata(s);
-#if SCPP && OMFOBJ
-            out_extdef(s);
+            if (config.objfmt == OBJ_ELF)
+            {
+                s->Sclass = SCcomdef;
+                objmod->common_block(s, 0, n, 1);
+            }
+            else
+            {
+                /* COMDEFs not supported in tls segment
+                 * so put them out as COMDATs with initialized 0s
+                 */
+                s->Sclass = SCcomdat;
+                dtnzeros(&s->Sdt,n);
+                outdata(s);
+#if SCPP
+                if (config.objfmt == OBJ_OMF)
+                    out_extdef(s);
 #endif
-#endif
+            }
         }
         else
         {
             s->Sclass = SCcomdef;
-#if ELFOBJ || MACHOBJ
-            objmod->common_block(s, 0, n, 1);
-#endif
-#if OMFOBJ
-            if (config.objfmt == OBJ_MSCOFF)
-                objmod->common_block(s, 0, n, 1);
-            else
+            if (config.objfmt == OBJ_OMF)
             {
 #if TARGET_SEGMENTED
                 s->Sxtrnnum = objmod->common_block(s,(s->ty() & mTYfar) == 0,n,1);
@@ -504,7 +482,8 @@ void outcommon(symbol *s,targ_size_t n)
                 ph_comdef(s);               // notify PH that a COMDEF went out
 #endif
             }
-#endif
+            else
+                objmod->common_block(s, 0, n, 1);
         }
         if (config.fulltypes)
             cv_outsym(s);
@@ -518,19 +497,21 @@ void outcommon(symbol *s,targ_size_t n)
 void out_readonly(symbol *s)
 {
     // The default is DATA
-#if ELFOBJ || MACHOBJ
-    /* Cannot have pointers in CDATA when compiling PIC code, because
-     * they require dynamic relocations of the read-only segment.
-     * Instead use the .data.rel.ro section. See Bugzilla 11171.
-     */
-    if (config.flags3 & CFG3pic && dtpointers(s->Sdt))
-        s->Sseg = CDATAREL;
+    if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+    {
+        /* Cannot have pointers in CDATA when compiling PIC code, because
+         * they require dynamic relocations of the read-only segment.
+         * Instead use the .data.rel.ro section. See Bugzilla 11171.
+         */
+        if (config.flags3 & CFG3pic && dtpointers(s->Sdt))
+            s->Sseg = CDATAREL;
+        else
+            s->Sseg = CDATA;
+    }
     else
-        s->Sseg = CDATA;
-#endif
-#if OMFOBJ
-    // Haven't really worked out where immutable read-only data can go.
-#endif
+    {
+        // Haven't really worked out where immutable read-only data can go.
+    }
 }
 
 /******************************
@@ -713,12 +694,10 @@ again:
         }
         else if (s->Sdt)                /* if initializer for symbol    */
             outdata(s);                 // write out data for symbol
-#if ELFOBJ || MACHOBJ
         if (config.flags3 & CFG3pic)
         {
             objmod->gotref(s);
         }
-#endif
 #endif
         break;
     case OPstring:
@@ -910,9 +889,7 @@ STATIC void writefunc2(symbol *sfunc)
     unsigned nsymbols;
     SYMIDX si;
     int anyasm;
-#if OMFOBJ
-    int csegsave;
-#endif
+    int csegsave;                       // for OMF
     func_t *f = sfunc->Sfunc;
     tym_t tyf;
 
@@ -1202,9 +1179,7 @@ STATIC void writefunc2(symbol *sfunc)
     {
         if (symbol_iscomdat(sfunc))
         {
-#if OMFOBJ
             csegsave = cseg;
-#endif
             objmod->comdat(sfunc);
         }
         else
@@ -1237,13 +1212,11 @@ STATIC void writefunc2(symbol *sfunc)
         goto Ldone;
     if (sfunc->Sclass == SCglobal)
     {
-#if OMFOBJ
-        if (!(config.flags4 & CFG4allcomdat))
+        if ((config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF) && !(config.flags4 & CFG4allcomdat))
         {
             assert(sfunc->Sseg == cseg);
             objmod->pubdef(sfunc->Sseg,sfunc,sfunc->Soffset);       // make a public definition
         }
-#endif
 
 #if SCPP && _WIN32
         char *id;
@@ -1345,10 +1318,9 @@ STATIC void writefunc2(symbol *sfunc)
      cod3_adjSymOffsets();
 #endif
 
-#if OMFOBJ
-    if (symbol_iscomdat(sfunc))         // if generated a COMDAT
+    if ((config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF) &&
+        symbol_iscomdat(sfunc))         // if generated a COMDAT
         objmod->setcodeseg(csegsave);       // reset to real code seg
-#endif
 
     /* Check if function is a constructor or destructor, by     */
     /* seeing if the function name starts with _STI or _STD     */
@@ -1423,6 +1395,9 @@ void out_reset()
 
 symbol *out_readonly_sym(tym_t ty, void *p, int len)
 {
+#if HTOD
+    return;
+#endif
 #if 0
     printf("out_readonly_sym(ty = x%x)\n", ty);
     for (int i = 0; i < len; i++)
@@ -1438,20 +1413,25 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
 
     symbol *s;
 
-#if ELFOBJ || (OMFOBJ && MARS) /* includes COFF */
-    /* MACHOBJ can't go here, because the const data segment goes into
-     * the _TEXT segment, and one cannot have a fixup from _TEXT to _TEXT.
-     */
-    s = objmod->sym_cdata(ty, (char *)p, len);
-#else
-    unsigned sz = tysize(ty);
+    if (config.objfmt == OBJ_ELF ||
+        (MARS && (config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF)))
+    {
+        /* MACHOBJ can't go here, because the const data segment goes into
+         * the _TEXT segment, and one cannot have a fixup from _TEXT to _TEXT.
+         */
+        s = objmod->sym_cdata(ty, (char *)p, len);
+    }
+    else
+    {
+        unsigned sz = tysize(ty);
 
-    alignOffset(DATA, sz);
-    s = symboldata(Doffset,ty | mTYconst);
-    s->Sseg = DATA;
-    objmod->write_bytes(SegData[DATA], len, p);
-    //printf("s->Sseg = %d:x%x\n", s->Sseg, s->Soffset);
-#endif
+        alignOffset(DATA, sz);
+        s = symboldata(Doffset,ty | mTYconst);
+        s->Sseg = DATA;
+        objmod->write_bytes(SegData[DATA], len, p);
+        //printf("s->Sseg = %d:x%x\n", s->Sseg, s->Soffset);
+    }
+
     if (len <= ROMAX)
     {   Readonly *r;
 
@@ -1483,9 +1463,6 @@ void Srcpos::print(const char *func)
     printf("Sfilptr = %p (filename = %s)", sf, sf ? sf->SFname : "null");
 #endif
     printf(", Slinnum = %u", Slinnum);
-#if SOURCE_OFFSETS
-    printf(", Sfiloff = %d", Sfiloff);
-#endif
     printf(")\n");
 }
 

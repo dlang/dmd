@@ -179,7 +179,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
 	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
 	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj backconfig.obj \
-	divcoeff.obj \
+	divcoeff.obj dwarf.obj \
 	ph2.obj util2.obj \
 	html.obj
 
@@ -459,6 +459,9 @@ divcoeff.obj : $C\divcoeff.c
 
 dt.obj : $C\dt.h $C\dt.c
 	$(CC) -c $(MFLAGS) $C\dt
+
+dwarf.obj : $C\dwarf.h $C\dwarf.c
+	$(CC) -c $(MFLAGS) $C\dwarf
 
 ee.obj : $C\ee.c
 	$(CC) -c $(MFLAGS) $C\ee

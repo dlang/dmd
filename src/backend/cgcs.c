@@ -59,7 +59,7 @@ STATIC void touchfunc(int);
 STATIC void touchstar();
 STATIC void touchaccess(elem *);
 STATIC void touchall();
-
+
 /*******************************
  * Eliminate common subexpressions across extended basic blocks.
  * String together as many blocks as we can.
@@ -153,7 +153,7 @@ void cgcs_term()
     hcstab = NULL;
     hcsmax = 0;
 }
-
+
 /*************************
  * Eliminate common subexpressions for an element.
  */
@@ -215,10 +215,8 @@ STATIC void ecom(elem **pe)
     case OPnegass:
             if (EOP(e->E1))             /* if lvalue is an operator     */
             {
-#ifdef DEBUG
                 if (e->E1->Eoper != OPind)
                     elem_print(e);
-#endif
                 assert(e->E1->Eoper == OPind);
                 ecom(&(e->E1->E1));
             }
@@ -324,9 +322,8 @@ STATIC void ecom(elem **pe)
         touchfunc(0);
         return;
     default:                            /* other operators */
-#ifdef DEBUG
-        if (!EBIN(e)) WROP(e->Eoper);
-#endif
+        if (!EBIN(e))
+           WROP(e->Eoper);
         assert(EBIN(e));
     case OPadd:
     case OPmin:
@@ -348,10 +345,8 @@ STATIC void ecom(elem **pe)
     case OPstring:
     case OPaddr:
     case OPbit:
-#ifdef DEBUG
         WROP(e->Eoper);
         elem_print(e);
-#endif
         assert(0);              /* optelem() should have removed these  */
         /* NOTREACHED */
 
@@ -503,7 +498,7 @@ STATIC void addhcstab(elem *e,int hash)
   hcstab[h].Hhash = hash;
   hcsarray.top++;
 }
-
+
 /***************************
  * "touch" the elem.
  * If it is a pointer, "touch" all the suspects
@@ -530,10 +525,8 @@ STATIC void touchlvalue(elem *e)
                 hcstab[i].Helem = NULL;
     }
 
-#ifdef DEBUG
     if (!(e->Eoper == OPvar || e->Eoper == OPrelconst))
         elem_print(e);
-#endif
     assert(e->Eoper == OPvar || e->Eoper == OPrelconst);
     switch (e->EV.sp.Vsym->Sclass)
     {
@@ -561,14 +554,12 @@ STATIC void touchlvalue(elem *e)
             touchstar();
             break;
         default:
-#ifdef DEBUG
             elem_print(e);
             symbol_print(e->EV.sp.Vsym);
-#endif
             assert(0);
     }
 }
-
+
 /**************************
  * "touch" variables that could be changed by a function call or
  * an indirect assignment.

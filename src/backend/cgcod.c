@@ -120,7 +120,7 @@ targ_size_t     retoffset;      /* offset from start of func to ret code */
 targ_size_t     retsize;        /* size of function return              */
 
 static regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
-
+
 /*********************************
  * Generate code for a function.
  * Note at the end of this routine mfuncreg will contain the mask
@@ -383,11 +383,13 @@ tryagain:
 #endif
 
     // Compute starting offset for switch tables
-#if ELFOBJ || MACHOBJ
-    targ_size_t swoffset = (config.flags & CFGromable) ? coffset : CDoffset;
-#else
-    targ_size_t swoffset = (config.flags & CFGromable) ? coffset : Doffset;
-#endif
+    targ_size_t swoffset;
+    if (config.flags & CFGromable)
+        swoffset = coffset;
+    else if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+        swoffset = CDoffset;
+    else
+        swoffset = Doffset;
     swoffset = align(0,swoffset);
 
     // Emit the generated code
@@ -1217,7 +1219,7 @@ void stackoffsets(int flags)
             free(autos);
     }
 }
-
+
 /****************************
  * Generate code for a block.
  */
@@ -1351,7 +1353,7 @@ STATIC void blcodgen(block *bl)
     debugw && printf("code gen complete\n");
 #endif
 }
-
+
 /*****************************************
  * Add in exception handling code.
  */
@@ -1537,7 +1539,7 @@ STATIC void cgcod_eh()
 }
 
 #endif
-
+
 /******************************
  * Count the number of bits set in a register mask.
  */
@@ -1594,7 +1596,7 @@ unsigned findreg(regm_t regm
   assert(0);
   return 0;
 }
-
+
 /***************
  * Free element (but not it's leaves! (assume they are already freed))
  * Don't decrement Ecount! This is so we can detect if the common subexp
@@ -1909,7 +1911,7 @@ L3:
 #warning cpu specific code
 #endif
 }
-
+
 /*************************
  * Mark registers as used.
  */
@@ -2038,7 +2040,7 @@ code *getregs_imm(regm_t r)
     regcon.immed.mval = save;
     return c;
 }
-
+
 /******************************************
  * Flush all CSE's out of registers and into memory.
  * Input:
@@ -2109,7 +2111,7 @@ bool cssave(elem *e,regm_t regm,unsigned opsflag)
     }
     return result;
 }
-
+
 /*************************************
  * Determine if a computation should be done into a register.
  */
@@ -2181,7 +2183,7 @@ regm_t getscratch()
     }
     return scratch;
 }
-
+
 /******************************
  * Evaluate an elem that is a common subexp that has been encountered
  * before.
@@ -2442,7 +2444,7 @@ elem_print(e);
   /* NOTREACHED */
   return 0;
 }
-
+
 /***************************
  * Generate code sequence for an elem.
  * Input:

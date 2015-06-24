@@ -222,7 +222,7 @@ STATIC void freeloop(loop **pl)
   }
   *pl = NULL;
 }
-
+
 /**********************************
  * Initialize block information.
  * Returns:
@@ -263,7 +263,7 @@ int blockinit()
   }
   return hasasm;
 }
-
+
 /****************************************
  * Compute dominators (Bdom) for each block.
  * See Aho & Ullman Fig. 13.5.
@@ -330,7 +330,7 @@ bool dom(block *A,block *B)
   assert(A && B && dfo && dfo[A->Bdfoidx] == A);
   return vec_testbit(A->Bdfoidx,B->Bdom) != 0;
 }
-
+
 /**********************
  * Find all the loops.
  */
@@ -487,7 +487,7 @@ STATIC void insert(block *b, vec_t lv)
             insert(list_block(bl),lv);  /* insert all its predecessors  */
   }
 }
-
+
 /**************************************
  * Perform loop rotations.
  * Loop starts as:
@@ -670,7 +670,7 @@ STATIC int looprotate(loop *l)
 Lret:
     return FALSE;
 }
-
+
 static int gref;                // parameter for markinvar()
 static block *gblock;           // parameter for markinvar()
 static vec_t lv;                // parameter for markinvar()
@@ -902,7 +902,7 @@ restart:
     } /* for */
     freeloop(&startloop);
 }
-
+
 /*****************************
  * If elem is loop invariant, mark it.
  * Input:
@@ -1228,9 +1228,7 @@ STATIC void markinvar(elem *n,vec_t rd)
                 break;
 
         default:
-#ifdef DEBUG
                 WROP(n->Eoper);
-#endif
                 //printf("n->Eoper = %d, OPconst = %d\n", n->Eoper, OPconst);
                 assert(0);
   }
@@ -1242,7 +1240,7 @@ STATIC void markinvar(elem *n,vec_t rd)
   }
 #endif
 }
-
+
 /********************
  * Update rd vector.
  * Input:
@@ -1349,7 +1347,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
 
     vec_setbit(ni,GEN);                 // set bit in GEN for this def
 }
-
+
 /***************************
  * Mark all elems as not being loop invariant.
  */
@@ -1423,7 +1421,7 @@ STATIC bool refs(symbol *v,elem *n,elem *nstop)
         return TRUE;
   return f;
 }
-
+
 /*************************
  * Move LIs to preheader.
  * Conditions to be satisfied for code motion are:
@@ -1829,7 +1827,7 @@ STATIC void appendelem(elem *n,elem **pn)
   else
         *pn = n;                                /* else create a elem   */
 }
-
+
 /************** LOOP INDUCTION VARIABLES **********************/
 
 /***************************
@@ -1976,7 +1974,7 @@ STATIC famlist * newfamlist(tym_t ty)
         fl->c2 = el_const(ty,&c);               /* c2 = 0               */
         return fl;
 }
-
+
 /***************************
  * Remove induction variables from loop l.
  * Loop invariant removal should have been done just previously.
@@ -2010,7 +2008,7 @@ STATIC void loopiv(loop *l)
   /* Do copy propagation and dead assignment elimination        */
   /* upon return to optfunc()                                   */
 }
-
+
 /*************************************
  * Find basic IVs of loop l.
  * A basic IV x of loop l is a variable x which has
@@ -2142,7 +2140,7 @@ STATIC void findbasivs(loop *l)
   vec_free(poss);
   vec_free(notposs);
 }
-
+
 /*************************************
  * Find op= elems of loop l.
  * Analogous to findbasivs().
@@ -2271,7 +2269,7 @@ STATIC void findopeqs(loop *l)
     vec_free(poss);
     vec_free(notposs);
 }
-
+
 /*****************************
  * Find families for each basic IV.
  * An IV family is a list of elems of the form
@@ -2477,7 +2475,7 @@ STATIC void ivfamelems(Iv *biv,elem **pn)
         } /* for */
   } /* if */
 }
-
+
 /*********************************
  * Eliminate frivolous family ivs, that is,
  * if we can't eliminate the BIV, then eliminate family ivs that
@@ -2610,7 +2608,7 @@ STATIC void intronvars(loop *l)
         } /* for */
     } /* for */
 }
-
+
 /*******************************
  * Determine if induction variable can be rewritten as a simple
  * function of a previously generated temporary.
@@ -2760,7 +2758,7 @@ L1:
     }
     return FALSE;                       /* need to create a new variable */
 }
-
+
 /***********************
  * Eliminate basic IVs.
  */
@@ -3276,7 +3274,7 @@ Lf2:
     //printf("picking f2\n");
     return f2;
 }
-
+
 /************************************
  * Input:
  *      x       basic IV symbol
@@ -3387,7 +3385,7 @@ STATIC int countrefs2(elem *e)
     return ((e->Eoper == OPvar || e->Eoper == OPrelconst) &&
             e->EV.sp.Vsym == X);
 }
-
+
 /****************************
  * Eliminate some special cases.
  */

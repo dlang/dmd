@@ -237,7 +237,7 @@ struct Param
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
     // Hidden debug switches
-    char debuga;
+//    char debuga;
     char debugb;
     char debugc;
     char debugf;

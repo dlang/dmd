@@ -28,7 +28,7 @@
 #include        "optab.c"
 #include        "tytab.c"
 
-#if __SC__ && _MSDOS
+#if __DMC__ && _MSDOS
 unsigned __cdecl _stack = 100000;       // set default stack size
 #endif
 
@@ -149,7 +149,7 @@ int xc = ' ';           // character last read
  */
 
 int colnumber = 0;              /* current column number                */
-
+
 /* Other variables: */
 
 int level = 0;                  /* declaration level                    */

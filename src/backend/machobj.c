@@ -1785,6 +1785,15 @@ int MachObj::getsegment(const char *sectname, const char *segname,
     return seg;
 }
 
+/**********************************
+ * Reset code seg to existing seg.
+ * Used after a COMDAT for a function is done.
+ */
+
+void Obj::setcodeseg(int seg)
+{
+}
+
 /********************************
  * Define a new code segment.
  * Input:

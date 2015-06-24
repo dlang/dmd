@@ -211,6 +211,7 @@ Loop:
                         if (em->Eoper == op &&
                             em->E1->EV.sp.Vsym == s &&
                             tysize(em->Ety) == tysize(e1->Ety) &&
+                            !tyfloating(em->Ety) &&
                             em->E1->EV.sp.Voffset == e1->EV.sp.Voffset &&
                             !el_sideeffect(em->E2)
                            )

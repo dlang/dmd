@@ -583,7 +583,7 @@ void FuncDeclaration::semantic(Scope *sc)
         if (f->varargs)
         {
         Lmainerr:
-            error("parameters must be main() or main(char[][] args)");
+            error("parameters must be main() or main(string[] args)");
         }
     }
 

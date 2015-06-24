@@ -180,7 +180,7 @@ STATIC void rd_compute()
                 }
         }
 }
-
+
 /***************************
  * Support routine for constprop().
  *      Visit each elem in order
@@ -347,7 +347,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
             }
         }
 }
-
+
 /******************************
  * Give error if there are no reaching defs for variable v.
  */
@@ -439,7 +439,7 @@ STATIC void chkrd(elem *n,list_t rdlist)
     //elem_print(n);
 #endif
 }
-
+
 /**********************************
  * Look through the vector of reaching defs (IN) to see
  * if all defs of n are of the same constant. If so, replace
@@ -557,7 +557,7 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
 noprop:
     return NULL;
 }
-
+
 /***********************************
  * Find all the reaching defs of OPvar e.
  * Put into a linked list, or just set the RD bits in a vector.
@@ -861,7 +861,7 @@ STATIC int loopcheck(block *start,block *inc,block *rel)
     }
     return FALSE;
 }
-
+
 /****************************
  * Do copy propagation.
  * Copy propagation elems are of the form OPvar=OPvar, and they are
@@ -1127,7 +1127,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
                 ;
         }
 }
-
+
 /********************************
  * Remove dead assignments. Those are assignments to a variable v
  * for which there are no subsequent uses of v.
@@ -1286,7 +1286,7 @@ STATIC unsigned numasg(elem *e)
   return OTunary(e->Eoper) ? numasg(e->E1) :
         OTbinary(e->Eoper) ? numasg(e->E1) + numasg(e->E2) : 0;
 }
-
+
 /******************************
  * Tree walk routine for rmdeadass().
  *      DEAD    =       assignments which are dead
@@ -1499,7 +1499,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 break;
         }
 }
-
+
 /***************************
  * Mark all dead variables. Only worry about register candidates.
  * Compute live ranges for register candidates.
@@ -1591,7 +1591,7 @@ STATIC void dvwalk(elem *n,unsigned i)
         break;
   }
 }
-
+
 /*********************************
  * Optimize very busy expressions (VBEs).
  */
@@ -1761,7 +1761,7 @@ void verybusyexp()
         } /* for */
         vec_free(blockseen);
 }
-
+
 /****************************
  * Return TRUE if elem j is killed somewhere
  * between b and bp.

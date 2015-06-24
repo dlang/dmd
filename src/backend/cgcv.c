@@ -59,12 +59,6 @@ static unsigned debtyphash[DEBTYPHASHDIM];
  */
 #define CVIDMAX (0xFF0-20)   // the -20 is picked by trial and error
 
-#if 0
-#define DBG(a)  a
-#else
-#define DBG(a)
-#endif
-
 #define LOCATsegrel     0xC000
 
 /* Unfortunately, the fixup stuff is different for EASY OMF and Microsoft */
@@ -559,7 +553,7 @@ void cv_init()
 #endif
         cv_debtyp(d);
 }
-
+
 /////////////////////////// CodeView 4 ///////////////////////////////
 
 /***********************************
@@ -739,9 +733,7 @@ STATIC int cv4_methodlist(symbol *sf,int *pcount)
             case 0:
                 break;
             default:
-#ifdef DEBUG
                 symbol_print(s);
-#endif
                 assert(0);
         }
         TOIDX(p,attribute);
@@ -987,7 +979,7 @@ idx_t cv4_struct(Classsym *s,int flags)
         }
             break;
         default:
-#if DEBUG && SCPP
+#if SCPP
             symbol_print(s);
 #endif
             assert(0);
@@ -2150,6 +2142,7 @@ L1:
 #endif
 #if MARS
         case TYref:
+        case TYnref:
             attribute |= 0x20;          // indicate reference pointer
             tym = TYnptr;               // convert to C data type
             goto L1;                    // and try again
@@ -2214,7 +2207,7 @@ L1:
     assert(typidx);
     return typidx;
 }
-
+
 /******************************************
  * Write out symbol s.
  */
@@ -2602,6 +2595,7 @@ STATIC void cv4_func(Funcsym *s)
 #endif
             case TYnullptr:
             case TYnptr:
+            case TYnref:
                 if (I32)
                     goto case_eax;
                 else
@@ -2732,7 +2726,7 @@ STATIC void cv4_func(Funcsym *s)
 
     cv_outlist();
 }
-
+
 //////////////////////////////////////////////////////////
 
 /******************************************
@@ -2911,5 +2905,3 @@ unsigned cv_typidx(type *t)
 }
 
 #endif // !SPP
-
-

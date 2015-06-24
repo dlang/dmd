@@ -198,6 +198,9 @@ int boolres(elem *e)
                 case TYnptr:
                     b = el_tolong(e) != 0;
                     break;
+                case TYnref: // reference can't be converted to bool
+                    assert(0);
+                    break;
                 case TYfloat:
                 case TYifloat:
                 case TYdouble:
@@ -329,7 +332,7 @@ int iffalse(elem *e)
                 }
         }
 }
-
+
 /******************************
  * Constant fold expression tree.
  * Calculate &symbol and &*e1 if we can.
@@ -1643,7 +1646,7 @@ elem * evalu8(elem *e, goal_t goal)
                 break;
             case TYfloat:
             case TYifloat:
-#if __SC__
+#if __DMC__
                 e->EV.Vfloat = fabsf(e1->EV.Vfloat);
 #else
                 e->EV.Vfloat = fabs(e1->EV.Vfloat);

@@ -92,7 +92,7 @@ code *setOpcode(code *c, code *cs, unsigned op)
  * Concatenate two code lists together. Return pointer to result.
  */
 
-#if TX86 && __INTSIZE == 4 && __SC__
+#if TX86 && __INTSIZE == 4 && __DMC__
 __declspec(naked) code * __pascal cat(code *c1,code *c2)
 {
     _asm
@@ -153,7 +153,7 @@ code * cat4(code *c1,code *c2,code *c3,code *c4)
 
 code * cat6(code *c1,code *c2,code *c3,code *c4,code *c5,code *c6)
 { return cat(cat4(c1,c2,c3,c4),cat(c5,c6)); }
-
+
 /*****************************
  * Add code to end of linked list.
  * Note that unused operands are garbage.
@@ -404,7 +404,7 @@ code *gennop(code *c)
     return gen1(c,NOP);
 }
 
-
+
 /****************************************
  * Clean stack after call to codelem().
  */
@@ -426,7 +426,7 @@ code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
     }
     return c;
 }
-
+
 /**********************************
  * Determine if one of the registers in regm has value in it.
  * If so, return !=0 and set *preg to which register it is.

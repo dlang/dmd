@@ -95,6 +95,7 @@ struct Obj
 
 #if TARGET_WINDOS
     VIRTUAL int seg_debugT();           // where the symbolic debug type data goes
+    static void gotref(symbol *s) { }
 #endif
 };
 
