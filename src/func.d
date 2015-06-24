@@ -486,6 +486,9 @@ public:
 
     uint flags;                         // FUNCFLAGxxxxx
 
+    // toObjFile() these nested functions after this one
+    FuncDeclarations deferredNested;
+
     final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
         super(id);
@@ -5201,9 +5204,6 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
 {
 public:
     char* codedoc;      // for documented unittest
-
-    // toObjFile() these nested functions after this one
-    FuncDeclarations deferredNested;
 
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, char* codedoc)
     {

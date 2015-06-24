@@ -898,6 +898,27 @@ void test12406()
 }
 
 /************************************/
+// 14730
+
+void test14730()
+{
+    static auto makeS(int x)
+    {
+        struct S
+        {
+            int n;
+            int get() { return x; }     // x will be a closure variable
+        }
+        return S(x);
+    }
+    auto s = makeS(1);
+    assert(s.get() == 1);
+    // By inlining get() function call, it's rewritten to:
+    // assert(*(s.tupleof[$-1] + x.offset) == 1);
+    // --> In DotVarExp::toElem(), x->offset should be already nonzero.
+}
+
+/************************************/
 
 int main()
 {
@@ -929,6 +950,7 @@ int main()
     test9685a();
     test9685b();
     test12406();
+    test14730();
 
     printf("Success\n");
     return 0;
