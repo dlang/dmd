@@ -36,7 +36,7 @@
 #include        "aa.h"
 #include        "tinfo.h"
 
-#if OMFOBJ
+#if TARGET_WINDOS
 
 #if MARS
 #include        "mars.h"

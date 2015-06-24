@@ -2025,7 +2025,7 @@ elem *el_convstring(elem *e)
     if (tybasic(e->Ety) == TYcptr ||
         (tyfv(e->Ety) && config.flags3 & CFG3strcod))
     {
-        assert(OMFOBJ);         // option not done yet for others
+        assert(config.objfmt == OBJ_OMF);         // option not done yet for others
         s = symbol_generate(SCstatic, type_fake(mTYcs | e->Ety));
         s->Sfl = FLcsdata;
         s->Soffset = Coffset;
