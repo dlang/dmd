@@ -383,11 +383,13 @@ tryagain:
 #endif
 
     // Compute starting offset for switch tables
-#if ELFOBJ || MACHOBJ
-    targ_size_t swoffset = (config.flags & CFGromable) ? coffset : CDoffset;
-#else
-    targ_size_t swoffset = (config.flags & CFGromable) ? coffset : Doffset;
-#endif
+    targ_size_t swoffset;
+    if (config.flags & CFGromable)
+        swoffset = coffset;
+    else if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+        swoffset = CDoffset;
+    else
+        swoffset = Doffset;
     swoffset = align(0,swoffset);
 
     // Emit the generated code

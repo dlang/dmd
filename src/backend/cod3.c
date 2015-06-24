@@ -2975,11 +2975,9 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
         genregs(c,0x8B,BP,SP);      // MOV  BP,SP
         if (I64)
             code_orrex(c, REX_W);   // MOV RBP,RSP
-#if ELFOBJ || MACHOBJ
-        if (config.fulltypes)
+        if ((config.objfmt & (OBJ_ELF | OBJ_MACH)) && config.fulltypes)
             // Don't reorder instructions, as dwarf CFA relies on it
             code_orflag(c, CFvolatile);
-#endif
 #if NTEXCEPTIONS == 2
         if (usednteh & ~NTEHjmonitor && (config.flags2 & CFG2seh))
         {
@@ -2991,8 +2989,7 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
                                     // by nteh_prolog()
         }
 #endif
-#if ELFOBJ || MACHOBJ
-        if (config.fulltypes)
+        if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
         {   int off = 2 * REGSIZE;
             dwarf_CFA_set_loc(1);           // address after PUSH EBP
             dwarf_CFA_set_reg_offset(SP, off); // CFA is now 8[ESP]
@@ -3002,7 +2999,6 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
             // But this gets the cfa register set to EBP correctly
             dwarf_CFA_set_reg_offset(BP, off);        // CFA is now 0[EBP]
         }
-#endif
         *enter = false;              /* do not use ENTER instruction */
     }
     else
@@ -3068,9 +3064,7 @@ code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushallo
         if (enter)
         {   // ENTER xlocalsize,0
             c = genc(c,0xC8,0,FLconst,xlocalsize,FLconst,(targ_uns) 0);
-#if ELFOBJ || MACHOBJ
-            assert(!config.fulltypes);          // didn't emit Dwarf data
-#endif
+            assert(!(config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)); // didn't emit Dwarf data
         }
         else if (xlocalsize == REGSIZE && config.flags4 & CFG4optimized)
         {   c = gen1(c,0x50 + pushallocreg);    // PUSH AX
@@ -3137,15 +3131,13 @@ code* prolog_saveregs(code *c, regm_t topush)
             c = genpush(c, reg);
             EBPtoESP += REGSIZE;
             spoff += REGSIZE;
-#if ELFOBJ || MACHOBJ
-            if (config.fulltypes)
+            if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
             {   // Emit debug_frame data giving location of saved register
                 // relative to 0[EBP]
                 pinholeopt(c, NULL);
                 dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
                 dwarf_CFA_offset(reg, -EBPtoESP - REGSIZE);
             }
-#endif
         }
     }
     return c;
@@ -4688,36 +4680,46 @@ void assignaddrc(code *c)
         s = c->IEVsym2;
         switch (c->IFL2)
         {
-#if ELFOBJ || MACHOBJ
             case FLdata:
-            case FLudata:
-            case FLtlsdata:
-                c->IFL2 = FLextern;
-                goto do2;
-#else
-            case FLdata:
-                if (s->Sclass == SCcomdat)
-                {   c->IFL2 = FLextern;
+                if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+                {
+                    c->IFL2 = FLextern;
                     goto do2;
                 }
-#if MARS
-                c->IEVseg2 = s->Sseg;
-#else
-                c->IEVseg2 = DATA;
-#endif
-                c->IEVpointer2 += s->Soffset;
-                c->IFL2 = FLdatseg;
-                goto done;
+                else
+                {
+                    if (s->Sclass == SCcomdat)
+                    {   c->IFL2 = FLextern;
+                        goto do2;
+                    }
+                    c->IEVseg2 = MARS ? s->Sseg : DATA;
+                    c->IEVpointer2 += s->Soffset;
+                    c->IFL2 = FLdatseg;
+                    goto done;
+                }
+
             case FLudata:
-#if MARS
-                c->IEVseg2 = s->Sseg;
-#else
-                c->IEVseg2 = UDATA;
-#endif
-                c->IEVpointer2 += s->Soffset;
-                c->IFL2 = FLdatseg;
+                if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+                {
+                    c->IFL2 = FLextern;
+                    goto do2;
+                }
+                else
+                {
+                    c->IEVseg2 = MARS ? s->Sseg : UDATA;
+                    c->IEVpointer2 += s->Soffset;
+                    c->IFL2 = FLdatseg;
+                    goto done;
+                }
+
+            case FLtlsdata:
+                if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+                {
+                    c->IFL2 = FLextern;
+                    goto do2;
+                }
                 goto done;
-#endif
+
             case FLdatseg:
                 c->IEVseg2 = DATA;
                 goto done;
