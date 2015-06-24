@@ -75,6 +75,9 @@ void rtlsym_init()
         tv->Tcount++;
 #endif
 
+        // Only used by dmd1 for RTLSYM_THROWC
+        type *tw = NULL;
+
 #undef SYMBOL_Z
 #define SYMBOL_Z(e, fl, saved, n, flags, ty)                                \
         if (ty) rtlsym[RTLSYM_##e]->Stype = (ty);                           \

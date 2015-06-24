@@ -14,7 +14,7 @@
 #define M_UNIX 1
 #define MEMMODELS 1
 #if __GNUC__
-#define __DMC__ 0
+//#define __DMC__ 0
 #define _MSC_VER 0
 #endif
 
