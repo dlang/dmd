@@ -128,6 +128,7 @@ class OverDeclaration;
 class VarDeclaration;
 class SymbolDeclaration;
 class ThisDeclaration;
+class ModuleInfoDeclaration;
 
 class TypeInfoDeclaration;
 class TypeInfoStructDeclaration;
@@ -414,6 +415,7 @@ public:
     virtual void visit(VarDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(SymbolDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(ThisDeclaration *s) { visit((VarDeclaration *)s); }
+    virtual void visit(ModuleInfoDeclaration *s) { visit((VarDeclaration *)s); }
 
     virtual void visit(TypeInfoDeclaration *s) { visit((VarDeclaration *)s); }
     virtual void visit(TypeInfoStructDeclaration *s) { visit((TypeInfoDeclaration *)s); }

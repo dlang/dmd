@@ -730,6 +730,7 @@ void emitComment(Dsymbol *s, OutBuffer *buf, Scope *sc)
         void visit(DtorDeclaration *) {}
         void visit(StaticCtorDeclaration *) {}
         void visit(StaticDtorDeclaration *) {}
+        void visit(ModuleInfoDeclaration *) {}
         void visit(TypeInfoDeclaration *) {}
 
         void emit(Scope *sc, Dsymbol *s, const utf8_t *com)
