@@ -20,6 +20,7 @@
 #include "identifier.h"
 #include "id.h"
 #include "import.h"
+#include "declaration.h"
 #include "dsymbol.h"
 #include "expression.h"
 #include "lexer.h"
@@ -712,6 +713,8 @@ void Module::semantic()
     {
         userAttribDecl->semantic(sc);
     }
+
+    vmoduleinfo = new ModuleInfoDeclaration(this);
 
     if (!scope)
     {

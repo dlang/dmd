@@ -76,12 +76,12 @@ void genModuleInfo(Module *m)
         ObjectNotFound(Id::ModuleInfo);
     }
 
-    Symbol *msym = toSymbol(m);
+    Symbol *msym = toSymbol(m->vmoduleinfo);
 
     //////////////////////////////////////////////
 
-    m->csym->Sclass = SCglobal;
-    m->csym->Sfl = FLdata;
+    msym->Sclass = SCglobal;
+    msym->Sfl = FLdata;
 
     dt_t *dt = NULL;
     ClassDeclarations aclasses;
@@ -169,7 +169,7 @@ void genModuleInfo(Module *m)
             if (!mod->needmoduleinfo)
                 continue;
 
-            Symbol *s = toSymbol(mod);
+            Symbol *s = toSymbol(mod->vmoduleinfo);
 
             /* Weak references don't pull objects in from the library,
              * they resolve to 0 if not pulled in by something else.
@@ -198,9 +198,9 @@ void genModuleInfo(Module *m)
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
-    m->csym->Sdt = dt;
-    out_readonly(m->csym);
-    outdata(m->csym);
+    msym->Sdt = dt;
+    out_readonly(msym);
+    outdata(msym);
 
     //////////////////////////////////////////////
 

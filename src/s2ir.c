@@ -730,7 +730,7 @@ public:
 
         //printf("SwitchErrorStatement::toIR()\n");
 
-        elem *efilename = el_ptr(toSymbol(blx->module));
+        elem *efilename = el_ptr(toSymbol(blx->module->vmoduleinfo));
         elem *elinnum = el_long(TYint, s->loc.linnum);
         elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
         block_appendexp(blx->curblock, e);

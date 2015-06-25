@@ -344,7 +344,8 @@ void genObjFile(Module *m, bool multiobj)
         assert(mod);
         if (mod->sictor || mod->sctor || mod->sdtor || mod->ssharedctor || mod->sshareddtor)
         {
-            Symbol *s = toSymbol(mod);
+            assert(mod->vmoduleinfo);
+            Symbol *s = toSymbol(mod->vmoduleinfo);
             //objextern(s);
             //if (!s->Sxtrnnum) objextdef(s->Sident);
             if (!s->Sxtrnnum)
