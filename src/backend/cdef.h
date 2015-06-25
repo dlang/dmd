@@ -575,7 +575,6 @@ typedef int bool;
 #define _far
 #define __far
 #define __cs
-#define __ss
 #endif
 
 #if _WINDLL
