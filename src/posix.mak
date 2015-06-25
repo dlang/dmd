@@ -36,7 +36,7 @@ LDFLAGS=-lm -lstdc++ -lpthread
 #else
 	HOST_CC=g++
 #endif
-CC=$(HOST_CC) $(MODEL_FLAG)
+CC=$(HOST_CC)
 GIT=git
 
 # Host D compiler for bootstrapping
@@ -119,6 +119,7 @@ MMD=-MMD -MF $(basename $@).deps
 CFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
+	$(MODEL_FLAG)
 # Default D compiler flags for all source files
 DFLAGS=
 
