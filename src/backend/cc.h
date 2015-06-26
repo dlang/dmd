@@ -1397,6 +1397,7 @@ struct PARAM
 
 enum FL
 {
+        // Change this, update debug.c too
         FLunde,
         FLconst,        // numerical constant
         FLoper,         // operator node
@@ -1421,13 +1422,13 @@ enum FL
         FLdtor,         // destructed object
         FLregsave,      // ref to saved register on stack, int contains offset
         FLasm,          // (code) an ASM code
-#if TX86
+
         FLndp,          // saved 8087 register
-#endif
-#if TARGET_SEGMENTED
+
+        // Segmented systems
         FLfardata,      // ref to far data segment
         FLcsdata,       // ref to code segment variable
-#endif
+
         FLlocalsize,    // replaced with # of locals in the stack frame
         FLtlsdata,      // thread local storage
         FLbprel,        // ref to variable at fixed offset from frame pointer
@@ -1436,13 +1437,11 @@ enum FL
         FLallocatmp,    // temp for built-in alloca()
         FLstack,        // offset from ESP rather than EBP
         FLdsymbol,      // it's a Dsymbol
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        // Change this, update debug.c too
+
+        // Global Offset Table
         FLgot,          // global offset table entry outside this object file
         FLgotoff,       // global offset table entry inside this object file
-        //FLoncedata,   // link once data
-        //FLoncecode,   // link once code
-#endif
+
         FLMAX
 };
 

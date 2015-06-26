@@ -4315,13 +4315,9 @@ code *getoffset(elem *e,unsigned reg)
 #endif
     case FLdata:
     case FLudata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
-#endif
-#if TARGET_SEGMENTED
     case FLcsdata:
-#endif
     L4:
         cs.IEVsym2 = e->EV.sp.Vsym;
         cs.IEVoffset2 = e->EV.sp.Voffset;
@@ -4359,27 +4355,6 @@ code *getoffset(elem *e,unsigned reg)
         cs.IFL2 = fl;
         c = gen(c,&cs);
         break;
-
-#if 0 && TARGET_LINUX
-    case FLgot:
-    case FLgotoff:
-        {
-        gotref = 1;
-        symbol *s = e->EV.sp.Vsym;
-        // When using 8B (MOV), indicating that rm is used
-        // rm operands are always placed in IEV1 not IEV2
-        cs.IEVsym1 = s;
-        cs.IEVoffset1 = e->EV.sp.Voffset;
-        cs.Irm = modregrm(2,reg,BX);    // reg,disp32[EBX]
-        cs.IFL1 = fl;
-        cs.Iop = (fl == FLgotoff)
-                ? 0x8D                  // LEA reg, s[EBX]
-                : 0x8B;                 // MOV reg, s[EBX]
-        cs.Iflags = CFoff;              // want offset only
-        c = gen(NULL,&cs);
-        break;
-        }
-#endif
 
     case FLreg:
         /* Allow this since the tree optimizer puts & in front of       */
