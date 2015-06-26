@@ -2982,6 +2982,9 @@ public:
                 if (exceptionOrCant(se))
                     return;
                 result = interpret(e->member, istate, e->arguments, se);
+
+                // Repaint as same as CallExp::interpret() does.
+                result->loc = e->loc;
             }
             else
             {
@@ -3074,6 +3077,12 @@ public:
                 Expression *ctorfail = interpret(e->member, istate, e->arguments, eref);
                 if (exceptionOrCant(ctorfail))
                     return;
+
+                /* Bugzilla 14465: Repaint the loc, because a super() call
+                 * in the constructor modifies the loc of ClassReferenceExp
+                 * in CallExp::interpret().
+                 */
+                eref->loc = e->loc;
             }
             result = eref;
             return;
@@ -4897,10 +4906,8 @@ public:
         }
         if (!exceptionOrCantInterpret(result))
         {
-            Expression* old = result;
             result = paintTypeOntoLiteral(e->type, result);
-            if (result != old) // only change location if a conversion was necessary
-                result->loc = e->loc;
+            result->loc = e->loc;
         }
         else if (CTFEExp::isCantExp(result) && !global.gag)
             showCtfeBackTrace(e, fd);   // Print a stack trace.

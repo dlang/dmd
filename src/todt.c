@@ -773,10 +773,15 @@ dt_t **Type_toDt(Type *t, dt_t **pdt)
 
 dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
 {
-    //printf("TypeSArray::toDtElem()\n");
-    size_t len = tsa->dim->toInteger();
-    if (len)
+    //printf("TypeSArray::toDtElem() tsa = %s\n", tsa->toChars());
+    if (tsa->size(Loc()) == 0)
     {
+        pdt = dtnzeros(pdt, 0);
+    }
+    else
+    {
+        size_t len = tsa->dim->toInteger();
+        assert(len);
         pdt = dtend(pdt);
         Type *tnext = tsa->next;
         Type *tbn = tnext->toBasetype();

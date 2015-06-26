@@ -7281,8 +7281,35 @@ static this()
 
 void test14192()
 {
-	shared int[int] map;
-	map[1] = 1;
+    shared int[int] map;
+    map[1] = 1;
+}
+
+/***************************************************/
+// 13720
+
+struct FracSec13720
+{
+    this(int hnsecs) {}
+}
+
+struct SysTime13720
+{
+    this(TimeOfDay13720 dateTime, FracSec13720 fracSec)
+    {
+    }
+}
+
+struct TimeOfDay13720
+{
+    ~this() { }
+}
+
+void assertThrown13720(T)(lazy T) {}
+
+void test13720()
+{
+    assertThrown13720(SysTime13720(TimeOfDay13720.init, FracSec13720(-1)));
 }
 
 /***************************************************/
@@ -7738,6 +7765,7 @@ int main()
     test13437();
     test13472();
     test13476();
+    test13720();
     test13952();
     test13985();
     test14211();

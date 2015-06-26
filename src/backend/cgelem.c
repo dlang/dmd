@@ -5364,7 +5364,9 @@ beg:
             return optelem(e,GOALnone);
         }
 
-        e1 = e->E1 = optelem(e->E1,(op == OPbool || op == OPnot) ? GOALflags : GOALvalue);
+        e1 = e->E1 = optelem(e->E1, (op == OPddtor) ? GOALnone : (op == OPbool || op == OPnot) ? GOALflags : GOALvalue);
+        if (!e1)
+            goto retnull;
         if (e1->Eoper == OPconst)
         {
 #if TARGET_SEGMENTED

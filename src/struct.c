@@ -1221,7 +1221,11 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
         if (elements && vx)
         {
             Expression *e;
-            if (vx->init)
+            if (vx->type->size() == 0)
+            {
+                e = NULL;
+            }
+            else if (vx->init)
             {
                 assert(!vx->init->isVoidInitializer());
                 e = vx->getConstInitializer(false);
