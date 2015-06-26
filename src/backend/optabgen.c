@@ -785,24 +785,18 @@ void fltables()
                 case FLblockoff: segfl[i] = CS; break;
                 case FLcs:      segfl[i] = SS;  break;
                 case FLregsave: segfl[i] = SS;  break;
-#if TX86
                 case FLndp:     segfl[i] = SS;  break;
-#endif
                 case FLswitch:  segfl[i] = -1;  break;
                 case FLfltreg:  segfl[i] = SS;  break;
                 case FLoffset:  segfl[i] = -1;  break;
-#if TARGET_SEGMENTED
                 case FLfardata: segfl[i] = -1;  break;
                 case FLcsdata:  segfl[i] = CS;  break;
-#endif
                 case FLdatseg:  segfl[i] = DS;  break;
                 case FLctor:    segfl[i] = -1;  break;
                 case FLdtor:    segfl[i] = -1;  break;
                 case FLdsymbol: segfl[i] = -1;  break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 case FLgot:     segfl[i] = -1;  break;
                 case FLgotoff:  segfl[i] = -1;  break;
-#endif
                 case FLlocalsize: segfl[i] = -1;        break;
                 case FLtlsdata: segfl[i] = -1;  break;
                 case FLframehandler:    segfl[i] = -1;  break;

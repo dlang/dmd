@@ -6458,13 +6458,11 @@ static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int 
         ad = * (targ_size_t *) uev + pbuf->getOffset();
         objmod->reftocodeseg(cseg,pbuf->offset,ad);
         break;
-#if TARGET_SEGMENTED
+
     case FLcsdata:
     case FLfardata:
-#if DEBUG
-        symbol_print(uev->sp.Vsym);
-#endif
-#endif
+        //symbol_print(uev->sp.Vsym);
+
         // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
         // strings and statics are treated like offsets from a
         // un-named external with is the start of .rodata or .data

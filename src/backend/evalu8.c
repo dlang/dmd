@@ -546,10 +546,8 @@ elem *poptelem(elem *e)
                 if (e2->Eoper == OPconst)
                 {   targ_int i = e2->EV.Vint;
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                     if (i && e1->EV.sp.Vsym->Sfl == FLgot)
                         break;
-#endif
                     if (e->Eoper == OPmin)
                         i = -i;
                     e1->EV.sp.Voffset += i;
