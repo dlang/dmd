@@ -5637,6 +5637,30 @@ void test7285()
 }
 
 /***************************************************/
+// 14737
+
+void test14737()
+{
+    // compile-time
+    enum string[2] a1 = ["d", "e"];
+    enum b1x = ["a", "b", "c"] ~ a1;        // Tarray vs Tsarray
+    enum b1y = a1 ~ ["a", "b", "c"];        // Tsarray vs Tarray
+    static assert(is(typeof(b1x) == string[]));
+    static assert(is(typeof(b1y) == string[]));
+    static assert(b1x == ["a", "b", "c", "d", "e"]);
+    static assert(b1y == ["d", "e", "a", "b", "c"]);
+
+    // runtime
+    string[2] a2 = ["d", "e"];
+    auto b2x = ["a", "b", "c"] ~ a2;        // Tarray vs Tsarray
+    auto b2y = a2 ~ ["a", "b", "c"];        // Tsarray vs Tarray
+    static assert(is(typeof(b2x) == string[]));
+    static assert(is(typeof(b2y) == string[]));
+    assert(b2x == ["a", "b", "c", "d", "e"]);
+    assert(b2y == ["d", "e", "a", "b", "c"]);
+}
+
+/***************************************************/
 // 7321
 
 void test7321()
@@ -7698,6 +7722,7 @@ int main()
     test7170();
     test7196();
     test7285();
+    test14737();
     test7321();
     test3282();
     test7534();
