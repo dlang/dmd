@@ -5984,6 +5984,17 @@ label:
 }
 
 /***************************************************/
+// 14430
+
+void setCookie(long x = 1L << 32L, string y = null){
+    assert(y.ptr is null);
+}
+
+void test14430(){
+    setCookie();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6277,6 +6288,7 @@ int main()
     test10642();
     test7436();
     test12138();
+    test14430();
 
     writefln("Success");
     return 0;
