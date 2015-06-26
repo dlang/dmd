@@ -4249,8 +4249,8 @@ code *loaddata(elem *e,regm_t *pretregs)
         }
         else if (I64 && sz == 16)
         {
-            ce = movregconst(CNIL,findreglsw(forregs),e->EV.Vcent.lsw,0);
-            ce = movregconst(ce,findregmsw(forregs),e->EV.Vcent.msw,0);
+            ce = movregconst(CNIL,findreglsw(forregs),e->EV.Vcent.lsw,64);
+            ce = movregconst(ce,findregmsw(forregs),e->EV.Vcent.msw,64);
         }
         else
             assert(0);
