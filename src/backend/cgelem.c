@@ -785,10 +785,8 @@ L1:
   e2 = e->E2;
   if (e2->Eoper == OPconst)
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (e1->Eoper == OPrelconst && e1->EV.sp.Vsym->Sfl == FLgot)
                 goto ret;
-#endif
         if (e1->Eoper == OPrelconst             /* if (&v) + c          */
             || e1->Eoper == OPstring
            )
@@ -801,10 +799,8 @@ L1:
   }
   else if (e1->Eoper == OPconst)
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (e2->Eoper == OPrelconst && e2->EV.sp.Vsym->Sfl == FLgot)
                 goto ret;
-#endif
         if (e2->Eoper == OPrelconst             /* if c + (&v)          */
             || e2->Eoper == OPstring
            )
