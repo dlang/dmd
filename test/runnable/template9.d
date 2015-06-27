@@ -4574,6 +4574,30 @@ template SubOps14568(Args...)
 struct Nat14568 { mixin SubOps14568!(null); }
 
 /******************************************/
+// 14735
+
+enum CS14735 { yes, no }
+
+int indexOf14735a(Range      )(Range    s, in dchar c) { return 1; }
+int indexOf14735a(T, size_t n)(ref T[n] s, in dchar c) { return 2; }
+
+int indexOf14735b(Range      )(Range    s, in dchar c, in CS14735 cs = CS14735.yes) { return 1; }
+int indexOf14735b(T, size_t n)(ref T[n] s, in dchar c, in CS14735 cs = CS14735.yes) { return 2; }
+
+void test14735()
+{
+    char[64] buf;
+
+    // Supported from 2.063: (http://dlang.org/changelog#implicitarraycast)
+    assert(indexOf14735a(buf[0..32], '\0') == 2);
+    assert(indexOf14735b(buf[0..32], '\0') == 2);
+
+    // Have to work as same as above.
+    assert(indexOf14735a(buf[], '\0') == 2);
+    assert(indexOf14735b(buf[], '\0') == 2);
+}
+
+/******************************************/
 
 int main()
 {
@@ -4683,6 +4707,7 @@ int main()
     test13379();
     test13484();
     test13694();
+    test14735();
 
     printf("Success\n");
     return 0;
