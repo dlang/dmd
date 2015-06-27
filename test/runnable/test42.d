@@ -5995,6 +5995,25 @@ void test14430(){
 }
 
 /***************************************************/
+// 14510
+
+alias Vector14510 = ulong[3];
+
+void fun14510(Vector14510 vec, bool recursive = false)
+{
+    assert(vec[2] == 0);
+    if (recursive)
+        return;
+    fun14510(vec, true);
+}
+
+void test14510()
+{
+    Vector14510 vec;
+    fun14510(vec);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6289,6 +6308,7 @@ int main()
     test7436();
     test12138();
     test14430();
+    test14510();
 
     writefln("Success");
     return 0;
