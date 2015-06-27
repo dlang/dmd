@@ -1,5 +1,6 @@
 // COMPILE_SEPARATELY
 // EXTRA_SOURCES: imports/bug10425.d
+// REQUIRED_ARGS: -allinst
 
 import imports.bug10425;
 

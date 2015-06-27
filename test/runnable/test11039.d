@@ -1,4 +1,5 @@
 
+// REQUIRED_ARGS: -allinst
 // COMPILE_SEPARATELY
 // EXTRA_SOURCES: imports/test11039b.d
 

@@ -3,6 +3,7 @@
 // EXTRA_SOURCES: imports/link2644b.d
 // EXTRA_SOURCES: imports/link2644c.d
 // COMPILE_SEPARATELY:
+// REQUIRED_ARGS: -allinst
 
 module link2644;
 import imports.link2644a;

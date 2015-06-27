@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -g
+// REQUIRED_ARGS: -g -allinst
 // PERMUTE_ARGS:
 // EXTRA_SOURCES: imports/test11931a.d
 // EXTRA_SOURCES: imports/test11931b.d

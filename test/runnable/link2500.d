@@ -1,6 +1,7 @@
 // EXTRA_SOURCES: imports/link2500a.d
 // EXTRA_SOURCES: imports/link2500b.d
 // COMPILE_SEPARATELY:
+// REQUIRED_ARGS: -allinst
 
 module link2500;
 
