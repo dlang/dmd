@@ -1917,7 +1917,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         args->setDim(arguments->dim - nparams);
         for (size_t i = 0; i < arguments->dim - nparams; i++)
         {
-            Parameter *arg = new Parameter(STCin, (*arguments)[nparams + i]->type, NULL, NULL);
+            Parameter *arg = new Parameter(STCin, (*arguments)[nparams + i]->type, NULL, NULL, NULL);
             (*args)[i] = arg;
         }
 
@@ -6295,7 +6295,7 @@ Expression *IsExp::semantic(Scope *sc)
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
                     {
                         BaseClass *b = (*cd->baseclasses)[i];
-                        args->push(new Parameter(STCin, b->type, NULL, NULL));
+                        args->push(new Parameter(STCin, b->type, NULL, NULL, NULL));
                     }
                     tded = new TypeTuple(args);
                 }
@@ -6343,8 +6343,9 @@ Expression *IsExp::semantic(Scope *sc)
                         arg->defaultArg->op == TOKerror)
                         return new ErrorExp();
                     args->push(new Parameter(arg->storageClass, arg->type,
-                        (tok2 == TOKparameters) ? arg->ident : NULL,
-                        (tok2 == TOKparameters) ? arg->defaultArg : NULL));
+                                             (tok2 == TOKparameters) ? arg->ident : NULL,
+                                             (tok2 == TOKparameters) ? arg->defaultArg : NULL,
+                                             arg->userAttribDecl));
                 }
                 tded = new TypeTuple(args);
                 break;

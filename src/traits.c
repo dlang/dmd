@@ -472,7 +472,8 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     printf("TraitsExp::semantic() %s\n", e->toChars());
 #endif
     if (e->ident != Id::compiles && e->ident != Id::isSame &&
-        e->ident != Id::identifier && e->ident != Id::getProtection)
+        e->ident != Id::identifier && e->ident != Id::getProtection &&
+        e->ident != Id::getAttributes)
     {
         if (!TemplateInstance::semanticTiargs(e->loc, sc, e->args, 1))
             return new ErrorExp();
@@ -623,8 +624,12 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         Identifier *id;
         if (po)
         {
+            if (!po->ident)
+            {
+                e->error("argument %s has no identifier", po->type->toChars());
+                goto Lfalse;
+            }
             id = po->ident;
-            assert(id);
         }
         else
         {
@@ -871,11 +876,33 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
     }
     else if (e->ident == Id::getAttributes)
     {
+        /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
+         * a symbol should not be folded to a constant.
+         * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
+         */
+        if (!TemplateInstance::semanticTiargs(e->loc, sc, e->args, 3))
+            return new ErrorExp();
+
         if (dim != 1)
             goto Ldimerror;
         RootObject *o = (*e->args)[0];
+        Parameter *po = isParameter(o);
         Dsymbol *s = getDsymbol(o);
-        if (!s)
+        UserAttributeDeclaration *udad = NULL;
+        if (po)
+        {
+            udad = po->userAttribDecl;
+        }
+        else if (s)
+        {
+            if (s->isImport())
+            {
+                s = s->isImport()->mod;
+            }
+            //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttribDecl, s->scope);
+            udad = s->userAttribDecl;
+        }
+        else
         {
         #if 0
             Expression *x = isExpression(o);
@@ -886,12 +913,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             e->error("first argument is not a symbol");
             goto Lfalse;
         }
-        if (s->isImport())
-        {
-            s = s->isImport()->mod;
-        }
-        //printf("getAttributes %s, attrs = %p, scope = %p\n", s->toChars(), s->userAttribDecl, s->scope);
-        UserAttributeDeclaration *udad = s->userAttribDecl;
+
         TupleExp *tup = new TupleExp(e->loc, udad ? udad->getAttributes() : new Expressions());
         return tup->semantic(sc);
     }

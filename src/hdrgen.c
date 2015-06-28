@@ -2913,6 +2913,12 @@ public:
 
     void visit(Parameter *p)
     {
+        if (p->userAttribDecl)
+        {
+            buf->writestring("@(");
+            argsToBuffer(p->userAttribDecl->atts);
+            buf->writestring(") ");
+        }
         if (p->storageClass & STCauto)
             buf->writestring("auto ");
 

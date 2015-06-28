@@ -243,7 +243,7 @@ Type *TupleDeclaration::getType()
             Identifier *id = new Identifier(name, TOKidentifier);
             Parameter *arg = new Parameter(STCin, t, id, NULL);
 #else
-            Parameter *arg = new Parameter(0, t, NULL, NULL);
+            Parameter *arg = new Parameter(0, t, NULL, NULL, NULL);
 #endif
             (*args)[i] = arg;
             if (!t->deco)

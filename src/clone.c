@@ -231,7 +231,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     }
 
     Parameters *fparams = new Parameters;
-    fparams->push(new Parameter(STCnodtor, sd->type, Id::p, NULL));
+    fparams->push(new Parameter(STCnodtor, sd->type, Id::p, NULL, NULL));
     TypeFunction *tf = new TypeFunction(fparams, sd->handleType(), 0, LINKd, stc | STCref);
 
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, tf);
@@ -477,7 +477,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
                 /* const bool opEquals(ref const S s);
                  */
                 Parameters *parameters = new Parameters;
-                parameters->push(new Parameter(STCref | STCconst, sd->type, NULL, NULL));
+                parameters->push(new Parameter(STCref | STCconst, sd->type, NULL, NULL, NULL));
                 tfeqptr = new TypeFunction(parameters, Type::tbool, 0, LINKd);
                 tfeqptr->mod = MODconst;
                 tfeqptr = (TypeFunction *)tfeqptr->semantic(Loc(), &scx);
@@ -510,8 +510,8 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
     Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
     Parameters *parameters = new Parameters;
-    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
-    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::q, NULL));
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL, NULL));
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::q, NULL, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
 
     Identifier *id = Id::xopEquals;
@@ -562,7 +562,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
                 /* const int opCmp(ref const S s);
                  */
                 Parameters *parameters = new Parameters;
-                parameters->push(new Parameter(STCref | STCconst, sd->type, NULL, NULL));
+                parameters->push(new Parameter(STCref | STCconst, sd->type, NULL, NULL, NULL));
                 tfcmpptr = new TypeFunction(parameters, Type::tint32, 0, LINKd);
                 tfcmpptr->mod = MODconst;
                 tfcmpptr = (TypeFunction *)tfcmpptr->semantic(Loc(), &scx);
@@ -635,8 +635,8 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
     Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
     Parameters *parameters = new Parameters;
-    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
-    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::q, NULL));
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL, NULL));
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::q, NULL, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tint32, 0, LINKd);
 
     Identifier *id = Id::xopCmp;
@@ -748,7 +748,7 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
     Loc loc = Loc();        // internal code should have no loc to prevent coverage
 
     Parameters *parameters = new Parameters();
-    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL));
+    parameters->push(new Parameter(STCref | STCconst, sd->type, Id::p, NULL, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::thash_t, 0, LINKd, STCnothrow | STCtrusted);
 
     Identifier *id = Id::xtoHash;
