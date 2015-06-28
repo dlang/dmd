@@ -1046,6 +1046,31 @@ Dsymbol *ConditionalDeclaration::syntaxCopy(Dsymbol *s)
         Dsymbol::arraySyntaxCopy(elsedecl));
 }
 
+Scope *ConditionalDeclaration::newScope(Scope *sc)
+{
+    Scope *sc2 = sc;
+    if (sc->func && sc->tinst && condition->isUnitTestOrDebugLevel())
+        sc->func->forceInst = true;
+    if (sc->minst && !sc->minst->isRoot() &&
+        condition->isUnitTestOrDebugLevel())
+    {
+        /* The issue is that if the importee is compiled with a different -debug=num
+         * setting than the importer, the importer may believe it exists
+         * in the compiled importee when it does not, when the instantiation
+         * is behind a conditional debug declaration.
+         * Same problem may happen with -unittest.
+         *
+         * Conservatively do codegen for those conditionally instantiated templates.
+         * See also the special case for (global.params.useUnitTests || global.params.debuglevel)
+         * in TemplateInstance::needsCodegen().
+         */
+        // workaround for Bugzilla 11239
+        sc2 = sc->copy();
+        sc2->minst = sc->minst->importedFrom;
+    }
+    return sc2;
+}
+
 bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition->inc);

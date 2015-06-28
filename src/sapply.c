@@ -139,10 +139,6 @@ public:
     {
         doCond(s->statement) || applyTo(s);
     }
-    void visit(DebugStatement *s)
-    {
-        doCond(s->statement) || applyTo(s);
-    }
     void visit(LabelStatement *s)
     {
         doCond(s->statement) || applyTo(s);

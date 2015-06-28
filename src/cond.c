@@ -50,6 +50,19 @@ Condition::Condition(Loc loc)
     inc = 0;
 }
 
+bool Condition::isUnitTestOrDebugLevel()
+{
+    // debug(num)
+    if (DebugCondition *dc = isDebugCondition())
+        return dc->ident == NULL;
+
+    // version(unittest)
+    if (VersionCondition *vc = isVersionCondition())
+        return vc->ident == Identifier::idPool(Token::toChars(TOKunittest));
+
+    return false;
+}
+
 /* ============================================================ */
 
 DVCondition::DVCondition(Module *mod, unsigned level, Identifier *ident)

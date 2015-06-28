@@ -180,11 +180,6 @@ public:
     }
     void visit(OnScopeStatement *s) {  }
     void visit(ThrowStatement *s) {  }
-    void visit(DebugStatement *s)
-    {
-        if (s->statement)
-            visitStmt(s->statement);
-    }
     void visit(GotoStatement *s) {  }
     void visit(LabelStatement *s)
     {
@@ -334,6 +329,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     flags = 0;
     returns = NULL;
     gotos = NULL;
+    forceInst = false;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -1314,6 +1310,15 @@ void FuncDeclaration::semantic3(Scope *sc)
         if (sc2->intypeof == 1) sc2->intypeof = 2;
         sc2->fieldinit = NULL;
         sc2->fieldinit_dim = 0;
+        if (isUnitTestDeclaration() && sc->minst && !sc->minst->isRoot())
+        {
+            /* When this unittest block is defined in template, even if the enclosing
+             * is instantiated only in non-root module, the templates instantiated
+             * inside body might not exist in the compiled importee.
+             * Therefore mark them as speculative, to provide chance for codegen.
+             */
+            sc2->minst = sc->minst->importedFrom;
+        }
 
         if (isMember2())
         {

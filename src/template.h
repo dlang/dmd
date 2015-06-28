@@ -322,6 +322,7 @@ public:
     TemplateInstance *tinst;            // enclosing template instance
     TemplateInstance *tnext;            // non-first instantiated instances
     Module *minst;                      // the top module that instantiated this instance
+    bool forceInst;
 
     TemplateInstance(Loc loc, Identifier *temp_id);
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);

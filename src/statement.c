@@ -30,6 +30,7 @@
 #include "parse.h"
 #include "template.h"
 #include "attrib.h"
+#include "module.h"
 #include "import.h"
 
 bool walkPostorder(Statement *s, StoppableVisitor *v);
@@ -3033,6 +3034,29 @@ Statement *ConditionalStatement::syntaxCopy()
         elsebody ? elsebody->syntaxCopy() : NULL);
 }
 
+// Consistent with ConditionalDeclaration::newScope().
+Scope *ConditionalStatement::newScope(Scope *sc)
+{
+    Scope *sc2 = sc;
+
+    if (sc->func && sc->tinst && condition->isUnitTestOrDebugLevel())
+        sc->func->forceInst = true;
+    if (sc->minst && !sc->minst->isRoot() &&
+        condition->isUnitTestOrDebugLevel())
+    {
+        sc2 = sc->copy();
+        sc2->minst = sc->minst->importedFrom;
+    }
+    if (DebugCondition *dc = condition->isDebugCondition())
+    {
+        if (sc2 == sc)
+            sc2 = sc->push();
+        sc2->flags |= SCOPEdebug;
+    }
+
+    return sc2;
+}
+
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
     //printf("ConditionalStatement::semantic()\n");
@@ -3042,16 +3066,13 @@ Statement *ConditionalStatement::semantic(Scope *sc)
     // This feature allows a limited form of conditional compilation.
     if (condition->include(sc, NULL))
     {
-        DebugCondition *dc = condition->isDebugCondition();
-        if (dc)
-        {
-            sc = sc->push();
-            sc->flags |= SCOPEdebug;
-            ifbody = ifbody->semantic(sc);
-            sc->pop();
-        }
-        else
-            ifbody = ifbody->semantic(sc);
+        Scope *sc2 = newScope(sc);
+
+        ifbody = ifbody->semantic(sc2);
+
+        if (sc2 != sc)
+            sc2->pop();
+
         return ifbody;
     }
     else
@@ -3064,23 +3085,34 @@ Statement *ConditionalStatement::semantic(Scope *sc)
 
 Statements *ConditionalStatement::flatten(Scope *sc)
 {
-    Statement *s;
-
     //printf("ConditionalStatement::flatten()\n");
     if (condition->include(sc, NULL))
     {
-        DebugCondition *dc = condition->isDebugCondition();
-        if (dc)
-            s = new DebugStatement(loc, ifbody);
-        else
-            s = ifbody;
+        Scope *sc2 = newScope(sc);
+
+        Statements *a = ifbody->flatten(sc2);
+
+        if (a && sc2 != sc)
+        {
+            for (size_t i = 0; i < a->dim; i++)
+            {
+                Statement *s = (*a)[i];
+                if (s)
+                    s = new ConditionalStatement(s->loc, condition, s, NULL);
+                (*a)[i] = s;
+            }
+        }
+        if (sc2 != sc)
+            sc2->pop();
+
+        return a;
     }
     else
-        s = elsebody;
-
-    Statements *a = new Statements();
-    a->push(s);
-    return a;
+    {
+        if (elsebody)
+            return elsebody->flatten(sc);
+        return NULL;
+    }
 }
 
 /******************************** PragmaStatement ***************************/
@@ -4939,48 +4971,6 @@ Statement *ThrowStatement::semantic(Scope *sc)
     }
 
     return this;
-}
-
-/******************************** DebugStatement **************************/
-
-DebugStatement::DebugStatement(Loc loc, Statement *statement)
-    : Statement(loc)
-{
-    this->statement = statement;
-}
-
-Statement *DebugStatement::syntaxCopy()
-{
-    return new DebugStatement(loc,
-        statement ? statement->syntaxCopy() : NULL);
-}
-
-Statement *DebugStatement::semantic(Scope *sc)
-{
-    if (statement)
-    {
-        sc = sc->push();
-        sc->flags |= SCOPEdebug;
-        statement = statement->semantic(sc);
-        sc->pop();
-    }
-    return statement;
-}
-
-Statements *DebugStatement::flatten(Scope *sc)
-{
-    Statements *a = statement ? statement->flatten(sc) : NULL;
-    if (a)
-    {
-        for (size_t i = 0; i < a->dim; i++)
-        {   Statement *s = (*a)[i];
-
-            s = new DebugStatement(loc, s);
-            (*a)[i] = s;
-        }
-    }
-
-    return a;
 }
 
 /******************************** GotoStatement ***************************/

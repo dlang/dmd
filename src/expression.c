@@ -2416,6 +2416,15 @@ bool Expression::checkPurity(Scope *sc, FuncDeclaration *f)
     // OR, they must have the same pure parent.
     if (!f->isPure() && calledparent != outerfunc)
     {
+        if (!(sc->flags & SCOPEcompile) && (sc->func->flags & FUNCFLAGpurityInprocess))
+        {
+            if (f->forceInst && sc->tinst && !sc->func->inUnittest())
+            {
+                sc->func->forceInst = true;
+                sc->tinst->forceInst = true;
+            }
+        }
+
         FuncDeclaration *ff = outerfunc;
         if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
         {
@@ -2598,6 +2607,15 @@ bool Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 
     if (!f->isSafe() && !f->isTrusted())
     {
+        if (!(sc->flags & SCOPEcompile) && (sc->func->flags & FUNCFLAGsafetyInprocess))
+        {
+            if (f->forceInst && sc->tinst && !sc->func->inUnittest())
+            {
+                sc->func->forceInst = true;
+                sc->tinst->forceInst = true;
+            }
+        }
+
         if (sc->flags & SCOPEcompile ? sc->func->isSafeBypassingInference() : sc->func->setUnsafe())
         {
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
@@ -2630,6 +2648,15 @@ bool Expression::checkNogc(Scope *sc, FuncDeclaration *f)
 
     if (!f->isNogc())
     {
+        if (!(sc->flags & SCOPEcompile) && (sc->func->flags & FUNCFLAGnogcInprocess))
+        {
+            if (f->forceInst && sc->tinst && !sc->func->inUnittest())
+            {
+                sc->func->forceInst = true;
+                sc->tinst->forceInst = true;
+            }
+        }
+
         if (sc->flags & SCOPEcompile ? sc->func->isNogcBypassingInference() : sc->func->setGC())
         {
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
