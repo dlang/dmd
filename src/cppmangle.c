@@ -988,6 +988,8 @@ public:
             case Tfloat32:  buf.writeByte('M');        break;
             case Tint64:    buf.writestring("_J");     break;
             case Tuns64:    buf.writestring("_K");     break;
+            case Tint128:   buf.writestring("_L");     break;
+            case Tuns128:   buf.writestring("_M");     break;
             case Tfloat64:  buf.writeByte('N');        break;
             case Tbool:     buf.writestring("_N");     break;
             case Tchar:     buf.writeByte('D');        break;
