@@ -1312,8 +1312,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             Type *tb = t->toBasetype();
             Type *typeb = e->type->toBasetype();
-            if (tb->ty == Tsarray && typeb->ty == Tarray &&
-                e->lwr && e->upr)
+            if (tb->ty == Tsarray && typeb->ty == Tarray)
             {
                 typeb = toStaticArrayType(e);
                 if (typeb)
