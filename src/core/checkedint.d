@@ -46,6 +46,7 @@ pure:
  *      the sum
  */
 
+pragma(inline, true)
 int adds(int x, int y, ref bool overflow)
 {
     long r = cast(long)x + cast(long)y;
@@ -73,6 +74,7 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 long adds(long x, long y, ref bool overflow)
 {
     long r = cast(ulong)x + cast(ulong)y;
@@ -114,6 +116,7 @@ unittest
  *      the sum
  */
 
+pragma(inline, true)
 uint addu(uint x, uint y, ref bool overflow)
 {
     uint r = x + y;
@@ -141,6 +144,7 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 ulong addu(ulong x, ulong y, ref bool overflow)
 {
     ulong r = x + y;
@@ -181,6 +185,7 @@ unittest
  *      the sum
  */
 
+pragma(inline, true)
 int subs(int x, int y, ref bool overflow)
 {
     long r = cast(long)x - cast(long)y;
@@ -208,6 +213,7 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 long subs(long x, long y, ref bool overflow)
 {
     long r = cast(ulong)x - cast(ulong)y;
@@ -249,6 +255,7 @@ unittest
  *      the sum
  */
 
+pragma(inline, true)
 uint subu(uint x, uint y, ref bool overflow)
 {
     if (x < y)
@@ -276,6 +283,7 @@ unittest
 
 
 /// ditto
+pragma(inline, true)
 ulong subu(ulong x, ulong y, ref bool overflow)
 {
     if (x < y)
@@ -312,6 +320,7 @@ unittest
  *      the negation of x
  */
 
+pragma(inline, true)
 int negs(int x, ref bool overflow)
 {
     if (x == int.min)
@@ -335,6 +344,7 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 long negs(long x, ref bool overflow)
 {
     if (x == long.min)
@@ -371,6 +381,7 @@ unittest
  *      the sum
  */
 
+pragma(inline, true)
 int muls(int x, int y, ref bool overflow)
 {
     long r = cast(long)x * cast(long)y;
@@ -400,6 +411,7 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 long muls(long x, long y, ref bool overflow)
 {
     long r = cast(ulong)x * cast(ulong)y;
@@ -442,6 +454,7 @@ unittest
  *      the sum
  */
 
+pragma(inline, true)
 uint mulu(uint x, uint y, ref bool overflow)
 {
     ulong r = ulong(x) * ulong(y);
@@ -471,6 +484,7 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 ulong mulu(ulong x, ulong y, ref bool overflow)
 {
     ulong r = x * y;
