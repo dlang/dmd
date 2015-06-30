@@ -338,7 +338,9 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 if (s)
                 {
                     int r = s->blockExit(func, mustNotThrow);
-                    result |= r & ~(BEbreak | BEcontinue);
+                    result |= r & ~(BEbreak | BEcontinue | BEfallthru);
+                    if ((r & (BEfallthru | BEcontinue | BEbreak)) == 0)
+                        result &= ~BEfallthru;
                 }
             }
         }
