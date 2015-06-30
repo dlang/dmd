@@ -958,8 +958,28 @@ elem *toElem(Expression *e, IRState *irs)
                     elem *ethis = getEthis(se->loc, irs, fd);
                     ethis = el_una(OPaddr, TYnptr, ethis);
 
+                    /* Bugzilla 9383: If 's' is a virtual function parameter
+                     * placed in closure, and actually accessed from in/out
+                     * contract, instead look at the original stack data.
+                     */
+                    bool forceStackAccess = false;
+                    if (s->Sclass == SCparameter &&
+                        fd->isVirtual() && (fd->fdrequire || fd->fdensure))
+                    {
+                        Dsymbol *sx = irs->getFunc();
+                        while (sx != fd)
+                        {
+                            if (sx->ident == Id::require || sx->ident == Id::ensure)
+                            {
+                                forceStackAccess = true;
+                                break;
+                            }
+                            sx = sx->toParent2();
+                        }
+                    }
+
                     int soffset;
-                    if (v && v->offset)
+                    if (v && v->offset && !forceStackAccess)
                         soffset = v->offset;
                     else
                     {

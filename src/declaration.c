@@ -1810,10 +1810,10 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     break;
             }
 
-            if (fdthis->ident != Id::ensure)
+            if (fdthis->ident != Id::require && fdthis->ident != Id::ensure)
             {
-                /* __ensure is always called directly,
-                 * so it never becomes closure.
+                /* __require and __ensure will always get called directly,
+                 * so they never make outer functions closure.
                  */
 
                 //printf("\tfdv = %s\n", fdv->toChars());
