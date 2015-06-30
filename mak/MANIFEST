@@ -34,6 +34,7 @@ MANIFEST=\
 	\
 	src\core\internal\convert.d \
 	src\core\internal\hash.d \
+	src\core\internal\string.d \
 	src\core\internal\traits.d \
 	\
 	src\core\stdc\complex.d \
@@ -245,7 +246,6 @@ MANIFEST=\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
 	src\rt\util\random.d \
-	src\rt\util\string.d \
 	src\rt\util\typeinfo.d \
 	src\rt\util\utf.d \
 	src\rt\util\container\array.d \

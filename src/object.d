@@ -232,8 +232,8 @@ class TypeInfo
     override int opCmp(Object o)
     {
         import core.internal.traits : externDFunc;
-        alias dstrcmp = externDFunc!("rt.util.string.dstrcmp",
-                                     int function(in char[] s1, in char[] s2) @trusted pure nothrow);
+        alias dstrcmp = externDFunc!("core.internal.string.dstrcmp",
+                                     int function(in char[] s1, in char[] s2) @trusted pure nothrow @nogc);
 
         if (this is o)
             return 0;
@@ -500,11 +500,11 @@ class TypeInfo_StaticArray : TypeInfo
     override string toString() const
     {
         import core.internal.traits : externDFunc;
-        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString",
-                                              char[] function(in size_t, char[]) @trusted pure nothrow);
+        alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
+                                              char[] function(ulong, char[], uint) @safe pure nothrow @nogc);
 
         char[20] tmpBuff = void;
-        return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff) ~ "]";
+        return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff, 10) ~ "]";
     }
 
     override bool opEquals(Object o)
@@ -1562,14 +1562,14 @@ class Throwable : Object
     void toString(scope void delegate(in char[]) sink) const
     {
         import core.internal.traits : externDFunc;
-        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString",
-                                              char[] function(in size_t, char[]) @trusted pure nothrow);
+        alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
+                                              char[] function(ulong, char[], uint) @safe pure nothrow @nogc);
 
         char[20] tmpBuff = void;
 
         sink(typeid(this).name);
         sink("@"); sink(file);
-        sink("("); sink(sizeToTempString(line, tmpBuff)); sink(")");
+        sink("("); sink(sizeToTempString(line, tmpBuff, 10)); sink(")");
 
         if (msg.length)
         {

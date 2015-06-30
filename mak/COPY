@@ -16,6 +16,7 @@ COPY=\
 	\
 	$(IMPDIR)\core\internal\convert.d \
 	$(IMPDIR)\core\internal\hash.d \
+	$(IMPDIR)\core\internal\string.d \
 	$(IMPDIR)\core\internal\traits.d \
 	\
 	$(IMPDIR)\core\stdc\complex.d \

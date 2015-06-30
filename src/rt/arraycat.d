@@ -17,7 +17,6 @@ private
 {
     import core.stdc.string;
     import rt.util.array;
-    import rt.util.string;
     debug(PRINTF) import core.stdc.stdio;
 }
 
