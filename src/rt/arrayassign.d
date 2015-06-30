@@ -16,7 +16,6 @@ module rt.arrayassign;
 private
 {
     import rt.util.array;
-    import rt.util.string;
     import core.stdc.string;
     import core.stdc.stdlib;
     debug(PRINTF) import core.stdc.stdio;

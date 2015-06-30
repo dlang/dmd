@@ -9,7 +9,7 @@ Source: $(DRUNTIMESRC src/rt/util/_array.d)
 module rt.util.array;
 
 
-import rt.util.string;
+import core.internal.string;
 
 
 @safe /* pure dmd @@@BUG11461@@@ */ nothrow:
@@ -36,13 +36,13 @@ private void _enforceSameLength(in char[] action,
     if(length1 == length2)
         return;
 
-    SizeStringBuff tmpBuff = void;
+    UnsignedStringBuf tmpBuff = void;
     string msg = "Array lengths don't match for ";
     msg ~= action;
     msg ~= ": ";
-    msg ~= length1.sizeToTempString(tmpBuff);
+    msg ~= length1.unsignedToTempString(tmpBuff, 10);
     msg ~= " != ";
-    msg ~= length2.sizeToTempString(tmpBuff);
+    msg ~= length2.unsignedToTempString(tmpBuff, 10);
     throw new Error(msg);
 }
 
@@ -54,12 +54,12 @@ private void _enforceNoOverlap(in char[] action,
         return;
     const overlappedBytes = bytes - d;
 
-    SizeStringBuff tmpBuff = void;
+    UnsignedStringBuf tmpBuff = void;
     string msg = "Overlapping arrays in ";
     msg ~= action;
     msg ~= ": ";
-    msg ~= overlappedBytes.sizeToTempString(tmpBuff);
+    msg ~= overlappedBytes.unsignedToTempString(tmpBuff, 10);
     msg ~= " byte(s) overlap of ";
-    msg ~= bytes.sizeToTempString(tmpBuff);
+    msg ~= bytes.unsignedToTempString(tmpBuff, 10);
     throw new Error(msg);
 }
