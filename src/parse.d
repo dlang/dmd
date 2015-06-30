@@ -4240,8 +4240,17 @@ public:
                 // (parameters) { statements... }
                 parameters = parseParameters(&varargs, &tpl);
                 stc = parsePostfix(STCundefined, null);
-                if (stc & (STCconst | STCimmutable | STCshared | STCwild))
-                    error("const/immutable/shared/inout attributes are only valid for non-static member functions");
+                if (StorageClass modStc = stc & STC_TYPECTOR)
+                {
+                    if (save == TOKfunction)
+                    {
+                        OutBuffer buf;
+                        stcToBuffer(&buf, modStc);
+                        error("function literal cannot be %s", buf.peekString());
+                    }
+                    else
+                        save = TOKdelegate;
+                }
                 break;
             }
         case TOKlcurly:
@@ -4266,6 +4275,7 @@ public:
         if (!parameters)
             parameters = new Parameters();
         auto tf = new TypeFunction(parameters, tret, varargs, linkage, stc);
+        tf = cast(TypeFunction)tf.addSTC(stc);
         auto fd = new FuncLiteralDeclaration(loc, Loc(), tf, save, null);
         if (token.value == TOKgoesto)
         {
