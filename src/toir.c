@@ -96,14 +96,36 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
     elem *ethis;
     FuncDeclaration *thisfd = irs->getFunc();
     Dsymbol *fdparent = fd->toParent2();
+    Dsymbol *fdp = fdparent;
+
+    /* These two are compiler generated functions for the in and out contracts,
+     * and are called from an overriding function, not just the one they're
+     * nested inside, so this hack is so they'll pass
+     */
+    if (fdparent != thisfd && (fd->ident == Id::require || fd->ident == Id::ensure))
+    {
+        FuncDeclaration *fdthis = thisfd;
+        for (size_t i = 0; ; )
+        {
+            if (i == fdthis->foverrides.dim)
+            {
+                if (i == 0)
+                    break;
+                fdthis = fdthis->foverrides[0];
+                i = 0;
+                continue;
+            }
+            if (fdthis->foverrides[i] == fdp)
+            {
+                fdparent = thisfd;
+                break;
+            }
+            i++;
+        }
+    }
 
     //printf("[%s] getEthis(thisfd = '%s', fd = '%s', fdparent = '%s')\n", loc.toChars(), thisfd->toPrettyChars(), fd->toPrettyChars(), fdparent->toPrettyChars());
-    if (fdparent == thisfd ||
-        /* These two are compiler generated functions for the in and out contracts,
-         * and are called from an overriding function, not just the one they're
-         * nested inside, so this hack is so they'll pass
-         */
-        fd->ident == Id::require || fd->ident == Id::ensure)
+    if (fdparent == thisfd)
     {
         /* Going down one nesting level, i.e. we're calling
          * a nested function from its enclosing function.
@@ -191,7 +213,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
                 if (!ad)
                 {
                   Lnoframe:
-                    irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toChars());
+                    irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toPrettyChars());
                     return el_long(TYnptr, 0);      // error recovery
                 }
                 ClassDeclaration *cd = ad->isClassDeclaration();

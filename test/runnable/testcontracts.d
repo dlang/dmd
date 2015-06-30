@@ -357,6 +357,40 @@ class Foo5204 : IFoo5204
 }
 
 /*******************************************/
+// 6417
+
+class Bug6417
+{
+    void bar()
+    in
+    {
+        int i = 14;
+        assert(i == 14);
+        auto dg = (){
+            //printf("in: i = %d\n", i);
+            assert(i == 14, "in contract failure");
+        };
+        dg();
+    }
+    out
+    {
+        int j = 10;
+        assert(j == 10);
+        auto dg = (){
+            //printf("out: j = %d\n", j);
+            assert(j == 10, "out contract failure");
+        };
+        dg();
+    }
+    body {}
+}
+
+void test6417()
+{
+    (new Bug6417).bar();
+}
+
+/*******************************************/
 // 7218
 
 void test7218()
@@ -647,6 +681,7 @@ int main()
     test8();
     test9();
     test4785();
+    test6417();
     test7218();
     test8073();
     test8093();
