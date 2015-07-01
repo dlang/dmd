@@ -2226,20 +2226,10 @@ unittest
 private void _destructRecurse(S)(ref S s)
     if (is(S == struct))
 {
-    import core.internal.traits : hasElaborateDestructor;
-
-    static if (__traits(hasMember, S, "__dtor"))
-    {
-        // Bugzilla 14746: Check that it's the exact member of S.
-        static if (__traits(isSame, S, __traits(parent, s.__dtor)))
-            s.__dtor();
-    }
-
-    foreach_reverse (ref field; s.tupleof)
-    {
-        static if (hasElaborateDestructor!(typeof(field)))
-            _destructRecurse(field);
-    }
+    static if (__traits(hasMember, S, "__xdtor") &&
+               // Bugzilla 14746: Check that it's the exact member of S.
+               __traits(isSame, S, __traits(parent, s.__xdtor)))
+        s.__xdtor();
 }
 
 private void _destructRecurse(E, size_t n)(ref E[n] arr)
@@ -2253,32 +2243,14 @@ private void _destructRecurse(E, size_t n)(ref E[n] arr)
     }
 }
 
-private string _genFieldPostblit(S)()
-{
-    import core.internal.traits : hasElaborateCopyConstructor;
-
-    string code;
-    foreach(i, FieldType; typeof(S.init.tupleof))
-    {
-        static if(hasElaborateCopyConstructor!FieldType)
-        {
-            code ~= `
-                _postblitRecurse(s.tupleof[` ~ i.stringof ~ `]);
-                scope(failure) _destructRecurse(s.tupleof[` ~ i.stringof ~ `]);
-            `;
-        }
-    }
-    return code;
-}
-
 // Public and explicitly undocumented
 void _postblitRecurse(S)(ref S s)
     if (is(S == struct))
 {
-    mixin(_genFieldPostblit!S());
-
-    static if (__traits(hasMember, S, "__postblit"))
-        s.__postblit();
+    static if (__traits(hasMember, S, "__xpostblit") &&
+               // Bugzilla 14746: Check that it's the exact member of S.
+               __traits(isSame, S, __traits(parent, s.__xpostblit)))
+        s.__xpostblit();
 }
 
 // Ditto
@@ -2411,6 +2383,24 @@ unittest
     Owner o;
     assert(o.ptr is null);
     destroy(o);     // must not reach in HasDtor.__dtor()
+}
+
+unittest
+{
+    // Bugzilla 14746
+    static struct HasPostblit
+    {
+        this(this) { assert(0); }
+    }
+    static struct Owner
+    {
+        HasPostblit* ptr;
+        alias ptr this;
+    }
+
+    Owner o;
+    assert(o.ptr is null);
+    _postblitRecurse(o);     // must not reach in HasPostblit.__postblit()
 }
 
 // Test handling of fixed-length arrays
