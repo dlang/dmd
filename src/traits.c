@@ -1004,7 +1004,44 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 #endif
                     }
 
-                    idents->push(sm->ident);
+                    // Use the default identifier from the symbol.
+                    // Allows for customization identify for types if the default is not correct.
+                    Identifier* ident = sm->ident;
+
+                    // Checks to see if the symbol is an import.
+                    // Imports require package information to be added.
+                    // It is removed from the ident.
+                    Import* import = sm->isImport();
+                    if (import && import->packages != NULL)
+                    {
+                        OutBuffer moduleName;
+
+                        // Foreach package concactenate it onto the module name.
+                        for (size_t i = 0; i < import->packages->dim; i++)
+                        {
+                            // grab all package names and push them into the moduleName
+
+                            Identifier *id = (*(import->packages))[i];
+
+                            moduleName.writestring(id->toChars());
+                            moduleName.writestring(".");
+                        }
+
+                        // grab the module name itself and push into into the moduleName
+                        moduleName.writestring(import->id->toChars());
+
+                        // Changes the identifier to be the custom package included one.
+                        // Note: The value used (ident->value) is probably not required.
+                        ident = new Identifier(moduleName.extractString(), ident->value);
+                    }
+
+                    // Check to make sure the identifier is not empty.
+                    // Can cause extra allMembers member that is empty.
+                    if (strlen(ident->toChars()) > 0)
+                    {
+                        // Add on to the tuple returned with the current identifier.
+                        idents->push(ident);
+                    }
                 }
                 else
                 {
