@@ -1312,8 +1312,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             Type *tb = t->toBasetype();
             Type *typeb = e->type->toBasetype();
-            if (tb->ty == Tsarray && typeb->ty == Tarray &&
-                e->lwr && e->upr)
+            if (tb->ty == Tsarray && typeb->ty == Tarray)
             {
                 typeb = toStaticArrayType(e);
                 if (typeb)
@@ -2840,7 +2839,9 @@ Lagain:
     else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
              (m = t1->implicitConvTo(t2)) != MATCHnomatch)
     {
-        if (t1->ty == Tsarray && e2->op == TOKarrayliteral)
+        // Bugzilla 7285: Tsarray op [x, y, ...] should to be Tsarray
+        // Bugzilla 14737: Tsarray ~ [x, y, ...] should to be Tarray
+        if (t1->ty == Tsarray && e2->op == TOKarrayliteral && op != TOKcat)
             goto Lt1;
         if (m == MATCHconst &&
             (op == TOKaddass || op == TOKminass || op == TOKmulass ||
@@ -2856,7 +2857,8 @@ Lagain:
     }
     else if ((t2->ty == Tsarray || t2->ty == Tarray) && t2->implicitConvTo(t1))
     {
-        if (t2->ty == Tsarray && e1->op == TOKarrayliteral)
+        // Bugzilla 7285 & 14737
+        if (t2->ty == Tsarray && e1->op == TOKarrayliteral && op != TOKcat)
             goto Lt2;
         goto Lt1;
     }
