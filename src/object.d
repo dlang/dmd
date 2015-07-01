@@ -2229,7 +2229,11 @@ private void _destructRecurse(S)(ref S s)
     import core.internal.traits : hasElaborateDestructor;
 
     static if (__traits(hasMember, S, "__dtor"))
-        s.__dtor();
+    {
+        // Bugzilla 14746: Check that it's the exact member of S.
+        static if (__traits(isSame, S, __traits(parent, s.__dtor)))
+            s.__dtor();
+    }
 
     foreach_reverse (ref field; s.tupleof)
     {
@@ -2389,6 +2393,24 @@ nothrow @safe @nogc unittest
     S s;
     _destructRecurse(s);
     assert(i == 42);
+}
+
+unittest
+{
+    // Bugzilla 14746
+    static struct HasDtor
+    {
+        ~this() { assert(0); }
+    }
+    static struct Owner
+    {
+        HasDtor* ptr;
+        alias ptr this;
+    }
+
+    Owner o;
+    assert(o.ptr is null);
+    destroy(o);     // must not reach in HasDtor.__dtor()
 }
 
 // Test handling of fixed-length arrays
