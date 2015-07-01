@@ -402,6 +402,90 @@ void test7218()
 }
 
 /*******************************************/
+// 7517
+
+void test7517()
+{
+    static string result;
+
+    interface I
+    {
+        static I self;
+
+        void setEnable()
+        in
+        {
+            assert(self is this);
+            result ~= "I.setEnable.in/";
+            assert(!enabled);
+        }
+        out
+        {
+            assert(self is this);
+            result ~= "I.setEnable.out/";
+            assert( enabled);
+        }
+
+        void setDisable()
+        in
+        {
+            assert(self is this);
+            result ~= "I.setDisable.in/";
+            assert( enabled);
+        }
+        out
+        {
+            assert(self is this);
+            result ~= "I.setDisable.out/";
+            assert(!enabled);
+        }
+
+        @property bool enabled() const;
+    }
+
+    class C : I
+    {
+        static C self;
+
+        void setEnable()
+        in {}       // supply in-contract to invoke I.setEnable.in
+        body
+        {
+            assert(self is this);
+            result ~= "C.setEnable/";
+            _enabled = true;
+        }
+
+        void setDisable()
+        {
+            assert(self is this);
+            result ~= "C.setDisable/";
+            _enabled = false;
+        }
+
+        @property bool enabled() const
+        {
+            assert(self is this);
+            result ~= "C.enabled/";
+            return _enabled;
+        }
+
+        bool _enabled;
+    }
+
+    C c = C.self = new C;
+    I i = I.self = c;
+
+    result = null;
+    i.setEnable();
+    assert(result == "I.setEnable.in/C.enabled/C.setEnable/I.setEnable.out/C.enabled/");
+
+    result = null;
+    i.setDisable();
+    assert(result == "C.setDisable/I.setDisable.out/C.enabled/");
+}
+
+/*******************************************/
 // 7699
 
 class P7699
@@ -788,6 +872,7 @@ int main()
     test4785();
     test6417();
     test7218();
+    test7517();
     test8073();
     test8093();
     test9383();
