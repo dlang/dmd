@@ -3363,7 +3363,7 @@ elem *toElem(Expression *e, IRState *irs)
             if (tb1->ty != Tclass && tb1->ty != Tpointer)
                 e = addressElem(e, tb1);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v->offset));
-            if (ISREF(v, tyb))
+            if (v->isRef() || v->isOut())
                 e = el_una(OPind, TYptr, e);
             e = el_una(OPind, totym(dve->type), e);
             if (tybasic(e->Ety) == TYstruct)
