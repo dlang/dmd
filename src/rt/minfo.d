@@ -151,11 +151,16 @@ struct ModuleGroup
                              * because the import chain have contradicting ctor/dtor
                              * constraints.
                              */
-                            string msg = "Aborting: Cycle detected between modules with ctors/dtors:\n";
+                            string msg = "Aborting: Cycle detected between modules with ";
+                            if (mask & (MIctor | MIdtor))
+                                msg ~= "shared ";
+                            msg ~= "ctors/dtors:\n";
                             foreach (e; stack[start .. stackidx])
                             {
                                 msg ~= e.mod.name;
-                                msg ~= " -> ";
+                                if (e.mod.flags & mask)
+                                    msg ~= '*';
+                                msg ~= " ->\n";
                             }
                             msg ~= stack[start].mod.name;
                             free();
