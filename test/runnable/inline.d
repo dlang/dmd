@@ -584,6 +584,32 @@ void test14267()
 }
 
 /**********************************/
+// 13244
+
+struct MapResult13244(alias fun)
+{
+    int[] input;
+    @property front() { return fun(input[0]); }
+}
+
+int[] array13244(R)(R r)
+{
+    int[] a;
+    a ~= r.front;
+    return a;
+}
+
+void test13244()
+{
+    auto arr = [[cast(ubyte)1]];
+    foreach (ref x; arr)
+    {
+        auto m = MapResult13244!(c => x[c])([0]);
+        array13244(m);
+    }
+}
+
+/**********************************/
 // 14306
 
 struct MapResult(alias fun)
@@ -730,6 +756,7 @@ int main()
     test11322();
     test11394();
     test13503();
+    test13244();
     test14306();
     test14754();
     test14606();
