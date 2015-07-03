@@ -1442,23 +1442,15 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
     int sliced = 0;
     Type *tab;
     Type *att = NULL;
-    Expression *org_aggr = fes->aggr;
+    Expression *aggr = fes->aggr;
     AggregateDeclaration *ad;
 
     while (1)
     {
-        fes->aggr = fes->aggr->semantic(sc);
-        fes->aggr = resolveProperties(sc, fes->aggr);
-        fes->aggr = fes->aggr->optimize(WANTvalue);
-        if (!fes->aggr->type)
+        if (!aggr->type)
             goto Lerr;
 
-        tab = fes->aggr->type->toBasetype();
-        if (att == tab)
-        {
-            fes->aggr = org_aggr;
-            goto Lerr;
-        }
+        tab = aggr->type->toBasetype();
         switch (tab->ty)
         {
             case Tarray:
@@ -1491,7 +1483,7 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
                         rinit = rinit->trySemantic(sc);
                         if (rinit)                  // if application of [] succeeded
                         {
-                            fes->aggr = rinit;
+                            aggr = rinit;
                             sliced = 1;
                             continue;
                         }
@@ -1506,18 +1498,19 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 
                 if (ad->aliasthis)
                 {
+                    if (att == tab)
+                        goto Lerr;
                     if (!att && tab->checkAliasThisRec())
                         att = tab;
-                    fes->aggr = new DotIdExp(fes->aggr->loc, fes->aggr, ad->aliasthis->ident);
+                    aggr = resolveAliasThis(sc, aggr);
                     continue;
                 }
                 goto Lerr;
 
             case Tdelegate:
-                if (fes->aggr->op == TOKdelegate)
+                if (aggr->op == TOKdelegate)
                 {
-                    DelegateExp *de = (DelegateExp *)fes->aggr;
-                    sapply = de->func->isFuncDeclaration();
+                    sapply = ((DelegateExp *)aggr)->func;
                 }
                 break;
 
@@ -1529,6 +1522,7 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
         }
         break;
     }
+    fes->aggr = aggr;
     return true;
 
 Lerr:
