@@ -206,6 +206,14 @@ test/%/.run: test/%/Makefile
 	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) \
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) QUIET=$(QUIET) LINKDL=$(LINKDL)
 
+#################### test for undesired white spaces ##########################
+MAKEFILES = $(filter mak/% %.mak,$(MANIFEST))
+NOT_MAKEFILES = $(filter-out $(MAKEFILES),$(MANIFEST))
+
+checkwhitespace:
+	grep -n -e "[ \t]$$" -e "\r" $(MAKEFILES) ; test "$$?" -ne 0
+	grep -n -e " $$" -e "\r|\t" $(NOT_MAKEFILES) ; test "$$?" -ne 0
+	
 detab:
 	detab $(MANIFEST)
 	tolf $(MANIFEST)
@@ -231,7 +239,7 @@ test/%/.clean: test/%/Makefile
 	$(MAKE) -C test/$* clean
 
 .PHONY : auto-tester-build
-auto-tester-build: target
+auto-tester-build: target checkwhitespace
 
 .PHONY : auto-tester-test
 auto-tester-test: unittest
