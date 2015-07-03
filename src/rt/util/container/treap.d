@@ -32,7 +32,7 @@ nothrow:
         rand48.defaultSeed();
     }
 
-    void insert(E element) @nogc 
+    void insert(E element) @nogc
     {
         root = insert(root, element);
     }
@@ -110,7 +110,7 @@ private:
     Node* root;
     Rand48 rand48;
 
-    Node* allocNode(E element) @nogc 
+    Node* allocNode(E element) @nogc
     {
         Node* node = cast(Node*)common.xmalloc(Node.sizeof);
         node.left = node.right = null;
@@ -119,7 +119,7 @@ private:
         return node;
     }
 
-    Node* insert(Node* node, E element) @nogc 
+    Node* insert(Node* node, E element) @nogc
     {
         if (!node)
             return allocNode(element);

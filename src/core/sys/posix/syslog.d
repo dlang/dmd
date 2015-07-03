@@ -32,7 +32,7 @@ version(CRuntime_Glibc)
         LOG_INFO    = 6,   /* informational */
         LOG_DEBUG   = 7,   /* debug-level messages */
     };
-    
+
     //OPTIONS
     enum {
         LOG_PID    = 0x01,  /* log the pid with each message */
@@ -42,7 +42,7 @@ version(CRuntime_Glibc)
         LOG_NOWAIT = 0x10,  /* don't wait for console forks: DEPRECATED */
         LOG_PERROR = 0x20,  /* log to stderr as well */
     };
-    
+
     //FACILITY
     enum {
         LOG_KERN   = (0<<3),  /* kernel messages */
@@ -57,7 +57,7 @@ version(CRuntime_Glibc)
         LOG_CRON   = (9<<3),  /* clock daemon */
         LOG_AUTHPRIV = (10<<3), /* security/authorization messages (private), */
         LOG_FTP    =  (11<<3), /* ftp daemon */
-        
+
         /* other codes through 15 reserved for system use */
         LOG_LOCAL0 = (16<<3), /* reserved for local use */
         LOG_LOCAL1 = (17<<3), /* reserved for local use */
@@ -67,13 +67,13 @@ version(CRuntime_Glibc)
         LOG_LOCAL5 = (21<<3), /* reserved for local use */
         LOG_LOCAL6 = (22<<3), /* reserved for local use */
         LOG_LOCAL7 = (23<<3), /* reserved for local use */
-        
+
         LOG_NFACILITIES = 24,  /* current number of facilities */
     };
-    
+
     int LOG_MASK(int pri) { return 1 << pri; }        /* mask for one priority */
     int LOG_UPTO(int pri) { return (1 << (pri+1)) - 1; }  /* all priorities through pri */
-    
+
     void openlog (const char *, int __option, int __facility);
     int  setlogmask (int __mask);
     void syslog (int __pri, const char *__fmt, ...);
@@ -82,7 +82,7 @@ version(CRuntime_Glibc)
 else version( OSX )
 {
     //http://www.opensource.apple.com/source/xnu/xnu-1456.1.26/osfmk/sys/syslog.h
-    
+
     //PRIORITY
     enum {
         LOG_EMERG = 0,     /* system is unusable */
@@ -94,7 +94,7 @@ else version( OSX )
         LOG_INFO    = 6,   /* informational */
         LOG_DEBUG   = 7,   /* debug-level messages */
     };
-    
+
     //OPTIONS
     enum {
         LOG_PID    = 0x01,     /* log the pid with each message */
@@ -103,7 +103,7 @@ else version( OSX )
         LOG_NDELAY = 0x08,  /* don't delay open */
         LOG_NOWAIT = 0x10,  /* don't wait for console forks: DEPRECATED */
     };
-    
+
     //FACILITY
     enum {
         LOG_KERN   = (0<<3),  /* kernel messages */
@@ -115,7 +115,7 @@ else version( OSX )
         LOG_LPR    = (6<<3),  /* line printer subsystem */
         LOG_NEWS   = (7<<3),  /* network news subsystem */
         LOG_UUCP   = (8<<3),  /* UUCP subsystem */
-        
+
         /* other codes through 15 reserved for system use */
         LOG_LOCAL0 = (16<<3), /* reserved for local use */
         LOG_LOCAL1 = (17<<3), /* reserved for local use */
@@ -125,13 +125,13 @@ else version( OSX )
         LOG_LOCAL5 = (21<<3), /* reserved for local use */
         LOG_LOCAL6 = (22<<3), /* reserved for local use */
         LOG_LOCAL7 = (23<<3), /* reserved for local use */
-        
+
         LOG_NFACILITIES = 24,  /* current number of facilities */
     };
-    
+
     int LOG_MASK(int pri) { return 1 << pri; }        /* mask for one priority */
     int LOG_UPTO(int pri) { return (1 << (pri+1)) - 1; }  /* all priorities through pri */
-    
+
     void openlog (const char *, int __option, int __facility);
     int  setlogmask (int __mask);
     void syslog (int __pri, const char *__fmt, ...);
@@ -140,7 +140,7 @@ else version( OSX )
 else version( FreeBSD )
 {
     //http://fxr.watson.org/fxr/source/sys/syslog.h
-    
+
     //PRIORITY
     enum {
         LOG_EMERG = 0,     /* system is unusable */
@@ -152,7 +152,7 @@ else version( FreeBSD )
         LOG_INFO    = 6,   /* informational */
         LOG_DEBUG   = 7,   /* debug-level messages */
     };
-    
+
     //OPTIONS
     enum {
         LOG_PID    = 0x01,    /* log the pid with each message */
@@ -162,7 +162,7 @@ else version( FreeBSD )
         LOG_NOWAIT = 0x10,    /* don't wait for console forks: DEPRECATED */
         LOG_PERROR = 0x20,    /* log to stderr as well */
     };
-    
+
     //FACILITY
     enum {
         LOG_KERN   = (0<<3),  /* kernel messages */
@@ -180,7 +180,7 @@ else version( FreeBSD )
         LOG_NTP    = (12<<3), /* NTP subsystem */
         LOG_SECURITY = (13<<3), /* security subsystems (firewalling, etc.) */
         LOG_CONSOLE  = (14<<3), /* /dev/console output */
-  
+
         /* other codes through 15 reserved for system use */
         LOG_LOCAL0 = (16<<3), /* reserved for local use */
         LOG_LOCAL1 = (17<<3), /* reserved for local use */
@@ -190,13 +190,13 @@ else version( FreeBSD )
         LOG_LOCAL5 = (21<<3), /* reserved for local use */
         LOG_LOCAL6 = (22<<3), /* reserved for local use */
         LOG_LOCAL7 = (23<<3), /* reserved for local use */
-        
+
         LOG_NFACILITIES = 24,  /* current number of facilities */
     };
-    
+
     int LOG_MASK(int pri) { return 1 << pri; }        /* mask for one priority */
     int LOG_UPTO(int pri) { return (1 << (pri+1)) - 1; }  /* all priorities through pri */
-    
+
     void openlog (const char *, int __option, int __facility);
     int  setlogmask (int __mask);
     void syslog (int __pri, const char *__fmt, ...);
@@ -205,7 +205,7 @@ else version( FreeBSD )
 else version( Solaris )
 {
     //http://pubs.opengroup.org/onlinepubs/007904875/basedefs/syslog.h.html
-    
+
     //PRIORITY
     enum {
         LOG_EMERG = 0,     /* system is unusable */
@@ -217,7 +217,7 @@ else version( Solaris )
         LOG_INFO    = 6,   /* informational */
         LOG_DEBUG   = 7,   /* debug-level messages */
     };
-    
+
     //OPTIONS
     enum {
         LOG_PID = 0x01,     /* log the pid with each message */
@@ -225,7 +225,7 @@ else version( Solaris )
         LOG_NDELAY = 0x08,  /* don't delay open */
         LOG_NOWAIT = 0x10,  /* don't wait for console forks: DEPRECATED */
     };
-    
+
     //FACILITY
     enum {
         LOG_KERN   = (0<<3),  /* kernel messages */
@@ -240,7 +240,7 @@ else version( Solaris )
         LOG_CRON   = (9<<3),  /* clock daemon */
         LOG_AUTHPRIV = (10<<3), /* security/authorization messages (private), */
         LOG_FTP    =  (11<<3), /* ftp daemon */
-        
+
         /* other codes through 15 reserved for system use */
         LOG_LOCAL0 = (16<<3), /* reserved for local use */
         LOG_LOCAL1 = (17<<3), /* reserved for local use */
@@ -250,13 +250,13 @@ else version( Solaris )
         LOG_LOCAL5 = (21<<3), /* reserved for local use */
         LOG_LOCAL6 = (22<<3), /* reserved for local use */
         LOG_LOCAL7 = (23<<3), /* reserved for local use */
-        
+
         LOG_NFACILITIES = 24,  /* current number of facilities */
     };
-    
+
     int LOG_MASK(int pri) { return 1 << pri; }        /* mask for one priority */
     int LOG_UPTO(int pri) { return (1 << (pri+1)) - 1; }  /* all priorities through pri */
-    
+
     void openlog (const char *, int __option, int __facility);
     int  setlogmask (int __mask);
     void syslog (int __pri, const char *__fmt, ...);

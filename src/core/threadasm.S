@@ -391,7 +391,7 @@ fiber_switchContext:
  * r13 =sp : stack pointer
  * r14 =lr : link register, it contains the return address (belonging to the function which called us)
  * r15 =pc : program counter
- * 
+ *
  * For floating point registers:
  * According to AAPCS (version 2.09, section 5.1.2) only the d8-d15 registers need to be preserved
  * across method calls. This applies to all ARM FPU variants, whether they have 16 or 32 double registers
