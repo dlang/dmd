@@ -211,8 +211,8 @@ MAKEFILES = $(filter mak/% %.mak,$(MANIFEST))
 NOT_MAKEFILES = $(filter-out $(MAKEFILES),$(MANIFEST))
 
 checkwhitespace:
-	grep -n -e "[ \t]$$" -e "\r" $(MAKEFILES) ; test "$$?" -ne 0
-	grep -n -e " $$" -e "\r|\t" $(NOT_MAKEFILES) ; test "$$?" -ne 0
+	grep -n -U -e "[ \t]$$" -e "\r" $(MAKEFILES) ; test "$$?" -ne 0
+	grep -n -U -e " $$" -e "\r|\t" $(NOT_MAKEFILES) ; test "$$?" -ne 0
 	
 detab:
 	detab $(MANIFEST)
