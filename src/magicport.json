@@ -1951,6 +1951,8 @@
                 "core.stdc.ctype",
                 "core.stdc.string",
                 "doc",
+                "errors",
+                "globals",
                 "root.outbuffer",
                 "root.rmem",
                 "utf"

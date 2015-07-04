@@ -18,6 +18,7 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include "errors.h"
 #include "rmem.h"
 #include "root.h"
 
@@ -232,9 +233,15 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
     printf("Buf is: '%.*s'\n", *pend - start, buf->data + start);
 #endif
 
+    // limit recursive expansion
     static int nest;
-    if (nest > 1000)            // limit recursive expansion
+    static const int nestLimit = 1000;
+    if (nest > nestLimit)
+    {
+        error(Loc(), "DDoc macro expansion limit exceeded; more than %d "
+            "expansions.", nestLimit);
         return;
+    }
     nest++;
 
     size_t end = *pend;
