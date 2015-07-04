@@ -233,7 +233,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
 #endif
 
     static int nest;
-    if (nest > 100)             // limit recursive expansion
+    if (nest > 1000)            // limit recursive expansion
         return;
     nest++;
 
