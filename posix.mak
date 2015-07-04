@@ -207,12 +207,13 @@ test/%/.run: test/%/Makefile
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) QUIET=$(QUIET) LINKDL=$(LINKDL)
 
 #################### test for undesired white spaces ##########################
-MAKEFILES = $(filter mak/% %.mak,$(MANIFEST))
-NOT_MAKEFILES = $(filter-out $(MAKEFILES),$(MANIFEST))
+CWS_MAKEFILES = $(filter mak/% %.mak,$(MANIFEST))
+NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES),$(MANIFEST))
+GREP = grep
 
 checkwhitespace:
-	grep -n -P "([ \t]$$|\r)" $(MAKEFILES) ; test "$$?" -ne 0
-	grep -n -P "( $$|\r\t)" $(NOT_MAKEFILES) ; test "$$?" -ne 0
+	$(GREP) -n -U -P "([ \t]$$|\r)" $(CWS_MAKEFILES) ; test "$$?" -ne 0
+	$(GREP) -n -U -P "( $$|\r\t)" $(NOT_MAKEFILES) ; test "$$?" -ne 0
 
 detab:
 	detab $(MANIFEST)
