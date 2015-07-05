@@ -594,9 +594,6 @@ public:
 
     unsigned flags;                     // FUNCFLAGxxxxx
 
-    // toObjFile() these nested functions after this one
-    FuncDeclarations deferredNested;
-
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
@@ -839,6 +836,9 @@ class UnitTestDeclaration : public FuncDeclaration
 {
 public:
     char *codedoc; /** For documented unittest. */
+
+    // toObjFile() these nested functions after this one
+    FuncDeclarations deferredNested;
 
     UnitTestDeclaration(Loc loc, Loc endloc, StorageClass stc, char *codedoc);
     Dsymbol *syntaxCopy(Dsymbol *);

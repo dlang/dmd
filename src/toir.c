@@ -633,6 +633,61 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
     return einit;
 }
 
+void setClosureVarOffset(FuncDeclaration *fd)
+{
+    if (fd->needsClosure())
+    {
+        unsigned offset = Target::ptrsize;      // leave room for previous sthis
+
+        for (size_t i = 0; i < fd->closureVars.dim; i++)
+        {
+            VarDeclaration *v = fd->closureVars[i];
+
+            /* Align and allocate space for v in the closure
+             * just like AggregateDeclaration::addField() does.
+             */
+            unsigned memsize;
+            unsigned memalignsize;
+            structalign_t xalign;
+            if (v->storage_class & STClazy)
+            {
+                /* Lazy variables are really delegates,
+                 * so give same answers that TypeDelegate would
+                 */
+                memsize = Target::ptrsize * 2;
+                memalignsize = memsize;
+                xalign = STRUCTALIGN_DEFAULT;
+            }
+            else if (v->storage_class & (STCout | STCref))
+            {
+                // reference parameters are just pointers
+                memsize = Target::ptrsize;
+                memalignsize = memsize;
+                xalign = STRUCTALIGN_DEFAULT;
+            }
+            else
+            {
+                memsize = v->type->size();
+                memalignsize = v->type->alignsize();
+                xalign = v->alignment;
+            }
+            AggregateDeclaration::alignmember(xalign, memalignsize, &offset);
+            v->offset = offset;
+            //printf("closure var %s, offset = %d\n", v->toChars(), v->offset);
+
+            offset += memsize;
+
+            /* Can't do nrvo if the variable is put in a closure, since
+             * what the shidden points to may no longer exist.
+             */
+            if (fd->nrvo_can && fd->nrvo_var == v)
+            {
+                fd->nrvo_can = 0;
+            }
+        }
+    }
+}
+
 /*************************************
  * Closures are implemented by taking the local variables that
  * need to survive the scope of the function, and copying them
@@ -656,6 +711,8 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
 {
     if (fd->needsClosure())
     {
+        setClosureVarOffset(fd);
+
         // Generate closure on the heap
         // BUG: doesn't capture variadic arguments passed to this function
 
@@ -691,11 +748,26 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
         irs->sclosure = sclosure;
 
         assert(fd->closureVars.dim);
-        assert(fd->closureVars[0]->offset >= Target::ptrsize);  // leave room for previous sthis
+        assert(fd->closureVars[0]->offset >= Target::ptrsize);
         for (size_t i = 0; i < fd->closureVars.dim; i++)
         {
             VarDeclaration *v = fd->closureVars[i];
             //printf("closure var %s\n", v->toChars());
+
+            if (v->needsAutoDtor())
+            {
+                /* Because the value needs to survive the end of the scope!
+                 */
+                v->error("has scoped destruction, cannot build closure");
+            }
+            if (v->isargptr)
+            {
+                /* See Bugzilla 2479
+                 * This is actually a bug, but better to produce a nice
+                 * message at compile time rather than memory corruption at runtime
+                 */
+                v->error("cannot reference variadic arguments from closure");
+            }
 
             /* Set Sscope to closure */
             Symbol *vsym = toSymbol(v);
