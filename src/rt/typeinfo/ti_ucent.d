@@ -52,6 +52,11 @@ class TypeInfo_zk : TypeInfo
         return ucent.sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. ucent.sizeof];
+    }
+
     override void swap(void *p1, void *p2)
     {
         ucent t;

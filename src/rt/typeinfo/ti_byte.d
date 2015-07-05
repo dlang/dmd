@@ -44,6 +44,11 @@ class TypeInfo_g : TypeInfo
         return byte.sizeof;
     }
 
+    override const(void)[] init() @trusted
+    {
+        return (cast(void *)null)[0 .. byte.sizeof];
+    }
+
     override void swap(void *p1, void *p2)
     {
         byte t;

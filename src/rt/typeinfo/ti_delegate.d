@@ -50,6 +50,13 @@ class TypeInfo_D : TypeInfo
         *cast(dg *)p2 = t;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        static immutable dg d;
+
+        return (cast(void *)null)[0 .. dg.sizeof];
+    }
+
     override @property uint flags() nothrow pure
     {
         return 1;

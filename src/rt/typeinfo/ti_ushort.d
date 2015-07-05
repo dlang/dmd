@@ -44,6 +44,11 @@ class TypeInfo_t : TypeInfo
         return ushort.sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. ushort.sizeof];
+    }
+
     override void swap(void *p1, void *p2)
     {
         ushort t;
