@@ -48,6 +48,11 @@ class TypeInfo_k : TypeInfo
         return uint.sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. uint.sizeof];
+    }
+
     override void swap(void *p1, void *p2)
     {
         int t;

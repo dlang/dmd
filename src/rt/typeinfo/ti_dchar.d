@@ -53,10 +53,10 @@ class TypeInfo_w : TypeInfo
         *cast(dchar *)p2 = t;
     }
 
-    override const(void)[] init() nothrow pure
+    override const(void)[] init() const @trusted
     {
         static immutable dchar c;
 
-        return (cast(dchar *)&c)[0 .. 1];
+        return (&c)[0 .. 1];
     }
 }

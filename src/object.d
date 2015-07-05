@@ -285,8 +285,7 @@ class TypeInfo
 
     /// Return default initializer.  If the type should be initialized to all zeros,
     /// an array with a null ptr and a length equal to the type size will be returned.
-    // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
-    const(void)[] init() nothrow pure const @safe @nogc { return null; }
+    abstract const(void)[] init() nothrow pure const @safe @nogc;
 
     /// Get flags for type: 1 means GC should scan for pointers,
     /// 2 means arg of this type is passed in XMM register
@@ -338,7 +337,7 @@ class TypeInfo_Typedef : TypeInfo
 
     override @property inout(TypeInfo) next() nothrow pure inout { return base.next; }
     override @property uint flags() nothrow pure const { return base.flags; }
-    override const(void)[] init() nothrow pure const @safe { return m_init.length ? m_init : base.init(); }
+    override const(void)[] init() const { return m_init.length ? m_init : base.init(); }
 
     override @property size_t talign() nothrow pure const { return base.talign; }
 
@@ -464,6 +463,11 @@ class TypeInfo_Array : TypeInfo
     override @property size_t tsize() nothrow pure const
     {
         return (void[]).sizeof;
+    }
+
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. (void[]).sizeof];
     }
 
     override void swap(void* p1, void* p2) const
