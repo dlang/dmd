@@ -731,14 +731,6 @@ Scope *PragmaDeclaration::newScope(Scope *sc)
                 inlining = PINLINEnever;
         }
 
-        if (decl)
-        {
-            for (size_t i = 0; i < decl->dim; i++)
-            {
-                Dsymbol *s = (*decl)[i];
-                s->semantic(sc);
-            }
-        }
         return createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign, inlining);
     }
     return sc;
@@ -991,11 +983,13 @@ void PragmaDeclaration::semantic(Scope *sc)
 Ldecl:
     if (decl)
     {
+        Scope *sc2 = newScope(sc);
+
         for (size_t i = 0; i < decl->dim; i++)
         {
             Dsymbol *s = (*decl)[i];
 
-            s->semantic(sc);
+            s->semantic(sc2);
 
             if (ident == Id::mangle)
             {
@@ -1012,6 +1006,9 @@ Ldecl:
                 }
             }
         }
+
+        if (sc2 != sc)
+            sc2->pop();
     }
     return;
 
