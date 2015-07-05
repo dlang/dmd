@@ -4067,7 +4067,8 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             if (mulu(tbn->size(loc), d2, overflow) >= 0x1000000 || overflow) // put a 'reasonable' limit on it
             {
               Loverflow:
-                error(loc, "index %llu overflow for static array", (unsigned long long)d1);
+                error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array",
+                    toChars(), (unsigned long long)tbn->size(loc), (unsigned long long)d1);
                 goto Lerror;
             }
         }
