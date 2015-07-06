@@ -212,8 +212,11 @@ NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES),$(MANIFEST))
 GREP = grep
 
 checkwhitespace:
+# restrict to linux, other platforms don't have a version of grep that supports -P
+ifeq (linux,$(OS))
 	$(GREP) -n -U -P "([ \t]$$|\r)" $(CWS_MAKEFILES) ; test "$$?" -ne 0
 	$(GREP) -n -U -P "( $$|\r|\t)" $(NOT_MAKEFILES) ; test "$$?" -ne 0
+endif
 
 detab:
 	detab $(MANIFEST)
