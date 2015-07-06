@@ -130,7 +130,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
         /* Going down one nesting level, i.e. we're calling
          * a nested function from its enclosing function.
          */
-        if (irs->sclosure)
+        if (irs->sclosure && !(fd->ident == Id::require || fd->ident == Id::ensure))
         {
             ethis = el_var(irs->sclosure);
         }
