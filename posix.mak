@@ -132,7 +132,7 @@ $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 import: $(IMPORTS)
 
 $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
-	@mkdir -p `dirname $@`
+	@mkdir -p $(dir $@)
 	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $<
 
 ######################## Header .di file copy ##############################
@@ -140,30 +140,30 @@ $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 copy: $(COPY)
 
 $(IMPDIR)/object.d : src/object.d
-	@mkdir -p `dirname $@`
+	@mkdir -p $(dir $@)
 	@rm -f $(IMPDIR)/object.di
 	cp $< $@
 
 $(IMPDIR)/%.di : src/%.di
-	@mkdir -p `dirname $@`
+	@mkdir -p $(dir $@)
 	cp $< $@
 
 $(IMPDIR)/%.d : src/%.d
-	@mkdir -p `dirname $@`
+	@mkdir -p $(dir $@)
 	cp $< $@
 
 ################### C/ASM Targets ############################
 
 $(ROOT)/%.o : src/rt/%.c
-	@mkdir -p `dirname $@`
+	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(ROOT)/errno_c.o : src/core/stdc/errno.c
-	@mkdir -p `dirname $@`
+	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(ROOT)/threadasm.o : src/core/threadasm.S
-	@mkdir -p $(OBJDIR)
+	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
 ######################## Create a shared library ##############################
