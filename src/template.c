@@ -7861,10 +7861,10 @@ bool TemplateInstance::needsCodegen()
         global.params.allInst ||
         global.params.debuglevel)
     {
-        //printf("%s minst = %s, enclosing in nonRoot = %d\n",
+        //printf("%s minst = %s, enclosing (%s)->isNonRoot = %d\n",
         //    toPrettyChars(), minst ? minst->toChars() : NULL,
-        //    enclosing && enclosing->inNonRoot());
-        if (enclosing)
+        //    enclosing ? enclosing->toPrettyChars() : NULL, enclosing && enclosing->inNonRoot());
+        if (enclosing && !tinst)
         {
             // Bugzilla 13415: If and only if the enclosing scope needs codegen,
             // the nested templates would need code generation.
