@@ -241,7 +241,7 @@ $(ROOT)/unittest/% : $(ROOT)/unittest/test_runner
 # succeeded, render the file new again
 	@touch $@
 
-test/init_fini/.run test/exceptions/.run: $(DRUNTIME)
+$(addsuffix /.run,$(filter-out test/shared,$(ADDITIONAL_TESTS))): $(DRUNTIME)
 test/shared/.run: $(DRUNTIMESO)
 
 test/%/.run: test/%/Makefile
