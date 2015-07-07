@@ -1034,6 +1034,7 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
     //printf("arrayExpressionToCommonType()\n");
     scope IntegerExp integerexp = new IntegerExp(0);
     scope CondExp condexp = new CondExp(Loc(), integerexp, null, null);
+
     Type t0 = null;
     Expression e0 = null;
     size_t j0 = ~0;
@@ -1063,7 +1064,7 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
             continue;
         }
 
-        e = e.isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
+        e = doCopyOrMove(sc, e);
 
         if (t0 && !t0.equals(e.type))
         {
@@ -1089,6 +1090,7 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
         if (e.op != TOKerror)
             (*exps)[i] = e;
     }
+
     if (!t0)
         t0 = Type.tvoid; // [] is typed as void[]
     else if (t0.ty != Terror)
@@ -1115,6 +1117,7 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
     }
     if (pt)
         *pt = t0;
+
     return (t0 == Type.terror);
 }
 
@@ -1272,6 +1275,24 @@ extern (C++) Expression callCpCtor(Scope* sc, Expression e)
             ve.type = e.type;
             e = Expression.combine(de, ve);
         }
+    }
+    return e;
+}
+
+/************************************************
+ * Handle the postblit call on lvalue, or the move of rvalue.
+ */
+extern (C++) Expression doCopyOrMove(Scope *sc, Expression e)
+{
+    if (e.op == TOKquestion)
+    {
+        auto ce = cast(CondExp)e;
+        ce.e1 = doCopyOrMove(sc, ce.e1);
+        ce.e2 = doCopyOrMove(sc, ce.e2);
+    }
+    else
+    {
+        e = e.isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
     }
     return e;
 }
@@ -1562,12 +1583,9 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 else
                     arg = toDelegate(arg, arg.type, sc);
             }
-            else
-            {
-                //                arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
-            }
             //printf("arg: %s\n", arg->toChars());
             //printf("type: %s\n", arg->type->toChars());
+
             /* Look for arguments that cannot 'escape' from the called
              * function.
              */
@@ -1678,6 +1696,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         }
         (*arguments)[i] = arg;
     }
+
     /* Remaining problems:
      * 1. order of evaluation - some function push L-to-R, others R-to-L. Until we resolve what array assignment does (which is
      *    implemented by calling a function) we'll defer this for now.
@@ -1827,13 +1846,14 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                  */
                 Type tv = arg.type.baseElemOf();
                 if (!isRef && tv.ty == Tstruct)
-                    arg = arg.isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
+                    arg = doCopyOrMove(sc, arg);
             }
 
             (*arguments)[i] = arg;
         }
     }
     //if (eprefix) printf("eprefix: %s\n", eprefix->toChars());
+
     // If D linkage and variadic, add _arguments[] as first argument
     if (tf.linkage == LINKd && tf.varargs == 1)
     {
@@ -12955,10 +12975,12 @@ public:
     {
         if (type)
             return this;
+
         //printf("CatAssignExp::semantic() %s\n", toChars());
         Expression e = op_overload(sc);
         if (e)
             return e;
+
         if (e1.op == TOKslice)
         {
             SliceExp se = cast(SliceExp)e1;
@@ -12968,17 +12990,25 @@ public:
                 return new ErrorExp();
             }
         }
+
         e1 = e1.modifiableLvalue(sc, e1);
         if (e1.op == TOKerror)
             return e1;
         if (e2.op == TOKerror)
             return e2;
+
         if (checkNonAssignmentArrayOp(e2))
             return new ErrorExp();
+
         Type tb1 = e1.type.toBasetype();
         Type tb1next = tb1.nextOf();
         Type tb2 = e2.type.toBasetype();
-        if ((tb1.ty == Tarray) && (tb2.ty == Tarray || tb2.ty == Tsarray) && (e2.implicitConvTo(e1.type) || (tb2.nextOf().implicitConvTo(tb1next) && (tb2.nextOf().size(Loc()) == tb1next.size(Loc())))))
+
+        if ((tb1.ty == Tarray) &&
+            (tb2.ty == Tarray || tb2.ty == Tsarray) &&
+            (e2.implicitConvTo(e1.type) ||
+             (tb2.nextOf().implicitConvTo(tb1next) &&
+              (tb2.nextOf().size(Loc()) == tb1next.size(Loc())))))
         {
             // Append array
             if (e1.checkPostblit(sc, tb1next))
@@ -12991,12 +13021,16 @@ public:
             if (e2.checkPostblit(sc, tb2))
                 return new ErrorExp();
             e2 = e2.castTo(sc, tb1next);
-            e2 = e2.isLvalue() ? callCpCtor(sc, e2) : valueNoDtor(e2);
+            e2 = doCopyOrMove(sc, e2);
         }
-        else if (tb1.ty == Tarray && (tb1next.ty == Tchar || tb1next.ty == Twchar) && e2.type.ty != tb1next.ty && e2.implicitConvTo(Type.tdchar))
+        else if (tb1.ty == Tarray &&
+                 (tb1next.ty == Tchar || tb1next.ty == Twchar) &&
+                 e2.type.ty != tb1next.ty &&
+                 e2.implicitConvTo(Type.tdchar))
         {
             // Append dchar to char[] or wchar[]
             e2 = e2.castTo(sc, Type.tdchar);
+
             /* Do not allow appending wchar to char[] because if wchar happens
              * to be a surrogate pair, nothing good can result.
              */
@@ -13008,6 +13042,7 @@ public:
         }
         if (e2.checkValue())
             return new ErrorExp();
+
         type = e1.type;
         return reorderSettingAAElem(sc);
     }
@@ -13291,9 +13326,9 @@ public:
         {
             if (e1.op == TOKarrayliteral)
             {
-                e2 = e2.isLvalue() ? callCpCtor(sc, e2) : valueNoDtor(e2);
+                e2 = doCopyOrMove(sc, e2);
                 // Bugzilla 14686: Postblit call appears in AST, and this is
-                // finally translated  to an ArrayLiteralExp in below otpimize().
+                // finally translated  to an ArrayLiteralExp in below optimize().
             }
             else if (e1.op == TOKstring)
             {
@@ -13331,7 +13366,7 @@ public:
         {
             if (e2.op == TOKarrayliteral)
             {
-                e1 = e1.isLvalue() ? callCpCtor(sc, e1) : valueNoDtor(e1);
+                e1 = doCopyOrMove(sc, e1);
             }
             else if (e2.op == TOKstring)
             {
