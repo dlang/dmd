@@ -273,9 +273,6 @@ druntime.zip: $(MANIFEST) $(IMPORTS)
 install: target
 	mkdir -p $(INSTALL_DIR)/src/druntime/import
 	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
-	$(eval lib_dir=$(if $(filter $(OS),osx), lib, lib$(MODEL)))
-	mkdir -p $(INSTALL_DIR)/$(OS)/$(lib_dir)
-	cp -r lib/* $(INSTALL_DIR)/$(OS)/$(lib_dir)/
 	cp LICENSE $(INSTALL_DIR)/druntime-LICENSE.txt
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
