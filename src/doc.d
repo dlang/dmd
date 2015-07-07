@@ -867,8 +867,15 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             {
                 if (!d.ident)
                     return;
-                if (!d.type && !d.isCtorDeclaration() && !d.isAliasDeclaration())
-                    return;
+                if (!d.type)
+                {
+                    if (!d.isCtorDeclaration() &&
+                        !d.isAliasDeclaration() &&
+                        !d.isVarDeclaration())
+                    {
+                        return;
+                    }
+                }
                 if (d.protection.kind == PROTprivate || sc.protection.kind == PROTprivate)
                     return;
             }
@@ -1043,16 +1050,31 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                     buf.writestring("final ");
                 else if (d.isAbstract())
                     buf.writestring("abstract ");
-                if (!d.isFuncDeclaration()) // functionToBufferFull handles this
+
+                if (d.isFuncDeclaration())      // functionToBufferFull handles this
+                    return;
+
+                if (d.isImmutable())
+                    buf.writestring("immutable ");
+                if (d.storage_class & STCshared)
+                    buf.writestring("shared ");
+                if (d.isWild())
+                    buf.writestring("inout ");
+                if (d.isConst())
+                    buf.writestring("const ");
+
+                if (d.isSynchronized())
+                    buf.writestring("synchronized ");
+
+                if (d.storage_class & STCmanifest)
+                    buf.writestring("enum ");
+
+                // Add "auto" for the untyped variable in template members
+                if (!d.type && d.isVarDeclaration() &&
+                    !d.isImmutable() && !(d.storage_class & STCshared) && !d.isWild() && !d.isConst() &&
+                    !d.isSynchronized())
                 {
-                    if (d.isConst())
-                        buf.writestring("const ");
-                    if (d.isImmutable())
-                        buf.writestring("immutable ");
-                    if (d.isSynchronized())
-                        buf.writestring("synchronized ");
-                    if (d.storage_class & STCmanifest)
-                        buf.writestring("enum ");
+                    buf.writestring("auto ");
                 }
             }
         }
