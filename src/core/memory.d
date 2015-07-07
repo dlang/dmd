@@ -7,6 +7,34 @@
  * Using this module is not necessary in typical D code. It is mostly
  * useful when doing low-level _memory management.
  *
+ * Notes_to_users:
+ *
+   $(OL
+   $(LI The GC is a conservative mark-and-sweep collector. It only runs a
+        collection cycle when an allocation is requested of it, never
+        otherwise. Hence, if the program is not doing allocations,
+        there will be no GC collection pauses. The pauses occur because
+        all threads the GC knows about are halted so the threads' stacks
+        and registers can be scanned for references to GC allocated data.
+   )
+   $(LI If there are threads that the GC does not know about, i.e. the threads
+        were created by calling the operating system thread creation APIs
+        directly, or the C runtime thread creation APIs directly, and those
+        threads hold references to GC allocated data, then the GC will not detect
+        those references and may free the data. This will cause memory corruption.
+        There are several ways to resolve this issue:
+        $(OL
+        $(LI Do not hold references to GC allocated data in such threads.)
+        $(LI Register/unregister such data with calls to $(LREF addRoot)/$(LREF removeRoot) and
+        $(LREF addRange)/$(LREF removeRange).)
+        $(LI Maintain another reference to that same data in another thread that the
+        GC does know about.)
+        $(LI Disable GC collection cycles while that thread is active with $(LREF disable)/$(LREF enable).)
+        $(LI Register the thread with the GC using $(CXREF thread, thread_attachThis)/$(CXREF thread, thread_detachThis).)
+        )
+   )
+   )
+ *
  * Notes_to_implementors:
  * $(UL
  * $(LI On POSIX systems, the signals SIGUSR1 and SIGUSR2 are reserved
@@ -67,17 +95,12 @@
  *   happens and there is insufficient _memory available.)
  * )
  *
- * Copyright: Copyright Sean Kelly 2005 - 2009.
+ * Copyright: Copyright Sean Kelly 2005 - 2015.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Sean Kelly, Alex Rønne Petersen
  * Source:    $(DRUNTIMESRC core/_memory.d)
  */
 
-/*          Copyright Sean Kelly 2005 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module core.memory;
 
 
