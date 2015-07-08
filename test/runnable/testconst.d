@@ -2677,6 +2677,25 @@ void test11966()
 }
 
 /************************************/
+// 14788
+
+auto make14788(K, V)(inout V[K] aa)
+{
+    static struct Result
+    {
+        V[K] aa;
+        ref front() inout { return aa[1]; }
+    }
+    return inout Result(aa);
+}
+
+void test14788()
+{
+    int[int] aa = [1:1];
+    make14788(aa).front();
+}
+
+/************************************/
 // 12089
 
 void foo12089(inout(char[]) a)

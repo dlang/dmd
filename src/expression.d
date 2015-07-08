@@ -1486,21 +1486,26 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
              *   S().bar() = 1;      // bad!
              * }
              */
-            FuncDeclaration f;
-            if (AggregateDeclaration ad = fd.isThis())
+            Dsymbol s = null;
+            if (fd.isThis() || fd.isNested())
+                s = fd.toParent2();
+            for (; s; s = s.toParent2())
             {
-                f = ad.toParent2().isFuncDeclaration();
-                goto Linoutnest;
-            }
-            else if (fd.isNested())
-            {
-                f = fd.toParent2().isFuncDeclaration();
-            Linoutnest:
-                for (; f; f = f.toParent2().isFuncDeclaration())
+                if (auto ad = s.isAggregateDeclaration())
                 {
-                    if ((cast(TypeFunction)f.type).iswild)
-                        goto Linouterr;
+                    if (ad.isNested())
+                        continue;
+                    break;
                 }
+                if (auto ff = s.isFuncDeclaration())
+                {
+                    if ((cast(TypeFunction)ff.type).iswild)
+                        goto Linouterr;
+
+                    if (ff.isNested() || ff.isThis())
+                        continue;
+                }
+                break;
             }
         }
         else if (tf.isWild())
