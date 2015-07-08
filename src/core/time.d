@@ -4832,13 +4832,9 @@ string numToString(double value) @safe pure nothrow
     result ~= '.';
     result ~= numToString(cast(long)(_abs((value - cast(long)value) * 1000000)));
 
-    int i = cast(int)result.length - 1;
-    for (; i >= 0; --i)
-    {
-        if(result[i] != '0')
-            break;
-    }
-    return result[0 .. (i > 0 ? i - 1 : 0)];
+    while (result[$-1] == '0')
+        result = result[0 .. $-1];
+    return result;
 }
 
 unittest
