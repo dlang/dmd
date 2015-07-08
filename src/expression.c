@@ -2515,15 +2515,6 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
          */
 
         Dsymbol *vparent = v->toParent2();
-        if (FuncDeclaration *fdp = vparent->isFuncDeclaration())
-        {
-            if (!sc->func->isPureBypassingInference() && fdp->setImpure())
-            {
-                error("impure function '%s' cannot access variable '%s' declared in enclosing pure function '%s'",
-                    sc->func->toChars(), v->toChars(), fdp->toPrettyChars());
-                err = true;
-            }
-        }
         for (Dsymbol *s = sc->func; !err && s; s = s->toParent2())
         {
             if (s == vparent)
