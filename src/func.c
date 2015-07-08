@@ -4367,14 +4367,14 @@ bool FuncDeclaration::hasNestedFrameRefs()
     if (closureVars.dim)
         return true;
 
-    /* If a virtual method has contracts, assume its variables are referenced
+    /* If a virtual function has contracts, assume its variables are referenced
      * by those contracts, even if they aren't. Because they might be referenced
      * by the overridden or overriding function's contracts.
      * This can happen because frequire and fensure are implemented as nested functions,
      * and they can be called directly by an overriding function and the overriding function's
-     * context had better match, or Bugzilla 7337 will bite.
+     * context had better match, or Bugzilla 7335 will bite.
      */
-    if ((fdrequire || fdensure) && isVirtualMethod())
+    if (fdrequire || fdensure)
         return true;
 
     if (foverrides.dim && isVirtualMethod())
