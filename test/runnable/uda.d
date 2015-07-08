@@ -467,6 +467,94 @@ static assert(__traits(getAttributes, FileData11844.member)[0](new FileData11844
 
 /************************************************/
 
+template TypeTuple(T...)
+{
+    alias TypeTuple = T;
+}
+
+template ParameterUDA(size_t p_num, func...)
+    if (func.length == 1 && is(typeof(func[0]) PT == __parameters) && PT.length > p_num)
+{
+    static if (is(typeof(func[0]) PT == __parameters))
+    {
+        template Get(size_t i)
+        {
+            static if (//!isFunctionPointer!func && !isDelegate!func
+                       // Parameters without UDA may yield CT error.
+                       /*&&*/ is(typeof(__traits(getAttributes, PT[i..i+1]))x))
+            {
+                alias Get = TypeTuple!(__traits(getAttributes, PT[i..i+1]));
+            }
+            else
+            {
+                alias Get = TypeTuple!();
+            }
+        }
+    }
+    else
+    {
+        static assert(0, func[0].stringof ~ "is not a function");
+
+        // Define dummy entities to avoid pointless errors
+        template Get(size_t i) { alias Get = TypeTuple!(); }
+        alias PT = TypeTuple!();
+    }
+
+    alias ParameterUDA = Get!p_num;
+}
+
+void test13x(@(10) int a, @(20) int, @(30) @(40) int[] arr...) {}
+
+void test13()
+{
+    static assert([ParameterUDA!(0, test13x)] == [10]);
+    static assert([ParameterUDA!(1, test13x)] == [20]);
+    static assert([ParameterUDA!(2, test13x)] == [30, 40]);
+}
+
+template Test13t(F)
+{
+    static assert(!__traits(compiles, ParameterUDA!(0, F)));
+    static assert(!__traits(compiles, ParameterUDA!(1, F)));
+    static assert(!__traits(compiles, ParameterUDA!(2, F)));
+    enum Test13t = true;
+}
+
+alias test13t = Test13t!(typeof(test13x));
+
+enum Test14UDA1;
+
+struct Test14UDA2
+{
+    string str;
+}
+
+Test14UDA2 test14uda3(string name)
+{
+    return Test14UDA2(name);
+}
+
+struct Test14UDA4(string v)
+{
+}
+
+void test14x(@Test14UDA1 int, @Test14UDA2("1") int, @test14uda3("2") int, @Test14UDA4!"3" int) {}
+void test14()
+{
+    static assert(is(ParameterUDA!(0, test14x)[0] == Test14UDA1));
+    static assert(ParameterUDA!(1, test14x)[0] == Test14UDA2("1"));
+    static assert(ParameterUDA!(2, test14x)[0] == test14uda3("2"));
+    static assert(is(ParameterUDA!(3, test14x)[0] == Test14UDA4!"3"));
+}
+
+void test15x(@(20) void delegate(int) @safe dg)
+{
+    static assert([__traits(getAttributes, dg)] == [20]);
+    static assert(is(typeof(dg) == void delegate(int) @safe));
+}
+
+/************************************************/
+
 int main()
 {
     test1();
@@ -482,6 +570,8 @@ int main()
     test11();
     test12();
     test9178();
+    test13();
+    test14();
 
     printf("Success\n");
     return 0;

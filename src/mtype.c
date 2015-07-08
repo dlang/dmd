@@ -1573,7 +1573,7 @@ Type *stripDefaultArgs(Type *t)
             {
                 Parameter *p = (*params)[i];
                 Type *ta = stripDefaultArgs(p->type);
-                if (ta != p->type || p->defaultArg || p->ident)
+                if (ta != p->type || p->defaultArg || p->ident || p->userAttribDecl)
                 {
                     if (params == parameters)
                     {
@@ -1583,7 +1583,7 @@ Type *stripDefaultArgs(Type *t)
                             (*params)[j] = (*parameters)[j];
                     }
                     StorageClass stc = p->storageClass & (~STCauto); // issue 14656
-                    (*params)[i] = new Parameter(stc, ta, NULL, NULL);
+                    (*params)[i] = new Parameter(stc, ta, NULL, NULL, NULL);
                 }
             }
         }
@@ -2037,7 +2037,7 @@ Type *TypeFunction::substWildTo(unsigned)
             continue;
         if (params == parameters)
             params = parameters->copy();
-        (*params)[i] = new Parameter(p->storageClass, t, NULL, NULL);
+        (*params)[i] = new Parameter(p->storageClass, t, NULL, NULL, NULL);
     }
     if (next == tret && params == parameters)
         return this;
@@ -3706,7 +3706,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
             Parameters *params = new Parameters;
             Type *next = n->ty == Twchar ? Type::twchar : Type::tchar;
             Type *arrty = next->arrayOf();
-            params->push(new Parameter(0, arrty, NULL, NULL));
+            params->push(new Parameter(0, arrty, NULL, NULL, NULL));
             reverseFd[i] = FuncDeclaration::genCfunc(params, arrty, reverseName[i]);
         }
 
@@ -3729,7 +3729,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
             Parameters *params = new Parameters;
             Type *next = n->ty == Twchar ? Type::twchar : Type::tchar;
             Type *arrty = next->arrayOf();
-            params->push(new Parameter(0, arrty, NULL, NULL));
+            params->push(new Parameter(0, arrty, NULL, NULL, NULL));
             sortFd[i] = FuncDeclaration::genCfunc(params, arrty, sortName[i]);
         }
 
@@ -3754,8 +3754,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         if (!adReverse_fd)
         {
             Parameters *params = new Parameters;
-            params->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL));
-            params->push(new Parameter(0, Type::tsize_t, NULL, NULL));
+            params->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL, NULL));
+            params->push(new Parameter(0, Type::tsize_t, NULL, NULL, NULL));
             adReverse_fd = FuncDeclaration::genCfunc(params, Type::tvoid->arrayOf(), Id::adReverse);
         }
         fd = adReverse_fd;
@@ -3778,8 +3778,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         if (!fd)
         {
             Parameters *params = new Parameters;
-            params->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL));
-            params->push(new Parameter(0, Type::dtypeinfo->type, NULL, NULL));
+            params->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL, NULL));
+            params->push(new Parameter(0, Type::dtypeinfo->type, NULL, NULL, NULL));
             fd = FuncDeclaration::genCfunc(params, Type::tvoid->arrayOf(), "_adSort");
         }
         ec = new VarExp(Loc(), fd);
@@ -4786,7 +4786,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         if (fd_aaLen == NULL)
         {
             Parameters *fparams = new Parameters();
-            fparams->push(new Parameter(STCin, this, NULL, NULL));
+            fparams->push(new Parameter(STCin, this, NULL, NULL, NULL));
             fd_aaLen = FuncDeclaration::genCfunc(fparams, Type::tsize_t, Id::aaLen);
             TypeFunction *tf = (TypeFunction *)fd_aaLen->type;
             tf->purity = PUREconst;
@@ -5608,7 +5608,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     {
                         Parameter *narg = (*tt->arguments)[j];
                         (*newparams)[j] = new Parameter(narg->storageClass | fparam->storageClass,
-                                narg->type, narg->ident, narg->defaultArg);
+                                narg->type, narg->ident, narg->defaultArg, narg->userAttribDecl);
                     }
                     fparam->type = new TypeTuple(newparams);
                 }
@@ -8685,7 +8685,7 @@ TypeTuple::TypeTuple(Expressions *exps)
         {   Expression *e = (*exps)[i];
             if (e->type->ty == Ttuple)
                 e->error("cannot form tuple of tuples");
-            Parameter *arg = new Parameter(STCundefined, e->type, NULL, NULL);
+            Parameter *arg = new Parameter(STCundefined, e->type, NULL, NULL, NULL);
             (*arguments)[i] = arg;
         }
     }
@@ -8711,15 +8711,15 @@ TypeTuple::TypeTuple(Type *t1)
     : Type(Ttuple)
 {
     arguments = new Parameters();
-    arguments->push(new Parameter(0, t1, NULL, NULL));
+    arguments->push(new Parameter(0, t1, NULL, NULL, NULL));
 }
 
 TypeTuple::TypeTuple(Type *t1, Type *t2)
     : Type(Ttuple)
 {
     arguments = new Parameters();
-    arguments->push(new Parameter(0, t1, NULL, NULL));
-    arguments->push(new Parameter(0, t2, NULL, NULL));
+    arguments->push(new Parameter(0, t1, NULL, NULL, NULL));
+    arguments->push(new Parameter(0, t2, NULL, NULL, NULL));
 }
 
 const char *TypeTuple::kind()
@@ -9016,17 +9016,18 @@ Expression *TypeNull::defaultInit(Loc loc) { return new NullExp(Loc(), Type::tnu
 
 /***************************** Parameter *****************************/
 
-Parameter::Parameter(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg)
+Parameter::Parameter(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg, UserAttributeDeclaration *userAttribDecl)
 {
     this->type = type;
     this->ident = ident;
     this->storageClass = storageClass;
     this->defaultArg = defaultArg;
+    this->userAttribDecl = userAttribDecl;
 }
 
-Parameter *Parameter::create(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg)
+Parameter *Parameter::create(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg, UserAttributeDeclaration *userAttribDecl)
 {
-    return new Parameter(storageClass, type, ident, defaultArg);
+    return new Parameter(storageClass, type, ident, defaultArg, userAttribDecl);
 }
 
 Parameter *Parameter::syntaxCopy()
@@ -9034,7 +9035,8 @@ Parameter *Parameter::syntaxCopy()
     return new Parameter(storageClass,
         type ? type->syntaxCopy() : NULL,
         ident,
-        defaultArg ? defaultArg->syntaxCopy() : NULL);
+        defaultArg ? defaultArg->syntaxCopy() : NULL,
+        userAttribDecl ? (UserAttributeDeclaration *)userAttribDecl->syntaxCopy(NULL) : NULL);
 }
 
 Parameters *Parameter::arraySyntaxCopy(Parameters *parameters)

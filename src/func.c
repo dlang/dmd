@@ -1138,7 +1138,7 @@ void FuncDeclaration::semantic(Scope *sc)
             Parameter *p = NULL;
             if (outId)
             {
-                p = new Parameter(STCref | STCconst, f->nextOf(), outId, NULL);
+                p = new Parameter(STCref | STCconst, f->nextOf(), outId, NULL, NULL);
                 fparams->push(p);
             }
             TypeFunction *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd);
@@ -1214,10 +1214,37 @@ Ldone:
         genCmain(sc);
 
     assert(type->ty != Terror || errors);
+
+    //semantic for parameters' UDAs
+    for (size_t i = 0; i < nparams; i++)
+    {
+        Parameter *param = Parameter::getNth(f->parameters, i);
+        if (param && param->userAttribDecl)
+            param->userAttribDecl->semantic(sc);
+    }
 }
 
 void FuncDeclaration::semantic2(Scope *sc)
 {
+#if 0
+    printf("FuncDeclaration::semantic2('%s')\n", toPrettyChars());
+#endif
+    if (semanticRun >= PASSsemantic2)
+        return;
+    assert(semanticRun <= PASSsemantic2);
+    semanticRun = PASSsemantic2;
+
+    if (!type || type->ty != Tfunction) return;
+    TypeFunction *f = (TypeFunction *)type;
+    if (!f->parameters) return;
+    size_t nparams = Parameter::dim(f->parameters);
+    //semantic for parameters' UDAs
+    for (size_t i = 0; i < nparams; i++)
+    {
+        Parameter *param = Parameter::getNth(f->parameters, i);
+        if (param && param->userAttribDecl)
+            param->userAttribDecl->semantic2(sc);
+    }
 }
 
 // Do the semantic analysis on the internals of the function.
@@ -1428,6 +1455,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                     parameters->push(v);
                 localsymtab->insert(v);
                 v->parent = this;
+                if (fparam->userAttribDecl)
+                    v->userAttribDecl = fparam->userAttribDecl;
             }
         }
 
@@ -2188,10 +2217,22 @@ void FuncDeclaration::semantic3(Scope *sc)
      * done by TemplateInstance::semantic.
      * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
      */
-    semanticRun = PASSsemantic3done;
-    semantic3Errors = (global.errors != nerrors) || (fbody && fbody->isErrorStatement());
     if (type->ty == Terror)
         errors = true;
+
+    if (!errors)
+    {
+        assert(f);
+        size_t nparams = f->parameters ? Parameter::dim(f->parameters) : 0;
+        for (size_t i = 0; i < nparams; i++)
+        {
+            Parameter *param = Parameter::getNth(f->parameters, i);
+            if (param && param->userAttribDecl)
+                param->userAttribDecl->semantic3(sc);
+        }
+    }
+    semanticRun = PASSsemantic3done;
+    semantic3Errors = (global.errors != nerrors) || (fbody && fbody->isErrorStatement());
     //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
     //fflush(stdout);
 }
