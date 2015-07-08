@@ -13,21 +13,31 @@ int main(string[] args)
     auto r = regex(r" +\n");
     foreach(a; args[1..$])
     {
-        auto str = a.readText();
-        if (str.canFind("\r\n"))
+        try
         {
-            writefln("Error - file '%s' contains windows line endings", a);
-            error = true;
+            ptrdiff_t pos;
+            auto str = a.readText();
+            if ((pos = str.indexOf("\r\n")) >= 0)
+            {
+                writefln("Error - file '%s' contains windows line endings at line %d", a, str[0..pos].count('\n') + 1);
+                error = true;
+            }
+            if (a.extension() != ".mak" && (pos = str.indexOf('\t')) >= 0)
+            {
+                writefln("Error - file '%s' contains tabs at line %d", a, str[0..pos].count('\n') + 1);
+                error = true;
+            }
+            auto m = str.matchFirst(r);
+            if (!m.empty)
+            {
+                pos = m.front.ptr - str.ptr; // assume the match is a slice of the string
+                writefln("Error - file '%s' contains trailing whitespace at line %d", a, str[0..pos].count('\n') + 1);
+                error = true;
+            }
         }
-        if (a.extension() != ".mak" && str.canFind('\t'))
+        catch(Exception e)
         {
-            writefln("Error - file '%s' contains tabs", a);
-            error = true;
-        }
-        if (!str.matchFirst(r).empty)
-        {
-            writefln("Error - file '%s' contains trailing whitespace", a);
-            error = true;
+            writefln("Exception - file '%s': %s", a, e.msg);
         }
     }
     return error ? 1 : 0;
