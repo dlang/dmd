@@ -10,6 +10,7 @@ module ddmd.dinterpret;
 
 import core.stdc.stdio;
 import core.stdc.string;
+import ddmd.aggregate;
 import ddmd.apply;
 import ddmd.arraytypes;
 import ddmd.attrib;
@@ -18,6 +19,8 @@ import ddmd.constfold;
 import ddmd.ctfeexpr;
 import ddmd.dclass;
 import ddmd.declaration;
+import ddmd.dimport;
+import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
@@ -213,6 +216,7 @@ struct InterState
      * CTFEExp. (null if no label).
      */
     Statement gotoTarget;
+    uint flags;
 }
 
 extern (C++) __gshared CtfeStack ctfeStack;
@@ -905,7 +909,34 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
     InterState istatex;
     istatex.caller = istate;
     istatex.fd = fd;
+    istatex.flags = istate ? istate.flags : 0;
     ctfeStack.startFrame(thisarg);
+
+    if (fd.ident == Id.require || fd.ident == Id.ensure)
+    {
+        auto fdv = cast(FuncDeclaration)fd.toParent();
+        auto fdthis = istate.fd;
+        assert(fdthis.isVirtual());
+        if (fdv != fdthis)
+        {
+            // Bugzilla 12294: If fd is in overridden function, push the
+            // parameter values of overridden function to CTFE stack.
+            if (fd.ident == Id.require)
+                istatex.flags |= SCOPErequire;
+
+            //printf("fd = [%s] %s, fdthis = %s\n", fd.loc.toChars(), fd.toChars(), fdthis.toChars());
+            size_t dimx = fdv.parameters ? fdv.parameters.dim : 0;
+            assert(dimx == (fdthis.parameters ? fdthis.parameters.dim : 0));
+            for (size_t i = 0; i < dimx; i++)
+            {
+                auto v = (*fdv.parameters)[i];
+                auto vx = (*fdthis.parameters)[i];
+                ctfeStack.push(v);
+                setValueWithoutChecking(v, getValue(vx));
+            }
+        }
+    }
+
     if (fd.vthis && thisarg)
     {
         ctfeStack.push(fd.vthis);
@@ -5987,6 +6018,78 @@ public:
         result = ctfeCast(e.loc, e.type, e.to, e1);
     }
 
+    Expression generateAssertError(Loc loc)
+    {
+        static __gshared Import imp = null;
+        if (!imp)
+        {
+            auto a = new Identifiers();
+            a.push(Id.core);
+            imp = new Import(Loc(), a, Identifier.idPool("exception"), null, false);
+            imp.load(null);
+            if (!imp.mod)
+            {
+                .error(loc, "CTFE internal error: failed to load core.exception module");
+                return CTFEExp.cantexp;
+            }
+            imp.mod.importAll(null);
+            imp.mod.semantic();
+        }
+
+        static __gshared ClassDeclaration cd = null;
+        if (!cd)
+        {
+            auto s = imp.mod.search(loc, Identifier.idPool("AssertError"), IgnoreNone);
+            cd = s ? s.isClassDeclaration() : null;
+            if (!cd)
+            {
+                .error(loc, "CTFE internal error: failed to find AssertError class");
+                return CTFEExp.cantexp;
+            }
+            cd.size(loc);
+            if (cd.sizeok != SIZEOKdone)
+                return new ErrorExp();
+        }
+
+        static __gshared CtorDeclaration member = null;
+        if (!member)
+        {
+            auto parameters = new Parameters;
+            parameters.push(new Parameter(0, Type.tstring, null, null));    // file
+            parameters.push(new Parameter(0, Type.tsize_t, null, null));    // line
+
+            auto tf = new TypeFunction(parameters, cd.type, 0, LINKd);
+            tf = cast(TypeFunction)tf.merge();
+
+            if (auto f = cd.ctor ? cd.ctor.isFuncDeclaration() : null)
+            {
+                f = f.overloadExactMatch(tf);
+                if (f)
+                    member = f.isCtorDeclaration();
+            }
+            if (!member)
+            {
+                .error(loc, "CTFE internal error: failed to find constructor in AssertError");
+                return CTFEExp.cantexp;
+            }
+        }
+
+        Expression efile = new StringExp(loc, cast(char*)loc.filename);
+        efile.type = Type.tstring;
+        Expression eline = new IntegerExp(loc, loc.linnum, Type.tsize_t);
+
+        Expressions args;
+        args.push(efile);
+        args.push(eline);
+
+        // new AssertError(file, line)
+        auto ne = new NewExp(loc, null, null, cd.type, &args);
+        ne.type = ne.newtype;
+        ne.member = member;
+
+        return interpret(ne, istate);
+    }
+
     override void visit(AssertExp e)
     {
         debug (LOG)
@@ -6001,6 +6104,18 @@ public:
         }
         else if (e1.isBool(false))
         {
+            /* Bugzilla 12294: If the failed assertion is the in-contract of
+             * overridden function, instead throw an AssertError to return control path.
+             */
+            if (istate.flags & SCOPErequire)
+            {
+                result = generateAssertError(e.loc);
+                if (exceptionOrCant(result))
+                    return;
+                assert(result.op == TOKclassreference);
+                result = new ThrownExceptionExp(e.loc, cast(ClassReferenceExp)result);
+                return;
+            }
             if (e.msg)
             {
                 result = interpret(e.msg, istate);
