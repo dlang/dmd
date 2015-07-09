@@ -19,6 +19,7 @@
 #include "root.h"
 #include "dsymbol.h"
 
+class ModuleInfoDeclaration;
 class ClassDeclaration;
 struct ModuleDeclaration;
 struct Macro;
@@ -99,6 +100,8 @@ public:
     Dsymbols *decldefs;         // top level declarations for this Module
 
     Modules aimports;             // all imported modules
+
+    ModuleInfoDeclaration *vmoduleinfo; // ModuleInfo declaration
 
     unsigned debuglevel;        // debug level
     Strings *debugids;      // debug identifiers

@@ -305,6 +305,18 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class ModuleInfoDeclaration : public VarDeclaration
+{
+public:
+    Module *mod;
+
+    ModuleInfoDeclaration(Module *mod);
+    Dsymbol *syntaxCopy(Dsymbol *);
+    void semantic(Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class TypeInfoDeclaration : public VarDeclaration
 {
 public:

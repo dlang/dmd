@@ -415,20 +415,25 @@ Symbol *toSymbol(Dsymbol *s)
          * Create the "ModuleInfo" symbol
          */
 
-        void visit(Module *m)
+        void visit(ModuleInfoDeclaration *mid)
         {
-            if (!m->csym)
+            if (!mid->csym)
             {
                 if (!scc)
                     scc = fake_classsym(Id::ClassInfo);
 
-                Symbol *s = toSymbolX(m, "__ModuleInfo", SCextern, scc->Stype, "Z");
+                Symbol *s = toSymbolX(mid->mod, "__ModuleInfo", SCextern, scc->Stype, "Z");
                 s->Sfl = FLextern;
                 s->Sflags |= SFLnodebug;
-                m->csym = s;
+                mid->csym = s;
                 slist_add(s);
             }
-            result = m->csym;
+            result = mid->csym;
+        }
+
+        void visit(Module *m)
+        {
+            assert(0);
         }
     };
 

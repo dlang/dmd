@@ -617,6 +617,7 @@ public:
         }
     }
 
+    void visit(ModuleInfoDeclaration *d) {}
     void visit(TypeInfoDeclaration *d) {}
     void visit(PostBlitDeclaration *d) {}
 

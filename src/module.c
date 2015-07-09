@@ -20,6 +20,7 @@
 #include "identifier.h"
 #include "id.h"
 #include "import.h"
+#include "declaration.h"
 #include "dsymbol.h"
 #include "expression.h"
 #include "lexer.h"
@@ -64,6 +65,7 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     searchCacheSymbol = NULL;
     searchCacheFlags = 0;
     decldefs = NULL;
+    vmoduleinfo = NULL;
     massert = NULL;
     munittest = NULL;
     marray = NULL;
@@ -711,6 +713,8 @@ void Module::semantic()
     {
         userAttribDecl->semantic(sc);
     }
+
+    vmoduleinfo = new ModuleInfoDeclaration(this);
 
     if (!scope)
     {
