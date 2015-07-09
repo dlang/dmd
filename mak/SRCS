@@ -2,6 +2,7 @@ SRCS=\
 	src\object.d \
 	\
 	src\core\atomic.d \
+	src\core\attribute.d \
 	src\core\bitop.d \
 	src\core\checkedint.d \
 	src\core\cpuid.d \
