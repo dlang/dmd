@@ -1,24 +1,11 @@
-# set from top makefile
-OS:=
-MODEL:=
-DMD:=
-DRUNTIME:=
-DRUNTIMESO:=
-QUIET:=
-LINKDL:=
+include ../common.mak
 
-SRC:=src
-ROOT:=./obj/$(OS)/$(MODEL)
+DFLAGS+=-cov
+
 NORMAL_TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,basic))
 MERGE_TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,merge merge_true))
 
 DIFF:=diff
-
-ifneq (default,$(MODEL))
-	MODEL_FLAG:=-m$(MODEL)
-endif
-CFLAGS:=$(MODEL_FLAG) -Wall
-DFLAGS:=$(MODEL_FLAG) -w -I../../src -I../../import -I$(SRC) -L$(DRUNTIME) -defaultlib= -debuglib= -cov
 
 .PHONY: all clean
 all: $(NORMAL_TESTS) $(MERGE_TESTS)
@@ -42,4 +29,4 @@ $(ROOT)/%: $(SRC)/%.d
 	$(QUIET)$(DMD) $(DFLAGS) -of$(ROOT)/$* $<
 
 clean:
-	rm -rf obj *.lst
+	rm -rf $(ROOT) *.lst

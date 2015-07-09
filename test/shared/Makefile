@@ -1,23 +1,9 @@
-# set from top makefile
-OS:=
-MODEL:=
-DMD:=
-DRUNTIME:=
-DRUNTIMESO:=
-QUIET:=
-LINKDL:= # -L-ldl
-LDL:=$(subst -L,,$(LINKDL)) # -ldl
+LINK_SHARED:=1
 
-SRC:=src
-ROOT:=./obj/$(OS)/$(MODEL)
+include ../common.mak
+
 TESTS:=link load linkD linkDR loadDR host finalize
 TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep load_13414
-
-ifneq (default,$(MODEL))
-	MODEL_FLAG:=-m$(MODEL)
-endif
-CFLAGS:=$(MODEL_FLAG) -Wall
-DFLAGS:=$(MODEL_FLAG) -w -I../../src -I../../import -I$(SRC) -L$(DRUNTIMESO) -defaultlib= -debuglib=
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
@@ -72,4 +58,4 @@ $(ROOT)/%.so: $(SRC)/%.d $(DRUNTIMESO)
 	$(QUIET)$(DMD) -fPIC -shared $(DFLAGS) -of$@ $< $(LINKDL)
 
 clean:
-	rm -rf obj
+	rm -rf $(ROOT)
