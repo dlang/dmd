@@ -655,9 +655,9 @@ unittest : $(SRCS) $(DRUNTIME)
 
 zip: druntime.zip
 
-druntime.zip: import
+druntime.zip:
 	del druntime.zip
-	zip32 -T -ur druntime $(MANIFEST) $(IMPDIR) src\rt\minit.obj
+	zip32 -T -ur druntime $(MANIFEST) src\rt\minit.obj
 
 install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime

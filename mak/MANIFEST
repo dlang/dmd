@@ -291,4 +291,37 @@ MANIFEST=\
 	src\rt\typeinfo\ti_void.d \
 	src\rt\typeinfo\ti_wchar.d \
 	\
-	src\etc\linux\memoryerror.d
+	src\etc\linux\memoryerror.d \
+	\
+	test\coverage\Makefile \
+	test\coverage\src-basic.lst.exp \
+	test\coverage\src-merge.lst.exp \
+	test\coverage\src-merge_true.lst.exp \
+	test\coverage\src\basic.d \
+	test\coverage\src\merge.d \
+	test\coverage\src\merge_true.d \
+	test\exceptions\Makefile \
+	test\exceptions\src\stderr_msg.d \
+	test\exceptions\src\unittest_assert.d \
+	test\init_fini\Makefile \
+	test\init_fini\src\runtime_args.d \
+	test\init_fini\src\thread_join.d \
+	test\shared\Makefile \
+	test\shared\src\finalize.d \
+	test\shared\src\host.c \
+	test\shared\src\lib.d \
+	test\shared\src\lib_13414.d \
+	test\shared\src\liblinkdep.d \
+	test\shared\src\libloaddep.d \
+	test\shared\src\link.d \
+	test\shared\src\linkD.c \
+	test\shared\src\linkDR.c \
+	test\shared\src\link_linkdep.d \
+	test\shared\src\link_loaddep.d \
+	test\shared\src\load.d \
+	test\shared\src\loadDR.c \
+	test\shared\src\load_13414.d \
+	test\shared\src\load_linkdep.d \
+	test\shared\src\load_loaddep.d \
+	test\shared\src\plugin.d
+
