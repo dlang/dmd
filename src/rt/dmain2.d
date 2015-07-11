@@ -516,7 +516,10 @@ extern (C) void _d_print_throwable(Throwable t)
     // Show a message box instead.
     version (Windows)
     {
-        if (!GetConsoleWindow())
+        // ensure the exception is shown at the beginning of the line, while also
+        // checking whether stderr is a valid file
+        int written = fprintf(stderr, "\n");
+        if (written <= 0)
         {
             static struct WSink
             {
