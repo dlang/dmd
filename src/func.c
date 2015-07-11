@@ -30,6 +30,7 @@
 #include "parse.h"
 #include "rmem.h"
 #include "visitor.h"
+#include "objc.h"
 
 Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct);
 
@@ -273,6 +274,7 @@ public:
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
     : Declaration(id)
 {
+    objc = Objc_FuncDeclaration(this);
     //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
     //printf("storage_class = x%x\n", storage_class);
     this->storage_class = storage_class;
@@ -1218,6 +1220,18 @@ Ldone:
 
 void FuncDeclaration::semantic2(Scope *sc)
 {
+    if (semanticRun >= PASSsemantic2done)
+        return;
+    assert(semanticRun <= PASSsemantic2);
+    semanticRun = PASSsemantic2;
+
+    objc_FuncDeclaration_semantic_setSelector(this, sc);
+    objc_FuncDeclaration_semantic_validateSelector(this);
+
+    if (ClassDeclaration *cd = parent->isClassDeclaration())
+    {
+        objc_FuncDeclaration_semantic_checkLinkage(this);
+    }
 }
 
 // Do the semantic analysis on the internals of the function.

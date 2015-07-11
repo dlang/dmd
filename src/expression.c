@@ -936,7 +936,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
  * Perform semantic() on an array of Expressions.
  */
 
-bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
+bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors)
 {
     bool err = false;
     if (exps)
@@ -949,7 +949,7 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
                 e = e->semantic(sc);
                 if (e->op == TOKerror)
                     err = true;
-                else
+                if (preserveErrors || e->op != TOKerror)
                     (*exps)[i] = e;
             }
         }

@@ -40,6 +40,7 @@
 #include "cgcv.h"
 #include "outbuf.h"
 #include "irstate.h"
+#include "objc.h"
 
 extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
@@ -62,6 +63,8 @@ void genTypeInfo(Type *t, Scope *sc);
 void toDebug(EnumDeclaration *ed);
 void toDebug(StructDeclaration *sd);
 void toDebug(ClassDeclaration *cd);
+
+void objc_Module_genmoduleinfo_classes();
 
 /* ================================================================== */
 
@@ -198,6 +201,7 @@ void genModuleInfo(Module *m)
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
+    objc_Module_genmoduleinfo_classes();
     m->csym->Sdt = dt;
     out_readonly(m->csym);
     outdata(m->csym);

@@ -1358,7 +1358,7 @@ void UserAttributeDeclaration::semantic2(Scope *sc)
         if (atts && atts->dim && scope)
         {
             scope = NULL;
-            arrayExpressionSemantic(atts, sc);  // run semantic
+            arrayExpressionSemantic(atts, sc, true);  // run semantic
         }
     }
 

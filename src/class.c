@@ -30,6 +30,7 @@
 #include "expression.h"
 #include "statement.h"
 #include "template.h"
+#include "objc.h"
 
 /********************************* ClassDeclaration ****************************/
 
@@ -233,6 +234,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     isabstract = false;
     inuse = 0;
     baseok = BASEOKnone;
+    objc.objc = false;
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
@@ -320,6 +322,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
         if (sc->linkage == LINKcpp)
             cpp = true;
+        if (sc->linkage == LINKobjc)
+            objc_ClassDeclaration_semantic_PASSinit_LINKobjc(this);
     }
     else if (symtab && !scx)
     {
@@ -1383,6 +1387,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         if (!baseclasses->dim && sc->linkage == LINKcpp)
             cpp = true;
+        objc_InterfaceDeclaration_semantic_objcExtern(this, sc);
 
         // Check for errors, handle forward references
         for (size_t i = 0; i < baseclasses->dim; )
@@ -1551,6 +1556,8 @@ Lancestorsdone:
         sc2->linkage = LINKwindows;
     else if (cpp)
         sc2->linkage = LINKcpp;
+    else if (this->objc.isInterface())
+        sc->linkage = LINKobjc;
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;

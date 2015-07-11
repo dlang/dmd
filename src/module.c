@@ -1025,6 +1025,11 @@ bool Module::rootImports()
     return rootimports == 2;
 }
 
+bool Module::isCoreModule(Identifier *ident)
+{
+    return this->ident == ident && parent && parent->ident == Id::core && !parent->parent;
+}
+
 /* =========================== ModuleDeclaration ===================== */
 
 ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id)

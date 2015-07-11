@@ -71,6 +71,10 @@ void genTypeInfo(Type *t, Scope *sc);
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
 
+void objc_callfunc_setupMethodSelector(Type *tret, FuncDeclaration *fd, Type *t, elem *ehidden, elem **esel);
+void objc_callfunc_setupMethodCall(elem **ec, elem *ehidden, elem *ethis, TypeFunction *tf);
+void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse);
+
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum, \
                                  (e)->Esrcpos.Scharnum = (loc).charnum)
@@ -121,7 +125,8 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Expressions *arguments)
+        Expressions *arguments,
+        elem *esel = NULL)      // selector for Objective-C methods (when not provided by fd)
 {
     elem *ep;
     elem *e;
@@ -235,6 +240,9 @@ elem *callfunc(Loc loc,
         }
     }
 
+    objc_callfunc_setupMethodSelector(tret, fd, t, ehidden, &esel);
+    objc_callfunc_setupEp(esel, &ep, reverse);
+
     if (retmethod == RETstack)
     {
         if (!ehidden)
@@ -294,7 +302,11 @@ elem *callfunc(Loc loc,
         }
         Symbol *sfunc = toSymbol(fd);
 
-        if (!fd->isVirtual() ||
+        if (esel)
+        {
+            objc_callfunc_setupMethodCall(&ec, ehidden, ethis, tf);
+        }
+        else if (!fd->isVirtual() ||
             directcall ||               // BUG: fix
             fd->isFinalFunc()
            /* Future optimization: || (whole program analysis && not overridden)
