@@ -1557,7 +1557,7 @@ Lancestorsdone:
     else if (cpp)
         sc2->linkage = LINKcpp;
     else if (this->objc.isInterface())
-        sc->linkage = LINKobjc;
+        sc2->linkage = LINKobjc;
     sc2->protection = Prot(PROTpublic);
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
