@@ -20,6 +20,8 @@ class FuncDeclaration;
 class ClassDeclaration;
 class InterfaceDeclaration;
 class ObjcSelector;
+struct Scope;
+class StructDeclaration;
 
 class ObjcSelector
 {
