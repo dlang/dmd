@@ -251,7 +251,7 @@ test/%/.run: test/%/Makefile
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) QUIET=$(QUIET) LINKDL=$(LINKDL)
 
 #################### test for undesired white spaces ##########################
-CWS_MAKEFILES = $(filter mak/% %.mak,$(MANIFEST))
+CWS_MAKEFILES = $(filter mak/% %.mak %/Makefile,$(MANIFEST))
 NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES),$(MANIFEST))
 GREP = grep
 
@@ -266,9 +266,13 @@ detab:
 	detab $(MANIFEST)
 	tolf $(MANIFEST)
 
+
+gitzip:
+	git archive --format=zip HEAD > druntime.zip
+
 zip: druntime.zip
 
-druntime.zip: $(MANIFEST) $(IMPORTS)
+druntime.zip: $(MANIFEST)
 	rm -rf $@
 	zip $@ $^
 
