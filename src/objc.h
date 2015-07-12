@@ -72,7 +72,5 @@ bool objc_isUdaSelector(StructDeclaration *sd);
 void objc_FuncDeclaration_semantic_validateSelector(FuncDeclaration *fd);
 void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *fd);
 
-void objc_tryMain_dObjc();
-void objc_tryMain_init();
 
 #endif /* DMD_OBJC_H */
