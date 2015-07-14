@@ -5190,6 +5190,38 @@ public:
     #endif
         if (e->e1->type->toBasetype()->ty == Tpointer)
         {
+            // Check (cast(ushort*)&x)[i], where x is a real variable or expression.
+            if (e->e1->op == TOKsymoff && ((SymOffExp *)e->e1)->offset == 0 &&
+                ((SymOffExp *)e->e1)->var->isVarDeclaration() &&
+                isFloatIntPaint(e->type, ((SymOffExp *)e->e1)->var->type))
+            {
+                //printf("(cast(ushort*)&x)[i], where x is a real variable\n");
+                Expression *e2 = interpret(e->e2, istate);
+                if (exceptionOrCantInterpret(e2))
+                {
+                    result = CTFEExp::cantexp;
+                    return;
+                }
+                result = paintFloatInt(getVarExp(e->loc, istate, ((SymOffExp *)e->e1)->var, ctfeNeedRvalue), e->type, e2->toInteger());
+                return;
+            }
+            if (e->e1->op == TOKcast && ((CastExp *)e->e1)->e1->op == TOKaddress)
+            {
+                Expression *x = ((AddrExp *)(((CastExp *)e->e1)->e1))->e1;
+                //printf("(cast(ushort*)&x)[i], where x is a real expression\n");
+                if (isFloatIntPaint(e->type, x->type))
+                {
+                    Expression *e2 = interpret(e->e2, istate);
+                    if (exceptionOrCantInterpret(e2))
+                    {
+                        result = CTFEExp::cantexp;
+                        return;
+                    }
+                    result = paintFloatInt(interpret(x, istate), e->type, e2->toInteger());
+                    return;
+                }
+            }
+
             Expression *agg;
             uinteger_t indexToAccess;
             if (!resolveIndexing(e, istate, &agg, &indexToAccess, false))
@@ -5807,7 +5839,7 @@ public:
             isFloatIntPaint(e->type, ((SymOffExp *)e->e1)->var->type))
         {
             // *(cast(int*)&v), where v is a float variable
-            result = paintFloatInt(getVarExp(e->loc, istate, ((SymOffExp *)e->e1)->var, ctfeNeedRvalue), e->type);
+            result = paintFloatInt(getVarExp(e->loc, istate, ((SymOffExp *)e->e1)->var, ctfeNeedRvalue), e->type, 0);
             return;
         }
         if (e->e1->op == TOKcast && ((CastExp *)e->e1)->e1->op == TOKaddress)
@@ -5816,7 +5848,7 @@ public:
             Expression *x = ((AddrExp *)(((CastExp *)e->e1)->e1))->e1;
             if (isFloatIntPaint(e->type, x->type))
             {
-                result = paintFloatInt(interpret(x, istate), e->type);
+                result = paintFloatInt(interpret(x, istate), e->type, 0);
                 return;
             }
         }

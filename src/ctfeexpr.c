@@ -955,19 +955,37 @@ int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t of
 // floating point -> integer or integer -> floating point
 bool isFloatIntPaint(Type *to, Type *from)
 {
-    return from->size() == to->size() &&
-           (from->isintegral() && to->isfloating() ||
-            from->isfloating() && to->isintegral());
+    // There are two main use cases:
+    // The first one is to paint a whole type, e.g.
+    //   *cast(uint*)&f         where f is a float
+    //   *cast(ulong*)&f        where f is a double
+    if (from->size() == to->size())
+    {
+        return (from->isintegral() && to->isfloating()) ||
+               (from->isfloating() && to->isintegral());
+    }
+    // The second one is to paint a real onto a smaller int, e.g.
+    //   *cast(ulong*)&f        where f is a real
+    //   (cast(ushort*)&f)[2]   where f is a real
+    return from->size() > to->size() &&
+           from->isfloating() && to->isintegral();
 }
 
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
-Expression *paintFloatInt(Expression *fromVal, Type *to)
+// Requires isFloatIntPaint(fromVal, to).
+Expression *paintFloatInt(Expression *fromVal, Type *to, d_uns64 offset)
 {
     if (exceptionOrCantInterpret(fromVal))
         return fromVal;
 
-    assert(to->size() == 4 || to->size() == 8);
-    return Target::paintAsType(fromVal, to);
+    if ((offset + 1) * to->size() > fromVal->type->size())
+    {
+        error(fromVal->loc, "index %llu is out of bounds: trying to get bytes [%i:%i] out of %i",
+              offset, offset * to->size(), (offset + 1) * to->size() - 1, fromVal->type->size());
+        return CTFEExp::cantexp;
+    }
+
+    return Target::paintAsType(fromVal, to, offset);
 }
 
 /***********************************************

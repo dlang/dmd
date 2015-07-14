@@ -36,7 +36,7 @@ struct Target
     static unsigned fieldalign(Type* type);
     static unsigned critsecsize();
     static Type *va_listType();  // get type of va_list
-    static Expression *paintAsType(Expression *e, Type *type);
+    static Expression *paintAsType(Expression *e, Type *type, d_uns64 offset);
     static int checkVectorType(int sz, Type *type);
     static void loadModule(Module *m);
 };
