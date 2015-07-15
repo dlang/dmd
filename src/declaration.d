@@ -678,6 +678,8 @@ public:
         inuse = 0;
         if (global.gag && errors != global.errors)
             type = savedtype;
+
+        semanticRun = PASSsemanticdone;
         return;
     L2:
         //printf("alias is a symbol %s %s\n", s->kind(), s->toChars());
@@ -755,43 +757,51 @@ public:
         //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
         aliassym = s;
         inuse = 0;
+
+        semanticRun = PASSsemanticdone;
     }
 
     bool overloadInsert(Dsymbol s)
     {
-        /* Don't know yet what the aliased symbol is, so assume it can
-         * be overloaded and check later for correctness.
+        //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+        //    loc.toChars(), toChars(), s->kind(), s->toChars(), s->loc.toChars());
+
+        /* semantic analysis is already finished, and the aliased entity
+         * is not overloadable.
          */
-        //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
-        if (aliassym) // see test/test56.d
+        if (semanticRun >= PASSsemanticdone)
         {
+            if (type)
+                return false;
+
+            /* When s is added in member scope by static if, mixin("code") or others,
+             * aliassym is determined already. See the case in: test/compilable/test61.d
+             */
             Dsymbol sa = aliassym.toAlias();
-            if (FuncDeclaration fd = sa.isFuncDeclaration())
+            if (auto fd = sa.isFuncDeclaration())
             {
                 auto fa = new FuncAliasDeclaration(fd);
                 aliassym = fa;
                 return fa.overloadInsert(s);
             }
-            if (TemplateDeclaration td = sa.isTemplateDeclaration())
+            if (auto td = sa.isTemplateDeclaration())
             {
                 auto od = new OverDeclaration(td);
                 aliassym = od;
                 return od.overloadInsert(s);
             }
+            return false;
         }
-        if (overnext is null)
-        {
-            if (s == this)
-            {
-                return true;
-            }
-            overnext = s;
-            return true;
-        }
-        else
-        {
+
+        /* Don't know yet what the aliased symbol is, so assume it can
+         * be overloaded and check later for correctness.
+         */
+        if (overnext)
             return overnext.overloadInsert(s);
-        }
+        if (s is this)
+            return true;
+        overnext = s;
+        return true;
     }
 
     const(char)* kind()
