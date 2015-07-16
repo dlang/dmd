@@ -53,6 +53,38 @@ template Unqual(T)
     }
 }
 
+// Substitute all `inout` qualifiers that appears in T to `const`
+template substInout(T)
+{
+    static if (is(T == immutable))
+    {
+        alias substInout = T;
+    }
+    else static if (is(T : shared const U, U) || is(T : const U, U))
+    {
+        // U is top-unqualified
+        mixin("alias substInout = "
+            ~ (is(T == shared) ? "shared " : "")
+            ~ (is(T == const) || is(T == inout) ? "const " : "")    // substitute inout to const
+            ~ "substInoutForm!U;");
+    }
+    else
+        static assert(0);
+}
+
+private template substInoutForm(T)
+{
+    static if (is(T == struct) || is(T == class) || is(T == union) || is(T == interface))
+    {
+        alias substInoutForm = T;   // prevent matching to the form of alias-this-ed type
+    }
+    else static if (is(T : V[K], K, V))        alias substInoutForm = substInout!V[substInout!K];
+    else static if (is(T : U[n], U, size_t n)) alias substInoutForm = substInout!U[n];
+    else static if (is(T : U[], U))            alias substInoutForm = substInout!U[];
+    else static if (is(T : U*, U))             alias substInoutForm = substInout!U*;
+    else                                       alias substInoutForm = T;
+}
+
 /// used to declare an extern(D) function that is defined in a different module
 template externDFunc(string fqn, T:FT*, FT) if(is(FT == function))
 {
