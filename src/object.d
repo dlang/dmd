@@ -1823,7 +1823,7 @@ V[K] dup(T : V[K], K, V)(T* aa)
     return (*aa).dup;
 }
 
-auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
+auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
@@ -1831,7 +1831,7 @@ auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 
     pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
-        @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
+        @property ref K front() { return *cast(K*)_aaRangeFrontKey(r); }
         void popFront() { _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
@@ -1839,12 +1839,12 @@ auto byKey(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byKey(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
+auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
 {
     return (*aa).byKey();
 }
 
-auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
+auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
@@ -1852,7 +1852,7 @@ auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
 
     pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
-        @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
+        @property ref V front() { return *cast(V*)_aaRangeFrontValue(r); }
         void popFront() { _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
@@ -1860,12 +1860,12 @@ auto byValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
+auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
 {
     return (*aa).byValue();
 }
 
-auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
+auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc
 {
     static struct Result
     {
@@ -1879,14 +1879,14 @@ auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
             {
                 // We save the pointers here so that the Pair we return
                 // won't mutate when Result.popFront is called afterwards.
-                private Key* keyp;
-                private Value* valp;
+                private K* keyp;
+                private V* valp;
 
-                @property ref inout(Key) key() inout { return *keyp; }
-                @property ref inout(Value) value() inout { return *valp; }
+                @property ref inout(K) key() inout { return *keyp; }
+                @property ref inout(V) value() inout { return *valp; }
             }
-            return Pair(cast(Key*)_aaRangeFrontKey(r),
-                        cast(Value*)_aaRangeFrontValue(r));
+            return Pair(cast(K*)_aaRangeFrontKey(r),
+                        cast(V*)_aaRangeFrontValue(r));
         }
         void popFront() { _aaRangePopFront(r); }
         @property Result save() { return this; }
@@ -1895,7 +1895,7 @@ auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc
     return Result(_aaRange(cast(void*)aa));
 }
 
-auto byKeyValue(T : Value[Key], Value, Key)(T* aa) pure nothrow @nogc
+auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
 {
     return (*aa).byKeyValue();
 }
