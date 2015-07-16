@@ -852,7 +852,18 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                     check(TOKrparen);           // pragma(identifier)
 
                 Dsymbols *a2 = NULL;
-                if (token.value != TOKsemicolon)
+                if (token.value == TOKsemicolon)
+                {
+                    /* Bugzilla 2354: Accept single semicolon as an empty
+                     * DeclarationBlock following attribute.
+                     *
+                     * Attribute DeclarationBlock
+                     * Pragma    DeclDef
+                     *           ;
+                     */
+                    nextToken();
+                }
+                else
                     a2 = parseBlock(pLastDecl);
                 s = new PragmaDeclaration(loc, ident, args, a2);
                 break;
