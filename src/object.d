@@ -1825,13 +1825,15 @@ V[K] dup(T : V[K], K, V)(T* aa)
 
 auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc
 {
+    import core.internal.traits : substInout;
+
     static struct Result
     {
         AARange r;
 
     pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
-        @property ref K front() { return *cast(K*)_aaRangeFrontKey(r); }
+        @property ref front() { return *cast(substInout!K*)_aaRangeFrontKey(r); }
         void popFront() { _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
@@ -1846,13 +1848,15 @@ auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
 
 auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc
 {
+    import core.internal.traits : substInout;
+
     static struct Result
     {
         AARange r;
 
     pure nothrow @nogc:
         @property bool empty() { return _aaRangeEmpty(r); }
-        @property ref V front() { return *cast(V*)_aaRangeFrontValue(r); }
+        @property ref front() { return *cast(substInout!V*)_aaRangeFrontValue(r); }
         void popFront() { _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
@@ -1867,6 +1871,8 @@ auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
 
 auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc
 {
+    import core.internal.traits : substInout;
+
     static struct Result
     {
         AARange r;
@@ -1879,14 +1885,14 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc
             {
                 // We save the pointers here so that the Pair we return
                 // won't mutate when Result.popFront is called afterwards.
-                private K* keyp;
-                private V* valp;
+                private void* keyp;
+                private void* valp;
 
-                @property ref inout(K) key() inout { return *keyp; }
-                @property ref inout(V) value() inout { return *valp; }
+                @property ref key() inout { return *cast(substInout!K*)keyp; }
+                @property ref value() inout { return *cast(substInout!V*)valp; }
             }
-            return Pair(cast(K*)_aaRangeFrontKey(r),
-                        cast(V*)_aaRangeFrontValue(r));
+            return Pair(_aaRangeFrontKey(r),
+                        _aaRangeFrontValue(r));
         }
         void popFront() { _aaRangePopFront(r); }
         @property Result save() { return this; }
@@ -2226,6 +2232,36 @@ unittest
         auto k = t.key;
         auto v = t.value;
     }
+}
+
+unittest
+{
+    // test for bug 14626
+    static struct S
+    {
+        string[string] aa;
+        inout(string) key() inout { return aa.byKey().front; }
+        inout(string) val() inout { return aa.byValue().front; }
+        auto keyval() inout { return aa.byKeyValue().front; }
+    }
+
+    S s = S(["a":"b"]);
+    assert(s.key() == "a");
+    assert(s.val() == "b");
+    assert(s.keyval().key == "a");
+    assert(s.keyval().value == "b");
+
+    void testInoutKeyVal(inout(string) key)
+    {
+        inout(string)[typeof(key)] aa;
+
+        foreach (i; aa.byKey()) {}
+        foreach (i; aa.byValue()) {}
+        foreach (i; aa.byKeyValue()) {}
+    }
+
+    const int[int] caa;
+    static assert(is(typeof(caa.byValue().front) == const int));
 }
 
 private void _destructRecurse(S)(ref S s)
