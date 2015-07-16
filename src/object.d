@@ -1865,6 +1865,36 @@ auto byValue(T : Value[Key], Value, Key)(T *aa) pure nothrow @nogc
     return (*aa).byValue();
 }
 
+auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc @property
+{
+    static struct Result
+    {
+        AARange r;
+
+    pure nothrow @nogc:
+        @property bool empty() { return _aaRangeEmpty(r); }
+        @property auto front() @trusted
+        {
+            static struct Pair
+            {
+                // We save the pointers here so that the Pair we return
+                // won't mutate when Result.popFront is called afterwards.
+                private Key* keyp;
+                private Value* valp;
+
+                @property ref inout(Key) key() inout { return *keyp; }
+                @property ref inout(Value) value() inout { return *valp; }
+            }
+            return Pair(cast(Key*)_aaRangeFrontKey(r),
+                        cast(Value*)_aaRangeFrontValue(r));
+        }
+        void popFront() { _aaRangePopFront(r); }
+        @property Result save() { return this; }
+    }
+
+    return Result(_aaRange(cast(void*)aa));
+}
+
 Key[] keys(T : Value[Key], Value, Key)(T aa) @property
 {
     auto a = cast(void[])_aaKeys(cast(inout(void)*)aa, Key.sizeof, typeid(Key[]));
@@ -1916,36 +1946,6 @@ unittest
     auto keys = aa2.keys;
     assert(keys.length == 1);
     assert(T.count == 2);
-}
-
-auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc @property
-{
-    static struct Result
-    {
-        AARange r;
-
-      pure nothrow @nogc:
-        @property bool empty() { return _aaRangeEmpty(r); }
-        @property auto front() @trusted
-        {
-            static struct Pair
-            {
-                // We save the pointers here so that the Pair we return
-                // won't mutate when Result.popFront is called afterwards.
-                private Key* keyp;
-                private Value* valp;
-
-                @property ref inout(Key) key() inout { return *keyp; }
-                @property ref inout(Value) value() inout { return *valp; }
-            }
-            return Pair(cast(Key*)_aaRangeFrontKey(r),
-                        cast(Value*)_aaRangeFrontValue(r));
-        }
-        void popFront() { _aaRangePopFront(r); }
-        @property Result save() { return this; }
-    }
-
-    return Result(_aaRange(cast(void*)aa));
 }
 
 inout(V) get(K, V)(inout(V[K]) aa, K key, lazy inout(V) defaultValue)
