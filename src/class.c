@@ -1634,7 +1634,7 @@ bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
     {
         BaseClass *b = cd->interfaces[j];
 
-        //printf("\tbase %s\n", b->sym->toChars());
+        //printf("\tX base %s\n", b->sym->toChars());
         if (this == b->sym)
         {
             //printf("\tfound at offset %d\n", b->offset);
@@ -1648,8 +1648,11 @@ bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         }
         if (isBaseOf(b, poffset))
         {
-            if (j && poffset && cd->isInterfaceDeclaration())
-                *poffset = OFFSET_RUNTIME;
+            if (poffset)
+            {
+                if (j && cd->isInterfaceDeclaration())
+                    *poffset = OFFSET_RUNTIME;
+            }
             return true;
         }
     }
@@ -1662,7 +1665,6 @@ bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
     return false;
 }
 
-
 bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->sym->toChars());
@@ -1670,20 +1672,18 @@ bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
     {
         BaseClass *b = &bc->baseInterfaces[j];
 
+        //printf("\tY base %s\n", b->sym->toChars());
         if (this == b->sym)
         {
+            //printf("\tfound at offset %d\n", b->offset);
             if (poffset)
             {
                 *poffset = b->offset;
-                if (j && bc->sym->isInterfaceDeclaration())
-                    *poffset = OFFSET_RUNTIME;
             }
             return true;
         }
         if (isBaseOf(b, poffset))
         {
-            if (j && poffset && bc->sym->isInterfaceDeclaration())
-                *poffset = OFFSET_RUNTIME;
             return true;
         }
     }

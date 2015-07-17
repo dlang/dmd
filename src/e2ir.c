@@ -3958,15 +3958,12 @@ elem *toElem(Expression *e, IRState *irs)
                 goto Lret;
             }
 
-            // Casting from base class to derived class requires a runtime check
+            // Casting between class/interface may require a runtime check
             if (fty == Tclass && tty == Tclass)
             {
-                // Casting from derived class to base class is a no-op
-                int offset;
-                int rtl = RTLSYM_DYNAMIC_CAST;
-
                 ClassDeclaration *cdfrom = tfrom->isClassHandle();
                 ClassDeclaration *cdto   = t->isClassHandle();
+
                 if (cdfrom->cpp)
                 {
                     if (cdto->cpp)
@@ -3988,13 +3985,14 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
                     goto Lret;
                 }
-                if (cdfrom->isInterfaceDeclaration())
-                {
-                    rtl = RTLSYM_INTERFACE_CAST;
-                }
+
+                int offset;
                 if (cdto->isBaseOf(cdfrom, &offset) && offset != OFFSET_RUNTIME)
                 {
-                    /* The offset from cdfrom=>cdto is known at compile time.
+                    /* The offset from cdfrom => cdto is known at compile time.
+                     * Cases:
+                     *  - class => base class (upcast)
+                     *  - class => base interface (upcast)
                      */
 
                     //printf("offset = %d\n", offset);
@@ -4015,13 +4013,26 @@ elem *toElem(Expression *e, IRState *irs)
                             e = el_bin(OPcond, TYnptr, e, ex);
                         }
                     }
-                    goto Lret;                  // no-op
+                    else
+                    {
+                        // Casting from derived class to base class is a no-op
+                    }
                 }
-
-                /* The offset from cdfrom=>cdto can only be determined at runtime.
-                 */
-                elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
-                e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
+                else
+                {
+                    /* The offset from cdfrom => cdto can only be determined at runtime.
+                     * Cases:
+                     *  - class     => derived class (downcast)
+                     *  - interface => derived class (downcast)
+                     *  - class     => foreign interface (cross cast)
+                     *  - interface => base or foreign interface (cross cast)
+                     */
+                    int rtl = cdfrom->isInterfaceDeclaration()
+                                ? RTLSYM_INTERFACE_CAST
+                                : RTLSYM_DYNAMIC_CAST;
+                    elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
+                    e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
+                }
                 goto Lret;
             }
 
