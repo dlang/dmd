@@ -4630,6 +4630,46 @@ class A14743
 }
 
 /******************************************/
+// 14802
+
+void test14802()
+{
+    auto func(T)(T x, T y) { return x; }
+
+    struct S1 { double x; alias x this; }
+    struct S2 { double x; alias x this; }
+    S1 s1;
+    S2 s2;
+
+    enum E1 : double { a = 1.0 }
+    enum E2 : double { a = 1.0 }
+
+    static assert(is(typeof( func(1 , 1 ) ) == int));
+    static assert(is(typeof( func(1u, 1u) ) == uint));
+    static assert(is(typeof( func(1u, 1 ) ) == uint));
+    static assert(is(typeof( func(1 , 1u) ) == uint));
+
+    static assert(is(typeof( func(1.0f, 1.0f) ) == float));
+    static assert(is(typeof( func(1.0 , 1.0 ) ) == double));
+    static assert(is(typeof( func(1.0 , 1.0f) ) == double));
+    static assert(is(typeof( func(1.0f, 1.0 ) ) == double));
+
+    static assert(is(typeof( func(s1, s1) ) == S1));
+    static assert(is(typeof( func(s2, s2) ) == S2));
+    static assert(is(typeof( func(s1, s2) ) == double));
+    static assert(is(typeof( func(s2, s1) ) == double));
+
+    static assert(is(typeof( func(E1.a, E1.a) ) == E1));
+    static assert(is(typeof( func(E2.a, E2.a) ) == E2));
+    static assert(is(typeof( func(E1.a, 1.0)  ) == double));
+    static assert(is(typeof( func(E2.a, 1.0)  ) == double));
+    static assert(is(typeof( func(1.0,  E1.a) ) == double));
+    static assert(is(typeof( func(1.0,  E2.a) ) == double));
+    static assert(is(typeof( func(E1.a, E2.a) ) == double));
+    static assert(is(typeof( func(E2.a, E1.a) ) == double));
+}
+
+/******************************************/
 
 int main()
 {
@@ -4741,6 +4781,7 @@ int main()
     test13694();
     test14836();
     test14735();
+    test14802();
 
     printf("Success\n");
     return 0;
