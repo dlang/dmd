@@ -4122,7 +4122,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes,
             Objects *best, int &numBaseClassMatches)
         {
-            TemplateInstance *parti = b->base ? b->base->parent->isTemplateInstance() : NULL;
+            TemplateInstance *parti = b->sym ? b->sym->parent->isTemplateInstance() : NULL;
             if (parti)
             {
                 // Make a temporary copy of dedtypes so we don't destroy it
@@ -4235,7 +4235,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         deduceBaseClassParameters(b, sc, tparam, parameters, dedtypes,
                             best, numBaseClassMatches);
                     }
-                    s = (*s->baseclasses)[0]->base;
+                    s = (*s->baseclasses)[0]->sym;
                 }
 
                 if (numBaseClassMatches == 0)
