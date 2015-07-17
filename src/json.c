@@ -651,7 +651,7 @@ public:
                 for (size_t i = 0; i < cd->interfaces_dim; i++)
                 {
                     BaseClass *b = cd->interfaces[i];
-                    item(b->base->toPrettyChars(true));
+                    item(b->sym->toPrettyChars(true));
                 }
                 arrayEnd();
             }
