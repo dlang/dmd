@@ -995,30 +995,8 @@ void ClassDeclaration::finalizeSize(Scope *sc)
     if (sizeok == SIZEOKfwd)
         return;
 
-    // Allocate instance of each new interface
-    offset = structsize;
-    assert(vtblInterfaces);     // Bugzilla 12984
-    for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {
-        BaseClass *b = (*vtblInterfaces)[i];
-        unsigned thissize = Target::ptrsize;
-
-        alignmember(STRUCTALIGN_DEFAULT, thissize, &offset);
-        assert(b->offset == 0);
-        b->offset = offset;
-
-        // Take care of single inheritance offsets
-        while (b->baseInterfaces_dim)
-        {
-            b = &b->baseInterfaces[0];
-            b->offset = offset;
-        }
-
-        offset += thissize;
-        if (alignsize < thissize)
-            alignsize = thissize;
-    }
-    structsize = offset;
+    // Add vptr's for any interfaces implemented by this class
+    structsize += setBaseInterfaceOffsets(structsize);
     sizeok = SIZEOKdone;
 
     // Look for the constructor
@@ -1192,6 +1170,39 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
         vtblInterfaces->push(b);
         b->copyBaseInterfaces(vtblInterfaces);
     }
+}
+
+unsigned ClassDeclaration::setBaseInterfaceOffsets(unsigned baseOffset)
+{
+    assert(vtblInterfaces);     // Bugzilla 12984
+
+    // set the offset of base interfaces from this (most derived) class/interface.
+    unsigned offset = baseOffset;
+
+    //if (vtblInterfaces->dim) printf("\n%s->finalizeSize()\n", toChars());
+    for (size_t i = 0; i < vtblInterfaces->dim; i++)
+    {
+        BaseClass *b = (*vtblInterfaces)[i];
+        unsigned thissize = Target::ptrsize;
+
+        alignmember(STRUCTALIGN_DEFAULT, thissize, &offset);
+        b->offset = offset;
+        //printf("\tvtblInterfaces[%d] b->sym = %s, offset = %d\n", i, b->sym->toChars(), b->offset);
+
+        // Take care of single inheritance offsets
+        while (b->baseInterfaces_dim)
+        {
+            b = &b->baseInterfaces[0];
+            b->offset = offset;
+            //printf("\tvtblInterfaces[%d] +  sym = %s, offset = %d\n", i, b->sym->toChars(), b->offset);
+        }
+
+        offset += thissize;
+        if (alignsize < thissize)
+            alignsize = thissize;
+    }
+
+    return offset - baseOffset;
 }
 
 /****************************************
@@ -1613,6 +1624,9 @@ void InterfaceDeclaration::finalizeSize(Scope *sc)
 {
     structsize = Target::ptrsize * 2;
     sizeok = SIZEOKdone;
+
+    // set the offset of base interfaces
+    setBaseInterfaceOffsets(0);
 }
 
 /*******************************************

@@ -284,6 +284,7 @@ public:
     bool isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
+    unsigned setBaseInterfaceOffsets(unsigned baseOffset);
     bool isCOMclass();
     virtual bool isCOMinterface();
     bool isCPPclass();
