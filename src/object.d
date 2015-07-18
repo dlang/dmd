@@ -398,6 +398,11 @@ class TypeInfo_Pointer : TypeInfo
         return (void*).sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. (void*).sizeof];
+    }
+
     override void swap(void* p1, void* p2) const
     {
         void* tmp = *cast(void**)p1;
@@ -656,6 +661,11 @@ class TypeInfo_AssociativeArray : TypeInfo
         return (char[int]).sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. (char[int]).sizeof];
+    }
+
     override @property inout(TypeInfo) next() nothrow pure inout { return value; }
     override @property uint flags() nothrow pure const { return 1; }
 
@@ -728,6 +738,11 @@ class TypeInfo_Function : TypeInfo
         return 0;       // no size for functions
     }
 
+    override const(void)[] init() const @safe
+    {
+        return null;
+    }
+
     TypeInfo next;
     string deco;
 }
@@ -753,6 +768,11 @@ class TypeInfo_Delegate : TypeInfo
     {
         alias int delegate() dg;
         return dg.sizeof;
+    }
+
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. (int delegate()).sizeof];
     }
 
     override @property uint flags() nothrow pure const { return 1; }
@@ -987,6 +1007,11 @@ class TypeInfo_Interface : TypeInfo
         return Object.sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. Object.sizeof];
+    }
+
     override @property uint flags() nothrow pure const { return 1; }
 
     TypeInfo_Class info;
@@ -1193,6 +1218,11 @@ class TypeInfo_Tuple : TypeInfo
     }
 
     override @property size_t tsize() nothrow pure const
+    {
+        assert(0);
+    }
+
+    override const(void)[] init() const @trusted
     {
         assert(0);
     }
