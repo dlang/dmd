@@ -1657,6 +1657,12 @@ bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
                 *poffset = b->offset;
                 if (j && cd->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
+
+                /* TODO: Even though it's an interface to base interface upcast,
+                 * I think we can avoid runtime offset determination ultimately.
+                 * (I doubt that it was just a workaround for the bug in the
+                 * inferface to Object downcast)
+                 */
             }
             return true;
         }
