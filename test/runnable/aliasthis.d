@@ -1674,7 +1674,10 @@ struct RefCounted12008(T)
         return 0;
     }
 
-    int refCountedPayload() inout;
+    int refCountedPayload() inout
+    {
+        return 0;
+    }
 
     alias refCountedPayload this;
 }
@@ -1803,6 +1806,34 @@ void test13009()
 }
 
 /***************************************************/
+// 14806
+
+struct Nullable14806
+{
+    float get() { return float.nan; }
+    alias get this;
+}
+
+struct Foo14806(T)
+{
+    T bar;
+    Nullable14806 baz;
+}
+
+void test14806()
+{
+    Foo14806!int a, b;
+    assert(a != b);
+    // ==> a.tupleof != b.tupleof
+    // ==> a.bar != b.bar || a.baz.get() != b.baz.get()
+
+    Foo14806!string c, d;
+    assert(c != d);
+    // ==> c.tupleof != d.tupleof
+    // ==> c.bar != d.bar || c.baz.get() != d.baz.get()
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1857,6 +1888,7 @@ int main()
     test11800();
     test13490();
     test11355();
+    test14806();
 
     printf("Success\n");
     return 0;
