@@ -251,8 +251,9 @@ test/%/.run: test/%/Makefile
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) QUIET=$(QUIET) LINKDL=$(LINKDL)
 
 #################### test for undesired white spaces ##########################
-CWS_MAKEFILES = $(filter mak/% %.mak %/Makefile,$(MANIFEST))
-NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES),$(MANIFEST))
+CWS_MANIFEST = $(shell git ls-tree --name-only -r HEAD)
+CWS_MAKEFILES = $(filter mak/% %.mak %/Makefile,$(CWS_MANIFEST))
+NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES),$(CWS_MANIFEST))
 GREP = grep
 
 checkwhitespace:

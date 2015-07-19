@@ -21,18 +21,18 @@ import core.sys.posix.time; // timespec
 
 enum : short
 {
-	EVFILT_READ     =  -1,
-	EVFILT_WRITE    =  -2,
-	EVFILT_AIO      =  -3, /* attached to aio requests */
-	EVFILT_VNODE    =  -4, /* attached to vnodes */
-	EVFILT_PROC     =  -5, /* attached to struct proc */
-	EVFILT_SIGNAL   =  -6, /* attached to struct proc */
-	EVFILT_TIMER    =  -7, /* timers */
-	EVFILT_MACHPORT =  -8, /* Mach portsets */
-	EVFILT_FS       =  -9, /* filesystem events */
-	EVFILT_USER     = -10, /* User events */
-	EVFILT_VM		= -12, /* virtual memory events */
-	EVFILT_SYSCOUNT =  11
+    EVFILT_READ     =  -1,
+    EVFILT_WRITE    =  -2,
+    EVFILT_AIO      =  -3, /* attached to aio requests */
+    EVFILT_VNODE    =  -4, /* attached to vnodes */
+    EVFILT_PROC     =  -5, /* attached to struct proc */
+    EVFILT_SIGNAL   =  -6, /* attached to struct proc */
+    EVFILT_TIMER    =  -7, /* timers */
+    EVFILT_MACHPORT =  -8, /* Mach portsets */
+    EVFILT_FS       =  -9, /* filesystem events */
+    EVFILT_USER     = -10, /* User events */
+    EVFILT_VM       = -12, /* virtual memory events */
+    EVFILT_SYSCOUNT =  11
 }
 
 extern(D) void EV_SET(kevent_t* kevp, typeof(kevent_t.tupleof) args)
