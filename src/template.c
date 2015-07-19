@@ -5911,6 +5911,7 @@ Lerror:
      * implements the typeargs. If so, just refer to that one instead.
      */
     inst = tempdecl->findExistingInstance(this, fargs);
+    TemplateInstance *errinst = NULL;
     if (!inst)
     {
         // So, we need to implement 'this' instance.
@@ -5919,6 +5920,7 @@ Lerror:
     {
         // If the first instantiation had failed, re-run semantic,
         // so that error messages are shown.
+        errinst = inst;
     }
     else
     {
@@ -6285,6 +6287,27 @@ Lerror:
             semanticRun = PASSinit;
             inst = NULL;
             symtab = NULL;
+        }
+    }
+    else if (errinst)
+    {
+        /* Bugzilla 14541: If the previous gagged instance had failed by
+         * circular references, currrent "error reproduction instantiation"
+         * might succeed, because of the difference of instantiated context.
+         * On such case, the cached error instance needs to be overridden by the
+         * succeeded instance.
+         */
+        size_t bi = hash % tempdecl->buckets.dim;
+        TemplateInstances *instances = tempdecl->buckets[bi];
+        assert(instances);
+        for (size_t i = 0; i < instances->dim; i++)
+        {
+            TemplateInstance *ti = (*instances)[i];
+            if (ti == errinst)
+            {
+                (*instances)[i] = this;     // override
+                break;
+            }
         }
     }
 
