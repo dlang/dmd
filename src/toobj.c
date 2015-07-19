@@ -465,7 +465,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
             {
                 BaseClass *b = (*cd->vtblInterfaces)[i];
-                ClassDeclaration *id = b->base;
+                ClassDeclaration *id = b->sym;
 
                 /* The layout is:
                  *  struct Interface
@@ -496,7 +496,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
             {
                 BaseClass *b = (*cd->vtblInterfaces)[i];
-                ClassDeclaration *id = b->base;
+                ClassDeclaration *id = b->sym;
 
                 //printf("    interface[%d] is '%s'\n", i, id->toChars());
                 size_t j = 0;
@@ -543,8 +543,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     FuncDeclarations bvtbl;
                     if (bs->fillVtbl(cd, &bvtbl, 0))
                     {
-                        //printf("\toverriding vtbl[] for %s\n", bs->base->toChars());
-                        ClassDeclaration *id = bs->base;
+                        //printf("\toverriding vtbl[] for %s\n", bs->sym->toChars());
+                        ClassDeclaration *id = bs->sym;
 
                         size_t j = 0;
                         if (id->vtblOffset())
@@ -793,7 +793,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             for (size_t i = 0; i < id->vtblInterfaces->dim; i++)
             {
                 BaseClass *b = (*id->vtblInterfaces)[i];
-                ClassDeclaration *base = b->base;
+                ClassDeclaration *base = b->sym;
 
                 // ClassInfo
                 dtxoff(&dt, toSymbol(base), 0, TYnptr);
@@ -1191,7 +1191,7 @@ unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc)
 
         if (b == bc)
             return csymoffset;
-        csymoffset += b->base->vtbl.dim * Target::ptrsize;
+        csymoffset += b->sym->vtbl.dim * Target::ptrsize;
     }
 
     // Put out the overriding interface vtbl[]s.
@@ -1211,7 +1211,7 @@ unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc)
                     //printf("\tcsymoffset = x%x\n", csymoffset);
                     return csymoffset;
                 }
-                csymoffset += bs->base->vtbl.dim * Target::ptrsize;
+                csymoffset += bs->sym->vtbl.dim * Target::ptrsize;
             }
         }
     }

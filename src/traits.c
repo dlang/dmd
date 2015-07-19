@@ -1034,7 +1034,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                 {
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
                     {
-                        ClassDeclaration *cb = (*cd->baseclasses)[i]->base;
+                        ClassDeclaration *cb = (*cd->baseclasses)[i]->sym;
                         assert(cb);
                         ScopeDsymbol::foreach(NULL, cb->members, &PushIdentsDg::dg, idents);
                         if (cb->baseclasses->dim)
