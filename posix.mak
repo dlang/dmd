@@ -253,7 +253,7 @@ test/%/.run: test/%/Makefile
 #################### test for undesired white spaces ##########################
 CWS_MANIFEST = $(shell git ls-tree --name-only -r HEAD)
 CWS_MAKEFILES = $(filter mak/% %.mak %/Makefile,$(CWS_MANIFEST))
-NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES),$(CWS_MANIFEST))
+NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES) src/rt/minit.obj,$(CWS_MANIFEST))
 GREP = grep
 
 checkwhitespace:
