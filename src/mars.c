@@ -216,6 +216,7 @@ Usage:\n\
   -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
+  -exclude_cwd_from_imports    exclude cwd from imports\n\
 ", FileName::canonicalName(global.inifilename), fpic);
 }
 
@@ -459,6 +460,8 @@ int tryMain(size_t argc, const char *argv[])
         {
             if (strcmp(p + 1, "allinst") == 0)
                 global.params.allInst = true;
+            else if (strcmp(p + 1, "exclude_cwd_from_imports") == 0)
+                global.params.exclude_cwd_from_imports = true;
             else if (strcmp(p + 1, "de") == 0)
                 global.params.useDeprecated = 0;
             else if (strcmp(p + 1, "d") == 0)
