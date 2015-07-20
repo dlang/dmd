@@ -1210,14 +1210,14 @@ const char *lookForSourceFile(const char *filename)
      */
 
     const char *sdi = FileName::forceExt(filename, global.hdr_ext);
-    if (FileName::exists(sdi) == 1)
+    if (!global.params.exclude_cwd_from_imports && FileName::exists(sdi) == 1)
         return sdi;
 
     const char *sd  = FileName::forceExt(filename, global.mars_ext);
-    if (FileName::exists(sd) == 1)
+    if (!global.params.exclude_cwd_from_imports && FileName::exists(sd) == 1)
         return sd;
 
-    if (FileName::exists(filename) == 2)
+    if (!global.params.exclude_cwd_from_imports && FileName::exists(filename) == 2)
     {
         /* The filename exists and it's a directory.
          * Therefore, the result should be: filename/package.d
