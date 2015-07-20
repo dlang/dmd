@@ -715,9 +715,8 @@ elem *getTypeInfo(Type *t, IRState *irs)
 }
 
 /********************************************
- * Determine if t is an array of structs that need a postblit.
+ * Determine if t is a struct that has postblit.
  */
-
 StructDeclaration *needsPostblit(Type *t)
 {
     t = t->baseElemOf();
@@ -725,6 +724,21 @@ StructDeclaration *needsPostblit(Type *t)
     {
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
         if (sd->postblit)
+            return sd;
+    }
+    return NULL;
+}
+
+/********************************************
+ * Determine if t is a struct that has destructor.
+ */
+StructDeclaration *needsDtor(Type *t)
+{
+    t = t->baseElemOf();
+    if (t->ty == Tstruct)
+    {
+        StructDeclaration *sd = ((TypeStruct *)t)->sym;
+        if (sd->dtor)
             return sd;
     }
     return NULL;
@@ -2601,18 +2615,19 @@ elem *toElem(Expression *e, IRState *irs)
 
                     /* Determine if we need to do postblit
                      */
-                    int postblit = 0;
+                    bool postblit = false;
                     if (needsPostblit(t1->nextOf()) &&
                         (ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
                          ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
                          ae->e2->op != TOKslice && ae->e2->isLvalue()))
                     {
-                        postblit = 1;
+                        postblit = true;
                     }
+                    bool destructor = needsDtor(t1->nextOf()) != NULL;
 
                     assert(ae->e2->type->ty != Tpointer);
 
-                    if (!postblit && !irs->arrayBoundsCheck())
+                    if (!postblit && !destructor && !irs->arrayBoundsCheck())
                     {
                         elem *ex = el_same(&eto);
 
@@ -2637,7 +2652,7 @@ elem *toElem(Expression *e, IRState *irs)
                         e = el_pair(eto->Ety, el_copytree(elen), e);
                         e = el_combine(eto, e);
                     }
-                    else if (postblit && ae->op != TOKblit)
+                    else if ((postblit || destructor) && ae->op != TOKblit)
                     {
                         /* Generate:
                          *      _d_arrayassign(ti, efrom, eto)
@@ -2825,6 +2840,7 @@ elem *toElem(Expression *e, IRState *irs)
                 assert(ae->e2->type->toBasetype()->ty == Tsarray);
 
                 bool postblit = needsPostblit(t1b->nextOf()) != NULL;
+                bool destructor = needsDtor(t1b->nextOf()) != NULL;
 
                 /* Optimize static array assignment with array literal.
                  * Rewrite:
@@ -2917,8 +2933,10 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *e2 = toElem(ae->e2, irs);
 
-                if (!postblit || (!lvalueElem && ae->op == TOKconstruct) ||
-                    ae->op == TOKblit || type_size(e1->ET) == 0)
+                if (!postblit && !destructor ||
+                    ae->op == TOKconstruct && !lvalueElem && postblit ||
+                    ae->op == TOKblit ||
+                    type_size(e1->ET) == 0)
                 {
                     e = el_bin(OPstreq, tym, e1, e2);
                     e->ET = Type_toCtype(ae->e1->type);
