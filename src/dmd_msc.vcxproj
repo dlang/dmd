@@ -130,6 +130,8 @@
     <ClCompile Include="mtype.c" />
     <ClCompile Include="nogc.c" />
     <ClCompile Include="nspace.c" />
+    <ClCompile Include="objc_stubs.c" />
+    <ClCompile Include="objc_glue_stubs.c" />
     <ClCompile Include="opover.c" />
     <ClCompile Include="optimize.c" />
     <ClCompile Include="parse.c" />
@@ -311,6 +313,7 @@
     <ClInclude Include="module.h" />
     <ClInclude Include="mtype.h" />
     <ClInclude Include="nspace.h" />
+    <ClInclude Include="objc.h" />
     <ClInclude Include="objfile.h" />
     <ClInclude Include="parse.h" />
     <ClInclude Include="scope.h" />

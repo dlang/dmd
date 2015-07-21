@@ -654,6 +654,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\objc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\objc_glue_stubs.c"
+				>
+			</File>
+			<File
+				RelativePath=".\objc_stubs.c"
+				>
+			</File>
+			<File
 				RelativePath=".\objfile.h"
 				>
 			</File>
