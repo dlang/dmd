@@ -481,11 +481,13 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                         pdt = dtnzeros(pdt, vd->offset - offset);
                     e = (*se->elements)[k];
 
+                    dt_t *dt = NULL;
                     Type *tb = vd->type->toBasetype();
                     if (tb->ty == Tsarray)
-                        toDtElem(((TypeSArray *)tb), pdt, e);
+                        toDtElem(((TypeSArray *)tb), &dt, e);
                     else
-                        Expression_toDt(e, pdt);           // convert e to an initializer dt
+                        Expression_toDt(e, &dt);           // convert e to an initializer dt
+                    pdt = dtcat(pdt, dt);
 
                     offset = vd->offset + vd->type->size();
                 }
