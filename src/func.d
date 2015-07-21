@@ -4296,9 +4296,9 @@ public:
 
     /****************************** FuncAliasDeclaration ************************/
     // Used as a way to import a set of functions from another scope into this one.
-    extern (D) this(FuncDeclaration funcalias, bool hasOverloads = true)
+    extern (D) this(Identifier ident, FuncDeclaration funcalias, bool hasOverloads = true)
     {
-        super(funcalias.loc, funcalias.endloc, funcalias.ident, funcalias.storage_class, funcalias.type);
+        super(funcalias.loc, funcalias.endloc, ident, funcalias.storage_class, funcalias.type);
         assert(funcalias != this);
         this.funcalias = funcalias;
         this.hasOverloads = hasOverloads;

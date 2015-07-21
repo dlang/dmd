@@ -696,7 +696,7 @@ public:
             {
                 if (overnext)
                 {
-                    auto fa = new FuncAliasDeclaration(fd);
+                    auto fa = new FuncAliasDeclaration(ident, fd);
                     if (!fa.overloadInsert(overnext))
                         ScopeDsymbol.multiplyDefined(Loc(), overnext, fd);
                     overnext = null;
@@ -708,7 +708,7 @@ public:
             {
                 if (overnext)
                 {
-                    auto od = new OverDeclaration(td);
+                    auto od = new OverDeclaration(ident, td);
                     if (!od.overloadInsert(overnext))
                         ScopeDsymbol.multiplyDefined(Loc(), overnext, td);
                     overnext = null;
@@ -720,7 +720,7 @@ public:
             {
                 if (overnext)
                 {
-                    auto od2 = new OverDeclaration(od);
+                    auto od2 = new OverDeclaration(ident, od);
                     if (!od2.overloadInsert(overnext))
                         ScopeDsymbol.multiplyDefined(Loc(), overnext, od);
                     overnext = null;
@@ -732,6 +732,7 @@ public:
             {
                 if (overnext)
                 {
+                    os = new OverloadSet(ident, os);
                     os.push(overnext);
                     overnext = null;
                     s = os;
@@ -768,13 +769,13 @@ public:
             Dsymbol sa = aliassym.toAlias();
             if (FuncDeclaration fd = sa.isFuncDeclaration())
             {
-                auto fa = new FuncAliasDeclaration(fd);
+                auto fa = new FuncAliasDeclaration(ident, fd);
                 aliassym = fa;
                 return fa.overloadInsert(s);
             }
             if (TemplateDeclaration td = sa.isTemplateDeclaration())
             {
-                auto od = new OverDeclaration(td);
+                auto od = new OverDeclaration(ident, td);
                 aliassym = od;
                 return od.overloadInsert(s);
             }
@@ -902,9 +903,9 @@ public:
     bool hasOverloads;
 
     /****************************** OverDeclaration **************************/
-    extern (D) this(Dsymbol s, bool hasOverloads = true)
+    extern (D) this(Identifier ident, Dsymbol s, bool hasOverloads = true)
     {
-        super(s.ident);
+        super(ident);
         this.overnext = null;
         this.aliassym = s;
         this.hasOverloads = hasOverloads;

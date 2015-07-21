@@ -1300,7 +1300,7 @@ public:
                 {
                     s = s2;
                     if (s && s.isOverloadSet())
-                        a = mergeOverloadSet(a, s);
+                        a = mergeOverloadSet(ident, a, s);
                 }
                 else if (s2 && s != s2)
                 {
@@ -1335,7 +1335,7 @@ public:
                              */
                             if ((s2.isOverloadSet() || s2.isOverloadable()) && (a || s.isOverloadable()))
                             {
-                                a = mergeOverloadSet(a, s2);
+                                a = mergeOverloadSet(ident, a, s2);
                                 continue;
                             }
                             if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
@@ -1354,7 +1354,7 @@ public:
                 if (a)
                 {
                     if (!s.isOverloadSet())
-                        a = mergeOverloadSet(a, s);
+                        a = mergeOverloadSet(ident, a, s);
                     s = a;
                 }
                 if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate && !s.parent.isTemplateMixin())
@@ -1368,11 +1368,11 @@ public:
         return s1;
     }
 
-    final OverloadSet mergeOverloadSet(OverloadSet os, Dsymbol s)
+    final OverloadSet mergeOverloadSet(Identifier ident, OverloadSet os, Dsymbol s)
     {
         if (!os)
         {
-            os = new OverloadSet(s.ident);
+            os = new OverloadSet(ident);
             os.parent = this;
         }
         if (OverloadSet os2 = s.isOverloadSet())
@@ -1387,7 +1387,7 @@ public:
             {
                 for (size_t i = 0; i < os2.a.dim; i++)
                 {
-                    os = mergeOverloadSet(os, os2.a[i]);
+                    os = mergeOverloadSet(ident, os, os2.a[i]);
                 }
             }
         }
@@ -1871,9 +1871,14 @@ public:
     Dsymbols a; // array of Dsymbols
 
     /********************************* OverloadSet ****************************/
-    extern (D) this(Identifier ident)
+    extern (D) this(Identifier ident, OverloadSet os = null)
     {
         super(ident);
+        if (os)
+        {
+            for (size_t i = 0; i < os.a.dim; i++)
+                a.push(os.a[i]);
+        }
     }
 
     void push(Dsymbol s)
