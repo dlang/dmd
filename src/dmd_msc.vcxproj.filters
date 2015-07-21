@@ -525,6 +525,18 @@
     <ClCompile Include="nspace.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="objc.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="objc_stubs.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="objc_glue.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="objc_glue_stubs.c">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="tokens.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -780,6 +792,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="nspace.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="objc.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="backend\obj.h">
