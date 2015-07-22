@@ -1129,6 +1129,7 @@ elem *toElem(Expression *e, IRState *irs)
             if (Type *t = isType(e->obj))
             {
                 result = getTypeInfo(t, irs);
+                result = el_bin(OPadd, result->Ety, result, el_long(TYsize_t, t->vtinfo->offset));
                 return;
             }
             if (Expression *ex = isExpression(e->obj))
