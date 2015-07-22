@@ -38,6 +38,7 @@ LDFLAGS=-lm -lstdc++ -lpthread
 	HOST_CC=g++
 #endif
 CC=$(HOST_CC)
+AR=ar
 GIT=git
 
 # Host D compiler for bootstrapping
@@ -314,16 +315,16 @@ auto-tester-build: dmd checkwhitespace ddmd
 .PHONY: auto-tester-build
 
 frontend.a: $(DMD_OBJS)
-	ar rcs frontend.a $(DMD_OBJS)
+	$(AR) rcs frontend.a $(DMD_OBJS)
 
 root.a: $(ROOT_OBJS)
-	ar rcs root.a $(ROOT_OBJS)
+	$(AR) rcs root.a $(ROOT_OBJS)
 
 glue.a: $(GLUE_OBJS)
-	ar rcs glue.a $(GLUE_OBJS)
+	$(AR) rcs glue.a $(GLUE_OBJS)
 
 backend.a: $(BACK_OBJS)
-	ar rcs backend.a $(BACK_OBJS)
+	$(AR) rcs backend.a $(BACK_OBJS)
 
 ifdef ENABLE_LTO
 dmd: $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS)
