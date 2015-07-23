@@ -7378,6 +7378,8 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
         {
             return getProperty(e->loc, ident, flag);
         }
+        // Issue 12385
+        e->type = e->type->addMod(sym->memtype->mod);
         return sym->getMemtype(Loc())->dotExp(sc, e, ident, flag);
     }
     EnumMember *m = s->isEnumMember();
