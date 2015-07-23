@@ -55,7 +55,10 @@ else
   # Auto-bootstrapping, will download dmd automatically
   HOST_DMD_VER=2.067.1
   HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
-  HOST_DMD_URL=http://downloads.dlang.org/releases/2015/dmd.$(HOST_DMD_VER).$(OS).zip
+  # dmd.2.067.1.osx.zip or dmd.2.067.1.freebsd-64.zip
+  HOST_DMD_ZIP=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),).zip
+  # http://downloads.dlang.org/releases/2.x/2.067.1/dmd.2.067.1.osx.zip
+  HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/$(HOST_DMD_VER)/$(HOST_DMD_ZIP)
   HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
   HOST_DC=$(HOST_DMD)
   HOST_DC_RUN=$(HOST_DC) -conf=$(dir $(HOST_DC))dmd.conf
