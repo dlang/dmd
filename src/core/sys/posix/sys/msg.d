@@ -22,65 +22,65 @@ public enum  MSG_EXCEPT = 2 << 12; // octal!20000
 public enum    MSG_COPY = 4 << 12; // octal!40000
 
 struct msgbuf {
-	c_long mtype;    
-	char mtext[1];
+    c_long mtype;
+    char mtext[1];
 };
 
 struct msginfo {
-	int msgpool;
-	int msgmap; 
-	int msgmax; 
-	int msgmnb; 
-	int msgmni; 
-	int msgssz; 
-	int msgtql; 
-	ushort msgseg; 
+    int msgpool;
+    int msgmap;
+    int msgmax;
+    int msgmnb;
+    int msgmni;
+    int msgssz;
+    int msgtql;
+    ushort msgseg;
 };
 
-version(Alpha) 
+version(Alpha)
 {
-	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/alpha/bits/msq.h
-	alias c_ulong msgqnum_t;	
-	alias c_ulong msglen_t;
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/alpha/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
 
-	struct msqid_ds
-	{
-		ipc_perm msg_perm;     
-		time_t msg_stime;           
-		time_t msg_rtime;           
-		time_t msg_ctime;           
-		c_ulong __msg_cbytes; 
-		msgqnum_t msg_qnum;           
-		msglen_t msg_qbytes;          
-		pid_t msg_lspid;            
-		pid_t msg_lrpid;            
-		c_ulong __glibc_reserved1;
-		c_ulong __glibc_reserved2;
-	};
+    struct msqid_ds
+    {
+        ipc_perm msg_perm;
+        time_t msg_stime;
+        time_t msg_rtime;
+        time_t msg_ctime;
+        c_ulong __msg_cbytes;
+        msgqnum_t msg_qnum;
+        msglen_t msg_qbytes;
+        pid_t msg_lspid;
+        pid_t msg_lrpid;
+        c_ulong __glibc_reserved1;
+        c_ulong __glibc_reserved2;
+    };
 }
-else version(HPPA) 
+else version(HPPA)
 {
-	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/hppa/bits/msq.h
-	alias c_ulong msgqnum_t;	
-	alias c_ulong msglen_t;
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/hppa/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
 
-	// Assuming word size is 32
-	struct msqid_ds {
-		ipc_perm msg_perm;
-		c_ulong __pad1;
-		time_t          msg_stime;
-		c_ulong __pad2;
-		time_t          msg_rtime;
-		c_ulong __pad3;
-		time_t          msg_ctime;
-		c_ulong         __msg_cbytes;
-		msgqnum_t       msg_qnum;
-		msglen_t        msg_qbytes;
-		pid_t           msg_lspid;
-		pid_t           msg_lrpid;
-		c_ulong __glibc_reserved1;
-		c_ulong __glibc_reserved2;
-	};
+    // Assuming word size is 32
+    struct msqid_ds {
+        ipc_perm msg_perm;
+        c_ulong __pad1;
+        time_t          msg_stime;
+        c_ulong __pad2;
+        time_t          msg_rtime;
+        c_ulong __pad3;
+        time_t          msg_ctime;
+        c_ulong         __msg_cbytes;
+        msgqnum_t       msg_qnum;
+        msglen_t        msg_qbytes;
+        pid_t           msg_lspid;
+        pid_t           msg_lrpid;
+        c_ulong __glibc_reserved1;
+        c_ulong __glibc_reserved2;
+    };
 
 }
 else version(MIPS)
@@ -131,29 +131,29 @@ else version(MIPS64)
         c_ulong   __glibc_reserved5;
     };
 }
-else version (PPC) 
+else version (PPC)
 {
 
-	//  https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/powerpc/bits/msq.h
-	alias c_ulong msgqnum_t;	
-	alias c_ulong msglen_t;
+    //  https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/powerpc/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
 
-	struct msqid_ds {
-		ipc_perm msg_perm;
-		c_ulong __glibc_reserved1;
-		time_t          msg_stime;
-		c_ulong __glibc_reserved2;
-		time_t          msg_rtime;
-		c_ulong __glibc_reserved3;
-		time_t          msg_ctime;
-		c_ulong         __msg_cbytes;
-		msgqnum_t       msg_qnum;
-		msglen_t        msg_qbytes;
-		pid_t           msg_lspid;
-		pid_t           msg_lrpid;
-		c_ulong __glibc_reserved4;
-		c_ulong __glibc_reserved5;
-	};
+    struct msqid_ds {
+        ipc_perm msg_perm;
+        c_ulong __glibc_reserved1;
+        time_t          msg_stime;
+        c_ulong __glibc_reserved2;
+        time_t          msg_rtime;
+        c_ulong __glibc_reserved3;
+        time_t          msg_ctime;
+        c_ulong         __msg_cbytes;
+        msgqnum_t       msg_qnum;
+        msglen_t        msg_qbytes;
+        pid_t           msg_lspid;
+        pid_t           msg_lrpid;
+        c_ulong __glibc_reserved4;
+        c_ulong __glibc_reserved5;
+    };
 }
 else version (PPC64)
 {
@@ -175,142 +175,142 @@ else version (PPC64)
         c_ulong   __glibc_reserved5;
     };
 }
-else version (S390) 
+else version (S390)
 {
-	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/s390/bits/msq.h
-	alias c_ulong msgqnum_t;	
-	alias c_ulong msglen_t;
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/s390/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
 
-	// Assuming wordsize != 64
-	struct msqid_ds {
-		ipc_perm msg_perm;
-		c_ulong __glibc_reserved1;
-		time_t          msg_stime;
-		c_ulong __glibc_reserved2;
-		time_t          msg_rtime;
-		c_ulong __glibc_reserved3;
-		time_t          msg_ctime;
-		c_ulong         __msg_cbytes;
-		msgqnum_t       msg_qnum;
-		msglen_t        msg_qbytes;
-		pid_t           msg_lspid;
-		pid_t           msg_lrpid;
-		c_ulong __glibc_reserved4;
-		c_ulong __glibc_reserved5;
-	};
+    // Assuming wordsize != 64
+    struct msqid_ds {
+        ipc_perm msg_perm;
+        c_ulong __glibc_reserved1;
+        time_t          msg_stime;
+        c_ulong __glibc_reserved2;
+        time_t          msg_rtime;
+        c_ulong __glibc_reserved3;
+        time_t          msg_ctime;
+        c_ulong         __msg_cbytes;
+        msgqnum_t       msg_qnum;
+        msglen_t        msg_qbytes;
+        pid_t           msg_lspid;
+        pid_t           msg_lrpid;
+        c_ulong __glibc_reserved4;
+        c_ulong __glibc_reserved5;
+    };
 }
-else version (SPARC) 
+else version (SPARC)
 {
-	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/sparc/bits/msq.h
-	alias c_ulong msgqnum_t;	
-	alias c_ulong msglen_t;
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/sparc/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
 
-	// Assuming word size is 32
-	struct msqid_ds {
-		ipc_perm msg_perm;
-		c_ulong __pad1;
-		time_t          msg_stime;
-		c_ulong __pad2;
-		time_t          msg_rtime;
-		c_ulong __pad3;
-		time_t          msg_ctime;
-		c_ulong         __msg_cbytes;
-		msgqnum_t       msg_qnum;
-		msglen_t        msg_qbytes;
-		pid_t           msg_lspid;
-		pid_t           msg_lrpid;
-		c_ulong __glibc_reserved1;
-		c_ulong __glibc_reserved2;
-	};
+    // Assuming word size is 32
+    struct msqid_ds {
+        ipc_perm msg_perm;
+        c_ulong __pad1;
+        time_t          msg_stime;
+        c_ulong __pad2;
+        time_t          msg_rtime;
+        c_ulong __pad3;
+        time_t          msg_ctime;
+        c_ulong         __msg_cbytes;
+        msgqnum_t       msg_qnum;
+        msglen_t        msg_qbytes;
+        pid_t           msg_lspid;
+        pid_t           msg_lrpid;
+        c_ulong __glibc_reserved1;
+        c_ulong __glibc_reserved2;
+    };
 }
-else version (X86) 
+else version (X86)
 {
-	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/x86/bits/msq.h
-	alias c_ulong msgqnum_t;	
-	alias c_ulong msglen_t;
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/x86/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
 
-	struct msqid_ds {
-		ipc_perm msg_perm;
-		time_t          msg_stime;
-		time_t          msg_rtime;
-		time_t          msg_ctime;
-		c_ulong         __msg_cbytes;
-		msgqnum_t       msg_qnum;
-		msglen_t        msg_qbytes;
-		pid_t           msg_lspid;
-		pid_t           msg_lrpid;
-		c_ulong __glibc_reserved4;
-		c_ulong __glibc_reserved5;
-	};
-} 
-else version (X86_64) 
+    struct msqid_ds {
+        ipc_perm msg_perm;
+        time_t          msg_stime;
+        time_t          msg_rtime;
+        time_t          msg_ctime;
+        c_ulong         __msg_cbytes;
+        msgqnum_t       msg_qnum;
+        msglen_t        msg_qbytes;
+        pid_t           msg_lspid;
+        pid_t           msg_lrpid;
+        c_ulong __glibc_reserved4;
+        c_ulong __glibc_reserved5;
+    };
+}
+else version (X86_64)
 {
-	// Can't find adequate bits.h in https://sourceware.org/git/?p=glibc.git;a=tree;f=sysdeps/unix/sysv/linux/x86_64/bits;h=cd03a84463c9393dd751d78fba19e59aad3e0bb3;hb=HEAD
-	// Using the same as in X86 version
-	alias c_ulong msgqnum_t;	
-	alias c_ulong msglen_t;
+    // Can't find adequate bits.h in https://sourceware.org/git/?p=glibc.git;a=tree;f=sysdeps/unix/sysv/linux/x86_64/bits;h=cd03a84463c9393dd751d78fba19e59aad3e0bb3;hb=HEAD
+    // Using the same as in X86 version
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
 
-	struct msqid_ds {
-		ipc_perm msg_perm;
-		c_ulong __glibc_reserved1;
-		time_t          msg_stime;
-		c_ulong __glibc_reserved2;
-		time_t          msg_rtime;
-		c_ulong __glibc_reserved3;
-		time_t          msg_ctime;
-		c_ulong         __msg_cbytes;
-		msgqnum_t       msg_qnum;
-		msglen_t        msg_qbytes;
-		pid_t           msg_lspid;
-		pid_t           msg_lrpid;
-		c_ulong __glibc_reserved4;
-		c_ulong __glibc_reserved5;
-	};
-} 
+    struct msqid_ds {
+        ipc_perm msg_perm;
+        c_ulong __glibc_reserved1;
+        time_t          msg_stime;
+        c_ulong __glibc_reserved2;
+        time_t          msg_rtime;
+        c_ulong __glibc_reserved3;
+        time_t          msg_ctime;
+        c_ulong         __msg_cbytes;
+        msgqnum_t       msg_qnum;
+        msglen_t        msg_qbytes;
+        pid_t           msg_lspid;
+        pid_t           msg_lrpid;
+        c_ulong __glibc_reserved4;
+        c_ulong __glibc_reserved5;
+    };
+}
 else version (AArch64)
 {
-	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
-	alias c_ulong msgqnum_t;
-	alias c_ulong msglen_t;
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
 
-	struct msqid_ds {
-		ipc_perm msg_perm;
-		time_t          msg_stime;
-		time_t          msg_rtime;
-		time_t          msg_ctime;
-		c_ulong         __msg_cbytes;
-		msgqnum_t       msg_qnum;
-		msglen_t        msg_qbytes;
-		pid_t           msg_lspid;
-		pid_t           msg_lrpid;
-		c_ulong __glibc_reserved4;
-		c_ulong __glibc_reserved5;
-	};
+    struct msqid_ds {
+        ipc_perm msg_perm;
+        time_t          msg_stime;
+        time_t          msg_rtime;
+        time_t          msg_ctime;
+        c_ulong         __msg_cbytes;
+        msgqnum_t       msg_qnum;
+        msglen_t        msg_qbytes;
+        pid_t           msg_lspid;
+        pid_t           msg_lrpid;
+        c_ulong __glibc_reserved4;
+        c_ulong __glibc_reserved5;
+    };
 }
-else version (ARM) 
+else version (ARM)
 {
-	// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
-	alias c_ulong msgqnum_t;	
-	alias c_ulong msglen_t;
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/generic/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
 
-	struct msqid_ds {
-		ipc_perm msg_perm;
-		c_ulong __glibc_reserved1;
-		time_t          msg_stime;
-		c_ulong __glibc_reserved2;
-		time_t          msg_rtime;
-		c_ulong __glibc_reserved3;
-		time_t          msg_ctime;
-		c_ulong         __msg_cbytes;
-		msgqnum_t       msg_qnum;
-		msglen_t        msg_qbytes;
-		pid_t           msg_lspid;
-		pid_t           msg_lrpid;
-		c_ulong __glibc_reserved4;
-		c_ulong __glibc_reserved5;
-	};
-} else 
-	static assert(0, "unimplemented");
+    struct msqid_ds {
+        ipc_perm msg_perm;
+        c_ulong __glibc_reserved1;
+        time_t          msg_stime;
+        c_ulong __glibc_reserved2;
+        time_t          msg_rtime;
+        c_ulong __glibc_reserved3;
+        time_t          msg_ctime;
+        c_ulong         __msg_cbytes;
+        msgqnum_t       msg_qnum;
+        msglen_t        msg_qbytes;
+        pid_t           msg_lspid;
+        pid_t           msg_lrpid;
+        c_ulong __glibc_reserved4;
+        c_ulong __glibc_reserved5;
+    };
+} else
+    static assert(0, "unimplemented");
 
 
 public enum MSG_MEM_SCALE =  32;

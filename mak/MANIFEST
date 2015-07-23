@@ -112,6 +112,7 @@ MANIFEST=\
 	src\core\sys\osx\mach\thread_act.d \
 	\
 	src\core\sys\osx\sys\cdefs.d \
+	src\core\sys\osx\sys\event.d \
 	src\core\sys\osx\sys\mman.d \
 	\
 	src\core\sys\posix\config.d \
@@ -147,6 +148,7 @@ MANIFEST=\
 	src\core\sys\posix\sys\ioctl.d \
 	src\core\sys\posix\sys\ipc.d \
 	src\core\sys\posix\sys\mman.d \
+	src\core\sys\posix\sys\msg.d \
 	src\core\sys\posix\sys\resource.d \
 	src\core\sys\posix\sys\select.d \
 	src\core\sys\posix\sys\shm.d \
