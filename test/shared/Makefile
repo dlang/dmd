@@ -4,15 +4,21 @@ include ../common.mak
 
 TESTS:=link load linkD linkDR loadDR host finalize
 TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep load_13414
+TESTS+=link_mod_collision load_mod_collision
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 $(ROOT)/loadDR.done: RUN_ARGS:=$(DRUNTIMESO)
 
+$(ROOT)/%_mod_collision.done: $(ROOT)/%_mod_collision
+	@echo Testing $*_mod_collision
+	$(QUIET)($< $(RUN_ARGS) 2>&1 || true) | grep -qF 'already defined'
+	@touch $@
+
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
-	$(QUIET)$(ROOT)/$* $(RUN_ARGS)
+	$(QUIET)$< $(RUN_ARGS)
 	@touch $@
 
 $(ROOT)/link: $(SRC)/link.d $(ROOT)/lib.so $(DRUNTIMESO)
@@ -47,6 +53,13 @@ $(ROOT)/loadDR: $(SRC)/loadDR.c $(ROOT)/lib.so $(DRUNTIMESO)
 
 $(ROOT)/host: $(SRC)/host.c $(ROOT)/plugin1.so $(ROOT)/plugin2.so
 	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(LDL) -pthread
+
+$(ROOT)/link_mod_collision: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -L$(ROOT)/lib.so
+
+$(ROOT)/load_mod_collision: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
+#	use export dynamic so that Module in exe can interposes Module in lib.so
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKDL) -L--export-dynamic
 
 $(ROOT)/liblinkdep.so: $(ROOT)/lib.so
 $(ROOT)/liblinkdep.so: DFLAGS+=-L$(ROOT)/lib.so

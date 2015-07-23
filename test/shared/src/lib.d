@@ -1,3 +1,5 @@
+module lib;
+
 // test EH
 void throwException()
 {
