@@ -209,6 +209,141 @@ Objects *opToArg(Scope *sc, TOK op)
     return tiargs;
 }
 
+struct DoBothCtx
+{
+    Expressions* results;
+    BinExp *be;
+};
+
+/**
+ * Should be called by iterateAliasThis inside resloveAliasThisForBinExp.
+ * It tries to substitute subtyped expression to a lhs of a BinExp.
+ * While it is working, it locks another term of the BinExp to prevent alias this resolving for it.
+ * bin(e, x) -> bin(e.aliasthis, x)
+ */
+static bool atSubstBinLhs(Scope *sc, Expression *e, void *ctx, Expression **outexpr)
+{
+    BinExp *be = (BinExp *)((BinExp*)ctx)->copy();
+    be->e1 = e;
+    unsigned oldatlock1 = be->e1->type->aliasthislock;
+    unsigned oldatlock2 = be->e2->type->aliasthislock;
+    be->e1->type->aliasthislock |= RECtracing;
+    be->e2->type->aliasthislock |= RECtracing;
+    Expression *eret = be->trySemantic(sc);
+    if (eret)
+    {
+        *outexpr = eret;
+        return true;
+    }
+    be->e2->type->aliasthislock = oldatlock2;
+    be->e1->type->aliasthislock = oldatlock1;
+    return false;
+}
+
+/**
+ * Should be called by iterateAliasThis inside resloveAliasThisForBinExp.
+ * It tries to substitute subtyped expression to a rhs of a BinExp.
+ * While it is working, it locks another term of the BinExp to prevent alias this resolving for it.
+ * bin(x, e) -> bin(x, e.aliasthis)
+ */
+static bool atSubstBinRhs(Scope *sc, Expression *e, void *ctx, Expression **outexpr)
+{
+    BinExp *be = (BinExp *)((BinExp*)ctx)->copy();
+    be->e2 = e;
+    unsigned oldatlock1 = be->e1->type->aliasthislock;
+    unsigned oldatlock2 = be->e2->type->aliasthislock;
+    be->e1->type->aliasthislock |= RECtracing;
+    be->e2->type->aliasthislock |= RECtracing;
+    Expression *eret = be->trySemantic(sc);
+    be->e2->type->aliasthislock = oldatlock2;
+    be->e1->type->aliasthislock = oldatlock1;
+    if (eret)
+    {
+        *outexpr = eret;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Should be called by iterateAliasThis inside resloveAliasThisForBinExp.
+ * It tries to substitute subtyped expression to a lhs of a BinExp and apply all rhs subtypes to it.
+ * bin(x, e) -> bin(x, e.aliasthis)
+ */
+static bool atSubstBinBoth(Scope *sc, Expression *e, void *ctx_, Expression **outexpr)
+{
+    DoBothCtx *ctx = (DoBothCtx*)ctx_;
+
+    BinExp *be = ctx->be;
+    be = (BinExp *)be->copy();
+    be->e1 = e;
+
+    // e1.aliasthis op e2 => e1.aliasthis op e2.aliasthis
+    int ret = iterateAliasThis(sc, be->e2, &atSubstBinRhs, (void*)be, ctx->results);
+
+    if (ret) //we don't need write to results: previous call have done it.
+        return true;
+    return false;
+}
+
+void resloveAliasThisForBinExp(Scope *sc, BinExp *be, bool check_lvl, bool check_rvl, Expressions* ret)
+{
+    if (check_lvl)
+    {
+        // e1 op e2 => e1.aliasthis op e2
+        iterateAliasThis(sc, be->e1, &atSubstBinLhs, (void*)be, ret);
+    }
+
+    if (check_rvl)
+    {
+        // e1 op e2 => e1 op e2.aliasthis
+        iterateAliasThis(sc, be->e2, &atSubstBinRhs, (void*)be, ret);
+    }
+
+    if (ret->dim == 1)
+    {
+        //if we have a one result - return it
+        return;
+    }
+    else if (ret->dim > 1)
+    {
+        //if we have many results - raise a error
+        be->error("Unable to unambiguously resolve %s Candidates:", be->toChars());
+        for (size_t j = 0; j < ret->dim; ++j)
+        {
+            be->error("%s", (*ret)[j]->toChars());
+        }
+        return;
+    }
+
+    if (check_lvl && check_rvl)
+    {
+        //if we haven't results try to compile e1.aliasthis op e2.aliasthis
+        // e1 op e2 => e1.aliasthis op e2.aliasthis
+        DoBothCtx ctx;
+        ctx.results = ret;
+        ctx.be = be;
+        iterateAliasThis(sc, be->e1, &atSubstBinBoth, &ctx, ret);
+    }
+    if (ret->dim == 1)
+    {
+        //if we have a one result - return it
+        return;
+    }
+    else if (ret->dim > 1)
+    {
+        //if we have many results - raise a error
+        be->error("Unable to unambiguously resolve %s Candidates:", be->toChars());
+        for (size_t j = 0; j < ret->dim; ++j)
+        {
+            be->error("%s", (*ret)[j]->toChars());
+        }
+        return;
+    }
+
+    return;
+}
+
 /************************************
  * Operator overload.
  * Check for operator overload, if so, replace
@@ -279,29 +414,39 @@ Expression *op_overload(Expression *e, Scope *sc)
                     }
 
                     // Didn't find it. Forward to aliasthis
-                    if (ad->aliasthis && ae->e1->type != e->att1)
+                    if (!e->aliasthislock)
                     {
                         /* Rewrite op(a[arguments]) as:
                          *      op(a.aliasthis[arguments])
                          */
                         Expression *e1 = ae->copy();
-                        ((ArrayExp *)e1)->e1 = new DotIdExp(e->loc, ae->e1, ad->aliasthis->ident);
-                        UnaExp *ue = (UnaExp *)e->copy();
-                        if (!ue->att1 && ae->e1->type->checkAliasThisRec())
-                            ue->att1 = ae->e1->type;
-                        ue->e1 = e1;
-                        result = ue->trySemantic(sc);
-                        if (result)
+
+                        Expressions results;
+                        iterateAliasThis(sc, ae->e1, &atSubstUnaUna, (void*)e, &results);
+                        if (results.dim == 1)
+                        {
+                            result = results[0];
                             return;
+                        }
+                        else if (results.dim > 1)
+                        {
+                            e->error("Unable to unambiguously resolve %s Candidates:", e->toChars());
+                            for (size_t j = 0; j < results.dim; ++j)
+                            {
+                                e->error("%s", results[j]->toChars());
+                            }
+                            result = new ErrorExp();
+                            return;
+                        }
                     }
-                    e->att1 = NULL;
+                    e->aliasthislock = false;
 
                 Lfallback:
                     if (ae->arguments->dim == 0)
                     {
                         // op(a[])
                         SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
-                        se->att1 = ae->att1;
+                        se->aliasthislock = ae->aliasthislock;
                         e->e1 = se;
                         e->accept(this);
                         result = Expression::combine(e0, result);
@@ -312,7 +457,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         // op(a[lwr..upr])
                         IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
                         SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
-                        se->att1 = ae->att1;
+                        se->aliasthislock = ae->aliasthislock;
                         e->e1 = se;
                         e->accept(this);
                         result = Expression::combine(e0, result);
@@ -359,22 +504,34 @@ Expression *op_overload(Expression *e, Scope *sc)
                     }
 
                     // Didn't find it. Forward to aliasthis
-                    if (ad->aliasthis && se->e1->type != e->att1)
+                    if (!e->aliasthislock)
                     {
                         /* Rewrite op(a[lwr..upr]) as:
                          *      op(a.aliasthis[lwr..upr])
                          */
                         Expression *e1 = se->copy();
-                        ((SliceExp *)e1)->e1 = new DotIdExp(e->loc, se->e1, ad->aliasthis->ident);
                         UnaExp *ue = (UnaExp *)e->copy();
-                        if (!ue->att1 && se->e1->type->checkAliasThisRec())
-                            ue->att1 = se->e1->type;
-                        ue->e1 = e1;
-                        result = ue->trySemantic(sc);
-                        if (result)
+                        ue->aliasthislock = true;
+
+                        Expressions results;
+                        iterateAliasThis(sc, se->e1, &atSubstUnaUna, (void*)ue, &results);
+                        if (results.dim == 1)
+                        {
+                            result = results[0];
                             return;
+                        }
+                        else if (results.dim > 1)
+                        {
+                            e->error("Unable to unambiguously resolve %s Candidates:", e->toChars());
+                            for (size_t j = 0; j < results.dim; ++j)
+                            {
+                                e->error("%s", results[j]->toChars());
+                            }
+                            result = new ErrorExp();
+                            return;
+                        }
                     }
-                    e->att1 = NULL;
+                    e->aliasthislock = false;
                 }
             }
 
@@ -424,21 +581,30 @@ Expression *op_overload(Expression *e, Scope *sc)
                     result = result->semantic(sc);
                     return;
                 }
-
                 // Didn't find it. Forward to aliasthis
-                if (ad->aliasthis && e->e1->type != e->att1)
+                if (!e->aliasthislock)
                 {
                     /* Rewrite op(e1) as:
                      *  op(e1.aliasthis)
                      */
-                    //printf("att una %s e1 = %s\n", Token::toChars(op), this->e1->type->toChars());
-                    Expression *e1 = new DotIdExp(e->loc, e->e1, ad->aliasthis->ident);
-                    UnaExp *ue = (UnaExp *)e->copy();
-                    if (!ue->att1 && e->e1->type->checkAliasThisRec())
-                        ue->att1 = e->e1->type;
-                    ue->e1 = e1;
-                    result = ue->trySemantic(sc);
-                    return;
+
+                    Expressions results;
+                    iterateAliasThis(sc, e->e1, &atSubstUna, (void*)e, &results);
+                    if (results.dim == 1)
+                    {
+                        result = results[0];
+                        return;
+                    }
+                    else if (results.dim > 1)
+                    {
+                        e->error("Unable to unambiguously resolve %s Candidates:", e->toChars());
+                        for (size_t j = 0; j < results.dim; ++j)
+                        {
+                            e->error("%s", results[j]->toChars());
+                        }
+                        result = new ErrorExp();
+                        return;
+                    }
                 }
             }
         }
@@ -504,20 +670,29 @@ Expression *op_overload(Expression *e, Scope *sc)
                 }
 
                 // Didn't find it. Forward to aliasthis
-                if (ad->aliasthis && ae->e1->type != ae->att1)
+                if (!ae->aliasthislock)
                 {
                     /* Rewrite op(e1) as:
                      *  op(e1.aliasthis)
                      */
-                    //printf("att arr e1 = %s\n", this->e1->type->toChars());
-                    Expression *e1 = new DotIdExp(ae->loc, ae->e1, ad->aliasthis->ident);
-                    UnaExp *ue = (UnaExp *)ae->copy();
-                    if (!ue->att1 && ae->e1->type->checkAliasThisRec())
-                        ue->att1 = ae->e1->type;
-                    ue->e1 = e1;
-                    result = ue->trySemantic(sc);
-                    if (result)
+
+                    Expressions results;
+                    iterateAliasThis(sc, ae->e1, &atSubstUna, (void*)ae, &results);
+                    if (results.dim == 1)
+                    {
+                        result = results[0];
                         return;
+                    }
+                    else if (results.dim > 1)
+                    {
+                        ae->error("Unable to unambiguously resolve %s Candidates:", ae->toChars());
+                        for (size_t j = 0; j < results.dim; ++j)
+                        {
+                            ae->error("%s", results[j]->toChars());
+                        }
+                        result = new ErrorExp();
+                        return;
+                    }
                 }
             }
         }
@@ -556,15 +731,30 @@ Expression *op_overload(Expression *e, Scope *sc)
                 }
 
                 // Didn't find it. Forward to aliasthis
-                if (ad->aliasthis)
+                if (!e->aliasthislock)
                 {
                     /* Rewrite op(e1) as:
                      *  op(e1.aliasthis)
                      */
-                    Expression *e1 = new DotIdExp(e->loc, e->e1, ad->aliasthis->ident);
-                    result = e->copy();
-                    ((UnaExp *)result)->e1 = e1;
-                    result = result->trySemantic(sc);
+
+                    Expressions results;
+                    iterateAliasThis(sc, e->e1, &atSubstUna, (void*)e, &results);
+
+                    if (results.dim == 1)
+                    {
+                        result = results[0];
+                        return;
+                    }
+                    else if (results.dim > 1)
+                    {
+                        e->error("Unable to unambiguously resolve %s Candidates:", e->toChars());
+                        for (size_t j = 0; j < results.dim; ++j)
+                        {
+                            e->error("%s", results[j]->toChars());
+                        }
+                        result = new ErrorExp();
+                        return;
+                    }
                     return;
                 }
             }
@@ -848,45 +1038,31 @@ Expression *op_overload(Expression *e, Scope *sc)
             }
         #endif
 
-            // Try alias this on first operand
-            if (ad1 && ad1->aliasthis &&
-                !(e->op == TOKassign && ad2 && ad1 == ad2))   // See Bugzilla 2943
+            bool check_lvl = false;
+            bool check_rvl = false;
+            BinExp *be = (BinExp *)e->copy();
+
+            if (!(e->op == TOKassign && ad2 && ad1 == ad2) && !e->aliasthislock)   // See Bugzilla 2943
             {
-                /* Rewrite (e1 op e2) as:
-                 *      (e1.aliasthis op e2)
-                 */
-                if (e->att1 && e->e1->type == e->att1)
-                    return;
-                //printf("att bin e1 = %s\n", this->e1->type->toChars());
-                Expression *e1 = new DotIdExp(e->loc, e->e1, ad1->aliasthis->ident);
-                BinExp *be = (BinExp *)e->copy();
-                if (!be->att1 && e->e1->type->checkAliasThisRec())
-                    be->att1 = e->e1->type;
-                be->e1 = e1;
-                result = be->trySemantic(sc);
-                return;
+                check_lvl = true;
             }
 
-            // Try alias this on second operand
-            /* Bugzilla 2943: make sure that when we're copying the struct, we don't
-             * just copy the alias this member
-             */
-            if (ad2 && ad2->aliasthis &&
-                !(e->op == TOKassign && ad1 && ad1 == ad2))
+            if (!(e->op == TOKassign && ad1 && ad1 == ad2) && !e->aliasthislock)
             {
-                /* Rewrite (e1 op e2) as:
-                 *      (e1 op e2.aliasthis)
-                 */
-                if (e->att2 && e->e2->type == e->att2)
-                    return;
-                //printf("att bin e2 = %s\n", e->e2->type->toChars());
-                Expression *e2 = new DotIdExp(e->loc, e->e2, ad2->aliasthis->ident);
-                BinExp *be = (BinExp *)e->copy();
-                if (!be->att2 && e->e2->type->checkAliasThisRec())
-                    be->att2 = e->e2->type;
-                be->e2 = e2;
-                result = be->trySemantic(sc);
-                return;
+                check_rvl = true;
+            }
+
+            be->aliasthislock = true;
+
+            Expressions results;
+            resloveAliasThisForBinExp(sc, be, check_lvl, check_rvl, &results);
+            if (results.dim == 1)
+            {
+                result = results[0];
+            }
+            else if (results.dim > 1)
+            {
+                result = new ErrorExp();
             }
             return;
         }
@@ -1005,29 +1181,36 @@ Expression *op_overload(Expression *e, Scope *sc)
                     }
 
                     // Didn't find it. Forward to aliasthis
-                    if (ad->aliasthis && ae->e1->type != e->att1)
+                    if (!e->aliasthislock)
                     {
-                        /* Rewrite a[arguments] op= e2 as:
-                         *      a.aliasthis[arguments] op= e2
-                         */
-                        Expression *e1 = ae->copy();
-                        ((ArrayExp *)e1)->e1 = new DotIdExp(e->loc, ae->e1, ad->aliasthis->ident);
-                        BinExp *be = (BinExp *)e->copy();
-                        if (!be->att1 && ae->e1->type->checkAliasThisRec())
-                            be->att1 = ae->e1->type;
-                        be->e1 = e1;
-                        result = be->trySemantic(sc);
-                        if (result)
+                        Expressions results;
+                        iterateAliasThis(sc, ae->e1, &atSubstBinUna, (void*)e, &results);
+
+                        if (results.dim == 1)
+                        {
+                            result = results[0];
                             return;
+                        }
+                        else if (results.dim > 1)
+                        {
+                            e->error("Unable to unambiguously resolve %s Candidates:", e->toChars());
+                            for (size_t j = 0; j < results.dim; ++j)
+                            {
+                                e->error("%s", results[j]->toChars());
+                            }
+                            result = new ErrorExp();
+                            return;
+                        }
                     }
-                    e->att1 = NULL;
+
+                    e->aliasthislock = false;
 
                 Lfallback:
                     if (ae->arguments->dim == 0)
                     {
                         // a[] op= e2
                         SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
-                        se->att1 = ae->att1;
+                        se->aliasthislock = ae->aliasthislock;
                         e->e1 = se;
                         e->accept(this);
                         result = Expression::combine(e0, result);
@@ -1038,7 +1221,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         // a[lwr..upr] op= e2
                         IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
                         SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
-                        se->att1 = ae->att1;
+                        se->aliasthislock = ae->aliasthislock;
                         e->e1 = se;
                         e->accept(this);
                         result = Expression::combine(e0, result);
@@ -1087,22 +1270,29 @@ Expression *op_overload(Expression *e, Scope *sc)
                     }
 
                     // Didn't find it. Forward to aliasthis
-                    if (ad->aliasthis && se->e1->type != e->att1)
+                    if (!e->aliasthislock)
                     {
-                        /* Rewrite a[lwr..upr] op= e2 as:
-                         *      a.aliasthis[lwr..upr] op= e2
-                         */
-                        Expression *e1 = se->copy();
-                        ((SliceExp *)e1)->e1 = new DotIdExp(e->loc, se->e1, ad->aliasthis->ident);
-                        BinExp *be = (BinExp *)e->copy();
-                        if (!be->att1 && se->e1->type->checkAliasThisRec())
-                            be->att1 = se->e1->type;
-                        be->e1 = e1;
-                        result = be->trySemantic(sc);
-                        if (result)
+                        Expressions results;
+                        iterateAliasThis(sc, se->e1, &atSubstBinUna, (void*)e, &results);
+
+                        if (results.dim == 1)
+                        {
+                            result = results[0];
                             return;
+                        }
+                        else if (results.dim > 1)
+                        {
+                            e->error("Unable to unambiguously resolve %s Candidates:", e->toChars());
+                            for (size_t j = 0; j < results.dim; ++j)
+                            {
+                                e->error("%s", results[j]->toChars());
+                            }
+                            result = new ErrorExp();
+                            return;
+                        }
                     }
-                    e->att1 = NULL;
+
+                    e->aliasthislock = false;
                 }
             }
 
@@ -1201,43 +1391,34 @@ Expression *op_overload(Expression *e, Scope *sc)
             }
 
         L1:
+            bool check_lvl = false;
+            bool check_rvl = false;
+            BinExp *be = (BinExp *)e->copy();
 
-            // Try alias this on first operand
-            if (ad1 && ad1->aliasthis)
+            if (ad1 && !e->aliasthislock)
             {
-                /* Rewrite (e1 op e2) as:
-                 *      (e1.aliasthis op e2)
-                 */
-                if (e->att1 && e->e1->type == e->att1)
-                    return;
-                //printf("att %s e1 = %s\n", Token::toChars(e->op), e->e1->type->toChars());
-                Expression *e1 = new DotIdExp(e->loc, e->e1, ad1->aliasthis->ident);
-                BinExp *be = (BinExp *)e->copy();
-                if (!be->att1 && e->e1->type->checkAliasThisRec())
-                    be->att1 = e->e1->type;
-                be->e1 = e1;
-                result = be->trySemantic(sc);
-                return;
+                check_lvl = true;
             }
 
-            // Try alias this on second operand
             AggregateDeclaration *ad2 = isAggregate(e->e2->type);
-            if (ad2 && ad2->aliasthis)
+            if (ad2 && !e->aliasthislock)
             {
-                /* Rewrite (e1 op e2) as:
-                 *      (e1 op e2.aliasthis)
-                 */
-                if (e->att2 && e->e2->type == e->att2)
-                    return;
-                //printf("att %s e2 = %s\n", Token::toChars(e->op), e->e2->type->toChars());
-                Expression *e2 = new DotIdExp(e->loc, e->e2, ad2->aliasthis->ident);
-                BinExp *be = (BinExp *)e->copy();
-                if (!be->att2 && e->e2->type->checkAliasThisRec())
-                    be->att2 = e->e2->type;
-                be->e2 = e2;
-                result = be->trySemantic(sc);
-                return;
+                check_rvl = true;
             }
+
+            be->aliasthislock = true;
+
+            Expressions results;
+            resloveAliasThisForBinExp(sc, be, check_lvl, check_rvl, &results);
+            if (results.dim == 1)
+            {
+                result = results[0];
+            }
+            else if (results.dim > 1)
+            {
+                result = new ErrorExp();
+            }
+            return;
         }
     };
 
@@ -1379,38 +1560,31 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id)
         return result;
     }
 
-    // Try alias this on first operand
-    if (ad1 && ad1->aliasthis)
+    bool check_lvl = false;
+    bool check_rvl = false;
+    BinExp *be = (BinExp *)e->copy();
+
+    if (ad1 && !e->aliasthislock)
     {
-        /* Rewrite (e1 op e2) as:
-         *      (e1.aliasthis op e2)
-         */
-        if (e->att1 && e->e1->type == e->att1)
-            return NULL;
-        //printf("att cmp_bin e1 = %s\n", e->e1->type->toChars());
-        Expression *e1 = new DotIdExp(e->loc, e->e1, ad1->aliasthis->ident);
-        BinExp *be = (BinExp *)e->copy();
-        if (!be->att1 && e->e1->type->checkAliasThisRec())
-            be->att1 = e->e1->type;
-        be->e1 = e1;
-        return be->trySemantic(sc);
+        check_lvl = true;
     }
 
-    // Try alias this on second operand
-    if (ad2 && ad2->aliasthis)
+    if (ad2 && !e->aliasthislock)
     {
-        /* Rewrite (e1 op e2) as:
-         *      (e1 op e2.aliasthis)
-         */
-        if (e->att2 && e->e2->type == e->att2)
-            return NULL;
-        //printf("att cmp_bin e2 = %s\n", e->e2->type->toChars());
-        Expression *e2 = new DotIdExp(e->loc, e->e2, ad2->aliasthis->ident);
-        BinExp *be = (BinExp *)e->copy();
-        if (!be->att2 && e->e2->type->checkAliasThisRec())
-            be->att2 = e->e2->type;
-        be->e2 = e2;
-        return be->trySemantic(sc);
+        check_rvl = true;
+    }
+
+    be->aliasthislock = true;
+
+    Expressions results;
+    resloveAliasThisForBinExp(sc, be, check_lvl, check_rvl, &results);
+    if (results.dim == 1)
+    {
+        return results[0];
+    }
+    else if (results.dim > 1)
+    {
+        return new ErrorExp();
     }
 
     return NULL;
@@ -1463,6 +1637,27 @@ Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
     return NULL;
 }
 
+/**
+ * Should be called by iterateAliasThis.
+ * It tries to substitute subtyped expression to a foreach statement.
+ * foreach(...; e) -> foreach(...; e.aliasthis)
+ */
+static bool atSubstForeach(Scope *sc, Expression *e, void *ctx, Expression **outexpr)
+{
+    ForeachStatement *fes = (ForeachStatement *)ctx;
+    fes->aggr = e;
+    unsigned oldatlock = e->type->aliasthislock;
+    Dsymbol *sapply = NULL;
+    e->type->aliasthislock |= RECtracing;
+    bool ret = inferAggregate(fes, sc, sapply);
+    e->type->aliasthislock = oldatlock;
+    if (ret)
+    {
+        *outexpr = e;
+        return true;
+    }
+    return false;
+}
 
 bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 {
@@ -1525,14 +1720,27 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
                     break;
                 }
 
-                if (ad->aliasthis)
+                assert(aggr->type);
+                if (!(aggr->type->aliasthislock & RECtracing))
                 {
-                    if (att == tab)
-                        goto Lerr;
-                    if (!att && tab->checkAliasThisRec())
-                        att = tab;
-                    aggr = resolveAliasThis(sc, aggr);
-                    continue;
+                    Expressions results;
+                    iterateAliasThis(sc, aggr, &atSubstForeach, (void*)fes, &results);
+
+                    if (results.dim == 1)
+                    {
+                        aggr = results[0];
+                        continue;
+                    }
+                    else if (results.dim > 1)
+                    {
+                        aggr->error("Unable to unambiguously resolve %s Candidates:", aggr->toChars());
+                        for (size_t j = 0; j < results.dim; ++j)
+                        {
+                            aggr->error("%s", results[j]->toChars());
+                        }
+                        aggr = new ErrorExp();
+                        continue;
+                    }
                 }
                 goto Lerr;
 

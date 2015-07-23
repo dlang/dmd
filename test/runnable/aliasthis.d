@@ -426,6 +426,11 @@ struct T11875y(C)
 class D11875c { T11875y!D11875b c; alias c this; }
 static assert(is(D11875c : T11875y!D, D) && is(D == D11875b));
 
+class D11875d { T11875y!D11875b c; alias c this; }
+class D11875e { D11875c c; D11875d d; alias c this; alias d this; }
+//There are multiple ways to convert from D11875e to T11875y!D11875b
+static assert(!__traits(compiles, {assert(is(D11875e : T11875y!D, D) && is(D == D11875b));}));
+
 /***************************************************/
 // 11930
 
@@ -838,15 +843,19 @@ struct A6434
    Variant6434 i;
    alias i this;
 
-   void opDispatch(string name)()
+   int opDispatch(string name)()
    {
+       return 42;
    }
 }
 
 void test6434()
 {
    A6434 a;
-   a.weird; // no property 'weird' for type 'VariantN!(maxSize)'
+   //alias this and opDispatch shouln't be in the same type
+   static assert(!__traits(compiles, {auto i = a.weird;}));
+   auto i = a.opDispatch!"weird"();
+   assert(i == 42);
 }
 
 /**************************************/
@@ -1804,6 +1813,523 @@ void test13009()
 
 /***************************************************/
 
+struct Test8
+{
+    int a;
+    string b;
+    alias a this;
+    alias b this;
+}
+
+void test8()
+{
+    Test8 t8 = {1, "test"};
+    int a = t8;
+    string b = t8;
+    assert(a == 1);
+    assert(b == "test");
+    assert(cast(int)t8 == 1);
+    assert(cast(string)t8 == "test");
+}
+
+/***************************************************/
+
+struct Test9a
+{
+    short a;
+    string b;
+
+    double d;
+    alias a this;
+    alias b this;
+    alias d this;
+}
+
+struct Test9b
+{
+    int a;
+    string b;
+    alias a this;
+    alias b this;
+}
+
+struct Test9
+{
+    Test9a a;
+    Test9b b;
+    int c;
+    alias a this;
+    alias b this;
+    alias c this;
+}
+
+struct Test9x
+{
+    Test9 t;
+    alias t this;
+}
+
+void test9()
+{
+    Test9 t9;
+    t9.a.a = 1;
+    t9.a.b = "1";
+    t9.b.a = 2;
+    t9.b.b = "2";
+    t9.c = 3;
+
+    static assert(!__traits(compiles, (){string s = t9;})); //t9.a.b vs t9.b.b conflict
+
+    static assert(!__traits(compiles, (){int a = t9;}));    //t9.a.a vs t9.b.a vs t9.c conflict
+
+    static assert(!__traits(compiles, (){long b = t9;}));    // Can't be unambiguously resolved, because candidates have a different types
+    static assert(!__traits(compiles, (){double d = t9;}));  // and direct alias this isn't exactly casted tot target type.
+
+    static assert(!__traits(compiles, (){static assert(is(Test9 : int));}));
+    static assert(!__traits(compiles, (){static assert(is(Test9 : string));}));
+
+    static assert(!__traits(compiles, (){long b = t9x;}));    // Can't be unambiguously resolved, because candidates have a different types
+    static assert(!__traits(compiles, (){double d = t9x;}));  // and direct alias this isn't exactly casted tot target type.
+
+    static assert(!__traits(compiles, (){static assert(is(Test9x : int));}));
+    static assert(!__traits(compiles, (){static assert(is(Test9x : string));}));
+}
+
+
+/***************************************************/
+
+interface IntCastable
+{
+    @property int toInt();
+    alias toInt this;
+}
+
+interface StringCastable
+{
+    @property string toChars();
+    alias toChars this;
+}
+
+class Test10: IntCastable, StringCastable
+{
+    override @property int toInt()
+    {
+        return 42;
+    }
+
+    override @property string toChars()
+    {
+        return "boom";
+    }
+}
+
+void test10()
+{
+    Test10 t10 = new Test10();
+    int a = t10;
+    string b = t10;
+    assert(a == 42); // Base classes and interfaces "alias this"-es also can be used for casting
+    assert(b == "boom");
+}
+
+/***************************************************/
+
+struct Additive
+{
+    int a;
+    int opBinary(string op)(Additive rvl) if(op == "+")
+    {
+        return a + rvl.a;
+    }
+}
+
+struct Test11a
+{
+    int a;
+    Additive c;
+
+    alias a this;
+    alias c this;
+}
+
+struct Test11b
+{
+    int a;
+    double b;
+    Additive c;
+
+    alias a this;
+    alias b this;
+    alias c this;
+}
+
+void test11()
+{
+    Test11a a;
+    Test11b b;
+    static assert(!__traits(compiles, (){auto x = a + b;}));   // conflict:
+                                                               //   a.a + a.a
+                                                               //   a.a + a.b
+                                                               //   a.c + a.c
+}
+
+/***************************************************/
+
+struct Test12a
+{
+    int a;
+    alias a this;
+
+    int opBinary(string op)(int rvl) if(op == "+")
+    {
+        return 1;
+    }
+
+    int opBinary(string op)(Test12b rvl) if(op == "+")
+    {
+        return 2;
+    }
+}
+
+struct Test12b
+{
+    int a;
+    alias a this;
+}
+
+struct Test12
+{
+    Test12a a;
+    Test12b b;
+
+    alias a this;
+    alias b this;
+}
+
+void test12()
+{
+    Test12 a;
+    Test12 b;
+
+    static assert(!__traits(compiles, (){a + b;})); // a.a.opBinary(b.a.a) or a.a.opBinary(b.b)
+}
+
+/***************************************************/
+
+struct Test13a
+{
+    int opBinary(string op)(Test13 rvl) if(op == "+")
+    {
+        return 1;
+    }
+}
+
+struct Test13b
+{
+    int opBinaryRight(string op)(Test13 rvl) if(op == "+")
+    {
+        return 2;
+    }
+}
+
+struct Test13
+{
+    Test13a a;
+    Test13b b;
+
+    alias a this;
+    alias b this;
+}
+
+void test13()
+{
+    Test13 a;
+    Test13 b;
+    static assert(!__traits(compiles, (){auto x = a + b;}));   // conflict:
+                                                               //   a.a + a
+                                                               //   a + a.b
+}
+
+/***************************************************/
+
+struct Test14a
+{
+    int foo = 1;
+    int bar = 2;
+}
+
+struct Test14b
+{
+    int bar = 3;
+    int goo = 4;
+}
+
+struct Test14
+{
+    Test14a a;
+    Test14b b;
+
+    alias a this;
+    alias b this;
+}
+
+void test14()
+{
+    Test14 a;
+    assert(a.foo == 1);
+    assert(a.goo == 4);
+    static assert(!__traits(compiles, (){a.bar;}));   // conflict:
+                                                      //   a.a.bar
+                                                      //   a.b.bar
+}
+
+/***************************************************/
+
+struct Test15a
+{
+    int foo = 1;
+    int bar = 2;
+}
+
+struct Test15b
+{
+    int bar = 3;
+    int goo = 4;
+}
+
+struct Test15c
+{
+    Test15a a;
+    Test15b b;
+
+    alias a this;
+    alias b this;
+}
+
+struct Test15
+{
+    Test15c a;
+    Test15a b;
+
+    alias a this;
+    alias b this;
+}
+
+void test15()
+{
+    Test15 a;
+    static assert(!__traits(compiles, (){a.foo == 0;})); // a.a.a.foo vs a.b.foo
+    static assert(!__traits(compiles, (){a.bar == 0;})); // a.a.a.bar vs a.a.b.bar vs a.b.bar
+    assert(a.goo == 4);
+
+    with(a)
+    {
+        static assert(!__traits(compiles, (){foo == 0;})); // a.a.a.foo vs a.b.foo
+        static assert(!__traits(compiles, (){bar == 0;})); // a.a.a.bar vs a.a.b.bar vs a.b.bar
+        assert(goo == 4);
+    }
+}
+
+/***************************************************/
+
+struct Test16
+{
+    int i;
+    short s;
+    alias i this;
+    alias s this;
+}
+
+void test16()
+{
+    Test16 s;
+    s.i = 1;
+    s.s = 2;
+    static assert(!__traits(compiles, (){int a = s;}));   // conflict: s.s vs s.i
+    short b = s;                                          // OK: only s.s comes into question
+    assert(b == 2);
+}
+
+/***************************************************/
+
+struct Test17a
+{
+    char foo(int)
+    {
+        return 'I';
+    }
+
+    double foo(double)
+    {
+        return 'D';
+    }
+}
+
+struct Test17b
+{
+    char foo(string)
+    {
+        return 'S';
+    }
+}
+
+struct Test17
+{
+    Test17a a;
+    Test17b b;
+    alias a this;
+    alias b this;
+}
+
+void test17()
+{
+    Test17 s;
+    assert(s.foo(1) == 'I');
+    assert(s.foo(1.0) == 'D');
+    assert(s.foo("string") == 'S');
+}
+
+/***************************************************/
+
+struct Test18a
+{
+    char foo(int)
+    {
+        return 'I';
+    }
+}
+
+struct Test18b
+{
+    char foo(string)
+    {
+        return 'S';
+    }
+
+    double foo(double)
+    {
+        return 'D';
+    }
+}
+
+struct Test18
+{
+    Test18a a;
+    Test18b b;
+    alias a this;
+    alias b this;
+}
+
+void test18()
+{
+    Test18 s;
+    static assert(!__traits(compiles, (){s.foo(1);}));   // conflict: s.a.foo(int) vs s.b.foo(double)
+    assert(s.foo(1.0) == 'D');
+    assert(s.foo("string") == 'S');
+}
+
+/***************************************************/
+
+struct Test19a
+{
+    char foo(int)
+    {
+        return 'I';
+    }
+}
+
+struct Test19b
+{
+    char foo(string)
+    {
+        return 'S';
+    }
+
+    double foo(double)
+    {
+        return 'D';
+    }
+}
+
+struct Test19
+{
+    Test19a a;
+    Test19b b;
+    alias a this;
+
+    char foo(string)
+    {
+        return 'X';
+    }
+}
+
+void test19()
+{
+    Test19 s;
+    assert(s.foo("string") == 'X');
+    static assert(!__traits(compiles, (){s.foo(1);})); //hidden by S.foo(string)
+    static assert(!__traits(compiles, (){s.foo(1.0);}));
+}
+
+
+struct Test20a
+{
+    int a = 1;
+    alias a this;
+}
+
+struct Test20b
+{
+    int foo() { return 1; };
+    alias foo this;
+}
+
+int test20x(ref int x)
+{
+    return 1;
+}
+
+int test20x(int x)
+{
+    return 2;
+}
+
+void test20()
+{
+    Test20a a;
+    Test20b b;
+    assert(test20x(a) == 1);
+    assert(test20x(b) == 2);
+}
+
+struct Test21a
+{
+    int a = 1;
+    alias a this;
+}
+
+struct Test21
+{
+    Test20a a;
+    Test20b b;
+    alias a this;
+    alias b this;
+}
+
+int test21x(ref int x)
+{
+    return 1;
+}
+
+void test21()
+{
+    Test21 t;
+    static assert(!__traits(compiles, {test21x(t);}));
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -1857,7 +2383,18 @@ int main()
     test11800();
     test13490();
     test11355();
-
+    test8();
+    test9();
+    test10();
+    test11();
+    test12();
+    test13();
+    test14();
+    test15();
+    test16();
+    test17();
+    test18();
+    test19();
     printf("Success\n");
     return 0;
 }

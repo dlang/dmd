@@ -72,4 +72,8 @@ typedef Array<struct block *> Blocks;
 
 typedef Array<struct Symbol *> Symbols;
 
+typedef Array<bool> Bools;
+
+typedef Array<const char *> Strings;
+
 #endif

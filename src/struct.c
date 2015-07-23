@@ -153,7 +153,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
 
     ctor = NULL;
     defaultCtor = NULL;
-    aliasthis = NULL;
+    aliasThisSymbols = NULL;
     noDefaultCtor = false;
     dtor = NULL;
     getRTInfo = NULL;

@@ -862,8 +862,13 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
 
         Expressions *exps = new Expressions();
-        if (ad->aliasthis)
-            exps->push(new StringExp(e->loc, ad->aliasthis->ident->toChars()));
+        if (ad->aliasThisSymbols)
+        {
+            for (size_t i = 0; i < ad->aliasThisSymbols->dim; i++)
+            {
+                exps->push(new StringExp(e->loc, (*ad->aliasThisSymbols)[i]->ident->toChars()));
+            }
+        }
 
         Expression *ex = new TupleExp(e->loc, exps);
         ex = ex->semantic(sc);
