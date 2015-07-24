@@ -9,7 +9,7 @@ TESTS+=link_mod_collision load_mod_collision
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
-$(ROOT)/loadDR.done: RUN_ARGS:=$(DRUNTIMESO)
+$(ROOT)/loadDR.done $(ROOT)/host.done: RUN_ARGS:=$(DRUNTIMESO)
 
 $(ROOT)/%_mod_collision.done: $(ROOT)/%_mod_collision
 	@echo Testing $*_mod_collision
