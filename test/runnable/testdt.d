@@ -77,7 +77,7 @@ void test13505()
 // 14699
 
 struct S14699a { ubyte[0][10] values; }
-struct S14699b { S14699a tbl; }     
+struct S14699b { S14699a tbl; }
 // +/
 
 ubyte[0][1] sa14699;
@@ -86,6 +86,15 @@ void test14699()
 {
     //auto p = &sa14699;  // Cannot work in Win32 (OMF)
 }
+
+/******************************************/
+// 14805
+
+struct S14805
+{
+    ushort one;
+}
+auto a14805 = new S14805[513*513];
 
 /******************************************/
 
