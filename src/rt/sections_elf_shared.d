@@ -837,6 +837,13 @@ const(void)[] getCopyRelocSection() nothrow
     return bss_start[0 .. bss_size];
 }
 
+/**
+ * Check for module collisions. A module in a shared library collides
+ * with an existing module if it's ModuleInfo is interposed (search
+ * symbol interposition) by another DSO.  Therefor two modules with the
+ * same name do not collide if their DSOs are in separate symbol resolution
+ * chains.
+ */
 void checkModuleCollisions(in ref dl_phdr_info info, in immutable(ModuleInfo)*[] modules,
                            in void[] copyRelocSection) nothrow
 in { assert(modules.length); }
