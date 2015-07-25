@@ -43,11 +43,12 @@
 #include "outbuf.h"
 #include "irstate.h"
 
+typedef Array<struct Symbol *> Symbols;
+
 void slist_add(Symbol *s);
 void slist_reset();
 
 Classsym *fake_classsym(Identifier *id);
-Symbols *Symbols_create();
 type *Type_toCtype(Type *t);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
@@ -649,18 +650,16 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
 #endif
 
         // Dumb linear symbol table - should use associative array!
-        static Symbols *sarray = NULL;
+        static Symbols sarray;
 
         //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
         char *id = (char *)alloca(3 + strlen(func) + 1);
         sprintf(id, "_aa%s", func);
-        if (!sarray)
-            sarray = Symbols_create();
 
         // See if symbol is already in sarray
-        for (size_t i = 0; i < sarray->dim; i++)
+        for (size_t i = 0; i < sarray.dim; i++)
         {
-            Symbol *s = (*sarray)[i];
+            Symbol *s = sarray[i];
             if (strcmp(id, s->Sident) == 0)
             {
 #ifdef DEBUG
@@ -682,7 +681,7 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
         t->Tmangle = mTYman_c;
         s->Stype = t;
 
-        sarray->push(s);                        // remember it
+        sarray.push(s);                         // remember it
         return s;
 }
 
