@@ -1,5 +1,24 @@
 // EXECUTE_ARGS: --check
 
+//
+// Automatic C++ name mangling checker.
+// This allows to test C++ name mangling correctness across platform (Linux,
+// OSX, Windows) and machine architecture (32/64 bits).
+//
+// This file :
+// - generates C++ code.
+// - compiles it with gcc or cl.exe.
+// - extracts the mangled names from the compiled object file.
+// - generate a D file importing the extern(C++) function and static assert
+//   the name mangling is correct.
+// - executes this D file and make sure it runs correctly.
+//
+// Run `dmd -run name_mangling_checker.d` to output the generated D code.
+// Run `dmd -run name_mangling_checker.d --check` to run the check.
+//
+// Warning : this test needs a valid C++ toolchain (g++ or cl.exe) as well as
+// nm or dumpbin.exe.
+
 import std.stdio;
 import std.format;
 import std.algorithm.iteration;
