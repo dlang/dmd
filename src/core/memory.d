@@ -17,11 +17,12 @@
         all threads the GC knows about are halted so the threads' stacks
         and registers can be scanned for references to GC allocated data.
    )
-   $(LI If there are threads that the GC does not know about, i.e. the threads
-        were created by calling the operating system thread creation APIs
-        directly, or the C runtime thread creation APIs directly, and those
-        threads hold references to GC allocated data, then the GC will not detect
-        those references and may free the data. This will cause memory corruption.
+
+   $(LI The GC does not know about threads that were created by directly calling
+        the OS/C runtime thread creation APIs and D threads that were detached
+        from the D runtime after creation.
+        Such threads will not be paused for a GC collection, and the GC might not detect
+        references to GC allocated data held by them. This can cause memory corruption.
         There are several ways to resolve this issue:
         $(OL
         $(LI Do not hold references to GC allocated data in such threads.)
