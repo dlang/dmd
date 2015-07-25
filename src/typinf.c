@@ -73,7 +73,10 @@ void genTypeInfo(Type *torig, Scope *sc)
         /* If this has a custom implementation in std/typeinfo, then
          * do not generate a COMDAT for it.
          */
-        if (!builtinTypeInfo(t))
+        if (builtinTypeInfo(t))
+            goto Lskip;
+
+        if (global.params.allInst)
         {
             // Generate COMDAT
             if (sc)                     // if in semantic() pass
@@ -98,6 +101,55 @@ void genTypeInfo(Type *torig, Scope *sc)
             }
         }
     }
+    if (!global.params.allInst)
+    {
+        /* If this has a custom implementation in std/typeinfo, then
+         * do not generate a COMDAT for it.
+         */
+        if (builtinTypeInfo(t))
+            goto Lskip;
+        else
+        {
+            // Generate COMDAT
+            if (sc)                     // if in semantic() pass
+            {
+                /* Insert vtinfo into scope like a template instance.
+                 */
+                Dsymbols *a = NULL;
+                if (sc->tinst)
+                {
+                    /* If sc is an instantiated scope, add vtinfo in the member
+                     * of TemplateInstance, and rely on the TemplateInstance::needsCodegen().
+                     */
+                    a = sc->tinst->members;
+                }
+                else if (sc->minst && sc->minst->isRoot())
+                {
+                    /* If sc is in root module, add vtinfo to the module scope members.
+                     */
+                    a = sc->minst->members;
+                }
+                if (a)
+                {
+                    for (size_t i = 0; 1; i++)
+                    {
+                        if (i == a->dim)
+                        {
+                            a->push(t->vtinfo);
+                            break;
+                        }
+                        if ((*a)[i] == t->vtinfo)
+                            break;
+                    }
+                }
+            }
+            else                        // if in obj generation pass
+            {
+                toObjFile(t->vtinfo, global.params.multiobj);
+            }
+        }
+    }
+  Lskip:
     if (!torig->vtinfo)
         torig->vtinfo = t->vtinfo;     // Types aren't merged, but we can share the vtinfo's
     assert(torig->vtinfo);

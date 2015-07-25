@@ -7891,10 +7891,9 @@ bool TemplateInstance::needsCodegen()
         {
             // Bugzilla 13415: If and only if the enclosing scope needs codegen,
             // the nested templates would need code generation.
-            if (TemplateInstance *ti = enclosing->isInstantiated())
-                return ti->needsCodegen();
-            else
-                return !enclosing->inNonRoot();
+            TemplateInstance *ti = enclosing->isInstantiated();
+            if (ti ? !ti->needsCodegen() : enclosing->inNonRoot())
+                return false;
         }
         return true;
     }

@@ -1015,6 +1015,22 @@ void toObjFile(Dsymbol *ds, bool multiobj)
         void visit(TypeInfoDeclaration *tid)
         {
             //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", tid, tid->toChars(), tid->protection);
+            if (tid->semanticRun >= PASSobj)    // already written
+                return;
+        
+            if (tid->tinfo->mod == 0 && !global.params.allInst)
+            {
+                Dsymbol *sym = tid->tinfo->toDsymbol(NULL);
+                if (sym)
+                {
+                    TemplateInstance *ti = sym->isInstantiated();
+                    if (ti ? !ti->needsCodegen() : sym->inNonRoot())
+                    {
+                        tid->semanticRun = PASSobj;
+                        return;
+                    }
+                }
+            }
 
             if (multiobj)
             {
@@ -1042,6 +1058,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             outdata(s);
             if (tid->isExport())
                 objmod->export_symbol(s, 0);
+
+            tid->semanticRun = PASSobj;
         }
 
         void visit(AttribDeclaration *ad)
