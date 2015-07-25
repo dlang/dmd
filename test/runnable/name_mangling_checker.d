@@ -310,7 +310,7 @@ auto compileCppAndGetSymbols(in string content)
         version(Windows) {
         	execute(["cl", cpp_filename, "/c", "/Fo" ~ obj_filename]);
         } else {
-        	execute(["g++", "-std=c++11", "-c", cpp_filename, "-o", obj_filename]);
+        	execute(["g++", "-std=c++0x", "-c", cpp_filename, "-o", obj_filename]);
         }
     }
     version(Windows) {
