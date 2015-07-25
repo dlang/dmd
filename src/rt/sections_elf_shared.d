@@ -878,7 +878,8 @@ body
                 cast(int)loading.length, loading.ptr,
                 cast(int)modname.length, modname.ptr,
                 cast(int)existing.length, existing.ptr);
-        assert(0);
+        import core.stdc.stdlib : _Exit;
+        _Exit(1);
     }
 }
 
