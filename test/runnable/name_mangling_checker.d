@@ -19,14 +19,14 @@
 // Warning : this test needs a valid C++ toolchain (g++ or cl.exe) as well as
 // nm or dumpbin.exe.
 
-import std.stdio;
+import std.stdio : writeln;
 import std.format;
 import std.algorithm.iteration;
 import std.algorithm.searching;
 import std.range;
-import std.typecons;
-import std.string;
-import std.exception;
+import std.typecons : Flag;
+import std.string : lineSplitter;
+import std.exception : enforce;
 import std.file : remove, write;
 
 struct Translation
