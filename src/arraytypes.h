@@ -70,6 +70,4 @@ typedef Array<class TemplateInstance *> TemplateInstances;
 
 typedef Array<struct block *> Blocks;
 
-typedef Array<struct Symbol *> Symbols;
-
 #endif

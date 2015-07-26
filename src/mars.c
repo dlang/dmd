@@ -1913,7 +1913,6 @@ static const char* parse_conf_arg(Strings *args)
 }
 
 Dsymbols *Dsymbols_create() { return new Dsymbols(); }
-Symbols *Symbols_create() { return new Symbols(); }
 VarDeclarations *VarDeclarations_create() { return new VarDeclarations(); }
 Blocks *Blocks_create() { return new Blocks(); }
 Expressions *Expressions_create() { return new Expressions(); }
