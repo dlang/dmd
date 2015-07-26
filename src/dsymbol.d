@@ -1892,8 +1892,9 @@ public:
     {
         Identifier ident = s.ident;
         Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);
+        Dsymbol sprev = *ps;
         *ps = s;
-        return s;
+        return sprev;
     }
 
     // when ident and s are not the same
