@@ -393,7 +393,7 @@ idgen_output = id.h id.c
 $(idgen_output) : idgen
 
 idgen: idgen.d $(HOST_DC)
-	$(HOST_DC_RUN) idgen.d
+	CC=$(HOST_CC) $(HOST_DC_RUN) idgen.d
 	./idgen
 
 ######### impcnvgen generates some source
@@ -490,7 +490,7 @@ install: all
 ######################################################
 
 checkwhitespace: $(HOST_DC)
-	$(HOST_DC_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
+	CC=$(HOST_CC) $(HOST_DC_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
 
 ######################################################
 
@@ -600,7 +600,7 @@ MAGICPORTSRC = \
 MAGICPORT = $(MAGICPORTDIR)/magicport2
 
 $(MAGICPORT) : $(MAGICPORTSRC) $(HOST_DC)
-	$(HOST_DC_RUN) -of$(MAGICPORT) $(MAGICPORTSRC)
+	CC=$(HOST_CC) $(HOST_DC_RUN) -of$(MAGICPORT) $(MAGICPORTSRC)
 
 GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	argtypes.d arrayop.d arraytypes.d \
