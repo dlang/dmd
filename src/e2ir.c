@@ -715,9 +715,8 @@ elem *getTypeInfo(Type *t, IRState *irs)
 }
 
 /********************************************
- * Determine if t is an array of structs that need a postblit.
+ * Determine if t is a struct that has postblit.
  */
-
 StructDeclaration *needsPostblit(Type *t)
 {
     t = t->baseElemOf();
@@ -725,6 +724,21 @@ StructDeclaration *needsPostblit(Type *t)
     {
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
         if (sd->postblit)
+            return sd;
+    }
+    return NULL;
+}
+
+/********************************************
+ * Determine if t is a struct that has destructor.
+ */
+StructDeclaration *needsDtor(Type *t)
+{
+    t = t->baseElemOf();
+    if (t->ty == Tstruct)
+    {
+        StructDeclaration *sd = ((TypeStruct *)t)->sym;
+        if (sd->dtor)
             return sd;
     }
     return NULL;
@@ -2601,18 +2615,19 @@ elem *toElem(Expression *e, IRState *irs)
 
                     /* Determine if we need to do postblit
                      */
-                    int postblit = 0;
+                    bool postblit = false;
                     if (needsPostblit(t1->nextOf()) &&
                         (ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
                          ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
                          ae->e2->op != TOKslice && ae->e2->isLvalue()))
                     {
-                        postblit = 1;
+                        postblit = true;
                     }
+                    bool destructor = needsDtor(t1->nextOf()) != NULL;
 
                     assert(ae->e2->type->ty != Tpointer);
 
-                    if (!postblit && !irs->arrayBoundsCheck())
+                    if (!postblit && !destructor && !irs->arrayBoundsCheck())
                     {
                         elem *ex = el_same(&eto);
 
@@ -2637,7 +2652,7 @@ elem *toElem(Expression *e, IRState *irs)
                         e = el_pair(eto->Ety, el_copytree(elen), e);
                         e = el_combine(eto, e);
                     }
-                    else if (postblit && ae->op != TOKblit)
+                    else if ((postblit || destructor) && ae->op != TOKblit)
                     {
                         /* Generate:
                          *      _d_arrayassign(ti, efrom, eto)
@@ -2825,6 +2840,7 @@ elem *toElem(Expression *e, IRState *irs)
                 assert(ae->e2->type->toBasetype()->ty == Tsarray);
 
                 bool postblit = needsPostblit(t1b->nextOf()) != NULL;
+                bool destructor = needsDtor(t1b->nextOf()) != NULL;
 
                 /* Optimize static array assignment with array literal.
                  * Rewrite:
@@ -2917,8 +2933,10 @@ elem *toElem(Expression *e, IRState *irs)
 
                 elem *e2 = toElem(ae->e2, irs);
 
-                if (!postblit || (!lvalueElem && ae->op == TOKconstruct) ||
-                    ae->op == TOKblit || type_size(e1->ET) == 0)
+                if (!postblit && !destructor ||
+                    ae->op == TOKconstruct && !lvalueElem && postblit ||
+                    ae->op == TOKblit ||
+                    type_size(e1->ET) == 0)
                 {
                     e = el_bin(OPstreq, tym, e1, e2);
                     e->ET = Type_toCtype(ae->e1->type);
@@ -3958,15 +3976,12 @@ elem *toElem(Expression *e, IRState *irs)
                 goto Lret;
             }
 
-            // Casting from base class to derived class requires a runtime check
+            // Casting between class/interface may require a runtime check
             if (fty == Tclass && tty == Tclass)
             {
-                // Casting from derived class to base class is a no-op
-                int offset;
-                int rtl = RTLSYM_DYNAMIC_CAST;
-
                 ClassDeclaration *cdfrom = tfrom->isClassHandle();
                 ClassDeclaration *cdto   = t->isClassHandle();
+
                 if (cdfrom->cpp)
                 {
                     if (cdto->cpp)
@@ -3988,13 +4003,14 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
                     goto Lret;
                 }
-                if (cdfrom->isInterfaceDeclaration())
-                {
-                    rtl = RTLSYM_INTERFACE_CAST;
-                }
+
+                int offset;
                 if (cdto->isBaseOf(cdfrom, &offset) && offset != OFFSET_RUNTIME)
                 {
-                    /* The offset from cdfrom=>cdto is known at compile time.
+                    /* The offset from cdfrom => cdto is known at compile time.
+                     * Cases:
+                     *  - class => base class (upcast)
+                     *  - class => base interface (upcast)
                      */
 
                     //printf("offset = %d\n", offset);
@@ -4015,13 +4031,26 @@ elem *toElem(Expression *e, IRState *irs)
                             e = el_bin(OPcond, TYnptr, e, ex);
                         }
                     }
-                    goto Lret;                  // no-op
+                    else
+                    {
+                        // Casting from derived class to base class is a no-op
+                    }
                 }
-
-                /* The offset from cdfrom=>cdto can only be determined at runtime.
-                 */
-                elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
-                e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
+                else
+                {
+                    /* The offset from cdfrom => cdto can only be determined at runtime.
+                     * Cases:
+                     *  - class     => derived class (downcast)
+                     *  - interface => derived class (downcast)
+                     *  - class     => foreign interface (cross cast)
+                     *  - interface => base or foreign interface (cross cast)
+                     */
+                    int rtl = cdfrom->isInterfaceDeclaration()
+                                ? RTLSYM_INTERFACE_CAST
+                                : RTLSYM_DYNAMIC_CAST;
+                    elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
+                    e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
+                }
                 goto Lret;
             }
 

@@ -676,7 +676,7 @@ void toDebug(ClassDeclaration *cd)
             for (size_t i = 0; i < cd->baseclasses->dim; i++)
             {
                 BaseClass *bc = (*cd->baseclasses)[i];
-                idx_t typidx = cv4_typidx(Type_toCtype(bc->base->type)->Tnext);
+                idx_t typidx = cv4_typidx(Type_toCtype(bc->sym->type)->Tnext);
                 unsigned attribute = PROTtoATTR(bc->protection);
 
                 unsigned elementlen;

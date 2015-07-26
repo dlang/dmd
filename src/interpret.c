@@ -4194,11 +4194,11 @@ public:
                 Expression *aggr2 = se->e1;
                 dinteger_t srclower = se->lwr->toInteger();
                 dinteger_t srcupper = se->upr->toInteger();
-                bool wantCopy = (newval->type->toBasetype()->baseElemOf()->ty == Tstruct);
+                bool wantCopy = (newval->type->toBasetype()->nextOf()->baseElemOf()->ty == Tstruct);
 
-                //printf("oldval = %p %s[%d..%u]\nnewval = %p %s[%llu..%llu]\n",
+                //printf("oldval = %p %s[%d..%u]\nnewval = %p %s[%llu..%llu] wantCopy = %d\n",
                 //    aggregate, aggregate->toChars(), lowerbound, upperbound,
-                //    aggr2, aggr2->toChars(), srclower, srcupper);
+                //    aggr2, aggr2->toChars(), srclower, srcupper, wantCopy);
                 if (wantCopy)
                 {
                     // Currently overlapping for struct array is allowed.
@@ -4228,7 +4228,7 @@ public:
                             }
                             if (Expression *x = evaluateDtor(istate, oldelem))
                                 return x;
-                            (*oldelems)[i] = newelem;
+                            (*oldelems)[lowerbound + i] = newelem;
                         }
                     }
                     else
@@ -4247,7 +4247,7 @@ public:
                             }
                             if (Expression *x = evaluateDtor(istate, oldelem))
                                 return x;
-                            (*oldelems)[i] = newelem;
+                            (*oldelems)[lowerbound + i] = newelem;
                         }
                     }
 

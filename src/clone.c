@@ -368,6 +368,8 @@ bool needOpEquals(StructDeclaration *sd)
             TypeStruct *ts = (TypeStruct *)tv;
             if (needOpEquals(ts->sym))
                 goto Lneed;
+            if (ts->sym->aliasthis)     // Bugzilla 14806
+                goto Lneed;
         }
     }
 Ldontneed:

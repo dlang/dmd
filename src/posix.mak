@@ -21,6 +21,7 @@ endif
 INSTALL_DIR=../../install
 # can be set to override the default /etc/
 SYSCONFDIR=/etc/
+PGO_DIR=$(abspath pgo)
 
 C=backend
 TK=tk
@@ -37,6 +38,7 @@ LDFLAGS=-lm -lstdc++ -lpthread
 	HOST_CC=g++
 #endif
 CC=$(HOST_CC)
+AR=ar
 GIT=git
 
 # Host D compiler for bootstrapping
@@ -53,7 +55,10 @@ else
   # Auto-bootstrapping, will download dmd automatically
   HOST_DMD_VER=2.067.1
   HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
-  HOST_DMD_URL=http://downloads.dlang.org/releases/2015/dmd.$(HOST_DMD_VER).$(OS).zip
+  # dmd.2.067.1.osx.zip or dmd.2.067.1.freebsd-64.zip
+  HOST_DMD_ZIP=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),).zip
+  # http://downloads.dlang.org/releases/2.x/2.067.1/dmd.2.067.1.osx.zip
+  HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/$(HOST_DMD_VER)/$(HOST_DMD_ZIP)
   HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
   HOST_DC=$(HOST_DMD)
   HOST_DC_RUN=$(HOST_DC) -conf=$(dir $(HOST_DC))dmd.conf
@@ -91,7 +96,7 @@ WARNINGS := $(WARNINGS) \
 	-Wno-unused-but-set-variable \
 	-Wno-uninitialized
 endif
-# Clangn Specific
+# Clang Specific
 ifeq ($(HOST_CC), clang++)
 WARNINGS := $(WARNINGS) \
 	-Wno-tautological-constant-out-of-range-compare \
@@ -127,18 +132,27 @@ ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
 endif
 
-# Append different flags for debugging, profiling and release. Define
-# ENABLE_DEBUG and ENABLE_PROFILING to enable profiling.
+# Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
 CFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
 DFLAGS += -g -debug
+else
+CFLAGS += -O2
+DFLAGS += -O -inline
+endif
 ifdef ENABLE_PROFILING
 CFLAGS  += -pg -fprofile-arcs -ftest-coverage
 LDFLAGS += -pg -fprofile-arcs -ftest-coverage
 endif
-else
-CFLAGS += -O2
-DFLAGS += -O -inline
+ifdef ENABLE_PGO_GENERATE
+CFLAGS  += -fprofile-generate=${PGO_DIR}
+endif
+ifdef ENABLE_PGO_USE
+CFLAGS  += -fprofile-use=${PGO_DIR} -freorder-blocks-and-partition
+endif
+ifdef ENABLE_LTO
+CFLAGS  += -flto
+LDFLAGS += -flto
 endif
 
 # Uniqe extra flags if necessary
@@ -304,19 +318,24 @@ auto-tester-build: dmd checkwhitespace ddmd
 .PHONY: auto-tester-build
 
 frontend.a: $(DMD_OBJS)
-	ar rcs frontend.a $(DMD_OBJS)
+	$(AR) rcs frontend.a $(DMD_OBJS)
 
 root.a: $(ROOT_OBJS)
-	ar rcs root.a $(ROOT_OBJS)
+	$(AR) rcs root.a $(ROOT_OBJS)
 
 glue.a: $(GLUE_OBJS)
-	ar rcs glue.a $(GLUE_OBJS)
+	$(AR) rcs glue.a $(GLUE_OBJS)
 
 backend.a: $(BACK_OBJS)
-	ar rcs backend.a $(BACK_OBJS)
+	$(AR) rcs backend.a $(BACK_OBJS)
 
+ifdef ENABLE_LTO
+dmd: $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS)
+	$(HOST_CC) -o dmd $(MODEL_FLAG) $^ $(LDFLAGS)
+else
 dmd: frontend.a root.a glue.a backend.a
 	$(HOST_CC) -o dmd $(MODEL_FLAG) frontend.a root.a glue.a backend.a $(LDFLAGS)
+endif
 
 clean:
 	rm -f $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -324,6 +343,7 @@ clean:
 		tytab.c verstr.h core \
 		*.cov *.deps *.gcda *.gcno *.a \
 		$(GENSRC) $(MAGICPORT)
+	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
 

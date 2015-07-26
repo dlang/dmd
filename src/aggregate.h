@@ -200,9 +200,9 @@ public:
 struct BaseClass
 {
     Type *type;                         // (before semantic processing)
-    Prot protection;               // protection for the base interface
+    Prot protection;                    // protection for the base interface
 
-    ClassDeclaration *base;
+    ClassDeclaration *sym;
     unsigned offset;                    // 'this' pointer offset
     FuncDeclarations vtbl;              // for interfaces: Array of FuncDeclaration's
                                         // making up the vtbl[]
@@ -284,6 +284,7 @@ public:
     bool isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
+    unsigned setBaseInterfaceOffsets(unsigned baseOffset);
     bool isCOMclass();
     virtual bool isCOMinterface();
     bool isCPPclass();
