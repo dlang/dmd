@@ -247,10 +247,6 @@ public:
     {
         if (this == o)
             return true;
-        Dsymbol s = cast(Dsymbol)o;
-        // Overload sets don't have an ident
-        if (s && ident && s.ident && ident.equals(s.ident))
-            return true;
         return false;
     }
 
