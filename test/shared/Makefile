@@ -55,7 +55,8 @@ $(ROOT)/host: $(SRC)/host.c $(ROOT)/plugin1.so $(ROOT)/plugin2.so
 	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(LDL) -pthread
 
 $(ROOT)/link_mod_collision: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -L$(ROOT)/lib.so
+#	use no-as-needed to enforce linking of unused lib.so
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -L--no-as-needed -L$(ROOT)/lib.so
 
 $(ROOT)/load_mod_collision: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
 #	use export dynamic so that Module in exe can interposes Module in lib.so
