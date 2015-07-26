@@ -418,7 +418,7 @@ void test11776()
             auto s = S11776!(a => 1)();
             static assert(typeof(s).mangleof ==
                 "S"~"6mangle"~"56"~(
-                    "__T"~"6S11776"~"S42"~("6mangle"~"9test11776"~"FZ"~"9__lambda1MFZ"~"9__lambda1")~"Z"
+                    "__T"~"6S11776"~"S42"~("6mangle"~"9test11776"~"FZ"~"9__lambda1MFZ"~"9__lambda2")~"Z"
                 )~"6S11776");
         }
     };
@@ -539,10 +539,72 @@ void test12231()
 }
 
 /***************************************************/
+// 14831
+
+alias TypeTuple(T...) = T;
+alias TypeOf14820(alias A) = typeof(A);
+
+auto sort10619(alias dg)() { return dg; }
+
+void test14831a()
+{
+    // Bugzilla 9748
+    foreach (i; TypeTuple!(1, 2, 3))
+    {
+        uint j;
+        static if (i == 1) static assert(j.mangleof == "_D6mangle10test14831aFZ"~        "1jk");
+        static if (i == 2) static assert(j.mangleof == "_D6mangle10test14831aFZ"~"4__SA"~"1jk");
+        static if (i == 3) static assert(j.mangleof == "_D6mangle10test14831aFZ"~"4__SB"~"1jk");
+        void set()(int n)
+        {
+            static if (i == 1) static assert (set.mangleof == "_D6mangle10test14831aFZ"~        "8__T3setZ3setMFiZv");
+            static if (i == 2) static assert (set.mangleof == "_D6mangle10test14831aFZ"~"4__SA"~"8__T3setZ3setMFiZv");
+            static if (i == 3) static assert (set.mangleof == "_D6mangle10test14831aFZ"~"4__SB"~"8__T3setZ3setMFiZv");
+            j = n;
+        }
+        template X() {}
+        static if (i == 1) static assert (X.mangleof == "6mangle10test14831aFZ"~        "1X");
+        static if (i == 2) static assert (X.mangleof == "6mangle10test14831aFZ"~"4__SA"~"1X");
+        static if (i == 3) static assert (X.mangleof == "6mangle10test14831aFZ"~"4__SB"~"1X");
+
+        static if (i == 1) static assert (X!().mangleof == "6mangle10test14831aFZ"~        "6__T1XZ");
+        static if (i == 2) static assert (X!().mangleof == "6mangle10test14831aFZ"~"4__SA"~"6__T1XZ");
+        static if (i == 3) static assert (X!().mangleof == "6mangle10test14831aFZ"~"4__SB"~"6__T1XZ");
+
+        set(i);
+        assert(j == i);
+    }
+    uint j;
+    static assert(j.mangleof == "_D6mangle10test14831aFZ"~"4__SC"~"1jk");
+
+    // Bugzilla 10619
+    bool lt(int a, int b) { return a < b; }
+    bool gt(int a, int b) { return a > b; }
+    bool delegate(int, int) dg1;
+    bool delegate(int, int) dg2;
+    {
+        auto dg = &lt;
+        dg1 = sort10619!(dg)();
+    }
+    auto dg = &gt;
+    dg2 = sort10619!(dg)();
+    assert(dg1 == &lt);
+    assert(dg2 == &gt);
+
+    // Bugzilla 14820
+    foreach (T; TypeTuple!(int, short))
+    {
+        T t;
+        static assert(is(typeof(t) == TypeOf14820!t));
+    }
+}
+
+/***************************************************/
 
 void main()
 {
     test10077h();
     test10077i();
     test12044();
+    test14831a();
 }

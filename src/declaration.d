@@ -1134,7 +1134,11 @@ public:
         //printf(" semantic type = %s\n", type ? type->toChars() : "null");
         type.checkDeprecated(loc, sc);
         linkage = sc.linkage;
-        this.parent = sc.parent;
+
+        parent = sc.parent;
+        if (!isDataseg())
+            localNum = getFunctionLocalNum(sc, this);
+
         //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
         protection = sc.protection;
         /* If scope's alignment is the default, use the type's alignment,

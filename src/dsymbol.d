@@ -198,6 +198,9 @@ public:
     // (only use this with ddoc)
     UnitTestDeclaration ddocUnittest;
 
+    // unique number to distinguish same name symbols in function local
+    uint localNum;
+
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);

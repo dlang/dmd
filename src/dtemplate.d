@@ -488,6 +488,10 @@ public:
             parent = sc.parent;
         isstatic = toParent().isModule() || (_scope.stc & STCstatic);
         protection = sc.protection;
+
+        if (!literal)
+            localNum = getFunctionLocalNum(sc, this);
+
         if (global.params.doDocComments)
         {
             origParameters = new TemplateParameters();
