@@ -3502,7 +3502,8 @@ static void obj_rtinit()
 
         // put a reference into .ctors/.dtors each
         const char *p[] = {".dtors.d_dso_dtor", ".ctors.d_dso_ctor"};
-        const int flags = SHF_ALLOC|SHF_GROUP;
+        // needs to be writeable for PIC code, see Bugzilla 13117
+        const int flags = SHF_ALLOC | SHF_WRITE | SHF_GROUP;
         for (size_t i = 0; i < 2; ++i)
         {
             seg = ElfObj::getsegment(p[i], NULL, SHT_PROGBITS, flags, NPTRSIZE);
