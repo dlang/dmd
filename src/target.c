@@ -14,6 +14,7 @@
 #include "target.h"
 #include "mars.h"
 #include "mtype.h"
+#include "outbuffer.h"
 
 int Target::ptrsize;
 int Target::realsize;
@@ -384,5 +385,23 @@ int Target::checkVectorType(int sz, Type *type)
  */
 void Target::loadModule(Module *m)
 {
+}
+
+/******************************
+ * For the given symbol written to the OutBuffer, apply any
+ * target-specific prefixes based on the given linkage.
+ */
+void Target::prefixName(OutBuffer *buf, LINK linkage)
+{
+    switch (linkage)
+    {
+        case LINKcpp:
+            if (global.params.isOSX)
+                buf->prependbyte('_');
+            break;
+
+        default:
+            break;
+    }
 }
 
