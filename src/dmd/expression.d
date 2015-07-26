@@ -5655,7 +5655,8 @@ extern (C++) final class IndexExp : BinExp
         if (e1.type.toBasetype().ty == Taarray)
         {
             Type t2b = e2.type.toBasetype();
-            if (t2b.ty == Tarray && t2b.nextOf().isMutable())
+            if (t2b.ty == Tarray &&     // don't require class keys to be immutable
+                .implicitConvTo(e2, e2.type.immutableOf()) < MATCH.constant)
             {
                 error("associative arrays can only be assigned values with immutable keys, not `%s`", e2.type.toChars());
                 return new ErrorExp();

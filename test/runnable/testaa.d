@@ -93,8 +93,8 @@ void test2()
 
 void test4()
 {
-    int[const(ubyte)[]] b;
-    const(ubyte)[] x;
+    int[immutable(ubyte)[]] b;
+    immutable(ubyte)[] x;
     b[x] = 3;
     assert(b[x] == 3);
 }
@@ -113,8 +113,8 @@ void test5()
 
 void test6()
 {
-    int[const(int)[]] b;
-    const(int)[] x;
+    int[immutable(int)[]] b;
+    immutable(int)[] x;
     b[x] = 3;
     assert(b[x] == 3);
 }
@@ -1343,6 +1343,14 @@ void test19112()
 
 /************************************************/
 
+void test12420()
+{
+    int[string] aa;
+    aa[new char[1]] = 5;
+}
+
+/************************************************/
+
 int main()
 {
     printf("before test 1\n");   test1();
@@ -1393,6 +1401,7 @@ int main()
     test14089();
     test14321();
     test19112();
+    test12420();
 
     printf("Success\n");
     return 0;
