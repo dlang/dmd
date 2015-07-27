@@ -564,8 +564,10 @@ version( CRuntime_Glibc )
         AF_IPX          = 4,
         AF_UNIX         = 1,
         AF_UNSPEC       = 0,
+        AF_RXRPC        = 33,
         PF_APPLETALK    = AF_APPLETALK,
-        PF_IPX          = AF_IPX
+        PF_IPX          = AF_IPX,
+        PF_RXRPC        = AF_RXRPC
     }
 
     enum int SOCK_RDM   = 4;
