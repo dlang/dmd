@@ -1325,6 +1325,26 @@ char[] dup(char[] a)
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+int stripLeft(int str, int dc)
+{
+    while (true)
+    {
+	int a = str;
+        int s = a;
+        str += 1;
+        if (dc) return s;
+    }
+}
+
+void test14829()
+{
+    if (stripLeft(3, 1) != 3) // fails with -O
+	assert(0);
+}
+
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -1368,6 +1388,7 @@ int main()
     test12057();
     test13784();
     test14220();
+    test14829();
     printf("Success\n");
     return 0;
 }
