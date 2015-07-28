@@ -1101,21 +1101,14 @@ STATIC void cpwalk(elem *n,vec_t IN)
                          *  g = v   => g = f
                          *  f = x
                          *  d = g   => d = f !!error
-                         * Therefore, if g appears as an rvalue in expnod[], then recalc
+                         * Therefore, if n appears as an rvalue in expnod[], then recalc
                          */
                         for (size_t i = 1; i < exptop; ++i)
                         {
+                            //printf("expnod[%d]: ", i); elem_print(expnod[i]);
                             if (expnod[i]->E2 == n)
                             {
-                                symbol *g = expnod[i]->E1->EV.sp.Vsym;
-                                for (size_t j = 1; j < exptop; ++j)
-                                {
-                                    if (expnod[j]->E2->EV.sp.Vsym == g)
-                                    {
-                                        ++recalc;
-                                        break;
-                                    }
-                                }
+                                ++recalc;
                                 break;
                             }
                         }
