@@ -1927,10 +1927,10 @@ Lmatch:
                 {
                     // if tuple parameter and
                     // tuple parameter was not in function parameter list and
-                    // we're one argument short (i.e. no tuple argument)
-                    if (tp &&
+                    // we're one or more arguments short (i.e. no tuple argument)
+                    if (tparam == tp &&
                         fptupindex == IDX_NOTFOUND &&
-                        ntargs == dedargs->dim - 1)
+                        ntargs <= dedargs->dim - 1)
                     {
                         // make tuple argument an empty tuple
                         oded = (RootObject *)new Tuple();
@@ -1965,7 +1965,8 @@ Lmatch:
 
             /* Bugzilla 7469: Normalize ti->tiargs for the correct mangling of template instance.
              */
-            if (Tuple *va = isTuple(oded))
+            Tuple *va = isTuple(oded);
+            if (va && va->objects.dim)
             {
                 dedargs->setDim(parameters->dim - 1 + va->objects.dim);
                 for (size_t j = 0; j < va->objects.dim; j++)
