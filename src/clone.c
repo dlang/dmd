@@ -499,11 +499,6 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
         e = new DotIdExp(sd->loc, e, id);
         e = e->semantic(sc);
         Dsymbol *s = getDsymbol(e);
-        if (!s)
-        {
-            ::error(Loc(), "Internal Compiler Error: %s not found in object module. You must update druntime", id->toChars());
-            fatal();
-        }
         assert(s);
         sd->xerreq = s->isFuncDeclaration();
     }
@@ -624,11 +619,6 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
         e = new DotIdExp(sd->loc, e, id);
         e = e->semantic(sc);
         Dsymbol *s = getDsymbol(e);
-        if (!s)
-        {
-            ::error(Loc(), "Internal Compiler Error: %s not found in object module. You must update druntime", id->toChars());
-            fatal();
-        }
         assert(s);
         sd->xerrcmp = s->isFuncDeclaration();
     }
