@@ -265,6 +265,8 @@ Msgtable[] msgtable =
     { "criticalenter", "_d_criticalenter" },
     { "criticalexit", "_d_criticalexit" },
     { "_ArrayEq" },
+    { "_ArrayPostblit" },
+    { "_ArrayDtor" },
 
     // For pragma's
     { "Pinline", "inline" },

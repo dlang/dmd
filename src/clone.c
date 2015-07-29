@@ -812,19 +812,36 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         ex = new DotVarExp(loc, ex, v, 0);
         if (v->type->toBasetype()->ty == Tstruct)
         {
-            // this.v.__postblit()
+            // this.v.__xpostblit()
+
+            // This is a hack so we can call postblits on const/immutable objects.
+            ex = new AddrExp(loc, ex);
+            ex = new CastExp(loc, ex, v->type->mutableOf()->pointerTo());
+            ex = new PtrExp(loc, ex);
+            if (stc & STCsafe)
+                stc = (stc & ~STCsafe) | STCtrusted;
+
             ex = new DotVarExp(loc, ex, sdv->postblit, 0);
             ex = new CallExp(loc, ex);
         }
         else
         {
-            // typeid(typeof(v)).postblit(cast(void*)&this.v);
-            Expression *ea = new AddrExp(loc, ex);
-            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+            // _ArrayPostblit((cast(S*)this.v.ptr)[0 .. n])
 
-            Expression *et = new TypeidExp(loc, v->type);
-            et = new DotIdExp(loc, et, Identifier::idPool("postblit"));
-            ex = new CallExp(loc, et, ea);
+            // This is a hack so we can call postblits on const/immutable objects.
+            ex = new DotIdExp(loc, ex, Id::ptr);
+            ex = new CastExp(loc, ex, sdv->type->pointerTo());
+            if (stc & STCsafe)
+                stc = (stc & ~STCsafe) | STCtrusted;
+
+            uinteger_t n = v->type->size() / sdv->type->size();
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type::tsize_t),
+                                       new IntegerExp(loc, n, Type::tsize_t));
+            // Prevent redundant bounds check
+            ((SliceExp *)ex)->upperIsInBounds = true;
+            ((SliceExp *)ex)->lowerIsLessThanUpper = true;
+
+            ex = new CallExp(loc, new IdentifierExp(loc, Id::_ArrayPostblit), ex);
         }
         a->push(new ExpStatement(loc, ex)); // combine in forward order
 
@@ -837,19 +854,36 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         ex = new DotVarExp(loc, ex, v, 0);
         if (v->type->toBasetype()->ty == Tstruct)
         {
-            // this.v.__dtor()
+            // this.v.__xdtor()
+
+            // This is a hack so we can call destructors on const/immutable objects.
+            ex = new AddrExp(loc, ex);
+            ex = new CastExp(loc, ex, v->type->mutableOf()->pointerTo());
+            ex = new PtrExp(loc, ex);
+            if (stc & STCsafe)
+                stc = (stc & ~STCsafe) | STCtrusted;
+
             ex = new DotVarExp(loc, ex, sdv->dtor, 0);
             ex = new CallExp(loc, ex);
         }
         else
         {
-            // Typeinfo.destroy(cast(void*)&this.v);
-            Expression *ea = new AddrExp(loc, ex);
-            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+            // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
 
-            Expression *et = new TypeidExp(loc, v->type);
-            et = new DotIdExp(loc, et, Id::destroy);
-            ex = new CallExp(loc, et, ea);
+            // This is a hack so we can call destructors on const/immutable objects.
+            ex = new DotIdExp(loc, ex, Id::ptr);
+            ex = new CastExp(loc, ex, sdv->type->pointerTo());
+            if (stc & STCsafe)
+                stc = (stc & ~STCsafe) | STCtrusted;
+
+            uinteger_t n = v->type->size() / sdv->type->size();
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type::tsize_t),
+                                       new IntegerExp(loc, n, Type::tsize_t));
+            // Prevent redundant bounds check
+            ((SliceExp *)ex)->upperIsInBounds = true;
+            ((SliceExp *)ex)->lowerIsLessThanUpper = true;
+
+            ex = new CallExp(loc, new IdentifierExp(loc, Id::_ArrayDtor), ex);
         }
         a->push(new OnScopeStatement(loc, TOKon_scope_failure, new ExpStatement(loc, ex)));
     }
@@ -949,19 +983,36 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
         ex = new DotVarExp(loc, ex, v, 0);
         if (v->type->toBasetype()->ty == Tstruct)
         {
-            // this.v.__dtor()
+            // this.v.__xdtor()
+
+            // This is a hack so we can call destructors on const/immutable objects.
+            ex = new AddrExp(loc, ex);
+            ex = new CastExp(loc, ex, v->type->mutableOf()->pointerTo());
+            ex = new PtrExp(loc, ex);
+            if (stc & STCsafe)
+                stc = (stc & ~STCsafe) | STCtrusted;
+
             ex = new DotVarExp(loc, ex, sdv->dtor, 0);
             ex = new CallExp(loc, ex);
         }
         else
         {
-            // Typeinfo.destroy(cast(void*)&this.v);
-            Expression *ea = new AddrExp(loc, ex);
-            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+            // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
 
-            Expression *et = new TypeidExp(loc, v->type);
-            et = new DotIdExp(loc, et, Id::destroy);
-            ex = new CallExp(loc, et, ea);
+            // This is a hack so we can call destructors on const/immutable objects.
+            ex = new DotIdExp(loc, ex, Id::ptr);
+            ex = new CastExp(loc, ex, sdv->type->pointerTo());
+            if (stc & STCsafe)
+                stc = (stc & ~STCsafe) | STCtrusted;
+
+            uinteger_t n = v->type->size() / sdv->type->size();
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type::tsize_t),
+                                       new IntegerExp(loc, n, Type::tsize_t));
+            // Prevent redundant bounds check
+            ((SliceExp *)ex)->upperIsInBounds = true;
+            ((SliceExp *)ex)->lowerIsLessThanUpper = true;
+
+            ex = new CallExp(loc, new IdentifierExp(loc, Id::_ArrayDtor), ex);
         }
         e = Expression::combine(ex, e); // combine in reverse order
     }

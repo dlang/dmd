@@ -540,6 +540,12 @@ Module *Module::parse()
             " foreach (size_t i; 0 .. a.length) { if (a[i] != b[i]) return false; }\n"
             " return true; }\n";
 
+        static const utf8_t code_ArrayPostblit[] =
+            "void _ArrayPostblit(T)(T[] a) { foreach (ref T e; a) e.__xpostblit(); }\n";
+
+        static const utf8_t code_ArrayDtor[] =
+            "void _ArrayDtor(T)(T[] a) { foreach_reverse (ref T e; a) e.__xdtor(); }\n";
+
         static const utf8_t code_xopEquals[] =
             "bool _xopEquals(in void*, in void*) { throw new Error(\"TypeInfo.equals is not implemented\"); }\n";
 
@@ -561,6 +567,16 @@ Module *Module::parse()
         if (arreq)
         {
             Parser p(loc, this, code_ArrayEq, strlen((const char *)code_ArrayEq), 0);
+            p.nextToken();
+            members->append(p.parseDeclDefs(0));
+        }
+        {
+            Parser p(loc, this, code_ArrayPostblit, strlen((const char *)code_ArrayPostblit), 0);
+            p.nextToken();
+            members->append(p.parseDeclDefs(0));
+        }
+        {
+            Parser p(loc, this, code_ArrayDtor, strlen((const char *)code_ArrayDtor), 0);
             p.nextToken();
             members->append(p.parseDeclDefs(0));
         }
