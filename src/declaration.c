@@ -51,6 +51,8 @@ bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t iStar
             {
                 if (!fd->isThis() && !fd->isNested())
                     break;
+                if (FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration())
+                    fld->tok = TOKdelegate;
             }
             if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
             {
