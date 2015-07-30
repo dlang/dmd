@@ -4759,48 +4759,41 @@ public:
 
             if (pthis->op == TOKdottype)
                 pthis = ((DotTypeExp *)dve->e1)->e1;
-
-            // Special handling for: typeid(T[n]).destroy(ea)
-            if (pthis->op == TOKtypeid)
-            {
-                TypeidExp *tie = (TypeidExp *)pthis;
-                Type *t = isType(tie->obj);
-                if (t &&
-                    t->toBasetype()->ty == Tsarray &&
-                    fd->ident == Id::destroy &&
-                    e->arguments->dim == 1)
-                {
-                    Type *tb = t->baseElemOf();
-                    if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->dtor)
-                    {
-                        Expression *ea = (*e->arguments)[0];
-                        // ea would be:
-                        //  &var        <-- SymOffExp
-                        //  cast(void*)&var
-                        //  cast(void*)&this.field
-                        //  etc.
-                        if (ea->op == TOKcast)
-                            ea = ((CastExp *)ea)->e1;
-                        if (ea->op == TOKsymoff)
-                            result = getVarExp(e->loc, istate, ((SymOffExp *)ea)->var, ctfeNeedRvalue);
-                        else if (ea->op == TOKaddress)
-                            result = interpret(((AddrExp *)ea)->e1, istate);
-                        else
-                            assert(0);
-                        if (CTFEExp::isCantExp(result))
-                            return;
-                        result = evaluateDtor(istate, result);
-                        if (!result)
-                            result = CTFEExp::voidexp;
-                        return;
-                    }
-                }
-            }
         }
         else if (ecall->op == TOKvar)
         {
             fd = ((VarExp *)ecall)->var->isFuncDeclaration();
             assert(fd);
+
+            if (fd->ident == Id::_ArrayPostblit ||
+                fd->ident == Id::_ArrayDtor)
+            {
+                assert(e->arguments->dim == 1);
+                Expression *ea = (*e->arguments)[0];
+                //printf("1 ea = %s %s\n", ea->type->toChars(), ea->toChars());
+                if (ea->op == TOKslice)
+                    ea = ((SliceExp *)ea)->e1;
+                if (ea->op == TOKcast)
+                    ea = ((CastExp *)ea)->e1;
+
+                //printf("2 ea = %s, %s %s\n", ea->type->toChars(), Token::toChars(ea->op), ea->toChars());
+                if (ea->op == TOKvar || ea->op == TOKsymoff)
+                    result = getVarExp(e->loc, istate, ((SymbolExp *)ea)->var, ctfeNeedRvalue);
+                else if (ea->op == TOKaddress)
+                    result = interpret(((AddrExp *)ea)->e1, istate);
+                else
+                    assert(0);
+                if (CTFEExp::isCantExp(result))
+                    return;
+
+                if (fd->ident == Id::_ArrayPostblit)
+                    result = evaluatePostblit(istate, result);
+                else
+                    result = evaluateDtor(istate, result);
+                if (!result)
+                    result = CTFEExp::voidexp;
+                return;
+            }
         }
         else if (ecall->op == TOKsymoff)
         {

@@ -2063,36 +2063,42 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     Type *tv = type->baseElemOf();
     if (tv->ty == Tstruct)
     {
-        TypeStruct *ts = (TypeStruct *)tv;
-        StructDeclaration *sd = ts->sym;
-        if (sd->dtor)
+        StructDeclaration *sd = ((TypeStruct *)tv)->sym;
+        if (!sd->dtor || !type->size())
+            return NULL;
+
+        if (type->toBasetype()->ty == Tstruct)
         {
-            if (type->toBasetype()->ty == Tsarray)
-            {
-                // Typeinfo.destroy(cast(void*)&v);
-                Expression *ea = new SymOffExp(loc, this, 0, 0);
-                ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
-                Expressions *args = new Expressions();
-                args->push(ea);
+            // v.__xdtor()
+            e = new VarExp(loc, this);
 
-                Expression *et = new TypeidExp(loc, type);
-                et = new DotIdExp(loc, et, Id::destroy);
+            /* This is a hack so we can call destructors on const/immutable objects.
+             * Need to add things like "const ~this()" and "immutable ~this()" to
+             * fix properly.
+             */
+            e->type = e->type->mutableOf();
 
-                e = new CallExp(loc, et, args);
-            }
-            else
-            {
-                e = new VarExp(loc, this);
-                /* This is a hack so we can call destructors on const/immutable objects.
-                 * Need to add things like "const ~this()" and "immutable ~this()" to
-                 * fix properly.
-                 */
-                e->type = e->type->mutableOf();
-                e = new DotVarExp(loc, e, sd->dtor, 0);
-                e = new CallExp(loc, e);
-            }
-            return e;
+            e = new DotVarExp(loc, e, sd->dtor, 0);
+            e = new CallExp(loc, e);
         }
+        else
+        {
+            // _ArrayDtor(v[0 .. n])
+            e = new VarExp(loc, this);
+
+            uinteger_t n = type->size() / sd->type->size();
+            e = new SliceExp(loc, e, new IntegerExp(loc, 0, Type::tsize_t),
+                                     new IntegerExp(loc, n, Type::tsize_t));
+            // Prevent redundant bounds check
+            ((SliceExp *)e)->upperIsInBounds = true;
+            ((SliceExp *)e)->lowerIsLessThanUpper = true;
+
+            // This is a hack so we can call destructors on const/immutable objects.
+            e->type = sd->type->arrayOf();
+
+            e = new CallExp(loc, new IdentifierExp(loc, Id::_ArrayDtor), e);
+        }
+        return e;
     }
 
     // Destructors for classes
