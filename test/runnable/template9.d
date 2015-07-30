@@ -4486,6 +4486,29 @@ void test14174()
 }
 
 /******************************************/
+// 14836
+
+template a14836x(alias B, C...)
+{
+    int a14836x(D...)()    if (D.length == 0) { return 1; }
+    int a14836x(D...)(D d) if (D.length >  0) { return 2; }
+}
+template a14836y(alias B, C...)
+{
+    int a14836y(T, D...)(T t)      if (D.length == 0) { return 1; }
+    int a14836y(T, D...)(T t, D d) if (D.length >  0) { return 2; }
+}
+
+void test14836()
+{
+    int v;
+    assert(a14836x!(v)() == 1);
+    assert(a14836x!(v)(1) == 2);
+    assert(a14836y!(v)(1) == 1);
+    assert(a14836y!(v)(1, 2) == 2);
+}
+
+/******************************************/
 // 14357
 
 template Qux14357(T : U*, U : V*, V)
@@ -4707,6 +4730,7 @@ int main()
     test13379();
     test13484();
     test13694();
+    test14836();
     test14735();
 
     printf("Success\n");

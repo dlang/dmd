@@ -1927,10 +1927,10 @@ Lmatch:
                 {
                     // if tuple parameter and
                     // tuple parameter was not in function parameter list and
-                    // we're one argument short (i.e. no tuple argument)
-                    if (tp &&
+                    // we're one or more arguments short (i.e. no tuple argument)
+                    if (tparam == tp &&
                         fptupindex == IDX_NOTFOUND &&
-                        ntargs == dedargs->dim - 1)
+                        ntargs <= dedargs->dim - 1)
                     {
                         // make tuple argument an empty tuple
                         oded = (RootObject *)new Tuple();
@@ -1965,7 +1965,8 @@ Lmatch:
 
             /* Bugzilla 7469: Normalize ti->tiargs for the correct mangling of template instance.
              */
-            if (Tuple *va = isTuple(oded))
+            Tuple *va = isTuple(oded);
+            if (va && va->objects.dim)
             {
                 dedargs->setDim(parameters->dim - 1 + va->objects.dim);
                 for (size_t j = 0; j < va->objects.dim; j++)
@@ -7887,14 +7888,28 @@ bool TemplateInstance::needsCodegen()
         //printf("%s minst = %s, enclosing (%s)->isNonRoot = %d\n",
         //    toPrettyChars(), minst ? minst->toChars() : NULL,
         //    enclosing ? enclosing->toPrettyChars() : NULL, enclosing && enclosing->inNonRoot());
-        if (enclosing && !tinst)
+        if (enclosing)
         {
-            // Bugzilla 13415: If and only if the enclosing scope needs codegen,
-            // the nested templates would need code generation.
+            // Bugzilla 14588: If the captured context is not a function
+            // (e.g. class), the instance layout determination is guaranteed,
+            // because the semantic/semantic2 pass will be executed
+            // even for non-root instances.
+            if (!enclosing->isFuncDeclaration())
+                return true;
+
+            // Bugzilla 14834: If the captured context is a function,
+            // this excessive instantiation may cause ODR violation, because
+            // -allInst and others doesn't guarantee the semantic3 execution
+            // for that function.
+
+            // If the enclosing is also an instantiated function,
+            // we have to rely on the ancestor's needsCodegen() result.
             if (TemplateInstance *ti = enclosing->isInstantiated())
                 return ti->needsCodegen();
-            else
-                return !enclosing->inNonRoot();
+
+            // Bugzilla 13415: If and only if the enclosing scope needs codegen,
+            // this nested templates would also need code generation.
+            return !enclosing->inNonRoot();
         }
         return true;
     }
