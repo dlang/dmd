@@ -755,7 +755,8 @@ StructDeclaration *needsDtor(Type *t)
  */
 
 elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue, IRState *irs, int op)
-{   int r;
+{
+    int r;
     elem *e;
     unsigned sz = tb->size();
 
@@ -786,10 +787,11 @@ Lagain:
             break;
 
         case Tstruct:
+        {
             if (I32)
                 goto Ldefault;
 
-        {   TypeStruct *tc = (TypeStruct *)tb;
+            TypeStruct *tc = (TypeStruct *)tb;
             StructDeclaration *sd = tc->sym;
             if (sd->arg1type && !sd->arg2type)
             {
@@ -821,12 +823,14 @@ Lagain:
             {
                 StructDeclaration *sd = needsPostblit(tb);
                 if (sd)
-                {   /* Need to do postblit.
+                {
+                    /* Need to do postblit.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
                     r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
-                    elem *eti = getTypeInfo(tb, irs);
+                    // This is a hack so we can call postblits on const/immutable objects.
+                    elem *eti = getTypeInfo(tb->unSharedOf()->mutableOf(), irs);
                     e = el_params(eti, edim, evalue, eptr, NULL);
                     e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
                     return e;
@@ -1175,6 +1179,7 @@ elem *toElem(Expression *e, IRState *irs)
             if (Type *t = isType(e->obj))
             {
                 result = getTypeInfo(t, irs);
+                result = el_bin(OPadd, result->Ety, result, el_long(TYsize_t, t->vtinfo->offset));
                 return;
             }
             if (Expression *ex = isExpression(e->obj))

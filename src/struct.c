@@ -729,13 +729,10 @@ void StructDeclaration::semantic(Scope *sc)
             error("structs, unions cannot be abstract");
         userAttribDecl = sc->userAttribDecl;
     }
-    else if (symtab)
+    else if (symtab && !scx)
     {
-        if (sizeok == SIZEOKdone || !scx)
-        {
-            semanticRun = PASSsemanticdone;
-            return;
-        }
+        semanticRun = PASSsemanticdone;
+        return;
     }
     semanticRun = PASSsemantic;
 
@@ -757,7 +754,6 @@ void StructDeclaration::semantic(Scope *sc)
         }
     }
 
-    sizeok = SIZEOKnone;
     Scope *sc2 = sc->push(this);
     sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
@@ -767,6 +763,11 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttribDecl = NULL;
+
+    if (sizeok == SIZEOKdone)
+        goto LafterSizeok;
+
+    sizeok = SIZEOKnone;
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -816,9 +817,32 @@ void StructDeclaration::semantic(Scope *sc)
     }
 
     Module::dprogress++;
-    semanticRun = PASSsemanticdone;
 
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+
+LafterSizeok:
+    // The additions of special member functions should have its own
+    // sub-semantic analysis pass, and have to be deferred sometimes.
+    // See the case in compilable/test14838.d
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+        VarDeclaration *v = fields[i];
+        Type *tb = v->type->baseElemOf();
+        if (tb->ty != Tstruct)
+            continue;
+        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+        if (sd->semanticRun >= PASSsemanticdone)
+            continue;
+
+        sc2->pop();
+
+        scope = scx ? scx : sc->copy();
+        scope->setNoFree();
+        scope->module->addDeferredSemantic(this);
+
+        //printf("\tdeferring %s\n", toChars());
+        return;
+    }
 
     /* Look for special member functions.
      */
@@ -870,6 +894,9 @@ void StructDeclaration::semantic(Scope *sc)
             }
         }
     }
+
+    Module::dprogress++;
+    semanticRun = PASSsemanticdone;
 
     TypeTuple *tup = toArgTypes(type);
     size_t dim = tup->arguments->dim;
