@@ -11572,6 +11572,20 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (e1x->checkPostblit(sc, t1))
                     return new ErrorExp();
             }
+
+            // e2 matches to t1 because of the implicit length match, so
+            if (isUnaArrayOp(e2x->op) || isBinArrayOp(e2x->op))
+            {
+                // convert e1 to e1[]
+                // e.g. e1[] = a[] + b[];
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
+            }
+            else
+            {
+                // convert e2 to t1 later
+                // e.g. e1 = [1, 2, 3];
+            }
         }
         else
         {
