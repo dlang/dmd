@@ -108,6 +108,7 @@ endif
 else
 # Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing
+# Clang Specific
 ifeq ($(HOST_CC), clang++)
 WARNINGS := $(WARNINGS) \
     -Wno-logical-op-parentheses \
@@ -125,6 +126,11 @@ CFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
 	$(MODEL_FLAG)
+# GCC Specific
+ifeq ($(HOST_CC), g++)
+CFLAGS := $(CFLAGS) \
+    -std=gnu++98
+endif
 # Default D compiler flags for all source files
 DFLAGS=
 
