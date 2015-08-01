@@ -534,10 +534,9 @@ public:
                 elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
                 block *b = blx->curblock;
                 block_appendexp(b, e);
-                block *bcase = block_calloc(blx);
-                cs->cblock = bcase;
+                Label *clabel = getLabel(irs, blx, cs);
                 block_next(blx, BCiftrue, NULL);
-                b->appendSucc(bcase);
+                b->appendSucc(clabel->lblock);
                 b->appendSucc(blx->curblock);
             }
 
@@ -658,13 +657,12 @@ public:
     {
         Blockx *blx = irs->blx;
         block *bcase = blx->curblock;
-        if (!s->cblock)
-            s->cblock = block_calloc(blx);
-        block_next(blx,BCgoto,s->cblock);
+        Label *clabel = getLabel(irs, blx, s);
+        block_next(blx, BCgoto, clabel->lblock);
         block *bsw = irs->getSwitchBlock();
         if (bsw->BC == BCswitch)
-            bsw->appendSucc(s->cblock);        // second entry in pair
-        bcase->appendSucc(s->cblock);
+            bsw->appendSucc(clabel->lblock);   // second entry in pair
+        bcase->appendSucc(clabel->lblock);
         if (blx->tryblock != bsw->Btry)
             s->error("case cannot be in different try block level from switch");
         incUsage(irs, s->loc);
@@ -720,17 +718,10 @@ public:
 
     void visit(GotoCaseStatement *s)
     {
-        block *b;
         Blockx *blx = irs->blx;
-        block *bdest = s->cs->cblock;
-
-        if (!bdest)
-        {
-            bdest = block_calloc(blx);
-            s->cs->cblock = bdest;
-        }
-
-        b = blx->curblock;
+        Label *clabel = getLabel(irs, blx, s->cs);
+        block *bdest = clabel->lblock;
+        block *b = blx->curblock;
 
         // The rest is equivalent to GotoStatement
 
