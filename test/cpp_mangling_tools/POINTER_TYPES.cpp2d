@@ -1,0 +1,6 @@
+int*             | int*
+const int*       | const(int)*
+const int* const | const(int*)
+S*               | S*
+const S*         | const(S)*
+const S* const   | const(S*)
