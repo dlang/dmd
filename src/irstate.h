@@ -25,7 +25,10 @@ struct Symbol;
 class FuncDeclaration;
 struct Blockx;
 struct elem;
+struct Label;
 #include "arraytypes.h"
+
+typedef Array<struct Label *> Labels;
 
 struct IRState
 {
@@ -42,6 +45,7 @@ struct IRState
     elem *ehidden;              // transmit hidden pointer to CallExp::toElem()
     Symbol *startaddress;
     VarDeclarations *varsInScope; // variables that are in scope that will need destruction later
+    Labels *labels;             // list of labels used/declared in function
 
     block *breakBlock;
     block *contBlock;

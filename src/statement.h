@@ -697,8 +697,6 @@ public:
     Statement *gotoTarget;      // interpret
 
     bool breaks;                // someone did a 'break ident'
-    block *lblock;              // back end
-    Blocks *fwdrefs;            // forward references to this LabelStatement
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
     Statement *syntaxCopy();
