@@ -1024,8 +1024,7 @@
                 "typedef GotoCaseStatements",
                 "typedef ReturnStatements",
                 "typedef GotoStatements",
-                "typedef TemplateInstances",
-                "typedef Blocks"
+                "typedef TemplateInstances"
             ]
         },
         {
@@ -2595,7 +2594,6 @@
                 "function parse_conf_arg",
                 "function Dsymbols_create",
                 "function VarDeclarations_create",
-                "function Blocks_create",
                 "function Expressions_create"
             ]
         },

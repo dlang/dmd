@@ -5137,8 +5137,6 @@ LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
     this->lastVar = NULL;
     this->gotoTarget = NULL;
     this->breaks = false;
-    this->lblock = NULL;
-    this->fwdrefs = NULL;
 }
 
 Statement *LabelStatement::syntaxCopy()

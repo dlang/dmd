@@ -68,6 +68,4 @@ typedef Array<class GotoStatement *> GotoStatements;
 
 typedef Array<class TemplateInstance *> TemplateInstances;
 
-typedef Array<struct block *> Blocks;
-
 #endif
