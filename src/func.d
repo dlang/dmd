@@ -2169,13 +2169,12 @@ public:
             sc2.callSuper = 0;
             sc2.pop();
         }
-        if (needsClosure())
+
+        if (checkClosure())
         {
-            if (setGC())
-                error("@nogc function allocates a closure with the GC");
-            else
-                printGCUsage(loc, "using closure causes GC allocation");
+            //errors = true;
         }
+
         /* If function survived being marked as impure, then it is pure
          */
         if (flags & FUNCFLAGpurityInprocess)
@@ -3427,7 +3426,6 @@ public:
         for (size_t i = 0; i < closureVars.dim; i++)
         {
             VarDeclaration v = closureVars[i];
-            assert(v.isVarDeclaration());
             //printf("\tv = %s\n", v->toChars());
             for (size_t j = 0; j < v.nestedrefs.dim; j++)
             {
@@ -3494,6 +3492,74 @@ public:
     Lyes:
         //printf("\tneeds closure\n");
         return true;
+    }
+
+    /***********************************************
+     * Check that the function contains any closure.
+     * If it's @nogc, report suitable errors.
+     * This is mostly consistent with FuncDeclaration::needsClosure().
+     *
+     * Returns:
+     *      true if any errors occur.
+     */
+    final bool checkClosure()
+    {
+        if (needsClosure())
+        {
+            if (setGC())
+            {
+                error("is @nogc yet allocates closures with the GC");
+                if (global.gag)     // need not report supplemental errors
+                    return true;
+            }
+            else
+            {
+                printGCUsage(loc, "using closure causes GC allocation");
+                return false;
+            }
+
+            FuncDeclarations a;
+            for (size_t i = 0; i < closureVars.dim; i++)
+            {
+                VarDeclaration v = closureVars[i];
+
+                for (size_t j = 0; j < v.nestedrefs.dim; j++)
+                {
+                    FuncDeclaration f = v.nestedrefs[j];
+                    assert(f !is this);
+
+                    for (Dsymbol s = f; s && s !is this; s = s.parent)
+                    {
+                        FuncDeclaration fx = s.isFuncDeclaration();
+                        if (!fx)
+                            continue;
+                        if (fx.isThis() || fx.tookAddressOf)
+                            goto Lfound;
+                        if (checkEscapingSiblings(fx, this))
+                            goto Lfound;
+                    }
+                    continue;
+
+                Lfound:
+                    for (size_t k = 0; ; k++)
+                    {
+                        if (k == a.dim)
+                        {
+                            a.push(f);
+                            .errorSupplemental(f.loc, "%s closes over variable %s at %s",
+                                f.toPrettyChars(), v.toChars(), v.loc.toChars());
+                            break;
+                        }
+                        if (a[k] == f)
+                            break;
+                    }
+                    continue;
+                }
+            }
+
+            return true;
+        }
+        return false;
     }
 
     /***********************************************
