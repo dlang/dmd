@@ -1213,6 +1213,8 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 for (size_t i = 0; i < e->arguments->dim; ++i)
                 {
                     Expression *earg = (*e->arguments)[i];
+                    if (!earg)  // Bugzilla 14853: if it's on overlapped field
+                        continue;
                     Type *targ = earg->type->toBasetype();
 #if LOG
                     printf("[%d] earg: %s, targ: %s\n", (int)i, earg->toChars(), targ->toChars());
