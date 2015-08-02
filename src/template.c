@@ -5912,7 +5912,9 @@ Lerror:
     if (errors)
         goto Lerror;
 
-    if (Module *m = tempdecl->scope->module) // should use getModule() instead?
+    // todo: should we use getModule() instead?
+    // --> Yes, it's consistent with the way in glue.c.
+    if (Module *m = tempdecl->scope->module)
     {
         // Generate these functions as they may be used
         // when template is instantiated in other modules
@@ -5920,6 +5922,15 @@ Lerror:
         toModuleArray(m);
         toModuleAssert(m);
         toModuleUnittest(m);
+
+        // todo: This is a workaround for the object file generation pass.
+        // Currently, if m is a root module, this->toObjFile() may not happen
+        // during m->toObjFile(). For that, we have to request the module
+        // helpers in the early stage.
+
+        // To avoid this hack, we should insert the primary instance 'inst'
+        // in the member of module m.
+        // It will be done by: https://github.com/D-Programming-Language/dmd/pull/4784
     }
 
     /* See if there is an existing TemplateInstantiation that already

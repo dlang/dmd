@@ -70,9 +70,10 @@ void parseConfFile(StringTable *environment, const char *path, size_t len, unsig
 
 void genObjFile(Module *m, bool multiobj);
 void genhelpers(Module *m, bool iscomdat);
+void genHelpersObjFile(Module *m);
 
 /** Normalize path by turning forward slashes into backslashes */
-const char * toWinPath(const char *src)
+const char *toWinPath(const char *src)
 {
     if (src == NULL)
         return NULL;
@@ -1658,35 +1659,50 @@ Language changes listed by -transition=id:\n\
         }
     }
 
-    if (!global.params.obj)
+    //printf("global.params.multiobj = %d, oneobj = %d, lib = %d\n",
+    //    global.params.multiobj, global.params.oneobj, global.params.lib);
+    if (!global.params.obj || !modules.dim)
     {
     }
     else if (global.params.oneobj)
     {
-        if (modules.dim)
-            obj_start(modules[0]->srcfile->toChars());
+        /* global.params.oneobj == true:
+         *  Just only one object file is generated for the final link.
+         *  e.g.
+         *      dmd -ofout main.d   // main.obj is generated
+         */
+        obj_start(modules[0]->srcfile->toChars());
+
         for (size_t i = 0; i < modules.dim; i++)
         {
             Module *m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
+
             genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
         }
-        for (size_t i = 0; i < Module::amodules.dim; i++)
+        for (size_t j = 0; j < Module::amodules.dim; j++)
         {
-            Module *m = Module::amodules[i];
-            if (!m->isRoot() && (m->marray || m->massert || m->munittest))
-                genhelpers(m, true);
+            Module *mx = Module::amodules[j];
+            if (mx->isRoot())
+                continue;
+            if (!mx->marray && !mx->massert && !mx->munittest)
+                continue;
+            genhelpers(mx, true);
         }
-        if (!global.errors && modules.dim)
-        {
+
+        if (!global.errors)
             obj_end(library, modules[0]->objfile);
-        }
     }
-    else
+    else if (!global.params.multiobj)
     {
+        /* global.params.multiobj == false:
+         *  The object files are generated per source files.
+         *  e.g.
+         *      dmd -c main.d code.d   // main.obj and code.obj generated
+         */
         for (size_t i = 0; i < modules.dim; i++)
         {
             Module *m = modules[i];
@@ -1694,20 +1710,75 @@ Language changes listed by -transition=id:\n\
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
 
             obj_start(m->srcfile->toChars());
-            genObjFile(m, global.params.multiobj);
+            genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
-                genObjFile(entrypoint, global.params.multiobj);
+                genObjFile(entrypoint, false);
             for (size_t j = 0; j < Module::amodules.dim; j++)
             {
+                // todo: This part is not the best for the total size of object files.
+                // For example:
+                // When both of main.d and code.d import mx, even if main.obj
+                // already contains mx->marray, it is stored in code.obj again.
                 Module *mx = Module::amodules[j];
-                if (mx != m && mx->importedFrom == m && (mx->marray || mx->massert || mx->munittest))
-                    genhelpers(mx, true);
+                if (mx == m || mx->importedFrom != m)
+                    continue;
+                if (!mx->marray && !mx->massert && !mx->munittest)
+                    continue;
+                genhelpers(mx, true);
             }
             obj_end(library, m->objfile);
+
+            if (global.errors && !global.params.lib)
+                m->deleteObjFile();
+        }
+    }
+    else
+    {
+        /* global.params.multiobj == true:
+         *  Each compiled symbols are stored in separated doppelganger modules.
+         *  The generated object files have numbered names.
+         *  e.g.
+         *      dmd -lib main.d code.d
+         *      dmd -multiobj main.d code.d
+         *      // main.foo() --> main_1_<hash>.obj
+         *      // main.bar() --> main_2_<hash>.obj
+         *      // code.baz() --> code_3_<hash>.obj
+         *      // std.stdio.writeln!()() --> stdio_4_<hash>.obj
+         *      // std.stdio.__array() --> stdio_5_<hash>.obj   (Bugzilla 14828)
+         *      // --> with -lib, all *.obj will be stored in one .lib file.
+         */
+        for (size_t i = 0; i < modules.dim; i++)
+        {
+            Module *m = modules[i];
+            if (global.params.verbose)
+                fprintf(global.stdmsg, "code      %s\n", m->toChars());
+
+            obj_start(m->srcfile->toChars());
+            genObjFile(m, true);
+            if (entrypoint && m == rootHasMain)
+                genObjFile(entrypoint, true);
+            obj_end(library, m->objfile);
+
             obj_write_deferred(library);
 
             if (global.errors && !global.params.lib)
                 m->deleteObjFile();
+        }
+
+        for (size_t j = 0; j < Module::amodules.dim; j++)
+        {
+            Module *mx = Module::amodules[j];
+            if (mx->isRoot())
+                continue;
+            if (!mx->marray && !mx->massert && !mx->munittest)
+                continue;
+
+            obj_start(mx->srcfile->toChars());
+            genHelpersObjFile(mx);
+            obj_end(library, mx->objfile);
+
+            if (global.errors && !global.params.lib)
+                mx->deleteObjFile();
         }
     }
 

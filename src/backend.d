@@ -26,6 +26,7 @@ extern extern (C++) Type getTypeInfoType(Type t, Scope* sc);
 extern extern (C++) Expression getInternalTypeInfo(Type t, Scope* sc);
 extern extern (C++) void genObjFile(Module m, bool multiobj);
 extern extern (C++) void genhelpers(Module m, bool multiobj);
+extern extern (C++) void genHelpersObjFile(Module m);
 
 extern extern (C++) Symbol* toInitializer(AggregateDeclaration sd);
 extern extern (C++) Symbol* toModuleArray(Module m);
