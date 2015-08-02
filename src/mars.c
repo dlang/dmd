@@ -1715,6 +1715,10 @@ Language changes listed by -transition=id:\n\
                 genObjFile(entrypoint, false);
             for (size_t j = 0; j < Module::amodules.dim; j++)
             {
+                // todo: This part is not the best for the total size of object files.
+                // For example:
+                // When both of main.d and code.d import mx, even if main.obj
+                // already contains mx->marray, it is stored in code.obj again.
                 Module *mx = Module::amodules[j];
                 if (mx == m || mx->importedFrom != m)
                     continue;
