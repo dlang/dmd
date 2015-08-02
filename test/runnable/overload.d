@@ -1068,6 +1068,21 @@ void test13783()
 }
 
 /***************************************************/
+// 14858
+
+int foo14858()() { return 1; }
+int bar14858(int) { return 2; }
+
+alias foobar14858 = foo14858;
+alias foobar14858 = bar14858;
+
+void test14858()
+{
+    assert(foobar14858() == 1);
+    assert(foobar14858(1) == 2); // OK <- NG
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1101,6 +1116,7 @@ int main()
     test11915();
     test11916();
     test13783();
+    test14858();
 
     printf("Success\n");
     return 0;

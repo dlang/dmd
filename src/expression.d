@@ -3799,6 +3799,12 @@ public:
             fd.type = f.type;
             return new VarExp(loc, fd, hasOverloads);
         }
+        if (OverDeclaration od = s.isOverDeclaration())
+        {
+            e = new VarExp(loc, od, 1);
+            e.type = Type.tvoid;
+            return e;
+        }
         if (OverloadSet o = s.isOverloadSet())
         {
             //printf("'%s' is an overload set\n", o->toChars());
