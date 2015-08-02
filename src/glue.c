@@ -94,7 +94,11 @@ void obj_write_deferred(Library *library)
     for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
     {
         Dsymbol *s = obj_symbols_towrite[i];
-        Module *m = s->getModule();
+        Module *m;
+        if (TemplateInstance *ti = s->isTemplateInstance())
+            m = ti->tempdecl->getModule();  // tweak object file name
+        else
+            m = s->getModule();
 
         char *mname;
         if (m)
@@ -516,10 +520,8 @@ void genhelpers(Module *m, bool iscomdat)
             case 2:     ma = m->munittest; rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
             default:    assert(0);
         }
-
         if (!ma)
             continue;
-
 
         localgot = NULL;
 
@@ -558,6 +560,22 @@ void genhelpers(Module *m, bool iscomdat)
         ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
         writefunc(ma);
     }
+}
+
+/**************************************
+ * Bugzilla 14828: If some template instantiations require
+ * non-root module helpers, they should be placed in
+ * separated object file.
+ */
+void genHelpersObjFile(Module *m)
+{
+    assert(!m->isRoot());
+
+    lastmname = m->srcfile->toChars();
+
+    objmod->initfile(lastmname, NULL, m->toPrettyChars());
+    genhelpers(m, true);
+    objmod->termfile();
 }
 
 /**************************************
