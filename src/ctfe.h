@@ -164,10 +164,6 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
  */
 void assignInPlace(Expression *dest, Expression *src);
 
-/// Set all elements of 'ae' to 'val'. ae may be a multidimensional array.
-/// If 'wantRef', all elements of ae will hold references to the same val.
-void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef);
-
 /// Duplicate the elements array, then set field 'indexToChange' = newelem.
 Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, Expression *newelem);
 

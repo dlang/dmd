@@ -3985,6 +3985,29 @@ int test14815()
 static assert(test14815());
 
 /**********************************/
+// 14860
+
+int test14860()
+{
+    uint dtorCount;
+
+    struct S
+    {
+        uint x;
+        ~this() { ++dtorCount; }
+    }
+
+    S[] a = [S(42)];
+    a[] = S();
+
+    assert(a[0].x == 0);
+    assert(dtorCount == 1);
+
+    return 1;
+}
+static assert(test14860());
+
+/**********************************/
 // 14696
 
 void test14696(int len = 2)
@@ -4262,6 +4285,7 @@ int main()
     test13095();
     test14264();
     test14815();
+    test14860();
     test14696();
     test14838();
 

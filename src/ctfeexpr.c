@@ -1971,32 +1971,6 @@ void assignInPlace(Expression *dest, Expression *src)
     }
 }
 
-void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef)
-{
-    assert(ae->type->ty == Tsarray || ae->type->ty == Tarray);
-    Type *desttype = ((TypeArray *)ae->type)->next->toBasetype()->castMod(0);
-    bool directblk = (val->type->toBasetype()->castMod(0))->equals(desttype);
-
-    bool cow = val->op != TOKstructliteral &&
-               val->op != TOKarrayliteral &&
-               val->op != TOKstring;
-
-    for (size_t k = 0; k < ae->elements->dim; k++)
-    {
-        if (!directblk && (*ae->elements)[k]->op == TOKarrayliteral)
-        {
-            recursiveBlockAssign((ArrayLiteralExp *)(*ae->elements)[k], val, wantRef);
-        }
-        else
-        {
-            if (wantRef || cow)
-                (*ae->elements)[k] = val;
-            else
-                assignInPlace((*ae->elements)[k], val);
-        }
-    }
-}
-
 // Duplicate the elements array, then set field 'indexToChange' = newelem.
 Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, Expression *newelem)
 {

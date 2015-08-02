@@ -268,7 +268,6 @@
                 "function ctfeIndex",
                 "function ctfeCast",
                 "function assignInPlace",
-                "function recursiveBlockAssign",
                 "function changeOneElement",
                 "function modifyStructField",
                 "function assignAssocArrayElement",

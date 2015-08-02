@@ -4307,42 +4307,85 @@ public:
              *  x may be a multidimensional static array. (Note that this
              *  only happens with array literals, never with strings).
              */
-            Expressions *w = existingAE->elements;
-            assert(existingAE->type->ty == Tsarray ||
-                   existingAE->type->ty == Tarray);
-            Type *dsttype = ((TypeArray *)existingAE->type)->next->toBasetype()->castMod(0);
-            bool directblk = (e->e2->type->toBasetype()->castMod(0))->equals(dsttype);
-            bool cow = !(newval->op == TOKstructliteral ||
-                         newval->op == TOKarrayliteral ||
-                         newval->op == TOKstring);
+            struct RecursiveBlock
+            {
+                InterState *istate;
+                Expression *newval;
+                bool refCopy;
+                bool needsPostblit;
+                bool needsDtor;
+
+                Expression *assignTo(ArrayLiteralExp *ae)
+                {
+                    return assignTo(ae, 0, ae->elements->dim);
+                }
+
+                Expression *assignTo(ArrayLiteralExp *ae, size_t lwr, size_t upr)
+                {
+                    Expressions *w = ae->elements;
+
+                    assert(ae->type->ty == Tsarray ||
+                           ae->type->ty == Tarray);
+                    bool directblk = ((TypeArray *)ae->type)->next->equivalent(newval->type);
+
+                    for (size_t k = lwr; k < upr; k++)
+                    {
+                        if (!directblk && (*w)[k]->op == TOKarrayliteral)
+                        {
+                            // Multidimensional array block assign
+                            if (Expression *ex = assignTo((ArrayLiteralExp *)(*w)[k]))
+                                return ex;
+                        }
+                        else if (refCopy)
+                        {
+                            (*w)[k] = newval;
+                        }
+                        else if (!needsPostblit && !needsDtor)
+                        {
+                            assignInPlace((*w)[k], newval);
+                        }
+                        else
+                        {
+                            Expression *oldelem = (*w)[k];
+                            Expression *tmpelem = needsDtor ? copyLiteral(oldelem).copy() : NULL;
+
+                            assignInPlace(oldelem, newval);
+
+                            if (needsPostblit)
+                            {
+                                if (Expression *ex = evaluatePostblit(istate, oldelem))
+                                    return ex;
+                            }
+                            if (needsDtor)
+                            {
+                                // Bugzilla 14860
+                                if (Expression *ex = evaluateDtor(istate, tmpelem))
+                                    return ex;
+                            }
+                        }
+                    }
+                    return NULL;
+                }
+            };
+
             Type *tn = newval->type->toBasetype();
             bool wantRef = (tn->ty == Tarray || isAssocArray(tn) ||tn->ty == Tclass);
-            for (size_t j = 0; j < upperbound - lowerbound; j++)
-            {
-                if (!directblk)
-                {
-                    // Multidimensional array block assign
-                    recursiveBlockAssign((ArrayLiteralExp *)(*w)[(size_t)(j + firstIndex)], newval, wantRef);
-                }
-                else
-                {
-                    if (wantRef || cow)
-                        (*existingAE->elements)[(size_t)(j + firstIndex)] = newval;
-                    else
-                        assignInPlace((*existingAE->elements)[(size_t)(j + firstIndex)], newval);
-                }
-            }
-            if (!(wantRef || cow) && e->op != TOKblit && e->e2->isLvalue())
-            {
-                size_t lwr = (size_t)(firstIndex);
-                size_t upr = (size_t)(firstIndex + upperbound - lowerbound);
-                for (size_t i = lwr; i < upr; i++)
-                {
-                    Expression *ex = evaluatePostblit(istate, (*existingAE->elements)[i]);
-                    if (exceptionOrCantInterpret(ex))
-                        return ex;
-                }
-            }
+            bool cow = newval->op != TOKstructliteral &&
+                       newval->op != TOKarrayliteral &&
+                       newval->op != TOKstring;
+            Type *tb = tn->baseElemOf();
+            StructDeclaration *sd = (tb->ty == Tstruct ? ((TypeStruct *)tb)->sym : NULL);
+
+            RecursiveBlock rb;
+            rb.istate = istate;
+            rb.newval = newval;
+            rb.refCopy = wantRef || cow;
+            rb.needsPostblit = sd && sd->postblit && e->op != TOKblit && e->e2->isLvalue();
+            rb.needsDtor = sd && sd->dtor && e->op == TOKassign;
+
+            if (Expression *ex = rb.assignTo(existingAE, lowerbound, upperbound))
+                return ex;
+
             if (goal == ctfeNeedNothing)
                 return NULL; // avoid creating an unused literal
             SliceExp *retslice = new SliceExp(e->loc, existingAE,
