@@ -821,10 +821,9 @@ Lagain:
              */
             if (op != TOKblit)
             {
-                StructDeclaration *sd = needsPostblit(tb);
-                if (sd)
+                if (needsPostblit(tb) || needsDtor(tb))
                 {
-                    /* Need to do postblit.
+                    /* Need to do postblit/destructor.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
                     r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
