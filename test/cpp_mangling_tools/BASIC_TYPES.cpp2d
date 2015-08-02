@@ -12,8 +12,6 @@ unsigned long        | core.stdc.config.c_ulong
 float                | float
 double               | double
 long double          | real
-double _Complex      | cdouble
-long double _Complex | creal
 size_t               | size_t
 ptrdiff_t            | ptrdiff_t
 const int            | const int
