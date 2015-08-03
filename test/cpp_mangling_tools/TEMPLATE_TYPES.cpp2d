@@ -1,0 +1,10 @@
+// Types for template instanciation.
+bool                 | bool
+char                 | char
+int                  | int
+float                | float
+double               | double
+const int            | const int
+S                    | S
+S*                   | S*
+const S              | const S

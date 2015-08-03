@@ -47,6 +47,8 @@ void readTranslationFile(string filename, ref Translations translations) {
     import std.file : readText;
     readText(filename)
         .splitLines
+        .filter!(a=>!a.startsWith("//"))
+        .filter!(a=>!a.empty)
         .each!(a=>translations[name]~=Translation(a));
 }
 
@@ -184,7 +186,9 @@ static assert(%s.mangleof == "%s");`.format(
     cppMangledName);
     }
 
-    void findAndSetMangledName(string[] mangledNames) {
+    void findAndSetMangledName(string[] mangledNames) in {
+        enforce("foo" in variables, format(`Can't find "foo" in %s`, this));
+    } body {
         auto found = mangledNames.filter!(a=>a.canFind(variables["foo"])).array;
         assert(found.length == 1, format("Can't find mangled name, found %s", found));
         cppMangledName = found.front;
@@ -289,9 +293,10 @@ TestDefinition[] getAllTests(in Translations translations) {
     auto allTests = blocks
         .map!(a=>TestDefinition(a).expandTypes(translations))
         .joiner
+        .filter!(a=>a!=TestDefinition.init)
         .array;
     // Generate names for variables.
-    auto numbers = iota(10000);
+    auto numbers = iota(int.max);
     allTests.each!((ref a)=>a.initVariables(numbers));
     return allTests;
 }

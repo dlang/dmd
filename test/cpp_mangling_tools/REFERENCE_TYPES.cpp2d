@@ -1,4 +1,0 @@
-int&       | ref int
-const int& | const ref int
-S&         | ref S
-const S&   | const ref S

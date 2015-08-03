@@ -1,146 +1,73 @@
 // See README.md for information on how to configure more tests.
 
-// DESCRIPTION: simple function with no argument.
+// -----------------------------------------------------------------------------
+// DESCRIPTION: Combination of arguments to test basic types and substitutions.
 // CPP:
-void |foo|() {}
+void |foo|(|ARGUMENTS|) {}
 // D_SYMBOL: |foo|
 // D:
-void |foo|();
+void |foo|(|ARGUMENTS|);
 
 // -----------------------------------------------------------------------------
-// DESCRIPTION: simple function with a single basic type argument.
-// CPP:
-void |foo|(|BASIC_TYPES|) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(|BASIC_TYPES|);
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: simple function with a single pointer type argument.
-// CPP:
-void |foo|(|POINTER_TYPES|) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(|POINTER_TYPES|);
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: simple function with a single reference type argument.
-// CPP:
-void |foo|(|REFERENCE_TYPES|) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(|REFERENCE_TYPES|);
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: simple function with a single function type argument.
-// CPP:
-void |foo|(|FUNCTION_TYPES|) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(|FUNCTION_TYPES|);
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: simple function with twice a basic type argument.
-// CPP:
-void |foo|(|BASIC_TYPES|, |BASIC_TYPES|) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(|BASIC_TYPES|, |BASIC_TYPES|);
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: mangling of function types.
-// CPP:
-void |foo|(void*(*)()) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(void* function());
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: mangling of function types with int.
-// CPP:
-void |foo|(int(*)(int)) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(int function(int));
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: Check argument type substitution.
-// CPP:
-void |foo|(void*(*)(), void*) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(void* function(), void*);
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: Check argument type substitution.
-// CPP:
-void |foo|(void(*)(void*), void*) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(void function(void*), void*);
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: Check argument type substitution.
-// CPP:
-void |foo|(void*(*)(void**), void*) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(void* function(void**), void*);
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: Check argument type substitution.
-// CPP:
-void |foo|(void*(*)(void**), void**) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(void* function(void**), void**);
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: Check argument type substitution.
-// CPP:
-void |foo|(void*(*)(void*), void*(*)(void*)) {}
-// D_SYMBOL: |foo|
-// D:
-void |foo|(void* function(void*), void* function(void*));
-
-// -----------------------------------------------------------------------------
-// DESCRIPTION: simple member function with a single basic type argument.
+// DESCRIPTION: Combination of arguments for a struct member.
 // CPP:
 struct |S| {
-    void |foo|(|BASIC_TYPES|);
+    void |foo|(|ARGUMENTS|);
 };
 
-void |S|::|foo|(|BASIC_TYPES|) {}
+void |S|::|foo|(|ARGUMENTS|) {}
 // D_SYMBOL: |S|.|foo|
 // D:
 struct |S| {
-    void |foo|(|BASIC_TYPES|);
+    void |foo|(|ARGUMENTS|);
 }
 
 // -----------------------------------------------------------------------------
-// DESCRIPTION: simple const member function with a single basic type argument.
+// DESCRIPTION: Combination of arguments for a const struct member.
 // CPP:
 struct |S| {
-    void |foo|(|BASIC_TYPES|) const;
+    void |foo|(|ARGUMENTS|) const;
 };
 
-void |S|::|foo|(|BASIC_TYPES|) const {}
+void |S|::|foo|(|ARGUMENTS|) const {}
 // D_SYMBOL: |S|.|foo|
 // D:
 struct |S| {
-    void |foo|(|BASIC_TYPES|) const;
+    void |foo|(|ARGUMENTS|) const;
 }
 
 // -----------------------------------------------------------------------------
-// DESCRIPTION: simple templated function instanciated with all basic types.
+// DESCRIPTION: simple templated function.
 // CPP:
 template<typename T>
 void |foo|(){};
 
-template void |foo|<|BASIC_TYPES|>();
-// D_SYMBOL: |foo|!(|BASIC_TYPES|)
+template void |foo|<|TEMPLATE_TYPES|>();
+// D_SYMBOL: |foo|!(|TEMPLATE_TYPES|)
 // D:
 void |foo|(T)();
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: simple templated function with return value.
+// CPP:
+template<typename T>
+T* |foo|(){ return nullptr; };
+
+template |TEMPLATE_TYPES|* |foo|<|TEMPLATE_TYPES|>();
+// D_SYMBOL: |foo|!(|TEMPLATE_TYPES|)
+// D:
+T* |foo|(T)();
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: simple templated function with return value and argument.
+// CPP:
+template<typename T>
+T* |foo|(T){ return nullptr; };
+
+template |TEMPLATE_TYPES|* |foo|<|TEMPLATE_TYPES|>(|TEMPLATE_TYPES|);
+// D_SYMBOL: |foo|!(|TEMPLATE_TYPES|)
+// D:
+T* |foo|(T)(T);
 
 // -----------------------------------------------------------------------------
 // DESCRIPTION: templated function instanciated with templated type.
