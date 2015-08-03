@@ -1,3 +1,8 @@
+// cpp2d files is a file of translations from C++ to D.
+// One translation per line, C++ and D code are separated by a |.
+
+// This particular file represents function arguments.
+
 // empty.
                                  |
 

@@ -1,4 +1,8 @@
-// Types for template instanciation.
+// cpp2d files is a file of translations from C++ to D.
+// One translation per line, C++ and D code are separated by a |.
+
+// This particular file represents types for template instanciation.
+
 bool                 | bool
 char                 | char
 int                  | int
