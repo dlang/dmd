@@ -60,7 +60,7 @@ Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
-static void genhelpers(Module *m);
+void genhelpers(Module *m, bool iscomdat);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -94,7 +94,11 @@ void obj_write_deferred(Library *library)
     for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
     {
         Dsymbol *s = obj_symbols_towrite[i];
-        Module *m = s->getModule();
+        Module *m;
+        if (TemplateInstance *ti = s->isTemplateInstance())
+            m = ti->tempdecl->getModule();  // tweak object file name
+        else
+            m = s->getModule();
 
         char *mname;
         if (m)
@@ -475,22 +479,31 @@ void genObjFile(Module *m, bool multiobj)
         return;
     }
 
+    if (global.params.multiobj)
+    {
+        /* This is necessary because the main .obj for this module is written
+         * first, but determining whether marray or massert or munittest are needed is done
+         * possibly later in the doppelganger modules.
+         * Another way to fix it is do the main one last.
+         */
+        toModuleAssert(m);
+        toModuleUnittest(m);
+        toModuleArray(m);
+    }
+
     /* Always generate module info, because of templates and -cov.
      * But module info needs the runtime library, so disable it for betterC.
      */
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
-    /* Always generate helper functions b/c of later templates instantiations
-     * with different -release/-debug/-boundscheck/-unittest flags.
-     */
     if (!global.params.betterC)
-        genhelpers(m);
+        genhelpers(m, false);
 
     objmod->termfile();
 }
 
-static void genhelpers(Module *m)
+void genhelpers(Module *m, bool iscomdat)
 {
     // If module assert
     for (int i = 0; i < 3; i++)
@@ -500,15 +513,13 @@ static void genhelpers(Module *m)
         unsigned bc;
         switch (i)
         {
-            case 0:     ma = toModuleArray(m);    rt = RTLSYM_DARRAY;     bc = BCexit; break;
-            case 1:     ma = toModuleAssert(m);   rt = RTLSYM_DASSERT;    bc = BCexit; break;
-            case 2:     ma = toModuleUnittest(m); rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
+            case 0:     ma = m->marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
+            case 1:     ma = m->massert;   rt = RTLSYM_DASSERT;    bc = BCexit; break;
+            case 2:     ma = m->munittest; rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
             default:    assert(0);
         }
-
         if (!ma)
             continue;
-
 
         localgot = NULL;
 
@@ -542,11 +553,27 @@ static void genhelpers(Module *m)
         b->Belem = e;
         ma->Sfunc->Fstartline.Sfilename = m->arg;
         ma->Sfunc->Fstartblock = b;
-        ma->Sclass = SCglobal;
+        ma->Sclass = iscomdat ? SCcomdat : SCglobal;
         ma->Sfl = 0;
         ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
         writefunc(ma);
     }
+}
+
+/**************************************
+ * Bugzilla 14828: If some template instantiations require
+ * non-root module helpers, they should be placed in
+ * separated object file.
+ */
+void genHelpersObjFile(Module *m)
+{
+    assert(!m->isRoot());
+
+    lastmname = m->srcfile->toChars();
+
+    objmod->initfile(lastmname, NULL, m->toPrettyChars());
+    genhelpers(m, true);
+    objmod->termfile();
 }
 
 /**************************************

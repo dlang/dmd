@@ -69,9 +69,11 @@ void updateRealEnvironment(StringTable *environment);
 void parseConfFile(StringTable *environment, const char *path, size_t len, unsigned char *buffer, Strings *sections);
 
 void genObjFile(Module *m, bool multiobj);
+void genhelpers(Module *m, bool iscomdat);
+void genHelpersObjFile(Module *m);
 
 /** Normalize path by turning forward slashes into backslashes */
-const char * toWinPath(const char *src)
+const char *toWinPath(const char *src)
 {
     if (src == NULL)
         return NULL;
@@ -1681,6 +1683,15 @@ Language changes listed by -transition=id:\n\
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
         }
+        for (size_t j = 0; j < Module::amodules.dim; j++)
+        {
+            Module *mx = Module::amodules[j];
+            if (mx->isRoot())
+                continue;
+            if (!mx->marray && !mx->massert && !mx->munittest)
+                continue;
+            genhelpers(mx, true);
+        }
 
         if (!global.errors)
             obj_end(library, modules[0]->objfile);
@@ -1702,6 +1713,17 @@ Language changes listed by -transition=id:\n\
             genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
+            for (size_t j = 0; j < Module::amodules.dim; j++)
+            {
+                Module *mx = Module::amodules[j];
+                if (mx->isRoot())
+                    continue;
+                if (mx->importedFrom != m)
+                    continue;
+                if (!mx->marray && !mx->massert && !mx->munittest)
+                    continue;
+                genhelpers(mx, true);
+            }
             obj_end(library, m->objfile);
 
             if (global.errors && !global.params.lib)
@@ -1719,6 +1741,8 @@ Language changes listed by -transition=id:\n\
          *      // main.foo() --> main_1_<hash>.obj
          *      // main.bar() --> main_2_<hash>.obj
          *      // code.baz() --> code_3_<hash>.obj
+         *      // std.stdio.writeln!()() --> stdio_4_<hash>.obj
+         *      // std.stdio.__array() --> stdio_5_<hash>.obj   (Bugzilla 14828)
          *      // --> with -lib, all *.obj will be stored in one .lib file.
          */
         for (size_t i = 0; i < modules.dim; i++)
@@ -1737,6 +1761,22 @@ Language changes listed by -transition=id:\n\
 
             if (global.errors && !global.params.lib)
                 m->deleteObjFile();
+        }
+
+        for (size_t j = 0; j < Module::amodules.dim; j++)
+        {
+            Module *mx = Module::amodules[j];
+            if (mx->isRoot())
+                continue;
+            if (!mx->marray && !mx->massert && !mx->munittest)
+                continue;
+
+            obj_start(mx->srcfile->toChars());
+            genHelpersObjFile(mx);
+            obj_end(library, mx->objfile);
+
+            if (global.errors && !global.params.lib)
+                mx->deleteObjFile();
         }
     }
 
