@@ -1677,12 +1677,6 @@ Language changes listed by -transition=id:\n\
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
         }
-        for (size_t i = 0; i < Module::amodules.dim; i++)
-        {
-            Module *m = Module::amodules[i];
-            if (!m->isRoot() && (m->marray || m->massert || m->munittest))
-                genhelpers(m, true);
-        }
         if (!global.errors && modules.dim)
         {
             obj_end(library, modules[0]->objfile);
@@ -1700,12 +1694,6 @@ Language changes listed by -transition=id:\n\
             genObjFile(m, global.params.multiobj);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, global.params.multiobj);
-            for (size_t j = 0; j < Module::amodules.dim; j++)
-            {
-                Module *mx = Module::amodules[j];
-                if (mx != m && mx->importedFrom == m && (mx->marray || mx->massert || mx->munittest))
-                    genhelpers(mx, true);
-            }
             obj_end(library, m->objfile);
             obj_write_deferred(library);
 
