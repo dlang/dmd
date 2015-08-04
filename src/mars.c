@@ -1657,29 +1657,41 @@ Language changes listed by -transition=id:\n\
         }
     }
 
-    if (!global.params.obj)
+    //printf("global.params.multiobj = %d, oneobj = %d, lib = %d\n",
+    //    global.params.multiobj, global.params.oneobj, global.params.lib);
+    if (!global.params.obj || !modules.dim)
     {
     }
     else if (global.params.oneobj)
     {
-        if (modules.dim)
-            obj_start(modules[0]->srcfile->toChars());
+        /* global.params.oneobj == true:
+         *  Just only one object file is generated for the final link.
+         *  e.g.
+         *      dmd -ofout main.d   // main.obj is generated
+         */
+        obj_start(modules[0]->srcfile->toChars());
+
         for (size_t i = 0; i < modules.dim; i++)
         {
             Module *m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
+
             genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
         }
-        if (!global.errors && modules.dim)
-        {
+
+        if (!global.errors)
             obj_end(library, modules[0]->objfile);
-        }
     }
-    else
+    else if (!global.params.multiobj)
     {
+        /* global.params.multiobj == false:
+         *  The object files are generated per source files.
+         *  e.g.
+         *      dmd -c main.d code.d   // main.obj and code.obj generated
+         */
         for (size_t i = 0; i < modules.dim; i++)
         {
             Module *m = modules[i];
@@ -1687,10 +1699,40 @@ Language changes listed by -transition=id:\n\
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
 
             obj_start(m->srcfile->toChars());
-            genObjFile(m, global.params.multiobj);
+            genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
-                genObjFile(entrypoint, global.params.multiobj);
+                genObjFile(entrypoint, false);
             obj_end(library, m->objfile);
+
+            if (global.errors && !global.params.lib)
+                m->deleteObjFile();
+        }
+    }
+    else
+    {
+        /* global.params.multiobj == true:
+         *  Each compiled symbols are stored in separated doppelganger modules.
+         *  The generated object files have numbered names.
+         *  e.g.
+         *      dmd -lib main.d code.d
+         *      dmd -multiobj main.d code.d
+         *      // main.foo() --> main_1_<hash>.obj
+         *      // main.bar() --> main_2_<hash>.obj
+         *      // code.baz() --> code_3_<hash>.obj
+         *      // --> with -lib, all *.obj will be stored in one .lib file.
+         */
+        for (size_t i = 0; i < modules.dim; i++)
+        {
+            Module *m = modules[i];
+            if (global.params.verbose)
+                fprintf(global.stdmsg, "code      %s\n", m->toChars());
+
+            obj_start(m->srcfile->toChars());
+            genObjFile(m, true);
+            if (entrypoint && m == rootHasMain)
+                genObjFile(entrypoint, true);
+            obj_end(library, m->objfile);
+
             obj_write_deferred(library);
 
             if (global.errors && !global.params.lib)
