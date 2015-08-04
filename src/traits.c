@@ -945,19 +945,18 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             goto Ldimerror;
         RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
-        ScopeDsymbol *sds;
         if (!s)
         {
             e->error("argument has no members");
             goto Lfalse;
         }
-        Import *import;
-        if ((import = s->isImport()) != NULL)
+        if (Import *imp = s->isImport())
         {
             // Bugzilla 9692
-            sds = import->mod;
+            s = imp->mod;
         }
-        else if ((sds = s->isScopeDsymbol()) == NULL)
+        ScopeDsymbol *sds = s->isScopeDsymbol();
+        if (!sds || sds->isTemplateDeclaration())
         {
             e->error("%s %s has no members", s->kind(), s->toChars());
             goto Lfalse;

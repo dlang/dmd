@@ -7484,6 +7484,39 @@ class Outer14552
 }
 
 /***************************************************/
+// 14853
+
+struct Queue14853(T)
+{
+    struct Node
+    {
+        T mfPayload = T.init;
+        union
+        {
+                   typeof(this)*  mfPrev;
+            shared(typeof(this)*) mfShPrev;
+        }
+        union
+        {
+                   typeof(this)*  mfNext;
+            shared(typeof(this)*) mfShNext;
+        }
+    }
+
+    Node root;
+
+    void pfPut(T v, Node* r = null)
+    {
+        shared n = new Node(v);    // problem!
+    }
+}
+
+void test14853()
+{
+    auto b1 = new Queue14853!uint;
+}
+
+/***************************************************/
 
 int main()
 {
