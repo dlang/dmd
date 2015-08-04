@@ -475,17 +475,19 @@ void genObjFile(Module *m, bool multiobj)
         return;
     }
 
-    if (global.params.multiobj)
-    {
-        /* This is necessary because the main .obj for this module is written
-         * first, but determining whether marray or massert or munittest are needed is done
-         * possibly later in the doppelganger modules.
-         * Another way to fix it is do the main one last.
-         */
-        toModuleAssert(m);
-        toModuleUnittest(m);
-        toModuleArray(m);
-    }
+    /* For multiobj,
+     * This is necessary because the main .obj for this module is written
+     * first, but determining whether marray or massert or munittest are needed is done
+     * possibly later in the doppelganger modules.
+     * Another way to fix it is do the main one last.
+     *
+     * For regular object files, generate them because if some other module links to them,
+     * but with different flags that cause references to, say, the unittest helper function,
+     * the helper function should be there.
+     */
+    toModuleAssert(m);
+    toModuleUnittest(m);
+    toModuleArray(m);
 
     /* Always generate module info, because of templates and -cov.
      * But module info needs the runtime library, so disable it for betterC.
