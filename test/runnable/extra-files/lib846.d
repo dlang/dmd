@@ -1,4 +1,4 @@
-module imports.link846a;
+module link846a;
 
 template ElemTypeOf(T)
 {

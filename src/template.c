@@ -46,11 +46,6 @@ unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 void mangleToBuffer(Expression *e, OutBuffer *buf);
 
-// Glue layer
-Symbol *toModuleAssert(Module *m);
-Symbol *toModuleUnittest(Module *m);
-Symbol *toModuleArray(Module *m);
-
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
  * on earlier versions of gcc.
@@ -5911,16 +5906,6 @@ Lerror:
     hasNestedArgs(tiargs, tempdecl->isstatic);
     if (errors)
         goto Lerror;
-
-    if (Module *m = tempdecl->scope->module) // should use getModule() instead?
-    {
-        // Generate these functions as they may be used
-        // when template is instantiated in other modules
-        // even if assertions or bounds checking are disabled in this module
-        toModuleArray(m);
-        toModuleAssert(m);
-        toModuleUnittest(m);
-    }
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.

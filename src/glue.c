@@ -60,7 +60,7 @@ Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
-void genhelpers(Module *m, bool iscomdat);
+static void genhelpers(Module *m);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -475,34 +475,23 @@ void genObjFile(Module *m, bool multiobj)
         return;
     }
 
-    if (global.params.multiobj)
-    {
-        /* This is necessary because the main .obj for this module is written
-         * first, but determining whether marray or massert or munittest are needed is done
-         * possibly later in the doppelganger modules.
-         * Another way to fix it is do the main one last.
-         */
-        toModuleAssert(m);
-        toModuleUnittest(m);
-        toModuleArray(m);
-    }
-
     /* Always generate module info, because of templates and -cov.
      * But module info needs the runtime library, so disable it for betterC.
      */
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
-    genhelpers(m, false);
+    /* Always generate helper functions b/c of later templates instantiations
+     * with different -release/-debug/-boundscheck/-unittest flags.
+     */
+    if (!global.params.betterC)
+        genhelpers(m);
 
     objmod->termfile();
 }
 
-void genhelpers(Module *m, bool iscomdat)
+static void genhelpers(Module *m)
 {
-    if (global.params.betterC)
-        return;
-
     // If module assert
     for (int i = 0; i < 3; i++)
     {
@@ -511,9 +500,9 @@ void genhelpers(Module *m, bool iscomdat)
         unsigned bc;
         switch (i)
         {
-            case 0:     ma = m->marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
-            case 1:     ma = m->massert;   rt = RTLSYM_DASSERT;    bc = BCexit; break;
-            case 2:     ma = m->munittest; rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
+            case 0:     ma = toModuleArray(m);    rt = RTLSYM_DARRAY;     bc = BCexit; break;
+            case 1:     ma = toModuleAssert(m);   rt = RTLSYM_DASSERT;    bc = BCexit; break;
+            case 2:     ma = toModuleUnittest(m); rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
             default:    assert(0);
         }
 
@@ -553,7 +542,7 @@ void genhelpers(Module *m, bool iscomdat)
         b->Belem = e;
         ma->Sfunc->Fstartline.Sfilename = m->arg;
         ma->Sfunc->Fstartblock = b;
-        ma->Sclass = iscomdat ? SCcomdat : SCglobal;
+        ma->Sclass = SCglobal;
         ma->Sfl = 0;
         ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
         writefunc(ma);
@@ -1551,5 +1540,3 @@ elem *toEfilename(Module *m)
     // Turn static array into dynamic array
     return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m->sfilename));
 }
-
-
