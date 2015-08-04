@@ -65,32 +65,28 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
              */
             Type t = ce.e1.type.toBasetype();
             if (ce.f && ce.f == func)
+                return;
+            if (t.ty == Tfunction && (cast(TypeFunction)t).isnothrow)
+                return;
+            if (t.ty == Tdelegate && (cast(TypeFunction)(cast(TypeDelegate)t).next).isnothrow)
+                return;
+
+            if (mustNotThrow)
             {
-            }
-            else if (t.ty == Tfunction && (cast(TypeFunction)t).isnothrow)
-            {
-            }
-            else if (t.ty == Tdelegate && (cast(TypeFunction)(cast(TypeDelegate)t).next).isnothrow)
-            {
-            }
-            else
-            {
-                if (mustNotThrow)
+                if (ce.f)
                 {
-                    const(char)* s;
-                    if (ce.f)
-                        s = ce.f.toPrettyChars();
-                    else if (ce.e1.op == TOKstar)
-                    {
-                        // print 'fp' if ce->e1 is (*fp)
-                        s = (cast(PtrExp)ce.e1).e1.toChars();
-                    }
-                    else
-                        s = ce.e1.toChars();
-                    ce.error("'%s' is not nothrow", s);
+                    ce.error("%s '%s' is not nothrow",
+                        ce.f.kind(), ce.f.toPrettyChars());
                 }
-                stop = true;
+                else
+                {
+                    auto e1 = ce.e1;
+                    if (e1.op == TOKstar)   // print 'fp' if e1 is (*fp)
+                        e1 = (cast(PtrExp)e1).e1;
+                    ce.error("'%s' is not nothrow", e1.toChars());
+                }
             }
+            stop = true;
         }
 
         override void visit(NewExp ne)
@@ -104,7 +100,10 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
                     {
                         if (mustNotThrow)
-                            ne.error("allocator %s is not nothrow", ne.allocator.toChars());
+                        {
+                            ne.error("%s '%s' is not nothrow",
+                                ne.allocator.kind(), ne.allocator.toPrettyChars());
+                        }
                         stop = true;
                     }
                 }
@@ -113,7 +112,10 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
                 {
                     if (mustNotThrow)
-                        ne.error("constructor %s is not nothrow", ne.member.toChars());
+                    {
+                        ne.error("%s '%s' is not nothrow",
+                            ne.member.kind(), ne.member.toPrettyChars());
+                    }
                     stop = true;
                 }
             }
@@ -156,7 +158,10 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
                 {
                     if (mustNotThrow)
-                        de.error("destructor %s is not nothrow", ad.dtor.toChars());
+                    {
+                        de.error("%s '%s' is not nothrow",
+                            ad.dtor.kind(), ad.dtor.toPrettyChars());
+                    }
                     stop = true;
                 }
             }
@@ -166,7 +171,10 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
                 {
                     if (mustNotThrow)
-                        de.error("deallocator %s is not nothrow", ad.aggDelete.toChars());
+                    {
+                        de.error("%s '%s' is not nothrow",
+                            ad.aggDelete.kind(), ad.aggDelete.toPrettyChars());
+                    }
                     stop = true;
                 }
             }
@@ -202,7 +210,10 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             else
             {
                 if (mustNotThrow)
-                    ae.error("'%s' is not nothrow", sd.postblit.toPrettyChars());
+                {
+                    ae.error("%s '%s' is not nothrow",
+                        sd.postblit.kind(), sd.postblit.toPrettyChars());
+                }
                 stop = true;
             }
         }

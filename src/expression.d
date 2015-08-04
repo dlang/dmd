@@ -2714,7 +2714,8 @@ public:
             FuncDeclaration ff = outerfunc;
             if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
             {
-                error("pure function '%s' cannot call impure function '%s'", ff.toPrettyChars(), f.toPrettyChars());
+                error("pure %s '%s' cannot call impure %s '%s'",
+                    ff.kind(), ff.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
         }
@@ -2774,7 +2775,8 @@ public:
                     break;
                 if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
                 {
-                    error("pure function '%s' cannot access mutable static data '%s'", ff.toPrettyChars(), v.toChars());
+                    error("pure %s '%s' cannot access mutable static data '%s'",
+                        ff.kind(), ff.toPrettyChars(), v.toChars());
                     err = true;
                     break;
                 }
@@ -2820,7 +2822,8 @@ public:
                 {
                     if (ff.type.isImmutable())
                     {
-                        error("pure immutable nested function '%s' cannot access mutable data '%s'", ff.toPrettyChars(), v.toChars());
+                        error("pure immutable %s '%s' cannot access mutable data '%s'",
+                            ff.kind(), ff.toPrettyChars(), v.toChars());
                         err = true;
                         break;
                     }
@@ -2830,7 +2833,8 @@ public:
                 {
                     if (ff.type.isImmutable())
                     {
-                        error("pure immutable member function '%s' cannot access mutable data '%s'", ff.toPrettyChars(), v.toChars());
+                        error("pure immutable %s '%s' cannot access mutable data '%s'",
+                            ff.kind(), ff.toPrettyChars(), v.toChars());
                         err = true;
                         break;
                     }
@@ -2845,7 +2849,8 @@ public:
         {
             if (sc.func.setUnsafe())
             {
-                error("safe function '%s' cannot access __gshared data '%s'", sc.func.toChars(), v.toChars());
+                error("safe %s '%s' cannot access __gshared data '%s'",
+                    sc.func.kind(), sc.func.toChars(), v.toChars());
                 err = true;
             }
         }
@@ -2874,7 +2879,8 @@ public:
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("safe function '%s' cannot call system function '%s'", sc.func.toPrettyChars(), f.toPrettyChars());
+                error("safe %s '%s' cannot call system %s '%s'",
+                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
         }
@@ -2903,7 +2909,8 @@ public:
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("@nogc function '%s' cannot call non-@nogc function '%s'", sc.func.toPrettyChars(), f.toPrettyChars());
+                error("@nogc %s '%s' cannot call non-@nogc %s '%s'",
+                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
         }
@@ -9540,17 +9547,20 @@ public:
                 bool err = false;
                 if (!tf.purity && !(sc.flags & SCOPEdebug) && sc.func.setImpure())
                 {
-                    error("pure function '%s' cannot call impure %s '%s'", sc.func.toPrettyChars(), p, e1.toChars());
+                    error("pure %s '%s' cannot call impure %s '%s'",
+                        sc.func.kind(), sc.func.toPrettyChars(), p, e1.toChars());
                     err = true;
                 }
                 if (!tf.isnogc && sc.func.setGC())
                 {
-                    error("@nogc function '%s' cannot call non-@nogc %s '%s'", sc.func.toPrettyChars(), p, e1.toChars());
+                    error("@nogc %s '%s' cannot call non-@nogc %s '%s'",
+                        sc.func.kind(), sc.func.toPrettyChars(), p, e1.toChars());
                     err = true;
                 }
                 if (tf.trust <= TRUSTsystem && sc.func.setUnsafe())
                 {
-                    error("safe function '%s' cannot call system %s '%s'", sc.func.toPrettyChars(), p, e1.toChars());
+                    error("safe %s '%s' cannot call system %s '%s'",
+                        sc.func.kind(), sc.func.toPrettyChars(), p, e1.toChars());
                     err = true;
                 }
                 if (err)

@@ -72,7 +72,8 @@ public:
             return;
         if (f.setGC())
         {
-            e.error("array literal in @nogc function %s may cause GC allocation", f.toChars());
+            e.error("array literal in @nogc %s '%s' may cause GC allocation",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
@@ -85,7 +86,8 @@ public:
             return;
         if (f.setGC())
         {
-            e.error("associative array literal in @nogc function %s may cause GC allocation", f.toChars());
+            e.error("associative array literal in @nogc %s '%s' may cause GC allocation",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
@@ -105,7 +107,8 @@ public:
             return;
         if (f.setGC())
         {
-            e.error("cannot use 'new' in @nogc function %s", f.toChars());
+            e.error("cannot use 'new' in @nogc %s '%s'",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
@@ -143,7 +146,8 @@ public:
 
         if (f.setGC())
         {
-            e.error("cannot use 'delete' in @nogc function %s", f.toChars());
+            e.error("cannot use 'delete' in @nogc %s '%s'",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
@@ -157,7 +161,8 @@ public:
         {
             if (f.setGC())
             {
-                e.error("indexing an associative array in @nogc function %s may cause GC allocation", f.toChars());
+                e.error("indexing an associative array in @nogc %s '%s' may cause GC allocation",
+                    f.kind(), f.toPrettyChars());
                 err = true;
                 return;
             }
@@ -171,7 +176,8 @@ public:
         {
             if (f.setGC())
             {
-                e.error("setting 'length' in @nogc function %s may cause GC allocation", f.toChars());
+                e.error("setting 'length' in @nogc %s '%s' may cause GC allocation",
+                    f.kind(), f.toPrettyChars());
                 err = true;
                 return;
             }
@@ -183,7 +189,8 @@ public:
     {
         if (f.setGC())
         {
-            e.error("cannot use operator ~= in @nogc function %s", f.toChars());
+            e.error("cannot use operator ~= in @nogc %s '%s'",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
@@ -194,7 +201,8 @@ public:
     {
         if (f.setGC())
         {
-            e.error("cannot use operator ~ in @nogc function %s", f.toChars());
+            e.error("cannot use operator ~ in @nogc %s '%s'",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }

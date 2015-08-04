@@ -6,9 +6,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc3.d(16): Error: setting 'length' in @nogc function testArrayLength may cause GC allocation
-fail_compilation/nogc3.d(17): Error: setting 'length' in @nogc function testArrayLength may cause GC allocation
-fail_compilation/nogc3.d(18): Error: setting 'length' in @nogc function testArrayLength may cause GC allocation
+fail_compilation/nogc3.d(16): Error: setting 'length' in @nogc function 'nogc3.testArrayLength' may cause GC allocation
+fail_compilation/nogc3.d(17): Error: setting 'length' in @nogc function 'nogc3.testArrayLength' may cause GC allocation
+fail_compilation/nogc3.d(18): Error: setting 'length' in @nogc function 'nogc3.testArrayLength' may cause GC allocation
 ---
 */
 @nogc void testArrayLength(int[] a)
