@@ -8,6 +8,7 @@
 
 module ddmd.nogc;
 
+import ddmd.aggregate;
 import ddmd.apply;
 import ddmd.declaration;
 import ddmd.dscope;
@@ -119,6 +120,27 @@ public:
             if (v && v.onstack)
                 return; // delete for scope allocated class object
         }
+
+        Type tb = e.e1.type.toBasetype();
+        AggregateDeclaration ad = null;
+        switch (tb.ty)
+        {
+        case Tclass:
+            ad = (cast(TypeClass)tb).sym;
+            break;
+
+        case Tpointer:
+            tb = (cast(TypePointer)tb).next.toBasetype();
+            if (tb.ty == Tstruct)
+                ad = (cast(TypeStruct)tb).sym;
+            break;
+
+        default:
+            break;
+        }
+        if (ad && ad.aggDelete)
+            return;
+
         if (f.setGC())
         {
             e.error("cannot use 'delete' in @nogc function %s", f.toChars());

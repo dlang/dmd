@@ -8,6 +8,7 @@
 
 module ddmd.canthrow;
 
+import ddmd.aggregate;
 import ddmd.apply;
 import ddmd.arraytypes;
 import ddmd.attrib;
@@ -117,6 +118,58 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 }
             }
             // regard storage allocation failures as not recoverable
+        }
+
+        override void visit(DeleteExp de)
+        {
+            Type tb = de.e1.type.toBasetype();
+            AggregateDeclaration ad = null;
+            switch (tb.ty)
+            {
+            case Tclass:
+                ad = (cast(TypeClass)tb).sym;
+                break;
+
+            case Tpointer:
+                tb = (cast(TypePointer)tb).next.toBasetype();
+                if (tb.ty == Tstruct)
+                    ad = (cast(TypeStruct)tb).sym;
+                break;
+
+            case Tarray:
+                Type tv = tb.nextOf().baseElemOf();
+                if (tv.ty == Tstruct)
+                {
+                    ad = (cast(TypeStruct)tv).sym;
+                    break;
+                }
+
+            default:
+                break;
+            }
+            if (!ad)
+                return;
+
+            if (ad.dtor)
+            {
+                Type t = ad.dtor.type.toBasetype();
+                if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                {
+                    if (mustNotThrow)
+                        de.error("destructor %s is not nothrow", ad.dtor.toChars());
+                    stop = true;
+                }
+            }
+            if (ad.aggDelete && tb.ty != Tarray)
+            {
+                Type t = ad.aggDelete.type;
+                if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                {
+                    if (mustNotThrow)
+                        de.error("deallocator %s is not nothrow", ad.aggDelete.toChars());
+                    stop = true;
+                }
+            }
         }
 
         override void visit(AssignExp ae)

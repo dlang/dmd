@@ -10201,33 +10201,35 @@ public:
         if (e1.op == TOKerror)
             return e1;
         type = Type.tvoid;
+
+        AggregateDeclaration ad = null;
         Type tb = e1.type.toBasetype();
         switch (tb.ty)
         {
         case Tclass:
             {
-                TypeClass tc = cast(TypeClass)tb;
-                ClassDeclaration cd = tc.sym;
+                auto cd = (cast(TypeClass)tb).sym;
                 if (cd.isCOMinterface())
                 {
                     /* Because COM classes are deleted by IUnknown.Release()
                      */
                     error("cannot delete instance of COM interface %s", cd.toChars());
-                    goto Lerr;
+                    return new ErrorExp();
                 }
+
+                ad = cd;
                 break;
             }
         case Tpointer:
             tb = (cast(TypePointer)tb).next.toBasetype();
             if (tb.ty == Tstruct)
             {
-                TypeStruct ts = cast(TypeStruct)tb;
-                StructDeclaration sd = ts.sym;
-                FuncDeclaration f = sd.aggDelete;
-                FuncDeclaration fd = sd.dtor;
+                ad = (cast(TypeStruct)tb).sym;
+                auto f = ad.aggDelete;
+                auto fd = ad.dtor;
                 if (!f)
                 {
-                    semanticTypeInfo(sc, ts);
+                    semanticTypeInfo(sc, tb);
                     break;
                 }
                 /* Construct:
@@ -10274,20 +10276,37 @@ public:
                 Type tv = tb.nextOf().baseElemOf();
                 if (tv.ty == Tstruct)
                 {
-                    TypeStruct ts = cast(TypeStruct)tv;
-                    StructDeclaration sd = ts.sym;
-                    if (sd.dtor)
-                        semanticTypeInfo(sc, ts);
+                    ad = (cast(TypeStruct)tv).sym;
+                    if (ad.dtor)
+                        semanticTypeInfo(sc, ad.type);
                 }
                 break;
             }
         default:
             error("cannot delete type %s", e1.type.toChars());
-            goto Lerr;
+            return new ErrorExp();
         }
+
+        if (ad)
+        {
+            bool err = false;
+            if (ad.dtor)
+            {
+                err |= checkPurity(sc, ad.dtor);
+                err |= checkSafety(sc, ad.dtor);
+                err |= checkNogc(sc, ad.dtor);
+            }
+            if (ad.aggDelete && tb.ty != Tarray)
+            {
+                err |= checkPurity(sc, ad.aggDelete);
+                err |= checkSafety(sc, ad.aggDelete);
+                err |= checkNogc(sc, ad.aggDelete);
+            }
+            if (err)
+                return new ErrorExp();
+        }
+
         return this;
-    Lerr:
-        return new ErrorExp();
     }
 
     override Expression toBoolean(Scope* sc)
