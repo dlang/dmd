@@ -195,7 +195,6 @@ Usage:\n\
   -op            preserve source path for output files\n\
   -profile       profile runtime performance of generated code\n\
   -profile=gc    profile runtime allocations\n\
-  -property      enforce property syntax\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
   -shared        generate shared library (DLL)\n\
@@ -801,8 +800,29 @@ Language changes listed by -transition=id:\n\
             }
             else if (strcmp(p + 1, "ignore") == 0)
                 global.params.ignoreUnsupportedPragmas = true;
+
             else if (strcmp(p + 1, "property") == 0)
-                global.params.enforcePropertySyntax = true;
+            {
+                /*NOTE: -property used to disallow calling non-properties
+                without parentheses. This behaviour has fallen from grace.
+                Phobos dropped support for it while dmd still recognized it, so
+                that the switch has effectively not been supported. Time to
+                remove it from dmd.
+                Step 1 (2.068): Ignore -property and warn about it. */
+                warning(Loc(), "The -property switch has no effect since "
+                    "version 2.068.0. It's going to be deprecated and "
+                    "eventually removed in future versions.");
+                // Step 2: Deprecate -property.
+                #if 0
+                deprecation(Loc(), "The -property switch is deprecated.");
+                #endif
+                /* Step 3: Remove -property. Throw an error when it's set.
+                Remove this whole 'else if' branch, and let hit the default
+                "unrecognized switch" case far below.
+                Step 4: Possibly reintroduce -property with different semantics.
+                Any new semantics need to be decided on first. */
+            }
+
             else if (strcmp(p + 1, "inline") == 0)
                 global.params.useInline = true;
             else if (strcmp(p + 1, "dip25") == 0)
