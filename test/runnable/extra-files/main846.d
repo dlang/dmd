@@ -1,4 +1,4 @@
-import imports.link846a;
+import lib846;
 
 void main()
 {
