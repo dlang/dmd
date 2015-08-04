@@ -96,6 +96,17 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
         {
             if (ne.member)
             {
+                if (ne.allocator)
+                {
+                    // Bugzilla 14407
+                    Type t = ne.allocator.type.toBasetype();
+                    if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                    {
+                        if (mustNotThrow)
+                            ne.error("allocator %s is not nothrow", ne.allocator.toChars());
+                        stop = true;
+                    }
+                }
                 // See if constructor call can throw
                 Type t = ne.member.type.toBasetype();
                 if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
