@@ -2623,6 +2623,13 @@ private immutable long[__traits(allMembers, ClockType).length] _ticksPerSecond;
 // it's a normal function, we need to do some dangerous casting PLEASE take
 // care when modifying this function, and it should NOT be called except from
 // the runtime init.
+//
+// NOTE: the code below SPECIFICALLY does not assert when it cannot initialize
+// the ticks per second array. This allows cases where a clock is never used on
+// a system that doesn't support it. See bugzilla issue
+// https://issues.dlang.org/show_bug.cgi?id=14863
+// The assert will occur when someone attempts to use _ticksPerSecond for that
+// value.
 extern(C) void _d_initMonoTime()
 {
     // We need a mutable pointer to the ticksPerSecond array. Although this
@@ -2651,8 +2658,6 @@ extern(C) void _d_initMonoTime()
                 tps[i] = ticksPerSecond;
             }
         }
-        else
-            assert(0, "Failed to get the frequency of the system's monotonic clock.");
     }
     else version(OSX)
     {
@@ -2668,8 +2673,6 @@ extern(C) void _d_initMonoTime()
                 tps[i] = ticksPerSecond;
             }
         }
-        else
-            assert(0, "Failed to get the frequency of the system's monotonic clock.");
     }
     else version(Posix)
     {
@@ -2693,8 +2696,6 @@ extern(C) void _d_initMonoTime()
                     tps[i] = ts.tv_nsec >= 1000 ? 1_000_000_000L
                                                             : 1_000_000_000L / ts.tv_nsec;
                 }
-                else
-                    assert(0, "Failed to get the frequency for of the system's monotonic clock: ClockType." ~ typeStr);
             }
         }
     }
