@@ -229,8 +229,6 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                     fd = f;
                     assert(fd.type.ty == Tfunction);
                     TypeFunction tf = cast(TypeFunction)fd.type;
-                    if (!tf.isproperty && global.params.enforcePropertySyntax)
-                        goto Leprop;
                 }
             }
             if (fd)
@@ -252,8 +250,6 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                     TypeFunction tf = cast(TypeFunction)fd.type;
                     if (!tf.isref && e2)
                         goto Leproplvalue;
-                    if (!tf.isproperty && global.params.enforcePropertySyntax)
-                        goto Leprop;
                 }
             }
             if (fd)
@@ -349,8 +345,6 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                     return new ErrorExp();
                 assert(fd.type.ty == Tfunction);
                 TypeFunction tf = cast(TypeFunction)fd.type;
-                if (!tf.isproperty && global.params.enforcePropertySyntax)
-                    goto Leprop;
                 Expression e = new CallExp(loc, e1, e2);
                 return e.semantic(sc);
             }
@@ -365,8 +359,6 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 if (!e2 || tf.isref)
                 {
-                    if (!tf.isproperty && global.params.enforcePropertySyntax)
-                        goto Leprop;
                     Expression e = new CallExp(loc, e1);
                     if (e2)
                         e = new AssignExp(loc, e, e2);
@@ -379,11 +371,6 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             // Keep better diagnostic message for invalid property usage of functions
             assert(fd.type.ty == Tfunction);
             TypeFunction tf = cast(TypeFunction)fd.type;
-            if (!tf.isproperty && global.params.enforcePropertySyntax)
-            {
-                error(loc, "not a property %s", e1.toChars());
-                return new ErrorExp();
-            }
             Expression e = new CallExp(loc, e1, e2);
             return e.semantic(sc);
         }
@@ -485,11 +472,6 @@ extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
             tf = cast(TypeFunction)ce.e1.type.nextOf();
         else
             assert(0);
-        if (!tf.isproperty && global.params.enforcePropertySyntax)
-        {
-            ce.e1.error("not a property %s", emsg.toChars());
-            return true;
-        }
     }
     return false;
 }
