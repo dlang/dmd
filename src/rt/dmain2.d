@@ -57,6 +57,11 @@ version (OSX)
     extern (C) __gshared void* __osx_stack_end = cast(void*)0xC0000000;
 }
 
+version(CRuntime_Microsoft)
+{
+    extern(C) void init_msvc();
+}
+
 /***********************************
  * These are a temporary means of providing a GC hook for DLL use.  They may be
  * replaced with some other similar functionality later.
@@ -320,13 +325,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     }
     version (CRuntime_Microsoft)
     {
-        auto fp = __iob_func();
-        stdin = &fp[0];
-        stdout = &fp[1];
-        stderr = &fp[2];
-
-        // ensure that sprintf generates only 2 digit exponent when writing floating point values
-        _set_output_format(_TWO_DIGIT_EXPONENT);
+        init_msvc();
 
         // enable full precision for reals
         version(Win64)

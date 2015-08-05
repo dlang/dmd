@@ -259,14 +259,7 @@ else version( CRuntime_Microsoft )
     ///
     struct _iobuf
     {
-        char* _ptr;
-        int   _cnt;
-        char* _base;
-        int   _flag;
-        int   _file;
-        int   _charbuf;
-        int   _bufsiz;
-        char* _tmpfname;
+        void* undefined;
     }
 
     ///
@@ -571,10 +564,6 @@ else version( CRuntime_Microsoft )
     }
 
     extern shared void function() _fcloseallp;
-
-    private extern shared FILE[_NFILE] _iob;
-
-    shared(FILE)* __iob_func();
 
     ///
     shared FILE* stdin;  // = &__iob_func()[0];
@@ -939,18 +928,18 @@ else version( CRuntime_DigitalMars )
 else version( CRuntime_Microsoft )
 {
   // No unsafe pointer manipulation.
-  extern (D) @trusted
+  @trusted
   {
       ///
-    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag = stream._flag & ~_IOERR; }
+    void rewind(FILE* stream);
     ///
-    pure void clearerr(FILE* stream) { stream._flag = stream._flag & ~(_IOERR|_IOEOF);                 }
+    pure void clearerr(FILE* stream);
     ///
-    pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
+    pure int  feof(FILE* stream);
     ///
-    pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
+    pure int  ferror(FILE* stream);
     ///
-    pure int  fileno(FILE* stream)   { return stream._file;                              }
+    pure int  fileno(FILE* stream);
   }
   ///
     int   _snprintf(char* s, size_t n, in char* fmt, ...);
@@ -963,42 +952,10 @@ else version( CRuntime_Microsoft )
     alias _vsnprintf vsnprintf;
 
     ///
-    uint _set_output_format(uint format);
-    ///
-    enum _TWO_DIGIT_EXPONENT = 1;
+    int _fputc_nolock(int c, FILE *fp);
 
     ///
-    int _filbuf(FILE *fp);
-    ///
-    int _flsbuf(int c, FILE *fp);
-
-    ///
-    int _fputc_nolock(int c, FILE *fp)
-    {
-        fp._cnt = fp._cnt - 1;
-        if (fp._cnt >= 0)
-        {
-            *fp._ptr = cast(char)c;
-            fp._ptr = fp._ptr + 1;
-            return cast(char)c;
-        }
-        else
-            return _flsbuf(c, fp);
-    }
-
-    ///
-    int _fgetc_nolock(FILE *fp)
-    {
-        fp._cnt = fp._cnt - 1;
-        if (fp._cnt >= 0)
-        {
-            char c = *fp._ptr;
-            fp._ptr = fp._ptr + 1;
-            return c;
-        }
-        else
-            return _filbuf(fp);
-    }
+    int _fgetc_nolock(FILE *fp);
 
     ///
     int _lock_file(FILE *fp);

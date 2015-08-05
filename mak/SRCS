@@ -75,6 +75,7 @@ SRCS=\
 	src\core\sys\windows\threadaux.d \
 	src\core\sys\windows\windows.d \
 	src\core\sys\windows\winsock2.d \
+	src\core\sys\windows\stdio_msvc12.d \
 	\
 	src\gc\bits.d \
 	src\gc\config.d \
