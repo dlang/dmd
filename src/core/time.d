@@ -82,6 +82,7 @@ import core.exception;
 import core.stdc.time;
 import core.stdc.stdio;
 import core.internal.traits : _Unqual = Unqual;
+import core.internal.string;
 
 version(Windows)
 {
@@ -1861,7 +1862,9 @@ private:
                 unit = "μs";
             else
                 unit = plural ? units : units[0 .. $-1];
-            res ~= numToString(val) ~ " " ~ unit;
+            res ~= signedToTempString(val, 10);
+            res ~= " ";
+            res ~= unit;
         }
 
         if (_hnsecs == 0) return "0 hnsecs";
@@ -1982,6 +1985,14 @@ unittest
         auto t1 = TickDuration.from!U(t1v);
         auto t2 = TickDuration.from!U(t2v);
 
+        auto _str(F)(F val)
+        {
+            static if(is(F == int) || is(F == long))
+                return signedToTempString(val, 10);
+            else
+                return unsignedToTempString(val, 10);
+        }
+
         foreach (F; _TypeTuple!(int,uint,long,ulong,float,double,real))
         {
             F t1f = to!(U,F)(t1);
@@ -1991,23 +2002,24 @@ unittest
             F t3f = to!(U,F)(t12d);
             F t4f = to!(U,F)(t12m);
 
+
             static if(is(F == float) || is(F == double) || is(F == real))
             {
                 assert((t1f - cast(F)t1v) <= 3.0,
-                    F.stringof ~ " " ~ U ~ " " ~ numToString(t1f) ~ " " ~
-                    numToString(cast(F)t1v)
+                    F.stringof ~ " " ~ U ~ " " ~ doubleToString(t1f) ~ " " ~
+                    doubleToString(cast(F)t1v)
                 );
                 assert((t2f - cast(F)t2v) <= 3.0,
-                    F.stringof ~ " " ~ U ~ " " ~ numToString(t2f) ~ " " ~
-                    numToString(cast(F)t2v)
+                    F.stringof ~ " " ~ U ~ " " ~ doubleToString(t2f) ~ " " ~
+                    doubleToString(cast(F)t2v)
                 );
                 assert(t3f - (cast(F)t1v) / (cast(F)t2v) <= 3.0,
-                    F.stringof ~ " " ~ U ~ " " ~ numToString(t3f) ~ " " ~
-                    numToString((cast(F)t1v)/(cast(F)t2v))
+                    F.stringof ~ " " ~ U ~ " " ~ doubleToString(t3f) ~ " " ~
+                    doubleToString((cast(F)t1v)/(cast(F)t2v))
                 );
                 assert(t4f - (cast(F)(t1v - t2v)) <= 3.0,
-                    F.stringof ~ " " ~ U ~ " " ~ numToString(t4f) ~ " " ~
-                    numToString(cast(F)(t1v - t2v))
+                    F.stringof ~ " " ~ U ~ " " ~ doubleToString(t4f) ~ " " ~
+                    doubleToString(cast(F)(t1v - t2v))
                 );
             }
             else
@@ -2015,20 +2027,20 @@ unittest
                 // even though this should be exact math it is not as internal
                 // in "to" floating point is used
                 assert(_abs(t1f) - _abs(cast(F)t1v) <= 3,
-                    F.stringof ~ " " ~ U ~ " " ~ numToString(t1f) ~ " " ~
-                    numToString(cast(F)t1v)
+                    F.stringof ~ " " ~ U ~ " " ~ _str(t1f) ~ " " ~
+                    _str(cast(F)t1v)
                 );
                 assert(_abs(t2f) - _abs(cast(F)t2v) <= 3,
-                    F.stringof ~ " " ~ U ~ " " ~ numToString(t2f) ~ " " ~
-                    numToString(cast(F)t2v)
+                    F.stringof ~ " " ~ U ~ " " ~ _str(t2f) ~ " " ~
+                    _str(cast(F)t2v)
                 );
                 assert(_abs(t3f) - _abs((cast(F)t1v) / (cast(F)t2v)) <= 3,
-                    F.stringof ~ " " ~ U ~ " " ~ numToString(t3f) ~ " " ~
-                    numToString((cast(F)t1v) / (cast(F)t2v))
+                    F.stringof ~ " " ~ U ~ " " ~ _str(t3f) ~ " " ~
+                    _str((cast(F)t1v) / (cast(F)t2v))
                 );
                 assert(_abs(t4f) - _abs((cast(F)t1v) - (cast(F)t2v)) <= 3,
-                    F.stringof ~ " " ~ U ~ " " ~ numToString(t4f) ~ " " ~
-                    numToString((cast(F)t1v) - (cast(F)t2v))
+                    F.stringof ~ " " ~ U ~ " " ~ _str(t4f) ~ " " ~
+                    _str((cast(F)t1v) - (cast(F)t2v))
                 );
             }
         }
@@ -2280,7 +2292,8 @@ struct MonoTimeImpl(ClockType clockType)
     {
         if(ticksPerSecond == 0)
         {
-            assert(0, "MonoTimeImpl!(ClockType." ~ _clockName ~
+            import core.internal.abort : abort;
+            abort("MonoTimeImpl!(ClockType." ~ _clockName ~
                       ") failed to get the frequency of the system's monotonic clock.");
         }
 
@@ -2290,7 +2303,8 @@ struct MonoTimeImpl(ClockType clockType)
             if(QueryPerformanceCounter(&ticks) == 0)
             {
                 // This probably cannot happen on Windows 95 or later
-                assert(0, "Call to QueryPerformanceCounter failed.");
+                import core.internal.abort : abort;
+                abort("Call to QueryPerformanceCounter failed.");
             }
             return MonoTimeImpl(ticks);
         }
@@ -2300,7 +2314,10 @@ struct MonoTimeImpl(ClockType clockType)
         {
             timespec ts;
             if(clock_gettime(clockArg, &ts) != 0)
-                assert(0, "Call to clock_gettime failed.");
+            {
+                import core.internal.abort : abort;
+                abort("Call to clock_gettime failed.");
+            }
 
             return MonoTimeImpl(convClockFreq(ts.tv_sec * 1_000_000_000L + ts.tv_nsec,
                                               1_000_000_000L,
@@ -2567,17 +2584,17 @@ assert(before + timeElapsed == after).
     string toString() const pure nothrow
     {
         static if(clockType == ClockType.normal)
-            return "MonoTime(" ~ numToString(_ticks) ~ " ticks, " ~ numToString(ticksPerSecond) ~ " ticks per second)";
+            return "MonoTime(" ~ signedToTempString(_ticks, 10) ~ " ticks, " ~ signedToTempString(ticksPerSecond, 10) ~ " ticks per second)";
         else
-            return "MonoTimeImpl!(ClockType." ~ _clockName ~ ")(" ~ numToString(_ticks) ~ " ticks, " ~
-                   numToString(ticksPerSecond) ~ " ticks per second)";
+            return "MonoTimeImpl!(ClockType." ~ _clockName ~ ")(" ~ signedToTempString(_ticks, 10) ~ " ticks, " ~
+                   signedToTempString(ticksPerSecond, 10) ~ " ticks per second)";
     }
 
     unittest
     {
         static min(T)(T a, T b) { return a < b ? a : b; }
 
-        static void eat(ref string s, string exp)
+        static void eat(ref string s, const(char)[] exp)
         {
             assert(s[0 .. min($, exp.length)] == exp, s~" != "~exp);
             s = s[exp.length .. $];
@@ -2590,9 +2607,9 @@ assert(before + timeElapsed == after).
         else
             eat(str, "MonoTimeImpl!(ClockType."~_clockName~")(");
 
-        eat(str, numToString(mt._ticks));
+        eat(str, signedToTempString(mt._ticks, 10));
         eat(str, " ticks, ");
-        eat(str, numToString(ticksPerSecond));
+        eat(str, signedToTempString(ticksPerSecond, 10));
         eat(str, " ticks per second)");
     }
 
@@ -2647,7 +2664,8 @@ extern(C) void _d_initMonoTime()
             {
                 // ensure we are only writing immutable data once
                 if(tps[i] != 0)
-                    assert(0, "_d_initMonoTime should only be called once!");
+                    // should only be called once
+                    assert(0);
                 tps[i] = ticksPerSecond;
             }
         }
@@ -2664,7 +2682,8 @@ extern(C) void _d_initMonoTime()
             {
                 // ensure we are only writing immutable data once
                 if(tps[i] != 0)
-                    assert(0, "_d_initMonoTime should only be called once!");
+                    // should only be called once
+                    assert(0);
                 tps[i] = ticksPerSecond;
             }
         }
@@ -2683,7 +2702,8 @@ extern(C) void _d_initMonoTime()
                 {
                     // ensure we are only writing immutable data once
                     if(tps[i] != 0)
-                        assert(0, "_d_initMonoTime should only be called once!");
+                        // should only be called once
+                        assert(0);
 
                     // For some reason, on some systems, clock_getres returns
                     // a resolution which is clearly wrong (it's a millisecond
@@ -3516,11 +3536,12 @@ struct TickDuration
       +/
     static @property TickDuration currSystemTick() @trusted nothrow @nogc
     {
+        import core.internal.abort : abort;
         version(Windows)
         {
             ulong ticks;
             if(QueryPerformanceCounter(cast(long*)&ticks) == 0)
-                assert(0, "Failed in QueryPerformanceCounter().");
+                abort("Failed in QueryPerformanceCounter().");
 
             return TickDuration(ticks);
         }
@@ -3532,7 +3553,7 @@ struct TickDuration
             {
                 timeval tv;
                 if(gettimeofday(&tv, null) != 0)
-                    assert(0, "Failed in gettimeofday().");
+                    abort("Failed in gettimeofday().");
 
                 return TickDuration(tv.tv_sec * TickDuration.ticksPerSec +
                                     tv.tv_usec * TickDuration.ticksPerSec / 1000 / 1000);
@@ -3544,7 +3565,7 @@ struct TickDuration
             {
                 timespec ts;
                 if(clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
-                    assert(0, "Failed in clock_gettime().");
+                    abort("Failed in clock_gettime().");
 
                 return TickDuration(ts.tv_sec * TickDuration.ticksPerSec +
                                     ts.tv_nsec * TickDuration.ticksPerSec / 1000 / 1000 / 1000);
@@ -3553,7 +3574,7 @@ struct TickDuration
             {
                 timeval tv;
                 if(gettimeofday(&tv, null) != 0)
-                    assert(0, "Failed in gettimeofday().");
+                    abort("Failed in gettimeofday().");
 
                 return TickDuration(tv.tv_sec * TickDuration.ticksPerSec +
                                     tv.tv_usec * TickDuration.ticksPerSec / 1000 / 1000);
@@ -4181,47 +4202,54 @@ private:
       +/
     string _toStringImpl() const nothrow
     {
-        try
+        long hnsecs = _hnsecs;
+
+        immutable milliseconds = splitUnitsFromHNSecs!"msecs"(hnsecs);
+        immutable microseconds = splitUnitsFromHNSecs!"usecs"(hnsecs);
+
+        if(hnsecs == 0)
         {
-            long hnsecs = _hnsecs;
-
-            immutable milliseconds = splitUnitsFromHNSecs!"msecs"(hnsecs);
-            immutable microseconds = splitUnitsFromHNSecs!"usecs"(hnsecs);
-
-            if(hnsecs == 0)
+            if(microseconds == 0)
             {
-                if(microseconds == 0)
-                {
-                    if(milliseconds == 0)
-                        return "0 hnsecs";
-                    else
-                    {
-                        if(milliseconds == 1)
-                            return "1 ms";
-                        else
-                            return numToString(milliseconds) ~ " ms";
-                    }
-                }
+                if(milliseconds == 0)
+                    return "0 hnsecs";
                 else
                 {
-                    immutable fullMicroseconds = getUnitsFromHNSecs!"usecs"(_hnsecs);
-
-                    if(fullMicroseconds == 1)
-                        return "1 μs";
+                    if(milliseconds == 1)
+                        return "1 ms";
                     else
-                        return numToString(fullMicroseconds) ~ " μs";
+                    {
+                        auto r = signedToTempString(milliseconds, 10).idup;
+                        r ~= " ms";
+                        return r;
+                    }
                 }
             }
             else
             {
-                if(_hnsecs == 1)
-                    return "1 hnsec";
+                immutable fullMicroseconds = getUnitsFromHNSecs!"usecs"(_hnsecs);
+
+                if(fullMicroseconds == 1)
+                    return "1 μs";
                 else
-                    return numToString(_hnsecs) ~ " hnsecs";
+                {
+                    auto r = signedToTempString(fullMicroseconds, 10).idup;
+                    r ~= " μs";
+                    return r;
+                }
             }
         }
-        catch(Exception e)
-            assert(0, "Something threw when nothing can throw.");
+        else
+        {
+            if(_hnsecs == 1)
+                return "1 hnsec";
+            else
+            {
+                auto r = signedToTempString(_hnsecs, 10).idup;
+                r ~= " hnsecs";
+                return r;
+            }
+        }
     }
 
     unittest
@@ -4308,7 +4336,7 @@ private:
     invariant()
     {
         if(!_valid(_hnsecs))
-            throw new AssertError("Invaliant Failure: hnsecs [" ~ numToString(_hnsecs) ~ "]", __FILE__, __LINE__);
+            throw new AssertError("Invariant Failure: hnsecs [" ~ signedToTempString(_hnsecs, 10).idup ~ "]", __FILE__, __LINE__);
     }
 
 
@@ -4708,58 +4736,16 @@ double _abs(double val) @safe pure nothrow @nogc
 }
 
 
-/+
-    Unfortunately, $(D snprintf) is not pure, so here's a way to convert
-    a number to a string which is.
-  +/
-string numToString(long value) @safe pure nothrow
-{
-    try
-    {
-        immutable negative = value < 0;
-        char[25] str;
-        size_t i = str.length;
-
-        if(negative)
-            value = -value;
-
-        while(1)
-        {
-            char digit = cast(char)('0' + value % 10);
-            value /= 10;
-
-            str[--i] = digit;
-            assert(i > 0);
-
-            if(value == 0)
-                break;
-        }
-
-        if(negative)
-            return "-" ~ str[i .. $].idup;
-        else
-            return str[i .. $].idup;
-    }
-    catch(Exception e)
-        assert(0, "Something threw when nothing can throw.");
-}
-
-unittest
-{
-    string a = numToString(1);
-    assert(a == "1");
-
-    a = numToString(-1);
-    assert(a == "-1");
-}
-
 version(unittest)
-string numToString(double value) @safe pure nothrow
+string doubleToString(double value) @safe pure nothrow
 {
-    immutable negative = value < 0;
-    string result = (negative ? "-" : "") ~ numToString(cast(long)value);
+    string result;
+    if(value < 0 && cast(long)value == 0)
+        result = "-0";
+    else
+        result = signedToTempString(cast(long)value, 10).idup;
     result ~= '.';
-    result ~= numToString(cast(long)(_abs((value - cast(long)value) * 1000000)));
+    result ~= unsignedToTempString(cast(ulong)(_abs((value - cast(long)value) * 1_000_000) + .5), 10);
 
     while (result[$-1] == '0')
         result = result[0 .. $-1];
@@ -4769,21 +4755,21 @@ string numToString(double value) @safe pure nothrow
 unittest
 {
     auto a = 1.337;
-    auto aStr = numToString(a);
-    assert(aStr[0 .. 4] == "1.33", aStr);
+    auto aStr = doubleToString(a);
+    assert(aStr == "1.337", aStr);
 
     a = 0.337;
-    aStr = numToString(a);
-    assert(aStr[0 .. 4] == "0.33", aStr);
+    aStr = doubleToString(a);
+    assert(aStr == "0.337", aStr);
 
     a = -0.337;
-    aStr = numToString(a);
-    assert(aStr[0 .. 5] == "-0.33", aStr);
+    aStr = doubleToString(a);
+    assert(aStr == "-0.337", aStr);
 }
 
 version(unittest) const(char)* numToStringz()(long value) @safe pure nothrow
 {
-    return (numToString(value) ~ "\0").ptr;
+    return (signedToTempString(value, 10) ~ "\0").ptr;
 }
 
 
@@ -4912,9 +4898,10 @@ version(unittest) void assertApprox(D, E)(D actual,
 {
     if(actual.length < lower.length || actual.length > upper.length)
     {
-        throw new AssertError(msg ~ ": [" ~ numToString(lower.length) ~ "] [" ~
-                              numToString(actual.length) ~ "] [" ~
-                              numToString(upper.length) ~ "]", __FILE__, line);
+        throw new AssertError(msg ~ (": [" ~ signedToTempString(lower.length, 10) ~ "] [" ~
+                              signedToTempString(actual.length, 10) ~ "] [" ~
+                              signedToTempString(upper.length, 10) ~ "]").idup,
+                              __FILE__, line);
     }
 }
 
@@ -4935,7 +4922,7 @@ version(unittest) void assertApprox()(long actual,
                                       size_t line = __LINE__)
 {
     if(actual < lower)
-        throw new AssertError(msg ~ ": lower: " ~ numToString(actual), __FILE__, line);
+        throw new AssertError(msg ~ ": lower: " ~ signedToTempString(actual, 10).idup, __FILE__, line);
     if(actual > upper)
-        throw new AssertError(msg ~ ": upper: " ~ numToString(actual), __FILE__, line);
+        throw new AssertError(msg ~ ": upper: " ~ signedToTempString(actual, 10).idup, __FILE__, line);
 }
