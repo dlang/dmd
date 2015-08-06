@@ -81,7 +81,6 @@ public:
     Sizeok sizeok;              // set when structsize contains valid data
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
     bool isdeprecated;          // true if deprecated
-    bool mutedeprecation;       // true while analysing RTInfo to avoid deprecation message
 
     Dsymbol *enclosing;         /* !=NULL if is nested
                                  * pointing to the dsymbol that directly enclosing it.
@@ -122,7 +121,6 @@ public:
     int firstFieldInUnion(int indx); // first field in union that includes indx
     int numFieldsInUnion(int firstIndex); // #fields in union starting at index
     bool isDeprecated();         // is aggregate deprecated?
-    bool muteDeprecationMessage(); // disable deprecation message on Dsymbol?
     bool isNested();
     void makeNested();
     bool isExport();
