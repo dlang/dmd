@@ -13571,6 +13571,18 @@ Expression *EqualExp::semantic(Scope *sc)
         return e;
     }
 
+    if (t1->ty == Tpointer || t2->ty == Tpointer)
+    {
+        /* Rewrite:
+         *      ptr1 == ptr2
+         * as:
+         *      ptr1 is ptr2
+         */
+        e = new IdentityExp(op == TOKequal ? TOKidentity : TOKnotidentity, loc, e1, e2);
+        e = e->semantic(sc);
+        return e;
+    }
+
     if (t1->ty == Tstruct && t2->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)t1)->sym;

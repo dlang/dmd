@@ -74,7 +74,18 @@ Expression *expandVar(int result, VarDeclaration *v)
                 {
                     AssignExp *ae = (AssignExp *)ei;
                     ei = ae->e2;
-                    if (ei->isConst() != 1 && ei->op != TOKstring)
+                    if (ei->isConst() == 1)
+                    {
+                    }
+                    else if (ei->op == TOKstring)
+                    {
+                        // Bugzilla 14459: We should not constfold the string literal
+                        // if it's typed as a C string, because the value expansion
+                        // will drop the pointer identity.
+                        if (!(result & WANTexpand) && ei->type->toBasetype()->ty == Tpointer)
+                            goto L1;
+                    }
+                    else
                         goto L1;
 
                     if (ei->type == v->type)
