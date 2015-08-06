@@ -3682,14 +3682,13 @@ public:
             }
             assert(0 <= fieldi && fieldi < sle.elements.dim);
             // If it's a union, set all other members of this union to void
-            if (ex.op == TOKstructliteral)
+            if (ex.op == TOKstructliteral && v.overlapped)
             {
                 assert(sle.sd);
-                int unionStart = sle.sd.firstFieldInUnion(fieldi);
-                int unionSize = sle.sd.numFieldsInUnion(fieldi);
-                for (int i = unionStart; i < unionStart + unionSize; ++i)
+                for (size_t i = 0; i < sle.sd.fields.dim; i++)
                 {
-                    if (i == fieldi)
+                    VarDeclaration v2 = sle.sd.fields[i];
+                    if (!v.isOverlappedWith(v2))
                         continue;
                     Expression* exp = &(*sle.elements)[i];
                     if ((*exp).op != TOKvoid)
