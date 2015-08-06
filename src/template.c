@@ -2029,16 +2029,16 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
 {
     //printf("TemplateDeclaration::declareParameter('%s', o = %p)\n", tp->ident->toChars(), o);
 
-    Type *targ = isType(o);
+    Type *ta = isType(o);
     Expression *ea = isExpression(o);
     Dsymbol *sa = isDsymbol(o);
     Tuple *va = isTuple(o);
 
-    Dsymbol *s;
+    Declaration *d;
     VarDeclaration *v = NULL;
 
     if (ea && ea->op == TOKtype)
-        targ = ea->type;
+        ta = ea->type;
     else if (ea && ea->op == TOKimport)
         sa = ((ScopeExp *)ea)->sds;
     else if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
@@ -2051,15 +2051,15 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
             sa = ((FuncExp *)ea)->fd;
     }
 
-    if (targ)
+    if (ta)
     {
-        //printf("type %s\n", targ->toChars());
-        s = new AliasDeclaration(Loc(), tp->ident, targ);
+        //printf("type %s\n", ta->toChars());
+        d = new AliasDeclaration(Loc(), tp->ident, ta);
     }
     else if (sa)
     {
         //printf("Alias %s %s;\n", sa->ident->toChars(), tp->ident->toChars());
-        s = new AliasDeclaration(Loc(), tp->ident, sa);
+        d = new AliasDeclaration(Loc(), tp->ident, sa);
     }
     else if (ea)
     {
@@ -2071,12 +2071,12 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
 
         v = new VarDeclaration(loc, t, tp->ident, init);
         v->storage_class = STCmanifest | STCtemplateparameter;
-        s = v;
+        d = v;
     }
     else if (va)
     {
         //printf("\ttuple\n");
-        s = new TupleDeclaration(loc, tp->ident, &va->objects);
+        d = new TupleDeclaration(loc, tp->ident, &va->objects);
     }
     else
     {
@@ -2085,13 +2085,37 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
 #endif
         assert(0);
     }
-    if (!sc->insert(s))
+
+    d->storage_class |= STCtemplateparameter;
+    if (ta)
+    {
+        Type *t = ta;
+        // consistent with Type::checkDeprecated()
+        while (t->ty != Tenum)
+        {
+            if (!t->nextOf()) break;
+            t = ((TypeNext *)t)->next;
+        }
+        if (Dsymbol *s = t->toDsymbol(NULL))
+        {
+            if (s->isDeprecated())
+                d->storage_class |= STCdeprecated;
+        }
+    }
+    else if (sa)
+    {
+        if (sa->isDeprecated())
+            d->storage_class |= STCdeprecated;
+    }
+
+    if (!sc->insert(d))
         error("declaration %s is already defined", tp->ident->toChars());
-    s->semantic(sc);
+    d->semantic(sc);
+
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
     if (v)
-        return (RootObject *)v->init->toExpression();
+        o = v->init->toExpression();
     return o;
 }
 
