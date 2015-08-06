@@ -1083,7 +1083,6 @@
             [
                 "variable LOGDOTEXP",
                 "variable LOGDEFAULTINIT",
-                "variable IMPLICIT_ARRAY_TO_PTR",
                 "variable Tsize_t",
                 "variable Tptrdiff_t",
                 "function MODimplicitConv",
