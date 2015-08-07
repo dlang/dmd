@@ -296,6 +296,7 @@ MANIFEST=\
 	\
 	src\etc\linux\memoryerror.d \
 	\
+	test\common.mak \
 	test\coverage\Makefile \
 	test\coverage\src-basic.lst.exp \
 	test\coverage\src-merge.lst.exp \
