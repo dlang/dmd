@@ -89,16 +89,10 @@ block *block_calloc(Blockx *blx)
  * Our label symbol, with vector to keep track of forward references.
  */
 
-struct fwdrefLabel
-{
-    block *fwdblock;        // Where the label was referenced from.
-    Loc fwdloc;             // Source location.
-};
-
 struct Label
 {
-    block *lblock;          // The block to which the label is defined.
-    Array<fwdrefLabel *> fwdrefs;   // A list of uses of the label before it is defined.
+    block *lblock;      // The block to which the label is defined.
+    block *fwdrefs;     // The first use of the label before it is defined.
 };
 
 /****************************************
@@ -113,6 +107,7 @@ static Label *getLabel(IRState *irs, Blockx *blx, Statement *s)
     {
         Label *label = new Label();
         label->lblock = blx ? block_calloc(blx) : block_calloc();
+        label->fwdrefs = NULL;
         *slot = label;
     }
     return *slot;
@@ -133,10 +128,8 @@ block *labelToBlock(IRState *irs, Loc loc, Blockx *blx, LabelDsymbol *label, int
     if (flag)
     {
         // Keep track of the forward reference to this block, so we can check it later
-        fwdrefLabel *fwdref = new fwdrefLabel();
-        fwdref->fwdblock = blx->curblock;
-        fwdref->fwdloc = loc;
-        l->fwdrefs.push(fwdref);
+        if (!l->fwdrefs)
+            l->fwdrefs = blx->curblock;
     }
     return l->lblock;
 }
@@ -450,9 +443,9 @@ public:
         label->lblock->Btry = blx->tryblock;
 
         // Go through the forward references and check.
-        for (size_t i = 0; i < label->fwdrefs.dim; i++)
+        if (label->fwdrefs)
         {
-            block *b = label->fwdrefs[i]->fwdblock;
+            block *b = label->fwdrefs;
 
             if (b->Btry != label->lblock->Btry)
             {
@@ -462,7 +455,7 @@ public:
                     if (!bt)
                     {
                         //printf("b->Btry = %p, label->lblock->Btry = %p\n", b->Btry, label->lblock->Btry);
-                        error(label->fwdrefs[i]->fwdloc, "cannot goto into try block");
+                        s->error("cannot goto into try block");
                         break;
                     }
 
