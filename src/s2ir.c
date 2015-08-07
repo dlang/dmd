@@ -36,6 +36,7 @@
 #include        "global.h"
 #include        "dt.h"
 
+#include        "aav.h"
 #include        "rmem.h"
 #include        "target.h"
 #include        "visitor.h"
@@ -94,13 +95,10 @@ struct fwdrefLabel
     Loc fwdloc;             // Source location.
 };
 
-typedef Array<struct fwdrefLabel *> fwdrefLabels;
-
 struct Label
 {
-    Statement *statement;   // The label itself.
     block *lblock;          // The block to which the label is defined.
-    fwdrefLabels fwdrefs;   // A list of uses of the label before it is defined.
+    Array<fwdrefLabel *> fwdrefs;   // A list of uses of the label before it is defined.
 };
 
 /****************************************
@@ -109,24 +107,15 @@ struct Label
 
 static Label *getLabel(IRState *irs, Blockx *blx, Statement *s)
 {
-    Label *label = NULL;
-    for (size_t i = 0; i < irs->labels->dim; i++)
+    Label **slot = (Label **)dmd_aaGet(irs->labels, (void *)s);
+
+    if (*slot == NULL)
     {
-        // See if label has already been declared or used, otherwise create.
-        if ((*irs->labels)[i]->statement == s)
-        {
-            label = (*irs->labels)[i];
-            break;
-        }
-    }
-    if (!label)
-    {
-        label = new Label();
-        label->statement = s;
+        Label *label = new Label();
         label->lblock = blx ? block_calloc(blx) : block_calloc();
-        irs->labels->push(label);
+        *slot = label;
     }
-    return label;
+    return *slot;
 }
 
 /**************************************
