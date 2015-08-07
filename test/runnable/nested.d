@@ -2456,6 +2456,36 @@ void test14398()
 }
 
 /*******************************************/
+// 14846
+
+void foo14846(Dg)(scope Dg code)
+{
+    static assert(is(Dg == delegate));
+    code();
+}
+
+void test14846()
+{
+    int x;
+
+    struct S
+    {
+        this(int n) { x = n; }
+        ~this() { x = 99; }
+    }
+
+    foo14846({ S s; });
+    foo14846({ S s = S(); });
+    foo14846({ S s = S(1); });
+    foo14846({ S[3] s; });
+
+    foo14846({ S* p = new S(); });
+    foo14846({ S* p = new S(1); });
+    foo14846({ S[] a = [S()]; });
+    foo14846({ S[] a = [S(1)]; });
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2546,6 +2576,7 @@ int main()
     test12234();
     test13861();
     test14398();
+    test14846();
 
     printf("Success\n");
     return 0;
