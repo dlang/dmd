@@ -835,6 +835,7 @@
             "imports" :
             [
                 "arraytypes",
+                "dcast",
                 "declaration",
                 "dscope",
                 "dsymbol",
@@ -855,6 +856,7 @@
                 "variable arrayfuncs",
                 "function buildArrayOp",
                 "function isArrayOpValid",
+                "function checkValidArrayOp",
                 "function isNonAssignmentArrayOp",
                 "function checkNonAssignmentArrayOp",
                 "function arrayOpBinExp*Scope*",

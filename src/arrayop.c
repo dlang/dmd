@@ -143,6 +143,35 @@ bool isArrayOpValid(Expression *e)
     return true;
 }
 
+Expression *checkValidArrayOp(Expression *e)
+{
+    Type *tb = e->type->toBasetype();
+    if (tb->ty == Tarray || tb->ty == Tsarray)
+    {
+        if (isUnaArrayOp(e->op))
+        {
+            if (!isArrayOpValid(((UnaExp *)e)->e1))
+                goto Lerr;
+            goto Lok;
+        }
+        if (isBinArrayOp(e->op))
+        {
+            BinExp *be = (BinExp *)e;
+            if (!isArrayOpValid(be->e1) || !isArrayOpValid(be->e2))
+                goto Lerr;
+            goto Lok;
+        }
+    }
+    return NULL;
+
+Lerr:
+    e->error("invalid array operation %s (possible missing [])", e->toChars());
+    return new ErrorExp();
+
+Lok:
+    return e;
+}
+
 bool isNonAssignmentArrayOp(Expression *e)
 {
     if (e->op == TOKslice)

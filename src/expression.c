@@ -44,6 +44,7 @@
 
 bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2);
 bool isArrayOpValid(Expression *e);
+Expression *checkValidArrayOp(Expression *e);
 Expression *expandVar(int result, VarDeclaration *v);
 TypeTuple *toArgTypes(Type *t);
 bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
@@ -9391,21 +9392,13 @@ Expression *NegExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
         return e;
 
     type = e1->type;
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(e1))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
+
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
 
     if (e1->checkNoBool())
         return new ErrorExp();
@@ -9429,8 +9422,7 @@ Expression *UAddExp::semantic(Scope *sc)
 #endif
     assert(!type);
 
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
         return e;
 
     if (e1->checkNoBool())
@@ -9453,21 +9445,13 @@ Expression *ComExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
         return e;
 
     type = e1->type;
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(e1))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
+
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
 
     if (e1->checkNoBool())
         return new ErrorExp();
@@ -12189,10 +12173,9 @@ Expression *AddExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
     Type *tb1 = e1->type->toBasetype();
@@ -12223,19 +12206,11 @@ Expression *AddExp::semantic(Scope *sc)
         return incompatibleTypes();
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(this))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
 
     tb1 = e1->type->toBasetype();
     if (tb1->ty == Tvector && !tb1->isscalar())
@@ -12284,10 +12259,9 @@ Expression *MinExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
     Type *t1 = e1->type->toBasetype();
@@ -12309,6 +12283,7 @@ Expression *MinExp::semantic(Scope *sc)
 
     if (t1->ty == Tpointer)
     {
+        Expression *e;
         if (t2->ty == Tpointer)
         {
             // Need to divide the result by the stride
@@ -12347,19 +12322,11 @@ Expression *MinExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(this))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
 
     t1 = e1->type->toBasetype();
     t2 = e2->type->toBasetype();
@@ -12605,25 +12572,16 @@ Expression *MulExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(this))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
 
     if (checkArithmeticBin())
         return new ErrorExp();
@@ -12657,7 +12615,7 @@ Expression *MulExp::semantic(Scope *sc)
                 // iy * iv = -yv
                 e1->type = type;
                 e2->type = type;
-                e = new NegExp(loc, this);
+                Expression *e = new NegExp(loc, this);
                 e = e->semantic(sc);
                 return e;
             }
@@ -12669,10 +12627,11 @@ Expression *MulExp::semantic(Scope *sc)
             type = t1;  // t1 is complex
         }
     }
-    else if (tb->ty == Tvector && ((TypeVector *)tb)->elementType()->size(loc) != 2)
+    else if (type->toBasetype()->ty == Tvector)
     {
         // Only short[8] and ushort[8] work with multiply
-        return incompatibleTypes();
+        if (((TypeVector *)type->toBasetype())->elementType()->size(loc) != 2)
+            return incompatibleTypes();
     }
     return this;
 }
@@ -12689,25 +12648,16 @@ Expression *DivExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(this))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
 
     if (checkArithmeticBin())
         return new ErrorExp();
@@ -12724,7 +12674,7 @@ Expression *DivExp::semantic(Scope *sc)
             {
                 // x/iv = i(-x/v)
                 e2->type = t1;
-                e = new NegExp(loc, this);
+                Expression *e = new NegExp(loc, this);
                 e = e->semantic(sc);
                 return e;
             }
@@ -12753,7 +12703,7 @@ Expression *DivExp::semantic(Scope *sc)
             type = t1;  // t1 is complex
         }
     }
-    else if (tb->ty == Tvector)
+    else if (type->toBasetype()->ty == Tvector)
     {
         return incompatibleTypes();
     }
@@ -12772,29 +12722,19 @@ Expression *ModExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(this))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
-    if (tb->ty == Tvector)
-    {
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
+
+    if (type->toBasetype()->ty == Tvector)
         return incompatibleTypes();
-    }
 
     if (checkArithmeticBin())
         return new ErrorExp();
@@ -12843,25 +12783,16 @@ Expression *PowExp::semantic(Scope *sc)
         return this;
 
     //printf("PowExp::semantic() %s\n", toChars());
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(this))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
 
     if (checkArithmeticBin())
         return new ErrorExp();
@@ -12870,7 +12801,7 @@ Expression *PowExp::semantic(Scope *sc)
     // TODO: backend support, especially for  e1 ^^ 2.
 
     // First, attempt to fold the expression.
-    e = optimize(WANTvalue);
+    Expression *e = optimize(WANTvalue);
     if (e->op != TOKpow)
     {
         e = e->semantic(sc);
@@ -13042,10 +12973,9 @@ Expression *AndExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
     if (e1->type->toBasetype()->ty == Tbool &&
@@ -13055,19 +12985,11 @@ Expression *AndExp::semantic(Scope *sc)
         return this;
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(this))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
 
     if (checkIntegralBin())
         return new ErrorExp();
@@ -13087,10 +13009,9 @@ Expression *OrExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
     if (e1->type->toBasetype()->ty == Tbool &&
@@ -13100,19 +13021,11 @@ Expression *OrExp::semantic(Scope *sc)
         return this;
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(this))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
 
     if (checkIntegralBin())
         return new ErrorExp();
@@ -13132,10 +13045,9 @@ Expression *XorExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
     if (e1->type->toBasetype()->ty == Tbool &&
@@ -13145,19 +13057,11 @@ Expression *XorExp::semantic(Scope *sc)
         return this;
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tarray || tb->ty == Tsarray)
-    {
-        if (!isArrayOpValid(this))
-        {
-            error("invalid array operation %s (possible missing [])", toChars());
-            return new ErrorExp();
-        }
-        return this;
-    }
+    if (Expression *e = checkValidArrayOp(this))
+        return e;
 
     if (checkIntegralBin())
         return new ErrorExp();
