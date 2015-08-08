@@ -3341,13 +3341,22 @@ Lagain:
 
     //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
     //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
-    if (!s->isFuncDeclaration())        // functions are checked after overloading
-        checkDeprecated(sc, s);
     Dsymbol *olds = s;
-    s = s->toAlias();
-    //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
-    if (s != olds && !s->isFuncDeclaration())
-        checkDeprecated(sc, s);
+    Declaration *d = s->isDeclaration();
+    if (d && (d->storage_class & STCtemplateparameter))
+    {
+        s = s->toAlias();
+    }
+    else
+    {
+        if (!s->isFuncDeclaration())        // functions are checked after overloading
+            checkDeprecated(sc, s);
+        s = s->toAlias();
+        //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
+        if (s != olds && !s->isFuncDeclaration())
+            checkDeprecated(sc, s);
+    }
+
 
     if (VarDeclaration *v = s->isVarDeclaration())
     {

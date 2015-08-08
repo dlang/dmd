@@ -3980,6 +3980,8 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     }
     else
     {
+        if ((*pt)->ty != Terror)
+            next = *pt;     // prevent re-running semantic() on 'next'
      Ldefault:
         Type::resolve(loc, sc, pe, pt, ps, intypeid);
     }
@@ -4381,6 +4383,8 @@ void TypeDArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     }
     else
     {
+        if ((*pt)->ty != Terror)
+            next = *pt;     // prevent re-running semantic() on 'next'
      Ldefault:
         Type::resolve(loc, sc, pe, pt, ps, intypeid);
     }
@@ -6435,7 +6439,12 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
     if (s)
     {
         //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-        s->checkDeprecated(loc, sc);            // check for deprecated aliases
+        Declaration *d = s->isDeclaration();
+        if (d && (d->storage_class & STCtemplateparameter))
+            s = s->toAlias();
+        else
+            s->checkDeprecated(loc, sc);            // check for deprecated aliases
+
         s = s->toAlias();
         //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
         for (size_t i = 0; i < idents.dim; i++)
@@ -8929,6 +8938,8 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
     }
     else
     {
+        if ((*pt)->ty != Terror)
+            next = *pt;     // prevent re-running semantic() on 'next'
      Ldefault:
         Type::resolve(loc, sc, pe, pt, ps, intypeid);
     }
