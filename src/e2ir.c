@@ -2064,12 +2064,76 @@ elem *toElem(Expression *e, IRState *irs)
         /***************************************
          */
 
+        // ex is CatExp (?)
+        // stmp: an address or referenve to the temporary
+        // ofs: at the 'end' of temporary that ex should be copied to.
+        elem *ExpressionToSArrayConcat(Expression *ex, symbol *stmp, size_t ofs)
+        {
+            assert(ex->op == TOKcat);   // ?
+
+            elem *e = NULL;
+            while (true)
+            {
+                Expression *ey = ex->op == TOKcat ? ((CatExp *)ex)->e2 : ex;
+                tym_t ty = totym(ey->type);
+                ofs -= ey->type->size();
+
+                // ep: *(stmp + ofs)
+                elem *ep = (stmp->Stype->Tty == TYnptr) ? el_var(stmp) : el_ptr(stmp);
+                if (ofs)
+                    ep = el_bin(OPadd, TYnptr, ep, el_long(TYsize_t, ofs));
+                elem *ev = el_una(OPind, ty, ep);
+                if (tybasic(ty) == TYstruct)
+                    ev->ET = Type_toCtype(ey->type);
+
+                // eq : *(stmp + ofs) = ey;
+                elem *eq = el_bin(OPeq, ev->Ety, ev, toElem(ey, irs));
+                if (tybasic(ty) == TYstruct)
+                {
+                    eq->Eoper = OPstreq;
+                    eq->ET = Type_toCtype(ey->type);
+                }
+
+                // todo: may need to call postblit on that
+
+                el_setLoc(eq, ey->loc);
+
+                e = el_combine(eq, e);
+                if (ex->op == TOKcat)
+                    ex = ((CatExp *)ex)->e1;
+                else
+                    break;
+            }
+            return e;
+        }
+
         void visit(CatExp *ce)
         {
         #if 0
             printf("CatExp::toElem()\n");
             ce->print();
         #endif
+
+            /* Optimize concatenations with compile-time known length.
+             * Rewrite:
+             *      ((a ~ b) ~ c);
+             * as:
+             *      stmp[0..2] = a[], stmp[3] = b, stmp[4..$] = c[];
+             */
+            if (ce->type->toBasetype()->ty == Tsarray)
+            {
+                symbol *stmp = symbol_genauto(Type_toCtype(ce->type));
+
+                elem *e = ExpressionToSArrayConcat(ce, stmp, ce->type->size());
+
+                e = el_combine(e, el_ptr(stmp));
+                e = el_una(OPind, TYstruct, e);
+                e->ET = Type_toCtype(ce->type);
+
+                el_setLoc(e, ce->loc);
+                result = e;
+                return;
+            }
 
             Type *tb1 = ce->e1->type->toBasetype();
             Type *tb2 = ce->e2->type->toBasetype();
@@ -2113,7 +2177,7 @@ elem *toElem(Expression *e, IRState *irs)
                 e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATT]), ep);
                 toTraceGC(irs, e, &ce->loc);
             }
-            el_setLoc(e,ce->loc);
+            el_setLoc(e, ce->loc);
             result = e;
         }
 
@@ -2920,6 +2984,23 @@ elem *toElem(Expression *e, IRState *irs)
                         e = el_combine(e, ex);
                         i = j;
                     }
+                    goto Lret;
+                }
+
+                /* Optimize static array assignment with concatenations.
+                 * Rewrite:
+                 *      e1 = ((a ~ b) ~ c);
+                 * as:
+                 *      e1[0..2] = a[], e1[3] = b, e1[4..$] = c[];
+                 */
+                if (ae->op == TOKconstruct && ae->e2->op == TOKcat)
+                {
+                    symbol *stmp = symbol_genauto(TYnptr);
+                    elem *e0 = el_bin(OPeq, TYnptr, el_var(stmp), addressElem(e1, t1b));
+
+                    e = ExpressionToSArrayConcat(ae->e2, stmp, t1b->size());
+
+                    e = el_combine(e0, e);
                     goto Lret;
                 }
 

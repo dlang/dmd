@@ -1555,14 +1555,22 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 {
                     // T[n] sa;
                     // cast(U[])sa; // ==> cast(U[])sa[];
-                    d_uns64 fsize = t1b->nextOf()->size();
-                    d_uns64 tsize = tob->nextOf()->size();
+                    Type *t1n = t1b->nextOf();
+                    Type *ton = tob->nextOf();
+                    d_uns64 fsize = t1n->size();
+                    d_uns64 tsize = ton->size();
                     if ((((TypeSArray *)t1b)->dim->toInteger() * fsize) % tsize != 0)
                     {
                         // copied from sarray_toDarray() in e2ir.c
                         e->error("cannot cast expression %s of type %s to %s since sizes don't line up",
                             e->toChars(), e->type->toChars(), t->toChars());
                         result = new ErrorExp();
+                        return;
+                    }
+                    if (t1n->constConv(ton))
+                    {
+                        result = new SliceExp(e->loc, e, NULL, NULL);
+                        result->type = t;       // Don't call semantic()
                         return;
                     }
                     goto Lok;
