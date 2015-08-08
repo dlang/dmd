@@ -77,3 +77,21 @@ void testc()
     sa1[0..4] = [1,2,3];
     sa1[0..4] = sa2;
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail12604.d(94): Error: mismatched array lengths, 6 and 4
+fail_compilation/fail12604.d(95): Error: mismatched array lengths, 6 and 2
+fail_compilation/fail12604.d(96): Error: mismatched array lengths, 2 and 3
+---
+*/
+void test4939()
+{
+    int[2] a2, b2;
+    int[3] c3;
+    int[6] r6;
+    r6[] = a2 ~ a2;
+    r6[] = a2[] + b2[];
+    r6[] = (a2[] & 1) * c3[];
+}
