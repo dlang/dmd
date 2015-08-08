@@ -5569,7 +5569,18 @@ public:
         }
         // We know we still own it, because we interpreted both e1 and e2
         if (result->op == TOKarrayliteral)
-            ((ArrayLiteralExp *)result)->ownedByCtfe = OWNEDctfe;
+        {
+            ArrayLiteralExp *ale = (ArrayLiteralExp *)result;
+            ale->ownedByCtfe = OWNEDctfe;
+
+            // Bugzilla 14686
+            for (size_t i = 0; i < ale->elements->dim; i++)
+            {
+                Expression *ex = evaluatePostblit(istate, (*ale->elements)[i]);
+                if (exceptionOrCant(ex))
+                    return;
+            }
+        }
         if (result->op == TOKstring)
             ((StringExp *)result)->ownedByCtfe = OWNEDctfe;
     }

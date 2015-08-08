@@ -1628,22 +1628,9 @@ Lretry:
                      prmtype->ty == Taarray && (taai = ((TypeAArray *)prmtype)->index)->ty == Tident &&
                                                ((TypeIdentifier *)taai)->idents.dim == 0))
                 {
-                    if (farg->op == TOKstring)
-                    {
-                        StringExp *se = (StringExp *)farg;
-                        argtype = se->type->nextOf()->sarrayOf(se->len);
-                    }
-                    else if (farg->op == TOKarrayliteral)
-                    {
-                        ArrayLiteralExp *ae = (ArrayLiteralExp *)farg;
-                        argtype = ae->type->nextOf()->sarrayOf(ae->elements->dim);
-                    }
-                    else if (farg->op == TOKslice)
-                    {
-                        SliceExp *se = (SliceExp *)farg;
-                        if (Type *tsa = toStaticArrayType(se))
-                            argtype = tsa;
-                    }
+                    dinteger_t dim = getStaticArrayLen(farg);
+                    if (dim != ~0)
+                        argtype = farg->type->toBasetype()->nextOf()->sarrayOf(dim);
                 }
 
                 oarg = argtype;
@@ -4174,7 +4161,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     sc, tparam, parameters, dedtypes,
                     best, numBaseClassMatches);
             }
-
         }
 
         void visit(TypeClass *t)
@@ -4299,6 +4285,21 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
                     return;
                 }
+
+                Type *taai;
+                if (e->type->ty == Tarray &&
+                    (tparam->ty == Tsarray ||
+                     tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
+                                              ((TypeIdentifier *)taai)->idents.dim == 0))
+                {
+                    // Consider compile-time known boundaries
+                    if (TypeSArray *tsa = toStaticArrayType(e))
+                    {
+                        tsa->accept(this);
+                        return;
+                    }
+                }
+
                 e->type->accept(this);
                 return;
             }
@@ -4433,21 +4434,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             visit((Expression *)e);
         }
 
-        void visit(StringExp *e)
-        {
-            Type *taai;
-            if (e->type->ty == Tarray &&
-                (tparam->ty == Tsarray ||
-                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
-                                          ((TypeIdentifier *)taai)->idents.dim == 0))
-            {
-                // Consider compile-time known boundaries
-                e->type->nextOf()->sarrayOf(e->len)->accept(this);
-                return;
-            }
-            visit((Expression *)e);
-        }
-
         void visit(ArrayLiteralExp *e)
         {
             if ((!e->elements || !e->elements->dim) &&
@@ -4474,16 +4460,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             }
 
-            Type *taai;
-            if (e->type->ty == Tarray &&
-                (tparam->ty == Tsarray ||
-                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
-                                          ((TypeIdentifier *)taai)->idents.dim == 0))
-            {
-                // Consider compile-time known boundaries
-                e->type->nextOf()->sarrayOf(e->elements->dim)->accept(this);
-                return;
-            }
             visit((Expression *)e);
         }
 
@@ -4593,24 +4569,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
             //printf("tparam = %s <= e->type = %s, t = %s\n", tparam->toChars(), e->type->toChars(), t->toChars());
             visit(t);
-        }
-
-        void visit(SliceExp *e)
-        {
-            Type *taai;
-            if (e->type->ty == Tarray &&
-                (tparam->ty == Tsarray ||
-                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
-                                          ((TypeIdentifier *)taai)->idents.dim == 0))
-            {
-                // Consider compile-time known boundaries
-                if (Type *tsa = toStaticArrayType(e))
-                {
-                    tsa->accept(this);
-                    return;
-                }
-            }
-            visit((Expression *)e);
         }
 
         void visit(CommaExp *e)

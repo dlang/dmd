@@ -884,15 +884,36 @@ void test14649()
 }
 
 /************************************************************************/
-// 14851
+// 14850, 14851
 
-void test14851()
+void test14850()
 {
     int[8] a, b, c;
+    int[16] d;
 
-    c   = a[] | b[];    // OK <- NG from 2.068.0-b2
-    c   = a[] ^ b[];    // OK <- NG from 2.068.0-b2
+    c   = a[];          // OK
+  static assert(!__traits(compiles, {
+    d   = a[];          // CT Error, as expected
+  }));
+    d   = a[] ~ b[];    // OK, as expected
+  static assert(!__traits(compiles, {
+    c   = a[] ~ b[];    // CT Error <-- RT
+  }));
+    c   = a[] + b[];    // OK
+    c   = a[] & b[];    // OK
+    c   = a[] | b[];    // OK <- NG from 2.068.0-b2 (Bugzilla 14851)
+    c   = a[] ^ b[];    // OK <- NG from 2.068.0-b2 (Bugzilla 14851)
 
+    c[] = a[];          // OK
+  static assert(!__traits(compiles, {
+    d[] = a[];          // CT Error, as expected
+  }));
+    d[] = a[] ~ b[];    // OK, as expected
+  static assert(!__traits(compiles, {
+    c[] = a[] ~ b[];    // CT Error <-- RT
+  }));
+    c[] = a[] + b[];    // OK
+    c[] = a[] & b[];    // OK
     c[] = a[] | b[];    // OK
     c[] = a[] ^ b[];    // OK
 }
@@ -919,7 +940,7 @@ int main()
     test12780();
     test13497();
     test14649();
-    test14851();
+    test14850();
 
     printf("Success\n");
     return 0;

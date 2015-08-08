@@ -946,21 +946,10 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
             exp->implicitConvTo(tb->nextOf()->arrayOf()) > MATCHnomatch)
         {
             uinteger_t dim1 = ((TypeSArray *)tb)->dim->toInteger();
-            uinteger_t dim2 = dim1;
-            if (exp->op == TOKarrayliteral)
+            uinteger_t dim2 = getStaticArrayLen(exp);
+            if (dim2 != ~0 && dim1 != dim2)
             {
-                ArrayLiteralExp *ale = (ArrayLiteralExp *)exp;
-                dim2 = ale->elements ? ale->elements->dim : 0;
-            }
-            else if (exp->op == TOKslice)
-            {
-                Type *tx = toStaticArrayType((SliceExp *)exp);
-                if (tx)
-                    dim2 = ((TypeSArray *)tx)->dim->toInteger();
-            }
-            if (dim1 != dim2)
-            {
-                exp->error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
+                exp->error("mismatched array lengths, %llu and %llu", dim1, dim2);
                 exp = new ErrorExp();
             }
         }
