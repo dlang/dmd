@@ -5072,15 +5072,14 @@ elem *toElem(Expression *e, IRState *irs)
             size_t dim = elems->dim;
             assert(dim);
 
-            Type *tsarray = telem->sarrayOf(dim);;
-            symbol *stmp = symbol_genauto(Type_toCtype(tsarray));
+            Type *tsarray = telem->sarrayOf(dim);
             targ_size_t szelem = telem->size();
-            ::type *te = Type_toCtype(telem); // stmp[] element type
+            ::type *te = Type_toCtype(telem);   // stmp[] element type
+
+            symbol *stmp = symbol_genauto(Type_toCtype(tsarray));
             *psym = stmp;
 
-            Elems eset;
-            eset.setDim(dim);
-
+            elem *e = NULL;
             for (size_t i = 0; i < dim; i++)
             {
                 /* Generate: *(&stmp + i * szelem) = element[i]
@@ -5089,7 +5088,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ev = el_ptr(stmp);
                 ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * szelem));
                 ev = el_una(OPind, te->Tty, ev);
-                elem *eeq = el_bin(OPeq,te->Tty,ev,ep);
+                elem *eeq = el_bin(OPeq, te->Tty, ev, ep);
 
                 if (tybasic(te->Tty) == TYstruct)
                 {
@@ -5102,10 +5101,9 @@ elem *toElem(Expression *e, IRState *irs)
                     eeq->Ejty = eeq->Ety = TYstruct;
                     eeq->ET = te;
                 }
-                eset[i] = eeq;
+                e = el_combine(e, eeq);
             }
-
-            return el_combines((void **)eset.tdata(), dim);
+            return e;
         }
 
         /*************************************************
@@ -5117,29 +5115,20 @@ elem *toElem(Expression *e, IRState *irs)
         {
             // Create a static array of type telem[dim]
             size_t dim = exps->dim;
+            assert(dim);
 
-            Elems elems;
-            elems.setDim(dim);
+            Type *telem = (*exps)[0]->type;
+            Type *tsarray = telem->sarrayOf(dim);
+            targ_size_t szelem = telem->size();
+            ::type *te = Type_toCtype(telem);   // stmp[] element type
 
-            Type *telem;
-            Type *tsarray;
-            symbol *stmp;
-            targ_size_t szelem;
-            ::type *te;      // stmp[] element type
+            symbol *stmp = symbol_genauto(Type_toCtype(tsarray));
+            *psym = stmp;
 
+            elem *e = NULL;
             for (size_t i = 0; i < dim; i++)
             {
                 Expression *el = (*exps)[i];
-                if (i == 0)
-                {
-                    telem = el->type;
-                    szelem = telem->size();
-                    te = Type_toCtype(telem);
-
-                    tsarray = telem->sarrayOf(dim);
-                    stmp = symbol_genauto(Type_toCtype(tsarray));
-                    *psym = stmp;
-                }
 
                 /* Generate: *(&stmp + i * szelem) = element[i]
                  */
@@ -5147,7 +5136,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ev = el_ptr(stmp);
                 ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * szelem));
                 ev = el_una(OPind, te->Tty, ev);
-                elem *eeq = el_bin(OPeq,te->Tty,ev,ep);
+                elem *eeq = el_bin(OPeq, te->Tty, ev, ep);
 
                 if (tybasic(te->Tty) == TYstruct)
                 {
@@ -5160,10 +5149,9 @@ elem *toElem(Expression *e, IRState *irs)
                     eeq->Ejty = eeq->Ety = TYstruct;
                     eeq->ET = te;
                 }
-                elems[i] = eeq;
+                e = el_combine(e, eeq);
             }
-
-            return el_combines((void **)elems.tdata(), dim);
+            return e;
         }
 
         void visit(AssocArrayLiteralExp *aale)
