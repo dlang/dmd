@@ -11583,19 +11583,8 @@ Expression *AssignExp::semantic(Scope *sc)
             if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
             {
                 uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
-                uinteger_t dim2 = dim1;
-                if (e2x->op == TOKarrayliteral)
-                {
-                    ArrayLiteralExp *ale = (ArrayLiteralExp *)e2x;
-                    dim2 = ale->elements ? ale->elements->dim : 0;
-                }
-                else if (e2x->op == TOKslice)
-                {
-                    Type *tx = toStaticArrayType((SliceExp *)e2x);
-                    if (tx)
-                        dim2 = ((TypeSArray *)tx)->dim->toInteger();
-                }
-                if (dim1 != dim2)
+                uinteger_t dim2 = getStaticArrayLen(e2x);
+                if (dim2 != ~0 && dim1 != dim2)
                 {
                     error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
                     return new ErrorExp();
@@ -11722,20 +11711,11 @@ Expression *AssignExp::semantic(Scope *sc)
         /* If assigned elements number is known at compile time,
          * check the mismatch.
          */
-        SliceExp *se1 = (SliceExp *)e1;
-        TypeSArray *tsa1 = (TypeSArray *)toStaticArrayType(se1);
-        TypeSArray *tsa2 = NULL;
-        if (e2x->op == TOKarrayliteral)
-            tsa2 = (TypeSArray *)t2->nextOf()->sarrayOf(((ArrayLiteralExp *)e2x)->elements->dim);
-        else if (e2x->op == TOKslice)
-            tsa2 = (TypeSArray *)toStaticArrayType((SliceExp *)e2x);
-        else if (t2->ty == Tsarray)
-            tsa2 = (TypeSArray *)t2;
-        if (tsa1 && tsa2)
+        uinteger_t dim1 = getStaticArrayLen(e1);
+        if (dim1 != ~0)
         {
-            uinteger_t dim1 = tsa1->dim->toInteger();
-            uinteger_t dim2 = tsa2->dim->toInteger();
-            if (dim1 != dim2)
+            uinteger_t dim2 = getStaticArrayLen(e2x);
+            if (dim2 != ~0 && dim1 != dim2)
             {
                 error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
                 return new ErrorExp();

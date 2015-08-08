@@ -1344,7 +1344,6 @@
             [
                 "function implicitCastTo",
                 "function implicitConvTo",
-                "function toStaticArrayType",
                 "function castTo",
                 "function inferType",
                 "function scaleFactor",
@@ -1354,6 +1353,8 @@
                 "function integralPromotions",
                 "function arrayTypeCompatible",
                 "function arrayTypeCompatibleWithoutCasting",
+                "function toStaticArrayType",
+                "function getStaticArrayLen",
                 "function getIntRange"
             ]
         },
