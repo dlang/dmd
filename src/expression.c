@@ -3341,13 +3341,22 @@ Lagain:
 
     //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
     //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
-    if (!s->isFuncDeclaration())        // functions are checked after overloading
-        checkDeprecated(sc, s);
     Dsymbol *olds = s;
-    s = s->toAlias();
-    //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
-    if (s != olds && !s->isFuncDeclaration())
-        checkDeprecated(sc, s);
+    Declaration *d = s->isDeclaration();
+    if (d && (d->storage_class & STCtemplateparameter))
+    {
+        s = s->toAlias();
+    }
+    else
+    {
+        if (!s->isFuncDeclaration())        // functions are checked after overloading
+            checkDeprecated(sc, s);
+        s = s->toAlias();
+        //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
+        if (s != olds && !s->isFuncDeclaration())
+            checkDeprecated(sc, s);
+    }
+
 
     if (VarDeclaration *v = s->isVarDeclaration())
     {
@@ -4385,9 +4394,6 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     if (!sd->fit(loc, sc, elements, stype))
         return new ErrorExp();
 
-    if (checkFrameAccess(loc, sc, sd, elements->dim))
-        return new ErrorExp();
-
     /* Fill out remainder of elements[] with default initializers for fields[]
      */
     if (!sd->fill(loc, elements, false))
@@ -4399,6 +4405,10 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         global.increaseErrorCount();
         return new ErrorExp();
     }
+
+    if (checkFrameAccess(loc, sc, sd, elements->dim))
+        return new ErrorExp();
+
     type = stype ? stype : sd->type;
     return this;
 }
@@ -5070,13 +5080,17 @@ Lagain:
 
             member = f->isCtorDeclaration();
             assert(member);
+
+            if (checkFrameAccess(loc, sc, sd, sd->fields.dim))
+                return new ErrorExp();
         }
         else
         {
             if (!sd->fit(loc, sc, arguments, tb))
                 return new ErrorExp();
-
             if (!sd->fill(loc, arguments, false))
+                return new ErrorExp();
+            if (checkFrameAccess(loc, sc, sd, arguments ? arguments->dim : 0))
                 return new ErrorExp();
         }
 
@@ -8447,6 +8461,8 @@ Lagain:
                 StructLiteralExp *sle = new StructLiteralExp(loc, sd, NULL, e1->type);
                 if (!sd->fill(loc, sle->elements, true))
                     return new ErrorExp();
+                if (checkFrameAccess(loc, sc, sd, sle->elements->dim))
+                    return new ErrorExp();
                 // Bugzilla 14556: Set concrete type to avoid further redundant semantic().
                 sle->type = e1->type;
 
@@ -11572,6 +11588,20 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (e1x->checkPostblit(sc, t1))
                     return new ErrorExp();
             }
+
+            // e2 matches to t1 because of the implicit length match, so
+            if (isUnaArrayOp(e2x->op) || isBinArrayOp(e2x->op))
+            {
+                // convert e1 to e1[]
+                // e.g. e1[] = a[] + b[];
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
+            }
+            else
+            {
+                // convert e2 to t1 later
+                // e.g. e1 = [1, 2, 3];
+            }
         }
         else
         {
@@ -13554,6 +13584,18 @@ Expression *EqualExp::semantic(Scope *sc)
             e = new NotExp(e->loc, e);
             e = e->semantic(sc);
         }
+        return e;
+    }
+
+    if (t1->ty == Tpointer || t2->ty == Tpointer)
+    {
+        /* Rewrite:
+         *      ptr1 == ptr2
+         * as:
+         *      ptr1 is ptr2
+         */
+        e = new IdentityExp(op == TOKequal ? TOKidentity : TOKnotidentity, loc, e1, e2);
+        e = e->semantic(sc);
         return e;
     }
 

@@ -48,9 +48,6 @@
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
 
-// Allow implicit conversion of T[] to T*  --> Removed in 2.063
-#define IMPLICIT_ARRAY_TO_PTR   0
-
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
 
@@ -2334,8 +2331,10 @@ Identifier *Type::getTypeInfoIdent(int internal)
     assert(strlen(name) < namelen);     // don't overflow the buffer
 
     size_t off = 0;
+#ifndef IN_GCC
     if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
         ++off;                 // C mangling will add '_' back in
+#endif
     Identifier *id = Identifier::idPool(name + off);
 
     if (name != namebuf)
@@ -3981,6 +3980,8 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     }
     else
     {
+        if ((*pt)->ty != Terror)
+            next = *pt;     // prevent re-running semantic() on 'next'
      Ldefault:
         Type::resolve(loc, sc, pe, pt, ps, intypeid);
     }
@@ -4168,20 +4169,6 @@ MATCH TypeSArray::implicitConvTo(Type *to)
 {
     //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
 
-    // Allow implicit conversion of static array to pointer or dynamic array
-    if (IMPLICIT_ARRAY_TO_PTR && to->ty == Tpointer)
-    {
-        TypePointer *tp = (TypePointer *)to;
-
-        if (!MODimplicitConv(next->mod, tp->next->mod))
-            return MATCHnomatch;
-
-        if (tp->next->ty == Tvoid || next->constConv(tp->next) > MATCHnomatch)
-        {
-            return MATCHconvert;
-        }
-        return MATCHnomatch;
-    }
     if (to->ty == Tarray)
     {
         TypeDArray *ta = (TypeDArray *)to;
@@ -4396,6 +4383,8 @@ void TypeDArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     }
     else
     {
+        if ((*pt)->ty != Terror)
+            next = *pt;     // prevent re-running semantic() on 'next'
      Ldefault:
         Type::resolve(loc, sc, pe, pt, ps, intypeid);
     }
@@ -4448,22 +4437,6 @@ MATCH TypeDArray::implicitConvTo(Type *to)
     //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
     if (equals(to))
         return MATCHexact;
-
-    // Allow implicit conversion of array to pointer
-    if (IMPLICIT_ARRAY_TO_PTR && to->ty == Tpointer)
-    {
-        TypePointer *tp = (TypePointer *)to;
-
-        /* Allow conversion to void*
-         */
-        if (tp->next->ty == Tvoid &&
-            MODimplicitConv(next->mod, tp->next->mod))
-        {
-            return MATCHconvert;
-        }
-
-        return next->constConv(tp->next) ? MATCHconvert : MATCHnomatch;
-    }
 
     if (to->ty == Tarray)
     {
@@ -6466,7 +6439,12 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
     if (s)
     {
         //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-        s->checkDeprecated(loc, sc);            // check for deprecated aliases
+        Declaration *d = s->isDeclaration();
+        if (d && (d->storage_class & STCtemplateparameter))
+            s = s->toAlias();
+        else
+            s->checkDeprecated(loc, sc);            // check for deprecated aliases
+
         s = s->toAlias();
         //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
         for (size_t i = 0; i < idents.dim; i++)
@@ -8960,6 +8938,8 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
     }
     else
     {
+        if ((*pt)->ty != Terror)
+            next = *pt;     // prevent re-running semantic() on 'next'
      Ldefault:
         Type::resolve(loc, sc, pe, pt, ps, intypeid);
     }

@@ -46,11 +46,6 @@ unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 void mangleToBuffer(Expression *e, OutBuffer *buf);
 
-// Glue layer
-Symbol *toModuleAssert(Module *m);
-Symbol *toModuleUnittest(Module *m);
-Symbol *toModuleArray(Module *m);
-
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
  * on earlier versions of gcc.
@@ -1927,10 +1922,10 @@ Lmatch:
                 {
                     // if tuple parameter and
                     // tuple parameter was not in function parameter list and
-                    // we're one argument short (i.e. no tuple argument)
-                    if (tp &&
+                    // we're one or more arguments short (i.e. no tuple argument)
+                    if (tparam == tp &&
                         fptupindex == IDX_NOTFOUND &&
-                        ntargs == dedargs->dim - 1)
+                        ntargs <= dedargs->dim - 1)
                     {
                         // make tuple argument an empty tuple
                         oded = (RootObject *)new Tuple();
@@ -1965,7 +1960,8 @@ Lmatch:
 
             /* Bugzilla 7469: Normalize ti->tiargs for the correct mangling of template instance.
              */
-            if (Tuple *va = isTuple(oded))
+            Tuple *va = isTuple(oded);
+            if (va && va->objects.dim)
             {
                 dedargs->setDim(parameters->dim - 1 + va->objects.dim);
                 for (size_t j = 0; j < va->objects.dim; j++)
@@ -2033,16 +2029,16 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
 {
     //printf("TemplateDeclaration::declareParameter('%s', o = %p)\n", tp->ident->toChars(), o);
 
-    Type *targ = isType(o);
+    Type *ta = isType(o);
     Expression *ea = isExpression(o);
     Dsymbol *sa = isDsymbol(o);
     Tuple *va = isTuple(o);
 
-    Dsymbol *s;
+    Declaration *d;
     VarDeclaration *v = NULL;
 
     if (ea && ea->op == TOKtype)
-        targ = ea->type;
+        ta = ea->type;
     else if (ea && ea->op == TOKimport)
         sa = ((ScopeExp *)ea)->sds;
     else if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
@@ -2055,15 +2051,15 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
             sa = ((FuncExp *)ea)->fd;
     }
 
-    if (targ)
+    if (ta)
     {
-        //printf("type %s\n", targ->toChars());
-        s = new AliasDeclaration(Loc(), tp->ident, targ);
+        //printf("type %s\n", ta->toChars());
+        d = new AliasDeclaration(Loc(), tp->ident, ta);
     }
     else if (sa)
     {
         //printf("Alias %s %s;\n", sa->ident->toChars(), tp->ident->toChars());
-        s = new AliasDeclaration(Loc(), tp->ident, sa);
+        d = new AliasDeclaration(Loc(), tp->ident, sa);
     }
     else if (ea)
     {
@@ -2075,12 +2071,12 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
 
         v = new VarDeclaration(loc, t, tp->ident, init);
         v->storage_class = STCmanifest | STCtemplateparameter;
-        s = v;
+        d = v;
     }
     else if (va)
     {
         //printf("\ttuple\n");
-        s = new TupleDeclaration(loc, tp->ident, &va->objects);
+        d = new TupleDeclaration(loc, tp->ident, &va->objects);
     }
     else
     {
@@ -2089,13 +2085,37 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
 #endif
         assert(0);
     }
-    if (!sc->insert(s))
+
+    d->storage_class |= STCtemplateparameter;
+    if (ta)
+    {
+        Type *t = ta;
+        // consistent with Type::checkDeprecated()
+        while (t->ty != Tenum)
+        {
+            if (!t->nextOf()) break;
+            t = ((TypeNext *)t)->next;
+        }
+        if (Dsymbol *s = t->toDsymbol(NULL))
+        {
+            if (s->isDeprecated())
+                d->storage_class |= STCdeprecated;
+        }
+    }
+    else if (sa)
+    {
+        if (sa->isDeprecated())
+            d->storage_class |= STCdeprecated;
+    }
+
+    if (!sc->insert(d))
         error("declaration %s is already defined", tp->ident->toChars());
-    s->semantic(sc);
+    d->semantic(sc);
+
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
     if (v)
-        return (RootObject *)v->init->toExpression();
+        o = v->init->toExpression();
     return o;
 }
 
@@ -5911,16 +5931,6 @@ Lerror:
     if (errors)
         goto Lerror;
 
-    if (Module *m = tempdecl->scope->module) // should use getModule() instead?
-    {
-        // Generate these functions as they may be used
-        // when template is instantiated in other modules
-        // even if assertions or bounds checking are disabled in this module
-        toModuleArray(m);
-        toModuleAssert(m);
-        toModuleUnittest(m);
-    }
-
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
      */
@@ -7887,14 +7897,28 @@ bool TemplateInstance::needsCodegen()
         //printf("%s minst = %s, enclosing (%s)->isNonRoot = %d\n",
         //    toPrettyChars(), minst ? minst->toChars() : NULL,
         //    enclosing ? enclosing->toPrettyChars() : NULL, enclosing && enclosing->inNonRoot());
-        if (enclosing && !tinst)
+        if (enclosing)
         {
-            // Bugzilla 13415: If and only if the enclosing scope needs codegen,
-            // the nested templates would need code generation.
+            // Bugzilla 14588: If the captured context is not a function
+            // (e.g. class), the instance layout determination is guaranteed,
+            // because the semantic/semantic2 pass will be executed
+            // even for non-root instances.
+            if (!enclosing->isFuncDeclaration())
+                return true;
+
+            // Bugzilla 14834: If the captured context is a function,
+            // this excessive instantiation may cause ODR violation, because
+            // -allInst and others doesn't guarantee the semantic3 execution
+            // for that function.
+
+            // If the enclosing is also an instantiated function,
+            // we have to rely on the ancestor's needsCodegen() result.
             if (TemplateInstance *ti = enclosing->isInstantiated())
                 return ti->needsCodegen();
-            else
-                return !enclosing->inNonRoot();
+
+            // Bugzilla 13415: If and only if the enclosing scope needs codegen,
+            // this nested templates would also need code generation.
+            return !enclosing->inNonRoot();
         }
         return true;
     }

@@ -15,10 +15,12 @@
 // This file contains a data structure that describes a back-end target.
 // At present it is incomplete, but in future it should grow to contain
 // most or all target machine and target O/S specific information.
+#include "globals.h"
 
 class Expression;
 class Type;
 class Module;
+struct OutBuffer;
 
 struct Target
 {
@@ -32,13 +34,17 @@ struct Target
     static int classinfosize;        // size of 'ClassInfo'
 
     static void init();
+    // Type sizes and support.
     static unsigned alignsize(Type* type);
     static unsigned fieldalign(Type* type);
     static unsigned critsecsize();
     static Type *va_listType();  // get type of va_list
-    static Expression *paintAsType(Expression *e, Type *type);
     static int checkVectorType(int sz, Type *type);
+    // CTFE support for cross-compilation.
+    static Expression *paintAsType(Expression *e, Type *type);
+    // ABI and backend.
     static void loadModule(Module *m);
+    static void prefixName(OutBuffer *buf, LINK linkage);
 };
 
 #endif

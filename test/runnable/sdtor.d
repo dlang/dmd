@@ -3986,6 +3986,82 @@ int test14815()
 static assert(test14815());
 
 /**********************************/
+// 14860
+
+int test14860()
+{
+    uint dtorCount;
+
+    struct S
+    {
+        uint x;
+        ~this() { ++dtorCount; }
+    }
+
+    S[] a = [S(42)];
+    a[] = S();
+
+    assert(a[0].x == 0);
+    assert(dtorCount == 1);
+
+    return 1;
+}
+static assert(test14860());
+
+/**********************************/
+// 14838
+
+int test14838() pure nothrow @safe
+{
+    int dtor;
+
+    struct S14838(T)
+    {
+        ~this() { ++dtor; }
+    }
+    struct X14838
+    {
+              S14838!int ms;
+        const S14838!int cs;
+
+              S14838!int[2] ma;
+        const S14838!int[2] ca;
+
+              S14838!int[2][2] ma2x2;
+        const S14838!int[2][2] ca2x2;
+
+        // number of S14838 = 1*2 + 2*2 + 4*2 = 14
+    }
+
+    void test(Dg)(scope Dg code)
+    {
+        dtor = 0;
+        code();
+    }
+
+    test(delegate{       S14838!int a; }); assert(dtor == 1);
+    test(delegate{ const S14838!int a; }); assert(dtor == 1);
+
+    test(delegate{       S14838!int[2] a; }); assert(dtor == 2);
+    test(delegate{ const S14838!int[2] a; }); assert(dtor == 2);
+
+    test(delegate{       S14838!int[2][2] a; }); assert(dtor == 4);
+    test(delegate{ const S14838!int[2][2] a; }); assert(dtor == 4);
+
+    test(delegate{       X14838 a; }); assert(dtor == 1 * 14);
+    test(delegate{ const X14838 a; }); assert(dtor == 1 * 14);
+
+    test(delegate{       X14838[2] a; }); assert(dtor == 2 * 14);
+    test(delegate{ const X14838[2] a; }); assert(dtor == 2 * 14);
+
+    test(delegate{       X14838[2][2] a; }); assert(dtor == 4 * 14);
+    test(delegate{ const X14838[2][2] a; }); assert(dtor == 4 * 14);
+
+    return 1;
+}
+static assert(test14838());
+
+/**********************************/
 
 int main()
 {
@@ -4102,6 +4178,8 @@ int main()
     test13095();
     test14264();
     test14815();
+    test14860();
+    test14838();
 
     printf("Success\n");
     return 0;

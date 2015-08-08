@@ -60,11 +60,6 @@ void genObjFile(Module *m, bool multiobj)
 {
 }
 
-void genhelpers(Module *m, bool iscomdat)
-{
-    assert(0);
-}
-
 // msc
 
 void backend_init()
