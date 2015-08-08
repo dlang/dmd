@@ -12458,18 +12458,31 @@ Expression *CatExp::semantic(Scope *sc)
     // Check for: array ~ element
     if ((tb1->ty == Tsarray || tb1->ty == Tarray) && tb2->ty != Tvoid)
     {
-        if (e1->op == TOKarrayliteral && e1->implicitConvTo(tb2->arrayOf()))
+        if (e1->op == TOKarrayliteral)
+        {
+            e2 = e2->isLvalue() ? callCpCtor(sc, e2) : valueNoDtor(e2);
+            // Bugzilla 14686: Postblit call appears in AST, and this is
+            // finally translated  to an ArrayLiteralExp in below otpimize().
+        }
+        else if (e1->op == TOKstring)
+        {
+            // No postblit call exists on character (integer) value.
+        }
+        else
         {
             if (e2->checkPostblit(sc, tb2))
                 return new ErrorExp();
+            // Postblit call will be done in runtime helper function
+        }
+
+        if (e1->op == TOKarrayliteral && e1->implicitConvTo(tb2->arrayOf()))
+        {
             e1 = e1->implicitCastTo(sc, tb2->arrayOf());
             type = tb2->arrayOf();
             goto L2elem;
         }
         if (e2->implicitConvTo(tb1next) >= MATCHconvert)
         {
-            if (e2->checkPostblit(sc, tb2))
-                return new ErrorExp();
             e2 = e2->implicitCastTo(sc, tb1next);
             type = tb1next->arrayOf();
         L2elem:
@@ -12479,25 +12492,33 @@ Expression *CatExp::semantic(Scope *sc)
                 e2 = new ArrayLiteralExp(e2->loc, e2);
                 e2->type = type;
             }
-            return this;
+            return optimize(WANTvalue);
         }
     }
     // Check for: element ~ array
     if ((tb2->ty == Tsarray || tb2->ty == Tarray) && tb1->ty != Tvoid)
     {
-        if (e2->op == TOKarrayliteral &&
-            e2->implicitConvTo(tb1->arrayOf()))
+        if (e2->op == TOKarrayliteral)
+        {
+            e1 = e1->isLvalue() ? callCpCtor(sc, e1) : valueNoDtor(e1);
+        }
+        else if (e2->op == TOKstring)
+        {
+        }
+        else
         {
             if (e1->checkPostblit(sc, tb1))
                 return new ErrorExp();
+        }
+
+        if (e2->op == TOKarrayliteral && e2->implicitConvTo(tb1->arrayOf()))
+        {
             e2 = e2->implicitCastTo(sc, tb1->arrayOf());
             type = tb1->arrayOf();
             goto L1elem;
         }
         if (e1->implicitConvTo(tb2next) >= MATCHconvert)
         {
-            if (e1->checkPostblit(sc, tb1))
-                return new ErrorExp();
             e1 = e1->implicitCastTo(sc, tb2next);
             type = tb2next->arrayOf();
         L1elem:
@@ -12507,7 +12528,7 @@ Expression *CatExp::semantic(Scope *sc)
                 e1 = new ArrayLiteralExp(e1->loc, e1);
                 e1->type = type;
             }
-            return this;
+            return optimize(WANTvalue);
         }
     }
 
@@ -12555,22 +12576,17 @@ Lpeer:
 #endif
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
-    if (e1->op == TOKstring && e2->op == TOKstring)
+    if ((t1->ty == Tarray || t1->ty == Tsarray) &&
+        (t2->ty == Tarray || t2->ty == Tsarray))
     {
+        // Normalize to ArrayLiteralExp or StringExp as far as possible
         e = optimize(WANTvalue);
-    }
-    else if ((t1->ty == Tarray || t1->ty == Tsarray) &&
-             (t2->ty == Tarray || t2->ty == Tsarray))
-    {
-        e = this;
     }
     else
     {
         //printf("(%s) ~ (%s)\n", e1->toChars(), e2->toChars());
         return incompatibleTypes();
     }
-
-    e->type = e->type->semantic(loc, sc);
     return e;
 }
 
