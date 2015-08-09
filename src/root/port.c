@@ -214,7 +214,11 @@ PortInitializer::PortInitializer()
 
 int Port::isNan(double r)
 {
+#if _MSC_VER >= 1900
+    return ::isnan(r);
+#else
     return ::_isnan(r);
+#endif
 }
 
 int Port::isNan(longdouble r)
@@ -239,7 +243,11 @@ int Port::isSignallingNan(longdouble r)
 
 int Port::isInfinity(double r)
 {
+#if _MSC_VER >= 1900
+    return ::isinf(r);
+#else
     return (::_fpclass(r) & (_FPCLASS_NINF | _FPCLASS_PINF));
+#endif
 }
 
 longdouble Port::sqrt(longdouble x)
@@ -337,6 +345,9 @@ int Port::stricmp(const char *s1, const char *s2)
 
 float Port::strtof(const char *p, char **endp)
 {
+#if _MSC_VER >= 1900
+    return ::strtof(p, endp); // C99 conformant since VS 2015
+#else
     if(endp)
         return static_cast<float>(::strtod(p, endp)); // does not set errno for underflows, but unused
 
@@ -345,10 +356,14 @@ float Port::strtof(const char *p, char **endp)
     if (res == _UNDERFLOW)
         errno = ERANGE;
     return flt.f;
+#endif
 }
 
 double Port::strtod(const char *p, char **endp)
 {
+#if _MSC_VER >= 1900
+    return ::strtod(p, endp); // C99 conformant since VS 2015
+#else
     if(endp)
         return ::strtod(p, endp); // does not set errno for underflows, but unused
 
@@ -357,6 +372,7 @@ double Port::strtod(const char *p, char **endp)
     if (res == _UNDERFLOW)
         errno = ERANGE;
     return dbl.x;
+#endif
 }
 
 // from backend/strtold.c, renamed to avoid clash with decl in stdlib.h
