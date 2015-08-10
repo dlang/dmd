@@ -13180,6 +13180,12 @@ public:
             return e;
         Type tb1 = e1.type.toBasetype();
         Type tb2 = e2.type.toBasetype();
+
+        auto f1 = checkNonAssignmentArrayOp(e1);
+        auto f2 = checkNonAssignmentArrayOp(e2);
+        if (f1 || f2)
+            return new ErrorExp();
+
         /* BUG: Should handle things like:
          *      char c;
          *      c ~ ' '

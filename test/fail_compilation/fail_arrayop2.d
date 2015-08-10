@@ -180,3 +180,16 @@ void test13910()
         return !!((data[segmentId][28..29]) & (1 << 0));
     }
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_arrayop2.d(194): Error: array operation a[] + 1 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(194): Error: array operation a[] * 2 without destination memory not allowed
+---
+*/
+void test14895()
+{
+    int[] a;
+    int[] b = (a[] + 1) ~ a[] * 2;
+}
