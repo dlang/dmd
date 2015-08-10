@@ -5,10 +5,19 @@ $(COMMENT Pending changelog for 2.069. This will get copied to dlang.org and
 )
 
 $(BUGSTITLE Compiler Changes,
-
+$(LI $(RELATIVE_LINK2 objective-c-support, Basic support for Objective-C.))
 )
 
 $(BUGSTITLE Compiler Changes,
+
+$(LI $(RELATIVE_LINK2 objective-c-support, Basic support for Objective-C.)
+
+    $(P Basic support for Objective-C classes, interfaces and instance methods.
+        This is implemented by adding a new linkage attribute, Objective-C, and
+        a compiler recognized UDA, @selector. The linkage attribute is to be
+        used on a class or interface. The UDA is attached to a method.
+    )
+)
 
 )
 
