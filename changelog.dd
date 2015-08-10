@@ -1,0 +1,25 @@
+Ddoc
+
+$(COMMENT Pending changelog for 2.069. This will get copied to dlang.org and
+    cleared when master gets merged into stable prior to 2.069.
+)
+
+$(BUGSTITLE Compiler Changes,
+
+)
+
+$(BUGSTITLE Compiler Changes,
+
+)
+
+Macros:
+    TITLE=Change Log
+
+    BUGSTITLE = <div class="bugsfixed">$(H4 $1) $(OL $2 )</div>
+
+    RELATIVE_LINK2=<a href="#$1">$+</a>
+    LNAME2=<a class="anchor" title="Permalink to this section" id="$1" href="#$1">$+</a>
+
+    STDMODREF = <a href="phobos/std_$1.html">$2</a>
+    XREF = <a href="phobos/std_$1.html#$2">$2</a>
+    CXREF = <a href="phobos/core_$1.html#$2">$2</a>
