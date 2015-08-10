@@ -582,6 +582,10 @@ zip:
 	-rm -f dmdsrc.zip
 	zip dmdsrc $(SRC) $(ROOT_SRC) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
 
+######################################################
+
+../changelog.html: ../changelog.dd
+	$(HOST_DC_RUN) -Df$@ $<
 
 ############################# DDMD stuff ############################
 
