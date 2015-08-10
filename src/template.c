@@ -46,6 +46,11 @@ unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 void mangleToBuffer(Expression *e, OutBuffer *buf);
 
+// Glue layer
+Symbol *toModuleAssert(Module *m);
+Symbol *toModuleUnittest(Module *m);
+Symbol *toModuleArray(Module *m);
+
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
  * on earlier versions of gcc.
@@ -5906,6 +5911,27 @@ Lerror:
     hasNestedArgs(tiargs, tempdecl->isstatic);
     if (errors)
         goto Lerror;
+
+    // todo: should we use getModule() instead?
+    // --> Yes, it's consistent with the way in glue.c.
+    if (Module *m = tempdecl->scope->module)
+    {
+        // Generate these functions as they may be used
+        // when template is instantiated in other modules
+        // even if assertions or bounds checking are disabled in this module
+        toModuleArray(m);
+        toModuleAssert(m);
+        toModuleUnittest(m);
+
+        // todo: This is a workaround for the object file generation pass.
+        // Currently, if m is a root module, this->toObjFile() may not happen
+        // during m->toObjFile(). For that, we have to request the module
+        // helpers in the early stage.
+
+        // To avoid this hack, we should insert the primary instance 'inst'
+        // in the member of module m.
+        // It will be done by: https://github.com/D-Programming-Language/dmd/pull/4784
+    }
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
