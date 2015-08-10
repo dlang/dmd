@@ -431,6 +431,9 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                         }
                         break;
                     }
+                    // Workaround 14894. Add an empty unittest declaration to keep
+                    // the number of symbols in this scope independent of -unittest.
+                    s = new UnitTestDeclaration(loc, token.loc, STCundefined, NULL);
                 }
                 break;
 
