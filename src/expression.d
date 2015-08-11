@@ -5504,6 +5504,16 @@ public:
         if (type) // if semantic() already run
             return this;
 
+        // Bugzilla 11581: With the syntax `new T[edim]` or `thisexp.new T[edim]`,
+        // T should be analyzed first and edim should go into arguments iff it's
+        // not a tuple.
+        Expression edim = null;
+        if (!arguments && newtype.ty == Tsarray)
+        {
+            edim = (cast(TypeSArray)newtype).dim;
+            newtype = (cast(TypeNext)newtype).next;
+        }
+
         ClassDeclaration cdthis = null;
         if (thisexp)
         {
@@ -5527,6 +5537,26 @@ public:
         }
         if (type.ty == Terror)
             return new ErrorExp();
+
+        if (edim)
+        {
+            if (type.toBasetype().ty == Ttuple)
+            {
+                // --> new T[edim]
+                type = new TypeSArray(type, edim);
+                type = type.semantic(loc, sc);
+                if (type.ty == Terror)
+                    return new ErrorExp();
+            }
+            else
+            {
+                // --> new T[](edim)
+                arguments = new Expressions();
+                arguments.push(edim);
+                type = type.arrayOf();
+            }
+        }
+
         newtype = type; // in case type gets cast to something else
         Type tb = type.toBasetype();
         //printf("tb: %s, deco = %s\n", tb.toChars(), tb.deco);
