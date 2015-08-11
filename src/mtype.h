@@ -674,15 +674,14 @@ public:
     void addIndex(RootObject *expr);
     d_uns64 size(Loc loc);
 
+    void resolveTupleIndex(Loc loc, Scope *sc, Dsymbol *s,
+        Expression **pe, Type **pt, Dsymbol **ps, RootObject *oindex);
     void resolveExprType(Loc loc, Scope *sc, Expression *e, size_t i,
         Expression **pe, Type **pt);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
 
     void accept(Visitor *v) { v->visit(this); }
-
-private:
-    bool resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *indexExpr);
 };
 
 class TypeIdentifier : public TypeQualified

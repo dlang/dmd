@@ -68,3 +68,18 @@ struct C(Args...)
 }
 
 alias Z = A!(B,B,C!(B,B));
+
+/***************************************************/
+// 14889
+
+struct A14889(alias Exc)
+{
+    alias ExceptionType = Exc;
+}
+alias TT14889(Args...) = Args;
+
+alias X14889a = TT14889!(A14889!Throwable());
+alias Y14889a = X14889a[0].ExceptionType;
+
+alias X14889b = TT14889!(A14889!Throwable);
+alias Y14889b = X14889b[0].ExceptionType;
