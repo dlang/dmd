@@ -50,11 +50,6 @@ class DefaultStatement;
 class LabelStatement;
 
 // Back end
-#ifdef IN_GCC
-typedef union tree_node block;
-#else
-struct block;
-#endif
 struct code;
 
 bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
@@ -439,7 +434,6 @@ public:
     Statement *statement;
 
     int index;          // which case it is (since we sort this)
-    block *cblock;      // back end: label for the block
 
     CaseStatement(Loc loc, Expression *exp, Statement *s);
     Statement *syntaxCopy();
@@ -469,9 +463,6 @@ class DefaultStatement : public Statement
 {
 public:
     Statement *statement;
-#ifdef IN_GCC
-    block *cblock;      // back end: label for the block
-#endif
 
     DefaultStatement(Loc loc, Statement *s);
     Statement *syntaxCopy();
@@ -697,8 +688,6 @@ public:
     Statement *gotoTarget;      // interpret
 
     bool breaks;                // someone did a 'break ident'
-    block *lblock;              // back end
-    Blocks *fwdrefs;            // forward references to this LabelStatement
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
     Statement *syntaxCopy();

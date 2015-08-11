@@ -39,6 +39,7 @@ IRState::IRState(IRState *irs, Statement *s)
         blx = irs->blx;
         deferToObj = irs->deferToObj;
         varsInScope = irs->varsInScope;
+        labels = irs->labels;
     }
     else
     {
@@ -49,6 +50,7 @@ IRState::IRState(IRState *irs, Statement *s)
         blx = NULL;
         deferToObj = NULL;
         varsInScope = NULL;
+        labels = NULL;
     }
 }
 
@@ -74,6 +76,7 @@ IRState::IRState(IRState *irs, Dsymbol *s)
         blx = irs->blx;
         deferToObj = irs->deferToObj;
         varsInScope = irs->varsInScope;
+        labels = irs->labels;
     }
     else
     {
@@ -84,6 +87,7 @@ IRState::IRState(IRState *irs, Dsymbol *s)
         blx = NULL;
         deferToObj = NULL;
         varsInScope = NULL;
+        labels = NULL;
     }
 }
 
@@ -107,6 +111,7 @@ IRState::IRState(Module *m, Dsymbol *s)
     deferToObj = NULL;
     startaddress = NULL;
     varsInScope = NULL;
+    labels = NULL;
 }
 
 block *IRState::getBreakBlock(Identifier *ident)
