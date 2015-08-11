@@ -6442,6 +6442,42 @@ bool TypeQualified::resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type 
     return true;
 }
 
+void TypeQualified::resolveExprType(Loc loc, Scope *sc,
+        Expression *e, size_t i, Expression **pe, Type **pt)
+{
+    //printf("resolveExprType(e = %s %s, type = %s)\n", Token::toChars(e->op), e->toChars(), e->type->toChars());
+
+    e = e->semantic(sc);
+
+    for (; i < idents.dim; i++)
+    {
+        if (e->op == TOKerror)
+            break;
+
+        RootObject *id = idents[i];
+        //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
+        if (id->dyncast() == DYNCAST_IDENTIFIER)
+        {
+            DotIdExp *die = new DotIdExp(e->loc, e, (Identifier *)id);
+            e = die->semanticY(sc, 0);
+        }
+        else
+        {
+            assert(id->dyncast() == DYNCAST_DSYMBOL);
+            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+            assert(ti);
+            DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(e->loc, e, ti->name, ti->tiargs);
+            e = dte->semanticY(sc, 0);
+        }
+    }
+    if (e->op == TOKerror)
+        *pt = Type::terror;
+    else if (e->op == TOKtype)
+        *pt = e->type;
+    else
+        *pe = e;
+}
+
 /*************************************
  * Takes an array of Identifiers and figures out if
  * it represents a Type or an Expression.
@@ -6449,7 +6485,6 @@ bool TypeQualified::resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type 
  *      if expression, *pe is set
  *      if type, *pt is set
  */
-
 void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
@@ -6562,31 +6597,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         e = new DsymbolExp(loc, s);
                     else
                         e = new VarExp(loc, s->isDeclaration());
-                    e = e->semantic(sc);
-                    for (; i < idents.dim; i++)
-                    {
-                        RootObject *id2 = idents[i];
-                        //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id2->toChars(), e->type->toChars());
-                        if (id2->dyncast() == DYNCAST_IDENTIFIER)
-                        {
-                            DotIdExp *die = new DotIdExp(e->loc, e, (Identifier *)id2);
-                            e = die->semanticY(sc, 0);
-                        }
-                        else
-                        {
-                            assert(id2->dyncast() == DYNCAST_DSYMBOL);
-                            TemplateInstance *ti = ((Dsymbol *)id2)->isTemplateInstance();
-                            assert(ti);
-                            DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(e->loc, e, ti->name, ti->tiargs);
-                            e = dte->semanticY(sc, 0);
-                        }
-                    }
-                    if (e->op == TOKtype)
-                        *pt = e->type;
-                    else if (e->op == TOKerror)
-                        *pt = Type::terror;
-                    else
-                        *pe = e;
+
+                    resolveExprType(loc, sc, e, i, pe, pt);
+                    return;
                 }
                 else
                 {
