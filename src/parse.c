@@ -6014,8 +6014,16 @@ bool Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                     t = peek(t);
                 }
                 else if (isDeclaration(t, 0, TOKrbracket, &t))
-                {   // It's an associative array declaration
+                {
+                    // It's an associative array declaration
                     t = peek(t);
+
+                    // ...[type].ident
+                    if (t->value == TOKdot && peek(t)->value == TOKidentifier)
+                    {
+                        t = peek(t);
+                        t = peek(t);
+                    }
                 }
                 else
                 {
@@ -6024,13 +6032,27 @@ bool Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                     if (!isExpression(&t))
                         return false;
                     if (t->value == TOKslice)
-                    {   t = peek(t);
+                    {
+                        t = peek(t);
                         if (!isExpression(&t))
                             return false;
+                        if (t->value != TOKrbracket)
+                            return false;
+                        t = peek(t);
                     }
-                    if (t->value != TOKrbracket)
-                        return false;
-                    t = peek(t);
+                    else
+                    {
+                        if (t->value != TOKrbracket)
+                            return false;
+                        t = peek(t);
+
+                        // ...[index].ident
+                        if (t->value == TOKdot && peek(t)->value == TOKidentifier)
+                        {
+                            t = peek(t);
+                            t = peek(t);
+                        }
+                    }
                 }
                 continue;
 
