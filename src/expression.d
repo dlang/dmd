@@ -5504,46 +5504,32 @@ public:
         if (type) // if semantic() already run
             return this;
 
-        Type tb;
         ClassDeclaration cdthis = null;
-        size_t nargs;
-        Expression newprefix = null;
-
-    Lagain:
         if (thisexp)
         {
             thisexp = thisexp.semantic(sc);
+            if (thisexp.op == TOKerror)
+                return new ErrorExp();
             cdthis = thisexp.type.isClassHandle();
-            if (cdthis)
-            {
-                sc = sc.push(cdthis);
-                type = newtype.semantic(loc, sc);
-                sc = sc.pop();
-
-                if (type.ty == Terror)
-                    return new ErrorExp();
-                if (!MODimplicitConv(thisexp.type.mod, newtype.mod))
-                {
-                    error("nested type %s should have the same or weaker constancy as enclosing type %s",
-                        newtype.toChars(), thisexp.type.toChars());
-                    return new ErrorExp();
-                }
-            }
-            else
+            if (!cdthis)
             {
                 error("'this' for nested class must be a class type, not %s", thisexp.type.toChars());
                 return new ErrorExp();
             }
+
+            sc = sc.push(cdthis);
+            type = newtype.semantic(loc, sc);
+            sc = sc.pop();
         }
         else
         {
             type = newtype.semantic(loc, sc);
-            if (type.ty == Terror)
-                return new ErrorExp();
         }
+        if (type.ty == Terror)
+            return new ErrorExp();
         newtype = type; // in case type gets cast to something else
-        tb = type.toBasetype();
-        //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
+        Type tb = type.toBasetype();
+        //printf("tb: %s, deco = %s\n", tb.toChars(), tb.deco);
 
         if (arrayExpressionSemantic(newargs, sc) ||
             preFunctionParameters(loc, sc, newargs))
@@ -5556,13 +5542,14 @@ public:
             return new ErrorExp();
         }
 
-        nargs = arguments ? arguments.dim : 0;
-
         if (thisexp && tb.ty != Tclass)
         {
             error("e.new is only for allocating nested classes, not %s", tb.toChars());
             return new ErrorExp();
         }
+
+        size_t nargs = arguments ? arguments.dim : 0;
+        Expression newprefix = null;
 
         if (tb.ty == Tclass)
         {
@@ -5603,11 +5590,8 @@ public:
                  * Ensure we have the right one.
                  */
                 Dsymbol s = cd.toParent2();
-                ClassDeclaration cdn = s.isClassDeclaration();
-                FuncDeclaration fdn = s.isFuncDeclaration();
-
-                //printf("cd isNested, cdn = %s\n", cdn ? cdn->toChars() : "null");
-                if (cdn)
+                //printf("cd isNested, parent = %s '%s'\n", s.kind(), s.toPrettyChars());
+                if (auto cdn = s.isClassDeclaration())
                 {
                     if (!cdthis)
                     {
@@ -5629,18 +5613,24 @@ public:
                             // Add a '.outer' and try again
                             thisexp = new DotIdExp(loc, thisexp, Id.outer);
                         }
-                        if (!global.errors)
-                            goto Lagain;
-                    }
-                    if (cdthis)
-                    {
-                        //printf("cdthis = %s\n", cdthis->toChars());
-                        if (cdthis != cdn && !cdn.isBaseOf(cdthis, null))
-                        {
-                            error("'this' for nested class must be of type %s, not %s",
-                                cdn.toChars(), thisexp.type.toChars());
+
+                        thisexp = thisexp.semantic(sc);
+                        if (thisexp.op == TOKerror)
                             return new ErrorExp();
-                        }
+                        cdthis = thisexp.type.isClassHandle();
+                    }
+                    if (cdthis != cdn && !cdn.isBaseOf(cdthis, null))
+                    {
+                        //printf("cdthis = %s\n", cdthis.toChars());
+                        error("'this' for nested class must be of type %s, not %s",
+                            cdn.toChars(), thisexp.type.toChars());
+                        return new ErrorExp();
+                    }
+                    if (!MODimplicitConv(thisexp.type.mod, newtype.mod))
+                    {
+                        error("nested type %s should have the same or weaker constancy as enclosing type %s",
+                            newtype.toChars(), thisexp.type.toChars());
+                        return new ErrorExp();
                     }
                 }
                 else if (thisexp)
@@ -5648,7 +5638,7 @@ public:
                     error("e.new is only for allocating nested classes");
                     return new ErrorExp();
                 }
-                else if (fdn)
+                else if (auto fdn = s.isFuncDeclaration())
                 {
                     // make sure the parent context fdn of cd is reachable from sc
                     if (checkNestedRef(sc.parent, fdn))
