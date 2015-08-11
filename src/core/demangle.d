@@ -223,6 +223,12 @@ private struct Demangle
     }
 
 
+    char[] put(char c)
+    {
+        char[1] val = c;
+        return put(val[]);
+    }
+
     char[] put( const(char)[] val )
     {
         if( val.length )
@@ -705,21 +711,21 @@ private struct Demangle
             next();
             put( "shared(" );
             parseType();
-            put( ")" );
+            put( ')' );
             pad( name );
             return dst[beg .. len];
         case 'x': // Const (x Type)
             next();
             put( "const(" );
             parseType();
-            put( ")" );
+            put( ')' );
             pad( name );
             return dst[beg .. len];
         case 'y': // Immutable (y Type)
             next();
             put( "immutable(" );
             parseType();
-            put( ")" );
+            put( ')' );
             pad( name );
             return dst[beg .. len];
         case 'N':
@@ -731,13 +737,13 @@ private struct Demangle
                 // TODO: Anything needed here?
                 put( "inout(" );
                 parseType();
-                put( ")" );
+                put( ')' );
                 return dst[beg .. len];
             case 'h': // TypeVector (Nh Type)
                 next();
                 put( "__vector(" );
                 parseType();
-                put( ")" );
+                put( ')' );
                 return dst[beg .. len];
             default:
                 error();
@@ -753,9 +759,9 @@ private struct Demangle
             next();
             auto num = sliceNumber();
             parseType();
-            put( "[" );
+            put( '[' );
             put( num );
-            put( "]" );
+            put( ']' );
             pad( name );
             return dst[beg .. len];
         case 'H': // TypeAssocArray (H Type Type)
@@ -763,15 +769,15 @@ private struct Demangle
             // skip t1
             auto tx = parseType();
             parseType();
-            put( "[" );
+            put( '[' );
             put( tx );
-            put( "]" );
+            put( ']' );
             pad( name );
             return dst[beg .. len];
         case 'P': // TypePointer (P Type)
             next();
             parseType();
-            put( "*" );
+            put( '*' );
             pad( name );
             return dst[beg .. len];
         case 'F': case 'U': case 'W': case 'V': case 'R': // TypeFunction
@@ -1072,13 +1078,13 @@ private struct Demangle
         parseFuncAttr();
 
         beg = len;
-        put( "(" );
+        put( '(' );
         scope(success)
         {
-            put( ")" );
+            put( ')' );
             auto t = len;
             parseType();
-            put( " " );
+            put( ' ' );
             if( name.length )
             {
                 if( !contains( dst[0 .. len], name ) )
@@ -1166,7 +1172,7 @@ private struct Demangle
             return;
         case 'N':
             next();
-            put( "-" );
+            put( '-' );
             parseIntegerValue( name, type );
             return;
         case 'e':
@@ -1176,17 +1182,17 @@ private struct Demangle
         case 'c':
             next();
             parseReal();
-            put( "+" );
+            put( '+' );
             match( 'c' );
             parseReal();
-            put( "i" );
+            put( 'i' );
             return;
         case 'a': case 'w': case 'd':
             char t = tok();
             next();
             auto n = decodeNumber();
             match( '_' );
-            put( "\"" );
+            put( '"' );
             foreach (i; 0..n)
             {
                 auto a = ascii2hex( tok() ); next();
@@ -1202,7 +1208,7 @@ private struct Demangle
                     put( buf[] );
                 }
             }
-            put( "\"" );
+            put( '"' );
             if( 'a' != t )
                 put( __ctfe ? [t] : (cast(char*) &t)[0 .. 1] );
             return;
@@ -1219,7 +1225,7 @@ private struct Demangle
             // A Number Value...
             // An array literal. Value is repeated Number times.
             next();
-            put( "[" );
+            put( '[' );
             auto n = decodeNumber();
             foreach( i; 0 .. n )
             {
@@ -1227,24 +1233,24 @@ private struct Demangle
                     put( ", " );
                 parseValue();
             }
-            put( "]" );
+            put( ']' );
             return;
         case 'H':
         LassocArray:
             // H Number Value...
             // An associative array literal. Value is repeated 2*Number times.
             next();
-            put( "[" );
+            put( '[' );
             auto n = decodeNumber();
             foreach( i; 0 .. n )
             {
                 if( i != 0 )
                     put( ", " );
                 parseValue();
-                put(":");
+                put(':');
                 parseValue();
             }
-            put( "]" );
+            put( ']' );
             return;
         case 'S':
             // S Number Value...
@@ -1252,7 +1258,7 @@ private struct Demangle
             next();
             if( name.length )
                 put( name );
-            put( "(" );
+            put( '(' );
             auto n = decodeNumber();
             foreach( i; 0 .. n )
             {
@@ -1260,7 +1266,7 @@ private struct Demangle
                     put( ", " );
                 parseValue();
             }
-            put( ")" );
+            put( ')' );
             return;
         default:
             error();
@@ -1318,10 +1324,10 @@ private struct Demangle
                 case 'a':
                     if( num >= 0x20 && num < 0x7F )
                     {
-                        put( "'" );
+                        put( '\'' );
                         char[1] tmp = cast(char)num;
                         put( tmp[] );
-                        put( "'" );
+                        put( '\'' );
                         return;
                     }
                     put( "\\x" );
@@ -1330,12 +1336,12 @@ private struct Demangle
                 case 'u':
                     put( "'\\u" );
                     putAsHex( num, 4 );
-                    put( "'" );
+                    put( '\'' );
                     return;
                 case 'w':
                     put( "'\\U" );
                     putAsHex( num, 8 );
-                    put( "'" );
+                    put( '\'' );
                     return;
                 default:
                     assert( 0 );
@@ -1347,11 +1353,11 @@ private struct Demangle
             return;
         case 'h', 't', 'k': // ubyte, ushort, uint
             put( sliceNumber() );
-            put( "u" );
+            put( 'u' );
             return;
         case 'l': // long
             put( sliceNumber() );
-            put( "L" );
+            put( 'L' );
             return;
         case 'm': // ulong
             put( sliceNumber() );
@@ -1483,7 +1489,7 @@ private struct Demangle
         match( 'Z' );
         if( pos - beg != n )
             error( "Template name length mismatch" );
-        put( ")" );
+        put( ')' );
     }
 
 
@@ -1556,7 +1562,7 @@ private struct Demangle
         do
         {
             if( n++ )
-                put( "." );
+                put( '.' );
             parseSymbolName();
 
             if( isCallConvention( tok() ) )
@@ -1570,9 +1576,9 @@ private struct Demangle
                 parseFuncAttr();
                 len = prevlen;
 
-                put( "(" );
+                put( '(' );
                 parseFuncArguments();
-                put( ")" );
+                put( ')' );
                 if( !isDigit( tok() ) ) // voldemort types don't have a return type on the function
                 {
                     auto funclen = len;
@@ -1618,7 +1624,7 @@ private struct Demangle
                 parseType( name );
             if( pos >= buf.length || (n != 0 && pos >= end) )
                 return;
-            put( "." );
+            put( '.' );
         } while( true );
     }
 
