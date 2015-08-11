@@ -6812,23 +6812,15 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     //printf("TypeIdentifier::toDsymbol('%s')\n", toChars());
     if (!sc)
         return NULL;
-    //printf("ident = '%s'\n", ident->toChars());
 
-    Dsymbol *scopesym;
-    Dsymbol *s = sc->search(loc, ident, &scopesym);
-    if (s)
-    {
-        for (size_t i = 0; i < idents.dim; i++)
-        {
-            RootObject *id = idents[i];
-            s = s->searchX(loc, sc, id);
-            if (!s)                 // failed to find a symbol
-            {
-                //printf("\tdidn't find a symbol\n");
-                break;
-            }
-        }
-    }
+    Type *t;
+    Expression *e;
+    Dsymbol *s;
+
+    resolve(loc, sc, &e, &t, &s);
+    if (t && t->ty != Tident)
+        s = t->toDsymbol(sc);
+
     return s;
 }
 

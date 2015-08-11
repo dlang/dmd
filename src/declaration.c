@@ -381,6 +381,11 @@ void AliasDeclaration::semantic(Scope *sc)
      * try to alias y to 3.
      */
     s = type->toDsymbol(sc);
+    if (errors != global.errors)
+    {
+        s = NULL;
+        type = Type::terror;
+    }
     if (s && s == this)
     {
         error("cannot resolve");
