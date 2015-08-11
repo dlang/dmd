@@ -6401,45 +6401,76 @@ d_uns64 TypeQualified::size(Loc loc)
 }
 
 /*************************************
- * Resolve a TypeTuple index.
+ * Resolve a tuple index.
  */
-bool TypeQualified::resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *indexExpr)
+void TypeQualified::resolveTupleIndex(Loc loc, Scope *sc, Dsymbol *s,
+        Expression **pe, Type **pt, Dsymbol **ps, RootObject *oindex)
 {
-    TupleDeclaration *td = (*s)->isTupleDeclaration();
+    *pt = NULL;
+    *ps = NULL;
+    *pe = NULL;
+
+    TupleDeclaration *td = s->isTupleDeclaration();
+
+    Expression *eindex = isExpression(oindex);
+    Type *tindex = isType(oindex);
+    Dsymbol *sindex = isDsymbol(oindex);
+
     if (!td)
     {
-        error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
-              id->toChars(), (*s)->toChars());
+        // It's really an index expression
+        if (tindex)
+            eindex = new TypeExp(loc, tindex);
+        else if (sindex)
+            eindex = new DsymbolExp(loc, sindex);
+        Expression *e = new IndexExp(loc, new DsymbolExp(loc, s), eindex);
+        e = e->semantic(sc);
+        if (e->op == TOKerror)
+            *pt = Type::terror;
+        else if (e->op == TOKtype)
+            *pt = ((TypeExp *)e)->type;
+        else
+            *pe = e;
+        return;
+    }
+
+    // Convert oindex to Expression, then try to resolve to constant.
+    if (tindex)
+        tindex->resolve(loc, sc, &eindex, &tindex, &sindex);
+    if (sindex)
+        eindex = new DsymbolExp(loc, sindex);
+    if (!eindex)
+    {
+        ::error(loc, "index is %s not an expression", oindex->toChars());
         *pt = Type::terror;
-        return false;
+        return;
     }
     sc = sc->startCTFE();
-    indexExpr = indexExpr->semantic(sc);
+    eindex = eindex->semantic(sc);
     sc = sc->endCTFE();
 
-    indexExpr = indexExpr->ctfeInterpret();
-    const uinteger_t d = indexExpr->toUInteger();
+    eindex = eindex->ctfeInterpret();
+    if (eindex->op == TOKerror)
+    {
+        *pt = Type::terror;
+        return;
+    }
 
+    const uinteger_t d = eindex->toUInteger();
     if (d >= td->objects->dim)
     {
-        error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+        ::error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
         *pt = Type::terror;
-        return false;
+        return;
     }
+
     RootObject *o = (*td->objects)[(size_t)d];
-    if (o->dyncast() == DYNCAST_TYPE)
-    {
-        *ps = NULL;
-        *pt = ((Type *)o)->addMod(this->mod);
-        *s = (*pt)->toDsymbol(sc)->toAlias();
-    }
-    else
-    {
-        assert(o->dyncast() == DYNCAST_DSYMBOL);
-        *ps = (Dsymbol *)o;
-        *s = (*ps)->toAlias();
-    }
-    return true;
+    *pt = isType(o);
+    *ps = isDsymbol(o);
+    *pe = isExpression(o);
+
+    if (*pt)
+        *pt = (*pt)->semantic(loc, sc);
 }
 
 void TypeQualified::resolveExprType(Loc loc, Scope *sc,
@@ -6460,6 +6491,16 @@ void TypeQualified::resolveExprType(Loc loc, Scope *sc,
         {
             DotIdExp *die = new DotIdExp(e->loc, e, (Identifier *)id);
             e = die->semanticY(sc, 0);
+        }
+        else if (id->dyncast() == DYNCAST_TYPE)         // Bugzilla 1215
+        {
+            e = new IndexExp(loc, e, new TypeExp(loc, (Type *)id));
+            e = e->semantic(sc);
+        }
+        else if (id->dyncast() == DYNCAST_EXPRESSION)   // Bugzilla 1215
+        {
+            e = new IndexExp(loc, e, (Expression *)id);
+            e = e->semantic(sc);
         }
         else
         {
@@ -6506,43 +6547,26 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         for (size_t i = 0; i < idents.dim; i++)
         {
             RootObject *id = idents[i];
-            if (id->dyncast() == DYNCAST_EXPRESSION)
-            {
-                if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, (Expression *)id))
-                {
-                    return;
-                }
-                continue;
-            }
-            else if (id->dyncast() == DYNCAST_TYPE)
-            {
-                Type *index = (Type *)id;
-                Expression *expr = NULL;
-                Type *t = NULL;
-                Dsymbol *sym = NULL;
 
-                index->resolve(loc, sc, &expr, &t, &sym);
-                if (expr)
+            if (id->dyncast() == DYNCAST_EXPRESSION ||
+                id->dyncast() == DYNCAST_TYPE)
+            {
+                Type *tx;
+                Expression *ex;
+                Dsymbol *sx;
+                resolveTupleIndex(loc, sc, s, &ex, &tx, &sx, id);
+                if (sx)
                 {
-                    if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, expr))
-                    {
-                        return;
-                    }
+                    s = sx->toAlias();
+                    continue;
                 }
-                else if (t)
-                {
-                    index->error(loc, "Expected an expression as index, got a type (%s)", t->toChars());
-                    *pt = Type::terror;
-                    return;
-                }
-                else
-                {
-                    index->error(loc, "index is not a an expression");
-                    *pt = Type::terror;
-                    return;
-                }
-                continue;
+                if (tx)
+                    ex = new TypeExp(loc, tx);
+                assert(ex);
+                resolveExprType(loc, sc, ex, i + 1, pe, pt);
+                return;
             }
+
             Type *t = s->getType();     // type symbol, type alias, or type tuple?
             unsigned errorsave = global.errors;
             Dsymbol *sm = s->searchX(loc, sc, id);
