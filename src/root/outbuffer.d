@@ -405,7 +405,10 @@ struct OutBuffer
     extern (C++) char* peekString()
     {
         if (!offset || data[offset - 1] != '\0')
+        {
             writeByte(0);
+            offset--; // allow appending more
+        }
         return cast(char*)data;
     }
 
