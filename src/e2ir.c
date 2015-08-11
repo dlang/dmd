@@ -54,7 +54,6 @@ Symbol *toSymbol(Dsymbol *s);
 elem *toElem(Expression *e, IRState *irs);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
-Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz);
 void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
@@ -1373,8 +1372,8 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb = se->type->toBasetype();
             if (tb->ty == Tarray)
             {
-                Symbol *si = toStringDarraySymbol((const char *)se->string, se->len, se->sz);
-                e = el_var(si);
+                Symbol *si = toStringSymbol((const char *)se->string, se->len, se->sz);
+                e = el_pair(TYdarray, el_long(TYsize_t, se->len), el_ptr(si));
             }
             else if (tb->ty == Tsarray)
             {
@@ -5621,28 +5620,6 @@ Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
     return (Symbol *)sv->ptrvalue;
 }
 
-/*******************************************************
- * Write read-only string to object file as a darray, create a local symbol for it.
- */
-
-Symbol *toStringDarraySymbol(const char *str, size_t len, size_t sz)
-{
-    Symbol *si = toStringSymbol(str, len, sz);
-
-    /* sida shold be cached along with si, but currently StringTable only gives us one
-     * slot, 'ptrvalue'.
-     */
-    dt_t *dt = NULL;
-    dtsize_t(&dt, len);
-    dtxoff(&dt, si, 0);
-
-    Symbol *sida = symbol_generate(SCstatic,type_fake(TYdarray));
-    sida->Sdt = dt;
-    sida->Sfl = FLdata;
-    out_readonly(sida);
-    outdata(sida);
-    return sida;
-}
 
 /******************************************************
  * Return an elem that is the file, line, and function suitable
