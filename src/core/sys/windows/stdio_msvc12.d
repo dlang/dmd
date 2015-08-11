@@ -84,11 +84,6 @@ int _fgetc_nolock(FILE *fp)
         return _filbuf(fp);
 }
 
-shared(FILE)* __acrt_iob_func(uint id)
-{
-    return __iob_func() + id;
-}
-
 @trusted
 {
     ///
