@@ -83,3 +83,25 @@ alias Y14889a = X14889a[0].ExceptionType;
 
 alias X14889b = TT14889!(A14889!Throwable);
 alias Y14889b = X14889b[0].ExceptionType;
+
+/***************************************************/
+// 14889
+
+alias TypeTuple14900(T...) = T;
+
+struct S14900
+{
+    alias T = int;
+    alias U = TypeTuple14900!(long,string);
+}
+
+alias Types14900 = TypeTuple14900!(S14900, S14900);
+
+Types14900[0].T a14900;     // Types[0] == S, then typeof(a) == S.T == int
+Types14900[0].U[1] b14900;  // Types[0].U == S.U, then typeof(b) == S.U[1] == string
+
+void test14900()
+{
+    Types14900[0].T a;      // Types[0] == S, then typeof(a) == S.T == int
+    Types14900[0].U[1] b;   // Types[0].U == S.U, then typeof(b) == S.U[1] == string
+}
