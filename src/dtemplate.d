@@ -428,6 +428,8 @@ public:
     bool isstatic;          // this is static template declaration
     Prot protection;
 
+    int inuse;
+
     // threaded list of previous instantiation attempts on stack
     TemplatePrevious* previous;
 
@@ -908,14 +910,13 @@ public:
                     printf("\tparameter[%d] is %s : %s\n", i, tp.ident.toChars(), ttp.specType ? ttp.specType.toChars() : "");
             }
 
+            inuse++;
             m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, dedtypes, &sparam);
+            inuse--;
             //printf("\tm2 = %d\n", m2);
             if (m2 == MATCHnomatch)
             {
-                version (none)
-                {
-                    printf("\tmatchArg() for parameter %i failed\n", i);
-                }
+                //printf("\tmatchArg for parameter %i failed\n", i);
                 goto Lnomatch;
             }
 
@@ -1564,7 +1565,9 @@ public:
                                 }
                                 else
                                 {
+                                    ++inuse;
                                     oded = tparam.defaultArg(instLoc, paramscope);
+                                    --inuse;
                                     if (oded)
                                         (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
                                 }
@@ -1913,7 +1916,9 @@ public:
                 }
                 else
                 {
+                    ++inuse;
                     oded = tparam.defaultArg(instLoc, paramscope);
+                    --inuse;
                     if (!oded)
                     {
                         // if tuple parameter and
@@ -2488,8 +2493,12 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
 
     int applyTemplate(TemplateDeclaration td)
     {
-        // skip duplicates
-        if (td == td_best)
+        if (td.inuse)
+        {
+            td.error(loc, "recursive template expansion");
+            return 1;
+        }
+        if (td == td_best)  // skip duplicates
             return 0;
 
         if (!sc)
@@ -5341,10 +5350,13 @@ public:
         if (e)
         {
             e = e.syntaxCopy();
+            uint errors = global.errors;
             e = e.semantic(sc);
             e = resolveProperties(sc, e);
             e = e.resolveLoc(instLoc, sc); // use the instantiated loc
             e = e.optimize(WANTvalue);
+            if (global.errors != errors)
+                e = new ErrorExp();
         }
         return e;
     }
@@ -7566,11 +7578,18 @@ public:
             Dsymbol dstart = tovers ? tovers.a[oi] : tempdecl;
             overloadApply(dstart, (Dsymbol s)
             {
-                auto  td = s.isTemplateDeclaration();
-                if (!td || td == td_best)   // skip duplicates
+                auto td = s.isTemplateDeclaration();
+                if (!td)
                     return 0;
+                if (td.inuse)
+                {
+                    td.error(loc, "recursive template expansion");
+                    return 1;
+                }
+                if (td == td_best)   // skip duplicates
+                    return 0;
+                //printf("td = %s\n", td.toPrettyChars());
 
-                //printf("td = %s\n", td->toPrettyChars());
                 // If more arguments than parameters,
                 // then this is no match.
                 if (td.parameters.dim < tiargs.dim)
@@ -7734,6 +7753,11 @@ public:
                 auto td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
+                if (td.inuse)
+                {
+                    td.error(loc, "recursive template expansion");
+                    return 1;
+                }
 
                 /* If any of the overloaded template declarations need inference,
                  * then return true
