@@ -7978,7 +7978,7 @@ bool TemplateInstance::needsCodegen()
          * See bugzilla 2500.
          */
 
-        if (!minst->rootImports())
+        //if (!minst->rootImports())
         {
             //printf("instantiated by %s   %s\n", minst->toChars(), toChars());
             return false;
