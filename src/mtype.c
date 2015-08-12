@@ -4046,11 +4046,23 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         if (dim->op == TOKerror)
             goto Lerror;
 
-        bool overflow = false;
         if (d1 != d2)
-            goto Loverflow;
+        {
+        Loverflow:
+            error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array",
+                toChars(), (unsigned long long)tbn->size(loc), (unsigned long long)d1);
+            goto Lerror;
+        }
 
-        if (tbn->isintegral() ||
+        Type *tbx = tbn->baseElemOf();
+        if (tbx->ty == Tstruct && !((TypeStruct *)tbx)->sym->members ||
+            tbx->ty == Tenum && !((TypeEnum *)tbx)->sym->members)
+        {
+            /* To avoid meaningess error message, skip the total size limit check
+             * when the bottom of element type is opaque.
+             */
+        }
+        else if (tbn->isintegral() ||
                  tbn->isfloating() ||
                  tbn->ty == Tpointer ||
                  tbn->ty == Tarray ||
@@ -4062,13 +4074,9 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             /* Only do this for types that don't need to have semantic()
              * run on them for the size, since they may be forward referenced.
              */
+            bool overflow = false;
             if (mulu(tbn->size(loc), d2, overflow) >= 0x1000000 || overflow) // put a 'reasonable' limit on it
-            {
-              Loverflow:
-                error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array",
-                    toChars(), (unsigned long long)tbn->size(loc), (unsigned long long)d1);
-                goto Lerror;
-            }
+                goto Loverflow;
         }
     }
     switch (tbn->ty)
@@ -5461,10 +5469,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 errors = true;
             }
             else if (!(fparam->storageClass & (STCref | STCout)) &&
-                     (t->ty == Tstruct || t->ty == Tsarray))
+                     (t->ty == Tstruct || t->ty == Tsarray || t->ty == Tenum))
             {
                 Type *tb2 = t->baseElemOf();
-                if (tb2->ty == Tstruct && !((TypeStruct *)tb2)->sym->members)
+                if (tb2->ty == Tstruct && !((TypeStruct *)tb2)->sym->members ||
+                    tb2->ty == Tenum && !((TypeEnum *)tb2)->sym->memtype)
                 {
                     error(loc, "cannot have parameter of opaque type %s by value", fparam->type->toChars());
                     errors = true;
