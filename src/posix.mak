@@ -296,17 +296,17 @@ backend.a: $(BACK_OBJS)
 	$(AR) rcs backend.a $(BACK_OBJS)
 
 ifdef ENABLE_LTO
-dmd: $(DMD_SRCS) $(D_ROOT_SRCS) newdelete.o $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS)
-	CC=$(HOST_CC) $(HOST_DC_RUN) -of$@ $(MODEL_FLAG) -vtls -J.. -d $(DFLAGS) $^
+dmd: $(DMD_SRCS) $(D_ROOT_SRCS) newdelete.o $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) git.ver
+	CC=$(HOST_CC) $(HOST_DC_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d $(DFLAGS) $(filter-out git.ver,$^)
 else
-dmd: $(DMD_SRCS) $(D_ROOT_SRCS) newdelete.o root.a glue.a backend.a
-	CC=$(HOST_CC) $(HOST_DC_RUN) -of$@ $(MODEL_FLAG) -vtls -J.. -d $(DFLAGS) $^
+dmd: $(DMD_SRCS) $(D_ROOT_SRCS) newdelete.o root.a glue.a backend.a git.ver
+	CC=$(HOST_CC) $(HOST_DC_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d $(DFLAGS) $(filter-out git.ver,$^)
 endif
 
 clean:
 	rm -f $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.d id.h \
 		impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
-		tytab.c verstr.h core \
+		tytab.c git.ver core \
 		*.cov *.deps *.gcda *.gcno *.a
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
@@ -366,7 +366,7 @@ impcnvgen : mtype.h impcnvgen.c
 
 #########
 
-# Create (or update) the verstr.h file.
+# Create (or update) the git.ver file.
 # The file is only updated if the VERSION file changes, or, only when RELEASE=1
 # is not used, when the full version string changes (i.e. when the git hash or
 # the working tree dirty states changes).
@@ -380,8 +380,8 @@ VERSION_GIT := $(shell printf "`$(GIT) rev-parse --short HEAD`"; \
        test -n "`$(GIT) status --porcelain -uno`" && printf -- -dirty)
 VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
 endif
-$(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
-		&& printf \"$(VERSION)\" > verstr.h )
+$(shell test \"$(VERSION)\" != "`cat git.ver 2> /dev/null`" \
+		&& echo '$(VERSION)' > git.ver)
 
 #########
 
@@ -405,8 +405,6 @@ debug.o: debtab.c
 iasm.o: CFLAGS += -fexceptions
 
 inifile.o: CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"'
-
-mars.o: verstr.h
 
 var.o: optab.c tytab.c
 

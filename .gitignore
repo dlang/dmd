@@ -20,7 +20,7 @@ src/idgen.exe
 src/dmd.exe
 src/impcnvgen.exe
 src/optabgen.exe
-src/verstr.h
+src/git.ver
 *.map
 .DS_Store
 trace.def
