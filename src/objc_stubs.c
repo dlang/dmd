@@ -28,6 +28,12 @@ ObjcSelector::ObjcSelector(const char *sv, size_t len, size_t pcount)
     assert(0);
 }
 
+void ObjcSelector::init()
+{
+    printf("Should never be called when D_OBJC is false\n");
+    assert(0);
+}
+
 ObjcSelector *ObjcSelector::lookup(const char *s)
 {
     printf("Should never be called when D_OBJC is false\n");
@@ -107,12 +113,3 @@ void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *fd)
     // noop
 }
 
-void objc_tryMain_dObjc()
-{
-    // noop
-}
-
-void objc_tryMain_init()
-{
-    // noop
-}

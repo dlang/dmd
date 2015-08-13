@@ -55,5 +55,3 @@ extern (C++) void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration fd, 
 extern (C++) bool objc_isUdaSelector(StructDeclaration sd);
 extern (C++) void objc_FuncDeclaration_semantic_validateSelector(FuncDeclaration fd);
 extern (C++) void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration fd);
-extern (C++) void objc_tryMain_dObjc();
-extern (C++) void objc_tryMain_init();

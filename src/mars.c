@@ -71,6 +71,9 @@ void parseConfFile(StringTable *environment, const char *path, size_t len, unsig
 
 void genObjFile(Module *m, bool multiobj);
 
+// in objc_glue.c
+void objc_initSymbols();
+
 /** Normalize path by turning forward slashes into backslashes */
 const char * toWinPath(const char *src)
 {
@@ -1065,6 +1068,8 @@ Language changes listed by -transition=id:\n\
         global.params.debuglibname = global.params.defaultlibname;
 
 #if TARGET_OSX
+    if (global.params.is64bit)
+        global.params.objc = true;
     global.params.pic = 1;
 #endif
 
@@ -1193,7 +1198,9 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
-    objc_tryMain_dObjc();
+
+    if (global.params.objc)
+        VersionCondition::addPredefinedGlobalIdent("D_ObjectiveC");
 
     // Initialization
     Lexer::initLexer();
@@ -1202,10 +1209,15 @@ Language changes listed by -transition=id:\n\
     Module::init();
     Target::init();
     Expression::init();
-    objc_tryMain_init();
     initPrecedence();
     builtin_init();
     initTraitsStringTable();
+
+    if (global.params.objc)
+    {
+        objc_initSymbols();
+        ObjcSelector::init();
+    }
 
     if (global.params.verbose)
     {   fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);

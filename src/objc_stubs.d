@@ -85,12 +85,3 @@ extern (C++) void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration fd)
     // noop
 }
 
-extern (C++) void objc_tryMain_dObjc()
-{
-    // noop
-}
-
-extern (C++) void objc_tryMain_init()
-{
-    // noop
-}

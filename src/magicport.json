@@ -139,9 +139,7 @@
                 "function objc_FuncDeclaration_semantic_setSelector",
                 "function objc_isUdaSelector",
                 "function objc_FuncDeclaration_semantic_validateSelector",
-                "function objc_FuncDeclaration_semantic_checkLinkage",
-                "function objc_tryMain_dObjc",
-                "function objc_tryMain_init"
+                "function objc_FuncDeclaration_semantic_checkLinkage"
             ],
             "extra" : [
                 "extern(C++) void objc_initSymbols();"

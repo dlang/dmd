@@ -26,7 +26,6 @@
 #include "visitor.h"
 
 void mangleToBuffer(Type *t, OutBuffer *buf);
-void objc_initSymbols();
 
 // MARK: Objc_ClassDeclaration
 
@@ -138,19 +137,6 @@ void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *fd)
 {
     if (fd->linkage != LINKobjc && fd->objc.selector)
         fd->error("must have Objective-C linkage to attach a selector");
-}
-
-// MARK: init
-
-void objc_tryMain_dObjc()
-{
-    VersionCondition::addPredefinedGlobalIdent("D_ObjectiveC");
-}
-
-void objc_tryMain_init()
-{
-    objc_initSymbols();
-    ObjcSelector::init();
 }
 
 // MARK: Selector
