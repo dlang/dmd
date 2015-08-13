@@ -375,7 +375,7 @@ Msgtable[] msgtable =
 int main()
 {
     {
-        auto fp = fopen("id.h","w");
+        auto fp = fopen("id.h","wb");
         if (!fp)
         {
             printf("can't open id.h\n");
@@ -403,7 +403,7 @@ int main()
     }
 
     {
-        auto fp = fopen("id.d","w");
+        auto fp = fopen("id.d","wb");
         if (!fp)
         {
             printf("can't open id.d\n");
