@@ -6,13 +6,27 @@
 // Distributed under the Boost Software License, Version 1.0.
 // http://www.boost.org/LICENSE_1_0.txt
 
-module ddmd.objc_stubs;
+module ddmd.objc;
 
 import core.stdc.stdio;
 import ddmd.dclass, ddmd.dscope, ddmd.dstruct, ddmd.func, ddmd.globals, ddmd.id, ddmd.root.stringtable;
 
 class ObjcSelector
 {
+public:
+    // MARK: Selector
+    extern (C++) static __gshared StringTable stringtable;
+    extern (C++) static __gshared StringTable vTableDispatchSelectors;
+    extern (C++) static __gshared int incnum;
+    const(char)* stringvalue;
+    size_t stringlen;
+    size_t paramCount;
+
+    static void _init()
+    {
+        stringtable._init();
+    }
+
     // MARK: ObjcSelector
     extern (D) this(const(char)* sv, size_t len, size_t pcount)
     {
@@ -44,6 +58,9 @@ class ObjcSelector
 
 struct Objc_ClassDeclaration
 {
+    // true if this is an Objective-C class/interface
+    bool objc;
+
     // MARK: Objc_ClassDeclaration
     extern (C++) bool isInterface()
     {
@@ -51,6 +68,14 @@ struct Objc_ClassDeclaration
     }
 }
 
+struct Objc_FuncDeclaration
+{
+    FuncDeclaration fdecl;
+    // Objective-C method selector (member function only)
+    ObjcSelector selector;
+}
+
+// MARK: semantic
 extern (C++) void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration cd)
 {
     cd.error("Objective-C classes not supported");
