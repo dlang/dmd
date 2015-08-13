@@ -114,8 +114,8 @@ public:
     BaseClasses *parseBaseClasses();
     Dsymbols *parseImport();
     Type *parseType(Identifier **pident = NULL, TemplateParameters **ptpl = NULL);
-    Type *parseBasicType();
-    Type *parseBasicTypeStartingAt(TypeQualified *tid);
+    Type *parseBasicType(bool dontLookDotIdents = false);
+    Type *parseBasicTypeStartingAt(TypeQualified *tid, bool dontLookDotIdents);
     Type *parseBasicType2(Type *t);
     Type *parseDeclarator(Type *t, int *alt, Identifier **pident,
         TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int *pdisable = NULL, Expressions **pudas = NULL);

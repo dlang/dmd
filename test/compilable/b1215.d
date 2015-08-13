@@ -105,3 +105,15 @@ void test14900()
     Types14900[0].T a;      // Types[0] == S, then typeof(a) == S.T == int
     Types14900[0].U[1] b;   // Types[0].U == S.U, then typeof(b) == S.U[1] == string
 }
+
+/***************************************************/
+// 14911
+
+void test14911()
+{
+    struct S {}
+
+    int* buf1 = new int[2].ptr; // OK
+    S* buf2 = (new S[2]).ptr;   // OK
+    S* buf3 = new S[2].ptr;     // OK <- broken
+}
