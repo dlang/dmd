@@ -382,6 +382,9 @@ $(IMPDIR)\core\sys\linux\errno.d : src\core\sys\linux\errno.d
 $(IMPDIR)\core\sys\linux\execinfo.d : src\core\sys\linux\execinfo.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\fcntl.d : src\core\sys\linux\fcntl.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\link.d : src\core\sys\linux\link.d
 	copy $** $@
 
