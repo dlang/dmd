@@ -142,9 +142,10 @@ endif
 ifdef ENABLE_DEBUG
 CFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
 DFLAGS += -g -debug
-else
+endif
+ifdef ENABLE_RELEASE
 CFLAGS += -O2
-DFLAGS += -O -inline
+DFLAGS += -O -release -inline
 endif
 ifdef ENABLE_PROFILING
 CFLAGS  += -pg -fprofile-arcs -ftest-coverage
