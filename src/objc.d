@@ -12,9 +12,8 @@ import ddmd.arraytypes, ddmd.cond, ddmd.dclass, ddmd.dmangle, ddmd.dmodule, ddmd
 
 extern(C++) void objc_initSymbols();
 
-class ObjcSelector
+extern (C++) struct ObjcSelector
 {
-public:
     // MARK: Selector
     extern (C++) static __gshared StringTable stringtable;
     extern (C++) static __gshared StringTable vTableDispatchSelectors;
@@ -36,7 +35,7 @@ public:
         paramCount = pcount;
     }
 
-    static ObjcSelector lookup(const(char)* s)
+    static ObjcSelector* lookup(const(char)* s)
     {
         size_t len = 0;
         size_t pcount = 0;
@@ -51,10 +50,10 @@ public:
         return lookup(s, len, pcount);
     }
 
-    static ObjcSelector lookup(const(char)* s, size_t len, size_t pcount)
+    static ObjcSelector* lookup(const(char)* s, size_t len, size_t pcount)
     {
         StringValue* sv = stringtable.update(s, len);
-        ObjcSelector sel = cast(ObjcSelector)sv.ptrvalue;
+        auto sel = cast(ObjcSelector*)sv.ptrvalue;
         if (!sel)
         {
             sel = new ObjcSelector(sv.toDchars(), len, pcount);
@@ -63,7 +62,7 @@ public:
         return sel;
     }
 
-    static ObjcSelector create(FuncDeclaration fdecl)
+    static ObjcSelector* create(FuncDeclaration fdecl)
     {
         OutBuffer buf;
         size_t pcount = 0;
@@ -119,7 +118,7 @@ struct Objc_FuncDeclaration
 {
     FuncDeclaration fdecl;
     // Objective-C method selector (member function only)
-    ObjcSelector selector;
+    ObjcSelector* selector;
 
     extern (D) this(FuncDeclaration fdecl)
     {

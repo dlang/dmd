@@ -23,9 +23,8 @@ class ObjcSelector;
 struct Scope;
 class StructDeclaration;
 
-class ObjcSelector
+struct ObjcSelector
 {
-public:
     static StringTable stringtable;
     static StringTable vTableDispatchSelectors;
     static int incnum;
