@@ -139,16 +139,6 @@ private struct Demangle
     }
 
 
-    static char val2HexDigit( ubyte val )
-    {
-        if (0x0 <= val && val <= 0x9)
-            return cast(char)(val + '0');
-        if (0xa <= val && val <= 0xf)
-            return cast(ubyte)(val + 'a' - 0xa);
-        assert(0);
-    }
-
-
     //////////////////////////////////////////////////////////////////////////
     // Data Output
     //////////////////////////////////////////////////////////////////////////
@@ -241,23 +231,20 @@ private struct Demangle
     }
 
 
-    char[] putAsHex( size_t val, int width = 0 )
+    void putAsHex( size_t val, int width = 0 )
     {
-        char[20] tmp;
-        int  pos = tmp.length;
+        import core.internal.string;
 
-        while( val )
+        UnsignedStringBuf buf;
+
+        auto s = unsignedToTempString(val, buf, 16);
+        int slen = cast(int)s.length;
+        if (slen < width)
         {
-            int  digit = val % 16;
-
-            tmp[--pos] = digit < 10 ? cast(char)(digit + '0') :
-                                      cast(char)((digit - 10) + 'a');
-            val /= 16;
-            width--;
+            foreach(i; slen .. width)
+                put('0');
         }
-        for( ; width > 0; width-- )
-            tmp[--pos] = '0';
-        return put( tmp[pos .. $] );
+        put(s);
     }
 
 
@@ -1204,8 +1191,8 @@ private struct Demangle
                 }
                 else
                 {
-                    char[4] buf = ['\\', 'x', val2HexDigit(v / 0x10), val2HexDigit(v % 0x10)];
-                    put( buf[] );
+                    put("\\x");
+                    putAsHex(v, 2);
                 }
             }
             put( '"' );
