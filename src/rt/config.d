@@ -36,20 +36,20 @@ module rt.config;
 // line arguments, i.e. if command line arguments are not disabled, they can override
 // options specified through the environment or embedded in the executable.
 
-import core.demangle : mangleC;
+import core.demangle : cPrefix;
 
 // put each variable in its own COMDAT by making them template instances
 template rt_envvars_enabled()
 {
-    pragma(mangle,mangleC("rt_envvars_enabled")) __gshared bool rt_envvars_enabled = false;
+    pragma(mangle, cPrefix ~ "rt_envvars_enabled") __gshared bool rt_envvars_enabled = false;
 }
 template rt_cmdline_enabled()
 {
-    pragma(mangle,mangleC("rt_cmdline_enabled")) __gshared bool rt_cmdline_enabled = true;
+    pragma(mangle, cPrefix ~ "rt_cmdline_enabled") __gshared bool rt_cmdline_enabled = true;
 }
 template rt_options()
 {
-    pragma(mangle,mangleC("rt_options")) __gshared string[] rt_options = [];
+    pragma(mangle, cPrefix ~ "rt_options") __gshared string[] rt_options = [];
 }
 
 import core.stdc.ctype : toupper;
