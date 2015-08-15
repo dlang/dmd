@@ -749,9 +749,11 @@ body
     }
     else
     {
-        size_t reqsize = size * newcapacity;
+        import core.checkedint : mulu;
 
-        if (newcapacity == 0 || reqsize / newcapacity == size)
+        bool overflow = false;
+        size_t reqsize = mulu(size, newcapacity, overflow);
+        if (!overflow)
             goto Lcontinue;
     }
 Loverflow:
@@ -908,12 +910,12 @@ extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow
     }
     else
     {
-        auto newsize = size * length;
-        if (newsize / length == size)
-        {
-            size = newsize;
+        import core.checkedint : mulu;
+
+        bool overflow = false;
+        size = mulu(size, length, overflow);
+        if (!overflow)
             goto Lcontinue;
-        }
     }
 Loverflow:
     onOutOfMemoryError();
@@ -1460,9 +1462,11 @@ body
         }
         else
         {
-            size_t newsize = sizeelem * newlength;
+            import core.checkedint : mulu;
 
-            if (newsize / newlength != sizeelem)
+            bool overflow = false;
+            size_t newsize = mulu(sizeelem, newlength, overflow);
+            if (overflow)
                 goto Loverflow;
         }
 
@@ -1643,9 +1647,11 @@ body
         }
         else
         {
-            size_t newsize = sizeelem * newlength;
+            import core.checkedint : mulu;
 
-            if (newsize / newlength != sizeelem)
+            bool overflow = false;
+            size_t newsize = mulu(sizeelem, newlength, overflow);
+            if (overflow)
                 goto Loverflow;
         }
         debug(PRINTF) printf("newsize = %x, newlength = %x\n", newsize, newlength);
