@@ -2561,7 +2561,6 @@
             ],
             "extra" :
             [
-                "enum ASYNCREAD = false;"
             ],
             "members" :
             [
