@@ -82,13 +82,14 @@ public:
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
     bool isdeprecated;          // true if deprecated
 
-    Dsymbol *enclosing;         /* !=NULL if is nested
-                                 * pointing to the dsymbol that directly enclosing it.
-                                 * 1. The function that enclosing it (nested struct and class)
-                                 * 2. The class that enclosing it (nested class only)
-                                 * 3. If enclosing aggregate is template, its enclosing dsymbol.
-                                 * See AggregateDeclaraton::makeNested for the details.
-                                 */
+    /* !=NULL if is nested
+     * pointing to the dsymbol that directly enclosing it.
+     * 1. The function that enclosing it (nested struct and class)
+     * 2. The class that enclosing it (nested class only)
+     * 3. If enclosing aggregate is template, its enclosing dsymbol.
+     * See AggregateDeclaraton::makeNested for the details.
+     */
+    Dsymbol *enclosing;
     VarDeclaration *vthis;      // 'this' parameter if this aggregate is nested
     // Special member functions
     FuncDeclarations invs;              // Array of invariants
@@ -97,9 +98,12 @@ public:
     DeleteDeclaration *aggDelete;       // deallocator
 
     Dsymbol *ctor;                      // CtorDeclaration or TemplateDeclaration
-    CtorDeclaration *defaultCtor;       // default constructor - should have no arguments, because
-                                        // it would be stored in TypeInfo_Class.defaultConstructor
-    Dsymbol *aliasthis;                 // forward unresolved lookups to aliasthis
+
+    // default constructor - should have no arguments, because
+    // it would be stored in TypeInfo_Class.defaultConstructor
+    CtorDeclaration *defaultCtor;
+
+    Dsymbol *aliasthis;         // forward unresolved lookups to aliasthis
     bool noDefaultCtor;         // no default construction
 
     FuncDeclarations dtors;     // Array of destructors
@@ -128,7 +132,8 @@ public:
 
     Prot prot();
 
-    Type *handleType() { return type; } // 'this' type
+    // 'this' type
+    Type *handleType() { return type; }
 
     // Back end
     Symbol *stag;               // tag symbol for debug data
@@ -202,8 +207,9 @@ struct BaseClass
 
     ClassDeclaration *sym;
     unsigned offset;                    // 'this' pointer offset
-    FuncDeclarations vtbl;              // for interfaces: Array of FuncDeclaration's
-                                        // making up the vtbl[]
+    // for interfaces: Array of FuncDeclaration's
+    // making up the vtbl[]
+    FuncDeclarations vtbl;
 
     size_t baseInterfaces_dim;
     // if BaseClass is an interface, these
