@@ -351,7 +351,7 @@ GENSRC=access.d aggregate.d aliasthis.d apply.d \
 
 MANUALSRC= \
 	intrange.d complex.d \
-	entity.d backend.d objc.di objc_stubs.d \
+	entity.d backend.d objc_stubs.d \
 	$(ROOT)\array.d $(ROOT)\longdouble.d \
 	$(ROOT)\rootobject.d $(ROOT)\port.d \
 	$(ROOT)\rmem.d id.d impcnvtab.d
