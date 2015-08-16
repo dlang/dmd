@@ -345,7 +345,7 @@ endif
 
 clean:
 	rm -f $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
-		impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
+		impcnvtab.d id.d impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
 		tytab.c verstr.h core \
 		*.cov *.deps *.gcda *.gcno *.a \
 		$(GENSRC) $(MAGICPORT)
@@ -398,7 +398,7 @@ idgen: idgen.d $(HOST_DC)
 
 ######### impcnvgen generates some source
 
-impcnvtab_output = impcnvtab.c
+impcnvtab_output = impcnvtab.c impcnvtab.d
 $(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
@@ -619,7 +619,7 @@ GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	target.d dtemplate.d traits.d dunittest.d \
 	utf.d dversion.d visitor.d lib.d \
 	nogc.d nspace.d errors.d tokens.d \
-	globals.d escape.d impcnvtab.d \
+	globals.d escape.d \
 	$(ROOT)/aav.d $(ROOT)/outbuffer.d $(ROOT)/stringtable.d \
 	$(ROOT)/file.d $(ROOT)/filename.d $(ROOT)/speller.d \
 	$(ROOT)/man.d $(ROOT)/response.d
@@ -629,7 +629,7 @@ MANUALSRC= \
 	entity.d backend.d \
 	$(ROOT)/array.d $(ROOT)/longdouble.d \
 	$(ROOT)/rootobject.d $(ROOT)/port.d \
-	$(ROOT)/rmem.d id.d
+	$(ROOT)/rmem.d id.d impcnvtab.d
 
 ifeq ($(D_OBJC),1)
 	GENSRC += objc.d
@@ -637,7 +637,7 @@ else
 	MANUALSRC += objc.di objc_stubs.d
 endif
 
-mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
+mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
 	$(MAGICPORT) . .
 
 DSRC= $(GENSRC) $(MANUALSRC)
