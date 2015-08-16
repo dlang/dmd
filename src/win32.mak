@@ -361,8 +361,8 @@ $(GENSRC) : $(SRCS) $(ROOTSRC) magicport.json $(MAGICPORT)
 
 DSRC= $(GENSRC) $(MANUALSRC)
 
-ddmd.exe: $(DSRC) newdelete.obj glue.lib backend.lib
-	$(HOST_DC) $(DSRC) -ofddmd.exe newdelete.obj glue.lib backend.lib -vtls -J.. -d -L/STACK:8388608 $(DFLAGS)
+ddmd.exe: $(DSRC) newdelete.obj glue.lib backend.lib verstr.h
+	$(HOST_DC) $(DSRC) -ofddmd.exe newdelete.obj glue.lib backend.lib -vtls -J. -d -L/STACK:8388608 $(DFLAGS)
 
 ############################ Maintenance Targets #############################
 
