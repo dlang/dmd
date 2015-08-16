@@ -2756,7 +2756,7 @@ Lagain:
         /* Don't really need to check for opCast first, but by doing so we
          * get better error messages if it isn't there.
          */
-        Dsymbol *fd = search_function(ad, Id::cast);
+        Dsymbol *fd = search_function(ad, Id::_cast);
         if (fd)
         {
             e = new CastExp(loc, e, Type::tbool);
@@ -7137,7 +7137,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
     if (Expression *ex = unaSemantic(sc))
         return ex;
 
-    if (ident == Id::mangleof)
+    if (ident == Id::_mangleof)
     {
         // symbol.mangleof
         Dsymbol *ds;
@@ -7448,9 +7448,9 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
         return new ErrorExp();
     }
     else if (t1b->ty == Tpointer && e1->type->ty != Tenum &&
-             ident != Id::init && ident != Id::__sizeof &&
+             ident != Id::_init && ident != Id::__sizeof &&
              ident != Id::__xalignof && ident != Id::offsetof &&
-             ident != Id::mangleof && ident != Id::stringof)
+             ident != Id::_mangleof && ident != Id::stringof)
     {
         Type *t1bn = t1b->nextOf();
         if (flag)
@@ -13606,8 +13606,8 @@ Expression *EqualExp::semantic(Scope *sc)
         {
             if (needOpEquals(sd))
             {
-                this->e1 = new DotIdExp(loc, e1, Id::tupleof);
-                this->e2 = new DotIdExp(loc, e2, Id::tupleof);
+                this->e1 = new DotIdExp(loc, e1, Id::_tupleof);
+                this->e2 = new DotIdExp(loc, e2, Id::_tupleof);
                 e = this;
             }
             else
