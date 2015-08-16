@@ -344,7 +344,7 @@ GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	target.d dtemplate.d traits.d dunittest.d \
 	utf.d dversion.d visitor.d lib.d \
 	nogc.d nspace.d errors.d tokens.d \
-	globals.d escape.d impcnvtab.d \
+	globals.d escape.d \
 	$(ROOT)\aav.d $(ROOT)\outbuffer.d $(ROOT)\stringtable.d \
 	$(ROOT)\file.d $(ROOT)\filename.d $(ROOT)\speller.d \
 	$(ROOT)\man.d $(ROOT)\response.d
@@ -354,9 +354,9 @@ MANUALSRC= \
 	entity.d backend.d objc.di objc_stubs.d \
 	$(ROOT)\array.d $(ROOT)\longdouble.d \
 	$(ROOT)\rootobject.d $(ROOT)\port.d \
-	$(ROOT)\rmem.d id.d
+	$(ROOT)\rmem.d id.d impcnvtab.d
 
-$(GENSRC) : $(SRCS) $(ROOTSRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
+$(GENSRC) : $(SRCS) $(ROOTSRC) magicport.json $(MAGICPORT)
 	$(MAGICPORT) . .
 
 DSRC= $(GENSRC) $(MANUALSRC)
@@ -370,8 +370,8 @@ clean:
 	$(DEL) *.obj *.lib *.map
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	$(DEL) impcnvtab.c impcnvgen.exe optabgen.exe
-	$(DEL) id.h id.c
+	$(DEL) impcnvtab.d impcnvtab.c impcnvgen.exe optabgen.exe
+	$(DEL) id.h id.c id.d
 	$(DEL) verstr.h
 	$(DEL) $(GENSRC)
 	$(DEL) $(MAGICPORT) $(MAGICPORTDIR)\*.obj
@@ -447,7 +447,7 @@ elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
 	.\optabgen.exe
 
-impcnvtab.c : impcnvgen.c
+impcnvtab.c impcnvtab.d : impcnvgen.c
 	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
 	.\impcnvgen.exe
 
