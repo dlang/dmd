@@ -1449,11 +1449,14 @@ class DPrinter : Visitor
         if (ast.e)
         {
             bool skipsemi;
+            bool skipnl;
             if (auto de = cast(DeclarationExpr)ast.e)
             {
                 if (cast(StructDeclaration)de.d ||
                     cast(MacroDeclaration)de.d)
                     skipsemi = true;
+                if (cast(MacroUnDeclaration)de.d)
+                    skipnl = true;
             }
             visitX(ast.e);
             if (ast.trailingcomment)
@@ -1461,6 +1464,9 @@ class DPrinter : Visitor
                 assert(!skipsemi);
                 print("; ");
                 println(ast.trailingcomment.strip);
+            }
+            else if (skipnl)
+            {
             }
             else if (skipsemi)
                 println("");
