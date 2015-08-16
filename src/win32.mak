@@ -334,7 +334,7 @@ GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	cppmangle.d ctfeexpr.d declaration.d \
 	delegatize.d doc.d dsymbol.d \
 	denum.d expression.d func.d \
-	hdrgen.d id.d identifier.d imphint.d \
+	hdrgen.d identifier.d imphint.d \
 	dimport.d dinifile.d inline.d init.d \
 	dinterpret.d json.d lexer.d link.d \
 	dmacro.d dmangle.d mars.d \
@@ -354,7 +354,7 @@ MANUALSRC= \
 	entity.d backend.d objc.di objc_stubs.d \
 	$(ROOT)\array.d $(ROOT)\longdouble.d \
 	$(ROOT)\rootobject.d $(ROOT)\port.d \
-	$(ROOT)\rmem.d
+	$(ROOT)\rmem.d id.d
 
 $(GENSRC) : $(SRCS) $(ROOTSRC) magicport.json $(MAGICPORT) id.c impcnvtab.c
 	$(MAGICPORT) . .
@@ -451,7 +451,7 @@ impcnvtab.c : impcnvgen.c
 	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
 	.\impcnvgen.exe
 
-id.h id.c : idgen.d
+id.h id.c id.d : idgen.d
 	$(HOST_DC) -run idgen
 
 verstr.h : ..\VERSION
