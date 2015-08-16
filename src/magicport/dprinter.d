@@ -153,7 +153,7 @@ class DPrinter : Visitor
         switch(s)
         {
         case "NULL": print("null"); return;
-        case "__IMPORT__": print("\"v\" ~ import(\"VERSION\")[0 .. $ - 1]"); return;
+        case "__IMPORT__": print("\"v\" ~ import(\"verstr.h\")[1 .. 6]"); return;
         case "operator ==": print("opEquals"); return;
         case "import", "module", "version", "ref", "scope",
             "body", "alias", "is",
