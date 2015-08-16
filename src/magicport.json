@@ -16,7 +16,7 @@
         "arrayop.c", "aliasthis.h", "aliasthis.c", "json.h", "json.c",
         "unittests.c", "imphint.c", "argtypes.c", "apply.c", "sapply.c", "sideeffect.c",
         "ctfe.h", "canthrow.c", "target.c", "target.h",
-        "impcnvtab.c", "visitor.h", "lib.h", "nogc.c", "nspace.h", "nspace.c",
+        "visitor.h", "lib.h", "nogc.c", "nspace.h", "nspace.c",
         "errors.c", "errors.h",
         "tokens.c", "tokens.h",
         "globals.c", "globals.h",
@@ -3245,20 +3245,6 @@
             "members" :
             [
                 "function response_expand"
-            ]
-        },
-        {
-            "module" : "impcnvtab",
-            "package" : "",
-            "imports" : [
-                "mtype"
-            ],
-            "members" :
-            [
-                "variable impcnvResult",
-                "variable impcnvType1",
-                "variable impcnvType2",
-                "variable impcnvWarn"
             ]
         }
     ],
