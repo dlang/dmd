@@ -15,7 +15,7 @@
         "interpret.c", "ctfeexpr.c", "traits.c", "builtin.c", "clone.c",
         "arrayop.c", "aliasthis.h", "aliasthis.c", "json.h", "json.c",
         "unittests.c", "imphint.c", "argtypes.c", "apply.c", "sapply.c", "sideeffect.c",
-        "ctfe.h", "canthrow.c", "target.c", "target.h", "id.c", "id.h",
+        "ctfe.h", "canthrow.c", "target.c", "target.h",
         "impcnvtab.c", "visitor.h", "lib.h", "nogc.c", "nspace.h", "nspace.c",
         "errors.c", "errors.h",
         "tokens.c", "tokens.h",
@@ -1760,19 +1760,6 @@
                 "function updateRealEnvironment",
                 "function parseConfFile",
                 "function skipspace"
-            ]
-        },
-        {
-            "module" : "id",
-            "package" : "",
-            "imports" :
-            [
-                "identifier",
-                "tokens"
-            ],
-            "members" :
-            [
-                "struct Id"
             ]
         },
         {

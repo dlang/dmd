@@ -2087,7 +2087,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
     {
         e = new IntegerExp(loc, alignsize(), Type::tsize_t);
     }
-    else if (ident == Id::init)
+    else if (ident == Id::_init)
     {
         Type *tb = toBasetype();
         e = defaultInitLiteral(loc);
@@ -2097,7 +2097,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
             se->sinit = toInitializer(se->sd);
         }
     }
-    else if (ident == Id::mangleof)
+    else if (ident == Id::_mangleof)
     {
         if (!deco)
         {
@@ -2176,7 +2176,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
                 return e;
             }
         }
-        else if (ident == Id::init)
+        else if (ident == Id::_init)
         {
             Type *tb = toBasetype();
             e = defaultInitLiteral(e->loc);
@@ -2228,8 +2228,8 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
 
     if (ident != Id::__sizeof &&
         ident != Id::__xalignof &&
-        ident != Id::init &&
-        ident != Id::mangleof &&
+        ident != Id::_init &&
+        ident != Id::_mangleof &&
         ident != Id::stringof &&
         ident != Id::offsetof)
     {
@@ -3592,7 +3592,7 @@ Expression *TypeVector::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         e->type = basetype;
         return e;
     }
-    if (ident == Id::init || ident == Id::offsetof || ident == Id::stringof)
+    if (ident == Id::_init || ident == Id::offsetof || ident == Id::stringof)
     {
         // init should return a new VectorExp (Bugzilla 12776)
         // offsetof does not work on a cast expression, so use e directly
@@ -6756,7 +6756,7 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
 {
     //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
 
-    if ((ident->equals(Id::super) || ident->equals(Id::This)) && !hasThis(sc))
+    if ((ident->equals(Id::_super) || ident->equals(Id::This)) && !hasThis(sc))
     {
         AggregateDeclaration *ad = sc->getStructClassScope();
         if (ad)
@@ -6766,7 +6766,7 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
             {
                 if (ident->equals(Id::This))
                     ident = cd->ident;
-                else if (cd->baseClass && ident->equals(Id::super))
+                else if (cd->baseClass && ident->equals(Id::_super))
                     ident = cd->baseClass->ident;
             }
             else
@@ -7342,7 +7342,7 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
     printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e->toChars(), ident->toChars(), toChars());
 #endif
     // Bugzilla 14010
-    if (ident == Id::mangleof)
+    if (ident == Id::_mangleof)
         return getProperty(e->loc, ident, flag);
 
     if (sym->scope)
@@ -7364,7 +7364,7 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
     {
         if (ident == Id::max ||
             ident == Id::min ||
-            ident == Id::init)
+            ident == Id::_init)
         {
             return getProperty(e->loc, ident, flag);
         }
@@ -7381,7 +7381,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
     {
         return sym->getMaxMinValue(loc, ident);
     }
-    else if (ident == Id::init)
+    else if (ident == Id::_init)
     {
         e = defaultInitLiteral(loc);
     }
@@ -7392,7 +7392,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
         Scope sc;
         e = e->semantic(&sc);
     }
-    else if (ident == Id::mangleof)
+    else if (ident == Id::_mangleof)
     {
         e = Type::getProperty(loc, ident, flag);
     }
@@ -7574,7 +7574,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
     // Bugzilla 14010
-    if (ident == Id::mangleof)
+    if (ident == Id::_mangleof)
         return getProperty(e->loc, ident, flag);
 
     if (!sym->members)
@@ -7585,7 +7585,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 
     /* If e.tupleof
      */
-    if (ident == Id::tupleof)
+    if (ident == Id::_tupleof)
     {
         /* Create a TupleExp out of the fields of the struct e:
          * (e.field0, e.field1, e.field2, ...)
@@ -8134,12 +8134,12 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     }
 
     // Bugzilla 12543
-    if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
+    if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::_mangleof)
     {
         return Type::getProperty(e->loc, ident, 0);
     }
 
-    if (ident == Id::tupleof)
+    if (ident == Id::_tupleof)
     {
         /* Create a TupleExp
          */
@@ -8790,7 +8790,7 @@ Expression *TypeTuple::getProperty(Loc loc, Identifier *ident, int flag)
     {
         e = new IntegerExp(loc, arguments->dim, Type::tsize_t);
     }
-    else if (ident == Id::init)
+    else if (ident == Id::_init)
     {
         e = defaultInitLiteral(loc);
     }
