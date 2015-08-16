@@ -457,8 +457,7 @@ class StructLiteralExp : public Expression
 {
 public:
     StructDeclaration *sd;      // which aggregate this is for
-    Expressions *elements;      // parallels sd->fields[] with
-                                // NULL entries for fields to skip
+    Expressions *elements;      // parallels sd->fields[] with NULL entries for fields to skip
     Type *stype;                // final type of result (can be different from sd's type)
 
     Symbol *sinit;              // if this is a defaultInitLiteral, this symbol contains the default initializer

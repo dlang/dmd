@@ -25,9 +25,10 @@
 struct CtfeStatus
 {
     static int callDepth; // current number of recursive calls
-    static int stackTraceCallsToSuppress; /* When printing a stack trace,
-                                           * suppress this number of calls
-                                           */
+    /* When printing a stack trace,
+     * suppress this number of calls
+     */
+    static int stackTraceCallsToSuppress;
     static int maxCallDepth; // highest number of recursive calls
     static int numArrayAllocs; // Number of allocated arrays
     static int numAssignments; // total number of assignments executed

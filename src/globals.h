@@ -63,9 +63,10 @@ struct Param
     bool isOpenBSD;     // generate code for OpenBSD
     bool isSolaris;     // generate code for Solaris
     bool mscoff;        // for Win32: write COFF object files instead of OMF
-    char useDeprecated; // 0: don't allow use of deprecated features
-                        // 1: silently allow use of deprecated features
-                        // 2: warn about the use of deprecated features
+    // 0: don't allow use of deprecated features
+    // 1: silently allow use of deprecated features
+    // 2: warn about the use of deprecated features
+    char useDeprecated;
     bool useAssert;     // generate runtime code for assert()'s
     bool useInvariants; // generate class invariant checks
     bool useIn;         // generate precondition checks
@@ -77,9 +78,10 @@ struct Param
     bool useDIP25;      // implement http://wiki.dlang.org/DIP25
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
-    char warnings;      // 0: disable warnings
-                        // 1: warnings as errors
-                        // 2: informational warnings (no errors)
+    // 0: disable warnings
+    // 1: warnings as errors
+    // 2: informational warnings (no errors)
+    char warnings;
     bool pic;           // generate position-independent-code for shared libs
     bool color;         // use ANSI colors in console output
     bool cov;           // generate code coverage data
@@ -152,8 +154,9 @@ struct Compiler
 };
 
 typedef unsigned structalign_t;
-#define STRUCTALIGN_DEFAULT ((structalign_t) ~0)  // magic value means "match whatever the underlying C compiler does"
+// magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
+#define STRUCTALIGN_DEFAULT ((structalign_t) ~0)
 
 struct Global
 {
