@@ -634,7 +634,7 @@ MANUALSRC= \
 ifeq ($(D_OBJC),1)
 	GENSRC += objc.d
 else
-	MANUALSRC += objc.di objc_stubs.d
+	MANUALSRC += objc_stubs.d
 endif
 
 mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
