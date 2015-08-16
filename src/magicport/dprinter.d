@@ -300,7 +300,11 @@ class DPrinter : Visitor
     override void visit(VarDeclaration ast)
     {
         if (ast.stc & STCextern) return;
-        if (ast.id == "ASYNCREAD") return;
+        if (ast.id == "ASYNCREAD")
+        {
+            print("enum ASYNCREAD = false");
+            return;
+        }
         bool manifest;
         auto at = cast(ArrayType)ast.type;
         if (!D2)
