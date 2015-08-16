@@ -642,8 +642,8 @@ mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
 
 DSRC= $(GENSRC) $(MANUALSRC)
 
-ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a $(HOST_DC)
-	CC=$(HOST_CC) $(HOST_DC_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J.. -d $(DFLAGS)
+ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a $(HOST_DC) verstr.h
+	CC=$(HOST_CC) $(HOST_DC_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J. -d $(DFLAGS)
 
 #############################
 
