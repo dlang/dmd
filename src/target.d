@@ -20,13 +20,14 @@ import ddmd.root.outbuffer;
 struct Target
 {
     extern (C++) static __gshared int ptrsize;
-    extern (C++) static __gshared int realsize; // size a real consumes in memory
-    extern (C++) static __gshared int realpad; // 'padding' added to the CPU real size to bring it up to realsize
-    extern (C++) static __gshared int realalignsize; // alignment for reals
+    extern (C++) static __gshared int realsize;             // size a real consumes in memory
+    extern (C++) static __gshared int realpad;              // 'padding' added to the CPU real size to bring it up to realsize
+    extern (C++) static __gshared int realalignsize;        // alignment for reals
     extern (C++) static __gshared bool reverseCppOverloads; // with dmc, overloaded functions are grouped and in reverse order
-    extern (C++) static __gshared int c_longsize; // size of a C 'long' or 'unsigned long' type
-    extern (C++) static __gshared int c_long_doublesize; // size of a C 'long double'
-    extern (C++) static __gshared int classinfosize; // size of 'ClassInfo'
+    extern (C++) static __gshared int c_longsize;           // size of a C 'long' or 'unsigned long' type
+    extern (C++) static __gshared int c_long_doublesize;    // size of a C 'long double'
+    extern (C++) static __gshared int classinfosize;        // size of 'ClassInfo'
+    extern (C++) static __gshared bool reverseCArgs;        // if true, extern(C) arguments are pushed in reverse
 
     extern (C++) static void _init()
     {
@@ -34,6 +35,7 @@ struct Target
         // adjusted for 64 bit code.
         ptrsize = 4;
         classinfosize = 0x4C; // 76
+        reverseCArgs = true;
         if (global.params.isLP64)
         {
             ptrsize = 8;
