@@ -1070,7 +1070,6 @@ class DPrinter : Visitor
 
     override void visit(DeleteExpr ast)
     {
-        print("/*delete*/");
     }
 
     override void visit(NotExpr ast)
@@ -1457,6 +1456,11 @@ class DPrinter : Visitor
                     skipsemi = true;
                 if (cast(MacroUnDeclaration)de.d)
                     skipnl = true;
+            }
+            if (auto de = cast(DeleteExpr)ast.e)
+            {
+                skipsemi = true;
+                skipnl = true;
             }
             visitX(ast.e);
             if (ast.trailingcomment)
