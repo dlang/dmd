@@ -2655,11 +2655,11 @@ Lagain:
     t1b = t1->toBasetype();
     t2b = t2->toBasetype();
 
-    TY ty = (TY)Type::impcnvResult[t1b->ty][t2b->ty];
+    TY ty = (TY)impcnvResult[t1b->ty][t2b->ty];
     if (ty != Terror)
     {
-        TY ty1 = (TY)Type::impcnvType1[t1b->ty][t2b->ty];
-        TY ty2 = (TY)Type::impcnvType2[t1b->ty][t2b->ty];
+        TY ty1 = (TY)impcnvType1[t1b->ty][t2b->ty];
+        TY ty2 = (TY)impcnvType2[t1b->ty][t2b->ty];
 
         if (t1b->ty == ty1)     // if no promotions
         {

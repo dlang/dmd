@@ -1320,6 +1320,7 @@
                 "expression",
                 "func",
                 "id",
+                "impcnvtab",
                 "init",
                 "intrange",
                 "tokens",
@@ -3257,6 +3258,20 @@
             "members" :
             [
                 "function response_expand"
+            ]
+        },
+        {
+            "module" : "impcnvtab",
+            "package" : "",
+            "imports" : [
+                "mtype"
+            ],
+            "members" :
+            [
+                "variable impcnvResult",
+                "variable impcnvType1",
+                "variable impcnvType2",
+                "variable impcnvWarn"
             ]
         }
     ],
