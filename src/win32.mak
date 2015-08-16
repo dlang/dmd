@@ -344,7 +344,7 @@ GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	target.d dtemplate.d traits.d dunittest.d \
 	utf.d dversion.d visitor.d lib.d \
 	nogc.d nspace.d errors.d tokens.d \
-	globals.d escape.d \
+	globals.d escape.d impcnvtab.d \
 	$(ROOT)\aav.d $(ROOT)\outbuffer.d $(ROOT)\stringtable.d \
 	$(ROOT)\file.d $(ROOT)\filename.d $(ROOT)\speller.d \
 	$(ROOT)\man.d $(ROOT)\response.d
