@@ -84,6 +84,7 @@ src/func.d
 src/hdrgen.d
 src/id.d
 src/identifier.d
+src/impcnvtab.d
 src/imphint.d
 src/dimport.d
 src/dinifile.d
