@@ -367,12 +367,15 @@ private struct Demangle
 
         size_t val = 0;
 
-        foreach( i, e; num )
+        foreach( c; num )
         {
-            size_t n = e - '0';
-            if( val > (val.max - n) / 10 )
+            import core.checkedint : mulu, addu;
+
+            bool overflow = false;
+            val = mulu(val, 10, overflow);
+            val = addu(val, c - '0',  overflow);
+            if (overflow)
                 error();
-            val = val * 10 + n;
         }
         return val;
     }
