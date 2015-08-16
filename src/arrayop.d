@@ -21,6 +21,7 @@ import ddmd.mtype;
 import ddmd.root.aav;
 import ddmd.root.outbuffer;
 import ddmd.statement;
+import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
 
@@ -41,7 +42,7 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
      *      loopbody;
      *  return p;
      */
-    Parameter p = (*fparams)[0];
+    Parameter p = (Target.reverseCArgs) ? (*fparams)[0] : (*fparams)[$-1];
     // foreach (i; 0 .. p.length)
     Statement s1 = new ForeachRangeStatement(Loc(), TOKforeach, new Parameter(0, null, Id.p, null), new IntegerExp(Loc(), 0, Type.tsize_t), new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p.ident)), new ExpStatement(Loc(), loopbody), Loc());
     //printf("%s\n", s1->toChars());
@@ -241,7 +242,10 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
         void visit(Expression e)
         {
             buf.writestring("Exp");
-            arguments.shift(e);
+            if (Target.reverseCArgs)
+                arguments.shift(e);
+            else
+                arguments.push(e);
         }
 
         void visit(CastExp e)
@@ -258,13 +262,19 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
         void visit(ArrayLiteralExp e)
         {
             buf.writestring("Slice");
-            arguments.shift(e);
+            if (Target.reverseCArgs)
+                arguments.shift(e);
+            else
+                arguments.push(e);
         }
 
         void visit(SliceExp e)
         {
             buf.writestring("Slice");
-            arguments.shift(e);
+            if (Target.reverseCArgs)
+                arguments.shift(e);
+            else
+                arguments.push(e);
         }
 
         void visit(AssignExp e)
@@ -424,7 +434,10 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
         {
             Identifier id = Identifier.generateId("c", fparams.dim);
             auto param = new Parameter(0, e.type, id, null);
-            fparams.shift(param);
+            if (Target.reverseCArgs)
+                fparams.shift(param);
+            else
+                fparams.push(param);
             result = new IdentifierExp(Loc(), id);
         }
 
@@ -443,7 +456,10 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
         {
             Identifier id = Identifier.generateId("p", fparams.dim);
             auto param = new Parameter(STCconst, e.type, id, null);
-            fparams.shift(param);
+            if (Target.reverseCArgs)
+                fparams.shift(param);
+            else
+                fparams.push(param);
             Expression ie = new IdentifierExp(Loc(), id);
             auto arguments = new Expressions();
             Expression index = new IdentifierExp(Loc(), Id.p);
@@ -455,7 +471,10 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
         {
             Identifier id = Identifier.generateId("p", fparams.dim);
             auto param = new Parameter(STCconst, e.type, id, null);
-            fparams.shift(param);
+            if (Target.reverseCArgs)
+                fparams.shift(param);
+            else
+                fparams.push(param);
             Expression ie = new IdentifierExp(Loc(), id);
             auto arguments = new Expressions();
             Expression index = new IdentifierExp(Loc(), Id.p);
@@ -475,7 +494,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
              */
             ex2 = new CastExp(Loc(), ex2, e.e1.type.nextOf());
             Expression ex1 = buildArrayLoop(e.e1);
-            Parameter param = (*fparams)[0];
+            Parameter param = (Target.reverseCArgs) ? (*fparams)[0] : (*fparams)[$-1];
             param.storageClass = 0;
             result = new AssignExp(Loc(), ex1, ex2);
         }
@@ -486,7 +505,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
              */
             Expression ex2 = buildArrayLoop(e.e2);
             Expression ex1 = buildArrayLoop(e.e1);
-            Parameter param = (*fparams)[0];
+            Parameter param = (Target.reverseCArgs) ? (*fparams)[0] : (*fparams)[$-1];
             param.storageClass = 0;
             switch (e.op)
             {
