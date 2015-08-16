@@ -390,10 +390,11 @@ $(optabgen_output) : optabgen
 ######## idgen generates some source
 
 idgen_output = id.h id.c id.d
-$(idgen_output) : idgen
 
 idgen: idgen.d $(HOST_DC)
 	CC=$(HOST_CC) $(HOST_DC_RUN) idgen.d
+
+$(idgen_output): idgen
 	./idgen
 
 ######### impcnvgen generates some source
