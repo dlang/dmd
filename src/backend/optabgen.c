@@ -41,7 +41,7 @@ int _binary[] =
          OPinfo,OParray,OPfield,OPnewarray,OPmultinewarray,OPinstanceof,OPfinalinstanceof,
          OPcheckcast,OPpair,OPrpair,
          OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
-         OPremquo,
+         OPremquo,OPcmpxchg,
 #if TX86
          OPoutp,OPscale,OPyl2x,OPyl2xp1,
          OPvecsto,
@@ -83,7 +83,7 @@ int _assoc[] = {OPadd,OPand,OPor,OPxor,OPmul};
 int _assign[] =
         {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
          OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,OPpostinc,OPpostdec,
-         OPnegass,OPvecsto,
+         OPnegass,OPvecsto,OPcmpxchg,
         };
 int _wid[] =
         {OPadd,OPmin,OPand,OPor,OPxor,OPcom,OPneg,OPmul,OPaddass,OPnegass,
@@ -113,7 +113,7 @@ int _def[] = {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
                 OPcall,OPucall,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPnegass,OPnewarray,OPmultinewarray,
                 OPbtc,OPbtr,OPbts,
-                OPvecsto,
+                OPvecsto,OPcmpxchg,
              };
 int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPcall,OPeq,OPstreq,OPpostinc,OPpostdec,
@@ -123,6 +123,7 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPmultinewarray,OPcheckcast,OPnullcheck,
                 OPbtc,OPbtr,OPbts,
                 OPhalt,OPdctor,OPddtor,
+                OPcmpxchg,
 #if TX86 && MARS
                 OPva_start,
 #endif
@@ -134,7 +135,7 @@ int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,
                 OPcall,OPcallns,OPinfo,OPmemset,
-                OPvecsto,
+                OPvecsto,OPcmpxchg,
                 };
 int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPabs,OPrndtol,OPrint,
@@ -184,7 +185,7 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPrndtol,OPrint,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,OPoror,OPandand,OPcond,
                 OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,OPbtst,OPpopcnt,
                 OProl,OPror,OPvector,
-                OPpair,OPrpair,OPframeptr,OPgot,OPremquo,
+                OPpair,OPrpair,OPframeptr,OPgot,OPremquo,OPcmpxchg,
                 OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass,
 #if TX86
                 OPsqrt,OPsin,OPcos,OPscale,OPyl2x,OPyl2xp1,
@@ -517,6 +518,7 @@ void dotab()
         case OPyl2x:    X("yl2x",       elzot,  cdscale);
         case OPyl2xp1:  X("yl2xp1",     elzot,  cdscale);
 #endif
+        case OPcmpxchg:     X("cas",        elzot,  cdcmpxchg);
         case OPrint:    X("rint",       evalu8, cdneg);
         case OPrndtol:  X("rndtol",     evalu8, cdrndtol);
         case OPstrlen:  X("strlen",     elzot,  cdstrlen);
