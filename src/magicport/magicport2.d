@@ -42,7 +42,7 @@ void main(string[] args)
         writeln("loading -- ", fn);
         assert(fn.exists(), fn ~ " does not exist");
         auto pp = cast(string)read(fn);
-        pp = pp.replace("\"v\"\n#include \"verstr.h\"\n    ;", "__IMPORT__;");
+        pp = pp.replace("\"v\"\n#include \"verstr.h\"\n    ;", "__VERSTR__;");
         auto tx = Lexer(pp, fn).array;
         toks[fn] = tx;
         foreach(i, t; tx)
