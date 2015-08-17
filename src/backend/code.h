@@ -321,6 +321,7 @@ code *getoffset (elem *e , unsigned reg );
 cd_t cdneg;
 cd_t cdabs;
 cd_t cdpost;
+cd_t cdcmpxchg;
 cd_t cderr;
 cd_t cdinfo;
 cd_t cddctor;

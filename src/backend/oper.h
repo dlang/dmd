@@ -55,6 +55,7 @@ enum OPER
         OPscale,                // ldexp
         OPyl2x,                 // y * log2(x)
         OPyl2xp1,               // y * log2(x + 1)
+        OPcmpxchg,                      // cmpxchg
 #endif
         OPstrlen,               /* strlen()                     */
         OPstrcpy,               /* strcpy()                     */

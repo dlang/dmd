@@ -189,6 +189,7 @@ Loop:
         case OPandass:
         case OPxorass:
         case OPorass:
+        case OPcmpxchg:
             if (ERTOL(e))
             {   local_exp(e->E2,1);
         case OPnegass:
@@ -561,6 +562,7 @@ STATIC int local_getflags(elem *e,symbol *s)
             case OPandass:
             case OPxorass:
             case OPorass:
+            case OPcmpxchg:
                 if (e->E1->Eoper == OPvar)
                 {   symbol *s1;
 

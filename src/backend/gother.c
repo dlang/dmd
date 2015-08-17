@@ -1257,6 +1257,10 @@ void elimass(elem *n)
         case OPbts:
             n->Eoper = OPbt;
             break;
+        case OPcmpxchg:
+            n->Eoper = OPcomma;
+            n->E2->Eoper = OPcomma;
+            break;
         default:
             assert(0);
     }
