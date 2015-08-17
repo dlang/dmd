@@ -72,7 +72,6 @@ struct Objc_FuncDeclaration
 
     extern (D) this(FuncDeclaration fdecl)
     {
-        assert(0);
     }
 }
 
