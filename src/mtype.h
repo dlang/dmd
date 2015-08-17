@@ -48,7 +48,6 @@ typedef struct TYPE type;
 
 void semanticTypeInfo(Scope *sc, Type *t);
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
-Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 StorageClass ModToStc(unsigned mod);
 
 enum ENUMTY

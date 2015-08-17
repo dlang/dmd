@@ -88,22 +88,16 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             {
                 if (!t.deco)
                 {
-                    /* Can happen with:
-                     *    enum E { One }
-                     *    class A
-                     *    { static void fork(EDG dg) { dg(E.One); }
-                     *      alias void delegate(E) EDG;
-                     *    }
-                     * Should eventually make it work.
-                     */
                     e.error("forward reference to type %s", t.toChars());
                 }
-                else if (Type tx = reliesOnTident(t))
-                    e.error("forward reference to type %s", tx.toChars());
-                //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
-                //type = type->semantic(loc, sc);
-                //printf("type %s t %s\n", type->deco, t->deco);
-                e.error("cannot implicitly convert expression (%s) of type %s to %s", e.toChars(), e.type.toChars(), t.toChars());
+                else
+                {
+                    //printf("type %p ty %d deco %p\n", type, type.ty, type.deco);
+                    //type = type.semantic(loc, sc);
+                    //printf("type %s t %s\n", type.deco, t.deco);
+                    e.error("cannot implicitly convert expression (%s) of type %s to %s",
+                        e.toChars(), e.type.toChars(), t.toChars());
+                }
             }
             result = new ErrorExp();
         }

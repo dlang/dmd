@@ -4329,16 +4329,13 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
     return v.result;
 }
 
-/*******************************
- * Input:
- *      t           Tested type, if NULL, returns NULL.
- *      tparams     Optional template parameters.
- *                  == NULL:
- *                      If one of the subtypes of this type is a TypeIdentifier,
- *                      i.e. it's an unresolved type, return that type.
- *                  != NULL:
- *                      Only when the TypeIdentifier is one of template parameters,
- *                      return that type.
+/***********************************************************
+ * Check whether the type t representation relies on one or more the template parameters.
+ * Params:
+ *      t           = Tested type, if null, returns false.
+ *      tparams     = Template parameters.
+ *      iStart      = Start index of tparams to limit the tested parameters. If it's
+ *                    nonzero, tparams[0..iStart] will be excluded from the test target.
  */
 extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 0)
 {
@@ -4393,11 +4390,6 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(TypeIdentifier t)
         {
-            if (!tparams)
-            {
-                result = t;
-                return;
-            }
             for (size_t i = iStart; i < tparams.dim; i++)
             {
                 TemplateParameter tp = (*tparams)[i];
@@ -4411,8 +4403,6 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(TypeInstance t)
         {
-            if (!tparams)
-                return;
             for (size_t i = iStart; i < tparams.dim; i++)
             {
                 TemplateParameter tp = (*tparams)[i];
@@ -4453,6 +4443,8 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
     if (!t)
         return null;
+
+    assert(tparams);
     scope ReliesOnTident v = new ReliesOnTident(tparams, iStart);
     t.accept(v);
     return v.result;
