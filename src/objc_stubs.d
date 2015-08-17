@@ -20,11 +20,7 @@ struct ObjcSelector
     size_t stringlen;
     size_t paramCount;
 
-    static void _init()
-    {
-        printf("Should never be called when D_OBJC is false\n");
-        assert(0);
-    }
+    extern (C++) static void _init();
 
     // MARK: ObjcSelector
     extern (D) this(const(char)* sv, size_t len, size_t pcount)
@@ -33,22 +29,25 @@ struct ObjcSelector
         assert(0);
     }
 
-    static ObjcSelector lookup(const(char)* s)
+    extern (C++) static ObjcSelector* lookup(const(char)* s)
     {
         printf("Should never be called when D_OBJC is false\n");
         assert(0);
+        return null;
     }
 
-    static ObjcSelector lookup(const(char)* s, size_t len, size_t pcount)
+    extern (C++) static ObjcSelector* lookup(const(char)* s, size_t len, size_t pcount)
     {
         printf("Should never be called when D_OBJC is false\n");
         assert(0);
+        return null;
     }
 
-    static ObjcSelector create(FuncDeclaration fdecl)
+    extern (C++) static ObjcSelector* create(FuncDeclaration fdecl)
     {
         printf("Should never be called when D_OBJC is false\n");
         assert(0);
+        return null;
     }
 }
 
@@ -68,13 +67,16 @@ struct Objc_FuncDeclaration
 {
     FuncDeclaration fdecl;
     // Objective-C method selector (member function only)
-    ObjcSelector selector;
+    ObjcSelector* selector;
 
     extern (D) this(FuncDeclaration fdecl)
     {
+        this.fdecl = fdecl;
+        selector = null;
     }
 }
 
+// MARK: semantic
 extern (C++) void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration cd)
 {
     cd.error("Objective-C classes not supported");
