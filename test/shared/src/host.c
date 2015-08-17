@@ -5,6 +5,12 @@
 
 int main(int argc, char* argv[])
 {
+#if defined(__FreeBSD__)
+    // workaround for Bugzilla 14824
+    void *druntime = dlopen(argv[1], RTLD_LAZY); // load druntime
+    assert(druntime);
+#endif
+
     const size_t pathlen = strrchr(argv[0], '/') - argv[0] + 1;
     char *name = malloc(pathlen + sizeof("plugin1.so"));
     memcpy(name, argv[0], pathlen);
@@ -46,5 +52,9 @@ int main(int argc, char* argv[])
     assert(dlclose(plugin1) == 0);
 
     free(name);
+
+#if defined(__FreeBSD__)
+    dlclose(druntime);
+#endif
     return EXIT_SUCCESS;
 }
