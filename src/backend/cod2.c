@@ -1706,6 +1706,27 @@ code *cdnot(elem *e,regm_t *pretregs)
         op ^= (OPbool ^ OPnot);                 // switch operators
         goto L2;
     }
+    else if (config.target_cpu >= TARGET_80486 &&
+        tysize(e->Ety) == 1)
+    {
+        int jop = jmpopcode(e->E1);
+        retregs = mPSW;
+        c = codelem(e->E1,&retregs,FALSE);
+        retregs = *pretregs & BYTEREGS;
+        if (!retregs)
+            retregs = BYTEREGS;
+        c1 = allocreg(&retregs,&reg,TYint);
+
+        int iop = 0x0F90 | (jop & 0x0F);        // SETcc rm8
+        if (op == OPnot)
+            iop ^= 1;
+        c1 = gen2(c1,iop,grex | modregrmx(3,0,reg));
+        if (reg >= 4)
+            code_orrex(c1, REX);
+        if (op == OPbool)
+            *pretregs &= ~mPSW;
+        goto L4;
+    }
     else if (sz <= REGSIZE &&
         // NEG bytereg is too expensive
         (sz != 1 || config.target_cpu < TARGET_PentiumPro))
