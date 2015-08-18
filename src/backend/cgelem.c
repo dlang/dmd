@@ -4067,6 +4067,7 @@ ret:
 
 STATIC elem * elbool(elem *e, goal_t goal)
 {
+    //printf("elbool()\n");
     if (OTlogical(e->E1->Eoper) ||
         // bool bool => bool
         (tybasic(e->E1->Ety) == TYbool && tysize(e->Ety) == 1)
@@ -4236,11 +4237,10 @@ STATIC elem * elvptrfptr(elem *e, goal_t goal)
  */
 
 STATIC elem * ellngsht(elem *e, goal_t goal)
-{ elem *e1;
-  tym_t ty;
-
-  ty = e->Ety;
-  e1 = e->E1;
+{
+  //printf("ellngsht()\n");
+  tym_t ty = e->Ety;
+  elem *e1 = e->E1;
   switch (e1->Eoper)
   { case OPs16_32:
     case OPu16_32:
@@ -4283,6 +4283,10 @@ STATIC elem * ellngsht(elem *e, goal_t goal)
         e->Ety = ty;                    // retain original type
         break;
 #endif
+
+    case OPbtst:
+        e = el_selecte1(e);
+        break;
 
     default: /* operator */
     case_default:
