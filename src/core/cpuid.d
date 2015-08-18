@@ -311,6 +311,9 @@ public:
     /// The number of cache levels in the CPU.
     @property uint cacheLevels() { return numCacheLevels; }
 private:
+
+struct CpuFeatures
+{
     bool probablyIntel; // true = _probably_ an Intel processor, might be faking
     bool probablyAMD; // true = _probably_ an AMD processor
     string processorName;
@@ -324,8 +327,23 @@ private:
     ulong xfeatures = 0;   // XFEATURES_ENABLED_MASK
     uint maxCores = 1;
     uint maxThreads = 1;
+}
+
+CpuFeatures cpuFeatures;
+
+/* Hide from the optimizer where cf (a register) is coming from, so that
+ * cf doesn't get "optimized away". The idea is to  reference
+ * the global data through cf so not so many fixups are inserted
+ * into the executable image.
+ */
+CpuFeatures* getCpuFeatures() @nogc nothrow
+{
+    pragma(inline, false);
+    return &cpuFeatures;
+}
+
     // Note that this may indicate multi-core rather than hyperthreading.
-    @property bool hyperThreadingBit()    { return (features&HTT_BIT)!=0;}
+    @property bool hyperThreadingBit()    { return (cpuFeatures.features&HTT_BIT)!=0;}
 
     // feature flags CPUID1_EDX
     enum : uint
@@ -527,7 +545,7 @@ void getcacheinfoCPUID4()
         if ((a&0x1F)==0) break; // no more caches
         uint numthreads = ((a>>14) & 0xFFF)  + 1;
         uint numcores = ((a>>26) & 0x3F) + 1;
-        if (numcores > maxCores) maxCores = numcores;
+        if (numcores > cpuFeatures.maxCores) cpuFeatures.maxCores = numcores;
         if ((a&0x1F)!=1 && ((a&0x1F)!=3)) continue; // we only want data & unified caches
 
         ++number_of_sets;
@@ -576,7 +594,7 @@ void getAMDcacheinfo()
                 mov numcores, CL;
             }
             ++numcores;
-            if (numcores>maxCores) maxCores = numcores;
+            if (numcores>cpuFeatures.maxCores) cpuFeatures.maxCores = numcores;
         }
         asm pure nothrow @nogc {
             mov EAX, 0x8000_0006; // L2/L3 cache
@@ -620,8 +638,8 @@ void getCpuInfo0B()
             if (level==0)
                 threadsPerCore = b & 0xFFFF;
             else if (level==1) {
-                maxThreads = b & 0xFFFF;
-                maxCores = maxThreads / threadsPerCore;
+                cpuFeatures.maxThreads = b & 0xFFFF;
+                cpuFeatures.maxCores = cpuFeatures.maxThreads / threadsPerCore;
             }
 
         }
@@ -632,7 +650,9 @@ void getCpuInfo0B()
 
 void cpuidX86()
 {
-    char * venptr = vendorID.ptr;
+    auto cf = getCpuFeatures();
+
+    char * venptr = cf.vendorID.ptr;
     uint a, b, c, d, a2;
     version(D_InlineAsm_X86)
     {
@@ -667,8 +687,8 @@ void cpuidX86()
     max_extended_cpuid = a2;
 
 
-    probablyIntel = vendorID == "GenuineIntel";
-    probablyAMD = vendorID == "AuthenticAMD";
+    cf.probablyIntel = cf.vendorID == "GenuineIntel";
+    cf.probablyAMD = cf.vendorID == "AuthenticAMD";
     uint apic = 0; // brand index, apic id
     asm pure nothrow @nogc {
         mov EAX, 1; // model, stepping
@@ -678,8 +698,8 @@ void cpuidX86()
         mov c, ECX;
         mov d, EDX;
     }
-    features = d;
-    miscfeatures = c;
+    cf.features = d;
+    cf.miscfeatures = c;
 
     if (max_cpuid >= 7)
     {
@@ -693,10 +713,10 @@ void cpuidX86()
             mov ext, EBX; // HLE, AVX2, RTM, etc.
         }
 
-        extfeatures = ext;
+        cf.extfeatures = ext;
     }
 
-    if (miscfeatures & OSXSAVE_BIT)
+    if (cf.miscfeatures & OSXSAVE_BIT)
     {
         asm pure nothrow @nogc {
             mov ECX, 0;
@@ -704,10 +724,10 @@ void cpuidX86()
             mov d, EDX;
             mov a, EAX;
         }
-        xfeatures = cast(ulong)d << 32 | a;
+        cf.xfeatures = cast(ulong)d << 32 | a;
     }
-    amdfeatures = 0;
-    amdmiscfeatures = 0;
+    cf.amdfeatures = 0;
+    cf.amdmiscfeatures = 0;
     if (max_extended_cpuid >= 0x8000_0001) {
         asm pure nothrow @nogc {
             mov EAX, 0x8000_0001;
@@ -715,20 +735,20 @@ void cpuidX86()
             mov c, ECX;
             mov d, EDX;
         }
-        amdmiscfeatures = c;
-        amdfeatures = d;
+        cf.amdmiscfeatures = c;
+        cf.amdfeatures = d;
     }
     // Try to detect fraudulent vendorIDs
-    if (amd3dnow) probablyIntel = false;
+    if (amd3dnow) cf.probablyIntel = false;
 
     stepping = a & 0xF;
     uint fbase = (a >> 8) & 0xF;
     uint mbase = (a >> 4) & 0xF;
     family = ((fbase == 0xF) || (fbase == 0)) ? fbase + (a >> 20) & 0xFF : fbase;
-    model = ((fbase == 0xF) || (fbase == 6 && probablyIntel) ) ?
+    model = ((fbase == 0xF) || (fbase == 6 && cf.probablyIntel) ) ?
          mbase + ((a >> 12) & 0xF0) : mbase;
 
-    if (!probablyIntel && max_extended_cpuid >= 0x8000_0008) {
+    if (!cf.probablyIntel && max_extended_cpuid >= 0x8000_0008) {
         // determine max number of cores for AMD
         asm pure nothrow @nogc {
             mov EAX, 0x8000_0008;
@@ -736,14 +756,14 @@ void cpuidX86()
             mov c, ECX;
         }
         //http://support.amd.com/TechDocs/25481.pdf pg.36
-        maxCores = 1;
+        cf.maxCores = 1;
         if (hyperThreadingBit) {
-            maxCores += c & 0xFF;
+            cf.maxCores += c & 0xFF;
         }
     }
 
     if (max_extended_cpuid >= 0x8000_0004) {
-        char *procptr = processorNameBuffer.ptr;
+        char *procptr = cf.processorNameBuffer.ptr;
         version(D_InlineAsm_X86)
         {
             asm pure nothrow @nogc {
@@ -799,11 +819,11 @@ void cpuidX86()
         // Intel P4 and PM pad at front with spaces.
         // Other CPUs pad at end with nulls.
         int start = 0, end = 0;
-        while (processorNameBuffer[start] == ' ') { ++start; }
-        while (processorNameBuffer[processorNameBuffer.length-end-1] == 0) { ++end; }
-        processorName = cast(string)(processorNameBuffer[start..$-end]);
+        while (cf.processorNameBuffer[start] == ' ') { ++start; }
+        while (cf.processorNameBuffer[cf.processorNameBuffer.length-end-1] == 0) { ++end; }
+        cf.processorName = cast(string)(cf.processorNameBuffer[start..$-end]);
     } else {
-        processorName = "Unknown CPU";
+        cf.processorName = "Unknown CPU";
     }
     // Determine cache sizes
 
@@ -821,10 +841,10 @@ void cpuidX86()
     // Therefore, we try the AMD method unless it's an Intel chip.
     // If we still have no info, try the Intel methods.
     datacache[0].size = 0;
-    if (max_cpuid<2 || !probablyIntel) {
+    if (max_cpuid<2 || !cf.probablyIntel) {
         if (max_extended_cpuid >= 0x8000_0005) {
             getAMDcacheinfo();
-        } else if (probablyAMD) {
+        } else if (cf.probablyAMD) {
             // According to AMDProcRecognitionAppNote, this means CPU
             // K5 model 0, or Am5x86 (model 4), or Am4x86DX4 (model 4)
             // Am5x86 has 16Kb 4-way unified data & code cache.
@@ -864,8 +884,8 @@ void cpuidX86()
         // cores and hyperthreads.
         getCpuInfo0B();
     } else {
-        if (hyperThreadingBit) maxThreads = (apic>>>16) & 0xFF;
-        else maxThreads = maxCores;
+        if (hyperThreadingBit) cf.maxThreads = (apic>>>16) & 0xFF;
+        else cf.maxThreads = cf.maxCores;
     }
 }
 
@@ -947,6 +967,8 @@ void cpuidSparc()
 
 shared static this()
 {
+    auto cf = getCpuFeatures();
+
     if (hasCPUID()) {
         cpuidX86();
     } else {
@@ -975,57 +997,57 @@ shared static this()
     // Set the immortals
 
     _dataCaches =     datacache;
-    _vendor =         cast(string)vendorID;
-    _processor =      processorName;
-    _x87onChip =      (features&FPU_BIT)!=0;
-    _mmx =            (features&MMX_BIT)!=0;
-    _sse =            (features&SSE_BIT)!=0;
-    _sse2 =           (features&SSE2_BIT)!=0;
-    _sse3 =           (miscfeatures&SSE3_BIT)!=0;
-    _ssse3 =          (miscfeatures&SSSE3_BIT)!=0;
-    _sse41 =          (miscfeatures&SSE41_BIT)!=0;
-    _sse42 =          (miscfeatures&SSE42_BIT)!=0;
-    _sse4a =          (amdmiscfeatures&SSE4A_BIT)!=0;
-    _aes =            (miscfeatures&AES_BIT)!=0;
-    _hasPclmulqdq =   (miscfeatures&PCLMULQDQ_BIT)!=0;
-    _hasRdrand =      (miscfeatures&RDRAND_BIT)!=0;
+    _vendor =         cast(string)cf.vendorID;
+    _processor =      cf.processorName;
+    _x87onChip =      (cf.features&FPU_BIT)!=0;
+    _mmx =            (cf.features&MMX_BIT)!=0;
+    _sse =            (cf.features&SSE_BIT)!=0;
+    _sse2 =           (cf.features&SSE2_BIT)!=0;
+    _sse3 =           (cf.miscfeatures&SSE3_BIT)!=0;
+    _ssse3 =          (cf.miscfeatures&SSSE3_BIT)!=0;
+    _sse41 =          (cf.miscfeatures&SSE41_BIT)!=0;
+    _sse42 =          (cf.miscfeatures&SSE42_BIT)!=0;
+    _sse4a =          (cf.amdmiscfeatures&SSE4A_BIT)!=0;
+    _aes =            (cf.miscfeatures&AES_BIT)!=0;
+    _hasPclmulqdq =   (cf.miscfeatures&PCLMULQDQ_BIT)!=0;
+    _hasRdrand =      (cf.miscfeatures&RDRAND_BIT)!=0;
 
     enum avx_mask = XF_SSE_BIT|XF_YMM_BIT;
-    _avx =            (xfeatures & avx_mask) == avx_mask && (miscfeatures&AVX_BIT)!=0;
+    _avx =            (cf.xfeatures & avx_mask) == avx_mask && (cf.miscfeatures&AVX_BIT)!=0;
 
     _vaes =           avx && aes;
     _hasVpclmulqdq =  avx && hasPclmulqdq;
-    _fma =            avx && (miscfeatures&FMA_BIT)!=0;
-    _fp16c =          avx && (miscfeatures&FP16C_BIT)!=0;
-    _avx2 =           avx && (extfeatures & AVX2_BIT) != 0;
-    _hle =            (extfeatures & HLE_BIT) != 0;
-    _rtm =            (extfeatures & RTM_BIT) != 0;
-    _hasRdseed =      (extfeatures&RDSEED_BIT)!=0;
-    _hasSha =         (extfeatures&SHA_BIT)!=0;
-    _amd3dnow =       (amdfeatures&AMD_3DNOW_BIT)!=0;
-    _amd3dnowExt =    (amdfeatures&AMD_3DNOW_EXT_BIT)!=0;
-    _amdMmx =         (amdfeatures&AMD_MMX_BIT)!=0;
-    _hasFxsr =        (features&FXSR_BIT)!=0;
-    _hasCmov =        (features&CMOV_BIT)!=0;
-    _hasRdtsc =       (features&TIMESTAMP_BIT)!=0;
-    _hasCmpxchg8b =   (features&CMPXCHG8B_BIT)!=0;
-    _hasCmpxchg16b =  (miscfeatures&CMPXCHG16B_BIT)!=0;
+    _fma =            avx && (cf.miscfeatures&FMA_BIT)!=0;
+    _fp16c =          avx && (cf.miscfeatures&FP16C_BIT)!=0;
+    _avx2 =           avx && (cf.extfeatures & AVX2_BIT) != 0;
+    _hle =            (cf.extfeatures & HLE_BIT) != 0;
+    _rtm =            (cf.extfeatures & RTM_BIT) != 0;
+    _hasRdseed =      (cf.extfeatures&RDSEED_BIT)!=0;
+    _hasSha =         (cf.extfeatures&SHA_BIT)!=0;
+    _amd3dnow =       (cf.amdfeatures&AMD_3DNOW_BIT)!=0;
+    _amd3dnowExt =    (cf.amdfeatures&AMD_3DNOW_EXT_BIT)!=0;
+    _amdMmx =         (cf.amdfeatures&AMD_MMX_BIT)!=0;
+    _hasFxsr =        (cf.features&FXSR_BIT)!=0;
+    _hasCmov =        (cf.features&CMOV_BIT)!=0;
+    _hasRdtsc =       (cf.features&TIMESTAMP_BIT)!=0;
+    _hasCmpxchg8b =   (cf.features&CMPXCHG8B_BIT)!=0;
+    _hasCmpxchg16b =  (cf.miscfeatures&CMPXCHG16B_BIT)!=0;
     _hasSysEnterSysExit =
         // The SYSENTER/SYSEXIT features were buggy on Pentium Pro and early PentiumII.
         // (REF: www.geoffchappell.com).
-        (probablyIntel && (family < 6 || (family==6 && (model< 3 || (model==3 && stepping<3)))))
+        (cf.probablyIntel && (family < 6 || (family==6 && (model< 3 || (model==3 && stepping<3)))))
             ? false
-            : (features & SYSENTERSYSEXIT_BIT)!=0;
-    _has3dnowPrefetch = (amdmiscfeatures&AMD_3DNOW_PREFETCH_BIT)!=0;
-    _hasLahfSahf =    (amdmiscfeatures&LAHFSAHF_BIT)!=0;
-    _hasPopcnt =      (miscfeatures&POPCNT_BIT)!=0;
-    _hasLzcnt =       (amdmiscfeatures&LZCNT_BIT)!=0;
-    _isX86_64 =       (amdfeatures&AMD64_BIT)!=0;
-    _isItanium =      (features&IA64_BIT)!=0;
-    _hyperThreading = maxThreads>maxCores;
-    _threadsPerCPU =  maxThreads;
-    _coresPerCPU =    maxCores;
-    _preferAthlon =   probablyAMD && family >=6;
-    _preferPentium4 = probablyIntel && family == 0xF;
-    _preferPentium1 = family < 6 || (family==6 && model < 0xF && !probablyIntel);
+            : (cf.features & SYSENTERSYSEXIT_BIT)!=0;
+    _has3dnowPrefetch = (cf.amdmiscfeatures&AMD_3DNOW_PREFETCH_BIT)!=0;
+    _hasLahfSahf =    (cf.amdmiscfeatures&LAHFSAHF_BIT)!=0;
+    _hasPopcnt =      (cf.miscfeatures&POPCNT_BIT)!=0;
+    _hasLzcnt =       (cf.amdmiscfeatures&LZCNT_BIT)!=0;
+    _isX86_64 =       (cf.amdfeatures&AMD64_BIT)!=0;
+    _isItanium =      (cf.features&IA64_BIT)!=0;
+    _hyperThreading = cf.maxThreads>cf.maxCores;
+    _threadsPerCPU =  cf.maxThreads;
+    _coresPerCPU =    cf.maxCores;
+    _preferAthlon =   cf.probablyAMD && family >=6;
+    _preferPentium4 = cf.probablyIntel && family == 0xF;
+    _preferPentium1 = family < 6 || (family==6 && model < 0xF && !cf.probablyIntel);
 }
