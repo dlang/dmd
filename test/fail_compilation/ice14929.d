@@ -4,10 +4,10 @@ TEST_OUTPUT:
 fail_compilation/ice14929.d(44): Error: cast(Node)(*this.current).items[this.index] is not an lvalue
 fail_compilation/ice14929.d(87): Error: template instance ice14929.HashMap!(ulong, int).HashMap.opBinaryRight!"in" error instantiating
 fail_compilation/ice14929.d(91):        instantiated from here: HashmapComponentStorage!int
-fail_compilation/ice14929.d(87): Error: rvalue of in expression must be an associative array, not HashMap!(ulong, int)
 fail_compilation/ice14929.d(91): Error: template instance ice14929.isComponentStorage!(HashmapComponentStorage!int, int) error instantiating
 ---
 */
+
 struct HashMap(K, V)
 {
     V* opBinaryRight(string op)(K key) const if (op == "in")
