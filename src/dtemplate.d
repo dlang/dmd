@@ -4371,7 +4371,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
  *      iStart      = Start index of tparams to limit the tested parameters. If it's
  *                    nonzero, tparams[0..iStart] will be excluded from the test target.
  */
-extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 0)
+extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 0)
 {
     extern (C++) final class ReliesOnTident : Visitor
     {
@@ -4379,7 +4379,7 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
     public:
         TemplateParameters* tparams;
         size_t iStart;
-        Type result;
+        bool result;
 
         extern (D) this(TemplateParameters* tparams, size_t iStart)
         {
@@ -4429,7 +4429,7 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
                 TemplateParameter tp = (*tparams)[i];
                 if (tp.ident.equals(t.ident))
                 {
-                    result = t;
+                    result = true;
                     return;
                 }
             }
@@ -4442,7 +4442,7 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
                 TemplateParameter tp = (*tparams)[i];
                 if (t.tempinst.name == tp.ident)
                 {
-                    result = t;
+                    result = true;
                     return;
                 }
             }
@@ -4460,6 +4460,12 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
             }
         }
 
+        override void visit(TypeTypeof t)
+        {
+            //printf("TypeTypeof::reliesOnTident('%s')\n", t.toChars());
+            t.exp.accept(this);
+        }
+
         override void visit(TypeTuple t)
         {
             if (t.arguments)
@@ -4473,10 +4479,256 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
                 }
             }
         }
+
+        override void visit(Expression e)
+        {
+            //printf("Expression::reliesOnTident('%s')\n", e.toChars());
+        }
+
+        override void visit(IdentifierExp e)
+        {
+            //printf("IdentifierExp::reliesOnTident('%s')\n", e.toChars());
+            for (size_t i = iStart; i < tparams.dim; i++)
+            {
+                auto tp = (*tparams)[i];
+                if (e.ident == tp.ident)
+                {
+                    result = true;
+                    return;
+                }
+            }
+        }
+
+        override void visit(TupleExp e)
+        {
+            //printf("TupleExp::reliesOnTident('%s')\n", e.toChars());
+            if (e.exps)
+            {
+                foreach (ea; *e.exps)
+                {
+                    ea.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(ArrayLiteralExp e)
+        {
+            //printf("ArrayLiteralExp::reliesOnTident('%s')\n", e.toChars());
+            if (e.elements)
+            {
+                foreach (el; *e.elements)
+                {
+                    el.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(AssocArrayLiteralExp e)
+        {
+            //printf("AssocArrayLiteralExp::reliesOnTident('%s')\n", e.toChars());
+            foreach (ek; *e.keys)
+            {
+                ek.accept(this);
+                if (result)
+                    return;
+            }
+            foreach (ev; *e.values)
+            {
+                ev.accept(this);
+                if (result)
+                    return;
+            }
+        }
+
+        override void visit(StructLiteralExp e)
+        {
+            //printf("StructLiteralExp::reliesOnTident('%s')\n", e.toChars());
+            if (e.elements)
+            {
+                foreach (ea; *e.elements)
+                {
+                    ea.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(TypeExp e)
+        {
+            //printf("TypeExp::reliesOnTident('%s')\n", e.toChars());
+            e.type.accept(this);
+        }
+
+        override void visit(NewExp e)
+        {
+            //printf("NewExp::reliesOnTident('%s')\n", e.toChars());
+            if (e.thisexp)
+                e.thisexp.accept(this);
+            if (!result && e.newargs)
+            {
+                foreach (ea; *e.newargs)
+                {
+                    ea.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+            e.newtype.accept(this);
+            if (!result && e.arguments)
+            {
+                foreach (ea; *e.arguments)
+                {
+                    ea.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(NewAnonClassExp e)
+        {
+            //printf("NewAnonClassExp::reliesOnTident('%s')\n", e.toChars());
+            result = true;
+        }
+
+        override void visit(FuncExp e)
+        {
+            //printf("FuncExp::reliesOnTident('%s')\n", e.toChars());
+            result = true;
+        }
+
+        override void visit(TypeidExp e)
+        {
+            //printf("TypeidExp::reliesOnTident('%s')\n", e.toChars());
+            if (auto ea = isExpression(e.obj))
+                ea.accept(this);
+            else if (auto ta = isType(e.obj))
+                ta.accept(this);
+        }
+
+        override void visit(TraitsExp e)
+        {
+            //printf("TraitsExp::reliesOnTident('%s')\n", e.toChars());
+            if (e.args)
+            {
+                foreach (oa; *e.args)
+                {
+                    if (auto ea = isExpression(oa))
+                        ea.accept(this);
+                    else if (auto ta = isType(oa))
+                        ta.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(IsExp e)
+        {
+            //printf("IsExp::reliesOnTident('%s')\n", e.toChars());
+            e.targ.accept(this);
+        }
+
+        override void visit(UnaExp e)
+        {
+            //printf("UnaExp::reliesOnTident('%s')\n", e.toChars());
+            e.e1.accept(this);
+        }
+
+        override void visit(DotTemplateInstanceExp e)
+        {
+            //printf("DotTemplateInstanceExp::reliesOnTident('%s')\n", e.toChars());
+            visit(cast(UnaExp)e);
+            if (!result && e.ti.tiargs)
+            {
+                foreach (oa; *e.ti.tiargs)
+                {
+                    if (auto ea = isExpression(oa))
+                        ea.accept(this);
+                    else if (auto ta = isType(oa))
+                        ta.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(CallExp e)
+        {
+            //printf("CallExp::reliesOnTident('%s')\n", e.toChars());
+            visit(cast(UnaExp)e);
+            if (!result && e.arguments)
+            {
+                foreach (ea; *e.arguments)
+                {
+                    ea.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        override void visit(CastExp e)
+        {
+            //printf("CallExp::reliesOnTident('%s')\n", e.toChars());
+            visit(cast(UnaExp)e);
+            if (!result)
+                e.to.accept(this);
+        }
+
+        override void visit(SliceExp e)
+        {
+            //printf("SliceExp::reliesOnTident('%s')\n", e.toChars());
+            visit(cast(UnaExp)e);
+            if (!result && e.lwr)
+                e.lwr.accept(this);
+            if (!result && e.upr)
+                e.upr.accept(this);
+        }
+
+        override void visit(IntervalExp e)
+        {
+            //printf("IntervalExp::reliesOnTident('%s')\n", e.toChars());
+            e.lwr.accept(this);
+            if (!result)
+                e.upr.accept(this);
+        }
+
+        override void visit(ArrayExp e)
+        {
+            //printf("ArrayExp::reliesOnTident('%s')\n", e.toChars());
+            visit(cast(UnaExp)e);
+            if (!result && e.arguments)
+            {
+                foreach (ea; *e.arguments)
+                    ea.accept(this);
+            }
+        }
+
+        override void visit(BinExp e)
+        {
+            //printf("BinExp::reliesOnTident('%s')\n", e.toChars());
+            e.e1.accept(this);
+            if (!result)
+                e.e2.accept(this);
+        }
+
+        override void visit(CondExp e)
+        {
+            //printf("BinExp::reliesOnTident('%s')\n", e.toChars());
+            e.econd.accept(this);
+            if (!result)
+                visit(cast(BinExp)e);
+        }
     }
 
     if (!t)
-        return null;
+        return false;
 
     assert(tparams);
     scope ReliesOnTident v = new ReliesOnTident(tparams, iStart);
