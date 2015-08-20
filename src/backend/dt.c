@@ -296,6 +296,13 @@ dt_t ** dtxoff(dt_t **pdtend,symbol *s,unsigned offset,tym_t ty)
     return pdtend;
 }
 
+/*********************************
+ */
+void dtpatchoffset(dt_t *dt, unsigned offset)
+{
+    dt->DToffset = offset;
+}
+
 /*************************************
  * Create a reference to another dt.
  */

@@ -363,8 +363,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 name = cd->toPrettyChars();
                 namelen = strlen(name);
             }
-            dtsize_t(&dt, namelen);
-            dtabytes(&dt, TYnptr, 0, namelen + 1, name);
+            size_t namepad = (Target::ptrsize - (namelen + 1)) & (Target::ptrsize - 1); // alignment padding
+            assert(namepad < Target::ptrsize);
+            dt_t **pdtname = dtsize_t(&dt, namelen);
+            dtxoff(&dt, cd->csym, 0, TYnptr);
 
             // vtbl[]
             dtsize_t(&dt, cd->vtbl.dim);
@@ -555,6 +557,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
                             // First entry is struct Interface reference
                             dtxoff(&dt, toSymbol(pc), Target::classinfosize + k * (4 * Target::ptrsize), TYnptr);
+                            offset += Target::ptrsize;
                             j = 1;
                         }
 
@@ -566,10 +569,18 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                                 dtxoff(&dt, toThunkSymbol(fd, bs->offset), 0, TYnptr);
                             else
                                 dtsize_t(&dt, 0);
+                            offset += Target::ptrsize;
                         }
                     }
                 }
             }
+
+            //////////////////////////////////////////////
+
+            dtpatchoffset(*pdtname, offset);
+
+            dtnbytes(&dt, namelen + 1, name);
+            dtnzeros(&dt, namepad);
 
             cd->csym->Sdt = dt;
             // ClassInfo cannot be const data, because we use the monitor on it
@@ -719,19 +730,20 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             // name[]
             const char *name = id->toPrettyChars();
             size_t namelen = strlen(name);
-            dtsize_t(&dt, namelen);
-            dtabytes(&dt, TYnptr, 0, namelen + 1, name);
+            size_t namepad = (Target::ptrsize - (namelen + 1)) & (Target::ptrsize - 1); // alignment padding
+            assert(namepad < Target::ptrsize);
+            dt_t **pdtname = dtsize_t(&dt, namelen);
+            dtxoff(&dt, id->csym, 0, TYnptr);
 
             // vtbl[]
             dtsize_t(&dt, 0);
             dtsize_t(&dt, 0);
 
             // (*vtblInterfaces)[]
-            unsigned offset;
+            unsigned offset = Target::classinfosize;
             dtsize_t(&dt, id->vtblInterfaces->dim);
             if (id->vtblInterfaces->dim)
             {
-                offset = Target::classinfosize;    // must be ClassInfo.size
                 if (Type::typeinfoclass)
                 {
                     if (Type::typeinfoclass->structsize != offset)
@@ -744,7 +756,6 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             }
             else
             {
-                offset = 0;
                 dtsize_t(&dt, 0);
             }
 
@@ -806,6 +817,13 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 // this offset
                 dtsize_t(&dt, b->offset);
             }
+
+            //////////////////////////////////////////////
+
+            dtpatchoffset(*pdtname, offset);
+
+            dtnbytes(&dt, namelen + 1, name);
+            dtnzeros(&dt, namepad);
 
             id->csym->Sdt = dt;
             out_readonly(id->csym);
