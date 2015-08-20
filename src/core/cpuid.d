@@ -735,15 +735,10 @@ void cpuidX86()
             cpuid;
             mov c, ECX;
         }
-        uint apicsize = (c>>12) & 0xF;
-        if (apicsize == 0) {
-            // use legacy method
-            if (hyperThreadingBit)  maxCores = c & 0xFF;
-            else maxCores = 1;
-        } else {
-            // maxcores = 2^ apicsize
-            maxCores = 1;
-            while (apicsize) { maxCores<<=1; --apicsize; }
+        //http://support.amd.com/TechDocs/25481.pdf pg.36
+        maxCores = 1;
+        if (hyperThreadingBit) {
+            maxCores += c & 0xFF;
         }
     }
 
