@@ -3527,6 +3527,8 @@ STATIC elem * eleq(elem *e, goal_t goal)
            )
         {
             tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
+            if (tyfloating(e1->Ety) && REGSIZE >= 4)
+                ty = (REGSIZE == 8) ? TYdouble : TYfloat;
             ty |= e1->Ety & ~mTYbasic;
             e2->Ety = ty;
             e->Ety = ty;
@@ -3551,6 +3553,29 @@ STATIC elem * eleq(elem *e, goal_t goal)
 
             e2->Eoper = OPcomma;
             return optelem(e2,goal);
+        }
+
+        // Replace (a=b) with (a1=b1),(a2=b2)
+        if (tysize(e1->Ety) == 2 * REGSIZE &&
+            e1->Eoper == OPvar &&
+            e2->Eoper == OPvar &&
+            goal == GOALnone
+           )
+        {
+            tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
+            if (tyfloating(e1->Ety) && REGSIZE >= 4)
+                ty = (REGSIZE == 8) ? TYdouble : TYfloat;
+            ty |= e1->Ety & ~mTYbasic;
+            e2->Ety = ty;
+            e->Ety = ty;
+            e1->Ety = ty;
+
+            elem *eb = el_copytree(e);
+            eb->E1->EV.sp.Voffset += REGSIZE;
+            eb->E2->EV.sp.Voffset += REGSIZE;
+
+            e = el_bin(OPcomma,ty,e,eb);
+            return optelem(e,goal);
         }
     }
 
