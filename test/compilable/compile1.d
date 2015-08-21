@@ -693,6 +693,18 @@ private           bool[9] r12506a = f12506!(i => true)(); // OK
 private immutable bool[9] r12506b = f12506!(i => true)(); // OK <- error
 
 /***************************************************/
+// GDC extended asm statements should parse
+
+void testGDCasm()
+{
+    version(none)
+    {
+        asm { "notl %[iov]" : [iov] "=r" result : "0" v; }
+        asm { "nor %[oresult],%[iv],%[iv]" : [oresult] "=r" result : [iv] "r" v; }
+    }
+}
+
+/***************************************************/
 // 12555
 
 class A12555(T)

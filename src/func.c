@@ -193,6 +193,7 @@ public:
             visitStmt(s->statement);
     }
     void visit(AsmStatement *s) {  }
+    void visit(ExtAsmStatement *s) {  }
     void visit(ImportStatement *s) {  }
 };
 

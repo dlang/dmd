@@ -127,6 +127,10 @@ public:
     void checkCstyleTypeSyntax(Loc loc, Type *t, int alt, Identifier *ident);
     /** endPtr used for documented unittests */
     Statement *parseStatement(int flags, const utf8_t** endPtr = NULL, Loc *pEndloc = NULL);
+    Statement *parseExtAsm();
+    int parseExtAsmOperands(Expressions *args, Identifiers *names, Expressions *constraints);
+    Expressions *parseExtAsmClobbers();
+    Identifiers *parseExtAsmGotoLabels();
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
     void check(Loc loc, TOK value);

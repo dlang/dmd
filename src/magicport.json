@@ -1884,7 +1884,8 @@
                 "struct LabelDsymbol",
                 "struct AsmStatement",
                 "struct CompoundAsmStatement",
-                "struct ImportStatement"
+                "struct ImportStatement",
+                "struct ExtAsmStatement"
             ]
         },
         {
