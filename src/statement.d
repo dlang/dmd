@@ -900,6 +900,11 @@ public:
         return null;
     }
 
+    ImportStatement isImportStatement()
+    {
+        return null;
+    }
+
     void accept(Visitor v)
     {
         v.visit(this);
@@ -5976,6 +5981,11 @@ public:
                 sc.insert(aliasdecl);
             }
         }
+        return this;
+    }
+
+    override final ImportStatement isImportStatement()
+    {
         return this;
     }
 
