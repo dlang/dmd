@@ -960,6 +960,48 @@ bool isFloatIntPaint(Type *to, Type *from)
             from->isfloating() && to->isintegral());
 }
 
+// Discard extra bits from a floating point number, that cannot be stored
+// in a variable of that type. For example, float.max*2 cannot be stored
+// in a float.
+Expression *discardExcessFloatPrecision(Expression *val)
+{
+    if (exceptionOrCantInterpret(val))
+        return val;
+    if (val->type->ty == Tfloat32 || val->type->ty == Timaginary32)
+    {
+        UnionFloatInt u;
+        u.f = val->type->isreal() ? val->toReal() : val->toImaginary();
+        return new RealExp(val->loc, ldouble(u.f), val->type);
+    }
+    if (val->type->ty == Tfloat64 || val->type->ty == Timaginary64)
+    {
+        UnionDoubleLong u;
+        u.f = val->type->isreal() ? val->toReal() : val->toImaginary();
+        return new RealExp(val->loc, ldouble(u.f), val->type);
+    }
+    if (val->type->ty == Tcomplex32)
+    {
+        complex_t cvalue;
+        UnionFloatInt ur, ui;
+        ur.f = val->toReal();
+        ui.f = val->toImaginary();
+        cvalue.re = ldouble(ur.f);
+        cvalue.im = ldouble(ui.f);
+        return new ComplexExp(val->loc, cvalue, val->type);
+    }
+    if (val->type->ty == Tcomplex64)
+    {
+        complex_t cvalue;
+        UnionDoubleLong ur, ui;
+        ur.f = val->toReal();
+        ui.f = val->toImaginary();
+        cvalue.re = ldouble(ur.f);
+        cvalue.im = ldouble(ui.f);
+        return new ComplexExp(val->loc, cvalue, val->type);
+    }
+    return val;
+}
+
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
 Expression *paintFloatInt(Expression *fromVal, Type *to)
 {

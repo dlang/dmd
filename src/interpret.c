@@ -6193,6 +6193,11 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
             return ex;
         aae->type = toBuiltinAAType(aae->type);
     }
+    if (e->type->isfloating())
+    {
+        // Discard bits which aren't representable at runtime
+        e = discardExcessFloatPrecision(e);
+    }
     return e;
 }
 

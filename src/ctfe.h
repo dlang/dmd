@@ -220,6 +220,9 @@ bool isFloatIntPaint(Type *to, Type *from);
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
 Expression *paintFloatInt(Expression *fromVal, Type *to);
 
+// Reduce the precision of the expression, to the expression of the type
+Expression *discardExcessFloatPrecision(Expression *val);
+
 /// Return true if t is an AA
 bool isAssocArray(Type *t);
 
