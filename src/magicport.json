@@ -2770,7 +2770,7 @@
                 "function needDirectEq",
                 "function extractOpDollarSideEffect",
                 "function resolveOpDollarScope*ArrayExp*Expression**",
-                "function resolveOpDollarScope*SliceExp*Expression**",
+                "function resolveOpDollarScope*ArrayExp*IntervalExp*Expression**",
                 "enum CtfeGoal",
                 "enum OwnedBy",
                 "variable WANTvalue",
