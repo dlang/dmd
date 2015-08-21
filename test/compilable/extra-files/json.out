@@ -314,9 +314,57 @@
     ]
    },
    {
+    "name" : "Foo3",
+    "kind" : "struct",
+    "line" : 49,
+    "char" : 1,
+    "members" : [
+     {
+      "name" : "foo1",
+      "kind" : "function",
+      "line" : 51,
+      "char" : 25,
+      "storageClass" : [
+       "pure",
+       "@property",
+       "@safe"
+      ],
+      "deco" : "FNaNdNfZl",
+      "endline" : 51,
+      "endchar" : 44
+     },
+     {
+      "name" : "foo2",
+      "kind" : "function",
+      "line" : 52,
+      "char" : 20,
+      "storageClass" : [
+       "@property",
+       "@safe"
+      ],
+      "deco" : "FNdNfZl",
+      "endline" : 52,
+      "endchar" : 39
+     },
+     {
+      "name" : "foo2",
+      "kind" : "function",
+      "line" : 53,
+      "char" : 19,
+      "storageClass" : [
+       "pure",
+       "@property"
+      ],
+      "deco" : "FNaNdZl",
+      "endline" : 53,
+      "endchar" : 38
+     }
+    ]
+   },
+   {
     "name" : "bar",
     "kind" : "function",
-    "line" : 52,
+    "line" : 60,
     "char" : 16,
     "deco" : "FNeKkC4json4Bar2Zi",
     "originalType" : "@trusted myInt(ref uint blah, Bar2 foo = new Bar3(7))",
@@ -334,22 +382,26 @@
       "default" : "new Bar3(7)"
      }
     ],
-    "endline" : 55,
+    "endline" : 63,
     "endchar" : 1
    },
    {
     "name" : "outer",
     "kind" : "function",
-    "line" : 57,
-    "char" : 15,
-    "deco" : "FNbNdZi",
-    "endline" : 74,
+    "line" : 65,
+    "char" : 21,
+    "storageClass" : [
+     "@property",
+     "@safe"
+    ],
+    "deco" : "FNbNdNfZi",
+    "endline" : 82,
     "endchar" : 1
    },
    {
     "name" : "imports.jsonimport1",
     "kind" : "import",
-    "line" : 77,
+    "line" : 85,
     "char" : 8,
     "protection" : "private",
     "selective" : [
@@ -360,7 +412,7 @@
    {
     "name" : "imports.jsonimport2",
     "kind" : "import",
-    "line" : 78,
+    "line" : 86,
     "char" : 8,
     "protection" : "private",
     "renamed" : {
@@ -371,7 +423,7 @@
    {
     "name" : "imports.jsonimport3",
     "kind" : "import",
-    "line" : 79,
+    "line" : 87,
     "char" : 8,
     "protection" : "private",
     "renamed" : {
@@ -385,19 +437,19 @@
    {
     "name" : "imports.jsonimport4",
     "kind" : "import",
-    "line" : 80,
+    "line" : 88,
     "char" : 8,
     "protection" : "private"
    },
    {
     "name" : "S",
     "kind" : "struct",
-    "line" : 82,
+    "line" : 90,
     "char" : 1,
     "members" : [
      {
       "kind" : "template",
-      "line" : 85,
+      "line" : 93,
       "char" : 5,
       "name" : "this",
       "parameters" : [
@@ -410,7 +462,7 @@
        {
         "name" : "this",
         "kind" : "constructor",
-        "line" : 85,
+        "line" : 93,
         "char" : 5,
         "type" : "(T t)",
         "parameters" : [
@@ -419,7 +471,7 @@
           "type" : "T"
          }
         ],
-        "endline" : 85,
+        "endline" : 93,
         "endchar" : 20
        }
       ]
@@ -429,7 +481,7 @@
    {
     "kind" : "template",
     "protection" : "private",
-    "line" : 89,
+    "line" : 97,
     "char" : 9,
     "name" : "S1_9755",
     "parameters" : [
@@ -442,7 +494,7 @@
      {
       "name" : "S1_9755",
       "kind" : "struct",
-      "line" : 89,
+      "line" : 97,
       "char" : 9,
       "members" : []
      }
@@ -451,7 +503,7 @@
    {
     "kind" : "template",
     "protection" : "package",
-    "line" : 90,
+    "line" : 98,
     "char" : 9,
     "name" : "S2_9755",
     "parameters" : [
@@ -464,7 +516,7 @@
      {
       "name" : "S2_9755",
       "kind" : "struct",
-      "line" : 90,
+      "line" : 98,
       "char" : 9,
       "members" : []
      }
@@ -473,13 +525,13 @@
    {
     "name" : "C_9755",
     "kind" : "class",
-    "line" : 92,
+    "line" : 100,
     "char" : 1,
     "members" : [
      {
       "kind" : "template",
       "protection" : "protected",
-      "line" : 94,
+      "line" : 102,
       "char" : 22,
       "name" : "CI_9755",
       "parameters" : [
@@ -492,7 +544,7 @@
        {
         "name" : "CI_9755",
         "kind" : "class",
-        "line" : 94,
+        "line" : 102,
         "char" : 22,
         "members" : []
        }
@@ -503,7 +555,7 @@
    {
     "name" : "c_10011",
     "kind" : "variable",
-    "line" : 98,
+    "line" : 106,
     "char" : 14,
     "storageClass" : [
      "const"
@@ -515,7 +567,7 @@
    {
     "name" : "Numbers",
     "kind" : "enum",
-    "line" : 101,
+    "line" : 109,
     "char" : 1,
     "baseDeco" : "i",
     "members" : [
@@ -523,49 +575,49 @@
       "name" : "unspecified1",
       "kind" : "enum member",
       "value" : "0",
-      "line" : 103,
+      "line" : 111,
       "char" : 5
      },
      {
       "name" : "one",
       "kind" : "enum member",
       "value" : "2",
-      "line" : 104,
+      "line" : 112,
       "char" : 5
      },
      {
       "name" : "two",
       "kind" : "enum member",
       "value" : "3",
-      "line" : 105,
+      "line" : 113,
       "char" : 5
      },
      {
       "name" : "FILE_NOT_FOUND",
       "kind" : "enum member",
       "value" : "101",
-      "line" : 106,
+      "line" : 114,
       "char" : 5
      },
      {
       "name" : "unspecified3",
       "kind" : "enum member",
       "value" : "102",
-      "line" : 107,
+      "line" : 115,
       "char" : 5
      },
      {
       "name" : "unspecified4",
       "kind" : "enum member",
       "value" : "103",
-      "line" : 108,
+      "line" : 116,
       "char" : 5
      },
      {
       "name" : "four",
       "kind" : "enum member",
       "value" : "4",
-      "line" : 109,
+      "line" : 117,
       "char" : 5
      }
     ]

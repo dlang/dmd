@@ -46,6 +46,14 @@ struct Foo2 {
 	}
 }
 
+struct Foo3 {
+    @property {
+        @safe pure long foo1() { return 0; }
+        @safe long foo2() { return 0; }
+        pure long foo2() { return 0; }
+    };
+};
+
 /++
  + Documentation test
  +/
@@ -54,7 +62,7 @@ struct Foo2 {
 	return -1;
 }
 
-@property int outer() nothrow
+@property @safe int outer() nothrow
 in {
 	assert(true);
 }
