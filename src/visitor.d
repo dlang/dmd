@@ -508,6 +508,11 @@ public:
         visit(cast(ScopeDsymbol)s);
     }
 
+    void visit(ImportScopeSymbol s)
+    {
+        visit(cast(ScopeDsymbol)s);
+    }
+
     void visit(Nspace s)
     {
         visit(cast(ScopeDsymbol)s);

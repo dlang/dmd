@@ -267,6 +267,7 @@ public:
     virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }
     virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
+    virtual ImportScopeSymbol *isImportScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
     virtual EnumDeclaration *isEnumDeclaration() { return NULL; }
     virtual DeleteDeclaration *isDeleteDeclaration() { return NULL; }
@@ -340,6 +341,18 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+// Import scope
+
+class ImportScopeSymbol : public ScopeDsymbol
+{
+public:
+    ImportScopeSymbol(Dsymbols *imports);
+    void semantic(Scope *sc);
+
+    ImportScopeSymbol *isImportScopeSymbol() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
