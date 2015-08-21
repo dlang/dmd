@@ -1593,7 +1593,19 @@ Language changes listed by -transition=id:\n\
     if (global.params.lib)
     {
         library = Library::factory();
-        library->setFilename(global.params.objdir, global.params.libname);
+
+        // For the library file, global.params.libname should override global.params.objdir.
+        if (global.params.libname && *global.params.libname)
+        {
+            const char *libname = FileName::name(global.params.libname);
+            const char *libpath = FileName::path(global.params.libname);
+            if (!*libpath)
+                libpath = ".";
+
+            library->setFilename(libpath, libname);
+        }
+        else
+            library->setFilename(global.params.objdir, global.params.libname);
 
         // Add input object and input library files to output library
         for (size_t i = 0; i < libmodules.dim; i++)
