@@ -1,6 +1,7 @@
 import core.runtime;
 
-void main()
+void main(string[] args)
 {
+    dmd_coverDestPath(args[1]);
     dmd_coverSetMerge(true);
 }

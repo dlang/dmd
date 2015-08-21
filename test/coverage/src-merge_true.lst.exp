@@ -1,7 +1,8 @@
        |import core.runtime;
        |
-       |void main()
+       |void main(string[] args)
        |{
+      2|    dmd_coverDestPath(args[1]);
       2|    dmd_coverSetMerge(true);
        |}
 src/merge_true.d is 100% covered
