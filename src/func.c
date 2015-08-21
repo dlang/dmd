@@ -2479,8 +2479,12 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
             catches->push(c);
             sf = new TryCatchStatement(loc, s2, catches);
         }
-        else
-            return NULL;
+        else if(fdv->fdrequire)
+        {
+            Expression *eresult = NULL;
+            Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdrequire), eresult);
+            sf = new ExpStatement(loc, e);
+        }
     }
     return sf;
 }
