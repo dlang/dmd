@@ -1781,128 +1781,153 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
      */
     if (1)
     {
-        /* Compute indices of first and last throwing argument.
-         * Used to not set up destructors unless a throw can happen in a later argument.
+        /* TODO: tackle problem 1)
          */
-        bool anythrow = false;
-        size_t firstthrow = ~0;
-        size_t lastthrow = ~0;
-        for (size_t i = 0; i < arguments->dim; ++i)
+        const bool leftToRight = true; // TODO: something like !fd->isArrayOp
+        if (!leftToRight)
+            assert(nargs == nparams); // no variadics for RTL order, as they would probably be evaluated LTR and so add complexity
+
+        const int start = (leftToRight ? 0 : (int)nargs - 1);
+        const int end = (leftToRight ? (int)nargs : -1);
+        const int step = (leftToRight ? 1 : -1);
+
+        /* Compute indices of last throwing argument and first arg needing destruction.
+         * Used to not set up destructors unless an arg needs destruction on a throw
+         * in a later argument.
+         */
+        int lastthrow = -1;
+        int firstdtor = -1;
+        for (int i = start; i != end; i += step)
         {
             Expression *arg = (*arguments)[i];
             if (canThrow(arg, sc->func, false))
-            {
-                if (!anythrow)
-                {
-                    anythrow = true;
-                    firstthrow = i;
-                }
                 lastthrow = i;
+            if (firstdtor == -1 && arg->type->needsDestruction())
+            {
+                Parameter *p = (i >= nparams ? NULL : Parameter::getNth(tf->parameters, i));
+                if (!(p && (p->storageClass & (STClazy | STCref | STCout))))
+                    firstdtor = i;
             }
         }
 
-        bool appendToPrefix = false;
+        /* Does problem 3) apply to this call?
+         */
+        const bool needsPrefix = (firstdtor >= 0 && lastthrow >= 0 && (lastthrow - firstdtor) / step > 0);
+
+        /* If so, initialize 'eprefix' by declaring the gate
+         */
         VarDeclaration *gate = NULL;
-        for (size_t i = 0; i < arguments->dim; ++i)
+        if (needsPrefix)
+        {
+            // eprefix => bool __gate [= false]
+            Identifier *idtmp = Identifier::generateId("__gate");
+            gate = new VarDeclaration(loc, Type::tbool, idtmp, NULL);
+            gate->storage_class |= STCtemp | STCctfe | STCvolatile;
+            gate->semantic(sc);
+
+            Expression *ae = new DeclarationExp(loc, gate);
+            eprefix = ae->semantic(sc);
+        }
+
+        for (int i = start; i != end; i += step)
         {
             Expression *arg = (*arguments)[i];
 
-            /* Skip reference parameters
+            Parameter *parameter = (i >= nparams ? NULL : Parameter::getNth(tf->parameters, i));
+            const bool isRef = (parameter && (parameter->storageClass & (STCref | STCout)));
+            const bool isLazy = (parameter && (parameter->storageClass & STClazy));
+
+            if (isLazy)
+                continue; // TODO: figure out what's correct if part of prefix
+
+            /* Do we have a gate? Then we have a prefix and we're not yet past the last throwing arg.
+             * Declare a temporary variable for this arg and append that declaration to 'eprefix',
+             * which will implicitly take care of potential problem 2) for this arg.
+             * 'eprefix' will therefore finally contain all args up to and including the last
+             * potentially throwing arg, excluding all lazy parameters.
              */
-            if (i < nparams)
+            if (gate)
             {
-                Parameter *p = Parameter::getNth(tf->parameters, i);
-                if (p->storageClass & (STClazy | STCref | STCout))
-                    continue;
-            }
+                const bool needsDtor = (!isRef && !isLazy && arg->type->needsDestruction() && i != lastthrow);
 
-            TypeStruct *ts = NULL;
-            Type *tv = arg->type->baseElemOf();
-            if (tv->ty == Tstruct)
-                ts = (TypeStruct *)tv;
-
-            if (anythrow && i < lastthrow)      // if there are throws after this arg
-            {
-                if (ts && ts->sym->dtor)
-                {
-                    appendToPrefix = true;
-
-                    // Need the gate because throws may occur after this arg is constructed
-                    if (!gate)
-                    {
-                        Identifier *idtmp = Identifier::generateId("__gate");
-                        gate = new VarDeclaration(loc, Type::tbool, idtmp, NULL);
-                        gate->storage_class |= STCtemp | STCctfe | STCvolatile;
-                        gate->semantic(sc);
-
-                        Expression *ae = new DeclarationExp(loc, gate);
-                        ae = ae->semantic(sc);
-                        eprefix = Expression::combine(eprefix, ae);
-                    }
-                }
-            }
-            if (anythrow && i == lastthrow)
-            {
-                appendToPrefix = false;
-            }
-            if (appendToPrefix) // don't need to add to prefix until there's something to destruct
-            {
-                Identifier *idtmp = Identifier::generateId("__pfx");
-                VarDeclaration *tmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(loc, arg));
+                /* Declare temporary 'auto __pfx = arg' (needsDtor) or 'auto __pfy = arg' (!needsDtor)
+                 */
+                Identifier *idtmp = Identifier::generateId(needsDtor ? "__pfx" : "__pfy");
+                VarDeclaration *tmp = (!isRef
+                    ? new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(loc, arg))
+                    : new VarDeclaration(loc, arg->type->pointerTo(), idtmp, new ExpInitializer(loc, arg->addressOf())));
                 tmp->storage_class |= STCtemp | STCctfe;
                 tmp->semantic(sc);
 
-                /* Modify the destructor so it only runs if gate==false
+                /* Modify the destructor so it only runs if gate==false, i.e.,
+                 * only if there was a throw while constructing the args
                  */
-                if (tmp->edtor)
+                if (!needsDtor)
                 {
+                    if (tmp->edtor)
+                    {
+                        assert(i == lastthrow);
+                        tmp->edtor = NULL;
+                    }
+                }
+                else
+                {
+                    // edtor => (__gate || edtor)
+                    assert(tmp->edtor);
                     Expression *e = tmp->edtor;
-                    e = new OrOrExp(e->loc, new VarExp(e->loc, gate), e);       // (gate || destructor)
+                    e = new OrOrExp(e->loc, new VarExp(e->loc, gate), e);
                     tmp->edtor = e->semantic(sc);
                     //printf("edtor: %s\n", tmp->edtor->toChars());
                 }
 
-                // auto __pfx = arg
+                // eprefix => (eprefix, auto __pfx/y = arg)
                 Expression *ae = new DeclarationExp(loc, tmp);
                 ae = ae->semantic(sc);
                 eprefix = Expression::combine(eprefix, ae);
 
+                // arg => __pfx/y
                 arg = new VarExp(loc, tmp);
                 arg = arg->semantic(sc);
-            }
-            else if (ts)
-            {
-                arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
-            }
-            else if (anythrow && firstthrow <= i && i <= lastthrow && gate)
-            {
-                Identifier *id = Identifier::generateId("__pfy");
-                VarDeclaration *tmp = new VarDeclaration(loc, arg->type, id, new ExpInitializer(loc, arg));
-                tmp->storage_class |= STCtemp | STCctfe;
-                tmp->semantic(sc);
-
-                Expression *ae = new DeclarationExp(loc, tmp);
-                ae = ae->semantic(sc);
-                eprefix = Expression::combine(eprefix, ae);
-
-                arg = new VarExp(loc, tmp);
-                arg = arg->semantic(sc);
-            }
-
-            if (anythrow && i == lastthrow)
-            {
-                /* Set gate to true after prefix runs
-                 */
-                if (eprefix)
+                if (isRef)
                 {
-                    assert(gate);
-                    // (gate = true)
+                    arg = new PtrExp(loc, arg);
+                    arg = arg->semantic(sc);
+                }
+
+                /* Last throwing arg? Then finalize eprefix => (eprefix, gate = true),
+                 * i.e., disable the dtors right after constructing the last throwing arg.
+                 * From now on, the callee will take care of destructing the args because
+                 * the args are implicitly moved into function parameters.
+                 *
+                 * Set gate to NULL to let the next iterations know they don't need to
+                 * append to eprefix anymore.
+                 */
+                if (i == lastthrow)
+                {
                     Expression *e = new AssignExp(gate->loc, new VarExp(gate->loc, gate), new IntegerExp(gate->loc, 1, Type::tbool));
                     e = e->semantic(sc);
                     eprefix = Expression::combine(eprefix, e);
                     gate = NULL;
                 }
             }
+            else
+            {
+                /* No gate, no prefix to append to.
+                 * Handle problem 2) by calling the copy constructor for value structs
+                 * (or static arrays of them) if appropriate.
+                 */
+                if (isRef || isLazy)
+                    continue;
+
+                TypeStruct *ts = NULL;
+                Type *tv = arg->type->baseElemOf();
+                if (tv->ty == Tstruct)
+                    ts = (TypeStruct *)tv;
+
+                if (ts)
+                    arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
+            }
+
             (*arguments)[i] = arg;
         }
     }
