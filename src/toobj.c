@@ -363,8 +363,6 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 name = cd->toPrettyChars();
                 namelen = strlen(name);
             }
-            size_t namepad = (Target::ptrsize - (namelen + 1)) & (Target::ptrsize - 1); // alignment padding
-            assert(namepad < Target::ptrsize);
             dt_t **pdtname = dtsize_t(&dt, namelen);
             dtxoff(&dt, cd->csym, 0, TYnptr);
 
@@ -580,6 +578,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             dtpatchoffset(*pdtname, offset);
 
             dtnbytes(&dt, namelen + 1, name);
+            const size_t namepad = -(namelen + 1) & (Target::ptrsize - 1); // align
             dtnzeros(&dt, namepad);
 
             cd->csym->Sdt = dt;
@@ -730,8 +729,6 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             // name[]
             const char *name = id->toPrettyChars();
             size_t namelen = strlen(name);
-            size_t namepad = (Target::ptrsize - (namelen + 1)) & (Target::ptrsize - 1); // alignment padding
-            assert(namepad < Target::ptrsize);
             dt_t **pdtname = dtsize_t(&dt, namelen);
             dtxoff(&dt, id->csym, 0, TYnptr);
 
@@ -823,6 +820,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             dtpatchoffset(*pdtname, offset);
 
             dtnbytes(&dt, namelen + 1, name);
+            const size_t namepad =  -(namelen + 1) & (Target::ptrsize - 1); // align
             dtnzeros(&dt, namepad);
 
             id->csym->Sdt = dt;
