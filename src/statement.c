@@ -64,6 +64,15 @@ LabelStatement *checkLabeledLoop(Scope *sc, Statement *statement)
     return NULL;
 }
 
+// Return a type identifier reference to .object.Throwable
+TypeIdentifier *getThrowable()
+{
+    TypeIdentifier *tid = new TypeIdentifier(Loc(), Id::empty);
+    tid->addIdent(Id::object);
+    tid->addIdent(Id::Throwable);
+    return tid;
+}
+
 /******************************** Statement ***************************/
 
 Statement::Statement(Loc loc)
@@ -1212,7 +1221,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
                         }
 
                         Catches *catches = new Catches();
-                        Catch *ctch = new Catch(Loc(), NULL, id, handler);
+                        Catch *ctch = new Catch(Loc(), getThrowable(), id, handler);
                         ctch->internalCatch = true;
                         catches->push(ctch);
 
@@ -4739,11 +4748,10 @@ void Catch::semantic(Scope *sc)
 
     if (!type)
     {
+        warning(loc, "catch statement without an exception specification is deprecated; use catch(Throwable) for old behavior");
+
         // reference .object.Throwable
-        TypeIdentifier *tid = new TypeIdentifier(Loc(), Id::empty);
-        tid->addIdent(Id::object);
-        tid->addIdent(Id::Throwable);
-        type = tid;
+        type = getThrowable();
     }
     type = type->semantic(loc, sc);
     ClassDeclaration *cd = type->toBasetype()->isClassHandle();

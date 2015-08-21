@@ -255,7 +255,7 @@ public:
             }
 
             Catches *catches = new Catches();
-            Catch *ctch = new Catch(Loc(), NULL, id, handler);
+            Catch *ctch = new Catch(Loc(), getThrowable(), id, handler);
             ctch->internalCatch = true;
             ctch->semantic(sc);     // Run semantic to resolve identifier '__o'
             catches->push(ctch);
@@ -2473,7 +2473,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
             Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdrequire, 0), eresult);
             Statement *s2 = new ExpStatement(loc, e);
 
-            Catch *c = new Catch(loc, NULL, NULL, sf);
+            Catch *c = new Catch(loc, getThrowable(), NULL, sf);
             c->internalCatch = true;
             Catches *catches = new Catches();
             catches->push(c);
