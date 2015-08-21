@@ -3051,8 +3051,10 @@ complex_t RealExp::toComplex()
 
 int RealEquals(real_t x1, real_t x2)
 {
-    return (Port::isNan(x1) && Port::isNan(x2)) ||
-        Port::fequal(x1, x2);
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x1, &x2, Target::realsize - Target::realpad) == 0;
 }
 
 bool RealExp::equals(RootObject *o)
