@@ -10502,8 +10502,8 @@ Expression *DotExp::semantic(Scope *sc)
 
 /************************* CommaExp ***********************************/
 
-CommaExp::CommaExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKcomma, sizeof(CommaExp), e1, e2)
+CommaExp::CommaExp(Loc loc, Expression *e1, Expression *e2, bool isInternal)
+        : BinExp(loc, TOKcomma, sizeof(CommaExp), e1, e2), isInternal(isInternal)
 {
 }
 
@@ -10517,7 +10517,16 @@ Expression *CommaExp::semantic(Scope *sc)
     e1 = e1->addDtorHook(sc);
 
     type = e2->type;
-    return this;
+
+    if (!isInternal && global.params.warnings)
+    {
+        Expression *ex = new CastExp(this->loc, this, Type::tvoid);
+        ex = ex->semantic(sc);
+        type = ex->type;
+        return ex;
+    }
+    else
+        return this;
 }
 
 bool CommaExp::isLvalue()
