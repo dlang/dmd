@@ -1330,6 +1330,18 @@ Language changes listed by -transition=id:\n\
                 continue;
             }
 
+            if (FileName::equals(ext, "a"))
+            {
+                error(Loc(), "Incompatible file: '%s'. This file might be a Posix-compatible static library, which is incompatible with Windows. Did you mean to pass a static or import library named '%s.lib'?", p, FileName::removeExt(p));
+                fatal();
+            }
+
+            if (FileName::equals(ext, "so"))
+            {
+                error(Loc(), "Incompatible file: '%s'. This file might be a Posix-compatible dynamic library, which is incompatible with Windows. Did you mean to pass an import library named '%s.lib'?", p, FileName::removeExt(p));
+                fatal();
+            }
+
             if (FileName::equals(ext, "exe"))
             {
                 assert(0);      // should have already been handled
