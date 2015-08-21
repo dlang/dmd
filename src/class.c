@@ -818,6 +818,19 @@ Lancestorsdone:
             deferred->errors = true;
     }
 
+    // Verify fields of a synchronized class are not public.
+    if (storage_class & STCsynchronized)
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+        VarDeclaration *vd = fields[i];
+        if (!vd->isThisDeclaration() &&
+            !vd->prot().isMoreRestrictiveThan(Prot(PROTpublic)))
+        {
+            vd->error("Field members of a synchronized class cannot be %s",
+                protectionToChars(vd->prot().kind));
+        }
+    }
+
     if (deferred && !global.gag)
     {
         deferred->semantic2(sc);
