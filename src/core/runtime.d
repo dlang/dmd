@@ -492,7 +492,9 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                                             stackPtr < stackBottom &&
                                             numframes < MAXFRAMES; )
                         {
-                            callstack[numframes++] = *(stackPtr + 1);
+                            enum CALL_INSTRUCTION_SIZE = 1; // it may not be 1 but it is good enough to get
+                                                            // in CALL instruction address range for backtrace
+                            callstack[numframes++] = *(stackPtr + 1) - CALL_INSTRUCTION_SIZE;
                             stackPtr = cast(void**) *stackPtr;
                         }
                     }
