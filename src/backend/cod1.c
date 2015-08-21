@@ -4204,11 +4204,11 @@ code *loaddata(elem *e,regm_t *pretregs)
     // See if we can use register that parameter was passed in
     if (regcon.params &&
         (e->EV.sp.Vsym->Sclass == SCfastpar || e->EV.sp.Vsym->Sclass == SCshadowreg) &&
-        regcon.params & mask[e->EV.sp.Vsym->Spreg] &&
-        !(e->Eoper == OPvar && e->EV.sp.Voffset > 0) && // Must be at the base of that variable
+        (regcon.params & mask[e->EV.sp.Vsym->Spreg] && e->EV.sp.Voffset == 0 ||
+         regcon.params & mask[e->EV.sp.Vsym->Spreg2] && e->EV.sp.Voffset == REGSIZE) &&
         sz <= REGSIZE)                  // make sure no 'paint' to a larger size happened
     {
-        reg = e->EV.sp.Vsym->Spreg;
+        reg = e->EV.sp.Voffset ? e->EV.sp.Vsym->Spreg2 : e->EV.sp.Vsym->Spreg;
         forregs = mask[reg];
 #ifdef DEBUG
         if (debugr)
