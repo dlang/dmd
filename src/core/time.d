@@ -2721,6 +2721,8 @@ unittest
         static if(typeStr != "second")
         {
             mixin("alias type = ClockType." ~ typeStr ~ ";");
+            version (linux) if (typeStr == "bootTime" && !MonoTimeImpl!type.ticksPerSecond)
+                continue;
             auto v1 = MonoTimeImpl!type.currTime;
             auto v2 = MonoTimeImpl!type.currTime;
             scope(failure)
@@ -2738,6 +2740,8 @@ unittest
                 static if(otherStr != "second")
                 {
                     mixin("alias other = ClockType." ~ otherStr ~ ";");
+                    version (linux) if (typeStr == "bootTime" && !MonoTimeImpl!other.ticksPerSecond)
+                        continue;
                     static assert(is(typeof({auto o1 = MonTimeImpl!other.currTime; auto b = v1 <= o1;})) ==
                                   is(type == other));
                 }
