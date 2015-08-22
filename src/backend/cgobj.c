@@ -1248,7 +1248,7 @@ static void wkext(Symbol *s1)
     }
 
     if (!obj.nullext)
-        obj.nullext = Obj::external_def("__nullext");
+        obj.nullext = objmod->external_def("__nullext");
     outextdata();
 
     char buffer[2+2+2];

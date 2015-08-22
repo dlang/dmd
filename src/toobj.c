@@ -185,7 +185,10 @@ void genModuleInfo(Module *m)
         for (size_t i = 0; i < aclasses.dim; i++)
         {
             ClassDeclaration *cd = aclasses[i];
-            dtxoff(&dt, toSymbol(cd), 0, TYnptr);
+            Symbol *s = toSymbol(cd);
+            // use weak reference to reduce size of static binaries
+            s->Sflags |= SFLweak;
+            dtxoff(&dt, s, 0, TYnptr);
         }
     }
     if (flags & MIname)
