@@ -6049,6 +6049,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
             declaration->semantic3(sc);
         }
     }
+    // todo: error in declaration should be propagated.
 
     type = Type::tvoid;
     return this;
