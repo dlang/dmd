@@ -1,3 +1,17 @@
-branches:
-  only:
-    - dmd-1.x
+language: d
+d:
+  - dmd-2.067.1
+  - gdc
+  - ldc
+
+script: ./travis.sh
+
+addons:
+  apt:
+    packages:
+    - gdb
+
+matrix:
+  allow_failures:
+    - d: gdc
+    - d: ldc
