@@ -752,6 +752,35 @@ void test14975() {
 
 /**********************************/
 
+int foo7625(int v)
+{
+    return bar7625(2 * v);
+}
+
+int bar7625(int a)
+{
+    ++a;
+    if (a > 0)
+        return 1;
+    return baz(a);
+}
+
+int baz(int a)
+{
+    if (a > 0)
+        throw new Exception("a > 0");
+    return a - 1;
+}
+
+void test7625()
+{
+    int x = foo7625(1);
+    if (x != 1)
+	assert(0);
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -777,6 +806,7 @@ int main()
     test14754();
     test14606();
     test14975();
+    test7625();
 
     printf("Success\n");
     return 0;

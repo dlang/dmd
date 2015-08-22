@@ -103,7 +103,33 @@ public:
             Statement s2 = (*s.statements)[i];
             if (s2)
             {
-                s2.accept(icv);
+                /* Specifically allow:
+                 *  if (condition)
+                 *      return exp1;
+                 *  return exp2;
+                 */
+                IfStatement ifs;
+                Statement s3;
+                if ((ifs = s2.isIfStatement()) !is null &&
+                    ifs.ifbody &&
+                    ifs.ifbody.isReturnStatement() &&
+                    !ifs.elsebody &&
+                    i + 1 < s.statements.dim &&
+                    (s3 = (*s.statements)[i + 1]) !is null &&
+                    s3.isReturnStatement()
+                   )
+                {
+                    if (ifs.prm)       // if variables are declared
+                    {
+                        cost = COST_MAX;
+                        return;
+                    }
+                    expressionInlineCost(ifs.condition);
+                    ifs.ifbody.accept(this);
+                    s3.accept(this);
+                }
+                else
+                    s2.accept(icv);
                 if (tooCostly(icv.cost))
                     break;
             }
@@ -564,8 +590,45 @@ extern (C++) Expression doInline(Statement s, InlineDoState* ids)
                 Statement sx = (*s.statements)[i];
                 if (sx)
                 {
-                    Expression e = doInline(sx, ids);
-                    result = Expression.combine(result, e);
+                    /* Specifically allow:
+                     *  if (condition)
+                     *  return exp1;
+                     *  return exp2;
+                     */
+                    IfStatement ifs;
+                    Statement s3;
+                    if ((ifs = sx.isIfStatement()) !is null &&
+                        ifs.ifbody &&
+                        ifs.ifbody.isReturnStatement() &&
+                        !ifs.elsebody &&
+                        i + 1 < s.statements.dim &&
+                        (s3 = (*s.statements)[i + 1]) !is null &&
+                        s3.isReturnStatement()
+                       )
+                    {
+                        /* Rewrite as ?:
+                         */
+                        Expression econd = doInline(ifs.condition, ids);
+                        assert(econd);
+                        Expression e1 = doInline(ifs.ifbody, ids);
+                        assert(ids.foundReturn);
+                        Expression e2 = doInline(s3, ids);
+
+                        Expression e = new CondExp(econd.loc, econd, e1, e2);
+                        e.type = e1.type;
+                        if (e.type.ty == Ttuple)
+                        {
+                            e1.type = Type.tvoid;
+                            e2.type = Type.tvoid;
+                            e.type = Type.tvoid;
+                        }
+                        result = Expression.combine(result, e);
+                    }
+                    else
+                    {
+                        Expression e = doInline(sx, ids);
+                        result = Expression.combine(result, e);
+                    }
                     if (ids.foundReturn)
                         break;
                 }
