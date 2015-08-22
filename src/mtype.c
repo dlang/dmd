@@ -5617,10 +5617,14 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     else
                         fparam->storageClass &= ~STCref;        // value parameter
                 }
+                else if (fparam->storageClass & STCref)
+                {
+                    fparam->storageClass &= ~STCauto;
+                    fparam->storageClass |= STCrvref;
+                }
                 else
                 {
-                    error(loc, "auto can only be used for template function parameters");
-                    errors = true;
+                    error(loc, "'auto' can only be used along with 'ref' for function parameters");
                 }
             }
 
@@ -5931,6 +5935,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                         ta = tn->sarrayOf(dim);
                     }
                 }
+                else if (p->storageClass & STCrvref)
+                    m = MATCHconvert;
                 else
                     goto Nomatch;
             }

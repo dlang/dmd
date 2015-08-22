@@ -3129,7 +3129,11 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     {
         Parameter *p = Parameter::getNth(tf->parameters, u);
         Expression *e;
-        if (p->storageClass & (STCref | STCout))
+        if (p->storageClass & STCrvref)
+        {
+            e = p->type->defaultInitLiteral(Loc());
+        }
+        else if (p->storageClass & (STCref | STCout))
         {
             e = new IdentifierExp(Loc(), p->ident);
             e->type = p->type;
