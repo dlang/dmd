@@ -364,6 +364,31 @@ DSRC= $(GENSRC) $(MANUALSRC)
 ddmd.exe: $(DSRC) newdelete.obj glue.lib backend.lib verstr.h
 	$(HOST_DC) $(DSRC) -ofddmd.exe newdelete.obj glue.lib backend.lib -vtls -J. -d -L/STACK:8388608 $(DFLAGS)
 
+
+DELSRCS=access.c aliasthis.c apply.c argtypes.c arrayop.c attrib.c builtin.c	\
+	canthrow.c cast.c class.c clone.c cond.c constfold.c cppmangle.c	\
+	ctfeexpr.c declaration.c delegatize.c doc.c dsymbol.c entity.c enum.c	\
+	errors.c escape.c expression.c func.c globals.c hdrgen.c identifier.c	\
+	imphint.c import.c inifile.c init.c inline.c interpret.c intrange.c	\
+	json.c lexer.c link.c macro.c mangle.c mars.c module.c mtype.c nogc.c	\
+	nspace.c objc.c objc_stubs.c opover.c optimize.c parse.c root/aav.c	\
+	root/async.c root/async.h root/checkedint.c root/checkedint.h		\
+	root/file.c root/filename.c root/longdouble.c root/man.c root/object.c	\
+	root/outbuffer.c root/port.c root/response.c root/rmem.c root/speller.c	\
+	root/stringtable.c sapply.c scope.c sideeffect.c statement.c		\
+	staticassert.c struct.c target.c template.c tokens.c traits.c		\
+	unittests.c utf.c version.c
+
+convert_tree : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
+	$(MAGICPORT) . .
+	$(DEL) $(DELSRCS)
+	$(DEL) $(MAGICPORT) $(MAGICPORTDIR)\*.obj
+
+convert_index : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
+	$(MAGICPORT) . .
+	git add $(GENSRC) objc.d
+	git rm $(DELSRCS)
+
 ############################ Maintenance Targets #############################
 
 clean:
