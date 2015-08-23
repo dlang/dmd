@@ -195,7 +195,7 @@ struct File
             HANDLE h = CreateFileA(name, GENERIC_WRITE, 0, null, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
             if (h == INVALID_HANDLE_VALUE)
                 goto err;
-            if (WriteFile(h, buffer, len, &numwritten, null) != TRUE)
+            if (WriteFile(h, buffer, cast(DWORD)len, &numwritten, null) != TRUE)
                 goto err2;
             if (len != numwritten)
                 goto err2;

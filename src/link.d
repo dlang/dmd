@@ -16,6 +16,7 @@ version (Windows) extern (C) int putenv(const char*);
 version (Windows) extern (C) int spawnlp(int, const char*, const char*, const char*, const char*);
 version (Windows) extern (C) int spawnl(int, const char*, const char*, const char*, const char*);
 version (Windows) extern (C) int spawnv(int, const char*, const char**);
+version (CRuntime_Microsoft) extern (Windows) uint GetShortPathNameA(const char* lpszLongPath, char* lpszShortPath, uint cchBuffer);
 
 static if (__linux__ || __APPLE__)
 {
@@ -710,8 +711,8 @@ version (Windows)
                 // MSVCRT: spawn does not work with spaces in the executable
                 size_t cmdlen = strlen(cmd);
                 char* shortName = (new char[](cmdlen + 1)).ptr; // enough space
-                DWORD len = GetShortPathName(cmd, shortName, cmdlen + 1);
-                if (len > 0 && len <= cmdlen)
+                uint plen = GetShortPathNameA(cmd, shortName, cast(uint)cmdlen + 1);
+                if (plen > 0 && plen <= cmdlen)
                     cmd = shortName;
             }
         }
