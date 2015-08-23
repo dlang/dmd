@@ -343,7 +343,7 @@ $(optabgen_output) : optabgen
 
 ######## idgen generates some source
 
-idgen_output = id.h id.c id.d
+idgen_output = id.h id.d
 $(idgen_output) : idgen
 
 idgen: idgen.d
@@ -352,7 +352,7 @@ idgen: idgen.d
 
 ######### impcnvgen generates some source
 
-impcnvtab_output = impcnvtab.c impcnvtab.d
+impcnvtab_output = impcnvtab.d
 $(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c

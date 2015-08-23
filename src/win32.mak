@@ -283,9 +283,9 @@ clean:
 	$(DEL) *.obj *.lib *.map
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	$(DEL) id.h id.c id.d
+	$(DEL) id.h id.d
 	$(DEL) verstr.h
-	$(DEL) impcnvtab.c impcnvtab.d impcnvgen.exe optabgen.exe
+	$(DEL) impcnvtab.d impcnvgen.exe optabgen.exe
 
 install: detab install-copy
 
@@ -358,11 +358,11 @@ elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
 	.\optabgen.exe
 
-impcnvtab.c impcnvtab.d : impcnvgen.c
+impcnvtab.d : impcnvgen.c
 	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
 	.\impcnvgen.exe
 
-id.h id.c id.d : idgen.d
+id.h id.d : idgen.d
 	$(HOST_DC) -run idgen
 
 verstr.h : ..\VERSION
@@ -376,10 +376,6 @@ verstr.h : ..\VERSION
 
 .asm.obj:
 	$(CC) -c $(CFLAGS) $*
-
-# Generated source
-impcnvtab.obj : mtype.h impcnvtab.c
-	$(CC) -c -I$(ROOT) -cpp impcnvtab
 
 iasm.obj : $(CH) $(TOTALH) $C\iasm.h iasm.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) -Ae iasm
