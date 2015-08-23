@@ -504,7 +504,7 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
 /****************************************************
  * Having unmatched parentheses can hose the output of Ddoc,
  * as the macros depend on properly nested parentheses.
- 
+ *
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
  */
 extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)

@@ -32,7 +32,7 @@ private:
      Note that when a function is forward referenced, the interpreter must
      run semantic3, and that may start CTFE again with a NULL istate. Thus
      the stack might not be empty when CTFE begins.
-     
+
      Ctfe Stack addresses are just 0-based integers, but we save
      them as 'void *' because Array can only do pointers.
      */
@@ -1144,7 +1144,7 @@ public:
      Given an expression e which is about to be returned from the current
      function, generate an error if it contains pointers to local variables.
      Return true if it is safe to return, false if an error was generated.
-     
+
      Only checks expressions passed by value (pointers to local variables
      may already be stored in members of classes, arrays, or AAs which
      were passed as mutable function parameters).

@@ -756,7 +756,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
              classes. In other words, for the purposes of substitution, the class of
              which the function is a member is considered part of the type of
              function."
-             
+
              BUG: Right now, types of functions are never merged, so our simplistic
              component matcher always finds them to be different.
              We should use Type::equals on these, and use different
