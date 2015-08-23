@@ -3266,14 +3266,14 @@ extern (C++) IntRange getIntRange(Expression e)
             /*
              due to the rules of D (C)'s % operator, we need to consider the cases
              separately in different range of signs.
-             
+
              case 1. [500, 1700] % [7, 23] (numerator is always positive)
              = [0, 22]
              case 2. [-500, 1700] % [7, 23] (numerator can be negative)
              = [-22, 22]
              case 3. [-1700, -500] % [7, 23] (numerator is always negative)
              = [-22, 0]
-             
+
              the number 22 is the maximum absolute value in the denomator's range. We
              don't care about divide by zero.
              */
