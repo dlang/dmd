@@ -4486,6 +4486,7 @@ code *cdneg(elem *e,regm_t *pretregs)
         c = gen2(CNIL,0xF7,modregrm(3,3,msreg)); /* NEG msreg           */
         lsreg = findreglsw(retregs);
         gen2(c,0xF7,modregrm(3,3,lsreg));       /* NEG lsreg            */
+        code_orflag(c, CFpsw);                  // need flag result of previous NEG
         genc2(c,0x81,modregrm(3,3,msreg),0);    /* SBB msreg,0          */
   }
   else
