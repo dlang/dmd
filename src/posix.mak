@@ -323,7 +323,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-auto-tester-build: dmd checkwhitespace ddmd
+auto-tester-build: dmd checkwhitespace
 .PHONY: auto-tester-build
 
 frontend.a: $(DMD_OBJS)
@@ -339,11 +339,11 @@ backend.a: $(BACK_OBJS)
 	$(AR) rcs backend.a $(BACK_OBJS)
 
 ifdef ENABLE_LTO
-dmd: $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS)
-	$(HOST_CC) -o dmd $(MODEL_FLAG) $^ $(LDFLAGS)
+#dmd: $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS)
+#	$(HOST_CC) -o dmd $(MODEL_FLAG) $^ $(LDFLAGS)
 else
-dmd: frontend.a root.a glue.a backend.a
-	$(HOST_CC) -o dmd $(MODEL_FLAG) frontend.a root.a glue.a backend.a $(LDFLAGS)
+#dmd: frontend.a root.a glue.a backend.a
+#	$(HOST_CC) -o dmd $(MODEL_FLAG) frontend.a root.a glue.a backend.a $(LDFLAGS)
 endif
 
 clean:
@@ -351,7 +351,7 @@ clean:
 		impcnvtab.d id.d impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
 		tytab.c verstr.h core \
 		*.cov *.deps *.gcda *.gcno *.a \
-		$(GENSRC) $(MAGICPORT)
+		$(MAGICPORT)
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
@@ -640,13 +640,13 @@ else
 	MANUALSRC += objc_stubs.d
 endif
 
-mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
-	$(MAGICPORT) . .
+#mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
+#	$(MAGICPORT) . .
 
 DSRC= $(GENSRC) $(MANUALSRC)
 
-ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a verstr.h
-	CC=$(HOST_CC) $(HOST_DMD_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J. -d $(DFLAGS)
+dmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a verstr.h
+	CC=$(HOST_CC) $(HOST_DMD_RUN) $(MODEL_FLAG) $(DSRC) -ofdmd newdelete.o glue.a backend.a -vtls -J. -d $(DFLAGS)
 
 DELSRCS=access.c aliasthis.c apply.c argtypes.c arrayop.c attrib.c builtin.c	\
 	canthrow.c cast.c class.c clone.c cond.c constfold.c cppmangle.c	\

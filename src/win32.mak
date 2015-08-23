@@ -268,7 +268,7 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 defaulttarget: debdmd
 
-auto-tester-build: dmd checkwhitespace ddmd
+auto-tester-build: dmd checkwhitespace
 
 dmd: reldmd
 ddmd: relddmd
@@ -309,8 +309,8 @@ root.lib : $(ROOTOBJS)
 
 LIBS= frontend.lib glue.lib backend.lib root.lib
 
-$(TARGETEXE): mars.obj $(LIBS) win32.mak
-	$(CC) -o$(TARGETEXE) mars.obj $(LIBS) -cpp -mn -Ar -L/STACK:8388608 $(LFLAGS)
+#$(TARGETEXE): mars.obj $(LIBS) win32.mak
+#	$(CC) -o$(TARGETEXE) mars.obj $(LIBS) -cpp -mn -Ar -L/STACK:8388608 $(LFLAGS)
 
 ############################# DDMD stuff ############################
 
@@ -356,13 +356,13 @@ MANUALSRC= \
 	$(ROOT)\rootobject.d $(ROOT)\port.d \
 	$(ROOT)\rmem.d id.d impcnvtab.d
 
-$(GENSRC) : $(SRCS) $(ROOTSRC) magicport.json $(MAGICPORT)
-	$(MAGICPORT) . .
+#$(GENSRC) : $(SRCS) $(ROOTSRC) magicport.json $(MAGICPORT)
+#	$(MAGICPORT) . .
 
 DSRC= $(GENSRC) $(MANUALSRC)
 
-ddmd.exe: $(DSRC) newdelete.obj glue.lib backend.lib verstr.h
-	$(HOST_DC) $(DSRC) -ofddmd.exe newdelete.obj glue.lib backend.lib -vtls -J. -d -L/STACK:8388608 $(DFLAGS)
+dmd.exe: $(DSRC) newdelete.obj glue.lib backend.lib verstr.h
+	$(HOST_DC) $(DSRC) -ofdmd.exe newdelete.obj glue.lib backend.lib -vtls -J. -d -L/STACK:8388608 $(DFLAGS)
 
 
 DELSRCS=access.c aliasthis.c apply.c argtypes.c arrayop.c attrib.c builtin.c	\
@@ -398,7 +398,6 @@ clean:
 	$(DEL) impcnvtab.d impcnvtab.c impcnvgen.exe optabgen.exe
 	$(DEL) id.h id.c id.d
 	$(DEL) verstr.h
-	$(DEL) $(GENSRC)
 	$(DEL) $(MAGICPORT) $(MAGICPORTDIR)\*.obj
 
 install: detab install-copy
