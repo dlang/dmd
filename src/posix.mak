@@ -233,7 +233,7 @@ endif
 SRC = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
-	impcnvgen.c import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
+	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
 	mars.h module.h mtype.h nspace.h objc.h parse.h scanmscoff.c scanomf.c	\
 	scope.h statement.h staticassert.h target.h template.h tokens.h utf.h	\
 	version.h visitor.h libomf.d scanomf.d $(DMD_SRCS)
@@ -297,8 +297,8 @@ dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a verstr.h
 endif
 
 clean:
-	rm -f $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o impcnvgen		\
-		$(impcnvtab_output) idgen $(idgen_output) optabgen		\
+	rm -f $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o \
+		idgen $(idgen_output) optabgen		\
 		$(optabgen_output) verstr.h core *.cov *.deps *.gcda *.gcno *.a
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
@@ -340,21 +340,12 @@ $(optabgen_output) : optabgen
 
 ######## idgen generates some source
 
-idgen_output = id.h id.c id.d
+idgen_output = id.h id.d
 $(idgen_output) : idgen
 
 idgen: idgen.d
 	CC=$(HOST_CC) $(HOST_DMD_RUN) idgen.d
 	./idgen
-
-######### impcnvgen generates some source
-
-impcnvtab_output = impcnvtab.c impcnvtab.d
-$(impcnvtab_output) : impcnvgen
-
-impcnvgen : mtype.h impcnvgen.c
-	$(CC) $(CFLAGS) -I$(ROOT) impcnvgen.c -o impcnvgen
-	./impcnvgen
 
 #########
 
@@ -377,7 +368,7 @@ $(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
 
 #########
 
-$(GLUE_OBJS) : $(idgen_output) $(impcnvgen_output)
+$(GLUE_OBJS) : $(idgen_output)
 $(BACK_OBJS) : $(optabgen_output)
 
 
