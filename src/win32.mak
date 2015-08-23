@@ -147,13 +147,13 @@ DMD_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d		\
 	impcnvtab.d init.d inline.d intrange.d json.d lexer.d lib.d link.d	\
 	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
 	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
-	traits.d utf.d visitor.d
+	traits.d utf.d visitor.d libomf.d scanomf.d
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	libmscoff.obj scanmscoff.obj irstate.obj typinf.obj \
-	libomf.obj scanomf.obj iasm.obj objc_glue_stubs.obj
+	iasm.obj objc_glue_stubs.obj
 
 #GLUEOBJ=gluestub.obj
 
@@ -189,7 +189,7 @@ SRCS = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
-	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
+	toelfdebug.c libelf.c scanelf.c libmach.c scanmach.c \
 	tk.c eh.c gluestub.c objc_glue_stubs.c objc_glue.c
 
 # D back end
@@ -657,7 +657,6 @@ intrange.obj : $(TOTALH) intrange.h intrange.c
 json.obj : $(TOTALH) json.h json.c
 lexer.obj : $(TOTALH) lexer.c
 libmscoff.obj : $(TOTALH) lib.h libmscoff.c
-libomf.obj : $(TOTALH) lib.h libomf.c
 link.obj : $(TOTALH) link.c
 macro.obj : $(TOTALH) macro.h macro.c
 mangle.obj : $(TOTALH) dsymbol.h declaration.h mangle.c
@@ -668,7 +667,6 @@ opover.obj : $(TOTALH) expression.h opover.c
 optimize.obj : $(TOTALH) expression.h optimize.c
 parse.obj : $(TOTALH) attrib.h lexer.h parse.h parse.c
 sapply.obj : $(TOTALH) sapply.c
-scanomf.obj : $(TOTALH) lib.h scanomf.c
 scope.obj : $(TOTALH) scope.h scope.c
 sideeffect.obj : $(TOTALH) sideeffect.c
 statement.obj : $(TOTALH) statement.h statement.c expression.h
