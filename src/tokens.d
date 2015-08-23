@@ -695,7 +695,7 @@ struct Token
 
     extern (C++) int isKeyword()
     {
-        for (size_t u = 0; u < nkeywords; u++)
+        foreach (size_t u; 0 .. nkeywords)
         {
             if (keywords[u].value == value)
                 return 1;
@@ -797,7 +797,7 @@ struct Token
                 OutBuffer buf;
                 buf.writeByte('x');
                 buf.writeByte('"');
-                for (size_t i = 0; i < len; i++)
+                foreach (size_t i; 0 .. len)
                 {
                     if (i)
                         buf.writeByte(' ');
