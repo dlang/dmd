@@ -541,6 +541,9 @@ else
 int fcntl(int, int, ...);
 //int open(in char*, int, ...);
 
+// Generic Posix fallocate
+int posix_fallocate(int, off_t, off_t);
+
 //
 // Advisory Information (ADV)
 //
@@ -553,5 +556,4 @@ POSIX_FADV_DONTNEED
 POSIX_FADV_NOREUSE
 
 int posix_fadvise(int, off_t, off_t, int);
-int posix_fallocate(int, off_t, off_t);
 */
