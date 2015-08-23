@@ -806,8 +806,8 @@ public:
     final static void _init()
     {
         stringtable._init(14000);
-        for (size_t i = 0; i < TMAX; i++)
-            sizeTy[i] = __traits(classInstanceSize, TypeBasic);
+        foreach (ref szty; sizeTy)
+            szty = __traits(classInstanceSize, TypeBasic);
         sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
         sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
         sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
@@ -1049,15 +1049,17 @@ public:
      void* for the work param and a string representation of the attribute. */
     final int modifiersApply(void* param, int function(void*, const(char)*) fp)
     {
-        static __gshared ubyte* modsArr = [MODconst, MODimmutable, MODwild, MODshared];
-        for (size_t idx = 0; idx < 4; ++idx)
+        immutable ubyte[4] modsArr = [MODconst, MODimmutable, MODwild, MODshared];
+
+        foreach (modsarr; modsArr)
         {
-            if (mod & modsArr[idx])
+            if (mod & modsarr)
             {
-                if (int res = fp(param, MODtoChars(modsArr[idx])))
+                if (int res = fp(param, MODtoChars(modsarr)))
                     return res;
             }
         }
+
         return 0;
     }
 

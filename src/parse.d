@@ -28,12 +28,10 @@ enum CARRAYDECL = 1;
 /**********************************
  * Set operator precedence for each operator.
  */
-extern (C++) __gshared PREC[TOKMAX] precedence;
+extern (C++) __gshared PREC[TOKMAX] precedence = PREC_zero;
 
 extern (C++) void initPrecedence()
 {
-    for (size_t i = 0; i < TOKMAX; i++)
-        precedence[i] = PREC_zero;
     precedence[TOKtype] = PREC_expr;
     precedence[TOKerror] = PREC_expr;
     precedence[TOKtypeof] = PREC_primary;
@@ -4576,7 +4574,7 @@ public:
                 {
                     auto as = new Statements();
                     as.reserve(a.dim);
-                    for (size_t i = 0; i < a.dim; i++)
+                    foreach (i; 0 .. a.dim)
                     {
                         Dsymbol d = (*a)[i];
                         s = new ExpStatement(loc, d);
