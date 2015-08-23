@@ -41,16 +41,20 @@ CC=$(HOST_CC)
 AR=ar
 GIT=git
 
+HOST_DC?=
+ifneq (,$(HOST_DC))
+  $(warning ========== Use HOST_DMD instead of HOST_DC ========== )
+  HOST_DMD=$(HOST_DC)
+endif
+
 # Host D compiler for bootstrapping
 ifeq (,$(AUTO_BOOTSTRAP))
   # No bootstrap, a $(HOST_DC) installation must be available
-  HOST_DC?=dmd
-  HOST_DC_FULL:=$(shell which $(HOST_DC))
-  ifeq (,$(HOST_DC_FULL))
-    $(error '$(HOST_DC)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
+  HOST_DMD?=dmd
+  ifeq (,$(shell which $(HOST_DMD)))
+    $(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
   endif
-  HOST_DC_RUN:=$(HOST_DC)
-  HOST_DC:=$(HOST_DC_FULL)
+  HOST_DMD_RUN:=$(HOST_DMD)
 else
   # Auto-bootstrapping, will download dmd automatically
   HOST_DMD_VER=2.067.1
@@ -60,8 +64,7 @@ else
   # http://downloads.dlang.org/releases/2.x/2.067.1/dmd.2.067.1.osx.zip
   HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/$(HOST_DMD_VER)/$(HOST_DMD_ZIP)
   HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
-  HOST_DC=$(HOST_DMD)
-  HOST_DC_RUN=$(HOST_DC) -conf=$(dir $(HOST_DC))dmd.conf
+  HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
 endif
 
 # Compiler Warnings
@@ -392,8 +395,8 @@ $(optabgen_output) : optabgen
 idgen_output = id.h id.c id.d
 $(idgen_output) : idgen
 
-idgen: idgen.d $(HOST_DC)
-	CC=$(HOST_CC) $(HOST_DC_RUN) idgen.d
+idgen: idgen.d
+	CC=$(HOST_CC) $(HOST_DMD_RUN) idgen.d
 	./idgen
 
 ######### impcnvgen generates some source
@@ -489,8 +492,8 @@ install: all
 
 ######################################################
 
-checkwhitespace: $(HOST_DC)
-	CC=$(HOST_CC) $(HOST_DC_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
+checkwhitespace:
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRC)
 
 ######################################################
 
@@ -585,7 +588,7 @@ zip:
 ######################################################
 
 ../changelog.html: ../changelog.dd
-	$(HOST_DC_RUN) -Df$@ $<
+	$(HOST_DMD_RUN) -Df$@ $<
 
 ############################# DDMD stuff ############################
 
@@ -599,8 +602,8 @@ MAGICPORTSRC = \
 
 MAGICPORT = $(MAGICPORTDIR)/magicport2
 
-$(MAGICPORT) : $(MAGICPORTSRC) $(HOST_DC)
-	CC=$(HOST_CC) $(HOST_DC_RUN) -of$(MAGICPORT) $(MAGICPORTSRC)
+$(MAGICPORT) : $(MAGICPORTSRC)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$(MAGICPORT) $(MAGICPORTSRC)
 
 GENSRC=access.d aggregate.d aliasthis.d apply.d \
 	argtypes.d arrayop.d arraytypes.d \
@@ -642,8 +645,8 @@ mars.d : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
 
 DSRC= $(GENSRC) $(MANUALSRC)
 
-ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a $(HOST_DC) verstr.h
-	CC=$(HOST_CC) $(HOST_DC_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J. -d $(DFLAGS)
+ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a verstr.h
+	CC=$(HOST_CC) $(HOST_DMD_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J. -d $(DFLAGS)
 
 #############################
 
