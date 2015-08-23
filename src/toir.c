@@ -17,6 +17,11 @@
 #include        <string.h>
 #include        <time.h>
 
+#ifdef _MSC_VER
+#include        <stdarg.h>
+#undef va_start // mapped to _crt_va_start
+#endif
+
 #include        "expression.h"
 #include        "mtype.h"
 #include        "dsymbol.h"

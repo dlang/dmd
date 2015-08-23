@@ -12,7 +12,8 @@ import core.stdc.ctype;
 import core.stdc.string;
 import core.math;
 
-version (Windows) __gshared extern (C) extern const(char)* __locale_decpoint;
+version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
+version(CRuntime_Microsoft)   extern(C++) struct longdouble {}
 
 extern (C) float strtof(const(char)* p, char** endp);
 extern (C) double strtod(const(char)* p, char** endp);
@@ -114,6 +115,14 @@ extern (C++) struct Port
         return isNan(r) && !(((cast(ubyte*)&r)[7]) & 0x40);
     }
 
+    version(CRuntime_Microsoft)
+    {
+        static int isSignallingNan(longdouble ld)
+        {
+            return isSignallingNan(*cast(real*)&ld);
+        }
+    }
+
     static int isInfinity(double r)
     {
         return r is double.infinity || r is -double.infinity;
@@ -121,37 +130,37 @@ extern (C++) struct Port
 
     static float strtof(const(char)* p, char** endp)
     {
-        version (Windows)
+        version (CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
         auto r = .strtof(p, endp);
-        version (Windows) __locale_decpoint = save;
+        version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
 
     static double strtod(const(char)* p, char** endp)
     {
-        version (Windows)
+        version (CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
         auto r = .strtod(p, endp);
-        version (Windows) __locale_decpoint = save;
+        version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
 
     static real strtold(const(char)* p, char** endp)
     {
-        version (Windows)
+        version (CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
         auto r = .strtold(p, endp);
-        version (Windows) __locale_decpoint = save;
+        version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
 

@@ -1610,7 +1610,7 @@ else static if (TARGET_WINDOS)
         // returns true if name already saved
         bool checkAndSaveIdent(const(char)* name)
         {
-            for (size_t i = 0; i < VC_SAVED_IDENT_CNT; i++)
+            for (uint i = 0; i < VC_SAVED_IDENT_CNT; i++)
             {
                 if (!saved_idents[i]) // no saved same name
                 {
@@ -1706,7 +1706,7 @@ else static if (TARGET_WINDOS)
                 return false;
             if (flags & MANGLE_RETURN_TYPE)
                 return false;
-            for (size_t i = 0; i < VC_SAVED_TYPE_CNT; i++)
+            for (uint i = 0; i < VC_SAVED_TYPE_CNT; i++)
             {
                 if (!saved_types[i]) // no saved same type
                 {
