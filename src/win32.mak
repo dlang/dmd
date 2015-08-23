@@ -180,7 +180,7 @@ ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/file.d $(ROOT)/filename.d	\
 SRCS = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
-	impcnvgen.c import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
+	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
 	mars.h module.h mtype.h nspace.h objc.h parse.h scanmscoff.c scanomf.c	\
 	scope.h statement.h staticassert.h target.h template.h tokens.h utf.h	\
 	version.h visitor.h $(DMD_SRCS)
@@ -285,7 +285,7 @@ clean:
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 	$(DEL) id.h id.d
 	$(DEL) verstr.h
-	$(DEL) impcnvtab.d impcnvgen.exe optabgen.exe
+	$(DEL) optabgen.exe
 
 install: detab install-copy
 
@@ -357,10 +357,6 @@ elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
 	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
 	.\optabgen.exe
-
-impcnvtab.d : impcnvgen.c
-	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
-	.\impcnvgen.exe
 
 id.h id.d : idgen.d
 	$(HOST_DC) -run idgen

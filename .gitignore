@@ -10,8 +10,6 @@ src/fltables.c
 src/id.c
 src/id.h
 src/idgen
-src/impcnvgen
-src/impcnvtab.c
 src/optab.c
 src/optabgen
 src/tytab.c
@@ -19,7 +17,6 @@ test/test_results
 *.obj
 src/idgen.exe
 src/dmd.exe
-src/impcnvgen.exe
 src/optabgen.exe
 src/verstr.h
 *.map
@@ -52,5 +49,4 @@ src/*.lib
 tags
 
 # OSX
-src/impcnvgen.dSYM/
 src/optabgen.dSYM/
