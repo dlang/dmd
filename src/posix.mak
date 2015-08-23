@@ -648,6 +648,29 @@ DSRC= $(GENSRC) $(MANUALSRC)
 ddmd: mars.d $(MANUALSRC) newdelete.o glue.a backend.a verstr.h
 	CC=$(HOST_CC) $(HOST_DMD_RUN) $(MODEL_FLAG) $(DSRC) -ofddmd newdelete.o glue.a backend.a -vtls -J. -d $(DFLAGS)
 
+DELSRCS=access.c aliasthis.c apply.c argtypes.c arrayop.c attrib.c builtin.c	\
+	canthrow.c cast.c class.c clone.c cond.c constfold.c cppmangle.c	\
+	ctfeexpr.c declaration.c delegatize.c doc.c dsymbol.c entity.c enum.c	\
+	errors.c escape.c expression.c func.c globals.c hdrgen.c identifier.c	\
+	imphint.c import.c inifile.c init.c inline.c interpret.c intrange.c	\
+	json.c lexer.c link.c macro.c mangle.c mars.c module.c mtype.c nogc.c	\
+	nspace.c objc.c objc_stubs.c opover.c optimize.c parse.c sapply.c	\
+	scope.c sideeffect.c statement.c staticassert.c struct.c target.c	\
+	template.c tokens.c traits.c unittests.c utf.c version.c $(addprefix	\
+	$(ROOT)/,aav.c async.c async.h checkedint.c checkedint.h file.c		\
+	filename.c longdouble.c man.c object.c outbuffer.c port.c response.c	\
+	rmem.c speller.c stringtable.c)
+
+convert_tree : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
+	$(MAGICPORT) . .
+	rm $(DELSRCS)
+	rm $(MAGICPORT) $(MAGICPORTDIR)/*.o
+
+convert_index : $(SRC) $(ROOT_SRC) magicport.json $(MAGICPORT)
+	$(MAGICPORT) . .
+	git add $(GENSRC) objc.d
+	git rm $(DELSRCS)
+
 #############################
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
