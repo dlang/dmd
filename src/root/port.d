@@ -121,37 +121,37 @@ extern (C++) struct Port
 
     static float strtof(const(char)* p, char** endp)
     {
-        version (Windows)
+        version (CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
         auto r = .strtof(p, endp);
-        version (Windows) __locale_decpoint = save;
+        version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
 
     static double strtod(const(char)* p, char** endp)
     {
-        version (Windows)
+        version (CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
         auto r = .strtod(p, endp);
-        version (Windows) __locale_decpoint = save;
+        version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
 
     static real strtold(const(char)* p, char** endp)
     {
-        version (Windows)
+        version (CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
         auto r = .strtold(p, endp);
-        version (Windows) __locale_decpoint = save;
+        version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
 
