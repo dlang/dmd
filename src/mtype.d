@@ -6765,6 +6765,112 @@ public:
     }
 
     /*************************************
+     * Resolve a tuple index.
+     */
+    final void resolveTupleIndex(Loc loc, Scope* sc, Dsymbol s, Expression* pe, Type* pt, Dsymbol* ps, RootObject oindex)
+    {
+        *pt = null;
+        *ps = null;
+        *pe = null;
+        TupleDeclaration td = s.isTupleDeclaration();
+        Expression eindex = isExpression(oindex);
+        Type tindex = isType(oindex);
+        Dsymbol sindex = isDsymbol(oindex);
+        if (!td)
+        {
+            // It's really an index expression
+            if (tindex)
+                eindex = new TypeExp(loc, tindex);
+            else if (sindex)
+                eindex = new DsymbolExp(loc, sindex);
+            Expression e = new IndexExp(loc, new DsymbolExp(loc, s), eindex);
+            e = e.semantic(sc);
+            if (e.op == TOKerror)
+                *pt = Type.terror;
+            else if (e.op == TOKtype)
+                *pt = (cast(TypeExp)e).type;
+            else
+                *pe = e;
+            return;
+        }
+        // Convert oindex to Expression, then try to resolve to constant.
+        if (tindex)
+            tindex.resolve(loc, sc, &eindex, &tindex, &sindex);
+        if (sindex)
+            eindex = new DsymbolExp(loc, sindex);
+        if (!eindex)
+        {
+            .error(loc, "index is %s not an expression", oindex.toChars());
+            *pt = Type.terror;
+            return;
+        }
+        sc = sc.startCTFE();
+        eindex = eindex.semantic(sc);
+        sc = sc.endCTFE();
+        eindex = eindex.ctfeInterpret();
+        if (eindex.op == TOKerror)
+        {
+            *pt = Type.terror;
+            return;
+        }
+        const(uinteger_t) d = eindex.toUInteger();
+        if (d >= td.objects.dim)
+        {
+            .error(loc, "tuple index %llu exceeds length %u", d, td.objects.dim);
+            *pt = Type.terror;
+            return;
+        }
+        RootObject o = (*td.objects)[cast(size_t)d];
+        *pt = isType(o);
+        *ps = isDsymbol(o);
+        *pe = isExpression(o);
+        if (*pt)
+            *pt = (*pt).semantic(loc, sc);
+    }
+
+    final void resolveExprType(Loc loc, Scope* sc, Expression e, size_t i, Expression* pe, Type* pt)
+    {
+        //printf("resolveExprType(e = %s %s, type = %s)\n", Token::toChars(e->op), e->toChars(), e->type->toChars());
+        e = e.semantic(sc);
+        for (; i < idents.dim; i++)
+        {
+            if (e.op == TOKerror)
+                break;
+            RootObject id = idents[i];
+            //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
+            if (id.dyncast() == DYNCAST_IDENTIFIER)
+            {
+                auto die = new DotIdExp(e.loc, e, cast(Identifier)id);
+                e = die.semanticY(sc, 0);
+            }
+            else if (id.dyncast() == DYNCAST_TYPE) // Bugzilla 1215
+            {
+                e = new IndexExp(loc, e, new TypeExp(loc, cast(Type)id));
+                e = e.semantic(sc);
+            }
+            else if (id.dyncast() == DYNCAST_EXPRESSION) // Bugzilla 1215
+            {
+                e = new IndexExp(loc, e, cast(Expression)id);
+                e = e.semantic(sc);
+            }
+            else
+            {
+                assert(id.dyncast() == DYNCAST_DSYMBOL);
+                TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
+                assert(ti);
+                auto dte = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
+                e = dte.semanticY(sc, 0);
+            }
+        }
+        if (e.op == TOKerror)
+            *pt = Type.terror;
+        else if (e.op == TOKtype)
+            *pt = e.type;
+        else
+            *pe = e;
+    }
+
+    /*************************************
      * Takes an array of Identifiers and figures out if
      * it represents a Type or an Expression.
      * Output:
@@ -6795,41 +6901,22 @@ public:
             for (size_t i = 0; i < idents.dim; i++)
             {
                 RootObject id = idents[i];
-                if (id.dyncast() == DYNCAST_EXPRESSION)
+                if (id.dyncast() == DYNCAST_EXPRESSION || id.dyncast() == DYNCAST_TYPE)
                 {
-                    if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, cast(Expression)id))
+                    Type tx;
+                    Expression ex;
+                    Dsymbol sx;
+                    resolveTupleIndex(loc, sc, s, &ex, &tx, &sx, id);
+                    if (sx)
                     {
-                        return;
+                        s = sx.toAlias();
+                        continue;
                     }
-                    continue;
-                }
-                else if (id.dyncast() == DYNCAST_TYPE)
-                {
-                    Type index = cast(Type)id;
-                    Expression expr = null;
-                    Type t = null;
-                    Dsymbol sym = null;
-                    index.resolve(loc, sc, &expr, &t, &sym);
-                    if (expr)
-                    {
-                        if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, expr))
-                        {
-                            return;
-                        }
-                    }
-                    else if (t)
-                    {
-                        index.error(loc, "Expected an expression as index, got a type (%s)", t.toChars());
-                        *pt = Type.terror;
-                        return;
-                    }
-                    else
-                    {
-                        index.error(loc, "index is not a an expression");
-                        *pt = Type.terror;
-                        return;
-                    }
-                    continue;
+                    if (tx)
+                        ex = new TypeExp(loc, tx);
+                    assert(ex);
+                    resolveExprType(loc, sc, ex, i + 1, pe, pt);
+                    return;
                 }
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
@@ -6883,31 +6970,8 @@ public:
                             e = new DsymbolExp(loc, s);
                         else
                             e = new VarExp(loc, s.isDeclaration());
-                        e = e.semantic(sc);
-                        for (; i < idents.dim; i++)
-                        {
-                            RootObject id2 = idents[i];
-                            //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id2->toChars(), e->type->toChars());
-                            if (id2.dyncast() == DYNCAST_IDENTIFIER)
-                            {
-                                auto die = new DotIdExp(e.loc, e, cast(Identifier)id2);
-                                e = die.semanticY(sc, 0);
-                            }
-                            else
-                            {
-                                assert(id2.dyncast() == DYNCAST_DSYMBOL);
-                                TemplateInstance ti = (cast(Dsymbol)id2).isTemplateInstance();
-                                assert(ti);
-                                auto dte = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
-                                e = dte.semanticY(sc, 0);
-                            }
-                        }
-                        if (e.op == TOKtype)
-                            *pt = e.type;
-                        else if (e.op == TOKerror)
-                            *pt = Type.terror;
-                        else
-                            *pe = e;
+                        resolveExprType(loc, sc, e, i, pe, pt);
+                        return;
                     }
                     else
                     {
@@ -7055,46 +7119,6 @@ public:
     {
         v.visit(this);
     }
-
-private:
-    /*************************************
-     * Resolve a TypeTuple index.
-     */
-    final bool resolveTypeTupleIndex(Loc loc, Scope* sc, Dsymbol* s, Type* pt, Dsymbol* ps, RootObject id, Expression indexExpr)
-    {
-        TupleDeclaration td = (*s).isTupleDeclaration();
-        if (!td)
-        {
-            error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.", id.toChars(), (*s).toChars());
-            *pt = Type.terror;
-            return false;
-        }
-        sc = sc.startCTFE();
-        indexExpr = indexExpr.semantic(sc);
-        sc = sc.endCTFE();
-        indexExpr = indexExpr.ctfeInterpret();
-        const(uinteger_t) d = indexExpr.toUInteger();
-        if (d >= td.objects.dim)
-        {
-            error(loc, "tuple index %llu exceeds length %u", d, td.objects.dim);
-            *pt = Type.terror;
-            return false;
-        }
-        RootObject o = (*td.objects)[cast(size_t)d];
-        if (o.dyncast() == DYNCAST_TYPE)
-        {
-            *ps = null;
-            *pt = (cast(Type)o).addMod(this.mod);
-            *s = (*pt).toDsymbol(sc).toAlias();
-        }
-        else
-        {
-            assert(o.dyncast() == DYNCAST_DSYMBOL);
-            *ps = cast(Dsymbol)o;
-            *s = (*ps).toAlias();
-        }
-        return true;
-    }
 }
 
 extern (C++) final class TypeIdentifier : TypeQualified
@@ -7178,22 +7202,12 @@ public:
         //printf("TypeIdentifier::toDsymbol('%s')\n", toChars());
         if (!sc)
             return null;
-        //printf("ident = '%s'\n", ident->toChars());
-        Dsymbol scopesym;
-        Dsymbol s = sc.search(loc, ident, &scopesym);
-        if (s)
-        {
-            for (size_t i = 0; i < idents.dim; i++)
-            {
-                RootObject id = idents[i];
-                s = s.searchX(loc, sc, id);
-                if (!s) // failed to find a symbol
-                {
-                    //printf("\tdidn't find a symbol\n");
-                    break;
-                }
-            }
-        }
+        Type t;
+        Expression e;
+        Dsymbol s;
+        resolve(loc, sc, &e, &t, &s);
+        if (t && t.ty != Tident)
+            s = t.toDsymbol(sc);
         return s;
     }
 

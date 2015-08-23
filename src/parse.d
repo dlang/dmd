@@ -3116,7 +3116,7 @@ public:
         return t;
     }
 
-    Type parseBasicType()
+    Type parseBasicType(bool dontLookDotIdents = false)
     {
         Type t;
         Loc loc;
@@ -3210,20 +3210,20 @@ public:
                 // ident!(template_arguments)
                 auto tempinst = new TemplateInstance(loc, id);
                 tempinst.tiargs = parseTemplateArguments();
-                t = parseBasicTypeStartingAt(new TypeInstance(loc, tempinst));
+                t = parseBasicTypeStartingAt(new TypeInstance(loc, tempinst), dontLookDotIdents);
             }
             else
             {
-                t = parseBasicTypeStartingAt(new TypeIdentifier(loc, id));
+                t = parseBasicTypeStartingAt(new TypeIdentifier(loc, id), dontLookDotIdents);
             }
             break;
         case TOKdot:
             // Leading . as in .foo
-            t = parseBasicTypeStartingAt(new TypeIdentifier(token.loc, Id.empty));
+            t = parseBasicTypeStartingAt(new TypeIdentifier(token.loc, Id.empty), dontLookDotIdents);
             break;
         case TOKtypeof:
             // typeof(expression)
-            t = parseBasicTypeStartingAt(parseTypeof());
+            t = parseBasicTypeStartingAt(parseTypeof(), dontLookDotIdents);
             break;
         case TOKvector:
             t = parseVector();
@@ -3264,7 +3264,7 @@ public:
         return t;
     }
 
-    Type parseBasicTypeStartingAt(TypeQualified tid)
+    Type parseBasicTypeStartingAt(TypeQualified tid, bool dontLookDotIdents)
     {
         Type maybeArray = null;
         // See https://issues.dlang.org/show_bug.cgi?id=1215
@@ -3338,6 +3338,8 @@ public:
                 }
             case TOKlbracket:
                 {
+                    if (dontLookDotIdents) // workaround for Bugzilla 14911
+                        goto Lend;
                     nextToken();
                     Type t = maybeArray ? maybeArray : cast(Type)tid;
                     if (token.value == TOKrbracket)
@@ -5923,6 +5925,12 @@ public:
                 {
                     // It's an associative array declaration
                     t = peek(t);
+                    // ...[type].ident
+                    if (t.value == TOKdot && peek(t).value == TOKidentifier)
+                    {
+                        t = peek(t);
+                        t = peek(t);
+                    }
                 }
                 else
                 {
@@ -5935,10 +5943,22 @@ public:
                         t = peek(t);
                         if (!isExpression(&t))
                             return false;
+                        if (t.value != TOKrbracket)
+                            return false;
+                        t = peek(t);
                     }
-                    if (t.value != TOKrbracket)
-                        return false;
-                    t = peek(t);
+                    else
+                    {
+                        if (t.value != TOKrbracket)
+                            return false;
+                        t = peek(t);
+                        // ...[index].ident
+                        if (t.value == TOKdot && peek(t).value == TOKidentifier)
+                        {
+                            t = peek(t);
+                            t = peek(t);
+                        }
+                    }
                 }
                 continue;
             case TOKidentifier:
@@ -7665,7 +7685,7 @@ public:
             return e;
         }
         StorageClass stc = parseTypeCtor();
-        t = parseBasicType();
+        t = parseBasicType(true);
         t = parseBasicType2(t);
         t = t.addSTC(stc);
         if (t.ty == Taarray)
