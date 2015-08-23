@@ -12,7 +12,8 @@ import core.stdc.ctype;
 import core.stdc.string;
 import core.math;
 
-version (Windows) __gshared extern (C) extern const(char)* __locale_decpoint;
+version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
+version(CRuntime_Microsoft)   extern(C++) struct longdouble {}
 
 extern (C) float strtof(const(char)* p, char** endp);
 extern (C) double strtod(const(char)* p, char** endp);
@@ -112,6 +113,14 @@ extern (C++) struct Port
     static int isSignallingNan(real r)
     {
         return isNan(r) && !(((cast(ubyte*)&r)[7]) & 0x40);
+    }
+
+    version(CRuntime_Microsoft)
+    {
+        static int isSignallingNan(longdouble ld)
+        {
+            return isSignallingNan(*cast(real*)&ld);
+        }
     }
 
     static int isInfinity(double r)
