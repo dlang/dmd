@@ -293,10 +293,10 @@ backend.a: $(BACK_OBJS)
 
 ifdef ENABLE_LTO
 dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) verstr.h
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d $(DFLAGS) $(filter-out verstr.h,$^)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h,$^)
 else
 dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a verstr.h
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d $(DFLAGS) $(filter-out verstr.h,$^)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h,$^)
 endif
 
 clean:
