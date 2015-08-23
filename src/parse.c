@@ -3028,7 +3028,7 @@ Type *Parser::parseType(Identifier **pident, TemplateParameters **ptpl)
     return t;
 }
 
-Type *Parser::parseBasicType()
+Type *Parser::parseBasicType(bool dontLookDotIdents)
 {
     Type *t;
     Loc loc;
@@ -3076,22 +3076,22 @@ Type *Parser::parseBasicType()
                 // ident!(template_arguments)
                 TemplateInstance *tempinst = new TemplateInstance(loc, id);
                 tempinst->tiargs = parseTemplateArguments();
-                t = parseBasicTypeStartingAt(new TypeInstance(loc, tempinst));
+                t = parseBasicTypeStartingAt(new TypeInstance(loc, tempinst), dontLookDotIdents);
             }
             else
             {
-                t = parseBasicTypeStartingAt(new TypeIdentifier(loc, id));
+                t = parseBasicTypeStartingAt(new TypeIdentifier(loc, id), dontLookDotIdents);
             }
             break;
 
         case TOKdot:
             // Leading . as in .foo
-            t = parseBasicTypeStartingAt(new TypeIdentifier(token.loc, Id::empty));
+            t = parseBasicTypeStartingAt(new TypeIdentifier(token.loc, Id::empty), dontLookDotIdents);
             break;
 
         case TOKtypeof:
             // typeof(expression)
-            t = parseBasicTypeStartingAt(parseTypeof());
+            t = parseBasicTypeStartingAt(parseTypeof(), dontLookDotIdents);
             break;
 
         case TOKvector:
@@ -3138,7 +3138,7 @@ Type *Parser::parseBasicType()
     return t;
 }
 
-Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
+Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid, bool dontLookDotIdents)
 {
     Type *maybeArray = NULL;
     // See https://issues.dlang.org/show_bug.cgi?id=1215
@@ -3212,6 +3212,9 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
             }
             case TOKlbracket:
             {
+                if (dontLookDotIdents)      // workaround for Bugzilla 14911
+                    goto Lend;
+
                 nextToken();
                 Type *t = maybeArray ? maybeArray : (Type *)tid;
                 if (token.value == TOKrbracket)
@@ -3266,7 +3269,7 @@ Type *Parser::parseBasicTypeStartingAt(TypeQualified *tid)
                 goto Lend;
         }
     }
-    Lend:
+Lend:
     return maybeArray ? maybeArray : (Type *)tid;
 }
 
@@ -6014,8 +6017,16 @@ bool Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                     t = peek(t);
                 }
                 else if (isDeclaration(t, 0, TOKrbracket, &t))
-                {   // It's an associative array declaration
+                {
+                    // It's an associative array declaration
                     t = peek(t);
+
+                    // ...[type].ident
+                    if (t->value == TOKdot && peek(t)->value == TOKidentifier)
+                    {
+                        t = peek(t);
+                        t = peek(t);
+                    }
                 }
                 else
                 {
@@ -6024,13 +6035,27 @@ bool Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                     if (!isExpression(&t))
                         return false;
                     if (t->value == TOKslice)
-                    {   t = peek(t);
+                    {
+                        t = peek(t);
                         if (!isExpression(&t))
                             return false;
+                        if (t->value != TOKrbracket)
+                            return false;
+                        t = peek(t);
                     }
-                    if (t->value != TOKrbracket)
-                        return false;
-                    t = peek(t);
+                    else
+                    {
+                        if (t->value != TOKrbracket)
+                            return false;
+                        t = peek(t);
+
+                        // ...[index].ident
+                        if (t->value == TOKdot && peek(t)->value == TOKidentifier)
+                        {
+                            t = peek(t);
+                            t = peek(t);
+                        }
+                    }
                 }
                 continue;
 
@@ -7754,7 +7779,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
     }
 
     StorageClass stc = parseTypeCtor();
-    t = parseBasicType();
+    t = parseBasicType(true);
     t = parseBasicType2(t);
     t = t->addSTC(stc);
     if (t->ty == Taarray)
