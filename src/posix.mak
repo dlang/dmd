@@ -30,7 +30,6 @@ ROOT=root
 ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
 endif
-LDFLAGS=-lm -lstdc++ -lpthread
 
 #ifeq (osx,$(OS))
 #	HOST_CC=clang++
@@ -152,7 +151,6 @@ DFLAGS += -O -release -inline
 endif
 ifdef ENABLE_PROFILING
 CFLAGS  += -pg -fprofile-arcs -ftest-coverage
-LDFLAGS += -pg -fprofile-arcs -ftest-coverage
 endif
 ifdef ENABLE_PGO_GENERATE
 CFLAGS  += -fprofile-generate=${PGO_DIR}
@@ -162,7 +160,6 @@ CFLAGS  += -fprofile-use=${PGO_DIR} -freorder-blocks-and-partition
 endif
 ifdef ENABLE_LTO
 CFLAGS  += -flto
-LDFLAGS += -flto
 endif
 
 # Uniqe extra flags if necessary
@@ -293,10 +290,10 @@ backend.a: $(BACK_OBJS)
 
 ifdef ENABLE_LTO
 dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) verstr.h
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d $(DFLAGS) $(filter-out verstr.h,$^)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h,$^)
 else
 dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a verstr.h
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d $(DFLAGS) $(filter-out verstr.h,$^)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h,$^)
 endif
 
 clean:
