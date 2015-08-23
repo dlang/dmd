@@ -75,7 +75,81 @@ extern (C++) static void usage()
         const(char)* fpic = "";
     }
     logo();
-    printf("Documentation: http://dlang.org/\nConfig file: %s\nUsage:\n  dmd files.d ... { -switch }\n\n  files.d        D source files\n  @cmdfile       read arguments from cmdfile\n  -allinst       generate code for all template instantiations\n  -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off\n  -c             do not link\n  -color[=on|off]   force colored console output on or off\n  -conf=path     use config file at path\n  -cov           do code coverage analysis\n  -cov=nnn       require at least nnn%% code coverage\n  -D             generate documentation\n  -Dddocdir      write documentation file to docdir directory\n  -Dffilename    write documentation file to filename\n  -d             silently allow deprecated features\n  -dw            show use of deprecated features as warnings (default)\n  -de            show use of deprecated features as errors (halt compilation)\n  -debug         compile in debug code\n  -debug=level   compile in debug code <= level\n  -debug=ident   compile in debug code identified by ident\n  -debuglib=name    set symbolic debug library to name\n  -defaultlib=name  set default library to name\n  -deps          print module dependencies (imports/file/version/debug/lib)\n  -deps=filename write module dependencies to filename (only imports)\n%s  -dip25         implement http://wiki.dlang.org/DIP25 (experimental)\n  -g             add symbolic debug info\n  -gc            add symbolic debug info, optimize for non D debuggers\n  -gs            always emit stack frame\n  -gx            add stack stomp code\n  -H             generate 'header' file\n  -Hddirectory   write 'header' file to directory\n  -Hffilename    write 'header' file to filename\n  --help         print help and exit\n  -Ipath         where to look for imports\n  -ignore        ignore unsupported pragmas\n  -inline        do function inlining\n  -Jpath         where to look for string imports\n  -Llinkerflag   pass linkerflag to link\n  -lib           generate library rather than object files\n  -m32           generate 32 bit code\n  -m64           generate 64 bit code\n  -main          add default main() (e.g. for unittesting)\n  -man           open web browser on manual page\n  -map           generate linker .map file\n  -noboundscheck no array bounds checking (deprecated, use -boundscheck=off)\n  -O             optimize\n  -o-            do not write object file\n  -odobjdir      write object & library files to directory objdir\n  -offilename    name output file to filename\n  -op            preserve source path for output files\n  -profile       profile runtime performance of generated code\n  -profile=gc    profile runtime allocations\n  -property      enforce property syntax\n  -release       compile release version\n  -run srcfile args...   run resulting program, passing args\n  -shared        generate shared library (DLL)\n  -transition=id show additional info about language change identified by 'id'\n  -transition=?  list all language changes\n  -unittest      compile in unit tests\n  -v             verbose\n  -vcolumns      print character (column) numbers in diagnostics\n  -verrors=num   limit the number of error messages (0 means unlimited)\n  -vgc           list all gc allocations including hidden ones\n  -vtls          list all variables going into thread local storage\n  --version      print compiler version and exit\n  -version=level compile in version code >= level\n  -version=ident compile in version code identified by ident\n  -w             warnings as errors (compilation will halt)\n  -wi            warnings as messages (compilation will continue)\n  -X             generate JSON file\n  -Xffilename    write JSON file to filename\n", FileName.canonicalName(global.inifilename), fpic);
+    printf("
+Documentation: http://dlang.org/
+Config file: %s
+Usage:
+  dmd files.d ... { -switch }
+
+  files.d        D source files
+  @cmdfile       read arguments from cmdfile
+  -allinst       generate code for all template instantiations
+  -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off
+  -c             do not link\n  -color[=on|off]   force colored console output on or off
+  -conf=path     use config file at path
+  -cov           do code coverage analysis
+  -cov=nnn       require at least nnn%% code coverage
+  -D             generate documentation
+  -Dddocdir      write documentation file to docdir directory
+  -Dffilename    write documentation file to filename
+  -d             silently allow deprecated features
+  -dw            show use of deprecated features as warnings (default)
+  -de            show use of deprecated features as errors (halt compilation)
+  -debug         compile in debug code
+  -debug=level   compile in debug code <= level
+  -debug=ident   compile in debug code identified by ident
+  -debuglib=name    set symbolic debug library to name
+  -defaultlib=name  set default library to name
+  -deps          print module dependencies (imports/file/version/debug/lib)
+  -deps=filename write module dependencies to filename (only imports)
+  %s  -dip25         implement http://wiki.dlang.org/DIP25 (experimental)
+  -g             add symbolic debug info
+  -gc            add symbolic debug info, optimize for non D debuggers
+  -gs            always emit stack frame
+  -gx            add stack stomp code
+  -H             generate 'header' file
+  -Hddirectory   write 'header' file to directory
+  -Hffilename    write 'header' file to filename
+  --help         print help and exit
+  -Ipath         where to look for imports
+  -ignore        ignore unsupported pragmas
+  -inline        do function inlining
+  -Jpath         where to look for string imports
+  -Llinkerflag   pass linkerflag to link
+  -lib           generate library rather than object files
+  -m32           generate 32 bit code
+  -m64           generate 64 bit code
+  -main          add default main() (e.g. for unittesting)
+  -man           open web browser on manual page
+  -map           generate linker .map file
+  -noboundscheck no array bounds checking (deprecated, use -boundscheck=off)
+  -O             optimize
+  -o-            do not write object file
+  -odobjdir      write object & library files to directory objdir
+  -offilename    name output file to filename
+  -op            preserve source path for output files
+  -profile       profile runtime performance of generated code
+  -profile=gc    profile runtime allocations
+  -property      enforce property syntax
+  -release       compile release version
+  -run srcfile args...   run resulting program, passing args
+  -shared        generate shared library (DLL)
+  -transition=id show additional info about language change identified by 'id'
+  -transition=?  list all language changes
+  -unittest      compile in unit tests
+  -v             verbose
+  -vcolumns      print character (column) numbers in diagnostics
+  -verrors=num   limit the number of error messages (0 means unlimited)
+  -vgc           list all gc allocations including hidden ones
+  -vtls          list all variables going into thread local storage
+  --version      print compiler version and exit
+  -version=level compile in version code >= level
+  -version=ident compile in version code identified by ident
+  -w             warnings as errors (compilation will halt)
+  -wi            warnings as messages (compilation will continue)
+  -X             generate JSON file
+  -Xffilename    write JSON file to filename
+", FileName.canonicalName(global.inifilename), fpic);
 }
 
 extern (C++) __gshared Module entrypoint = null;
@@ -94,7 +168,19 @@ extern (C++) void genCmain(Scope* sc)
     /* The D code to be generated is provided as D source code in the form of a string.
      * Note that Solaris, for unknown reasons, requires both a main() and an _main()
      */
-    static __gshared const(char)* cmaincode = "extern(C) {\n        int _d_run_main(int argc, char **argv, void* mainFunc);\n        int _Dmain(char[][] args);\n        int main(int argc, char **argv) { return _d_run_main(argc, argv, &_Dmain); }\n        version (Solaris) int _main(int argc, char** argv) { return main(argc, argv); }\n        }\n        ";
+    static __gshared const(char)* cmaincode =
+    q{
+        extern(C)
+        {
+            int _d_run_main(int argc, char **argv, void* mainFunc);
+            int _Dmain(char[][] args);
+            int main(int argc, char **argv)
+            {
+                return _d_run_main(argc, argv, &_Dmain);
+            }
+            version (Solaris) int _main(int argc, char** argv) { return main(argc, argv); }
+        }
+    };
     Identifier id = Id.entrypoint;
     auto m = new Module("__entrypoint.d", id, 0, 0);
     scope Parser p = new Parser(m, cmaincode, strlen(cast(const(char)*)cmaincode), 0);
@@ -467,7 +553,13 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
                 {
                     if (strcmp(p + 12, "?") == 0)
                     {
-                        printf("Language changes listed by -transition=id:\n  =all           list information on all language changes\n  =complex,14488 list all usages of complex or imaginary types\n  =field,3449    list all non-mutable fields which occupy an object instance\n  =tls           list all variables going into thread local storage\n");
+                        printf("
+Language changes listed by -transition=id:
+  =all           list information on all language changes
+  =complex,14488 list all usages of complex or imaginary types
+  =field,3449    list all non-mutable fields which occupy an object instance
+  =tls           list all variables going into thread local storage
+");
                         return EXIT_FAILURE;
                     }
                     if (isdigit(cast(char)p[12]))
