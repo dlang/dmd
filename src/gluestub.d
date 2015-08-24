@@ -9,7 +9,7 @@
 
 module ddmd.gluestub;
 
-import ddmd.backend, ddmd.aggregate, ddmd.dmodule, ddmd.lib, ddmd.root.file, ddmd.statement, ddmd.dscope, ddmd.mtype;
+import ddmd.backend, ddmd.aggregate, ddmd.dmodule, ddmd.lib, ddmd.root.file, ddmd.statement, ddmd.dscope, ddmd.mtype, ddmd.dsymbol;
 
 // tocsym
 
@@ -90,7 +90,6 @@ extern (C++) RET retStyle(TypeFunction tf)
     return RETregs;
 }
 
-extern (C++) Type getTypeInfoType(Type t, Scope* sc)
+extern (C++) void toObjFile(Dsymbol ds, bool multiobj)
 {
-    return Type.dtypeinfo.type;
 }
