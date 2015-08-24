@@ -8,8 +8,41 @@
 
 module ddmd.doc;
 
-import core.stdc.ctype, core.stdc.stdlib, core.stdc.string, core.stdc.time;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.attrib, ddmd.dclass, ddmd.declaration, ddmd.denum, ddmd.dmacro, ddmd.dmodule, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.lexer, ddmd.mars, ddmd.mtype, ddmd.root.aav, ddmd.root.array, ddmd.root.file, ddmd.root.filename, ddmd.root.outbuffer, ddmd.root.port, ddmd.root.rmem, ddmd.tokens, ddmd.utf, ddmd.visitor;
+import core.stdc.ctype;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.stdc.time;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.denum;
+import ddmd.dmacro;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.lexer;
+import ddmd.mars;
+import ddmd.mtype;
+import ddmd.root.aav;
+import ddmd.root.array;
+import ddmd.root.file;
+import ddmd.root.filename;
+import ddmd.root.outbuffer;
+import ddmd.root.port;
+import ddmd.root.rmem;
+import ddmd.tokens;
+import ddmd.utf;
+import ddmd.visitor;
 
 struct Escape
 {

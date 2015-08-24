@@ -8,7 +8,21 @@
 
 module ddmd.aliasthis;
 
-import ddmd.aggregate, ddmd.declaration, ddmd.dscope, ddmd.dsymbol, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.identifier, ddmd.mtype, ddmd.opover, ddmd.root.outbuffer, ddmd.tokens, ddmd.visitor;
+import ddmd.aggregate;
+import ddmd.declaration;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.opover;
+import ddmd.root.outbuffer;
+import ddmd.tokens;
+import ddmd.visitor;
 
 /**************************************************************/
 extern (C++) final class AliasThis : Dsymbol

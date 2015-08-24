@@ -8,8 +8,19 @@
 
 module ddmd.libomf;
 
-import core.stdc.stdio, core.stdc.string, core.stdc.stdlib, core.stdc.stdarg;
-import ddmd.globals, ddmd.lib, ddmd.mars, ddmd.root.array, ddmd.root.file, ddmd.root.filename, ddmd.root.outbuffer, ddmd.root.stringtable, ddmd.errors;
+import core.stdc.stdio;
+import core.stdc.string;
+import core.stdc.stdlib;
+import core.stdc.stdarg;
+import ddmd.globals;
+import ddmd.lib;
+import ddmd.mars;
+import ddmd.root.array;
+import ddmd.root.file;
+import ddmd.root.filename;
+import ddmd.root.outbuffer;
+import ddmd.root.stringtable;
+import ddmd.errors;
 
 enum LOG = false;
 

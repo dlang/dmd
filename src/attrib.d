@@ -8,8 +8,34 @@
 
 module ddmd.attrib;
 
-import core.stdc.stdio, core.stdc.string;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.cond, ddmd.dclass, ddmd.declaration, ddmd.dinterpret, ddmd.dmodule, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.mars, ddmd.mtype, ddmd.parse, ddmd.root.outbuffer, ddmd.root.rmem, ddmd.tokens, ddmd.utf, ddmd.visitor;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.cond;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dinterpret;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mars;
+import ddmd.mtype;
+import ddmd.parse;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
+import ddmd.tokens;
+import ddmd.utf;
+import ddmd.visitor;
 
 /**************************************************************/
 extern (C++) class AttribDeclaration : Dsymbol

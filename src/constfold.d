@@ -9,7 +9,23 @@
 module ddmd.constfold;
 
 import core.stdc.string;
-import ddmd.arraytypes, ddmd.builtin, ddmd.complex, ddmd.ctfeexpr, ddmd.declaration, ddmd.dstruct, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.mtype, ddmd.root.longdouble, ddmd.root.port, ddmd.root.rmem, ddmd.sideeffect, ddmd.tokens, ddmd.utf;
+import ddmd.arraytypes;
+import ddmd.builtin;
+import ddmd.complex;
+import ddmd.ctfeexpr;
+import ddmd.declaration;
+import ddmd.dstruct;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.mtype;
+import ddmd.root.longdouble;
+import ddmd.root.port;
+import ddmd.root.rmem;
+import ddmd.sideeffect;
+import ddmd.tokens;
+import ddmd.utf;
 
 private enum LOG = false;
 

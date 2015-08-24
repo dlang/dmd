@@ -9,7 +9,13 @@
 module ddmd.objc;
 
 import core.stdc.stdio;
-import ddmd.dclass, ddmd.dscope, ddmd.dstruct, ddmd.func, ddmd.globals, ddmd.id, ddmd.root.stringtable;
+import ddmd.dclass;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.root.stringtable;
 
 struct ObjcSelector
 {

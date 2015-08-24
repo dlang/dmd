@@ -8,7 +8,30 @@
 
 module ddmd.dstruct;
 
-import ddmd.aggregate, ddmd.argtypes, ddmd.arraytypes, ddmd.clone, ddmd.declaration, ddmd.dmodule, ddmd.doc, ddmd.dscope, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.init, ddmd.mtype, ddmd.opover, ddmd.root.outbuffer, ddmd.statement, ddmd.tokens, ddmd.visitor;
+import ddmd.aggregate;
+import ddmd.argtypes;
+import ddmd.arraytypes;
+import ddmd.clone;
+import ddmd.declaration;
+import ddmd.dmodule;
+import ddmd.doc;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.opover;
+import ddmd.root.outbuffer;
+import ddmd.statement;
+import ddmd.tokens;
+import ddmd.visitor;
 
 /***************************************
  * Search toString member function for TypeInfo_Struct.

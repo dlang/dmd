@@ -9,7 +9,30 @@
 module ddmd.dclass;
 
 import core.stdc.string;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.backend, ddmd.clone, ddmd.declaration, ddmd.dmodule, ddmd.doc, ddmd.dscope, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.mtype, ddmd.objc, ddmd.root.outbuffer, ddmd.root.rmem, ddmd.root.rootobject, ddmd.statement, ddmd.target, ddmd.visitor;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.backend;
+import ddmd.clone;
+import ddmd.declaration;
+import ddmd.dmodule;
+import ddmd.doc;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.objc;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
+import ddmd.root.rootobject;
+import ddmd.statement;
+import ddmd.target;
+import ddmd.visitor;
 
 /**********************************************************
  * fd is in the vtbl[] for this class.

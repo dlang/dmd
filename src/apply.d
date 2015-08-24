@@ -8,7 +8,9 @@
 
 module ddmd.apply;
 
-import ddmd.arraytypes, ddmd.expression, ddmd.visitor;
+import ddmd.arraytypes;
+import ddmd.expression;
+import ddmd.visitor;
 
 /**************************************
  * An Expression tree walker that will visit each Expression e in the tree,

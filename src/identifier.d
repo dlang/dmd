@@ -8,8 +8,14 @@
 
 module ddmd.identifier;
 
-import core.stdc.stdio, core.stdc.string;
-import ddmd.globals, ddmd.id, ddmd.root.outbuffer, ddmd.root.rootobject, ddmd.root.stringtable, ddmd.tokens;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.root.outbuffer;
+import ddmd.root.rootobject;
+import ddmd.root.stringtable;
+import ddmd.tokens;
 
 extern (C++) final class Identifier : RootObject
 {

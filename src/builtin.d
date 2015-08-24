@@ -8,8 +8,18 @@
 
 module ddmd.builtin;
 
-import core.stdc.math, core.stdc.string;
-import ddmd.arraytypes, ddmd.dmangle, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.mtype, ddmd.root.port, ddmd.root.stringtable, ddmd.tokens;
+import core.stdc.math;
+import core.stdc.string;
+import ddmd.arraytypes;
+import ddmd.dmangle;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.mtype;
+import ddmd.root.port;
+import ddmd.root.stringtable;
+import ddmd.tokens;
 
 extern (C++) alias builtin_fp = Expression function(Loc loc, FuncDeclaration fd, Expressions* arguments);
 

@@ -9,7 +9,13 @@
 module ddmd.target;
 
 import core.stdc.string;
-import ddmd.dmodule, ddmd.expression, ddmd.globals, ddmd.identifier, ddmd.mtype, ddmd.root.longdouble, ddmd.root.outbuffer;
+import ddmd.dmodule;
+import ddmd.expression;
+import ddmd.globals;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.root.longdouble;
+import ddmd.root.outbuffer;
 
 struct Target
 {

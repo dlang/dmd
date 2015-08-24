@@ -8,8 +8,35 @@
 
 module ddmd.dcast;
 
-import core.stdc.stdio, core.stdc.string;
-import ddmd.aggregate, ddmd.aliasthis, ddmd.arrayop, ddmd.arraytypes, ddmd.dclass, ddmd.declaration, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.id, ddmd.impcnvtab, ddmd.init, ddmd.intrange, ddmd.mtype, ddmd.opover, ddmd.root.longdouble, ddmd.root.outbuffer, ddmd.root.rmem, ddmd.root.rootobject, ddmd.tokens, ddmd.utf, ddmd.visitor;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.aliasthis;
+import ddmd.arrayop;
+import ddmd.arraytypes;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.impcnvtab;
+import ddmd.init;
+import ddmd.intrange;
+import ddmd.mtype;
+import ddmd.opover;
+import ddmd.root.longdouble;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
+import ddmd.root.rootobject;
+import ddmd.tokens;
+import ddmd.utf;
+import ddmd.visitor;
 
 enum LOG = false;
 

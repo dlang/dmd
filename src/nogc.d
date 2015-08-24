@@ -8,7 +8,20 @@
 
 module ddmd.nogc;
 
-import ddmd.apply, ddmd.declaration, ddmd.dscope, ddmd.expression, ddmd.func, ddmd.globals, ddmd.id, ddmd.identifier, ddmd.init, ddmd.mtype, ddmd.sapply, ddmd.statement, ddmd.tokens, ddmd.visitor;
+import ddmd.apply;
+import ddmd.declaration;
+import ddmd.dscope;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.sapply;
+import ddmd.statement;
+import ddmd.tokens;
+import ddmd.visitor;
 
 /**************************************
  * Look for GC-allocations

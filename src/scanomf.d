@@ -8,8 +8,12 @@
 
 module ddmd.scanomf;
 
-import core.stdc.string, core.stdc.stdlib;
-import ddmd.globals, ddmd.root.outbuffer, ddmd.arraytypes, ddmd.errors;
+import core.stdc.string;
+import core.stdc.stdlib;
+import ddmd.globals;
+import ddmd.root.outbuffer;
+import ddmd.arraytypes;
+import ddmd.errors;
 
 enum LOG = false;
 

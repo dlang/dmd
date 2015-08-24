@@ -8,8 +8,29 @@
 
 module ddmd.inline;
 
-import core.stdc.stdio, core.stdc.string;
-import ddmd.aggregate, ddmd.apply, ddmd.arraytypes, ddmd.attrib, ddmd.declaration, ddmd.dmodule, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.expression, ddmd.func, ddmd.globals, ddmd.id, ddmd.identifier, ddmd.init, ddmd.mtype, ddmd.opover, ddmd.statement, ddmd.tokens, ddmd.visitor;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.apply;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.declaration;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.opover;
+import ddmd.statement;
+import ddmd.tokens;
+import ddmd.visitor;
 
 private enum LOG = false;
 enum CANINLINE_LOG = false;

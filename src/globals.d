@@ -8,8 +8,12 @@
 
 module ddmd.globals;
 
-import core.stdc.stdint, core.stdc.stdio, core.stdc.string;
-import ddmd.root.array, ddmd.root.filename, ddmd.root.outbuffer;
+import core.stdc.stdint;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.root.array;
+import ddmd.root.filename;
+import ddmd.root.outbuffer;
 
 template xversion(string s)
 {

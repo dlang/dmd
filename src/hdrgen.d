@@ -8,8 +8,46 @@
 
 module ddmd.hdrgen;
 
-import core.stdc.ctype, core.stdc.stdio, core.stdc.string;
-import ddmd.aggregate, ddmd.aliasthis, ddmd.arraytypes, ddmd.attrib, ddmd.complex, ddmd.cond, ddmd.ctfeexpr, ddmd.dclass, ddmd.declaration, ddmd.denum, ddmd.dimport, ddmd.dmodule, ddmd.doc, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.dversion, ddmd.expression, ddmd.func, ddmd.globals, ddmd.id, ddmd.identifier, ddmd.init, ddmd.mars, ddmd.mtype, ddmd.nspace, ddmd.parse, ddmd.root.longdouble, ddmd.root.outbuffer, ddmd.root.port, ddmd.root.rootobject, ddmd.statement, ddmd.staticassert, ddmd.target, ddmd.tokens, ddmd.visitor;
+import core.stdc.ctype;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.aliasthis;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.complex;
+import ddmd.cond;
+import ddmd.ctfeexpr;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.denum;
+import ddmd.dimport;
+import ddmd.dmodule;
+import ddmd.doc;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.dversion;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.mars;
+import ddmd.mtype;
+import ddmd.nspace;
+import ddmd.parse;
+import ddmd.root.longdouble;
+import ddmd.root.outbuffer;
+import ddmd.root.port;
+import ddmd.root.rootobject;
+import ddmd.statement;
+import ddmd.staticassert;
+import ddmd.target;
+import ddmd.tokens;
+import ddmd.visitor;
 
 struct HdrGenState
 {

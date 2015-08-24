@@ -9,7 +9,34 @@
 module ddmd.traits;
 
 import core.stdc.string;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.attrib, ddmd.canthrow, ddmd.dclass, ddmd.declaration, ddmd.denum, ddmd.dimport, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.mtype, ddmd.nogc, ddmd.root.aav, ddmd.root.array, ddmd.root.rootobject, ddmd.root.speller, ddmd.root.stringtable, ddmd.tokens, ddmd.visitor;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.canthrow;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.denum;
+import ddmd.dimport;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.nogc;
+import ddmd.root.aav;
+import ddmd.root.array;
+import ddmd.root.rootobject;
+import ddmd.root.speller;
+import ddmd.root.stringtable;
+import ddmd.tokens;
+import ddmd.visitor;
 
 enum LOGSEMANTIC = false;
 

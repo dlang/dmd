@@ -9,7 +9,15 @@
 
 module ddmd.gluestub;
 
-import ddmd.backend, ddmd.aggregate, ddmd.dmodule, ddmd.lib, ddmd.root.file, ddmd.statement, ddmd.dscope, ddmd.mtype, ddmd.dsymbol;
+import ddmd.backend;
+import ddmd.aggregate;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.lib;
+import ddmd.mtype;
+import ddmd.root.file;
+import ddmd.statement;
 
 // tocsym
 

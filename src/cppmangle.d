@@ -9,7 +9,22 @@
 module ddmd.cppmangle;
 
 import core.stdc.string;
-import ddmd.arraytypes, ddmd.declaration, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.expression, ddmd.func, ddmd.globals, ddmd.id, ddmd.identifier, ddmd.mtype, ddmd.root.outbuffer, ddmd.root.rootobject, ddmd.target, ddmd.tokens, ddmd.visitor;
+import ddmd.arraytypes;
+import ddmd.declaration;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.root.outbuffer;
+import ddmd.root.rootobject;
+import ddmd.target;
+import ddmd.tokens;
+import ddmd.visitor;
 
 /* Do mangling for C++ linkage.
  * No attempt is made to support mangling of templates, operator

@@ -8,7 +8,21 @@
 
 module ddmd.canthrow;
 
-import ddmd.apply, ddmd.arraytypes, ddmd.attrib, ddmd.declaration, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.expression, ddmd.func, ddmd.globals, ddmd.init, ddmd.mtype, ddmd.root.rootobject, ddmd.tokens, ddmd.visitor;
+import ddmd.apply;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.declaration;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.root.rootobject;
+import ddmd.tokens;
+import ddmd.visitor;
 
 /********************************************
  * Returns true if the expression may throw exceptions.

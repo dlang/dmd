@@ -8,7 +8,27 @@
 
 module ddmd.init;
 
-import ddmd.aggregate, ddmd.arraytypes, ddmd.dcast, ddmd.declaration, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.mtype, ddmd.root.outbuffer, ddmd.root.rootobject, ddmd.statement, ddmd.tokens, ddmd.visitor;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.dcast;
+import ddmd.declaration;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.root.outbuffer;
+import ddmd.root.rootobject;
+import ddmd.statement;
+import ddmd.tokens;
+import ddmd.visitor;
 
 enum NeedInterpret : int
 {

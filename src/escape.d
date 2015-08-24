@@ -8,7 +8,18 @@
 
 module ddmd.escape;
 
-import ddmd.declaration, ddmd.dscope, ddmd.dsymbol, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.init, ddmd.mtype, ddmd.root.rootobject, ddmd.tokens, ddmd.visitor;
+import ddmd.declaration;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.root.rootobject;
+import ddmd.tokens;
+import ddmd.visitor;
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the

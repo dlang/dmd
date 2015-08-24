@@ -8,8 +8,38 @@
 
 module ddmd.dtemplate;
 
-import core.stdc.stdio, core.stdc.stdlib, core.stdc.string;
-import ddmd.aggregate, ddmd.aliasthis, ddmd.arraytypes, ddmd.attrib, ddmd.backend, ddmd.dcast, ddmd.dclass, ddmd.declaration, ddmd.dmangle, ddmd.dmodule, ddmd.doc, ddmd.dscope, ddmd.dsymbol, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.init, ddmd.mtype, ddmd.opover, ddmd.root.aav, ddmd.root.array, ddmd.root.outbuffer, ddmd.root.rootobject, ddmd.tokens, ddmd.visitor;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.aliasthis;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.backend;
+import ddmd.dcast;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dmangle;
+import ddmd.dmodule;
+import ddmd.doc;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.opover;
+import ddmd.root.aav;
+import ddmd.root.array;
+import ddmd.root.outbuffer;
+import ddmd.root.rootobject;
+import ddmd.tokens;
+import ddmd.visitor;
 
 private enum LOG = false;
 

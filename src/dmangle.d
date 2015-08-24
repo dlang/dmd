@@ -8,8 +8,29 @@
 
 module ddmd.dmangle;
 
-import core.stdc.ctype, core.stdc.stdio, core.stdc.string;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.cppmangle, ddmd.dclass, ddmd.declaration, ddmd.dmodule, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.id, ddmd.mtype, ddmd.root.longdouble, ddmd.root.outbuffer, ddmd.root.port, ddmd.utf, ddmd.visitor;
+import core.stdc.ctype;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.cppmangle;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dmodule;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.mtype;
+import ddmd.root.longdouble;
+import ddmd.root.outbuffer;
+import ddmd.root.port;
+import ddmd.utf;
+import ddmd.visitor;
 
 extern (C++) __gshared const(char)*[TMAX] mangleChar;
 

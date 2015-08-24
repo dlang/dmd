@@ -8,7 +8,19 @@
 
 module ddmd.access;
 
-import ddmd.aggregate, ddmd.dclass, ddmd.declaration, ddmd.dmodule, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.mtype, ddmd.tokens;
+import ddmd.aggregate;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.mtype;
+import ddmd.tokens;
 
 private enum LOG = false;
 

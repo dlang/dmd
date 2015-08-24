@@ -8,7 +8,21 @@
 
 module ddmd.objc;
 
-import ddmd.arraytypes, ddmd.cond, ddmd.dclass, ddmd.dmangle, ddmd.dmodule, ddmd.dscope, ddmd.dstruct, ddmd.expression, ddmd.func, ddmd.globals, ddmd.id, ddmd.identifier, ddmd.mtype, ddmd.root.outbuffer, ddmd.root.stringtable;
+import ddmd.arraytypes;
+import ddmd.cond;
+import ddmd.dclass;
+import ddmd.dmangle;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.root.outbuffer;
+import ddmd.root.stringtable;
 
 extern(C++) void objc_initSymbols();
 

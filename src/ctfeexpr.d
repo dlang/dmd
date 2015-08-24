@@ -8,8 +8,32 @@
 
 module ddmd.ctfeexpr;
 
-import core.stdc.stdio, core.stdc.string;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.complex, ddmd.constfold, ddmd.dclass, ddmd.declaration, ddmd.dinterpret, ddmd.dstruct, ddmd.dtemplate, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.mtype, ddmd.root.longdouble, ddmd.root.outbuffer, ddmd.root.port, ddmd.root.rmem, ddmd.target, ddmd.tokens, ddmd.utf, ddmd.visitor;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.complex;
+import ddmd.constfold;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dinterpret;
+import ddmd.dstruct;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.mtype;
+import ddmd.root.longdouble;
+import ddmd.root.outbuffer;
+import ddmd.root.port;
+import ddmd.root.rmem;
+import ddmd.target;
+import ddmd.tokens;
+import ddmd.utf;
+import ddmd.visitor;
 
 /**
  Global status of the CTFE engine. Mostly used for performance diagnostics

@@ -8,8 +8,45 @@
 
 module ddmd.func;
 
-import core.stdc.stdio, core.stdc.string;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.attrib, ddmd.backend, ddmd.builtin, ddmd.ctfeexpr, ddmd.dclass, ddmd.declaration, ddmd.dinterpret, ddmd.dmodule, ddmd.doc, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.escape, ddmd.expression, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.init, ddmd.inline, ddmd.mars, ddmd.mtype, ddmd.nogc, ddmd.objc, ddmd.opover, ddmd.root.filename, ddmd.root.outbuffer, ddmd.root.rmem, ddmd.root.rootobject, ddmd.statement, ddmd.target, ddmd.tokens, ddmd.visitor;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.backend;
+import ddmd.builtin;
+import ddmd.ctfeexpr;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dinterpret;
+import ddmd.dmodule;
+import ddmd.doc;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.escape;
+import ddmd.expression;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.inline;
+import ddmd.mars;
+import ddmd.mtype;
+import ddmd.nogc;
+import ddmd.objc;
+import ddmd.opover;
+import ddmd.root.filename;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
+import ddmd.root.rootobject;
+import ddmd.statement;
+import ddmd.target;
+import ddmd.tokens;
+import ddmd.visitor;
 
 extern extern (C++) RET retStyle(TypeFunction tf);
 

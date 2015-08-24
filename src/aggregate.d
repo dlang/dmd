@@ -8,7 +8,29 @@
 
 module ddmd.aggregate;
 
-import ddmd.access, ddmd.arraytypes, ddmd.backend, ddmd.clone, ddmd.dclass, ddmd.declaration, ddmd.doc, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.mtype, ddmd.opover, ddmd.root.outbuffer, ddmd.statement, ddmd.tokens, ddmd.visitor;
+import ddmd.access;
+import ddmd.arraytypes;
+import ddmd.backend;
+import ddmd.clone;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.doc;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.opover;
+import ddmd.root.outbuffer;
+import ddmd.statement;
+import ddmd.tokens;
+import ddmd.visitor;
 
 enum Sizeok : int
 {

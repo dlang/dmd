@@ -8,7 +8,24 @@
 
 module ddmd.clone;
 
-import ddmd.aggregate, ddmd.arraytypes, ddmd.declaration, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.id, ddmd.identifier, ddmd.init, ddmd.mtype, ddmd.opover, ddmd.statement, ddmd.tokens;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.declaration;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.opover;
+import ddmd.statement;
+import ddmd.tokens;
 
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, @nogc, and @disable

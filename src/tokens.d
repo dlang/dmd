@@ -8,8 +8,16 @@
 
 module ddmd.tokens;
 
-import core.stdc.ctype, core.stdc.stdio, core.stdc.string;
-import ddmd.globals, ddmd.id, ddmd.identifier, ddmd.root.longdouble, ddmd.root.outbuffer, ddmd.root.rmem, ddmd.utf;
+import core.stdc.ctype;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.root.longdouble;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
+import ddmd.utf;
 
 enum TOK : int
 {
