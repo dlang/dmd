@@ -147,12 +147,12 @@ DMD_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d		\
 	impcnvtab.d init.d inline.d intrange.d json.d lexer.d lib.d link.d	\
 	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
 	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
-	traits.d utf.d visitor.d libomf.d scanomf.d
+	traits.d utf.d visitor.d libomf.d scanomf.d typinf.d
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	toobj.obj toctype.obj tocvdebug.obj toir.obj \
-	libmscoff.obj scanmscoff.obj irstate.obj typinf.obj \
+	libmscoff.obj scanmscoff.obj irstate.obj \
 	iasm.obj objc_glue_stubs.obj
 
 # D back end
@@ -186,7 +186,7 @@ SRCS = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
-	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
+	libmscoff.c scanmscoff.c irstate.h irstate.c iasm.c \
 	toelfdebug.c libelf.c scanelf.c libmach.c scanmach.c \
 	tk.c eh.c objc_glue_stubs.c objc_glue.c
 
@@ -548,9 +548,6 @@ toobj.obj : $(CH) $(TOTALH) mars.h module.h toobj.c
 
 type.obj : $C\type.c
 	$(CC) -c $(MFLAGS) $C\type
-
-typinf.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h typinf.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) typinf
 
 todt.obj : mtype.h expression.h $C\dt.h todt.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) todt
