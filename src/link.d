@@ -90,7 +90,7 @@ static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
             const(size_t) n = fread(&buffer[beg], 1, len - beg, stream);
             if (beg + n < len && ferror(stream))
                 return -1;
-            buffer[(end = beg + n) + 1] = '\0';
+            buffer[(end = beg + n)] = '\0';
             // search error message, stop at last complete line
             const(char)* lastSep = strrchr(buffer.ptr, '\n');
             if (lastSep)
