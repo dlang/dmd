@@ -6,12 +6,6 @@ version (linux):
 extern(C):
 nothrow:
 
-// From Linux's unistd.h, stdio.h, and linux/fs.h
-enum {
-    SEEK_DATA = 3,
-    SEEK_HOLE = 4
-}
-
 // From linux/falloc.h
 enum {
     FALLOC_FL_KEEP_SIZE = 0x01,

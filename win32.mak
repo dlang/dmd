@@ -397,6 +397,9 @@ $(IMPDIR)\core\sys\linux\time.d : src\core\sys\linux\time.d
 $(IMPDIR)\core\sys\linux\tipc.d : src\core\sys\linux\tipc.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\unistd.d : src\core\sys\linux\unistd.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\sys\inotify.d : src\core\sys\linux\sys\inotify.d
 	copy $** $@
 
