@@ -1392,17 +1392,26 @@ Lnomatch:
                     init = ei;
                 }
 
+                Expression *exp = ei->exp;
                 Expression *e1 = new VarExp(loc, this);
                 if (isBlit)
-                    ei->exp = new BlitExp(loc, e1, ei->exp);
+                    exp = new BlitExp(loc, e1, exp);
                 else
-                    ei->exp = new ConstructExp(loc, e1, ei->exp);
+                    exp = new ConstructExp(loc, e1, exp);
                 canassign++;
-                ei->exp = ei->exp->semantic(sc);
+                exp = exp->semantic(sc);
                 canassign--;
-                ei->exp->optimize(WANTvalue);
+                exp = exp->optimize(WANTvalue);
 
-                if (isScope())
+                if (exp->op == TOKerror)
+                {
+                    init = new ErrorInitializer();
+                    ei = NULL;
+                }
+                else
+                    ei->exp = exp;
+
+                if (ei && isScope())
                 {
                     Expression *ex = ei->exp;
                     while (ex->op == TOKcomma)
