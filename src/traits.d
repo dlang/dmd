@@ -1148,7 +1148,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 {
                     if (auto atd = s.isAttribDeclaration())
                     {
-                        collectUnitTests(atd.include(null, null));
+                        collectUnitTests(atd.include(null));
                         continue;
                     }
                     if (auto ud = s.isUnitTestDeclaration())

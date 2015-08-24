@@ -542,7 +542,7 @@ public:
 
     override void visit(AttribDeclaration d)
     {
-        Dsymbols* ds = d.include(null, null);
+        auto ds = d.include(null);
         if (ds)
         {
             for (size_t i = 0; i < ds.dim; i++)

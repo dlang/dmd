@@ -4972,7 +4972,7 @@ elem *toElem(Expression *e, IRState *irs)
             //printf("Dsymbol_toElem() %s\n", s->toChars());
             if (AttribDeclaration *ad = s->isAttribDeclaration())
             {
-                Dsymbols *decl = ad->include(NULL, NULL);
+                Dsymbols *decl = ad->include(NULL);
                 if (decl && decl->dim)
                 {
                     for (size_t i = 0; i < decl->dim; i++)

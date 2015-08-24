@@ -1685,7 +1685,7 @@ public:
         {
             Dsymbol s = (*members)[i];
             if (AttribDeclaration a = s.isAttribDeclaration())
-                result = _foreach(sc, a.include(sc, null), dg, &n);
+                result = _foreach(sc, a.include(sc), dg, &n);
             else if (TemplateMixin tm = s.isTemplateMixin())
                 result = _foreach(sc, tm.members, dg, &n);
             else if (s.isTemplateInstance())

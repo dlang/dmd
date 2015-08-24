@@ -32,7 +32,7 @@ public:
     int inc;
 
     virtual Condition *syntaxCopy() = 0;
-    virtual int include(Scope *sc, ScopeDsymbol *sds) = 0;
+    virtual int include(Scope *sc) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
@@ -54,7 +54,7 @@ public:
     static void setGlobalLevel(unsigned level);
     static void addGlobalIdent(const char *ident);
 
-    int include(Scope *sc, ScopeDsymbol *sds);
+    int include(Scope *sc);
     DebugCondition *isDebugCondition() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -66,7 +66,7 @@ public:
     static void addGlobalIdent(const char *ident);
     static void addPredefinedGlobalIdent(const char *ident);
 
-    int include(Scope *sc, ScopeDsymbol *sds);
+    int include(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -77,7 +77,7 @@ public:
     int nest;         // limit circular dependencies
 
     Condition *syntaxCopy();
-    int include(Scope *sc, ScopeDsymbol *sds);
+    int include(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 

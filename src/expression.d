@@ -7730,9 +7730,7 @@ extern (C++) final class IsExp : Expression
                     if (m <= MATCHnomatch)
                         goto Lno;
                     s.semantic(sc);
-                    if (sc.sds)
-                        s.addMember(sc, sc.sds);
-                    else if (!sc.insert(s))
+                    if (!sc.insert(s))
                         error("declaration %s is already defined", s.toChars());
 
                     unSpeculative(sc, s);
@@ -7765,8 +7763,6 @@ extern (C++) final class IsExp : Expression
              */
             if (!tup && !sc.insert(s))
                 error("declaration %s is already defined", s.toChars());
-            if (sc.sds)
-                s.addMember(sc, sc.sds);
 
             unSpeculative(sc, s);
         }

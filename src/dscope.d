@@ -111,8 +111,6 @@ struct Scope
 
     Module _module;                 // Root module
     ScopeDsymbol scopesym;          // current symbol
-    ScopeDsymbol sds;               // if in static if, and declaring new symbols,
-                                    // sds gets the addMember()
     FuncDeclaration func;           // function we are in
     Dsymbol parent;                 // parent to use
     LabelStatement slabel;          // enclosing labelled statement
@@ -225,7 +223,6 @@ struct Scope
         //printf("Scope::push(this = %p) new = %p\n", this, s);
         assert(!(flags & SCOPEfree));
         s.scopesym = null;
-        s.sds = null;
         s.enclosing = &this;
         debug
         {
@@ -716,7 +713,6 @@ struct Scope
     {
         this._module = sc._module;
         this.scopesym = sc.scopesym;
-        this.sds = sc.sds;
         this.enclosing = sc.enclosing;
         this.parent = sc.parent;
         this.sw = sc.sw;

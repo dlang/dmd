@@ -1077,12 +1077,12 @@ extern (C++) Statement toStatement(Dsymbol s)
 
         override void visit(ConditionalDeclaration d)
         {
-            result = visitMembers(d.loc, d.include(null, null));
+            result = visitMembers(d.loc, d.include(null));
         }
 
         override void visit(CompileDeclaration d)
         {
-            result = visitMembers(d.loc, d.include(null, null));
+            result = visitMembers(d.loc, d.include(null));
         }
     }
 
@@ -1823,7 +1823,7 @@ extern (C++) final class ConditionalStatement : Statement
         Statement s;
 
         //printf("ConditionalStatement::flatten()\n");
-        if (condition.include(sc, null))
+        if (condition.include(sc))
         {
             DebugCondition dc = condition.isDebugCondition();
             if (dc)

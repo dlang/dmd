@@ -32,7 +32,7 @@ class AttribDeclaration : public Dsymbol
 public:
     Dsymbols *decl;     // array of Dsymbol's
 
-    virtual Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
+    virtual Dsymbols *include(Scope *sc);
     int apply(Dsymbol_apply_ft_t fp, void *param);
     static Scope *createNewScope(Scope *sc,
         StorageClass newstc, LINK linkage, Prot protection, int explictProtection,
@@ -169,7 +169,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
+    Dsymbols *include(Scope *sc);
     void addComment(const utf8_t *comment);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -181,7 +181,7 @@ public:
     bool addisdone;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
+    Dsymbols *include(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void importAll(Scope *sc);
     void semantic(Scope *sc);

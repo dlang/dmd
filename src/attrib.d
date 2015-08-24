@@ -48,14 +48,14 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         this.decl = decl;
     }
 
-    Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    Dsymbols* include(Scope* sc)
     {
         return decl;
     }
 
     override final int apply(Dsymbol_apply_ft_t fp, void* param)
     {
-        Dsymbols* d = include(_scope, null);
+        auto d = include(_scope);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -114,7 +114,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        Dsymbols* d = include(sc, sds);
+        auto d = include(sc);
         if (d)
         {
             Scope* sc2 = newScope(sc);
@@ -131,7 +131,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void importAll(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        auto d = include(sc);
         //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
         if (d)
         {
@@ -148,7 +148,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void semantic(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        auto d = include(sc);
         //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
         if (d)
         {
@@ -165,7 +165,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void semantic2(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        auto d = include(sc);
         if (d)
         {
             Scope* sc2 = newScope(sc);
@@ -181,7 +181,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void semantic3(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        auto d = include(sc);
         if (d)
         {
             Scope* sc2 = newScope(sc);
@@ -200,7 +200,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         //printf("AttribDeclaration::addComment %s\n", comment);
         if (comment)
         {
-            Dsymbols* d = include(null, null);
+            auto d = include(null);
             if (d)
             {
                 for (size_t i = 0; i < d.dim; i++)
@@ -220,13 +220,13 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override bool oneMember(Dsymbol* ps, Identifier ident)
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null);
         return Dsymbol.oneMembers(d, ps, ident);
     }
 
     override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -239,7 +239,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override final bool hasPointers()
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -254,7 +254,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override final bool hasStaticCtorOrDtor()
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -269,7 +269,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override final void checkCtorConstInit()
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -284,7 +284,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      */
     override final void addLocalClass(ClassDeclarations* aclasses)
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -1169,7 +1169,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
         //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition->inc);
         if (condition.inc)
         {
-            Dsymbols* d = condition.include(null, null) ? decl : elsedecl;
+            auto d = condition.include(null) ? decl : elsedecl;
             return Dsymbol.oneMembers(d, ps, ident);
         }
         else
@@ -1181,11 +1181,11 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     }
 
     // Decide if 'then' or 'else' code should be included
-    override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    override Dsymbols* include(Scope* sc)
     {
         //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
         assert(condition);
-        return condition.include(_scope ? _scope : sc, sds) ? decl : elsedecl;
+        return condition.include(_scope ? _scope : sc) ? decl : elsedecl;
     }
 
     override final void addComment(const(char)* comment)
@@ -1243,14 +1243,14 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
      * Different from other AttribDeclaration subclasses, include() call requires
      * the completion of addMember phases.
      */
-    override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    override Dsymbols* include(Scope* sc)
     {
         //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
         if (condition.inc == 0)
         {
             assert(scopesym); // addMember is already done
             assert(_scope); // setScope is already done
-            Dsymbols* d = ConditionalDeclaration.include(_scope, scopesym);
+            auto d = ConditionalDeclaration.include(_scope);
             if (d && !addisdone)
             {
                 // Add members lazily.
@@ -1265,7 +1265,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         }
         else
         {
-            return ConditionalDeclaration.include(sc, scopesym);
+            return ConditionalDeclaration.include(sc);
         }
     }
 
@@ -1515,7 +1515,7 @@ extern (C++) static uint setMangleOverride(Dsymbol s, char* sym)
     AttribDeclaration ad = s.isAttribDeclaration();
     if (ad)
     {
-        Dsymbols* decls = ad.include(null, null);
+        auto decls = ad.include(null);
         uint nestedCount = 0;
         if (decls && decls.dim)
             for (size_t i = 0; i < decls.dim; ++i)

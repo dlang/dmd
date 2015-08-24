@@ -1752,7 +1752,7 @@ public:
 
     override void visit(AttribDeclaration d)
     {
-        Dsymbols* decls = d.include(null, null);
+        auto decls = d.include(null);
         if (decls)
         {
             foreach (i; 0 .. decls.dim)
