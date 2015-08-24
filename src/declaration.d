@@ -380,7 +380,7 @@ public:
 }
 
 /**************************************************************/
-extern (C++) final class TupleDeclaration : Declaration
+final class TupleDeclaration : Declaration
 {
 public:
     Objects* objects;
@@ -512,7 +512,7 @@ public:
 }
 
 /**************************************************************/
-extern (C++) final class AliasDeclaration : Declaration
+final class AliasDeclaration : Declaration
 {
 public:
     Dsymbol aliassym;
@@ -856,7 +856,7 @@ public:
 }
 
 /**************************************************************/
-extern (C++) final class OverDeclaration : Declaration
+final class OverDeclaration : Declaration
 {
 public:
     Dsymbol overnext; // next in overload list
@@ -986,7 +986,7 @@ public:
 }
 
 /**************************************************************/
-extern (C++) class VarDeclaration : Declaration
+class VarDeclaration : Declaration
 {
 public:
     Initializer _init;
@@ -2263,7 +2263,7 @@ public:
 
 /**************************************************************/
 // This is a shell around a back end symbol
-extern (C++) final class SymbolDeclaration : Declaration
+final class SymbolDeclaration : Declaration
 {
 public:
     StructDeclaration dsym;
@@ -2289,7 +2289,7 @@ public:
     }
 }
 
-extern (C++) class TypeInfoDeclaration : VarDeclaration
+class TypeInfoDeclaration : VarDeclaration
 {
 public:
     Type tinfo;
@@ -2341,7 +2341,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoStructDeclaration : TypeInfoDeclaration
+final class TypeInfoStructDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoStructDeclaration **********************/
@@ -2366,7 +2366,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoClassDeclaration : TypeInfoDeclaration
+final class TypeInfoClassDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoClassDeclaration ***********************/
@@ -2391,7 +2391,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoInterfaceDeclaration : TypeInfoDeclaration
+final class TypeInfoInterfaceDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoInterfaceDeclaration *******************/
@@ -2416,7 +2416,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoPointerDeclaration : TypeInfoDeclaration
+final class TypeInfoPointerDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoPointerDeclaration *********************/
@@ -2441,7 +2441,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoArrayDeclaration : TypeInfoDeclaration
+final class TypeInfoArrayDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoArrayDeclaration ***********************/
@@ -2466,7 +2466,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
+final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoStaticArrayDeclaration *****************/
@@ -2491,7 +2491,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
+final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoAssociativeArrayDeclaration ************/
@@ -2516,7 +2516,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoEnumDeclaration : TypeInfoDeclaration
+final class TypeInfoEnumDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoEnumDeclaration ***********************/
@@ -2541,7 +2541,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoFunctionDeclaration : TypeInfoDeclaration
+final class TypeInfoFunctionDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoFunctionDeclaration ********************/
@@ -2566,7 +2566,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoDelegateDeclaration : TypeInfoDeclaration
+final class TypeInfoDelegateDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoDelegateDeclaration ********************/
@@ -2591,7 +2591,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoTupleDeclaration : TypeInfoDeclaration
+final class TypeInfoTupleDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoTupleDeclaration **********************/
@@ -2616,7 +2616,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoConstDeclaration : TypeInfoDeclaration
+final class TypeInfoConstDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoConstDeclaration **********************/
@@ -2641,7 +2641,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoInvariantDeclaration : TypeInfoDeclaration
+final class TypeInfoInvariantDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoInvariantDeclaration **********************/
@@ -2666,7 +2666,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoSharedDeclaration : TypeInfoDeclaration
+final class TypeInfoSharedDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoSharedDeclaration **********************/
@@ -2691,7 +2691,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoWildDeclaration : TypeInfoDeclaration
+final class TypeInfoWildDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoWildDeclaration **********************/
@@ -2716,7 +2716,7 @@ public:
     }
 }
 
-extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
+final class TypeInfoVectorDeclaration : TypeInfoDeclaration
 {
 public:
     /***************************** TypeInfoVectorDeclaration ***********************/
@@ -2742,7 +2742,7 @@ public:
 }
 
 /**************************************************************/
-extern (C++) final class ThisDeclaration : VarDeclaration
+final class ThisDeclaration : VarDeclaration
 {
 public:
     /********************************* ThisDeclaration ****************************/
