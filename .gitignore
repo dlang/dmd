@@ -9,6 +9,7 @@ src/elxxx.c
 src/fltables.c
 src/id.c
 src/id.h
+src/id.d
 src/idgen
 src/optab.c
 src/optabgen
