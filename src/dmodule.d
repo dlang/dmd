@@ -935,11 +935,13 @@ extern (C++) final class Module : Package
         //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         if (_scope)
             return; // already done
+
         if (isDocFile)
         {
             error("is a Ddoc file, cannot import it");
             return;
         }
+
         if (md && md.msg)
         {
             if (StringExp se = md.msg.toStringExp())
@@ -947,12 +949,14 @@ extern (C++) final class Module : Package
             else
                 md.msg.error("string expected, not '%s'", md.msg.toChars());
         }
+
         /* Note that modules get their own scope, from scratch.
          * This is so regardless of where in the syntax a module
          * gets imported, it is unaffected by context.
          * Ignore prevsc.
          */
         Scope* sc = Scope.createGlobal(this); // create root scope
+
         // Add import of "object", even for the "object" module.
         // If it isn't there, some compiler rewrites, like
         //    classinst == classinst -> .object.opEquals(classinst, classinst)
@@ -962,9 +966,17 @@ extern (C++) final class Module : Package
             auto im = new Import(Loc(), null, Id.object, null, 0);
             members.shift(im);
         }
+
         if (!symtab)
         {
             // Add all symbols into module's symbol table
+
+            /* Set scope for the symbols so that if we forward reference
+             * a symbol, it can possibly be resolved on the spot.
+             * If this works out well, it can be extended to all modules
+             * before any semantic() on any of them.
+             */
+
             symtab = new DsymbolTable();
             for (size_t i = 0; i < members.dim; i++)
             {
@@ -973,22 +985,15 @@ extern (C++) final class Module : Package
             }
         }
         // anything else should be run after addMember, so version/debug symbols are defined
-        /* Set scope for the symbols so that if we forward reference
-         * a symbol, it can possibly be resolved on the spot.
-         * If this works out well, it can be extended to all modules
-         * before any semantic() on any of them.
-         */
+
         setScope(sc); // remember module scope for semantic
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.setScope(sc);
-        }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.importAll(sc);
         }
+
         sc = sc.pop();
         sc.pop(); // 2 pops because Scope::createGlobal() created 2
     }

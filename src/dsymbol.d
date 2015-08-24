@@ -457,10 +457,12 @@ extern (C++) class Dsymbol : RootObject
         return parent.isInstantiated();
     }
 
-    // Check if this function is a member of a template which has only been
-    // instantiated speculatively, eg from inside is(typeof()).
-    // Return the speculative template instance it is part of,
-    // or NULL if not speculative.
+    /**********************************
+     * Check if this function is a member of a template which has only been
+     * instantiated speculatively, eg from inside is(typeof()).
+     * Return the speculative template instance it is part of,
+     * or NULL if not speculative.
+     */
     final inout(TemplateInstance) isSpeculative() inout
     {
         if (!parent)
@@ -605,6 +607,11 @@ extern (C++) class Dsymbol : RootObject
         return (*fp)(this, param);
     }
 
+    /*************************************
+     * 1. Add this symbol into the member of sds
+     * 2. store sc into Dsymbol::scope for future semantic analysis so we can
+     *    deal better with forward references.
+     */
     void addMember(Scope* sc, ScopeDsymbol sds)
     {
         //printf("Dsymbol::addMember('%s')\n", toChars());
@@ -631,13 +638,16 @@ extern (C++) class Dsymbol : RootObject
                 }
             }
         }
+        if (sc)
+            setScope(sc);
+        else
+            assert(isPackage());
     }
 
     /*************************************
-     * Set scope for future semantic analysis so we can
-     * deal better with forward references.
+     * Set scope for future semantic analysis.
      */
-    void setScope(Scope* sc)
+    final void setScope(Scope* sc)
     {
         //printf("Dsymbol::setScope() %p %s, %p stc = %llx\n", this, toChars(), sc, sc->stc);
         if (!sc.nofree)

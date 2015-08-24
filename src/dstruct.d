@@ -322,28 +322,22 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             semanticRun = PASSsemanticdone;
             return;
         }
-        if (!symtab)
+
+        auto sc2 = newScope(sc);
+
+        if (!symtab) // if not already done the addMember step
         {
             symtab = new DsymbolTable();
 
+            /* Set scope so if there are forward references, we still might be able to
+             * resolve individual members like enums.
+             */
             for (size_t i = 0; i < members.dim; i++)
             {
                 auto s = (*members)[i];
                 //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
-                s.addMember(sc, this);
+                s.addMember(sc2, this);
             }
-        }
-
-        auto sc2 = newScope(sc);
-
-        /* Set scope so if there are forward references, we still might be able to
-         * resolve individual members like enums.
-         */
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            auto s = (*members)[i];
-            //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
-            s.setScope(sc2);
         }
 
         for (size_t i = 0; i < members.dim; i++)

@@ -105,7 +105,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     /****************************************
      * A hook point to supply scope for members.
-     * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
+     * addMember, importAll, semantic, semantic2 and semantic3 will use this.
      */
     Scope* newScope(Scope* sc)
     {
@@ -123,23 +123,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
                 Dsymbol s = (*d)[i];
                 //printf("\taddMember %s to %s\n", s->toChars(), sds->toChars());
                 s.addMember(sc2, sds);
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
-    }
-
-    override void setScope(Scope* sc)
-    {
-        Dsymbols* d = include(sc, null);
-        //printf("\tAttribDeclaration::setScope '%s', d = %p\n",toChars(), d);
-        if (d)
-        {
-            Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.setScope(sc2);
             }
             if (sc2 != sc)
                 sc2.pop();
@@ -434,12 +417,12 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
         return scx;
     }
 
-    override void setScope(Scope* sc)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        //printf("DeprecatedDeclaration::setScope() %p\n", this);
+        //printf("DeprecatedDeclaration::addMember() %p\n", this);
         if (decl)
-            Dsymbol.setScope(sc); // for forward reference
-        return AttribDeclaration.setScope(sc);
+            setScope(sc); // for forward reference
+        super.addMember(sc, sds);
     }
 
     /**
@@ -603,8 +586,6 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
 
     override Scope* newScope(Scope* sc)
     {
-        if (pkg_identifiers)
-            semantic(sc);
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.protection, 1, sc.aligndecl, sc.inlining);
     }
 
@@ -624,7 +605,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
             if (!pkg || !protection.pkg.isAncestorPackageOf(pkg))
                 error("does not bind to one of ancestor packages of module '%s'", m.toPrettyChars(true));
         }
-        return AttribDeclaration.addMember(sc, sds);
+        super.addMember(sc, sds);
     }
 
     override const(char)* kind() const
@@ -674,12 +655,12 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, this, sc.inlining);
     }
 
-    override void setScope(Scope* sc)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         //printf("AlignDeclaration::setScope() %p\n", this);
         if (ealign && decl)
-            Dsymbol.setScope(sc); // for forward reference
-        return AttribDeclaration.setScope(sc);
+            setScope(sc); // for forward reference
+        super.addMember(sc, sds);
     }
 
     override void semantic2(Scope* sc)
@@ -749,11 +730,11 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         return new AnonDeclaration(loc, isunion, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override void setScope(Scope* sc)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         if (decl)
-            Dsymbol.setScope(sc);
-        return AttribDeclaration.setScope(sc);
+            setScope(sc);
+        super.addMember(sc, sds);
     }
 
     override void semantic(Scope* sc)
@@ -1233,20 +1214,6 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
         }
     }
 
-    override void setScope(Scope* sc)
-    {
-        Dsymbols* d = include(sc, null);
-        //printf("\tConditionalDeclaration::setScope '%s', d = %p\n",toChars(), d);
-        if (d)
-        {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.setScope(sc);
-            }
-        }
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1274,7 +1241,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 
     /****************************************
      * Different from other AttribDeclaration subclasses, include() call requires
-     * the completion of addMember and setScope phases.
+     * the completion of addMember phases.
      */
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
@@ -1291,12 +1258,6 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
                 {
                     Dsymbol s = (*d)[i];
                     s.addMember(_scope, scopesym);
-                }
-                // Set the member scopes lazily.
-                for (size_t i = 0; i < d.dim; i++)
-                {
-                    Dsymbol s = (*d)[i];
-                    s.setScope(_scope);
                 }
                 addisdone = true;
             }
@@ -1322,14 +1283,10 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
          *         const int k;
          * }
          */
-        this.scopesym = sds;
-    }
+        scopesym = sds;
 
-    override void setScope(Scope* sc)
-    {
-        // do not evaluate condition before semantic pass
-        // But do set the scope, in case we need it for forward referencing
-        Dsymbol.setScope(sc);
+        // Set the scope, in case we need it for forward referencing
+        setScope(sc);
     }
 
     override void importAll(Scope* sc)
@@ -1381,11 +1338,8 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
     {
         //printf("CompileDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
         this.scopesym = sds;
-    }
 
-    override void setScope(Scope* sc)
-    {
-        Dsymbol.setScope(sc);
+        setScope(sc);
     }
 
     void compileIt(Scope* sc)
@@ -1416,17 +1370,8 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         if (!compiled)
         {
             compileIt(sc);
-            AttribDeclaration.addMember(sc, scopesym);
+            AttribDeclaration.addMember(_scope, scopesym);
             compiled = true;
-
-            if (_scope && decl)
-            {
-                for (size_t i = 0; i < decl.dim; i++)
-                {
-                    Dsymbol s = (*decl)[i];
-                    s.setScope(_scope);
-                }
-            }
         }
         AttribDeclaration.semantic(sc);
     }
@@ -1476,20 +1421,20 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return sc2;
     }
 
-    override void setScope(Scope* sc)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        //printf("UserAttributeDeclaration::setScope() %p\n", this);
+        //printf("UserAttributeDeclaration::addMember() %p\n", this);
         if (decl)
-            Dsymbol.setScope(sc); // for forward reference of UDAs
-        return AttribDeclaration.setScope(sc);
+            setScope(sc); // for forward reference of UDAs
+        super.addMember(sc, sds);
     }
 
     override void semantic(Scope* sc)
     {
         //printf("UserAttributeDeclaration::semantic() %p\n", this);
         if (decl && !_scope)
-            Dsymbol.setScope(sc); // for function local symbols
-        return AttribDeclaration.semantic(sc);
+            setScope(sc); // for function local symbols
+        super.semantic(sc);
     }
 
     override void semantic2(Scope* sc)

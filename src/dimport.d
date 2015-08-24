@@ -200,6 +200,49 @@ extern (C++) final class Import : Dsymbol
         //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
     }
 
+    /*****************************
+     * Add import to sds's symbol table.
+     */
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        //printf("Import.addMember(this=%s, sds=%s, sc=%p)\n", toChars(), sds.toChars(), sc);
+        if (names.dim == 0)
+            return Dsymbol.addMember(sc, sds);
+        if (aliasId)
+            Dsymbol.addMember(sc, sds);
+        else
+            Dsymbol.setScope(sc);
+
+        auto scx = sc;
+        if (names.dim)
+        {
+            if (!mod)
+                importAll(sc);
+
+            scx = sc.push(mod);
+            scx.protection = protection;
+        }
+
+        /* Instead of adding the import to sds's symbol table,
+         * add each of the alias=name pairs
+         */
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            auto name = names[i];
+            auto aliasName = aliases[i];
+            if (!aliasName)
+                aliasName = name;
+            auto tname = new TypeIdentifier(loc, name);
+            auto ad = new AliasDeclaration(loc, aliasName, tname);
+            ad._import = this;
+            ad.addMember(scx, sds);
+            aliasdecls.push(ad);
+        }
+
+        if (scx != sc)
+            scx.pop();
+    }
+
     override void importAll(Scope* sc)
     {
         if (!mod)
@@ -410,49 +453,6 @@ extern (C++) final class Import : Dsymbol
         if (aliasId)
             return mod;
         return this;
-    }
-
-    /*****************************
-     * Add import to sd's symbol table.
-     */
-    override void addMember(Scope* sc, ScopeDsymbol sd)
-    {
-        //printf("Import.addMember(this=%s, sd=%s, sc=%p)\n", toChars(), sd.toChars(), sc);
-        if (names.dim == 0)
-            return Dsymbol.addMember(sc, sd);
-        if (aliasId)
-            Dsymbol.addMember(sc, sd);
-        /* Instead of adding the import to sd's symbol table,
-         * add each of the alias=name pairs
-         */
-        for (size_t i = 0; i < names.dim; i++)
-        {
-            Identifier name = names[i];
-            Identifier _alias = aliases[i];
-            if (!_alias)
-                _alias = name;
-            auto tname = new TypeIdentifier(loc, name);
-            auto ad = new AliasDeclaration(loc, _alias, tname);
-            ad._import = this;
-            ad.addMember(sc, sd);
-            aliasdecls.push(ad);
-        }
-    }
-
-    override void setScope(Scope* sc)
-    {
-        Dsymbol.setScope(sc);
-        if (aliasdecls.dim)
-        {
-            if (!mod)
-                importAll(sc);
-
-            sc = sc.push(mod);
-            sc.protection = protection;
-            foreach (ad; aliasdecls)
-                ad.setScope(sc);
-            sc = sc.pop();
-        }
     }
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)

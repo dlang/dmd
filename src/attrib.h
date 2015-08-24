@@ -39,7 +39,6 @@ public:
         structalign_t structalign, PINLINE inlining);
     virtual Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    void setScope(Scope *sc);
     void importAll(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
@@ -76,7 +75,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void setScope(Scope *sc);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic2(Scope *sc);
     const char *getMessage();
     void accept(Visitor *v) { v->visit(this); }
@@ -142,7 +141,7 @@ public:
     unsigned anonalignsize;     // size of anonymous struct for alignment purposes
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void setScope(Scope *sc);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind() const;
@@ -172,7 +171,6 @@ public:
     bool oneMember(Dsymbol **ps, Identifier *ident);
     Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     void addComment(const utf8_t *comment);
-    void setScope(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -185,7 +183,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    void setScope(Scope *sc);
     void importAll(Scope *sc);
     void semantic(Scope *sc);
     const char *kind() const;
@@ -204,7 +201,6 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    void setScope(Scope *sc);
     void compileIt(Scope *sc);
     void semantic(Scope *sc);
     const char *kind() const;
@@ -222,7 +218,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void setScope(Scope *sc);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     static Expressions *concat(Expressions *udas1, Expressions *udas2);

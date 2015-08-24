@@ -199,7 +199,7 @@ public:
     virtual Dsymbol *toAlias2();
     virtual int apply(Dsymbol_apply_ft_t fp, void *param);
     virtual void addMember(Scope *sc, ScopeDsymbol *sds);
-    virtual void setScope(Scope *sc);
+    void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
     virtual void semantic(Scope *sc);
     virtual void semantic2(Scope *sc);

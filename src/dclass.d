@@ -750,28 +750,22 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             symtab = new DsymbolTable();
 
+            auto sc2 = newScope(sc);
+
             /* Bugzilla 12152: The semantic analysis of base classes should be finished
              * before the members semantic analysis of this class, in order to determine
              * vtbl in this class. However if a base class refers the member of this class,
              * it can be resolved as a normal forward reference.
-             * Call addMember() and setScope() to make this class members visible from the base classes.
+             * Call addMember() to make this class members visible from the base classes.
              */
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                auto s = (*members)[i];
-                s.addMember(sc, this);
-            }
-
-            auto sc2 = newScope(sc);
-
             /* Set scope so if there are forward references, we still might be able to
              * resolve individual members like enums.
              */
             for (size_t i = 0; i < members.dim; i++)
             {
                 auto s = (*members)[i];
-                //printf("[%d] setScope %s %s, sc2 = %p\n", i, s.kind(), s.toChars(), sc2);
-                s.setScope(sc2);
+                //printf("[%d] addMember %s %s, sc2 = %p\n", i, s.kind(), s.toChars(), sc2);
+                s.addMember(sc2, this);
             }
 
             sc2.pop();
@@ -937,7 +931,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 ctor.fbody = new CompoundStatement(Loc(), new Statements());
 
                 members.push(ctor);
-                ctor.addMember(sc, this);
+                ctor.addMember(sc2, this);
                 ctor.semantic(sc2);
 
                 this.ctor = ctor;
@@ -1803,12 +1797,6 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             }
         }
 
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.addMember(sc, this);
-        }
-
         auto sc2 = newScope(sc);
 
         /* Set scope so if there are forward references, we still might be able to
@@ -1817,8 +1805,8 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            //printf("setScope %s %s\n", s.kind(), s.toChars());
-            s.setScope(sc2);
+            //printf("addMember %s %s\n", s.kind(), s.toChars());
+            s.addMember(sc2, this);
         }
 
         for (size_t i = 0; i < members.dim; i++)
