@@ -8,8 +8,32 @@
 
 module ddmd.dmodule;
 
-import core.stdc.stdio, core.stdc.stdlib, core.stdc.string;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.backend, ddmd.dimport, ddmd.dmacro, ddmd.doc, ddmd.dscope, ddmd.dsymbol, ddmd.errors, ddmd.expression, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.lexer, ddmd.parse, ddmd.root.file, ddmd.root.filename, ddmd.root.outbuffer, ddmd.root.port, ddmd.root.rmem, ddmd.target, ddmd.visitor;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.backend;
+import ddmd.dimport;
+import ddmd.dmacro;
+import ddmd.doc;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.lexer;
+import ddmd.parse;
+import ddmd.root.file;
+import ddmd.root.filename;
+import ddmd.root.outbuffer;
+import ddmd.root.port;
+import ddmd.root.rmem;
+import ddmd.target;
+import ddmd.visitor;
 
 /* ===========================  ===================== */
 /********************************************

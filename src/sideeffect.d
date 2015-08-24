@@ -8,7 +8,14 @@
 
 module ddmd.sideeffect;
 
-import ddmd.apply, ddmd.declaration, ddmd.expression, ddmd.func, ddmd.globals, ddmd.mtype, ddmd.tokens, ddmd.visitor;
+import ddmd.apply;
+import ddmd.declaration;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.mtype;
+import ddmd.tokens;
+import ddmd.visitor;
 
 /**************************************************
  * Front-end expression rewriting should create temporary variables for

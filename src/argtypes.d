@@ -9,7 +9,10 @@
 module ddmd.argtypes;
 
 import core.stdc.stdio;
-import ddmd.declaration, ddmd.globals, ddmd.mtype, ddmd.visitor;
+import ddmd.declaration;
+import ddmd.globals;
+import ddmd.mtype;
+import ddmd.visitor;
 
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function

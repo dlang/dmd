@@ -8,8 +8,24 @@
 
 module ddmd.lexer;
 
-import core.stdc.ctype, core.stdc.errno, core.stdc.stdarg, core.stdc.stdio, core.stdc.string, core.stdc.time;
-import ddmd.entity, ddmd.errors, ddmd.globals, ddmd.id, ddmd.identifier, ddmd.root.longdouble, ddmd.root.outbuffer, ddmd.root.port, ddmd.root.rmem, ddmd.root.stringtable, ddmd.tokens, ddmd.utf;
+import core.stdc.ctype;
+import core.stdc.errno;
+import core.stdc.stdarg;
+import core.stdc.stdio;
+import core.stdc.string;
+import core.stdc.time;
+import ddmd.entity;
+import ddmd.errors;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.root.longdouble;
+import ddmd.root.outbuffer;
+import ddmd.root.port;
+import ddmd.root.rmem;
+import ddmd.root.stringtable;
+import ddmd.tokens;
+import ddmd.utf;
 
 enum LS = 0x2028;
 // UTF line separator

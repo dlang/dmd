@@ -9,7 +9,22 @@
 module ddmd.dimport;
 
 import core.stdc.string;
-import ddmd.arraytypes, ddmd.attrib, ddmd.declaration, ddmd.dmodule, ddmd.dscope, ddmd.dsymbol, ddmd.errors, ddmd.expression, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.mars, ddmd.mtype, ddmd.root.outbuffer, ddmd.visitor;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.declaration;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mars;
+import ddmd.mtype;
+import ddmd.root.outbuffer;
+import ddmd.visitor;
 
 extern (C++) final class Import : Dsymbol
 {

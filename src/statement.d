@@ -8,8 +8,50 @@
 
 module ddmd.statement;
 
-import core.stdc.stdarg, core.stdc.stdio;
-import ddmd.aggregate, ddmd.arrayop, ddmd.arraytypes, ddmd.attrib, ddmd.backend, ddmd.canthrow, ddmd.clone, ddmd.cond, ddmd.ctfeexpr, ddmd.dcast, ddmd.dclass, ddmd.declaration, ddmd.denum, ddmd.dimport, ddmd.dinterpret, ddmd.dscope, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.escape, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.init, ddmd.inline, ddmd.intrange, ddmd.mtype, ddmd.mtype, ddmd.nogc, ddmd.opover, ddmd.parse, ddmd.root.outbuffer, ddmd.root.rootobject, ddmd.sapply, ddmd.sideeffect, ddmd.staticassert, ddmd.target, ddmd.tokens, ddmd.visitor;
+import core.stdc.stdarg;
+import core.stdc.stdio;
+import ddmd.aggregate;
+import ddmd.arrayop;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.backend;
+import ddmd.canthrow;
+import ddmd.clone;
+import ddmd.cond;
+import ddmd.ctfeexpr;
+import ddmd.dcast;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.denum;
+import ddmd.dimport;
+import ddmd.dinterpret;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.escape;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.inline;
+import ddmd.intrange;
+import ddmd.mtype;
+import ddmd.mtype;
+import ddmd.nogc;
+import ddmd.opover;
+import ddmd.parse;
+import ddmd.root.outbuffer;
+import ddmd.root.rootobject;
+import ddmd.sapply;
+import ddmd.sideeffect;
+import ddmd.staticassert;
+import ddmd.target;
+import ddmd.tokens;
+import ddmd.visitor;
 
 extern extern (C++) Statement asmSemantic(AsmStatement s, Scope* sc);
 

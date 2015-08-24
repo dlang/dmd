@@ -8,7 +8,15 @@
 
 module ddmd.nspace;
 
-import ddmd.aggregate, ddmd.arraytypes, ddmd.dscope, ddmd.dsymbol, ddmd.globals, ddmd.hdrgen, ddmd.identifier, ddmd.root.outbuffer, ddmd.visitor;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.identifier;
+import ddmd.root.outbuffer;
+import ddmd.visitor;
 
 private enum LOG = false;
 

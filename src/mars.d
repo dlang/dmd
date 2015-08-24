@@ -8,8 +8,48 @@
 
 module ddmd.mars;
 
-import core.stdc.ctype, core.stdc.errno, core.stdc.limits, core.stdc.stdint, core.stdc.stdio, core.stdc.stdlib, core.stdc.string;
-import ddmd.arraytypes, ddmd.backend, ddmd.builtin, ddmd.cond, ddmd.dinifile, ddmd.dinterpret, ddmd.dmodule, ddmd.doc, ddmd.dscope, ddmd.dsymbol, ddmd.dunittest, ddmd.errors, ddmd.expression, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.inline, ddmd.json, ddmd.lexer, ddmd.lib, ddmd.link, ddmd.mtype, ddmd.objc, ddmd.parse, ddmd.root.file, ddmd.root.filename, ddmd.root.man, ddmd.root.outbuffer, ddmd.root.response, ddmd.root.rmem, ddmd.root.stringtable, ddmd.target, ddmd.tokens, ddmd.traits;
+import core.stdc.ctype;
+import core.stdc.errno;
+import core.stdc.limits;
+import core.stdc.stdint;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import ddmd.arraytypes;
+import ddmd.backend;
+import ddmd.builtin;
+import ddmd.cond;
+import ddmd.dinifile;
+import ddmd.dinterpret;
+import ddmd.dmodule;
+import ddmd.doc;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.dunittest;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.inline;
+import ddmd.json;
+import ddmd.lexer;
+import ddmd.lib;
+import ddmd.link;
+import ddmd.mtype;
+import ddmd.objc;
+import ddmd.parse;
+import ddmd.root.file;
+import ddmd.root.filename;
+import ddmd.root.man;
+import ddmd.root.outbuffer;
+import ddmd.root.response;
+import ddmd.root.rmem;
+import ddmd.root.stringtable;
+import ddmd.target;
+import ddmd.tokens;
+import ddmd.traits;
 
 /** Normalize path by turning forward slashes into backslashes */
 extern (C++) const(char)* toWinPath(const(char)* src)

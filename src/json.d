@@ -8,8 +8,27 @@
 
 module ddmd.json;
 
-import core.stdc.stdio, core.stdc.string;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.attrib, ddmd.dclass, ddmd.declaration, ddmd.denum, ddmd.dimport, ddmd.dmodule, ddmd.dsymbol, ddmd.dtemplate, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.mtype, ddmd.root.outbuffer, ddmd.visitor;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.denum;
+import ddmd.dimport;
+import ddmd.dmodule;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.root.outbuffer;
+import ddmd.visitor;
 
 extern (C++) final class ToJsonVisitor : Visitor
 {

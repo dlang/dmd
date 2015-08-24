@@ -8,7 +8,8 @@
 
 module ddmd.sapply;
 
-import ddmd.statement, ddmd.visitor;
+import ddmd.statement;
+import ddmd.visitor;
 
 /**************************************
  * A Statement tree walker that will visit each Statement s in the tree,

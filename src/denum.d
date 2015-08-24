@@ -8,7 +8,24 @@
 
 module ddmd.denum;
 
-import ddmd.access, ddmd.backend, ddmd.declaration, ddmd.dmodule, ddmd.doc, ddmd.dscope, ddmd.dsymbol, ddmd.errors, ddmd.expression, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.init, ddmd.mtype, ddmd.root.outbuffer, ddmd.tokens, ddmd.visitor;
+import ddmd.access;
+import ddmd.backend;
+import ddmd.declaration;
+import ddmd.dmodule;
+import ddmd.doc;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.root.outbuffer;
+import ddmd.tokens;
+import ddmd.visitor;
 
 extern (C++) final class EnumDeclaration : ScopeDsymbol
 {

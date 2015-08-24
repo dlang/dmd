@@ -8,8 +8,14 @@
 
 module ddmd.dmacro;
 
-import core.stdc.ctype, core.stdc.string;
-import ddmd.doc, ddmd.errors, ddmd.globals, ddmd.root.outbuffer, ddmd.root.rmem, ddmd.utf;
+import core.stdc.ctype;
+import core.stdc.string;
+import ddmd.doc;
+import ddmd.errors;
+import ddmd.globals;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
+import ddmd.utf;
 
 struct Macro
 {

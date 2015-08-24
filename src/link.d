@@ -8,8 +8,21 @@
 
 module ddmd.link;
 
-import core.stdc.ctype, core.stdc.stdio, core.stdc.stdlib, core.stdc.string, core.sys.posix.stdio, core.sys.posix.stdlib, core.sys.posix.sys.wait, core.sys.posix.unistd;
-import ddmd.errors, ddmd.globals, ddmd.mars, ddmd.root.file, ddmd.root.filename, ddmd.root.outbuffer, ddmd.root.rmem;
+import core.stdc.ctype;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.sys.posix.stdio;
+import core.sys.posix.stdlib;
+import core.sys.posix.sys.wait;
+import core.sys.posix.unistd;
+import ddmd.errors;
+import ddmd.globals;
+import ddmd.mars;
+import ddmd.root.file;
+import ddmd.root.filename;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
 
 version (Posix) extern (C) int pipe(int*);
 version (Windows) extern (C) int putenv(const char*);

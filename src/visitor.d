@@ -8,7 +8,27 @@
 
 module ddmd.visitor;
 
-import ddmd.aggregate, ddmd.aliasthis, ddmd.attrib, ddmd.cond, ddmd.ctfeexpr, ddmd.dclass, ddmd.declaration, ddmd.denum, ddmd.dimport, ddmd.dmodule, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.dversion, ddmd.expression, ddmd.func, ddmd.init, ddmd.mtype, ddmd.nspace, ddmd.statement, ddmd.staticassert;
+import ddmd.aggregate;
+import ddmd.aliasthis;
+import ddmd.attrib;
+import ddmd.cond;
+import ddmd.ctfeexpr;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.denum;
+import ddmd.dimport;
+import ddmd.dmodule;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.dversion;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.nspace;
+import ddmd.statement;
+import ddmd.staticassert;
 
 extern (C++) class Visitor
 {

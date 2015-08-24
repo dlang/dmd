@@ -8,8 +8,33 @@
 
 module ddmd.dinterpret;
 
-import core.stdc.stdio, core.stdc.string;
-import ddmd.apply, ddmd.arraytypes, ddmd.attrib, ddmd.builtin, ddmd.constfold, ddmd.ctfeexpr, ddmd.dclass, ddmd.declaration, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.id, ddmd.identifier, ddmd.init, ddmd.mtype, ddmd.root.array, ddmd.root.rootobject, ddmd.statement, ddmd.tokens, ddmd.utf, ddmd.visitor;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.apply;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.builtin;
+import ddmd.constfold;
+import ddmd.ctfeexpr;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.root.array;
+import ddmd.root.rootobject;
+import ddmd.statement;
+import ddmd.tokens;
+import ddmd.utf;
+import ddmd.visitor;
 
 private enum LOG = false;
 

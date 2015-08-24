@@ -8,7 +8,23 @@
 
 module ddmd.arraytypes;
 
-import ddmd.aggregate, ddmd.backend, ddmd.dclass, ddmd.declaration, ddmd.dmodule, ddmd.dsymbol, ddmd.dtemplate, ddmd.expression, ddmd.func, ddmd.globals, ddmd.identifier, ddmd.init, ddmd.mtype, ddmd.root.array, ddmd.root.file, ddmd.root.rootobject, ddmd.statement;
+import ddmd.aggregate;
+import ddmd.backend;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dmodule;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.root.array;
+import ddmd.root.file;
+import ddmd.root.rootobject;
+import ddmd.statement;
 
 alias Strings = Array!(const(char)*);
 alias Identifiers = Array!(Identifier);

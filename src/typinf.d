@@ -8,7 +8,14 @@
 
 module ddmd.typinf;
 
-import ddmd.declaration, ddmd.dmodule, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.errors, ddmd.globals, ddmd.mtype;
+import ddmd.declaration;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.errors;
+import ddmd.globals;
+import ddmd.mtype;
 
 extern (C++) void toObjFile(Dsymbol ds, bool multiobj);
 

@@ -8,7 +8,18 @@
 
 module ddmd.staticassert;
 
-import ddmd.dscope, ddmd.dsymbol, ddmd.errors, ddmd.expression, ddmd.globals, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.mtype, ddmd.root.outbuffer, ddmd.visitor;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.globals;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.root.outbuffer;
+import ddmd.visitor;
 
 extern (C++) final class StaticAssert : Dsymbol
 {

@@ -8,8 +8,15 @@
 
 module ddmd.errors;
 
-import core.stdc.stdarg, core.stdc.stdio, core.stdc.stdlib, core.stdc.string, core.sys.posix.unistd, core.sys.windows.windows;
-import ddmd.globals, ddmd.root.outbuffer, ddmd.root.rmem;
+import core.stdc.stdarg;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.sys.posix.unistd;
+import core.sys.windows.windows;
+import ddmd.globals;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
 
 version (Windows) extern (C) int isatty(int);
 version (Windows) alias _isatty = isatty;

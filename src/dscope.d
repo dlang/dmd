@@ -8,8 +8,30 @@
 
 module ddmd.dscope;
 
-import core.stdc.stdio, core.stdc.string;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.attrib, ddmd.dclass, ddmd.declaration, ddmd.dmodule, ddmd.doc, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.func, ddmd.globals, ddmd.globals, ddmd.id, ddmd.identifier, ddmd.mtype, ddmd.root.aav, ddmd.root.outbuffer, ddmd.root.rmem, ddmd.root.speller, ddmd.root.stringtable, ddmd.statement;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dmodule;
+import ddmd.doc;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.root.aav;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
+import ddmd.root.speller;
+import ddmd.root.stringtable;
+import ddmd.statement;
 
 extern (C++) bool mergeFieldInit(Loc loc, ref uint fieldInit, uint fi, bool mustInit)
 {

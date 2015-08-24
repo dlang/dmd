@@ -8,7 +8,18 @@
 
 module ddmd.optimize;
 
-import ddmd.constfold, ddmd.ctfeexpr, ddmd.dclass, ddmd.declaration, ddmd.expression, ddmd.globals, ddmd.init, ddmd.mtype, ddmd.root.longdouble, ddmd.sideeffect, ddmd.tokens, ddmd.visitor;
+import ddmd.constfold;
+import ddmd.ctfeexpr;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.expression;
+import ddmd.globals;
+import ddmd.init;
+import ddmd.mtype;
+import ddmd.root.longdouble;
+import ddmd.sideeffect;
+import ddmd.tokens;
+import ddmd.visitor;
 
 /*************************************
  * If variable has a const initializer,

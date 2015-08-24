@@ -9,7 +9,21 @@
 module ddmd.cond;
 
 import core.stdc.string;
-import ddmd.arraytypes, ddmd.dmodule, ddmd.dmodule, ddmd.dscope, ddmd.dsymbol, ddmd.errors, ddmd.expression, ddmd.globals, ddmd.hdrgen, ddmd.identifier, ddmd.mars, ddmd.mtype, ddmd.root.outbuffer, ddmd.tokens, ddmd.visitor;
+import ddmd.arraytypes;
+import ddmd.dmodule;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.identifier;
+import ddmd.mars;
+import ddmd.mtype;
+import ddmd.root.outbuffer;
+import ddmd.tokens;
+import ddmd.visitor;
 
 extern (C++) class Condition
 {

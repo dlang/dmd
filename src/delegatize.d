@@ -8,7 +8,16 @@
 
 module ddmd.delegatize;
 
-import ddmd.apply, ddmd.declaration, ddmd.dscope, ddmd.expression, ddmd.func, ddmd.globals, ddmd.mtype, ddmd.statement, ddmd.tokens, ddmd.visitor;
+import ddmd.apply;
+import ddmd.declaration;
+import ddmd.dscope;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.mtype;
+import ddmd.statement;
+import ddmd.tokens;
+import ddmd.visitor;
 
 extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
 {

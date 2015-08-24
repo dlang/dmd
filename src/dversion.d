@@ -8,7 +8,17 @@
 
 module ddmd.dversion;
 
-import ddmd.arraytypes, ddmd.cond, ddmd.dmodule, ddmd.dmodule, ddmd.dscope, ddmd.dsymbol, ddmd.globals, ddmd.hdrgen, ddmd.identifier, ddmd.root.outbuffer, ddmd.visitor;
+import ddmd.arraytypes;
+import ddmd.cond;
+import ddmd.dmodule;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.identifier;
+import ddmd.root.outbuffer;
+import ddmd.visitor;
 
 extern (C++) final class DebugSymbol : Dsymbol
 {

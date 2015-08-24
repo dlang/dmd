@@ -8,7 +8,13 @@
 
 module ddmd.backend;
 
-import ddmd.aggregate, ddmd.dmodule, ddmd.dscope, ddmd.expression, ddmd.lib, ddmd.mtype, ddmd.root.file;
+import ddmd.aggregate;
+import ddmd.dmodule;
+import ddmd.dscope;
+import ddmd.expression;
+import ddmd.lib;
+import ddmd.mtype;
+import ddmd.root.file;
 
 struct Symbol;
 struct TYPE;

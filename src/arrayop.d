@@ -8,7 +8,21 @@
 
 module ddmd.arrayop;
 
-import ddmd.arraytypes, ddmd.declaration, ddmd.dscope, ddmd.dsymbol, ddmd.expression, ddmd.func, ddmd.globals, ddmd.id, ddmd.identifier, ddmd.mtype, ddmd.root.aav, ddmd.root.outbuffer, ddmd.statement, ddmd.tokens, ddmd.visitor;
+import ddmd.arraytypes;
+import ddmd.declaration;
+import ddmd.dscope;
+import ddmd.dsymbol;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.mtype;
+import ddmd.root.aav;
+import ddmd.root.outbuffer;
+import ddmd.statement;
+import ddmd.tokens;
+import ddmd.visitor;
 
 /**************************************
  * Hash table of array op functions already generated or known about.

@@ -9,7 +9,40 @@
 module ddmd.declaration;
 
 import core.stdc.stdio;
-import ddmd.aggregate, ddmd.arraytypes, ddmd.attrib, ddmd.cppmangle, ddmd.ctfeexpr, ddmd.dcast, ddmd.dclass, ddmd.declaration, ddmd.delegatize, ddmd.dinterpret, ddmd.dmangle, ddmd.doc, ddmd.dscope, ddmd.dstruct, ddmd.dsymbol, ddmd.dtemplate, ddmd.errors, ddmd.expression, ddmd.func, ddmd.globals, ddmd.hdrgen, ddmd.id, ddmd.identifier, ddmd.init, ddmd.inline, ddmd.intrange, ddmd.mtype, ddmd.opover, ddmd.root.outbuffer, ddmd.root.rootobject, ddmd.statement, ddmd.target, ddmd.tokens, ddmd.visitor;
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.attrib;
+import ddmd.cppmangle;
+import ddmd.ctfeexpr;
+import ddmd.dcast;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.delegatize;
+import ddmd.dinterpret;
+import ddmd.dmangle;
+import ddmd.doc;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.hdrgen;
+import ddmd.id;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.inline;
+import ddmd.intrange;
+import ddmd.mtype;
+import ddmd.opover;
+import ddmd.root.outbuffer;
+import ddmd.root.rootobject;
+import ddmd.statement;
+import ddmd.target;
+import ddmd.tokens;
+import ddmd.visitor;
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
