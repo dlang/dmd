@@ -274,7 +274,7 @@ public:
                 //printf("CompoundStatement::blockExit(%p) %d\n", cs, cs->statements->dim);
                 result = BEfallthru;
                 Statement slast = null;
-                for (size_t i = 0; i < cs.statements.dim; i++)
+                foreach (i; 0 .. cs.statements.dim)
                 {
                     Statement s = (*cs.statements)[i];
                     if (s)
@@ -320,7 +320,7 @@ public:
             void visit(UnrolledLoopStatement uls)
             {
                 result = BEfallthru;
-                for (size_t i = 0; i < uls.statements.dim; i++)
+                foreach (i; 0 .. uls.statements.dim)
                 {
                     Statement s = (*uls.statements)[i];
                     if (s)
@@ -550,7 +550,7 @@ public:
                 assert(s._body);
                 result = s._body.blockExit(func, false);
                 int catchresult = 0;
-                for (size_t i = 0; i < s.catches.dim; i++)
+                foreach (i; 0 .. s.catches.dim)
                 {
                     Catch c = (*s.catches)[i];
                     if (c.type == Type.terror)
@@ -928,7 +928,7 @@ extern (C++) Statement toStatement(Dsymbol s)
             if (!a)
                 return null;
             auto statements = new Statements();
-            for (size_t i = 0; i < a.dim; i++)
+            foreach (i; 0 .. a.dim)
             {
                 statements.push(toStatement((*a)[i]));
             }
@@ -944,7 +944,7 @@ extern (C++) Statement toStatement(Dsymbol s)
         void visit(TemplateMixin tm)
         {
             auto a = new Statements();
-            for (size_t i = 0; i < tm.members.dim; i++)
+            foreach (i; 0 .. tm.members.dim)
             {
                 Statement s = toStatement((*tm.members)[i]);
                 if (s)
@@ -1352,7 +1352,7 @@ public:
     {
         auto a = new Statements();
         a.setDim(statements.dim);
-        for (size_t i = 0; i < statements.dim; i++)
+        foreach (i; 0 .. statements.dim)
         {
             Statement s = (*statements)[i];
             (*a)[i] = s ? s.syntaxCopy() : null;
@@ -1365,7 +1365,7 @@ public:
         //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", this, sc);
         version (none)
         {
-            for (size_t i = 0; i < statements.dim; i++)
+            foreach (i; 0 .. statements.dim)
             {
                 Statement s = (*statements)[i];
                 if (s)
@@ -1416,7 +1416,7 @@ public:
                              *      { sexception; throw __o; }
                              */
                             auto a = new Statements();
-                            for (size_t j = i + 1; j < statements.dim; j++)
+                            foreach (j; i + 1 .. statements.dim)
                             {
                                 a.push((*statements)[j]);
                             }
@@ -1457,7 +1457,7 @@ public:
                              *      s; try { s1; s2; } finally { sfinally; }
                              */
                             auto a = new Statements();
-                            for (size_t j = i + 1; j < statements.dim; j++)
+                            foreach (j; i + 1 .. statements.dim)
                             {
                                 a.push((*statements)[j]);
                             }
@@ -1480,7 +1480,7 @@ public:
             }
             i++;
         }
-        for (size_t i = 0; i < statements.dim; ++i)
+        foreach (i; 0 .. statements.dim)
         {
         Lagain:
             Statement s = (*statements)[i];
@@ -1517,7 +1517,7 @@ public:
     final ReturnStatement isReturnStatement()
     {
         ReturnStatement rs = null;
-        for (size_t i = 0; i < statements.dim; i++)
+        foreach (i; 0 .. statements.dim)
         {
             Statement s = (*statements)[i];
             if (s)
@@ -1571,7 +1571,7 @@ public:
     {
         auto a = new Statements();
         a.setDim(statements.dim);
-        for (size_t i = 0; i < statements.dim; i++)
+        foreach (i; 0 .. statements.dim)
         {
             Statement s = (*statements)[i];
             (*a)[i] = s ? s.syntaxCopy() : null;
@@ -1604,7 +1604,7 @@ public:
     {
         auto a = new Statements();
         a.setDim(statements.dim);
-        for (size_t i = 0; i < statements.dim; i++)
+        foreach (i; 0 .. statements.dim)
         {
             Statement s = (*statements)[i];
             (*a)[i] = s ? s.syntaxCopy() : null;
@@ -1619,7 +1619,7 @@ public:
         scd.sbreak = this;
         scd.scontinue = this;
         Statement serror = null;
-        for (size_t i = 0; i < statements.dim; i++)
+        foreach (i; 0 .. statements.dim)
         {
             Statement s = (*statements)[i];
             if (s)
@@ -2102,7 +2102,7 @@ public:
             }
             else
                 assert(0);
-            for (size_t j = 0; j < n; j++)
+            foreach (j; 0 .. n)
             {
                 size_t k = (op == TOKforeach) ? j : n - 1 - j;
                 Expression e = null;
@@ -2283,7 +2283,7 @@ public:
                         goto Lapply;
                     }
                 }
-                for (size_t i = 0; i < dim; i++)
+                foreach (i; 0 .. dim)
                 {
                     // Declare parameterss
                     Parameter p = (*parameters)[i];
@@ -2547,7 +2547,7 @@ public:
                         error("cannot infer argument types, expected %d argument%s, not %d", exps.dim, plural, dim);
                         goto Lerror2;
                     }
-                    for (size_t i = 0; i < dim; i++)
+                    foreach (i; 0 .. dim)
                     {
                         Parameter p = (*parameters)[i];
                         Expression exp = (*exps)[i];
@@ -2623,7 +2623,7 @@ public:
                  *  int delegate(ref T param) { body }
                  */
                 auto params = new Parameters();
-                for (size_t i = 0; i < dim; i++)
+                foreach (i; 0 .. dim)
                 {
                     Parameter p = (*parameters)[i];
                     StorageClass stc = STCref;
@@ -2677,7 +2677,7 @@ public:
                 flde = flde.semantic(sc);
                 fld.tookAddressOf = 0;
                 // Resolve any forward referenced goto's
-                for (size_t i = 0; i < gotos.dim; i++)
+                foreach (i; 0 .. gotos.dim)
                 {
                     GotoStatement gs = cast(GotoStatement)(*gotos)[i].statement;
                     if (!gs.label.statement)
@@ -2879,7 +2879,7 @@ public:
                     s = new DefaultStatement(Loc(), s);
                     a.push(s);
                     // cases 2...
-                    for (size_t i = 0; i < cases.dim; i++)
+                    foreach (i; 0 .. cases.dim)
                     {
                         s = (*cases)[i];
                         s = new CaseStatement(Loc(), new IntegerExp(i + 2), s);
@@ -2907,7 +2907,7 @@ public:
     bool checkForArgTypes()
     {
         bool result = false;
-        for (size_t i = 0; i < parameters.dim; i++)
+        foreach (i; 0 .. parameters.dim)
         {
             Parameter p = (*parameters)[i];
             if (!p.type)
@@ -3357,7 +3357,7 @@ public:
         {
             if (args)
             {
-                for (size_t i = 0; i < args.dim; i++)
+                foreach (i; 0 .. args.dim)
                 {
                     Expression e = (*args)[i];
                     sc = sc.startCTFE();
@@ -3611,7 +3611,7 @@ public:
         if (conditionError || _body.isErrorStatement())
             goto Lerror;
         // Resolve any goto case's with exp
-        for (size_t i = 0; i < gotoCases.dim; i++)
+        foreach (i; 0 .. gotoCases.dim)
         {
             GotoCaseStatement gcs = gotoCases[i];
             if (!gcs.exp)
@@ -3623,7 +3623,7 @@ public:
             {
                 if (!scx.sw)
                     continue;
-                for (size_t j = 0; j < scx.sw.cases.dim; j++)
+                foreach (j; 0 .. scx.sw.cases.dim)
                 {
                     CaseStatement cs = (*scx.sw.cases)[j];
                     if (cs.exp.equals(gcs.exp))
@@ -3649,12 +3649,12 @@ public:
             if (ed)
             {
                 size_t dim = ed.members.dim;
-                for (size_t i = 0; i < dim; i++)
+                foreach (i; 0 .. dim)
                 {
                     EnumMember em = (*ed.members)[i].isEnumMember();
                     if (em)
                     {
-                        for (size_t j = 0; j < cases.dim; j++)
+                        foreach (j; 0 .. cases.dim)
                         {
                             CaseStatement cs = (*cases)[j];
                             if (cs.exp.equals(em.value) || (!cs.exp.type.isString() && !em.value.type.isString() && cs.exp.toInteger() == em.value.toInteger()))
@@ -3774,7 +3774,7 @@ public:
                 errors = true;
             }
         L1:
-            for (size_t i = 0; i < sw.cases.dim; i++)
+            foreach (i; 0 .. sw.cases.dim)
             {
                 CaseStatement cs = (*sw.cases)[i];
                 //printf("comparing '%s' with '%s'\n", exp->toChars(), cs->exp->toChars());
@@ -4336,7 +4336,7 @@ public:
             AggregateDeclaration ad = fd.isAggregateMember2();
             assert(ad);
             size_t dim = sc.fieldinit_dim;
-            for (size_t i = 0; i < dim; i++)
+            foreach (i; 0 .. dim)
             {
                 VarDeclaration v = ad.fields[i];
                 bool mustInit = (v.storage_class & STCnodefaultctor || v.type.needsNested());
@@ -4872,7 +4872,7 @@ public:
     {
         auto a = new Catches();
         a.setDim(catches.dim);
-        for (size_t i = 0; i < a.dim; i++)
+        foreach (i; 0 .. a.dim)
         {
             Catch c = (*catches)[i];
             (*a)[i] = c.syntaxCopy();
@@ -4887,7 +4887,7 @@ public:
         /* Even if body is empty, still do semantic analysis on catches
          */
         bool catchErrors = false;
-        for (size_t i = 0; i < catches.dim; i++)
+        foreach (i; 0 .. catches.dim)
         {
             Catch c = (*catches)[i];
             c.semantic(sc);
@@ -4897,7 +4897,7 @@ public:
                 continue;
             }
             // Determine if current catch 'hides' any previous catches
-            for (size_t j = 0; j < i; j++)
+            foreach (j; 0 .. i)
             {
                 Catch cj = (*catches)[j];
                 char* si = c.loc.toChars();
@@ -4918,7 +4918,7 @@ public:
          */
         if (!(_body.blockExit(sc.func, false) & BEthrow) && ClassDeclaration.exception)
         {
-            for (size_t i = 0; i < catches.dim; i++)
+            foreach (i; 0 .. catches.dim)
             {
                 Catch c = (*catches)[i];
                 /* If catch exception type is derived from Exception
@@ -5285,7 +5285,7 @@ public:
         Statements* a = statement ? statement.flatten(sc) : null;
         if (a)
         {
-            for (size_t i = 0; i < a.dim; i++)
+            foreach (i; 0 .. a.dim)
             {
                 Statement s = (*a)[i];
                 s = new DebugStatement(loc, s);
@@ -5466,7 +5466,7 @@ public:
         if (sc.fieldinit)
         {
             size_t dim = sc.fieldinit_dim;
-            for (size_t i = 0; i < dim; i++)
+            foreach (i; 0 .. dim)
                 sc.fieldinit[i] |= CSXlabel;
         }
         sc.slabel = this;
@@ -5605,7 +5605,7 @@ public:
     {
         auto a = new Statements();
         a.setDim(statements.dim);
-        for (size_t i = 0; i < statements.dim; i++)
+        foreach (i; 0 .. statements.dim)
         {
             Statement s = (*statements)[i];
             (*a)[i] = s ? s.syntaxCopy() : null;
@@ -5615,7 +5615,7 @@ public:
 
     CompoundAsmStatement semantic(Scope* sc)
     {
-        for (size_t i = 0; i < statements.dim; i++)
+        foreach (i; 0 .. statements.dim)
         {
             Statement s = (*statements)[i];
             (*statements)[i] = s ? s.semantic(sc) : null;
@@ -5659,7 +5659,7 @@ public:
     {
         auto m = new Dsymbols();
         m.setDim(imports.dim);
-        for (size_t i = 0; i < imports.dim; i++)
+        foreach (i; 0 .. imports.dim)
         {
             Dsymbol s = (*imports)[i];
             (*m)[i] = s.syntaxCopy(null);
@@ -5669,7 +5669,7 @@ public:
 
     Statement semantic(Scope* sc)
     {
-        for (size_t i = 0; i < imports.dim; i++)
+        foreach (i; 0 .. imports.dim)
         {
             Import s = (*imports)[i].isImport();
             assert(!s.aliasdecls.dim);
@@ -5687,7 +5687,7 @@ public:
             s.semantic(sc);
             //s->semantic2(sc);     // Bugzilla 14666
             sc.insert(s);
-            for (size_t j = 0; j < s.aliasdecls.dim; j++)
+            foreach (j; 0 .. s.aliasdecls.dim)
             {
                 sc.insert(s.aliasdecls[j]);
             }
