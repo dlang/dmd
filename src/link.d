@@ -939,6 +939,6 @@ version (Windows)
         if (!libcmt)
             return false;
         const(char)* liblegacy = FileName.replaceName(libcmt, "legacy_stdio_definitions.lib");
-        return FileName.exists(liblegacy);
+        return FileName.exists(liblegacy) == 1;
     }
 }
