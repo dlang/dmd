@@ -3072,7 +3072,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                         {
                             if (!s || !s.parent)
                                 goto Lnomatch;
-                            Dsymbol s2 = s.parent.searchX(Loc(), sc, id);
+                            Dsymbol s2 = s.parent.search(Loc(), cast(Identifier)id);
                             if (!s2)
                                 goto Lnomatch;
                             s2 = s2.toAlias();

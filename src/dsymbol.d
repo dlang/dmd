@@ -660,36 +660,6 @@ public:
         case DYNCAST_IDENTIFIER:
             sm = s.search(loc, cast(Identifier)id);
             break;
-        case DYNCAST_TYPE:
-            {
-                Type index = cast(Type)id;
-                Expression expr = null;
-                Type t = null;
-                Dsymbol sym = null;
-                index.resolve(loc, sc, &expr, &t, &sym);
-                if (expr)
-                {
-                    sm = takeTypeTupleIndex(loc, sc, s, id, expr);
-                }
-                else if (t)
-                {
-                    index.error(loc, "expected an expression as index, got a type (%s)", t.toChars());
-                    return null;
-                }
-                else
-                {
-                    index.error(loc, "index is not an expression");
-                    return null;
-                }
-                break;
-            }
-        case DYNCAST_EXPRESSION:
-            sm = takeTypeTupleIndex(loc, sc, s, id, cast(Expression)id);
-            if (!sm)
-            {
-                return null;
-            }
-            break;
         case DYNCAST_DSYMBOL:
             {
                 // It's a template instance
@@ -719,6 +689,8 @@ public:
                 sm = ti.toAlias();
                 break;
             }
+        case DYNCAST_TYPE:
+        case DYNCAST_EXPRESSION:
         default:
             assert(0);
         }
@@ -1197,41 +1169,6 @@ public:
     void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-private:
-    /*************************************
-     * Take an index in a TypeTuple.
-     */
-    final Dsymbol takeTypeTupleIndex(Loc loc, Scope* sc, Dsymbol s, RootObject id, Expression indexExpr)
-    {
-        TupleDeclaration td = s.isTupleDeclaration();
-        if (!td)
-        {
-            error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.", id.toChars(), s.toChars());
-            return null;
-        }
-        sc = sc.startCTFE();
-        indexExpr = indexExpr.semantic(sc);
-        sc = sc.endCTFE();
-        indexExpr = indexExpr.ctfeInterpret();
-        const(uinteger_t) d = indexExpr.toUInteger();
-        if (d >= td.objects.dim)
-        {
-            error(loc, "tuple index %llu exceeds length %u", d, td.objects.dim);
-            return null;
-        }
-        RootObject o = (*td.objects)[cast(size_t)d];
-        if (o.dyncast() == DYNCAST_TYPE)
-        {
-            Type t = cast(Type)o;
-            return t.toDsymbol(sc).toAlias();
-        }
-        else
-        {
-            assert(o.dyncast() == DYNCAST_DSYMBOL);
-            return cast(Dsymbol)o;
-        }
     }
 }
 
