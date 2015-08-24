@@ -235,9 +235,10 @@ SRC = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
 	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
-	mars.h module.h mtype.h nspace.h objc.h parse.h scanmscoff.c scanomf.c	\
+	mars.h module.h mtype.h nspace.h objc.h parse.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h utf.h	\
-	version.h visitor.h libomf.d scanomf.d $(DMD_SRCS)
+	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d         \
+	$(DMD_SRCS)
 
 ROOT_SRC = $(addprefix $(ROOT)/,aav.h array.h file.h filename.h		\
 	longdouble.h newdelete.c object.h outbuffer.h port.h rmem.h	\
@@ -245,7 +246,7 @@ ROOT_SRC = $(addprefix $(ROOT)/,aav.h array.h file.h filename.h		\
 
 GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
-	libmscoff.c scanmscoff.c irstate.h irstate.c iasm.c \
+	irstate.h irstate.c iasm.c \
 	toelfdebug.c libelf.c scanelf.c libmach.c scanmach.c \
 	tk.c eh.c gluestub.c objc_glue.c objc_glue_stubs.c
 
