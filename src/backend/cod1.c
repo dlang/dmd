@@ -1793,21 +1793,27 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
   return c;
 }
 
-
-/********************************
- * Generate code sequence to call C runtime library support routine.
- *      clib = CLIBxxxx
- *      keepmask = mask of registers not to destroy. Currently can
- *              handle only 1. Should use a temporary rather than
- *              push/pop for speed.
+/*******************************
+ * Extra information about each CLIB runtime library function.
  */
-
-int clib_inited = 0;            // != 0 if initialized
-
-code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
+struct ClibInfo
 {
-    //printf("callclib(e = %p, clib = %d, *pretregs = %s, keepmask = %s\n", e, clib, regm_str(*pretregs), regm_str(keepmask));
-    //elem_print(e);
+    regm_t retregs16;   /* registers that 16 bit result is returned in  */
+    regm_t retregs32;   /* registers that 32 bit result is returned in  */
+    char pop;           /* # of bytes popped off of stack upon return   */
+    char flags;
+        #define INF32           1       // if 32 bit only
+        #define INFfloat        2       // if this is floating point
+        #define INFwkdone       4       // if weak extern is already done
+        #define INF64           8       // if 64 bit only
+    char push87;                        // # of pushes onto the 8087 stack
+    char pop87;                         // # of pops off of the 8087 stack
+};
+
+int clib_inited = false;          // true if initialized
+
+void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
+{
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
   static symbol lib[] =
   {
@@ -1996,19 +2002,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
   };
 #endif
 
-  static struct
-  {
-    regm_t retregs16;   /* registers that 16 bit result is returned in  */
-    regm_t retregs32;   /* registers that 32 bit result is returned in  */
-    char pop;           /* # of bytes popped off of stack upon return   */
-    char flags;
-        #define INF32           1       // if 32 bit only
-        #define INFfloat        2       // if this is floating point
-        #define INFwkdone       4       // if weak extern is already done
-        #define INF64           8       // if 64 bit only
-    char push87;                        // # of pushes onto the 8087 stack
-    char pop87;                         // # of pops off of the 8087 stack
-  } info[CLIBMAX] =
+  static ClibInfo info[CLIBMAX] =
   {
     {0,0,0,0},                          /* _LCMP@       lcmp    */
     {mDX|mAX,mDX|mAX,0,0},              // _LMUL@       lmul
@@ -2092,8 +2086,8 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 #endif
   };
 
-  if (!clib_inited)                             /* if not initialized   */
-  {
+    if (!clib_inited)                         // if not initialized
+    {
         assert(sizeof(lib) / sizeof(lib[0]) == CLIBMAX);
         assert(sizeof(info) / sizeof(info[0]) == CLIBMAX);
         for (int i = 0; i < CLIBMAX; i++)
@@ -2165,28 +2159,87 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
                 strcpy(lib[CLIBulmod].Sident, "_ms_aullrem"); info[CLIBulmod].retregs32 = mAX|mDX;
             }
         }
-        clib_inited++;
-  }
+        clib_inited = true;
+    }
 #undef Z
 
-  assert(clib < CLIBMAX);
 #if TARGET_WINDOS
-  if (config.exe == EX_WIN64)
-  {
+    if (config.exe == EX_WIN64)
+    {
         switch (clib)
         {
             case CLIBdblullng:  clib = CLIBdblullng_win64; break;
             case CLIBullngdbl:  clib = CLIBullngdbl_win64; break;
             case CLIBu64_ldbl:  assert(0); break;
         }
-  }
+    }
 #endif
-  symbol *s = &lib[clib];
-  if (I16)
-        assert(!(info[clib].flags & (INF32 | INF64)));
-  code *cpop = CNIL;
-  code *c = getregs((~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
-  keepmask &= ~s->Sregsaved;
+    symbol *s = &lib[clib];
+    ClibInfo *cinfo = &info[clib];
+
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    if (I32)
+    {
+#if TARGET_LINUX || TARGET_FREEBSD
+        switch (clib)
+        {
+            case CLIBldiv:
+                s = &clibldiv3;
+                break;
+            case CLIBlmod:
+                s = &cliblmod3;
+                cinfo->retregs32 = mAX|mDX;
+                break;
+            case CLIBuldiv:
+                s = &clibuldiv3;
+                break;
+            case CLIBulmod:
+                s = &clibulmod3;
+                cinfo->retregs32 = mAX|mDX;
+                break;
+        }
+#else
+        switch (clib)
+        {   // EBX is a parameter to these, so push it on the stack before load_localgot()
+            case CLIBldiv:
+            case CLIBlmod:
+                s = &clibldiv2;
+                break;
+            case CLIBuldiv:
+            case CLIBulmod:
+                s = &clibuldiv2;
+                break;
+        }
+#endif
+    }
+#endif
+    *ps = s;
+    *pinfo = cinfo;
+}
+
+/********************************
+ * Generate code sequence to call C runtime library support routine.
+ *      clib = CLIBxxxx
+ *      keepmask = mask of registers not to destroy. Currently can
+ *              handle only 1. Should use a temporary rather than
+ *              push/pop for speed.
+ */
+
+code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
+{
+    //printf("callclib(e = %p, clib = %d, *pretregs = %s, keepmask = %s\n", e, clib, regm_str(*pretregs), regm_str(keepmask));
+    //elem_print(e);
+
+    assert(clib < CLIBMAX);
+    symbol *s;
+    ClibInfo *cinfo;
+    getClibInfo(clib, &s, &cinfo);
+
+    if (I16)
+        assert(!(cinfo->flags & (INF32 | INF64)));
+    code *cpop = CNIL;
+    code *c = getregs((~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
+    keepmask &= ~s->Sregsaved;
     int npushed = numbitsset(keepmask);
     gensaverestore2(keepmask, &c, &cpop);
 #if 0
@@ -2209,11 +2262,11 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
   }
 #endif
 
-    c = cat(c, save87regs(info[clib].push87));
-    for (int i = 0; i < info[clib].push87; i++)
+    c = cat(c, save87regs(cinfo->push87));
+    for (int i = 0; i < cinfo->push87; i++)
         c = cat(c, push87());
 
-    for (int i = 0; i < info[clib].pop87; i++)
+    for (int i = 0; i < cinfo->pop87; i++)
         pop87();
 
   if (config.target_cpu >= TARGET_80386 && clib == CLIBlmul && !I32)
@@ -2246,22 +2299,18 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             switch (clib)
             {
                 case CLIBldiv:
-                    s = &clibldiv3;
                     pushebx = true;
                     break;
                 case CLIBlmod:
-                    s = &cliblmod3;
                     pushebx = true;
-                    info[clib].retregs32 = mAX|mDX;
+                    cinfo->retregs32 = mAX|mDX;
                     break;
                 case CLIBuldiv:
-                    s = &clibuldiv3;
                     pushebx = true;
                     break;
                 case CLIBulmod:
-                    s = &clibulmod3;
                     pushebx = true;
-                    info[clib].retregs32 = mAX|mDX;
+                    cinfo->retregs32 = mAX|mDX;
                     break;
             }
 #else
@@ -2269,12 +2318,10 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             {   // EBX is a parameter to these, so push it on the stack before load_localgot()
                 case CLIBldiv:
                 case CLIBlmod:
-                    s = &clibldiv2;
                     pushebx = true;
                     break;
                 case CLIBuldiv:
                 case CLIBulmod:
-                    s = &clibuldiv2;
                     pushebx = true;
                     break;
             }
@@ -2313,16 +2360,16 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 #if SCPP & TX86
         if (I16 &&                                   // bug in Optlink for weak references
             config.flags3 & CFG3wkfloat &&
-            (info[clib].flags & (INFfloat | INFwkdone)) == INFfloat)
-        {   info[clib].flags |= INFwkdone;
+            (cinfo->flags & (INFfloat | INFwkdone)) == INFfloat)
+        {   cinfo->flags |= INFwkdone;
             makeitextern(rtlsym[RTLSYM_INTONLY]);
             objmod->wkext(s,rtlsym[RTLSYM_INTONLY]);
         }
 #endif
     }
     if (I16)
-        stackpush -= info[clib].pop;
-    regm_t retregs = I16 ? info[clib].retregs16 : info[clib].retregs32;
+        stackpush -= cinfo->pop;
+    regm_t retregs = I16 ? cinfo->retregs16 : cinfo->retregs32;
     return cat(cat(c,cpop),fixresult(e,retregs,pretregs));
 }
 
