@@ -1179,7 +1179,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 {
 public:
     ScopeDsymbol scopesym;
-    int addisdone;
+    bool addisdone;
 
     extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
@@ -1219,7 +1219,7 @@ public:
                     Dsymbol s = (*d)[i];
                     s.setScope(_scope);
                 }
-                addisdone = 1;
+                addisdone = true;
             }
             return d;
         }
