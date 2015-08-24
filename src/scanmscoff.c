@@ -51,7 +51,7 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
 
     /* First do sanity checks on object file
      */
-    if (buflen < sizeof(struct filehdr))
+    if (buflen < sizeof(BIGOBJ_HEADER))
     {
         reason = __LINE__;
       Lcorrupt:
@@ -59,25 +59,25 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
         return;
     }
 
-    struct filehdr *header = (struct filehdr *)buf;
+    BIGOBJ_HEADER *header = (BIGOBJ_HEADER *)buf;
     char is_old_coff = false;
-    if (header->f_sig2 != 0xFFFF && header->f_minver != 2) {
+    if (header->Sig2 != 0xFFFF && header->Version != 2) {
         is_old_coff = true;
-        struct filehdr_old *header_old;
-        header_old = (filehdr_old *) malloc(sizeof(filehdr_old));
-        memcpy(header_old, buf, sizeof(filehdr_old));
+        IMAGE_FILE_HEADER *header_old;
+        header_old = (IMAGE_FILE_HEADER *) malloc(sizeof(IMAGE_FILE_HEADER));
+        memcpy(header_old, buf, sizeof(IMAGE_FILE_HEADER));
 
-        header = (filehdr *) malloc(sizeof(filehdr));
-        memset(header, 0, sizeof(filehdr));
-        header->f_magic = header_old->f_magic;
-        header->f_nscns = header_old->f_nscns;
-        header->f_timdat = header_old->f_timdat;
-        header->f_symptr = header_old->f_symptr;
-        header->f_nsyms = header_old->f_nsyms;
+        header = (BIGOBJ_HEADER *) malloc(sizeof(BIGOBJ_HEADER));
+        memset(header, 0, sizeof(BIGOBJ_HEADER));
+        header->Machine = header_old->Machine;
+        header->NumberOfSections = header_old->NumberOfSections;
+        header->TimeDateStamp = header_old->TimeDateStamp;
+        header->PointerToSymbolTable = header_old->PointerToSymbolTable;
+        header->NumberOfSymbols = header_old->NumberOfSymbols;
         free(header_old);
     }
 
-    switch (header->f_magic)
+    switch (header->Machine)
     {
         case IMAGE_FILE_MACHINE_UNKNOWN:
         case IMAGE_FILE_MACHINE_I386:
@@ -90,18 +90,18 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
                         module_name);
             else
                 error(loc, "MS-Coff object module %s has magic = %x, should be %x",
-                        module_name, header->f_magic, IMAGE_FILE_MACHINE_AMD64);
+                        module_name, header->Machine, IMAGE_FILE_MACHINE_AMD64);
             return;
     }
 
     // Get string table:  string_table[0..string_len]
-    size_t off = header->f_symptr;
+    size_t off = header->PointerToSymbolTable;
     if (off == 0)
     {
         error(loc, "MS-Coff object module %s has no string table", module_name);
         return;
     }
-    off += header->f_nsyms * (is_old_coff?sizeof(struct syment_old):sizeof(struct syment));
+    off += header->NumberOfSymbols * (is_old_coff?sizeof(SymbolTable):sizeof(SymbolTable32));
     if (off + 4 > buflen)
     {   reason = __LINE__;
         goto Lcorrupt;
@@ -114,9 +114,9 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
     }
     string_len -= 4;
 
-    for (int i = 0; i < header->f_nsyms; i++)
+    for (int i = 0; i < header->NumberOfSymbols; i++)
     {
-        struct syment *n;
+        SymbolTable32 *n;
 
         char s[8 + 1];
         char *p;
@@ -124,45 +124,45 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
 #if LOG
         printf("Symbol %d:\n",i);
 #endif
-        off = header->f_symptr + i * (is_old_coff?sizeof(syment_old):sizeof(syment));
+        off = header->PointerToSymbolTable + i * (is_old_coff?sizeof(SymbolTable):sizeof(SymbolTable32));
 
         if (off > buflen)
         {   reason = __LINE__;
             goto Lcorrupt;
         }
 
-        n = (struct syment *)(buf + off);
+        n = (SymbolTable32 *)(buf + off);
 
         if (is_old_coff) {
-            struct syment_old *n2;
-            n2 = (syment_old *) malloc(sizeof(syment_old));
-            memcpy(n2, (buf + off), sizeof(syment_old));
-            n = (syment *) malloc(sizeof(syment));
-            memcpy(n, n2, sizeof(n2->_n));
-            n->n_value = n2->n_value;
-            n->n_scnum = n2->n_scnum;
-            n->n_type = n2->n_type;
-            n->n_sclass = n2->n_sclass;
-            n->n_numaux = n2->n_numaux;
+            SymbolTable *n2;
+            n2 = (SymbolTable *) malloc(sizeof(SymbolTable));
+            memcpy(n2, (buf + off), sizeof(SymbolTable));
+            n = (SymbolTable32 *) malloc(sizeof(SymbolTable32));
+            memcpy(n, n2, sizeof(n2->Name));
+            n->Value = n2->Value;
+            n->SectionNumber = n2->SectionNumber;
+            n->Type = n2->Type;
+            n->StorageClass = n2->StorageClass;
+            n->NumberOfAuxSymbols = n2->NumberOfAuxSymbols;
             free(n2);
         }
-        if (n->n_zeroes)
-        {   strncpy(s,n->n_name,8);
+        if (n->Zeros)
+        {   strncpy(s,(const char *)n->Name,8);
             s[SYMNMLEN] = 0;
             p = s;
         }
         else
-            p = string_table + n->n_offset - 4;
-        i += n->n_numaux;
+            p = string_table + n->Offset - 4;
+        i += n->NumberOfAuxSymbols;
 #if LOG
         printf("n_name    = '%s'\n",p);
-        printf("n_value   = x%08lx\n",n->n_value);
-        printf("n_scnum   = %d\n", n->n_scnum);
-        printf("n_type    = x%04x\n",n->n_type);
-        printf("n_sclass  = %d\n", n->n_sclass);
-        printf("n_numaux  = %d\n",n->n_numaux);
+        printf("n_value   = x%08lx\n",n->Value);
+        printf("n_scnum   = %d\n", n->SectionNumber);
+        printf("n_type    = x%04x\n",n->Type);
+        printf("n_sclass  = %d\n", n->StorageClass);
+        printf("n_numaux  = %d\n",n->NumberOfAuxSymbols);
 #endif
-        switch (n->n_scnum)
+        switch (n->SectionNumber)
         {   case IMAGE_SYM_DEBUG:
                 continue;
             case IMAGE_SYM_ABSOLUTE:
@@ -171,19 +171,19 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
                 break;
             case IMAGE_SYM_UNDEFINED:
                 // A non-zero value indicates a common block
-                if (n->n_value)
+                if (n->Value)
                     break;
                 continue;
 
             default:
                 break;
         }
-        switch (n->n_sclass)
+        switch (n->StorageClass)
         {
             case IMAGE_SYM_CLASS_EXTERNAL:
                 break;
             case IMAGE_SYM_CLASS_STATIC:
-                if (n->n_value == 0)            // if it's a section name
+                if (n->Value == 0)            // if it's a section name
                     continue;
                 continue;
             case IMAGE_SYM_CLASS_FUNCTION:
