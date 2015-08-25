@@ -27,10 +27,12 @@ CFLAGS=/Z7 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
 DRUNTIME_BASE=druntime$(MODEL)
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
 GCSTUB=lib\gcstub$(MODEL).obj
+STDIO_VS12=lib\stdio_msvc12_$(MODEL).obj
+STDIO_VS14=lib\stdio_msvc14_$(MODEL).obj
 
 DOCFMT=
 
-target : import copydir copy $(DRUNTIME) $(GCSTUB)
+target : import copydir copy $(DRUNTIME) $(GCSTUB) stdio_vs
 
 $(mak\COPY)
 $(mak\DOCS)
@@ -662,6 +664,16 @@ src\rt\minit.obj : src\rt\minit.asm
 
 $(GCSTUB) : src\gcstub\gc.d win64.mak
 	$(DMD) -c -of$(GCSTUB) src\gcstub\gc.d $(DFLAGS)
+
+################### VS 2015 init code #########################
+
+stdio_vs: $(STDIO_VS14) $(STDIO_VS12)
+
+$(STDIO_VS12) : src\core\sys\windows\stdio_msvc12.d win64.mak
+	$(DMD) -c -of$(STDIO_VS12) src\core\sys\windows\stdio_msvc12.d $(DFLAGS)
+
+$(STDIO_VS14) : src\core\sys\windows\stdio_msvc14.d win64.mak
+	$(DMD) -c -of$(STDIO_VS14) src\core\sys\windows\stdio_msvc14.d $(DFLAGS)
 
 ################### Library generation #########################
 
