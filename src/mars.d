@@ -987,17 +987,13 @@ Language changes listed by -transition=id:
          Phobos dropped support for it while dmd still recognized it, so
          that the switch has effectively not been supported. Time to
          remove it from dmd.
-         Step 1 (2.069): Ignore -property and warn about it. */
-        warning(Loc(), "The -property switch has no effect since version 2.069.0. It's going to be deprecated and eventually removed in future versions.");
-        // Step 2: Deprecate -property.
-        version (none)
-        {
-            deprecation(Loc(), "The -property switch is deprecated.");
-        }
-        /* Step 3: Remove -property. Throw an error when it's set.
+         Step 1 (2.069): Deprecate -property and ignore it. */
+        deprecation(Loc(), "The -property switch is deprecated and has no " ~
+            "effect anymore.");
+        /* Step 2: Remove -property. Throw an error when it's set.
          Do this by removing global.params.enforcePropertySyntax and the code
          above that sets it. Let it be handled as an unrecognized switch.
-         Step 4: Possibly reintroduce -property with different semantics.
+         Step 3: Possibly reintroduce -property with different semantics.
          Any new semantics need to be decided on first. */
     }
     // Target uses 64bit pointers.
