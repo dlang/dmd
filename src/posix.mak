@@ -206,7 +206,7 @@ else
 endif
 
 ifeq (osx,$(OS))
-    GLUE_OBJS += libmach.o scanmach.o
+    DMD_SRCS += libmach.d scanmach.d
 else
     DMD_SRCS += libelf.d scanelf.d
 endif
@@ -247,7 +247,7 @@ ROOT_SRC = $(addprefix $(ROOT)/,aav.h array.h file.h filename.h		\
 GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	irstate.h irstate.c iasm.c \
-	toelfdebug.c libelf.d scanelf.d libmach.c scanmach.c \
+	toelfdebug.c libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c eh.c gluestub.c objc_glue.c objc_glue_stubs.c
 
 BACK_SRC = \
