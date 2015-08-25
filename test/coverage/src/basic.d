@@ -1,4 +1,6 @@
-int main()
+import core.runtime;
+
+void main(string[] args)
 {
-    return 0;
+    dmd_coverDestPath(args[1]);
 }

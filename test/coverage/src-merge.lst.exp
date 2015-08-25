@@ -1,5 +1,8 @@
-       |int main()
+       |import core.runtime;
+       |
+       |int main(string[] args)
        |{
+      1|    dmd_coverDestPath(args[1]);
       1|    return 0;
        |}
 src/merge.d is 100% covered
