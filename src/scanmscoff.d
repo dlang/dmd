@@ -182,13 +182,13 @@ struct BIGOBJ_HEADER
     WORD Version;               // 2
     WORD Machine;               // identifies type of target machine
     DWORD TimeDateStamp;        // creation date, number of seconds since 1970
-    BYTE  UUID[16];             //  { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
+    BYTE[16]  UUID;             //  { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
                                 //    '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
-    DWORD unused[4];            // { 0, 0, 0, 0 }
+    DWORD[4] unused;            // { 0, 0, 0, 0 }
     DWORD NumberOfSections;     // number of sections
     DWORD PointerToSymbolTable; // file offset of symbol table
     DWORD NumberOfSymbols;      // number of entries in the symbol table
-};
+}
 
 align(1)
 struct IMAGE_FILE_HEADER
@@ -218,8 +218,7 @@ enum IMAGE_SYM_CLASS_LABEL    = 6;
 enum IMAGE_SYM_CLASS_FUNCTION = 101;
 enum IMAGE_SYM_CLASS_FILE     = 103;
 
-align(1)
-struct SymbolTable32
+align(1) struct SymbolTable32
 {
     union
     {
@@ -228,8 +227,9 @@ struct SymbolTable32
         {
             DWORD Zeros;
             DWORD Offset;
-        };
-    };
+        }
+    }
+
     DWORD Value;
     DWORD SectionNumber;
     WORD Type;
@@ -237,8 +237,7 @@ struct SymbolTable32
     BYTE NumberOfAuxSymbols;
 }
 
-align(1)
-struct SymbolTable
+align(1) struct SymbolTable
 {
     BYTE[SYMNMLEN] Name;
     DWORD Value;
