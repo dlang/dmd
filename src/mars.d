@@ -170,7 +170,6 @@ Usage:
   -op            preserve source path for output files
   -profile       profile runtime performance of generated code
   -profile=gc    profile runtime allocations
-  -property      enforce property syntax
   -release       compile release version
   -run srcfile args...   run resulting program, passing args
   -shared        generate shared library (DLL)
@@ -1021,6 +1020,26 @@ Language changes listed by -transition=id:
     }
     if (global.params.is64bit != is64bit)
         error(Loc(), "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
+    if (global.params.enforcePropertySyntax)
+    {
+        /*NOTE: -property used to disallow calling non-properties
+         without parentheses. This behaviour has fallen from grace.
+         Phobos dropped support for it while dmd still recognized it, so
+         that the switch has effectively not been supported. Time to
+         remove it from dmd.
+         Step 1 (2.069): Ignore -property and warn about it. */
+        warning(Loc(), "The -property switch has no effect since version 2.069.0. It's going to be deprecated and eventually removed in future versions.");
+        // Step 2: Deprecate -property.
+        version (none)
+        {
+            deprecation(Loc(), "The -property switch is deprecated.");
+        }
+        /* Step 3: Remove -property. Throw an error when it's set.
+         Do this by removing global.params.enforcePropertySyntax and the code
+         above that sets it. Let it be handled as an unrecognized switch.
+         Step 4: Possibly reintroduce -property with different semantics.
+         Any new semantics need to be decided on first. */
+    }
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;
     if (global.errors)
