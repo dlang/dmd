@@ -316,9 +316,8 @@ public:
                 //printf("CompoundStatement::blockExit(%p) %d\n", cs, cs->statements->dim);
                 result = BEfallthru;
                 Statement slast = null;
-                foreach (i; 0 .. cs.statements.dim)
+                foreach (i, s; *cs.statements)
                 {
-                    Statement s = (*cs.statements)[i];
                     if (s)
                     {
                         //printf("result = x%x\n", result);
@@ -362,9 +361,8 @@ public:
             void visit(UnrolledLoopStatement uls)
             {
                 result = BEfallthru;
-                foreach (i; 0 .. uls.statements.dim)
+                foreach (i, s; *uls.statements)
                 {
-                    Statement s = (*uls.statements)[i];
                     if (s)
                     {
                         int r = s.blockExit(func, mustNotThrow);
@@ -592,9 +590,8 @@ public:
                 assert(s._body);
                 result = s._body.blockExit(func, false);
                 int catchresult = 0;
-                foreach (i; 0 .. s.catches.dim)
+                foreach (i, c; *s.catches)
                 {
-                    Catch c = (*s.catches)[i];
                     if (c.type == Type.terror)
                         continue;
                     int cresult;
@@ -970,9 +967,9 @@ extern (C++) Statement toStatement(Dsymbol s)
             if (!a)
                 return null;
             auto statements = new Statements();
-            foreach (i; 0 .. a.dim)
+            foreach (i, s; *a)
             {
-                statements.push(toStatement((*a)[i]));
+                statements.push(toStatement(s));
             }
             return new CompoundStatement(loc, statements);
         }
@@ -986,9 +983,9 @@ extern (C++) Statement toStatement(Dsymbol s)
         void visit(TemplateMixin tm)
         {
             auto a = new Statements();
-            foreach (i; 0 .. tm.members.dim)
+            foreach (i, m; *tm.members)
             {
-                Statement s = toStatement((*tm.members)[i]);
+                Statement s = toStatement(m);
                 if (s)
                     a.push(s);
             }
@@ -1394,9 +1391,8 @@ public:
     {
         auto a = new Statements();
         a.setDim(statements.dim);
-        foreach (i; 0 .. statements.dim)
+        foreach (i, s; *statements)
         {
-            Statement s = (*statements)[i];
             (*a)[i] = s ? s.syntaxCopy() : null;
         }
         return new CompoundStatement(loc, a);
@@ -1407,9 +1403,8 @@ public:
         //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", this, sc);
         version (none)
         {
-            foreach (i; 0 .. statements.dim)
+            foreach (i, s; statements)
             {
-                Statement s = (*statements)[i];
                 if (s)
                     printf("[%d]: %s", i, s.toChars());
             }
@@ -1559,9 +1554,8 @@ public:
     final ReturnStatement isReturnStatement()
     {
         ReturnStatement rs = null;
-        foreach (i; 0 .. statements.dim)
+        foreach (s; *statements)
         {
-            Statement s = (*statements)[i];
             if (s)
             {
                 rs = s.isReturnStatement();
@@ -1613,9 +1607,8 @@ public:
     {
         auto a = new Statements();
         a.setDim(statements.dim);
-        foreach (i; 0 .. statements.dim)
+        foreach (i, s; *statements)
         {
-            Statement s = (*statements)[i];
             (*a)[i] = s ? s.syntaxCopy() : null;
         }
         return new CompoundDeclarationStatement(loc, a);
@@ -1646,9 +1639,8 @@ public:
     {
         auto a = new Statements();
         a.setDim(statements.dim);
-        foreach (i; 0 .. statements.dim)
+        foreach (i, s; *statements)
         {
-            Statement s = (*statements)[i];
             (*a)[i] = s ? s.syntaxCopy() : null;
         }
         return new UnrolledLoopStatement(loc, a);
@@ -1661,14 +1653,12 @@ public:
         scd.sbreak = this;
         scd.scontinue = this;
         Statement serror = null;
-        foreach (i; 0 .. statements.dim)
+        foreach (i, ref s; *statements)
         {
-            Statement s = (*statements)[i];
             if (s)
             {
                 //printf("[%d]: %s\n", i, s->toChars());
                 s = s.semantic(scd);
-                (*statements)[i] = s;
                 if (s && !serror)
                     serror = s.isErrorStatement();
             }
@@ -2921,10 +2911,9 @@ public:
                     s = new DefaultStatement(Loc(), s);
                     a.push(s);
                     // cases 2...
-                    foreach (i; 0 .. cases.dim)
+                    foreach (i, c; *cases)
                     {
-                        s = (*cases)[i];
-                        s = new CaseStatement(Loc(), new IntegerExp(i + 2), s);
+                        s = new CaseStatement(Loc(), new IntegerExp(i + 2), c);
                         a.push(s);
                     }
                     s = new CompoundStatement(loc, a);
@@ -2949,9 +2938,8 @@ public:
     bool checkForArgTypes()
     {
         bool result = false;
-        foreach (i; 0 .. parameters.dim)
+        foreach (p; *parameters)
         {
-            Parameter p = (*parameters)[i];
             if (!p.type)
             {
                 error("cannot infer type for %s", p.ident.toChars());
@@ -3399,18 +3387,17 @@ public:
         {
             if (args)
             {
-                foreach (i; 0 .. args.dim)
+                foreach (arg; *args)
                 {
-                    Expression e = (*args)[i];
                     sc = sc.startCTFE();
-                    e = e.semantic(sc);
+                    auto e = arg.semantic(sc);
                     e = resolveProperties(sc, e);
                     sc = sc.endCTFE();
                     // pragma(msg) is allowed to contain types as well as expressions
                     e = ctfeInterpretForPragmaMsg(e);
                     if (e.op == TOKerror)
                     {
-                        errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i].toChars());
+                        errorSupplemental(loc, "while evaluating pragma(msg, %s)", arg.toChars());
                         goto Lerror;
                     }
                     StringExp se = e.toStringExp();
@@ -3653,9 +3640,8 @@ public:
         if (conditionError || _body.isErrorStatement())
             goto Lerror;
         // Resolve any goto case's with exp
-        foreach (i; 0 .. gotoCases.dim)
+        foreach (gcs; gotoCases)
         {
-            GotoCaseStatement gcs = gotoCases[i];
             if (!gcs.exp)
             {
                 gcs.error("no case statement following goto case;");
@@ -3665,9 +3651,8 @@ public:
             {
                 if (!scx.sw)
                     continue;
-                foreach (j; 0 .. scx.sw.cases.dim)
+                foreach (cs; *scx.sw.cases)
                 {
-                    CaseStatement cs = (*scx.sw.cases)[j];
                     if (cs.exp.equals(gcs.exp))
                     {
                         gcs.cs = cs;
@@ -3690,15 +3675,13 @@ public:
                 ed = ds.isEnumDeclaration();
             if (ed)
             {
-                size_t dim = ed.members.dim;
-                foreach (i; 0 .. dim)
+                foreach (es; *ed.members)
                 {
-                    EnumMember em = (*ed.members)[i].isEnumMember();
+                    EnumMember em = es.isEnumMember();
                     if (em)
                     {
-                        foreach (j; 0 .. cases.dim)
+                        foreach (cs; *cases)
                         {
-                            CaseStatement cs = (*cases)[j];
                             if (cs.exp.equals(em.value) || (!cs.exp.type.isString() && !em.value.type.isString() && cs.exp.toInteger() == em.value.toInteger()))
                                 goto L1;
                         }
@@ -3816,9 +3799,8 @@ public:
                 errors = true;
             }
         L1:
-            foreach (i; 0 .. sw.cases.dim)
+            foreach (cs; *sw.cases)
             {
-                CaseStatement cs = (*sw.cases)[i];
                 //printf("comparing '%s' with '%s'\n", exp->toChars(), cs->exp->toChars());
                 if (cs.exp.equals(exp))
                 {
@@ -4914,9 +4896,8 @@ public:
     {
         auto a = new Catches();
         a.setDim(catches.dim);
-        foreach (i; 0 .. a.dim)
+        foreach (i, c; *catches)
         {
-            Catch c = (*catches)[i];
             (*a)[i] = c.syntaxCopy();
         }
         return new TryCatchStatement(loc, _body.syntaxCopy(), a);
@@ -4929,9 +4910,8 @@ public:
         /* Even if body is empty, still do semantic analysis on catches
          */
         bool catchErrors = false;
-        foreach (i; 0 .. catches.dim)
+        foreach (i, c; *catches)
         {
-            Catch c = (*catches)[i];
             c.semantic(sc);
             if (c.type.ty == Terror)
             {
@@ -5327,11 +5307,9 @@ public:
         Statements* a = statement ? statement.flatten(sc) : null;
         if (a)
         {
-            foreach (i; 0 .. a.dim)
+            foreach (ref s; *a)
             {
-                Statement s = (*a)[i];
                 s = new DebugStatement(loc, s);
-                (*a)[i] = s;
             }
         }
         return a;
@@ -5647,9 +5625,8 @@ public:
     {
         auto a = new Statements();
         a.setDim(statements.dim);
-        foreach (i; 0 .. statements.dim)
+        foreach (i, s; *statements)
         {
-            Statement s = (*statements)[i];
             (*a)[i] = s ? s.syntaxCopy() : null;
         }
         return new CompoundAsmStatement(loc, a, stc);
@@ -5657,10 +5634,9 @@ public:
 
     CompoundAsmStatement semantic(Scope* sc)
     {
-        foreach (i; 0 .. statements.dim)
+        foreach (ref s; *statements)
         {
-            Statement s = (*statements)[i];
-            (*statements)[i] = s ? s.semantic(sc) : null;
+            s = s ? s.semantic(sc) : null;
         }
         assert(sc.func);
         // use setImpure/setGC when the deprecation cycle is over
@@ -5701,9 +5677,8 @@ public:
     {
         auto m = new Dsymbols();
         m.setDim(imports.dim);
-        foreach (i; 0 .. imports.dim)
+        foreach (i, s; *imports)
         {
-            Dsymbol s = (*imports)[i];
             (*m)[i] = s.syntaxCopy(null);
         }
         return new ImportStatement(loc, m);

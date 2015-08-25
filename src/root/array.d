@@ -199,4 +199,9 @@ public:
         else
             assert(0);
     }
+
+    extern (D) T[] opSlice()
+    {
+        return data[0 .. dim];
+    }
 }
