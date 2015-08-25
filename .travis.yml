@@ -6,6 +6,7 @@ d:
 
 script: ./travis.sh
 
+sudo: false
 addons:
   apt:
     packages:
