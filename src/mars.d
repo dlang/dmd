@@ -102,7 +102,7 @@ Usage:
   -defaultlib=name  set default library to name
   -deps          print module dependencies (imports/file/version/debug/lib)
   -deps=filename write module dependencies to filename (only imports)
-  %s  -dip25         implement http://wiki.dlang.org/DIP25 (experimental)
+%s  -dip25         implement http://wiki.dlang.org/DIP25 (experimental)
   -g             add symbolic debug info
   -gc            add symbolic debug info, optimize for non D debuggers
   -gs            always emit stack frame
