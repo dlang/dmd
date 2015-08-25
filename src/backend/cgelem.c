@@ -1126,14 +1126,20 @@ L1:
 #if TX86 && !(MARS)
     if (tybasic(e2->Ety) == TYhptr && tybasic(e->E1->Ety) == TYhptr)
     {   // Convert to _aNahdiff(e1,e2)
-        static symbol hdiff = SYMBOLY(FLfunc,mBX|mCX|mSI|mDI|mBP|mES,"_aNahdiff",0);
-
-        if (LARGECODE)
-            hdiff.Sident[2] = 'F';
-        hdiff.Stype = tsclib;
+        static symbol *hdiff;
+        if (!hdiff)
+        {
+            symbol *s = symbol_calloc(LARGECODE ? "_aFahdiff" : "_aNahdiff");
+            s->Stype = tsclib;
+            s->Sclass = SCextern;
+            s->Sfl = FLfunc;
+            s->Ssymnum = 0;
+            s->Sregsaved = mBX|mCX|mSI|mDI|mBP|mES;
+            hdiff = s;
+        }
         e->Eoper = OPcall;
         e->E2 = el_bin(OPparam,TYint,e2,e->E1);
-        e->E1 = el_var(&hdiff);
+        e->E1 = el_var(hdiff);
         return e;
     }
 #endif
