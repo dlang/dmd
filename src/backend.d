@@ -21,6 +21,8 @@ struct TYPE;
 alias type = TYPE;
 struct code;
 struct block;
+struct Blockx;
+struct elem;
 
 extern extern (C++) void backend_init();
 extern extern (C++) void backend_term();

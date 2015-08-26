@@ -183,7 +183,7 @@ DMD_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
 	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
 	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
 	sideeffect statement staticassert target tokens traits utf visitor \
-	typinf)
+	typinf irstate)
 
 ifeq ($(D_OBJC),1)
 	DMD_SRCS += objc.d
@@ -196,7 +196,7 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array file filename	\
 	stringtable))
 
 GLUE_OBJS = glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o toobj.o toctype.o	\
-	toelfdebug.o toir.o irstate.o iasm.o
+	toelfdebug.o toir.o iasm.o
 
 
 ifeq ($(D_OBJC),1)
@@ -246,7 +246,7 @@ ROOT_SRC = $(addprefix $(ROOT)/,aav.h array.h file.h filename.h		\
 
 GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
-	irstate.h irstate.c iasm.c \
+	irstate.h iasm.c \
 	toelfdebug.c libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c eh.c gluestub.c objc_glue.c objc_glue_stubs.c
 

@@ -148,12 +148,12 @@ DMD_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d		\
 	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
 	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
 	traits.d utf.d visitor.d libomf.d scanomf.d typinf.d \
-	libmscoff.d scanmscoff.d
+	libmscoff.d scanmscoff.d irstate.d
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	toobj.obj toctype.obj tocvdebug.obj toir.obj \
-	irstate.obj iasm.obj objc_glue_stubs.obj
+	iasm.obj objc_glue_stubs.obj
 
 # D back end
 BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
@@ -186,7 +186,7 @@ SRCS = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
-	irstate.h irstate.c iasm.c \
+	irstate.h iasm.c \
 	toelfdebug.c libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c eh.c objc_glue_stubs.c objc_glue.c
 
@@ -437,9 +437,6 @@ cod5.obj : $C\cod5.c
 
 code.obj : $C\code.c
 	$(CC) -c $(MFLAGS) $C\code
-
-irstate.obj : irstate.h irstate.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) irstate
 
 csymbol.obj : $C\symbol.c
 	$(CC) -c $(MFLAGS) $C\symbol -ocsymbol.obj

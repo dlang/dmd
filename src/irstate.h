@@ -50,9 +50,102 @@ struct IRState
     block *defaultBlock;
     block *finallyBlock;
 
-    IRState(IRState *irs, Statement *s);
-    IRState(IRState *irs, Dsymbol *s);
-    IRState(Module *m, Dsymbol *s);
+    IRState(IRState *irs, Statement *s)
+    {
+        prev = irs;
+        statement = s;
+        symbol = NULL;
+        breakBlock = NULL;
+        contBlock = NULL;
+        switchBlock = NULL;
+        defaultBlock = NULL;
+        finallyBlock = NULL;
+        ident = NULL;
+        ehidden = NULL;
+        startaddress = NULL;
+        if (irs)
+        {
+            m = irs->m;
+            shidden = irs->shidden;
+            sclosure = irs->sclosure;
+            sthis = irs->sthis;
+            blx = irs->blx;
+            deferToObj = irs->deferToObj;
+            varsInScope = irs->varsInScope;
+            labels = irs->labels;
+        }
+        else
+        {
+            m = NULL;
+            shidden = NULL;
+            sclosure = NULL;
+            sthis = NULL;
+            blx = NULL;
+            deferToObj = NULL;
+            varsInScope = NULL;
+            labels = NULL;
+        }
+    }
+
+    IRState(IRState *irs, Dsymbol *s)
+    {
+        prev = irs;
+        statement = NULL;
+        symbol = s;
+        breakBlock = NULL;
+        contBlock = NULL;
+        switchBlock = NULL;
+        defaultBlock = NULL;
+        finallyBlock = NULL;
+        ident = NULL;
+        ehidden = NULL;
+        startaddress = NULL;
+        if (irs)
+        {
+            m = irs->m;
+            shidden = irs->shidden;
+            sclosure = irs->sclosure;
+            sthis = irs->sthis;
+            blx = irs->blx;
+            deferToObj = irs->deferToObj;
+            varsInScope = irs->varsInScope;
+            labels = irs->labels;
+        }
+        else
+        {
+            m = NULL;
+            shidden = NULL;
+            sclosure = NULL;
+            sthis = NULL;
+            blx = NULL;
+            deferToObj = NULL;
+            varsInScope = NULL;
+            labels = NULL;
+        }
+    }
+
+    IRState(Module *m, Dsymbol *s)
+    {
+        prev = NULL;
+        statement = NULL;
+        this->m = m;
+        symbol = s;
+        breakBlock = NULL;
+        contBlock = NULL;
+        switchBlock = NULL;
+        defaultBlock = NULL;
+        finallyBlock = NULL;
+        ident = NULL;
+        ehidden = NULL;
+        shidden = NULL;
+        sclosure = NULL;
+        sthis = NULL;
+        blx = NULL;
+        deferToObj = NULL;
+        startaddress = NULL;
+        varsInScope = NULL;
+        labels = NULL;
+    }
 
     block *getBreakBlock(Identifier *ident);
     block *getContBlock(Identifier *ident);
