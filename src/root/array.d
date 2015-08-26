@@ -204,4 +204,9 @@ public:
     {
         return data[0 .. dim];
     }
+
+    extern (D) size_t opDollar()
+    {
+        return dim;
+    }
 }
