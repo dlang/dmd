@@ -318,7 +318,7 @@ enum CLIB
         CLIBuldiv,
         CLIBulmod,
 
-#if TARGET_WINDOS
+#if 1 || TARGET_WINDOS
         CLIBdmul,CLIBddiv,CLIBdtst0,CLIBdtst0exc,CLIBdcmp,CLIBdcmpexc,CLIBdneg,CLIBdadd,CLIBdsub,
         CLIBfmul,CLIBfdiv,CLIBftst0,CLIBftst0exc,CLIBfcmp,CLIBfcmpexc,CLIBfneg,CLIBfadd,CLIBfsub,
 #endif
@@ -326,7 +326,7 @@ enum CLIB
         CLIBdbllng,CLIBlngdbl,CLIBdblint,CLIBintdbl,
         CLIBdbluns,CLIBunsdbl,
         CLIBdblulng,
-#if TARGET_WINDOS
+#if 1 || TARGET_WINDOS
         // used the GNU way of converting unsigned long long to signed
         CLIBulngdbl,
 #endif

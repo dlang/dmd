@@ -1813,8 +1813,20 @@ struct ClibInfo
 
 int clib_inited = false;          // true if initialized
 
+symbol *symboly(const char *name, regm_t desregs)
+{
+    symbol *s = symbol_calloc(name);
+    s->Stype = tsclib;
+    s->Sclass = SCextern;
+    s->Sfl = FLfunc;
+    s->Ssymnum = 0;
+    s->Sregsaved = ~desregs & (mBP | mES | ALLREGS);
+    return s;
+}
+
 void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
 {
+    unsigned clibsave = clib;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
   static symbol lib[] =
   {
@@ -1863,6 +1875,26 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
     Y(FLOATREGS_32,"_FNEG"),            // CLIBfneg
     Y(mAX|mBX|mCX|mDX,"_FADD"),         // CLIBfadd
     Y(mAX|mBX|mCX|mDX,"_FSUB"),         // CLIBfsub
+#else
+    Y(mAX|mBX|mCX|mDX,"DMUL@"),
+    Y(mAX|mBX|mCX|mDX,"DDIV@"),
+    Y(0,"DTST0@"),
+    Y(0,"DTST0EXC@"),
+    Y(0,"DCMP@"),
+    Y(0,"DCMPEXC@"),
+    Y(DOUBLEREGS_16,"DNEG@"),
+    Y(mAX|mBX|mCX|mDX,"DADD@"),
+    Y(mAX|mBX|mCX|mDX,"DSUB@"),
+
+    Y(mAX|mBX|mCX|mDX,"FMUL@"),
+    Y(mAX|mBX|mCX|mDX,"FDIV@"),
+    Y(0,"FTST0@"),
+    Y(0,"FTST0EXC@"),
+    Y(0,"FCMP@"),
+    Y(0,"FCMPEXC@"),
+    Y(FLOATREGS_16,"FNEG@"),
+    Y(mAX|mBX|mCX|mDX,"FADD@"),
+    Y(mAX|mBX|mCX|mDX,"FSUB@"),
 #endif
     Y(DOUBLEREGS_32,"_DBLLNG"),         // CLIBdbllng
     Y(DOUBLEREGS_32,"_LNGDBL"),         // CLIBlngdbl
@@ -1871,8 +1903,8 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
     Y(DOUBLEREGS_32,"_DBLUNS"),         // CLIBdbluns
     Y(DOUBLEREGS_32,"_UNSDBL"),         // CLIBunsdbl
     Y(mAX|mST0,"_DBLULNG"),             // CLIBdblulng
-#if 0
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULNGDBL@    ulngdbl
+#if 1
+    Y(DOUBLEREGS_16,"_ULNGDBL@"),
 #endif
     Y(DOUBLEREGS_32,"_DBLFLT"),         // CLIBdblflt
     Y(DOUBLEREGS_32,"_FLTDBL"),         // CLIBfltdbl
@@ -2012,7 +2044,7 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
     {mDX|mAX,mDX|mAX,0,0},              /* _ULDIV@      uldiv   */
     {mCX|mBX,mCX|mBX,0,0},              /* _ULDIV@      ulmod   */
 
-#if TARGET_WINDOS
+#if 1 || TARGET_WINDOS
     {DOUBLEREGS_16,DOUBLEREGS_32,8,INFfloat,1,1},       // _DMUL@       dmul
     {DOUBLEREGS_16,DOUBLEREGS_32,8,INFfloat,1,1},       // _DDIV@       ddiv
     {0,0,0,2},                                          // _DTST0@
@@ -2045,7 +2077,7 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
 #else
     {mDX|mAX,mAX,0,INFfloat,1,1},                       // _DBLULNG@    dblulng
 #endif
-#if TARGET_WINDOS
+#if 1 || TARGET_WINDOS
     {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULNGDBL@    ulngdbl
 #endif
     {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _DBLFLT@     dblflt
@@ -2131,14 +2163,14 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
             lib[CLIBlngdbl].Sregsaved  = Z(DOUBLEREGS_32);
             lib[CLIBdblint].Sregsaved  = Z(DOUBLEREGS_32);
             lib[CLIBintdbl].Sregsaved  = Z(DOUBLEREGS_32);
-#if TARGET_WINDOS
+//#if TARGET_WINDOS
             lib[CLIBfneg].Sregsaved    = Z(FLOATREGS_32);
             lib[CLIBdneg].Sregsaved    = Z(DOUBLEREGS_32);
             lib[CLIBdbluns].Sregsaved  = Z(DOUBLEREGS_32);
             lib[CLIBunsdbl].Sregsaved  = Z(DOUBLEREGS_32);
             lib[CLIBdblulng].Sregsaved = Z(DOUBLEREGS_32);
             lib[CLIBulngdbl].Sregsaved = Z(DOUBLEREGS_32);
-#endif
+//#endif
             lib[CLIBdblflt].Sregsaved  = Z(DOUBLEREGS_32);
             lib[CLIBfltdbl].Sregsaved  = Z(DOUBLEREGS_32);
 
@@ -2160,7 +2192,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 strcpy(lib[CLIBulmod].Sident, "_ms_aullrem"); info[CLIBulmod].retregs32 = mAX|mDX;
             }
         }
-        clib_inited = true;
     }
 #undef Z
 
@@ -2171,7 +2202,7 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
         {
             case CLIBdblullng:  clib = CLIBdblullng_win64; break;
             case CLIBullngdbl:  clib = CLIBullngdbl_win64; break;
-            case CLIBu64_ldbl:  assert(0); break;
+            //case CLIBu64_ldbl:  assert(0); break;
         }
     }
 #endif
@@ -2222,6 +2253,764 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
 #endif
     *ps = s;
     *pinfo = cinfo;
+
+    static symbol *clibsyms[CLIBMAX];
+    static ClibInfo clibinfo[CLIBMAX];
+
+    if (!clib_inited)
+    {
+        for (size_t i = 0; i < CLIBMAX; ++i)
+        {
+            s = clibsyms[i];
+            if (s)
+            {
+                s->Sxtrnnum = 0;
+                s->Stypidx = 0;
+            }
+        }
+        clib_inited = true;
+    }
+
+    const unsigned ex_unix = (EX_LINUX   | EX_LINUX64   |
+                              EX_OSX     | EX_OSX64     |
+                              EX_FREEBSD | EX_FREEBSD64 |
+                              EX_OPENBSD | EX_OPENBSD64 |
+                              EX_SOLARIS | EX_SOLARIS64);
+
+    s = clibsyms[clibsave];
+    if (!s)
+    {
+        cinfo = &clibinfo[clibsave];
+
+        switch (clibsave)
+        {
+            case CLIBlcmp:
+                {
+                    const char *name = (config.exe & ex_unix) ? "__LCMP__" : "_LCMP@";
+                    s = symboly(name, 0);
+                }
+                break;
+            case CLIBlmul:
+                {
+                    const char *name = (config.exe & ex_unix) ? "__LMUL__" : "_LMUL@";
+                    s = symboly(name, mAX|mCX|mDX);
+                    cinfo->retregs16 = mDX|mAX;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                break;
+            case CLIBldiv:
+                cinfo->retregs16 = mDX|mAX;
+                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                {
+                    s = symboly("__divdi3", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                {
+                    s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (I32 && config.objfmt == OBJ_MSCOFF)
+                {
+                    s = symboly("_ms_alldiv", ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__LDIV__" : "_LDIV@";
+                    s = symboly(name, (config.exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                break;
+            case CLIBlmod:
+                cinfo->retregs16 = mCX|mBX;
+                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                {
+                    s = symboly("__moddi3", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                {
+                    s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mCX|mBX;
+                }
+                else if (I32 && config.objfmt == OBJ_MSCOFF)
+                {
+                    s = symboly("_ms_allrem", ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__LDIV__" : "_LDIV@";
+                    s = symboly(name, (config.exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
+                    cinfo->retregs32 = mCX|mBX;
+                }
+                break;
+            case CLIBuldiv:
+                cinfo->retregs16 = mDX|mAX;
+                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                {
+                    s = symboly("__udivdi3", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                {
+                    s = symboly("__ULDIV2__", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (I32 && config.objfmt == OBJ_MSCOFF)
+                {
+                    s = symboly("_ms_aulldiv", ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__ULDIV__" : "_ULDIV@";
+                    s = symboly(name, (config.exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                break;
+            case CLIBulmod:
+                cinfo->retregs16 = mCX|mBX;
+                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                {
+                    s = symboly("__umoddi3", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                {
+                    s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mCX|mBX;
+                }
+                else if (I32 && config.objfmt == OBJ_MSCOFF)
+                {
+                    s = symboly("_ms_aullrem", ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__ULDIV__" : "_ULDIV@";
+                    s = symboly(name, (config.exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
+                    cinfo->retregs32 = mCX|mBX;
+                }
+                break;
+
+            // This section is only for Windows and DOS (i.e. machines without the x87 FPU)
+            case CLIBdmul:
+                s = symboly("_DMUL@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBddiv:
+                s = symboly("_DDIV@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBdtst0:
+                s = symboly("_DTST0@",0);
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBdtst0exc:
+                s = symboly("_DTST0EXC@",0);
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBdcmp:
+                s = symboly("_DCMP@",0);
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBdcmpexc:
+                s = symboly("_DCMPEXC@",0);
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBdneg:
+                s = symboly("_DNEG@",I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBdadd:
+                s = symboly("_DADD@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBdsub:
+                s = symboly("_DSUB@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBfmul:
+                s = symboly("_FMUL@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBfdiv:
+                s = symboly("_FDIV@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBftst0:
+                s = symboly("_FTST0@",0);
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBftst0exc:
+                s = symboly("_FTST0EXC@",0);
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBfcmp:
+                s = symboly("_FCMP@",0);
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBfcmpexc:
+                s = symboly("_FCMPEXC@",0);
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBfneg:
+                s = symboly("_FNEG@",I16 ? FLOATREGS_16 : FLOATREGS_32);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBfadd:
+                s = symboly("_FADD@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBfsub:
+                s = symboly("_FSUB@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+
+            case CLIBdbllng:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLLNG" : "_DBLLNG@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = mDX | mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBlngdbl:
+                // Y(DOUBLEREGS_32,"__LNGDBL"),         // CLIBlngdbl
+                // Y(DOUBLEREGS_16,"_LNGDBL@"),
+                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _LNGDBL@     lngdbl
+            {
+                const char *name = (config.exe & ex_unix) ? "__LNGDBL" : "_LNGDBL@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdblint:
+                // Y(DOUBLEREGS_32,"__DBLINT"),         // CLIBdblint
+                // Y(DOUBLEREGS_16,"_DBLINT@"),
+                // {mAX,mAX,0,INFfloat,1,1},                           // _DBLINT@     dblint
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLINT" : "_DBLINT@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBintdbl:
+                // Y(DOUBLEREGS_32,"__INTDBL"),         // CLIBintdbl
+                // Y(DOUBLEREGS_16,"_INTDBL@"),
+                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _INTDBL@     intdbl
+            {
+                const char *name = (config.exe & ex_unix) ? "__INTDBL" : "_INTDBL@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdbluns:
+                // Y(DOUBLEREGS_32,"__DBLUNS"),         // CLIBdbluns
+                // Y(DOUBLEREGS_16,"_DBLUNS@"),
+                // {mAX,mAX,0,INFfloat,1,1},                           // _DBLUNS@     dbluns
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLUNS" : "_DBLUNS@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBunsdbl:
+                // Y(DOUBLEREGS_32,"__UNSDBL"),         // CLIBunsdbl
+                // Y(DOUBLEREGS_16,"_UNSDBL@"),
+                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _UNSDBL@     unsdbl
+            {
+                const char *name = (config.exe & ex_unix) ? "__UNSDBL" : "_UNSDBL@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdblulng:
+                // Y(mAX|mST0,"__DBLULNG"),             // CLIBdblulng
+                // Y(DOUBLEREGS_16,"_DBLULNG@"),
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                // {mDX|mAX,mAX,0,INF32|INFfloat,0,1},                 // _DBLULNG@    dblulng
+#else
+                // {mDX|mAX,mAX,0,INFfloat,1,1},                       // _DBLULNG@    dblulng
+#endif
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLULNG" : "_DBLULNG@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = mDX|mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = (config.exe & ex_unix) ? INFfloat | INF32 : INFfloat;
+                cinfo->push87 = (config.exe & ex_unix) ? 0 : 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+    #if 1 || TARGET_WINDOS
+            case CLIBulngdbl:
+                // Y(DOUBLEREGS_16,"__ULNGDBL@"),
+                // Y(DOUBLEREGS_16,"_ULNGDBL@"),
+                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULNGDBL@    ulngdbl
+            {
+                const char *name = (config.exe & ex_unix) ? "__ULNGDBL@" : "_ULNGDBL@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+    #endif
+            case CLIBdblflt:
+                // Y(DOUBLEREGS_32,"__DBLFLT"),         // CLIBdblflt
+                // Y(DOUBLEREGS_16,"_DBLFLT@"),
+                // {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _DBLFLT@     dblflt
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLFLT" : "_DBLFLT@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBfltdbl:
+                // Y(DOUBLEREGS_32,"__FLTDBL"),         // CLIBfltdbl
+                // Y(ALLREGS,"_FLTDBL@"),
+                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _FLTDBL@     fltdbl
+            {
+                const char *name = (config.exe & ex_unix) ? "__FLTDBL" : "_FLTDBL@";
+                s = symboly(name, I16 ? ALLREGS : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdblllng:
+                // Y(DOUBLEREGS_32,"__DBLLLNG"),        // CLIBdblllng
+                // Y(DOUBLEREGS_16,"_DBLLLNG@"),
+                // {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLLLNG@
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLLLNG" : "_DBLLLNG@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = mDX|mAX;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBllngdbl:
+                // Y(DOUBLEREGS_32,"__LLNGDBL"),        // CLIBllngdbl
+                // Y(DOUBLEREGS_16,"_LLNGDBL@"),
+                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _LLNGDBL@
+            {
+                const char *name = (config.exe & ex_unix) ? "__LLNGDBL" : "_LLNGDBL@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdblullng:
+                // Y(DOUBLEREGS_32,"__DBLULLNG"),       // CLIBdblullng
+                // Y(DOUBLEREGS_16,"_DBLULLNG@"),
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                // {DOUBLEREGS_16,mDX|mAX,0,INFfloat,2,2},             // _DBLULLNG@
+#else
+                // {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLULLNG@
+#endif
+            {
+                if (config.exe == EX_WIN64)
+                {
+                    s = symboly("__DBLULLNG", DOUBLEREGS_32);
+                    cinfo->retregs32 = mAX;
+                    cinfo->flags = INFfloat;
+                    cinfo->push87 = 2;
+                    cinfo->pop87 = 2;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__DBLULLNG" : "_DBLULLNG@";
+                    s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                    cinfo->retregs16 = DOUBLEREGS_16;
+                    cinfo->retregs32 = I64 ? mAX : mDX|mAX;
+                    cinfo->flags = INFfloat;
+                    cinfo->push87 = (config.exe & ex_unix) ? 2 : 1;
+                    cinfo->pop87 = (config.exe & ex_unix) ? 2 : 1;
+                }
+                break;
+            }
+            case CLIBullngdbl:
+                // Y(DOUBLEREGS_32,"__ULLNGDBL"),       // CLIBullngdbl
+                // Y(DOUBLEREGS_16,"_ULLNGDBL@"),
+                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULLNGDBL@
+            {
+                if (config.exe == EX_WIN64)
+                {
+                    s = symboly("__ULLNGDBL", DOUBLEREGS_32);
+                    cinfo->retregs32 = mAX;
+                    cinfo->flags = INFfloat;
+                    cinfo->push87 = 1;
+                    cinfo->pop87 = 1;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__ULLNGDBL" : "_ULLNGDBL@";
+                    s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                    cinfo->retregs16 = DOUBLEREGS_16;
+                    cinfo->retregs32 = I64 ? mAX : DOUBLEREGS_32;
+                    cinfo->flags = INFfloat;
+                    cinfo->push87 = 1;
+                    cinfo->pop87 = 1;
+                }
+                break;
+            }
+            case CLIBdtst:
+                // Y(0,"__DTST"),                       // CLIBdtst
+                // Y(0,"_DTST@"),
+                // {0,0,0,2},                          // _DTST@       dtst
+            {
+                const char *name = (config.exe & ex_unix) ? "__DTST" : "_DTST@";
+                s = symboly(name, 0);
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBvptrfptr:
+                // Y(mES|mBX,"__HTOFPTR"),              // CLIBvptrfptr
+                // Y(mES|mBX,"_HTOFPTR@"),             // CLIBvptrfptr
+                // {mES|mBX,mES|mBX,0,0},              // _HTOFPTR@    vptrfptr
+            {
+                const char *name = (config.exe & ex_unix) ? "__HTOFPTR" : "_HTOFPTR@";
+                s = symboly(name, mES|mBX);
+                cinfo->retregs16 = mES|mBX;
+                cinfo->retregs32 = mES|mBX;
+                break;
+            }
+            case CLIBcvptrfptr:
+                // Y(mES|mBX,"__HCTOFPTR"),             // CLIBcvptrfptr
+                // Y(mES|mBX,"_HCTOFPTR@"),            // CLIBcvptrfptr
+                // {mES|mBX,mES|mBX,0,0},              // _HCTOFPTR@   cvptrfptr
+            {
+                const char *name = (config.exe & ex_unix) ? "__HCTOFPTR" : "_HCTOFPTR@";
+                s = symboly(name, mES|mBX);
+                cinfo->retregs16 = mES|mBX;
+                cinfo->retregs32 = mES|mBX;
+                break;
+            }
+            case CLIB87topsw:
+                // Y(0,"__87TOPSW"),                    // CLIB87topsw
+                // Y(0,"_87TOPSW@"),                   // CLIB87topsw
+                // {0,0,0,2},                          // _87TOPSW@    87topsw
+            {
+                const char *name = (config.exe & ex_unix) ? "__87TOPSW" : "_87TOPSW@";
+                s = symboly(name, 0);
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBfltto87:
+                // Y(mST0,"__FLTTO87"),                 // CLIBfltto87
+                // Y(mST0,"_FLTTO87@"),                // CLIBfltto87
+                // {mST0,mST0,0,INFfloat,1,0},         // _FLTTO87@    fltto87
+            {
+                const char *name = (config.exe & ex_unix) ? "__FLTTO87" : "_FLTTO87@";
+                s = symboly(name, mST0);
+                cinfo->retregs16 = mST0;
+                cinfo->retregs32 = mST0;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                break;
+            }
+            case CLIBdblto87:
+                // Y(mST0,"__DBLTO87"),                 // CLIBdblto87
+                // Y(mST0,"_DBLTO87@"),                // CLIBdblto87
+                // {mST0,mST0,0,INFfloat,1,0},         // _DBLTO87@    dblto87
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLTO87" : "_DBLTO87@";
+                s = symboly(name, mST0);
+                cinfo->retregs16 = mST0;
+                cinfo->retregs32 = mST0;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                break;
+            }
+            case CLIBdblint87:
+                // Y(mST0|mAX,"__DBLINT87"),            // CLIBdblint87
+                // Y(mST0|mAX,"_DBLINT87@"),           // CLIBdblint87
+                // {mAX,mAX,0,2},                      // _DBLINT87@   dblint87
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLINT87" : "_DBLINT87@";
+                s = symboly(name, mST0|mAX);
+                cinfo->retregs16 = mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBdbllng87:
+                // Y(mST0|mAX|mDX,"__DBLLNG87"),        // CLIBdbllng87
+                // Y(mST0|mAX|mDX,"_DBLLNG87@"),       // CLIBdbllng87
+                // {mDX|mAX,mAX,0,2},                  // _DBLLNG87@   dbllng87
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLLNG87" : "_DBLLNG87@";
+                s = symboly(name, mST0|mAX|mDX);
+                cinfo->retregs16 = mDX|mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBftst:
+                // Y(0,"__FTST"),                       // CLIBftst
+                // Y(0,"_FTST@"),
+                // {0,0,0,2},                          // _FTST@
+            {
+                const char *name = (config.exe & ex_unix) ? "__FTST" : "_FTST@";
+                s = symboly(name, 0);
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBfcompp:
+                // Y(0,"__FCOMPP"),                     // CLIBfcompp
+                // Y(0,"_FCOMPP@"),                    // CLIBfcompp
+                // {mPSW,mPSW,0,INFfloat,0,2},         // _FCOMPP@
+            {
+                const char *name = (config.exe & ex_unix) ? "__FCOMPP" : "_FCOMPP@";
+                s = symboly(name, 0);
+                cinfo->retregs16 = mPSW;
+                cinfo->retregs32 = mPSW;
+                cinfo->flags = INFfloat;
+                cinfo->pop87 = 2;
+                break;
+            }
+            case CLIBftest:
+                // Y(0,"__FTEST"),                      // CLIBftest
+                // Y(0,"_FTEST@"),                     // CLIBftest
+                // {mPSW,mPSW,0,2},                    // _FTEST@
+            {
+                const char *name = (config.exe & ex_unix) ? "__FTEST" : "_FTEST@";
+                s = symboly(name, 0);
+                cinfo->retregs16 = mPSW;
+                cinfo->retregs32 = mPSW;
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBftest0:
+                // Y(0,"__FTEST0"),                     // CLIBftest0
+                // Y(0,"_FTEST0@"),                    // CLIBftest0
+                // {mPSW,mPSW,0,2},                    // _FTEST0@
+            {
+                const char *name = (config.exe & ex_unix) ? "__FTEST0" : "_FTEST0@";
+                s = symboly(name, 0);
+                cinfo->retregs16 = mPSW;
+                cinfo->retregs32 = mPSW;
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBfdiv87:
+                // Y(mST0|mAX|mBX|mCX|mDX,"__FDIVP"),   // CLIBfdiv87
+                // Y(mST0|mAX|mBX|mCX|mDX,"_FDIVP"),   // CLIBfdiv87
+                // {mST0,mST0,0,INFfloat,1,1},         // _FDIV@
+            {
+                const char *name = (config.exe & ex_unix) ? "__FDIVP" : "_FDIVP";
+                s = symboly(name, mST0|mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = mST0;
+                cinfo->retregs32 = mST0;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+
+            // Complex numbers
+            case CLIBcmul:
+                // Y(mST0|mST01,"_Cmul"),               // CLIBcmul
+                // NOTE: desregs is wrong for 16 bit code, mBX should be included
+                // Y(mST0|mST01,"_Cmul"),              // CLIBcmul
+                // {mST01,mST01,0,INF32|INFfloat,3,5}, // _Cmul
+            {
+                s = symboly("_Cmul", mST0|mST01);
+                cinfo->retregs16 = mST01;
+                cinfo->retregs32 = mST01;
+                cinfo->flags = INF32|INFfloat;
+                cinfo->push87 = 3;
+                cinfo->pop87 = 5;
+                break;
+            }
+            case CLIBcdiv:
+                // Y(mAX|mCX|mDX|mST0|mST01,"_Cdiv"),   // CLIBcdiv
+                // Y(mAX|mCX|mDX|mST0|mST01,"_Cdiv"),  // CLIBcdiv
+                // {mST01,mST01,0,INF32|INFfloat,0,2}, // _Cdiv
+            {
+                s = symboly("_Cdiv", mAX|mCX|mDX|mST0|mST01);
+                cinfo->retregs16 = mST01;
+                cinfo->retregs32 = mST01;
+                cinfo->flags = INF32|INFfloat;
+                cinfo->push87 = 0;
+                cinfo->pop87 = 2;
+                break;
+            }
+            case CLIBccmp:
+                // Y(mAX|mST0|mST01,"_Ccmp"),           // CLIBccmp
+                // Y(mAX|mST0|mST01,"_Ccmp"),          // CLIBccmp
+                // {mPSW, mPSW, 0,INF32|INFfloat,0,4}, // _Ccmp
+            {
+                s = symboly("_Ccmp", mAX|mST0|mST01);
+                cinfo->retregs16 = mPSW;
+                cinfo->retregs32 = mPSW;
+                cinfo->flags = INF32|INFfloat;
+                cinfo->push87 = 0;
+                cinfo->pop87 = 4;
+                break;
+            }
+
+            case CLIBu64_ldbl:
+                // Y(mST0,"__U64_LDBL"),                // CLIBu64_ldbl
+                // Y(mST0,"_U64_LDBL"),                // CLIBu64_ldbl
+                // {mST0,mST0,0,INF32|INF64|INFfloat,2,1},   // _U64_LDBL
+            {
+                const char *name = (config.exe & ex_unix) ? "__U64_LDBL" : "_U64_LDBL";
+                s = symboly(name, mST0);
+                cinfo->retregs16 = mST0;
+                cinfo->retregs32 = mST0;
+                cinfo->flags = INF32|INF64|INFfloat;
+                cinfo->push87 = 2;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBld_u64:
+#if ELFOBJ || MACHOBJ
+                // Y(mST0|mAX|mDX,"__LDBLULLNG"),       // CLIBld_u64
+#else
+                // Y(mST0|mAX|mDX,"___LDBLULLNG"),      // CLIBld_u64
+#endif
+                // Y(mST0|mAX|mDX,"__LDBLULLNG"),      // CLIBld_u64
+                // {0,mDX|mAX,0,INF32|INF64|INFfloat,1,2},   // __LDBLULLNG
+            {
+                const char *name = (config.exe & ex_unix) ? (config.objfmt == OBJ_ELF ||
+                                                             config.objfmt == OBJ_MACH ?
+                                                                "__LDBLULLNG" : "___LDBLULLNG")
+                                                          : "__LDBLULLNG";
+                s = symboly(name, mST0|mAX|mDX);
+                cinfo->retregs16 = 0;
+                cinfo->retregs32 = mDX|mAX;
+                cinfo->flags = INF32|INF64|INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 2;
+                break;
+            }
+                break;
+
+            default:
+                assert(0);
+        }
+        clibsyms[clibsave] = s;
+    }
+
+    // Debug check that the second part produces the same result as the first
+    if (s)
+    {
+        symbol *sold = *ps;
+        if (strcmp(sold->Sident, s->Sident) != 0)
+        {
+            printf("sold = '%s', s = '%s'\n", sold->Sident, s->Sident);
+        }
+        assert(strcmp(sold->Sident, s->Sident) == 0);
+        assert(sold->Sfl == s->Sfl);
+        assert(sold->Sclass == s->Sclass);
+        if (sold->Sregsaved != s->Sregsaved)
+            printf("sold = '%s', s = '%s'\n", sold->Sident, s->Sident);
+        assert(sold->Sregsaved == s->Sregsaved);
+        if (memcmp(*pinfo, cinfo, sizeof(ClibInfo)) != 0)
+            printf("sold = '%s', s = '%s'\n", sold->Sident, s->Sident);
+        assert(memcmp(*pinfo, cinfo, sizeof(ClibInfo)) == 0);
+        *ps = s;
+        *pinfo = cinfo;
+    }
 }
 
 /********************************
@@ -2240,6 +3029,14 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     assert(clib < CLIBMAX);
     symbol *s;
     ClibInfo *cinfo;
+
+    if (!clib_inited)
+    {
+        // Test them all
+        for (int i = 0; i < CLIBld_u64; ++i)
+            getClibInfo(i, &s, &cinfo);
+    }
+
     getClibInfo(clib, &s, &cinfo);
 
     if (I16)
