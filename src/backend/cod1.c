@@ -1826,434 +1826,6 @@ symbol *symboly(const char *name, regm_t desregs)
 
 void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
 {
-    unsigned clibsave = clib;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-  static symbol lib[] =
-  {
-/* Convert destroyed regs into saved regs       */
-#define Z(desregs)      (~(desregs) & (mBP| mES | ALLREGS))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define N(name) "_" name
-#else
-#define N(name) name
-#endif
-
-/* Shorthand to map onto SYMBOLY()              */
-#define Y(desregs,name)  SYMBOLY(FLfunc,Z(desregs),N(name),0)
-
-    Y(0,"_LCMP__"),                     // CLIBlcmp
-    Y(mAX|mCX|mDX,"_LMUL__"),           // CLIBlmul
-#if 1
-    Y(mAX|mBX|mCX|mDX,"_LDIV__"),       // CLIBldiv
-    Y(mAX|mBX|mCX|mDX,"_LDIV__"),       // CLIBlmod
-    Y(mAX|mBX|mCX|mDX,"_ULDIV__"),      // CLIBuldiv
-    Y(mAX|mBX|mCX|mDX,"_ULDIV__"),      // CLIBulmod
-#else
-    Y(ALLREGS,"_LDIV__"),               // CLIBldiv
-    Y(ALLREGS,"_LDIV__"),               // CLIBlmod
-    Y(ALLREGS,"_ULDIV__"),              // CLIBuldiv
-    Y(ALLREGS,"_ULDIV__"),              // CLIBulmod
-#endif
-#if 0
-    Y(DOUBLEREGS_16,"_DNEG"),
-    Y(mAX|mBX|mCX|mDX,"_DMUL"),         // CLIBdmul
-    Y(mAX|mBX|mCX|mDX,"_DDIV"),         // CLIBddiv
-    Y(0,"_DTST0"),                      // CLIBdtst0
-    Y(0,"_DTST0EXC"),                   // CLIBdtst0exc
-    Y(0,"_DCMP"),                       // CLIBdcmp
-    Y(0,"_DCMPEXC"),                    // CLIBdcmpexc
-
-    Y(mAX|mBX|mCX|mDX,"_DADD"),         // CLIBdadd
-    Y(mAX|mBX|mCX|mDX,"_DSUB"),         // CLIBdsub
-
-    Y(mAX|mBX|mCX|mDX,"_FMUL"),         // CLIBfmul
-    Y(mAX|mBX|mCX|mDX,"_FDIV"),         // CLIBfdiv
-    Y(0,"_FTST0"),                      // CLIBftst0
-    Y(0,"_FTST0EXC"),                   // CLIBftst0exc
-    Y(0,"_FCMP"),                       // CLIBfcmp
-    Y(0,"_FCMPEXC"),                    // CLIBfcmpexc
-    Y(FLOATREGS_32,"_FNEG"),            // CLIBfneg
-    Y(mAX|mBX|mCX|mDX,"_FADD"),         // CLIBfadd
-    Y(mAX|mBX|mCX|mDX,"_FSUB"),         // CLIBfsub
-#else
-    Y(mAX|mBX|mCX|mDX,"DMUL@"),
-    Y(mAX|mBX|mCX|mDX,"DDIV@"),
-    Y(0,"DTST0@"),
-    Y(0,"DTST0EXC@"),
-    Y(0,"DCMP@"),
-    Y(0,"DCMPEXC@"),
-    Y(DOUBLEREGS_16,"DNEG@"),
-    Y(mAX|mBX|mCX|mDX,"DADD@"),
-    Y(mAX|mBX|mCX|mDX,"DSUB@"),
-
-    Y(mAX|mBX|mCX|mDX,"FMUL@"),
-    Y(mAX|mBX|mCX|mDX,"FDIV@"),
-    Y(0,"FTST0@"),
-    Y(0,"FTST0EXC@"),
-    Y(0,"FCMP@"),
-    Y(0,"FCMPEXC@"),
-    Y(FLOATREGS_16,"FNEG@"),
-    Y(mAX|mBX|mCX|mDX,"FADD@"),
-    Y(mAX|mBX|mCX|mDX,"FSUB@"),
-#endif
-    Y(DOUBLEREGS_32,"_DBLLNG"),         // CLIBdbllng
-    Y(DOUBLEREGS_32,"_LNGDBL"),         // CLIBlngdbl
-    Y(DOUBLEREGS_32,"_DBLINT"),         // CLIBdblint
-    Y(DOUBLEREGS_32,"_INTDBL"),         // CLIBintdbl
-    Y(DOUBLEREGS_32,"_DBLUNS"),         // CLIBdbluns
-    Y(DOUBLEREGS_32,"_UNSDBL"),         // CLIBunsdbl
-    Y(mAX|mST0,"_DBLULNG"),             // CLIBdblulng
-#if 1
-    Y(DOUBLEREGS_16,"_ULNGDBL@"),
-#endif
-    Y(DOUBLEREGS_32,"_DBLFLT"),         // CLIBdblflt
-    Y(DOUBLEREGS_32,"_FLTDBL"),         // CLIBfltdbl
-
-    Y(DOUBLEREGS_32,"_DBLLLNG"),        // CLIBdblllng
-    Y(DOUBLEREGS_32,"_LLNGDBL"),        // CLIBllngdbl
-    Y(DOUBLEREGS_32,"_DBLULLNG"),       // CLIBdblullng
-    Y(DOUBLEREGS_32,"_ULLNGDBL"),       // CLIBullngdbl
-
-    Y(0,"_DTST"),                       // CLIBdtst
-    Y(mES|mBX,"_HTOFPTR"),              // CLIBvptrfptr
-    Y(mES|mBX,"_HCTOFPTR"),             // CLIBcvptrfptr
-    Y(0,"_87TOPSW"),                    // CLIB87topsw
-    Y(mST0,"_FLTTO87"),                 // CLIBfltto87
-    Y(mST0,"_DBLTO87"),                 // CLIBdblto87
-    Y(mST0|mAX,"_DBLINT87"),            // CLIBdblint87
-    Y(mST0|mAX|mDX,"_DBLLNG87"),        // CLIBdbllng87
-    Y(0,"_FTST"),                       // CLIBftst
-    Y(0,"_FCOMPP"),                     // CLIBfcompp
-    Y(0,"_FTEST"),                      // CLIBftest
-    Y(0,"_FTEST0"),                     // CLIBftest0
-    Y(mST0|mAX|mBX|mCX|mDX,"_FDIVP"),   // CLIBfdiv87
-
-    Y(mST0|mST01,"Cmul"),               // CLIBcmul
-    Y(mAX|mCX|mDX|mST0|mST01,"Cdiv"),   // CLIBcdiv
-    Y(mAX|mST0|mST01,"Ccmp"),           // CLIBccmp
-
-    Y(mST0,"_U64_LDBL"),                // CLIBu64_ldbl
-#if ELFOBJ || MACHOBJ
-    Y(mST0|mAX|mDX,"_LDBLULLNG"),       // CLIBld_u64
-#else
-    Y(mST0|mAX|mDX,"__LDBLULLNG"),      // CLIBld_u64
-#endif
-  };
-  static symbol clibldiv2  = Y(mAX|mBX|mCX|mDX,"_LDIV2__");
-  static symbol clibuldiv2 = Y(mAX|mBX|mCX|mDX,"_ULDIV2__");
-
-  static symbol clibldiv3  = Y(mAX|mBX|mCX|mDX,"_divdi3");
-  static symbol clibuldiv3 = Y(mAX|mBX|mCX|mDX,"_udivdi3");
-  static symbol cliblmod3  = Y(mAX|mBX|mCX|mDX,"_moddi3");
-  static symbol clibulmod3 = Y(mAX|mBX|mCX|mDX,"_umoddi3");
-#else
-  static symbol lib[CLIBMAX] =
-  {
-/* Convert destroyed regs into saved regs       */
-#define Z(desregs)      (~(desregs) & (mBP| mES | ALLREGS))
-
-/* Shorthand to map onto SYMBOLY()              */
-#define Y(desregs,name)  SYMBOLY(FLfunc,Z(desregs),name,0)
-
-    Y(0,"_LCMP@"),
-    Y(mAX|mCX|mDX,"_LMUL@"),
-    Y(ALLREGS,"_LDIV@"),
-    Y(ALLREGS,"_LDIV@"),
-    Y(ALLREGS,"_ULDIV@"),
-    Y(ALLREGS,"_ULDIV@"),
-    Y(mAX|mBX|mCX|mDX,"_DMUL@"),
-    Y(mAX|mBX|mCX|mDX,"_DDIV@"),
-    Y(0,"_DTST0@"),
-    Y(0,"_DTST0EXC@"),
-    Y(0,"_DCMP@"),
-    Y(0,"_DCMPEXC@"),
-
-    /* _DNEG@ only really destroys EDX, but then EAX would hold */
-    /* 2 values, and we can't handle that.                      */
-
-    /* _DNEG@ only really destroys AX, but then BX,CX,DX would hold     */
-    /* 2 values, and we can't handle that.                              */
-
-    Y(DOUBLEREGS_16,"_DNEG@"),
-    Y(mAX|mBX|mCX|mDX,"_DADD@"),
-    Y(mAX|mBX|mCX|mDX,"_DSUB@"),
-
-    Y(mAX|mBX|mCX|mDX,"_FMUL@"),
-    Y(mAX|mBX|mCX|mDX,"_FDIV@"),
-    Y(0,"_FTST0@"),
-    Y(0,"_FTST0EXC@"),
-    Y(0,"_FCMP@"),
-    Y(0,"_FCMPEXC@"),
-    Y(FLOATREGS_16,"_FNEG@"),
-    Y(mAX|mBX|mCX|mDX,"_FADD@"),
-    Y(mAX|mBX|mCX|mDX,"_FSUB@"),
-    Y(DOUBLEREGS_16,"_DBLLNG@"),
-    Y(DOUBLEREGS_16,"_LNGDBL@"),
-    Y(DOUBLEREGS_16,"_DBLINT@"),
-    Y(DOUBLEREGS_16,"_INTDBL@"),
-    Y(DOUBLEREGS_16,"_DBLUNS@"),
-    Y(DOUBLEREGS_16,"_UNSDBL@"),
-    Y(DOUBLEREGS_16,"_DBLULNG@"),
-    Y(DOUBLEREGS_16,"_ULNGDBL@"),
-    Y(DOUBLEREGS_16,"_DBLFLT@"),
-    Y(ALLREGS,"_FLTDBL@"),
-
-    Y(DOUBLEREGS_16,"_DBLLLNG@"),
-    Y(DOUBLEREGS_16,"_LLNGDBL@"),
-#if 0
-    Y(DOUBLEREGS_16,"__DBLULLNG"),
-#else
-    Y(DOUBLEREGS_16,"_DBLULLNG@"),
-#endif
-    Y(DOUBLEREGS_16,"_ULLNGDBL@"),
-
-    Y(0,"_DTST@"),
-    Y(mES|mBX,"_HTOFPTR@"),             // CLIBvptrfptr
-    Y(mES|mBX,"_HCTOFPTR@"),            // CLIBcvptrfptr
-    Y(0,"_87TOPSW@"),                   // CLIB87topsw
-    Y(mST0,"_FLTTO87@"),                // CLIBfltto87
-    Y(mST0,"_DBLTO87@"),                // CLIBdblto87
-    Y(mST0|mAX,"_DBLINT87@"),           // CLIBdblint87
-    Y(mST0|mAX|mDX,"_DBLLNG87@"),       // CLIBdbllng87
-    Y(0,"_FTST@"),
-    Y(0,"_FCOMPP@"),                    // CLIBfcompp
-    Y(0,"_FTEST@"),                     // CLIBftest
-    Y(0,"_FTEST0@"),                    // CLIBftest0
-    Y(mST0|mAX|mBX|mCX|mDX,"_FDIVP"),   // CLIBfdiv87
-
-    // NOTE: desregs is wrong for 16 bit code, mBX should be included
-    Y(mST0|mST01,"_Cmul"),              // CLIBcmul
-    Y(mAX|mCX|mDX|mST0|mST01,"_Cdiv"),  // CLIBcdiv
-    Y(mAX|mST0|mST01,"_Ccmp"),          // CLIBccmp
-
-    Y(mST0,"_U64_LDBL"),                // CLIBu64_ldbl
-    Y(mST0|mAX|mDX,"__LDBLULLNG"),      // CLIBld_u64
-
-
-    Y(DOUBLEREGS_32,"__DBLULLNG"),      // CLIBdblullng_win64
-    Y(DOUBLEREGS_32,"__ULLNGDBL"),      // CLIBullngdbl_win64
-  };
-#endif
-
-  static ClibInfo info[CLIBMAX] =
-  {
-    {0,0,0,0},                          /* _LCMP@       lcmp    */
-    {mDX|mAX,mDX|mAX,0,0},              // _LMUL@       lmul
-    {mDX|mAX,mDX|mAX,0,0},              // _LDIV@       ldiv
-    {mCX|mBX,mCX|mBX,0,0},              /* _LDIV@       lmod    */
-    {mDX|mAX,mDX|mAX,0,0},              /* _ULDIV@      uldiv   */
-    {mCX|mBX,mCX|mBX,0,0},              /* _ULDIV@      ulmod   */
-
-#if 1 || TARGET_WINDOS
-    {DOUBLEREGS_16,DOUBLEREGS_32,8,INFfloat,1,1},       // _DMUL@       dmul
-    {DOUBLEREGS_16,DOUBLEREGS_32,8,INFfloat,1,1},       // _DDIV@       ddiv
-    {0,0,0,2},                                          // _DTST0@
-    {0,0,0,2},                                          // _DTST0EXC@
-    {0,0,8,INFfloat,1,1},                               // _DCMP@       dcmp
-    {0,0,8,INFfloat,1,1},                               // _DCMPEXC@    dcmp
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,2},                  // _DNEG@       dneg
-    {DOUBLEREGS_16,DOUBLEREGS_32,8,INFfloat,1,1},       // _DADD@       dadd
-    {DOUBLEREGS_16,DOUBLEREGS_32,8,INFfloat,1,1},       // _DSUB@       dsub
-
-    {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _FMUL@       fmul
-    {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _FDIV@       fdiv
-    {0,0,0,2},                                          // _FTST0@
-    {0,0,0,2},                                          // _FTST0EXC@
-    {0,0,0,INFfloat,1,1},                               // _FCMP@       fcmp
-    {0,0,0,INFfloat,1,1},                               // _FCMPEXC@    fcmp
-    {FLOATREGS_16,FLOATREGS_32,0,2},                    // _FNEG@       fneg
-    {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _FADD@       fadd
-    {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _FSUB@       fsub
-#endif
-
-    {mDX|mAX,mAX,0,INFfloat,1,1},                       // _DBLLNG@     dbllng
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _LNGDBL@     lngdbl
-    {mAX,mAX,0,INFfloat,1,1},                           // _DBLINT@     dblint
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _INTDBL@     intdbl
-    {mAX,mAX,0,INFfloat,1,1},                           // _DBLUNS@     dbluns
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _UNSDBL@     unsdbl
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    {mDX|mAX,mAX,0,INF32|INFfloat,0,1},                 // _DBLULNG@    dblulng
-#else
-    {mDX|mAX,mAX,0,INFfloat,1,1},                       // _DBLULNG@    dblulng
-#endif
-#if 1 || TARGET_WINDOS
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULNGDBL@    ulngdbl
-#endif
-    {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _DBLFLT@     dblflt
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _FLTDBL@     fltdbl
-
-    {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLLLNG@
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _LLNGDBL@
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    {DOUBLEREGS_16,mDX|mAX,0,INFfloat,2,2},             // _DBLULLNG@
-#else
-    {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLULLNG@
-#endif
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULLNGDBL@
-
-    {0,0,0,2},                          // _DTST@       dtst
-    {mES|mBX,mES|mBX,0,0},              // _HTOFPTR@    vptrfptr
-    {mES|mBX,mES|mBX,0,0},              // _HCTOFPTR@   cvptrfptr
-    {0,0,0,2},                          // _87TOPSW@    87topsw
-    {mST0,mST0,0,INFfloat,1,0},         // _FLTTO87@    fltto87
-    {mST0,mST0,0,INFfloat,1,0},         // _DBLTO87@    dblto87
-    {mAX,mAX,0,2},                      // _DBLINT87@   dblint87
-    {mDX|mAX,mAX,0,2},                  // _DBLLNG87@   dbllng87
-    {0,0,0,2},                          // _FTST@
-    {mPSW,mPSW,0,INFfloat,0,2},         // _FCOMPP@
-    {mPSW,mPSW,0,2},                    // _FTEST@
-    {mPSW,mPSW,0,2},                    // _FTEST0@
-    {mST0,mST0,0,INFfloat,1,1},         // _FDIV@
-
-    {mST01,mST01,0,INF32|INFfloat,3,5}, // _Cmul
-    {mST01,mST01,0,INF32|INFfloat,0,2}, // _Cdiv
-    {mPSW, mPSW, 0,INF32|INFfloat,0,4}, // _Ccmp
-
-    {mST0,mST0,0,INF32|INF64|INFfloat,2,1},   // _U64_LDBL
-    {0,mDX|mAX,0,INF32|INF64|INFfloat,1,2},   // __LDBLULLNG
-
-#if TARGET_WINDOS
-    {0,mAX,0,INFfloat,2,2},                   // __DBLULLNG   CLIBdblullng_win64
-    {0,mAX,0,INFfloat,1,1},                   // __ULLNGDBL   CLIBullngdbl_win64
-#endif
-  };
-
-    if (!clib_inited)                         // if not initialized
-    {
-        assert(sizeof(lib) / sizeof(lib[0]) == CLIBMAX);
-        assert(sizeof(info) / sizeof(info[0]) == CLIBMAX);
-        for (int i = 0; i < CLIBMAX; i++)
-        {   lib[i].Stype = tsclib;
-#if MARS
-            lib[i].Sxtrnnum = 0;
-            lib[i].Stypidx = 0;
-#endif
-        }
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        clibldiv2.Stype = tsclib;
-        clibuldiv2.Stype = tsclib;
-        clibldiv3.Stype = tsclib;
-        clibuldiv3.Stype = tsclib;
-        cliblmod3.Stype = tsclib;
-        clibulmod3.Stype = tsclib;
-#if MARS
-        clibldiv2.Sxtrnnum = 0;
-        clibldiv2.Stypidx = 0;
-
-        clibuldiv2.Sxtrnnum = 0;
-        clibuldiv2.Stypidx = 0;
-
-        clibldiv3.Sxtrnnum = 0;
-        clibldiv3.Stypidx = 0;
-
-        clibuldiv3.Sxtrnnum = 0;
-        clibuldiv3.Stypidx = 0;
-
-        cliblmod3.Sxtrnnum = 0;
-        cliblmod3.Stypidx = 0;
-
-        clibulmod3.Sxtrnnum = 0;
-        clibulmod3.Stypidx = 0;
-#endif
-#endif
-        if (!I16)
-        {   /* Adjust table for 386     */
-            lib[CLIBdbllng].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBlngdbl].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBdblint].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBintdbl].Sregsaved  = Z(DOUBLEREGS_32);
-//#if TARGET_WINDOS
-            lib[CLIBfneg].Sregsaved    = Z(FLOATREGS_32);
-            lib[CLIBdneg].Sregsaved    = Z(DOUBLEREGS_32);
-            lib[CLIBdbluns].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBunsdbl].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBdblulng].Sregsaved = Z(DOUBLEREGS_32);
-            lib[CLIBulngdbl].Sregsaved = Z(DOUBLEREGS_32);
-//#endif
-            lib[CLIBdblflt].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBfltdbl].Sregsaved  = Z(DOUBLEREGS_32);
-
-            lib[CLIBdblllng].Sregsaved = Z(DOUBLEREGS_32);
-            lib[CLIBllngdbl].Sregsaved = Z(DOUBLEREGS_32);
-            lib[CLIBdblullng].Sregsaved = Z(DOUBLEREGS_32);
-            lib[CLIBullngdbl].Sregsaved = Z(DOUBLEREGS_32);
-
-            if (I64)
-            {
-                info[CLIBullngdbl].retregs32 = mAX;
-                info[CLIBdblullng].retregs32 = mAX;
-            }
-            else if (config.objfmt == OBJ_MSCOFF)
-            {
-                strcpy(lib[CLIBldiv].Sident, "_ms_alldiv");
-                strcpy(lib[CLIBlmod].Sident, "_ms_allrem");   info[CLIBlmod].retregs32 = mAX|mDX;
-                strcpy(lib[CLIBuldiv].Sident, "_ms_aulldiv");
-                strcpy(lib[CLIBulmod].Sident, "_ms_aullrem"); info[CLIBulmod].retregs32 = mAX|mDX;
-            }
-        }
-    }
-#undef Z
-
-#if TARGET_WINDOS
-    if (config.exe == EX_WIN64)
-    {
-        switch (clib)
-        {
-            case CLIBdblullng:  clib = CLIBdblullng_win64; break;
-            case CLIBullngdbl:  clib = CLIBullngdbl_win64; break;
-            //case CLIBu64_ldbl:  assert(0); break;
-        }
-    }
-#endif
-    symbol *s = &lib[clib];
-    ClibInfo *cinfo = &info[clib];
-
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    if (I32)
-    {
-#if TARGET_LINUX || TARGET_FREEBSD
-        switch (clib)
-        {
-            case CLIBldiv:
-                s = &clibldiv3;
-                cinfo->flags |= INFpushebx;
-                break;
-            case CLIBlmod:
-                s = &cliblmod3;
-                cinfo->retregs32 = mAX|mDX;
-                cinfo->flags |= INFpushebx;
-                break;
-            case CLIBuldiv:
-                s = &clibuldiv3;
-                cinfo->flags |= INFpushebx;
-                break;
-            case CLIBulmod:
-                s = &clibulmod3;
-                cinfo->retregs32 = mAX|mDX;
-                cinfo->flags |= INFpushebx;
-                break;
-        }
-#else
-        switch (clib)
-        {   // EBX is a parameter to these, so push it on the stack before load_localgot()
-            case CLIBldiv:
-            case CLIBlmod:
-                s = &clibldiv2;
-                cinfo->flags |= INFpushebx;
-                break;
-            case CLIBuldiv:
-            case CLIBulmod:
-                s = &clibuldiv2;
-                cinfo->flags |= INFpushebx;
-                break;
-        }
-#endif
-    }
-#endif
-    *ps = s;
-    *pinfo = cinfo;
-
     static symbol *clibsyms[CLIBMAX];
     static ClibInfo clibinfo[CLIBMAX];
 
@@ -2261,7 +1833,7 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
     {
         for (size_t i = 0; i < CLIBMAX; ++i)
         {
-            s = clibsyms[i];
+            symbol *s = clibsyms[i];
             if (s)
             {
                 s->Sxtrnnum = 0;
@@ -2277,12 +1849,12 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                               EX_OPENBSD | EX_OPENBSD64 |
                               EX_SOLARIS | EX_SOLARIS64);
 
-    s = clibsyms[clibsave];
+    ClibInfo *cinfo = &clibinfo[clib];
+    symbol *s = clibsyms[clib];
     if (!s)
     {
-        cinfo = &clibinfo[clibsave];
 
-        switch (clibsave)
+        switch (clib)
         {
             case CLIBlcmp:
                 {
@@ -2539,9 +2111,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBlngdbl:
-                // Y(DOUBLEREGS_32,"__LNGDBL"),         // CLIBlngdbl
-                // Y(DOUBLEREGS_16,"_LNGDBL@"),
-                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _LNGDBL@     lngdbl
             {
                 const char *name = (config.exe & ex_unix) ? "__LNGDBL" : "_LNGDBL@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
@@ -2553,9 +2122,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBdblint:
-                // Y(DOUBLEREGS_32,"__DBLINT"),         // CLIBdblint
-                // Y(DOUBLEREGS_16,"_DBLINT@"),
-                // {mAX,mAX,0,INFfloat,1,1},                           // _DBLINT@     dblint
             {
                 const char *name = (config.exe & ex_unix) ? "__DBLINT" : "_DBLINT@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
@@ -2567,9 +2133,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBintdbl:
-                // Y(DOUBLEREGS_32,"__INTDBL"),         // CLIBintdbl
-                // Y(DOUBLEREGS_16,"_INTDBL@"),
-                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _INTDBL@     intdbl
             {
                 const char *name = (config.exe & ex_unix) ? "__INTDBL" : "_INTDBL@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
@@ -2581,9 +2144,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBdbluns:
-                // Y(DOUBLEREGS_32,"__DBLUNS"),         // CLIBdbluns
-                // Y(DOUBLEREGS_16,"_DBLUNS@"),
-                // {mAX,mAX,0,INFfloat,1,1},                           // _DBLUNS@     dbluns
             {
                 const char *name = (config.exe & ex_unix) ? "__DBLUNS" : "_DBLUNS@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
@@ -2609,13 +2169,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBdblulng:
-                // Y(mAX|mST0,"__DBLULNG"),             // CLIBdblulng
-                // Y(DOUBLEREGS_16,"_DBLULNG@"),
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-                // {mDX|mAX,mAX,0,INF32|INFfloat,0,1},                 // _DBLULNG@    dblulng
-#else
-                // {mDX|mAX,mAX,0,INFfloat,1,1},                       // _DBLULNG@    dblulng
-#endif
             {
                 const char *name = (config.exe & ex_unix) ? "__DBLULNG" : "_DBLULNG@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
@@ -2626,11 +2179,7 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 cinfo->pop87 = 1;
                 break;
             }
-    #if 1 || TARGET_WINDOS
             case CLIBulngdbl:
-                // Y(DOUBLEREGS_16,"__ULNGDBL@"),
-                // Y(DOUBLEREGS_16,"_ULNGDBL@"),
-                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULNGDBL@    ulngdbl
             {
                 const char *name = (config.exe & ex_unix) ? "__ULNGDBL@" : "_ULNGDBL@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
@@ -2641,11 +2190,7 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 cinfo->pop87 = 1;
                 break;
             }
-    #endif
             case CLIBdblflt:
-                // Y(DOUBLEREGS_32,"__DBLFLT"),         // CLIBdblflt
-                // Y(DOUBLEREGS_16,"_DBLFLT@"),
-                // {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _DBLFLT@     dblflt
             {
                 const char *name = (config.exe & ex_unix) ? "__DBLFLT" : "_DBLFLT@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
@@ -2657,9 +2202,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBfltdbl:
-                // Y(DOUBLEREGS_32,"__FLTDBL"),         // CLIBfltdbl
-                // Y(ALLREGS,"_FLTDBL@"),
-                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _FLTDBL@     fltdbl
             {
                 const char *name = (config.exe & ex_unix) ? "__FLTDBL" : "_FLTDBL@";
                 s = symboly(name, I16 ? ALLREGS : DOUBLEREGS_32);
@@ -2671,9 +2213,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBdblllng:
-                // Y(DOUBLEREGS_32,"__DBLLLNG"),        // CLIBdblllng
-                // Y(DOUBLEREGS_16,"_DBLLLNG@"),
-                // {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLLLNG@
             {
                 const char *name = (config.exe & ex_unix) ? "__DBLLLNG" : "_DBLLLNG@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
@@ -2685,9 +2224,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBllngdbl:
-                // Y(DOUBLEREGS_32,"__LLNGDBL"),        // CLIBllngdbl
-                // Y(DOUBLEREGS_16,"_LLNGDBL@"),
-                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _LLNGDBL@
             {
                 const char *name = (config.exe & ex_unix) ? "__LLNGDBL" : "_LLNGDBL@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
@@ -2699,13 +2235,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBdblullng:
-                // Y(DOUBLEREGS_32,"__DBLULLNG"),       // CLIBdblullng
-                // Y(DOUBLEREGS_16,"_DBLULLNG@"),
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-                // {DOUBLEREGS_16,mDX|mAX,0,INFfloat,2,2},             // _DBLULLNG@
-#else
-                // {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLULLNG@
-#endif
             {
                 if (config.exe == EX_WIN64)
                 {
@@ -2728,9 +2257,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBullngdbl:
-                // Y(DOUBLEREGS_32,"__ULLNGDBL"),       // CLIBullngdbl
-                // Y(DOUBLEREGS_16,"_ULLNGDBL@"),
-                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULLNGDBL@
             {
                 if (config.exe == EX_WIN64)
                 {
@@ -2753,9 +2279,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBdtst:
-                // Y(0,"__DTST"),                       // CLIBdtst
-                // Y(0,"_DTST@"),
-                // {0,0,0,2},                          // _DTST@       dtst
             {
                 const char *name = (config.exe & ex_unix) ? "__DTST" : "_DTST@";
                 s = symboly(name, 0);
@@ -2763,9 +2286,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBvptrfptr:
-                // Y(mES|mBX,"__HTOFPTR"),              // CLIBvptrfptr
-                // Y(mES|mBX,"_HTOFPTR@"),             // CLIBvptrfptr
-                // {mES|mBX,mES|mBX,0,0},              // _HTOFPTR@    vptrfptr
             {
                 const char *name = (config.exe & ex_unix) ? "__HTOFPTR" : "_HTOFPTR@";
                 s = symboly(name, mES|mBX);
@@ -2774,9 +2294,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBcvptrfptr:
-                // Y(mES|mBX,"__HCTOFPTR"),             // CLIBcvptrfptr
-                // Y(mES|mBX,"_HCTOFPTR@"),            // CLIBcvptrfptr
-                // {mES|mBX,mES|mBX,0,0},              // _HCTOFPTR@   cvptrfptr
             {
                 const char *name = (config.exe & ex_unix) ? "__HCTOFPTR" : "_HCTOFPTR@";
                 s = symboly(name, mES|mBX);
@@ -2785,9 +2302,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIB87topsw:
-                // Y(0,"__87TOPSW"),                    // CLIB87topsw
-                // Y(0,"_87TOPSW@"),                   // CLIB87topsw
-                // {0,0,0,2},                          // _87TOPSW@    87topsw
             {
                 const char *name = (config.exe & ex_unix) ? "__87TOPSW" : "_87TOPSW@";
                 s = symboly(name, 0);
@@ -2795,9 +2309,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBfltto87:
-                // Y(mST0,"__FLTTO87"),                 // CLIBfltto87
-                // Y(mST0,"_FLTTO87@"),                // CLIBfltto87
-                // {mST0,mST0,0,INFfloat,1,0},         // _FLTTO87@    fltto87
             {
                 const char *name = (config.exe & ex_unix) ? "__FLTTO87" : "_FLTTO87@";
                 s = symboly(name, mST0);
@@ -2808,9 +2319,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBdblto87:
-                // Y(mST0,"__DBLTO87"),                 // CLIBdblto87
-                // Y(mST0,"_DBLTO87@"),                // CLIBdblto87
-                // {mST0,mST0,0,INFfloat,1,0},         // _DBLTO87@    dblto87
             {
                 const char *name = (config.exe & ex_unix) ? "__DBLTO87" : "_DBLTO87@";
                 s = symboly(name, mST0);
@@ -2821,9 +2329,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBdblint87:
-                // Y(mST0|mAX,"__DBLINT87"),            // CLIBdblint87
-                // Y(mST0|mAX,"_DBLINT87@"),           // CLIBdblint87
-                // {mAX,mAX,0,2},                      // _DBLINT87@   dblint87
             {
                 const char *name = (config.exe & ex_unix) ? "__DBLINT87" : "_DBLINT87@";
                 s = symboly(name, mST0|mAX);
@@ -2833,9 +2338,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBdbllng87:
-                // Y(mST0|mAX|mDX,"__DBLLNG87"),        // CLIBdbllng87
-                // Y(mST0|mAX|mDX,"_DBLLNG87@"),       // CLIBdbllng87
-                // {mDX|mAX,mAX,0,2},                  // _DBLLNG87@   dbllng87
             {
                 const char *name = (config.exe & ex_unix) ? "__DBLLNG87" : "_DBLLNG87@";
                 s = symboly(name, mST0|mAX|mDX);
@@ -2845,9 +2347,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBftst:
-                // Y(0,"__FTST"),                       // CLIBftst
-                // Y(0,"_FTST@"),
-                // {0,0,0,2},                          // _FTST@
             {
                 const char *name = (config.exe & ex_unix) ? "__FTST" : "_FTST@";
                 s = symboly(name, 0);
@@ -2855,9 +2354,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBfcompp:
-                // Y(0,"__FCOMPP"),                     // CLIBfcompp
-                // Y(0,"_FCOMPP@"),                    // CLIBfcompp
-                // {mPSW,mPSW,0,INFfloat,0,2},         // _FCOMPP@
             {
                 const char *name = (config.exe & ex_unix) ? "__FCOMPP" : "_FCOMPP@";
                 s = symboly(name, 0);
@@ -2868,9 +2364,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBftest:
-                // Y(0,"__FTEST"),                      // CLIBftest
-                // Y(0,"_FTEST@"),                     // CLIBftest
-                // {mPSW,mPSW,0,2},                    // _FTEST@
             {
                 const char *name = (config.exe & ex_unix) ? "__FTEST" : "_FTEST@";
                 s = symboly(name, 0);
@@ -2880,9 +2373,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBftest0:
-                // Y(0,"__FTEST0"),                     // CLIBftest0
-                // Y(0,"_FTEST0@"),                    // CLIBftest0
-                // {mPSW,mPSW,0,2},                    // _FTEST0@
             {
                 const char *name = (config.exe & ex_unix) ? "__FTEST0" : "_FTEST0@";
                 s = symboly(name, 0);
@@ -2892,9 +2382,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBfdiv87:
-                // Y(mST0|mAX|mBX|mCX|mDX,"__FDIVP"),   // CLIBfdiv87
-                // Y(mST0|mAX|mBX|mCX|mDX,"_FDIVP"),   // CLIBfdiv87
-                // {mST0,mST0,0,INFfloat,1,1},         // _FDIV@
             {
                 const char *name = (config.exe & ex_unix) ? "__FDIVP" : "_FDIVP";
                 s = symboly(name, mST0|mAX|mBX|mCX|mDX);
@@ -2908,10 +2395,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
 
             // Complex numbers
             case CLIBcmul:
-                // Y(mST0|mST01,"_Cmul"),               // CLIBcmul
-                // NOTE: desregs is wrong for 16 bit code, mBX should be included
-                // Y(mST0|mST01,"_Cmul"),              // CLIBcmul
-                // {mST01,mST01,0,INF32|INFfloat,3,5}, // _Cmul
             {
                 s = symboly("_Cmul", mST0|mST01);
                 cinfo->retregs16 = mST01;
@@ -2922,9 +2405,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBcdiv:
-                // Y(mAX|mCX|mDX|mST0|mST01,"_Cdiv"),   // CLIBcdiv
-                // Y(mAX|mCX|mDX|mST0|mST01,"_Cdiv"),  // CLIBcdiv
-                // {mST01,mST01,0,INF32|INFfloat,0,2}, // _Cdiv
             {
                 s = symboly("_Cdiv", mAX|mCX|mDX|mST0|mST01);
                 cinfo->retregs16 = mST01;
@@ -2935,9 +2415,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBccmp:
-                // Y(mAX|mST0|mST01,"_Ccmp"),           // CLIBccmp
-                // Y(mAX|mST0|mST01,"_Ccmp"),          // CLIBccmp
-                // {mPSW, mPSW, 0,INF32|INFfloat,0,4}, // _Ccmp
             {
                 s = symboly("_Ccmp", mAX|mST0|mST01);
                 cinfo->retregs16 = mPSW;
@@ -2949,9 +2426,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
             }
 
             case CLIBu64_ldbl:
-                // Y(mST0,"__U64_LDBL"),                // CLIBu64_ldbl
-                // Y(mST0,"_U64_LDBL"),                // CLIBu64_ldbl
-                // {mST0,mST0,0,INF32|INF64|INFfloat,2,1},   // _U64_LDBL
             {
                 const char *name = (config.exe & ex_unix) ? "__U64_LDBL" : "_U64_LDBL";
                 s = symboly(name, mST0);
@@ -2963,13 +2437,6 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 break;
             }
             case CLIBld_u64:
-#if ELFOBJ || MACHOBJ
-                // Y(mST0|mAX|mDX,"__LDBLULLNG"),       // CLIBld_u64
-#else
-                // Y(mST0|mAX|mDX,"___LDBLULLNG"),      // CLIBld_u64
-#endif
-                // Y(mST0|mAX|mDX,"__LDBLULLNG"),      // CLIBld_u64
-                // {0,mDX|mAX,0,INF32|INF64|INFfloat,1,2},   // __LDBLULLNG
             {
                 const char *name = (config.exe & ex_unix) ? (config.objfmt == OBJ_ELF ||
                                                              config.objfmt == OBJ_MACH ?
@@ -2988,29 +2455,11 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
             default:
                 assert(0);
         }
-        clibsyms[clibsave] = s;
+        clibsyms[clib] = s;
     }
 
-    // Debug check that the second part produces the same result as the first
-    if (s)
-    {
-        symbol *sold = *ps;
-        if (strcmp(sold->Sident, s->Sident) != 0)
-        {
-            printf("sold = '%s', s = '%s'\n", sold->Sident, s->Sident);
-        }
-        assert(strcmp(sold->Sident, s->Sident) == 0);
-        assert(sold->Sfl == s->Sfl);
-        assert(sold->Sclass == s->Sclass);
-        if (sold->Sregsaved != s->Sregsaved)
-            printf("sold = '%s', s = '%s'\n", sold->Sident, s->Sident);
-        assert(sold->Sregsaved == s->Sregsaved);
-        if (memcmp(*pinfo, cinfo, sizeof(ClibInfo)) != 0)
-            printf("sold = '%s', s = '%s'\n", sold->Sident, s->Sident);
-        assert(memcmp(*pinfo, cinfo, sizeof(ClibInfo)) == 0);
-        *ps = s;
-        *pinfo = cinfo;
-    }
+    *ps = s;
+    *pinfo = cinfo;
 }
 
 /********************************
@@ -3026,17 +2475,8 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     //printf("callclib(e = %p, clib = %d, *pretregs = %s, keepmask = %s\n", e, clib, regm_str(*pretregs), regm_str(keepmask));
     //elem_print(e);
 
-    assert(clib < CLIBMAX);
     symbol *s;
     ClibInfo *cinfo;
-
-    if (!clib_inited)
-    {
-        // Test them all
-        for (int i = 0; i < CLIBld_u64; ++i)
-            getClibInfo(i, &s, &cinfo);
-    }
-
     getClibInfo(clib, &s, &cinfo);
 
     if (I16)
