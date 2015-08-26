@@ -477,7 +477,7 @@ shared static ~this()
 
         // Report results
         FILE* fplog = trace_logfilename.length == 0 ? stdout :
-            fopen(trace_logfilename.ptr, "w");
+            fopen((trace_logfilename ~ '\0').ptr, "w");
         if (fplog)
         {
             auto nsymbols = trace_report(fplog, groot);
@@ -498,7 +498,7 @@ shared static ~this()
 
         // Output function link order
         FILE* fpdef = trace_deffilename.length == 0 ? stdout :
-            fopen(trace_deffilename.ptr, "w");
+            fopen((trace_deffilename ~ '\0').ptr, "w");
         if (fpdef)
         {
             fprintf(fpdef,"\nFUNCTIONS\n");
