@@ -28,8 +28,6 @@ extern extern (C++) void obj_start(char* srcfile);
 extern extern (C++) void obj_end(Library library, File* objfile);
 extern extern (C++) void obj_write_deferred(Library library);
 
-extern extern (C++) Type getTypeInfoType(Type t, Scope* sc);
-extern extern (C++) Expression getInternalTypeInfo(Type t, Scope* sc);
 extern extern (C++) void genObjFile(Module m, bool multiobj);
 
 extern extern (C++) Symbol* toInitializer(AggregateDeclaration sd);

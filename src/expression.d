@@ -68,6 +68,7 @@ import ddmd.statement;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.traits;
+import ddmd.typinf;
 import ddmd.utf;
 import ddmd.visitor;
 

@@ -576,7 +576,7 @@ private:
 
 extern (C++) Library LibOMF_factory()
 {
-    return global.params.mscoff ? LibMSCoff_factory() : new LibOMF();
+    return new LibOMF();
 }
 
 /*****************************************************************************/
