@@ -1806,6 +1806,7 @@ struct ClibInfo
         #define INFfloat        2       // if this is floating point
         #define INFwkdone       4       // if weak extern is already done
         #define INF64           8       // if 64 bit only
+        #define INFpushebx      0x10    // push EBX before load_localgot()
     char push87;                        // # of pushes onto the 8087 stack
     char pop87;                         // # of pops off of the 8087 stack
 };
@@ -2185,17 +2186,21 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
         {
             case CLIBldiv:
                 s = &clibldiv3;
+                cinfo->flags |= INFpushebx;
                 break;
             case CLIBlmod:
                 s = &cliblmod3;
                 cinfo->retregs32 = mAX|mDX;
+                cinfo->flags |= INFpushebx;
                 break;
             case CLIBuldiv:
                 s = &clibuldiv3;
+                cinfo->flags |= INFpushebx;
                 break;
             case CLIBulmod:
                 s = &clibulmod3;
                 cinfo->retregs32 = mAX|mDX;
+                cinfo->flags |= INFpushebx;
                 break;
         }
 #else
@@ -2204,10 +2209,12 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
             case CLIBldiv:
             case CLIBlmod:
                 s = &clibldiv2;
+                cinfo->flags |= INFpushebx;
                 break;
             case CLIBuldiv:
             case CLIBulmod:
                 s = &clibuldiv2;
+                cinfo->flags |= INFpushebx;
                 break;
         }
 #endif
@@ -2242,25 +2249,6 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     keepmask &= ~s->Sregsaved;
     int npushed = numbitsset(keepmask);
     gensaverestore2(keepmask, &c, &cpop);
-#if 0
-  while (keepmask)
-  {     unsigned keepreg;
-
-        if (keepmask & (mBP|ALLREGS))
-        {       keepreg = findreg(keepmask & (mBP|ALLREGS));
-                c = gen1(c,0x50 + keepreg);             /* PUSH keepreg */
-                cpop = cat(gen1(CNIL,0x58 + keepreg),cpop);     // POP keepreg
-                keepmask &= ~mask[keepreg];
-                npushed++;
-        }
-        if (keepmask & mES)
-        {       c = gen1(c,0x06);                       /* PUSH ES      */
-                cpop = cat(gen1(CNIL,0x07),cpop);       /* POP ES       */
-                keepmask &= ~mES;
-                npushed++;
-        }
-  }
-#endif
 
     c = cat(c, save87regs(cinfo->push87));
     for (int i = 0; i < cinfo->push87; i++)
@@ -2284,7 +2272,6 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
   else
   {
         code *cgot = NULL;
-        bool pushebx = false;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (I32)
         {
@@ -2295,41 +2282,11 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             {
                 cgot = load_localgot();     // EBX gets set to this value
             }
-#if TARGET_LINUX || TARGET_FREEBSD
-            switch (clib)
-            {
-                case CLIBldiv:
-                    pushebx = true;
-                    break;
-                case CLIBlmod:
-                    pushebx = true;
-                    cinfo->retregs32 = mAX|mDX;
-                    break;
-                case CLIBuldiv:
-                    pushebx = true;
-                    break;
-                case CLIBulmod:
-                    pushebx = true;
-                    cinfo->retregs32 = mAX|mDX;
-                    break;
-            }
-#else
-            switch (clib)
-            {   // EBX is a parameter to these, so push it on the stack before load_localgot()
-                case CLIBldiv:
-                case CLIBlmod:
-                    pushebx = true;
-                    break;
-                case CLIBuldiv:
-                case CLIBulmod:
-                    pushebx = true;
-                    break;
-            }
-#endif
         }
 #endif
         makeitextern(s);
         int nalign = 0;
+        int pushebx = (cinfo->flags & INFpushebx) != 0;
         if (STACKALIGN == 16)
         {   // Align the stack (assume no args on stack)
             int npush = (npushed + pushebx) * REGSIZE + stackpush;
