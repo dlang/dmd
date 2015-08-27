@@ -115,9 +115,16 @@ void semanticTypeInfo(Scope *sc, Type *t)
                 }
             }
 
-            getTypeInfoType(t, sc);
+            if (!sc)    // inline may request TypeInfo.
+            {
+                Scope scx;
+                scx.module = sd->getModule();
+                getTypeInfoType(t, &scx);
+            }
+            else
+                getTypeInfoType(t, sc);
 
-            if (sc->minst)
+            if (!sc || sc->minst)
                 sd->requestTypeInfo = true;
         }
         void visit(TypeClass *t) { }
