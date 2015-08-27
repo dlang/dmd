@@ -58,6 +58,7 @@ Symbol *toVtblSymbol(ClassDeclaration *cd);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *toInitializer(EnumDeclaration *ed);
 void genTypeInfo(Type *t, Scope *sc);
+bool isSpeculativeType(Type *t);
 
 void toDebug(EnumDeclaration *ed);
 void toDebug(StructDeclaration *sd);
@@ -1010,6 +1011,11 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
         void visit(TypeInfoDeclaration *tid)
         {
+            if (isSpeculativeType(tid->tinfo))
+            {
+                //printf("-speculative '%s'\n", tid->toPrettyChars());
+                return;
+            }
             //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", tid, tid->toChars(), tid->protection);
 
             if (multiobj)

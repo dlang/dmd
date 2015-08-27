@@ -4161,7 +4161,7 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-    semanticTypeInfo(sc, t0);
+    semanticTypeInfo(sc, type);
 
     return this;
 }
@@ -6114,6 +6114,9 @@ Expression *TypeidExp::semantic(Scope *sc)
         // Handle this in the glue layer
         e = new TypeidExp(loc, ta);
         e->type = getTypeInfoType(ta, sc);
+
+        semanticTypeInfo(sc, ta);
+
         if (ea)
         {
             e = new CommaExp(loc, ea, e);       // execute ea

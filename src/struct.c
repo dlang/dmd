@@ -24,6 +24,7 @@
 #include "template.h"
 #include "tokens.h"
 
+Type *getTypeInfoType(Type *t, Scope *sc);
 TypeTuple *toArgTypes(Type *t);
 
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
@@ -105,11 +106,19 @@ void semanticTypeInfo(Scope *sc, Type *t)
                 if (ti->minst && !ti->minst->isRoot())
                     Module::addDeferredSemantic3(sd);
             }
-            else if (sd->inNonRoot())
+            else
             {
-                //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
-                Module::addDeferredSemantic3(sd);
+                if (sd->inNonRoot())
+                {
+                    //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
+                    Module::addDeferredSemantic3(sd);
+                }
             }
+
+            getTypeInfoType(t, sc);
+
+            if (sc->minst)
+                sd->requestTypeInfo = true;
         }
         void visit(TypeClass *t) { }
         void visit(TypeTuple *t)
@@ -667,6 +676,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     ispod = ISPODfwd;
     arg1type = NULL;
     arg2type = NULL;
+    requestTypeInfo = false;
 
     // For forward references
     type = new TypeStruct(this);
