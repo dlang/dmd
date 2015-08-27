@@ -1895,6 +1895,7 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
             {
                 s->Sxtrnnum = 0;
                 s->Stypidx = 0;
+                clibinfo[i].flags &= ~INFwkdone;
             }
         }
         clib_inited = true;
@@ -2566,9 +2567,9 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
   else
   {
         code *cgot = NULL;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        if (I32)
+        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
         {
+            // Note: not for OSX
             /* Pass EBX on the stack instead, this is because EBX is used
              * for shared library function calls
              */
@@ -2577,7 +2578,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
                 cgot = load_localgot();     // EBX gets set to this value
             }
         }
-#endif
+
         makeitextern(s);
         int nalign = 0;
         int pushebx = (cinfo->flags & INFpushebx) != 0;
@@ -2591,16 +2592,19 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         }
         if (pushebx)
         {
-#if TARGET_LINUX || TARGET_FREEBSD
-            c = gen1(c, 0x50 + CX);                             // PUSH ECX
-            c = gen1(c, 0x50 + BX);                             // PUSH EBX
-            c = gen1(c, 0x50 + DX);                             // PUSH EDX
-            c = gen1(c, 0x50 + AX);                             // PUSH EAX
-            nalign += 4 * REGSIZE;
-#else
-            c = gen1(c, 0x50 + BX);                             // PUSH EBX
-            nalign += REGSIZE;
-#endif
+            if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64))
+            {
+                c = gen1(c, 0x50 + CX);                             // PUSH ECX
+                c = gen1(c, 0x50 + BX);                             // PUSH EBX
+                c = gen1(c, 0x50 + DX);                             // PUSH EDX
+                c = gen1(c, 0x50 + AX);                             // PUSH EAX
+                nalign += 4 * REGSIZE;
+            }
+            else
+            {
+                c = gen1(c, 0x50 + BX);                             // PUSH EBX
+                nalign += REGSIZE;
+            }
         }
         c = cat(c, cgot);                                       // EBX = localgot
         c = gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,s);      // CALL s
