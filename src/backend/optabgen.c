@@ -38,8 +38,7 @@ int _binary[] =
          OPbit,OPbrack,OParrowstar,OPmemcpy,OPmemcmp,OPmemset,
          OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
          OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
-         OPinfo,OParray,OPfield,OPnewarray,OPmultinewarray,OPinstanceof,OPfinalinstanceof,
-         OPcheckcast,OPpair,OPrpair,
+         OPinfo,OPpair,OPrpair,
          OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
          OPremquo,OPcmpxchg,
 #if TX86
@@ -51,7 +50,7 @@ int _unary[] =
         {OPnot,OPcom,OPind,OPaddr,OPneg,OPuadd,
          OPabs,OPrndtol,OPrint,
          OPpreinc,OPpredec,
-         OPbool,OPstrlen,OPnullcheck,
+         OPbool,OPstrlen,
          OPb_8,OPs16_32,OPu16_32,OPd_s32,OPd_u32,
          OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
          OPd_f,OPf_d,OPu8_16,OPs8_16,OP16_8,
@@ -61,7 +60,7 @@ int _unary[] =
          OP128_64,OPs64_128,OPu64_128,
          OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPd_u16,
          OParrow,OPnegass,
-         OPctor,OPdtor,OPsetjmp,OPvoid,OParraylength,
+         OPctor,OPdtor,OPsetjmp,OPvoid,
          OPbsf,OPbsr,OPbswap,OPpopcnt,
          OPddtor,
          OPvector,
@@ -111,7 +110,7 @@ int _def[] = {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
                 OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,
                 OPpostinc,OPpostdec,
                 OPcall,OPucall,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
-                OPnegass,OPnewarray,OPmultinewarray,
+                OPnegass,
                 OPbtc,OPbtr,OPbts,
                 OPvecsto,OPcmpxchg,
              };
@@ -119,8 +118,7 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPcall,OPeq,OPstreq,OPpostinc,OPpostdec,
                 OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,
-                OPnegass,OPctor,OPdtor,OPmark,OPvoid,OPnewarray,
-                OPmultinewarray,OPcheckcast,OPnullcheck,
+                OPnegass,OPctor,OPdtor,OPmark,OPvoid,
                 OPbtc,OPbtr,OPbts,
                 OPhalt,OPdctor,OPddtor,
                 OPcmpxchg,
@@ -151,8 +149,8 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPu32_64,OPs32_64,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
                 OP128_64,OPs64_128,OPu64_128,
-                OPsizeof,OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,
-                OPcallns,OPucallns,OPnullcheck,OPpair,OPrpair,
+                OPsizeof,
+                OPcallns,OPucallns,OPpair,OPrpair,
                 OPbsf,OPbsr,OPbt,OPbswap,OPb_8,OPbtst,OPpopcnt,
                 OPgot,OPremquo,
                 OPnullptr,
@@ -178,8 +176,7 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPrndtol,OPrint,
                 OPu32_64,OPs32_64,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
                 OP128_64,OPs64_128,OPu64_128,
-                OPbit,OPind,OPucall,OPucallns,OPnullcheck,
-                OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,OPhstring,
+                OPbit,OPind,OPucall,OPucallns,
                 OPcall,OPcallns,OPeq,OPstreq,OPpostinc,OPpostdec,
                 OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,OPoror,OPandand,OPcond,
@@ -206,8 +203,7 @@ int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPnp_fp,OPvp_fp,OPcvp_fp,
 #endif
                 };
-int _lvalue[] = {OPvar,OPind,OPcomma,OPbit,
-                OPfield,OParray};
+int _lvalue[] = {OPvar,OPind,OPcomma,OPbit};
 
 FILE *fdeb;
 
@@ -243,14 +239,11 @@ int cost(unsigned op)
             case OPshl:
             case OPashr:
             case OPshr: c += 2; break;
-            case OPnewarray:
-            case OPmultinewarray:
             case OPcall:
             case OPucall:
             case OPcallns:
             case OPucallns:
                                 c += 10; break; // very high cost for function calls
-            case OParray:       c = 5; break;
         }
         return c;
 }
@@ -484,17 +477,6 @@ void dotab()
         case OPnullptr: X("nullptr",    elerr, cderr);
         case OPpair:    X("pair",       elpair, cdpair);
         case OPrpair:   X("rpair",      elpair, cdpair);
-
-        case OPnewarray: X("newarray",  elnewarray,cderr);
-        case OPmultinewarray: X("mnewarray",    elmultinewarray,cderr);
-        case OPinstanceof: X("instanceof",      elinstanceof,cderr);
-        case OPfinalinstanceof: X("finalinstanceof",    elfinalinstanceof,cderr);
-        case OPcheckcast: X("checkcast",        elcheckcast,cderr);
-        case OParraylength: X("length", elarraylength,cderr);
-        case OParray:   X("array",      elarray,cderr);
-        case OPfield:   X("field",      elfield,cderr);
-        case OPhstring: X("hstring",    elhstring,cderr);
-        case OPnullcheck: X("nullcheck", elnullcheck,cdnullcheck);
 
         case OPor:      X("|",          elor,   cdorth);
         case OPoror:    X("||",         eloror, cdloglog);

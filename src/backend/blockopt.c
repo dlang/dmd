@@ -2156,10 +2156,6 @@ STATIC int funcsideeffect_walk(elem *e)
                 break;
             goto Lside;
 
-        case OParray:
-        case OPfield:
-            goto Lside;                 // these can throw exceptions
-
         // Note: we should allow assignments to local variables as
         // not being a 'side effect'.
 

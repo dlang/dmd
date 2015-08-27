@@ -1030,8 +1030,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPld_d:    case OPd_ld:
         case OPld_u64:
         case OPc_r:     case OPc_i:
-        case OParraylength:
-        case OPnullcheck:
         case OPu16_32:
         case OPu16_d:   case OPd_u16:
         case OPs8_16:   case OP16_8:
@@ -1111,9 +1109,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPord:     case OPnlg:     case OPnleg:    case OPnule:
         case OPnul:     case OPnuge:    case OPnug:     case OPnue:
 
-        case OPinstanceof:
-        case OPfinalinstanceof:
-        case OPcheckcast:
         case OPcomma:
         case OPpair:
         case OPrpair:
@@ -1210,7 +1205,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPstring:
         case OPrelconst:
         case OPconst:                   /* constants are always LI      */
-        case OPhstring:
         case OPframeptr:
                 makeLI(n);
                 break;

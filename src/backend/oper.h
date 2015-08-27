@@ -232,19 +232,6 @@ enum OPER
         OPvector,               // SIMD vector operations
         OPvecsto,               // SIMD vector store operations
 
-        // Jupiter operators
-        OParray,                // access Jupiter array, left is handle, right is index
-        OParraylength,          // evaluates array handle into array length
-        OPfield,                // access Jupiter object field, left is handle, right is offset
-        OPnewarray,             // allocate Jupiter array, left is dimension, right is type
-        OPmultinewarray,        // allocate multidimensional Jupiter array
-                                // left is dimensions, right is (numdims,type signature)
-        OPinstanceof,           // left is class id, right is handle
-        OPfinalinstanceof,      // left is class id, right is handle
-        OPcheckcast,            // left is class id, right is handle
-        OPhstring,              // handle to static string
-        OPnullcheck,            // check if pointer is null
-
 #if TX86
         OPinp,                  /* input from I/O port          */
         OPoutp,                 /* output to I/O port           */

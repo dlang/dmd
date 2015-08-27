@@ -1402,10 +1402,6 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                                                 // of possibly dead ones
                 break;
 
-            case OPnewarray:
-            case OPmultinewarray:
-            case OParray:
-            case OPfield:
             case OPstrcat:
             case OPstrcmp:
             case OPmemcmp:

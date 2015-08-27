@@ -2651,7 +2651,6 @@ L1:
                 break;
             case OPasm:
             case OPstring:
-            case OPhstring:
                 if (n1->EV.ss.Vstrlen != (n = n2->EV.ss.Vstrlen) ||
                     n1->EV.ss.Voffset != n2->EV.ss.Voffset ||
                     memcmp(n1->EV.ss.Vstring,n2->EV.ss.Vstring,n))
@@ -3110,7 +3109,6 @@ void elem_print(elem *e)
                 break;
             case OPasm:
             case OPstring:
-            case OPhstring:
                 dbg_printf(" '%s',%lld\n",e->EV.ss.Vstring,(unsigned long long)e->EV.ss.Voffset);
                 break;
             case OPconst:

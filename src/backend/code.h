@@ -329,7 +329,6 @@ cd_t cdddtor;
 cd_t cdctor;
 cd_t cddtor;
 cd_t cdmark;
-cd_t cdnullcheck;
 cd_t cdclassinit;
 
 /* cod3.c */

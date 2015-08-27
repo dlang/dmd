@@ -150,7 +150,6 @@ code* cdmul      (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdmulass   (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdneg      (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdnot      (elem* e, regm_t* pretregs) { assert(0); return NULL; }
-code* cdnullcheck(elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdorth     (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdpair     (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdpopcnt   (elem* e, regm_t* pretregs) { assert(0); return NULL; }
