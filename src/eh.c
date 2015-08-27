@@ -361,7 +361,7 @@ void except_fillInEHTable(symbol *s)
             {
                 block *bcatch = b->nthSucc(i);
 
-                pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYjhandle);
+                pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYnptr);
 
                 pdt = dtsize_t(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
 

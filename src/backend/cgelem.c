@@ -1096,7 +1096,7 @@ L1:
   /* for floating or far or huge pointers!                              */
   if (e1->Eoper == OPadd && e2->Eoper == OPadd &&
       cnst(e1->E2) && cnst(e2->E2) &&
-      (tyintegral(tym) || tybasic(tym) == TYjhandle || tybasic(tym) == TYnptr
+      (tyintegral(tym) || tybasic(tym) == TYnptr
 #if TARGET_SEGMENTED
        || tybasic(tym) == TYsptr
 #endif

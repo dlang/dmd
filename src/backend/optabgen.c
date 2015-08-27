@@ -789,7 +789,7 @@ void fltables()
 
 void dotytab()
 {
-    static tym_t _ptr[]      = { TYjhandle,TYnptr };
+    static tym_t _ptr[]      = { TYnptr };
 #if TARGET_SEGMENTED
     static tym_t _ptr_nflat[]= { TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr };
 #endif
@@ -912,7 +912,6 @@ void dotytab()
 "long long[2]",          TYllong2,    TYullong2, TYllong2,    16,     0,      0,
 "unsigned long long[2]", TYullong2,   TYullong2, TYullong2,   16,     0,      0,
 
-"__near *",     TYjhandle,      TYjhandle, TYjhandle,   2,  0x20,       0x100,
 "nullptr_t",    TYnullptr,      TYnullptr, TYptr,       2,  0x20,       0x100,
 "*",            TYnptr,         TYnptr,    TYnptr,      2,  0x20,       0x100,
 "&",            TYref,          TYref,     TYref,       -1,     0,      0,
