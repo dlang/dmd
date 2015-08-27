@@ -7263,6 +7263,14 @@ Dsymbols *TemplateInstance::appendToModuleMember()
 {
     Module *mi = minst;     // instantiated -> inserted module
 
+    if (global.params.useUnitTests ||
+        global.params.debuglevel)
+    {
+        // Turn all non-root instances to speculative
+        if (mi && !mi->isRoot())
+            mi = NULL;
+    }
+
     if (!mi || mi->isRoot())
     {
         /* If the instantiated module is speculative or root, insert to the
@@ -7855,15 +7863,8 @@ void unSpeculative(Scope *sc, RootObject *o)
  */
 bool TemplateInstance::needsCodegen()
 {
-    /* The issue is that if the importee is compiled with a different -debug
-     * setting than the importer, the importer may believe it exists
-     * in the compiled importee when it does not, when the instantiation
-     * is behind a conditional debug declaration.
-     */
-    // workaround for Bugzilla 11239
-    if (global.params.useUnitTests ||
-        global.params.allInst ||
-        global.params.debuglevel)
+    // Now -allInst is just for the backward compatibility.
+    if (global.params.allInst)
     {
         //printf("%s minst = %s, enclosing (%s)->isNonRoot = %d\n",
         //    toPrettyChars(), minst ? minst->toChars() : NULL,
@@ -7894,9 +7895,12 @@ bool TemplateInstance::needsCodegen()
         return true;
     }
 
-    // If this may be a speculative instantiation:
     if (!minst)
     {
+        // If this is a speculative instantiation,
+        // 1. do codegen if ancestors really needs codegen.
+        // 2. become non-speculative if siblings are not speculative
+
         TemplateInstance *tnext = this->tnext;
         TemplateInstance *tinst = this->tinst;
         // At first, disconnect chain first to prevent infinite recursion.
@@ -7911,6 +7915,42 @@ bool TemplateInstance::needsCodegen()
             assert(minst->isRoot() || minst->rootImports());
             return true;
         }
+        if (tnext && (tnext->needsCodegen() || tnext->minst))
+        {
+            minst = tnext->minst;   // cache result
+            assert(minst);
+            return minst->isRoot() || minst->rootImports();
+        }
+
+        // Elide codegen because this is really speculative.
+        return false;
+    }
+
+    /* The issue is that if the importee is compiled with a different -debug
+     * setting than the importer, the importer may believe it exists
+     * in the compiled importee when it does not, when the instantiation
+     * is behind a conditional debug declaration.
+     */
+    // workaround for Bugzilla 11239
+    if (global.params.useUnitTests ||
+        global.params.debuglevel)
+    {
+        // Prefer instantiations from root modules, to maximize link-ability.
+        if (minst->isRoot())
+            return true;
+
+        TemplateInstance *tnext = this->tnext;
+        TemplateInstance *tinst = this->tinst;
+        this->tnext = NULL;
+        this->tinst = NULL;
+
+        if (tinst && tinst->needsCodegen())
+        {
+            minst = tinst->minst;   // cache result
+            assert(minst);
+            assert(minst->isRoot() || minst->rootImports());
+            return true;
+        }
         if (tnext && tnext->needsCodegen())
         {
             minst = tnext->minst;   // cache result
@@ -7918,12 +7958,33 @@ bool TemplateInstance::needsCodegen()
             assert(minst->isRoot() || minst->rootImports());
             return true;
         }
+
+        // Bugzilla 2500 case
+        if (minst->rootImports())
+            return true;
+
+        // Elide codegen because this is not included in root instances.
         return false;
     }
-
-    if (minst->isRoot())
+    else
     {
-        // Prefer instantiation in non-root module, to minimize object code size
+        // Prefer instantiations from non-root module, to minimize object code size.
+
+        /* If a TemplateInstance is ever instantiated by non-root modules,
+         * we do not have to generate code for it,
+         * because it will be generated when the non-root module is compiled.
+         *
+         * But, if the non-root 'minst' imports any root modules, it might still need codegen.
+         *
+         * The problem is if A imports B, and B imports A, and both A
+         * and B instantiate the same template, does the compilation of A
+         * or the compilation of B do the actual instantiation?
+         *
+         * See Bugzilla 2500.
+         */
+        if (!minst->isRoot() && !minst->rootImports())
+            return false;
+
         TemplateInstance *tnext = this->tnext;
         this->tnext = NULL;
 
@@ -7933,29 +7994,10 @@ bool TemplateInstance::needsCodegen()
             assert(!minst->isRoot());
             return false;
         }
-    }
-    else
-    {
-        /* If a TemplateInstance is ever instantiated by non-root modules,
-         * we do not have to generate code for it,
-         * because it will be generated when the non-root module is compiled.
-         *
-         * But, if minst imports any root modules, we still need to generate the code.
-         *
-         * The problem is if A imports B, and B imports A, and both A
-         * and B instantiate the same template, does the compilation of A
-         * or the compilation of B do the actual instantiation?
-         *
-         * See bugzilla 2500.
-         */
 
-        if (!minst->rootImports())
-        {
-            //printf("instantiated by %s   %s\n", minst->toChars(), toChars());
-            return false;
-        }
+        // Do codegen because this is not included in non-root instances.
+        return true;
     }
-    return true;
 }
 
 /* ======================== TemplateMixin ================================ */
