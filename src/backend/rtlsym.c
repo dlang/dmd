@@ -57,10 +57,6 @@ void rtlsym_init()
             rtlsym[i]->Ssymnum = -1;
             rtlsym[i]->Sclass = SCextern;
             rtlsym[i]->Sfl = FLfunc;
-#if ELFOBJ || MACHOBJ
-            rtlsym[i]->obj_si = (unsigned)-1;
-            rtlsym[i]->dwarf_off = (unsigned)-1;
-#endif
             rtlsym[i]->Sregsaved = FREGSAVED;
         }
 
