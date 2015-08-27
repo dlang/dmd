@@ -53,11 +53,20 @@ void init_msvc()
         FILE* fp = __iob_func();
         stdin = fp;
         stdout = fp + 1;
-        stderr = fp + 1;
+        stderr = fp + 2;
     }
     if (&_set_output_format != (void*) &_nullfunc)
-        _set_output_format(1);
+    {
+        const int _TWO_DIGIT_EXPONENT = 1;
+        _set_output_format(_TWO_DIGIT_EXPONENT);
+    }
 }
+
+// VS2015+ provides C99-conformant (v)snprintf functions, so weakly
+// link to legacy _(v)snprintf (not C99-conformant!) for VS2013- only
+
+#pragma comment(linker, "/alternatename:snprintf=_snprintf")
+#pragma comment(linker, "/alternatename:vsnprintf=_vsnprintf")
 
 // VS2013- implements these functions as macros, VS2015+ provides symbols
 
@@ -70,13 +79,13 @@ void init_msvc()
 #pragma comment(linker, "/alternatename:fileno=_msvc_fileno")
 
 // VS2013- helper functions
-int _filbuf(FILE *fp);
-int _flsbuf(int c, FILE *fp);
+int _filbuf(FILE* fp);
+int _flsbuf(int c, FILE* fp);
 
 #pragma comment(linker, "/alternatename:_filbuf=_nullfunc")
 #pragma comment(linker, "/alternatename:_flsbuf=_nullfunc")
 
-int _msvc_fputc_nolock(int c, FILE *fp)
+int _msvc_fputc_nolock(int c, FILE* fp)
 {
     fp->_cnt = fp->_cnt - 1;
     if (fp->_cnt >= 0)
@@ -89,7 +98,7 @@ int _msvc_fputc_nolock(int c, FILE *fp)
         return _flsbuf(c, fp);
 }
 
-int _msvc_fgetc_nolock(FILE *fp)
+int _msvc_fgetc_nolock(FILE* fp)
 {
     fp->_cnt = fp->_cnt - 1;
     if (fp->_cnt >= 0)
@@ -104,38 +113,22 @@ int _msvc_fgetc_nolock(FILE *fp)
 
 enum
 {
-    _IOFBF   = 0,
-    _IOLBF   = 0x40,
-    _IONBF   = 4,
-    _IOREAD  = 1,     // non-standard
-    _IOWRT   = 2,     // non-standard
-    _IOMYBUF = 8,     // non-standard
-    _IOEOF   = 0x10,  // non-standard
-    _IOERR   = 0x20,  // non-standard
-    _IOSTRG  = 0x40,  // non-standard
-    _IORW    = 0x80,  // non-standard
-    _IOAPP   = 0x200, // non-standard
-    _IOAPPEND = 0x200, // non-standard
+    SEEK_SET = 0,
+    _IOEOF   = 0x10,
+    _IOERR   = 0x20
 };
 
-enum
-{
-    SEEK_SET,
-    SEEK_CUR,
-    SEEK_END
-};
-
-int fseek(FILE *fp, long off, int whence);
+int fseek(FILE* fp, long off, int whence);
 
 void _msvc_rewind(FILE* stream)
 {
     fseek(stream, 0L, SEEK_SET);
     stream->_flag = stream->_flag & ~_IOERR;
 }
-///
+
 void _msvc_clearerr(FILE* stream)
 {
-    stream->_flag = stream->_flag & ~(_IOERR|_IOEOF);
+    stream->_flag = stream->_flag & ~(_IOERR | _IOEOF);
 }
 
 int  _msvc_feof(FILE* stream)
