@@ -151,7 +151,7 @@ public:
                 offset += MSCoffLibHeader.sizeof;
                 char* endptr = null;
                 uint size = strtoul(cast(char*)header.file_size, &endptr, 10);
-                if (endptr >= &header.file_size[10] || *endptr != ' ')
+                if (endptr >= header.file_size.ptr + 10 || *endptr != ' ')
                 {
                     reason = __LINE__;
                     goto Lcorrupt;

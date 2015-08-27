@@ -242,6 +242,37 @@ extern (C++) int runLINK()
                 else
                     cmdbuf.writestring("\\lib\"");
             }
+            cmdbuf.writeByte(' ');
+            const(char)* lflags;
+            if (detectVS14(cmdbuf.peekString()))
+            {
+                lflags = getenv("LFLAGS_VS14");
+                if (!lflags)
+                    lflags = "legacy_stdio_definitions.lib";
+                // environment variables UniversalCRTSdkDir and UCRTVersion set
+                // when running vcvarsall.bat x64
+                if (const(char)* UniversalCRTSdkDir = getenv("UniversalCRTSdkDir"))
+                    if (const(char)* UCRTVersion = getenv("UCRTVersion"))
+                    {
+                        cmdbuf.writestring(" /LIBPATH:\"");
+                        cmdbuf.writestring(UniversalCRTSdkDir);
+                        cmdbuf.writestring("\\lib\\");
+                        cmdbuf.writestring(UCRTVersion);
+                        if (global.params.is64bit)
+                            cmdbuf.writestring("\\ucrt\\x64\"");
+                        else
+                            cmdbuf.writestring("\\ucrt\\x86\"");
+                    }
+            }
+            else
+            {
+                lflags = getenv("LFLAGS_VS12");
+            }
+            if (lflags)
+            {
+                cmdbuf.writeByte(' ');
+                cmdbuf.writestring(lflags);
+            }
             char* p = cmdbuf.peekString();
             const(char)* lnkfilename = null;
             size_t plen = strlen(p);
@@ -848,5 +879,67 @@ extern (C++) int runProgram()
     else
     {
         assert(0);
+    }
+}
+
+version (Windows)
+{
+    /*****************************
+     * Detect whether the link will grab libraries from VS 2015 or later
+     */
+    extern (C++) bool detectVS14(const(char)* cmdline)
+    {
+        auto libpaths = new Strings();
+        // grab library folders passed on the command line
+        for (const(char)* p = cmdline; *p;)
+        {
+            while (isspace(*p))
+                p++;
+            const(char)* arg = p;
+            const(char)* end = arg;
+            while (*end && !isspace(*end))
+            {
+                end++;
+                if (end[-1] == '"')
+                {
+                    while (*end && *end != '"')
+                    {
+                        if (*end == '\\' && end[1])
+                            end++;
+                        end++;
+                    }
+                    if (*end)
+                        end++; // skip closing quote
+                }
+            }
+            p = end;
+            // remove quotes if spanning complete argument
+            if (end > arg + 1 && arg[0] == '"' && end[-1] == '"')
+            {
+                arg++;
+                end--;
+            }
+            if (arg[0] == '-' || arg[0] == '/')
+            {
+                if (end - arg > 8 && memicmp(arg + 1, "LIBPATH:", 8) == 0)
+                {
+                    arg += 9;
+                    char* q = cast(char*)memcpy((new char[](end - arg + 1)).ptr, arg, end - arg);
+                    q[end - arg] = 0;
+                    Strings* paths = FileName.splitPath(q);
+                    libpaths.append(paths);
+                }
+            }
+        }
+        // append library paths from environment
+        if (const(char)* lib = getenv("LIB"))
+            libpaths.append(FileName.splitPath(lib));
+        // if legacy_stdio_definitions.lib can be found in the same folder as
+        // libcmt.lib, libcmt.lib is assumed to be from VS2015 or later
+        const(char)* libcmt = FileName.searchPath(libpaths, "libcmt.lib", true);
+        if (!libcmt)
+            return false;
+        const(char)* liblegacy = FileName.replaceName(libcmt, "legacy_stdio_definitions.lib");
+        return FileName.exists(liblegacy) == 1;
     }
 }
