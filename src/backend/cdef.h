@@ -979,22 +979,6 @@ union eve
 #define IDSYMBOL
 #endif
 
-#if SCPP
-#define SYMBOLZERO      0,0,0,
-#elif MARS
-#define SYMBOLZERO      0,0,
-#else
-#define SYMBOLZERO
-#endif
-
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define UNIXFIELDS      (unsigned)-1,(unsigned)-1,0,0,
-#elif TARGET_OSX
-#define UNIXFIELDS      (unsigned)-1,(unsigned)-1,0,0,0,
-#else
-#define UNIXFIELDS
-#endif
-
 typedef unsigned SYMFLGS;
 #if MARS
 #define SYM_PREDEF_SZ 40
@@ -1002,12 +986,6 @@ typedef unsigned SYMFLGS;
 #define SYM_PREDEF_SZ 22
 #endif
 
-#define SYMBOLY(fl,regsaved,name,flags) \
-        {IDSYMBOL \
-         (symbol *)0,(symbol *)0,(symbol *)0,(dt_t *)0,0,(type *)0,{0},\
-         SYMBOLZERO\
-         UNIXFIELDS\
-         SCextern,(fl),(flags),0,0,0,0,0,0,0,{0},(regsaved),{name}}
 
 /**********************************
  * Storage classes
