@@ -379,17 +379,9 @@ extern const unsigned char opcost[OPMAX];
 
 /* ERTOL(e) is moved to el.c    */
 
-#if KEEPBITFIELDS
-#define Elvalue(e)      (((e)->E1->Eoper == OPbit) ? (e)->E1->E1 : (e)->E1)
-#define Eunambig(e)     (OTassign((e)->Eoper) && \
-                            ((e)->E1->Eoper == OPvar || \
-                                ((e)->E1->Eoper == OPbit && \
-                                 (e)->E1->E1->Eoper == OPvar)))
-#else
 #define Elvalue(e)      ((e)->E1)
 #define Eunambig(e)     (OTassign((e)->Eoper) && \
                             (e)->E1->Eoper == OPvar)
-#endif
 
 #define EOP(e)  (!OTleaf((e)->Eoper))
 
