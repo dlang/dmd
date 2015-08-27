@@ -86,13 +86,9 @@ STATIC void elemdatafree(Elemdata **plist)
     *plist = NULL;
 }
 
-static Elemdata *arraylist = NULL;      // list of Elemdata's of OParray elems
 static Elemdata *eqeqlist = NULL;       // list of Elemdata's of OPeqeq & OPne elems
 static Elemdata *rellist = NULL;        // list of Elemdata's of relop elems
 static Elemdata *inclist = NULL;        // list of Elemdata's of increment elems
-
-enum Rdtype { RDarraybounds, RDconstprop };
-static Rdtype rdtype;
 
 /*************************** Constant Propagation ***************************/
 
@@ -104,7 +100,6 @@ static Rdtype rdtype;
 
 void constprop()
 {
-    rdtype = RDconstprop;
     rd_compute();
     intranges();                // compute integer ranges
 #if 0
@@ -130,7 +125,7 @@ STATIC void rd_compute()
         flowrd();               /* compute reaching definitions (rd)    */
         if (deftop == 0)        /* if no reaching defs                  */
                 return;
-        assert(rellist == NULL && inclist == NULL && eqeqlist == NULL && arraylist == NULL);
+        assert(rellist == NULL && inclist == NULL && eqeqlist == NULL);
         block_clearvisit();
         for (i = 0; i < dfotop; i++)    /* for each block               */
         {   block *b = dfo[i];
@@ -230,8 +225,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                     if (t->Eoper == OPvar)
                     {
                         // Note that the following ignores OPnegass
-                        if (rdtype == RDconstprop &&
-                            OTopeq(op) && sytab[t->EV.sp.Vsym->Sclass] & SCRD)
+                        if (OTopeq(op) && sytab[t->EV.sp.Vsym->Sclass] & SCRD)
                         {   elem *e;
                             list_t rdl;
 
@@ -278,8 +272,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                 case OPle:
                 case OPge:
                     // Collect compare elems and their rd's in the rellist list
-                    if (rdtype == RDconstprop &&
-                        tyintegral(n->E1->Ety) &&
+                    if (tyintegral(n->E1->Ety) &&
                         tyintegral(n->E2->Ety)
                        )
                     {
@@ -295,8 +288,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                 case OPpostinc:
                 case OPpostdec:
                     // Collect increment elems and their rd's in the inclist list
-                    if (rdtype == RDconstprop &&
-                        tyintegral(n->E1->Ety))
+                    if (tyintegral(n->E1->Ety))
                     {
                         //dbg_printf("appending to inclist\n"); elem_print(n);
                         pdata = Elemdata::ctor(n,thisblock,listrds(IN,n->E1,NULL));
@@ -308,8 +300,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
                 case OPne:
                 case OPeqeq:
                     // Collect compare elems and their rd's in the rellist list
-                    if (rdtype == RDconstprop &&
-                        tyintegral(n->E1->Ety))
+                    if (tyintegral(n->E1->Ety))
                     {   //dbg_printf("appending to eqeqlist\n"); elem_print(n);
                         pdata = Elemdata::ctor(n,thisblock,listrds(IN,n->E1,NULL));
                         pdata->next = eqeqlist;
@@ -330,21 +321,18 @@ STATIC void conpropwalk(elem *n,vec_t IN)
 
             //printf("const prop: %s\n", n->EV.sp.Vsym->Sident);
             rdl = listrds(IN,n,NULL);
-            if (rdtype == RDconstprop)
-            {   elem *e;
 
-                if (!(config.flags & CFGnowarning))     // if warnings are enabled
-                    chkrd(n,rdl);
-                e = chkprop(n,rdl);
-                if (e)
-                {   tym_t nty;
+            if (!(config.flags & CFGnowarning))     // if warnings are enabled
+                chkrd(n,rdl);
+            elem *e = chkprop(n,rdl);
+            if (e)
+            {   tym_t nty;
 
-                    nty = n->Ety;
-                    el_copy(n,e);
-                    n->Ety = nty;                       // retain original type
-                }
-                list_free(&rdl);
+                nty = n->Ety;
+                el_copy(n,e);
+                n->Ety = nty;                       // retain original type
             }
+            list_free(&rdl);
         }
 }
 
