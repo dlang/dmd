@@ -304,7 +304,6 @@ extern unsigned char rel_unord[];
  *      OTrel2          < <= > >= operators
  *      OTdef           definition operator (assign call post asm)
  *      OTae            potential common subexpression operator
- *      OTexp           expression elem
  *      OTboolnop       operation is a nop if boolean result is desired
  */
 
@@ -328,7 +327,6 @@ extern const unsigned char opcost[OPMAX];
 #define _OTassign       0x10
 #define _OTdef          0x20
 #define _OTae           0x40
-#define _OTexp          0x80
 
 // optab3[]
 #define _OTboolnop      1
@@ -355,7 +353,6 @@ extern const unsigned char opcost[OPMAX];
 #define OTrel2(op)      ((op) >= OPle && (op) <= OPge)
 #define OTdef(op)       (optab2[op]&_OTdef)
 #define OTae(op)        (optab2[op]&_OTae)
-#define OTexp(op)       (optab2[op]&_OTexp)
 #define OTboolnop(op)   (optab3[op]&_OTboolnop)
 #define OTcalldef(op)   (OTcall(op) || (op) == OPstrcpy || (op) == OPstrcat || (op) == OPmemcpy)
 

@@ -162,35 +162,6 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
 #endif
                 };
-int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPrndtol,OPrint,
-                OPstrlen,OPstrcmp,OPind,OPaddr,
-                OPnot,OPbool,OPcom,OPadd,OPmin,OPmul,OPand,OPor,OPstring,
-                OPxor,OPdiv,OPmod,OPshl,OPshr,OPashr,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
-                OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
-                OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
-                OPcomma,OPasm,OPsizeof,OPmemcmp,
-                OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPu16_d,OPd_u16,
-                OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
-                OPd_f,OPf_d,OPu8_16,OPs8_16,OP16_8,
-                OPd_ld, OPld_d,OPc_r,OPc_i,
-                OPu32_64,OPs32_64,OP64_32,OPmsw,
-                OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
-                OP128_64,OPs64_128,OPu64_128,
-                OPbit,OPind,OPucall,OPucallns,
-                OPcall,OPcallns,OPeq,OPstreq,OPpostinc,OPpostdec,
-                OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
-                OPorass,OPxorass,OPshlass,OPshrass,OPashrass,OPoror,OPandand,OPcond,
-                OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,OPbtst,OPpopcnt,
-                OProl,OPror,OPvector,
-                OPpair,OPrpair,OPframeptr,OPgot,OPremquo,OPcmpxchg,
-                OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass,
-#if TX86
-                OPsqrt,OPsin,OPcos,OPscale,OPyl2x,OPyl2xp1,
-#endif
-#if TARGET_SEGMENTED
-                OPvp_fp,OPcvp_fp,OPoffset,OPnp_fp,OPnp_f16p,OPf16p_np,
-#endif
-};
 int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPs16_d,
                 OPf_d,OPu8_16,OPs8_16,
@@ -273,7 +244,6 @@ void dooptab()
         X2(_assign,_OTassign);
         X2(_def,_OTdef);
         X2(_ae,_OTae);
-        X2(_exp,_OTexp);
 
         X3(_boolnop,_OTboolnop);
 
