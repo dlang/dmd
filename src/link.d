@@ -248,7 +248,7 @@ extern (C++) int runLINK()
             {
                 lflags = getenv("LFLAGS_VS14");
                 if (!lflags)
-                    lflags = global.params.is64bit ? "stdio_msvc14_64.obj" : "stdio_msvc14_32mscoff.obj";
+                    lflags = "legacy_stdio_definitions.lib";
                 // environment variables UniversalCRTSdkDir and UCRTVersion set
                 // when running vcvarsall.bat x64
                 if (const(char)* UniversalCRTSdkDir = getenv("UniversalCRTSdkDir"))
@@ -267,11 +267,12 @@ extern (C++) int runLINK()
             else
             {
                 lflags = getenv("LFLAGS_VS12");
-                if (!lflags)
-                    lflags = global.params.is64bit ? "stdio_msvc12_64.obj" : "stdio_msvc12_32mscoff.obj";
             }
-            cmdbuf.writeByte(' ');
-            cmdbuf.writestring(lflags);
+            if (lflags)
+            {
+                cmdbuf.writeByte(' ');
+                cmdbuf.writestring(lflags);
+            }
             char* p = cmdbuf.peekString();
             const(char)* lnkfilename = null;
             size_t plen = strlen(p);
