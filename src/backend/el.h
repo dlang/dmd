@@ -79,7 +79,7 @@ struct elem
                 #define NFLdelcse 0x40  // this is not the generating CSE
                 #define NFLtouns 0x80   // relational operator was changed from signed to unsigned
 #if MARS
-            unsigned char Ejty_;                // original Jupiter/Mars type
+            unsigned char Ejty_;                // original Mars type
             #define Ejty _EU._EO.Ejty_
 #endif
         }_EO;
