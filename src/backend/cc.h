@@ -1188,12 +1188,6 @@ struct Symbol
     const char *prettyIdent;    // the symbol identifer as the user sees it
 #endif
 
-#if ELFOBJ || MACHOBJ
-    long          obj_si;       // Symbol index of coff or elf symbol
-    unsigned long dwarf_off;    // offset into .debug section
-    targ_size_t   code_off;     // rel. offset from start of block where var is initialized
-    targ_size_t   last_off;     // last offset using var
-#endif
 #if TARGET_OSX
     targ_size_t Slocalgotoffset;
 #endif
