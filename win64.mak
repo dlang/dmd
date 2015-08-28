@@ -43,8 +43,8 @@ $(mak\SRCS)
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= errno_c.obj stdio_msvc_$(MODEL).obj
-OBJS_TO_DELETE= errno_c.obj stdio_msvc_$(MODEL).obj
+OBJS= errno_c_$(MODEL).obj stdio_msvc_$(MODEL).obj
+OBJS_TO_DELETE= errno_c_$(MODEL).obj stdio_msvc_$(MODEL).obj
 
 ######################## Doc .html file generation ##############################
 
@@ -652,8 +652,8 @@ $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d
 
 ################### C\ASM Targets ############################
 
-errno_c.obj : src\core\stdc\errno.c
-	$(CC) -c $(CFLAGS) src\core\stdc\errno.c -Foerrno_c.obj
+errno_c_$(MODEL).obj : src\core\stdc\errno.c
+	$(CC) -c -Fo$@ $(CFLAGS) src\core\stdc\errno.c
 
 stdio_msvc_$(MODEL).obj : src\rt\stdio_msvc.c win64.mak
 	$(CC) -c -Fo$@ $(CFLAGS) src\rt\stdio_msvc.c
