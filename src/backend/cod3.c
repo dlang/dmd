@@ -2085,12 +2085,12 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
 
     // Call the validation function
     {
-        makeitextern(rtlsym[RTLSYM_PTRCHK]);
+        makeitextern(getRtlsym(RTLSYM_PTRCHK));
 
         used &= ~(keepmsk | idxregs);           // regs destroyed by this exercise
         c = cat(c,getregs(used));
                                                 // CALL __ptrchk
-        gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,rtlsym[RTLSYM_PTRCHK]);
+        gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_PTRCHK));
     }
 
     *pc = cat(c,cs2);
@@ -2485,7 +2485,7 @@ code *genshift(code *c)
 
     // Set up ahshift to trick ourselves into giving the right fixup,
     // which must be seg-relative, external frame, external target.
-    c1 = gencs(CNIL,0xC7,modregrm(3,0,CX),FLfunc,rtlsym[RTLSYM_AHSHIFT]);
+    c1 = gencs(CNIL,0xC7,modregrm(3,0,CX),FLfunc,getRtlsym(RTLSYM_AHSHIFT));
     c1->Iflags |= CFoff;
     return cat(c,c1);
 #else
@@ -3022,10 +3022,10 @@ code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushallo
         {
             // BUG: Won't work if parameter is passed in AX
             c = movregconst(c,AX,xlocalsize,FALSE); // MOV AX,localsize
-            makeitextern(rtlsym[RTLSYM_CHKSTK]);
+            makeitextern(getRtlsym(RTLSYM_CHKSTK));
                                                     // CALL _chkstk
-            gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,rtlsym[RTLSYM_CHKSTK]);
-            useregs((ALLREGS | mBP | mES) & ~rtlsym[RTLSYM_CHKSTK]->Sregsaved);
+            gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,getRtlsym(RTLSYM_CHKSTK));
+            useregs((ALLREGS | mBP | mES) & ~getRtlsym(RTLSYM_CHKSTK)->Sregsaved);
         }
         else
         {
@@ -3146,7 +3146,7 @@ code* prolog_saveregs(code *c, regm_t topush)
 #if SCPP
 code* prolog_trace(bool farfunc, unsigned* regsaved)
 {
-    symbol *s = rtlsym[farfunc ? RTLSYM_TRACE_PRO_F : RTLSYM_TRACE_PRO_N];
+    symbol *s = getRtlsym(farfunc ? RTLSYM_TRACE_PRO_F : RTLSYM_TRACE_PRO_N);
     makeitextern(s);
     code* c = gencs(NULL,I16 ? 0x9A : CALL,0,FLfunc,s);      // CALL _trace
     if (!I16)
@@ -3662,7 +3662,7 @@ void epilog(block *b)
         )
        )
     {
-        symbol *s = rtlsym[farfunc ? RTLSYM_TRACE_EPI_F : RTLSYM_TRACE_EPI_N];
+        symbol *s = getRtlsym(farfunc ? RTLSYM_TRACE_EPI_F : RTLSYM_TRACE_EPI_N);
         makeitextern(s);
         c = gencs(c,I16 ? 0x9A : CALL,0,FLfunc,s);      // CALLF _trace
         if (!I16)

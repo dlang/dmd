@@ -2560,8 +2560,8 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             config.flags3 & CFG3wkfloat &&
             (cinfo->flags & (INFfloat | INFwkdone)) == INFfloat)
         {   cinfo->flags |= INFwkdone;
-            makeitextern(rtlsym[RTLSYM_INTONLY]);
-            objmod->wkext(s,rtlsym[RTLSYM_INTONLY]);
+            makeitextern(getRtlsym(RTLSYM_INTONLY));
+            objmod->wkext(s,getRtlsym(RTLSYM_INTONLY));
         }
 #endif
     }
@@ -3212,7 +3212,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
         if (strcmp(s->Sident,"alloca") == 0)
         {
 #if 1
-            s = rtlsym[RTLSYM_ALLOCA];
+            s = getRtlsym(RTLSYM_ALLOCA);
             makeitextern(s);
             int areg = CX;
             if (config.exe == EX_WIN64)
