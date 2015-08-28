@@ -71,7 +71,7 @@ else version( CRuntime_Microsoft )
         FOPEN_MAX    = 20,
         ///
         FILENAME_MAX = 260,
-        ///
+        /// Actually int.max since Visual Studio 2015.
         TMP_MAX      = 32767,
         ///
         _SYS_OPEN    = 20,      // non-standard
@@ -79,11 +79,11 @@ else version( CRuntime_Microsoft )
 
     ///
     enum int     _NFILE     = 512;       // non-standard
-    ///
+    /// Removed since Visual Studio 2015.
     enum string  _P_tmpdir  = "\\"; // non-standard
-    ///
+    /// Removed since Visual Studio 2015.
     enum wstring _wP_tmpdir = "\\"; // non-standard
-    ///
+    /// Actually 260 since Visual Studio 2015.
     enum int     L_tmpnam   = _P_tmpdir.length + 12;
 }
 else version( CRuntime_Glibc )
@@ -543,23 +543,23 @@ else version( CRuntime_Microsoft )
         _IOLBF   = 0x40,
         ///
         _IONBF   = 4,
-        ///
+        /// Removed since Visual Studio 2015.
         _IOREAD  = 1,     // non-standard
-        ///
+        /// Removed since Visual Studio 2015.
         _IOWRT   = 2,     // non-standard
-        ///
+        /// Removed since Visual Studio 2015.
         _IOMYBUF = 8,     // non-standard
-        ///
+        /// Removed since Visual Studio 2015.
         _IOEOF   = 0x10,  // non-standard
-        ///
+        /// Removed since Visual Studio 2015.
         _IOERR   = 0x20,  // non-standard
-        ///
+        /// Removed since Visual Studio 2015.
         _IOSTRG  = 0x40,  // non-standard
-        ///
+        /// Removed since Visual Studio 2015.
         _IORW    = 0x80,  // non-standard
-        ///
+        /// Removed since Visual Studio 2015.
         _IOAPP   = 0x200, // non-standard
-        ///
+        /// Removed since Visual Studio 2015.
         _IOAPPEND = 0x200, // non-standard
     }
 
@@ -941,19 +941,19 @@ else version( CRuntime_Microsoft )
     ///
     pure int  fileno(FILE* stream);
   }
+
   ///
-    int   _snprintf(char* s, size_t n, in char* fmt, ...);
+    int _snprintf(char* s, size_t n, in char* format, ...);
     ///
-    alias _snprintf snprintf;
+    int  snprintf(char* s, size_t n, in char* format, ...);
 
     ///
-    int   _vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int _vsnprintf(char* s, size_t n, in char* format, va_list arg);
     ///
-    alias _vsnprintf vsnprintf;
+    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
 
     ///
     int _fputc_nolock(int c, FILE *fp);
-
     ///
     int _fgetc_nolock(FILE *fp);
 
