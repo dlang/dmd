@@ -3359,6 +3359,10 @@ Lagain:
             v->semantic(v->scope);
             s = v->toAlias();   // Need this if 'v' is a tuple variable
         }
+
+        // Change the ancestor lambdas to delegate before hasThis(sc) call.
+        if (v->checkNestedReference(sc, loc))
+            return new ErrorExp();
     }
     if (s->needThis() && hasThis(sc))
     {
@@ -5310,6 +5314,9 @@ Expression *VarExp::semantic(Scope *sc)
     }
     else if (FuncDeclaration *fd = var->isFuncDeclaration())
     {
+        // TODO: If fd isn't yet resolved its overload, the checkNestedReference
+        // call would cause incorrect validation.
+        // Maybe here should be moved in CallExp, or AddrExp for functions.
         if (fd->checkNestedReference(sc, loc))
             return new ErrorExp();
     }
@@ -8966,6 +8973,10 @@ Lagain:
 
         if (f->needThis())
         {
+            // Change the ancestor lambdas to delegate before hasThis(sc) call.
+            if (f->checkNestedReference(sc, loc))
+                return new ErrorExp();
+
             if (hasThis(sc))
             {
                 // Supply an implicit 'this', as in
