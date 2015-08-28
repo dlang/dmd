@@ -977,11 +977,6 @@ union eve
 #endif
 
 typedef unsigned SYMFLGS;
-#if MARS
-#define SYM_PREDEF_SZ 40
-#else
-#define SYM_PREDEF_SZ 22
-#endif
 
 
 /**********************************
