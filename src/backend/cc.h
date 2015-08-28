@@ -1285,8 +1285,7 @@ struct Symbol
     }_SXR;
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
-    char Sident[SYM_PREDEF_SZ]; // identifier string (dynamic array)
-                                // (the size is for static Symbols)
+    char Sident[1];             // identifier string (dynamic array)
 
     int needThis();             // !=0 if symbol needs a 'this' pointer
     bool Sisdead(bool anyiasm); // if variable is not referenced
