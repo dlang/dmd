@@ -1557,7 +1557,7 @@ elem * el_var(symbol *s)
          */
         elem *e2 = el_calloc();
         e2->Eoper = OPvar;
-        e2->EV.sp.Vsym = rtlsym[RTLSYM_TLS_ARRAY];
+        e2->EV.sp.Vsym = getRtlsym(RTLSYM_TLS_ARRAY);
         e2->Ety = e2->EV.sp.Vsym->ty();
 
         e->Eoper = OPind;
@@ -1599,12 +1599,12 @@ elem * el_var(symbol *s)
         if (config.wflags & WFexe)
         {
             // e => *(&s + *(FS:_tls_array))
-            e2 = el_var(rtlsym[RTLSYM_TLS_ARRAY]);
+            e2 = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
         }
         else
         {
-            e2 = el_bin(OPmul,TYint,el_var(rtlsym[RTLSYM_TLS_INDEX]),el_long(TYint,REGSIZE));
-            ea = el_var(rtlsym[RTLSYM_TLS_ARRAY]);
+            e2 = el_bin(OPmul,TYint,el_var(getRtlsym(RTLSYM_TLS_INDEX)),el_long(TYint,REGSIZE));
+            ea = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
             e2 = el_bin(OPadd,ea->Ety,ea,e2);
         }
         e2 = el_una(OPind,TYsize_t,e2);
@@ -1661,8 +1661,8 @@ elem * el_var(symbol *s)
                 e1->ET = newpointer(s->Stype);
                 e1->ET->Tcount++;
 
-                e2 = el_bint(OPmul,tsint,el_var(rtlsym[RTLSYM_TLS_INDEX]),el_longt(tsint,4));
-                ea = el_var(rtlsym[RTLSYM_TLS_ARRAY]);
+                e2 = el_bint(OPmul,tsint,el_var(getRtlsym(RTLSYM_TLS_INDEX)),el_longt(tsint,4));
+                ea = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
                 e2 = el_bint(OPadd,ea->ET,ea,e2);
                 e2 = el_unat(OPind,tsint,e2);
 
