@@ -1192,38 +1192,6 @@ extern (C++) void* symbol_search_fp(void* arg, const(char)* seed, int* cost)
     return cast(void*)s.search(Loc(), id, IgnoreErrors);
 }
 
-/***************************************
- * Determine number of Dsymbols, folding in AttribDeclaration members.
- */
-extern (C++) static int dimDg(void* ctx, size_t n, Dsymbol)
-{
-    ++*cast(size_t*)ctx;
-    return 0;
-}
-
-/***************************************
- * Get nth Dsymbol, folding in AttribDeclaration members.
- * Returns:
- *      Dsymbol*        nth Dsymbol
- *      NULL            not found, *pn gets incremented by the number
- *                      of Dsymbols
- */
-struct GetNthSymbolCtx
-{
-    size_t nth;
-    Dsymbol sym;
-}
-
-extern (C++) static int getNthSymbolDg(void* ctx, size_t n, Dsymbol sym)
-{
-    GetNthSymbolCtx* p = cast(GetNthSymbolCtx*)ctx;
-    if (n == p.nth)
-    {
-        p.sym = sym;
-        return 1;
-    }
-    return 0;
-}
 
 // Dsymbol that generates a scope
 extern (C++) class ScopeDsymbol : Dsymbol
@@ -1523,44 +1491,72 @@ public:
         return false;
     }
 
-    final static size_t dim(Dsymbols* members)
+    /***************************************
+     * Determine number of Dsymbols, folding in AttribDeclaration members.
+     */
+    static size_t dim(Dsymbols* members)
     {
         size_t n = 0;
+        int dimDg(size_t idx, Dsymbol s)
+        {
+            ++n;
+            return 0;
+        }
         _foreach(null, members, &dimDg, &n);
         return n;
     }
 
-    final static Dsymbol getNth(Dsymbols* members, size_t nth, size_t* pn = null)
+    /***************************************
+     * Get nth Dsymbol, folding in AttribDeclaration members.
+     * Returns:
+     *      Dsymbol*        nth Dsymbol
+     *      NULL            not found, *pn gets incremented by the number
+     *                      of Dsymbols
+     */
+    static Dsymbol getNth(Dsymbols* members, size_t nth, size_t* pn = null)
     {
-        GetNthSymbolCtx ctx = GetNthSymbolCtx(nth, null);
-        int res = _foreach(null, members, &getNthSymbolDg, &ctx);
-        return res ? ctx.sym : null;
+        Dsymbol sym = null;
+
+        int getNthSymbolDg(size_t n, Dsymbol s)
+        {
+            if (n == nth)
+            {
+                sym = s;
+                return 1;
+            }
+            return 0;
+        }
+
+        int res = _foreach(null, members, &getNthSymbolDg);
+        return res ? sym : null;
     }
 
-    extern (C++) alias ForeachDg = int function(void* ctx, size_t idx, Dsymbol s);
+    extern (D)   alias ForeachDg    = int delegate(size_t idx, Dsymbol s);
 
     /***************************************
      * Expands attribute declarations in members in depth first
-     * order. Calls dg(void *ctx, size_t symidx, Dsymbol *sym) for each
+     * order. Calls dg(size_t symidx, Dsymbol *sym) for each
      * member.
      * If dg returns !=0, stops and returns that value else returns 0.
      * Use this function to avoid the O(N + N^2/2) complexity of
      * calculating dim and calling N times getNth.
+     * Returns:
+     *  last value returned by dg()
      */
-    final static int _foreach(Scope* sc, Dsymbols* members, ForeachDg dg, void* ctx, size_t* pn = null)
+    extern (D) static int _foreach(Scope* sc, Dsymbols* members, scope ForeachDg dg, size_t* pn = null)
     {
         assert(dg);
         if (!members)
             return 0;
         size_t n = pn ? *pn : 0; // take over index
         int result = 0;
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (size_t i; 0 .. members.dim)
         {
             Dsymbol s = (*members)[i];
             if (AttribDeclaration a = s.isAttribDeclaration())
-                result = _foreach(sc, a.include(sc, null), dg, ctx, &n);
+                result = _foreach(sc, a.include(sc, null), dg, &n);
             else if (TemplateMixin tm = s.isTemplateMixin())
-                result = _foreach(sc, tm.members, dg, ctx, &n);
+                result = _foreach(sc, tm.members, dg, &n);
             else if (s.isTemplateInstance())
             {
             }
@@ -1568,7 +1564,7 @@ public:
             {
             }
             else
-                result = dg(ctx, n++, s);
+                result = dg(n++, s);
             if (result)
                 break;
         }
