@@ -400,7 +400,7 @@ void Module::genobjfile(int multiobj)
                       ebcov,
                       toEfilename(),
                       NULL);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER]), e);
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DCOVER)), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
     }
@@ -492,7 +492,7 @@ void Module::genobjfile(int multiobj)
 
             elem *efilename = toEmodulename();
 
-            elem *e = el_var(rtlsym[rt]);
+            elem *e = el_var(getRtlsym(rt));
             e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
             block *b = block_calloc();
@@ -502,7 +502,7 @@ void Module::genobjfile(int multiobj)
             ma->Sfunc->Fstartblock = b;
             ma->Sclass = SCcomdat;
             ma->Sfl = 0;
-            ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
+            ma->Sflags |= getRtlsym(rt)->Sflags & SFLexit;
             writefunc(ma);
         }
     }

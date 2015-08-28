@@ -647,7 +647,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
         // Allocate memory for the closure
         elem *e;
         e = el_long(TYsize_t, offset);
-        e = el_bin(OPcall, TYnptr, el_var(rtlsym[RTLSYM_ALLOCMEMORY]), e);
+        e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_ALLOCMEMORY)), e);
 
         // Assign block of memory to sclosure
         //    sclosure = allocmemory(sz);

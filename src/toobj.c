@@ -675,7 +675,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                             else
                                 warning("%s is hidden by %s\n", fd->toPrettyChars(), toChars());
                         }
-                        s = rtlsym[RTLSYM_DHIDDENFUNC];
+                        s = getRtlsym(RTLSYM_DHIDDENFUNC);
                         break;
                     }
                 }
