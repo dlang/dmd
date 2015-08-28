@@ -552,9 +552,6 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define UNKNOWN -1      /* unknown segment              */
 #define DGROUPIDX 1     /* group index of DGROUP        */
 
-#define KEEPBITFIELDS 0 /* 0 means code generator cannot handle bit fields, */
-                        /* so replace them with shifts and masks        */
-
 #define REGMAX  29      // registers are numbered 0..10
 
 typedef unsigned        tym_t;          // data type big enough for type masks

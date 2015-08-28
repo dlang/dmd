@@ -1329,12 +1329,6 @@ STATIC void accumlv(vec_t GEN,vec_t KILL,elem *n)
                 vec_subass(GEN,KILL);
                 break;
 
-            case OPnewarray:
-            case OPmultinewarray:
-                accumlv(GEN,KILL,n->E1);
-                accumlv(GEN,KILL,n->E2);
-                goto L1;
-
             case OPcall:
             case OPcallns:
             case OPstrcpy:
@@ -1572,12 +1566,6 @@ STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                 }
                 break;
 
-            case OPnewarray:
-            case OPmultinewarray:
-                accumvbe(GEN,KILL,n->E1);
-                accumvbe(GEN,KILL,n->E2);
-                break;
-
             case OPcall:
             case OPcallns:
                 accumvbe(GEN,KILL,n->E2);
@@ -1703,7 +1691,7 @@ STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                         {   if (!vec_testbit(e->E1->Eexp,KILL))
                                 continue;
                         }
-                        else /* OPconst or OPrelconst or OPstring or OPhstring */
+                        else /* OPconst or OPrelconst or OPstring */
                                 continue;
 
                         vec_setbit(i,KILL);     // KILL it

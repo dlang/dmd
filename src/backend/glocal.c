@@ -273,17 +273,9 @@ Loop:
             local_ambigref();
             break;
 
-        case OPnewarray:
-        case OPmultinewarray:
-            local_exp(e->E1,1);
-            local_exp(e->E2,1);
-            goto Lrd;
-
         case OPstrcmp:
         case OPmemcmp:
         case OPbt:
-        case OParray:
-        case OPfield:
             local_exp(e->E1,1);
             local_exp(e->E2,1);
             local_ambigref();
@@ -582,8 +574,6 @@ STATIC int local_getflags(elem *e,symbol *s)
             case OPucallns:
             case OPcall:
             case OPcallns:
-            case OPnewarray:
-            case OPmultinewarray:
             case OPstrcat:
             case OPstrcpy:
             case OPmemcpy:
@@ -606,8 +596,6 @@ STATIC int local_getflags(elem *e,symbol *s)
                 break;
 
             case OPind:
-            case OParray:
-            case OPfield:
             case OPstrlen:
             case OPstrcmp:
             case OPmemcmp:

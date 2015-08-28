@@ -53,7 +53,7 @@ linkage_t linkage;
 int linkage_spec = 0;           /* using the default                    */
 
 /* Function types       */
-/* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall,Jupiter */
+/* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall,Mars */
 #if MEMMODELS == 1
 tym_t functypetab[LINK_MAXDIM] =
 {

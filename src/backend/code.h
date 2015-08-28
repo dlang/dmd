@@ -155,7 +155,7 @@ extern unsigned usednteh;
 #define NTEHcpp         (NTEHexcspec | NTEHcleanup | NTEHtry)
 #define EHcleanup       0x20
 #define EHtry           0x40
-#define NTEHjmonitor    0x80    // uses Jupiter monitor
+#define NTEHjmonitor    0x80    // uses Mars monitor
 #define NTEHpassthru    0x100
 
 /********************** Code Generator State ***************/
@@ -316,7 +316,6 @@ cd_t cdddtor;
 cd_t cdctor;
 cd_t cddtor;
 cd_t cdmark;
-cd_t cdnullcheck;
 cd_t cdclassinit;
 
 /* cod3.c */
