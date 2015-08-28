@@ -5246,27 +5246,4 @@ code *cdhalt(elem *e,regm_t *pretregs)
     return gen1(NULL, 0xF4);            // HLT
 }
 
-/****************************************
- * Check to see if pointer is NULL.
- */
-
-code *cdnullcheck(elem *e,regm_t *pretregs)
-{   regm_t retregs;
-    regm_t scratch;
-    unsigned reg;
-    code *c;
-    code *cs;
-
-    assert(!I16);
-    retregs = *pretregs;
-    if ((retregs & allregs) == 0)
-        retregs |= allregs;
-    c = codelem(e->E1,&retregs,FALSE);
-    scratch = allregs & ~retregs;
-    cs = allocreg(&scratch,&reg,TYint);
-    unsigned rex = I64 ? REX_W : 0;
-    cs = genc1(cs,0x8B,(rex << 16) | buildModregrm(2,reg,findreg(retregs)),FLconst,0); // MOV reg,0[e]
-    return cat3(c,cs,fixresult(e,retregs,pretregs));
-}
-
 #endif // !SPP

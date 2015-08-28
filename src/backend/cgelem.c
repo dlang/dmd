@@ -30,7 +30,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 
 STATIC elem * optelem(elem *,goal_t);
-STATIC elem * elarray(elem *e);
 STATIC elem * eldiv(elem *, goal_t goal);
 
 extern elem * evalu8(elem *, goal_t goal);
@@ -1097,7 +1096,7 @@ L1:
   /* for floating or far or huge pointers!                              */
   if (e1->Eoper == OPadd && e2->Eoper == OPadd &&
       cnst(e1->E2) && cnst(e2->E2) &&
-      (tyintegral(tym) || tybasic(tym) == TYjhandle || tybasic(tym) == TYnptr
+      (tyintegral(tym) || tybasic(tym) == TYnptr
 #if TARGET_SEGMENTED
        || tybasic(tym) == TYsptr
 #endif
@@ -4828,72 +4827,7 @@ STATIC elem * elinfo(elem *e, goal_t goal)
 /********************************************
  */
 
-STATIC elem * elhstring(elem *e, goal_t goal)
-{
-    return e;
-}
-
-/********************************************
- */
-
-STATIC elem * elnullcheck(elem *e, goal_t goal)
-{
-    return e;
-}
-
-
-/********************************************
- */
-
 STATIC elem * elclassinit(elem *e, goal_t goal)
-{
-    return e;
-}
-
-/********************************************
- */
-
-STATIC elem * elnewarray(elem *e, goal_t goal)
-{
-    return e;
-}
-
-/********************************************
- */
-
-STATIC elem * elmultinewarray(elem *e, goal_t goal)
-{
-    return e;
-}
-
-/********************************************
- */
-
-STATIC elem * elinstanceof(elem *e, goal_t goal)
-{
-    return e;
-}
-
-/********************************************
- */
-
-STATIC elem * elfinalinstanceof(elem *e, goal_t goal)
-{
-    return e;
-}
-
-/********************************************
- */
-
-STATIC elem * elcheckcast(elem *e, goal_t goal)
-{
-    return e;
-}
-
-/********************************************
- */
-
-STATIC elem * elarraylength(elem *e, goal_t goal)
 {
     return e;
 }
@@ -4971,22 +4905,6 @@ STATIC elem * elvalist(elem *e, goal_t goal)
     return e;
 }
 #endif
-
-/********************************************
- */
-
-STATIC elem * elarray(elem *e, goal_t goal)
-{
-    return e;
-}
-
-/********************************************
- */
-
-STATIC elem * elfield(elem *e, goal_t goal)
-{
-    return e;
-}
 
 /******************************************
  * OPparam
@@ -5419,7 +5337,7 @@ beg:
   }
   else /* unary operator */
   {
-        assert(!e->E2 || op == OPinfo || op == OParraylength || op == OPddtor);
+        assert(!e->E2 || op == OPinfo || op == OPddtor);
         if (!goal && !OTsideff(op) && !(e->Ety & mTYvolatile))
         {
             tym_t tym = e->E1->Ety;

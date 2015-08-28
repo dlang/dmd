@@ -592,14 +592,13 @@ enum BC {
     BCcatch     = 11,   // C++ catch block
     BCjump      = 12,   // Belem specifies (near) address to jump to
     BC_try      = 13,   // SEH: first block of try-except or try-finally
-                        // Jupiter, Mars: try-catch or try-finally
+                        // Mars: try-catch or try-finally
     BC_filter   = 14,   // SEH exception-filter (always exactly one block)
     BC_finally  = 15,   // first block of SEH termination-handler,
                         // or finally block
     BC_ret      = 16,   // last block of SEH termination-handler or finally block
     BC_except   = 17,   // first block of SEH exception-handler
-    BCjcatch    = 18,   // first block of Jupiter or Mars catch-block
-    BCjplace    = 19,   // Jupiter: placeholder
+    BCjcatch    = 18,   // first block of Mars catch-block
     BCMAX
 };
 
@@ -662,10 +661,8 @@ typedef struct FUNC_S
         #define Fnteh           0x08    // uses NT Structured EH
         #define Fdoinline       0x40    // do inline walk
         #define Foverridden     0x80    // ignore for overriding purposes
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        #define Fnowrite        0x100   // SCinline should never output definition
-#else
-        #define Fjmonitor       0x100   // Jupiter synchronized function
+#if MARS && TARGET_WINDOS
+        #define Fjmonitor       0x100   // Mars synchronized function
 #endif
         #define Fnosideeff      0x200   // function has no side effects
         #define F3badoparrow    0x400   // bad operator->()

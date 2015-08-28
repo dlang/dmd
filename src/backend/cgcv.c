@@ -412,13 +412,11 @@ void cv_init()
         {
             dttab4[TYptr]  = 0x600;
             dttab4[TYnptr] = 0x600;
-            dttab4[TYjhandle] = 0x600;
         }
         else
         {
             dttab4[TYptr]  = 0x400;
             dttab4[TYnptr] = 0x400;
-            dttab4[TYjhandle] = 0x400;
         }
 #if TARGET_SEGMENTED
         dttab4[TYsptr] = 0x400;

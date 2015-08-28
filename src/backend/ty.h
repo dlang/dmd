@@ -17,8 +17,6 @@
 #ifndef TY_H
 #define TY_H 1
 
-//#define TYjhandle     TYnptr          // use for Jupiter handle
-
 /*****************************************
  * Data types.
  * (consists of basic type + modifier bits)
@@ -62,9 +60,6 @@ enum TYM
     TYcdouble           = 0x19,
     TYcldouble          = 0x1A,
 
-    TYjhandle           = 0x1B, // Jupiter handle type, equals TYnptr except
-                                // that the debug type is different so the
-                                // debugger can distinguish them
     TYnullptr           = 0x1C,
     TYnptr              = 0x1D, // data segment relative pointer
     TYref               = 0x24, // reference to another type
