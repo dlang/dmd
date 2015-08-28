@@ -583,13 +583,13 @@ public:
             switch (s->condition->type->nextOf()->ty)
             {
                 case Tchar:
-                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_STRING]), eparam);
+                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_STRING)), eparam);
                     break;
                 case Twchar:
-                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_USTRING]), eparam);
+                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_USTRING)), eparam);
                     break;
                 case Tdchar:        // BUG: implement
-                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_DSTRING]), eparam);
+                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_DSTRING)), eparam);
                     break;
                 default:
                     assert(0);
@@ -737,7 +737,7 @@ public:
 
         elem *efilename = el_ptr(toSymbol(blx->module));
         elem *elinnum = el_long(TYint, s->loc.linnum);
-        elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
+        elem *e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DSWITCHERR)), el_param(elinnum, efilename));
         block_appendexp(blx->curblock, e);
     }
 
@@ -974,7 +974,7 @@ public:
 
         incUsage(irs, s->loc);
         elem *e = toElemDtor(s->exp, irs);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROWC]),e);
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_THROWC)),e);
         block_appendexp(blx->curblock, e);
     }
 
