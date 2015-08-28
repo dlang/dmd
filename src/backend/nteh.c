@@ -508,8 +508,7 @@ code *nteh_filter(block *b)
  */
 
 void nteh_framehandler(symbol *scopetable)
-{   code *c;
-
+{
     // Generate:
     //  MOV     EAX,&scope_table
     //  JMP     __cpp_framehandler
@@ -517,8 +516,12 @@ void nteh_framehandler(symbol *scopetable)
     if (scopetable)
     {
         symbol_debug(scopetable);
-        c = gencs(NULL,0xB8+AX,0,FLextern,scopetable);  // MOV EAX,&scope_table
-        gencs(c,0xE9,0,FLfunc,rtlsym[RTLSYM_CPP_HANDLER]);      // JMP __cpp_framehandler
+        code *c = gencs(NULL,0xB8+AX,0,FLextern,scopetable);  // MOV EAX,&scope_table
+#if MARS
+        gencs(c,0xE9,0,FLfunc,rtlsym[RTLSYM_D_HANDLER]);      // JMP _d_framehandler
+#else
+        gencs(c,0xE9,0,FLfunc,rtlsym[RTLSYM_CPP_HANDLER]);    // JMP __cpp_framehandler
+#endif
 
         pinholeopt(c,NULL);
         codout(c);
