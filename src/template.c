@@ -5942,6 +5942,17 @@ Lerror:
         this->tnext = inst->tnext;
         inst->tnext = this;
 
+        /* A module can have explicit template instance and its alias
+         * in module scope (e,g, `alias Base64 = Base64Impl!('+', '/');`).
+         * If the first instantiation 'inst' had happened in non-root module,
+         * compiler can assume that its instantiated code would be included
+         * in the separately compiled obj/lib file (e.g. phobos.lib).
+         *
+         * However, if 'this' second instantiation happened in root module,
+         * compiler might need to invoke its codegen (Bugzilla 2500 & 2644).
+         * But whole import graph is not determined until all semantic pass finished,
+         * so 'inst' should conservatively finish the semantic3 pass for the codegen.
+         */
         if (minst && minst->isRoot() && !(inst->minst && inst->minst->isRoot()))
         {
             /* Swap the position of 'inst' and 'this' in the instantiation graph.
@@ -7246,61 +7257,34 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
 }
 
 /*****************************************
- * Append 'this' to the enclosing module members[] so the semantic routines
- * will get called on the instance members.
+ * Append 'this' to the specific module members[]
  */
 Dsymbols *TemplateInstance::appendToModuleMember()
 {
-    Module *md = tempdecl->getModule();
+    Module *mi = minst;     // instantiated -> inserted module
 
-    Module *mi = minst;
-    if (mi)
+    if (!mi || mi->isRoot())
     {
-        if (mi->isRoot())
-        {
-            /* If both modules mi and md where the template is declared are
-             * roots, instead use md to store the generated code in it.
-             */
-            if (md && md->isRoot())
-                mi = md;
-        }
-        else
-        {
-            /* A module can have explicit template instance and its alias
-             * in module scope (e,g, `alias Base64Impl!('+', '/') Base64;`).
-             * When the module is just imported, normally compiler can assume that
-             * its instantiated code would be contained in the separately compiled
-             * obj/lib file (e.g. phobos.lib).
-             */
-            /*
-             * Bugzilla 2644: However, if the template is instantiated in both
-             * modules of root and non-root, compiler should generate its objcode.
-             * Therefore, always conservatively insert this instance to the member of
-             * a root module, then calculate the necessity by TemplateInstance::needsCodegen().
-             */
-        }
-        //printf("\t1: adding to %s\n", mi->toPrettyChars());
+        /* If the instantiated module is speculative or root, insert to the
+         * member of a root module. Then:
+         *  - semantic3 pass will get called on the instance members.
+         *  - codegen pass will get a selection chance to do/skip it.
+         */
+
+        // insert target is made stable by using the module
+        // where tempdecl is declared.
+        mi = tempdecl->getModule();
+        if (!mi->isRoot())
+            mi = mi->importedFrom;
+        assert(mi->isRoot());
     }
     else
     {
-        // 'this' is speculative instance
-        if (md && md->isRoot())
-        {
-            mi = md;
-        }
-        else
-        {
-            // select arbitrary root module
-            Dsymbol *s = enclosing ? enclosing : tempdecl->parent;
-            while (s && !s->isModule())
-                s = s->toParent2();
-            assert(s);
-            mi = (Module *)s;
-            if (!mi->isRoot())
-                mi = mi->importedFrom;
-        }
-        assert(mi->isRoot());
-        //printf("\t2: adding to module %s instead of module %s\n", mi->toPrettyChars(), sc->module->toPrettyChars());
+        /* If the instantiated module is non-root, insert to the member of the
+         * non-root module. Then:
+         *  - semantic3 pass won't be called on the instance.
+         *  - codegen pass won't reach to the instance.
+         */
     }
 
     Dsymbols *a = mi->members;
