@@ -437,7 +437,7 @@ void genObjFile(Module *m, bool multiobj)
                       ebcov,
                       efilename,
                       NULL);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER2]), e);
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DCOVER2)), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
     }
@@ -534,7 +534,7 @@ static void genhelpers(Module *m)
         if (config.exe == EX_WIN64)
             efilename = addressElem(efilename, Type::tstring, true);
 
-        elem *e = el_var(rtlsym[rt]);
+        elem *e = el_var(getRtlsym(rt));
         e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
         block *b = block_calloc();
@@ -544,7 +544,7 @@ static void genhelpers(Module *m)
         ma->Sfunc->Fstartblock = b;
         ma->Sclass = SCglobal;
         ma->Sfl = 0;
-        ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
+        ma->Sflags |= getRtlsym(rt)->Sflags & SFLexit;
         writefunc(ma);
     }
 }
