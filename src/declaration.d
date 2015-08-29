@@ -1603,16 +1603,24 @@ public:
                         ei = new ExpInitializer(_init.loc, e);
                         _init = ei;
                     }
+                    Expression exp = ei.exp;
                     Expression e1 = new VarExp(loc, this);
                     if (isBlit)
-                        ei.exp = new BlitExp(loc, e1, ei.exp);
+                        exp = new BlitExp(loc, e1, exp);
                     else
-                        ei.exp = new ConstructExp(loc, e1, ei.exp);
+                        exp = new ConstructExp(loc, e1, exp);
                     canassign++;
-                    ei.exp = ei.exp.semantic(sc);
+                    exp = exp.semantic(sc);
                     canassign--;
-                    ei.exp.optimize(WANTvalue);
-                    if (isScope())
+                    exp = exp.optimize(WANTvalue);
+                    if (exp.op == TOKerror)
+                    {
+                        _init = new ErrorInitializer();
+                        ei = null;
+                    }
+                    else
+                        ei.exp = exp;
+                    if (ei && isScope())
                     {
                         Expression ex = ei.exp;
                         while (ex.op == TOKcomma)
@@ -2176,13 +2184,40 @@ public:
     final bool checkNestedReference(Scope* sc, Loc loc)
     {
         //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
-        if (parent && parent != sc.parent && !isDataseg() && !(storage_class & STCmanifest) && sc.intypeof != 1 && !(sc.flags & SCOPEctfe))
+        if (sc.intypeof == 1 || (sc.flags & SCOPEctfe))
+            return false;
+        if (!parent || parent == sc.parent)
+            return false;
+        if (isDataseg() || (storage_class & STCmanifest))
+            return false;
+        // The current function
+        FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
+        if (!fdthis)
+            return false; // out of function scope
+        Dsymbol p = toParent2();
+        // Function literals from fdthis to p must be delegates
+        // TODO: here is similar to checkFrameAccess.
+        for (Dsymbol s = fdthis; s && s != p; s = s.toParent2())
+        {
+            // function literal has reference to enclosing scope is delegate
+            if (FuncLiteralDeclaration fld = s.isFuncLiteralDeclaration())
+                fld.tok = TOKdelegate;
+            if (FuncDeclaration fd = s.isFuncDeclaration())
+            {
+                if (!fd.isThis() && !fd.isNested())
+                    break;
+            }
+            if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
+            {
+                if (ad2.storage_class & STCstatic)
+                    break;
+            }
+        }
+        if (1)
         {
             // The function that this variable is in
-            FuncDeclaration fdv = toParent().isFuncDeclaration();
-            // The current function
-            FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
-            if (fdv && fdthis && fdv != fdthis)
+            FuncDeclaration fdv = p.isFuncDeclaration();
+            if (fdv && fdv != fdthis)
             {
                 // Add fdthis to nestedrefs[] if not already there
                 for (size_t i = 0; 1; i++)
@@ -2233,15 +2268,6 @@ public:
                                     tf.purity = PUREfwdref;
                                 fdthis.type = tf;
                             }
-                        }
-                    }
-                    // Function literals from fdthis to fdv must be delegates
-                    for (Dsymbol s = fdthis; s && s != fdv; s = s.toParent2())
-                    {
-                        // function literal has reference to enclosing scope is delegate
-                        if (FuncLiteralDeclaration fld = s.isFuncLiteralDeclaration())
-                        {
-                            fld.tok = TOKdelegate;
                         }
                     }
                     // Add this to fdv->closureVars[] if not already there

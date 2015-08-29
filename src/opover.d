@@ -890,7 +890,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (s)
                 {
                     functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
-                    if (m.lastf && m.lastf.errors)
+                    if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
                         result = new ErrorExp();
                         return;
@@ -900,7 +900,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (s_r)
                 {
                     functionResolve(&m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
-                    if (m.lastf && m.lastf.errors)
+                    if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
                         result = new ErrorExp();
                         return;
@@ -977,7 +977,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         if (s_r)
                         {
                             functionResolve(&m, s_r, e.loc, sc, tiargs, e.e1.type, &args2);
-                            if (m.lastf && m.lastf.errors)
+                            if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
                                 result = new ErrorExp();
                                 return;
@@ -987,7 +987,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         if (s)
                         {
                             functionResolve(&m, s, e.loc, sc, tiargs, e.e2.type, &args1);
-                            if (m.lastf && m.lastf.errors)
+                            if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
                                 result = new ErrorExp();
                                 return;
@@ -1347,7 +1347,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (s)
                 {
                     functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
-                    if (m.lastf && m.lastf.errors)
+                    if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
                         result = new ErrorExp();
                         return;
@@ -1459,7 +1459,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         if (s)
         {
             functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
-            if (m.lastf && m.lastf.errors)
+            if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                 return new ErrorExp();
         }
         FuncDeclaration lastf = m.lastf;
@@ -1467,7 +1467,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         if (s_r)
         {
             functionResolve(&m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
-            if (m.lastf && m.lastf.errors)
+            if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                 return new ErrorExp();
         }
         if (m.count > 1)
