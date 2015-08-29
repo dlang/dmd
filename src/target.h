@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 2013-2014 by Digital Mars
+ * Copyright (c) 2013-2015 by Digital Mars
  * All Rights Reserved
  * written by Iain Buclaw
  * http://www.digitalmars.com
@@ -32,6 +32,7 @@ struct Target
     static int c_longsize;           // size of a C 'long' or 'unsigned long' type
     static int c_long_doublesize;    // size of a C 'long double'
     static int classinfosize;        // size of 'ClassInfo'
+    static bool reverseCArgs;        // if true, extern(C) arguments are pushed in reverse
 
     static void init();
     // Type sizes and support.
