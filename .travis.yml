@@ -16,3 +16,7 @@ matrix:
   allow_failures:
     - d: gdc
     - d: ldc
+
+env:
+  - SELF_COMPILE=0
+  - SELF_COMPILE=2
