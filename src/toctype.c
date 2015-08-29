@@ -218,6 +218,11 @@ public:
                     assert(0);
             }
         }
+        else if (!t->sym->memtype)
+        {
+            // Bugzilla 13792
+            t->ctype = Type_toCtype(Type::tvoid);
+        }
         else if (t->sym->memtype->toBasetype()->ty == Tint32)
         {
             t->ctype = type_enum(t->sym->toPrettyChars(true), Type_toCtype(t->sym->memtype));
