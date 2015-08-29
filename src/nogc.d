@@ -55,13 +55,8 @@ public:
         VarDeclaration v = e.declaration.isVarDeclaration();
         if (v && !(v.storage_class & STCmanifest) && !v.isDataseg() && v._init)
         {
-            if (v._init.isVoidInitializer())
+            if (ExpInitializer ei = v._init.isExpInitializer())
             {
-            }
-            else
-            {
-                ExpInitializer ei = v._init.isExpInitializer();
-                assert(ei);
                 doCond(ei.exp);
             }
         }

@@ -3307,16 +3307,43 @@ public:
     final bool checkNestedReference(Scope* sc, Loc loc)
     {
         //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
-        if (parent && parent != sc.parent && this.isNested() && this.ident != Id.require && this.ident != Id.ensure)
+        if (!parent || parent == sc.parent)
+            return false;
+        if (ident == Id.require || ident == Id.ensure)
+            return false;
+        if (!isThis() && !isNested())
+            return false;
+        // The current function
+        FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
+        if (!fdthis)
+            return false; // out of function scope
+        Dsymbol p = toParent2();
+        // Function literals from fdthis to p must be delegates
+        // TODO: here is similar to checkFrameAccess.
+        for (Dsymbol s = fdthis; s && s != p; s = s.toParent2())
+        {
+            // function literal has reference to enclosing scope is delegate
+            if (FuncLiteralDeclaration fld = s.isFuncLiteralDeclaration())
+                fld.tok = TOKdelegate;
+            if (FuncDeclaration fd = s.isFuncDeclaration())
+            {
+                if (!fd.isThis() && !fd.isNested())
+                    break;
+            }
+            if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
+            {
+                if (ad2.storage_class & STCstatic)
+                    break;
+            }
+        }
+        if (isNested())
         {
             // The function that this function is in
-            FuncDeclaration fdv2 = toParent2().isFuncDeclaration();
-            // The current function
-            FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
+            FuncDeclaration fdv2 = p.isFuncDeclaration();
             //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
             //printf("fdv2 = %s in [%s]\n", fdv2->toChars(), fdv2->loc.toChars());
             //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
-            if (fdv2 && fdthis && fdv2 != fdthis)
+            if (fdv2 && fdv2 != fdthis)
             {
                 // Add this function to the list of those which called us
                 if (fdthis != this)
@@ -3335,7 +3362,7 @@ public:
                     }
                 }
             }
-            FuncDeclaration fdv = toParent2().isFuncDeclaration();
+            FuncDeclaration fdv = p.isFuncDeclaration();
             if (fdv && fdthis && fdv != fdthis)
             {
                 int lv = fdthis.getLevel(loc, sc, fdv);
@@ -3346,10 +3373,6 @@ public:
                 if (lv == 0)
                     return false; // same level call
                 // Uplevel call
-                // BUG: may need to walk up outer scopes like Declaration::checkNestedReference() does
-                // function literal has reference to enclosing scope is delegate
-                if (FuncLiteralDeclaration fld = fdthis.isFuncLiteralDeclaration())
-                    fld.tok = TOKdelegate;
             }
         }
         return false;

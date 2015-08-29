@@ -3716,6 +3716,9 @@ public:
                 v.semantic(v._scope);
                 s = v.toAlias(); // Need this if 'v' is a tuple variable
             }
+            // Change the ancestor lambdas to delegate before hasThis(sc) call.
+            if (v.checkNestedReference(sc, loc))
+                return new ErrorExp();
         }
         if (s.needThis() && hasThis(sc))
         {
@@ -5865,6 +5868,9 @@ public:
         }
         else if (FuncDeclaration fd = var.isFuncDeclaration())
         {
+            // TODO: If fd isn't yet resolved its overload, the checkNestedReference
+            // call would cause incorrect validation.
+            // Maybe here should be moved in CallExp, or AddrExp for functions.
             if (fd.checkNestedReference(sc, loc))
                 return new ErrorExp();
         }
@@ -6463,6 +6469,7 @@ public:
                 declaration.semantic3(sc);
             }
         }
+        // todo: error in declaration should be propagated.
         type = Type.tvoid;
         return this;
     }
@@ -9377,6 +9384,9 @@ public:
                 return new ErrorExp();
             if (f.needThis())
             {
+                // Change the ancestor lambdas to delegate before hasThis(sc) call.
+                if (f.checkNestedReference(sc, loc))
+                    return new ErrorExp();
                 if (hasThis(sc))
                 {
                     // Supply an implicit 'this', as in
