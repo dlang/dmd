@@ -104,7 +104,7 @@ PHOBOS_PATH=..\..\phobos
 export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
 export LIB=$(PHOBOS_PATH)
 else
-export ARGS=-inline -release -gc -O -unittest -fPIC
+export ARGS=-inline -release -g -O -unittest -fPIC
 export DMD=../src/dmd
 export EXE=
 export OBJ=.o
