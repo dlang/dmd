@@ -130,21 +130,24 @@ shared static ~this()
         ++i;
     }
 
-    qsort(counts.ptr, counts.length, Result.sizeof, &Result.qsort_cmp);
-
-    FILE* fp = logfilename.length == 0 ? stdout : fopen(logfilename.ptr, "w");
-    if (fp)
+    if (counts.length)
     {
-        fprintf(fp, "bytes allocated, type, function, file:line\n");
-        foreach (ref c; counts)
+        qsort(counts.ptr, counts.length, Result.sizeof, &Result.qsort_cmp);
+
+        FILE* fp = logfilename.length == 0 ? stdout : fopen(logfilename.ptr, "w");
+        if (fp)
         {
-            fprintf(fp, "%8llu\t%8.*s\n", cast(ulong)c.count, c.name.length, c.name.ptr);
+            fprintf(fp, "bytes allocated, type, function, file:line\n");
+            foreach (ref c; counts)
+            {
+                fprintf(fp, "%8llu\t%8.*s\n", cast(ulong)c.count, c.name.length, c.name.ptr);
+            }
+            if (logfilename.length)
+                fclose(fp);
         }
-        if (logfilename.length)
-            fclose(fp);
+        else
+            fprintf(stderr, "cannot write profilegc log file '%.*s'", logfilename.length, logfilename.ptr);
     }
-    else
-        fprintf(stderr, "cannot write profilegc log file '%.*s'", logfilename.length, logfilename.ptr);
 }
 
 
