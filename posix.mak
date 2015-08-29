@@ -92,6 +92,9 @@ $(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+changelog.html: changelog.dd
+	$(DMD) -Df$@ $<
+
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)

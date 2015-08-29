@@ -1,0 +1,52 @@
+Ddoc
+
+$(COMMENT Pending changelog for 2.068.1.
+)
+
+$(BUGSTITLE Library Changes,
+
+$(LI $(RELATIVE_LINK2 coverage-profile-config, Functions to configure coverage, profile, and profile=gc reports were added.))
+
+)
+
+$(BUGSTITLE Library Changes,
+
+$(LI $(LNAME2 coverage-profile-config, Functions to configure coverage, profile, and profile=gc reports were added.)
+
+    $(P While they have been accessible through `extern(C)` linkage
+        for a while, the functions to configure coverage, profile, and
+        profile=gc reports where added to $(COREMODREF runtime,
+        core.runtime).
+    )
+
+    $(BOOKTABLE,
+        $(TR $(TH Functions) $(TH Decscription))
+        $(TR $(TD $(CXREF runtime, dmd_coverSourcePath)) $(TD Set the directory which contains the source files.))
+        $(TR $(TD $(CXREF runtime, dmd_coverDestPath)) $(TD Set the directory where to write the -cov reports.))
+        $(TR $(TD $(CXREF runtime, dmd_coverSetMerge)) $(TD Set whether or not to merge results with existing -cov reports.))
+        $(TR $(TD $(CXREF runtime, trace_setlogfilename)) $(TD Set the output file for the -profile report.))
+        $(TR $(TD $(CXREF runtime, trace_setdeffilename)) $(TD Set the output file for the optimized -profile linker script.))
+        $(TR $(TD $(CXREF runtime, profilegc_setlogfilename)) $(TD Set the output file for the -profile=gc report.))
+    )
+
+    $(P Note that these functions are specific to dmd, and might not
+        be available on other compilers.
+    )
+)
+
+)
+
+Macros:
+    TITLE=Change Log
+
+    BUGSTITLE = <div class="bugsfixed">$(H4 $1) $(OL $2 )</div>
+
+    RELATIVE_LINK2=<a href="#$1">$+</a>
+    LNAME2=<a class="anchor" title="Permalink to this section" id="$1" href="#$1">$+</a>
+
+    STDMODREF = <a href="phobos/std_$1.html">$2</a>
+    COREMODREF = <a href="phobos/core_$1.html">$2</a>
+    XREF = <a href="phobos/std_$1.html#$2">$2</a>
+    CXREF = <a href="phobos/core_$1.html#$2">$2</a>
+
+    BOOKTABLE = <table><caption>$1</caption>$+</table>
