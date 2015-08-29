@@ -308,7 +308,6 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
  */
 int intrinsic_op(FuncDeclaration *fd)
 {
-#if TX86
     fd = fd->toAliasFunc();
     const char *name = mangleExact(fd);
     //printf("intrinsic_op(%s)\n", name);
@@ -584,7 +583,6 @@ int intrinsic_op(FuncDeclaration *fd)
 
         return -1;
     }
-#endif
 
     return -1;
 }

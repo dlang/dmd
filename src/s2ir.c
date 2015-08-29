@@ -1230,7 +1230,6 @@ public:
                     break;
             }
 
-#if TX86
             // Repeat for second operand
             switch (c->IFL2)
             {
@@ -1254,7 +1253,6 @@ public:
                         sym->Sflags |= SFLlivexit;
                     break;
             }
-#endif
             //c->print();
         }
 
