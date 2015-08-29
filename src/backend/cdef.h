@@ -491,7 +491,6 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define THUNKS          1       /* use thunks for virtual functions     */
 #define SEPNEWDEL       1       // new/delete are not called within the ctor/dtor,
                                 // they are separate
-#define VBTABLES        1       // use Microsoft object model
 #define UNICODE         1       // support Unicode (wchar_t is unsigned short)
 #define DLCMSGS         0       // if 1, have all messages in a file
 #define NEWMANGLE       TARGET_WINDOS   // use MS name mangling scheme

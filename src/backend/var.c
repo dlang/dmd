@@ -68,11 +68,7 @@ tym_t functypetab[LINK_MAXDIM] =
 tym_t functypetab[LINK_MAXDIM][MEMMODELS] =
 {
     TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc,
-#if VBTABLES
     TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc,
-#else
-    TYnpfunc, TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc,
-#endif
     TYnpfunc, TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc,
     TYnpfunc, TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc,
     TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc,
