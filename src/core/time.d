@@ -157,7 +157,7 @@ version(CoreDdoc) enum ClockType
     /++
         $(BLUE Linux-Only)
 
-        Uses $(D CLOCK_MONOTONIC_BOOTTIME).
+        Uses $(D CLOCK_BOOTTIME).
       +/
     bootTime = 1,
 
@@ -2714,15 +2714,20 @@ unittest
     auto norm2 = MonoTimeImpl!(ClockType.normal).currTime;
     assert(norm1 <= norm2);
 
+    static bool clockSupported(ClockType c)
+    {
+        version (Linux_Pre_2639) // skip CLOCK_BOOTTIME on older linux kernels
+            return c != ClockType.second && c != ClockType.bootTime;
+        else
+            return c != ClockType.second; // second doesn't work with MonoTimeImpl
+
+    }
+
     foreach(typeStr; __traits(allMembers, ClockType))
     {
-        // ClockType.second is currently the only clock type that doesn't work
-        // with MonoTimeImpl.
-        static if(typeStr != "second")
+        mixin("alias type = ClockType." ~ typeStr ~ ";");
+        static if (clockSupported(type))
         {
-            mixin("alias type = ClockType." ~ typeStr ~ ";");
-            version (linux) if (typeStr == "bootTime" && !MonoTimeImpl!type.ticksPerSecond)
-                continue;
             auto v1 = MonoTimeImpl!type.currTime;
             auto v2 = MonoTimeImpl!type.currTime;
             scope(failure)
@@ -2737,11 +2742,9 @@ unittest
 
             foreach(otherStr; __traits(allMembers, ClockType))
             {
-                static if(otherStr != "second")
+                mixin("alias other = ClockType." ~ otherStr ~ ";");
+                static if (clockSupported(other))
                 {
-                    mixin("alias other = ClockType." ~ otherStr ~ ";");
-                    version (linux) if (typeStr == "bootTime" && !MonoTimeImpl!other.ticksPerSecond)
-                        continue;
                     static assert(is(typeof({auto o1 = MonTimeImpl!other.currTime; auto b = v1 <= o1;})) ==
                                   is(type == other));
                 }

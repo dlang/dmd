@@ -27,7 +27,7 @@ INSTALL_DIR=../install
 DOCDIR=doc
 IMPDIR=import
 
-override PIC:=$(if $(PIC),-fPIC,)
+OPTIONAL_PIC:=$(if $(PIC),-fPIC,)
 
 ifeq (osx,$(OS))
 	DOTDLL:=.dylib
@@ -54,13 +54,13 @@ ifeq (solaris,$(OS))
 endif
 
 # Set DFLAGS
-UDFLAGS=-conf= -Isrc -Iimport -w -dip25 $(MODEL_FLAG) $(PIC)
+UDFLAGS:=-conf= -Isrc -Iimport -w -dip25 $(MODEL_FLAG) $(OPTIONAL_PIC)
 ifeq ($(BUILD),debug)
 	UDFLAGS += -g -debug
-	DFLAGS=$(UDFLAGS)
+	DFLAGS:=$(UDFLAGS)
 else
 	UDFLAGS += -O -release
-	DFLAGS=$(UDFLAGS) -inline # unittests don't compile with -inline
+	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
 endif
 
 ROOT_OF_THEM_ALL = generated
@@ -168,8 +168,7 @@ $(ROOT)/threadasm.o : src/core/threadasm.S
 
 ######################## Create a shared library ##############################
 
-$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: override PIC:=-fPIC
-$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared
+$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared -fPIC
 dll: $(DRUNTIMESOLIB)
 
 $(DRUNTIMESO): $(OBJS) $(SRCS)
@@ -201,6 +200,13 @@ unittest-%:
 	$(MAKE) -f $(MAKEFILE) unittest OS=$(OS) MODEL=$(MODEL) DMD=$(DMD) BUILD=$*
 endif
 
+ifeq ($(OS),linux)
+  old_kernel:=$(shell [ "$$(uname -r | cut -d'-' -f1)" \< "2.6.39" ] && echo 1)
+  ifeq ($(old_kernel),1)
+    UDFLAGS+=-version=Linux_Pre_2639
+  endif
+endif
+
 ifeq ($(OS),freebsd)
 DISABLED_TESTS =
 else
@@ -219,8 +225,7 @@ else
 
 UT_DRUNTIME:=$(ROOT)/unittest/libdruntime-ut$(DOTDLL)
 
-$(UT_DRUNTIME): override PIC:=-fPIC
-$(UT_DRUNTIME): UDFLAGS+=-version=Shared
+$(UT_DRUNTIME): UDFLAGS+=-version=Shared -fPIC
 $(UT_DRUNTIME): $(OBJS) $(SRCS)
 	$(DMD) $(UDFLAGS) -shared -unittest -of$@ $(SRCS) $(OBJS) $(LINKDL) -debuglib= -defaultlib=
 
