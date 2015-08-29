@@ -352,6 +352,28 @@ extern (C) void dmd_coverDestPath(string path);
 extern (C) void dmd_coverSetMerge(bool flag);
 
 /**
+ * Set the output file name for profile reports (-profile switch).
+ * An empty name will set the output to stdout.
+ *
+ * Params:
+ *  name = file name
+ * Note:
+ *  This is a dmd specific setting.
+ */
+extern (C) void trace_setlogfilename(string name);
+
+/**
+ * Set the output file name for the optimized profile linker DEF file (-profile switch).
+ * An empty name will set the output to stdout.
+ *
+ * Params:
+ *  name = file name
+ * Note:
+ *  This is a dmd specific setting.
+ */
+extern (C) void trace_setdeffilename(string name);
+
+/**
  * Set the output file name for memory profile reports (-profile=gc switch).
  * An empty name will set the output to stdout.
  *

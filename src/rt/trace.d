@@ -92,10 +92,9 @@ __gshared
 //      0       success
 //      !=0     failure
 
-int trace_setlogfilename(string name)
+void trace_setlogfilename(string name)
 {
     trace_logfilename = name;
-    return 0;
 }
 
 ////////////////////////////////////////
@@ -105,10 +104,9 @@ int trace_setlogfilename(string name)
 //      0       success
 //      !=0     failure
 
-int trace_setdeffilename(string name)
+void trace_setdeffilename(string name)
 {
     trace_deffilename = name;
-    return 0;
 }
 
 ////////////////////////////////////////
@@ -478,7 +476,8 @@ shared static ~this()
         trace_merge(&groot);
 
         // Report results
-        FILE* fplog = fopen(trace_logfilename.ptr, "w");
+        FILE* fplog = trace_logfilename.length == 0 ? stdout :
+            fopen(trace_logfilename.ptr, "w");
         if (fplog)
         {
             auto nsymbols = trace_report(fplog, groot);
@@ -498,7 +497,8 @@ shared static ~this()
             fprintf(stderr, "cannot write '%s'", trace_logfilename.ptr);
 
         // Output function link order
-        FILE* fpdef = fopen(trace_deffilename.ptr,"w");
+        FILE* fpdef = trace_deffilename.length == 0 ? stdout :
+            fopen(trace_deffilename.ptr, "w");
         if (fpdef)
         {
             fprintf(fpdef,"\nFUNCTIONS\n");
