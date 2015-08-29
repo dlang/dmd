@@ -913,9 +913,7 @@ STATIC void writefunc2(symbol *sfunc)
 
             scvtbl = (enum SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCglobal);
             n2_genvtbl(stag,scvtbl,1);
-#if VBTABLES
             n2_genvbtbl(stag,scvtbl,1);
-#endif
 #if SYMDEB_CODEVIEW
             if (config.fulltypes == CV4)
                 cv4_struct(stag,2);
