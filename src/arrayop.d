@@ -445,10 +445,8 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             auto param = new Parameter(STCconst, e.type, id, null);
             fparams.shift(param);
             Expression ie = new IdentifierExp(Loc(), id);
-            auto arguments = new Expressions();
             Expression index = new IdentifierExp(Loc(), Id.p);
-            arguments.push(index);
-            result = new ArrayExp(Loc(), ie, arguments);
+            result = new ArrayExp(Loc(), ie, index);
         }
 
         void visit(SliceExp e)
@@ -457,10 +455,8 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             auto param = new Parameter(STCconst, e.type, id, null);
             fparams.shift(param);
             Expression ie = new IdentifierExp(Loc(), id);
-            auto arguments = new Expressions();
             Expression index = new IdentifierExp(Loc(), Id.p);
-            arguments.push(index);
-            result = new ArrayExp(Loc(), ie, arguments);
+            result = new ArrayExp(Loc(), ie, index);
         }
 
         void visit(AssignExp e)
