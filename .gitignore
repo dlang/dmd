@@ -2,6 +2,7 @@ doc/*
 lib/*
 obj/*
 import/*
+generated/*
 druntime.json
 .DS_Store
 trace.def
