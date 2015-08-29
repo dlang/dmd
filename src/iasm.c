@@ -49,8 +49,6 @@
 #include        "iasm.h"
 #include        "xmm.h"
 
-#if TX86
-
 //#define EXTRA_DEBUG 1
 
 #undef ADDFWAIT
@@ -4686,13 +4684,3 @@ AFTER_EMIT:
     //return asmstate.bReturnax;
     return s;
 }
-
-#else
-
-Statement* asmSemantic(AsmStatement *s, Scope *sc)
-{
-    assert(0);
-    return NULL;
-}
-
-#endif

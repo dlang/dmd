@@ -358,7 +358,6 @@ if (I32) assert(tysize[TYnptr] == 4);
                  */
                 e->E1 = el_una(OPind, e->E2->Ety | mTYvolatile, e->E1);
             }
-#if TX86
             if (op == OPscale)
             {
                 elem *et = e->E1;
@@ -372,7 +371,6 @@ if (I32) assert(tysize[TYnptr] == 4);
                 e->E1 = e->E2;
                 e->E2 = et;
             }
-#endif
         }
         else if (op == OPvector)
         {

@@ -248,9 +248,7 @@ void obj_start(char *srcfile)
 #endif
 
     el_reset();
-#if TX86
     cg87_reset();
-#endif
     out_reset();
 }
 
