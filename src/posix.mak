@@ -290,12 +290,11 @@ glue.a: $(GLUE_OBJS)
 backend.a: $(BACK_OBJS)
 	$(AR) rcs backend.a $(BACK_OBJS)
 
+
 ifdef ENABLE_LTO
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) verstr.h
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h,$^)
+DMD_PREREQ=$(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) verstr.h
 else
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a verstr.h
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h,$^)
+DMD_PREREQ=$(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a verstr.h
 endif
 
 clean:
@@ -314,7 +313,11 @@ ${HOST_DMD}:
 	mkdir -p ${HOST_DMD_ROOT}
 	TMPFILE=$$(mktemp deleteme.XXXXXXXX) && curl -fsSL ${HOST_DMD_URL} > $${TMPFILE}.zip && \
 		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip
+DMD_PREREQ+=host-dmd
 endif
+
+dmd: $(DMD_PREREQ)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h host-dmd,$^)
 
 ######## generate a default dmd.conf
 
