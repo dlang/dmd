@@ -326,6 +326,8 @@ private:
  *
  * Params:
  *  path = The new path name.
+ * Note:
+ *  This is a dmd specific setting.
  */
 extern (C) void dmd_coverSourcePath(string path);
 
@@ -334,6 +336,8 @@ extern (C) void dmd_coverSourcePath(string path);
  *
  * Params:
  *  path = The new path name.
+ * Note:
+ *  This is a dmd specific setting.
  */
 extern (C) void dmd_coverDestPath(string path);
 
@@ -342,8 +346,21 @@ extern (C) void dmd_coverDestPath(string path);
  *
  * Params:
  *  flag = enable/disable coverage merge mode
+ * Note:
+ *  This is a dmd specific setting.
  */
 extern (C) void dmd_coverSetMerge(bool flag);
+
+/**
+ * Set the output file name for memory profile reports (-profile=gc switch).
+ * An empty name will set the output to stdout.
+ *
+ * Params:
+ *  name = file name
+ * Note:
+ *  This is a dmd specific setting.
+ */
+extern (C) void profilegc_setlogfilename(string name);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Overridable Callbacks
