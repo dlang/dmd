@@ -4063,11 +4063,16 @@ Statement *ReturnStatement::semantic(Scope *sc)
         {
             if (tf->next && tf->next->ty != Tvoid)
             {
-                error("mismatched function return type inference of void and %s",
-                    tf->next->toChars());
+                if (tf->next->ty != Terror)
+                {
+                    error("mismatched function return type inference of void and %s",
+                        tf->next->toChars());
+                }
                 errors = true;
+                tf->next = Type::terror;
             }
-            tf->next = Type::tvoid;
+            else
+                tf->next = Type::tvoid;
 
             tret = tf->next;
             tbret = tret->toBasetype();
@@ -4078,7 +4083,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
         if (tbret->ty != Tvoid)     // if non-void return
         {
-            error("return expression expected");
+            if (tbret->ty != Terror)
+                error("return expression expected");
             errors = true;
         }
         else if (fd->isMain())
