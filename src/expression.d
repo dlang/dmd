@@ -2190,39 +2190,38 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
  * Runs semantic on se->lwr and se->upr. Declares a temporary variable
  * if '$' was used.
  */
-extern (C++) Expression resolveOpDollar(Scope* sc, SliceExp se, Expression* pe0)
+extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* pe0)
 {
-    assert(!se.lengthVar);
-    assert(!se.lwr || se.upr);
-    if (!se.lwr)
-        return se;
-    *pe0 = extractOpDollarSideEffect(sc, se);
+    //assert(!ae->lengthVar);
+    if (!ie)
+        return ae;
+    VarDeclaration lengthVar = ae.lengthVar;
     // create scope for '$'
-    auto sym = new ArrayScopeSymbol(sc, se);
-    sym.loc = se.loc;
+    auto sym = new ArrayScopeSymbol(sc, ae);
+    sym.loc = ae.loc;
     sym.parent = sc.scopesym;
     sc = sc.push(sym);
     for (size_t i = 0; i < 2; ++i)
     {
-        Expression e = i == 0 ? se.lwr : se.upr;
+        Expression e = i == 0 ? ie.lwr : ie.upr;
         e = e.semantic(sc);
         e = resolveProperties(sc, e);
         if (!e.type)
         {
-            se.error("%s has no value", e.toChars());
+            ae.error("%s has no value", e.toChars());
             return new ErrorExp();
         }
-        (i == 0 ? se.lwr : se.upr) = e;
+        (i == 0 ? ie.lwr : ie.upr) = e;
     }
-    if (se.lengthVar && sc.func)
+    if (lengthVar != ae.lengthVar && sc.func)
     {
         // If $ was used, declare it now
-        Expression de = new DeclarationExp(se.loc, se.lengthVar);
+        Expression de = new DeclarationExp(ae.loc, ae.lengthVar);
         de = de.semantic(sc);
         *pe0 = Expression.combine(*pe0, de);
     }
     sc = sc.pop();
-    return se;
+    return ae;
 }
 
 enum CtfeGoal : int
@@ -10297,6 +10296,16 @@ public:
     bool lowerIsLessThanUpper; // true if lwr <= upr
 
     /************************************************************/
+    extern (D) this(Loc loc, Expression e1, IntervalExp ie)
+    {
+        super(loc, TOKslice, __traits(classInstanceSize, SliceExp), e1);
+        this.upr = ie ? ie.upr : null;
+        this.lwr = ie ? ie.lwr : null;
+        lengthVar = null;
+        upperIsInBounds = false;
+        lowerIsLessThanUpper = false;
+    }
+
     extern (D) this(Loc loc, Expression e1, Expression lwr, Expression upr)
     {
         super(loc, TOKslice, __traits(classInstanceSize, SliceExp), e1);
@@ -10322,7 +10331,7 @@ public:
         }
         if (type)
             return this;
-    Lagain:
+        // operator overloading should be handled in ArrayExp already.
         if (Expression ex = unaSemantic(sc))
             return ex;
         e1 = resolveProperties(sc, e1);
@@ -10363,8 +10372,11 @@ public:
                 return e1;
             }
         }
+        if (e1.op == TOKerror)
+            return e1;
+        if (e1.type.ty == Terror)
+            return new ErrorExp();
         Type t1b = e1.type.toBasetype();
-        AggregateDeclaration ad = isAggregate(t1b);
         if (t1b.ty == Tpointer)
         {
             if ((cast(TypePointer)t1b).next.ty == Tfunction)
@@ -10389,36 +10401,6 @@ public:
         else if (t1b.ty == Tsarray)
         {
         }
-        else if (ad)
-        {
-            if (search_function(ad, Id.slice))
-            {
-                // Rewrite as e1.slice(lwr, upr)
-                Expression e0 = null;
-                Expression ex = resolveOpDollar(sc, this, &e0);
-                if (ex.op == TOKerror)
-                    return ex;
-                auto a = new Expressions();
-                assert(!lwr || upr);
-                if (lwr)
-                {
-                    a.push(lwr);
-                    a.push(upr);
-                }
-                Expression e = new DotIdExp(loc, e1, Id.slice);
-                e = new CallExp(loc, e, a);
-                e = e.semantic(sc);
-                return Expression.combine(e0, e);
-            }
-            if (ad.aliasthis && e1.type != att1)
-            {
-                if (!att1 && e1.type.checkAliasThisRec())
-                    att1 = e1.type;
-                e1 = resolveAliasThis(sc, e1);
-                goto Lagain;
-            }
-            goto Lerror;
-        }
         else if (t1b.ty == Ttuple)
         {
             if (!lwr && !upr)
@@ -10429,15 +10411,8 @@ public:
                 return new ErrorExp();
             }
         }
-        else if (t1b == Type.terror)
-        {
-            return new ErrorExp();
-        }
         else
         {
-        Lerror:
-            if (e1.op == TOKerror)
-                return e1;
             error("%s cannot be sliced with []", t1b.ty == Tvoid ? e1.toChars() : t1b.toChars());
             return new ErrorExp();
         }
@@ -10685,6 +10660,16 @@ public:
 
     /*********************** ArrayExp *************************************/
     // e1 [ i1, i2, i3, ... ]
+    extern (D) this(Loc loc, Expression e1, Expression index = null)
+    {
+        super(loc, TOKarray, __traits(classInstanceSize, ArrayExp), e1);
+        arguments = new Expressions();
+        if (index)
+            arguments.push(index);
+        lengthVar = null;
+        currentDimension = 0;
+    }
+
     extern (D) this(Loc loc, Expression e1, Expressions* args)
     {
         super(loc, TOKarray, __traits(classInstanceSize, ArrayExp), e1);
@@ -10706,41 +10691,14 @@ public:
         {
             printf("ArrayExp::semantic('%s')\n", toChars());
         }
-        if (Expression ex = unaSemantic(sc))
-            return ex;
-        Expression e1x = resolveProperties(sc, e1);
-        if (e1x.op == TOKerror)
-            return e1x;
-        e1 = e1x;
-        Type t1 = e1.type.toBasetype();
-        if (t1.ty != Tclass && t1.ty != Tstruct)
-        {
-            // Convert to IndexExp
-            Expression e;
-            if (arguments.dim == 0)
-            {
-                e = new SliceExp(loc, e1, null, null);
-            }
-            else if (arguments.dim == 1 && (*arguments)[0].op == TOKinterval)
-            {
-                IntervalExp ie = cast(IntervalExp)(*arguments)[0];
-                e = new SliceExp(loc, e1, ie.lwr, ie.upr);
-            }
-            else if (arguments.dim == 1)
-            {
-                e = new IndexExp(loc, e1, (*arguments)[0]);
-            }
-            else
-            {
-                error("only one index allowed to index %s", t1.toChars());
-                return new ErrorExp();
-            }
-            return e.semantic(sc);
-        }
+        assert(!type);
         Expression e = op_overload(sc);
         if (e)
             return e;
-        error("no [] operator overload for type %s", e1.type.toChars());
+        if (isAggregate(e1.type))
+            error("no [] operator overload for type %s", e1.type.toChars());
+        else
+            error("only one index allowed to index %s", e1.type.toChars());
         return new ErrorExp();
     }
 
@@ -11036,6 +10994,7 @@ public:
         }
         if (type)
             return this;
+        // operator overloading should be handled in ArrayExp already.
         if (!e1.type)
             e1 = e1.semantic(sc);
         assert(e1.type); // semantic() should already be run on it
@@ -11412,125 +11371,108 @@ public:
             Expression e = Expression.combine(e0, this);
             return e.semantic(sc);
         }
-        /* Look for operator overloading of a[i]=value.
-         * Do it before semantic() otherwise the a[i] will have been
-         * converted to a.opIndex() already.
+        /* Look for operator overloading of a[arguments] = e2.
+         * Do it before e1->semantic() otherwise the ArrayExp will have been
+         * converted to unary operator overloading already.
          */
         if (e1.op == TOKarray)
         {
+            Expression result;
             ArrayExp ae = cast(ArrayExp)e1;
             ae.e1 = ae.e1.semantic(sc);
             ae.e1 = resolveProperties(sc, ae.e1);
-            Type t1 = ae.e1.type.toBasetype();
-            AggregateDeclaration ad = isAggregate(t1);
-            if (ad)
+            Expression ae1old = ae.e1;
+            const(bool) maybeSlice = (ae.arguments.dim == 0 || ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
+            IntervalExp ie = null;
+            if (maybeSlice && ae.arguments.dim)
             {
+                assert((*ae.arguments)[0].op == TOKinterval);
+                ie = cast(IntervalExp)(*ae.arguments)[0];
+            }
+            while (true)
+            {
+                if (ae.e1.op == TOKerror)
+                    return ae.e1;
                 Expression e0 = null;
-                // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
+                Expression ae1save = ae.e1;
+                ae.lengthVar = null;
+                Type t1b = ae.e1.type.toBasetype();
+                AggregateDeclaration ad = isAggregate(t1b);
+                if (!ad)
+                    break;
                 if (search_function(ad, Id.indexass))
                 {
                     // Deal with $
-                    Expression ex = resolveOpDollar(sc, ae, &e0);
-                    if (!ex)
+                    result = resolveOpDollar(sc, ae, &e0);
+                    if (!result) // a[i..j] = e2 might be: a.opSliceAssign(e2, i, j)
                         goto Lfallback;
-                    if (ex.op == TOKerror)
-                        return ex;
-                    Expression e2x = e2.semantic(sc);
-                    if (e2x.op == TOKerror)
-                        return e2x;
-                    e2 = e2x;
+                    if (result.op == TOKerror)
+                        return result;
+                    result = e2.semantic(sc);
+                    if (result.op == TOKerror)
+                        return result;
+                    e2 = result;
+                    /* Rewrite (a[arguments] = e2) as:
+                     *      a.opIndexAssign(e2, arguments)
+                     */
                     Expressions* a = cast(Expressions*)ae.arguments.copy();
                     a.insert(0, e2);
-                    Expression e = new DotIdExp(loc, ae.e1, Id.indexass);
-                    e = new CallExp(loc, e, a);
-                    if (ae.arguments.dim == 0)
-                        e = e.trySemantic(sc);
+                    result = new DotIdExp(loc, ae.e1, Id.indexass);
+                    result = new CallExp(loc, result, a);
+                    if (maybeSlice) // a[] = e2 might be: a.opSliceAssign(e2)
+                        result = result.trySemantic(sc);
                     else
-                        e = e.semantic(sc);
-                    if (!e)
-                        goto Lfallback;
-                    return Expression.combine(e0, e);
-                }
-                // No opIndexAssign found yet, but there might be an alias this to try.
-                if (ad.aliasthis && t1 != ae.att1)
-                {
-                    ArrayExp aex = cast(ArrayExp)ae.copy();
-                    if (!aex.att1 && t1.checkAliasThisRec())
-                        aex.att1 = t1;
-                    aex.e1 = new DotIdExp(loc, ae.e1, ad.aliasthis.ident);
-                    this.e1 = aex;
-                    Expression ex = this.trySemantic(sc);
-                    if (ex)
-                        return ex;
-                    this.e1 = ae; // restore
+                        result = result.semantic(sc);
+                    if (result)
+                    {
+                        result = Expression.combine(e0, result);
+                        return result;
+                    }
                 }
             Lfallback:
-                if (ae.arguments.dim == 0)
+                if (maybeSlice && search_function(ad, Id.sliceass))
                 {
-                    // a[] = e2
-                    auto se = new SliceExp(ae.loc, ae.e1, null, null);
-                    se.att1 = ae.att1;
-                    this.e1 = se;
-                    return Expression.combine(e0, this.semantic(sc));
-                }
-                if (ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval)
-                {
-                    // a[lwr..upr] = e2
-                    IntervalExp ie = cast(IntervalExp)(*ae.arguments)[0];
-                    auto se = new SliceExp(ae.loc, ae.e1, ie.lwr, ie.upr);
-                    se.att1 = ae.att1;
-                    this.e1 = se;
-                    return Expression.combine(e0, this.semantic(sc));
-                }
-            }
-        }
-        /* Look for operator overloading of a[i..j]=value.
-         * Do it before semantic() otherwise the a[i..j] will have been
-         * converted to a.opSlice() already.
-         */
-        if (e1.op == TOKslice)
-        {
-            SliceExp ae = cast(SliceExp)e1;
-            ae.e1 = ae.e1.semantic(sc);
-            ae.e1 = resolveProperties(sc, ae.e1);
-            Type t1 = ae.e1.type.toBasetype();
-            AggregateDeclaration ad = isAggregate(t1);
-            if (ad)
-            {
-                // Rewrite (a[i..j] = value) to (a.opSliceAssign(value, i, j))
-                if (search_function(ad, Id.sliceass))
-                {
-                    Expression e0 = null;
-                    Expression ex = resolveOpDollar(sc, ae, &e0);
-                    if (ex.op == TOKerror)
-                        return ex;
+                    // Deal with $
+                    result = resolveOpDollar(sc, ae, ie, &e0);
+                    if (result.op == TOKerror)
+                        return result;
+                    result = e2.semantic(sc);
+                    if (result.op == TOKerror)
+                        return result;
+                    e2 = result;
+                    /* Rewrite (a[i..j] = e2) as:
+                     *      a.opSliceAssign(e2, i, j)
+                     */
                     auto a = new Expressions();
                     a.push(e2);
-                    assert(!ae.lwr || ae.upr);
-                    if (ae.lwr)
+                    if (ie)
                     {
-                        a.push(ae.lwr);
-                        a.push(ae.upr);
+                        a.push(ie.lwr);
+                        a.push(ie.upr);
                     }
-                    Expression e = new DotIdExp(loc, ae.e1, Id.sliceass);
-                    e = new CallExp(loc, e, a);
-                    e = e.semantic(sc);
-                    return Expression.combine(e0, e);
+                    result = new DotIdExp(loc, ae.e1, Id.sliceass);
+                    result = new CallExp(loc, result, a);
+                    result = result.semantic(sc);
+                    result = Expression.combine(e0, result);
+                    return result;
                 }
-                // No opSliceAssign found yet, but there might be an alias this to try.
-                if (ad.aliasthis && t1 != ae.att1)
+                // No operator overloading member function found yet, but
+                // there might be an alias this to try.
+                if (ad.aliasthis && t1b != ae.att1)
                 {
-                    SliceExp aex = cast(SliceExp)ae.copy();
-                    if (!aex.att1 && t1.checkAliasThisRec())
-                        aex.att1 = t1;
-                    aex.e1 = new DotIdExp(loc, ae.e1, ad.aliasthis.ident);
-                    this.e1 = aex;
-                    Expression ex = this.trySemantic(sc);
-                    if (ex)
-                        return ex;
-                    this.e1 = ae; // restore
+                    if (!ae.att1 && t1b.checkAliasThisRec())
+                        ae.att1 = t1b;
+                    /* Rewrite (a[arguments] op e2) as:
+                     *      a.aliasthis[arguments] op e2
+                     */
+                    ae.e1 = resolveAliasThis(sc, ae1save, true);
+                    if (ae.e1)
+                        continue;
                 }
+                break;
             }
+            ae.e1 = ae1old; // recovery
+            ae.lengthVar = null;
         }
         /* Run this->e1 semantic.
          */

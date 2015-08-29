@@ -116,11 +116,12 @@ public:
     }
 }
 
-extern (C++) Expression resolveAliasThis(Scope* sc, Expression e)
+extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
 {
     AggregateDeclaration ad = isAggregate(e.type);
     if (ad && ad.aliasthis)
     {
+        uint olderrors = gag ? global.startGagging() : 0;
         Loc loc = e.loc;
         Type tthis = (e.op == TOKtype ? e.type : null);
         e = new DotIdExp(loc, e, ad.aliasthis.ident);
@@ -156,6 +157,8 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e)
             e = e.semantic(sc);
         }
         e = resolveProperties(sc, e);
+        if (gag && global.endGagging(olderrors))
+            e = null;
     }
     return e;
 }
