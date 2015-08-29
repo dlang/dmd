@@ -28,4 +28,9 @@ done
 
 make -j$N -C ../druntime -f posix.mak unittest
 make -j$N -C ../phobos -f posix.mak unittest
-make -j$N -C test MODEL=64
+# test fewer compiler argument permutations for PRs to reduce CI load
+if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+    make -j$N -C test MODEL=64
+else
+    make -j$N -C test MODEL=64 ARGS="-O -inline -release"
+fi
