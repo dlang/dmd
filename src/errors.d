@@ -19,11 +19,6 @@ import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 
 version (Windows) extern (C) int isatty(int);
-version (Windows) alias _isatty = isatty;
-version (Windows) int _fileno(FILE* f)
-{
-    return f._file;
-}
 
 enum COLOR : int
 {
@@ -65,9 +60,13 @@ version (Windows)
 
 extern (C++) bool isConsoleColorSupported()
 {
-    version (Windows)
+    version (CRuntime_DigitalMars)
     {
-        return _isatty(_fileno(stderr)) != 0;
+        return isatty(stderr._file) != 0;
+    }
+    else version (CRuntime_Microsoft)
+    {
+        return isatty(fileno(stderr)) != 0;
     }
     else static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
     {

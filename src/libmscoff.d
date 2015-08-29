@@ -246,7 +246,7 @@ public:
                     auto om = new MSCoffObjModule();
                     // Include MSCoffLibHeader in base[0..length], so we don't have to repro it
                     om.base = cast(ubyte*)buf + offset - MSCoffLibHeader.sizeof;
-                    om.length = size + MSCoffLibHeader.sizeof;
+                    om.length = cast(uint)(size + MSCoffLibHeader.sizeof);
                     om.offset = 0;
                     if (header.object_name[0] == '/')
                     {
@@ -332,7 +332,7 @@ public:
                     goto Lcorrupt;
                 }
                 uint moff = member_file_offsets[memi];
-                for (uint m = mstart; 1; m++)
+                for (size_t m = mstart; 1; m++)
                 {
                     if (m == objmodules.dim)
                     {
@@ -357,7 +357,7 @@ public:
          */
         auto om = new MSCoffObjModule();
         om.base = cast(ubyte*)buf;
-        om.length = buflen;
+        om.length = cast(uint)buflen;
         om.offset = 0;
         om.name = global.params.preservePaths ? module_name : FileName.name(module_name); // remove path, but not extension
         om.scan = 1;
@@ -529,7 +529,7 @@ private:
         {
             MSCoffObjModule* om = objmodules[i];
             moffset += moffset & 1;
-            om.offset = moffset;
+            om.offset = cast(uint)moffset;
             if (om.scan)
                 moffset += MSCoffLibHeader.sizeof + om.length;
             else
@@ -541,7 +541,7 @@ private:
         MSCoffObjModule om;
         om.name_offset = -1;
         om.base = null;
-        om.length = 4 + objsymbols.dim * 4 + slength;
+        om.length = cast(uint)(4 + objsymbols.dim * 4 + slength);
         om.offset = 8;
         om.name = cast(char*)"";
         time_t file_time = 0;
@@ -556,7 +556,7 @@ private:
         MSCoffOmToHeader(&h, &om);
         libbuf.write(&h, h.sizeof);
         char[4] buf;
-        Port.writelongBE(objsymbols.dim, buf.ptr);
+        Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf.ptr, 4);
         // Sort objsymbols[] in module offset order
         qsort(objsymbols.data, objsymbols.dim, (objsymbols.data[0]).sizeof, &MSCoffObjSymbol_offset_cmp);
@@ -584,10 +584,10 @@ private:
         if (libbuf.offset & 1)
             libbuf.writeByte('\n');
         assert(libbuf.offset == secondLinkerMemberOffset);
-        om.length = 4 + objmodules.dim * 4 + 4 + objsymbols.dim * 2 + slength;
+        om.length = cast(uint)(4 + objmodules.dim * 4 + 4 + objsymbols.dim * 2 + slength);
         MSCoffOmToHeader(&h, &om);
         libbuf.write(&h, h.sizeof);
-        Port.writelongLE(objmodules.dim, buf.ptr);
+        Port.writelongLE(cast(uint)objmodules.dim, buf.ptr);
         libbuf.write(buf.ptr, 4);
         for (size_t i = 0; i < objmodules.dim; i++)
         {
@@ -596,7 +596,7 @@ private:
             Port.writelongLE(om2.offset, buf.ptr);
             libbuf.write(buf.ptr, 4);
         }
-        Port.writelongLE(objsymbols.dim, buf.ptr);
+        Port.writelongLE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf.ptr, 4);
         // Sort objsymbols[] in lexical order
         qsort(objsymbols.data, objsymbols.dim, (objsymbols.data[0]).sizeof, &MSCoffObjSymbol_cmp);
