@@ -168,7 +168,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
 	bcomplex.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
 	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj backconfig.obj \
-	divcoeff.obj dwarf.obj \
+	divcoeff.obj dwarf.obj textir.obj \
 	ph2.obj util2.obj eh.obj tk.obj \
 
 
@@ -215,7 +215,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.c \
 	$C\mscoffobj.c $C\obj.h $C\pdata.c $C\cv8.c $C\backconfig.c \
-	$C\divcoeff.c $C\dwarfeh.c \
+	$C\divcoeff.c $C\dwarfeh.c $C\textir.c \
 	$C\backend.txt
 
 # Toolkit
@@ -462,6 +462,9 @@ debug.obj : $C\debug.c
 
 divcoeff.obj : $C\divcoeff.c
 	$(CC) -c -cpp -e $(DEBUG) $C\divcoeff
+
+textir.obj : $C\textir.c
+	$(CC) -c $(MFLAGS) $C\textir
 
 dt.obj : $C\dt.h $C\dt.c
 	$(CC) -c $(MFLAGS) $C\dt

@@ -571,6 +571,7 @@ typedef struct block
 /** Basic block control flow operators. **/
 
 enum BC {
+    BCunde = 0,
     BCgoto      = 1,    // goto Bsucc block
     BCiftrue    = 2,    // if (Belem) goto Bsucc[0] else Bsucc[1]
     BCret       = 3,    // return (no return value)

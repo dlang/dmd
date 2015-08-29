@@ -1138,6 +1138,20 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 Symbol *s = toSymbol(f);
                 obj_startaddress(s);
             }
+            // else if (pd->ident == Id::rawelem)
+            // {
+                // assert(pd->args && pd->args->dim == 1);
+                // Expression *e = (*pd->args)[0];
+                // assert(e->op == TOKstring);
+                // StringExp *se = (StringExp *)e;
+                // char *ebody = (char *)mem.xmalloc(se->len + 1);
+                // memcpy(ebody, se->string, se->len);
+                // ebody[se->len] = 0;
+
+                // // Generate symbol from raw IR text
+                // Symbol *s = parseRawElem(ebody);
+                // writefunc(s);
+            // }
             visit((AttribDeclaration *)pd);
         }
 
