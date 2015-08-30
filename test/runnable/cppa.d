@@ -751,6 +751,59 @@ void test14200()
 }
 
 /****************************************/
+// check order of overloads in vtable
+
+extern (C++) class Statement {}
+extern (C++) class ErrorStatement {}
+extern (C++) class PeelStatement {}
+extern (C++) class ExpStatement {}
+extern (C++) class DtorExpStatement {}
+
+extern (C++) class Visitor
+{
+public:
+    int visit(Statement) { return 1; }
+    int visit(ErrorStatement) { return 2; }
+    int visit(PeelStatement) { return 3; }
+}
+
+extern (C++) class Visitor2 : Visitor
+{
+    int visit2(ExpStatement) { return 4; }
+    int visit2(DtorExpStatement) { return 5; }
+}
+
+extern(C++) bool testVtableCpp(Visitor2 sv);
+extern(C++) Visitor2 getVisitor2();
+
+bool testVtableD(Visitor2 sv)
+{
+    Statement s1;
+    ErrorStatement s2;
+    PeelStatement s3;
+    ExpStatement s4;
+    DtorExpStatement s5;
+
+    if (sv.visit(s1) != 1) return false;
+    if (sv.visit(s2) != 2) return false;
+    if (sv.visit(s3) != 3) return false;
+    if (sv.visit2(s4) != 4) return false;
+    if (sv.visit2(s5) != 5) return false;
+    return true;
+}
+
+void testVtable()
+{
+    Visitor2 dinst = new Visitor2;
+    if (!testVtableCpp(dinst))
+        assert(0);
+
+    Visitor2 cppinst = getVisitor2();
+    if (!testVtableD(cppinst))
+        assert(0);
+}
+
+/****************************************/
 
 void main()
 {
@@ -781,6 +834,7 @@ void main()
     foo13337(S13337());
     test14195();
     test14200();
+    testVtable();
 
     printf("Success\n");
 }

@@ -23,7 +23,7 @@ struct Target
     extern (C++) static __gshared int realsize; // size a real consumes in memory
     extern (C++) static __gshared int realpad; // 'padding' added to the CPU real size to bring it up to realsize
     extern (C++) static __gshared int realalignsize; // alignment for reals
-    extern (C++) static __gshared bool reverseCppOverloads; // with dmc, overloaded functions are grouped and in reverse order
+    extern (C++) static __gshared bool reverseCppOverloads; // with dmc and cl, overloaded functions are grouped and in reverse order
     extern (C++) static __gshared int c_longsize; // size of a C 'long' or 'unsigned long' type
     extern (C++) static __gshared int c_long_doublesize; // size of a C 'long double'
     extern (C++) static __gshared int classinfosize; // size of 'ClassInfo'
@@ -58,7 +58,7 @@ struct Target
             realsize = 10;
             realpad = 0;
             realalignsize = 2;
-            reverseCppOverloads = !global.params.is64bit;
+            reverseCppOverloads = true;
             c_longsize = 4;
         }
         else
