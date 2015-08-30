@@ -299,9 +299,9 @@ dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a verstr.h
 endif
 
 clean:
-	rm -f $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o \
-		idgen $(idgen_output) optabgen		\
-		$(optabgen_output) verstr.h core *.cov *.deps *.gcda *.gcno *.a
+	rm -f newdelete.o $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o	\
+		idgen $(idgen_output) optabgen $(optabgen_output)	\
+		verstr.h core *.cov *.deps *.gcda *.gcno *.a
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
