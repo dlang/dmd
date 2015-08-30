@@ -4918,7 +4918,7 @@ public:
          */
         if (!(_body.blockExit(sc.func, false) & BEthrow) && ClassDeclaration.exception)
         {
-            foreach (i; 0 .. catches.dim)
+            foreach_reverse (i; 0 .. catches.dim)
             {
                 Catch c = (*catches)[i];
                 /* If catch exception type is derived from Exception
@@ -4927,7 +4927,6 @@ public:
                 {
                     // Remove c from the array of catches
                     catches.remove(i);
-                    --i;
                 }
             }
         }
