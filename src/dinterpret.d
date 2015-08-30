@@ -6424,7 +6424,7 @@ extern (C++) Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDecla
     size_t nargs = arguments ? arguments.dim : 0;
     if (!pthis)
     {
-        if (isBuiltin(fd) == BUILTINyes)
+        if (fd.intrinsicName)
         {
             Expressions args;
             args.setDim(nargs);

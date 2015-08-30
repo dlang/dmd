@@ -14,7 +14,6 @@ import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.attrib;
 import ddmd.backend;
-import ddmd.builtin;
 import ddmd.ctfeexpr;
 import ddmd.dclass;
 import ddmd.declaration;
@@ -60,17 +59,6 @@ enum ILS : int
 alias ILSuninitialized = ILS.ILSuninitialized;
 alias ILSno = ILS.ILSno;
 alias ILSyes = ILS.ILSyes;
-
-enum BUILTIN : int
-{
-    BUILTINunknown = -1, // not known if this is a builtin
-    BUILTINno, // this is not a builtin
-    BUILTINyes, // this is a builtin
-}
-
-alias BUILTINunknown = BUILTIN.BUILTINunknown;
-alias BUILTINno = BUILTIN.BUILTINno;
-alias BUILTINyes = BUILTIN.BUILTINyes;
 
 /* A visitor to walk entire statements and provides ability to replace any sub-statements.
  */
@@ -409,6 +397,7 @@ public:
     FuncDeclaration fdrequire; // function that does the in contract
     FuncDeclaration fdensure; // function that does the out contract
     const(char)* mangleString; // mangled symbol created from mangleExact()
+    const(char)* intrinsicName; // Name of corresponding intrinsic op
     Identifier outId; // identifier for out statement
     VarDeclaration vresult; // variable corresponding to outId
     LabelDsymbol returnLabel; // where the return goes
@@ -460,8 +449,6 @@ public:
     Symbol* shidden; // hidden pointer passed to function
     ReturnStatements* returns;
     GotoStatements* gotos; // Gotos with forward references
-    // set if this is a known, builtin function we can evaluate at compile time
-    BUILTIN builtin;
     // set if someone took the address of this function
     int tookAddressOf;
     bool requiresClosure; // this function needs a closure
@@ -532,7 +519,6 @@ public:
         nrvo_can = 1;
         nrvo_var = null;
         shidden = null;
-        builtin = BUILTINunknown;
         tookAddressOf = 0;
         requiresClosure = false;
         flags = 0;
@@ -2516,6 +2502,7 @@ public:
      */
     final FuncDeclaration overloadExactMatch(Type t)
     {
+        // printf("=== overloadExactMatch %s %s\n", toPrettyChars(), t.toChars());
         struct ParamExact
         {
             Type t; // type to match
@@ -2526,8 +2513,18 @@ public:
                 FuncDeclaration f = s.isFuncDeclaration();
                 if (!f)
                     return 0;
+                if (f.semanticRun == PASSinit)
+                {
+                    f.functionSemantic();   // <-- run semantic
+                }
+                if (f.semanticRun == PASSinit)
+                {
+                    .error(Loc(), "forward reference to function %s", f.toChars());
+                    return 1;
+                }
                 ParamExact* p = cast(ParamExact*)param;
                 Type t = p.t;
+                // printf("=== === check %s %s\n", t.toChars(), f.type.toChars());
                 if (t.equals(f.type))
                 {
                     p.f = f;

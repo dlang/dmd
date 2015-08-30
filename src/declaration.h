@@ -486,15 +486,7 @@ enum ILS
 
 /**************************************************************/
 
-enum BUILTIN
-{
-    BUILTINunknown = -1,        // not known if this is a builtin
-    BUILTINno,                  // this is not a builtin
-    BUILTINyes,                 // this is a builtin
-};
-
 Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
-BUILTIN isBuiltin(FuncDeclaration *fd);
 
 typedef Expression *(*builtin_fp)(Loc loc, FuncDeclaration *fd, Expressions *arguments);
 void add_builtin(const char *mangle, builtin_fp fp);
@@ -519,6 +511,7 @@ public:
     FuncDeclaration *fdensure;          // function that does the out contract
 
     const char *mangleString;           // mangled symbol created from mangleExact()
+    const char *intrinsicName;          // Name of corresponding intrinsic op
 
     Identifier *outId;                  // identifier for out statement
     VarDeclaration *vresult;            // variable corresponding to outId
@@ -575,9 +568,6 @@ public:
     ReturnStatements *returns;
 
     GotoStatements *gotos;              // Gotos with forward references
-
-    // set if this is a known, builtin function we can evaluate at compile time
-    BUILTIN builtin;
 
     // set if someone took the address of this function
     int tookAddressOf;

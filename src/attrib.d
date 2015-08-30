@@ -897,6 +897,92 @@ public:
                 }
             }
         }
+        else if (ident == Id.intrinsic)
+        {
+            if (!args)
+                args = new Expressions();
+            if (args.dim != 3)
+            {
+                error("3 arguments expected, not %llu", cast(dinteger_t)args.dim);
+                goto Lnodecl;
+            }
+            auto ename = (*args)[0];
+            sc = sc.startCTFE();
+            ename = ename.semantic(sc);
+            ename = resolveProperties(sc, ename);
+            sc = sc.endCTFE();
+            (*args)[0] = ename;
+            ename = ename.ctfeInterpret();
+            if (ename.op == TOKerror)
+                goto Lnodecl;
+            StringExp se = ename.toStringExp();
+            if (!se)
+            {
+                error("string expected for intrinsic name, not '%s'", ename.toChars());
+                goto Lnodecl;
+            }
+            if (!se.len)
+            {
+                error("zero-length string not allowed for intrinsic name");
+                goto Lnodecl;
+            }
+            if (se.sz != 1)
+            {
+                error("intrinsic name characters can only be of type char");
+                goto Lnodecl;
+            }
+            char* name = cast(char*)mem.xmalloc(se.len + 1);
+            memcpy(name, se.string, se.len);
+            name[se.len] = 0;
+
+            auto efunc = (*args)[1];
+            sc = sc.startCTFE();
+            efunc = efunc.semantic(sc);
+            sc = sc.endCTFE();
+            (*args)[1] = efunc;
+            auto sfunc = getDsymbol(efunc);
+            if (!sfunc)
+            {
+                error("function symbol expected, not '%s'", efunc.toChars());
+                goto Lnodecl;
+            }
+            auto fd = sfunc.isFuncDeclaration();
+            if (!fd)
+            {
+                error("function symbol expected, not '%s'", efunc.toChars());
+                goto Lnodecl;
+            }
+
+            auto etype = (*args)[2];
+            sc = sc.startCTFE();
+            etype = etype.semantic(sc);
+            sc = sc.endCTFE();
+            (*args)[2] = etype;
+            auto t = .getType(etype);
+            if (!t || t.ty != Tpointer)
+            {
+                error("function pointer type expected, not '%s'", etype.toChars());
+                goto Lnodecl;
+            }
+            auto tf = (cast(TypePointer)t).next;
+            if (!tf || tf.ty != Tfunction)
+            {
+                error("function pointer type expected, not '%s'", etype.toChars());
+                goto Lnodecl;
+            }
+
+            // printf("%s\n", fd.type.toChars());
+            // printf("%s\n", tf.toChars());
+            auto f2 = fd.overloadExactMatch(tf);
+            if (!f2)
+            {
+                error("function signature did not match symbol");
+                goto Lnodecl;
+            }
+
+            f2.intrinsicName = name;
+            // printf("intrinsic %s %s %s\n", name, f2.toPrettyChars(), tf.toChars());
+        }
         else if (global.params.ignoreUnsupportedPragmas)
         {
             if (global.params.verbose)

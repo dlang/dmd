@@ -37,11 +37,6 @@ extern (C++) builtin_fp builtin_lookup(const(char)* mangle)
     return null;
 }
 
-extern (C++) Expression eval_unimp(Loc loc, FuncDeclaration fd, Expressions* arguments)
-{
-    return null;
-}
-
 extern (C++) Expression eval_sin(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
@@ -171,115 +166,23 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
 extern (C++) void builtin_init()
 {
     builtins._init(47);
-    // @safe @nogc pure nothrow real function(real)
-    add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
-    add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);
-    add_builtin("_D4core4math3tanFNaNbNiNfeZe", &eval_tan);
-    add_builtin("_D4core4math4sqrtFNaNbNiNfeZe", &eval_sqrt);
-    add_builtin("_D4core4math4fabsFNaNbNiNfeZe", &eval_fabs);
-    add_builtin("_D4core4math5expm1FNaNbNiNfeZe", &eval_unimp);
-    add_builtin("_D4core4math4exp21FNaNbNiNfeZe", &eval_unimp);
-    // @trusted @nogc pure nothrow real function(real)
-    add_builtin("_D4core4math3sinFNaNbNiNeeZe", &eval_sin);
-    add_builtin("_D4core4math3cosFNaNbNiNeeZe", &eval_cos);
-    add_builtin("_D4core4math3tanFNaNbNiNeeZe", &eval_tan);
-    add_builtin("_D4core4math4sqrtFNaNbNiNeeZe", &eval_sqrt);
-    add_builtin("_D4core4math4fabsFNaNbNiNeeZe", &eval_fabs);
-    add_builtin("_D4core4math5expm1FNaNbNiNeeZe", &eval_unimp);
-    add_builtin("_D4core4math4exp21FNaNbNiNeeZe", &eval_unimp);
-    // @safe @nogc pure nothrow double function(double)
-    add_builtin("_D4core4math4sqrtFNaNbNiNfdZd", &eval_sqrt);
-    // @safe @nogc pure nothrow float function(float)
-    add_builtin("_D4core4math4sqrtFNaNbNiNffZf", &eval_sqrt);
-    // @safe @nogc pure nothrow real function(real, real)
-    add_builtin("_D4core4math5atan2FNaNbNiNfeeZe", &eval_unimp);
+    add_builtin("sin", &eval_sin);
+    add_builtin("cos", &eval_cos);
+    add_builtin("tan", &eval_tan);
+    add_builtin("sqrt", &eval_sqrt);
+    add_builtin("abs", &eval_fabs);
     if (Port.yl2x_supported)
     {
-        add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
-    }
-    else
-    {
-        add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
+        add_builtin("yl2x", &eval_yl2x);
     }
     if (Port.yl2xp1_supported)
     {
-        add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
+        add_builtin("yl2xp1", &eval_yl2xp1);
     }
-    else
-    {
-        add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
-    }
-    // @safe @nogc pure nothrow long function(real)
-    add_builtin("_D4core4math6rndtolFNaNbNiNfeZl", &eval_unimp);
-    // @safe @nogc pure nothrow real function(real)
-    add_builtin("_D3std4math3sinFNaNbNiNfeZe", &eval_sin);
-    add_builtin("_D3std4math3cosFNaNbNiNfeZe", &eval_cos);
-    add_builtin("_D3std4math3tanFNaNbNiNfeZe", &eval_tan);
-    add_builtin("_D3std4math4sqrtFNaNbNiNfeZe", &eval_sqrt);
-    add_builtin("_D3std4math4fabsFNaNbNiNfeZe", &eval_fabs);
-    add_builtin("_D3std4math5expm1FNaNbNiNfeZe", &eval_unimp);
-    add_builtin("_D3std4math4exp21FNaNbNiNfeZe", &eval_unimp);
-    // @trusted @nogc pure nothrow real function(real)
-    add_builtin("_D3std4math3sinFNaNbNiNeeZe", &eval_sin);
-    add_builtin("_D3std4math3cosFNaNbNiNeeZe", &eval_cos);
-    add_builtin("_D3std4math3tanFNaNbNiNeeZe", &eval_tan);
-    add_builtin("_D3std4math4sqrtFNaNbNiNeeZe", &eval_sqrt);
-    add_builtin("_D3std4math4fabsFNaNbNiNeeZe", &eval_fabs);
-    add_builtin("_D3std4math5expm1FNaNbNiNeeZe", &eval_unimp);
-    add_builtin("_D3std4math4exp21FNaNbNiNeeZe", &eval_unimp);
-    // @safe @nogc pure nothrow double function(double)
-    add_builtin("_D3std4math4sqrtFNaNbNiNfdZd", &eval_sqrt);
-    // @safe @nogc pure nothrow float function(float)
-    add_builtin("_D3std4math4sqrtFNaNbNiNffZf", &eval_sqrt);
-    // @safe @nogc pure nothrow real function(real, real)
-    add_builtin("_D3std4math5atan2FNaNbNiNfeeZe", &eval_unimp);
-    if (Port.yl2x_supported)
-    {
-        add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
-    }
-    else
-    {
-        add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
-    }
-    if (Port.yl2xp1_supported)
-    {
-        add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
-    }
-    else
-    {
-        add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
-    }
-    // @safe @nogc pure nothrow long function(real)
-    add_builtin("_D3std4math6rndtolFNaNbNiNfeZl", &eval_unimp);
-    // @safe @nogc pure nothrow int function(uint)
-    add_builtin("_D4core5bitop3bsfFNaNbNiNfkZi", &eval_bsf);
-    add_builtin("_D4core5bitop3bsrFNaNbNiNfkZi", &eval_bsr);
-    // @safe @nogc pure nothrow int function(ulong)
-    add_builtin("_D4core5bitop3bsfFNaNbNiNfmZi", &eval_bsf);
-    add_builtin("_D4core5bitop3bsrFNaNbNiNfmZi", &eval_bsr);
-    // @safe @nogc pure nothrow uint function(uint)
-    add_builtin("_D4core5bitop5bswapFNaNbNiNfkZk", &eval_bswap);
-    // @safe @nogc pure nothrow int function(uint)
-    add_builtin("_D4core5bitop7_popcntFNaNbNiNfkZi", &eval_popcnt);
-    // @safe @nogc pure nothrow ushort function(ushort)
-    add_builtin("_D4core5bitop7_popcntFNaNbNiNftZt", &eval_popcnt);
-    // @safe @nogc pure nothrow int function(ulong)
-    if (global.params.is64bit)
-        add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
-}
-
-/**********************************
- * Determine if function is a builtin one that we can
- * evaluate at compile time.
- */
-extern (C++) BUILTIN isBuiltin(FuncDeclaration fd)
-{
-    if (fd.builtin == BUILTINunknown)
-    {
-        builtin_fp fp = builtin_lookup(mangleExact(fd));
-        fd.builtin = fp ? BUILTINyes : BUILTINno;
-    }
-    return fd.builtin;
+    add_builtin("bsf", &eval_bsf);
+    add_builtin("bsr", &eval_bsr);
+    add_builtin("bswap", &eval_bswap);
+    add_builtin("popcnt", &eval_popcnt);
 }
 
 /**************************************
@@ -288,11 +191,11 @@ extern (C++) BUILTIN isBuiltin(FuncDeclaration fd)
  */
 extern (C++) Expression eval_builtin(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
-    if (fd.builtin == BUILTINyes)
+    if (fd.intrinsicName)
     {
-        builtin_fp fp = builtin_lookup(mangleExact(fd));
-        assert(fp);
-        return fp(loc, fd, arguments);
+        builtin_fp fp = builtin_lookup(fd.intrinsicName);
+        if (fp)
+            return fp(loc, fd, arguments);
     }
     return null;
 }
