@@ -1393,18 +1393,7 @@ public:
     }
 
 
-    /++
-        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
-              get or one of the individual unit getters is used when the
-              function that gave the desired behavior was $(LREF total). This
-              should make it more explicit and help prevent bugs. This function
-              will be removed in June 2015.)
-
-        Returns the number of the given units in this $(D Duration)
-        (minus the larger units).
-
-        $(D d.get!"minutes"()) is equivalent to $(D d.split().minutes).
-      +/
+    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
     deprecated("Please use split instead. get was too frequently confused for total.")
     long get(string units)() const nothrow @nogc
         if(units == "weeks" ||
@@ -1451,16 +1440,7 @@ public:
     }
 
 
-    /++
-        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
-              $(LREF get) or one of the individual unit getters is used when the
-              function that gave the desired behavior was $(LREF total). This
-              should make it more explicit and help prevent bugs. This function
-              will be removed in June 2015.)
-
-        Returns the number of weeks in this $(D Duration)
-        (minus the larger units).
-      +/
+    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
     deprecated(`Please use split instead. The functions which wrapped get were too frequently confused with total.`)
     @property long weeks() const nothrow @nogc
     {
@@ -1484,16 +1464,7 @@ public:
     }
 
 
-    /++
-        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
-              $(LREF get) or one of the individual unit getters is used when the
-              function that gave the desired behavior was $(LREF total). This
-              should make it more explicit and help prevent bugs. This function
-              will be removed in June 2015.)
-
-        Returns the number of days in this $(D Duration)
-        (minus the larger units).
-      +/
+    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
     deprecated(`Please use split instead. days was too frequently confused for total!"days".`)
     @property long days() const nothrow @nogc
     {
@@ -1519,16 +1490,7 @@ public:
     }
 
 
-    /++
-        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
-              $(LREF get) or one of the individual unit getters is used when the
-              function that gave the desired behavior was $(LREF total). This
-              should make it more explicit and help prevent bugs. This function
-              will be removed in June 2015.)
-
-        Returns the number of hours in this $(D Duration)
-        (minus the larger units).
-      +/
+    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
     deprecated(`Please use split instead. hours was too frequently confused for total!"hours".`)
     @property long hours() const nothrow @nogc
     {
@@ -1554,16 +1516,7 @@ public:
     }
 
 
-    /++
-        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
-              $(LREF get) or one of the individual unit getters is used when the
-              function that gave the desired behavior was $(LREF total). This
-              should make it more explicit and help prevent bugs. This function
-              will be removed in June 2015.)
-
-        Returns the number of minutes in this $(D Duration)
-        (minus the larger units).
-      +/
+    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
     deprecated(`Please use split instead. minutes was too frequently confused for total!"minutes".`)
     @property long minutes() const nothrow @nogc
     {
@@ -1589,16 +1542,7 @@ public:
     }
 
 
-    /++
-        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
-              $(LREF get) or one of the individual unit getters is used when the
-              function that gave the desired behavior was $(LREF total). This
-              should make it more explicit and help prevent bugs. This function
-              will be removed in June 2015.)
-
-        Returns the number of seconds in this $(D Duration)
-        (minus the larger units).
-      +/
+    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
     deprecated(`Please use split instead. seconds was too frequently confused for total!"seconds".`)
     @property long seconds() const nothrow @nogc
     {
@@ -1624,15 +1568,7 @@ public:
     }
 
 
-    /++
-        $(RED Deprecated. Please use $(LREF split) instead. Too frequently,
-              $(LREF get) or one of the individual unit getters is used when the
-              function that gave the desired behavior was $(LREF total). This
-              should make it more explicit and help prevent bugs. This function
-              will be removed in June 2015.)
-
-        Returns the fractional seconds past the second in this $(D Duration).
-     +/
+    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
     deprecated(`Please use split instead.`)
     @property FracSec fracSec() const nothrow
     {
