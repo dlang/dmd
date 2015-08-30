@@ -480,3 +480,42 @@ void test14200a(int a) {};
 void test14200b(float a, int b, double c) {};
 
 /******************************************/
+// check order of overloads in vtable
+
+class Statement;
+class ErrorStatement;
+class PeelStatement;
+class ExpStatement;
+class DtorExpStatement;
+
+class Visitor
+{
+public:
+    virtual int visit(Statement*) { return 1; }
+    virtual int visit(ErrorStatement*) { return 2; }
+    virtual int visit(PeelStatement*) { return 3; }
+};
+
+class Visitor2 : public Visitor
+{
+public:
+    virtual int visit2(ExpStatement*) { return 4; }
+    virtual int visit2(DtorExpStatement*) { return 5; }
+};
+
+bool testVtableCpp(Visitor2* sv)
+{
+    if (sv->visit((Statement*)0) != 1) return false;
+    if (sv->visit((ErrorStatement*)0) != 2) return false;
+    if (sv->visit((PeelStatement*)0) != 3) return false;
+    if (sv->visit2((ExpStatement*)0) != 4) return false;
+    if (sv->visit2((DtorExpStatement*)0) != 5) return false;
+    return true;
+}
+
+Visitor2 inst;
+
+Visitor2* getVisitor2()
+{
+    return &inst;
+}
