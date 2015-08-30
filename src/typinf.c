@@ -130,9 +130,9 @@ bool isSpeculativeType(Type *t)
     class SpeculativeTypeVisitor : public Visitor
     {
     public:
-        StructDeclaration *result;
+        bool result;
 
-        SpeculativeTypeVisitor() : result(NULL) {}
+        SpeculativeTypeVisitor() : result(false) {}
 
         void visit(Type *t)
         {
@@ -162,7 +162,39 @@ bool isSpeculativeType(Type *t)
         }
         void visit(TypeStruct *t)
         {
-            result = t->sym;
+            StructDeclaration *sd = t->sym;
+            if (TemplateInstance *ti = sd->isInstantiated())
+            {
+                if (!ti->needsCodegen())
+                {
+                    /* Bugzilla 14425: TypeInfo_Struct would refer the members of
+                     * struct (e.g. opEquals via xopEquals field), so if it's instantiated
+                     * in speculative context, TypeInfo creation should also be
+                     * stopped to avoid 'unresolved symbol' linker errors.
+                     */
+                    if (!ti->minst)
+                    {
+                        result |= true;
+                        return;
+                    }
+
+                    /* When -debug/-unittest is specified, all of non-root instances are
+                     * automatically changed to speculative, and here is always reached
+                     * from those instantiated non-root structs.
+                     * Therefore, if the TypeInfo is not auctually requested,
+                     * we have to elide its codegen.
+                     */
+                    if (!sd->requestTypeInfo)
+                    {
+                        result |= true;
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                //assert(!sd->inNonRoot() || sd->requestTypeInfo);  // valid?
+            }
         }
         void visit(TypeClass *t) { }
         void visit(TypeTuple *t)
@@ -174,45 +206,15 @@ bool isSpeculativeType(Type *t)
                     Type *tprm = (*t->arguments)[i]->type;
                     if (tprm)
                         tprm->accept(this);
+                    if (result)
+                        return;
                 }
             }
         }
     };
     SpeculativeTypeVisitor v;
     t->accept(&v);
-
-    StructDeclaration *sd = v.result;
-    if (!sd)
-        return false;
-
-    if (TemplateInstance *ti = sd->isInstantiated())
-    {
-        if (!ti->needsCodegen())
-        {
-            /* Bugzilla 14425: TypeInfo_Struct would refer the members of
-             * struct (e.g. opEquals via xopEquals field), so if it's instantiated
-             * in speculative context, TypeInfo creation should also be
-             * stopped to avoid 'unresolved symbol' linker errors.
-             */
-            if (!ti->minst)
-                return true;
-
-            /* When -debug/-unittest is specified, all of non-root instances are
-             * automatically changed to speculative, and here is always reached
-             * from those instantiated non-root structs.
-             * Therefore, if the TypeInfo is not auctually requested,
-             * we have to elide its codegen.
-             */
-            if (!sd->requestTypeInfo)
-                return true;
-        }
-    }
-    else
-    {
-        //assert(!sd->inNonRoot() || sd->requestTypeInfo);  // valid?
-    }
-
-    return false;
+    return v.result;
 }
 
 /****************************************************
