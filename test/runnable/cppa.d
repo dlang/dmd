@@ -229,13 +229,7 @@ void test11802()
     auto x = new D11802();
     x.x = 0;
     test11802x(x);
-    version(Win64)
-    {
-    }
-    else
-    {
-        assert(x.x == 9);
-    }
+    assert(x.x == 9);
 }
 
 
