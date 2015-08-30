@@ -78,19 +78,9 @@ void genTypeInfo(Type *torig, Scope *sc)
             // Generate COMDAT
             if (sc)                     // if in semantic() pass
             {
-                if (sc->func && sc->func->inNonRoot())
-                {
-                    // Bugzilla 13043: Avoid linking TypeInfo if it's not
-                    // necessary for root module compilation
-                }
-                else
-                {
-                    // Find module that will go all the way to an object file
-                    Module *m = sc->module->importedFrom;
-                    m->members->push(t->vtinfo);
-
-                    semanticTypeInfo(sc, t);
-                }
+                // Find module that will go all the way to an object file
+                Module *m = sc->module->importedFrom;
+                m->members->push(t->vtinfo);
             }
             else                        // if in obj generation pass
             {
@@ -133,6 +123,98 @@ TypeInfoDeclaration *getTypeInfoDeclaration(Type *t)
     default:
         return TypeInfoDeclaration::create(t, 0);
     }
+}
+
+bool isSpeculativeType(Type *t)
+{
+    class SpeculativeTypeVisitor : public Visitor
+    {
+    public:
+        bool result;
+
+        SpeculativeTypeVisitor() : result(false) {}
+
+        void visit(Type *t)
+        {
+            Type *tb = t->toBasetype();
+            if (tb != t)
+                tb->accept(this);
+        }
+        void visit(TypeNext *t)
+        {
+            if (t->next)
+                t->next->accept(this);
+        }
+        void visit(TypeBasic *t) { }
+        void visit(TypeVector *t)
+        {
+            t->basetype->accept(this);
+        }
+        void visit(TypeAArray *t)
+        {
+            t->index->accept(this);
+            visit((TypeNext *)t);
+        }
+        void visit(TypeFunction *t)
+        {
+            visit((TypeNext *)t);
+            // Currently TypeInfo_Function doesn't store parameter types.
+        }
+        void visit(TypeStruct *t)
+        {
+            StructDeclaration *sd = t->sym;
+            if (TemplateInstance *ti = sd->isInstantiated())
+            {
+                if (!ti->needsCodegen())
+                {
+                    /* Bugzilla 14425: TypeInfo_Struct would refer the members of
+                     * struct (e.g. opEquals via xopEquals field), so if it's instantiated
+                     * in speculative context, TypeInfo creation should also be
+                     * stopped to avoid 'unresolved symbol' linker errors.
+                     */
+                    if (!ti->minst)
+                    {
+                        result |= true;
+                        return;
+                    }
+
+                    /* When -debug/-unittest is specified, all of non-root instances are
+                     * automatically changed to speculative, and here is always reached
+                     * from those instantiated non-root structs.
+                     * Therefore, if the TypeInfo is not auctually requested,
+                     * we have to elide its codegen.
+                     */
+                    if (!sd->requestTypeInfo)
+                    {
+                        result |= true;
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                //assert(!sd->inNonRoot() || sd->requestTypeInfo);  // valid?
+            }
+        }
+        void visit(TypeClass *t) { }
+        void visit(TypeTuple *t)
+        {
+            if (t->arguments)
+            {
+                for (size_t i = 0; i < t->arguments->dim; i++)
+                {
+                    Type *tprm = (*t->arguments)[i]->type;
+                    if (tprm)
+                        tprm->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+    };
+    SpeculativeTypeVisitor v;
+    t->accept(&v);
+    return v.result;
 }
 
 /****************************************************
@@ -422,13 +504,27 @@ public:
 
         if (TemplateInstance *ti = sd->isInstantiated())
         {
-            /* Bugzilla 14425: TypeInfo_Struct would refer the members of
-             * struct (e.g. opEquals via xopEquals field), so if it's instantiated
-             * in speculative context, TypeInfo creation should also be
-             * stopped to avoid 'unresolved symbol' linker errors.
-             */
-            if (!ti->needsCodegen() && !ti->minst)
-                return;
+            if (!ti->needsCodegen())
+            {
+                assert(ti->minst);
+                assert(sd->requestTypeInfo);
+
+                /* ti->toObjFile() won't get called. So, store these
+                 * member functions into object file in here.
+                 */
+                if (sd->xeq && sd->xeq != StructDeclaration::xerreq)
+                    toObjFile(sd->xeq, global.params.multiobj);
+                if (sd->xcmp && sd->xcmp != StructDeclaration::xerrcmp)
+                    toObjFile(sd->xcmp, global.params.multiobj);
+                if (FuncDeclaration *ftostr = search_toString(sd))
+                    toObjFile(ftostr, global.params.multiobj);
+                if (sd->xhash)
+                    toObjFile(sd->xhash, global.params.multiobj);
+                if (sd->postblit)
+                    toObjFile(sd->postblit, global.params.multiobj);
+                if (sd->dtor)
+                    toObjFile(sd->dtor, global.params.multiobj);
+            }
         }
 
         /* Put out:

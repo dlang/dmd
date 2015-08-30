@@ -5911,6 +5911,7 @@ Lerror:
      * implements the typeargs. If so, just refer to that one instead.
      */
     inst = tempdecl->findExistingInstance(this, fargs);
+    TemplateInstance *errinst = NULL;
     if (!inst)
     {
         // So, we need to implement 'this' instance.
@@ -5919,6 +5920,7 @@ Lerror:
     {
         // If the first instantiation had failed, re-run semantic,
         // so that error messages are shown.
+        errinst = inst;
     }
     else
     {
@@ -5942,22 +5944,46 @@ Lerror:
         this->tnext = inst->tnext;
         inst->tnext = this;
 
-        // If the first instantiation was in speculative context, but this is not:
-        if (tinst && !inst->tinst && !inst->minst)
+        /* A module can have explicit template instance and its alias
+         * in module scope (e,g, `alias Base64 = Base64Impl!('+', '/');`).
+         * If the first instantiation 'inst' had happened in non-root module,
+         * compiler can assume that its instantiated code would be included
+         * in the separately compiled obj/lib file (e.g. phobos.lib).
+         *
+         * However, if 'this' second instantiation happened in root module,
+         * compiler might need to invoke its codegen (Bugzilla 2500 & 2644).
+         * But whole import graph is not determined until all semantic pass finished,
+         * so 'inst' should conservatively finish the semantic3 pass for the codegen.
+         */
+        if (minst && minst->isRoot() && !(inst->minst && inst->minst->isRoot()))
         {
-            // Reconnect the chain if this instantiation is not in speculative context.
+            /* Swap the position of 'inst' and 'this' in the instantiation graph.
+             * Then, the primary instance `inst` will be changed to a root instance.
+             *
+             * Before:
+             *  non-root -> A!() -> B!()[inst] -> C!()
+             *                      |
+             *  root     -> D!() -> B!()[this]
+             *
+             * After:
+             *  non-root -> A!() -> B!()[this]
+             *                      |
+             *  root     -> D!() -> B!()[inst] -> C!()
+             */
+            Module *mi = minst;
             TemplateInstance *ti = tinst;
-            while (ti && ti != inst)
-                ti = ti->tinst;
-            if (ti != inst)    // Bugzilla 13379: Prevent circular chain
-                inst->tinst = tinst;
-        }
+            minst = inst->minst;
+            tinst = inst->tinst;
+            inst->minst = mi;
+            inst->tinst = ti;
 
-        // If the first instantiation was speculative, but this is not:
-        if (!inst->minst)
-        {
-            // Mark it is a non-speculative instantiation.
-            inst->minst = minst;
+            if (minst)  // if inst was not speculative
+            {
+                /* Add 'inst' once again to the root module members[], then the
+                 * instance members will get codegen chances.
+                 */
+                inst->appendToModuleMember();
+            }
         }
 
 #if LOG
@@ -5979,66 +6005,10 @@ Lerror:
 
     //getIdent();
 
-    // Add 'this' to the enclosing scope's members[] so the semantic routines
-    // will get called on the instance members. Store the place we added it to
-    // in target_symbol_list(_idx) so we can remove it later if we encounter
-    // an error.
-#if 1
-    Dsymbols *target_symbol_list;
-    size_t target_symbol_list_idx = 0;
-    //if (sc->scopesym) printf("3: sc is %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
-    if (0 && !tinst && sc->scopesym && sc->scopesym->members)
-    {
-        /* A module can have explicit template instance and its alias
-         * in module scope (e,g, `alias Base64Impl!('+', '/') Base64;`).
-         * When the module is just imported, normally compiler can assume that
-         * its instantiated code would be contained in the separately compiled
-         * obj/lib file (e.g. phobos.lib).
-         * Bugzilla 2644: However, if the template is instantiated in both
-         * modules of root and non-root, compiler should generate its objcode.
-         * Therefore, always conservatively insert this instance to the member of
-         * a root module, then calculate the necessity by TemplateInstance::needsCodegen().
-         */
-        //if (sc->scopesym->isModule())
-        //    printf("module level instance %s\n", toChars());
-
-        //printf("\t1: adding to %s %s\n", sc->scopesym->kind(), sc->scopesym->toChars());
-        target_symbol_list = sc->scopesym->members;
-    }
-    else
-    {
-        Dsymbol *s = enclosing ? enclosing : tempdecl->parent;
-        while (s && !s->isModule())
-            s = s->toParent2();
-        assert(s);
-        Module *m = (Module *)s;
-        if (!m->isRoot())
-            m = m->importedFrom;
-
-        //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
-        target_symbol_list = m->members;
-
-        /* Defer semantic3 running in order to avoid mutual forward reference.
-         * See test/runnable/test10736.d
-         */
-        if (m->semanticRun >= PASSsemantic3done)
-            Module::addDeferredSemantic3(this);
-    }
-    for (size_t i = 0; 1; i++)
-    {
-        if (i == target_symbol_list->dim)
-        {
-            target_symbol_list_idx = i;
-            target_symbol_list->push(this);
-            break;
-        }
-        if (this == (*target_symbol_list)[i])   // if already in Array
-        {
-            target_symbol_list = NULL;
-            break;
-        }
-    }
-#endif
+    // Store the place we added it to in target_symbol_list(_idx) so we can
+    // remove it later if we encounter an error.
+    Dsymbols *target_symbol_list = appendToModuleMember();
+    size_t target_symbol_list_idx = target_symbol_list ? target_symbol_list->dim - 1 : 0;
 
     // Copy the syntax trees from the TemplateDeclaration
     members = Dsymbol::arraySyntaxCopy(tempdecl->members);
@@ -6317,6 +6287,27 @@ Lerror:
             semanticRun = PASSinit;
             inst = NULL;
             symtab = NULL;
+        }
+    }
+    else if (errinst)
+    {
+        /* Bugzilla 14541: If the previous gagged instance had failed by
+         * circular references, currrent "error reproduction instantiation"
+         * might succeed, because of the difference of instantiated context.
+         * On such case, the cached error instance needs to be overridden by the
+         * succeeded instance.
+         */
+        size_t bi = hash % tempdecl->buckets.dim;
+        TemplateInstances *instances = tempdecl->buckets[bi];
+        assert(instances);
+        for (size_t i = 0; i < instances->dim; i++)
+        {
+            TemplateInstance *ti = (*instances)[i];
+            if (ti == errinst)
+            {
+                (*instances)[i] = this;     // override
+                break;
+            }
         }
     }
 
@@ -7288,6 +7279,64 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
     return nested != 0;
 }
 
+/*****************************************
+ * Append 'this' to the specific module members[]
+ */
+Dsymbols *TemplateInstance::appendToModuleMember()
+{
+    Module *mi = minst;     // instantiated -> inserted module
+
+    if (global.params.useUnitTests ||
+        global.params.debuglevel)
+    {
+        // Turn all non-root instances to speculative
+        if (mi && !mi->isRoot())
+            mi = NULL;
+    }
+
+    if (!mi || mi->isRoot())
+    {
+        /* If the instantiated module is speculative or root, insert to the
+         * member of a root module. Then:
+         *  - semantic3 pass will get called on the instance members.
+         *  - codegen pass will get a selection chance to do/skip it.
+         */
+
+        // insert target is made stable by using the module
+        // where tempdecl is declared.
+        mi = tempdecl->getModule();
+        if (!mi->isRoot())
+            mi = mi->importedFrom;
+        assert(mi->isRoot());
+    }
+    else
+    {
+        /* If the instantiated module is non-root, insert to the member of the
+         * non-root module. Then:
+         *  - semantic3 pass won't be called on the instance.
+         *  - codegen pass won't reach to the instance.
+         */
+    }
+
+    Dsymbols *a = mi->members;
+    for (size_t i = 0; 1; i++)
+    {
+        if (i == a->dim)
+        {
+            a->push(this);
+            if (mi->semanticRun >= PASSsemantic3done && mi->isRoot())
+                Module::addDeferredSemantic3(this);
+            break;
+        }
+        if (this == (*a)[i])    // if already in Array
+        {
+            a = NULL;
+            break;
+        }
+    }
+    return a;
+}
+
 /****************************************
  * This instance needs an identifier for name mangling purposes.
  * Create one by taking the template declaration name and adding
@@ -7837,15 +7886,8 @@ void unSpeculative(Scope *sc, RootObject *o)
  */
 bool TemplateInstance::needsCodegen()
 {
-    /* The issue is that if the importee is compiled with a different -debug
-     * setting than the importer, the importer may believe it exists
-     * in the compiled importee when it does not, when the instantiation
-     * is behind a conditional debug declaration.
-     */
-    // workaround for Bugzilla 11239
-    if (global.params.useUnitTests ||
-        global.params.allInst ||
-        global.params.debuglevel)
+    // Now -allInst is just for the backward compatibility.
+    if (global.params.allInst)
     {
         //printf("%s minst = %s, enclosing (%s)->isNonRoot = %d\n",
         //    toPrettyChars(), minst ? minst->toChars() : NULL,
@@ -7876,9 +7918,12 @@ bool TemplateInstance::needsCodegen()
         return true;
     }
 
-    // If this may be a speculative instantiation:
     if (!minst)
     {
+        // If this is a speculative instantiation,
+        // 1. do codegen if ancestors really needs codegen.
+        // 2. become non-speculative if siblings are not speculative
+
         TemplateInstance *tnext = this->tnext;
         TemplateInstance *tinst = this->tinst;
         // At first, disconnect chain first to prevent infinite recursion.
@@ -7893,6 +7938,42 @@ bool TemplateInstance::needsCodegen()
             assert(minst->isRoot() || minst->rootImports());
             return true;
         }
+        if (tnext && (tnext->needsCodegen() || tnext->minst))
+        {
+            minst = tnext->minst;   // cache result
+            assert(minst);
+            return minst->isRoot() || minst->rootImports();
+        }
+
+        // Elide codegen because this is really speculative.
+        return false;
+    }
+
+    /* The issue is that if the importee is compiled with a different -debug
+     * setting than the importer, the importer may believe it exists
+     * in the compiled importee when it does not, when the instantiation
+     * is behind a conditional debug declaration.
+     */
+    // workaround for Bugzilla 11239
+    if (global.params.useUnitTests ||
+        global.params.debuglevel)
+    {
+        // Prefer instantiations from root modules, to maximize link-ability.
+        if (minst->isRoot())
+            return true;
+
+        TemplateInstance *tnext = this->tnext;
+        TemplateInstance *tinst = this->tinst;
+        this->tnext = NULL;
+        this->tinst = NULL;
+
+        if (tinst && tinst->needsCodegen())
+        {
+            minst = tinst->minst;   // cache result
+            assert(minst);
+            assert(minst->isRoot() || minst->rootImports());
+            return true;
+        }
         if (tnext && tnext->needsCodegen())
         {
             minst = tnext->minst;   // cache result
@@ -7900,12 +7981,33 @@ bool TemplateInstance::needsCodegen()
             assert(minst->isRoot() || minst->rootImports());
             return true;
         }
+
+        // Bugzilla 2500 case
+        if (minst->rootImports())
+            return true;
+
+        // Elide codegen because this is not included in root instances.
         return false;
     }
-
-    if (minst->isRoot())
+    else
     {
-        // Prefer instantiation in non-root module, to minimize object code size
+        // Prefer instantiations from non-root module, to minimize object code size.
+
+        /* If a TemplateInstance is ever instantiated by non-root modules,
+         * we do not have to generate code for it,
+         * because it will be generated when the non-root module is compiled.
+         *
+         * But, if the non-root 'minst' imports any root modules, it might still need codegen.
+         *
+         * The problem is if A imports B, and B imports A, and both A
+         * and B instantiate the same template, does the compilation of A
+         * or the compilation of B do the actual instantiation?
+         *
+         * See Bugzilla 2500.
+         */
+        if (!minst->isRoot() && !minst->rootImports())
+            return false;
+
         TemplateInstance *tnext = this->tnext;
         this->tnext = NULL;
 
@@ -7915,29 +8017,10 @@ bool TemplateInstance::needsCodegen()
             assert(!minst->isRoot());
             return false;
         }
-    }
-    else
-    {
-        /* If a TemplateInstance is ever instantiated by non-root modules,
-         * we do not have to generate code for it,
-         * because it will be generated when the non-root module is compiled.
-         *
-         * But, if minst imports any root modules, we still need to generate the code.
-         *
-         * The problem is if A imports B, and B imports A, and both A
-         * and B instantiate the same template, does the compilation of A
-         * or the compilation of B do the actual instantiation?
-         *
-         * See bugzilla 2500.
-         */
 
-        if (!minst->rootImports())
-        {
-            //printf("instantiated by %s   %s\n", minst->toChars(), toChars());
-            return false;
-        }
+        // Do codegen because this is not included in non-root instances.
+        return true;
     }
-    return true;
 }
 
 /* ======================== TemplateMixin ================================ */
