@@ -49,7 +49,7 @@ int main(string[] args)
 
     zr = new std.zip.ZipArchive();
     ArchiveMember am = new ArchiveMember();
-    am.compressionMethod = 8;
+    am.compressionMethod = CompressionMethod.deflate;
     am.name = "foo.bar";
     //am.extra = cast(ubyte[])"ExTrA";
     am.expandedData = cast(ubyte[])"We all live in a yellow submarine, a yellow submarine";
@@ -100,7 +100,7 @@ void testzlib2()
         auto am = new ArchiveMember;  // 10
         am.name = "buf";
         am.expandedData = buf;
-        am.compressionMethod = 8;
+        am.compressionMethod = CompressionMethod.deflate;
         am.time = SysTimeToDosFileTime(Clock.currTime());
         ar.addMember (am);            // 15
 
