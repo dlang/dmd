@@ -175,7 +175,7 @@ ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/file.d $(ROOT)/filename.d	\
 	$(ROOT)/speller.d $(ROOT)/stringtable.d
 
 # D front end
-SRCS = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
+SRCS = aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
 	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
@@ -222,7 +222,7 @@ ROOTSRCC=$(ROOT)\newdelete.c
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\man.d $(ROOT)\port.d	\
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d	\
 	$(ROOT)\longdouble.d $(ROOT)\outbuffer.d $(ROOT)\filename.d		\
-	$(ROOT)\file.d
+	$(ROOT)\file.d $(ROOT)\array.d
 ROOTSRC= $(ROOT)\root.h $(ROOT)\stringtable.h $(ROOT)\speller.h $(ROOT)\aav.h	\
 	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h		\
 	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOTSRCC)		\
