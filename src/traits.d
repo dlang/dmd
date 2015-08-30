@@ -62,12 +62,12 @@ extern (C++) static int fptraits(void* param, Dsymbol s)
     if (p.ident == Id.getVirtualMethods && !f.isVirtualMethod())
         return 0;
     Expression e;
-    auto _alias = new FuncAliasDeclaration(f, 0);
-    _alias.protection = f.protection;
+    auto ad = new FuncAliasDeclaration(f.ident, f, 0);
+    ad.protection = f.protection;
     if (p.e1)
-        e = new DotVarExp(Loc(), p.e1, _alias);
+        e = new DotVarExp(Loc(), p.e1, ad);
     else
-        e = new DsymbolExp(Loc(), _alias);
+        e = new DsymbolExp(Loc(), ad);
     p.exps.push(e);
     return 0;
 }
@@ -99,9 +99,9 @@ extern (C++) static void collectUnitTests(Dsymbols* symbols, AA* uniqueUnitTests
         {
             if (!dmd_aaGetRvalue(uniqueUnitTests, cast(void*)unitTest))
             {
-                auto _alias = new FuncAliasDeclaration(unitTest, 0);
-                _alias.protection = unitTest.protection;
-                Expression e = new DsymbolExp(Loc(), _alias);
+                auto ad = new FuncAliasDeclaration(unitTest.ident, unitTest, 0);
+                ad.protection = unitTest.protection;
+                Expression e = new DsymbolExp(Loc(), ad);
                 unitTests.push(e);
                 bool* value = cast(bool*)dmd_aaGet(&uniqueUnitTests, cast(void*)unitTest);
                 *value = true;
