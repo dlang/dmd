@@ -875,6 +875,16 @@ RET retStyle(TypeFunction *tf)
             return RETregs;
         return RETstack;
     }
+    else if (global.params.isWindows && global.params.mscoff)
+    {
+        Type* tb = tns->baseElemOf();
+        if (tb->ty == Tstruct)
+        {
+            StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+            if (sd->ident == Id::__c_long_double)
+                return RETregs;
+        }
+    }
 
 Lagain:
     if (tns->ty == Tsarray)
