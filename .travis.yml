@@ -1,7 +1,7 @@
 language: d
 d:
   - dmd-2.067.1
-  - gdc
+  - gdc-4.9.3
   - ldc
 
 script: ./travis.sh
@@ -14,7 +14,6 @@ addons:
 
 matrix:
   allow_failures:
-    - d: gdc
     - d: ldc
 
 env:
