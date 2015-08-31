@@ -81,7 +81,7 @@ void main(string[] args)
         
         if (socketSet.isSet(listener))        // connection request
         {
-            Socket sn = listener.accept();
+            Socket sn = null;
             scope (failure)
             {
                 writefln("Error accepting");
@@ -89,6 +89,7 @@ void main(string[] args)
                 if (sn)
                     sn.close();
             }
+            sn = listener.accept();
             assert(sn.isAlive);
             assert(listener.isAlive);
             
