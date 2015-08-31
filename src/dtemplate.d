@@ -6287,19 +6287,22 @@ public:
         /* Template functions may have different instantiations based on
          * "auto ref" parameters.
          */
-        if (fargs)
+        if (auto fd = ti.toAlias().isFuncDeclaration())
         {
-            FuncDeclaration fd = ti.toAlias().isFuncDeclaration();
-            if (fd && !fd.errors)
+            if (!fd.errors)
             {
-                Parameters* fparameters = fd.getParameters(null);
-                size_t nfparams = Parameter.dim(fparameters); // Num function parameters
-                for (size_t j = 0; j < nfparams && j < fargs.dim; j++)
+                auto fparameters = fd.getParameters(null);
+                size_t nfparams = Parameter.dim(fparameters);   // Num function parameters
+                for (size_t j = 0; j < nfparams; j++)
                 {
                     Parameter fparam = Parameter.getNth(fparameters, j);
-                    Expression farg = (*fargs)[j];
-                    if (fparam.storageClass & STCauto) // if "auto ref"
+                    if (fparam.storageClass & STCautoref)       // if "auto ref"
                     {
+                        if (!fargs)
+                            goto Lnotequals;
+                        if (fargs.dim <= j)
+                            break;
+                        Expression farg = (*fargs)[j];
                         if (farg.isLvalue())
                         {
                             if (!(fparam.storageClass & STCref))
