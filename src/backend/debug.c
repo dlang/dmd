@@ -109,8 +109,7 @@ void WRBC(unsigned bc)
          "exit  ","asm   ","switch","ifthen","jmptab",
          "try   ","catch ","jump  ",
          "_try  ","_filte","_final","_ret  ","_excep",
-         "jcatch",
-         "jplace",
+         "jcatch"
         };
 
     assert(sizeof(bcs) / sizeof(bcs[0]) == BCMAX);
