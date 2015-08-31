@@ -8,11 +8,22 @@
 
 module ddmd.root.man;
 
-import core.stdc.stdio, core.stdc.stdlib, core.stdc.string, core.sys.posix.sys.types, core.sys.posix.sys.wait, core.sys.posix.unistd, core.sys.windows.windows;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.sys.posix.sys.types;
+import core.sys.posix.sys.wait;
+import core.sys.posix.unistd;
+import core.sys.windows.windows;
 
 version (Windows)
 {
     extern (C++) void browse(const(char)* url)
+    in
+    {
+        assert(strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
+    }
+    body
     {
         ShellExecuteA(null, "open", url, null, null, SW_SHOWNORMAL);
     }
@@ -20,6 +31,11 @@ version (Windows)
 else version (OSX)
 {
     extern (C++) void browse(const(char)* url)
+    in
+    {
+        assert(strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
+    }
+    body
     {
         pid_t childpid;
         const(char)*[5] args;
@@ -33,12 +49,9 @@ else version (OSX)
         }
         else
         {
-            //browser = "/Applications/Safari.app/Contents/MacOS/Safari";
             args[0] = "open";
-            args[1] = "-a";
-            args[2] = "/Applications/Safari.app";
-            args[3] = url;
-            args[4] = null;
+            args[1] = url;
+            args[2] = null;
         }
         childpid = fork();
         if (childpid == 0)
@@ -52,6 +65,11 @@ else version (OSX)
 else version (Posix)
 {
     extern (C++) void browse(const(char)* url)
+    in
+    {
+        assert(strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
+    }
+    body
     {
         pid_t childpid;
         const(char)*[3] args;
