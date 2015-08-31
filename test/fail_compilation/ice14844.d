@@ -17,5 +17,7 @@ struct Typedef
 
 void runUnitTestsImpl()
 {
-    auto x = [__traits(allMembers, Typedef.opDispatch)];
+    foreach (x; __traits(allMembers, Typedef.opDispatch))
+    {
+    }
 }

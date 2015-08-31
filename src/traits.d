@@ -667,7 +667,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!t)
         {
             e.error("type expected as second argument of __traits %s instead of %s", e.ident.toChars(), o.toChars());
-            goto Lfalse;
+            return new ErrorExp();
         }
         Type tb = t.baseElemOf();
         if (tb.ty == Tstruct && ((sd = cast(StructDeclaration)(cast(TypeStruct)tb).sym) !is null))
@@ -705,7 +705,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 goto Lfalse;
         }
         e.error("aggregate or function expected instead of '%s'", o.toChars());
-        goto Lfalse;
+        return new ErrorExp();
     }
     else if (e.ident == Id.isAbstractFunction)
     {
@@ -768,7 +768,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             if (!s || !s.ident)
             {
                 e.error("argument %s has no identifier", o.toChars());
-                goto Lfalse;
+                return new ErrorExp();
             }
             id = s.ident;
         }
@@ -791,7 +791,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (!isError(o))
                 e.error("argument %s has no protection", o.toChars());
-            goto Lfalse;
+            return new ErrorExp();
         }
         if (s._scope)
             s.semantic(s._scope);
@@ -816,7 +816,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s || s.isImport())
         {
             e.error("argument %s has no parent", o.toChars());
-            goto Lfalse;
+            return new ErrorExp();
         }
         if (FuncDeclaration f = s.isFuncDeclaration())
         {
@@ -846,20 +846,20 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!ex)
         {
             e.error("expression expected as second argument of __traits %s", e.ident.toChars());
-            goto Lfalse;
+            return new ErrorExp();
         }
         ex = ex.ctfeInterpret();
         StringExp se = ex.toStringExp();
         if (!se || se.length() == 0)
         {
             e.error("string expected as second argument of __traits %s instead of %s", e.ident.toChars(), ex.toChars());
-            goto Lfalse;
+            return new ErrorExp();
         }
         se = se.toUTF8(sc);
         if (se.sz != 1)
         {
             e.error("string must be chars");
-            goto Lfalse;
+            return new ErrorExp();
         }
         Identifier id = Identifier.idPool(cast(char*)se.string);
         /* Prefer dsymbol, because it might need some runtime contexts.
@@ -877,7 +877,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         else
         {
             e.error("invalid first argument");
-            goto Lfalse;
+            return new ErrorExp();
         }
         if (e.ident == Id.hasMember)
         {
@@ -952,7 +952,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s || (cd = s.isClassDeclaration()) is null)
         {
             e.error("first argument is not a class");
-            goto Lfalse;
+            return new ErrorExp();
         }
         if (cd.sizeok == SIZEOKnone)
         {
@@ -962,7 +962,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (cd.sizeok != SIZEOKdone)
         {
             e.error("%s %s is forward referenced", cd.kind(), cd.toChars());
-            goto Lfalse;
+            return new ErrorExp();
         }
         return new IntegerExp(e.loc, cd.structsize, Type.tsize_t);
     }
@@ -976,7 +976,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s || (ad = s.isAggregateDeclaration()) is null)
         {
             e.error("argument is not an aggregate type");
-            goto Lfalse;
+            return new ErrorExp();
         }
         auto exps = new Expressions();
         if (ad.aliasthis)
@@ -1003,7 +1003,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     printf("t = %d %s\n", t.ty, t.toChars());
             }
             e.error("first argument is not a symbol");
-            goto Lfalse;
+            return new ErrorExp();
         }
         if (s.isImport())
         {
@@ -1042,7 +1042,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!tf)
         {
             e.error("first argument is not a function");
-            goto Lfalse;
+            return new ErrorExp();
         }
         auto mods = new Expressions();
         PushAttributes pa;
@@ -1061,7 +1061,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s)
         {
             e.error("argument has no members");
-            goto Lfalse;
+            return new ErrorExp();
         }
         if (Import imp = s.isImport())
         {
@@ -1072,7 +1072,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!sds || sds.isTemplateDeclaration())
         {
             e.error("%s %s has no members", s.kind(), s.toChars());
-            goto Lfalse;
+            return new ErrorExp();
         }
         // use a struct as local function
         struct PushIdentsDg
@@ -1277,7 +1277,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s)
         {
             e.error("argument %s to __traits(getUnitTests) must be a module or aggregate", o.toChars());
-            goto Lfalse;
+            return new ErrorExp();
         }
         Import imp = s.isImport();
         if (imp) // Bugzilla 10990
@@ -1286,7 +1286,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!_scope)
         {
             e.error("argument %s to __traits(getUnitTests) must be a module or aggregate, not a %s", s.toChars(), s.kind());
-            goto Lfalse;
+            return new ErrorExp();
         }
         auto unitTests = new Expressions();
         Dsymbols* symbols = _scope.members;
@@ -1309,7 +1309,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!s || (fd = s.isFuncDeclaration()) is null)
         {
             e.error("first argument to __traits(getVirtualIndex) must be a function");
-            goto Lfalse;
+            return new ErrorExp();
         }
         fd = fd.toAliasFunc(); // Neccessary to support multiple overloads.
         return new IntegerExp(e.loc, fd.vtblIndex, Type.tptrdiff_t);
@@ -1324,12 +1324,12 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("unrecognized trait '%s', did you mean '%s'?", e.ident.toChars(), sub);
         else
             e.error("unrecognized trait '%s'", e.ident.toChars());
-        goto Lfalse;
+        return new ErrorExp();
     }
     return null;
 Ldimerror:
     e.error("wrong number of arguments %d", cast(int)dim);
-    goto Lfalse;
+    return new ErrorExp();
 Lfalse:
     return new IntegerExp(e.loc, 0, Type.tbool);
 Ltrue:
