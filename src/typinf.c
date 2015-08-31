@@ -167,28 +167,22 @@ bool isSpeculativeType(Type *t)
             {
                 if (!ti->needsCodegen())
                 {
+                    if (ti->minst || sd->requestTypeInfo)
+                        return;
+
                     /* Bugzilla 14425: TypeInfo_Struct would refer the members of
                      * struct (e.g. opEquals via xopEquals field), so if it's instantiated
                      * in speculative context, TypeInfo creation should also be
                      * stopped to avoid 'unresolved symbol' linker errors.
                      */
-                    if (!ti->minst)
-                    {
-                        result |= true;
-                        return;
-                    }
-
                     /* When -debug/-unittest is specified, all of non-root instances are
                      * automatically changed to speculative, and here is always reached
                      * from those instantiated non-root structs.
                      * Therefore, if the TypeInfo is not auctually requested,
                      * we have to elide its codegen.
                      */
-                    if (!sd->requestTypeInfo)
-                    {
-                        result |= true;
-                        return;
-                    }
+                    result |= true;
+                    return;
                 }
             }
             else
@@ -506,8 +500,7 @@ public:
         {
             if (!ti->needsCodegen())
             {
-                assert(ti->minst);
-                assert(sd->requestTypeInfo);
+                assert(ti->minst || sd->requestTypeInfo);
 
                 /* ti->toObjFile() won't get called. So, store these
                  * member functions into object file in here.
