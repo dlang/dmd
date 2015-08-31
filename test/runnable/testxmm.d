@@ -1,4 +1,5 @@
 // REQUIRED_ARGS:
+// DISABLED: win64
 
 version (D_SIMD)
 {

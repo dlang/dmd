@@ -1,8 +1,9 @@
 // REQUIRED_ARGS: -o- -fPIC
+// DISABLED: win32 win64
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13939.d(14): Error: cannot directly load global variable 'val' with PIC code
+fail_compilation/fail13939.d(15): Error: cannot directly load global variable 'val' with PIC code
 ---
 */
 version(Windows) static assert(0);
