@@ -21,11 +21,7 @@ extern (C) real strtold(const(char)* p, char** endp);
 
 extern (C++) struct Port
 {
-    enum nan = double.nan;
-    enum infinity = double.infinity;
     enum ldbl_max = real.max;
-    enum ldbl_nan = real.nan;
-    enum ldbl_infinity = real.infinity;
     version(DigitalMars)
     {
         static __gshared bool yl2x_supported = true;
