@@ -6885,16 +6885,32 @@ Expression *TypeIdentifier::toExpression()
     for (size_t i = 0; i < idents.dim; i++)
     {
         RootObject *id = idents[i];
-        if (id->dyncast() == DYNCAST_IDENTIFIER)
+        switch (id->dyncast())
         {
-            e = new DotIdExp(loc, e, (Identifier *)id);
-        }
-        else
-        {
-            assert(id->dyncast() == DYNCAST_DSYMBOL);
-            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
-            assert(ti);
-            e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
+            case DYNCAST_IDENTIFIER:
+            {
+                e = new DotIdExp(loc, e, (Identifier *)id);
+                break;
+            }
+            case DYNCAST_DSYMBOL:
+            {
+                TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+                assert(ti);
+                e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
+                break;
+            }
+            case DYNCAST_TYPE:
+            {
+                e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
+                break;
+            }
+            case DYNCAST_EXPRESSION:
+            {
+                e = new ArrayExp(loc, e, (Expression *)id);
+                break;
+            }
+            default:
+                assert(0);
         }
     }
 
@@ -7009,16 +7025,32 @@ Expression *TypeInstance::toExpression()
     for (size_t i = 0; i < idents.dim; i++)
     {
         RootObject *id = idents[i];
-        if (id->dyncast() == DYNCAST_IDENTIFIER)
+        switch (id->dyncast())
         {
-            e = new DotIdExp(loc, e, (Identifier *)id);
-        }
-        else
-        {
-            assert(id->dyncast() == DYNCAST_DSYMBOL);
-            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
-            assert(ti);
-            e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
+            case DYNCAST_IDENTIFIER:
+            {
+                e = new DotIdExp(loc, e, (Identifier *)id);
+                break;
+            }
+            case DYNCAST_DSYMBOL:
+            {
+                TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+                assert(ti);
+                e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
+                break;
+            }
+            case DYNCAST_TYPE:
+            {
+                e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
+                break;
+            }
+            case DYNCAST_EXPRESSION:
+            {
+                e = new ArrayExp(loc, e, (Expression *)id);
+                break;
+            }
+            default:
+                assert(0);
         }
     }
 
@@ -7138,12 +7170,24 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
                 switch (id->dyncast())
                 {
                     case DYNCAST_IDENTIFIER:
+                    {
                         e = new DotIdExp(loc, e, (Identifier *)id);
                         break;
+                    }
                     case DYNCAST_DSYMBOL:
                     {
                         TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
                         e = new DotExp(loc, e, new ScopeExp(loc, ti));
+                        break;
+                    }
+                    case DYNCAST_TYPE:
+                    {
+                        e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
+                        break;
+                    }
+                    case DYNCAST_EXPRESSION:
+                    {
+                        e = new ArrayExp(loc, e, (Expression *)id);
                         break;
                     }
                     default:
@@ -7264,12 +7308,24 @@ void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
                 switch (id->dyncast())
                 {
                     case DYNCAST_IDENTIFIER:
+                    {
                         e = new DotIdExp(loc, e, (Identifier *)id);
                         break;
+                    }
                     case DYNCAST_DSYMBOL:
                     {
                         TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
                         e = new DotExp(loc, e, new ScopeExp(loc, ti));
+                        break;
+                    }
+                    case DYNCAST_TYPE:
+                    {
+                        e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
+                        break;
+                    }
+                    case DYNCAST_EXPRESSION:
+                    {
+                        e = new ArrayExp(loc, e, (Expression *)id);
                         break;
                     }
                     default:
