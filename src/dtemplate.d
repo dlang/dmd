@@ -4052,9 +4052,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 at = xt.tded;
             }
             // From previous matched expressions to current deduced type
-            MATCH match1 = MATCHnomatch;
-            if (xt)
-                match1 = xt.matchAll(tt);
+            MATCH match1 = xt ? xt.matchAll(tt) : MATCHnomatch;
             // From current expresssion to previous deduced type
             Type pt = at.addMod(tparam.mod);
             if (*wm)
@@ -4086,6 +4084,11 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     }
                     //printf("tt = %s, at = %s\n", tt->toChars(), at->toChars());
                 }
+                else
+                {
+                    match1 = MATCHnomatch;
+                    match2 = MATCHnomatch;
+                }
             }
             if (match1 > MATCHnomatch)
             {
@@ -4105,6 +4108,23 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 result = match2;
                 return;
             }
+
+            /* Deduce common type
+             */
+            if (Type t = rawTypeMerge(at, tt))
+            {
+                if (xt)
+                    xt.update(t, e, tparam);
+                else
+                    (*dedtypes)[i] = t;
+
+                pt = tt.addMod(tparam.mod);
+                if (*wm)
+                    pt = pt.substWildTo(*wm);
+                result = e.implicitConvTo(pt);
+                return;
+            }
+
             result = MATCHnomatch;
         }
 
