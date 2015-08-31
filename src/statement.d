@@ -2763,10 +2763,10 @@ public:
                      *      _aaApply2(aggr, keysize, flde)
                      */
                     static __gshared const(char)** name = ["_aaApply", "_aaApply2"];
-                    static __gshared FuncDeclaration* fdapply = [null, null];
+                    static __gshared FuncDeclaration* aaApplyFd = [null, null];
                     static __gshared TypeDelegate* fldeTy = [null, null];
                     ubyte i = (dim == 2 ? 1 : 0);
-                    if (!fdapply[i])
+                    if (!aaApplyFd[i])
                     {
                         params = new Parameters();
                         params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null));
@@ -2777,7 +2777,7 @@ public:
                             dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
                         fldeTy[i] = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINKd));
                         params.push(new Parameter(0, fldeTy[i], null, null));
-                        fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
+                        aaApplyFd[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
                     }
                     auto exps = new Expressions();
                     exps.push(aggr);
@@ -2791,7 +2791,7 @@ public:
                     }
                     exps.push(new IntegerExp(Loc(), keysize, Type.tsize_t));
                     exps.push(flde);
-                    ec = new VarExp(Loc(), fdapply[i]);
+                    ec = new VarExp(Loc(), aaApplyFd[i]);
                     ec = new CallExp(loc, ec, exps);
                     ec.type = Type.tint32; // don't run semantic() on ec
                 }
