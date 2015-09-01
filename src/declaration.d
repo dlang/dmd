@@ -1519,17 +1519,17 @@ public:
             // Provide a default initializer
 
             //printf("Providing default initializer for '%s'\n", toChars());
-            if (type.needsNested())
-            {
-                Type tv = type;
-                while (tv.toBasetype().ty == Tsarray)
-                    tv = tv.toBasetype().nextOf();
-                assert(tv.toBasetype().ty == Tstruct);
 
+            Type tv = type;
+            while (tv.ty == Tsarray)    // Don't skip Tenum
+                tv = tv.nextOf();
+            if (tv.needsNested())
+            {
                 /* Nested struct requires valid enclosing frame pointer.
                  * In StructLiteralExp::toElem(), it's calculated.
                  */
-                checkFrameAccess(loc, sc, (cast(TypeStruct)tv.toBasetype()).sym);
+                assert(tbn.ty == Tstruct);
+                checkFrameAccess(loc, sc, (cast(TypeStruct)tbn).sym);
 
                 Expression e = tv.defaultInitLiteral(loc);
                 e = new BlitExp(loc, new VarExp(loc, this), e);
@@ -1537,8 +1537,7 @@ public:
                 _init = new ExpInitializer(loc, e);
                 goto Ldtor;
             }
-            if (type.ty == Tstruct &&
-                (cast(TypeStruct)type).sym.zeroInit == 1)
+            if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.zeroInit == 1)
             {
                 /* If a struct is all zeros, as a special case
                  * set it's initializer to the integer 0.

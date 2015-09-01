@@ -3563,21 +3563,23 @@ public:
         Expression newval = interpret(e.e2, istate);
         if (exceptionOrCant(newval))
             return;
-        if (e.type.toBasetype().ty == Tstruct && newval.op == TOKint64)
+        if (e.op == TOKblit && newval.op == TOKint64)
         {
-            /* Look for special case of struct being initialized with 0.
-             */
-            assert(e.op == TOKconstruct || e.op == TOKblit);
-            newval = e.type.defaultInitLiteral(e.loc);
-            if (newval.op != TOKstructliteral)
+            Type tbn = e.type.baseElemOf();
+            if (tbn.ty == Tstruct)
             {
-                e.error("nested structs with constructors are not yet supported in CTFE (Bug 6419)");
-                result = CTFEExp.cantexp;
-                return;
+                /* Look for special case of struct being initialized with 0.
+                 */
+                newval = e.type.defaultInitLiteral(e.loc);
+                if (newval.op == TOKerror)
+                {
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+                newval = interpret(newval, istate); // copy and set ownedByCtfe flag
+                if (exceptionOrCant(newval))
+                    return;
             }
-            newval = interpret(newval, istate); // copy and set ownedByCtfe flag
-            if (exceptionOrCant(newval))
-                return;
         }
 
         // ----------------------------------------------------

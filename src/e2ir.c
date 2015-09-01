@@ -2854,6 +2854,29 @@ elem *toElem(Expression *e, IRState *irs)
             }
             else if (t1b->ty == Tsarray)
             {
+                if (ae->op == TOKblit && ae->e2->op == TOKint64)
+                {
+                    /* Implement:
+                     *  (sarray = 0)
+                     * with:
+                     *  memset(&sarray, 0, struct.sizeof)
+                     */
+                    elem *ey = NULL;
+                    targ_size_t sz = ae->e1->type->size();
+                    StructDeclaration *sd = ((TypeStruct *)t1b->baseElemOf())->sym;
+
+                    elem *el = e1;
+                    elem *enbytes = el_long(TYsize_t, sz);
+                    elem *evalue = el_long(TYsize_t, 0);
+
+                    if (!(sd->isNested() && ae->op == TOKconstruct))
+                        el = el_una(OPaddr, TYnptr, el);
+                    e = el_param(enbytes, evalue);
+                    e = el_bin(OPmemset,TYnptr,el,e);
+                    e = el_combine(ey, e);
+                    goto Lret;
+                }
+
                 /* Implement:
                  *  (sarray = sarray)
                  */
