@@ -585,7 +585,7 @@ public:
         // toAlias() will return aliasssym.
 
         uint errors = global.errors;
-        Type savedtype = type;
+        Type oldtype = type;
 
         // Ungag errors when not instantiated DeclDefs scope alias
         auto ungag = Ungag(global.gag);
@@ -642,87 +642,77 @@ public:
             }
             type = t;
         }
-        if (!s) // it's a type alias
-        {
-            type = type.semantic(loc, sc);
-            //printf("\talias resolved to type %s\n", type.toChars());
-
-            if (overnext)
-                ScopeDsymbol.multiplyDefined(Loc(), overnext, this);
-            inuse = 0;
-
-            if (global.gag && errors != global.errors)
-                type = savedtype;
-
-            semanticRun = PASSsemanticdone;
-            return;
-        }
-
-        //printf("alias is a symbol %s %s\n", s->kind(), s->toChars());
-        type = null;
-
-        auto savedovernext = overnext;
-        if (overnext)
-        {
-            auto sa = s.toAlias();
-            if (FuncDeclaration fd = sa.isFuncDeclaration())
-            {
-                auto fa = new FuncAliasDeclaration(ident, fd);
-                if (!fa.overloadInsert(overnext))
-                    ScopeDsymbol.multiplyDefined(Loc(), overnext, fd);
-                overnext = null;
-                s = fa;
-                s.parent = sc.parent;
-            }
-            else if (TemplateDeclaration td = sa.isTemplateDeclaration())
-            {
-                auto od = new OverDeclaration(ident, td);
-                if (!od.overloadInsert(overnext))
-                    ScopeDsymbol.multiplyDefined(Loc(), overnext, td);
-                overnext = null;
-                s = od;
-                s.parent = sc.parent;
-            }
-            else if (OverDeclaration od = sa.isOverDeclaration())
-            {
-                auto od2 = new OverDeclaration(ident, od);
-                if (!od2.overloadInsert(overnext))
-                    ScopeDsymbol.multiplyDefined(Loc(), overnext, od);
-                overnext = null;
-                s = od2;
-                s.parent = sc.parent;
-            }
-            else if (OverloadSet os = sa.isOverloadSet())
-            {
-                os = new OverloadSet(ident, os);
-                os.push(overnext);
-                overnext = null;
-                s = os;
-                s.parent = sc.parent;
-            }
-            else
-            {
-                ScopeDsymbol.multiplyDefined(Loc(), overnext, this);
-            }
-        }
-
         if (s == this)
         {
             assert(global.errors);
+            type = Type.terror;
             s = null;
+        }
+        if (!s) // it's a type alias
+        {
+            //printf("alias %s resolved to type %s\n", toChars(), type.toChars());
+            type = type.semantic(loc, sc);
+            aliassym = null;
+        }
+        else    // it's a symbolic alias
+        {
+            //printf("alias %s resolved to %s %s\n", toChars(), s.kind(), s.toChars());
+            type = null;
+            aliassym = s;
         }
         if (global.gag && errors != global.errors)
         {
-            type = savedtype;
-            overnext = savedovernext;
-            s = null;
+            type = oldtype;
+            aliassym = null;
         }
-
-        //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
-        aliassym = s;
         inuse = 0;
-
         semanticRun = PASSsemanticdone;
+
+        if (auto sx = overnext)
+        {
+            overnext = null;
+
+            if (type)
+            {
+                ScopeDsymbol.multiplyDefined(Loc(), sx, this);
+                return;
+            }
+
+            auto sa = aliassym.toAlias();
+            if (auto fd = sa.isFuncDeclaration())
+            {
+                aliassym = new FuncAliasDeclaration(ident, fd);
+                aliassym.parent = sc.parent;
+                if (!aliassym.overloadInsert(sx))
+                    ScopeDsymbol.multiplyDefined(Loc(), sx, sa);
+                return;
+            }
+            if (auto td = sa.isTemplateDeclaration())
+            {
+                aliassym = new OverDeclaration(ident, td);
+                aliassym.parent = sc.parent;
+                if (!aliassym.overloadInsert(sx))
+                    ScopeDsymbol.multiplyDefined(Loc(), sx, sa);
+                return;
+            }
+            if (auto od = sa.isOverDeclaration())
+            {
+                aliassym = new OverDeclaration(ident, od);
+                aliassym.parent = sc.parent;
+                if (!aliassym.overloadInsert(sx))
+                    ScopeDsymbol.multiplyDefined(Loc(), sx, sa);
+                return;
+            }
+            if (auto os = sa.isOverloadSet())
+            {
+                aliassym = new OverloadSet(ident, os);
+                aliassym.parent = sc.parent;
+                (cast(OverloadSet)aliassym).push(sx);
+                return;
+            }
+            ScopeDsymbol.multiplyDefined(Loc(), sx, this);
+            return;
+        }
     }
 
     override bool overloadInsert(Dsymbol s)
