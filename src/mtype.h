@@ -18,6 +18,7 @@
 
 #include "root.h"
 #include "stringtable.h"
+#include "rmem.h" // for d_size_t
 
 #include "arraytypes.h"
 #include "expression.h"
@@ -926,7 +927,7 @@ public:
     static Parameters *arraySyntaxCopy(Parameters *parameters);
     static int isTPL(Parameters *parameters);
     static size_t dim(Parameters *parameters);
-    static Parameter *getNth(Parameters *parameters, size_t nth, size_t *pn = NULL);
+    static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
 
     typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
     static int foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn=NULL);

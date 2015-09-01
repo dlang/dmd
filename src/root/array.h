@@ -24,11 +24,11 @@
 template <typename TYPE>
 struct Array
 {
-    size_t dim;
+    d_size_t dim;
     TYPE *data;
 
   private:
-    size_t allocdim;
+    d_size_t allocdim;
     #define SMALLARRAYCAP       1
     TYPE smallarray[SMALLARRAYCAP];    // inline storage for small arrays
 
@@ -49,8 +49,8 @@ struct Array
     char *toChars()
     {
         char **buf = (char **)mem.xmalloc(dim * sizeof(char *));
-        size_t len = 2;
-        for (size_t u = 0; u < dim; u++)
+        d_size_t len = 2;
+        for (d_size_t u = 0; u < dim; u++)
         {
             buf[u] = ((RootObject *)data[u])->toChars();
             len += strlen(buf[u]) + 1;
@@ -59,7 +59,7 @@ struct Array
 
         str[0] = '[';
         char *p = str + 1;
-        for (size_t u = 0; u < dim; u++)
+        for (d_size_t u = 0; u < dim; u++)
         {
             if (u)
                 *p++ = ',';
@@ -73,7 +73,7 @@ struct Array
         return str;
     }
 
-    void reserve(size_t nentries)
+    void reserve(d_size_t nentries)
     {
         //printf("Array::reserve: dim = %d, allocdim = %d, nentries = %d\n", (int)dim, (int)allocdim, (int)nentries);
         if (allocdim - dim < nentries)
@@ -102,7 +102,7 @@ struct Array
         }
     }
 
-    void setDim(size_t newdim)
+    void setDim(d_size_t newdim)
     {
         if (dim < newdim)
         {
@@ -142,7 +142,7 @@ struct Array
         dim++;
     }
 
-    void remove(size_t i)
+    void remove(d_size_t i)
     {
         if (dim - i - 1)
             memmove(data + i, data + i + 1, (dim - i - 1) * sizeof(data[0]));
@@ -187,7 +187,7 @@ struct Array
         return data;
     }
 
-    TYPE& operator[] (size_t index)
+    TYPE& operator[] (d_size_t index)
     {
 #ifdef DEBUG
         assert(index < dim);
@@ -195,7 +195,7 @@ struct Array
         return data[index];
     }
 
-    void insert(size_t index, TYPE v)
+    void insert(d_size_t index, TYPE v)
     {
         reserve(1);
         memmove(data + index + 1, data + index, (dim - index) * sizeof(*data));
@@ -203,11 +203,11 @@ struct Array
         dim++;
     }
 
-    void insert(size_t index, Array *a)
+    void insert(d_size_t index, Array *a)
     {
         if (a)
         {
-            size_t d = a->dim;
+            d_size_t d = a->dim;
             reserve(d);
             if (dim != index)
                 memmove(data + index + d, data + index, (dim - index) * sizeof(*data));
