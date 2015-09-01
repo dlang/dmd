@@ -181,7 +181,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
 	mars.h module.h mtype.h nspace.h objc.h parse.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h utf.h	\
-	version.h visitor.h $(DMD_SRCS)
+	version.h visitor.h objc.d $(DMD_SRCS)
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -225,7 +225,7 @@ ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\man.d $(ROOT)\port.d	\
 	$(ROOT)\file.d $(ROOT)\array.d
 ROOTSRC= $(ROOT)\root.h $(ROOT)\stringtable.h $(ROOT)\speller.h $(ROOT)\aav.h	\
 	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h		\
-	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOTSRCC)		\
+	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\rmem.h $(ROOTSRCC)	\
 	$(ROOTSRCD)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
