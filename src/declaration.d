@@ -1555,9 +1555,9 @@ public:
             {
                 error("%s does not have a default initializer", type.toChars());
             }
-            else
+            else if (auto e = type.defaultInit(loc))
             {
-                _init = getExpInitializer();
+                _init = new ExpInitializer(loc, e);
             }
 
             // Default initializer is always a blit
@@ -2121,25 +2121,6 @@ public:
             }
         }
         return e;
-    }
-
-    /****************************
-     * Get ExpInitializer for a variable, if there is one.
-     */
-    final ExpInitializer getExpInitializer()
-    {
-        ExpInitializer ei;
-        if (_init)
-            ei = _init.isExpInitializer();
-        else
-        {
-            Expression e = type.defaultInit(loc);
-            if (e)
-                ei = new ExpInitializer(loc, e);
-            else
-                ei = null;
-        }
-        return ei;
     }
 
     /*******************************************
