@@ -656,77 +656,64 @@ public:
     L2:
         //printf("alias is a symbol %s %s\n", s->kind(), s->toChars());
         type = null;
-        VarDeclaration v = s.isVarDeclaration();
-        if (0 && v && v.linkage == LINKdefault)
+
+        auto savedovernext = overnext;
+        if (overnext)
         {
-            error("forward reference of %s", v.toChars());
-            s = null;
-        }
-        else
-        {
-            Dsymbol savedovernext = overnext;
-            Dsymbol sa = s.toAlias();
+            auto sa = s.toAlias();
             if (FuncDeclaration fd = sa.isFuncDeclaration())
             {
-                if (overnext)
-                {
-                    auto fa = new FuncAliasDeclaration(ident, fd);
-                    if (!fa.overloadInsert(overnext))
-                        ScopeDsymbol.multiplyDefined(Loc(), overnext, fd);
-                    overnext = null;
-                    s = fa;
-                    s.parent = sc.parent;
-                }
+                auto fa = new FuncAliasDeclaration(ident, fd);
+                if (!fa.overloadInsert(overnext))
+                    ScopeDsymbol.multiplyDefined(Loc(), overnext, fd);
+                overnext = null;
+                s = fa;
+                s.parent = sc.parent;
             }
             else if (TemplateDeclaration td = sa.isTemplateDeclaration())
             {
-                if (overnext)
-                {
-                    auto od = new OverDeclaration(ident, td);
-                    if (!od.overloadInsert(overnext))
-                        ScopeDsymbol.multiplyDefined(Loc(), overnext, td);
-                    overnext = null;
-                    s = od;
-                    s.parent = sc.parent;
-                }
+                auto od = new OverDeclaration(ident, td);
+                if (!od.overloadInsert(overnext))
+                    ScopeDsymbol.multiplyDefined(Loc(), overnext, td);
+                overnext = null;
+                s = od;
+                s.parent = sc.parent;
             }
             else if (OverDeclaration od = sa.isOverDeclaration())
             {
-                if (overnext)
-                {
-                    auto od2 = new OverDeclaration(ident, od);
-                    if (!od2.overloadInsert(overnext))
-                        ScopeDsymbol.multiplyDefined(Loc(), overnext, od);
-                    overnext = null;
-                    s = od2;
-                    s.parent = sc.parent;
-                }
+                auto od2 = new OverDeclaration(ident, od);
+                if (!od2.overloadInsert(overnext))
+                    ScopeDsymbol.multiplyDefined(Loc(), overnext, od);
+                overnext = null;
+                s = od2;
+                s.parent = sc.parent;
             }
             else if (OverloadSet os = sa.isOverloadSet())
             {
-                if (overnext)
-                {
-                    os = new OverloadSet(ident, os);
-                    os.push(overnext);
-                    overnext = null;
-                    s = os;
-                    s.parent = sc.parent;
-                }
+                os = new OverloadSet(ident, os);
+                os.push(overnext);
+                overnext = null;
+                s = os;
+                s.parent = sc.parent;
             }
-            if (overnext)
+            else
+            {
                 ScopeDsymbol.multiplyDefined(Loc(), overnext, this);
-            if (s == this)
-            {
-                assert(global.errors);
-                s = null;
-            }
-            if (global.gag && errors != global.errors)
-            {
-                type = savedtype;
-                overnext = savedovernext;
-                s = null;
             }
         }
+
+        if (s == this)
+        {
+            assert(global.errors);
+            s = null;
+        }
+        if (global.gag && errors != global.errors)
+        {
+            type = savedtype;
+            overnext = savedovernext;
+            s = null;
+        }
+
         //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
         aliassym = s;
         inuse = 0;
