@@ -66,12 +66,12 @@ extern "C"
     void ld_setull(longdouble* ld, unsigned long long d);
 }
 
+#pragma pack(push, 1)
 struct longdouble
 {
     unsigned long long mantissa;
     unsigned short exponent:15;  // bias 0x3fff
     unsigned short sign:1;
-    unsigned short fill:16;      // for 12 byte alignment
 
     // no constructor to be able to use this class in a union
     // use ldouble() to explicitely create a longdouble value
@@ -114,6 +114,9 @@ struct longdouble
     operator unsigned long long() { return ld_readull(this); }
     operator bool              () { return mantissa != 0 || exponent != 0; } // correct?
 };
+
+#pragma pack(pop)
+// static_assert(sizeof(longdouble) == 10, "bad sizeof longdouble");
 
 // some optimizations are avoided by adding volatile to the longdouble
 // type, but this introduces bad ambiguities when using the class implementation above
