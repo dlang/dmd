@@ -114,6 +114,14 @@ extern (C++) static void usage()
     {
         const(char)* fpic = "";
     }
+    static if (TARGET_WINDOS)
+    {
+        const(char)* m32mscoff = "  -m32mscoff     generate 32 bit code and write MS-COFF object files\n";
+    }
+    else
+    {
+        const(char)* m32mscoff = "";
+    }
     logo();
     printf("
 Documentation: http://dlang.org/
@@ -124,8 +132,10 @@ Usage:
   files.d        D source files
   @cmdfile       read arguments from cmdfile
   -allinst       generate code for all template instantiations
+  -betterC       omit generating some runtime information and helper functions
   -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off
-  -c             do not link\n  -color[=on|off]   force colored console output on or off
+  -c             do not link
+  -color[=on|off]   force colored console output on or off
   -conf=path     use config file at path
   -cov           do code coverage analysis
   -cov=nnn       require at least nnn%% code coverage
@@ -158,7 +168,7 @@ Usage:
   -Llinkerflag   pass linkerflag to link
   -lib           generate library rather than object files
   -m32           generate 32 bit code
-  -m64           generate 64 bit code
+%s  -m64           generate 64 bit code
   -main          add default main() (e.g. for unittesting)
   -man           open web browser on manual page
   -map           generate linker .map file
@@ -188,7 +198,7 @@ Usage:
   -wi            warnings as messages (compilation will continue)
   -X             generate JSON file
   -Xffilename    write JSON file to filename
-", FileName.canonicalName(global.inifilename), fpic);
+", FileName.canonicalName(global.inifilename), fpic, m32mscoff);
 }
 
 extern (C++) __gshared Module entrypoint = null;
