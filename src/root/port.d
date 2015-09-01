@@ -10,10 +10,12 @@ module ddmd.root.port;
 
 import core.stdc.ctype;
 import core.stdc.string;
+import core.stdc.stdio;
 import core.math;
 
 version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
 version(CRuntime_Microsoft)   extern(C++) struct longdouble { real r; }
+version(CRuntime_Microsoft)   extern(C++) size_t ld_sprint(char* str, int fmt, longdouble x);
 
 extern (C) float strtof(const(char)* p, char** endp);
 extern (C) double strtod(const(char)* p, char** endp);
@@ -170,6 +172,32 @@ extern (C++) struct Port
             auto r = .strtold(p, endp);
         version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
+    }
+
+    static size_t ld_sprint(char* str, int fmt, real x)
+    {
+        version(CRuntime_Microsoft)
+        {
+            return .ld_sprint(str, fmt, longdouble(x));
+        }
+        else
+        {
+            if ((cast(real)cast(ulong)x) == x)
+            {
+                // ((1.5 -> 1 -> 1.0) == 1.5) is false
+                // ((1.0 -> 1 -> 1.0) == 1.0) is true
+                // see http://en.cppreference.com/w/cpp/io/c/fprintf
+                char sfmt[5] = "%#Lg\0";
+                sfmt[3] = cast(char)fmt;
+                return sprintf(str, sfmt.ptr, x);
+            }
+            else
+            {
+                char sfmt[4] = "%Lg\0";
+                sfmt[2] = cast(char)fmt;
+                return sprintf(str, sfmt.ptr, x);
+            }
+        }
     }
 
     static void yl2x_impl(real* x, real* y, real* res)

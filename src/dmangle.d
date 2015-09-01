@@ -636,7 +636,7 @@ public:
         {
             const(size_t) BUFFER_LEN = 36;
             char[BUFFER_LEN] buffer;
-            size_t n = ld_sprint(buffer.ptr, 'A', value);
+            size_t n = Port.ld_sprint(buffer.ptr, 'A', value);
             assert(n < BUFFER_LEN);
             for (size_t i = 0; i < n; i++)
             {
