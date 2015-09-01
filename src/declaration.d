@@ -933,19 +933,12 @@ public:
     override bool overloadInsert(Dsymbol s)
     {
         //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s->toChars(), aliassym, overnext);
-        if (overnext is null)
-        {
-            if (s == this)
-            {
-                return true;
-            }
-            overnext = s;
-            return true;
-        }
-        else
-        {
+        if (overnext)
             return overnext.overloadInsert(s);
-        }
+        if (s == this)
+            return true;
+        overnext = s;
+        return true;
     }
 
     override Dsymbol toAlias()
