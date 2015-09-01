@@ -1806,7 +1806,7 @@ public:
                         fbody = new CompoundStatement(Loc(), fbody, s);
                     }
                 }
-                if (returns && !fbody.isErrorStatement())
+                if (returns)
                 {
                     bool implicit0 = (f.next.ty == Tvoid && isMain());
                     Type tret = implicit0 ? Type.tint32 : f.next;
@@ -1821,6 +1821,15 @@ public:
                     {
                         ReturnStatement rs = (*returns)[i];
                         Expression exp = rs.exp;
+                        if (exp.op == TOKerror)
+                            continue;
+                        if (tret.ty == Terror)
+                        {
+                            // Bugzilla 13702
+                            exp = checkGC(sc2, exp);
+                            continue;
+                        }
+
                         if (!exp.implicitConvTo(tret) && parametersIntersect(exp.type))
                         {
                             if (exp.type.immutableOf().implicitConvTo(tret))
