@@ -1,3 +1,4 @@
+// DISABLED: osx64
 
 bool flag;
 

@@ -122,26 +122,6 @@ export D_OBJC=1
 endif
 endif
 
-ifeq ($(OS),freebsd)
-DISABLED_TESTS += dhry
-# runnable/dhry.d(488): Error: undefined identifier dtime
-endif
-
-ifeq ($(OS),win32)
-DISABLED_FAIL_TESTS += fail13939
-endif
-
-ifeq ($(OS),win64)
-DISABLED_TESTS += testxmm
-DISABLED_FAIL_TESTS += fail13939
-endif
-
-ifeq ($(OS),osx)
-ifeq ($(MODEL),64)
-DISABLED_TESTS += test6423
-endif
-endif
-
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
@@ -152,12 +132,6 @@ fail_compilation_tests=$(wildcard fail_compilation/*.d) $(wildcard fail_compilat
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
 all: run_tests
-
-$(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_TESTS))): $(RESULTS_DIR)/.created
-	$(QUIET) echo " ... $@ - disabled"
-
-$(addsuffix .sh.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_SH_TESTS))): $(RESULTS_DIR)/.created
-	$(QUIET) echo " ... $@ - disabled"
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
@@ -172,9 +146,6 @@ $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESU
 $(RESULTS_DIR)/compilable/%.sh.out: compilable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) echo " ... $(<D)/$*.sh"
 	$(QUIET) ./$(<D)/$*.sh
-
-$(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/fail_compilation/,$(DISABLED_FAIL_TESTS))): $(RESULTS_DIR)/.created
-	$(QUIET) echo " ... $@ - disabled"
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
