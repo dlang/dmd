@@ -570,9 +570,11 @@ public:
             return;
         }
         inuse = 1;
+
         storage_class |= sc.stc & STCdeprecated;
         protection = sc.protection;
         userAttribDecl = sc.userAttribDecl;
+
         // Given:
         //  alias foo.bar.abc def;
         // it is not knowable from the syntax whether this is an alias
@@ -581,11 +583,10 @@ public:
         // If it is a type, then type is set and getType() will return that
         // type. If it is a symbol, then aliassym is set and type is NULL -
         // toAlias() will return aliasssym.
+
         uint errors = global.errors;
         Type savedtype = type;
-        Dsymbol s;
-        Type t;
-        Expression e;
+
         // Ungag errors when not instantiated DeclDefs scope alias
         auto ungag = Ungag(global.gag);
         //printf("%s parent = %s, gag = %d, instantiated = %d\n", toChars(), parent, global.gag, isInstantiated());
@@ -594,12 +595,13 @@ public:
             //printf("%s type = %s\n", toPrettyChars(), type->toChars());
             global.gag = 0;
         }
-        /* This section is needed because resolve() will:
+
+        /* This section is needed because Type.resolve() will:
          *   const x = 3;
-         *   alias x y;
-         * try to alias y to 3.
+         *   alias y = x;
+         * try to convert identifier x to 3.
          */
-        s = type.toDsymbol(sc);
+        auto s = type.toDsymbol(sc);
         if (errors != global.errors)
         {
             s = null;
@@ -611,49 +613,51 @@ public:
             s = null;
             type = Type.terror;
         }
-        if (s && ((s.getType() && type.equals(s.getType())) || s.isEnumMember()))
-            goto L2;
-        // it's a symbolic alias
-        type = type.addSTC(storage_class);
-        if (storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCdisable))
+        if (!s || !((s.getType() && type.equals(s.getType())) || s.isEnumMember()))
         {
-            // For 'ref' to be attached to function types, and picked
-            // up by Type::resolve(), it has to go into sc.
-            sc = sc.push();
-            sc.stc |= storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCshared | STCdisable);
-            type.resolve(loc, sc, &e, &t, &s);
-            sc = sc.pop();
-        }
-        else
-            type.resolve(loc, sc, &e, &t, &s);
-        if (s)
-        {
-            goto L2;
-        }
-        else if (e)
-        {
-            // Try to convert Expression to Dsymbol
-            s = getDsymbol(e);
-            if (s)
-                goto L2;
-            if (e.op != TOKerror)
-                error("cannot alias an expression %s", e.toChars());
-            t = e.type;
-        }
-        else if (t)
-        {
-            type = t.semantic(loc, sc);
-            //printf("\talias resolved to type %s\n", type->toChars());
-        }
-        if (overnext)
-            ScopeDsymbol.multiplyDefined(Loc(), overnext, this);
-        inuse = 0;
-        if (global.gag && errors != global.errors)
-            type = savedtype;
+            Type t;
+            Expression e;
+            Scope* sc2 = sc;
+            if (storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCdisable))
+            {
+                // For 'ref' to be attached to function types, and picked
+                // up by Type.resolve(), it has to go into sc.
+                sc2 = sc.push();
+                sc2.stc |= storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCshared | STCdisable);
+            }
+            type = type.addSTC(storage_class);
+            type.resolve(loc, sc2, &e, &t, &s);
+            if (sc2 != sc)
+                sc2.pop();
 
-        semanticRun = PASSsemanticdone;
-        return;
-    L2:
+            if (e)  // Try to convert Expression to Dsymbol
+            {
+                s = getDsymbol(e);
+                if (!s)
+                {
+                    if (e.op != TOKerror)
+                        error("cannot alias an expression %s", e.toChars());
+                    t = Type.terror;
+                }
+            }
+            type = t;
+        }
+        if (!s) // it's a type alias
+        {
+            type = type.semantic(loc, sc);
+            //printf("\talias resolved to type %s\n", type.toChars());
+
+            if (overnext)
+                ScopeDsymbol.multiplyDefined(Loc(), overnext, this);
+            inuse = 0;
+
+            if (global.gag && errors != global.errors)
+                type = savedtype;
+
+            semanticRun = PASSsemanticdone;
+            return;
+        }
+
         //printf("alias is a symbol %s %s\n", s->kind(), s->toChars());
         type = null;
 
