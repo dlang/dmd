@@ -671,47 +671,8 @@ public:
         if (auto sx = overnext)
         {
             overnext = null;
-
-            if (type)
-            {
+            if (!overloadInsert(sx))
                 ScopeDsymbol.multiplyDefined(Loc(), sx, this);
-                return;
-            }
-
-            auto sa = aliassym.toAlias();
-            if (auto fd = sa.isFuncDeclaration())
-            {
-                aliassym = new FuncAliasDeclaration(ident, fd);
-                aliassym.parent = sc.parent;
-                if (!aliassym.overloadInsert(sx))
-                    ScopeDsymbol.multiplyDefined(Loc(), sx, sa);
-                return;
-            }
-            if (auto td = sa.isTemplateDeclaration())
-            {
-                aliassym = new OverDeclaration(ident, td);
-                aliassym.parent = sc.parent;
-                if (!aliassym.overloadInsert(sx))
-                    ScopeDsymbol.multiplyDefined(Loc(), sx, sa);
-                return;
-            }
-            if (auto od = sa.isOverDeclaration())
-            {
-                aliassym = new OverDeclaration(ident, od);
-                aliassym.parent = sc.parent;
-                if (!aliassym.overloadInsert(sx))
-                    ScopeDsymbol.multiplyDefined(Loc(), sx, sa);
-                return;
-            }
-            if (auto os = sa.isOverloadSet())
-            {
-                aliassym = new OverloadSet(ident, os);
-                aliassym.parent = sc.parent;
-                (cast(OverloadSet)aliassym).push(sx);
-                return;
-            }
-            ScopeDsymbol.multiplyDefined(Loc(), sx, this);
-            return;
         }
     }
 
@@ -731,18 +692,39 @@ public:
             /* When s is added in member scope by static if, mixin("code") or others,
              * aliassym is determined already. See the case in: test/compilable/test61.d
              */
-            Dsymbol sa = aliassym.toAlias();
+            auto sa = aliassym.toAlias();
             if (auto fd = sa.isFuncDeclaration())
             {
-                auto fa = new FuncAliasDeclaration(ident, fd);
-                aliassym = fa;
-                return fa.overloadInsert(s);
+                aliassym = new FuncAliasDeclaration(ident, fd);
+                aliassym.parent = parent;
+                return aliassym.overloadInsert(s);
             }
             if (auto td = sa.isTemplateDeclaration())
             {
-                auto od = new OverDeclaration(ident, td);
-                aliassym = od;
+                aliassym = new OverDeclaration(ident, td);
+                aliassym.parent = parent;
+                return aliassym.overloadInsert(s);
+            }
+            if (auto od = sa.isOverDeclaration())
+            {
+                if (sa.ident != ident || sa.parent != parent)
+                {
+                    od = new OverDeclaration(ident, od);
+                    od.parent = parent;
+                    aliassym = od;
+                }
                 return od.overloadInsert(s);
+            }
+            if (auto os = sa.isOverloadSet())
+            {
+                if (sa.ident != ident || sa.parent != parent)
+                {
+                    os = new OverloadSet(ident, os);
+                    os.parent = parent;
+                    aliassym = os;
+                }
+                os.push(s);
+                return true;
             }
             return false;
         }
@@ -773,7 +755,7 @@ public:
     override Dsymbol toAlias()
     {
         //printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inuse = %d)\n",
-        //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym->kind() : "", inuse);
+        //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym.kind() : "", inuse);
         assert(this != aliassym);
         //static int count; if (++count == 10) *(char*)0=0;
         if (inuse == 1 && type && _scope)
@@ -814,9 +796,12 @@ public:
             type = Type.terror;
             return aliassym;
         }
-        if (aliassym || type.deco)
+        if (aliassym)
         {
             // semantic is already done.
+
+            // Even if type.deco !is null, "alias T = const int;` needs semantic
+            // call to take the storage class `const` as type qualifier.
         }
         else if (_import && _import._scope)
         {
@@ -826,7 +811,9 @@ public:
             _import.semantic(null);
         }
         else if (_scope)
+        {
             semantic(_scope);
+        }
         inuse = 1;
         Dsymbol s = aliassym ? aliassym.toAlias() : this;
         inuse = 0;

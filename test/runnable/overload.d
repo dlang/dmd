@@ -1083,6 +1083,59 @@ void test14858()
 }
 
 /***************************************************/
+// 14989
+
+template Foo14989(T) if (is(T == int))    { enum Foo14989 = 1; }
+template Bar14989(T) if (is(T == double)) { enum Bar14989 = 2; }
+template Baz14989(T) if (is(T == string)) { enum Baz14989 = 3; }
+
+alias X14989 = Foo14989;
+alias X14989 = Bar14989;
+// X is an alias to is OverDeclaration
+alias A14989 = X14989;
+// first, A->aliassym == X
+static if (true)
+{
+    alias A14989 = Baz14989;
+    // A->aliassym = new OverDeclaration('A')
+    // then, A->aliassym->overloadInsert(Baz)
+}
+
+template Mix14989a() { alias M14989 = Foo14989; }
+template Mix14989b() { alias M14989 = Bar14989; }
+mixin Mix14989a;
+mixin Mix14989b;
+alias Y14989 = M14989;
+// Y is an alias to OverloadSet
+alias B14989 = Y14989;
+// first, B->aliassym == Y
+static if (true)
+{
+    alias B14989 = Baz14989;
+    // (B->aliassym = new OverloadSet('B')
+    // then, B->aliassym->overloadInsert(Baz)
+}
+
+void test14989()
+{
+    static assert(X14989!int    == 1);
+    static assert(X14989!double == 2);
+    static assert(!__traits(compiles, X14989!string));  // Baz is not in X
+
+    static assert(A14989!int    == 1);
+    static assert(A14989!double == 2);
+    static assert(A14989!string == 3);  // OK <- error
+
+    static assert(Y14989!int    == 1);
+    static assert(Y14989!double == 2);
+    static assert(!__traits(compiles, Y14989!string));  // Baz is not in Y
+
+    static assert(B14989!int    == 1);
+    static assert(B14989!double == 2);
+    static assert(B14989!string == 3);  // OK <- error
+}
+
+/***************************************************/
 
 int main()
 {
