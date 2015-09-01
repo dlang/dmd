@@ -656,7 +656,8 @@ public:
             e = e.ctfeInterpret();
             if (e.toInteger())
             {
-                error("initialization with (%s.%s + 1) causes overflow for type '%s'", emprev.ed.toChars(), emprev.toChars(), ed.type.toBasetype().toChars());
+                error("initialization with (%s.%s + 1) causes overflow for type '%s'",
+                    emprev.ed.toChars(), emprev.toChars(), ed.memtype.toChars());
                 goto Lerrors;
             }
             // Now set e to (eprev + 1)
