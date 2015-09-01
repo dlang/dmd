@@ -13,11 +13,15 @@ import core.stdc.string;
 import core.math;
 
 version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
-version(CRuntime_Microsoft)   extern(C++) struct longdouble {}
+version(CRuntime_Microsoft)   extern(C++) struct longdouble { real r; }
 
 extern (C) float strtof(const(char)* p, char** endp);
 extern (C) double strtod(const(char)* p, char** endp);
-extern (C) real strtold(const(char)* p, char** endp);
+
+version(CRuntime_Microsoft)
+    extern (C++) longdouble strtold_dm(const(char)* p, char** endp);
+else
+    extern (C) real strtold(const(char)* p, char** endp);
 
 extern (C++) struct Port
 {
@@ -159,7 +163,11 @@ extern (C++) struct Port
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
-        auto r = .strtold(p, endp);
+
+        version (CRuntime_Microsoft)
+            auto r = .strtold_dm(p, endp).r;
+        else
+            auto r = .strtold(p, endp);
         version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
