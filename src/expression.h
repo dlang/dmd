@@ -321,7 +321,7 @@ public:
 class ThisExp : public Expression
 {
 public:
-    Declaration *var;
+    VarDeclaration *var;
 
     ThisExp(Loc loc);
     Expression *semantic(Scope *sc);
