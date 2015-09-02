@@ -92,6 +92,9 @@ $(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+changelog.html: changelog.dd
+	$(DMD) -Df$@ $<
+
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
@@ -152,7 +155,7 @@ $(DRUNTIME): $(OBJS) $(SRCS)
 UT_MODULES:=$(patsubst src/%.d,$(OBJDIR)/%,$(SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
-	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage
+	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile
 	ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
 endif
 

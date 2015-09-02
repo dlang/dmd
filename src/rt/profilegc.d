@@ -134,7 +134,7 @@ shared static ~this()
     {
         qsort(counts.ptr, counts.length, Result.sizeof, &Result.qsort_cmp);
 
-        FILE* fp = logfilename.length == 0 ? stdout : fopen(logfilename.ptr, "w");
+        FILE* fp = logfilename.length == 0 ? stdout : fopen((logfilename ~ '\0').ptr, "w");
         if (fp)
         {
             fprintf(fp, "bytes allocated, type, function, file:line\n");
@@ -149,5 +149,3 @@ shared static ~this()
             fprintf(stderr, "cannot write profilegc log file '%.*s'", logfilename.length, logfilename.ptr);
     }
 }
-
-
