@@ -22,12 +22,14 @@
 #include "declaration.h"
 #include "tokens.h"
 
-Expression *resolveAliasThis(Scope *sc, Expression *e)
+Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
 {
     AggregateDeclaration *ad = isAggregate(e->type);
 
     if (ad && ad->aliasthis)
     {
+        unsigned olderrors = gag ? global.startGagging() : 0;
+
         Loc loc = e->loc;
         Type *tthis = (e->op == TOKtype ? e->type : NULL);
         e = new DotIdExp(loc, e, ad->aliasthis->ident);
@@ -64,6 +66,9 @@ Expression *resolveAliasThis(Scope *sc, Expression *e)
             e = e->semantic(sc);
         }
         e = resolveProperties(sc, e);
+
+        if (gag && global.endGagging(olderrors))
+            e = NULL;
     }
 
     return e;
