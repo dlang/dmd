@@ -141,6 +141,9 @@ DFLAGS=
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
 endif
+ifneq (,$(RELEASE))
+ENABLE_RELEASE := 1
+endif
 
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
