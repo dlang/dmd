@@ -7280,16 +7280,32 @@ public:
         for (size_t i = 0; i < idents.dim; i++)
         {
             RootObject id = idents[i];
-            if (id.dyncast() == DYNCAST_IDENTIFIER)
+            switch (id.dyncast())
             {
-                e = new DotIdExp(loc, e, cast(Identifier)id);
-            }
-            else
-            {
-                assert(id.dyncast() == DYNCAST_DSYMBOL);
-                TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
-                assert(ti);
-                e = new DotTemplateInstanceExp(loc, e, ti.name, ti.tiargs);
+                case DYNCAST_IDENTIFIER:
+                {
+                    e = new DotIdExp(loc, e, cast(Identifier)id);
+                    break;
+                }
+                case DYNCAST_DSYMBOL:
+                {
+                    TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
+                    assert(ti);
+                    e = new DotTemplateInstanceExp(loc, e, ti.name, ti.tiargs);
+                    break;
+                }
+                case DYNCAST_TYPE:
+                {
+                    e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
+                    break;
+                }
+                case DYNCAST_EXPRESSION:
+                {
+                    e = new ArrayExp(loc, e, cast(Expression)id);
+                    break;
+                }
+                default:
+                    assert(0);
             }
         }
         return e;
@@ -7409,16 +7425,32 @@ public:
         for (size_t i = 0; i < idents.dim; i++)
         {
             RootObject id = idents[i];
-            if (id.dyncast() == DYNCAST_IDENTIFIER)
+            switch (id.dyncast())
             {
-                e = new DotIdExp(loc, e, cast(Identifier)id);
-            }
-            else
-            {
-                assert(id.dyncast() == DYNCAST_DSYMBOL);
-                TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
-                assert(ti);
-                e = new DotTemplateInstanceExp(loc, e, ti.name, ti.tiargs);
+                case DYNCAST_IDENTIFIER:
+                {
+                    e = new DotIdExp(loc, e, cast(Identifier)id);
+                    break;
+                }
+                case DYNCAST_DSYMBOL:
+                {
+                    TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
+                    assert(ti);
+                    e = new DotTemplateInstanceExp(loc, e, ti.name, ti.tiargs);
+                    break;
+                }
+                case DYNCAST_TYPE:
+                {
+                    e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
+                    break;
+                }
+                case DYNCAST_EXPRESSION:
+                {
+                    e = new ArrayExp(loc, e, cast(Expression)id);
+                    break;
+                }
+                default:
+                    assert(0);
             }
         }
         return e;
@@ -7543,17 +7575,29 @@ public:
                     RootObject id = idents[i];
                     switch (id.dyncast())
                     {
-                    case DYNCAST_IDENTIFIER:
-                        e = new DotIdExp(loc, e, cast(Identifier)id);
-                        break;
-                    case DYNCAST_DSYMBOL:
+                        case DYNCAST_IDENTIFIER:
+                        {
+                            e = new DotIdExp(loc, e, cast(Identifier)id);
+                            break;
+                        }
+                        case DYNCAST_DSYMBOL:
                         {
                             TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
                             e = new DotExp(loc, e, new ScopeExp(loc, ti));
                             break;
                         }
-                    default:
-                        assert(0);
+                        case DYNCAST_TYPE:
+                        {
+                            e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
+                            break;
+                        }
+                        case DYNCAST_EXPRESSION:
+                        {
+                            e = new ArrayExp(loc, e, cast(Expression)id);
+                            break;
+                        }
+                        default:
+                            assert(0);
                     }
                 }
                 e = e.semantic(sc);
@@ -7671,17 +7715,29 @@ public:
                     RootObject id = idents[i];
                     switch (id.dyncast())
                     {
-                    case DYNCAST_IDENTIFIER:
-                        e = new DotIdExp(loc, e, cast(Identifier)id);
-                        break;
-                    case DYNCAST_DSYMBOL:
+                        case DYNCAST_IDENTIFIER:
+                        {
+                            e = new DotIdExp(loc, e, cast(Identifier)id);
+                            break;
+                        }
+                        case DYNCAST_DSYMBOL:
                         {
                             TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
                             e = new DotExp(loc, e, new ScopeExp(loc, ti));
                             break;
                         }
-                    default:
-                        assert(0);
+                        case DYNCAST_TYPE:
+                        {
+                            e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
+                            break;
+                        }
+                        case DYNCAST_EXPRESSION:
+                        {
+                            e = new ArrayExp(loc, e, cast(Expression)id);
+                            break;
+                        }
+                        default:
+                            assert(0);
                     }
                 }
                 e = e.semantic(sc);

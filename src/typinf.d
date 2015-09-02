@@ -16,6 +16,7 @@ import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.globals;
 import ddmd.mtype;
+import ddmd.visitor;
 
 extern (C++) void toObjFile(Dsymbol ds, bool multiobj);
 
@@ -52,18 +53,9 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
             // Generate COMDAT
             if (sc) // if in semantic() pass
             {
-                if (sc.func && sc.func.inNonRoot())
-                {
-                    // Bugzilla 13043: Avoid linking TypeInfo if it's not
-                    // necessary for root module compilation
-                }
-                else
-                {
-                    // Find module that will go all the way to an object file
-                    Module m = sc._module.importedFrom;
-                    m.members.push(t.vtinfo);
-                    semanticTypeInfo(sc, t);
-                }
+                // Find module that will go all the way to an object file
+                Module m = sc._module.importedFrom;
+                m.members.push(t.vtinfo);
             }
             else // if in obj generation pass
             {
@@ -116,6 +108,108 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
     default:
         return TypeInfoDeclaration.create(t, 0);
     }
+}
+
+extern (C++) bool isSpeculativeType(Type t)
+{
+    extern (C++) final class SpeculativeTypeVisitor : Visitor
+    {
+        alias visit = super.visit;
+    public:
+        bool result;
+
+        extern (D) this()
+        {
+            this.result = false;
+        }
+
+        void visit(Type t)
+        {
+            Type tb = t.toBasetype();
+            if (tb != t)
+                tb.accept(this);
+        }
+
+        void visit(TypeNext t)
+        {
+            if (t.next)
+                t.next.accept(this);
+        }
+
+        void visit(TypeBasic t)
+        {
+        }
+
+        void visit(TypeVector t)
+        {
+            t.basetype.accept(this);
+        }
+
+        void visit(TypeAArray t)
+        {
+            t.index.accept(this);
+            visit(cast(TypeNext)t);
+        }
+
+        void visit(TypeFunction t)
+        {
+            visit(cast(TypeNext)t);
+            // Currently TypeInfo_Function doesn't store parameter types.
+        }
+
+        void visit(TypeStruct t)
+        {
+            StructDeclaration sd = t.sym;
+            if (auto ti = sd.isInstantiated())
+            {
+                if (!ti.needsCodegen())
+                {
+                    if (ti.minst || sd.requestTypeInfo)
+                        return;
+
+                    /* Bugzilla 14425: TypeInfo_Struct would refer the members of
+                     * struct (e.g. opEquals via xopEquals field), so if it's instantiated
+                     * in speculative context, TypeInfo creation should also be
+                     * stopped to avoid 'unresolved symbol' linker errors.
+                     */
+                    /* When -debug/-unittest is specified, all of non-root instances are
+                     * automatically changed to speculative, and here is always reached
+                     * from those instantiated non-root structs.
+                     * Therefore, if the TypeInfo is not auctually requested,
+                     * we have to elide its codegen.
+                     */
+                    result |= true;
+                    return;
+                }
+            }
+            else
+            {
+                //assert(!sd.inNonRoot() || sd.requestTypeInfo);    // valid?
+            }
+        }
+
+        void visit(TypeClass t)
+        {
+        }
+
+        void visit(TypeTuple t)
+        {
+            if (t.arguments)
+            {
+                for (size_t i = 0; i < t.arguments.dim; i++)
+                {
+                    Type tprm = (*t.arguments)[i].type;
+                    if (tprm)
+                        tprm.accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+    }
+    scope SpeculativeTypeVisitor v = new SpeculativeTypeVisitor();
+    t.accept(v);
+    return v.result;
 }
 
 /* ========================================================================= */

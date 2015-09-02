@@ -897,6 +897,25 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
             ne.newargs = arrayExpressiondoInline(e.newargs);
             ne.arguments = arrayExpressiondoInline(e.arguments);
             result = ne;
+
+            semanticTypeInfo(null, e.type);
+        }
+
+        void visit(DeleteExp e)
+        {
+            visit(cast(UnaExp)e);
+            Type tb = e.e1.type.toBasetype();
+            if (tb.ty == Tarray)
+            {
+                Type tv = tb.nextOf().baseElemOf();
+                if (tv.ty == Tstruct)
+                {
+                    TypeStruct ts = cast(TypeStruct)tv;
+                    StructDeclaration sd = ts.sym;
+                    if (sd.dtor)
+                        semanticTypeInfo(null, ts);
+                }
+            }
         }
 
         void visit(UnaExp e)
@@ -929,6 +948,37 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
             ce.e1 = doInline(e.e1, ids);
             ce.arguments = arrayExpressiondoInline(e.arguments);
             result = ce;
+        }
+
+        void visit(AssignExp e)
+        {
+            visit(cast(BinExp)e);
+
+            if (e.e1.op == TOKarraylength)
+            {
+                ArrayLengthExp ale = cast(ArrayLengthExp)e.e1;
+                Type tn = ale.e1.type.toBasetype().nextOf();
+                semanticTypeInfo(null, tn);
+            }
+        }
+
+        void visit(EqualExp e)
+        {
+            visit(cast(BinExp)e);
+
+            Type t1 = e.e1.type.toBasetype();
+            if (t1.ty == Tarray || t1.ty == Tsarray)
+            {
+                Type t = t1.nextOf().toBasetype();
+                while (t.toBasetype().nextOf())
+                    t = t.nextOf().toBasetype();
+                if (t.ty == Tstruct)
+                    semanticTypeInfo(null, t);
+            }
+            else if (t1.ty == Taarray)
+            {
+                semanticTypeInfo(null, t1);
+            }
         }
 
         void visit(IndexExp e)
@@ -1002,6 +1052,8 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
             ArrayLiteralExp ce = cast(ArrayLiteralExp)e.copy();
             ce.elements = arrayExpressiondoInline(e.elements);
             result = ce;
+
+            semanticTypeInfo(null, e.type);
         }
 
         void visit(AssocArrayLiteralExp e)
@@ -1010,6 +1062,8 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
             ce.keys = arrayExpressiondoInline(e.keys);
             ce.values = arrayExpressiondoInline(e.values);
             result = ce;
+
+            semanticTypeInfo(null, e.type);
         }
 
         void visit(StructLiteralExp e)
@@ -1754,6 +1808,15 @@ extern (C++) static Expression expandInline(FuncDeclaration fd, FuncDeclaration 
     memset(&ids, 0, ids.sizeof);
     ids.parent = parent;
     ids.fd = fd;
+
+    // When the function is actually expanded
+    if (TemplateInstance ti = fd.isInstantiated())
+    {
+        // change ti to non-speculative instance
+        if (!ti.minst)
+            ti.minst = ti.tempdecl.getModule();
+    }
+
     if (ps)
         as = new Statements();
     VarDeclaration vret = null;
