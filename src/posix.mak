@@ -50,7 +50,8 @@ endif
 ifeq (,$(AUTO_BOOTSTRAP))
   # No bootstrap, a $(HOST_DC) installation must be available
   HOST_DMD?=dmd
-  ifeq (,$(shell which $(HOST_DMD)))
+  HOST_DMD_PATH=$(abspath $(shell which $(HOST_DMD)))
+  ifeq (,$(HOST_DMD_PATH))
     $(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
   endif
   HOST_DMD_RUN:=$(HOST_DMD)
@@ -63,6 +64,7 @@ else
   # http://downloads.dlang.org/releases/2.x/2.067.1/dmd.2.067.1.osx.zip
   HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/$(HOST_DMD_VER)/$(HOST_DMD_ZIP)
   HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
+  HOST_DMD_PATH=$(HOST_DMD)
   HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
 endif
 
@@ -291,11 +293,11 @@ backend.a: $(BACK_OBJS)
 	$(AR) rcs backend.a $(BACK_OBJS)
 
 ifdef ENABLE_LTO
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) verstr.h
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h,$^)
+dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) verstr.h $(HOST_DMD_PATH)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h $(HOST_DMD_PATH),$^)
 else
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a verstr.h
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h,$^)
+dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a verstr.h $(HOST_DMD_PATH)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -d -L-lstdc++ $(DFLAGS) $(filter-out verstr.h $(HOST_DMD_PATH),$^)
 endif
 
 clean:
@@ -307,10 +309,7 @@ clean:
 ######## Download and install the last dmd buildable without dmd
 
 ifneq (,$(AUTO_BOOTSTRAP))
-.PHONY: host-dmd
-host-dmd: ${HOST_DMD}
-
-${HOST_DMD}:
+$(HOST_DMD_PATH):
 	mkdir -p ${HOST_DMD_ROOT}
 	TMPFILE=$$(mktemp deleteme.XXXXXXXX) && curl -fsSL ${HOST_DMD_URL} > $${TMPFILE}.zip && \
 		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip
@@ -345,8 +344,8 @@ $(optabgen_output) : optabgen
 idgen_output = id.h id.d
 $(idgen_output) : idgen
 
-idgen: idgen.d
-	CC=$(HOST_CC) $(HOST_DMD_RUN) idgen.d
+idgen: idgen.d $(HOST_DMD_PATH)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) $<
 	./idgen
 
 #########
@@ -427,7 +426,7 @@ install: all
 
 ######################################################
 
-checkwhitespace:
+checkwhitespace: $(HOST_DMD_PATH)
 	CC=$(HOST_CC) $(HOST_DMD_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRCS)
 
 ######################################################
@@ -443,7 +442,7 @@ zip:
 
 ######################################################
 
-../changelog.html: ../changelog.dd
+../changelog.html: ../changelog.dd $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -Df$@ $<
 
 #############################
