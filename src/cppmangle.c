@@ -1437,7 +1437,7 @@ private:
 
         t->accept(this);
 
-        if ((t->ty == Tpointer || t->ty == Treference) && global.params.is64bit)
+        if ((t->ty == Tpointer || t->ty == Treference || t->ty == Tclass) && global.params.is64bit)
         {
             buf.writeByte('E');
         }

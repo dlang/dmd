@@ -12,6 +12,8 @@ bool thrown(E, T)(lazy T val)
     catch (E e) { return true; }
 }
 
+void stompStack() { int[256] sa = 0xdeadbeef; }
+
 /**************************************/
 
 class A
@@ -927,7 +929,7 @@ int test6798a()
         auto opIndex(A...)(A indices){ return [[indices]]; }
     }
     S2 s2;
-    static assert(!__traits(compiles, s2[] ));
+    assert(s2[] == [[]]);
     assert(s2[1] == [[1]]);
     assert(s2[1, 2] == [[1, 2]]);
     assert(s2[1..2] == [1, 2]);
@@ -1828,6 +1830,187 @@ void test14057()
 
 /**************************************/
 
+struct Tuple20(T...) { T field; alias field this; }
+
+void test20a()
+{
+    // ae1save in in AssignExp::semantic
+    int a, b;
+
+    struct A1
+    {
+        void opIndexAssign(int v, Tuple20!(int, int) ) { a = v; }
+        Tuple20!(int, int) opSlice(size_t dim)(int, int) { return typeof(return).init; }
+    }
+    struct A2
+    {
+        A1 a1;
+        alias a1 this;
+        ref int opIndexAssign(int) { return b; }
+    }
+
+    stompStack();
+    A2 foo() { return A2(); }
+    foo()[1..2] = 1;
+    // ref A1 __tmp = foo().a1; __tmp.opIndexAssign(1, __tmp.opSlice!0(1, 2));
+    assert(a == 1);     // should work
+    assert(b == 0);
+}
+
+void test20b()
+{
+    // ae1save in UnaExp::op_overload()
+    int a, b;
+
+    struct A1
+    {
+        void opIndexUnary(string op)(Tuple20!(int, int) ) { a = 1; }
+        Tuple20!(int, int) opSlice(size_t dim)(int, int) { return typeof(return).init; }
+        void dummy() {} // nessary to make A1 nested struct
+    }
+    struct A2
+    {
+        A1 a1;
+        alias a1 this;
+        int opIndexUnary(string op)(int) { return 0; }
+    }
+
+    stompStack();
+    A2 foo() { return A2(); }
+    +foo()[1..2];
+    // ref A1 __tmp = foo().a1; __tmp.opIndexUnary!"+"(__tmp.opSlice!0(1, 2));
+    assert(a == 1);     // should pass
+    assert(b == 0);
+}
+
+void test20c()
+{
+    // ae1save in ArrayExp::op_overload()
+    int a, b;
+
+    struct A1
+    {
+        void opIndex(Tuple20!(int, int) ) { a = 1; }
+        Tuple20!(int, int) opSlice(size_t dim)(int, int) { return typeof(return).init; }
+    }
+    struct A2
+    {
+        A1 a1;
+        alias a1 this;
+        int opIndex(int) { return 0; }
+    }
+
+    stompStack();
+    A2 foo() { return A2(); }
+    foo()[1..2];
+    // ref A1 __tmp = foo().a1; __tmp.opIndex(__tmp.opSlice!0(1, 2));
+    assert(a == 1);     // should pass
+    assert(b == 0);
+}
+
+void test20d()
+{
+    // ae1save in BinAssignExp::op_overload()
+    int a, b;
+
+    struct A1
+    {
+        void opIndexOpAssign(string op)(int v, Tuple20!(int, int) ) { a = v; }
+        Tuple20!(int, int) opSlice(size_t dim)(int, int) { return typeof(return).init; }
+        void dummy() {} // nessary to make A1 nested struct
+    }
+    struct A2
+    {
+        A1 a1;
+        alias a1 this;
+        ref int opIndexOpAssign(alias op)(int) { return b; }
+    }
+
+    stompStack();
+    A2 foo() { return A2(); }
+    foo()[1..2] += 1;
+    // ref A1 __tmp = foo().a1; __tmp.opIndexOpAssign!"+"(1, __tmp.opSlice!0(1, 2));
+    assert(a == 1);     // should pass
+    assert(b == 0);
+}
+
+/**************************************/
+// 14624
+
+void test14624()
+{
+    struct A1
+    {
+        int x;
+        ref int opIndex() { return x; }
+        ref int opSlice() { assert(0); }
+    }
+    {
+        A1 a = A1(1);
+        auto x = a[];       // a.opIndex()
+        assert(x == a.x);
+        auto y = -a[];      // -a.opIndex()        <-- not found: a.opIndexUnary!"-"
+        assert(y == -a.x);
+        a[] = 1;            // a.opIndex() = 1;    <-- not found: a.opIndexAssign(int)
+        assert(a.x == 1);
+        a[] += 1;           // a.opIndex() += 1;   <-- not found: a.opIndexOpAssign!"+"(int)
+        assert(a.x == 2);
+    }
+
+    struct A2
+    {
+        int x;
+        ref int opIndex() { x = 10; return x; }
+        ref int opSlice() { assert(0); }
+        ref int opSliceUnary(alias op)()       { x = 11; return x; }
+        ref int opSliceAssign(int)             { x = 12; return x; }
+        ref int opSliceOpAssign(alias op)(int) { x = 13; return x; }
+    }
+    {
+        A2 a = A2(1);
+        auto x = a[];       // a.opIndex()
+        assert(a.x == 10);
+        auto y = -a[];      // a.opSliceUnary!"-"()     is preferred than: -a.opIndex()
+        assert(a.x == 11);
+        a[] = 1;            // a.opSliceAssign(1)       is preferred than: a.opIndex() = 1;
+        assert(a.x == 12);
+        a[] += 1;           // a.opSliceOpAssign!"+"(1) is preferred than: a.opIndex() += 1;
+        assert(a.x == 13);
+    }
+}
+
+/**************************************/
+// 14625
+
+void test14625()
+{
+    struct R
+    {
+        @property bool empty() { return true; }
+        @property int front() { return 0; }
+        void popFront() {}
+    }
+
+    struct C1
+    {
+        R opIndex() { return R(); }
+        R opSlice() { assert(0); }
+    }
+    C1 c1;
+    foreach (e; c1) {}      // OK <- asserts in opSlice()
+    foreach (e; c1[]) {}    // OK, opIndex()
+
+    struct C2
+    {
+        R opIndex() { return R(); }
+    }
+    C2 c2;
+    foreach (e; c2) {}      // OK <- rejected
+    foreach (e; c2[]) {}    // OK, opIndex()
+}
+
+/**************************************/
+
 int main()
 {
     test1();
@@ -1867,6 +2050,12 @@ int main()
     test11062();
     test11311();
     test14057();
+    test20a();
+    test20b();
+    test20c();
+    test20d();
+    test14624();
+    test14625();
 
     printf("Success\n");
     return 0;

@@ -65,13 +65,8 @@ public:
         VarDeclaration *v = e->declaration->isVarDeclaration();
         if (v && !(v->storage_class & STCmanifest) && !v->isDataseg() && v->init)
         {
-            if (v->init->isVoidInitializer())
+            if (ExpInitializer *ei = v->init->isExpInitializer())
             {
-            }
-            else
-            {
-                ExpInitializer *ei = v->init->isExpInitializer();
-                assert(ei);
                 doCond(ei->exp);
             }
         }

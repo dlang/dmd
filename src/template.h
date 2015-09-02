@@ -351,6 +351,7 @@ public:
     bool findBestMatch(Scope *sc, Expressions *fargs);
     bool needsTypeInference(Scope *sc, int flag = 0);
     bool hasNestedArgs(Objects *tiargs, bool isstatic);
+    Dsymbols *appendToModuleMember();
     void declareParameters(Scope *sc);
     Identifier *genIdent(Objects *args);
     void expandMembers(Scope *sc);

@@ -3904,12 +3904,9 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     if (*pe)
     {
         // It's really an index expression
-        Expressions *exps = new Expressions();
-        exps->setDim(1);
-        (*exps)[0] = dim;
         if (Dsymbol *s = getDsymbol(*pe))
             *pe = new DsymbolExp(loc, s, 1);
-        *pe = new ArrayExp(loc, *pe, exps);
+        *pe = new ArrayExp(loc, *pe, dim);
     }
     else if (*ps)
     {
@@ -4279,10 +4276,7 @@ Expression *TypeSArray::toExpression()
 {
     Expression *e = next->toExpression();
     if (e)
-    {   Expressions *arguments = new Expressions();
-        arguments->push(dim);
-        e = new ArrayExp(dim->loc, e, arguments);
-    }
+        e = new ArrayExp(dim->loc, e, dim);
     return e;
 }
 
@@ -4379,7 +4373,7 @@ void TypeDArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         // It's really a slice expression
         if (Dsymbol *s = getDsymbol(*pe))
             *pe = new DsymbolExp(loc, s, 1);
-        *pe = new SliceExp(loc, *pe, NULL, NULL);
+        *pe = new ArrayExp(loc, *pe);
     }
     else if (*ps)
     {
@@ -4808,11 +4802,7 @@ Expression *TypeAArray::toExpression()
     {
         Expression *ei = index->toExpression();
         if (ei)
-        {
-            Expressions *arguments = new Expressions();
-            arguments->push(ei);
-            return new ArrayExp(loc, e, arguments);
-        }
+            return new ArrayExp(loc, e, ei);
     }
     return NULL;
 }
@@ -6387,45 +6377,122 @@ d_uns64 TypeQualified::size(Loc loc)
 }
 
 /*************************************
- * Resolve a TypeTuple index.
+ * Resolve a tuple index.
  */
-bool TypeQualified::resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *indexExpr)
+void TypeQualified::resolveTupleIndex(Loc loc, Scope *sc, Dsymbol *s,
+        Expression **pe, Type **pt, Dsymbol **ps, RootObject *oindex)
 {
-    TupleDeclaration *td = (*s)->isTupleDeclaration();
+    *pt = NULL;
+    *ps = NULL;
+    *pe = NULL;
+
+    TupleDeclaration *td = s->isTupleDeclaration();
+
+    Expression *eindex = isExpression(oindex);
+    Type *tindex = isType(oindex);
+    Dsymbol *sindex = isDsymbol(oindex);
+
     if (!td)
     {
-        error(loc, "expected TypeTuple when indexing ('[%s]'), got '%s'.",
-              id->toChars(), (*s)->toChars());
+        // It's really an index expression
+        if (tindex)
+            eindex = new TypeExp(loc, tindex);
+        else if (sindex)
+            eindex = new DsymbolExp(loc, sindex);
+        Expression *e = new IndexExp(loc, new DsymbolExp(loc, s), eindex);
+        e = e->semantic(sc);
+        if (e->op == TOKerror)
+            *pt = Type::terror;
+        else if (e->op == TOKtype)
+            *pt = ((TypeExp *)e)->type;
+        else
+            *pe = e;
+        return;
+    }
+
+    // Convert oindex to Expression, then try to resolve to constant.
+    if (tindex)
+        tindex->resolve(loc, sc, &eindex, &tindex, &sindex);
+    if (sindex)
+        eindex = new DsymbolExp(loc, sindex);
+    if (!eindex)
+    {
+        ::error(loc, "index is %s not an expression", oindex->toChars());
         *pt = Type::terror;
-        return false;
+        return;
     }
     sc = sc->startCTFE();
-    indexExpr = indexExpr->semantic(sc);
+    eindex = eindex->semantic(sc);
     sc = sc->endCTFE();
 
-    indexExpr = indexExpr->ctfeInterpret();
-    const uinteger_t d = indexExpr->toUInteger();
+    eindex = eindex->ctfeInterpret();
+    if (eindex->op == TOKerror)
+    {
+        *pt = Type::terror;
+        return;
+    }
 
+    const uinteger_t d = eindex->toUInteger();
     if (d >= td->objects->dim)
     {
-        error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+        ::error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
         *pt = Type::terror;
-        return false;
+        return;
     }
+
     RootObject *o = (*td->objects)[(size_t)d];
-    if (o->dyncast() == DYNCAST_TYPE)
+    *pt = isType(o);
+    *ps = isDsymbol(o);
+    *pe = isExpression(o);
+
+    if (*pt)
+        *pt = (*pt)->semantic(loc, sc);
+}
+
+void TypeQualified::resolveExprType(Loc loc, Scope *sc,
+        Expression *e, size_t i, Expression **pe, Type **pt)
+{
+    //printf("resolveExprType(e = %s %s, type = %s)\n", Token::toChars(e->op), e->toChars(), e->type->toChars());
+
+    e = e->semantic(sc);
+
+    for (; i < idents.dim; i++)
     {
-        *ps = NULL;
-        *pt = ((Type *)o)->addMod(this->mod);
-        *s = (*pt)->toDsymbol(sc)->toAlias();
+        if (e->op == TOKerror)
+            break;
+
+        RootObject *id = idents[i];
+        //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
+        if (id->dyncast() == DYNCAST_IDENTIFIER)
+        {
+            DotIdExp *die = new DotIdExp(e->loc, e, (Identifier *)id);
+            e = die->semanticY(sc, 0);
+        }
+        else if (id->dyncast() == DYNCAST_TYPE)         // Bugzilla 1215
+        {
+            e = new IndexExp(loc, e, new TypeExp(loc, (Type *)id));
+            e = e->semantic(sc);
+        }
+        else if (id->dyncast() == DYNCAST_EXPRESSION)   // Bugzilla 1215
+        {
+            e = new IndexExp(loc, e, (Expression *)id);
+            e = e->semantic(sc);
+        }
+        else
+        {
+            assert(id->dyncast() == DYNCAST_DSYMBOL);
+            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+            assert(ti);
+            DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(e->loc, e, ti->name, ti->tiargs);
+            e = dte->semanticY(sc, 0);
+        }
     }
+    if (e->op == TOKerror)
+        *pt = Type::terror;
+    else if (e->op == TOKtype)
+        *pt = e->type;
     else
-    {
-        assert(o->dyncast() == DYNCAST_DSYMBOL);
-        *ps = (Dsymbol *)o;
-        *s = (*ps)->toAlias();
-    }
-    return true;
+        *pe = e;
 }
 
 /*************************************
@@ -6435,7 +6502,6 @@ bool TypeQualified::resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type 
  *      if expression, *pe is set
  *      if type, *pt is set
  */
-
 void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
@@ -6462,43 +6528,26 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         for (size_t i = 0; i < idents.dim; i++)
         {
             RootObject *id = idents[i];
-            if (id->dyncast() == DYNCAST_EXPRESSION)
-            {
-                if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, (Expression *)id))
-                {
-                    return;
-                }
-                continue;
-            }
-            else if (id->dyncast() == DYNCAST_TYPE)
-            {
-                Type *index = (Type *)id;
-                Expression *expr = NULL;
-                Type *t = NULL;
-                Dsymbol *sym = NULL;
 
-                index->resolve(loc, sc, &expr, &t, &sym);
-                if (expr)
+            if (id->dyncast() == DYNCAST_EXPRESSION ||
+                id->dyncast() == DYNCAST_TYPE)
+            {
+                Type *tx;
+                Expression *ex;
+                Dsymbol *sx;
+                resolveTupleIndex(loc, sc, s, &ex, &tx, &sx, id);
+                if (sx)
                 {
-                    if (!resolveTypeTupleIndex(loc, sc, &s, pt, ps, id, expr))
-                    {
-                        return;
-                    }
+                    s = sx->toAlias();
+                    continue;
                 }
-                else if (t)
-                {
-                    index->error(loc, "Expected an expression as index, got a type (%s)", t->toChars());
-                    *pt = Type::terror;
-                    return;
-                }
-                else
-                {
-                    index->error(loc, "index is not a an expression");
-                    *pt = Type::terror;
-                    return;
-                }
-                continue;
+                if (tx)
+                    ex = new TypeExp(loc, tx);
+                assert(ex);
+                resolveExprType(loc, sc, ex, i + 1, pe, pt);
+                return;
             }
+
             Type *t = s->getType();     // type symbol, type alias, or type tuple?
             unsigned errorsave = global.errors;
             Dsymbol *sm = s->searchX(loc, sc, id);
@@ -6553,31 +6602,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         e = new DsymbolExp(loc, s);
                     else
                         e = new VarExp(loc, s->isDeclaration());
-                    e = e->semantic(sc);
-                    for (; i < idents.dim; i++)
-                    {
-                        RootObject *id2 = idents[i];
-                        //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id2->toChars(), e->type->toChars());
-                        if (id2->dyncast() == DYNCAST_IDENTIFIER)
-                        {
-                            DotIdExp *die = new DotIdExp(e->loc, e, (Identifier *)id2);
-                            e = die->semanticY(sc, 0);
-                        }
-                        else
-                        {
-                            assert(id2->dyncast() == DYNCAST_DSYMBOL);
-                            TemplateInstance *ti = ((Dsymbol *)id2)->isTemplateInstance();
-                            assert(ti);
-                            DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(e->loc, e, ti->name, ti->tiargs);
-                            e = dte->semanticY(sc, 0);
-                        }
-                    }
-                    if (e->op == TOKtype)
-                        *pt = e->type;
-                    else if (e->op == TOKerror)
-                        *pt = Type::terror;
-                    else
-                        *pe = e;
+
+                    resolveExprType(loc, sc, e, i, pe, pt);
+                    return;
                 }
                 else
                 {
@@ -6803,23 +6830,15 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     //printf("TypeIdentifier::toDsymbol('%s')\n", toChars());
     if (!sc)
         return NULL;
-    //printf("ident = '%s'\n", ident->toChars());
 
-    Dsymbol *scopesym;
-    Dsymbol *s = sc->search(loc, ident, &scopesym);
-    if (s)
-    {
-        for (size_t i = 0; i < idents.dim; i++)
-        {
-            RootObject *id = idents[i];
-            s = s->searchX(loc, sc, id);
-            if (!s)                 // failed to find a symbol
-            {
-                //printf("\tdidn't find a symbol\n");
-                break;
-            }
-        }
-    }
+    Type *t;
+    Expression *e;
+    Dsymbol *s;
+
+    resolve(loc, sc, &e, &t, &s);
+    if (t && t->ty != Tident)
+        s = t->toDsymbol(sc);
+
     return s;
 }
 
@@ -6857,16 +6876,32 @@ Expression *TypeIdentifier::toExpression()
     for (size_t i = 0; i < idents.dim; i++)
     {
         RootObject *id = idents[i];
-        if (id->dyncast() == DYNCAST_IDENTIFIER)
+        switch (id->dyncast())
         {
-            e = new DotIdExp(loc, e, (Identifier *)id);
-        }
-        else
-        {
-            assert(id->dyncast() == DYNCAST_DSYMBOL);
-            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
-            assert(ti);
-            e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
+            case DYNCAST_IDENTIFIER:
+            {
+                e = new DotIdExp(loc, e, (Identifier *)id);
+                break;
+            }
+            case DYNCAST_DSYMBOL:
+            {
+                TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+                assert(ti);
+                e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
+                break;
+            }
+            case DYNCAST_TYPE:
+            {
+                e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
+                break;
+            }
+            case DYNCAST_EXPRESSION:
+            {
+                e = new ArrayExp(loc, e, (Expression *)id);
+                break;
+            }
+            default:
+                assert(0);
         }
     }
 
@@ -6981,16 +7016,32 @@ Expression *TypeInstance::toExpression()
     for (size_t i = 0; i < idents.dim; i++)
     {
         RootObject *id = idents[i];
-        if (id->dyncast() == DYNCAST_IDENTIFIER)
+        switch (id->dyncast())
         {
-            e = new DotIdExp(loc, e, (Identifier *)id);
-        }
-        else
-        {
-            assert(id->dyncast() == DYNCAST_DSYMBOL);
-            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
-            assert(ti);
-            e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
+            case DYNCAST_IDENTIFIER:
+            {
+                e = new DotIdExp(loc, e, (Identifier *)id);
+                break;
+            }
+            case DYNCAST_DSYMBOL:
+            {
+                TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+                assert(ti);
+                e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
+                break;
+            }
+            case DYNCAST_TYPE:
+            {
+                e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
+                break;
+            }
+            case DYNCAST_EXPRESSION:
+            {
+                e = new ArrayExp(loc, e, (Expression *)id);
+                break;
+            }
+            default:
+                assert(0);
         }
     }
 
@@ -7110,12 +7161,24 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
                 switch (id->dyncast())
                 {
                     case DYNCAST_IDENTIFIER:
+                    {
                         e = new DotIdExp(loc, e, (Identifier *)id);
                         break;
+                    }
                     case DYNCAST_DSYMBOL:
                     {
                         TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
                         e = new DotExp(loc, e, new ScopeExp(loc, ti));
+                        break;
+                    }
+                    case DYNCAST_TYPE:
+                    {
+                        e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
+                        break;
+                    }
+                    case DYNCAST_EXPRESSION:
+                    {
+                        e = new ArrayExp(loc, e, (Expression *)id);
                         break;
                     }
                     default:
@@ -7236,12 +7299,24 @@ void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
                 switch (id->dyncast())
                 {
                     case DYNCAST_IDENTIFIER:
+                    {
                         e = new DotIdExp(loc, e, (Identifier *)id);
                         break;
+                    }
                     case DYNCAST_DSYMBOL:
                     {
                         TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
                         e = new DotExp(loc, e, new ScopeExp(loc, ti));
+                        break;
+                    }
+                    case DYNCAST_TYPE:
+                    {
+                        e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
+                        break;
+                    }
+                    case DYNCAST_EXPRESSION:
+                    {
+                        e = new ArrayExp(loc, e, (Expression *)id);
                         break;
                     }
                     default:
@@ -8896,7 +8971,7 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
         // It's really a slice expression
         if (Dsymbol *s = getDsymbol(*pe))
             *pe = new DsymbolExp(loc, s, 1);
-        *pe = new SliceExp(loc, *pe, lwr, upr);
+        *pe = new ArrayExp(loc, *pe, new IntervalExp(loc, lwr, upr));
     }
     else if (*ps)
     {
