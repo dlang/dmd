@@ -407,6 +407,15 @@ void test7()
     static assert(!__traits(compiles, { switch (c0) { default: } }));
     static assert(!__traits(compiles, { switch (c1) { default: } }));
     static assert(!__traits(compiles, { switch (c3) { default: } }));
+
+    // Bugzilla 12537: function arguments with IFTI
+    void eq12537()(Object lhs) {}
+    const C0 cc0;
+    const C1 cc1;
+    const C3 cc3;
+    static assert(!__traits(compiles, eq12537(cc0)));
+    static assert(!__traits(compiles, eq12537(cc1)));
+    static assert(!__traits(compiles, eq12537(cc3)));
 }
 
 /***************************************************/
