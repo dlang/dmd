@@ -184,41 +184,33 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         {
         }
 
-        bool unaOptimize(UnaExp *e, int flags)
+        bool expOptimize(Expression *&e, int flags, bool keepLvalue = false)
         {
-            assert(e->e1);
-            e->e1 = e->e1->optimize(flags);
-            if (e->e1->op == TOKerror)
+            if (!e)
+                return false;
+            Expression *ex = e->optimize(flags, keepLvalue);
+            if (ex->op == TOKerror)
             {
-                ret = e->e1;
+                ret = ex;   // store error result
                 return true;
             }
             else
             {
+                e = ex;     // modify original
                 return false;
             }
         }
 
+        bool unaOptimize(UnaExp *e, int flags)
+        {
+            return expOptimize(e->e1, flags);
+        }
+
         bool binOptimize(BinExp *e, int flags)
         {
-            assert(e->e1);
-            assert(e->e2);
-            e->e1 = e->e1->optimize(flags);
-            e->e2 = e->e2->optimize(flags);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
-                return true;
-            }
-            else if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            expOptimize(e->e1, flags);
+            expOptimize(e->e2, flags);
+            return ret->op == TOKerror;
         }
 
         void visit(Expression *e)
@@ -239,13 +231,10 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(TupleExp *e)
         {
-            if (e->e0)
-                e->e0 = e->e0->optimize(WANTvalue);
+            expOptimize(e->e0, WANTvalue);
             for (size_t i = 0; i < e->exps->dim; i++)
             {
-                Expression *el = (*e->exps)[i];
-                el = el->optimize(WANTvalue);
-                (*e->exps)[i] = el;
+                expOptimize((*e->exps)[i], WANTvalue);
             }
         }
 
@@ -255,9 +244,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 for (size_t i = 0; i < e->elements->dim; i++)
                 {
-                    Expression *el = (*e->elements)[i];
-                    el = el->optimize(result & WANTexpand);
-                    (*e->elements)[i] = el;
+                    expOptimize((*e->elements)[i], result & WANTexpand);
                 }
             }
         }
@@ -267,13 +254,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             assert(e->keys->dim == e->values->dim);
             for (size_t i = 0; i < e->keys->dim; i++)
             {
-                Expression *key = (*e->keys)[i];
-                key = key->optimize(result & WANTexpand);
-                (*e->keys)[i] = key;
-
-                Expression *value = (*e->values)[i];
-                value = value->optimize(result & WANTexpand);
-                (*e->values)[i] = value;
+                expOptimize((*e->keys)[i], result & WANTexpand);
+                expOptimize((*e->values)[i], result & WANTexpand);
             }
         }
 
@@ -286,11 +268,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 for (size_t i = 0; i < e->elements->dim; i++)
                 {
-                    Expression *el = (*e->elements)[i];
-                    if (!el)
-                        continue;
-                    el = el->optimize(result & WANTexpand);
-                    (*e->elements)[i] = el;
+                    expOptimize((*e->elements)[i], result & WANTexpand);
                 }
             }
             e->stageflags = old;
@@ -370,7 +348,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             }
 
             // Keep lvalue-ness
-            e->e1 = e->e1->optimize(result, true);
+            if (expOptimize(e->e1, result, true))
+                return;
 
             // Convert &*ex to ex
             if (e->e1->op == TOKstar)
@@ -427,7 +406,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(PtrExp *e)
         {
             //printf("PtrExp::optimize(result = x%x) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(result);
+            if (expOptimize(e->e1, result))
+                return;
             // Convert *&ex to ex
             // But only if there is no type punning involved
             if (e->e1->op == TOKaddress)
@@ -476,7 +456,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(DotVarExp *e)
         {
             //printf("DotVarExp::optimize(result = x%x) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(result);
+            if (expOptimize(e->e1, result))
+                return;
             if (keepLvalue)
                 return;
 
@@ -509,17 +490,14 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(NewExp *e)
         {
-            if (e->thisexp)
-                e->thisexp = e->thisexp->optimize(WANTvalue);
+            expOptimize(e->thisexp, WANTvalue);
 
             // Optimize parameters
             if (e->newargs)
             {
                 for (size_t i = 0; i < e->newargs->dim; i++)
                 {
-                    Expression *arg = (*e->newargs)[i];
-                    arg = arg->optimize(WANTvalue);
-                    (*e->newargs)[i] = arg;
+                    expOptimize((*e->newargs)[i], WANTvalue);
                 }
             }
 
@@ -527,11 +505,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 for (size_t i = 0; i < e->arguments->dim; i++)
                 {
-                    Expression *arg = (*e->arguments)[i];
-                    if (!arg)
-                        continue;
-                    arg = arg->optimize(WANTvalue);
-                    (*e->arguments)[i] = arg;
+                    expOptimize((*e->arguments)[i], WANTvalue);
                 }
             }
         }
@@ -541,6 +515,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             //printf("CallExp::optimize(result = %d) %s\n", result, e->toChars());
 
             // Optimize parameters with keeping lvalue-ness
+            if (expOptimize(e->e1, result))
+                return;
             if (e->arguments)
             {
                 Type *t1 = e->e1->type->toBasetype();
@@ -551,13 +527,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 {
                     Parameter *p = Parameter::getNth(tf->parameters, i);
                     bool keep = p && (p->storageClass & (STCref | STCout)) != 0;
-                    Expression *arg = (*e->arguments)[i];
-                    arg = arg->optimize(WANTvalue, keep);
-                    (*e->arguments)[i] = arg;
+                    expOptimize((*e->arguments)[i], WANTvalue, keep);
                 }
             }
-
-            e->e1 = e->e1->optimize(result);
         }
 
         void visit(CastExp *e)
@@ -571,7 +543,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             TOK op1 = e->e1->op;
 
             Expression *e1old = e->e1;
-            e->e1 = e->e1->optimize(result);
+            if (expOptimize(e->e1, result))
+                return;
             e->e1 = fromConstInitializer(result, e->e1);
 
             if (e->e1 == e1old &&
@@ -667,9 +640,11 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(BinExp *e)
         {
             //printf("BinExp::optimize(result = %d) %s\n", result, e->toChars());
-            if (e->op != TOKconstruct && e->op != TOKblit)    // don't replace const variable with its initializer
-                e->e1 = e->e1->optimize(result);
-            e->e2 = e->e2->optimize(result);
+            // don't replace const variable with its initializer in e1
+            bool e2only = (e->op == TOKconstruct || e->op == TOKblit);
+            if (e2only ? expOptimize(e->e2, result) : binOptimize(e, result))
+                return;
+
             if (e->op == TOKshlass || e->op == TOKshrass || e->op == TOKushrass)
             {
                 if (e->e2->isConst() == 1)
@@ -803,11 +778,6 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (binOptimize(e, result))
                 return;
 
-            if (e->e2->op == TOKerror)
-            {
-                ret = e->e2;
-                return;
-            }
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
                 ret = Or(e->type, e->e1, e->e2).copy();
         }
@@ -921,13 +891,11 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             // In particular, if the comma returns a temporary variable, it needs
             // to be an lvalue (this is particularly important for struct constructors)
 
-            e->e1 = e->e1->optimize(WANTvalue);
-            e->e2 = e->e2->optimize(result, keepLvalue);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            expOptimize(e->e1, WANTvalue);
+            expOptimize(e->e2, result, keepLvalue);
+            if (ret->op == TOKerror)
                 return;
-            }
+
             if (!e->e1 || e->e1->op == TOKint64 || e->e1->op == TOKfloat64 || !hasSideEffect(e->e1))
             {
                 ret = e->e2;
@@ -966,8 +934,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(EqualExp *e)
         {
             //printf("EqualExp::optimize(result = %x) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(WANTvalue);
-            e->e2 = e->e2->optimize(WANTvalue);
+            if (binOptimize(e, WANTvalue))
+                return;
 
             Expression *e1 = fromConstInitializer(result, e->e1);
             Expression *e2 = fromConstInitializer(result, e->e2);
@@ -1036,13 +1004,16 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(IndexExp *e)
         {
             //printf("IndexExp::optimize(result = %d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(result & WANTexpand);
+            if (expOptimize(e->e1, result & WANTexpand))
+                return;
 
             Expression *ex = fromConstInitializer(result, e->e1);
 
             // We might know $ now
             setLengthVarIfKnown(e->lengthVar, ex);
-            e->e2 = e->e2->optimize(WANTvalue);
+
+            if (expOptimize(e->e2, WANTvalue))
+                return;
             if (keepLvalue)
                 return;
             ret = Index(e->type, ex, e->e2).copy();
@@ -1053,7 +1024,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(SliceExp *e)
         {
             //printf("SliceExp::optimize(result = %d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(result & WANTexpand);
+            if (expOptimize(e->e1, result & WANTexpand))
+                return;
             if (!e->lwr)
             {
                 if (e->e1->op == TOKstring)
@@ -1069,8 +1041,10 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 e->e1 = fromConstInitializer(result, e->e1);
                 // We might know $ now
                 setLengthVarIfKnown(e->lengthVar, e->e1);
-                e->lwr = e->lwr->optimize(WANTvalue);
-                e->upr = e->upr->optimize(WANTvalue);
+                expOptimize(e->lwr, WANTvalue);
+                expOptimize(e->upr, WANTvalue);
+                if (ret->op == TOKerror)
+                    return;
                 ret = Slice(e->type, e->e1, e->lwr, e->upr).copy();
                 if (CTFEExp::isCantExp(ret))
                     ret = e;
@@ -1093,12 +1067,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(AndAndExp *e)
         {
             //printf("AndAndExp::optimize(%d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(WANTvalue);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            if (expOptimize(e->e1, WANTvalue))
                 return;
-            }
+
             if (e->e1->isBool(false))
             {
                 // Replace with (e1, false)
@@ -1113,7 +1084,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
 
-            e->e2 = e->e2->optimize(WANTvalue);
+            if (expOptimize(e->e2, WANTvalue))
+                return;
 
             if (e->e1->isConst())
             {
@@ -1136,12 +1108,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(OrOrExp *e)
         {
             //printf("OrOrExp::optimize(%d) %s\n", result, e->toChars());
-            e->e1 = e->e1->optimize(WANTvalue);
-            if (e->e1->op == TOKerror)
-            {
-                ret = e->e1;
+            if (expOptimize(e->e1, WANTvalue))
                 return;
-            }
+
             if (e->e1->isBool(true))
             {
                 // Replace with (e1, true)
@@ -1156,7 +1125,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 return;
             }
 
-            e->e2 = e->e2->optimize(WANTvalue);
+            if (expOptimize(e->e2, WANTvalue))
+                return;
 
             if (e->e1->isConst())
             {
@@ -1179,8 +1149,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(CmpExp *e)
         {
             //printf("CmpExp::optimize() %s\n", e->toChars());
-            e->e1 = e->e1->optimize(WANTvalue);
-            e->e2 = e->e2->optimize(WANTvalue);
+            if (binOptimize(e, WANTvalue))
+                return;
 
             Expression *e1 = fromConstInitializer(result, e->e1);
             Expression *e2 = fromConstInitializer(result, e->e2);
@@ -1232,15 +1202,16 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(CondExp *e)
         {
-            e->econd = e->econd->optimize(WANTvalue);
+            if (expOptimize(e->econd, WANTvalue))
+                return;
             if (e->econd->isBool(true))
                 ret = e->e1->optimize(result, keepLvalue);
             else if (e->econd->isBool(false))
                 ret = e->e2->optimize(result, keepLvalue);
             else
             {
-                e->e1 = e->e1->optimize(result, keepLvalue);
-                e->e2 = e->e2->optimize(result, keepLvalue);
+                expOptimize(e->e1, result, keepLvalue);
+                expOptimize(e->e2, result, keepLvalue);
             }
         }
     };
