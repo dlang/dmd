@@ -1288,13 +1288,26 @@ public:
 
         if (TemplateInstance *ti = sd->isInstantiated())
         {
-            /* Bugzilla 14425: TypeInfo_Struct would refer the members of
-             * struct (e.g. opEquals via xopEquals field), so if it's instantiated
-             * in speculative context, TypeInfo creation should also be
-             * stopped to avoid 'unresolved symbol' linker errors.
-             */
-            if (!ti->needsCodegen() && !ti->minst)
-                return;
+            if (!ti->needsCodegen())
+            {
+                assert(ti->minst || sd->requestTypeInfo);
+
+                /* ti->toObjFile() won't get called. So, store these
+                 * member functions into object file in here.
+                 */
+                if (sd->xeq && sd->xeq != StructDeclaration::xerreq)
+                    toObjFile(sd->xeq, global.params.multiobj);
+                if (sd->xcmp && sd->xcmp != StructDeclaration::xerrcmp)
+                    toObjFile(sd->xcmp, global.params.multiobj);
+                if (FuncDeclaration *ftostr = search_toString(sd))
+                    toObjFile(ftostr, global.params.multiobj);
+                if (sd->xhash)
+                    toObjFile(sd->xhash, global.params.multiobj);
+                if (sd->postblit)
+                    toObjFile(sd->postblit, global.params.multiobj);
+                if (sd->dtor)
+                    toObjFile(sd->dtor, global.params.multiobj);
+            }
         }
 
         /* Put out:

@@ -2255,33 +2255,6 @@ public:
                         int lv = fdthis.getLevel(loc, sc, fdv);
                         if (lv == -2) // error
                             return true;
-                        if (lv > 0 && fdv.isPureBypassingInference() >= PUREweak && fdthis.isPureBypassingInference() == PUREfwdref && fdthis.isInstantiated())
-                        {
-                            /* Bugzilla 9148 and 14039:
-                             *  void foo() pure {
-                             *    int x;
-                             *    void bar()() {  // default is impure
-                             *      x = 1;  // access to enclosing pure function context
-                             *              // means that bar should have weak purity.
-                             *    }
-                             *  }
-                             */
-                            fdthis.flags &= ~FUNCFLAGpurityInprocess;
-                            if (fdthis.type.ty == Tfunction)
-                            {
-                                TypeFunction tf = cast(TypeFunction)fdthis.type;
-                                if (tf.deco)
-                                {
-                                    tf = cast(TypeFunction)tf.copy();
-                                    tf.purity = PUREfwdref;
-                                    tf.deco = null;
-                                    tf.deco = tf.merge().deco;
-                                }
-                                else
-                                    tf.purity = PUREfwdref;
-                                fdthis.type = tf;
-                            }
-                        }
                     }
                     // Add this to fdv->closureVars[] if not already there
                     for (size_t i = 0; 1; i++)

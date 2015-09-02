@@ -2815,14 +2815,6 @@ public:
              * i() can modify hx and gx but not fx
              */
             Dsymbol vparent = v.toParent2();
-            if (FuncDeclaration fdp = vparent.isFuncDeclaration())
-            {
-                if (!sc.func.isPureBypassingInference() && fdp.setImpure())
-                {
-                    error("impure function '%s' cannot access variable '%s' declared in enclosing pure function '%s'", sc.func.toChars(), v.toChars(), fdp.toPrettyChars());
-                    err = true;
-                }
-            }
             for (Dsymbol s = sc.func; !err && s; s = s.toParent2())
             {
                 if (s == vparent)
@@ -4656,7 +4648,9 @@ public:
             error("%s of type %s has no value", toChars(), type.toChars());
             return new ErrorExp();
         }
-        semanticTypeInfo(sc, t0);
+
+        semanticTypeInfo(sc, type);
+
         return this;
     }
 
@@ -6551,6 +6545,9 @@ public:
             // Handle this in the glue layer
             e = new TypeidExp(loc, ta);
             e.type = getTypeInfoType(ta, sc);
+
+            semanticTypeInfo(sc, ta);
+
             if (ea)
             {
                 e = new CommaExp(loc, ea, e); // execute ea

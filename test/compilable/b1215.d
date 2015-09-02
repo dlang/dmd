@@ -117,3 +117,30 @@ void test14911()
     S* buf2 = (new S[2]).ptr;   // OK
     S* buf3 = new S[2].ptr;     // OK <- broken
 }
+
+/***************************************************/
+// 14986
+
+alias Id14986(alias a) = a;
+
+struct Foo14986
+{
+    int tsize;
+}
+struct Bar14986
+{
+    enum Foo14986[] arr = [Foo14986()];
+}
+
+Bar14986 test14986()
+{
+    Foo14986[] types;
+    auto a1 = new void[types[0].tsize];                 // TypeIdentifier::toExpression
+    auto a2 = new void[Id14986!types[0].tsize];         // TypeInstance::toExpression
+
+    Bar14986 bar;
+    auto a3 = Id14986!(typeof(bar).arr[0].tsize);       // TypeTypeof::resolve
+    auto a4 = Id14986!(typeof(return).arr[0].tsize);    // TypeReturn::resolve
+
+    return Bar14986();
+}

@@ -11,6 +11,7 @@ module ddmd.dstruct;
 import ddmd.aggregate;
 import ddmd.argtypes;
 import ddmd.arraytypes;
+import ddmd.backend;
 import ddmd.clone;
 import ddmd.declaration;
 import ddmd.dmodule;
@@ -31,6 +32,7 @@ import ddmd.opover;
 import ddmd.root.outbuffer;
 import ddmd.statement;
 import ddmd.tokens;
+import ddmd.typinf;
 import ddmd.visitor;
 
 /***************************************
@@ -110,12 +112,29 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
                 return; // none of TypeInfo-specific members
             // If the struct is in a non-root module, run semantic3 to get
             // correct symbols for the member function.
-            // Note that, all instantiated symbols will run semantic3.
-            if (sd.inNonRoot())
+            if (TemplateInstance ti = sd.isInstantiated())
             {
-                //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
-                Module.addDeferredSemantic3(sd);
+                if (ti.minst && !ti.minst.isRoot())
+                    Module.addDeferredSemantic3(sd);
             }
+            else
+            {
+                if (sd.inNonRoot())
+                {
+                    //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
+                    Module.addDeferredSemantic3(sd);
+                }
+            }
+            if (!sc) // inline may request TypeInfo.
+            {
+                Scope scx;
+                scx._module = sd.getModule();
+                getTypeInfoType(t, &scx);
+            }
+            else
+                getTypeInfoType(t, sc);
+            if (!sc || sc.minst)
+                sd.requestTypeInfo = true;
         }
 
         void visit(TypeClass t)
@@ -183,6 +202,11 @@ public:
     Type arg1type;
     Type arg2type;
 
+    // Even if struct is defined as non-root symbol, some built-in operations
+    // (e.g. TypeidExp, NewExp, ArrayLiteralExp, etc) request its TypeInfo.
+    // For those, today TypeInfo_Struct is generated in COMDAT.
+    bool requestTypeInfo;
+
     /********************************* StructDeclaration ****************************/
     final extern (D) this(Loc loc, Identifier id)
     {
@@ -198,6 +222,7 @@ public:
         ispod = ISPODfwd;
         arg1type = null;
         arg2type = null;
+        requestTypeInfo = false;
         // For forward references
         type = new TypeStruct(this);
         if (id == Id.ModuleInfo && !Module.moduleinfo)
