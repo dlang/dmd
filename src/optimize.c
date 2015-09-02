@@ -191,11 +191,11 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (e->e1->op == TOKerror)
             {
                 ret = e->e1;
-                return false;
+                return true;
             }
             else
             {
-                return true;
+                return false;
             }
         }
 
@@ -208,16 +208,16 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (e->e1->op == TOKerror)
             {
                 ret = e->e1;
-                return false;
+                return true;
             }
             else if (e->e2->op == TOKerror)
             {
                 ret = e->e2;
-                return false;
+                return true;
             }
             else
             {
-                return true;
+                return false;
             }
         }
 
@@ -299,13 +299,13 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         void visit(UnaExp *e)
         {
             //printf("UnaExp::optimize() %s\n", e->toChars());
-            if (!unaOptimize(e, result))
+            if (unaOptimize(e, result))
                 return;
         }
 
         void visit(NegExp *e)
         {
-            if (!unaOptimize(e, result))
+            if (unaOptimize(e, result))
                 return;
 
             if (e->e1->isConst() == 1)
@@ -316,7 +316,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(ComExp *e)
         {
-            if (!unaOptimize(e, result))
+            if (unaOptimize(e, result))
                 return;
 
             if (e->e1->isConst() == 1)
@@ -327,7 +327,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(NotExp *e)
         {
-            if (!unaOptimize(e, result))
+            if (unaOptimize(e, result))
                 return;
 
             if (e->e1->isConst() == 1)
@@ -338,7 +338,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(BoolExp *e)
         {
-            if (!unaOptimize(e, result))
+            if (unaOptimize(e, result))
                 return;
 
             if (e->e1->isConst() == 1)
@@ -690,7 +690,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         {
             //printf("AddExp::optimize(%s)\n", e->toChars());
 
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             if (e->e1->isConst() && e->e2->isConst())
@@ -703,7 +703,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(MinExp *e)
         {
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             if (e->e1->isConst() && e->e2->isConst())
@@ -718,7 +718,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         {
             //printf("MulExp::optimize(result = %d) %s\n", result, e->toChars());
 
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
@@ -731,7 +731,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         {
             //printf("DivExp::optimize(%s)\n", e->toChars());
 
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
@@ -742,7 +742,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(ModExp *e)
         {
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
@@ -753,7 +753,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void shift_optimize(BinExp *e, UnionExp (*shift)(Type *, Expression *, Expression *))
         {
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             if (e->e2->isConst() == 1)
@@ -791,7 +791,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(AndExp *e)
         {
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
@@ -800,7 +800,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(OrExp *e)
         {
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             if (e->e2->op == TOKerror)
@@ -814,7 +814,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(XorExp *e)
         {
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             if (e->e1->isConst() == 1 && e->e2->isConst() == 1)
@@ -823,7 +823,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(PowExp *e)
         {
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             // Replace 1 ^^ x or 1.0^^x by (x, 1)
@@ -942,7 +942,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         {
             //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, e->toChars());
 
-            if (!unaOptimize(e, WANTexpand))
+            if (unaOptimize(e, WANTexpand))
                 return;
 
             // CTFE interpret static immutable arrays (to get better diagnostics)
@@ -991,7 +991,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         {
             //printf("IdentityExp::optimize(result = %d) %s\n", result, e->toChars());
 
-            if (!binOptimize(e, WANTvalue))
+            if (binOptimize(e, WANTvalue))
                 return;
 
             if ((e->e1->isConst()     && e->e2->isConst()) ||
@@ -1194,7 +1194,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         {
             //printf("CatExp::optimize(%d) %s\n", result, e->toChars());
 
-            if (!binOptimize(e, result))
+            if (binOptimize(e, result))
                 return;
 
             if (e->e1->op == TOKcat)
