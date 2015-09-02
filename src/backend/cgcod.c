@@ -677,8 +677,10 @@ Lagain:
 #if NTEXCEPTIONS == 2
     Fast.size -= nteh_contextsym_size();
 #if MARS
+#if TARGET_WINDOS
     if (funcsym_p->Sfunc->Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
         Fast.size -= 5 * 4;
+#endif
 #endif
 #endif
 
@@ -1049,6 +1051,10 @@ void stackoffsets(int flags)
             switch (s->Sclass)
             {
                 case SCfastpar:
+                    if (!(funcsym_p->Sfunc->Fflags3 & Ffakeeh))
+                        continue;   // don't need consistent stack frame
+                    break;
+
                 case SCshadowreg:
                 case SCparameter:
                     break;          // have to allocate space for parameters
