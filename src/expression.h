@@ -1477,6 +1477,7 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *toBoolean(Scope *sc);
+    void hookDtors(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
