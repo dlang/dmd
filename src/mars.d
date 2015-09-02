@@ -411,7 +411,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    parseConfFile(&environment, inifilepath, inifile.len, inifile.buffer, &sections);
+    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
     Strings dflags;
     getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
     environment.reset(7); // erase cached environment updates
@@ -422,7 +422,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     char[80] envsection;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
-    parseConfFile(&environment, inifilepath, inifile.len, inifile.buffer, &sections);
+    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
     getenv_setargv(readFromEnv(&environment, "DFLAGS"), &arguments);
     updateRealEnvironment(&environment);
     environment.reset(1); // don't need environment cache any more
