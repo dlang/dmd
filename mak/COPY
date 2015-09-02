@@ -66,6 +66,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\termios.d \
 	$(IMPDIR)\core\sys\linux\time.d \
 	$(IMPDIR)\core\sys\linux\tipc.d \
+	$(IMPDIR)\core\sys\linux\unistd.d \
 	\
 	$(IMPDIR)\core\sys\linux\sys\inotify.d \
 	$(IMPDIR)\core\sys\linux\sys\mman.d \
