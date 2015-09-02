@@ -3229,9 +3229,10 @@ public:
             match = new VarDeclaration(loc, prm.type, prm.ident, new ExpInitializer(loc, condition));
             match.parent = scd.func;
             match.storage_class |= prm.storageClass;
+            match.semantic(scd);
 
             auto de = new DeclarationExp(loc, match);
-            auto ve = new VarExp(Loc(), match);
+            auto ve = new VarExp(loc, match);
             condition = new CommaExp(loc, de, ve);
             condition = condition.semantic(scd);
 
