@@ -22,8 +22,8 @@ template xversion(string s)
 
 private string stripRight(string s)
 {
-    while (s.length && (s[$-1] == ' ' || s[$-1] == '\n' || s[$-1] == '\r'))
-        s = s[0 .. $-1];
+    while (s.length && (s[$ - 1] == ' ' || s[$ - 1] == '\n' || s[$ - 1] == '\r'))
+        s = s[0 .. $ - 1];
     return s;
 }
 
@@ -294,7 +294,7 @@ struct Global
         }
         copyright = "Copyright (c) 1999-2015 by Digital Mars";
         written = "written by Walter Bright";
-        _version = ('v' ~ stripRight(import("verstr.h"))[1 .. $-1] ~ '\0').ptr;
+        _version = ('v' ~ stripRight(import("verstr.h"))[1 .. $ - 1] ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
         stdmsg = stdout;
         main_d = "__main.d";
