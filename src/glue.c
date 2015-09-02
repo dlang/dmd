@@ -573,7 +573,6 @@ void FuncDeclaration::toObjFile(int multiobj)
         f->Fclass = (Classsym *)t;
     }
 
-#if TARGET_WINDOS
     /* This is done so that the 'this' pointer on the stack is the same
      * distance away from the function parameters, so that an overriding
      * function can call the nested fdensure or fdrequire of its overridden function
@@ -581,7 +580,6 @@ void FuncDeclaration::toObjFile(int multiobj)
      */
     if (isVirtual() && (fensure || frequire))
         f->Fflags3 |= Ffakeeh;
-#endif
 
 #if TARGET_OSX
     s->Sclass = SCcomdat;
