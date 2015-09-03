@@ -2727,7 +2727,8 @@ version(unittest) nothrow @safe @nogc unittest
 
 void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
 {
-    obj[] = U.init;
+    foreach_reverse (ref e; obj[])
+        destroy(e);
 }
 
 version(unittest) unittest
@@ -2750,6 +2751,42 @@ unittest
     destroy!vec2f(v);
 }
 
+unittest
+{
+    // Bugzilla 15009
+    static string op;
+    static struct S
+    {
+        int x;
+        this(int x) { op ~= "C" ~ cast(char)('0'+x); this.x = x; }
+        this(this)  { op ~= "P" ~ cast(char)('0'+x); }
+        ~this()     { op ~= "D" ~ cast(char)('0'+x); }
+    }
+
+    {
+        S[2] a1 = [S(1), S(2)];
+        op = "";
+    }
+    assert(op == "D2D1");   // built-in scope destruction
+    {
+        S[2] a1 = [S(1), S(2)];
+        op = "";
+        destroy(a1);
+        assert(op == "D2D1");   // consistent with built-in behavior
+    }
+
+    {
+        S[2][2] a2 = [[S(1), S(2)], [S(3), S(4)]];
+        op = "";
+    }
+    assert(op == "D4D3D2D1");
+    {
+        S[2][2] a2 = [[S(1), S(2)], [S(3), S(4)]];
+        op = "";
+        destroy(a2);
+        assert(op == "D4D3D2D1", op);
+    }
+}
 
 void destroy(T)(ref T obj)
     if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
