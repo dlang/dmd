@@ -297,6 +297,63 @@ void test10734()
 }
 
 /***************************************************/
+// 12744
+
+template PTT12744(func...)
+{
+    static if (is(typeof(func[0]) P == function))
+        alias PTT12744 = P;
+    else
+        static assert(0);
+}
+
+void foo12744(int w, ref int x, out int y, lazy int z) {}
+
+void bar12744a()(auto ref PTT12744!foo12744 args) {}
+void bar12744b  (     ref PTT12744!foo12744 args) {}
+void bar12744c  (     out PTT12744!foo12744 args) {}
+void bar12744d  (    lazy PTT12744!foo12744 args) {}
+void bar12744e  (         PTT12744!foo12744 args) {}
+
+void test12744()
+{
+    int v() { assert(0); }
+    int w, x, y, z;
+
+    // all parameters become 'auto ref'
+    bar12744a(w, x, y, z);
+    bar12744a(1, 2, 3, 4);
+
+    // all parameters become 'ref'
+    static assert(is(typeof(&bar12744b) ==
+                     void function(ref int, ref int, ref int, ref int)));
+    bar12744b(w, x, y, z);
+    static assert(!__traits(compiles, bar12744b(1, z, y, z)));
+    static assert(!__traits(compiles, bar12744b(w, 2, y, z)));
+    static assert(!__traits(compiles, bar12744b(w, z, 3, z)));
+    static assert(!__traits(compiles, bar12744b(w, z, y, 4)));
+
+    // all parameters become 'out'
+    static assert(is(typeof(&bar12744c) ==
+                     void function(out int, out int, out int, out int)));
+    w = x = y = z = 1;
+    bar12744c(w, x, y, z);
+    assert(!x && !y && !y && !z);
+    static assert(!__traits(compiles, bar12744c(1, z, y, z)));
+    static assert(!__traits(compiles, bar12744c(w, 2, y, z)));
+    static assert(!__traits(compiles, bar12744c(w, z, 3, z)));
+    static assert(!__traits(compiles, bar12744c(w, z, y, 4)));
+
+    // all parameters become 'lazy'
+    static assert(is(typeof(&bar12744d) ==
+                     void function(lazy int, lazy int, lazy int, lazy int)));
+    bar12744d(v, v, v, v);
+
+    static assert(is(typeof(&bar12744e) ==
+                     void function(int w, ref int x, out int y, lazy int z)));
+}
+
+/***************************************************/
 // 14656
 
 void test14656()
@@ -331,6 +388,7 @@ int main()
     test3646();
     test3866();
     test8579();
+    test12744();
     test14210();
     test14656();
     test14656_ref();
