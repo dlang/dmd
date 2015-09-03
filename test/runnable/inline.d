@@ -736,6 +736,22 @@ void test14753(string) { }
 
 /**********************************/
 
+struct S14975 {
+    int bar;
+
+    pragma(inline, true) this(int bar) {
+        this.bar = bar;
+    }
+}
+
+void test14975() {
+    S14975 baz = 1;
+    if (baz.bar != 1)
+	assert(0);
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -760,6 +776,7 @@ int main()
     test14306();
     test14754();
     test14606();
+    test14975();
 
     printf("Success\n");
     return 0;
