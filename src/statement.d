@@ -316,7 +316,7 @@ public:
                 //printf("CompoundStatement::blockExit(%p) %d\n", cs, cs->statements->dim);
                 result = BEfallthru;
                 Statement slast = null;
-                foreach (i, s; *cs.statements)
+                foreach (s; *cs.statements)
                 {
                     if (s)
                     {
@@ -361,7 +361,7 @@ public:
             void visit(UnrolledLoopStatement uls)
             {
                 result = BEfallthru;
-                foreach (i, s; *uls.statements)
+                foreach (s; *uls.statements)
                 {
                     if (s)
                     {
@@ -590,7 +590,7 @@ public:
                 assert(s._body);
                 result = s._body.blockExit(func, false);
                 int catchresult = 0;
-                foreach (i, c; *s.catches)
+                foreach (c; *s.catches)
                 {
                     if (c.type == Type.terror)
                         continue;
@@ -967,7 +967,7 @@ extern (C++) Statement toStatement(Dsymbol s)
             if (!a)
                 return null;
             auto statements = new Statements();
-            foreach (i, s; *a)
+            foreach (s; *a)
             {
                 statements.push(toStatement(s));
             }
@@ -983,7 +983,7 @@ extern (C++) Statement toStatement(Dsymbol s)
         void visit(TemplateMixin tm)
         {
             auto a = new Statements();
-            foreach (i, m; *tm.members)
+            foreach (m; *tm.members)
             {
                 Statement s = toStatement(m);
                 if (s)
@@ -5695,9 +5695,8 @@ public:
         {
             Import s = (*imports)[i].isImport();
             assert(!s.aliasdecls.dim);
-            for (size_t j = 0; j < s.names.dim; j++)
+            foreach (j, name; s.names)
             {
-                Identifier name = s.names[j];
                 Identifier _alias = s.aliases[j];
                 if (!_alias)
                     _alias = name;
@@ -5709,9 +5708,9 @@ public:
             s.semantic(sc);
             //s->semantic2(sc);     // Bugzilla 14666
             sc.insert(s);
-            foreach (j; 0 .. s.aliasdecls.dim)
+            foreach (aliasdecl; s.aliasdecls)
             {
-                sc.insert(s.aliasdecls[j]);
+                sc.insert(aliasdecl);
             }
         }
         return this;
