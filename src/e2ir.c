@@ -2860,62 +2860,19 @@ elem *toElem(Expression *e, IRState *irs)
                     ae->e2->op == TOKarrayliteral)
                 {
                     ArrayLiteralExp *ale = (ArrayLiteralExp *)ae->e2;
-                    size_t dim = ale->elements->dim;
-                    if (dim == 0)
+                    if (ale->elements->dim == 0)
                     {
-                        // Eliminate _d_arrayliteralTX call in ae->e2.
                         e = e1;
-                        goto Lret;
                     }
-
-                    // TODO: This part is very similar to ExpressionsToStaticArray.
-
-                    Type *tn = t1b->nextOf()->toBasetype();
-                    if (tn->ty == Tvoid)
-                        tn = Type::tuns8;
-                    tym_t ty = totym(tn);
-
-                    symbol *stmp = symbol_genauto(TYnptr);
-                    e = e1;
-                    e = addressElem(e, t1b);
-                    e = el_bin(OPeq, TYnptr, el_var(stmp), e);
-
-                    size_t esz = tn->size();
-                    for (size_t i = 0; i < dim; )
+                    else
                     {
-                        Expression *en = (*ale->elements)[i];
-                        size_t j = i + 1;
-                        if (!postblit)
-                        {
-                            // If the elements are same literal and elaborate copy
-                            // is not necessary, do memcpy.
-                            while (j < dim && en->equals((*ale->elements)[j])) { j++; }
-                        }
+                        symbol *stmp = symbol_genauto(TYnptr);
+                        e1 = addressElem(e1, t1b);
+                        e1 = el_bin(OPeq, TYnptr, el_var(stmp), e1);
 
-                        elem *e1 = el_var(stmp);
-                        if (i > 0)
-                            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, i * esz));
-                        elem *ex;
-                        if (j == i + 1)
-                        {
-                            e1 = el_una(OPind, ty, e1);
-                            if (tybasic(ty) == TYstruct)
-                                e1->ET = Type_toCtype(tn);
-                            ex = el_bin(OPeq, e1->Ety, e1, toElem(en, irs));
-                            if (tybasic(ty) == TYstruct)
-                            {
-                                ex->Eoper = OPstreq;
-                                ex->ET = Type_toCtype(tn);
-                            }
-                        }
-                        else
-                        {
-                            assert(j - i >= 2);
-                            elem *edim = el_long(TYsize_t, j - i);
-                            ex = setArray(e1, edim, tn, toElem(en, irs), irs, ae->op);
-                        }
-                        e = el_combine(e, ex);
-                        i = j;
+                        // Eliminate _d_arrayliteralTX call in ae->e2.
+                        e = ExpressionsToStaticArray(ale->loc, ale->elements, &stmp, 0);
+                        e = el_combine(e1, e);
                     }
                     goto Lret;
                 }
