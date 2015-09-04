@@ -5131,7 +5131,7 @@ elem *toElem(Expression *e, IRState *irs)
             symbol *stmp = *psym;
 
             elem *e = NULL;
-            for (size_t i = 0; i < dim; i++)
+            for (size_t i = 0; i < dim; )
             {
                 Expression *el = (*exps)[i];
                 if (el->op == TOKarrayliteral &&
@@ -5144,7 +5144,21 @@ elem *toElem(Expression *e, IRState *irs)
                             ale->loc, ale->elements, &stmp, offset + i * szelem);
                         e = el_combine(e, ex);
                     }
+                    i++;
                     continue;
+                }
+
+                size_t j = i + 1;
+                if (el->isConst() || el->op == TOKnull)
+                {
+                    // If the trivial elements are same values, do memcpy.
+                    while (j < dim)
+                    {
+                        Expression *en = (*exps)[j];
+                        if (!el->equals(en))
+                            break;
+                        j++;
+                    }
                 }
 
                 /* Generate: *(&stmp + i * szelem) = element[i]
@@ -5152,21 +5166,32 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *ep = toElem(el, irs);
                 elem *ev = tybasic(stmp->Stype->Tty) == TYnptr ? el_var(stmp) : el_ptr(stmp);
                 ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, offset + i * szelem));
-                ev = el_una(OPind, te->Tty, ev);
-                elem *eeq = el_bin(OPeq, te->Tty, ev, ep);
 
-                if (tybasic(te->Tty) == TYstruct)
+                elem *eeq;
+                if (j == i + 1)
                 {
-                    eeq->Eoper = OPstreq;
-                    eeq->ET = te;
+                    ev = el_una(OPind, te->Tty, ev);
+                    eeq = el_bin(OPeq, te->Tty, ev, ep);
+
+                    if (tybasic(te->Tty) == TYstruct)
+                    {
+                        eeq->Eoper = OPstreq;
+                        eeq->ET = te;
+                    }
+                    else if (tybasic(te->Tty) == TYarray)
+                    {
+                        eeq->Eoper = OPstreq;
+                        eeq->Ejty = eeq->Ety = TYstruct;
+                        eeq->ET = te;
+                    }
                 }
-                else if (tybasic(te->Tty) == TYarray)
+                else
                 {
-                    eeq->Eoper = OPstreq;
-                    eeq->Ejty = eeq->Ety = TYstruct;
-                    eeq->ET = te;
+                    elem *edim = el_long(TYsize_t, j - i);
+                    eeq = setArray(ev, edim, telem, ep, NULL, TOKblit);
                 }
                 e = el_combine(e, eeq);
+                i = j;
             }
             return e;
         }
