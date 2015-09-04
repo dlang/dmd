@@ -5884,10 +5884,12 @@ public:
                     error(loc, "cannot have parameter of function type %s", fparam.type.toChars());
                     errors = true;
                 }
-                else if (!(fparam.storageClass & (STCref | STCout)) && (t.ty == Tstruct || t.ty == Tsarray || t.ty == Tenum))
+                else if (!(fparam.storageClass & (STCref | STCout)) &&
+                         (t.ty == Tstruct || t.ty == Tsarray || t.ty == Tenum))
                 {
                     Type tb2 = t.baseElemOf();
-                    if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members || tb2.ty == Tenum && !(cast(TypeEnum)tb2).sym.memtype)
+                    if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members ||
+                        tb2.ty == Tenum && !(cast(TypeEnum)tb2).sym.memtype)
                     {
                         error(loc, "cannot have parameter of opaque type %s by value", fparam.type.toChars());
                         errors = true;
@@ -5983,7 +5985,25 @@ public:
                         for (size_t j = 0; j < tdim; j++)
                         {
                             Parameter narg = (*tt.arguments)[j];
-                            (*newparams)[j] = new Parameter(narg.storageClass | fparam.storageClass, narg.type, narg.ident, narg.defaultArg);
+
+                            // Bugzilla 12744: If the storage classes of narg
+                            // conflict with the ones in fparam, it's ignored.
+                            StorageClass stc  = fparam.storageClass | narg.storageClass;
+                            StorageClass stc1 = fparam.storageClass & (STCref | STCout | STClazy);
+                            StorageClass stc2 =   narg.storageClass & (STCref | STCout | STClazy);
+                            if (stc1 && stc2 && stc1 != stc2)
+                            {
+                                OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STCref) ? (fparam.storageClass & STCauto) : 0));
+                                OutBuffer buf2;  stcToBuffer(&buf2, stc2);
+
+                                error(loc, "incompatible parameter storage classes '%s' and '%s'",
+                                    buf1.peekString(), buf2.peekString());
+                                errors = true;
+                                stc = stc1 | (stc & ~(STCref | STCout | STClazy));
+                            }
+
+                            (*newparams)[j] = new Parameter(
+                                stc, narg.type, narg.ident, narg.defaultArg);
                         }
                         fparam.type = new TypeTuple(newparams);
                     }
@@ -6009,7 +6029,7 @@ public:
                         }
                         else
                             fparam.storageClass &= ~STCref; // value parameter
-                        fparam.storageClass &= ~STCauto;    // issue 14656
+                        fparam.storageClass &= ~STCauto;    // Bugzilla 14656
                         fparam.storageClass |= STCautoref;
                     }
                     else
