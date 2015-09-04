@@ -5991,8 +5991,16 @@ public:
                             StorageClass stc  = fparam.storageClass | narg.storageClass;
                             StorageClass stc1 = fparam.storageClass & (STCref | STCout | STClazy);
                             StorageClass stc2 =   narg.storageClass & (STCref | STCout | STClazy);
-                            if (stc1 && stc1 != stc2)
+                            if (stc1 && stc2 && stc1 != stc2)
+                            {
+                                OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STCref) ? (fparam.storageClass & STCauto) : 0));
+                                OutBuffer buf2;  stcToBuffer(&buf2, stc2);
+
+                                error(loc, "incompatible parameter storage classes '%s' and '%s'",
+                                    buf1.peekString(), buf2.peekString());
+                                errors = true;
                                 stc = stc1 | (stc & ~(STCref | STCout | STClazy));
+                            }
 
                             (*newparams)[j] = new Parameter(
                                 stc, narg.type, narg.ident, narg.defaultArg);
