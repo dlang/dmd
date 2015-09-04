@@ -1663,7 +1663,7 @@ elem *toElem(Expression *e, IRState *irs)
                     }
 
                     // Allocate array of dimensions on the stack
-                    Symbol *sdata;
+                    Symbol *sdata = NULL;
                     elem *earray = ExpressionsToStaticArray(ne->loc, ne->arguments, &sdata);
 
                     e = el_pair(TYdarray, el_long(TYsize_t, ne->arguments->dim), el_ptr(sdata));
@@ -4884,7 +4884,7 @@ elem *toElem(Expression *e, IRState *irs)
             }
             if (tb->ty == Tsarray && ale->elements && ale->elements->dim)
             {
-                Symbol *sdata;
+                Symbol *sdata = NULL;
                 e = ExpressionsToStaticArray(ale->loc, ale->elements, &sdata);
                 e = el_combine(e, el_ptr(sdata));
             }
@@ -5111,7 +5111,7 @@ elem *toElem(Expression *e, IRState *irs)
          * exps[].
          * Return the initialization expression, and the symbol for the static array in *psym.
          */
-        elem *ExpressionsToStaticArray(Loc loc, Expressions *exps, symbol **psym)
+        elem *ExpressionsToStaticArray(Loc loc, Expressions *exps, symbol **psym, size_t offset = 0)
         {
             // Create a static array of type telem[dim]
             size_t dim = exps->dim;
@@ -5122,8 +5122,13 @@ elem *toElem(Expression *e, IRState *irs)
             targ_size_t szelem = telem->size();
             ::type *te = Type_toCtype(telem);   // stmp[] element type
 
-            symbol *stmp = symbol_genauto(Type_toCtype(tsarray));
-            *psym = stmp;
+            if (!*psym)
+            {
+                Type *tsarray = telem->sarrayOf(dim);
+                *psym = symbol_genauto(Type_toCtype(tsarray));
+                offset = 0;
+            }
+            symbol *stmp = *psym;
 
             elem *e = NULL;
             for (size_t i = 0; i < dim; i++)
@@ -5133,8 +5138,8 @@ elem *toElem(Expression *e, IRState *irs)
                 /* Generate: *(&stmp + i * szelem) = element[i]
                  */
                 elem *ep = toElem(el, irs);
-                elem *ev = el_ptr(stmp);
-                ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * szelem));
+                elem *ev = tybasic(stmp->Stype->Tty) == TYnptr ? el_var(stmp) : el_ptr(stmp);
+                ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, offset + i * szelem));
                 ev = el_una(OPind, te->Tty, ev);
                 elem *eeq = el_bin(OPeq, te->Tty, ev, ep);
 
