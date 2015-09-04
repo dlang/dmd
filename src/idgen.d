@@ -275,6 +275,7 @@ Msgtable[] msgtable =
     { "mangle" },
     { "msg" },
     { "startaddress" },
+    { "intrinsic", "DigitalMars_intrinsic" },
 
     // For special functions
     { "tohash", "toHash" },
