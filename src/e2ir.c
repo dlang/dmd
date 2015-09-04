@@ -5134,6 +5134,18 @@ elem *toElem(Expression *e, IRState *irs)
             for (size_t i = 0; i < dim; i++)
             {
                 Expression *el = (*exps)[i];
+                if (el->op == TOKarrayliteral &&
+                    el->type->toBasetype()->ty == Tsarray)
+                {
+                    ArrayLiteralExp *ale = (ArrayLiteralExp *)el;
+                    if (ale->elements && ale->elements->dim)
+                    {
+                        elem *ex = ExpressionsToStaticArray(
+                            ale->loc, ale->elements, &stmp, offset + i * szelem);
+                        e = el_combine(e, ex);
+                    }
+                    continue;
+                }
 
                 /* Generate: *(&stmp + i * szelem) = element[i]
                  */
