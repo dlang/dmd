@@ -726,7 +726,7 @@ Lagain:
     assert(usedalloca != 1);
     AllocaOff = alignsection(usedalloca ? (Foff - REGSIZE) : Foff, REGSIZE, bias);
 
-    CSoff = alignsection(AllocaOff - cstop * REGSIZE, REGSIZE, bias);
+    CSoff = alignsection(AllocaOff - (int)cstop * REGSIZE, REGSIZE, bias);
 
 #if TX86
     NDPoff = alignsection(CSoff - NDP::savetop * NDPSAVESIZE, REGSIZE, bias);
