@@ -264,6 +264,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     debug
     {
         printf("DMD %s DEBUG\n", global._version);
+        fflush(stdout); // avoid interleaving with stderr output when redirecting
     }
     unittests();
     // Check for malformed input
