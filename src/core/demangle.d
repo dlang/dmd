@@ -1896,36 +1896,15 @@ unittest
     static assert(!__traits(compiles, mangleFunc!(typeof(&fooCPP))("")));
 }
 
-/**
-* Mangles a C function or variable.
-*
-* Params:
-*  sym = The C symbol to mangle.
-*  dst = An optional destination buffer.
-*
-* Returns:
-*  The mangled name for a C function or variable, i.e.
-*  an underscore is prepended or not, depending on the
-*  compiler/linker tool chain
-*/
-char[] mangleC(const(char)[] sym, char[] dst = null)
-{
-    version(Win32)
-        enum string prefix = "_";
-    else version(OSX)
-        enum string prefix = "_";
-    else
-        enum string prefix = "";
-
-    auto len = sym.length + prefix.length;
-    if( dst.length < len )
-        dst.length = len;
-
-    dst[0 .. prefix.length] = prefix[];
-    dst[prefix.length .. len] = sym[];
-    return dst[0 .. len];
-}
-
+/***
+ * C name mangling is done by adding a prefix on some platforms.
+ */
+version(Win32)
+    enum string cPrefix = "_";
+else version(OSX)
+    enum string cPrefix = "_";
+else
+    enum string cPrefix = "";
 
 version(unittest)
 {
