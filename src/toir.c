@@ -854,7 +854,7 @@ RET retStyle(TypeFunction *tf)
 
     if (global.params.isWindows && global.params.is64bit)
     {
-        // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+        // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
         if (tns->ty == Tcomplex32)
             return RETstack;
         if (tns->isscalar())
@@ -866,7 +866,7 @@ RET retStyle(TypeFunction *tf)
             StructDeclaration *sd = ((TypeStruct *)tns)->sym;
             if (sd->ident == Id::__c_long_double)
                 return RETregs;
-            if (!sd->isPOD() || sz >= 8)
+            if (!sd->isPOD() || sz > 8)
                 return RETstack;
             if (sd->fields.dim == 0)
                 return RETstack;
