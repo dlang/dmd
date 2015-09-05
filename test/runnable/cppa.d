@@ -798,6 +798,35 @@ void testVtable()
 }
 
 /****************************************/
+/* problems detected by fuzzer */
+extern(C++) void fuzz1_cppvararg(long arg10, long arg11, bool arg12);
+extern(C++) void fuzz1_dvararg(long arg10, long arg11, bool arg12)
+{
+    fuzz1_checkValues(arg10, arg11, arg12);
+}
+
+extern(C++) void fuzz1_checkValues(long arg10, long arg11, bool arg12)
+{
+    assert(arg10 == 103);
+    assert(arg11 == 104);
+    assert(arg12 == false);
+}
+
+void fuzz1()
+{
+    long arg10 = 103;
+    long arg11 = 104;
+    bool arg12 = false;
+    fuzz1_dvararg(arg10, arg11, arg12);
+    fuzz1_cppvararg(arg10, arg11, arg12);
+}
+
+void fuzz()
+{
+    fuzz1();
+}
+
+/****************************************/
 
 void main()
 {
@@ -829,6 +858,7 @@ void main()
     test14195();
     test14200();
     testVtable();
+    fuzz();
 
     printf("Success\n");
 }

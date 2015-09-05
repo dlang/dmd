@@ -519,3 +519,13 @@ Visitor2* getVisitor2()
 {
     return &inst;
 }
+
+/******************************************/
+// issues detected by fuzzer
+
+void fuzz1_checkValues(long long arg10, long long arg11, bool arg12);
+void fuzz1_cppvararg(long long arg10, long long arg11, bool arg12)
+{
+    fuzz1_checkValues(arg10, arg11, arg12);
+}
+ 
