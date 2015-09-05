@@ -821,9 +821,57 @@ void fuzz1()
     fuzz1_cppvararg(arg10, arg11, arg12);
 }
 
+////////
+extern(C++) void fuzz2_cppvararg(ulong arg10, ulong arg11, bool arg12);
+extern(C++) void fuzz2_dvararg(ulong arg10, ulong arg11, bool arg12)
+{
+    fuzz2_checkValues(arg10, arg11, arg12);
+}
+
+extern(C++) void fuzz2_checkValues(ulong arg10, ulong arg11, bool arg12)
+{
+    assert(arg10 == 103);
+    assert(arg11 == 104);
+    assert(arg12 == false);
+}
+
+void fuzz2()
+{
+    ulong arg10 = 103;
+    ulong arg11 = 104;
+    bool arg12 = false;
+    fuzz2_dvararg(arg10, arg11, arg12);
+    fuzz2_cppvararg(arg10, arg11, arg12);
+}
+
+////////
+extern(C++) void fuzz3_cppvararg(wchar arg10, wchar arg11, bool arg12);
+extern(C++) void fuzz3_dvararg(wchar arg10, wchar arg11, bool arg12)
+{
+    fuzz2_checkValues(arg10, arg11, arg12);
+}
+
+extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
+{
+    assert(arg10 == 103);
+    assert(arg11 == 104);
+    assert(arg12 == false);
+}
+
+void fuzz3()
+{
+    wchar arg10 = 103;
+    wchar arg11 = 104;
+    bool arg12 = false;
+    fuzz3_dvararg(arg10, arg11, arg12);
+    fuzz3_cppvararg(arg10, arg11, arg12);
+}
+
 void fuzz()
 {
     fuzz1();
+    fuzz2();
+    fuzz3();
 }
 
 /****************************************/

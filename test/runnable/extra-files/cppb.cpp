@@ -522,10 +522,32 @@ Visitor2* getVisitor2()
 
 /******************************************/
 // issues detected by fuzzer
+#if _LP64
+#define longlong long
+#else
+#define longlong long long
+#endif
 
-void fuzz1_checkValues(long long arg10, long long arg11, bool arg12);
-void fuzz1_cppvararg(long long arg10, long long arg11, bool arg12)
+void fuzz1_checkValues(longlong arg10, longlong arg11, bool arg12);
+void fuzz1_cppvararg(longlong arg10, longlong arg11, bool arg12)
 {
     fuzz1_checkValues(arg10, arg11, arg12);
 }
- 
+
+void fuzz2_checkValues(unsigned longlong arg10, unsigned longlong arg11, bool arg12);
+void fuzz2_cppvararg(unsigned longlong arg10, unsigned longlong arg11, bool arg12)
+{
+    fuzz2_checkValues(arg10, arg11, arg12);
+}
+
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#define wchar unsigned short
+#elif _WIN32
+#define wchar wchar_t
+#endif
+
+void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12);
+void fuzz3_cppvararg(wchar arg10, wchar arg11, bool arg12)
+{
+    fuzz3_checkValues(arg10, arg11, arg12);
+}
