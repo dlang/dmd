@@ -172,6 +172,10 @@ typedef struct
         #define STT_LOPROC      13          /* Start of processor-specific */
         #define STT_HIPROC      15          /* End of processor-specific */
 
+        #define STV_DEFAULT     0           /* Default symbol visibility rules */
+        #define STV_INTERNAL    1           /* Processor specific hidden class */
+        #define STV_HIDDEN      2           /* Sym unavailable in other modules */
+        #define STV_PROTECTED   3           /* Not preemptible, not exported */
 
     unsigned char st_other;     /* Currently not defined */
     Elf32_Half st_shndx;       /* SHT index for symbol definition */
