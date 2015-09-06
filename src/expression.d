@@ -11340,7 +11340,9 @@ public:
 extern (C++) class AssignExp : BinExp
 {
 public:
-    int ismemset; // !=0 if setting the contents of an array
+    // &1 != 0 if setting the contents of an array
+    // &2 != 0 if setting the content of ref variable
+    int ismemset;
 
     /************************************************************/
     /* op can be TOKassign, TOKconstruct, or TOKblit */
@@ -11630,6 +11632,12 @@ public:
         {
             //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
             op = TOKconstruct;
+            if (e1.op == TOKvar && (cast(VarExp)e1).var.storage_class & (STCout | STCref))
+            {
+                // Bugzilla 14944, even if e1 is a ref variable,
+                // make an initialization of referenced memory.
+                ismemset |= 2;
+            }
             // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
             if (e1.op == TOKindex)
             {
@@ -11641,7 +11649,7 @@ public:
         /* If it is an assignment from a 'foreign' type,
          * check for operator overloading.
          */
-        if (op == TOKconstruct && e1.op == TOKvar && (cast(VarExp)e1).var.storage_class & (STCout | STCref))
+        if (op == TOKconstruct && e1.op == TOKvar && (cast(VarExp)e1).var.storage_class & (STCout | STCref) && !(ismemset & 2))
         {
             // If this is an initialization of a reference,
             // do nothing
@@ -12042,7 +12050,7 @@ public:
             // Check for block assignment. If it is of type void[], void[][], etc,
             // '= null' is the only allowable block assignment (Bug 7493)
             // memset
-            ismemset = 1; // make it easy for back end to tell what this is
+            ismemset |= 1; // make it easy for back end to tell what this is
             e2x = e2x.implicitCastTo(sc, t1.nextOf());
             if (op != TOKblit && e2x.isLvalue() && e1.checkPostblit(sc, t1.nextOf()))
             {
@@ -12136,7 +12144,7 @@ public:
         if ((t2.ty == Tarray || t2.ty == Tsarray) && isArrayOpValid(e2))
         {
             // Look for valid array operations
-            if (!ismemset && e1.op == TOKslice && (isUnaArrayOp(e2.op) || isBinArrayOp(e2.op)))
+            if (!(ismemset & 1) && e1.op == TOKslice && (isUnaArrayOp(e2.op) || isBinArrayOp(e2.op)))
             {
                 type = e1.type;
                 if (op == TOKconstruct) // Bugzilla 10282: tweak mutability of e1 element
@@ -12145,7 +12153,7 @@ public:
             }
             // Drop invalid array operations in e2
             //  d = a[] + b[], d = (a[] + b[])[0..2], etc
-            if (checkNonAssignmentArrayOp(e2, !ismemset && op == TOKassign))
+            if (checkNonAssignmentArrayOp(e2, !(ismemset & 1) && op == TOKassign))
                 return new ErrorExp();
             // Remains valid array assignments
             //  d = d[], d = [1,2,3], etc

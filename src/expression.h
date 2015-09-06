@@ -1159,7 +1159,9 @@ public:
 class AssignExp : public BinExp
 {
 public:
-    int ismemset;       // !=0 if setting the contents of an array
+    // &1 != 0 if setting the contents of an array
+    // &2 != 0 if setting the content of ref variable
+    int ismemset;
 
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
