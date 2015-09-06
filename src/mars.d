@@ -497,7 +497,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
             {
                 static if (TARGET_OSX)
                 {
-                    warning(Loc(), "use -shared instead of -dylib");
+                    deprecation(Loc(), "use -shared instead of -dylib");
                     global.params.dll = true;
                 }
                 else
