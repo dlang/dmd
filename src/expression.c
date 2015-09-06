@@ -808,6 +808,8 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                 if (key->checkValue())
                     return new ErrorExp();
 
+                semanticTypeInfo(sc, taa->index);
+
                 return new RemoveExp(loc, eleft, key);
             }
         }
@@ -9571,7 +9573,10 @@ Expression *DeleteExp::semantic(Scope *sc)
                 FuncDeclaration *fd = sd->dtor;
 
                 if (!f)
+                {
+                    semanticTypeInfo(sc, ts);
                     break;
+                }
 
                 /* Construct:
                  *      ea = copy e1 to a tmp to do side effects only once
@@ -10634,6 +10639,9 @@ Expression *IndexExp::semantic(Scope *sc)
                 if (e2->type == Type::terror)
                     return new ErrorExp();
             }
+
+            semanticTypeInfo(sc, taa);
+
             type = taa->next;
             break;
         }
@@ -13246,6 +13254,8 @@ Expression *InExp::semantic(Scope *sc)
                 e1 = e1->implicitCastTo(sc, ta->index);
             }
 
+            semanticTypeInfo(sc, ta->index);
+
             // Return type is pointer to value
             type = ta->nextOf()->pointerTo();
             break;
@@ -13338,6 +13348,11 @@ Expression *CmpExp::semantic(Scope *sc)
         {
             error("array comparison type mismatch, %s vs %s", t1next->toChars(), t2next->toChars());
             return new ErrorExp();
+        }
+        if ((t1->ty == Tarray || t1->ty == Tsarray) &&
+            (t2->ty == Tarray || t2->ty == Tsarray))
+        {
+            semanticTypeInfo(sc, t1->nextOf());
         }
     }
     else if (t1->ty == Tstruct || t2->ty == Tstruct ||
