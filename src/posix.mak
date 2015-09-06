@@ -50,7 +50,7 @@ endif
 ifeq (,$(AUTO_BOOTSTRAP))
   # No bootstrap, a $(HOST_DC) installation must be available
   HOST_DMD?=dmd
-  HOST_DMD_PATH=$(shell which $(HOST_DMD))
+  HOST_DMD_PATH=$(abspath $(shell which $(HOST_DMD)))
   ifeq (,$(HOST_DMD_PATH))
     $(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
   endif
