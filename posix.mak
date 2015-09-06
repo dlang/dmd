@@ -40,17 +40,14 @@ endif
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 # Set CFLAGS
-CFLAGS=
-ifneq (,$(filter cc% gcc% clang% icc% egcc%, $(CC)))
-	CFLAGS += $(MODEL_FLAG) -fPIC -DHAVE_UNISTD_H
-	ifeq ($(BUILD),debug)
-		CFLAGS += -g
-	else
-		CFLAGS += -O3
-	endif
+CFLAGS=$(MODEL_FLAG) -fPIC -DHAVE_UNISTD_H
+ifeq ($(BUILD),debug)
+	CFLAGS += -g
+else
+	CFLAGS += -O3
 endif
 ifeq (solaris,$(OS))
-    CFLAGS+=-D_REENTRANT  # for thread-safe errno
+	CFLAGS+=-D_REENTRANT  # for thread-safe errno
 endif
 
 # Set DFLAGS
