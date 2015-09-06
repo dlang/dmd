@@ -3200,6 +3200,11 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             c = NULL;
         else if (s != tls_get_addr_sym)
             c = save87();               // assume 8087 regs are all trashed
+
+        // Function calls may throw Errors, unless marked that they don't
+        if (s == funcsym_p || !s->Sfunc || !(s->Sfunc->Fflags3 & Fnothrow))
+            funcsym_p->Sfunc->Fflags3 &= ~Fnothrow;
+
         if (s->Sflags & SFLexit)
             // Function doesn't return, so don't worry about registers
             // it may use
@@ -3293,6 +3298,9 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
   }
   else
   {     /* Call function via pointer    */
+
+        // Function calls may throw Errors
+        funcsym_p->Sfunc->Fflags3 &= ~Fnothrow;
 
         if (e1->Eoper != OPind) { WRFL((enum FL)el_fl(e1)); WROP(e1->Eoper); }
         c = save87();                   // assume 8087 regs are all trashed

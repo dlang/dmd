@@ -186,6 +186,9 @@ tryagain:
     }
 #endif
 
+    // Set on a trial basis, turning it off if anything might throw
+    funcsym_p->Sfunc->Fflags3 |= Fnothrow;
+
     floatreg = FALSE;
 #if TX86
     assert(stackused == 0);             /* nobody in 8087 stack         */
@@ -629,7 +632,37 @@ code *prolog()
     tym_t tyf = funcsym_p->ty();
     tym_t tym = tybasic(tyf);
     unsigned farfunc = tyfarfunc(tym);
-    if (config.flags & CFGalwaysframe || funcsym_p->Sfunc->Fflags3 & Ffakeeh)
+
+    // Special Intel 64 bit ABI prolog setup for variadic functions
+    symbol *sv64 = NULL;                        // set to __va_argsave
+    if (I64 && variadic(funcsym_p->Stype))
+    {
+        /* The Intel 64 bit ABI scheme.
+         * abi_sysV_amd64.pdf
+         * Load arguments passed in registers into the varargs save area
+         * so they can be accessed by va_arg().
+         */
+        /* Look for __va_argsave
+         */
+        for (SYMIDX si = 0; si < globsym.top; si++)
+        {   symbol *s = globsym.tab[si];
+            if (s->Sident[0] == '_' && strcmp(s->Sident, "__va_argsave") == 0)
+            {
+                if (!(s->Sflags & SFLdead))
+                    sv64 = s;
+                break;
+            }
+        }
+    }
+
+    if (config.flags & CFGalwaysframe ||
+        funcsym_p->Sfunc->Fflags3 & Ffakeeh ||
+        /* The exception stack unwinding mechanism relies on the EBP chain being intact,
+         * so need frame if function can possibly throw
+         */
+        !(config.flags2 & CFG2seh) && !(funcsym_p->Sfunc->Fflags3 & Fnothrow) ||
+        sv64
+       )
         needframe = 1;
 
 Lagain:
@@ -842,7 +875,7 @@ Lagain:
     }
     else if (xlocalsize)
     {
-        assert(I32);
+        assert(I32 || I64);
         cstackadj = prolog_frameadj2(tyf, xlocalsize, &pushalloc);
         BPoff += REGSIZE;
     }
@@ -935,28 +968,8 @@ Lcont:
     // the register!
     c = cat(c, prolog_loadparams(tyf, pushalloc, &namedargs));
 
-    // Special Intel 64 bit ABI prolog setup for variadic functions
-    if (I64 && variadic(funcsym_p->Stype))
-    {
-        /* The Intel 64 bit ABI scheme.
-         * abi_sysV_amd64.pdf
-         * Load arguments passed in registers into the varargs save area
-         * so they can be accessed by va_arg().
-         */
-        /* Look for __va_argsave
-         */
-        symbol *sv = NULL;
-        for (SYMIDX si = 0; si < globsym.top; si++)
-        {   symbol *s = globsym.tab[si];
-            if (s->Sident[0] == '_' && strcmp(s->Sident, "__va_argsave") == 0)
-            {   sv = s;
-                break;
-            }
-        }
-
-        if (sv && !(sv->Sflags & SFLdead))
-            c = cat(c, prolog_genvarargs(sv, &namedargs));
-    }
+    if (sv64)
+        c = cat(c, prolog_genvarargs(sv64, &namedargs));
 
     /* Alignment checks
      */
