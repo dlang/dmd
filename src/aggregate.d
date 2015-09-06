@@ -355,57 +355,6 @@ public:
         return type;
     }
 
-    /****************************************
-     * If field[indx] is not part of a union, return indx.
-     * Otherwise, return the lowest field index of the union.
-     */
-    final int firstFieldInUnion(int indx)
-    {
-        if (isUnionDeclaration())
-            return 0;
-        VarDeclaration vd = fields[indx];
-        int firstNonZero = indx; // first index in the union with non-zero size
-        for (;;)
-        {
-            if (indx == 0)
-                return firstNonZero;
-            VarDeclaration v = fields[indx - 1];
-            if (v.offset != vd.offset)
-                return firstNonZero;
-            --indx;
-            /* If it is a zero-length field, it's ambiguous: we don't know if it is
-             * in the union unless we find an earlier non-zero sized field with the
-             * same offset.
-             */
-            if (v.size(loc) != 0)
-                firstNonZero = indx;
-        }
-    }
-
-    /****************************************
-     * Count the number of fields starting at firstIndex which are part of the
-     * same union as field[firstIndex]. If not a union, return 1.
-     */
-    final int numFieldsInUnion(int firstIndex)
-    {
-        VarDeclaration vd = fields[firstIndex];
-        /* If it is a zero-length field, AND we can't find an earlier non-zero
-         * sized field with the same offset, we assume it's not part of a union.
-         */
-        if (vd.size(loc) == 0 && !isUnionDeclaration() && firstFieldInUnion(firstIndex) == firstIndex)
-            return 1;
-        int count = 1;
-        for (size_t i = firstIndex + 1; i < fields.dim; ++i)
-        {
-            VarDeclaration v = fields[i];
-            // If offsets are different, they are not in the same union
-            if (v.offset != vd.offset)
-                break;
-            ++count;
-        }
-        return count;
-    }
-
     // is aggregate deprecated?
     final bool isDeprecated()
     {

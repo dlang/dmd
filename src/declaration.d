@@ -2031,6 +2031,12 @@ public:
         return (storage_class & STCctfe) != 0; // || !isDataseg();
     }
 
+    bool isOverlappedWith(VarDeclaration v)
+    {
+        return (  offset < v.offset + v.type.size() &&
+                v.offset <   offset +   type.size());
+    }
+
     final bool hasPointers()
     {
         //printf("VarDeclaration::hasPointers() %s, ty = %d\n", toChars(), type->ty);

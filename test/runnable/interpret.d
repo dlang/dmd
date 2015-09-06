@@ -3324,6 +3324,34 @@ void test113()
 }
 
 /************************************************/
+// 14862
+
+struct S14862
+{
+    union
+    {
+        struct { uint hi, lo; }
+        ulong data;
+    }
+
+    this(ulong data)
+    {
+        this.data = data;
+    }
+}
+
+void test14862()
+{
+           S14862 s14862 = S14862(123UL);
+      enum S14862 e14862 = S14862(123UL);
+    static S14862 g14862 = S14862(123UL);
+
+    assert(s14862.data == 123UL);   // OK
+    assert(e14862.data == 123UL);   // OK
+    assert(g14862.data == 123UL);   // OK <- fail
+}
+
+/************************************************/
 
 int main()
 {
@@ -3443,6 +3471,7 @@ int main()
     test8818();
     test9023();
     test9954();
+    test14862();
 
     printf("Success\n");
     return 0;

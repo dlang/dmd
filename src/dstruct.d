@@ -700,8 +700,7 @@ public:
                 if (i == j)
                     continue;
                 VarDeclaration v2 = fields[j];
-                bool overlap = (vd.offset < v2.offset + v2.type.size() && v2.offset < vd.offset + vd.type.size());
-                if (!overlap)
+                if (!vd.isOverlappedWith(v2))
                     continue;
                 // vd and v2 are overlapping. If either has destructors, postblits, etc., then error
                 //printf("overlapping fields %s and %s\n", vd->toChars(), v2->toChars());
