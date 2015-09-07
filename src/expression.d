@@ -750,6 +750,7 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
                 key = key.implicitCastTo(sc, taa.index);
                 if (key.checkValue())
                     return new ErrorExp();
+                semanticTypeInfo(sc, taa.index);
                 return new RemoveExp(loc, eleft, key);
             }
         }
@@ -10003,7 +10004,10 @@ public:
                 FuncDeclaration f = sd.aggDelete;
                 FuncDeclaration fd = sd.dtor;
                 if (!f)
+                {
+                    semanticTypeInfo(sc, ts);
                     break;
+                }
                 /* Construct:
                  *      ea = copy e1 to a tmp to do side effects only once
                  *      eb = call destructor
@@ -11090,6 +11094,7 @@ public:
                     if (e2.type == Type.terror)
                         return new ErrorExp();
                 }
+                semanticTypeInfo(sc, taa);
                 type = taa.next;
                 break;
             }
@@ -13722,6 +13727,10 @@ public:
                 error("array comparison type mismatch, %s vs %s", t1next.toChars(), t2next.toChars());
                 return new ErrorExp();
             }
+            if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
+            {
+                semanticTypeInfo(sc, t1.nextOf());
+            }
         }
         else if (t1.ty == Tstruct || t2.ty == Tstruct || (t1.ty == Tclass && t2.ty == Tclass))
         {
@@ -13848,6 +13857,7 @@ public:
                     // Convert key to type of key
                     e1 = e1.implicitCastTo(sc, ta.index);
                 }
+                semanticTypeInfo(sc, ta.index);
                 // Return type is pointer to value
                 type = ta.nextOf().pointerTo();
                 break;
@@ -14195,6 +14205,17 @@ public:
             printf("e1 : %s\n", e1.type.toChars());
             printf("e2 : %s\n", e2.type.toChars());
         }
+        /* Bugzilla 14696: If either e1 or e2 contain temporaries which need dtor,
+         * make them conditional.
+         * Rewrite:
+         *      cond ? (__tmp1 = ..., __tmp1) : (__tmp2 = ..., __tmp2)
+         * to:
+         *      (auto __cond = cond) ? (... __tmp1) : (... __tmp2)
+         * and replace edtors of __tmp1 and __tmp2 with:
+         *      __tmp1->edtor --> __cond && __tmp1.dtor()
+         *      __tmp2->edtor --> __cond || __tmp2.dtor()
+         */
+        hookDtors(sc);
         return this;
     }
 
@@ -14231,6 +14252,74 @@ public:
         e1 = e1.toBoolean(sc);
         e2 = e2.toBoolean(sc);
         return this;
+    }
+
+    void hookDtors(Scope* sc)
+    {
+        extern (C++) final class DtorVisitor : StoppableVisitor
+        {
+            alias visit = super.visit;
+        public:
+            Scope* sc;
+            CondExp ce;
+            VarDeclaration vcond;
+            bool isThen;
+
+            extern (D) this(Scope* sc, CondExp ce)
+            {
+                this.sc = sc;
+                this.ce = ce;
+                this.vcond = null;
+            }
+
+            void visit(Expression e)
+            {
+                //printf("(e = %s)\n", e->toChars());
+            }
+
+            void visit(DeclarationExp e)
+            {
+                VarDeclaration v = e.declaration.isVarDeclaration();
+                if (v && !v.noscope && !v.isDataseg())
+                {
+                    if (v._init)
+                    {
+                        ExpInitializer ei = v._init.isExpInitializer();
+                        if (ei)
+                            ei.exp.accept(this);
+                    }
+                    if (v.edtor)
+                    {
+                        if (!vcond)
+                        {
+                            vcond = new VarDeclaration(ce.econd.loc, ce.econd.type, Identifier.generateId("__cond"), new ExpInitializer(ce.econd.loc, ce.econd));
+                            vcond.storage_class |= STCtemp | STCctfe | STCvolatile;
+                            vcond.semantic(sc);
+                            Expression de = new DeclarationExp(ce.econd.loc, vcond);
+                            de = de.semantic(sc);
+                            Expression ve = new VarExp(ce.econd.loc, vcond);
+                            ce.econd = Expression.combine(de, ve);
+                        }
+                        //printf("\t++v = %s, v->edtor = %s\n", v->toChars(), v->edtor->toChars());
+                        Expression ve = new VarExp(vcond.loc, vcond);
+                        if (isThen)
+                            v.edtor = new AndAndExp(v.edtor.loc, ve, v.edtor);
+                        else
+                            v.edtor = new OrOrExp(v.edtor.loc, ve, v.edtor);
+                        v.edtor = v.edtor.semantic(sc);
+                        //printf("\t--v = %s, v->edtor = %s\n", v->toChars(), v->edtor->toChars());
+                    }
+                }
+            }
+        }
+
+        scope DtorVisitor v = new DtorVisitor(sc, this);
+        //printf("+%s\n", toChars());
+        v.isThen = true;
+        walkPostorder(e1, v);
+        v.isThen = false;
+        walkPostorder(e2, v);
+        //printf("-%s\n", toChars());
     }
 
     void accept(Visitor v)

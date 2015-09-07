@@ -5076,8 +5076,13 @@ code *cddctor(elem *e,regm_t *pretregs)
      */
     usednteh |= EHcleanup;
     if (config.exe == EX_NT)
-    {   usednteh |= NTEHcleanup | NTEH_try;
+    {
+        usednteh |= NTEHcleanup | NTEH_try;
         nteh_usevars();
+    }
+    else
+    {
+        usednteh |= EHtry;
     }
     assert(*pretregs == 0);
     code cs;
@@ -5114,8 +5119,13 @@ code *cdddtor(elem *e,regm_t *pretregs)
     */
     usednteh |= EHcleanup;
     if (config.exe == EX_NT)
-    {   usednteh |= NTEHcleanup | NTEH_try;
+    {
+        usednteh |= NTEHcleanup | NTEH_try;
         nteh_usevars();
+    }
+    else
+    {
+        usednteh |= EHtry;
     }
 
     code cs;

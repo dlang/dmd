@@ -650,6 +650,8 @@ extern (C++) bool needToHash(StructDeclaration sd)
             TypeStruct ts = cast(TypeStruct)tv;
             if (needToHash(ts.sym))
                 goto Lneed;
+            if (ts.sym.aliasthis) // Bugzilla 14948
+                goto Lneed;
         }
     }
 Ldontneed:
