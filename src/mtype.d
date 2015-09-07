@@ -593,21 +593,6 @@ public:
     final extern (D) this(TY ty)
     {
         this.ty = ty;
-        this.mod = 0;
-        this.deco = null;
-        this.cto = null;
-        this.ito = null;
-        this.sto = null;
-        this.scto = null;
-        this.wto = null;
-        this.wcto = null;
-        this.swto = null;
-        this.swcto = null;
-        this.pto = null;
-        this.rto = null;
-        this.arrayof = null;
-        this.vtinfo = null;
-        this.ctype = null;
     }
 
     const(char)* kind()
@@ -3244,8 +3229,7 @@ public:
     {
         super(ty);
         const(char)* d;
-        uint flags;
-        flags = 0;
+        uint flags = 0;
         switch (ty)
         {
         case Tvoid:
@@ -5042,7 +5026,6 @@ public:
         super(Taarray, t);
         this.index = index;
         this.loc = Loc();
-        this.sc = null;
     }
 
     static TypeAArray create(Type t, Type index)
@@ -5698,7 +5681,7 @@ public:
     bool isreturn; // true: 'this' is returned by ref
     LINK linkage; // calling convention
     TRUST trust; // level of trust
-    PURE purity; // PURExxxx
+    PURE purity = PUREimpure; // PURExxxx
     ubyte iswild; // bit0: inout on params, bit1: inout on qualifier
     Expressions* fargs; // function arguments
     int inuse;
@@ -5713,15 +5696,6 @@ public:
         this.parameters = parameters;
         this.varargs = varargs;
         this.linkage = linkage;
-        this.inuse = 0;
-        this.isnothrow = false;
-        this.isnogc = false;
-        this.purity = PUREimpure;
-        this.isproperty = false;
-        this.isref = false;
-        this.isreturn = false;
-        this.iswild = 0;
-        this.fargs = null;
         if (stc & STCpure)
             this.purity = PUREfwdref;
         if (stc & STCnothrow)
@@ -7493,7 +7467,6 @@ public:
     {
         super(Ttypeof, loc);
         this.exp = exp;
-        inuse = 0;
     }
 
     const(char)* kind()
@@ -7822,14 +7795,13 @@ extern (C++) final class TypeStruct : Type
 {
 public:
     StructDeclaration sym;
-    AliasThisRec att;
+    AliasThisRec att = RECfwdref;
 
     /***************************** TypeStruct *****************************/
     extern (D) this(StructDeclaration sym)
     {
         super(Tstruct);
         this.sym = sym;
-        this.att = RECfwdref;
     }
 
     const(char)* kind()
@@ -8590,14 +8562,13 @@ extern (C++) final class TypeClass : Type
 {
 public:
     ClassDeclaration sym;
-    AliasThisRec att;
+    AliasThisRec att = RECfwdref;
 
     /***************************** TypeClass *****************************/
     extern (D) this(ClassDeclaration sym)
     {
         super(Tclass);
         this.sym = sym;
-        this.att = RECfwdref;
     }
 
     const(char)* kind()

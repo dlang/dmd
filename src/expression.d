@@ -2268,8 +2268,6 @@ public:
         this.loc = loc;
         this.op = op;
         this.size = cast(ubyte)size;
-        this.parens = 0;
-        type = null;
     }
 
     final static void _init()
@@ -3889,7 +3887,6 @@ public:
     {
         super(loc, TOKthis, __traits(classInstanceSize, ThisExp));
         //printf("ThisExp::ThisExp() loc = %d\n", loc.linnum);
-        var = null;
     }
 
     Expression semantic(Scope* sc)
@@ -4073,7 +4070,6 @@ public:
     extern (D) this(Loc loc, Type type = null)
     {
         super(loc, TOKnull, __traits(classInstanceSize, NullExp));
-        committed = 0;
         this.type = type;
     }
 
@@ -4130,10 +4126,10 @@ extern (C++) final class StringExp : Expression
 public:
     void* string; // char, wchar, or dchar data
     size_t len; // number of chars, wchars, or dchars
-    ubyte sz; // 1: char, 2: wchar, 4: dchar
+    ubyte sz = 1; // 1: char, 2: wchar, 4: dchar
     ubyte committed; // !=0 if type is committed
-    char postfix; // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe;
+    char postfix = 0; // 'c', 'w', 'd'
+    OwnedBy ownedByCtfe = OWNEDcode;
 
     /******************************** StringExp **************************/
     extern (D) this(Loc loc, char* string)
@@ -4141,10 +4137,6 @@ public:
         super(loc, TOKstring, __traits(classInstanceSize, StringExp));
         this.string = string;
         this.len = strlen(string);
-        this.sz = 1;
-        this.committed = 0;
-        this.postfix = 0;
-        this.ownedByCtfe = OWNEDcode;
     }
 
     extern (D) this(Loc loc, void* string, size_t len)
@@ -4152,10 +4144,6 @@ public:
         super(loc, TOKstring, __traits(classInstanceSize, StringExp));
         this.string = string;
         this.len = len;
-        this.sz = 1;
-        this.committed = 0;
-        this.postfix = 0;
-        this.ownedByCtfe = OWNEDcode;
     }
 
     extern (D) this(Loc loc, void* string, size_t len, char postfix)
@@ -4163,10 +4151,7 @@ public:
         super(loc, TOKstring, __traits(classInstanceSize, StringExp));
         this.string = string;
         this.len = len;
-        this.sz = 1;
-        this.committed = 0;
         this.postfix = postfix;
-        this.ownedByCtfe = OWNEDcode;
     }
 
     static StringExp create(Loc loc, char* s)
@@ -4461,14 +4446,12 @@ public:
     {
         super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
         //printf("TupleExp(this = %p)\n", this);
-        this.e0 = null;
         this.exps = exps;
     }
 
     extern (D) this(Loc loc, TupleDeclaration tup)
     {
         super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
-        this.e0 = null;
         this.exps = new Expressions();
         this.exps.reserve(tup.objects.dim);
         for (size_t i = 0; i < tup.objects.dim; i++)
@@ -4573,7 +4556,7 @@ extern (C++) final class ArrayLiteralExp : Expression
 {
 public:
     Expressions* elements;
-    OwnedBy ownedByCtfe;
+    OwnedBy ownedByCtfe = OWNEDcode;
 
     /************************ ArrayLiteralExp ************************************/
     // [ e1, e2, e3, ... ]
@@ -4581,7 +4564,6 @@ public:
     {
         super(loc, TOKarrayliteral, __traits(classInstanceSize, ArrayLiteralExp));
         this.elements = elements;
-        this.ownedByCtfe = OWNEDcode;
     }
 
     extern (D) this(Loc loc, Expression e)
@@ -4589,7 +4571,6 @@ public:
         super(loc, TOKarrayliteral, __traits(classInstanceSize, ArrayLiteralExp));
         elements = new Expressions();
         elements.push(e);
-        this.ownedByCtfe = OWNEDcode;
     }
 
     Expression syntaxCopy()
@@ -4722,7 +4703,7 @@ extern (C++) final class AssocArrayLiteralExp : Expression
 public:
     Expressions* keys;
     Expressions* values;
-    OwnedBy ownedByCtfe;
+    OwnedBy ownedByCtfe = OWNEDcode;
 
     /************************ AssocArrayLiteralExp ************************************/
     // [ key0 : value0, key1 : value1, ... ]
@@ -4732,7 +4713,6 @@ public:
         assert(keys.dim == values.dim);
         this.keys = keys;
         this.values = values;
-        this.ownedByCtfe = OWNEDcode;
     }
 
     bool equals(RootObject o)
@@ -4835,8 +4815,9 @@ public:
     Symbol* sinit; // if this is a defaultInitLiteral, this symbol contains the default initializer
     Symbol* sym; // back end symbol to initialize with literal
     size_t soffset; // offset from start of s
-    int fillHoles; // fill alignment 'holes' with zero
-    OwnedBy ownedByCtfe;
+    int fillHoles = 1;                // fill alignment 'holes' with zero
+    OwnedBy ownedByCtfe = OWNEDcode;
+
     // pointer to the origin instance of the expression.
     // once a new expression is created, origin is set to 'this'.
     // anytime when an expression copy is created, 'origin' pointer is set to
@@ -4860,14 +4841,7 @@ public:
             elements = new Expressions();
         this.elements = elements;
         this.stype = stype;
-        this.sinit = null;
-        this.sym = null;
-        this.soffset = 0;
-        this.fillHoles = 1;
-        this.ownedByCtfe = OWNEDcode;
         this.origin = this;
-        this.stageflags = 0;
-        this.inlinecopy = null;
         //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
     }
 
@@ -5298,10 +5272,6 @@ public:
         this.newargs = newargs;
         this.newtype = newtype;
         this.arguments = arguments;
-        argprefix = null;
-        member = null;
-        allocator = null;
-        onstack = 0;
     }
 
     Expression syntaxCopy()
@@ -6958,7 +6928,6 @@ public:
     {
         super(loc, op, size);
         this.e1 = e1;
-        this.att1 = null;
     }
 
     Expression syntaxCopy()
@@ -7017,8 +6986,6 @@ public:
         super(loc, op, size);
         this.e1 = e1;
         this.e2 = e2;
-        this.att1 = null;
-        this.att2 = null;
     }
 
     Expression syntaxCopy()
@@ -8588,16 +8555,11 @@ public:
     {
         super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
         this.arguments = exps;
-        this.f = null;
-        this.directcall = false;
     }
 
     extern (D) this(Loc loc, Expression e)
     {
         super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
-        this.arguments = null;
-        this.f = null;
-        this.directcall = false;
     }
 
     extern (D) this(Loc loc, Expression e, Expression earg1)
@@ -8610,8 +8572,6 @@ public:
             (*arguments)[0] = earg1;
         }
         this.arguments = arguments;
-        this.f = null;
-        this.directcall = false;
     }
 
     extern (D) this(Loc loc, Expression e, Expression earg1, Expression earg2)
@@ -8622,8 +8582,6 @@ public:
         (*arguments)[0] = earg1;
         (*arguments)[1] = earg2;
         this.arguments = arguments;
-        this.f = null;
-        this.directcall = false;
     }
 
     static CallExp create(Loc loc, Expression e, Expressions* exps)
@@ -10081,14 +10039,13 @@ extern (C++) final class CastExp : UnaExp
 public:
     // Possible to cast to one type while painting to another type
     Type to; // type to cast to
-    ubyte mod; // MODxxxxx
+    ubyte mod = cast(ubyte)~0; // MODxxxxx
 
     /************************************************************/
     extern (D) this(Loc loc, Expression e, Type t)
     {
         super(loc, TOKcast, __traits(classInstanceSize, CastExp), e);
         this.to = t;
-        this.mod = cast(ubyte)~0;
     }
 
     /* For cast(const) and cast(immutable)
@@ -10096,7 +10053,6 @@ public:
     extern (D) this(Loc loc, Expression e, ubyte mod)
     {
         super(loc, TOKcast, __traits(classInstanceSize, CastExp), e);
-        this.to = null;
         this.mod = mod;
     }
 
@@ -10243,7 +10199,7 @@ extern (C++) final class VectorExp : UnaExp
 {
 public:
     TypeVector to; // the target vector type before semantic()
-    uint dim; // number of elements in the vector
+    uint dim = ~0; // number of elements in the vector
 
     /************************************************************/
     extern (D) this(Loc loc, Expression e, Type t)
@@ -10251,7 +10207,6 @@ public:
         super(loc, TOKvector, __traits(classInstanceSize, VectorExp), e);
         assert(t.ty == Tvector);
         to = cast(TypeVector)t;
-        dim = ~0;
     }
 
     Expression syntaxCopy()
@@ -10300,9 +10255,6 @@ public:
         super(loc, TOKslice, __traits(classInstanceSize, SliceExp), e1);
         this.upr = ie ? ie.upr : null;
         this.lwr = ie ? ie.lwr : null;
-        lengthVar = null;
-        upperIsInBounds = false;
-        lowerIsLessThanUpper = false;
     }
 
     extern (D) this(Loc loc, Expression e1, Expression lwr, Expression upr)
@@ -10310,9 +10262,6 @@ public:
         super(loc, TOKslice, __traits(classInstanceSize, SliceExp), e1);
         this.upr = upr;
         this.lwr = lwr;
-        lengthVar = null;
-        upperIsInBounds = false;
-        lowerIsLessThanUpper = false;
     }
 
     Expression syntaxCopy()
@@ -10665,16 +10614,12 @@ public:
         arguments = new Expressions();
         if (index)
             arguments.push(index);
-        lengthVar = null;
-        currentDimension = 0;
     }
 
     extern (D) this(Loc loc, Expression e1, Expressions* args)
     {
         super(loc, TOKarray, __traits(classInstanceSize, ArrayExp), e1);
         arguments = args;
-        lengthVar = null;
-        currentDimension = 0;
     }
 
     Expression syntaxCopy()
@@ -10964,8 +10909,8 @@ extern (C++) final class IndexExp : BinExp
 {
 public:
     VarDeclaration lengthVar;
-    bool modifiable;
-    bool indexIsInBounds; // true if 0 <= e2 && e2 <= e1.length - 1
+    bool modifiable = false;    // assume it is an rvalue
+    bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
     /************************** IndexExp **********************************/
     // e1 [ e2 ]
@@ -10973,9 +10918,6 @@ public:
     {
         super(loc, TOKindex, __traits(classInstanceSize, IndexExp), e1, e2);
         //printf("IndexExp::IndexExp('%s')\n", toChars());
-        lengthVar = null;
-        modifiable = false; // assume it is an rvalue
-        indexIsInBounds = false;
     }
 
     Expression syntaxCopy()
@@ -11349,7 +11291,6 @@ public:
     final extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKassign, __traits(classInstanceSize, AssignExp), e1, e2);
-        ismemset = 0;
     }
 
     final Expression semantic(Scope* sc)
