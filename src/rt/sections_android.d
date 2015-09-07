@@ -74,7 +74,6 @@ void initSections()
 
 void finiSections()
 {
-    .free(cast(void*)_sections.modules.ptr);
     pthread_key_delete(_tlsKey);
 }
 
