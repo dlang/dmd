@@ -2031,7 +2031,7 @@ public:
         return (storage_class & STCctfe) != 0; // || !isDataseg();
     }
 
-    bool isOverlappedWith(VarDeclaration v)
+    final bool isOverlappedWith(VarDeclaration v)
     {
         return (  offset < v.offset + v.type.size() &&
                 v.offset <   offset +   type.size());
