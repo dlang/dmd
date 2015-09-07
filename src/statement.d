@@ -3217,6 +3217,7 @@ public:
         uint cs1;
         uint* fi0 = sc.saveFieldInit();
         uint* fi1 = null;
+
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
         Scope* scd = sc.push(sym);
@@ -3226,12 +3227,15 @@ public:
              * result of condition.
              */
             match = new VarDeclaration(loc, prm.type, prm.ident, new ExpInitializer(loc, condition));
-            match.parent = sc.func;
+            match.parent = scd.func;
             match.storage_class |= prm.storageClass;
+            match.semantic(scd);
+
             auto de = new DeclarationExp(loc, match);
-            auto ve = new VarExp(Loc(), match);
+            auto ve = new VarExp(loc, match);
             condition = new CommaExp(loc, de, ve);
             condition = condition.semantic(scd);
+
             if (match.edtor)
             {
                 Statement sdtor = new ExpStatement(loc, match.edtor);
@@ -3242,21 +3246,25 @@ public:
         }
         else
         {
-            condition = condition.semantic(sc);
-            condition = resolveProperties(sc, condition);
-            condition = condition.addDtorHook(sc);
+            condition = condition.semantic(scd);
+            condition = resolveProperties(scd, condition);
+            condition = condition.addDtorHook(scd);
         }
-        condition = checkGC(sc, condition);
+        condition = checkGC(scd, condition);
+
         // Convert to boolean after declaring prm so this works:
         //  if (S prm = S()) {}
         // where S is a struct that defines opCast!bool.
-        condition = condition.toBoolean(sc);
+        condition = condition.toBoolean(scd);
+
         // If we can short-circuit evaluate the if statement, don't do the
         // semantic analysis of the skipped code.
         // This feature allows a limited form of conditional compilation.
         condition = condition.optimize(WANTvalue);
+
         ifbody = ifbody.semanticNoScope(scd);
         scd.pop();
+
         cs1 = sc.callSuper;
         fi1 = sc.fieldinit;
         sc.callSuper = cs0;
@@ -3265,7 +3273,10 @@ public:
             elsebody = elsebody.semanticScope(sc, null, null);
         sc.mergeCallSuper(loc, cs1);
         sc.mergeFieldInit(loc, fi1);
-        if (condition.op == TOKerror || (ifbody && ifbody.isErrorStatement()) || (elsebody && elsebody.isErrorStatement()))
+
+        if (condition.op == TOKerror ||
+            (ifbody && ifbody.isErrorStatement()) ||
+            (elsebody && elsebody.isErrorStatement()))
         {
             return new ErrorStatement();
         }
