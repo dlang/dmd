@@ -2207,7 +2207,6 @@ void Obj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize
         s->Sxtrnnum = elf_addsym(namidx, offset, symsize,
             typ, bind, MAP_SEG2SECIDX(seg));
     }
-    fflush(NULL);
 }
 
 /*******************************
