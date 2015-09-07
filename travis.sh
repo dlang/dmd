@@ -12,7 +12,13 @@ make -j$N -C src -f posix.mak HOST_DMD=$DMD dmd.conf
 make -j$N -C ../druntime -f posix.mak
 make -j$N -C ../phobos -f posix.mak
 
+# export path for shared phobos library
+mkdir -p ../lib
+export LD_LIBRARY_PATH="${PWD}/../lib:${LD_LIBRARY_PATH}"
+
 while [ $SELF_COMPILE -gt 0 ]; do
+    # copy shared phobos library
+    cp ../phobos/generated/linux/release/64/libphobos2.so* ../lib/
     # rebuild dmd using the just build dmd as host compiler
     mv src/dmd src/host_dmd
     make -j$N -C src -f posix.mak HOST_DMD=./host_dmd clean

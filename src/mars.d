@@ -315,7 +315,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     }
     else static if (TARGET_LINUX)
     {
-        global.params.defaultlibname = "libphobos2.a";
+        global.params.defaultlibname = "libphobos2.so";
     }
     else static if (TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
     {

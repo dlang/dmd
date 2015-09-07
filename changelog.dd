@@ -8,6 +8,7 @@ $(BUGSTITLE Compiler Changes,
 $(LI $(RELATIVE_LINK2 objective-c-support, Basic support for Objective-C.))
 $(LI $(RELATIVE_LINK2 property-switch-deprecated, The $(TT -property) switch has
     been deprecated.))
+$(LI $(RELATIVE_LINK2 link-shared-library, By default dmd now links against libphobos2.so on linux.))
 )
 
 $(BUGSTITLE Compiler Changes,
@@ -36,6 +37,29 @@ $(LI $(LNAME2 property-switch-deprecated, The $(TT -property) switch has
     )
 )
 
+$(LI $(LNAME2 link-shared-library, By default dmd now links against libphobos2.so on linux.)
+
+     $(P Linking against the shared libphobos2.so library has been supported for
+         quite a while on linux, it is now made the default configuration.
+     )
+
+     $(P You can still link against the static phobos library using $(TT
+         -defaultlib=libphobos2.a) or if supported on your platform build a
+         completely static binary using $(TT -L-static).
+     )
+
+     $(P This might require you to adjust $(TT LD_LIBRARY_PATH)
+         ----
+         export LD_LIBRARY_PATH="$HOME/dmd2/linux/lib64:$LD_LIBRARY_PATH"
+         ----
+         or using $(TT --rpath)
+         ----
+         ~/dmd2/linux/bin64/dmd myprog -L--rpath="$HOME/dmd2/linux/lib64"
+         ----
+         when phobos is not installed in a default lib folder.
+     )
+)
+
 )
 
 Macros:
@@ -49,3 +73,5 @@ Macros:
     STDMODREF = <a href="phobos/std_$1.html">$2</a>
     XREF = <a href="phobos/std_$1.html#$2">$2</a>
     CXREF = <a href="phobos/core_$1.html#$2">$2</a>
+
+    TT = <code>$0</code>
