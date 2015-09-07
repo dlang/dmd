@@ -429,11 +429,11 @@ public:
     Dsymbol overnext;                   // next in overload list
     FuncDeclaration overnext0;          // next in overload list (only used during IFTI)
     Loc endloc;                         // location of closing curly bracket
-    int vtblIndex;                      // for member functions, index into vtbl[]
+    int vtblIndex = -1;                 // for member functions, index into vtbl[]
     bool naked;                         // true if naked
-    ILS inlineStatusStmt;
-    ILS inlineStatusExp;
-    PINLINE inlining;
+    ILS inlineStatusStmt = ILSuninitialized;
+    ILS inlineStatusExp = ILSuninitialized;
+    PINLINE inlining = PINLINEdefault;
 
     CompiledCtfeFunction* ctfeCode;     // Compiled code for interpreter
     int inlineNest;                     // !=0 if nested inline
@@ -458,7 +458,7 @@ public:
     int hasReturnExp;
 
     // Support for NRVO (named return value optimization)
-    bool nrvo_can;                      // true means we can do it
+    bool nrvo_can = true;               // true means we can do it
     VarDeclaration nrvo_var;            // variable to replace with shidden
     Symbol* shidden;                    // hidden pointer passed to function
 
@@ -467,7 +467,7 @@ public:
     GotoStatements* gotos;              // Gotos with forward references
 
     // set if this is a known, builtin function we can evaluate at compile time
-    BUILTIN builtin;
+    BUILTIN builtin = BUILTINunknown;
 
     // set if someone took the address of this function
     int tookAddressOf;
@@ -498,56 +498,10 @@ public:
         }
         this.loc = loc;
         this.endloc = endloc;
-        fthrows = null;
-        frequire = null;
-        fdrequire = null;
-        fdensure = null;
-        mangleString = null;
-        outId = null;
-        vresult = null;
-        returnLabel = null;
-        fensure = null;
-        fbody = null;
-        localsymtab = null;
-        vthis = null;
-        v_arguments = null;
-        version (IN_GCC)
-        {
-            v_argptr = null;
-        }
-        v_argsave = null;
-        parameters = null;
-        labtab = null;
-        overnext = null;
-        overnext0 = null;
-        vtblIndex = -1;
-        hasReturnExp = 0;
-        naked = false;
-        inlineStatusExp = ILSuninitialized;
-        inlineStatusStmt = ILSuninitialized;
-        inlining = PINLINEdefault;
-        inlineNest = 0;
-        ctfeCode = null;
-        isArrayOp = 0;
-        semantic3Errors = false;
-        fes = null;
-        introducing = 0;
-        tintro = null;
         /* The type given for "infer the return type" is a TypeFunction with
          * NULL for the return type.
          */
         inferRetType = (type && type.nextOf() is null);
-        storage_class2 = 0;
-        hasReturnExp = 0;
-        nrvo_can = 1;
-        nrvo_var = null;
-        shidden = null;
-        builtin = BUILTINunknown;
-        tookAddressOf = 0;
-        requiresClosure = false;
-        flags = 0;
-        returns = null;
-        gotos = null;
     }
 
     Dsymbol syntaxCopy(Dsymbol s)
@@ -4362,7 +4316,6 @@ public:
         this.ident = id ? id : Id.empty;
         this.tok = tok;
         this.fes = fes;
-        this.treq = null;
         //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this->ident->toChars(), type->toChars());
     }
 
@@ -4904,13 +4857,11 @@ public:
     final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateId("_staticDtor"), STCstatic | stc, null);
-        vgate = null;
     }
 
     final extern (D) this(Loc loc, Loc endloc, const(char)* name, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
-        vgate = null;
     }
 
     Dsymbol syntaxCopy(Dsymbol s)

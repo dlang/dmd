@@ -957,11 +957,6 @@ extern (C++) Statement toStatement(Dsymbol s)
     public:
         Statement result;
 
-        extern (D) this()
-        {
-            this.result = null;
-        }
-
         Statement visitMembers(Loc loc, Dsymbols* a)
         {
             if (!a)
@@ -1890,7 +1885,6 @@ public:
         this.increment = increment;
         this._body = _body;
         this.endloc = endloc;
-        this.relatedLabeled = null;
     }
 
     Statement syntaxCopy()
