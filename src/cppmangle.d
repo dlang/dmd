@@ -979,6 +979,21 @@ else static if (TARGET_WINDOS)
             {
                 return;
             }
+            if (!(flags & IS_DMC))
+            {
+                switch (type.ty)
+                {
+                    case Tint64:
+                    case Tuns64:
+                    case Tint128:
+                    case Tuns128:
+                    case Tfloat80:
+                    case Twchar:
+                        if (checkTypeSaved(type))
+                            return;
+                    default:
+                }
+            }
             mangleModifier(type);
             switch (type.ty)
             {
