@@ -124,6 +124,9 @@ $(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+changelog.html: changelog.dd
+	$(DMD) -Df$@ $<
+
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
@@ -183,7 +186,7 @@ $(DRUNTIME): $(OBJS) $(SRCS)
 UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
-	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage
+	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile
 	ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
 endif
 
@@ -253,7 +256,7 @@ test/%/.run: test/%/Makefile
 #################### test for undesired white spaces ##########################
 CWS_MANIFEST = $(shell git ls-tree --name-only -r HEAD)
 CWS_MAKEFILES = $(filter mak/% %.mak %/Makefile,$(CWS_MANIFEST))
-NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES) src/rt/minit.obj,$(CWS_MANIFEST))
+NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES) src/rt/minit.obj test/%.exp,$(CWS_MANIFEST))
 GREP = grep
 
 checkwhitespace:
