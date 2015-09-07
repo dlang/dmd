@@ -150,10 +150,50 @@ void test13336()
 }
 
 /***************************************************/
+// 15018
+
+struct S15018(int n)
+{
+    short[n] m;
+}
+
+S15018!n f15018(int n)()
+{
+    S15018!n s;
+    foreach(i; 0..n)
+        s.m[i] = cast(short)(i * i + 3);
+    return s;
+}
+
+void test15018()
+{
+    // size 4
+    S15018!2[3] s3;
+    s3[] = f15018!2();
+    foreach (int i; 0..3)
+    {
+        assert(s3[i].m[0] == 3);
+        assert(s3[i].m[1] == 4);
+    }
+
+    // size 4-18
+    foreach (n; TypeTuple!(2, 3, 4, 5, 6, 7, 8, 9))
+    {
+        S15018!n[5] i5;
+        i5[] = f15018!n();
+        foreach (int j; 0..5)
+            foreach(k; 0..n)
+                if (i5[j].m[k] != k * k + 3)
+                    assert(false);
+    }
+}
+
+/***************************************************/
 
 int main()
 {
     test13336();
+    test15018();
 
     printf("Success\n");
     return 0;
