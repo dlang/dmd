@@ -792,8 +792,7 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
         Type *tbn = tnext->toBasetype();
         while (tbn->ty == Tsarray && (!e || tbn != e->type->nextOf()))
         {
-            TypeSArray *tsa = (TypeSArray *)tbn;
-            len *= tsa->dim->toInteger();
+            len *= ((TypeSArray *)tbn)->dim->toInteger();
             tnext = tbn->nextOf();
             tbn = tnext->toBasetype();
         }
@@ -801,10 +800,14 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
             e = tsa->defaultInit(Loc());    // use default initializer
         Expression_toDt(e, pdt);
         dt_optimize(*pdt);
-        if (e->op == TOKstring)
-            len /= ((StringExp *)e)->len;
-        if (e->op == TOKarrayliteral)
-            len /= ((ArrayLiteralExp *)e)->elements->dim;
+        if (!e->type->implicitConvTo(tnext))    // Bugzilla 14996
+        {
+            // Bugzilla 1914, 3198
+            if (e->op == TOKstring)
+                len /= ((StringExp *)e)->len;
+            else if (e->op == TOKarrayliteral)
+                len /= ((ArrayLiteralExp *)e)->elements->dim;
+        }
         pdt = dtrepeat(pdt, *pdt, len - 1);
     }
     return pdt;
