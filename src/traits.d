@@ -1074,76 +1074,71 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("%s %s has no members", s.kind(), s.toChars());
             return new ErrorExp();
         }
-        // use a struct as local function
-        struct PushIdentsDg
-        {
-            extern (C++) static int dg(void* ctx, size_t n, Dsymbol sm)
-            {
-                if (!sm)
-                    return 1;
-                //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
-                if (sm.ident)
-                {
-                    if (sm.ident.string[0] == '_' && sm.ident.string[1] == '_' && sm.ident != Id.ctor && sm.ident != Id.dtor && sm.ident != Id.__xdtor && sm.ident != Id.postblit && sm.ident != Id.__xpostblit)
-                    {
-                        return 0;
-                    }
-                    if (sm.ident == Id.empty)
-                    {
-                        return 0;
-                    }
-                    //printf("\t%s\n", sm->ident->toChars());
-                    Identifiers* idents = cast(Identifiers*)ctx;
-                    /* Skip if already present in idents[]
-                     */
-                    for (size_t j = 0; j < idents.dim; j++)
-                    {
-                        Identifier id = (*idents)[j];
-                        if (id == sm.ident)
-                            return 0;
-                        debug
-                        {
-                            // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
-                            assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
-                        }
-                    }
-                    idents.push(sm.ident);
-                }
-                else
-                {
-                    EnumDeclaration ed = sm.isEnumDeclaration();
-                    if (ed)
-                    {
-                        ScopeDsymbol._foreach(null, ed.members, &PushIdentsDg.dg, cast(Identifiers*)ctx);
-                    }
-                }
-                return 0;
-            }
-        }
 
         auto idents = new Identifiers();
-        ScopeDsymbol._foreach(sc, sds.members, &PushIdentsDg.dg, idents);
+
+        int pushIdentsDg(size_t n, Dsymbol sm)
+        {
+            if (!sm)
+                return 1;
+            //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
+            if (sm.ident)
+            {
+                if (sm.ident.string[0] == '_' && sm.ident.string[1] == '_' && sm.ident != Id.ctor && sm.ident != Id.dtor && sm.ident != Id.__xdtor && sm.ident != Id.postblit && sm.ident != Id.__xpostblit)
+                {
+                    return 0;
+                }
+                if (sm.ident == Id.empty)
+                {
+                    return 0;
+                }
+                //printf("\t%s\n", sm->ident->toChars());
+                /* Skip if already present in idents[]
+                 */
+                for (size_t j = 0; j < idents.dim; j++)
+                {
+                    Identifier id = (*idents)[j];
+                    if (id == sm.ident)
+                        return 0;
+                    debug
+                    {
+                        // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
+                        assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
+                    }
+                }
+                idents.push(sm.ident);
+            }
+            else
+            {
+                EnumDeclaration ed = sm.isEnumDeclaration();
+                if (ed)
+                {
+                    ScopeDsymbol._foreach(null, ed.members, &pushIdentsDg);
+                }
+            }
+            return 0;
+        }
+
+        ScopeDsymbol._foreach(sc, sds.members, &pushIdentsDg);
         ClassDeclaration cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
             if (cd._scope)
                 cd.semantic(null); // Bugzilla 13668: Try to resolve forward reference
-            struct PushBaseMembers
+
+            void pushBaseMembersDg(ClassDeclaration cd)
             {
-                extern (C++) static void dg(ClassDeclaration cd, Identifiers* idents)
+                for (size_t i = 0; i < cd.baseclasses.dim; i++)
                 {
-                    for (size_t i = 0; i < cd.baseclasses.dim; i++)
-                    {
-                        ClassDeclaration cb = (*cd.baseclasses)[i].sym;
-                        assert(cb);
-                        ScopeDsymbol._foreach(null, cb.members, &PushIdentsDg.dg, idents);
-                        if (cb.baseclasses.dim)
-                            dg(cb, idents);
-                    }
+                    ClassDeclaration cb = (*cd.baseclasses)[i].sym;
+                    assert(cb);
+                    ScopeDsymbol._foreach(null, cb.members, &pushIdentsDg);
+                    if (cb.baseclasses.dim)
+                        pushBaseMembersDg(cb);
                 }
             }
 
-            PushBaseMembers.dg(cd, idents);
+            pushBaseMembersDg(cd);
         }
         // Turn Identifiers into StringExps reusing the allocated array
         assert(Expressions.sizeof == Identifiers.sizeof);
