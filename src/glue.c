@@ -735,6 +735,8 @@ bool isDruntimeArrayOp(Identifier *ident)
 
 /* ================================================================== */
 
+void dumpFunc(symbol *sfunc);
+
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 {
     ClassDeclaration *cd = fd->parent->isClassDeclaration();
@@ -1282,6 +1284,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         return;
     }
 
+    dumpFunc(s);
     writefunc(s);
     // Restore symbol table
     cstate.CSpsymtab = symtabsave;
