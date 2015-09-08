@@ -1896,9 +1896,9 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
     // When the function is actually expanded
     if (TemplateInstance *ti = fd->isInstantiated())
     {
-        // change ti to non-speculative instance
+        // change ti to non-speculative root instance
         if (!ti->minst)
-            ti->minst = ti->tempdecl->getModule();
+            ti->minst = ti->tempdecl->getModule()->importedFrom;
     }
 
     if (ps)
