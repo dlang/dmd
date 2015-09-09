@@ -6379,7 +6379,18 @@ public:
             // Elide codegen because this is really speculative.
             return false;
         }
-
+        /* Even when this is reached to the codegen pass,
+         * a non-root nested template should not generate code,
+         * due to avoid ODR violation.
+         */
+        if (enclosing && enclosing.inNonRoot())
+        {
+            if (tinst)
+                return tinst.needsCodegen();
+            if (tnext)
+                return tnext.needsCodegen();
+            return false;
+        }
         /* The issue is that if the importee is compiled with a different -debug
          * setting than the importer, the importer may believe it exists
          * in the compiled importee when it does not, when the instantiation
@@ -7266,6 +7277,14 @@ public:
     {
         int nested = 0;
         //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl->ident->toChars());
+        version (none)
+        {
+            if (!enclosing)
+            {
+                if (TemplateInstance ti = tempdecl.isInstantiated())
+                    enclosing = ti.enclosing;
+            }
+        }
         /* A nested instance happens when an argument references a local
          * symbol that is on the stack.
          */
@@ -7379,7 +7398,10 @@ public:
             if (mi && !mi.isRoot())
                 mi = null;
         }
-
+        //printf("%s->appendToModuleMember() enclosing = %s mi = %s\n",
+        //    toPrettyChars(),
+        //    enclosing ? enclosing.toPrettyChars() : NULL,
+        //    mi ? mi.toPrettyChars() : NULL);
         if (!mi || mi.isRoot())
         {
             /* If the instantiated module is speculative or root, insert to the
@@ -7387,10 +7409,22 @@ public:
              *  - semantic3 pass will get called on the instance members.
              *  - codegen pass will get a selection chance to do/skip it.
              */
+            struct N
+            {
+                extern (C++) static Dsymbol getStrictEnclosing(TemplateInstance ti)
+                {
+                    if (ti.enclosing)
+                        return ti.enclosing;
+                    if (TemplateInstance tix = ti.tempdecl.isInstantiated())
+                        return getStrictEnclosing(tix);
+                    return null;
+                }
+            }
 
+            Dsymbol enc = N.getStrictEnclosing(this);
             // insert target is made stable by using the module
             // where tempdecl is declared.
-            mi = tempdecl.getModule();
+            mi = (enc ? enc : tempdecl).getModule();
             if (!mi.isRoot())
                 mi = mi.importedFrom;
             assert(mi.isRoot());
@@ -7403,7 +7437,7 @@ public:
              *  - codegen pass won't reach to the instance.
              */
         }
-
+        //printf("\t--> mi = %s\n", mi.toPrettyChars());
         Dsymbols* a = mi.members;
         for (size_t i = 0; 1; i++)
         {
