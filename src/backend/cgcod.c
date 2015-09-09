@@ -110,8 +110,8 @@ regm_t allregs;                // ALLREGS optionally including mBP
 
 int dfoidx;                     /* which block we are in                */
 struct CSE *csextab = NULL;     /* CSE table (allocated for each function) */
-unsigned cstop;                 /* # of entries in CSE table (csextab[])   */
-unsigned csmax;                 /* amount of space in csextab[]         */
+size_t cstop;                   // # of entries in CSE table (csextab[])
+size_t csmax;                   // amount of space in csextab[]
 
 targ_size_t     funcoffset;     // offset of start of function
 targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
@@ -1631,13 +1631,13 @@ void freenode(elem *e)
     if (e->Ecomsub--) return;             /* usage count                  */
     if (e->Ecount)                        /* if it was a CSE              */
     {
-        for (unsigned i = 0; i < arraysize(regcon.cse.value); i++)
+        for (size_t i = 0; i < arraysize(regcon.cse.value); i++)
         {   if (regcon.cse.value[i] == e)       /* if a register is holding it  */
             {   regcon.cse.mval &= ~mask[i];
                 regcon.cse.mops &= ~mask[i];    /* free masks                   */
             }
         }
-        for (unsigned i = 0; i < cstop; i++)
+        for (size_t i = 0; i < cstop; i++)
         {   if (csextab[i].e == e)
                 csextab[i].e = NULL;
         }
@@ -1978,7 +1978,7 @@ STATIC code * cse_save(regm_t ms)
         if (regm & ms)
         {
             elem *e = regcon.cse.value[findreg(regm)];
-            for (unsigned i = 0; i < csmax; i++)
+            for (size_t i = 0; i < csmax; i++)
             {
                 if (csextab[i].e == e)
                 {
@@ -2001,10 +2001,11 @@ STATIC code * cse_save(regm_t ms)
         }
     }
 
-    for (unsigned i = cstop; ms; i++)
+    for (size_t i = cstop; ms; i++)
     {
         if (i >= csmax)                 /* array overflow               */
-        {   unsigned cseinc;
+        {
+            size_t cseinc;
 
 #ifdef DEBUG
             cseinc = 8;                 /* flush out reallocation bugs  */
@@ -2242,7 +2243,7 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 
   /* create mask of what's in csextab[] */
   csemask = 0;
-  for (unsigned i = 0; i < cstop; i++)
+  for (size_t i = 0; i < cstop; i++)
   {     if (csextab[i].e)
             elem_debug(csextab[i].e);
         if (csextab[i].e == e)
@@ -2281,7 +2282,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
 
         if (!EOP(e))                    /* if not op or func            */
                 goto reload;            /* reload data                  */
-        for (unsigned i = cstop; i--;)           /* look through saved comsubs   */
+        for (size_t i = cstop; i--;)           /* look through saved comsubs   */
                 if (csextab[i].e == e)  /* found it             */
                 {   regm_t retregs;
 
@@ -2442,7 +2443,7 @@ done:
 
 STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
 {
-  for (unsigned i = cstop; i--;)
+  for (size_t i = cstop; i--;)
   {
         //printf("csextab[%d] = %p, regm = %s\n", i, csextab[i].e, regm_str(csextab[i].regm));
         if (csextab[i].e == e && csextab[i].regm & regm)
