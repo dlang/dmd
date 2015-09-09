@@ -4539,7 +4539,17 @@ code *loaddata(elem *e,regm_t *pretregs)
 #endif
         assert(forregs & BYTEREGS);
         if (!I16)
+        {
+            if (config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed &&
+                // Workaround for OSX linker bug:
+                //   ld: GOT load reloc does not point to a movq instruction in test42 for x86_64
+                !(config.exe & EX_OSX64 && !(sytab[e->EV.sp.Vsym->Sclass] & SCSS))
+               )
+            {
+                op = tyuns(tym) ? 0x0FB6 : 0x0FBE;      // MOVZX/MOVSX
+            }
             c = cat(c,loadea(e,&cs,op,reg,0,0,0));    // MOV regL,data
+        }
         else
         {   nregm = tyuns(tym) ? BYTEREGS : mAX;
             if (*pretregs & nregm)
@@ -4572,7 +4582,16 @@ code *loaddata(elem *e,regm_t *pretregs)
     }
     else if (sz <= REGSIZE)
     {
-        ce = loadea(e,&cs,0x8B,reg,0,RMload,0); // MOV reg,data
+        unsigned op = 0x8B;                     // MOV reg,data
+        if (sz == 2 && !I16 && config.target_cpu >= TARGET_PentiumPro &&
+            // Workaround for OSX linker bug:
+            //   ld: GOT load reloc does not point to a movq instruction in test42 for x86_64
+            !(config.exe & EX_OSX64 && !(sytab[e->EV.sp.Vsym->Sclass] & SCSS))
+           )
+        {
+            op = tyuns(tym) ? 0x0FB7 : 0x0FBF;  // MOVZX/MOVSX
+        }
+        ce = loadea(e,&cs,op,reg,0,RMload,0);
         c = cat(c,ce);
     }
     else if (sz <= 2 * REGSIZE && forregs & mES)
