@@ -2921,7 +2921,14 @@ code *cdind(elem *e,regm_t *pretregs)
         }
         else if (sz <= REGSIZE)
         {
-                cs.Iop = 0x8B ^ byte;
+                cs.Iop = 0x8B;                                  // MOV
+                if (sz <= 2 && !I16 &&
+                    config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed)
+                {
+                    cs.Iop = tyuns(tym) ? 0x0FB7 : 0x0FBF;      // MOVZX/MOVSX
+                    cs.Iflags &= ~CFopsize;
+                }
+                cs.Iop ^= byte;
         L2:     code_newreg(&cs,reg);
                 ce = gen(CNIL,&cs);     /* MOV reg,[idx]                */
                 if (byte && reg >= 4)
