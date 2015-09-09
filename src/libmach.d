@@ -13,6 +13,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.stdio;
 import core.stdc.stdarg;
+import core.stdc.config;
 import core.sys.posix.sys.stat;
 import core.sys.posix.unistd;
 import ddmd.globals;
@@ -543,7 +544,7 @@ struct MachObjModule
     uint length; // in bytes
     uint offset; // offset from start of library
     char* name; // module name (file name)
-    long file_time; // file time
+    c_long file_time; // file time
     uint user_id;
     uint group_id;
     uint file_mode;

@@ -127,7 +127,7 @@ else
     __gshared size_t heapleft = 0;
     __gshared void* heapp;
 
-    extern (C++) void* allocmemory(size_t m_size)
+    extern (C) void* allocmemory(size_t m_size)
     {
         // 16 byte alignment is better (and sometimes needed) for doubles
         m_size = (m_size + 15) & ~15;
