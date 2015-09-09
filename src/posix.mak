@@ -19,8 +19,6 @@ else
 endif
 
 INSTALL_DIR=../../install
-# can be set to override the default /etc/
-SYSCONFDIR=/etc/
 PGO_DIR=$(abspath pgo)
 
 C=backend
