@@ -737,6 +737,20 @@ bool isDruntimeArrayOp(Identifier *ident)
 
 /* ================================================================== */
 
+UnitTestDeclaration *needsDeferredNested(FuncDeclaration *fd)
+{
+    while (fd && fd->isNested())
+    {
+        FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
+        if (!fdp)
+            break;
+        if (UnitTestDeclaration *udp = fdp->isUnitTestDeclaration())
+            return udp->semanticRun < PASSobj ? udp : NULL;
+        fd = fdp;
+    }
+    return NULL;
+}
+
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 {
     ClassDeclaration *cd = fd->parent->isClassDeclaration();
@@ -764,6 +778,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 
     // If errors occurred compiling it, such as bugzilla 6118
     if (fd->type && fd->type->ty == Tfunction && ((TypeFunction *)fd->type)->next->ty == Terror)
+        return;
+
+    if (fd->semantic3Errors)
         return;
 
     if (global.errors)
@@ -804,23 +821,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
             break;
     }
 
-    FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
-    if (fd->isNested())
+    if (UnitTestDeclaration *udp = needsDeferredNested(fd))
     {
-        if (fdp && fdp->semanticRun < PASSobj)
-        {
-            if (fdp->semantic3Errors)
-                return;
-
-            /* Can't do unittest's out of order, they are order dependent in that their
-             * execution is done in lexical order.
-             */
-            if (UnitTestDeclaration *udp = fdp->isUnitTestDeclaration())
-            {
-                udp->deferredNested.push(fd);
-                return;
-            }
-        }
+        /* Can't do unittest's out of order, they are order dependent in that their
+         * execution is done in lexical order.
+         */
+        udp->deferredNested.push(fd);
+        //printf("%s @[%s]\n\t--> pushed to unittest @[%s]\n",
+        //    fd->toPrettyChars(), fd->loc.toChars(), udp->loc.toChars());
+        return;
     }
 
     if (fd->isArrayOp && isDruntimeArrayOp(fd->ident))
@@ -885,6 +894,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         /* The enclosing function must have its code generated first,
          * in order to calculate correct frame pointer offset.
          */
+        FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
         if (fdp && fdp->semanticRun < PASSobj)
         {
             toObjFile(fdp, multiobj);

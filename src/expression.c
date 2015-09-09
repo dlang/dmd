@@ -45,6 +45,7 @@
 bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2);
 bool isArrayOpValid(Expression *e);
 Expression *expandVar(int result, VarDeclaration *v);
+bool walkPostorder(Expression *e, StoppableVisitor *v);
 TypeTuple *toArgTypes(Type *t);
 bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
@@ -806,6 +807,8 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
 
                 if (key->checkValue())
                     return new ErrorExp();
+
+                semanticTypeInfo(sc, taa->index);
 
                 return new RemoveExp(loc, eleft, key);
             }
@@ -2515,15 +2518,6 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
          */
 
         Dsymbol *vparent = v->toParent2();
-        if (FuncDeclaration *fdp = vparent->isFuncDeclaration())
-        {
-            if (!sc->func->isPureBypassingInference() && fdp->setImpure())
-            {
-                error("impure function '%s' cannot access variable '%s' declared in enclosing pure function '%s'",
-                    sc->func->toChars(), v->toChars(), fdp->toPrettyChars());
-                err = true;
-            }
-        }
         for (Dsymbol *s = sc->func; !err && s; s = s->toParent2())
         {
             if (s == vparent)
@@ -3368,6 +3362,10 @@ Lagain:
             v->semantic(v->scope);
             s = v->toAlias();   // Need this if 'v' is a tuple variable
         }
+
+        // Change the ancestor lambdas to delegate before hasThis(sc) call.
+        if (v->checkNestedReference(sc, loc))
+            return new ErrorExp();
     }
     if (s->needThis() && hasThis(sc))
     {
@@ -4170,7 +4168,7 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-    semanticTypeInfo(sc, t0);
+    semanticTypeInfo(sc, type);
 
     return this;
 }
@@ -5324,6 +5322,9 @@ Expression *VarExp::semantic(Scope *sc)
     }
     else if (FuncDeclaration *fd = var->isFuncDeclaration())
     {
+        // TODO: If fd isn't yet resolved its overload, the checkNestedReference
+        // call would cause incorrect validation.
+        // Maybe here should be moved in CallExp, or AddrExp for functions.
         if (fd->checkNestedReference(sc, loc))
             return new ErrorExp();
     }
@@ -6049,6 +6050,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
             declaration->semantic3(sc);
         }
     }
+    // todo: error in declaration should be propagated.
 
     type = Type::tvoid;
     return this;
@@ -6127,6 +6129,9 @@ Expression *TypeidExp::semantic(Scope *sc)
         // Handle this in the glue layer
         e = new TypeidExp(loc, ta);
         e->type = getTypeInfoType(ta, sc);
+
+        semanticTypeInfo(sc, ta);
+
         if (ea)
         {
             e = new CommaExp(loc, ea, e);       // execute ea
@@ -8981,6 +8986,10 @@ Lagain:
 
         if (f->needThis())
         {
+            // Change the ancestor lambdas to delegate before hasThis(sc) call.
+            if (f->checkNestedReference(sc, loc))
+                return new ErrorExp();
+
             if (hasThis(sc))
             {
                 // Supply an implicit 'this', as in
@@ -9580,7 +9589,10 @@ Expression *DeleteExp::semantic(Scope *sc)
                 FuncDeclaration *fd = sd->dtor;
 
                 if (!f)
+                {
+                    semanticTypeInfo(sc, ts);
                     break;
+                }
 
                 /* Construct:
                  *      ea = copy e1 to a tmp to do side effects only once
@@ -9869,6 +9881,16 @@ Expression *VectorExp::semantic(Scope *sc)
 
 /************************************************************/
 
+SliceExp::SliceExp(Loc loc, Expression *e1, IntervalExp *ie)
+        : UnaExp(loc, TOKslice, sizeof(SliceExp), e1)
+{
+    this->upr = ie ? ie->upr : NULL;
+    this->lwr = ie ? ie->lwr : NULL;
+    lengthVar = NULL;
+    upperIsInBounds = false;
+    lowerIsLessThanUpper = false;
+}
+
 SliceExp::SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr)
         : UnaExp(loc, TOKslice, sizeof(SliceExp), e1)
 {
@@ -9896,7 +9918,8 @@ Expression *SliceExp::semantic(Scope *sc)
     if (type)
         return this;
 
-Lagain:
+    // operator overloading should be handled in ArrayExp already.
+
     if (Expression *ex = unaSemantic(sc))
         return ex;
     e1 = resolveProperties(sc, e1);
@@ -9937,9 +9960,12 @@ Lagain:
             return e1;
         }
     }
+    if (e1->op == TOKerror)
+        return e1;
+    if (e1->type->ty == Terror)
+        return new ErrorExp();
 
     Type *t1b = e1->type->toBasetype();
-    AggregateDeclaration *ad = isAggregate(t1b);
     if (t1b->ty == Tpointer)
     {
         if (((TypePointer *)t1b)->next->ty == Tfunction)
@@ -9964,36 +9990,6 @@ Lagain:
     else if (t1b->ty == Tsarray)
     {
     }
-    else if (ad)
-    {
-        if (search_function(ad, Id::slice))
-        {
-            // Rewrite as e1.slice(lwr, upr)
-            Expression *e0 = NULL;
-            Expression *ex = resolveOpDollar(sc, this, &e0);
-            if (ex->op == TOKerror)
-                return ex;
-            Expressions *a = new Expressions();
-            assert(!lwr || upr);
-            if (lwr)
-            {
-                a->push(lwr);
-                a->push(upr);
-            }
-            Expression *e = new DotIdExp(loc, e1, Id::slice);
-            e = new CallExp(loc, e, a);
-            e = e->semantic(sc);
-            return Expression::combine(e0, e);
-        }
-        if (ad->aliasthis && e1->type != att1)
-        {
-            if (!att1 && e1->type->checkAliasThisRec())
-                att1 = e1->type;
-            e1 = resolveAliasThis(sc, e1);
-            goto Lagain;
-        }
-        goto Lerror;
-    }
     else if (t1b->ty == Ttuple)
     {
         if (!lwr && !upr)
@@ -10004,15 +10000,8 @@ Lagain:
             return new ErrorExp();
         }
     }
-    else if (t1b == Type::terror)
-    {
-        return new ErrorExp();
-    }
     else
     {
-    Lerror:
-        if (e1->op == TOKerror)
-            return e1;
         error("%s cannot be sliced with []",
             t1b->ty == Tvoid ? e1->toChars() : t1b->toChars());
         return new ErrorExp();
@@ -10392,6 +10381,16 @@ Expression *DelegateFuncptrExp::toLvalue(Scope *sc, Expression *e)
 
 // e1 [ i1, i2, i3, ... ]
 
+ArrayExp::ArrayExp(Loc loc, Expression *e1, Expression *index)
+        : UnaExp(loc, TOKarray, sizeof(ArrayExp), e1)
+{
+    arguments = new Expressions();
+    if (index)
+        arguments->push(index);
+    lengthVar = NULL;
+    currentDimension = 0;
+}
+
 ArrayExp::ArrayExp(Loc loc, Expression *e1, Expressions *args)
         : UnaExp(loc, TOKarray, sizeof(ArrayExp), e1)
 {
@@ -10412,47 +10411,18 @@ Expression *ArrayExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("ArrayExp::semantic('%s')\n", toChars());
 #endif
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
-    Expression *e1x = resolveProperties(sc, e1);
-    if (e1x->op == TOKerror)
-        return e1x;
-    e1 = e1x;
-
-    Type *t1 = e1->type->toBasetype();
-    if (t1->ty != Tclass && t1->ty != Tstruct)
-    {
-        // Convert to IndexExp
-        Expression *e;
-        if (arguments->dim == 0)
-        {
-            e = new SliceExp(loc, e1, NULL, NULL);
-        }
-        else if (arguments->dim == 1 && (*arguments)[0]->op == TOKinterval)
-        {
-            IntervalExp *ie = (IntervalExp *)(*arguments)[0];
-            e = new SliceExp(loc, e1, ie->lwr, ie->upr);
-        }
-        else if (arguments->dim == 1)
-        {
-            e = new IndexExp(loc, e1, (*arguments)[0]);
-        }
-        else
-        {
-            error("only one index allowed to index %s", t1->toChars());
-            return new ErrorExp();
-        }
-        return e->semantic(sc);
-    }
+    assert(!type);
 
     Expression *e = op_overload(sc);
     if (e)
         return e;
 
-    error("no [] operator overload for type %s", e1->type->toChars());
+    if (isAggregate(e1->type))
+        error("no [] operator overload for type %s", e1->type->toChars());
+    else
+        error("only one index allowed to index %s", e1->type->toChars());
     return new ErrorExp();
 }
-
 
 bool ArrayExp::isLvalue()
 {
@@ -10582,6 +10552,8 @@ Expression *IndexExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    // operator overloading should be handled in ArrayExp already.
+
     if (!e1->type)
         e1 = e1->semantic(sc);
     assert(e1->type);           // semantic() should already be run on it
@@ -10683,6 +10655,9 @@ Expression *IndexExp::semantic(Scope *sc)
                 if (e2->type == Type::terror)
                     return new ErrorExp();
             }
+
+            semanticTypeInfo(sc, taa);
+
             type = taa->next;
             break;
         }
@@ -10966,134 +10941,120 @@ Expression *AssignExp::semantic(Scope *sc)
         return e->semantic(sc);
     }
 
-    /* Look for operator overloading of a[i]=value.
-     * Do it before semantic() otherwise the a[i] will have been
-     * converted to a.opIndex() already.
+    /* Look for operator overloading of a[arguments] = e2.
+     * Do it before e1->semantic() otherwise the ArrayExp will have been
+     * converted to unary operator overloading already.
      */
     if (e1->op == TOKarray)
     {
+        Expression *result;
+
         ArrayExp *ae = (ArrayExp *)e1;
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
+        Expression *ae1old = ae->e1;
 
-        Type *t1 = ae->e1->type->toBasetype();
-        AggregateDeclaration *ad = isAggregate(t1);
-        if (ad)
+        const bool maybeSlice =
+            (ae->arguments->dim == 0 ||
+             ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval);
+        IntervalExp *ie = NULL;
+        if (maybeSlice && ae->arguments->dim)
         {
-            Expression *e0 = NULL;
+            assert((*ae->arguments)[0]->op == TOKinterval);
+            ie = (IntervalExp *)(*ae->arguments)[0];
+        }
 
-            // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
+        while (true)
+        {
+            if (ae->e1->op == TOKerror)
+                return ae->e1;
+            Expression *e0 = NULL;
+            Expression *ae1save = ae->e1;
+            ae->lengthVar = NULL;
+
+            Type *t1b = ae->e1->type->toBasetype();
+            AggregateDeclaration *ad = isAggregate(t1b);
+            if (!ad)
+                break;
             if (search_function(ad, Id::indexass))
             {
                 // Deal with $
-                Expression *ex = resolveOpDollar(sc, ae, &e0);
-                if (!ex)
+                result = resolveOpDollar(sc, ae, &e0);
+                if (!result)    // a[i..j] = e2 might be: a.opSliceAssign(e2, i, j)
                     goto Lfallback;
-                if (ex->op == TOKerror)
-                    return ex;
+                if (result->op == TOKerror)
+                    return result;
 
-                Expression *e2x = e2->semantic(sc);
-                if (e2x->op == TOKerror)
-                    return e2x;
-                e2 = e2x;
+                result = e2->semantic(sc);
+                if (result->op == TOKerror)
+                    return result;
+                e2 = result;
 
+                /* Rewrite (a[arguments] = e2) as:
+                 *      a.opIndexAssign(e2, arguments)
+                 */
                 Expressions *a = (Expressions *)ae->arguments->copy();
                 a->insert(0, e2);
-
-                Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
-                e = new CallExp(loc, e, a);
-                if (ae->arguments->dim == 0)
-                    e = e->trySemantic(sc);
+                result = new DotIdExp(loc, ae->e1, Id::indexass);
+                result = new CallExp(loc, result, a);
+                if (maybeSlice) // a[] = e2 might be: a.opSliceAssign(e2)
+                    result = result->trySemantic(sc);
                 else
-                    e = e->semantic(sc);
-                if (!e)
-                    goto Lfallback;
-                return Expression::combine(e0, e);
+                    result = result->semantic(sc);
+                if (result)
+                {
+                    result = Expression::combine(e0, result);
+                    return result;
+                }
             }
-
-            // No opIndexAssign found yet, but there might be an alias this to try.
-            if (ad->aliasthis && t1 != ae->att1)
-            {
-                ArrayExp *aex = (ArrayExp *)ae->copy();
-                if (!aex->att1 && t1->checkAliasThisRec())
-                    aex->att1 = t1;
-                aex->e1 = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
-                this->e1 = aex;
-                Expression *ex = this->trySemantic(sc);
-                if (ex)
-                    return ex;
-                this->e1 = ae;  // restore
-            }
-
         Lfallback:
-            if (ae->arguments->dim == 0)
+            if (maybeSlice && search_function(ad, Id::sliceass))
             {
-                // a[] = e2
-                SliceExp *se = new SliceExp(ae->loc, ae->e1, NULL, NULL);
-                se->att1 = ae->att1;
-                this->e1 = se;
-                return Expression::combine(e0, this->semantic(sc));
-            }
-            if (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval)
-            {
-                // a[lwr..upr] = e2
-                IntervalExp *ie = (IntervalExp *)(*ae->arguments)[0];
-                SliceExp *se = new SliceExp(ae->loc, ae->e1, ie->lwr, ie->upr);
-                se->att1 = ae->att1;
-                this->e1 = se;
-                return Expression::combine(e0, this->semantic(sc));
-            }
-        }
-    }
-    /* Look for operator overloading of a[i..j]=value.
-     * Do it before semantic() otherwise the a[i..j] will have been
-     * converted to a.opSlice() already.
-     */
-    if (e1->op == TOKslice)
-    {
-        SliceExp *ae = (SliceExp *)e1;
-        ae->e1 = ae->e1->semantic(sc);
-        ae->e1 = resolveProperties(sc, ae->e1);
+                // Deal with $
+                result = resolveOpDollar(sc, ae, ie, &e0);
+                if (result->op == TOKerror)
+                    return result;
 
-        Type *t1 = ae->e1->type->toBasetype();
-        AggregateDeclaration *ad = isAggregate(t1);
-        if (ad)
-        {
-            // Rewrite (a[i..j] = value) to (a.opSliceAssign(value, i, j))
-            if (search_function(ad, Id::sliceass))
-            {
-                Expression *e0 = NULL;
-                Expression *ex = resolveOpDollar(sc, ae, &e0);
-                if (ex->op == TOKerror)
-                    return ex;
+                result = e2->semantic(sc);
+                if (result->op == TOKerror)
+                    return result;
+                e2 = result;
+
+                /* Rewrite (a[i..j] = e2) as:
+                 *      a.opSliceAssign(e2, i, j)
+                 */
                 Expressions *a = new Expressions();
                 a->push(e2);
-                assert(!ae->lwr || ae->upr);
-                if (ae->lwr)
+                if (ie)
                 {
-                    a->push(ae->lwr);
-                    a->push(ae->upr);
+                    a->push(ie->lwr);
+                    a->push(ie->upr);
                 }
-                Expression *e = new DotIdExp(loc, ae->e1, Id::sliceass);
-                e = new CallExp(loc, e, a);
-                e = e->semantic(sc);
-                return Expression::combine(e0, e);
+                result = new DotIdExp(loc, ae->e1, Id::sliceass);
+                result = new CallExp(loc, result, a);
+                result = result->semantic(sc);
+                result = Expression::combine(e0, result);
+                return result;
             }
 
-            // No opSliceAssign found yet, but there might be an alias this to try.
-            if (ad->aliasthis && t1 != ae->att1)
+            // No operator overloading member function found yet, but
+            // there might be an alias this to try.
+            if (ad->aliasthis && t1b != ae->att1)
             {
-                SliceExp *aex = (SliceExp *)ae->copy();
-                if (!aex->att1 && t1->checkAliasThisRec())
-                    aex->att1 = t1;
-                aex->e1 = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
-                this->e1 = aex;
-                Expression *ex = this->trySemantic(sc);
-                if (ex)
-                    return ex;
-                this->e1 = ae;  // restore
+                if (!ae->att1 && t1b->checkAliasThisRec())
+                    ae->att1 = t1b;
+
+                /* Rewrite (a[arguments] op e2) as:
+                 *      a.aliasthis[arguments] op e2
+                 */
+                ae->e1 = resolveAliasThis(sc, ae1save, true);
+                if (ae->e1)
+                    continue;
             }
+            break;
         }
+        ae->e1 = ae1old;    // recovery
+        ae->lengthVar = NULL;
     }
 
     /* Run this->e1 semantic.
@@ -11269,6 +11230,13 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
         op = TOKconstruct;
+        if (e1->op == TOKvar &&
+            ((VarExp *)e1)->var->storage_class & (STCout | STCref))
+        {
+            // Bugzilla 14944, even if e1 is a ref variable,
+            // make an initialization of referenced memory.
+            ismemset |= 2;
+        }
 
         // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
         if (e1->op == TOKindex)
@@ -11283,7 +11251,7 @@ Expression *AssignExp::semantic(Scope *sc)
      * check for operator overloading.
      */
     if (op == TOKconstruct && e1->op == TOKvar &&
-        ((VarExp *)e1)->var->storage_class & (STCout | STCref))
+        ((VarExp *)e1)->var->storage_class & (STCout | STCref) && !(ismemset & 2))
     {
         // If this is an initialization of a reference,
         // do nothing
@@ -11730,7 +11698,7 @@ Expression *AssignExp::semantic(Scope *sc)
         // Check for block assignment. If it is of type void[], void[][], etc,
         // '= null' is the only allowable block assignment (Bug 7493)
         // memset
-        ismemset = 1;   // make it easy for back end to tell what this is
+        ismemset |= 1;  // make it easy for back end to tell what this is
         e2x = e2x->implicitCastTo(sc, t1->nextOf());
         if (op != TOKblit && e2x->isLvalue() &&
             e1->checkPostblit(sc, t1->nextOf()))
@@ -11848,7 +11816,7 @@ Expression *AssignExp::semantic(Scope *sc)
     if ((t2->ty == Tarray || t2->ty == Tsarray) && isArrayOpValid(e2))
     {
         // Look for valid array operations
-        if (!ismemset && e1->op == TOKslice &&
+        if (!(ismemset & 1) && e1->op == TOKslice &&
             (isUnaArrayOp(e2->op) || isBinArrayOp(e2->op)))
         {
             type = e1->type;
@@ -11859,7 +11827,7 @@ Expression *AssignExp::semantic(Scope *sc)
 
         // Drop invalid array operations in e2
         //  d = a[] + b[], d = (a[] + b[])[0..2], etc
-        if (checkNonAssignmentArrayOp(e2, !ismemset && op == TOKassign))
+        if (checkNonAssignmentArrayOp(e2, !(ismemset & 1) && op == TOKassign))
             return new ErrorExp();
 
         // Remains valid array assignments
@@ -13302,6 +13270,8 @@ Expression *InExp::semantic(Scope *sc)
                 e1 = e1->implicitCastTo(sc, ta->index);
             }
 
+            semanticTypeInfo(sc, ta->index);
+
             // Return type is pointer to value
             type = ta->nextOf()->pointerTo();
             break;
@@ -13394,6 +13364,11 @@ Expression *CmpExp::semantic(Scope *sc)
         {
             error("array comparison type mismatch, %s vs %s", t1next->toChars(), t2next->toChars());
             return new ErrorExp();
+        }
+        if ((t1->ty == Tarray || t1->ty == Tsarray) &&
+            (t2->ty == Tarray || t2->ty == Tsarray))
+        {
+            semanticTypeInfo(sc, t1->nextOf());
         }
     }
     else if (t1->ty == Tstruct || t2->ty == Tstruct ||
@@ -13803,7 +13778,90 @@ Expression *CondExp::semantic(Scope *sc)
     printf("e1 : %s\n", e1->type->toChars());
     printf("e2 : %s\n", e2->type->toChars());
 #endif
+
+    /* Bugzilla 14696: If either e1 or e2 contain temporaries which need dtor,
+     * make them conditional.
+     * Rewrite:
+     *      cond ? (__tmp1 = ..., __tmp1) : (__tmp2 = ..., __tmp2)
+     * to:
+     *      (auto __cond = cond) ? (... __tmp1) : (... __tmp2)
+     * and replace edtors of __tmp1 and __tmp2 with:
+     *      __tmp1->edtor --> __cond && __tmp1.dtor()
+     *      __tmp2->edtor --> __cond || __tmp2.dtor()
+     */
+    hookDtors(sc);
+
     return this;
+}
+
+void CondExp::hookDtors(Scope *sc)
+{
+    class DtorVisitor : public StoppableVisitor
+    {
+    public:
+        Scope *sc;
+        CondExp *ce;
+        VarDeclaration *vcond;
+        bool isThen;
+
+        DtorVisitor(Scope *sc, CondExp *ce)
+        {
+            this->sc = sc;
+            this->ce = ce;
+            this->vcond = NULL;
+        }
+
+        void visit(Expression *e)
+        {
+            //printf("(e = %s)\n", e->toChars());
+        }
+
+        void visit(DeclarationExp *e)
+        {
+            VarDeclaration *v = e->declaration->isVarDeclaration();
+            if (v && !v->noscope && !v->isDataseg())
+            {
+                if (v->init)
+                {
+                    ExpInitializer *ei = v->init->isExpInitializer();
+                    if (ei)
+                        ei->exp->accept(this);
+                }
+
+                if (v->edtor)
+                {
+                    if (!vcond)
+                    {
+                        vcond = new VarDeclaration(ce->econd->loc, ce->econd->type,
+                            Identifier::generateId("__cond"), new ExpInitializer(ce->econd->loc, ce->econd));
+                        vcond->storage_class |= STCtemp | STCctfe | STCvolatile;
+                        vcond->semantic(sc);
+
+                        Expression *de = new DeclarationExp(ce->econd->loc, vcond);
+                        de = de->semantic(sc);
+
+                        Expression *ve = new VarExp(ce->econd->loc, vcond);
+                        ce->econd = Expression::combine(de, ve);
+                    }
+
+                    //printf("\t++v = %s, v->edtor = %s\n", v->toChars(), v->edtor->toChars());
+                    Expression *ve = new VarExp(vcond->loc, vcond);
+                    if (isThen)
+                        v->edtor = new AndAndExp(v->edtor->loc, ve, v->edtor);
+                    else
+                        v->edtor = new OrOrExp(v->edtor->loc, ve, v->edtor);
+                    v->edtor = v->edtor->semantic(sc);
+                    //printf("\t--v = %s, v->edtor = %s\n", v->toChars(), v->edtor->toChars());
+                }
+            }
+        }
+    };
+
+    DtorVisitor v(sc, this);
+    //printf("+%s\n", toChars());
+    v.isThen = true;    walkPostorder(e1, &v);
+    v.isThen = false;   walkPostorder(e2, &v);
+    //printf("-%s\n", toChars());
 }
 
 bool CondExp::isLvalue()
@@ -14032,7 +14090,6 @@ Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
  * Runs semantic on ae->arguments. Declares temporary variables
  * if '$' was used.
  */
-
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
 {
     assert(!ae->lengthVar);
@@ -14123,46 +14180,43 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0)
  * Runs semantic on se->lwr and se->upr. Declares a temporary variable
  * if '$' was used.
  */
-
-Expression *resolveOpDollar(Scope *sc, SliceExp *se, Expression **pe0)
+Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, IntervalExp *ie, Expression **pe0)
 {
-    assert(!se->lengthVar);
-    assert(!se->lwr || se->upr);
+    //assert(!ae->lengthVar);
+    if (!ie)
+        return ae;
 
-    if (!se->lwr)
-        return se;
-
-    *pe0 = extractOpDollarSideEffect(sc, se);
+    VarDeclaration *lengthVar = ae->lengthVar;
 
     // create scope for '$'
-    ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, se);
-    sym->loc = se->loc;
+    ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, ae);
+    sym->loc = ae->loc;
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
 
     for (size_t i = 0; i < 2; ++i)
     {
-        Expression *e = i == 0 ? se->lwr : se->upr;
+        Expression *e = i == 0 ? ie->lwr : ie->upr;
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
         if (!e->type)
         {
-            se->error("%s has no value", e->toChars());
+            ae->error("%s has no value", e->toChars());
             return new ErrorExp();
         }
-        (i == 0 ? se->lwr : se->upr) = e;
+        (i == 0 ? ie->lwr : ie->upr) = e;
     }
 
-    if (se->lengthVar && sc->func)
+    if (lengthVar != ae->lengthVar && sc->func)
     {
         // If $ was used, declare it now
-        Expression *de = new DeclarationExp(se->loc, se->lengthVar);
+        Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
         de = de->semantic(sc);
         *pe0 = Expression::combine(*pe0, de);
     }
     sc = sc->pop();
 
-    return se;
+    return ae;
 }
 
 Expression *BinExp::reorderSettingAAElem(Scope *sc)
