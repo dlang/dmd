@@ -7167,11 +7167,13 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
     int nested = 0;
     //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl->ident->toChars());
 
+#if 0
     if (!enclosing)
     {
         if (TemplateInstance *ti = tempdecl->isInstantiated())
             enclosing = ti->enclosing;
     }
+#endif
 
     /* A nested instance happens when an argument references a local
      * symbol that is on the stack.
@@ -7312,9 +7314,22 @@ Dsymbols *TemplateInstance::appendToModuleMember()
          *  - codegen pass will get a selection chance to do/skip it.
          */
 
+        struct N
+        {
+            static Dsymbol *getStrictEnclosing(TemplateInstance *ti)
+            {
+                if (ti->enclosing)
+                    return ti->enclosing;
+                if (TemplateInstance *tix = ti->tempdecl->isInstantiated())
+                    return getStrictEnclosing(tix);
+                return NULL;
+            }
+        };
+        Dsymbol *enc = N::getStrictEnclosing(this);
+
         // insert target is made stable by using the module
         // where tempdecl is declared.
-        mi = (enclosing ? enclosing : tempdecl)->getModule();
+        mi = (enc ? enc : tempdecl)->getModule();
         if (!mi->isRoot())
             mi = mi->importedFrom;
         assert(mi->isRoot());

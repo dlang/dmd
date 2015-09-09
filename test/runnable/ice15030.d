@@ -86,7 +86,7 @@ function  b.__unittestL5_2.__lambda1.__lambda2.FilterResult!(__lambda2, int[]).F
 function  b.__unittestL5_2.__lambda1.__lambda2.FilterResult!(__lambda2, int[]).FilterResult.__xtoHash
 function  b.__unittestL5_2.__lambda1.__lambda2.__lambda2
 
-Another problem is in TemplateInstance::hasNestedArgs. By inheriting 'enclosing' of instantiated scope,
-now 'filter!(int[])' also becomes a nested template, and then FilterResult!(...) goes into the module b.
+By the tweak in TemplateInstance::appendToModuleMember(), all the code of
+(implicitly) nested instances are stored into corresponding module object file.
 
 +/
