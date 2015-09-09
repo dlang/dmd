@@ -114,6 +114,7 @@ export SEP=/
 DRUNTIME_PATH=../../druntime
 PHOBOS_PATH=../../phobos
 export DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+export LD_LIBRARY_PATH:=$(abspath $(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)):$(LD_LIBRARY_PATH)
 endif
 
 ifeq ($(OS),osx)
