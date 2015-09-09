@@ -5915,9 +5915,17 @@ public:
                 if (fparam.defaultArg)
                 {
                     Expression e = fparam.defaultArg;
-                    Initializer _init = new ExpInitializer(e.loc, e);
-                    _init = _init.semantic(argsc, fparam.type, INITnointerpret);
-                    e = _init.toExpression();
+                    if (fparam.storageClass & (STCref | STCout))
+                    {
+                        e = e.semantic(argsc);
+                        e = resolveProperties(argsc, e);
+                    }
+                    else
+                    {
+                        Initializer iz = new ExpInitializer(e.loc, e);
+                        iz = iz.semantic(argsc, fparam.type, INITnointerpret);
+                        e = iz.toExpression();
+                    }
                     if (e.op == TOKfunction) // see Bugzilla 4820
                     {
                         FuncExp fe = cast(FuncExp)e;
