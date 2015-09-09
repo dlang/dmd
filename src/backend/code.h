@@ -101,7 +101,6 @@ extern con_t regcon;
  *      CSEpe           pointer to saved elem
  *      CSEregm         mask of register that was saved (so for multi-
  *                      register variables we know which part we have)
- *      cstop =         # of entries in table
  */
 
 struct CSE
@@ -212,7 +211,6 @@ extern int pass;
 
 extern  int dfoidx;
 extern  struct CSE *csextab;
-extern  unsigned cstop;
 #if TX86
 extern  bool floatreg;
 #endif
