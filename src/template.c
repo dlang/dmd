@@ -7167,6 +7167,12 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
     int nested = 0;
     //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl->ident->toChars());
 
+    if (!enclosing)
+    {
+        if (TemplateInstance *ti = tempdecl->isInstantiated())
+            enclosing = ti->enclosing;
+    }
+
     /* A nested instance happens when an argument references a local
      * symbol that is on the stack.
      */
@@ -7294,6 +7300,10 @@ Dsymbols *TemplateInstance::appendToModuleMember()
             mi = NULL;
     }
 
+    //printf("%s->appendToModuleMember() enclosing = %s mi = %s\n",
+    //    toPrettyChars(),
+    //    enclosing ? enclosing->toPrettyChars() : NULL,
+    //    mi ? mi->toPrettyChars() : NULL);
     if (!mi || mi->isRoot())
     {
         /* If the instantiated module is speculative or root, insert to the
@@ -7304,7 +7314,7 @@ Dsymbols *TemplateInstance::appendToModuleMember()
 
         // insert target is made stable by using the module
         // where tempdecl is declared.
-        mi = tempdecl->getModule();
+        mi = (enclosing ? enclosing : tempdecl)->getModule();
         if (!mi->isRoot())
             mi = mi->importedFrom;
         assert(mi->isRoot());
@@ -7317,6 +7327,7 @@ Dsymbols *TemplateInstance::appendToModuleMember()
          *  - codegen pass won't reach to the instance.
          */
     }
+    //printf("\t--> mi = %s\n", mi->toPrettyChars());
 
     Dsymbols *a = mi->members;
     for (size_t i = 0; 1; i++)
