@@ -753,8 +753,13 @@ Lagain:
 
     regsave.off = alignsection(Auto.size - regsave.top, regsave.alignment, bias);
 
-    unsigned floatregsize = floatreg ? (config.fpxmmregs || I32 ? 16 : DOUBLESIZE) : 0;
-    Foff = alignsection(regsave.off - floatregsize, STACKALIGN, bias);
+    if (floatreg)
+    {
+        unsigned floatregsize = config.fpxmmregs || I32 ? 16 : DOUBLESIZE;
+        Foff = alignsection(regsave.off - floatregsize, STACKALIGN, bias);
+    }
+    else
+        Foff = regsave.off;
 
     assert(usedalloca != 1);
     AllocaOff = alignsection(usedalloca ? (Foff - REGSIZE) : Foff, REGSIZE, bias);
