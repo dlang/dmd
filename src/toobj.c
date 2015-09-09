@@ -270,9 +270,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             assert(!cd->scope);     // semantic() should have been run to completion
 
-            enum_SC scclass = SCglobal;
-            if (cd->isInstantiated())
-                scclass = SCcomdat;
+            enum_SC scclass = SCcomdat;
 
             // Put out the members
             for (size_t i = 0; i < cd->members->dim; i++)
@@ -368,7 +366,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             // vtbl[]
             dtsize_t(&dt, cd->vtbl.dim);
-            dtxoff(&dt, cd->vtblsym, 0, TYnptr);
+            if (cd->vtbl.dim)
+                dtxoff(&dt, cd->vtblsym, 0, TYnptr);
+            else
+                dtsize_t(&dt, 0);
 
             // interfaces[]
             dtsize_t(&dt, cd->vtblInterfaces->dim);
@@ -643,6 +644,14 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 else
                     dtsize_t(&dt, 0);
             }
+            if (!dt)
+            {
+                /* Someone made an 'extern (C++) class C { }' with no virtual functions.
+                 * But making an empty vtbl[] causes linking problems, so make a dummy
+                 * entry.
+                 */
+                dtsize_t(&dt, 0);
+            }
             cd->vtblsym->Sdt = dt;
             cd->vtblsym->Sclass = scclass;
             cd->vtblsym->Sfl = FLdata;
@@ -668,9 +677,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (global.params.symdebug)
                 toDebug(id);
 
-            enum_SC scclass = SCglobal;
-            if (id->isInstantiated())
-                scclass = SCcomdat;
+            enum_SC scclass = SCcomdat;
 
             // Put out the members
             for (size_t i = 0; i < id->members->dim; i++)
