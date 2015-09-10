@@ -38,7 +38,7 @@ extern (C++) const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
      *      o home directory
      *      o exe directory (windows)
      *      o directory off of argv0
-     *      o SYSCONFDIR (default=/etc/) (non-windows)
+     *      o /etc (non-windows)
      */
     const(char)* filename = FileName.combine(getenv("HOME"), inifile);
     if (FileName.exists(filename))
@@ -82,9 +82,7 @@ extern (C++) const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
                 return filename;
         }
         // Search /etc/ for inifile
-        enum SYSCONFDIR = "/etc/dmd.conf";
-        assert(SYSCONFDIR !is null && strlen(SYSCONFDIR));
-        filename = FileName.combine(SYSCONFDIR, inifile);
+        filename = FileName.combine("/etc", inifile);
     }
     // __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     return filename;
