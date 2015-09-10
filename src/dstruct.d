@@ -238,7 +238,7 @@ public:
     final void semantic(Scope* sc)
     {
         //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
-        //static int count; if (++count == 20) halt();
+        //static int count; if (++count == 20) assert(0);
         if (semanticRun >= PASSsemanticdone)
             return;
         uint dprogress_save = Module.dprogress;

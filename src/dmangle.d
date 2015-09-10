@@ -262,7 +262,7 @@ public:
         }
         // Write argument types
         paramsToDecoBuffer(t.parameters);
-        //if (buf->data[buf->offset - 1] == '@') halt();
+        //if (buf->data[buf->offset - 1] == '@') assert(0);
         buf.writeByte('Z' - t.varargs); // mark end of arg list
         if (tret !is null)
             visitWithMask(tret, 0);
@@ -805,7 +805,6 @@ public:
             debug
             {
                 printf("storageClass = x%llx\n", p.storageClass & (STCin | STCout | STCref | STClazy));
-                halt();
             }
             assert(0);
         }

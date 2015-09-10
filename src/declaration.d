@@ -1115,7 +1115,7 @@ public:
             printf(" stc = x%x\n", sc.stc);
             printf(" storage_class = x%llx\n", storage_class);
             printf("linkage = %d\n", sc.linkage);
-            //if (strcmp(toChars(), "mul") == 0) halt();
+            //if (strcmp(toChars(), "mul") == 0) assert(0);
         }
         //    if (sem > SemanticStart)
         //      return;

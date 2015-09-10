@@ -196,7 +196,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("Expression::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            //static int nest; if (++nest == 10) halt();
+            //static int nest; if (++nest == 10) assert(0);
             if (t == Type.terror)
                 return;
             if (!e.type)

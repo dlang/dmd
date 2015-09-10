@@ -286,8 +286,5 @@ extern (C++) void fatal()
  */
 extern (C++) void halt()
 {
-    debug
-    {
-        *cast(char*)0 = 0;
-    }
+    assert(0);
 }
