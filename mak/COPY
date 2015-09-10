@@ -15,6 +15,7 @@ COPY=\
 	$(IMPDIR)\core\time.d \
 	$(IMPDIR)\core\vararg.d \
 	\
+	$(IMPDIR)\core\internal\abort.d \
 	$(IMPDIR)\core\internal\convert.d \
 	$(IMPDIR)\core\internal\hash.d \
 	$(IMPDIR)\core\internal\string.d \
