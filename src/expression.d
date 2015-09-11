@@ -2576,7 +2576,7 @@ public:
             version (none)
             {
                 print();
-                halt();
+                assert(0);
             }
             if (!global.gag)
                 type = Type.terror;
@@ -5777,7 +5777,7 @@ public:
     {
         super(loc, TOKvar, __traits(classInstanceSize, VarExp), var, hasOverloads);
         //printf("VarExp(this = %p, '%s', loc = %s)\n", this, var->toChars(), loc.toChars());
-        //if (strcmp(var->ident->toChars(), "func") == 0) halt();
+        //if (strcmp(var->ident->toChars(), "func") == 0) assert(0);
         this.type = var.type;
     }
 

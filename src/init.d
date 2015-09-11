@@ -617,7 +617,7 @@ public:
     Expression toExpression(Type tx = null)
     {
         //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
-        //static int i; if (++i == 2) halt();
+        //static int i; if (++i == 2) assert(0);
         Expressions* elements;
         size_t edim;
         Type t = null;
@@ -713,7 +713,7 @@ public:
     {
         Expression e;
         //printf("ArrayInitializer::toAssocArrayInitializer()\n");
-        //static int i; if (++i == 2) halt();
+        //static int i; if (++i == 2) assert(0);
         auto keys = new Expressions();
         keys.setDim(value.dim);
         auto values = new Expressions();

@@ -7266,7 +7266,7 @@ public:
             if (s)
             {
                 s.error(loc, "is used as a type");
-                //halt();
+                //assert(0);
             }
             else
                 error(loc, "%s is used as a type", toChars());
