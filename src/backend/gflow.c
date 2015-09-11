@@ -504,17 +504,17 @@ STATIC void aecpgenkill()
         }
         assert(exptop == exptopsave);
 
-        defstarkill();                  /* compute defkill and starkill */
+        defstarkill();                  /* compute go.defkill and go.starkill */
 
 #if 0
-        assert(vec_numbits(defkill) == exptop);
-        assert(vec_numbits(starkill) == exptop);
-        assert(vec_numbits(vptrkill) == exptop);
-        dbg_printf("defkill  "); vec_println(defkill);
-        if (starkill)
-            {   dbg_printf("starkill "); vec_println(starkill);}
-        if (vptrkill)
-            {   dbg_printf("vptrkill "); vec_println(vptrkill); }
+        assert(vec_numbits(go.defkill) == exptop);
+        assert(vec_numbits(go.starkill) == exptop);
+        assert(vec_numbits(go.vptrkill) == exptop);
+        dbg_printf("defkill  "); vec_println(go.defkill);
+        if (go.starkill)
+            {   dbg_printf("starkill "); vec_println(go.starkill);}
+        if (go.vptrkill)
+            {   dbg_printf("vptrkill "); vec_println(go.vptrkill); }
 #endif
 
         for (i = 0; i < dfotop; i++)    /* for each block               */
@@ -726,17 +726,17 @@ STATIC void defstarkill()
 {       unsigned i,op;
         elem *n;
 
-        vec_free(vptrkill);
-        vec_free(defkill);
-        vec_free(starkill);             /* dump any existing ones       */
-        defkill = vec_calloc(exptop);
+        vec_free(go.vptrkill);
+        vec_free(go.defkill);
+        vec_free(go.starkill);             /* dump any existing ones       */
+        go.defkill = vec_calloc(exptop);
         if (flowxx != CP)
-        {   starkill = vec_calloc(exptop);      /* and create new ones  */
-            vptrkill = vec_calloc(exptop);      /* and create new ones  */
+        {   go.starkill = vec_calloc(exptop);      /* and create new ones  */
+            go.vptrkill = vec_calloc(exptop);      /* and create new ones  */
         }
         else /* CP */
-        {   starkill = NULL;
-            vptrkill = NULL;
+        {   go.starkill = NULL;
+            go.vptrkill = NULL;
         }
 
         if (flowxx == CP)
@@ -754,7 +754,7 @@ STATIC void defstarkill()
                 if (!(s1->Sflags & SFLunambig) ||
                     !(n->E2->EV.sp.Vsym->Sflags & SFLunambig))
                 {
-                    vec_setbit(i,defkill);
+                    vec_setbit(i,go.defkill);
                 }
             }
         }
@@ -767,7 +767,7 @@ STATIC void defstarkill()
                 {
                     case OPvar:
                         if (!(n->EV.sp.Vsym->Sflags & SFLunambig))
-                            vec_setbit(i,defkill);
+                            vec_setbit(i,go.defkill);
                         break;
 
                     case OPind:         // if a 'starred' ref
@@ -808,14 +808,14 @@ void main()
                     case OPstrcmp:
                     case OPmemcmp:
                     case OPbt:          // OPbt is like OPind
-                        vec_setbit(i,defkill);
-                        vec_setbit(i,starkill);
+                        vec_setbit(i,go.defkill);
+                        vec_setbit(i,go.starkill);
                         break;
 
 #if TARGET_SEGMENTED
                     case OPvp_fp:
                     case OPcvp_fp:
-                        vec_setbit(i,vptrkill);
+                        vec_setbit(i,go.vptrkill);
                         goto Lunary;
 #endif
 
@@ -823,19 +823,19 @@ void main()
                         if (OTunary(op))
                         {
                         Lunary:
-                            if (vec_testbit(n->E1->Eexp,defkill))
-                                    vec_setbit(i,defkill);
-                            if (vec_testbit(n->E1->Eexp,starkill))
-                                    vec_setbit(i,starkill);
+                            if (vec_testbit(n->E1->Eexp,go.defkill))
+                                    vec_setbit(i,go.defkill);
+                            if (vec_testbit(n->E1->Eexp,go.starkill))
+                                    vec_setbit(i,go.starkill);
                         }
                         else if (OTbinary(op))
                         {
-                            if (vec_testbit(n->E1->Eexp,defkill) ||
-                                vec_testbit(n->E2->Eexp,defkill))
-                                    vec_setbit(i,defkill);
-                            if (vec_testbit(n->E1->Eexp,starkill) ||
-                                vec_testbit(n->E2->Eexp,starkill))
-                                    vec_setbit(i,starkill);
+                            if (vec_testbit(n->E1->Eexp,go.defkill) ||
+                                vec_testbit(n->E2->Eexp,go.defkill))
+                                    vec_setbit(i,go.defkill);
+                            if (vec_testbit(n->E1->Eexp,go.starkill) ||
+                                vec_testbit(n->E2->Eexp,go.starkill))
+                                    vec_setbit(i,go.starkill);
                         }
                         break;
                 }
@@ -993,7 +993,7 @@ STATIC void accumaecpx(elem *n)
         case OPvp_fp:
         case OPcvp_fp:                          // if vptr access
             if ((flowxx == AE) && n->Eexp)
-                vec_orass(KILL,vptrkill);       // kill all other vptr accesses
+                vec_orass(KILL,go.vptrkill);       // kill all other vptr accesses
             break;
 #endif
 
@@ -1030,8 +1030,8 @@ STATIC void accumaecpx(elem *n)
         if (!OTdef(op))                         /* if not def elem      */
                 return;
         if (!Eunambig(n))                       /* if ambiguous def elem */
-        {   vec_orass(KILL,defkill);
-            vec_subass(GEN,defkill);
+        {   vec_orass(KILL,go.defkill);
+            vec_subass(GEN,go.defkill);
         }
         else                                    /* unambiguous def elem */
         {   symbol *s;
@@ -1070,11 +1070,11 @@ STATIC void accumaecpx(elem *n)
     else if (OTdef(op))                         /* else if definition elem */
     {
         if (!Eunambig(n))                       /* if ambiguous def elem */
-        {   vec_orass(KILL,defkill);
-            vec_subass(GEN,defkill);
+        {   vec_orass(KILL,go.defkill);
+            vec_subass(GEN,go.defkill);
             if (OTcalldef(op))
-            {   vec_orass(KILL,vptrkill);
-                vec_subass(GEN,vptrkill);
+            {   vec_orass(KILL,go.vptrkill);
+                vec_subass(GEN,go.vptrkill);
             }
         }
         else                                    /* unambiguous def elem */
@@ -1083,8 +1083,8 @@ STATIC void accumaecpx(elem *n)
             assert(t->Eoper == OPvar);
             s = t->EV.sp.Vsym;                  /* idx of var being def'd */
             if (!(s->Sflags & SFLunambig))
-            {   vec_orass(KILL,starkill);       /* kill all 'starred' refs */
-                vec_subass(GEN,starkill);
+            {   vec_orass(KILL,go.starkill);       /* kill all 'starred' refs */
+                vec_subass(GEN,go.starkill);
             }
             for (i = 1; i < exptop; i++)        /* for each ae elem      */
             {   elem *e = expnod[i];
@@ -1453,8 +1453,8 @@ void flowvbe()
         /*      Bin =(Bout - Bkill) | Bgen              */
         /* Using Ullman's algorithm:                    */
 
-        /*dbg_printf("defkill = "); vec_println(defkill);
-        dbg_printf("starkill = "); vec_println(starkill);*/
+        /*dbg_printf("defkill = "); vec_println(go.defkill);
+        dbg_printf("starkill = "); vec_println(go.starkill);*/
 
         for (i = 0; i < dfotop; i++)
         {       block *b = dfo[i];
@@ -1653,7 +1653,7 @@ STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
 #if TARGET_SEGMENTED
                 if (op == OPvp_fp || op == OPcvp_fp)
                 {
-                    vec_orass(KILL,vptrkill);   /* KILL all vptr accesses */
+                    vec_orass(KILL,go.vptrkill);   /* KILL all vptr accesses */
                     vec_subass(KILL,GEN);       /* except for GENed stuff */
                 }
 #endif
@@ -1661,9 +1661,9 @@ STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
         else if (OTdef(op))             /* if definition elem           */
         {
                 if (!Eunambig(n))       /* if ambiguous definition      */
-                {       vec_orass(KILL,defkill);
+                {       vec_orass(KILL,go.defkill);
                         if (OTcalldef(op))
-                            vec_orass(KILL,vptrkill);
+                            vec_orass(KILL,go.vptrkill);
                 }
                 else                    /* unambiguous definition       */
                 {   symbol *s;
@@ -1671,7 +1671,7 @@ STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                     assert(t->Eoper == OPvar);
                     s = t->EV.sp.Vsym;  // ptr to var being def'd
                     if (!(s->Sflags & SFLunambig))
-                        vec_orass(KILL,starkill);/* kill all 'starred' refs */
+                        vec_orass(KILL,go.starkill);/* kill all 'starred' refs */
                     for (i = 1; i < exptop; i++)        /* for each vbe elem */
                     {   elem *e = expnod[i];
                         unsigned eop = e->Eoper;
