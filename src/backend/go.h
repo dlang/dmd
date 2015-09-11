@@ -57,12 +57,18 @@ extern unsigned deftop;         /* # of entries in defnod[]             */
 extern elem **expnod;           /* array of expression elems            */
 extern unsigned exptop;         /* top of expnod[]                      */
 extern block **expblk;          /* parallel array of block pointers     */
-extern vec_t defkill;           /* vector of AEs killed by an ambiguous */
-                                /* definition                           */
-extern vec_t starkill;          /* vector of AEs killed by a definition */
-                                /* of something that somebody could be  */
-                                /* pointing to                          */
-extern vec_t vptrkill;          /* vector of AEs killed by an access    */
+
+/* Global Optimizer variables
+ */
+struct Go
+{
+    vec_t defkill;      // vector of AEs killed by an ambiguous definition
+    vec_t starkill;     // vector of AEs killed by a definition of something that somebody could be
+                        // pointing to
+    vec_t vptrkill;     // vector of AEs killed by an access
+};
+
+extern struct Go go;
 
 /* gdag.c */
 void builddags(void);
