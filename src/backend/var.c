@@ -209,13 +209,7 @@ unsigned
          deftop = 0,    /* # of entries in defnod[]                     */
          exptop = 0;    /* top of expnod[]                              */
 
-vec_t   defkill = NULL,         /* vector of AEs killed by an ambiguous */
-                                /* definition                           */
-        starkill = NULL,        /* vector of AEs killed by a definition */
-                                /* of something that somebody could be  */
-                                /* pointing to                          */
-        vptrkill = NULL;        /* vector of AEs killed by an access    */
-                                /* to a vptr                            */
+struct Go go;
 
 /* From debug.c */
 #if DEBUG

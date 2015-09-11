@@ -32,9 +32,9 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 void go_term()
 {
-    vec_free(defkill);
-    vec_free(starkill);
-    vec_free(vptrkill);
+    vec_free(go.defkill);
+    vec_free(go.starkill);
+    vec_free(go.vptrkill);
     util_free(expnod);
     util_free(expblk);
     util_free(defnod);

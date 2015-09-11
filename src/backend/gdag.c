@@ -83,9 +83,9 @@ void builddags()
         }
 #endif
 #if 0
-        dbg_printf("defkill  "); vec_println(defkill,exptop);
-        dbg_printf("starkill "); vec_println(starkill,exptop);
-        dbg_printf("vptrkill "); vec_println(vptrkill,exptop);
+        dbg_printf("defkill  "); vec_println(go.defkill,exptop);
+        dbg_printf("starkill "); vec_println(go.starkill,exptop);
+        dbg_printf("vptrkill "); vec_println(go.vptrkill,exptop);
 #endif
 
 #if 0
@@ -303,7 +303,7 @@ STATIC void aewalk(elem **pn,vec_t ae)
                         assert(t->Eoper == OPvar);
                         s = t->EV.sp.Vsym;
                         if (!(s->Sflags & SFLunambig))
-                                vec_subass(ae,starkill);
+                                vec_subass(ae,go.starkill);
                         foreach (i,exptop,ae)   /* for each ae elem     */
                         {       elem *e = expnod[i];
 
@@ -330,9 +330,9 @@ STATIC void aewalk(elem **pn,vec_t ae)
                 }
                 else                    /* else ambiguous definition    */
                 {
-                    vec_subass(ae,defkill);
+                    vec_subass(ae,go.defkill);
                     if (OTcalldef(op))
-                        vec_subass(ae,vptrkill);
+                        vec_subass(ae,go.vptrkill);
                 }
 
                 // GEN the lvalue of an assignment operator
@@ -344,7 +344,7 @@ STATIC void aewalk(elem **pn,vec_t ae)
 #if TARGET_SEGMENTED
             if (op == OPvp_fp || op == OPcvp_fp)
                 /* Invalidate all other OPvp_fps     */
-                vec_subass(ae,vptrkill);
+                vec_subass(ae,go.vptrkill);
 #endif
 
             /*dbg_printf("available: ("); WReqn(n); dbg_printf(")\n");
@@ -579,9 +579,9 @@ void boolopt()
 #if 0
         for (i = 0; i < exptop; i++)
                 dbg_printf("expnod[%d] = 0x%x\n",i,expnod[i]);
-        dbg_printf("defkill  "); vec_println(defkill,exptop);
-        dbg_printf("starkill "); vec_println(starkill,exptop);
-        dbg_printf("vptrkill "); vec_println(vptrkill,exptop);
+        dbg_printf("defkill  "); vec_println(go.defkill,exptop);
+        dbg_printf("starkill "); vec_println(go.starkill,exptop);
+        dbg_printf("vptrkill "); vec_println(go.vptrkill,exptop);
 #endif
 
         /* Do CSEs across extended basic blocks only. This is because   */
@@ -788,7 +788,7 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
                 assert(t->Eoper == OPvar);
                 s = t->EV.sp.Vsym;
                 if (!(s->Sflags & SFLunambig))
-                        vec_subass(ae,starkill);
+                        vec_subass(ae,go.starkill);
                 foreach (i,exptop,ae)   /* for each ae elem     */
                 {       elem *e = expnod[i];
 
@@ -799,9 +799,9 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
         }
         else                    /* else ambiguous definition    */
         {
-            vec_subass(ae,defkill);
+            vec_subass(ae,go.defkill);
             if (OTcalldef(op))
-                vec_subass(ae,vptrkill);
+                vec_subass(ae,go.vptrkill);
         }
         /* GEN the lvalue of an assignment operator     */
         if (op == OPeq && (i1 = t->Eexp) != 0 && (i2 = n->E2->Eexp) != 0)
@@ -821,7 +821,7 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
 #if TARGET_SEGMENTED
         if (op == OPvp_fp || op == OPcvp_fp)
             /* Invalidate all other OPvp_fps */
-            vec_subass(ae,vptrkill);
+            vec_subass(ae,go.vptrkill);
 #endif
 
         /*dbg_printf("available: ("); WReqn(n); dbg_printf(")\n");
