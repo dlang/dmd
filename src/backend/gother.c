@@ -123,7 +123,7 @@ STATIC void rd_compute()
         cmes("constprop()\n");
         assert(dfo);
         flowrd();               /* compute reaching definitions (rd)    */
-        if (deftop == 0)        /* if no reaching defs                  */
+        if (go.deftop == 0)        /* if no reaching defs                  */
                 return;
         assert(rellist == NULL && inclist == NULL && eqeqlist == NULL);
         block_clearvisit();
@@ -167,7 +167,7 @@ STATIC void rd_compute()
                                 dbg_printf("\n");
                                 vec_xorass(b->Binrd,b->Boutrd);
                                 j = vec_index(0,b->Binrd);
-                                WReqn(defnod[j].DNelem);
+                                WReqn(go.defnod[j].DNelem);
                                 dbg_printf("\n");
                         }
 #endif
@@ -197,7 +197,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
         elem *t;
 
         assert(n && IN);
-        /*chkvecdim(deftop,0);*/
+        /*chkvecdim(go.deftop,0);*/
         //printf("conpropwalk()\n"),elem_print(n);
         op = n->Eoper;
         if (op == OPcolon || op == OPcolon2)
@@ -573,9 +573,9 @@ list_t listrds(vec_t IN,elem *e,vec_t f)
     unambig = s->Sflags & SFLunambig;
     if (f)
         vec_clear(f);
-    foreach (i, deftop, IN)
+    foreach (i, go.deftop, IN)
     {
-        elem *d = defnod[i].DNelem;
+        elem *d = go.defnod[i].DNelem;
         //dbg_printf("\tlooking at "); WReqn(d); dbg_printf("\n");
         unsigned op = d->Eoper;
         if (op == OPasm)                // assume ASM elems define everything

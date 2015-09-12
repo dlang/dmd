@@ -52,13 +52,14 @@ typedef struct DN
 extern unsigned optab[];
 extern mftype mfoptim;
 extern unsigned changes;        /* # of optimizations performed         */
-extern struct DN *defnod;       /* array of definition elems            */
-extern unsigned deftop;         /* # of entries in defnod[]             */
 
 /* Global Optimizer variables
  */
 struct Go
 {
+    struct DN *defnod;  // array of definition elems
+    unsigned deftop;    // # of entries in defnod[]
+
     elem **expnod;      // array of expression elems
     unsigned exptop;    // top of expnod[]
     block **expblk;     // parallel array of block pointers

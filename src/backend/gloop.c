@@ -813,7 +813,7 @@ restart:
                 flowlv();               /* compute live variables        */
                 flowae();               // compute available expressions
                 doflow = FALSE;         /* no need to redo it           */
-                if (deftop == 0)        /* if no definition elems       */
+                if (go.deftop == 0)        /* if no definition elems       */
                         break;          /* no need to optimize          */
         }
         lv = l->Lloop;
@@ -826,7 +826,7 @@ restart:
 
         /* Find & mark all LIs   */
         gin = vec_clone(l->Lpreheader->Bout);
-        rd = vec_calloc(deftop);        /* allocate our running RD vector */
+        rd = vec_calloc(go.deftop);        /* allocate our running RD vector */
         foreach (i,dfotop,lv)           /* for each block in loop       */
         {   block *b = dfo[i];
 
@@ -837,8 +837,8 @@ restart:
 #if 0
                 dbg_printf("i = %d\n",i);
                 {   int j;
-                    for (j = 0; j < deftop; j++)
-                        elem_print(defnod[j].DNelem);
+                    for (j = 0; j < go.deftop; j++)
+                        elem_print(go.defnod[j].DNelem);
                 }
                 dbg_printf("rd    : "); vec_println(rd);
 #endif
@@ -850,8 +850,8 @@ restart:
 #if 0
                 dbg_printf("i = %d\n",i);
                 {   int j;
-                    for (j = 0; j < deftop; j++)
-                        elem_print(defnod[j].DNelem);
+                    for (j = 0; j < go.deftop; j++)
+                        elem_print(go.defnod[j].DNelem);
                 }
                 dbg_printf("rd    : "); vec_println(rd);
                 dbg_printf("Boutrd: "); vec_println(b->Boutrd);
@@ -920,7 +920,7 @@ STATIC void markinvar(elem *n,vec_t rd)
   elem *n1;
 
   assert(n && rd);
-  assert(vec_numbits(rd) == deftop);
+  assert(vec_numbits(rd) == go.deftop);
   switch (n->Eoper)
   {
         case OPaddass:  case OPminass:  case OPmulass:  case OPandass:
@@ -1081,12 +1081,12 @@ STATIC void markinvar(elem *n,vec_t rd)
                 {   v = n1->EV.sp.Vsym;
                     if (v->Sflags & SFLunambig)
                     {
-                        tmp = vec_calloc(deftop);
+                        tmp = vec_calloc(go.deftop);
                         //filterrd(tmp,rd,v);
                         listrds(rd,n1,tmp);
-                        foreach (i,deftop,tmp)
-                            if (defnod[i].DNelem != n &&
-                                vec_testbit(defnod[i].DNblock->Bdfoidx,lv))
+                        foreach (i,go.deftop,tmp)
+                            if (go.defnod[i].DNelem != n &&
+                                vec_testbit(go.defnod[i].DNblock->Bdfoidx,lv))
                                     goto L3;
                         makeLI(n);      // then the def is LI
                     L3: vec_free(tmp);
@@ -1142,14 +1142,14 @@ STATIC void markinvar(elem *n,vec_t rd)
                     // check for the a[j].length was skipped.
                     else if (n->Ejty)
                     {
-                        tmp = vec_calloc(deftop);
+                        tmp = vec_calloc(go.deftop);
                         filterrdind(tmp,rd,n);  // only the RDs pertaining to n
 
                         // if (no RDs within loop)
                         //      then it's loop invariant
 
-                        foreach (i,deftop,tmp)          // for each RD
-                            if (vec_testbit(defnod[i].DNblock->Bdfoidx,lv))
+                        foreach (i,go.deftop,tmp)          // for each RD
+                            if (vec_testbit(go.defnod[i].DNblock->Bdfoidx,lv))
                                 goto L10;       // found a RD in the loop
 
                         // If gref has occurred, this can still be LI
@@ -1186,15 +1186,15 @@ STATIC void markinvar(elem *n,vec_t rd)
                 v = n->EV.sp.Vsym;
                 if (v->Sflags & SFLunambig)     // must be unambiguous to be LI
                 {
-                    tmp = vec_calloc(deftop);
+                    tmp = vec_calloc(go.deftop);
                     //filterrd(tmp,rd,v);       // only the RDs pertaining to v
                     listrds(rd,n,tmp);  // only the RDs pertaining to v
 
                     // if (no RDs within loop)
                     //  then it's loop invariant
 
-                    foreach (i,deftop,tmp)              // for each RD
-                        if (vec_testbit(defnod[i].DNblock->Bdfoidx,lv))
+                    foreach (i,go.deftop,tmp)              // for each RD
+                        if (vec_testbit(go.defnod[i].DNblock->Bdfoidx,lv))
                             goto L1;    // found a RD in the loop
                     makeLI(n);
 
@@ -1242,7 +1242,7 @@ STATIC void markinvar(elem *n,vec_t rd)
  *      rd      reaching def vector to update
  *              (clear bits for defs we kill, set bit for n (which is the
  *               def we are genning))
- *      vecdim  deftop
+ *      vecdim  go.deftop
  */
 
 void updaterd(elem *n,vec_t GEN,vec_t KILL)
@@ -1269,9 +1269,9 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
 
         ni = (unsigned)-1;
 
-        /* for all unambig defs in defnod[] */
-        for (i = 0; i < deftop; i++)
-        {   elem *tn = defnod[i].DNelem;
+        /* for all unambig defs in go.defnod[] */
+        for (i = 0; i < go.deftop; i++)
+        {   elem *tn = go.defnod[i].DNelem;
             elem *tn1;
             targ_size_t tn1size;
 
@@ -1304,9 +1304,9 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
     {
         ni = -1;
 
-        // for all unambig defs in defnod[]
-        for (i = 0; i < deftop; i++)
-        {   elem *tn = defnod[i].DNelem;
+        // for all unambig defs in go.defnod[]
+        for (i = 0; i < go.deftop; i++)
+        {   elem *tn = go.defnod[i].DNelem;
             elem *tn1;
 
             if (tn == n)
@@ -1331,8 +1331,8 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
     {
         /* Set bit in GEN for this def */
         for (i = 0; 1; i++)
-        {   assert(i < deftop);         // should find n in defnod[]
-            if (defnod[i].DNelem == n)
+        {   assert(i < go.deftop);         // should find n in go.defnod[]
+            if (go.defnod[i].DNelem == n)
             {   ni = i;
                 break;
             }
@@ -1518,7 +1518,7 @@ Lnextlis:
                     }
                 }
 
-                tmp = vec_calloc(deftop);
+                tmp = vec_calloc(go.deftop);
                 foreach (i,dfotop,l->Lloop)     // for each block in loop
                 {
                         if (dfo[i] == b)        // except this one
@@ -1530,8 +1530,8 @@ Lnextlis:
 
                         //filterrd(tmp,dfo[i]->Binrd,v);
                         listrds(dfo[i]->Binrd,n->E1,tmp);
-                        foreach (j,deftop,tmp)  // for each RD of v in Binrd
-                        {   if (defnod[j].DNelem == n)
+                        foreach (j,go.deftop,tmp)  // for each RD of v in Binrd
+                        {   if (go.defnod[j].DNelem == n)
                                         continue;
                                 refstop = -1;
                                 if (dfo[i]->Belem &&
@@ -1550,8 +1550,8 @@ Lnextlis:
 
                 //filterrd(tmp,b->Binrd,v);
                 listrds(b->Binrd,n->E1,tmp);
-                foreach (j,deftop,tmp)          // for each RD of v in Binrd
-                {   if (defnod[j].DNelem == n)
+                foreach (j,go.deftop,tmp)          // for each RD of v in Binrd
+                {   if (go.defnod[j].DNelem == n)
                             continue;
                         refstop = -1;
                         if (b->Belem && refs(v,b->Belem,n))
@@ -2010,7 +2010,7 @@ STATIC void loopiv(loop *l)
  * x += c or x -= c, where c is either a constant
  * or a LI.
  * Input:
- *      defnod[] loaded with all the definition elems of the loop
+ *      go.defnod[] loaded with all the definition elems of the loop
  */
 
 STATIC void findbasivs(loop *l)
@@ -2025,13 +2025,13 @@ STATIC void findbasivs(loop *l)
   notposs = vec_calloc(globsym.top);            /* vector of all variables      */
                                         /* (initially all unmarked)     */
 
-  /* for each def in defnod[] that is within loop l     */
+  /* for each def in go.defnod[] that is within loop l     */
 
-  for (i = 0; i < deftop; i++)
-  {     if (!vec_testbit(defnod[i].DNblock->Bdfoidx,l->Lloop))
+  for (i = 0; i < go.deftop; i++)
+  {     if (!vec_testbit(go.defnod[i].DNblock->Bdfoidx,l->Lloop))
                 continue;               /* def is not in the loop       */
 
-        n = defnod[i].DNelem;
+        n = go.defnod[i].DNelem;
         elem_debug(n);
         if (OTassign(n->Eoper) && n->E1->Eoper == OPvar)
         {   symbol *s;                  /* if unambiguous def           */
@@ -2112,18 +2112,18 @@ STATIC void findbasivs(loop *l)
         /* We have the sym idx of the basic IV. We need to find         */
         /* the parent of the increment elem for it.                     */
 
-        /* First find the defnod[]      */
-        for (j = 0; j < deftop; j++)
-        {       /* If defnod is a def of i and it is in the loop        */
-                if (defnod[j].DNelem->E1 &&     /* OPasm are def nodes  */
-                    defnod[j].DNelem->E1->EV.sp.Vsym == s &&
-                    vec_testbit(defnod[j].DNblock->Bdfoidx,l->Lloop))
+        /* First find the go.defnod[]      */
+        for (j = 0; j < go.deftop; j++)
+        {       /* If go.defnod is a def of i and it is in the loop        */
+                if (go.defnod[j].DNelem->E1 &&     /* OPasm are def nodes  */
+                    go.defnod[j].DNelem->E1->EV.sp.Vsym == s &&
+                    vec_testbit(go.defnod[j].DNblock->Bdfoidx,l->Lloop))
                         goto L1;
         }
         assert(0);                      /* should have found it         */
         /* NOTREACHED */
 
-    L1: biv->IVincr = el_parent(defnod[j].DNelem,&(defnod[j].DNblock->Belem));
+    L1: biv->IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock->Belem));
         assert(s == (*biv->IVincr)->E1->EV.sp.Vsym);
 #ifdef DEBUG
         if (debugc)
@@ -2140,7 +2140,7 @@ STATIC void findbasivs(loop *l)
  * Analogous to findbasivs().
  * Used to eliminate useless loop code normally found in benchmark programs.
  * Input:
- *      defnod[] loaded with all the definition elems of the loop
+ *      go.defnod[] loaded with all the definition elems of the loop
  */
 
 STATIC void findopeqs(loop *l)
@@ -2155,13 +2155,13 @@ STATIC void findopeqs(loop *l)
     notposs = vec_calloc(globsym.top);  // vector of all variables
                                         // (initially all unmarked)
 
-    // for each def in defnod[] that is within loop l
+    // for each def in go.defnod[] that is within loop l
 
-    for (i = 0; i < deftop; i++)
-    {   if (!vec_testbit(defnod[i].DNblock->Bdfoidx,l->Lloop))
+    for (i = 0; i < go.deftop; i++)
+    {   if (!vec_testbit(go.defnod[i].DNblock->Bdfoidx,l->Lloop))
                 continue;               // def is not in the loop
 
-        n = defnod[i].DNelem;
+        n = go.defnod[i].DNelem;
         elem_debug(n);
         if (OTopeq(n->Eoper) && n->E1->Eoper == OPvar)
         {   symbol *s;                  // if unambiguous def
@@ -2239,18 +2239,18 @@ STATIC void findopeqs(loop *l)
         // We have the sym idx of the basic IV. We need to find
         // the parent of the increment elem for it.
 
-        // First find the defnod[]
-        for (j = 0; j < deftop; j++)
-        {       // If defnod is a def of i and it is in the loop
-                if (defnod[j].DNelem->E1 &&     // OPasm are def nodes
-                    defnod[j].DNelem->E1->EV.sp.Vsym == s &&
-                    vec_testbit(defnod[j].DNblock->Bdfoidx,l->Lloop))
+        // First find the go.defnod[]
+        for (j = 0; j < go.deftop; j++)
+        {       // If go.defnod is a def of i and it is in the loop
+                if (go.defnod[j].DNelem->E1 &&     // OPasm are def nodes
+                    go.defnod[j].DNelem->E1->EV.sp.Vsym == s &&
+                    vec_testbit(go.defnod[j].DNblock->Bdfoidx,l->Lloop))
                         goto L1;
         }
         assert(0);                      // should have found it
         // NOTREACHED
 
-    L1: biv->IVincr = el_parent(defnod[j].DNelem,&(defnod[j].DNblock->Belem));
+    L1: biv->IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock->Belem));
         assert(s == (*biv->IVincr)->E1->EV.sp.Vsym);
 #ifdef DEBUG
         if (debugc)
