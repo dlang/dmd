@@ -197,13 +197,11 @@ Cstate cstate;                  // compiler state
 mftype mfoptim = 0;             // mask of optimizations to perform
 
 unsigned changes;               // # of optimizations performed
-struct DN *defnod = NULL;       // array of definition elems
 
 unsigned
          maxblks = 0,   /* array max for all block stuff                */
                         /* dfoblks <= numblks <= maxblks                */
-         numcse,        /* number of common subexpressions              */
-         deftop = 0;    /* # of entries in defnod[]                     */
+         numcse;        /* number of common subexpressions              */
 
 struct Go go;
 

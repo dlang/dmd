@@ -74,7 +74,7 @@ void flowrd()
         bool anychng;
 
         rdgenkill();            /* Compute Bgen and Bkill for RDs       */
-        if (deftop == 0)        /* if no definition elems               */
+        if (go.deftop == 0)        /* if no definition elems               */
                 return;         /* no analysis to be done               */
 
         /* The transfer equation is:                                    */
@@ -85,7 +85,7 @@ void flowrd()
         for (i = 0; i < dfotop; i++)
                 vec_copy(dfo[i]->Boutrd,dfo[i]->Bgen);
 
-        tmp = vec_calloc(deftop);
+        tmp = vec_calloc(go.deftop);
         do
         {       anychng = FALSE;
                 for (i = 0; i < dfotop; i++)    /* for each block       */
@@ -120,7 +120,7 @@ void flowrd()
         for (i = 0; i < dfotop; i++)
         {       block *b = dfo[i];
 
-                assert(vec_numbits(b->Binrd) == deftop);
+                assert(vec_numbits(b->Binrd) == go.deftop);
                 dbg_printf("B%d Bin ",i); vec_println(b->Binrd);
                 dbg_printf("  Bgen "); vec_println(b->Bgen);
                 dbg_printf(" Bkill "); vec_println(b->Bkill);
@@ -136,31 +136,31 @@ void flowrd()
 STATIC void rdgenkill()
 {       unsigned i,deftopsave;
 
-        util_free(defnod);              /* free existing junk           */
+        util_free(go.defnod);              /* free existing junk           */
 
-        defnod = NULL;
+        go.defnod = NULL;
 
         /* Compute number of definition elems. */
-        deftop = 0;
+        go.deftop = 0;
         for (i = 0; i < dfotop; i++)
                 if (dfo[i]->Belem)
                 {
                         numdefelems(dfo[i]->Belem);
                 }
-        if (deftop == 0)
+        if (go.deftop == 0)
                 return;
 
         /* Allocate array of pointers to all definition elems   */
         /*      The elems are in dfo order.                     */
-        /*      defnod[]s consist of a elem pointer and a pointer */
+        /*      go.defnod[]s consist of a elem pointer and a pointer */
         /*      to the enclosing block.                         */
-        defnod = (dn *) util_calloc(sizeof(dn),deftop);
-        deftopsave = deftop;
-        deftop = 0;
+        go.defnod = (dn *) util_calloc(sizeof(dn),go.deftop);
+        deftopsave = go.deftop;
+        go.deftop = 0;
         for (i = 0; i < dfotop; i++)
                 if (dfo[i]->Belem)
                         asgdefelems(dfo[i],dfo[i]->Belem);
-        assert(deftop == deftopsave);
+        assert(go.deftop == deftopsave);
 
         for (i = 0; i < dfotop; i++)    /* for each block               */
         {       block *b = dfo[i];
@@ -177,13 +177,13 @@ STATIC void rdgenkill()
                 {   vec_clear(b->Bkill);        // KILL nothing
                     vec_set(b->Bgen);           // GEN everything
                 }
-                b->Binrd = vec_calloc(deftop);
-                b->Boutrd = vec_calloc(deftop);
+                b->Binrd = vec_calloc(go.deftop);
+                b->Boutrd = vec_calloc(go.deftop);
         }
 }
 
 /**********************
- * Compute # of definition elems (deftop).
+ * Compute # of definition elems (go.deftop).
  */
 
 STATIC void numdefelems(elem *n)
@@ -191,7 +191,7 @@ STATIC void numdefelems(elem *n)
   while (1)
   {     assert(n);
         if (OTdef(n->Eoper))
-                deftop++;
+                go.deftop++;
         if (OTbinary(n->Eoper))
         {
                 numdefelems(n->E1);
@@ -207,7 +207,7 @@ STATIC void numdefelems(elem *n)
 }
 
 /**************************
- * Load defnod[] array.
+ * Load go.defnod[] array.
  * Loaded in order of execution of the elems. Not sure if this is
  * necessary.
  */
@@ -228,10 +228,10 @@ STATIC void asgdefelems(block *b,elem *n)
         else if (OTunary(op))
                 asgdefelems(b,n->E1);
         if (OTdef(op))
-        {       assert(defnod);
-                defnod[deftop].DNblock = b;
-                defnod[deftop].DNelem = n;
-                deftop++;
+        {       assert(go.defnod);
+                go.defnod[go.deftop].DNblock = b;
+                go.defnod[go.deftop].DNelem = n;
+                go.deftop++;
         }
 }
 
@@ -242,8 +242,8 @@ STATIC void asgdefelems(block *b,elem *n)
 STATIC void rdelem(vec_t *pgen,vec_t *pkill,                    /* where to put result          */
         elem *n )                               /* tree to evaluate for GEN and KILL */
 {
-        *pgen = vec_calloc(deftop);
-        *pkill = vec_calloc(deftop);
+        *pgen = vec_calloc(go.deftop);
+        *pkill = vec_calloc(go.deftop);
         if (n)
                 accumrd(*pgen,*pkill,n);
 }
