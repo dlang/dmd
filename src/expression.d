@@ -5566,6 +5566,8 @@ public:
             }
             else
             {
+                if (!arguments)
+                    arguments = new Expressions();
                 if (!sd.fit(loc, sc, arguments, tb))
                     return new ErrorExp();
                 if (!sd.fill(loc, arguments, false))

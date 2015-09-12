@@ -8,6 +8,7 @@
 
 module ddmd.aggregate;
 
+import core.stdc.stdio;
 import ddmd.access;
 import ddmd.arraytypes;
 import ddmd.backend;
@@ -19,6 +20,7 @@ import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
+import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
@@ -279,6 +281,77 @@ public:
     }
 
     abstract void finalizeSize(Scope* sc);
+
+    /***************************************
+     * Calculate field[i].overlapped, and check that all of explicit
+     * field initializers have unique memory space on instance.
+     * Returns:
+     *      true if any errors happen.
+     */
+    final bool checkOverlappedFields()
+    {
+        //printf("AggregateDeclaration::checkOverlappedFields() %s\n", toChars());
+        assert(sizeok == SIZEOKdone);
+        size_t nfields = fields.dim;
+        if (isNested())
+        {
+            auto cd = isClassDeclaration();
+            if (!cd || !cd.baseClass || !cd.baseClass.isNested())
+                nfields--;
+        }
+        bool errors = false;
+
+        // Fill in missing any elements with default initializers
+        foreach (i; 0 .. nfields)
+        {
+            auto vd = fields[i];
+            auto vx = vd;
+            if (vd._init && vd._init.isVoidInitializer())
+                vx = null;
+
+            // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
+            foreach (j; 0 .. nfields)
+            {
+                if (i == j)
+                    continue;
+                auto v2 = fields[j];
+                if (!vd.isOverlappedWith(v2))
+                    continue;
+
+                // vd and v2 are overlapping. If either has destructors, postblits, etc., then error
+                //printf("overlapping fields %s and %s\n", vd->toChars(), v2->toChars());
+                foreach (k; 0.. 2)
+                {
+                    auto v = k == 0 ? vd : v2;
+                    Type tv = v.type.baseElemOf();
+                    Dsymbol sv = tv.toDsymbol(null);
+                    if (!sv || errors)
+                        continue;
+                    StructDeclaration sd = sv.isStructDeclaration();
+                    if (sd && (sd.dtor || sd.inv || sd.postblit))
+                    {
+                        error("destructors, postblits and invariants are not allowed in overlapping fields %s and %s",
+                            vd.toChars(), v2.toChars());
+                        errors = true;
+                        break;
+                    }
+                }
+                vd.overlapped = true;
+
+                if (!vx)
+                    continue;
+                if (v2._init && v2._init.isVoidInitializer())
+                    continue;
+
+                if (vx._init && v2._init)
+                {
+                    .error(loc, "overlapping default initialization for field %s and %s", v2.toChars(), vd.toChars());
+                    errors = true;
+                }
+            }
+        }
+        return errors;
+    }
 
     /****************************
      * Do byte or word alignment as necessary.

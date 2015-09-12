@@ -117,6 +117,7 @@ public:
     void semantic3(Scope *sc);
     unsigned size(Loc loc);
     virtual void finalizeSize(Scope *sc) = 0;
+    bool checkOverlappedFields();
     static void alignmember(structalign_t salign, unsigned size, unsigned *poffset);
     static unsigned placeField(unsigned *nextoffset,
         unsigned memsize, unsigned memalignsize, structalign_t memalign,
