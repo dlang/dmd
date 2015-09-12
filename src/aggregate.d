@@ -353,6 +353,154 @@ public:
         return errors;
     }
 
+    /***************************************
+     * Fill out remainder of elements[] with default initializers for fields[].
+     * Params:
+     *      loc         = location
+     *      elements    = explicit arguments which given to construct object.
+     *      ctorinit    = true if the elements will be used for default initialization.
+     * Returns:
+     *      false if any errors occur.
+     *      Otherwise, returns true and the missing arguments will be pushed in elements[].
+     */
+    final bool fill(Loc loc, Expressions* elements, bool ctorinit)
+    {
+        //printf("AggregateDeclaration::fill() %s\n", toChars());
+        assert(sizeok == SIZEOKdone);
+        assert(elements);
+        size_t nfields = fields.dim - isNested();
+        bool errors = false;
+
+        size_t dim = elements.dim;
+        elements.setDim(nfields);
+        foreach (size_t i; dim .. nfields)
+            (*elements)[i] = null;
+
+        // Fill in missing any elements with default initializers
+        foreach (i; 0 .. nfields)
+        {
+            if ((*elements)[i])
+                continue;
+
+            auto vd = fields[i];
+            auto vx = vd;
+            if (vd._init && vd._init.isVoidInitializer())
+                vx = null;
+
+            // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
+            size_t fieldi = i;
+            foreach (j; 0 .. nfields)
+            {
+                if (i == j)
+                    continue;
+                auto v2 = fields[j];
+                if (!vd.isOverlappedWith(v2))
+                    continue;
+
+                if ((*elements)[j])
+                {
+                    vx = null;
+                    break;
+                }
+                if (v2._init && v2._init.isVoidInitializer())
+                    continue;
+
+                version (all)
+                {
+                    /* Prefer first found non-void-initialized field
+                     * union U { int a; int b = 2; }
+                     * U u;    // Error: overlapping initialization for field a and b
+                     */
+                    if (!vx)
+                    {
+                        vx = v2;
+                        fieldi = j;
+                    }
+                    else if (v2._init)
+                    {
+                        .error(loc, "overlapping initialization for field %s and %s", v2.toChars(), vd.toChars());
+                        errors = true;
+                    }
+                }
+                else
+                {
+                    // Will fix Bugzilla 1432 by enabling this path always
+
+                    /* Prefer explicitly initialized field
+                     * union U { int a; int b = 2; }
+                     * U u;    // OK (u.b == 2)
+                     */
+                    if (!vx || !vx._init && v2._init)
+                    {
+                        vx = v2;
+                        fieldi = j;
+                    }
+                    else if (vx != vd && !vx.isOverlappedWith(v2))
+                    {
+                        // Both vx and v2 fills vd, but vx and v2 does not overlap
+                    }
+                    else if (vx._init && v2._init)
+                    {
+                        .error(loc, "overlapping default initialization for field %s and %s",
+                            v2.toChars(), vd.toChars());
+                        errors = true;
+                    }
+                    else
+                        assert(vx._init || !vx._init && !v2._init);
+                }
+            }
+            if (vx)
+            {
+                Expression e;
+                if (vx.type.size() == 0)
+                {
+                    e = null;
+                }
+                else if (vx._init)
+                {
+                    assert(!vx._init.isVoidInitializer());
+                    e = vx.getConstInitializer(false);
+                }
+                else
+                {
+                    if ((vx.storage_class & STCnodefaultctor) && !ctorinit)
+                    {
+                        .error(loc, "field %s.%s must be initialized because it has no default constructor",
+                            type.toChars(), vx.toChars());
+                        errors = true;
+                    }
+                    /* Bugzilla 12509: Get the element of static array type.
+                     */
+                    Type telem = vx.type;
+                    if (telem.ty == Tsarray)
+                    {
+                        /* We cannot use Type::baseElemOf() here.
+                         * If the bottom of the Tsarray is an enum type, baseElemOf()
+                         * will return the base of the enum, and its default initializer
+                         * would be different from the enum's.
+                         */
+                        while (telem.toBasetype().ty == Tsarray)
+                            telem = (cast(TypeSArray)telem.toBasetype()).next;
+                        if (telem.ty == Tvoid)
+                            telem = Type.tuns8.addMod(telem.mod);
+                    }
+                    if (telem.needsNested() && ctorinit)
+                        e = telem.defaultInit(loc);
+                    else
+                        e = telem.defaultInitLiteral(loc);
+                }
+                (*elements)[fieldi] = e;
+            }
+        }
+        foreach (e; *elements)
+        {
+            if (e && e.op == TOKerror)
+                return false;
+        }
+
+        return !errors;
+    }
+
     /****************************
      * Do byte or word alignment as necessary.
      * Align sizes of 0, as we may not know array sizes yet.
