@@ -853,7 +853,7 @@ STATIC int loopcheck(block *start,block *inc,block *rel)
 /****************************
  * Do copy propagation.
  * Copy propagation elems are of the form OPvar=OPvar, and they are
- * in expnod[].
+ * in go.expnod[].
  */
 
 static int recalc;
@@ -866,12 +866,12 @@ void copyprop()
         assert(dfo);
 Lagain:
         flowcp();               /* compute available copy statements    */
-        if (exptop <= 1)
+        if (go.exptop <= 1)
                 return;                 /* none available               */
 #if 0
-        for (i = 1; i < exptop; i++)
-        {       dbg_printf("expnod[%d] = (",i);
-                WReqn(expnod[i]);
+        for (i = 1; i < go.exptop; i++)
+        {       dbg_printf("go.expnod[%d] = (",i);
+                WReqn(go.expnod[i]);
                 dbg_printf(");\n");
         }
 #endif
@@ -922,7 +922,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
         static int nocp;
 
         assert(n && IN);
-        /*chkvecdim(exptop,0);*/
+        /*chkvecdim(go.exptop,0);*/
         if (recalc)
             return;
         op = n->Eoper;
@@ -990,7 +990,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
         {       int ambig;              /* TRUE if ambiguous def        */
 
                 ambig = !OTassign(op) || t->Eoper == OPind;
-                foreach (i,exptop,IN)           /* for each active copy elem */
+                foreach (i,go.exptop,IN)           /* for each active copy elem */
                 {       symbol *v;
 
                         if (op == OPasm)
@@ -998,7 +998,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
 
                         /* If this elem could kill the lvalue or the rvalue, */
                         /*      Clear bit in IN.                        */
-                        v = expnod[i]->E1->EV.sp.Vsym;
+                        v = go.expnod[i]->E1->EV.sp.Vsym;
                         if (ambig)
                         {       if (!(v->Sflags & SFLunambig))
                                         goto clr;
@@ -1007,7 +1007,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
                         {       if (v == t->EV.sp.Vsym)
                                         goto clr;
                         }
-                        v = expnod[i]->E2->EV.sp.Vsym;
+                        v = go.expnod[i]->E2->EV.sp.Vsym;
                         if (ambig)
                         {       if (!(v->Sflags & SFLunambig))
                                         goto clr;
@@ -1022,7 +1022,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
                         vec_clearbit(i,IN);     /* so remove it from the vector */
                 } /* foreach */
 
-                /* If this is a copy elem in expnod[]   */
+                /* If this is a copy elem in go.expnod[]   */
                 /*      Set bit in IN.                  */
                 if ((op == OPeq || op == OPstreq) && n->E1->Eoper == OPvar &&
                     n->E2->Eoper == OPvar && n->Eexp)
@@ -1041,10 +1041,10 @@ STATIC void cpwalk(elem *n,vec_t IN)
                 if (sz == -1 && !tyfunc(n->Ety))
                     sz = type_size(v->Stype);
 
-                foreach(i,exptop,IN)    /* for all active copy elems    */
+                foreach(i,go.exptop,IN)    /* for all active copy elems    */
                 {       elem *c;
 
-                        c = expnod[i];
+                        c = go.expnod[i];
                         assert(c);
 
                         unsigned csz = tysize(c->E1->Ety);
@@ -1091,12 +1091,12 @@ STATIC void cpwalk(elem *n,vec_t IN)
                          *  g = v   => g = f
                          *  f = x
                          *  d = g   => d = f !!error
-                         * Therefore, if n appears as an rvalue in expnod[], then recalc
+                         * Therefore, if n appears as an rvalue in go.expnod[], then recalc
                          */
-                        for (size_t i = 1; i < exptop; ++i)
+                        for (size_t i = 1; i < go.exptop; ++i)
                         {
-                            //printf("expnod[%d]: ", i); elem_print(expnod[i]);
-                            if (expnod[i]->E2 == n)
+                            //printf("go.expnod[%d]: ", i); elem_print(go.expnod[i]);
+                            if (go.expnod[i]->E2 == n)
                             {
                                 ++recalc;
                                 break;
@@ -1588,15 +1588,15 @@ void verybusyexp()
 
         cmes("verybusyexp()\n");
         flowvbe();                      /* compute VBEs                 */
-        if (exptop <= 1) return;        /* if no VBEs                   */
-        assert(expblk);
+        if (go.exptop <= 1) return;        /* if no VBEs                   */
+        assert(go.expblk);
         if (blockinit())
             return;                     // can't handle ASM blocks
         compdom();                      /* compute dominators           */
-        /*setvecdim(exptop);*/
+        /*setvecdim(go.exptop);*/
         genkillae();                    /* compute Bgen and Bkill for   */
                                         /* AEs                          */
-        /*chkvecdim(exptop,0);*/
+        /*chkvecdim(go.exptop,0);*/
         blockseen = vec_calloc(dfotop);
 
         /* Go backwards through dfo so that VBEs are evaluated as       */
@@ -1635,7 +1635,7 @@ void verybusyexp()
                 }
 
                 /* Eliminate all elems that have already been           */
-                /* hoisted (indicated by expnod[] == 0).                */
+                /* hoisted (indicated by go.expnod[] == 0).                */
                 /* Constants are not useful as VBEs.                    */
                 /* Eliminate all elems from Bout that are not in blocks */
                 /* that are dominated by b.                             */
@@ -1644,10 +1644,10 @@ void verybusyexp()
                 vec_println(b->Bout);
 #endif
                 done = TRUE;
-                foreach (j,exptop,b->Bout)
-                {       if (expnod[j] == 0 ||
-                            !!OTleaf(expnod[j]->Eoper) ||
-                            !dom(b,expblk[j]))
+                foreach (j,go.exptop,b->Bout)
+                {       if (go.expnod[j] == 0 ||
+                            !!OTleaf(go.expnod[j]->Eoper) ||
+                            !dom(b,go.expblk[j]))
                                 vec_clearbit(j,b->Bout);
                         else
                                 done = FALSE;
@@ -1661,11 +1661,11 @@ void verybusyexp()
                 vec_println(b->Bout);
 #endif
 
-                foreach (j,exptop,b->Bout)
+                foreach (j,go.exptop,b->Bout)
                 {       list_t bl;
 
                         vec_clear(blockseen);
-                        for (bl = expblk[j]->Bpred; bl; bl = list_next(bl))
+                        for (bl = go.expblk[j]->Bpred; bl; bl = list_next(bl))
                         {       if (killed(j,list_block(bl),b))
                                 {       vec_clearbit(j,b->Bout);
                                         break;
@@ -1682,11 +1682,11 @@ void verybusyexp()
                 vec_println(b->Bout);
 #endif
 
-                foreach (j,exptop,b->Bout)
+                foreach (j,go.exptop,b->Bout)
                 {       list_t bl;
 
                         vec_clear(blockseen);
-                        for (bl = expblk[j]->Bpred; bl; bl = list_next(bl))
+                        for (bl = go.expblk[j]->Bpred; bl; bl = list_next(bl))
                         {       if (ispath(j,list_block(bl),b))
                                         goto L2;
                         }
@@ -1702,11 +1702,11 @@ void verybusyexp()
                 vec_println(b->Bout);
 #endif
 
-                foreach (j,exptop,b->Bout)
+                foreach (j,go.exptop,b->Bout)
                 {
-                        for (k = j + 1; k < exptop; k++)
+                        for (k = j + 1; k < go.exptop; k++)
                         {       if (vec_testbit(k,b->Bout) &&
-                                    el_match(expnod[j],expnod[k]))
+                                    el_match(go.expnod[j],go.expnod[k]))
                                         goto foundvbe;
                         }
                         continue;               /* no VBE here          */
@@ -1715,30 +1715,30 @@ void verybusyexp()
 #ifdef DEBUG
                         if (debugc)
                         {   dbg_printf("VBE %d,%d, block %d (",j,k,i);
-                            WReqn(expnod[j]);
+                            WReqn(go.expnod[j]);
                             dbg_printf(");\n");
                         }
 #endif
                         *pn = el_bin(OPcomma,(*pn)->Ety,
-                                el_copytree(expnod[j]),*pn);
+                                el_copytree(go.expnod[j]),*pn);
 
                         /* Mark all the vbe elems found but one (the    */
-                        /* expnod[j] one) so that the expression will   */
+                        /* go.expnod[j] one) so that the expression will   */
                         /* only be hoisted again if other occurrances   */
                         /* of the expression are found later. This      */
                         /* will substitute for the fact that the        */
-                        /* el_copytree() expression does not appear in expnod[]. */
+                        /* el_copytree() expression does not appear in go.expnod[]. */
                         l = k;
                         do
                         {       if ( k == l || (vec_testbit(k,b->Bout) &&
-                                    el_match(expnod[j],expnod[k])))
+                                    el_match(go.expnod[j],go.expnod[k])))
                                 {
                                         /* Fix so nobody else will      */
                                         /* vbe this elem                */
-                                        expnod[k] = NULL;
+                                        go.expnod[k] = NULL;
                                         vec_clearbit(k,b->Bout);
                                 }
-                        } while (++k < exptop);
+                        } while (++k < go.exptop);
                         changes++;
                 } /* foreach */
         } /* for */
@@ -1770,14 +1770,14 @@ STATIC int killed(unsigned j,block *bp,block *b)
  * Input:
  *      b ->    block where we want to put the VBE
  *      bp ->   block somewhere between b and block containing j
- *      j =     VBE expression elem candidate (index into expnod[])
+ *      j =     VBE expression elem candidate (index into go.expnod[])
  */
 
 STATIC int ispath(unsigned j,block *bp,block *b)
 {       list_t bl;
         unsigned i;
 
-        /*chkvecdim(exptop,0);*/
+        /*chkvecdim(go.exptop,0);*/
         if (bp == b) return TRUE;       /* the trivial case             */
         if (vec_testbit(bp->Bdfoidx,blockseen))
                 return FALSE;           /* already seen this block      */
@@ -1785,8 +1785,8 @@ STATIC int ispath(unsigned j,block *bp,block *b)
 
         /* FALSE if elem j is used in block bp (and reaches the end     */
         /* of bp, indicated by it being an AE in Bgen)                  */
-        foreach (i,exptop,bp->Bgen)     /* look thru used expressions   */
-        {       if (i != j && expnod[i] && el_match(expnod[i],expnod[j]))
+        foreach (i,go.exptop,bp->Bgen)     /* look thru used expressions   */
+        {       if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
                         return FALSE;
         }
 

@@ -199,15 +199,11 @@ mftype mfoptim = 0;             // mask of optimizations to perform
 unsigned changes;               // # of optimizations performed
 struct DN *defnod = NULL;       // array of definition elems
 
-elem **expnod = NULL;   /* array of expression elems                    */
-block **expblk = NULL;  /* parallel array of block pointers             */
-
 unsigned
          maxblks = 0,   /* array max for all block stuff                */
                         /* dfoblks <= numblks <= maxblks                */
          numcse,        /* number of common subexpressions              */
-         deftop = 0,    /* # of entries in defnod[]                     */
-         exptop = 0;    /* top of expnod[]                              */
+         deftop = 0;    /* # of entries in defnod[]                     */
 
 struct Go go;
 

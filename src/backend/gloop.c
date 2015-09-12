@@ -1162,10 +1162,10 @@ STATIC void markinvar(elem *n,vec_t rd)
                         {   int j;
 
                             //printf("\tn is: "); WReqn(n); printf("\n");
-                            foreach (j,exptop,gin)
-                            {   elem *e = expnod[j];
+                            foreach (j,go.exptop,gin)
+                            {   elem *e = go.expnod[j];
 
-                                //printf("\t\texpnod[%d] = %p\n",j,e);
+                                //printf("\t\tgo.expnod[%d] = %p\n",j,e);
                                 //printf("\t\tAE is: "); WReqn(e); printf("\n");
                                 if (el_match2(n,e))
                                 {

@@ -35,8 +35,8 @@ void go_term()
     vec_free(go.defkill);
     vec_free(go.starkill);
     vec_free(go.vptrkill);
-    util_free(expnod);
-    util_free(expblk);
+    util_free(go.expnod);
+    util_free(go.expblk);
     util_free(defnod);
 }
 
