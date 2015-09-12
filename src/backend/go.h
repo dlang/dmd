@@ -54,14 +54,15 @@ extern mftype mfoptim;
 extern unsigned changes;        /* # of optimizations performed         */
 extern struct DN *defnod;       /* array of definition elems            */
 extern unsigned deftop;         /* # of entries in defnod[]             */
-extern elem **expnod;           /* array of expression elems            */
-extern unsigned exptop;         /* top of expnod[]                      */
-extern block **expblk;          /* parallel array of block pointers     */
 
 /* Global Optimizer variables
  */
 struct Go
 {
+    elem **expnod;      // array of expression elems
+    unsigned exptop;    // top of expnod[]
+    block **expblk;     // parallel array of block pointers
+
     vec_t defkill;      // vector of AEs killed by an ambiguous definition
     vec_t starkill;     // vector of AEs killed by a definition of something that somebody could be
                         // pointing to
