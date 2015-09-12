@@ -37,7 +37,7 @@ void go_term()
     vec_free(go.vptrkill);
     util_free(go.expnod);
     util_free(go.expblk);
-    util_free(defnod);
+    util_free(go.defnod);
 }
 
 #if DEBUG
