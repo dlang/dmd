@@ -659,6 +659,16 @@ void membersToDt(AggregateDeclaration *ad, dt_t **pdt,
             //printf("\t\t%s has initializer %s\n", vd->toChars(), init->toChars());
             if (init->isVoidInitializer())
                 continue;
+
+            /* Because of issue 14666, function local import does not invoke
+             * semantic2 pass for the imported module, and surprisingly there's
+             * no opportunity to do it today.
+             * As a workaround for the issue 9057, have to resolve forward reference
+             * in `init` before its use.
+             */
+            if (vd->sem < Semantic2Done && vd->scope)
+                vd->semantic2(vd->scope);
+
             ExpInitializer *ei = init->isExpInitializer();
             Type *tb = vd->type->toBasetype();
             if (ei && tb->ty == Tsarray)
