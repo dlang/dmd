@@ -509,6 +509,7 @@ public:
         //printf("StructDeclaration::finalizeSize() %s\n", toChars());
         if (sizeok != SIZEOKnone)
             return;
+
         // Set the offsets of the fields and determine the size of the struct
         uint offset = 0;
         bool isunion = isUnionDeclaration() !is null;
@@ -519,12 +520,14 @@ public:
         }
         if (sizeok == SIZEOKfwd)
             return;
+
         // 0 sized struct's are set to 1 byte
         if (structsize == 0)
         {
             structsize = 1;
             alignsize = 1;
         }
+
         // Round struct size up to next alignsize boundary.
         // This will ensure that arrays of structs will get their internals
         // aligned properly.
@@ -533,8 +536,10 @@ public:
         else
             structsize = (structsize + alignment - 1) & ~(alignment - 1);
         sizeok = SIZEOKdone;
-        // Calculate fields[i]->overlapped
-        fill(loc, null, true);
+
+        // Calculate fields[i].overlapped
+        checkOverlappedFields();
+
         // Determine if struct is all zeros or not
         zeroInit = 1;
         for (size_t i = 0; i < fields.dim; i++)
@@ -558,6 +563,7 @@ public:
                 }
             }
         }
+
         // Look for the constructor, for the struct literal/constructor call expression
         ctor = searchCtor();
         if (ctor)
@@ -660,165 +666,6 @@ public:
             (*elements)[i] = e.isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
         }
         return true;
-    }
-
-    /***************************************
-     * Fill out remainder of elements[] with default initializers for fields[].
-     * Input:
-     *      loc
-     *      elements    explicit arguments which given to construct object.
-     *      ctorinit    true if the elements will be used for default initialization.
-     * Returns false if any errors occur.
-     * Otherwise, returns true and the missing arguments will be pushed in elements[].
-     */
-    final bool fill(Loc loc, Expressions* elements, bool ctorinit)
-    {
-        //printf("StructDeclaration::fill() %s\n", toChars());
-        assert(sizeok == SIZEOKdone);
-        size_t nfields = fields.dim - isNested();
-        bool errors = false;
-        if (elements)
-        {
-            size_t dim = elements.dim;
-            elements.setDim(nfields);
-            for (size_t i = dim; i < nfields; i++)
-                (*elements)[i] = null;
-        }
-        // Fill in missing any elements with default initializers
-        for (size_t i = 0; i < nfields; i++)
-        {
-            if (elements && (*elements)[i])
-                continue;
-            VarDeclaration vd = fields[i];
-            VarDeclaration vx = vd;
-            if (vd._init && vd._init.isVoidInitializer())
-                vx = null;
-            // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
-            size_t fieldi = i;
-            for (size_t j = 0; j < nfields; j++)
-            {
-                if (i == j)
-                    continue;
-                VarDeclaration v2 = fields[j];
-                if (!vd.isOverlappedWith(v2))
-                    continue;
-                // vd and v2 are overlapping. If either has destructors, postblits, etc., then error
-                //printf("overlapping fields %s and %s\n", vd->toChars(), v2->toChars());
-                VarDeclaration v = vd;
-                for (int k = 0; k < 2; ++k, v = v2)
-                {
-                    Type tv = v.type.baseElemOf();
-                    Dsymbol sv = tv.toDsymbol(null);
-                    if (sv && !errors)
-                    {
-                        StructDeclaration sd = sv.isStructDeclaration();
-                        if (sd && (sd.dtor || sd.inv || sd.postblit))
-                        {
-                            error("destructors, postblits and invariants are not allowed in overlapping fields %s and %s", vd.toChars(), v2.toChars());
-                            errors = true;
-                            break;
-                        }
-                    }
-                }
-                if (elements)
-                {
-                    if ((*elements)[j])
-                    {
-                        vx = null;
-                        break;
-                    }
-                }
-                else
-                {
-                    vd.overlapped = true;
-                }
-                if (v2._init && v2._init.isVoidInitializer())
-                    continue;
-                if (elements)
-                {
-                    /* Prefer first found non-void-initialized field
-                     * union U { int a; int b = 2; }
-                     * U u;    // Error: overlapping initialization for field a and b
-                     */
-                    if (!vx)
-                        vx = v2, fieldi = j;
-                    else if (v2._init)
-                    {
-                        .error(loc, "overlapping initialization for field %s and %s", v2.toChars(), vd.toChars());
-                    }
-                }
-                else
-                {
-                    // Will fix Bugzilla 1432 by enabling this path always
-                    /* Prefer explicitly initialized field
-                     * union U { int a; int b = 2; }
-                     * U u;    // OK (u.b == 2)
-                     */
-                    if (!vx || !vx._init && v2._init)
-                        vx = v2, fieldi = j;
-                    else if (vx != vd && !(vx.offset < v2.offset + v2.type.size() && v2.offset < vx.offset + vx.type.size()))
-                    {
-                        // Both vx and v2 fills vd, but vx and v2 does not overlap
-                    }
-                    else if (vx._init && v2._init)
-                    {
-                        .error(loc, "overlapping default initialization for field %s and %s", v2.toChars(), vd.toChars());
-                    }
-                    else
-                        assert(vx._init || !vx._init && !v2._init);
-                }
-            }
-            if (elements && vx)
-            {
-                Expression e;
-                if (vx.type.size() == 0)
-                {
-                    e = null;
-                }
-                else if (vx._init)
-                {
-                    assert(!vx._init.isVoidInitializer());
-                    e = vx.getConstInitializer(false);
-                }
-                else
-                {
-                    if ((vx.storage_class & STCnodefaultctor) && !ctorinit)
-                    {
-                        .error(loc, "field %s.%s must be initialized because it has no default constructor", type.toChars(), vx.toChars());
-                    }
-                    /* Bugzilla 12509: Get the element of static array type.
-                     */
-                    Type telem = vx.type;
-                    if (telem.ty == Tsarray)
-                    {
-                        /* We cannot use Type::baseElemOf() here.
-                         * If the bottom of the Tsarray is an enum type, baseElemOf()
-                         * will return the base of the enum, and its default initializer
-                         * would be different from the enum's.
-                         */
-                        while (telem.toBasetype().ty == Tsarray)
-                            telem = (cast(TypeSArray)telem.toBasetype()).next;
-                        if (telem.ty == Tvoid)
-                            telem = Type.tuns8.addMod(telem.mod);
-                    }
-                    if (telem.needsNested() && ctorinit)
-                        e = telem.defaultInit(loc);
-                    else
-                        e = telem.defaultInitLiteral(loc);
-                }
-                (*elements)[fieldi] = e;
-            }
-        }
-        if (elements)
-        {
-            for (size_t i = 0; i < elements.dim; i++)
-            {
-                Expression e = (*elements)[i];
-                if (e && e.op == TOKerror)
-                    return false;
-            }
-        }
-        return !errors;
     }
 
     /***************************************

@@ -3629,13 +3629,40 @@ public:
             printf("ASSIGN: %s=%s\n", e1.toChars(), newval.toChars());
             showCtfeExpr(newval);
         }
+
         /* Block assignment or element-wise assignment.
          */
-        if (e1.op == TOKslice || e1.op == TOKvector || e1.op == TOKarrayliteral || e1.op == TOKstring || e1.op == TOKnull && e1.type.toBasetype().ty == Tarray)
+        if (e1.op == TOKslice ||
+            e1.op == TOKvector ||
+            e1.op == TOKarrayliteral ||
+            e1.op == TOKstring ||
+            e1.op == TOKnull && e1.type.toBasetype().ty == Tarray)
         {
             // Note that slice assignments don't support things like ++, so
             // we don't need to remember 'returnValue'.
             result = interpretAssignToSlice(e, e1, newval, isBlockAssignment);
+            if (exceptionOrCant(result))
+                return;
+            if (e.e1.op == TOKslice)
+            {
+                Expression e1x = interpret((cast(SliceExp)e.e1).e1, istate, ctfeNeedLvalue);
+                if (e1x.op == TOKdotvar)
+                {
+                    auto dve = cast(DotVarExp)e1x;
+                    auto ex = dve.e1;
+                    auto sle = ex.op == TOKstructliteral ? (cast(StructLiteralExp)ex)
+                             : ex.op == TOKclassreference ? (cast(ClassReferenceExp)ex).value
+                             : null;
+                    auto v = dve.var.isVarDeclaration();
+                    if (!sle || !v)
+                    {
+                        e.error("CTFE internal error: dotvar slice assignment");
+                        result = CTFEExp.cantexp;
+                        return;
+                    }
+                    stompOverlappedFields(sle, v);
+                }
+            }
             return;
         }
         assert(result);
@@ -3644,6 +3671,22 @@ public:
         if (Expression ex = assignToLvalue(e, e1, newval))
             result = ex;
         return;
+    }
+
+    /* Set all sibling fields which overlap with v to VoidExp.
+     */
+    void stompOverlappedFields(StructLiteralExp sle, VarDeclaration v)
+    {
+        if (!v.overlapped)
+            return;
+        foreach (size_t i, v2; sle.sd.fields)
+        {
+            if (v is v2 || !v.isOverlappedWith(v2))
+                continue;
+            auto e = (*sle.elements)[i];
+            if (e.op != TOKvoid)
+                (*sle.elements)[i] = voidInitLiteral(e.type, v).copy();
+        }
     }
 
     Expression assignToLvalue(BinExp e, Expression e1, Expression newval)
@@ -3661,9 +3704,11 @@ public:
             /* Assignment to member variable of the form:
              *  e.v = newval
              */
-            Expression ex = (cast(DotVarExp)e1).e1;
-            StructLiteralExp sle = ex.op == TOKstructliteral ? (cast(StructLiteralExp)ex) : ex.op == TOKclassreference ? (cast(ClassReferenceExp)ex).value : null;
-            VarDeclaration v = (cast(DotVarExp)e1).var.isVarDeclaration();
+            auto ex = (cast(DotVarExp)e1).e1;
+            auto sle = ex.op == TOKstructliteral ? (cast(StructLiteralExp)ex)
+                     : ex.op == TOKclassreference ? (cast(ClassReferenceExp)ex).value
+                     : null;
+            auto v = (cast(DotVarExp)e1).var.isVarDeclaration();
             if (!sle || !v)
             {
                 e.error("CTFE internal error: dotvar assignment");
@@ -3674,27 +3719,18 @@ public:
                 e.error("cannot modify read-only constant %s", sle.toChars());
                 return CTFEExp.cantexp;
             }
-            int fieldi = ex.op == TOKstructliteral ? findFieldIndexByName(sle.sd, v) : (cast(ClassReferenceExp)ex).findFieldIndexByName(v);
+            int fieldi = ex.op == TOKstructliteral ? findFieldIndexByName(sle.sd, v)
+                       : (cast(ClassReferenceExp)ex).findFieldIndexByName(v);
             if (fieldi == -1)
             {
                 e.error("CTFE internal error: cannot find field %s in %s", v.toChars(), ex.toChars());
                 return CTFEExp.cantexp;
             }
             assert(0 <= fieldi && fieldi < sle.elements.dim);
+
             // If it's a union, set all other members of this union to void
-            if (ex.op == TOKstructliteral && v.overlapped)
-            {
-                assert(sle.sd);
-                for (size_t i = 0; i < sle.sd.fields.dim; i++)
-                {
-                    VarDeclaration v2 = sle.sd.fields[i];
-                    if (!v.isOverlappedWith(v2))
-                        continue;
-                    Expression* exp = &(*sle.elements)[i];
-                    if ((*exp).op != TOKvoid)
-                        *exp = voidInitLiteral((*exp).type, v).copy();
-                }
-            }
+            stompOverlappedFields(sle, v);
+
             payload = &(*sle.elements)[fieldi];
             oldval = *payload;
         }
