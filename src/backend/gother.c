@@ -539,7 +539,7 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
                 dbg_printf("), %p to %p\n",foundelem,n);
         }
 #endif
-        changes++;
+        go.changes++;
         return foundelem;
     }
 noprop:
@@ -795,7 +795,7 @@ STATIC void intranges()
  final = %ld\n",(long int)initial,(long int)increment,(long int)final);
                         }
 #endif
-                        changes++;
+                        go.changes++;
                     }
 #if 0
                     // Eliminate loop if it is empty
@@ -818,7 +818,7 @@ STATIC void intranges()
                             dbg_printf(" eliminated loop\n");
                         }
 #endif
-                        changes++;
+                        go.changes++;
                      }
 #endif
                 }
@@ -1101,7 +1101,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
                             }
                         }
 
-                        changes++;
+                        go.changes++;
                 }
                 //else dbg_printf("not found\n");
             noprop:
@@ -1182,7 +1182,7 @@ void rmdeadass()
                         }
 #endif
                         elimass(n);
-                        changes++;
+                        go.changes++;
                 } /* foreach */
                 vec_free(DEAD);
                 vec_free(POSS);
@@ -1733,7 +1733,7 @@ void verybusyexp()
                                         vec_clearbit(k,b->Bout);
                                 }
                         } while (++k < go.exptop);
-                        changes++;
+                        go.changes++;
                 } /* foreach */
         } /* for */
         vec_free(blockseen);
