@@ -28,8 +28,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 /*#define vec_copy(t,f) (dbg_printf("line %d\n",__LINE__),vec_copy((t),(f)))*/
 
-extern mftype mfoptim;
-
 struct Iv;
 
 /*********************************
@@ -579,7 +577,7 @@ STATIC int looprotate(loop *l)
     //if (debugc) { dbg_printf("looprotate: "); l->print(); }
 #endif
 
-    if ((mfoptim & MFtime) && head->BC != BCswitch && head->BC != BCasm)
+    if ((go.mfoptim & MFtime) && head->BC != BCswitch && head->BC != BCasm)
     {   // Duplicate the header past the tail (but doing
         // switches would be too expensive in terms of code
         // generated).
@@ -632,7 +630,7 @@ STATIC int looprotate(loop *l)
             list_append(&(head2->Bsucc),list_block(bl));
             list_append(&(list_block(bl)->Bpred),head2);
         }
-        changes++;
+        go.changes++;
         return TRUE;
     }
     else if (startblock != head
@@ -665,7 +663,7 @@ STATIC int looprotate(loop *l)
         head->Bnext = tail->Bnext;
         tail->Bnext = head;
         cmes2( "Rotated loop %p\n", l);
-        changes++;
+        go.changes++;
     }
 Lret:
     return FALSE;
@@ -892,7 +890,7 @@ restart:
         //list_free(&l->Llis,FPNULL);
         cmes2("...Loop %p done...\n",l);
 
-        if (mfoptim & MFliv)
+        if (go.mfoptim & MFliv)
         {       loopiv(l);              /* induction variables          */
                 if (addblk)             /* if we added a block          */
                 {       compdfo();
@@ -1575,7 +1573,7 @@ Lnextlis:
                         el_copy(n->E2,list_elem(nl)->E1);
                         cmes("LI assignment rvalue was replaced\n");
                         doflow = TRUE;
-                        changes++;
+                        go.changes++;
                         break;
                     }
                 }
@@ -1588,7 +1586,7 @@ Lnextlis:
                         dbg_printf(";\n");
                 }
         #endif
-                changes++;
+                go.changes++;
                 doflow = TRUE;                  // redo flow analysis
                 ne = el_calloc();
                 el_copy(ne,n);                  // create assignment elem
@@ -1755,7 +1753,7 @@ L3:
                     dbg_printf("\n");
                 }
 #endif
-                changes++;
+                go.changes++;
                 doflow = TRUE;                  // redo flow analysis
                 goto Lret;
             }
@@ -1771,7 +1769,7 @@ L3:
   if (tyaggregate(n->Ety))
         goto Lret;
 
-  changes++;
+  go.changes++;
   doflow = TRUE;                                // redo flow analysis
 
   t = el_alloctmp(n->Ety);                      /* allocate temporary t */
@@ -2600,7 +2598,7 @@ STATIC void intronvars(loop *l)
             el_free(*fl->FLpelem);
             *fl->FLpelem = T;           /* replace elem n with ref to T  */
             doflow = TRUE;              /* redo flow analysis           */
-            changes++;
+            go.changes++;
         } /* for */
     } /* for */
 }
@@ -2748,7 +2746,7 @@ L1:
         fls->FLtemp->Sflags |= SFLnotbasiciv;
 
         fl->FLtemp = FLELIM;            /* mark iv as being gone        */
-        changes++;
+        go.changes++;
         doflow = TRUE;
         return TRUE;                    /* it was replaced              */
     }
@@ -2964,7 +2962,7 @@ STATIC void elimbasivs(loop *l)
                 }
 #endif
 
-                changes++;
+                go.changes++;
                 doflow = TRUE;                  /* redo flow analysis   */
 
                 /* if X is live on entry to any successor S outside loop */
@@ -3043,7 +3041,7 @@ STATIC void elimbasivs(loop *l)
                                             ne,b->Belem);
                                 else
                                     b->Belem = ne;
-                                changes++;
+                                go.changes++;
                                 doflow = TRUE;  /* redo flow analysis   */
                         } /* for each successor */
                 } /* foreach exit block */
@@ -3074,7 +3072,7 @@ STATIC void elimbasivs(loop *l)
                 /* placeholder in the tree)                             */
                 *(biv->IVincr) = el_selecte2(*(biv->IVincr));
 
-                changes++;
+                go.changes++;
                 doflow = TRUE;                  /* redo flow analysis   */
             L1: ;
         }
@@ -3135,7 +3133,7 @@ STATIC void elimopeqs(loop *l)
             // placeholder in the tree)
             *(biv->IVincr) = el_selecte2(*(biv->IVincr));
 
-            changes++;
+            go.changes++;
             doflow = TRUE;                      // redo flow analysis
         L1:     ;
         }
@@ -3436,7 +3434,7 @@ STATIC void elimspecwalk(elem **pn)
                         n->E2->Ety = n->Ety;
                         n->Eoper = OPcomma;
 
-                        changes++;
+                        go.changes++;
                         doflow = TRUE;
 
                         elimspecwalk(&n->E1);
@@ -3478,7 +3476,7 @@ STATIC void elimspecwalk(elem **pn)
                         /* increment node is now guaranteed to have no goal */
                         e1->Nflags |= NFLnogoal;
                         n->Eoper = OPcomma;
-                        //changes++;
+                        //go.changes++;
                         doflow = TRUE;
 
                         elimspecwalk(&n->E1);

@@ -50,13 +50,14 @@ typedef struct DN
 
 /* Global Variables */
 extern unsigned optab[];
-extern mftype mfoptim;
-extern unsigned changes;        /* # of optimizations performed         */
 
 /* Global Optimizer variables
  */
 struct Go
 {
+    mftype mfoptim;
+    unsigned changes;   // # of optimizations performed
+
     struct DN *defnod;  // array of definition elems
     unsigned deftop;    // # of entries in defnod[]
 

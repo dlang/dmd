@@ -218,7 +218,7 @@ Loop:
                            )
                         {   // Change (x += a),(x += b) to
                             // (x + a),(x += a + b)
-                            changes++;
+                            go.changes++;
                             e->E2 = el_bin(opeqtoop(op),e->E2->Ety,em->E2,e->E2);
                             em->Eoper = opeqtoop(op);
                             em->E2 = el_copytree(em->E2);
@@ -349,7 +349,7 @@ Loop:
                                     dbg_printf(";\n");
                                 }
 #endif
-                                changes++;
+                                go.changes++;
                                 em->Ety = e->Ety;
                                 el_copy(e,em);
                                 em->E1 = em->E2 = NULL;
