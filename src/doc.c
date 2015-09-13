@@ -57,8 +57,36 @@ struct Section
 
 struct ParamSection : Section
 {
+    const char *params_name;
+    const char *params_row;
+    const char *params_id;
+    const char *params_desc;
+
+    ParamSection();
+
     void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
+
+ParamSection::ParamSection()
+{
+    this->params_name = "$(DDOC_PARAMS \n";
+    this->params_row = "$(DDOC_PARAM_ROW ";
+    this->params_id = "$(DDOC_PARAM_ID ";
+    this->params_desc = "$(DDOC_PARAM_DESC ";
+}
+
+struct TemplateParamSection : ParamSection
+{
+    TemplateParamSection();
+};
+
+TemplateParamSection::TemplateParamSection()
+{
+    this->params_name = "$(DDOC_TEMPL_PARAMS \n";
+    this->params_row = "$(DDOC_TEMPL_PARAM_ROW ";
+    this->params_id = "$(DDOC_TEMPL_PARAM_ID ";
+    this->params_desc = "$(DDOC_TEMPL_PARAM_DESC ";
+}
 
 struct MacroSection : Section
 {
@@ -185,6 +213,10 @@ DDOC_PARAMS    = $(B Params:)$(BR)\n$(TABLE $0)$(BR)\n\
 DDOC_PARAM_ROW = $(TR $0)\n\
 DDOC_PARAM_ID  = $(TD $0)\n\
 DDOC_PARAM_DESC = $(TD $0)\n\
+DDOC_TEMPL_PARAMS    = $(B Template Params:)$(BR)\n$(TABLE $0)$(BR)\n\
+DDOC_TEMPL_PARAM_ROW = $(TR $0)\n\
+DDOC_TEMPL_PARAM_ID  = $(TD $0)\n\
+DDOC_TEMPL_PARAM_DESC = $(TD $0)\n\
 DDOC_BLANKLINE  = $(BR)$(BR)\n\
 \n\
 DDOC_ANCHOR     = <a name=\"$1\"></a>\n\
@@ -1187,6 +1219,8 @@ void DocComment::parseSections(unsigned char *comment)
             Section *s;
             if (icmp("Params", name, namelen) == 0)
                 s = new ParamSection();
+            else if (icmp("Template_Params", name, namelen) == 0)
+                s = new TemplateParamSection();
             else if (icmp("Macros", name, namelen) == 0)
                 s = new MacroSection();
             else
@@ -1316,7 +1350,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
     unsigned o;
     Parameter *arg;
 
-    buf->writestring("$(DDOC_PARAMS \n");
+    buf->writestring(this->params_name);
     while (p < pend)
     {
         // Skip to start of macro
@@ -1364,8 +1398,8 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
         L1:
             //printf("param '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
             HdrGenState hgs;
-            buf->writestring("$(DDOC_PARAM_ROW ");
-                buf->writestring("$(DDOC_PARAM_ID ");
+            buf->writestring(this->params_row);
+                buf->writestring(this->params_id);
                     o = buf->offset;
                     arg = isFunctionParameter(s, namestart, namelen);
                     if (arg && arg->type && arg->ident)
@@ -1376,7 +1410,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                     highlightCode(sc, s, buf, o, false);
                 buf->writestring(")\n");
 
-                buf->writestring("$(DDOC_PARAM_DESC ");
+                buf->writestring(this->params_desc);
                     o = buf->offset;
                     buf->write(textstart, textlen);
                     escapeStrayParenthesis(buf, o, s->loc);
