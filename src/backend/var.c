@@ -193,11 +193,6 @@ symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
 
-/* From go.c */
-mftype mfoptim = 0;             // mask of optimizations to perform
-
-unsigned changes;               // # of optimizations performed
-
 unsigned
          maxblks = 0,   /* array max for all block stuff                */
                         /* dfoblks <= numblks <= maxblks                */

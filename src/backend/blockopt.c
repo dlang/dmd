@@ -584,14 +584,14 @@ void blockopt(int iter)
         count = 0;
         do
         {
-            //printf("changes = %d, count = %d, dfotop = %d\n",changes,count,dfotop);
+            //printf("changes = %d, count = %d, dfotop = %d\n",go.changes,count,dfotop);
 #if MARS
             util_progress();
 #else
             if (controlc_saw)
                 util_exit(EXIT_BREAK);
 #endif
-            changes = 0;
+            go.changes = 0;
             bropt();                    // branch optimization
             brrear();                   // branch rearrangement
             blident();                  // combine identical blocks
@@ -608,7 +608,7 @@ void blockopt(int iter)
                 assert(count < iterationLimit);
                 count++;
             } while (mergeblks());      /* merge together blocks         */
-        } while (changes);
+        } while (go.changes);
 #ifdef DEBUG
         if (debugw)
             for (b = startblock; b; b = b->Bnext)
@@ -867,7 +867,7 @@ void brcombine()
             }
         }
         if (anychanges)
-        {   changes++;
+        {   go.changes++;
             continue;
         }
     } while (0);
@@ -907,7 +907,7 @@ STATIC void bropt()
                                 n->Ety = tym;
                             b->Bsucc = list_reverse(b->Bsucc);
                             cmes("CHANGE: if (!e)\n");
-                            changes++;
+                            go.changes++;
                         }
 
                         /* Take care of IF (constant)                   */
@@ -928,7 +928,7 @@ STATIC void bropt()
                                 /* delete elem if it has no side effects */
                                 b->Belem = doptelem(b->Belem,GOALnone | GOALagain);
                                 cmes("CHANGE: if (const)\n");
-                                changes++;
+                                go.changes++;
                         }
 
                         /* Look for both destinations being the same    */
@@ -939,7 +939,7 @@ STATIC void bropt()
                                 list_subtract(&(b->Bsucc),db);
                                 list_subtract(&(db->Bpred),b);
                                 cmes("CHANGE: if (e) goto L1; else goto L1;\n");
-                                changes++;
+                                go.changes++;
                         }
                 }
                 else if (b->BC == BCswitch)
@@ -985,7 +985,7 @@ STATIC void bropt()
                         b->BC = BCgoto;
                         b->Belem = doptelem(b->Belem,GOALnone | GOALagain);
                         cmes("CHANGE: switch (const)\n");
-                        changes++;
+                        go.changes++;
                 }
         }
 }
@@ -1176,7 +1176,7 @@ STATIC void elimblks()
                 b->Bnext = bf;
                 bf = b;                 /* prepend to deferred list to free */
                 cmes2("CHANGE: block %p deleted\n",b);
-                changes++;
+                go.changes++;
         }
         else
                 pb = &((*pb)->Bnext);
@@ -1338,7 +1338,7 @@ STATIC void blident()
             /*  successors match                        */
             /*  elems match                             */
             if (b->BC == bn->BC &&
-                //(!OPTIMIZER || !(mfoptim & MFtime) || !b->Bsucc) &&
+                //(!OPTIMIZER || !(go.mfoptim & MFtime) || !b->Bsucc) &&
                 (!OPTIMIZER || !(b->Bflags & BFLnomerg) || !b->Bsucc) &&
                 list_equal(b->Bsucc,bn->Bsucc) &&
 #if SCPP || NTEXCEPTIONS
@@ -1456,7 +1456,7 @@ STATIC void blident()
                     dbg_printf("block B%d (%p) removed, it was same as B%d (%p)\n",
                         bn->Bdfoidx,bn,b->Bdfoidx,b);
 #endif
-                changes++;
+                go.changes++;
                 break;
             }
         }
@@ -1470,7 +1470,7 @@ STATIC void blident()
 
 STATIC void blreturn()
 {
-    if (!(mfoptim & MFtime))            /* if optimized for space       */
+    if (!(go.mfoptim & MFtime))            /* if optimized for space       */
     {
         int retcount;                   /* number of return counts      */
         block *b;
@@ -1590,7 +1590,7 @@ STATIC void bltailmerge()
 {
     cmes("bltailmerge()\n");
     assert(!PARSER && OPTIMIZER);
-    if (!(mfoptim & MFtime))            /* if optimized for space       */
+    if (!(go.mfoptim & MFtime))            /* if optimized for space       */
     {
         block *b;
         block *bn;
@@ -1693,7 +1693,7 @@ STATIC void bltailmerge()
                     list_append(&b->Bsucc,bnew);
                     list_append(&bn->Bsucc,bnew);
 
-                    changes++;
+                    go.changes++;
 
                     /* Find all the expressions we can merge    */
                     do
@@ -1786,7 +1786,7 @@ STATIC void brmin()
             b->Bnext = bs;
 #endif
             cmes3("Moving block %p to appear after %p\n",bs,b);
-            changes++;
+            go.changes++;
             break;
 
         L2: ;
@@ -1928,7 +1928,7 @@ STATIC void brtailrecursion()
                 startblock = bs;
 
                 cmes("tail recursion\n");
-                changes++;
+                go.changes++;
                 return;
             }
         }
@@ -2057,7 +2057,7 @@ STATIC void emptyloops()
                     dbg_printf(" eliminated loop\n");
                 }
 #endif
-                changes++;
+                go.changes++;
              }
 #else
             // Find einc and erel
@@ -2094,7 +2094,7 @@ STATIC void emptyloops()
                     dbg_printf(" eliminated loop\n");
                 }
 #endif
-                changes++;
+                go.changes++;
              }
 #endif
         }

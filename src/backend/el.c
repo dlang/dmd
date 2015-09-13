@@ -1890,7 +1890,7 @@ elem *el_convfloat(elem *e)
     else if (loadconst(e, 0))
         return e;
 
-    changes++;
+    go.changes++;
     tym_t ty = e->Ety;
     int sz = tysize(ty);
     assert(sz <= sizeof(buffer));
@@ -1977,7 +1977,7 @@ elem *el_convxmm(elem *e)
         return e;
 #endif
 
-    changes++;
+    go.changes++;
     tym_t ty = e->Ety;
     int sz = tysize(ty);
     assert(sz <= sizeof(buffer));
@@ -2154,7 +2154,7 @@ elem *el_convert(elem *e)
             break;
 
         case OPstring:
-            changes++;
+            go.changes++;
             e = el_convstring(e);
             break;
 

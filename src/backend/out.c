@@ -1133,7 +1133,7 @@ STATIC void writefunc2(symbol *sfunc)
 
     block_pred();                       // compute predecessors to blocks
     block_compbcount();                 // eliminate unreachable blocks
-    if (mfoptim)
+    if (go.mfoptim)
     {   OPTIMIZER = 1;
         optfunc();                      /* optimize function            */
         assert(dfo);

@@ -863,7 +863,7 @@ STATIC void abeboolres(elem *n,vec_t ae,vec_t aeval)
                 n->EV.Vlong = vec_testbit(i,aeval) != 0;
                 n->Eoper = OPconst;
                 n->Ety = TYint;
-                changes++;
+                go.changes++;
                 break;
             }
         }
