@@ -8,8 +8,18 @@
 
 module ddmd.dinifile;
 
-import core.stdc.ctype, core.stdc.stdlib, core.stdc.string, core.sys.posix.stdlib, core.sys.windows.windows;
-import ddmd.globals, ddmd.root.file, ddmd.root.filename, ddmd.root.outbuffer, ddmd.root.port, ddmd.root.stringtable;
+import core.stdc.ctype;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.sys.posix.stdlib;
+import core.sys.windows.windows;
+import ddmd.errors;
+import ddmd.globals;
+import ddmd.root.file;
+import ddmd.root.filename;
+import ddmd.root.outbuffer;
+import ddmd.root.port;
+import ddmd.root.stringtable;
 
 version (Windows) extern (C) int putenv(const char*);
 private enum LOG = false;
@@ -23,7 +33,7 @@ private enum LOG = false;
  *      file path of the config file or NULL
  *      Note: this is a memory leak
  */
-extern (C++) const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
+const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
 {
     static if (LOG)
     {
@@ -91,7 +101,7 @@ extern (C++) const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
 /**********************************
  * Read from environment, looking for cached value first.
  */
-extern (C++) const(char)* readFromEnv(StringTable* environment, const(char)* name)
+const(char)* readFromEnv(StringTable* environment, const(char)* name)
 {
     size_t len = strlen(name);
     StringValue* sv = environment.lookup(name, len);
@@ -103,18 +113,20 @@ extern (C++) const(char)* readFromEnv(StringTable* environment, const(char)* nam
 /*********************************
  * Write to our copy of the environment, not the real environment
  */
-extern (C++) static void writeToEnv(StringTable* environment, char* nameEqValue)
+private bool writeToEnv(StringTable* environment, char* nameEqValue)
 {
     char* p = strchr(nameEqValue, '=');
-    assert(p);
+    if (!p)
+        return false;
     StringValue* sv = environment.update(nameEqValue, p - nameEqValue);
     sv.ptrvalue = cast(void*)(p + 1);
+    return true;
 }
 
 /************************************
  * Update real enviroment with our copy.
  */
-extern (C++) static int envput(StringValue* sv)
+extern (C++) private int envput(StringValue* sv)
 {
     const(char)* name = sv.toDchars();
     size_t namelen = strlen(name);
@@ -131,7 +143,7 @@ extern (C++) static int envput(StringValue* sv)
     return 0; // do all of them
 }
 
-extern (C++) void updateRealEnvironment(StringTable* environment)
+void updateRealEnvironment(StringTable* environment)
 {
     environment.apply(&envput);
 }
@@ -143,16 +155,18 @@ extern (C++) void updateRealEnvironment(StringTable* environment)
  *
  * Params:
  *      environment = our own cache of the program environment
+ *      filename = name of the file being parsed
  *      path = what @P will expand to
  *      buffer[len] = contents of configuration file
- *      sections[] = section namesdimension of array of section names
+ *      sections[] = section names
  */
-extern (C++) void parseConfFile(StringTable* environment, const(char)* path, size_t length, ubyte* buffer, Strings* sections)
+void parseConfFile(StringTable* environment, const(char)* filename, const(char)* path, size_t length, ubyte* buffer, Strings* sections)
 {
     // Parse into lines
     bool envsection = true; // default is to read
     OutBuffer buf;
     bool eof = false;
+    int lineNum = 0;
     for (size_t i = 0; i < length && !eof; i++)
     {
     Lstart:
@@ -180,6 +194,7 @@ extern (C++) void parseConfFile(StringTable* environment, const(char)* path, siz
             }
             break;
         }
+        ++lineNum;
         buf.reset();
         // First, expand the macros.
         // Macros are bracketed by % characters.
@@ -306,7 +321,11 @@ extern (C++) void parseConfFile(StringTable* environment, const(char)* path, siz
                 }
                 if (pn)
                 {
-                    writeToEnv(environment, strdup(pn));
+                    if (!writeToEnv(environment, strdup(pn)))
+                    {
+                        error(Loc(filename, lineNum, 0), "Use 'NAME=value' syntax, not '%s'", pn);
+                        fatal();
+                    }
                     static if (LOG)
                     {
                         printf("\tputenv('%s')\n", pn);
@@ -322,7 +341,7 @@ extern (C++) void parseConfFile(StringTable* environment, const(char)* path, siz
 /********************
  * Skip spaces.
  */
-extern (C++) char* skipspace(char* p)
+private char* skipspace(char* p)
 {
     while (isspace(cast(char)*p))
         p++;
