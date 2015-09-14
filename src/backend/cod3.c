@@ -3112,32 +3112,181 @@ code* prolog_setupalloca()
     return c;
 }
 
+/**************************************
+ * Save registers that the function destroys,
+ * but that the ABI says should be preserved across
+ * function calls.
+ */
+
 code* prolog_saveregs(code *c, regm_t topush)
 {
-    while (topush)                      /* while registers to push      */
-    {   unsigned reg = findreg(topush);
-        topush &= ~mask[reg];
-        if (reg >= XMM0)
+    if (pushoffuse)
+    {
+        // Save to preallocated section in the stack frame
+        int xmmtopush = numbitsset(topush & XMMREGS);   // XMM regs take 16 bytes
+        int gptopush = numbitsset(topush) - xmmtopush;  // general purpose registers to save
+        targ_size_t xmmoffset = pushoff + BPoff;
+        if (!hasframe)
+            xmmoffset += EBPtoESP;
+        targ_size_t gpoffset = xmmoffset + xmmtopush * 16;
+        while (topush)
         {
-            // SUB RSP,16
-            c = cod3_stackadj(c, 16);
-            // MOVUPD 0[RSP],xmm
-            c = genc1(c,STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
-            EBPtoESP += 16;
-            spoff += 16;
-        }
-        else
-        {
-            c = genpush(c, reg);
-            EBPtoESP += REGSIZE;
-            spoff += REGSIZE;
-            if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
-            {   // Emit debug_frame data giving location of saved register
-                // relative to 0[EBP]
-                pinholeopt(c, NULL);
-                dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
-                dwarf_CFA_offset(reg, -EBPtoESP - REGSIZE);
+            unsigned reg = findreg(topush);
+            topush &= ~mask[reg];
+            if (reg >= XMM0)
+            {
+                if (hasframe)
+                {
+                    // MOVUPD xmmoffset[EBP],xmm
+                    c = genc1(c,STOUPD,modregxrm(2,reg-XMM0,BPRM),FLconst,xmmoffset);
+                }
+                else
+                {
+                    // MOVUPD xmmoffset[ESP],xmm
+                    c = genc1(c,STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,xmmoffset);
+                }
+                xmmoffset += 16;
             }
+            else
+            {
+                if (hasframe)
+                {
+                    // MOV gpoffset[EBP],reg
+                    c = genc1(c,0x89,modregxrm(2,reg,BPRM),FLconst,gpoffset);
+                }
+                else
+                {
+                    // MOV gpoffset[ESP],reg
+                    c = genc1(c,0x89,modregxrm(2,reg,4) + 256*modregrm(0,4,SP),FLconst,gpoffset);
+                }
+                if (I64)
+                    code_orrex(c, REX_W);
+                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
+                {   // Emit debug_frame data giving location of saved register
+                    pinholeopt(c, NULL);
+                    dwarf_CFA_set_loc(calcblksize(c));  // address after save
+                    dwarf_CFA_offset(reg, gpoffset);
+                }
+                gpoffset += REGSIZE;
+            }
+        }
+    }
+    else
+    {
+        while (topush)                      /* while registers to push      */
+        {
+            unsigned reg = findreg(topush);
+            topush &= ~mask[reg];
+            if (reg >= XMM0)
+            {
+                // SUB RSP,16
+                c = cod3_stackadj(c, 16);
+                // MOVUPD 0[RSP],xmm
+                c = genc1(c,STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
+                EBPtoESP += 16;
+                spoff += 16;
+            }
+            else
+            {
+                c = genpush(c, reg);
+                EBPtoESP += REGSIZE;
+                spoff += REGSIZE;
+                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
+                {   // Emit debug_frame data giving location of saved register
+                    // relative to 0[EBP]
+                    pinholeopt(c, NULL);
+                    dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
+                    dwarf_CFA_offset(reg, -EBPtoESP - REGSIZE);
+                }
+            }
+        }
+    }
+    return c;
+}
+
+/**************************************
+ * Undo prolog_saveregs()
+ */
+
+code* epilog_restoreregs(code *c, regm_t topop)
+{
+#ifdef DEBUG
+    if (topop & ~(XMMREGS | 0xFFFF))
+        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(mfuncreg));
+#endif
+    assert(!(topop & ~(XMMREGS | 0xFFFF)));
+    if (pushoffuse)
+    {
+        // Save to preallocated section in the stack frame
+        int xmmtopop = numbitsset(topop & XMMREGS);   // XMM regs take 16 bytes
+        int gptopop = numbitsset(topop) - xmmtopop;   // general purpose registers to save
+        targ_size_t xmmoffset = pushoff + BPoff;
+        if (!hasframe)
+            xmmoffset += EBPtoESP;
+        targ_size_t gpoffset = xmmoffset + xmmtopop * 16;
+        while (topop)
+        {
+            unsigned reg = findreg(topop);
+            topop &= ~mask[reg];
+            if (reg >= XMM0)
+            {
+                if (hasframe)
+                {
+                    // MOVUPD xmm,xmmoffset[EBP]
+                    c = genc1(c,LODUPD,modregxrm(2,reg-XMM0,BPRM),FLconst,xmmoffset);
+                }
+                else
+                {
+                    // MOVUPD xmm,xmmoffset[ESP]
+                    c = genc1(c,LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,xmmoffset);
+                }
+                xmmoffset += 16;
+            }
+            else
+            {
+                if (hasframe)
+                {
+                    // MOV reg,gpoffset[EBP]
+                    c = genc1(c,0x8B,modregxrm(2,reg,BPRM),FLconst,gpoffset);
+                }
+                else
+                {
+                    // MOV reg,gpoffset[ESP]
+                    c = genc1(c,0x8B,modregxrm(2,reg,4) + 256*modregrm(0,4,SP),FLconst,gpoffset);
+                }
+                if (I64)
+                    code_orrex(c, REX_W);
+                gpoffset += REGSIZE;
+            }
+        }
+    }
+    else
+    {
+        unsigned reg = I64 ? XMM7 : DI;
+        if (!(topop & XMMREGS))
+            reg = R15;
+        regm_t regm = 1 << reg;
+
+        while (topop)
+        {   if (topop & regm)
+            {
+                if (reg >= XMM0)
+                {
+                    // MOVUPD xmm,0[RSP]
+                    c = genc1(c,LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
+                    // ADD RSP,16
+                    c = cod3_stackadj(c, -16);
+                }
+                else
+                {
+                    c = gen1(c,0x58 + (reg & 7));         // POP reg
+                    if (reg & 8)
+                        code_orrex(c, REX_B);
+                }
+                topop &= ~regm;
+            }
+            regm >>= 1;
+            reg--;
         }
     }
     return c;
@@ -3684,36 +3833,7 @@ void epilog(block *b)
      * order they were pushed.
      */
     topop = fregsaved & ~mfuncreg;
-#ifdef DEBUG
-    if (topop & ~(XMMREGS | 0xFFFF))
-        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(mfuncreg));
-#endif
-    assert(!(topop & ~(XMMREGS | 0xFFFF)));
-    reg = I64 ? XMM7 : DI;
-    if (!(topop & XMMREGS))
-        reg = R15;
-    regm = 1 << reg;
-    while (topop)
-    {   if (topop & regm)
-        {
-            if (reg >= XMM0)
-            {
-                // MOVUPD xmm,0[RSP]
-                c = genc1(c,LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
-                // ADD RSP,16
-                c = cod3_stackadj(c, -16);
-            }
-            else
-            {
-                c = gen1(c,0x58 + (reg & 7));         // POP reg
-                if (reg & 8)
-                    code_orrex(c, REX_B);
-            }
-            topop &= ~regm;
-        }
-        regm >>= 1;
-        reg--;
-    }
+    c = epilog_restoreregs(c, topop);
 
 #if MARS
     if (usednteh & NTEHjmonitor)
