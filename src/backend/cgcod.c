@@ -46,6 +46,8 @@ targ_size_t spoff;
 targ_size_t Foff;               // BP offset of floating register
 targ_size_t CSoff;              // offset of common sub expressions
 targ_size_t NDPoff;             // offset of saved 8087 registers
+targ_size_t pushoff;            // offset of saved registers
+bool pushoffuse;                // using pushoff
 int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
 int AllocaOff;                  // offset of alloca temporary
@@ -772,18 +774,37 @@ Lagain:
     NDPoff = CSoff;
 #endif
 
+    regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
+    pushoffuse = false;
+    pushoff = NDPoff;
+    if (config.flags4 & CFG4speed && (I32 || I64))
+    {
+        /* Instead of pushing the registers onto the stack one by one,
+         * allocate space in the stack frame and copy/restore them there.
+         */
+        int xmmtopush = numbitsset(topush & XMMREGS);   // XMM regs take 16 bytes
+        int gptopush = numbitsset(topush) - xmmtopush;  // general purpose registers to save
+        if (NDPoff || xmmtopush)
+        {
+            pushoff = alignsection(pushoff - (gptopush * REGSIZE + xmmtopush * 16),
+                    xmmtopush ? STACKALIGN : REGSIZE, bias);
+            pushoffuse = true;          // tell others we're using this strategy
+        }
+    }
+
     //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
 
-    localsize = -NDPoff;
-
-    regm_t topush = fregsaved & ~mfuncreg;     // mask of registers that need saving
-    int npush = numbitsset(topush);            // number of registers that need saving
-    npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
+    localsize = -pushoff;
 
     // Keep the stack aligned by 8 for any subsequent function calls
     if (!I16 && calledafunc &&
         (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
     {
+        int npush = numbitsset(topush);            // number of registers that need saving
+        npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
+        if (pushoffuse)
+            npush = 0;
+
         //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
         //       npush, Para.size, needframe, localsize);
 
