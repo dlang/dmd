@@ -1167,6 +1167,7 @@ Ldone:
     TemplateInstance *ti;
     if (fbody &&
         (isFuncLiteralDeclaration() ||
+         (storage_class & STCinference) ||
          (inferRetType && !isCtorDeclaration()) ||
          isInstantiated() && !isVirtualMethod() &&
          !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->tempdecl->ident != ident)))
@@ -1244,9 +1245,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
     if (ident == Id::assign && !inuse)
     {
-        AggregateDeclaration *ad = isThis();
-        StructDeclaration *sd = ad ? ad->isStructDeclaration() : NULL;
-        if (sd && sd->fdassign == this)
+        if (storage_class & STCinference)
         {
             /* Bugzilla 15044: For generated opAssign function, any errors
              * from its body need to be gagged.
@@ -2262,13 +2261,8 @@ bool FuncDeclaration::functionSemantic()
             return functionSemantic3();
     }
 
-    if (ident == Id::assign)
-    {
-        AggregateDeclaration *ad = isThis();
-        StructDeclaration *sd = ad ? ad->isStructDeclaration() : NULL;
-        if (sd && sd->fdassign == this)
-            return functionSemantic3();
-    }
+    if (storage_class & STCinference)
+        return functionSemantic3();
 
     return true;
 }
