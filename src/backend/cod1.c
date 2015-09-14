@@ -42,7 +42,7 @@ enum MF
 };
 code * genf2(code *c,unsigned op,unsigned rm);
 
-targ_size_t paramsize(elem *e,unsigned stackalign);
+targ_size_t paramsize(elem *e);
 STATIC code * funccall (elem *,unsigned,unsigned,regm_t *,regm_t);
 
 /* array to convert from index register to r/m field    */
@@ -2844,7 +2844,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     for (int i = np; --i >= 0;)
     {
         elem *ep = parameters[i].e;
-        unsigned psize = paramsize(ep, stackalign);
+        unsigned psize = align(stackalign, paramsize(ep));     // align on stack boundary
         if (config.exe == EX_WIN64)
         {
             //printf("[%d] size = %u, numpara = %d ep = %p ", i, psize, numpara, ep); WRTYxx(ep->Ety); printf("\n");
@@ -3474,20 +3474,13 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 }
 
 /***************************
- * Determine size of everything that will be pushed.
+ * Determine size of argument e that will be pushed.
  */
 
-targ_size_t paramsize(elem *e,unsigned stackalign)
+targ_size_t paramsize(elem *e)
 {
-    targ_size_t psize = 0;
+    assert(e->Eoper != OPparam);
     targ_size_t szb;
-
-    while (e->Eoper == OPparam)         /* if more params               */
-    {
-        elem *e2 = e->E2;
-        psize += paramsize(e->E1,stackalign);   // push them backwards
-        e = e2;
-    }
     tym_t tym = tybasic(e->Ety);
     if (tyscalar(tym))
         szb = size(tym);
@@ -3498,12 +3491,11 @@ targ_size_t paramsize(elem *e,unsigned stackalign)
         WRTYxx(tym);
         assert(0);
     }
-    psize += align(stackalign,szb);     /* align on word stack boundary */
-    return psize;
+    return szb;
 }
 
 /***************************
- * Generate code to push parameter list.
+ * Generate code to push argument e on the stack.
  * stackpush is incremented by stackalign for each PUSH.
  */
 
@@ -3511,8 +3503,6 @@ code *params(elem *e,unsigned stackalign)
 { code *c,*ce,cs;
   code *cp;
   unsigned reg;
-  targ_size_t szb;                      // size before alignment
-  targ_size_t sz;                       // size after alignment
   tym_t tym;
   regm_t retregs;
   elem *e1;
@@ -3521,17 +3511,10 @@ code *params(elem *e,unsigned stackalign)
   int fl;
 
   //printf("params(e = %p, stackalign = %d)\n", e, stackalign);
+  //printf("params()\n"); elem_print(e);
   cp = NULL;
   stackchanged = 1;
-  assert(e);
-  while (e->Eoper == OPparam)           /* if more params               */
-  {
-        e2 = e->E2;
-        cp = cat(cp,params(e->E1,stackalign));  // push them backwards
-        freenode(e);
-        e = e2;
-  }
-  //printf("params()\n"); elem_print(e);
+  assert(e && e->Eoper != OPparam);
 
   tym = tybasic(e->Ety);
   if (tyfloating(tym))
@@ -3539,18 +3522,9 @@ code *params(elem *e,unsigned stackalign)
 
   int grex = I64 ? REX_W << 16 : 0;
 
-  /* sz = number of bytes pushed        */
-  if (tyscalar(tym))
-        szb = size(tym);
-  else if (tym == TYstruct || tym == TYarray)
-        szb = type_size(e->ET);
-  else
-  {
-        WRTYxx(tym);
-        assert(0);
-  }
-  sz = align(stackalign,szb);           /* align on word stack boundary */
-  assert((sz & (stackalign - 1)) == 0); /* ensure that alignment worked */
+  targ_size_t szb = paramsize(e);               // size before alignment
+  targ_size_t sz = align(stackalign,szb);       // size after alignment
+  assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
   assert((sz & (REGSIZE - 1)) == 0);
 
   c = CNIL;
