@@ -1597,6 +1597,7 @@
                 "variable STCnogc",
                 "variable STCvolatile",
                 "variable STCreturn",
+                "variable STCinference",
                 "variable STCStorageClass",
                 "struct Match",
                 "enum Semantic",

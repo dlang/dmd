@@ -86,6 +86,7 @@ enum PINLINE;
 #define STCnogc          0x40000000000LL // @nogc
 #define STCvolatile      0x80000000000LL // destined for volatile in the back end
 #define STCreturn        0x100000000000LL // 'return ref' for function parameters
+#define STCinference     0x200000000000LL // do attribute inference
 
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |
