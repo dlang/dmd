@@ -86,6 +86,22 @@ version (unittest)
     }
 }
 
+private bool isWhitespace(dchar c)
+{
+    switch (c)
+    {
+    case ' ', '\t', '\v', '\f', '\r', '\n', PS, LS:
+        return true;
+    default:
+        return false;
+    }
+}
+
+private bool isEOF(dchar c)
+{
+    return c == 0 || c == 0x1A;
+}
+
 extern (C++) class Lexer
 {
 public:
@@ -819,18 +835,32 @@ public:
                 return;
             case '=':
                 p++;
-                if (*p == '=')
+                switch (*p)
                 {
+                case '=':
                     p++;
                     t.value = TOKequal; // ==
-                }
-                else if (*p == '>')
-                {
+                    break;
+                case '>':
                     p++;
                     t.value = TOKgoesto; // =>
+                    break;
+                case '+', '-', '*', '/', '%':
+                {
+                    auto save = p++;
+                    auto c = (*p & 0x80) ? decodeUTF() : *p;
+                    if (isWhitespace(c) || isEOF(c))
+                    {
+                        error("invalid token '=%c', did you mean '%c='?", *save, *save);
+                        p = ++save; // don't skip the whitespace to correctly count lines
+                    }
+                    else
+                        p = save;
+                    goto default;
                 }
-                else
+                default:
                     t.value = TOKassign; // =
+                }
                 return;
             case '~':
                 p++;
