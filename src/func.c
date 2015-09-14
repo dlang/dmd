@@ -1226,7 +1226,6 @@ void FuncDeclaration::semantic3(Scope *sc)
 {
     VarDeclaration *argptr = NULL;
     VarDeclaration *_arguments = NULL;
-    int nerrors = global.errors;
 
     if (!parent)
     {
@@ -1242,6 +1241,30 @@ void FuncDeclaration::semantic3(Scope *sc)
     //printf("storage class = x%x %x\n", sc->stc, storage_class);
     //{ static int x; if (++x == 2) *(char*)0=0; }
     //printf("\tlinkage = %d\n", sc->linkage);
+
+    if (ident == Id::assign && !inuse)
+    {
+        AggregateDeclaration *ad = isThis();
+        StructDeclaration *sd = ad ? ad->isStructDeclaration() : NULL;
+        if (sd && sd->fdassign == this)
+        {
+            /* Bugzilla 15044: For generated opAssign function, any errors
+             * from its body need to be gagged.
+             */
+            unsigned oldErrors = global.startGagging();
+            ++inuse;
+            semantic3(sc);
+            --inuse;
+            if (global.endGagging(oldErrors))   // if errors happened
+            {
+                // Disable generated opAssign, because some members forbid identity assignment.
+                storage_class |= STCdisable;
+                fbody = NULL;   // remove fbody which contains the error
+                semantic3Errors = false;
+            }
+            return;
+        }
+    }
 
     //printf(" sc->incontract = %d\n", (sc->flags & SCOPEcontract));
     if (semanticRun >= PASSsemantic3)
@@ -1260,6 +1283,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         error("has no function body with return type inference");
         return;
     }
+
+    unsigned oldErrors = global.errors;
 
     if (frequire)
     {
@@ -2189,7 +2214,7 @@ void FuncDeclaration::semantic3(Scope *sc)
      * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
      */
     semanticRun = PASSsemantic3done;
-    semantic3Errors = (global.errors != nerrors) || (fbody && fbody->isErrorStatement());
+    semantic3Errors = (global.errors != oldErrors) || (fbody && fbody->isErrorStatement());
     if (type->ty == Terror)
         errors = true;
     //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
@@ -2234,6 +2259,14 @@ bool FuncDeclaration::functionSemantic()
             //ad->sizeok = SIZEOKfwd;
         }
         else
+            return functionSemantic3();
+    }
+
+    if (ident == Id::assign)
+    {
+        AggregateDeclaration *ad = isThis();
+        StructDeclaration *sd = ad ? ad->isStructDeclaration() : NULL;
+        if (sd && sd->fdassign == this)
             return functionSemantic3();
     }
 

@@ -675,6 +675,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     hasIdentityAssign = false;
     hasIdentityEquals = false;
     postblit = NULL;
+    fdassign = NULL;
 
     xeq = NULL;
     xcmp = NULL;

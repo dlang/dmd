@@ -302,6 +302,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     sd->members->push(fop);
     fop->addMember(sc, sd);
     sd->hasIdentityAssign = true;        // temporary mark identity assignable
+    sd->fdassign = fop;
 
     unsigned errors = global.startGagging();    // Do not report errors, even if the
     Scope *sc2 = sc->push();
@@ -310,7 +311,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 
     fop->semantic(sc2);
     fop->semantic2(sc2);
-    fop->semantic3(sc2);
+    // Bugzilla 15044: fop->semantic3 isn't run here for lazy forward reference resolution.
 
     sc2->pop();
     if (global.endGagging(errors))    // if errors happened
