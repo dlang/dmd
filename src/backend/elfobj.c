@@ -2425,8 +2425,7 @@ unsigned Obj::bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
     int save = buf->size();
     //dbg_printf("Obj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
-    buf->setsize(offset);
-    buf->reserve(nbytes);
+    buf->position(offset, nbytes);
     if (p)
     {
         buf->writen(p,nbytes);
