@@ -50,7 +50,7 @@ targ_size_t pushoff;            // offset of saved registers
 bool pushoffuse;                // using pushoff
 int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
-int AllocaOff;                  // offset of alloca temporary
+targ_size_t AllocaOff;          // offset of alloca temporary
 LocalSection Para;              // section of function parameters
 LocalSection Auto;              // section of automatics and registers
 LocalSection Fast;              // section of fastpar
@@ -795,6 +795,10 @@ Lagain:
     //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
 
     localsize = -pushoff;
+
+    //printf("AllocaOff = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
+        //(long long)AllocaOff, (long long)cstop, (long long)CSoff, (long long)NDPoff, (long long)localsize);
+    assert((targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
     if (!I16 && calledafunc &&
