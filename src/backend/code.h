@@ -395,9 +395,9 @@ extern targ_size_t CSoff;       // offset of common sub expressions
 extern targ_size_t NDPoff;      // offset of saved 8087 registers
 extern targ_size_t pushoff;     // offset of saved registers
 extern bool pushoffuse;         // using pushoff
-extern int BPoff;                      // offset from BP
+extern int BPoff;               // offset from BP
 extern int EBPtoESP;            // add to EBP offset to get ESP offset
-extern int AllocaOff;               // offset of alloca temporary
+extern targ_size_t AllocaOff;   // offset of alloca temporary
 
 code* prolog_ifunc(tym_t* tyf);
 code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);
