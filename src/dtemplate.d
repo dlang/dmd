@@ -2231,398 +2231,393 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         //printf("stc = %llx\n", dstart->scope->stc);
         //printf("match:t/f = %d/%d\n", ta_last, m->last);
     }
-    struct ParamDeduce
+
+    // results
+    int property = 0;   // 0: unintialized
+                        // 1: seen @property
+                        // 2: not @property
+    size_t ov_index = 0;
+    TemplateDeclaration td_best;
+    TemplateInstance ti_best;
+    MATCH ta_last = m.last != MATCHnomatch ? MATCHexact : MATCHnomatch;
+    Type tthis_best;
+
+    int applyFunction(FuncDeclaration fd)
     {
-        // context
-        Loc loc;
-        Scope* sc;
-        Type tthis;
-        Objects* tiargs;
-        Expressions* fargs;
-        // result
-        Match* m;
-        int property; // 0: unintialized
-        // 1: seen @property
-        // 2: not @property
-        size_t ov_index;
-        TemplateDeclaration td_best;
-        TemplateInstance ti_best;
-        MATCH ta_last;
-        Type tthis_best;
-
-        extern (C++) static int fp(void* param, Dsymbol s)
-        {
-            if (!s.errors)
-            {
-                if (FuncDeclaration fd = s.isFuncDeclaration())
-                    return (cast(ParamDeduce*)param).fp(fd);
-                if (TemplateDeclaration td = s.isTemplateDeclaration())
-                    return (cast(ParamDeduce*)param).fp(td);
-            }
+        // skip duplicates
+        if (fd == m.lastf)
             return 0;
-        }
+        // explicitly specified tiargs never match to non template function
+        if (tiargs && tiargs.dim > 0)
+            return 0;
 
-        extern (C++) int fp(FuncDeclaration fd)
+        if (fd.semanticRun == PASSinit && fd._scope)
         {
-            // skip duplicates
-            if (fd == m.lastf)
-                return 0;
-            // explicitly specified tiargs never match to non template function
-            if (tiargs && tiargs.dim > 0)
-                return 0;
-            if (fd.semanticRun == PASSinit && fd._scope)
+            Ungag ungag = fd.ungagSpeculative();
+            fd.semantic(fd._scope);
+        }
+        if (fd.semanticRun == PASSinit)
+        {
+            .error(loc, "forward reference to template %s", fd.toChars());
+            return 1;
+        }
+        //printf("fd = %s %s, fargs = %s\n", fd->toChars(), fd->type->toChars(), fargs->toChars());
+        m.anyf = fd;
+        auto tf = cast(TypeFunction)fd.type;
+
+        int prop = tf.isproperty ? 1 : 2;
+        if (property == 0)
+            property = prop;
+        else if (property != prop)
+            error(fd.loc, "cannot overload both property and non-property functions");
+
+        /* For constructors, qualifier check will be opposite direction.
+         * Qualified constructor always makes qualified object, then will be checked
+         * that it is implicitly convertible to tthis.
+         */
+        Type tthis_fd = fd.needThis() ? tthis : null;
+        if (tthis_fd && fd.isCtorDeclaration())
+        {
+            //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
+            //        tf->mod, tthis_fd->mod, fd->isolateReturn());
+            if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
+                tf.isWild() && tf.isShared() == tthis_fd.isShared() ||
+                fd.isolateReturn())
             {
-                Ungag ungag = fd.ungagSpeculative();
-                fd.semantic(fd._scope);
+                /* && tf->isShared() == tthis_fd->isShared()*/
+                // Uniquely constructed object can ignore shared qualifier.
+                // TODO: Is this appropriate?
+                tthis_fd = null;
             }
-            if (fd.semanticRun == PASSinit)
-            {
-                .error(loc, "forward reference to template %s", fd.toChars());
-                return 1;
-            }
-            //printf("fd = %s %s, fargs = %s\n", fd->toChars(), fd->type->toChars(), fargs->toChars());
-            m.anyf = fd;
-            TypeFunction tf = cast(TypeFunction)fd.type;
-            int prop = tf.isproperty ? 1 : 2;
-            if (property == 0)
-                property = prop;
-            else if (property != prop)
-                error(fd.loc, "cannot overload both property and non-property functions");
-            /* For constructors, qualifier check will be opposite direction.
-             * Qualified constructor always makes qualified object, then will be checked
-             * that it is implicitly convertible to tthis.
+            else
+                return 0;   // MATCHnomatch
+        }
+        MATCH mfa = tf.callMatch(tthis_fd, fargs);
+        //printf("test1: mfa = %d\n", mfa);
+        if (mfa > MATCHnomatch)
+        {
+            if (mfa > m.last) goto LfIsBetter;
+            if (mfa < m.last) goto LlastIsBetter;
+
+            /* See if one of the matches overrides the other.
              */
-            Type tthis_fd = fd.needThis() ? tthis : null;
-            if (tthis_fd && fd.isCtorDeclaration())
+            assert(m.lastf);
+            if (m.lastf.overrides(fd)) goto LlastIsBetter;
+            if (fd.overrides(m.lastf)) goto LfIsBetter;
+
+            /* Try to disambiguate using template-style partial ordering rules.
+             * In essence, if f() and g() are ambiguous, if f() can call g(),
+             * but g() cannot call f(), then pick f().
+             * This is because f() is "more specialized."
+             */
             {
-                //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
-                //        tf->mod, tthis_fd->mod, fd->isolateReturn());
-                if (MODimplicitConv(tf.mod, tthis_fd.mod) || tf.isWild() && tf.isShared() == tthis_fd.isShared() || fd.isolateReturn())
-                {
-                    /* && tf->isShared() == tthis_fd->isShared()*/
-                    // Uniquely constructed object can ignore shared qualifier.
-                    // TODO: Is this appropriate?
-                    tthis_fd = null;
-                }
-                else
-                    return 0; // MATCHnomatch
+                MATCH c1 = fd.leastAsSpecialized(m.lastf);
+                MATCH c2 = m.lastf.leastAsSpecialized(fd);
+                //printf("c1 = %d, c2 = %d\n", c1, c2);
+                if (c1 > c2) goto LfIsBetter;
+                if (c1 < c2) goto LlastIsBetter;
             }
-            MATCH mfa = tf.callMatch(tthis_fd, fargs);
-            //printf("test1: mfa = %d\n", mfa);
-            if (mfa > MATCHnomatch)
+
+            /* If the two functions are the same function, like:
+             *    int foo(int);
+             *    int foo(int x) { ... }
+             * then pick the one with the body.
+             */
+            if (tf.equals(m.lastf.type) &&
+                fd.storage_class == m.lastf.storage_class &&
+                fd.parent == m.lastf.parent &&
+                fd.protection == m.lastf.protection &&
+                fd.linkage == m.lastf.linkage)
             {
-                if (mfa > m.last)
-                    goto LfIsBetter;
-                if (mfa < m.last)
-                    goto LlastIsBetter;
-                /* See if one of the matches overrides the other.
-                 */
-                assert(m.lastf);
-                if (m.lastf.overrides(fd))
-                    goto LlastIsBetter;
-                if (fd.overrides(m.lastf))
-                    goto LfIsBetter;
-                /* Try to disambiguate using template-style partial ordering rules.
-                 * In essence, if f() and g() are ambiguous, if f() can call g(),
-                 * but g() cannot call f(), then pick f().
-                 * This is because f() is "more specialized."
-                 */
-                {
-                    MATCH c1 = fd.leastAsSpecialized(m.lastf);
-                    MATCH c2 = m.lastf.leastAsSpecialized(fd);
-                    //printf("c1 = %d, c2 = %d\n", c1, c2);
-                    if (c1 > c2)
-                        goto LfIsBetter;
-                    if (c1 < c2)
-                        goto LlastIsBetter;
-                }
-                /* If the two functions are the same function, like:
-                 *    int foo(int);
-                 *    int foo(int x) { ... }
-                 * then pick the one with the body.
-                 */
-                if (tf.equals(m.lastf.type) && fd.storage_class == m.lastf.storage_class && fd.parent == m.lastf.parent && fd.protection == m.lastf.protection && fd.linkage == m.lastf.linkage)
-                {
-                    if (fd.fbody && !m.lastf.fbody)
-                        goto LfIsBetter;
-                    if (!fd.fbody && m.lastf.fbody)
-                        goto LlastIsBetter;
-                }
-                m.nextf = fd;
-                m.count++;
-                return 0;
-            LlastIsBetter:
-                return 0;
-            LfIsBetter:
-                td_best = null;
-                ti_best = null;
-                ta_last = MATCHexact;
-                m.last = mfa;
-                m.lastf = fd;
-                tthis_best = tthis_fd;
-                ov_index = 0;
-                m.count = 1;
-                return 0;
+                if (fd.fbody && !m.lastf.fbody) goto LfIsBetter;
+                if (!fd.fbody && m.lastf.fbody) goto LlastIsBetter;
             }
+
+            m.nextf = fd;
+            m.count++;
+            return 0;
+
+        LlastIsBetter:
+            return 0;
+
+        LfIsBetter:
+            td_best = null;
+            ti_best = null;
+            ta_last = MATCHexact;
+            m.last = mfa;
+            m.lastf = fd;
+            tthis_best = tthis_fd;
+            ov_index = 0;
+            m.count = 1;
             return 0;
         }
+        return 0;
+    }
+    int applyTemplate(TemplateDeclaration td)
+    {
+        // skip duplicates
+        if (td == td_best)
+            return 0;
 
-        extern (C++) int fp(TemplateDeclaration td)
+        if (!sc)
+            sc = td._scope; // workaround for Type::aliasthisOf
+
+        if (td.semanticRun == PASSinit && td._scope)
         {
-            // skip duplicates
-            if (td == td_best)
+            // Try to fix forward reference. Ungag errors while doing so.
+            Ungag ungag = td.ungagSpeculative();
+            td.semantic(td._scope);
+        }
+        if (td.semanticRun == PASSinit)
+        {
+            .error(loc, "forward reference to template %s", td.toChars());
+        Lerror:
+            m.lastf = null;
+            m.count = 0;
+            m.last = MATCHnomatch;
+            return 1;
+        }
+        //printf("td = %s\n", td->toChars());
+
+        auto f = td.onemember ? td.onemember.isFuncDeclaration() : null;
+        if (!f)
+        {
+            if (!tiargs)
+                tiargs = new Objects();
+            auto ti = new TemplateInstance(loc, td, tiargs);
+            Objects dedtypes;
+            dedtypes.setDim(td.parameters.dim);
+            assert(td.semanticRun != PASSinit);
+            MATCH mta = td.matchWithInstance(sc, ti, &dedtypes, fargs, 0);
+            //printf("matchWithInstance = %d\n", mta);
+            if (mta <= MATCHnomatch || mta < ta_last)   // no match or less match
                 return 0;
-            if (!sc)
-                sc = td._scope; // workaround for Type::aliasthisOf
-            if (td.semanticRun == PASSinit && td._scope)
+
+            ti.semantic(sc, fargs);
+            if (!ti.inst)               // if template failed to expand
+                return 0;
+
+            Dsymbol s = ti.inst.toAlias();
+            FuncDeclaration fd;
+            if (TemplateDeclaration tdx = s.isTemplateDeclaration())
             {
-                // Try to fix forward reference. Ungag errors while doing so.
-                Ungag ungag = td.ungagSpeculative();
-                td.semantic(td._scope);
-            }
-            if (td.semanticRun == PASSinit)
-            {
-                .error(loc, "forward reference to template %s", td.toChars());
-            Lerror:
-                m.lastf = null;
-                m.count = 0;
-                m.last = MATCHnomatch;
-                return 1;
-            }
-            //printf("td = %s\n", td->toChars());
-            FuncDeclaration f;
-            f = td.onemember ? td.onemember.isFuncDeclaration() : null;
-            if (!f)
-            {
-                if (!tiargs)
-                    tiargs = new Objects();
-                auto ti = new TemplateInstance(loc, td, tiargs);
-                Objects dedtypes;
-                dedtypes.setDim(td.parameters.dim);
-                assert(td.semanticRun != PASSinit);
-                MATCH mta = td.matchWithInstance(sc, ti, &dedtypes, fargs, 0);
-                //printf("matchWithInstance = %d\n", mta);
-                if (mta <= MATCHnomatch || mta < ta_last) // no match or less match
-                    return 0;
-                ti.semantic(sc, fargs);
-                if (!ti.inst) // if template failed to expand
-                    return 0;
-                Dsymbol s = ti.inst.toAlias();
-                FuncDeclaration fd;
-                if (TemplateDeclaration tdx = s.isTemplateDeclaration())
+                Objects dedtypesX;      // empty tiargs
+
+                // Bugzilla 11553: Check for recursive instantiation of tdx.
+                for (TemplatePrevious* p = tdx.previous; p; p = p.prev)
                 {
-                    Objects dedtypesX; // empty tiargs
-                    // Bugzilla 11553: Check for recursive instantiation of tdx.
-                    for (TemplatePrevious* p = tdx.previous; p; p = p.prev)
+                    if (arrayObjectMatch(p.dedargs, &dedtypesX))
                     {
-                        if (arrayObjectMatch(p.dedargs, &dedtypesX))
+                        //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
+                        /* It must be a subscope of p->sc, other scope chains are not recursive
+                         * instantiations.
+                         */
+                        for (Scope* scx = sc; scx; scx = scx.enclosing)
                         {
-                            //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
-                            /* It must be a subscope of p->sc, other scope chains are not recursive
-                             * instantiations.
-                             */
-                            for (Scope* scx = sc; scx; scx = scx.enclosing)
+                            if (scx == p.sc)
                             {
-                                if (scx == p.sc)
-                                {
-                                    error(loc, "recursive template expansion while looking for %s.%s", ti.toChars(), tdx.toChars());
-                                    goto Lerror;
-                                }
+                                error(loc, "recursive template expansion while looking for %s.%s", ti.toChars(), tdx.toChars());
+                                goto Lerror;
                             }
                         }
-                        /* BUG: should also check for ref param differences
-                         */
                     }
-                    TemplatePrevious pr;
-                    pr.prev = tdx.previous;
-                    pr.sc = sc;
-                    pr.dedargs = &dedtypesX;
-                    tdx.previous = &pr; // add this to threaded list
-                    fd = resolveFuncCall(loc, sc, s, null, tthis, fargs, 1);
-                    tdx.previous = pr.prev; // unlink from threaded list
+                    /* BUG: should also check for ref param differences
+                     */
                 }
-                else if (s.isFuncDeclaration())
-                {
-                    fd = resolveFuncCall(loc, sc, s, null, tthis, fargs, 1);
-                }
-                else
-                    goto Lerror;
-                if (!fd)
-                    return 0;
-                if (fd.type.ty != Tfunction)
-                    goto Lerror;
-                Type tthis_fd = fd.needThis() && !fd.isCtorDeclaration() ? tthis : null;
-                TypeFunction tf = cast(TypeFunction)fd.type;
-                MATCH mfa = tf.callMatch(tthis_fd, fargs);
-                if (mfa < m.last)
-                    return 0;
-                if (mta < ta_last)
-                    goto Ltd_best2;
-                if (mta > ta_last)
-                    goto Ltd2;
-                if (mfa < m.last)
-                    goto Ltd_best2;
-                if (mfa > m.last)
-                    goto Ltd2;
-            Lambig2:
-                // td_best and td are ambiguous
-                //printf("Lambig2\n");
-                m.nextf = fd;
-                m.count++;
-                return 0;
-            Ltd_best2:
-                return 0;
-            Ltd2:
-                // td is the new best match
-                assert(td._scope);
-                td_best = td;
-                ti_best = null;
-                property = 0; // (backward compatibility)
-                ta_last = mta;
-                m.last = mfa;
-                m.lastf = fd;
-                tthis_best = tthis_fd;
-                ov_index = 0;
-                m.nextf = null;
-                m.count = 1;
-                return 0;
+
+                TemplatePrevious pr;
+                pr.prev = tdx.previous;
+                pr.sc = sc;
+                pr.dedargs = &dedtypesX;
+                tdx.previous = &pr;             // add this to threaded list
+
+                fd = resolveFuncCall(loc, sc, s, null, tthis, fargs, 1);
+
+                tdx.previous = pr.prev;         // unlink from threaded list
             }
-            //printf("td = %s\n", td->toChars());
-            for (size_t ovi = 0; f; f = f.overnext0, ovi++)
+            else if (s.isFuncDeclaration())
             {
-                if (f.type.ty != Tfunction || f.errors)
-                    goto Lerror;
-                /* This is a 'dummy' instance to evaluate constraint properly.
-                 */
-                auto ti = new TemplateInstance(loc, td, tiargs);
-                ti.parent = td.parent; // Maybe calculating valid 'enclosing' is unnecessary.
-                FuncDeclaration fd = f;
-                int x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
-                MATCH mta = cast(MATCH)(x >> 4);
-                MATCH mfa = cast(MATCH)(x & 0xF);
-                //printf("match:t/f = %d/%d\n", mta, mfa);
-                if (!fd || mfa == MATCHnomatch)
-                    continue;
-                Type tthis_fd = fd.needThis() ? tthis : null;
-                if (fd.isCtorDeclaration())
-                {
-                    // Constructor call requires additional check.
-                    TypeFunction tf = cast(TypeFunction)fd.type;
-                    if (tthis_fd)
-                    {
-                        assert(tf.next);
-                        if (MODimplicitConv(tf.mod, tthis_fd.mod) || tf.isWild() && tf.isShared() == tthis_fd.isShared() || fd.isolateReturn())
-                        {
-                            tthis_fd = null;
-                        }
-                        else
-                            continue;
-                        // MATCHnomatch
-                    }
-                }
-                if (mta < ta_last)
-                    goto Ltd_best;
-                if (mta > ta_last)
-                    goto Ltd;
-                if (mfa < m.last)
-                    goto Ltd_best;
-                if (mfa > m.last)
-                    goto Ltd;
-                if (td_best)
-                {
-                    // Disambiguate by picking the most specialized TemplateDeclaration
-                    MATCH c1 = td.leastAsSpecialized(sc, td_best, fargs);
-                    MATCH c2 = td_best.leastAsSpecialized(sc, td, fargs);
-                    //printf("1: c1 = %d, c2 = %d\n", c1, c2);
-                    if (c1 > c2)
-                        goto Ltd;
-                    if (c1 < c2)
-                        goto Ltd_best;
-                }
-                assert(fd && m.lastf);
-                {
-                    // Disambiguate by tf->callMatch
-                    TypeFunction tf1 = cast(TypeFunction)fd.type;
-                    assert(tf1.ty == Tfunction);
-                    TypeFunction tf2 = cast(TypeFunction)m.lastf.type;
-                    assert(tf2.ty == Tfunction);
-                    MATCH c1 = tf1.callMatch(tthis_fd, fargs);
-                    MATCH c2 = tf2.callMatch(tthis_best, fargs);
-                    //printf("2: c1 = %d, c2 = %d\n", c1, c2);
-                    if (c1 > c2)
-                        goto Ltd;
-                    if (c1 < c2)
-                        goto Ltd_best;
-                }
-                {
-                    // Disambiguate by picking the most specialized FunctionDeclaration
-                    MATCH c1 = fd.leastAsSpecialized(m.lastf);
-                    MATCH c2 = m.lastf.leastAsSpecialized(fd);
-                    //printf("3: c1 = %d, c2 = %d\n", c1, c2);
-                    if (c1 > c2)
-                        goto Ltd;
-                    if (c1 < c2)
-                        goto Ltd_best;
-                }
-                m.nextf = fd;
-                m.count++;
-                continue;
-            Ltd_best:
-                // td_best is the best match so far
-                //printf("Ltd_best\n");
-                continue;
-            Ltd:
-                // td is the new best match
-                //printf("Ltd\n");
-                assert(td._scope);
-                td_best = td;
-                ti_best = ti;
-                property = 0; // (backward compatibility)
-                ta_last = mta;
-                m.last = mfa;
-                m.lastf = fd;
-                tthis_best = tthis_fd;
-                ov_index = ovi;
-                m.nextf = null;
-                m.count = 1;
-                continue;
+                fd = resolveFuncCall(loc, sc, s, null, tthis, fargs, 1);
             }
+            else
+                goto Lerror;
+
+            if (!fd)
+                return 0;
+
+            if (fd.type.ty != Tfunction)
+                goto Lerror;
+
+            Type tthis_fd = fd.needThis() && !fd.isCtorDeclaration() ? tthis : null;
+
+            auto tf = cast(TypeFunction)fd.type;
+            MATCH mfa = tf.callMatch(tthis_fd, fargs);
+            if (mfa < m.last)
+                return 0;
+
+            if (mta < ta_last) goto Ltd_best2;
+            if (mta > ta_last) goto Ltd2;
+
+            if (mfa < m.last) goto Ltd_best2;
+            if (mfa > m.last) goto Ltd2;
+
+        Lambig2:    // td_best and td are ambiguous
+            //printf("Lambig2\n");
+            m.nextf = fd;
+            m.count++;
+            return 0;
+
+        Ltd_best2:
+            return 0;
+
+        Ltd2:
+            // td is the new best match
+            assert(td._scope);
+            td_best = td;
+            ti_best = null;
+            property = 0;   // (backward compatibility)
+            ta_last = mta;
+            m.last = mfa;
+            m.lastf = fd;
+            tthis_best = tthis_fd;
+            ov_index = 0;
+            m.nextf = null;
+            m.count = 1;
             return 0;
         }
+
+        //printf("td = %s\n", td->toChars());
+        for (size_t ovi = 0; f; f = f.overnext0, ovi++)
+        {
+            if (f.type.ty != Tfunction || f.errors)
+                goto Lerror;
+
+            /* This is a 'dummy' instance to evaluate constraint properly.
+             */
+            auto ti = new TemplateInstance(loc, td, tiargs);
+            ti.parent = td.parent;  // Maybe calculating valid 'enclosing' is unnecessary.
+
+            auto fd = f;
+            int x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
+            MATCH mta = cast(MATCH)(x >> 4);
+            MATCH mfa = cast(MATCH)(x & 0xF);
+            //printf("match:t/f = %d/%d\n", mta, mfa);
+            if (!fd || mfa == MATCHnomatch)
+                continue;
+
+            Type tthis_fd = fd.needThis() ? tthis : null;
+
+            if (fd.isCtorDeclaration())
+            {
+                // Constructor call requires additional check.
+
+                auto tf = cast(TypeFunction)fd.type;
+                if (tthis_fd)
+                {
+                    assert(tf.next);
+                    if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
+                        tf.isWild() && tf.isShared() == tthis_fd.isShared() ||
+                        fd.isolateReturn())
+                    {
+                        tthis_fd = null;
+                    }
+                    else
+                        continue;   // MATCHnomatch
+                }
+            }
+
+            if (mta < ta_last) goto Ltd_best;
+            if (mta > ta_last) goto Ltd;
+
+            if (mfa < m.last) goto Ltd_best;
+            if (mfa > m.last) goto Ltd;
+
+            if (td_best)
+            {
+                // Disambiguate by picking the most specialized TemplateDeclaration
+                MATCH c1 = td.leastAsSpecialized(sc, td_best, fargs);
+                MATCH c2 = td_best.leastAsSpecialized(sc, td, fargs);
+                //printf("1: c1 = %d, c2 = %d\n", c1, c2);
+                if (c1 > c2) goto Ltd;
+                if (c1 < c2) goto Ltd_best;
+            }
+            assert(fd && m.lastf);
+            {
+                // Disambiguate by tf->callMatch
+                auto tf1 = cast(TypeFunction)fd.type;
+                assert(tf1.ty == Tfunction);
+                auto tf2 = cast(TypeFunction)m.lastf.type;
+                assert(tf2.ty == Tfunction);
+                MATCH c1 = tf1.callMatch(tthis_fd, fargs);
+                MATCH c2 = tf2.callMatch(tthis_best, fargs);
+                //printf("2: c1 = %d, c2 = %d\n", c1, c2);
+                if (c1 > c2) goto Ltd;
+                if (c1 < c2) goto Ltd_best;
+            }
+            {
+                // Disambiguate by picking the most specialized FunctionDeclaration
+                MATCH c1 = fd.leastAsSpecialized(m.lastf);
+                MATCH c2 = m.lastf.leastAsSpecialized(fd);
+                //printf("3: c1 = %d, c2 = %d\n", c1, c2);
+                if (c1 > c2) goto Ltd;
+                if (c1 < c2) goto Ltd_best;
+            }
+
+            m.nextf = fd;
+            m.count++;
+            continue;
+
+        Ltd_best:           // td_best is the best match so far
+            //printf("Ltd_best\n");
+            continue;
+
+        Ltd:                // td is the new best match
+            //printf("Ltd\n");
+            assert(td._scope);
+            td_best = td;
+            ti_best = ti;
+            property = 0;   // (backward compatibility)
+            ta_last = mta;
+            m.last = mfa;
+            m.lastf = fd;
+            tthis_best = tthis_fd;
+            ov_index = ovi;
+            m.nextf = null;
+            m.count = 1;
+            continue;
+        }
+        return 0;
     }
 
-    ParamDeduce p;
-    // context
-    p.loc = loc;
-    p.sc = sc;
-    p.tthis = tthis;
-    p.tiargs = tiargs;
-    p.fargs = fargs;
-    // result
-    p.m = m;
-    p.property = 0;
-    p.ov_index = 0;
-    p.td_best = null;
-    p.ti_best = null;
-    p.ta_last = m.last != MATCHnomatch ? MATCHexact : MATCHnomatch;
-    p.tthis_best = null;
-    TemplateDeclaration td = dstart.isTemplateDeclaration();
+    auto td = dstart.isTemplateDeclaration();
     if (td && td.funcroot)
         dstart = td.funcroot;
-    overloadApply(dstart, &p, &ParamDeduce.fp);
-    //printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
-    if (p.td_best && p.ti_best && m.count == 1)
+    overloadApply(dstart, (Dsymbol s)
+    {
+        if (s.errors)
+            return 0;
+        if (auto fd = s.isFuncDeclaration())
+            return applyFunction(fd);
+        if (auto td = s.isTemplateDeclaration())
+            return applyTemplate(td);
+        return 0;
+    });
+
+    //printf("td_best = %p, m->lastf = %p\n", td_best, m.lastf);
+    if (td_best && ti_best && m.count == 1)
     {
         // Matches to template function
-        assert(p.td_best.onemember && p.td_best.onemember.isFuncDeclaration());
+        assert(td_best.onemember && td_best.onemember.isFuncDeclaration());
         /* The best match is td_best with arguments tdargs.
          * Now instantiate the template.
          */
-        assert(p.td_best._scope);
+        assert(td_best._scope);
         if (!sc)
-            sc = p.td_best._scope; // workaround for Type::aliasthisOf
-        auto ti = new TemplateInstance(loc, p.td_best, p.ti_best.tiargs);
+            sc = td_best._scope; // workaround for Type::aliasthisOf
+
+        auto ti = new TemplateInstance(loc, td_best, ti_best.tiargs);
         ti.semantic(sc, fargs);
+
         m.lastf = ti.toAlias().isFuncDeclaration();
         if (!m.lastf)
             goto Lnomatch;
@@ -2634,22 +2629,26 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             m.last = MATCHnomatch;
             return;
         }
+
         // look forward instantiated overload function
         // Dsymbol::oneMembers is alredy called in TemplateInstance::semantic.
         // it has filled overnext0d
-        while (p.ov_index--)
+        while (ov_index--)
         {
             m.lastf = m.lastf.overnext0;
             assert(m.lastf);
         }
-        p.tthis_best = m.lastf.needThis() && !m.lastf.isCtorDeclaration() ? tthis : null;
-        TypeFunction tf = cast(TypeFunction)m.lastf.type;
+
+        tthis_best = m.lastf.needThis() && !m.lastf.isCtorDeclaration() ? tthis : null;
+
+        auto tf = cast(TypeFunction)m.lastf.type;
         if (tf.ty == Terror)
             goto Lerror;
         assert(tf.ty == Tfunction);
-        if (!tf.callMatch(p.tthis_best, fargs))
+        if (!tf.callMatch(tthis_best, fargs))
             goto Lnomatch;
-        if (FuncLiteralDeclaration fld = m.lastf.isFuncLiteralDeclaration())
+
+        if (auto fld = m.lastf.isFuncLiteralDeclaration())
         {
             if ((sc.flags & SCOPEconstraint) || sc.intypeof)
             {
@@ -2663,6 +2662,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
                 fld.vthis = null;
             }
         }
+
         /* As Bugzilla 3682 shows, a template instance can be matched while instantiating
          * that same template. Thus, the function type can be incomplete. Complete it.
          *
@@ -6533,14 +6533,17 @@ public:
             }
         }
         assert(tempdecl);
-        struct ParamFwdTi
+
+        // Look for forward references
+        auto tovers = tempdecl.isOverloadSet();
+        foreach (size_t oi; 0 .. tovers ? tovers.a.dim : 1)
         {
-            extern (C++) static int fp(void* param, Dsymbol s)
+            Dsymbol dstart = tovers ? tovers.a[oi] : tempdecl;
+            int r = overloadApply(dstart, (Dsymbol s)
             {
-                TemplateDeclaration td = s.isTemplateDeclaration();
+                auto td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
-                TemplateInstance ti = cast(TemplateInstance)param;
                 if (td.semanticRun == PASSinit)
                 {
                     if (td._scope)
@@ -6551,20 +6554,14 @@ public:
                     }
                     if (td.semanticRun == PASSinit)
                     {
-                        ti.error("%s forward references template declaration %s", ti.toChars(), td.toChars());
+                        error("%s forward references template declaration %s",
+                            toChars(), td.toChars());
                         return 1;
                     }
                 }
                 return 0;
-            }
-        }
-
-        // Look for forward references
-        OverloadSet tovers = tempdecl.isOverloadSet();
-        size_t overs_dim = tovers ? tovers.a.dim : 1;
-        for (size_t oi = 0; oi < overs_dim; oi++)
-        {
-            if (overloadApply(tovers ? tovers.a[oi] : tempdecl, cast(void*)this, &ParamFwdTi.fp))
+            });
+            if (r)
                 return false;
         }
         return true;
@@ -6953,105 +6950,90 @@ public:
         {
             printf("TemplateInstance::findBestMatch()\n");
         }
+
         uint errs = global.errors;
-        struct ParamBest
+        TemplateDeclaration td_last = null;
+        Objects dedtypes;
+
+        /* Since there can be multiple TemplateDeclaration's with the same
+         * name, look for the best match.
+         */
+        auto tovers = tempdecl.isOverloadSet();
+        foreach (size_t oi; 0 .. tovers ? tovers.a.dim : 1)
         {
-            // context
-            Scope* sc;
-            TemplateInstance ti;
-            Objects dedtypes;
-            // result
             TemplateDeclaration td_best;
             TemplateDeclaration td_ambig;
-            MATCH m_best;
+            MATCH m_best = MATCHnomatch;
 
-            extern (C++) static int fp(void* param, Dsymbol s)
+            Dsymbol dstart = tovers ? tovers.a[oi] : tempdecl;
+            overloadApply(dstart, (Dsymbol s)
             {
-                return (cast(ParamBest*)param).fp(s);
-            }
+                auto  td = s.isTemplateDeclaration();
+                if (!td || td == td_best)   // skip duplicates
+                    return 0;
 
-            extern (C++) int fp(Dsymbol s)
-            {
-                TemplateDeclaration td = s.isTemplateDeclaration();
-                if (!td)
-                    return 0;
-                if (td == td_best) // skip duplicates
-                    return 0;
                 //printf("td = %s\n", td->toPrettyChars());
                 // If more arguments than parameters,
                 // then this is no match.
-                if (td.parameters.dim < ti.tiargs.dim)
+                if (td.parameters.dim < tiargs.dim)
                 {
                     if (!td.isVariadic())
                         return 0;
                 }
+
                 dedtypes.setDim(td.parameters.dim);
                 dedtypes.zero();
                 assert(td.semanticRun != PASSinit);
-                MATCH m = td.matchWithInstance(sc, ti, &dedtypes, ti.fargs, 0);
+
+                MATCH m = td.matchWithInstance(sc, this, &dedtypes, fargs, 0);
                 //printf("matchWithInstance = %d\n", m);
                 if (m <= MATCHnomatch) // no match at all
                     return 0;
-                if (m < m_best)
-                    goto Ltd_best;
-                if (m > m_best)
-                    goto Ltd;
+                if (m < m_best) goto Ltd_best;
+                if (m > m_best) goto Ltd;
+
+                // Disambiguate by picking the most specialized TemplateDeclaration
                 {
-                    // Disambiguate by picking the most specialized TemplateDeclaration
-                    MATCH c1 = td.leastAsSpecialized(sc, td_best, ti.fargs);
-                    MATCH c2 = td_best.leastAsSpecialized(sc, td, ti.fargs);
-                    //printf("c1 = %d, c2 = %d\n", c1, c2);
-                    if (c1 > c2)
-                        goto Ltd;
-                    if (c1 < c2)
-                        goto Ltd_best;
+                MATCH c1 = td.leastAsSpecialized(sc, td_best, fargs);
+                MATCH c2 = td_best.leastAsSpecialized(sc, td, fargs);
+                //printf("c1 = %d, c2 = %d\n", c1, c2);
+                if (c1 > c2) goto Ltd;
+                if (c1 < c2) goto Ltd_best;
                 }
+
                 td_ambig = td;
                 return 0;
+
             Ltd_best:
                 // td_best is the best match so far
                 td_ambig = null;
                 return 0;
+
             Ltd:
                 // td is the new best match
                 td_ambig = null;
                 td_best = td;
                 m_best = m;
-                ti.tdtypes.setDim(dedtypes.dim);
-                memcpy(ti.tdtypes.tdata(), dedtypes.tdata(), ti.tdtypes.dim * (void*).sizeof);
+                tdtypes.setDim(dedtypes.dim);
+                memcpy(tdtypes.tdata(), dedtypes.tdata(), tdtypes.dim * (void*).sizeof);
                 return 0;
-            }
-        }
+            });
 
-        ParamBest p;
-        // context
-        p.ti = this;
-        p.sc = sc;
-        /* Since there can be multiple TemplateDeclaration's with the same
-         * name, look for the best match.
-         */
-        TemplateDeclaration td_last = null;
-        OverloadSet tovers = tempdecl.isOverloadSet();
-        size_t overs_dim = tovers ? tovers.a.dim : 1;
-        for (size_t oi = 0; oi < overs_dim; oi++)
-        {
-            // result
-            p.td_best = null;
-            p.td_ambig = null;
-            p.m_best = MATCHnomatch;
-            overloadApply(tovers ? tovers.a[oi] : tempdecl, &p, &ParamBest.fp);
-            if (p.td_ambig)
+            if (td_ambig)
             {
-                .error(loc, "%s %s.%s matches more than one template declaration:\n%s:     %s\nand\n%s:     %s", p.td_best.kind(), p.td_best.parent.toPrettyChars(), p.td_best.ident.toChars(), p.td_best.loc.toChars(), p.td_best.toChars(), p.td_ambig.loc.toChars(), p.td_ambig.toChars());
+                .error(loc, "%s %s.%s matches more than one template declaration:\n%s:     %s\nand\n%s:     %s",
+                    td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toChars(),
+                    td_best.loc.toChars(), td_best.toChars(),
+                    td_ambig.loc.toChars(), td_ambig.toChars());
                 return false;
             }
-            if (p.td_best)
+            if (td_best)
             {
                 if (!td_last)
-                    td_last = p.td_best;
-                else if (td_last != p.td_best)
+                    td_last = td_best;
+                else if (td_last != td_best)
                 {
-                    ScopeDsymbol.multiplyDefined(loc, td_last, p.td_best);
+                    ScopeDsymbol.multiplyDefined(loc, td_last, td_best);
                     return false;
                 }
             }
@@ -7076,7 +7058,7 @@ public:
                 if (tiargs.dim <= i)
                     tiargs.push(tdtypes[i]);
                 assert(i < tiargs.dim);
-                TemplateValueParameter tvp = (*td_last.parameters)[i].isTemplateValueParameter();
+                auto tvp = (*td_last.parameters)[i].isTemplateValueParameter();
                 if (!tvp)
                     continue;
                 assert(tdtypes[i]);
@@ -7099,7 +7081,7 @@ public:
         }
         else
         {
-            TemplateDeclaration tdecl = tempdecl.isTemplateDeclaration();
+            auto tdecl = tempdecl.isTemplateDeclaration();
             if (errs != global.errors)
                 errorSupplemental(loc, "while looking for match for %s", toChars());
             else if (tdecl && !tdecl.overnext)
@@ -7111,6 +7093,7 @@ public:
                 .error(loc, "%s %s.%s does not match any template declaration", tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
             return false;
         }
+
         /* The best match is td_last
          */
         tempdecl = td_last;
@@ -7134,77 +7117,71 @@ public:
         //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
         if (semanticRun != PASSinit)
             return false;
-        struct ParamNeedsInf
+
+        uint olderrs = global.errors;
+        Objects dedtypes;
+        size_t count = 0;
+
+        auto tovers = tempdecl.isOverloadSet();
+        foreach (size_t oi; 0 .. tovers ? tovers.a.dim : 1)
         {
-            // context
-            Scope* sc;
-            TemplateInstance ti;
-            int flag;
-            // result
-            Objects dedtypes;
-            size_t count;
-
-            extern (C++) static int fp(void* param, Dsymbol s)
+            Dsymbol dstart = tovers ? tovers.a[oi] : tempdecl;
+            int r = overloadApply(dstart, (Dsymbol s)
             {
-                return (cast(ParamNeedsInf*)param).fp(s);
-            }
-
-            extern (C++) int fp(Dsymbol s)
-            {
-                TemplateDeclaration td = s.isTemplateDeclaration();
+                auto td = s.isTemplateDeclaration();
                 if (!td)
-                {
                     return 0;
-                }
+
                 /* If any of the overloaded template declarations need inference,
                  * then return true
                  */
-                FuncDeclaration fd;
                 if (!td.onemember)
                     return 0;
-                if (TemplateDeclaration td2 = td.onemember.isTemplateDeclaration())
+                if (auto td2 = td.onemember.isTemplateDeclaration())
                 {
                     if (!td2.onemember || !td2.onemember.isFuncDeclaration())
                         return 0;
-                    if (ti.tiargs.dim > td.parameters.dim && !td.isVariadic())
+                    if (tiargs.dim > td.parameters.dim && !td.isVariadic())
                         return 0;
                     return 1;
                 }
-                if ((fd = td.onemember.isFuncDeclaration()) is null || fd.type.ty != Tfunction)
-                {
+                auto fd = td.onemember.isFuncDeclaration();
+                if (!fd || fd.type.ty != Tfunction)
                     return 0;
-                }
-                for (size_t i = 0; i < td.parameters.dim; i++)
+
+                foreach (tp; *td.parameters)
                 {
-                    if ((*td.parameters)[i].isTemplateThisParameter())
+                    if (tp.isTemplateThisParameter())
                         return 1;
                 }
+
                 /* Determine if the instance arguments, tiargs, are all that is necessary
                  * to instantiate the template.
                  */
-                //printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, ti->tiargs->dim);
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                //printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, tiargs->dim);
+                auto tf = cast(TypeFunction)fd.type;
                 if (size_t dim = Parameter.dim(tf.parameters))
                 {
-                    TemplateParameter tp = td.isVariadic();
+                    auto tp = td.isVariadic();
                     if (tp && td.parameters.dim > 1)
                         return 1;
-                    if (!tp && ti.tiargs.dim < td.parameters.dim)
+                    if (!tp && tiargs.dim < td.parameters.dim)
                     {
                         // Can remain tiargs be filled by default arguments?
-                        for (size_t i = ti.tiargs.dim; i < td.parameters.dim; i++)
+                        foreach (size_t i; tiargs.dim .. td.parameters.dim)
                         {
                             if (!(*td.parameters)[i].hasDefaultArg())
                                 return 1;
                         }
                     }
-                    for (size_t i = 0; i < dim; i++)
+                    foreach (size_t i; 0 .. dim)
                     {
                         // 'auto ref' needs inference.
                         if (Parameter.getNth(tf.parameters, i).storageClass & STCauto)
                             return 1;
                     }
                 }
+
                 if (!flag)
                 {
                     /* Calculate the need for overload resolution.
@@ -7222,38 +7199,24 @@ public:
                         }
                         if (td.semanticRun == PASSinit)
                         {
-                            ti.error("%s forward references template declaration %s", ti.toChars(), td.toChars());
+                            error("%s forward references template declaration %s", toChars(), td.toChars());
                             return 1;
                         }
                     }
-                    MATCH m = td.matchWithInstance(sc, ti, &dedtypes, null, 0);
+                    MATCH m = td.matchWithInstance(sc, this, &dedtypes, null, 0);
                     if (m <= MATCHnomatch)
                         return 0;
                 }
+
                 /* If there is more than one function template which matches, we may
                  * need type inference (see Bugzilla 4430)
                  */
-                if (++count > 1)
-                    return 1;
-                return 0;
-            }
-        }
-
-        ParamNeedsInf p;
-        // context
-        p.ti = this;
-        p.sc = sc;
-        p.flag = flag;
-        // result
-        p.count = 0;
-        OverloadSet tovers = tempdecl.isOverloadSet();
-        size_t overs_dim = tovers ? tovers.a.dim : 1;
-        uint olderrs = global.errors;
-        for (size_t oi = 0; oi < overs_dim; oi++)
-        {
-            if (overloadApply(tovers ? tovers.a[oi] : tempdecl, &p, &ParamNeedsInf.fp))
+                return ++count > 1 ? 1 : 0;
+            });
+            if (r)
                 return true;
         }
+
         if (olderrs != global.errors)
         {
             if (!global.gag)
@@ -8176,34 +8139,30 @@ public:
             }
         }
         assert(tempdecl);
-        struct ParamFwdResTm
+
+        // Look for forward references
+        auto tovers = tempdecl.isOverloadSet();
+        foreach (size_t oi; 0 .. tovers ? tovers.a.dim : 1)
         {
-            extern (C++) static int fp(void* param, Dsymbol s)
+            Dsymbol dstart = tovers ? tovers.a[oi] : tempdecl;
+            int r = overloadApply(dstart, (Dsymbol s)
             {
-                TemplateDeclaration td = s.isTemplateDeclaration();
+                auto td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
-                TemplateMixin tm = cast(TemplateMixin)param;
                 if (td.semanticRun == PASSinit)
                 {
                     if (td._scope)
                         td.semantic(td._scope);
                     else
                     {
-                        tm.semanticRun = PASSinit;
+                        semanticRun = PASSinit;
                         return 1;
                     }
                 }
                 return 0;
-            }
-        }
-
-        // Look for forward references
-        OverloadSet tovers = tempdecl.isOverloadSet();
-        size_t overs_dim = tovers ? tovers.a.dim : 1;
-        for (size_t oi = 0; oi < overs_dim; oi++)
-        {
-            if (overloadApply(tovers ? tovers.a[oi] : tempdecl, cast(void*)this, &ParamFwdResTm.fp))
+            });
+            if (r)
                 return false;
         }
         return true;

@@ -1800,60 +1800,50 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
 
 extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaration fstart, Parameters* parameters)
 {
-    struct ParamOpOver
+    MOD mod = ethis.type.mod;
+    MATCH match = MATCHnomatch;
+    FuncDeclaration fd_best;
+    FuncDeclaration fd_ambig;
+    overloadApply(fstart, (Dsymbol s)
     {
-        Parameters* parameters;
-        MOD mod;
-        MATCH match;
-        FuncDeclaration fd_best;
-        FuncDeclaration fd_ambig;
-
-        extern (C++) static int fp(void* param, Dsymbol s)
-        {
-            FuncDeclaration f = s.isFuncDeclaration();
-            if (!f)
-                return 0;
-            ParamOpOver* p = cast(ParamOpOver*)param;
-            TypeFunction tf = cast(TypeFunction)f.type;
-            MATCH m = MATCHexact;
-            if (f.isThis())
-            {
-                if (!MODimplicitConv(p.mod, tf.mod))
-                    m = MATCHnomatch;
-                else if (p.mod != tf.mod)
-                    m = MATCHconst;
-            }
-            if (!inferApplyArgTypesY(tf, p.parameters, 1))
-                m = MATCHnomatch;
-            if (m > p.match)
-            {
-                p.fd_best = f;
-                p.fd_ambig = null;
-                p.match = m;
-            }
-            else if (m == p.match)
-                p.fd_ambig = f;
+        auto f = s.isFuncDeclaration();
+        if (!f)
             return 0;
-        }
-    }
-
-    ParamOpOver p;
-    p.parameters = parameters;
-    p.mod = ethis.type.mod;
-    p.match = MATCHnomatch;
-    p.fd_best = null;
-    p.fd_ambig = null;
-    overloadApply(fstart, &p, &ParamOpOver.fp);
-    if (p.fd_best)
-    {
-        inferApplyArgTypesY(cast(TypeFunction)p.fd_best.type, parameters);
-        if (p.fd_ambig)
+        auto tf = cast(TypeFunction)f.type;
+        MATCH m = MATCHexact;
+        if (f.isThis())
         {
-            .error(ethis.loc, "%s.%s matches more than one declaration:\n%s:     %s\nand:\n%s:     %s", ethis.toChars(), fstart.ident.toChars(), p.fd_best.loc.toChars(), p.fd_best.type.toChars(), p.fd_ambig.loc.toChars(), p.fd_ambig.type.toChars());
-            p.fd_best = null;
+            if (!MODimplicitConv(mod, tf.mod))
+                m = MATCHnomatch;
+            else if (mod != tf.mod)
+                m = MATCHconst;
+        }
+        if (!inferApplyArgTypesY(tf, parameters, 1))
+            m = MATCHnomatch;
+        if (m > match)
+        {
+            fd_best = f;
+            fd_ambig = null;
+            match = m;
+        }
+        else if (m == match)
+            fd_ambig = f;
+        return 0;
+    });
+
+    if (fd_best)
+    {
+        inferApplyArgTypesY(cast(TypeFunction)fd_best.type, parameters);
+        if (fd_ambig)
+        {
+            .error(ethis.loc, "%s.%s matches more than one declaration:\n%s:     %s\nand:\n%s:     %s",
+                ethis.toChars(), fstart.ident.toChars(),
+                fd_best.loc.toChars(), fd_best.type.toChars(),
+                fd_ambig.loc.toChars(), fd_ambig.type.toChars());
+            fd_best = null;
         }
     }
-    return p.fd_best;
+    return fd_best;
 }
 
 /******************************
