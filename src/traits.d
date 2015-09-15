@@ -40,38 +40,6 @@ import ddmd.visitor;
 
 enum LOGSEMANTIC = false;
 
-/************************************************
- * Delegate to be passed to overloadApply() that looks
- * for functions matching a trait.
- */
-struct Ptrait
-{
-    Expression e1;
-    Expressions* exps; // collected results
-    Identifier ident; // which trait we're looking for
-}
-
-extern (C++) static int fptraits(void* param, Dsymbol s)
-{
-    FuncDeclaration f = s.isFuncDeclaration();
-    if (!f)
-        return 0;
-    Ptrait* p = cast(Ptrait*)param;
-    if (p.ident == Id.getVirtualFunctions && !f.isVirtual())
-        return 0;
-    if (p.ident == Id.getVirtualMethods && !f.isVirtualMethod())
-        return 0;
-    Expression e;
-    auto ad = new FuncAliasDeclaration(f.ident, f, 0);
-    ad.protection = f.protection;
-    if (p.e1)
-        e = new DotVarExp(Loc(), p.e1, ad);
-    else
-        e = new DsymbolExp(Loc(), ad);
-    p.exps.push(e);
-    return 0;
-}
-
 /**
  * Collects all unit test functions from the given array of symbols.
  *
@@ -347,18 +315,11 @@ extern (C++) void* trait_search_fp(void* arg, const(char)* seed, int* cost)
     return sv ? cast(void*)sv.ptrvalue : null;
 }
 
-extern (C++) static int fpisTemplate(void* param, Dsymbol s)
-{
-    if (s.isTemplateDeclaration())
-        return 1;
-    return 0;
-}
-
 extern (C++) bool isTemplate(Dsymbol s)
 {
     if (!s.toAlias().isOverloadable())
         return false;
-    return overloadApply(s, null, &fpisTemplate) != 0;
+    return overloadApply(s, sm => sm.isTemplateDeclaration() !is null) != 0;
 }
 
 extern (C++) Expression isSymbolX(TraitsExp e, bool function(Dsymbol s) fp)
@@ -902,16 +863,19 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = ex.semantic(sc);
             return ex;
         }
-        else if (e.ident == Id.getVirtualFunctions || e.ident == Id.getVirtualMethods || e.ident == Id.getOverloads)
+        else if (e.ident == Id.getVirtualFunctions ||
+                 e.ident == Id.getVirtualMethods ||
+                 e.ident == Id.getOverloads)
         {
             uint errors = global.errors;
             Expression eorig = ex;
             ex = ex.semantic(sc);
             if (errors < global.errors)
                 e.error("%s cannot be resolved", eorig.toChars());
+            //ex->print();
+
             /* Create tuple of functions of ex
              */
-            //ex->print();
             auto exps = new Expressions();
             FuncDeclaration f;
             if (ex.op == TOKvar)
@@ -929,13 +893,24 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 else
                     ex = dve.e1;
             }
-            else
-                f = null;
-            Ptrait p;
-            p.exps = exps;
-            p.e1 = ex;
-            p.ident = e.ident;
-            overloadApply(f, &p, &fptraits);
+
+            overloadApply(f, (Dsymbol s)
+            {
+                auto fd = s.isFuncDeclaration();
+                if (!fd)
+                    return 0;
+                if (e.ident == Id.getVirtualFunctions && !fd.isVirtual())
+                    return 0;
+                if (e.ident == Id.getVirtualMethods && !fd.isVirtualMethod())
+                    return 0;
+                auto fa = new FuncAliasDeclaration(fd.ident, fd, 0);
+                fa.protection = fd.protection;
+                Expression e = ex ? new DotVarExp(Loc(), ex, fa)
+                                  : new DsymbolExp(Loc(), fa);
+                exps.push(e);
+                return 0;
+            });
+
             auto tup = new TupleExp(e.loc, exps);
             return tup.semantic(sc);
         }

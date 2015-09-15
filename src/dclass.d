@@ -34,19 +34,6 @@ import ddmd.statement;
 import ddmd.target;
 import ddmd.visitor;
 
-/**********************************************************
- * fd is in the vtbl[] for this class.
- * Return 1 if function is hidden (not findable through search).
- */
-extern (C++) int isf(void* param, Dsymbol s)
-{
-    FuncDeclaration fd = s.isFuncDeclaration();
-    if (!fd)
-        return 0;
-    //printf("param = %p, fd = %p %s\n", param, fd, fd->toChars());
-    return cast(RootObject)param == fd;
-}
-
 struct BaseClass
 {
     Type type; // (before semantic processing)
@@ -1080,23 +1067,21 @@ public:
             return false;
         }
         s = s.toAlias();
-        OverloadSet os = s.isOverloadSet();
-        if (os)
+        if (auto os = s.isOverloadSet())
         {
-            for (size_t i = 0; i < os.a.dim; i++)
+            foreach (sm; os.a)
             {
-                Dsymbol s2 = os.a[i];
-                FuncDeclaration f2 = s2.isFuncDeclaration();
-                if (f2 && overloadApply(f2, cast(void*)fd, &isf))
+                auto fm = sm.isFuncDeclaration();
+                if (overloadApply(fm, s => fd == s.isFuncDeclaration()))
                     return false;
             }
             return true;
         }
         else
         {
-            FuncDeclaration fdstart = s.isFuncDeclaration();
-            //printf("%s fdstart = %p\n", s->kind(), fdstart);
-            if (overloadApply(fdstart, cast(void*)fd, &isf))
+            auto f = s.isFuncDeclaration();
+            //printf("%s fdstart = %p\n", s.kind(), fdstart);
+            if (overloadApply(f, s => fd == s.isFuncDeclaration()))
                 return false;
             return !fd.parent.isTemplateMixin();
         }

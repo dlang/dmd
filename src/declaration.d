@@ -997,31 +997,27 @@ public:
     {
         if (!hasOverloads)
         {
-            if (aliassym.isFuncDeclaration() || aliassym.isTemplateDeclaration())
+            if (aliassym.isFuncDeclaration() ||
+                aliassym.isTemplateDeclaration())
             {
                 return aliassym;
             }
         }
-        struct ParamUniqueSym
-        {
-            extern (C++) static int fp(void* param, Dsymbol s)
-            {
-                Dsymbol* ps = cast(Dsymbol*)param;
-                if (*ps)
-                {
-                    *ps = null;
-                    return 1; // ambiguous, done
-                }
-                else
-                {
-                    *ps = s;
-                    return 0;
-                }
-            }
-        }
 
         Dsymbol result = null;
-        overloadApply(aliassym, &result, &ParamUniqueSym.fp);
+        overloadApply(aliassym, (Dsymbol s)
+        {
+            if (result)
+            {
+                result = null;
+                return 1; // ambiguous, done
+            }
+            else
+            {
+                result = s;
+                return 0;
+            }
+        });
         return result;
     }
 

@@ -2482,45 +2482,35 @@ public:
      */
     final FuncDeclaration overloadExactMatch(Type t)
     {
-        struct ParamExact
+        FuncDeclaration fd;
+        overloadApply(this, (Dsymbol s)
         {
-            Type t; // type to match
-            FuncDeclaration f; // return value
-
-            extern (C++) static int fp(void* param, Dsymbol s)
+            auto f = s.isFuncDeclaration();
+            if (!f)
+                return 0;
+            if (t.equals(f.type))
             {
-                FuncDeclaration f = s.isFuncDeclaration();
-                if (!f)
-                    return 0;
-                ParamExact* p = cast(ParamExact*)param;
-                Type t = p.t;
-                if (t.equals(f.type))
+                fd = f;
+                return 1;
+            }
+
+            /* Allow covariant matches, as long as the return type
+             * is just a const conversion.
+             * This allows things like pure functions to match with an impure function type.
+             */
+            if (t.ty == Tfunction)
+            {
+                auto tf = cast(TypeFunction)f.type;
+                if (tf.covariant(t) == 1 &&
+                    tf.nextOf().implicitConvTo(t.nextOf()) >= MATCHconst)
                 {
-                    p.f = f;
+                    fd = f;
                     return 1;
                 }
-                /* Allow covariant matches, as long as the return type
-                 * is just a const conversion.
-                 * This allows things like pure functions to match with an impure function type.
-                 */
-                if (t.ty == Tfunction)
-                {
-                    TypeFunction tf = cast(TypeFunction)f.type;
-                    if (tf.covariant(t) == 1 && tf.nextOf().implicitConvTo(t.nextOf()) >= MATCHconst)
-                    {
-                        p.f = f;
-                        return 1;
-                    }
-                }
-                return 0;
             }
-        }
-
-        ParamExact p;
-        p.t = t;
-        p.f = null;
-        overloadApply(this, &p, &ParamExact.fp);
-        return p.f;
+            return 0;
+        });
+        return fd;
     }
 
     /********************************************
@@ -2547,97 +2537,81 @@ public:
         Match m;
         memset(&m, 0, m.sizeof);
         m.last = MATCHnomatch;
-        struct ParamMod
+        overloadApply(this, (Dsymbol s)
         {
-            Match* m;
-            Type tthis;
-
-            extern (C++) static int fp(void* param, Dsymbol s)
-            {
-                if (FuncDeclaration fd = s.isFuncDeclaration())
-                    return (cast(ParamMod*)param).fp(fd);
+            auto f = s.isFuncDeclaration();
+            if (!f || f == m.lastf) // skip duplicates
                 return 0;
-            }
+            m.anyf = f;
 
-            extern (C++) int fp(FuncDeclaration f)
+            auto tf = cast(TypeFunction)f.type;
+            //printf("tf = %s\n", tf->toChars());
+
+            MATCH match;
+            if (tthis) // non-static functions are preferred than static ones
             {
-                if (f == m.lastf) // skip duplicates
-                    return 0;
-                m.anyf = f;
-                TypeFunction tf = cast(TypeFunction)f.type;
-                //printf("tf = %s\n", tf->toChars());
-                MATCH match;
-                if (tthis) // non-static functions are preferred than static ones
-                {
-                    if (f.needThis())
-                        match = f.isCtorDeclaration() ? MATCHexact : MODmethodConv(tthis.mod, tf.mod);
-                    else
-                        match = MATCHconst; // keep static funciton in overload candidates
-                }
-                else // static functions are preferred than non-static ones
-                {
-                    if (f.needThis())
-                        match = MATCHconvert;
-                    else
-                        match = MATCHexact;
-                }
-                if (match != MATCHnomatch)
-                {
-                    if (match > m.last)
-                        goto LfIsBetter;
-                    if (match < m.last)
-                        goto LlastIsBetter;
-                    /* See if one of the matches overrides the other.
-                     */
-                    if (m.lastf.overrides(f))
-                        goto LlastIsBetter;
-                    if (f.overrides(m.lastf))
-                        goto LfIsBetter;
-                Lambiguous:
-                    //printf("\tambiguous\n");
-                    m.nextf = f;
-                    m.count++;
-                    return 0;
-                LlastIsBetter:
-                    //printf("\tlastbetter\n");
-                    return 0;
-                LfIsBetter:
-                    //printf("\tisbetter\n");
-                    if (m.last <= MATCHconvert)
-                    {
-                        // clear last secondary matching
-                        m.nextf = null;
-                        m.count = 0;
-                    }
-                    m.last = match;
-                    m.lastf = f;
-                    m.count++; // count up
-                    return 0;
-                }
-                return 0;
+                if (f.needThis())
+                    match = f.isCtorDeclaration() ? MATCHexact : MODmethodConv(tthis.mod, tf.mod);
+                else
+                    match = MATCHconst; // keep static funciton in overload candidates
             }
-        }
+            else // static functions are preferred than non-static ones
+            {
+                if (f.needThis())
+                    match = MATCHconvert;
+                else
+                    match = MATCHexact;
+            }
+            if (match == MATCHnomatch)
+                return 0;
 
-        ParamMod p;
-        p.m = &m;
-        p.tthis = tthis;
-        overloadApply(this, &p, &ParamMod.fp);
-        if (m.count == 1) // exact match
+            if (match > m.last) goto LcurrIsBetter;
+            if (match < m.last) goto LlastIsBetter;
+
+            // See if one of the matches overrides the other.
+            if (m.lastf.overrides(f)) goto LlastIsBetter;
+            if (f.overrides(m.lastf)) goto LcurrIsBetter;
+
+        Lambiguous:
+            //printf("\tambiguous\n");
+            m.nextf = f;
+            m.count++;
+            return 0;
+
+        LlastIsBetter:
+            //printf("\tlastbetter\n");
+            return 0;
+
+        LcurrIsBetter:
+            //printf("\tisbetter\n");
+            if (m.last <= MATCHconvert)
+            {
+                // clear last secondary matching
+                m.nextf = null;
+                m.count = 0;
+            }
+            m.last = match;
+            m.lastf = f;
+            m.count++; // count up
+            return 0;
+        });
+
+        if (m.count == 1)   // exact match
         {
             t = m.lastf.type;
         }
         else if (m.count > 1)
         {
-            if (!m.nextf) // better match
+            if (!m.nextf)   // better match
                 t = m.lastf.type;
-            else // ambiguous match
+            else            // ambiguous match
                 t = null;
             m.lastf = null;
         }
-        else // no match
+        else                // no match
         {
             t = null;
-            TypeFunction tf = cast(TypeFunction)this.type;
+            auto tf = cast(TypeFunction)this.type;
             assert(tthis);
             assert(!MODimplicitConv(tthis.mod, tf.mod)); // modifier mismatch
             {
@@ -3235,29 +3209,23 @@ public:
      */
     final FuncDeclaration isUnique()
     {
-        struct ParamUnique
-        {
-            extern (C++) static int fp(void* param, Dsymbol s)
-            {
-                FuncDeclaration f = s.isFuncDeclaration();
-                if (!f)
-                    return 0;
-                FuncDeclaration* pf = cast(FuncDeclaration*)param;
-                if (*pf)
-                {
-                    *pf = null;
-                    return 1; // ambiguous, done
-                }
-                else
-                {
-                    *pf = f;
-                    return 0;
-                }
-            }
-        }
-
         FuncDeclaration result = null;
-        overloadApply(this, &result, &ParamUnique.fp);
+        overloadApply(this, (Dsymbol s)
+        {
+            auto f = s.isFuncDeclaration();
+            if (!f)
+                return 0;
+            if (result)
+            {
+                result = null;
+                return 1; // ambiguous, done
+            }
+            else
+            {
+                result = f;
+                return 0;
+            }
+        });
         return result;
     }
 
@@ -3967,17 +3935,35 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
     fargsBuf.writeByte(')');
     if (tthis)
         tthis.modToBuffer(&fargsBuf);
-    const(int) numOverloadsDisplay = 5; // sensible number to display
+
+    // max num of overloads to print (-v overrides this).
+    enum int numOverloadsDisplay = 5;
+
     if (!m.lastf && !(flags & 1)) // no match
     {
         if (td && !fd) // all of overloads are templates
         {
             .error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:", td.kind(), td.parent.toPrettyChars(), td.ident.toChars(), tiargsBuf.peekString(), fargsBuf.peekString());
+
             // Display candidate templates (even if there are no multiple overloads)
-            TemplateCandidateWalker tcw;
-            tcw.loc = loc;
-            tcw.numToDisplay = numOverloadsDisplay;
-            overloadApply(td, &tcw, &TemplateCandidateWalker.fp);
+            int numToDisplay = numOverloadsDisplay;
+            overloadApply(td, (Dsymbol s)
+            {
+                auto td = s.isTemplateDeclaration();
+                if (!td)
+                    return 0;
+                .errorSupplemental(td.loc, "%s", td.toPrettyChars());
+                if (global.params.verbose || --numToDisplay != 0 || !td.overnext)
+                    return 0;
+
+                // Too many overloads to sensibly display.
+                // Just show count of remaining overloads.
+                int num = 0;
+                overloadApply(td.overnext, (s){ ++num; return 0; });
+                if (num > 0)
+                    .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
+                return 1;   // stop iterating
+            });
         }
         else
         {
@@ -3990,26 +3976,53 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
                 MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
                 MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
                 if (hasOverloads)
-                    .error(loc, "None of the overloads of '%s' are callable using a %sobject, candidates are:", fd.ident.toChars(), thisBuf.peekString());
+                {
+                    .error(loc, "None of the overloads of '%s' are callable using a %sobject, candidates are:",
+                        fd.ident.toChars(), thisBuf.peekString());
+                }
                 else
-                    .error(loc, "%smethod %s is not callable using a %sobject", funcBuf.peekString(), fd.toPrettyChars(), thisBuf.peekString());
+                {
+                    .error(loc, "%smethod %s is not callable using a %sobject",
+                        funcBuf.peekString(), fd.toPrettyChars(),
+                        thisBuf.peekString());
+                }
             }
             else
             {
                 //printf("tf = %s, args = %s\n", tf->deco, (*fargs)[0]->type->deco);
                 if (hasOverloads)
-                    .error(loc, "None of the overloads of '%s' are callable using argument types %s, candidates are:", fd.ident.toChars(), fargsBuf.peekString());
+                {
+                    .error(loc, "None of the overloads of '%s' are callable using argument types %s, candidates are:",
+                        fd.ident.toChars(), fargsBuf.peekString());
+                }
                 else
-                    fd.error(loc, "%s%s is not callable using argument types %s", parametersTypeToChars(tf.parameters, tf.varargs), tf.modToChars(), fargsBuf.peekString());
+                {
+                    fd.error(loc, "%s%s is not callable using argument types %s",
+                        parametersTypeToChars(tf.parameters, tf.varargs),
+                        tf.modToChars(), fargsBuf.peekString());
+                }
             }
+
             // Display candidate functions
-            if (hasOverloads)
+            int numToDisplay = numOverloadsDisplay;
+            overloadApply(hasOverloads ? fd : null, (Dsymbol s)
             {
-                FuncCandidateWalker fcw;
-                fcw.loc = loc;
-                fcw.numToDisplay = numOverloadsDisplay;
-                overloadApply(fd, &fcw, &FuncCandidateWalker.fp);
-            }
+                auto fd = s.isFuncDeclaration();
+                if (!fd || fd.errors || fd.type.ty == Terror)
+                    return 0;
+                auto tf = cast(TypeFunction)fd.type;
+                .errorSupplemental(fd.loc, "%s%s", fd.toPrettyChars(),
+                    parametersTypeToChars(tf.parameters, tf.varargs));
+                if (global.params.verbose || --numToDisplay != 0 || !fd.overnext)
+                    return 0;
+
+                // Too many overloads to sensibly display.
+                int num = 0;
+                overloadApply(fd.overnext, (s){ num += !!s.isFuncDeclaration(); return 0; });
+                if (num > 0)
+                    .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
+                return 1;   // stop iterating
+            });
         }
     }
     else if (m.nextf)
@@ -4021,88 +4034,6 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
         .error(loc, "%s.%s called with argument types %s matches both:\n%s:     %s%s\nand:\n%s:     %s%s", s.parent.toPrettyChars(), s.ident.toChars(), fargsBuf.peekString(), m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms);
     }
     return null;
-}
-
-/// Walk through candidate template overloads and print them in the diagnostics.
-struct TemplateCandidateWalker
-{
-    Loc loc;
-    int numToDisplay; // max num of overloads to print (-v overrides this).
-
-    /// Count template overloads.
-    struct CountWalker
-    {
-        int numOverloads;
-
-        extern (C++) static int fp(void* param, Dsymbol s)
-        {
-            CountWalker* p = cast(CountWalker*)param;
-            ++p.numOverloads;
-            return 0;
-        }
-    }
-
-    extern (C++) static int fp(void* param, Dsymbol s)
-    {
-        TemplateDeclaration t = s.isTemplateDeclaration();
-        if (!t)
-            return 0;
-        TemplateCandidateWalker* p = cast(TemplateCandidateWalker*)param;
-        .errorSupplemental(t.loc, "%s", t.toPrettyChars());
-        if (!global.params.verbose && --p.numToDisplay == 0 && t.overnext)
-        {
-            // Too many overloads to sensibly display.
-            // Just show count of remaining overloads.
-            CountWalker cw;
-            cw.numOverloads = 0;
-            overloadApply(t.overnext, &cw, &CountWalker.fp);
-            if (cw.numOverloads > 0)
-                .errorSupplemental(p.loc, "... (%d more, -v to show) ...", cw.numOverloads);
-            return 1; // stop iterating
-        }
-        return 0;
-    }
-}
-
-/// Walk through candidate template overloads and print them in the diagnostics.
-struct FuncCandidateWalker
-{
-    Loc loc;
-    int numToDisplay; // max num of overloads to print (-v overrides this).
-
-    /// Count function overloads.
-    struct CountWalker
-    {
-        int numOverloads;
-
-        extern (C++) static int fp(void* param, Dsymbol s)
-        {
-            CountWalker* p = cast(CountWalker*)param;
-            if (s.isFuncDeclaration())
-                ++p.numOverloads;
-            return 0;
-        }
-    }
-
-    extern (C++) static int fp(void* param, Dsymbol s)
-    {
-        FuncDeclaration f = s.isFuncDeclaration();
-        if (!f || f.errors || f.type.ty == Terror)
-            return 0;
-        FuncCandidateWalker* p = cast(FuncCandidateWalker*)param;
-        TypeFunction tf = cast(TypeFunction)f.type;
-        .errorSupplemental(f.loc, "%s%s", f.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs));
-        if (!global.params.verbose && --p.numToDisplay == 0 && f.overnext)
-        {
-            CountWalker cw;
-            cw.numOverloads = 0;
-            overloadApply(f.overnext, &cw, &CountWalker.fp);
-            if (cw.numOverloads > 0)
-                .errorSupplemental(p.loc, "... (%d more, -v to show) ...", cw.numOverloads);
-            return 1; // stop iterating
-        }
-        return 0;
-    }
 }
 
 /**************************************
