@@ -2582,15 +2582,25 @@ public:
     final Expression noMember(Scope* sc, Expression e, Identifier ident, int flag)
     {
         assert(ty == Tstruct || ty == Tclass);
-        AggregateDeclaration sym = toDsymbol(sc).isAggregateDeclaration();
+        auto sym = toDsymbol(sc).isAggregateDeclaration();
         assert(sym);
-        if (ident != Id.__sizeof && ident != Id.__xalignof && ident != Id._init && ident != Id._mangleof && ident != Id.stringof && ident != Id.offsetof)
+        if (ident != Id.__sizeof &&
+            ident != Id.__xalignof &&
+            ident != Id._init &&
+            ident != Id._mangleof &&
+            ident != Id.stringof &&
+            ident != Id.offsetof &&
+            // Bugzilla 15045: Don't forward special built-in member functions.
+            ident != Id.ctor &&
+            ident != Id.dtor &&
+            ident != Id.__xdtor &&
+            ident != Id.postblit &&
+            ident != Id.__xpostblit)
         {
             /* Look for overloaded opDot() to see if we should forward request
              * to it.
              */
-            Dsymbol fd = search_function(sym, Id.opDot);
-            if (fd)
+            if (auto fd = search_function(sym, Id.opDot))
             {
                 /* Rewrite e.ident as:
                  *  e.opDot().ident
@@ -2599,11 +2609,11 @@ public:
                 e = new DotIdExp(e.loc, e, ident);
                 return e.semantic(sc);
             }
+
             /* Look for overloaded opDispatch to see if we should forward request
              * to it.
              */
-            fd = search_function(sym, Id.opDispatch);
-            if (fd)
+            if (auto fd = search_function(sym, Id.opDispatch))
             {
                 /* Rewrite e.ident as:
                  *  e.opDispatch!("ident")
@@ -2630,6 +2640,7 @@ public:
                     e = null;
                 return e;
             }
+
             /* See if we should forward to the alias this.
              */
             if (sym.aliasthis)

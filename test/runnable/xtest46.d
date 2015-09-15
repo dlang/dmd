@@ -7584,6 +7584,65 @@ void test14853()
     auto b1 = new Queue14853!uint;
 }
 
+/********************************************************/
+// 15045
+
+void test15045()
+{
+    void testName(T, bool r, string name)()
+    {
+        T t;
+
+        static assert(r ==          is(typeof(mixin("T."~name))));
+        static assert(r ==          is(typeof(mixin("t."~name))));
+        static assert(r == __traits(compiles, mixin("T."~name)));
+        static assert(r == __traits(compiles, mixin("t."~name)));
+        static assert(r == mixin("__traits(compiles, T."~name~")"));
+        static assert(r == mixin("__traits(compiles, t."~name~")"));
+
+        static assert(r ==                       __traits(hasMember, T, name) );
+        static assert(r ==                       __traits(hasMember, t, name) );
+        static assert(r == __traits(compiles,    __traits(getMember, T, name) ));
+        static assert(r == __traits(compiles,    __traits(getMember, t, name) ));
+        static assert(r == __traits(compiles, __traits(getOverloads, T, name) ));
+        static assert(r == __traits(compiles, __traits(getOverloads, t, name) ));
+    }
+    void test(T, bool r)()
+    {
+        testName!(T, r, "__ctor")();
+        testName!(T, r, "__dtor")();
+        testName!(T, r, "__xdtor")();
+        testName!(T, r, "__postblit")();
+        testName!(T, r, "__xpostblit")();
+    }
+
+    static struct X
+    {
+        this(int) {}
+        this(this) {}
+        ~this() {}
+    }
+
+    static struct S1
+    {
+        auto opDispatch(string name, A...)(A args) { }
+    }
+    static struct S2
+    {
+        X get() { return X(); };
+        alias get this;
+    }
+    static struct S3
+    {
+        X opDot() { return X(); };
+    }
+
+    test!(X, true)();
+    test!(S1, false)();
+    test!(S2, false)();
+    test!(S3, false)();
+}
+
 /***************************************************/
 
 int main()
