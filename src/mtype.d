@@ -2589,7 +2589,13 @@ public:
             ident != Id._init &&
             ident != Id._mangleof &&
             ident != Id.stringof &&
-            ident != Id.offsetof)
+            ident != Id.offsetof &&
+            // Bugzilla 15045: Don't forward special built-in member functions.
+            ident != Id.ctor &&
+            ident != Id.dtor &&
+            ident != Id.__xdtor &&
+            ident != Id.postblit &&
+            ident != Id.__xpostblit)
         {
             /* Look for overloaded opDot() to see if we should forward request
              * to it.
