@@ -189,7 +189,7 @@ extern  regm_t FLOATREGS;
 extern  regm_t FLOATREGS2;
 extern  regm_t DOUBLEREGS;
 extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
-extern  char needframe,usedalloca,gotref;
+extern  char needframe,gotref;
 extern  targ_size_t localsize,
         funcoffset,
         framehandleroffset;
@@ -199,6 +199,7 @@ extern  LocalSection Para;
 extern  LocalSection Fast;
 extern  LocalSection Auto;
 extern  LocalSection EEStack;
+extern  LocalSection Alloca;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
 #endif
@@ -397,7 +398,6 @@ extern targ_size_t pushoff;     // offset of saved registers
 extern bool pushoffuse;         // using pushoff
 extern int BPoff;               // offset from BP
 extern int EBPtoESP;            // add to EBP offset to get ESP offset
-extern targ_size_t AllocaOff;   // offset of alloca temporary
 
 code* prolog_ifunc(tym_t* tyf);
 code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);

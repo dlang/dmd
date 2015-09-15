@@ -50,11 +50,11 @@ targ_size_t pushoff;            // offset of saved registers
 bool pushoffuse;                // using pushoff
 int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
-targ_size_t AllocaOff;          // offset of alloca temporary
 LocalSection Para;              // section of function parameters
 LocalSection Auto;              // section of automatics and registers
 LocalSection Fast;              // section of fastpar
 LocalSection EEStack;           // offset of SCstack variables from ESP
+LocalSection Alloca;            // data for alloca() temporary
 
 REGSAVE regsave;
 
@@ -81,7 +81,6 @@ bool anyiasm;           // !=0 if any inline assembler
 char calledafunc;       // !=0 if we called a function
 char needframe;         // if TRUE, then we will need the frame
                         // pointer (BP for the 8088)
-char usedalloca;        // if TRUE, then alloca() was called
 char gotref;            // !=0 if the GOTsym was referenced
 unsigned usednteh;              // if !=0, then used NT exception handling
 
@@ -159,7 +158,6 @@ tryagain:
 
     // if no parameters, assume we don't need a stack frame
     needframe = 0;
-    usedalloca = 0;
     gotref = 0;
     stackchanged = 0;
     stackpush = 0;
@@ -169,6 +167,7 @@ tryagain:
     cgstate.stackclean = 1;
     retsym = NULL;
 
+    Alloca.init();
     regsave.reset();
 #if TX86
     memset(_8087elems,0,sizeof(_8087elems));
@@ -686,7 +685,7 @@ Lagain:
      *  Auto.size    autos and regs
      *  regsave.off  any saved registers
      *  Foff    floating register
-     *  AllocaOff   alloca temporary
+     *  Alloca.size  alloca temporary
      *  CSoff   common subs
      *  NDPoff  any 8087 saved registers
      *          monitor context record
@@ -763,10 +762,10 @@ Lagain:
     else
         Foff = regsave.off;
 
-    assert(usedalloca != 1);
-    AllocaOff = alignsection(usedalloca ? (Foff - REGSIZE) : Foff, REGSIZE, bias);
+    Alloca.alignment = REGSIZE;
+    Alloca.offset = alignsection(Foff - Alloca.size, Alloca.alignment, bias);
 
-    CSoff = alignsection(AllocaOff - cstop * REGSIZE, REGSIZE, bias);
+    CSoff = alignsection(Alloca.offset - cstop * REGSIZE, REGSIZE, bias);
 
 #if TX86
     NDPoff = alignsection(CSoff - NDP::savetop * NDPSAVESIZE, REGSIZE, bias);
@@ -796,8 +795,8 @@ Lagain:
 
     localsize = -pushoff;
 
-    //printf("AllocaOff = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
-        //(long long)AllocaOff, (long long)cstop, (long long)CSoff, (long long)NDPoff, (long long)localsize);
+    //printf("Alloca.offset = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
+        //(long long)Alloca.offset, (long long)cstop, (long long)CSoff, (long long)NDPoff, (long long)localsize);
     assert((targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
@@ -855,7 +854,7 @@ Lagain:
                 xlocalsize >= 0x1000 ||
                 (usednteh & ~NTEHjmonitor) ||
                 anyiasm ||
-                usedalloca
+                Alloca.size
                )
                 needframe = 1;
         }
@@ -889,7 +888,7 @@ Lagain:
     if (config.flags & CFGstack)        // if stack overflow check
     {
         cstackadj = prolog_frameadj(tyf, xlocalsize, enter, &pushalloc);
-        if (usedalloca)
+        if (Alloca.size)
             cstackadj = cat(cstackadj, prolog_setupalloca());
     }
     else if (needframe)                      /* if variables or parameters   */
@@ -897,11 +896,11 @@ Lagain:
         if (xlocalsize)                 /* if any stack offset          */
         {
             cstackadj = prolog_frameadj(tyf, xlocalsize, enter, &pushalloc);
-            if (usedalloca)
+            if (Alloca.size)
                 cstackadj = cat(cstackadj, prolog_setupalloca());
         }
         else
-            assert(usedalloca == 0);
+            assert(Alloca.size == 0);
     }
     else if (xlocalsize)
     {
@@ -910,7 +909,7 @@ Lagain:
         BPoff += REGSIZE;
     }
     else
-        assert((localsize | usedalloca) == 0 || (usednteh & NTEHjmonitor));
+        assert((localsize | Alloca.size) == 0 || (usednteh & NTEHjmonitor));
     EBPtoESP += xlocalsize;
     c = cat(c, cstackadj);
     }
