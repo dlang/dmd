@@ -3792,54 +3792,51 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
 }
 
 /***************************************************
- * Visit each overloaded function/template in turn, and call
- * (*fp)(param, s) on it.
- * Exit when no more, or (*fp)(param, f) returns nonzero.
+ * Visit each overloaded function/template in turn, and call dg(s) on it.
+ * Exit when no more, or dg(s) returns nonzero.
  * Returns:
  *      ==0     continue
  *      !=0     done
  */
-extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, Dsymbol) fp)
+extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
 {
-    Dsymbol d;
     Dsymbol next;
-    for (d = fstart; d; d = next)
+    for (Dsymbol d = fstart; d; d = next)
     {
-        if (OverDeclaration od = d.isOverDeclaration())
+        if (auto od = d.isOverDeclaration())
         {
             if (od.hasOverloads)
             {
-                if (int r = overloadApply(od.aliassym, param, fp))
+                if (int r = overloadApply(od.aliassym, dg))
                     return r;
             }
             else
             {
-                if (int r = (*fp)(param, od.aliassym))
+                if (int r = dg(od.aliassym))
                     return r;
             }
             next = od.overnext;
         }
-        else if (FuncAliasDeclaration fa = d.isFuncAliasDeclaration())
+        else if (auto fa = d.isFuncAliasDeclaration())
         {
             if (fa.hasOverloads)
             {
-                if (int r = overloadApply(fa.funcalias, param, fp))
+                if (int r = overloadApply(fa.funcalias, dg))
+                    return r;
+            }
+            else if (auto fd = fa.toAliasFunc())
+            {
+                if (int r = dg(fd))
                     return r;
             }
             else
             {
-                FuncDeclaration fd = fa.toAliasFunc();
-                if (!fd)
-                {
-                    d.error("is aliased to a function");
-                    break;
-                }
-                if (int r = (*fp)(param, fd))
-                    return r;
+                d.error("is aliased to a function");
+                break;
             }
             next = fa.overnext;
         }
-        else if (AliasDeclaration ad = d.isAliasDeclaration())
+        else if (auto ad = d.isAliasDeclaration())
         {
             next = ad.toAlias();
             if (next == ad)
@@ -3847,27 +3844,31 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
             if (next == fstart)
                 break;
         }
-        else if (TemplateDeclaration td = d.isTemplateDeclaration())
+        else if (auto td = d.isTemplateDeclaration())
         {
-            if (int r = (*fp)(param, td))
+            if (int r = dg(td))
                 return r;
             next = td.overnext;
         }
-        else
+        else if (auto fd = d.isFuncDeclaration())
         {
-            FuncDeclaration fd = d.isFuncDeclaration();
-            if (!fd)
-            {
-                d.error("is aliased to a function");
-                break;
-                // BUG: should print error message?
-            }
-            if (int r = (*fp)(param, fd))
+            if (int r = dg(fd))
                 return r;
             next = fd.overnext;
         }
+        else
+        {
+            d.error("is aliased to a function");
+            break;
+            // BUG: should print error message?
+        }
     }
     return 0;
+}
+
+extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, Dsymbol) fp)
+{
+    return overloadApply(fstart, s => (*fp)(param, s));
 }
 
 extern (C++) static void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
