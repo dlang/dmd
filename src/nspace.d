@@ -20,14 +20,13 @@ import ddmd.visitor;
 
 private enum LOG = false;
 
-/* A namespace corresponding to a C++ namespace.
+/***********************************************************
+ * A namespace corresponding to a C++ namespace.
  * Implies extern(C++).
  */
 extern (C++) final class Nspace : ScopeDsymbol
 {
 public:
-    /* This implements namespaces.
-     */
     extern (D) this(Loc loc, Identifier ident, Dsymbols* members)
     {
         super(ident);

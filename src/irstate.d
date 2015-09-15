@@ -20,22 +20,25 @@ import ddmd.globals;
 import ddmd.mtype;
 import ddmd.errors;
 
+/***********************************************************
+ */
 struct IRState
 {
     IRState* prev;
     Statement statement;
-    Module m; // module
+    Module m;                       // module
     Dsymbol symbol;
     Identifier ident;
-    Symbol* shidden; // hidden parameter to function
-    Symbol* sthis; // 'this' parameter to function (member and nested)
-    Symbol* sclosure; // pointer to closure instance
+    Symbol* shidden;                // hidden parameter to function
+    Symbol* sthis;                  // 'this' parameter to function (member and nested)
+    Symbol* sclosure;               // pointer to closure instance
     Blockx* blx;
-    Dsymbols* deferToObj; // array of Dsymbol's to run toObjFile(bool multiobj) on later
-    elem* ehidden; // transmit hidden pointer to CallExp::toElem()
+    Dsymbols* deferToObj;           // array of Dsymbol's to run toObjFile(bool multiobj) on later
+    elem* ehidden;                  // transmit hidden pointer to CallExp::toElem()
     Symbol* startaddress;
-    VarDeclarations* varsInScope; // variables that are in scope that will need destruction later
-    AA** labels; // table of labels used/declared in function
+    VarDeclarations* varsInScope;   // variables that are in scope that will need destruction later
+    AA** labels;                    // table of labels used/declared in function
+
     block* breakBlock;
     block* contBlock;
     block* switchBlock;

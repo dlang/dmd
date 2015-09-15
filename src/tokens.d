@@ -22,6 +22,7 @@ import ddmd.utf;
 enum TOK : int
 {
     TOKreserved,
+
     // Other
     TOKlparen,
     TOKrparen,
@@ -76,6 +77,7 @@ enum TOK : int
     TOKthrownexception,
     TOKdelegateptr,
     TOKdelegatefuncptr,
+
     // 54
     // Operators
     TOKlt,
@@ -89,6 +91,7 @@ enum TOK : int
     TOKindex,
     TOKis,
     TOKtobool,
+
     // 65
     // NCEG floating point compares
     // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
@@ -100,6 +103,7 @@ enum TOK : int
     TOKuge,
     TOKug,
     TOKue,
+
     // 73
     TOKshl,
     TOKshr,
@@ -140,6 +144,7 @@ enum TOK : int
     TOKoror,
     TOKpreplusplus,
     TOKpreminusminus,
+
     // 112
     // Numeric literals
     TOKint32v,
@@ -154,10 +159,12 @@ enum TOK : int
     TOKimaginary32v,
     TOKimaginary64v,
     TOKimaginary80v,
+
     // Char constants
     TOKcharv,
     TOKwcharv,
     TOKdcharv,
+
     // Leaf operators
     TOKidentifier,
     TOKstring,
@@ -167,6 +174,7 @@ enum TOK : int
     TOKhalt,
     TOKtuple,
     TOKerror,
+
     // Basic types
     TOKvoid,
     TOKint8,
@@ -192,6 +200,7 @@ enum TOK : int
     TOKwchar,
     TOKdchar,
     TOKbool,
+
     // 159
     // Aggregates
     TOKstruct,
@@ -227,6 +236,7 @@ enum TOK : int
     TOKpackage,
     TOKmanifest,
     TOKimmutable,
+
     // Statements
     TOKif,
     TOKelse,
@@ -252,11 +262,14 @@ enum TOK : int
     TOKon_scope_exit,
     TOKon_scope_failure,
     TOKon_scope_success,
+
     // Contracts
     TOKbody,
     TOKinvariant,
+
     // Testing
     TOKunittest,
+
     // Added after 1.0
     TOKargTypes,
     TOKref,
@@ -532,6 +545,8 @@ alias TOKMAX = TOK.TOKMAX;
 
 enum TOKwild = TOKinout;
 
+/***********************************************************
+ */
 struct Token
 {
     Token* next;
@@ -680,7 +695,6 @@ struct Token
         Token.tochars[TOKon_scope_failure] = "scope(failure)";
     }
 
-    /************************* Token **********************************************/
     extern (C++) static __gshared Token* freelist = null;
 
     extern (C++) static Token* alloc()

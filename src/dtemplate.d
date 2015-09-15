@@ -369,26 +369,34 @@ struct TemplatePrevious
     Objects* dedargs;
 }
 
+/***********************************************************
+ */
 extern (C++) final class TemplateDeclaration : ScopeDsymbol
 {
 public:
-    TemplateParameters* parameters; // array of TemplateParameter's
+    TemplateParameters* parameters;     // array of TemplateParameter's
     TemplateParameters* origParameters; // originals for Ddoc
+
     Expression constraint;
+
     // Hash table to look up TemplateInstance's of this TemplateDeclaration
     Array!(TemplateInstances*) buckets;
-    size_t numinstances; // number of instances in the hash table
-    TemplateDeclaration overnext; // next overloaded TemplateDeclaration
-    TemplateDeclaration overroot; // first in overnext list
-    FuncDeclaration funcroot; // first function in unified overload list
-    Dsymbol onemember; // if !=NULL then one member of this template
-    bool literal; // this template declaration is a literal
-    bool ismixin; // template declaration is only to be used as a mixin
-    bool isstatic; // this is static template declaration
-    Prot protection;
-    TemplatePrevious* previous; // threaded list of previous instantiation attempts on stack
+    size_t numinstances;                // number of instances in the hash table
 
-    /* ======================== TemplateDeclaration ============================= */
+    TemplateDeclaration overnext;       // next overloaded TemplateDeclaration
+    TemplateDeclaration overroot;       // first in overnext list
+    FuncDeclaration funcroot;           // first function in unified overload list
+
+    Dsymbol onemember;      // if !=null then one member of this template
+
+    bool literal;           // this template declaration is a literal
+    bool ismixin;           // template declaration is only to be used as a mixin
+    bool isstatic;          // this is static template declaration
+    Prot protection;
+
+    // threaded list of previous instantiation attempts on stack
+    TemplatePrevious* previous;
+
     extern (D) this(Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
     {
         super(id);
@@ -4450,16 +4458,7 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
     return v.result;
 }
 
-/* For type-parameter:
- *  template Foo(ident)             // specType is set to NULL
- *  template Foo(ident : specType)
- * For value-parameter:
- *  template Foo(valType ident)     // specValue is set to NULL
- *  template Foo(valType ident : specValue)
- * For alias-parameter:
- *  template Foo(alias ident)
- * For this-parameter:
- *  template Foo(this ident)
+/***********************************************************
  */
 extern (C++) class TemplateParameter
 {
@@ -4569,16 +4568,16 @@ public:
     }
 }
 
-/* Syntax:
+/***********************************************************
+ * Syntax:
  *  ident : specType = defaultType
  */
 extern (C++) class TemplateTypeParameter : TemplateParameter
 {
 public:
-    Type specType; // type parameter: if !=NULL, this is the type specialization
+    Type specType;      // if !=null, this is the type specialization
     Type defaultType;
-    /* ======================== TemplateTypeParameter =========================== */
-    // type-parameter
+
     extern (C++) static __gshared Type tdummy = null;
 
     final extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
@@ -4746,14 +4745,13 @@ public:
     }
 }
 
-/* Syntax:
+/***********************************************************
+ * Syntax:
  *  this ident : specType = defaultType
  */
 extern (C++) final class TemplateThisParameter : TemplateTypeParameter
 {
 public:
-    /* ======================== TemplateThisParameter =========================== */
-    // this-parameter
     extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
     {
         super(loc, ident, specType, defaultType);
@@ -4775,7 +4773,8 @@ public:
     }
 }
 
-/* Syntax:
+/***********************************************************
+ * Syntax:
  *  valType ident : specValue = defaultValue
  */
 extern (C++) final class TemplateValueParameter : TemplateParameter
@@ -4784,8 +4783,7 @@ public:
     Type valType;
     Expression specValue;
     Expression defaultValue;
-    /* ======================== TemplateValueParameter ========================== */
-    // value-parameter
+
     extern (C++) static __gshared AA* edummies = null;
 
     extern (D) this(Loc loc, Identifier ident, Type valType, Expression specValue, Expression defaultValue)
@@ -5033,7 +5031,8 @@ extern (C++) RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o,
     return o;
 }
 
-/* Syntax:
+/***********************************************************
+ * Syntax:
  *  specType ident : specAlias = defaultAlias
  */
 extern (C++) final class TemplateAliasParameter : TemplateParameter
@@ -5042,8 +5041,7 @@ public:
     Type specType;
     RootObject specAlias;
     RootObject defaultAlias;
-    /* ======================== TemplateAliasParameter ========================== */
-    // alias-parameter
+
     extern (C++) static __gshared Dsymbol sdummy = null;
 
     extern (D) this(Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
@@ -5259,14 +5257,13 @@ public:
     }
 }
 
-/* Syntax:
+/***********************************************************
+ * Syntax:
  *  ident ...
  */
 extern (C++) final class TemplateTupleParameter : TemplateParameter
 {
 public:
-    /* ======================== TemplateTupleParameter ========================== */
-    // variadic-parameter
     extern (D) this(Loc loc, Identifier ident)
     {
         super(loc, ident);
@@ -5395,7 +5392,8 @@ public:
     }
 }
 
-/* Given:
+/***********************************************************
+ * Given:
  *  foo!(args) =>
  *      name = foo
  *      tiargs = args
@@ -5404,32 +5402,36 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 {
 public:
     Identifier name;
+
     // Array of Types/Expressions of template
     // instance arguments [int*, char, 10*10]
     Objects* tiargs;
+
     // Array of Types/Expressions corresponding
     // to TemplateDeclaration.parameters
     // [int, char, 100]
     Objects tdtypes;
-    Dsymbol tempdecl; // referenced by foo.bar.abc
-    Dsymbol enclosing; // if referencing local symbols, this is the context
-    Dsymbol aliasdecl; // !=NULL if instance is an alias for its sole member
-    TemplateInstance inst; // refer to existing instance
-    ScopeDsymbol argsym; // argument symbol table
-    int nest; // for recursion detection
-    bool semantictiargsdone; // has semanticTiargs() been done?
-    bool havetempdecl; // if used second constructor
-    bool gagged; // if the instantiation is done with error gagging
-    hash_t hash; // cached result of hashCode()
-    Expressions* fargs; // for function template, these are the function arguments
+
+    Dsymbol tempdecl;           // referenced by foo.bar.abc
+    Dsymbol enclosing;          // if referencing local symbols, this is the context
+    Dsymbol aliasdecl;          // !=null if instance is an alias for its sole member
+    TemplateInstance inst;      // refer to existing instance
+    ScopeDsymbol argsym;        // argument symbol table
+    int nest;                   // for recursion detection
+    bool semantictiargsdone;    // has semanticTiargs() been done?
+    bool havetempdecl;          // if used second constructor
+    bool gagged;                // if the instantiation is done with error gagging
+    hash_t hash;                // cached result of hashCode()
+    Expressions* fargs;         // for function template, these are the function arguments
+
     TemplateInstances* deferred;
+
     // Used to determine the instance needs code generation.
     // Note that these are inaccurate until semantic analysis phase completed.
-    TemplateInstance tinst; // enclosing template instance
-    TemplateInstance tnext; // non-first instantiated instances
-    Module minst; // the top module that instantiated this instance
+    TemplateInstance tinst;     // enclosing template instance
+    TemplateInstance tnext;     // non-first instantiated instances
+    Module minst;               // the top module that instantiated this instance
 
-    /* ======================== TemplateInstance ================================ */
     final extern (D) this(Loc loc, Identifier ident)
     {
         super(null);
@@ -7695,12 +7697,13 @@ extern (C++) bool definitelyValueParameter(Expression e)
     return false;
 }
 
+/***********************************************************
+ */
 extern (C++) final class TemplateMixin : TemplateInstance
 {
 public:
     TypeQualified tqual;
 
-    /* ======================== TemplateMixin ================================ */
     extern (D) this(Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
     {
         super(loc, tqual.idents.dim ? cast(Identifier)tqual.idents[tqual.idents.dim - 1] : (cast(TypeIdentifier)tqual).ident);

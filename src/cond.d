@@ -25,6 +25,8 @@ import ddmd.root.outbuffer;
 import ddmd.tokens;
 import ddmd.visitor;
 
+/***********************************************************
+ */
 extern (C++) class Condition
 {
 public:
@@ -34,7 +36,6 @@ public:
     // 2: do not include
     int inc;
 
-    /* ============================================================ */
     final extern (D) this(Loc loc)
     {
         this.loc = loc;
@@ -55,6 +56,8 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class DVCondition : Condition
 {
 public:
@@ -62,7 +65,6 @@ public:
     Identifier ident;
     Module mod;
 
-    /* ============================================================ */
     final extern (D) this(Module mod, uint level, Identifier ident)
     {
         super(Loc());
@@ -82,10 +84,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DebugCondition : DVCondition
 {
 public:
-    /* ============================================================ */
     static void setGlobalLevel(uint level)
     {
         global.params.debuglevel = level;
@@ -145,10 +148,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class VersionCondition : DVCondition
 {
 public:
-    /* ============================================================ */
     static void setGlobalLevel(uint level)
     {
         global.params.versionlevel = level;
@@ -322,13 +326,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class StaticIfCondition : Condition
 {
 public:
     Expression exp;
-    int nest; // limit circular dependencies
+    int nest;           // limit circular dependencies
 
-    /**************************** StaticIfCondition *******************************/
     extern (D) this(Loc loc, Expression exp)
     {
         super(loc);

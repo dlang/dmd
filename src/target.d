@@ -17,16 +17,18 @@ import ddmd.mtype;
 import ddmd.root.longdouble;
 import ddmd.root.outbuffer;
 
+/***********************************************************
+ */
 struct Target
 {
     extern (C++) static __gshared int ptrsize;
-    extern (C++) static __gshared int realsize; // size a real consumes in memory
-    extern (C++) static __gshared int realpad; // 'padding' added to the CPU real size to bring it up to realsize
-    extern (C++) static __gshared int realalignsize; // alignment for reals
+    extern (C++) static __gshared int realsize;             // size a real consumes in memory
+    extern (C++) static __gshared int realpad;              // 'padding' added to the CPU real size to bring it up to realsize
+    extern (C++) static __gshared int realalignsize;        // alignment for reals
     extern (C++) static __gshared bool reverseCppOverloads; // with dmc and cl, overloaded functions are grouped and in reverse order
-    extern (C++) static __gshared int c_longsize; // size of a C 'long' or 'unsigned long' type
-    extern (C++) static __gshared int c_long_doublesize; // size of a C 'long double'
-    extern (C++) static __gshared int classinfosize; // size of 'ClassInfo'
+    extern (C++) static __gshared int c_longsize;           // size of a C 'long' or 'unsigned long' type
+    extern (C++) static __gshared int c_long_doublesize;    // size of a C 'long double'
+    extern (C++) static __gshared int classinfosize;        // size of 'ClassInfo'
 
     extern (C++) static void _init()
     {

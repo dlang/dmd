@@ -12,6 +12,8 @@ import core.stdc.stdio;
 
 import ddmd.root.outbuffer;
 
+/***********************************************************
+ */
 extern (C++) class RootObject
 {
     this()

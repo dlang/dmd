@@ -35,32 +35,30 @@ import ddmd.tokens;
 import ddmd.utf;
 import ddmd.visitor;
 
-/**
- Global status of the CTFE engine. Mostly used for performance diagnostics
+/***********************************************************
+ * Global status of the CTFE engine. Mostly used for performance diagnostics
  */
 struct CtfeStatus
 {
-    /************** CtfeStatus ********************************************/
-    extern (C++) static __gshared int callDepth = 0; // current number of recursive calls
-    /* When printing a stack trace,
-     * suppress this number of calls
-     */
+    extern (C++) static __gshared int callDepth = 0;        // current number of recursive calls
+
+    // When printing a stack trace, suppress this number of calls
     extern (C++) static __gshared int stackTraceCallsToSuppress = 0;
-    extern (C++) static __gshared int maxCallDepth = 0; // highest number of recursive calls
-    extern (C++) static __gshared int numArrayAllocs = 0; // Number of allocated arrays
-    extern (C++) static __gshared int numAssignments = 0; // total number of assignments executed
+
+    extern (C++) static __gshared int maxCallDepth = 0;     // highest number of recursive calls
+    extern (C++) static __gshared int numArrayAllocs = 0;   // Number of allocated arrays
+    extern (C++) static __gshared int numAssignments = 0;   // total number of assignments executed
 }
 
-/**
- A reference to a class, or an interface. We need this when we
- point to a base class (we must record what the type is).
+/***********************************************************
+ * A reference to a class, or an interface. We need this when we
+ * point to a base class (we must record what the type is).
  */
 extern (C++) final class ClassReferenceExp : Expression
 {
 public:
     StructLiteralExp value;
 
-    /************** ClassReferenceExp ********************************************/
     extern (D) this(Loc loc, StructLiteralExp lit, Type type)
     {
         super(loc, TOKclassreference, __traits(classInstanceSize, ClassReferenceExp));
@@ -135,14 +133,14 @@ public:
     }
 }
 
-/** An uninitialized value
+/***********************************************************
+ * An uninitialized value
  */
 extern (C++) final class VoidInitExp : Expression
 {
 public:
     VarDeclaration var;
 
-    /************** VoidInitExp ********************************************/
     extern (D) this(VarDeclaration var, Type type)
     {
         super(var.loc, TOKvoid, __traits(classInstanceSize, VoidInitExp));
@@ -173,15 +171,15 @@ extern (C++) int findFieldIndexByName(StructDeclaration sd, VarDeclaration v)
     return -1;
 }
 
-/** Fake class which holds the thrown exception.
- Used for implementing exception handling.
+/***********************************************************
+ * Fake class which holds the thrown exception.
+ * Used for implementing exception handling.
  */
 extern (C++) final class ThrownExceptionExp : Expression
 {
 public:
-    ClassReferenceExp thrown; // the thing being tossed
+    ClassReferenceExp thrown;   // the thing being tossed
 
-    /************** ThrownExceptionExp ********************************************/
     extern (D) this(Loc loc, ClassReferenceExp victim)
     {
         super(loc, TOKthrownexception, __traits(classInstanceSize, ThrownExceptionExp));
@@ -214,8 +212,9 @@ public:
     }
 }
 
-/****************************************************************/
-// This type is only used by the interpreter.
+/***********************************************************
+ * This type is only used by the interpreter.
+ */
 extern (C++) final class CTFEExp : Expression
 {
 public:
@@ -244,7 +243,6 @@ public:
         }
     }
 
-    /********************** CTFEExp ******************************************/
     extern (C++) static __gshared CTFEExp cantexp;
     extern (C++) static __gshared CTFEExp voidexp;
     extern (C++) static __gshared CTFEExp breakexp;

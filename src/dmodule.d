@@ -99,22 +99,23 @@ extern (C++) const(char)* lookForSourceFile(const(char)* filename)
 
 enum PKG : int
 {
-    PKGunknown, // not yet determined whether it's a package.d or not
-    PKGmodule, // already determined that's an actual package.d
-    PKGpackage, // already determined that's an actual package
+    PKGunknown,     // not yet determined whether it's a package.d or not
+    PKGmodule,      // already determined that's an actual package.d
+    PKGpackage,     // already determined that's an actual package
 }
 
 alias PKGunknown = PKG.PKGunknown;
 alias PKGmodule = PKG.PKGmodule;
 alias PKGpackage = PKG.PKGpackage;
 
+/***********************************************************
+ */
 extern (C++) class Package : ScopeDsymbol
 {
 public:
     PKG isPkgMod;
-    Module mod; // != NULL if isPkgMod == PKGmodule
+    Module mod;     // !=null if isPkgMod == PKGmodule
 
-    /* =========================== Package ===================== */
     final extern (D) this(Identifier ident)
     {
         super(ident);
@@ -250,15 +251,17 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class Module : Package
 {
 public:
     extern (C++) static __gshared Module rootModule;
     extern (C++) static __gshared DsymbolTable modules; // symbol table of all modules
-    extern (C++) static __gshared Modules amodules; // array of all modules
-    extern (C++) static __gshared Dsymbols deferred; // deferred Dsymbol's needing semantic() run on them
-    extern (C++) static __gshared Dsymbols deferred3; // deferred Dsymbol's needing semantic3() run on them
-    extern (C++) static __gshared uint dprogress; // progress resolving the deferred list
+    extern (C++) static __gshared Modules amodules;     // array of all modules
+    extern (C++) static __gshared Dsymbols deferred;    // deferred Dsymbol's needing semantic() run on them
+    extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
+    extern (C++) static __gshared uint dprogress;       // progress resolving the deferred list
 
     static void _init()
     {
@@ -266,18 +269,20 @@ public:
     }
 
     extern (C++) static __gshared AggregateDeclaration moduleinfo;
-    const(char)* arg; // original argument name
-    ModuleDeclaration* md; // if !NULL, the contents of the ModuleDeclaration declaration
-    File* srcfile; // input source file
-    File* objfile; // output .obj file
-    File* hdrfile; // 'header' file
-    File* docfile; // output documentation file
-    uint errors; // if any errors in file
-    uint numlines; // number of lines in source file
-    int isDocFile; // if it is a documentation input file, not D source
-    bool isPackageFile; // if it is a package.d
+
+    const(char)* arg;           // original argument name
+    ModuleDeclaration* md;      // if !=null, the contents of the ModuleDeclaration declaration
+    File* srcfile;              // input source file
+    File* objfile;              // output .obj file
+    File* hdrfile;              // 'header' file
+    File* docfile;              // output documentation file
+    uint errors;                // if any errors in file
+    uint numlines;              // number of lines in source file
+    int isDocFile;              // if it is a documentation input file, not D source
+    bool isPackageFile;         // if it is a package.d
     int needmoduleinfo;
-    int selfimports; // 0: don't know, 1: does not, 2: does
+
+    int selfimports;            // 0: don't know, 1: does not, 2: does
 
     /*************************************
      * Return true if module imports itself.
@@ -296,7 +301,7 @@ public:
         return selfimports == 2;
     }
 
-    int rootimports; // 0: don't know, 1: does not, 2: does
+    int rootimports;            // 0: don't know, 1: does not, 2: does
 
     /*************************************
      * Return true if module imports root module.
@@ -326,24 +331,31 @@ public:
 
     int insearch;
     Identifier searchCacheIdent;
-    Dsymbol searchCacheSymbol; // cached value of search
-    int searchCacheFlags; // cached flags
+    Dsymbol searchCacheSymbol;  // cached value of search
+    int searchCacheFlags;       // cached flags
+
     // module from command line we're imported from,
     // i.e. a module that will be taken all the
     // way to an object file
     Module importedFrom;
-    Dsymbols* decldefs; // top level declarations for this Module
-    Modules aimports; // all imported modules
-    uint debuglevel; // debug level
-    Strings* debugids; // debug identifiers
-    Strings* debugidsNot; // forward referenced debug identifiers
-    uint versionlevel; // version level
-    Strings* versionids; // version identifiers
-    Strings* versionidsNot; // forward referenced version identifiers
-    Macro* macrotable; // document comment macros
-    Escape* escapetable; // document comment escapes
-    size_t nameoffset; // offset of module name from start of ModuleInfo
-    size_t namelen; // length of module name in characters
+
+    Dsymbols* decldefs;         // top level declarations for this Module
+
+    Modules aimports;           // all imported modules
+
+    uint debuglevel;            // debug level
+    Strings* debugids;          // debug identifiers
+    Strings* debugidsNot;       // forward referenced debug identifiers
+
+    uint versionlevel;          // version level
+    Strings* versionids;        // version identifiers
+    Strings* versionidsNot;     // forward referenced version identifiers
+
+    Macro* macrotable;          // document comment macros
+    Escape* escapetable;        // document comment escapes
+
+    size_t nameoffset;          // offset of module name from start of ModuleInfo
+    size_t namelen;             // length of module name in characters
 
     extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
     {
@@ -1260,8 +1272,8 @@ struct ModuleDeclaration
 {
     Loc loc;
     Identifier id;
-    Identifiers* packages; // array of Identifier's representing packages
-    bool isdeprecated; // if it is a deprecated module
+    Identifiers* packages;  // array of Identifier's representing packages
+    bool isdeprecated;      // if it is a deprecated module
     Expression msg;
 
     /* =========================== ModuleDeclaration ===================== */

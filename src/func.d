@@ -52,9 +52,9 @@ extern extern (C++) RET retStyle(TypeFunction tf);
 
 enum ILS : int
 {
-    ILSuninitialized, // not computed yet
-    ILSno, // cannot inline
-    ILSyes, // can inline
+    ILSuninitialized,       // not computed yet
+    ILSno,                  // cannot inline
+    ILSyes,                 // can inline
 }
 
 alias ILSuninitialized = ILS.ILSuninitialized;
@@ -63,9 +63,9 @@ alias ILSyes = ILS.ILSyes;
 
 enum BUILTIN : int
 {
-    BUILTINunknown = -1, // not known if this is a builtin
-    BUILTINno, // this is not a builtin
-    BUILTINyes, // this is a builtin
+    BUILTINunknown = -1,    // not known if this is a builtin
+    BUILTINno,              // this is not a builtin
+    BUILTINyes,             // this is a builtin
 }
 
 alias BUILTINunknown = BUILTIN.BUILTINunknown;
@@ -77,6 +77,7 @@ alias BUILTINyes = BUILTIN.BUILTINyes;
 extern (C++) class StatementRewriteWalker : Visitor
 {
     alias visit = super.visit;
+
     /* Point the currently visited statement.
      * By using replaceCurrent() method, you can replace AST during walking.
      */
@@ -393,6 +394,8 @@ enum FUNCFLAGnothrowInprocess = 4;      // working on determining nothrow
 enum FUNCFLAGnogcInprocess    = 8;      // working on determining @nogc
 enum FUNCFLAGreturnInprocess  = 0x10;   // working on inferring 'return' for parameters
 
+/***********************************************************
+ */
 extern (C++) class FuncDeclaration : Declaration
 {
 public:
@@ -481,7 +484,6 @@ public:
 
     uint flags;                         // FUNCFLAGxxxxx
 
-    /********************************* FuncDeclaration ****************************/
     final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
         super(id);
@@ -4186,14 +4188,15 @@ extern (C++) bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outer
     return bAnyClosures;
 }
 
+/***********************************************************
+ * Used as a way to import a set of functions from another scope into this one.
+ */
 extern (C++) final class FuncAliasDeclaration : FuncDeclaration
 {
 public:
     FuncDeclaration funcalias;
     bool hasOverloads;
 
-    /****************************** FuncAliasDeclaration ************************/
-    // Used as a way to import a set of functions from another scope into this one.
     extern (D) this(Identifier ident, FuncDeclaration funcalias, bool hasOverloads = true)
     {
         super(funcalias.loc, funcalias.endloc, ident, funcalias.storage_class, funcalias.type);
@@ -4235,13 +4238,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 {
 public:
-    TOK tok; // TOKfunction or TOKdelegate
-    Type treq; // target of return type inference
+    TOK tok;        // TOKfunction or TOKdelegate
+    Type treq;      // target of return type inference
 
-    /****************************** FuncLiteralDeclaration ************************/
     extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
     {
         super(loc, endloc, null, STCundefined, type);
@@ -4356,10 +4360,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class CtorDeclaration : FuncDeclaration
 {
 public:
-    /********************************* CtorDeclaration ****************************/
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Type type)
     {
         super(loc, endloc, Id.ctor, stc, type);
@@ -4461,10 +4466,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class PostBlitDeclaration : FuncDeclaration
 {
 public:
-    /********************************* PostBlitDeclaration ****************************/
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
     {
         super(loc, endloc, id, stc, null);
@@ -4541,10 +4547,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DtorDeclaration : FuncDeclaration
 {
 public:
-    /********************************* DtorDeclaration ****************************/
     extern (D) this(Loc loc, Loc endloc)
     {
         super(loc, endloc, Id.dtor, STCundefined, null);
@@ -4636,10 +4643,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class StaticCtorDeclaration : FuncDeclaration
 {
 public:
-    /********************************* StaticCtorDeclaration ****************************/
     final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateId("_staticCtor"), STCstatic | stc, null);
@@ -4753,10 +4761,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
 {
 public:
-    /********************************* SharedStaticCtorDeclaration ****************************/
     extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, "_sharedStaticCtor", stc);
@@ -4780,12 +4789,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class StaticDtorDeclaration : FuncDeclaration
 {
 public:
     VarDeclaration vgate; // 'gate' variable
 
-    /********************************* StaticDtorDeclaration ****************************/
     final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateId("_staticDtor"), STCstatic | stc, null);
@@ -4900,10 +4910,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
 {
 public:
-    /********************************* SharedStaticDtorDeclaration ****************************/
     extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, "_sharedStaticDtor", stc);
@@ -4927,10 +4938,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class InvariantDeclaration : FuncDeclaration
 {
 public:
-    /********************************* InvariantDeclaration ****************************/
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id = null)
     {
         super(loc, endloc, id ? id : Identifier.generateId("__invariant"), stc, null);
@@ -5001,8 +5013,7 @@ public:
     }
 }
 
-/********************************* UnitTestDeclaration ****************************/
-/*******************************
+/***********************************************************
  * Generate unique unittest function Id so we can have multiple
  * instances per module.
  */
@@ -5013,10 +5024,13 @@ extern (C++) static Identifier unitTestId(Loc loc)
     return Identifier.generateId(buf.peekString());
 }
 
+/***********************************************************
+ */
 extern (C++) final class UnitTestDeclaration : FuncDeclaration
 {
 public:
-    char* codedoc; /** For documented unittest. */
+    char* codedoc;      // for documented unittest
+
     // toObjFile() these nested functions after this one
     FuncDeclarations deferredNested;
 
@@ -5109,13 +5123,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class NewDeclaration : FuncDeclaration
 {
 public:
     Parameters* parameters;
     int varargs;
 
-    /********************************* NewDeclaration ****************************/
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
     {
         super(loc, endloc, Id.classNew, STCstatic | stc, null);
@@ -5200,12 +5215,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DeleteDeclaration : FuncDeclaration
 {
 public:
     Parameters* parameters;
 
-    /********************************* DeleteDeclaration ****************************/
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams)
     {
         super(loc, endloc, Id.classDelete, STCstatic | stc, null);

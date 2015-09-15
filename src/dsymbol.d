@@ -65,7 +65,7 @@ struct Ungag
 enum PROTKIND : int
 {
     PROTundefined,
-    PROTnone, // no access
+    PROTnone,           // no access
     PROTprivate,
     PROTpackage,
     PROTprotected,
@@ -143,16 +143,16 @@ struct Prot
 
 enum PASS : int
 {
-    PASSinit, // initial state
-    PASSsemantic, // semantic() started
-    PASSsemanticdone, // semantic() done
-    PASSsemantic2, // semantic2() started
-    PASSsemantic2done, // semantic2() done
-    PASSsemantic3, // semantic3() started
-    PASSsemantic3done, // semantic3() done
-    PASSinline, // inline started
-    PASSinlinedone, // inline done
-    PASSobj, // toObjFile() run
+    PASSinit,           // initial state
+    PASSsemantic,       // semantic() started
+    PASSsemanticdone,   // semantic() done
+    PASSsemantic2,      // semantic2() started
+    PASSsemantic2done,  // semantic2() done
+    PASSsemantic3,      // semantic3() started
+    PASSsemantic3done,  // semantic3() done
+    PASSinline,         // inline started
+    PASSinlinedone,     // inline done
+    PASSobj,            // toObjFile() run
 }
 
 alias PASSinit = PASS.PASSinit;
@@ -168,31 +168,35 @@ alias PASSobj = PASS.PASSobj;
 
 enum : int
 {
-    IgnoreNone = 0x00, // default
-    IgnorePrivateMembers = 0x01, // don't find private members
-    IgnoreErrors = 0x02, // don't give error messages
-    IgnoreAmbiguous = 0x04, // return NULL if ambiguous
+    IgnoreNone              = 0x00, // default
+    IgnorePrivateMembers    = 0x01, // don't find private members
+    IgnoreErrors            = 0x02, // don't give error messages
+    IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
 }
 
 extern (C++) alias Dsymbol_apply_ft_t = int function(Dsymbol, void*);
 
+/***********************************************************
+ */
 extern (C++) class Dsymbol : RootObject
 {
 public:
     Identifier ident;
     Dsymbol parent;
-    Symbol* csym; // symbol for code generator
-    Symbol* isym; // import version of csym
-    const(char)* comment; // documentation comment for this Dsymbol
-    Loc loc; // where defined
-    Scope* _scope; // !=NULL means context to use for semantic()
-    bool errors; // this symbol failed to pass semantic()
+    Symbol* csym;           // symbol for code generator
+    Symbol* isym;           // import version of csym
+    const(char)* comment;   // documentation comment for this Dsymbol
+    Loc loc;                // where defined
+    Scope* _scope;          // !=null means context to use for semantic()
+    bool errors;            // this symbol failed to pass semantic()
     PASS semanticRun;
-    char* depmsg; // customized deprecation message
-    UserAttributeDeclaration userAttribDecl; // user defined attributes
-    UnitTestDeclaration ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
 
-    /****************************** Dsymbol ******************************/
+    char* depmsg;           // customized deprecation message
+    UserAttributeDeclaration userAttribDecl;    // user defined attributes
+
+    // !=null means there's a ddoc unittest associated with this symbol
+    // (only use this with ddoc)
+    UnitTestDeclaration ddocUnittest;
 
     final extern (D) this()
     {
@@ -1170,20 +1174,20 @@ extern (C++) void* symbol_search_fp(void* arg, const(char)* seed, int* cost)
     return cast(void*)s.search(Loc(), id, IgnoreErrors);
 }
 
-
-// Dsymbol that generates a scope
+/***********************************************************
+ * Dsymbol that generates a scope
+ */
 extern (C++) class ScopeDsymbol : Dsymbol
 {
 public:
-    Dsymbols* members; // all Dsymbol's in this scope
-    DsymbolTable symtab; // members[] sorted into table
+    Dsymbols* members;      // all Dsymbol's in this scope
+    DsymbolTable symtab;    // members[] sorted into table
 
 private:
-    Dsymbols* imports; // imported Dsymbol's
-    PROTKIND* prots; // array of PROTKIND, one for each import
+    Dsymbols* imports;      // imported Dsymbol's
+    PROTKIND* prots;        // array of PROTKIND, one for each import
 
 public:
-    /********************************* ScopeDsymbol ****************************/
     final extern (D) this()
     {
     }
@@ -1553,13 +1557,14 @@ public:
     }
 }
 
-// With statement scope
+/***********************************************************
+ * With statement scope
+ */
 extern (C++) final class WithScopeSymbol : ScopeDsymbol
 {
 public:
     WithStatement withstate;
 
-    /****************************** WithScopeSymbol ******************************/
     extern (D) this(WithStatement withstate)
     {
         this.withstate = withstate;
@@ -1607,16 +1612,17 @@ public:
     }
 }
 
-// Array Index/Slice scope
+/***********************************************************
+ * Array Index/Slice scope
+ */
 extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 {
 public:
-    Expression exp; // IndexExp or SliceExp
-    TypeTuple type; // for tuple[length]
-    TupleDeclaration td; // for tuples of objects
+    Expression exp;         // IndexExp or SliceExp
+    TypeTuple type;         // for tuple[length]
+    TupleDeclaration td;    // for tuples of objects
     Scope* sc;
 
-    /****************************** ArrayScopeSymbol ******************************/
     extern (D) this(Scope* sc, Expression e)
     {
         assert(e.op == TOKindex || e.op == TOKslice || e.op == TOKarray);
@@ -1819,13 +1825,14 @@ public:
     }
 }
 
-// Overload Sets
+/***********************************************************
+ * Overload Sets
+ */
 extern (C++) final class OverloadSet : Dsymbol
 {
 public:
-    Dsymbols a; // array of Dsymbols
+    Dsymbols a;     // array of Dsymbols
 
-    /********************************* OverloadSet ****************************/
     extern (D) this(Identifier ident, OverloadSet os = null)
     {
         super(ident);
@@ -1857,13 +1864,13 @@ public:
     }
 }
 
-// Table of Dsymbol's
+/***********************************************************
+ * Table of Dsymbol's
+ */
 extern (C++) final class DsymbolTable : RootObject
 {
 public:
     AA* tab;
-
-    /****************************** DsymbolTable ******************************/
 
     // Look up Identifier. Return Dsymbol if found, NULL if not.
     Dsymbol lookup(Identifier ident)

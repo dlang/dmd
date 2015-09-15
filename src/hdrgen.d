@@ -51,9 +51,9 @@ import ddmd.visitor;
 
 struct HdrGenState
 {
-    bool hdrgen; // true if generating header file
-    bool ddoc; // true if generating Ddoc file
-    bool fullQual; // fully qualify types when printing
+    bool hdrgen;        // true if generating header file
+    bool ddoc;          // true if generating Ddoc file
+    bool fullQual;      // fully qualify types when printing
     int tpltMember;
     int autoMember;
     int forStmtInit;

@@ -88,6 +88,7 @@ extern (C++) static void collectUnitTests(Dsymbols* symbols, AA* uniqueUnitTests
 }
 
 /************************ TraitsExp ************************************/
+
 extern (C++) bool isTypeArithmetic(Type t)
 {
     return t.isintegral() || t.isfloating();
@@ -371,6 +372,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
     Array!(d_uns64) data;
     data.setDim(cast(size_t)cntdata);
     data.zero();
+
     extern (C++) final class PointerBitmapVisitor : Visitor
     {
         alias visit = super.visit;

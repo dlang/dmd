@@ -20,12 +20,12 @@ import ddmd.utf;
 struct Macro
 {
 private:
-    Macro* next; // next in list
-    const(char)* name; // macro name
-    size_t namelen; // length of macro name
-    const(char)* text; // macro replacement text
-    size_t textlen; // length of replacement text
-    int inuse; // macro is in use (don't expand)
+    Macro* next;            // next in list
+    const(char)* name;      // macro name
+    size_t namelen;         // length of macro name
+    const(char)* text;      // macro replacement text
+    size_t textlen;         // length of replacement text
+    int inuse;              // macro is in use (don't expand)
 
     extern (D) this(const(char)* name, size_t namelen, const(char)* text, size_t textlen)
     {

@@ -37,13 +37,13 @@ import ddmd.tokens;
 import ddmd.utf;
 import ddmd.visitor;
 
-/**************************************************************/
+/***********************************************************
+ */
 extern (C++) class AttribDeclaration : Dsymbol
 {
 public:
-    Dsymbols* decl; // array of Dsymbol's
+    Dsymbols* decl;     // array of Dsymbol's
 
-    /********************************* AttribDeclaration ****************************/
     final extern (D) this(Dsymbols* decl)
     {
         this.decl = decl;
@@ -315,12 +315,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
 public:
     StorageClass stc;
 
-    /************************* StorageClassDeclaration ****************************/
     final extern (D) this(StorageClass stc, Dsymbols* decl)
     {
         super(decl);
@@ -387,12 +388,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
 {
 public:
     Expression msg;
 
-    /********************************* DeprecatedDeclaration ****************************/
     extern (D) this(Expression msg, Dsymbols* decl)
     {
         super(STCdeprecated, decl);
@@ -426,12 +428,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class LinkDeclaration : AttribDeclaration
 {
 public:
     LINK linkage;
 
-    /********************************* LinkDeclaration ****************************/
     extern (D) this(LINK p, Dsymbols* decl)
     {
         super(decl);
@@ -461,13 +464,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ProtDeclaration : AttribDeclaration
 {
 public:
     Prot protection;
     Identifiers* pkg_identifiers;
 
-    /********************************* ProtDeclaration ****************************/
     /**
      * Params:
      *  loc = source location of attribute token
@@ -553,12 +557,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
 public:
     uint salign;
 
-    /********************************* AlignDeclaration ****************************/
     extern (D) this(uint sa, Dsymbols* decl)
     {
         super(decl);
@@ -582,14 +587,15 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class AnonDeclaration : AttribDeclaration
 {
 public:
     bool isunion;
     structalign_t alignment;
-    int sem; // 1 if successful semantic()
+    int sem;        // 1 if successful semantic()
 
-    /********************************* AnonDeclaration ****************************/
     extern (D) this(Loc loc, bool isunion, Dsymbols* decl)
     {
         super(decl);
@@ -701,12 +707,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class PragmaDeclaration : AttribDeclaration
 {
 public:
-    Expressions* args; // array of Expression's
+    Expressions* args;      // array of Expression's
 
-    /********************************* PragmaDeclaration ****************************/
     extern (D) this(Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
     {
         super(decl);
@@ -1005,13 +1012,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class ConditionalDeclaration : AttribDeclaration
 {
 public:
     Condition condition;
-    Dsymbols* elsedecl; // array of Dsymbol's for else block
+    Dsymbols* elsedecl;     // array of Dsymbol's for else block
 
-    /********************************* ConditionalDeclaration ****************************/
     final extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
         super(decl);
@@ -1096,13 +1104,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 {
 public:
     ScopeDsymbol scopesym;
     int addisdone;
 
-    /***************************** StaticIfDeclaration ****************************/
     extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
         super(condition, decl, elsedecl);
@@ -1196,7 +1205,10 @@ public:
     }
 }
 
-// Mixin declarations
+/***********************************************************
+ * Mixin declarations, like:
+ *      mixin("int x");
+ */
 extern (C++) final class CompileDeclaration : AttribDeclaration
 {
 public:
@@ -1204,8 +1216,6 @@ public:
     ScopeDsymbol scopesym;
     int compiled;
 
-    /***************************** CompileDeclaration *****************************/
-    // These are mixin declarations, like mixin("int x");
     extern (D) this(Loc loc, Expression exp)
     {
         super(null);
@@ -1293,7 +1303,7 @@ public:
     }
 }
 
-/**
+/***********************************************************
  * User defined attributes look like:
  *      @(args, ...)
  */
@@ -1302,7 +1312,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
 public:
     Expressions* atts;
 
-    /***************************** UserAttributeDeclaration *****************************/
     extern (D) this(Expressions* atts, Dsymbols* decl)
     {
         super(decl);

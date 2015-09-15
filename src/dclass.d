@@ -34,15 +34,19 @@ import ddmd.statement;
 import ddmd.target;
 import ddmd.visitor;
 
+/***********************************************************
+ */
 struct BaseClass
 {
-    Type type; // (before semantic processing)
-    Prot protection; // protection for the base interface
+    Type type;          // (before semantic processing)
+    Prot protection;    // protection for the base interface
+
     ClassDeclaration sym;
-    uint offset; // 'this' pointer offset
-    // for interfaces: Array of FuncDeclaration's
-    // making up the vtbl[]
+    uint offset;        // 'this' pointer offset
+
+    // for interfaces: Array of FuncDeclaration's making up the vtbl[]
     FuncDeclarations vtbl;
+
     size_t baseInterfaces_dim;
     // if BaseClass is an interface, these
     // are a copy of the InterfaceDeclaration::interfaces
@@ -159,33 +163,42 @@ struct ClassFlags
     alias hasDtor = Enum.hasDtor;
 }
 
+/***********************************************************
+ */
 extern (C++) class ClassDeclaration : AggregateDeclaration
 {
 public:
-    /********************************* ClassDeclaration ****************************/
     extern (C++) static __gshared ClassDeclaration object;
     extern (C++) static __gshared ClassDeclaration throwable;
     extern (C++) static __gshared ClassDeclaration exception;
     extern (C++) static __gshared ClassDeclaration errorException;
+
     ClassDeclaration baseClass; // NULL only if this is Object
     FuncDeclaration staticCtor;
     FuncDeclaration staticDtor;
-    Dsymbols vtbl; // Array of FuncDeclaration's making up the vtbl[]
-    Dsymbols vtblFinal; // More FuncDeclaration's that aren't in vtbl[]
-    BaseClasses* baseclasses; // Array of BaseClass's; first is super,
-    // rest are Interface's
+    Dsymbols vtbl;              // Array of FuncDeclaration's making up the vtbl[]
+    Dsymbols vtblFinal;         // More FuncDeclaration's that aren't in vtbl[]
+
+    // Array of BaseClass's; first is super, rest are Interface's
+    BaseClasses* baseclasses;
+
+    // interfaces[interfaces_dim] for this class (does not include baseClass)
     size_t interfaces_dim;
-    BaseClass** interfaces; // interfaces[interfaces_dim] for this class
-    // (does not include baseClass)
-    BaseClasses* vtblInterfaces; // array of base interfaces that have
-    // their own vtbl[]
-    TypeInfoClassDeclaration vclassinfo; // the ClassInfo object for this ClassDeclaration
-    bool com; // true if this is a COM class (meaning it derives from IUnknown)
-    bool cpp; // true if this is a C++ interface
-    bool isscope; // true if this is a scope class
-    bool isabstract; // true if abstract class
-    int inuse; // to prevent recursive attempts
-    Baseok baseok; // set the progress of base classes resolving
+    BaseClass** interfaces;
+
+    // array of base interfaces that have their own vtbl[]
+    BaseClasses* vtblInterfaces;
+
+    // the ClassInfo object for this ClassDeclaration
+    TypeInfoClassDeclaration vclassinfo;
+
+    bool com;           // true if this is a COM class (meaning it derives from IUnknown)
+    bool cpp;           // true if this is a C++ interface
+    bool isscope;       // true if this is a scope class
+    bool isabstract;    // true if abstract class
+    int inuse;          // to prevent recursive attempts
+    Baseok baseok;      // set the progress of base classes resolving
+
     Objc_ClassDeclaration objc;
 
     final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, bool inObject = false)
@@ -1266,10 +1279,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class InterfaceDeclaration : ClassDeclaration
 {
 public:
-    /********************************* InterfaceDeclaration ****************************/
     extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses)
     {
         super(loc, id, baseclasses);

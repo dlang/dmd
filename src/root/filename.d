@@ -20,11 +20,12 @@ version (Windows) extern (Windows) DWORD GetFullPathNameA(LPCTSTR lpFileName, DW
 alias Strings = Array!(const(char)*);
 alias Files = Array!(File*);
 
+/***********************************************************
+ */
 struct FileName
 {
     const(char)* str;
 
-    /****************************** FileName ********************************/
     extern (D) this(const(char)* str)
     {
         this.str = mem.xstrdup(str);

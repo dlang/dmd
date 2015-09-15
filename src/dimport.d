@@ -26,24 +26,29 @@ import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.visitor;
 
+/***********************************************************
+ */
 extern (C++) final class Import : Dsymbol
 {
 public:
     /* static import aliasId = pkg1.pkg2.id : alias1 = name1, alias2 = name2;
      */
-    Identifiers* packages; // array of Identifier's representing packages
-    Identifier id; // module Identifier
+    Identifiers* packages;  // array of Identifier's representing packages
+    Identifier id;          // module Identifier
     Identifier aliasId;
-    int isstatic; // !=0 if static import
+    int isstatic;           // !=0 if static import
     PROTKIND protection;
+
     // Pairs of alias=name to bind into current namespace
     Identifiers names;
     Identifiers aliases;
-    Module mod;
-    Package pkg; // leftmost package/module
-    AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
 
-    /********************************* Import ****************************/
+    Module mod;
+    Package pkg;            // leftmost package/module
+
+    // corresponding AliasDeclarations for alias=name pairs
+    AliasDeclarations aliasdecls;
+
     extern (D) this(Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
     {
         super(null);

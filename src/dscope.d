@@ -114,93 +114,95 @@ extern (C++) void* scope_search_fp(void* arg, const(char)* seed, int* cost)
     return cast(void*)s;
 }
 
-enum CSXthis_ctor = 1;
-// called this()
-enum CSXsuper_ctor = 2;
-// called super()
-enum CSXthis = 4;
-// referenced this
-enum CSXsuper = 8;
-// referenced super
-enum CSXlabel = 0x10;
-// seen a label
-enum CSXreturn = 0x20;
-// seen a return statement
-enum CSXany_ctor = 0x40;
-// either this() or super() was called
-enum CSXhalt = 0x80;
-// assert(0)
-// Flags that would not be inherited beyond scope nesting
-enum SCOPEctor = 0x0001;
-// constructor type
-enum SCOPEnoaccesscheck = 0x0002;
-// don't do access checks
-enum SCOPEcondition = 0x0004;
-// inside static if/assert condition
-enum SCOPEdebug = 0x0008;
-// inside debug conditional
-// Flags that would be inherited beyond scope nesting
-enum SCOPEconstraint = 0x0010;
-// inside template constraint
-enum SCOPEinvariant = 0x0020;
-// inside invariant code
-enum SCOPErequire = 0x0040;
-// inside in contract code
-enum SCOPEensure = 0x0060;
-// inside out contract code
-enum SCOPEcontract = 0x0060;
-// [mask] we're inside contract code
-enum SCOPEctfe = 0x0080;
-// inside a ctfe-only expression
-enum SCOPEcompile = 0x0100;
-// inside __traits(compile)
-enum SCOPEfree = 0x8000;
+enum CSXthis_ctor       = 0x01;     // called this()
+enum CSXsuper_ctor      = 0x02;     // called super()
+enum CSXthis            = 0x04;     // referenced this
+enum CSXsuper           = 0x08;     // referenced super
+enum CSXlabel           = 0x10;     // seen a label
+enum CSXreturn          = 0x20;     // seen a return statement
+enum CSXany_ctor        = 0x40;     // either this() or super() was called
+enum CSXhalt            = 0x80;     // assert(0)
 
-// is on free list
+// Flags that would not be inherited beyond scope nesting
+enum SCOPEctor          = 0x0001;   // constructor type
+enum SCOPEnoaccesscheck = 0x0002;   // don't do access checks
+enum SCOPEcondition     = 0x0004;   // inside static if/assert condition
+enum SCOPEdebug         = 0x0008;   // inside debug conditional
+
+// Flags that would be inherited beyond scope nesting
+enum SCOPEconstraint    = 0x0010;   // inside template constraint
+enum SCOPEinvariant     = 0x0020;   // inside invariant code
+enum SCOPErequire       = 0x0040;   // inside in contract code
+enum SCOPEensure        = 0x0060;   // inside out contract code
+enum SCOPEcontract      = 0x0060;   // [mask] we're inside contract code
+enum SCOPEctfe          = 0x0080;   // inside a ctfe-only expression
+enum SCOPEcompile       = 0x0100;   // inside __traits(compile)
+enum SCOPEfree          = 0x8000;   // is on free list
+
 struct Scope
 {
-    Scope* enclosing = null; // enclosing Scope
-    Module _module = null; // Root module
-    ScopeDsymbol scopesym = null; // current symbol
-    ScopeDsymbol sds = null; // if in static if, and declaring new symbols,
-    // sds gets the addMember()
-    FuncDeclaration func = null; // function we are in
-    Dsymbol parent = null; // parent to use
-    LabelStatement slabel = null; // enclosing labelled statement
-    SwitchStatement sw = null; // enclosing switch statement
-    TryFinallyStatement tf = null; // enclosing try finally statement
-    OnScopeStatement os = null; // enclosing scope(xxx) statement
-    Statement sbreak = null; // enclosing statement that supports "break"
-    Statement scontinue = null; // enclosing statement that supports "continue"
-    ForeachStatement fes = null; // if nested function for ForeachStatement, this is it
-    Scope* callsc = null; // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    int inunion = 0; // we're processing members of a union
-    int nofree = 0; // set if shouldn't free it
-    int noctor = 0; // set if constructor calls aren't allowed
-    int intypeof = 0; // in typeof(exp)
-    VarDeclaration lastVar = null; // Previous symbol used to prevent goto-skips-init
+    Scope* enclosing = null;        // enclosing Scope
+
+    Module _module = null;          // Root module
+    ScopeDsymbol scopesym = null;   // current symbol
+    ScopeDsymbol sds = null;        // if in static if, and declaring new symbols,
+                                    // sds gets the addMember()
+    FuncDeclaration func = null;    // function we are in
+    Dsymbol parent = null;          // parent to use
+    LabelStatement slabel = null;   // enclosing labelled statement
+    SwitchStatement sw = null;      // enclosing switch statement
+    TryFinallyStatement tf = null;  // enclosing try finally statement
+    OnScopeStatement os = null;     // enclosing scope(xxx) statement
+    Statement sbreak = null;        // enclosing statement that supports "break"
+    Statement scontinue = null;     // enclosing statement that supports "continue"
+    ForeachStatement fes = null;    // if nested function for ForeachStatement, this is it
+    Scope* callsc = null;           // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
+    int inunion = 0;                // we're processing members of a union
+    int nofree = 0;                 // set if shouldn't free it
+    int noctor = 0;                 // set if constructor calls aren't allowed
+    int intypeof = 0;               // in typeof(exp)
+    VarDeclaration lastVar = null;  // Previous symbol used to prevent goto-skips-init
+
     /* If  minst && !tinst, it's in definitely non-speculative scope (eg. module member scope).
      * If !minst && !tinst, it's in definitely speculative scope (eg. template constraint).
      * If  minst &&  tinst, it's in instantiated code scope without speculation.
      * If !minst &&  tinst, it's in instantiated code scope with speculation.
      */
-    Module minst = null; // root module where the instantiated templates should belong to
-    TemplateInstance tinst = null; // enclosing template instance
-    uint callSuper = 0; // primitive flow analysis for constructors
+    Module minst = null;            // root module where the instantiated templates should belong to
+    TemplateInstance tinst = null;  // enclosing template instance
+
+    // primitive flow analysis for constructors
+    uint callSuper = 0;
+
+    // primitive flow analysis for field initializations
     uint* fieldinit = null;
     size_t fieldinit_dim = 0;
-    structalign_t structalign = STRUCTALIGN_DEFAULT; // alignment for struct members
-    LINK linkage = LINKd; // linkage for external functions
-    PINLINE inlining = PINLINEdefault; // inlining strategy for functions
-    Prot protection = Prot(PROTpublic); // protection for class members
-    int explicitProtection = 0; // set if in an explicit protection attribute
-    StorageClass stc = 0; // storage class
-    char* depmsg = null; // customized deprecation message
+
+    // alignment for struct members
+    structalign_t structalign = STRUCTALIGN_DEFAULT;
+
+    // linkage for external functions
+    LINK linkage = LINKd;
+
+    // inlining strategy for functions
+    PINLINE inlining = PINLINEdefault;
+
+    // protection for class members
+    Prot protection = Prot(PROTpublic);
+    int explicitProtection = 0;     // set if in an explicit protection attribute
+
+    StorageClass stc = 0;           // storage class
+    char* depmsg = null;            // customized deprecation message
+
     uint flags = 0;
-    UserAttributeDeclaration userAttribDecl = null; // user defined attributes
+
+    // user defined attributes
+    UserAttributeDeclaration userAttribDecl = null;
+
     DocComment* lastdc = null; // documentation comment for last symbol at this scope
     AA* anchorCounts = null; // lookup duplicate anchor name count
     Identifier prevAnchor = null; // qualified symbol name of last doc anchor
+
     extern (C++) static __gshared Scope* freelist = null;
 
     extern (C++) static Scope* alloc()

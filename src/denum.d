@@ -27,6 +27,8 @@ import ddmd.root.outbuffer;
 import ddmd.tokens;
 import ddmd.visitor;
 
+/***********************************************************
+ */
 extern (C++) final class EnumDeclaration : ScopeDsymbol
 {
 public:
@@ -38,17 +40,16 @@ public:
      *  5. enum id : memtype;
      *  6. enum id;
      */
-    Type type; // the TypeEnum
-    Type memtype; // type of the members
+    Type type;              // the TypeEnum
+    Type memtype;           // type of the members
     Prot protection;
     Expression maxval;
     Expression minval;
-    Expression defaultval; // default initializer
+    Expression defaultval;  // default initializer
     bool isdeprecated;
     bool added;
     int inuse;
 
-    /********************************* EnumDeclaration ****************************/
     extern (D) this(Loc loc, Identifier id, Type memtype)
     {
         super(id);
@@ -462,6 +463,8 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class EnumMember : Dsymbol
 {
 public:
@@ -471,15 +474,17 @@ public:
      *  3. type id = value
      */
     Expression value;
+
     // A cast() is injected to 'value' after semantic(),
     // but 'origValue' will preserve the original value,
     // or previous value + 1 if none was specified.
     Expression origValue;
+
     Type type;
+
     EnumDeclaration ed;
     VarDeclaration vd;
 
-    /********************************* EnumMember ****************************/
     extern (D) this(Loc loc, Identifier id, Expression value, Type type)
     {
         super(id);

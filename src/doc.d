@@ -82,6 +82,8 @@ struct Escape
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class Section
 {
 public:
@@ -91,8 +93,6 @@ public:
     size_t bodylen;
     int nooutput;
 
-    /***************************************************
-     */
     void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
@@ -148,11 +148,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ParamSection : Section
 {
 public:
-    /***************************************************
-     */
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
@@ -295,11 +295,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class MacroSection : Section
 {
 public:
-    /***************************************************
-     */
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         //printf("MacroSection::write()\n");
@@ -670,6 +670,7 @@ extern (C++) static void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc)
 }
 
 /******************************* emitComment **********************************/
+
 /** Get leading indentation from 'src' which represents lines of code. */
 extern (C++) static size_t getCodeIndent(const(char)* src)
 {
@@ -1006,7 +1007,6 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         s.accept(v);
 }
 
-/******************************* toDocBuffer **********************************/
 extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 {
     extern (C++) final class ToDocBuffer : Visitor
@@ -1289,9 +1289,11 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
     s.accept(v);
 }
 
+/***********************************************************
+ */
 struct DocComment
 {
-    Sections sections; // Section*[]
+    Sections sections;      // Section*[]
     Section summary;
     Section copyright;
     Section macros;
@@ -1299,7 +1301,6 @@ struct DocComment
     Escape** pescapetable;
     Dsymbols a;
 
-    /********************************* DocComment *********************************/
     extern (C++) static DocComment* parse(Scope* sc, Dsymbol s, const(char)* comment)
     {
         //printf("parse(%s): '%s'\n", s->toChars(), comment);

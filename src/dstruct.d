@@ -174,30 +174,35 @@ struct StructFlags
 
 enum StructPOD : int
 {
-    ISPODno, // struct is not POD
-    ISPODyes, // struct is POD
-    ISPODfwd, // POD not yet computed
+    ISPODno,    // struct is not POD
+    ISPODyes,   // struct is POD
+    ISPODfwd,   // POD not yet computed
 }
 
 alias ISPODno = StructPOD.ISPODno;
 alias ISPODyes = StructPOD.ISPODyes;
 alias ISPODfwd = StructPOD.ISPODfwd;
 
+/***********************************************************
+ */
 extern (C++) class StructDeclaration : AggregateDeclaration
 {
 public:
-    int zeroInit; // !=0 if initialize with 0 fill
-    bool hasIdentityAssign; // true if has identity opAssign
-    bool hasIdentityEquals; // true if has identity opEquals
+    int zeroInit;               // !=0 if initialize with 0 fill
+    bool hasIdentityAssign;     // true if has identity opAssign
+    bool hasIdentityEquals;     // true if has identity opEquals
     FuncDeclarations postblits; // Array of postblit functions
-    FuncDeclaration postblit; // aggregate postblit
-    FuncDeclaration xeq; // TypeInfo_Struct.xopEquals
-    FuncDeclaration xcmp; // TypeInfo_Struct.xopCmp
-    FuncDeclaration xhash; // TypeInfo_Struct.xtoHash
-    extern (C++) static __gshared FuncDeclaration xerreq; // object.xopEquals
-    extern (C++) static __gshared FuncDeclaration xerrcmp; // object.xopCmp
-    structalign_t alignment; // alignment applied outside of the struct
-    StructPOD ispod; // if struct is POD
+    FuncDeclaration postblit;   // aggregate postblit
+
+    FuncDeclaration xeq;        // TypeInfo_Struct.xopEquals
+    FuncDeclaration xcmp;       // TypeInfo_Struct.xopCmp
+    FuncDeclaration xhash;      // TypeInfo_Struct.xtoHash
+    extern (C++) static __gshared FuncDeclaration xerreq;   // object.xopEquals
+    extern (C++) static __gshared FuncDeclaration xerrcmp;  // object.xopCmp
+
+    structalign_t alignment;    // alignment applied outside of the struct
+    StructPOD ispod;            // if struct is POD
+
     // For 64 bit Efl function call/return ABI
     Type arg1type;
     Type arg2type;
@@ -207,7 +212,6 @@ public:
     // For those, today TypeInfo_Struct is generated in COMDAT.
     bool requestTypeInfo;
 
-    /********************************* StructDeclaration ****************************/
     final extern (D) this(Loc loc, Identifier id)
     {
         super(loc, id);
@@ -709,10 +713,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class UnionDeclaration : StructDeclaration
 {
 public:
-    /********************************* UnionDeclaration ****************************/
     extern (D) this(Loc loc, Identifier id)
     {
         super(loc, id);

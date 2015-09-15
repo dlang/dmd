@@ -40,7 +40,6 @@ import ddmd.visitor;
 
 enum LOG = false;
 
-/* ==================== implicitCast ====================== */
 /**************************************
  * Do an implicit cast.
  * Issue error if it can't be done.
@@ -1311,7 +1310,6 @@ extern (C++) Type toStaticArrayType(SliceExp e)
     return null;
 }
 
-/* ==================== castTo ====================== */
 /**************************************
  * Do an explicit cast.
  * Assume that the 'this' expression does not have any indirections.
@@ -2257,7 +2255,6 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
     return v.result;
 }
 
-/* ==================== inferType ====================== */
 /****************************************
  * Set type inference target
  *      t       Target type
@@ -2361,7 +2358,6 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
     return v.result;
 }
 
-/* ==================== ====================== */
 /****************************************
  * Scale addition/subtraction to/from pointer.
  */
