@@ -3216,7 +3216,6 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             c1 = getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
         if (strcmp(s->Sident,"alloca") == 0)
         {
-#if 1
             s = getRtlsym(RTLSYM_ALLOCA);
             makeitextern(s);
             int areg = CX;
@@ -3226,10 +3225,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             c1 = genc(c1,0x8D,modregrm(2,areg,BPRM),FLallocatmp,0,0,0);  // LEA areg,&localsize[BP]
             if (I64)
                 code_orrex(c1, REX_W);
-            usedalloca = 2;             // new way
-#else
-            usedalloca = 1;             // old way
-#endif
+            Alloca.size = REGSIZE;
         }
         if (sytab[s->Sclass] & SCSS)    // if function is on stack (!)
         {
