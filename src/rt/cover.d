@@ -399,7 +399,11 @@ version (Windows) HANDLE handle(int fd)
 void lockFile(int fd)
 {
     version (CRuntime_Bionic)
-        core.sys.posix.unistd.flock(fd, LOCK_EX); // exclusive lock
+    {
+        import core.sys.bionic.fcntl : LOCK_EX;
+        import core.sys.bionic.unistd : flock;
+        flock(fd, LOCK_EX); // exclusive lock
+    }
     else version (Posix)
         lockf(fd, F_LOCK, 0); // exclusive lock
     else version (Windows)
