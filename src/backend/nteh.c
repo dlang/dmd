@@ -249,14 +249,14 @@ unsigned nteh_contextsym_size()
 #else
         assert(0);
 #endif
-        assert(usedalloca != 1);
     }
     else if (usednteh & NTEHcpp)
-    {   sz = 5 * 4;                     // C++ context record
-        assert(usedalloca != 1);
+    {
+        sz = 5 * 4;                     // C++ context record
     }
     else if (usednteh & NTEHpassthru)
-    {   sz = 1 * 4;
+    {
+        sz = 1 * 4;
     }
     else
         sz = 0;                         // no context record

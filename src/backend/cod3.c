@@ -2140,7 +2140,7 @@ regm_t cod3_useBP()
             config.flags & CFGstack ||
             localsize >= 0x100 ||       // arbitrary value < 0x1000
             (usednteh & ~NTEHjmonitor) ||
-            usedalloca
+            Alloca.size
            )
             goto Lcant;
     }
@@ -2874,13 +2874,6 @@ code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds)
 
 code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds)
 {
-#if SCPP
-    // alloca() can't be because the 'special' parameter won't be at
-    // a known offset from BP.
-    if (usedalloca == 1)
-        synerr(EM_alloca_win);      // alloca() can't be in Windows functions
-#endif
-
     int wflags = config.wflags;
     if (wflags & WFreduced && !(*tyf & mTYexport))
     {   // reduced prolog/epilog for non-exported functions
@@ -3104,7 +3097,7 @@ code* prolog_setupalloca()
     // Set up magic parameter for alloca()
     // MOV -REGSIZE[BP],localsize - BPoff
     code* c = genc(NULL,0xC7,modregrm(2,0,BPRM),
-            FLconst,AllocaOff + BPoff,
+            FLconst,Alloca.offset + BPoff,
             FLconst,localsize - BPoff);
     if (I64)
         code_orrex(c, REX_W);
@@ -3857,7 +3850,7 @@ void epilog(block *b)
                 goto L4;
         }
 
-        if (localsize | usedalloca)
+        if (localsize)
         {
             c = genc1(c,LEA,modregrm(1,SP,6),FLconst,(targ_uns)-2); /* LEA SP,-2[BP] */
         }
@@ -3877,7 +3870,7 @@ void epilog(block *b)
         {
         L4:
             assert(hasframe);
-            if (xlocalsize | usedalloca)
+            if (xlocalsize)
             {
                 if (config.flags2 & CFG2stomp)
                 {   /*   MOV  ECX,0xBEAF
@@ -3919,7 +3912,7 @@ void epilog(block *b)
                     !(config.target_cpu >= TARGET_80386 && config.flags4 & CFG4speed)
                    )
                     c = gen1(c,0xC9);           // LEAVE
-                else if (0 && xlocalsize == REGSIZE && !usedalloca && I32)
+                else if (0 && xlocalsize == REGSIZE && Alloca.size == 0 && I32)
                 {   // This doesn't work - I should figure out why
                     mfuncreg &= ~mask[regx];
                     c = gen1(c,0x58 + regx);    // POP regx
@@ -4758,7 +4751,7 @@ void assignaddrc(code *c)
                 c->Iflags |= CFunambig;
                 goto L2;
             case FLallocatmp:
-                c->IEVpointer1 += AllocaOff + BPoff;
+                c->IEVpointer1 += Alloca.offset + BPoff;
                 goto L2;
             case FLbprel:
                 c->IEVpointer1 += s->Soffset;
@@ -4865,7 +4858,7 @@ void assignaddrc(code *c)
                 c->IEVpointer2 += Foff + BPoff;
                 break;
             case FLallocatmp:
-                c->IEVpointer2 += AllocaOff + BPoff;
+                c->IEVpointer2 += Alloca.offset + BPoff;
                 break;
             case FLbprel:
                 c->IEVpointer2 += s->Soffset;
@@ -6578,13 +6571,11 @@ static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int 
         ad = * (targ_size_t *) uev + pbuf->getOffset();
         objmod->reftocodeseg(cseg,pbuf->offset,ad);
         break;
-#if TARGET_SEGMENTED
+
     case FLcsdata:
     case FLfardata:
-#if DEBUG
-        symbol_print(uev->sp.Vsym);
-#endif
-#endif
+        //symbol_print(uev->sp.Vsym);
+
         // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
         // strings and statics are treated like offsets from a
         // un-named external with is the start of .rodata or .data

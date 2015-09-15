@@ -55,7 +55,7 @@ symbol *except_gentables()
     {
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
-        if (usedalloca)
+        if (Alloca.size)
             error(NULL, 0, 0, "cannot mix core.std.stdlib.alloca() and exception handling in %s()", funcsym_p->Sident);
 
         char name[13+5+1];

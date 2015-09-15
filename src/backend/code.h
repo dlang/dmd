@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1996 by Symantec
-// Copyright (C) 2000-2012 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -75,11 +75,23 @@ union evc
 
 /********************** PUBLIC FUNCTIONS *******************/
 
-code *code_calloc(void);
+code *code_calloc();
 void code_free (code *);
-void code_term(void);
+void code_term();
 
 #define code_next(c)    ((c)->next)
+
+code *code_chunk_alloc();
+extern code *code_list;
+inline code *code_malloc()
+{
+    //printf("code %d\n", sizeof(code));
+    code *c = code_list ? code_list : code_chunk_alloc();
+    code_list = code_next(c);
+    //printf("code_malloc: %p\n",c);
+    return c;
+}
+
 
 extern con_t regcon;
 
@@ -177,7 +189,7 @@ extern  regm_t FLOATREGS;
 extern  regm_t FLOATREGS2;
 extern  regm_t DOUBLEREGS;
 extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
-extern  char needframe,usedalloca,gotref;
+extern  char needframe,gotref;
 extern  targ_size_t localsize,
         funcoffset,
         framehandleroffset;
@@ -187,6 +199,7 @@ extern  LocalSection Para;
 extern  LocalSection Fast;
 extern  LocalSection Auto;
 extern  LocalSection EEStack;
+extern  LocalSection Alloca;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
 #endif
@@ -307,6 +320,7 @@ code *getoffset (elem *e , unsigned reg );
 cd_t cdneg;
 cd_t cdabs;
 cd_t cdpost;
+cd_t cdcmpxchg;
 cd_t cderr;
 cd_t cdinfo;
 cd_t cddctor;
@@ -384,7 +398,6 @@ extern targ_size_t pushoff;     // offset of saved registers
 extern bool pushoffuse;         // using pushoff
 extern int BPoff;               // offset from BP
 extern int EBPtoESP;            // add to EBP offset to get ESP offset
-extern targ_size_t AllocaOff;   // offset of alloca temporary
 
 code* prolog_ifunc(tym_t* tyf);
 code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);
