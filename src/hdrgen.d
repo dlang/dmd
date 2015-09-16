@@ -678,6 +678,17 @@ public:
 
     void visitWithMask(Type t, ubyte modMask)
     {
+        if (t.ty == Tident &&
+            (cast(TypeIdentifier)t).ident == Id.empty &&
+            (cast(TypeIdentifier)t).idents.dim == 0)
+        {
+            if (t.mod == 0)
+                buf.writestring("auto");
+            else
+                MODtoBuffer(buf, t.mod);
+            return;
+        }
+
         // Tuples and functions don't use the type constructor syntax
         if (modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
         {

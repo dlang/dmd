@@ -117,6 +117,7 @@ public:
     Type *parseBasicType(bool dontLookDotIdents = false);
     Type *parseBasicTypeStartingAt(TypeQualified *tid, bool dontLookDotIdents);
     Type *parseBasicType2(Type *t);
+    Type *parseBasicType3(Type *t);
     Type *parseDeclarator(Type *t, int *alt, Identifier **pident,
         TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int *pdisable = NULL, Expressions **pudas = NULL);
     void parseStorageClasses(StorageClass &storage_class, LINK &link, unsigned &structalign, Expressions *&udas);
@@ -141,6 +142,7 @@ public:
     bool skipParens(Token *t, Token **pt);
     bool skipParensIf(Token *t, Token **pt);
     bool skipAttributes(Token *t, Token **pt);
+    bool skipBasicType3(Token **pt);
 
     Expression *parseExpression();
     Expression *parsePrimaryExp();

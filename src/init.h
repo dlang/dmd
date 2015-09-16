@@ -43,7 +43,7 @@ public:
     /* Translates to an expression to infer type.
      * Returns ExpInitializer or ErrorInitializer.
      */
-    virtual Initializer *inferType(Scope *sc) = 0;
+    virtual Initializer *inferType(Scope *sc, Type *tx) = 0;
 
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret) = 0;
@@ -65,7 +65,7 @@ public:
 
     VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
-    Initializer *inferType(Scope *sc);
+    Initializer *inferType(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
 
@@ -78,7 +78,7 @@ class ErrorInitializer : public Initializer
 public:
     ErrorInitializer();
     Initializer *syntaxCopy();
-    Initializer *inferType(Scope *sc);
+    Initializer *inferType(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
 
@@ -97,6 +97,7 @@ public:
     void addInit(Identifier *field, Initializer *value);
     Initializer *inferType(Scope *sc);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *inferType(Scope *sc, Type *tx);
     Expression *toExpression(Type *t = NULL);
 
     StructInitializer *isStructInitializer() { return this; }
@@ -116,7 +117,7 @@ public:
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray();
-    Initializer *inferType(Scope *sc);
+    Initializer *inferType(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
     Expression *toAssocArrayLiteral();
@@ -133,7 +134,7 @@ public:
 
     ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
-    Initializer *inferType(Scope *sc);
+    Initializer *inferType(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
 
