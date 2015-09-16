@@ -4,9 +4,32 @@ $(COMMENT Pending changelog for 2.069.0.
 )
 
 $(BUGSTITLE Library Changes,
+$(LI $(RELATIVE_LINK2 backtraces-with-line-numbers, Backtraces now include file name and line number.))
 )
 
 $(BUGSTITLE Library Changes,
+$(LI $(LNAME2 backtraces-with-line-numbers, Backtraces now include file name and line number.)
+
+    $(P The default tracehandler on linux now parses DWARF debug info
+        to add file names and line numbers to backtraces.
+    )
+
+    $(PRE
+    std.conv.ConvException@DPL/dmd/src/../../phobos/std/conv.d(1720): Unexpected 'a' when converting from type string to type ulong
+
+    DPL/dmd/src/../../phobos/std/conv.d:1720 pure @safe ulong std.conv.toImpl!(ulong, immutable(char)[]).toImpl(immutable(char)[]) [0x43b339]
+    DPL/dmd/src/../../phobos/std/conv.d:298 pure @safe ulong std.conv.to!(ulong).to!(immutable(char)[]).to(immutable(char)[]) [0x437717]
+    example.d:5 ulong example.foo(immutable(char)[]) [0x4376c7]
+    example.d:10 _Dmain [0x4376e5]
+    ??:? _D2rt6dmain211_d_run_mainUiPPaPUAAaZiZ6runAllMFZ9__lambda1MFZv [0x444576]
+    ??:? void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).tryExec(scope void delegate()) [0x4444cc]
+    ??:? void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).runAll() [0x444532]
+    ??:? void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).tryExec(scope void delegate()) [0x4444cc]
+    ??:? _d_run_main [0x444429]
+    ??:? main [0x44039f]
+    ??:? __libc_start_main [0xc3ae96ff]
+    )
+)
 )
 
 Macros:
@@ -23,3 +46,4 @@ Macros:
     CXREF = <a href="phobos/core_$1.html#$2">$2</a>
 
     BOOKTABLE = <table><caption>$1</caption>$+</table>
+    PRE = <pre>$0</pre>
