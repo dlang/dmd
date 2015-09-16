@@ -531,7 +531,9 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                                             stackPtr < stackBottom &&
                                             numframes < MAXFRAMES; )
                         {
-                            callstack[numframes++] = *(stackPtr + 1);
+                            enum CALL_INSTRUCTION_SIZE = 1; // it may not be 1 but it is good enough to get
+                                                            // in CALL instruction address range for backtrace
+                            callstack[numframes++] = *(stackPtr + 1) - CALL_INSTRUCTION_SIZE;
                             stackPtr = cast(void**) *stackPtr;
                         }
                     }
@@ -548,39 +550,64 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 
             override int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
             {
-                version( Posix )
+                version(Posix)
                 {
-                    // NOTE: The first 5 frames with the current implementation are
+                    // NOTE: The first 4 frames with the current implementation are
                     //       inside core.runtime and the object code, so eliminate
                     //       these for readability.  The alternative would be to
                     //       exclude the first N frames that are in a list of
                     //       mangled function names.
-                    static enum FIRSTFRAME = 5;
+                    enum FIRSTFRAME = 4;
                 }
-                else version( Windows )
+                else version(Windows)
                 {
                     // NOTE: On Windows, the number of frames to exclude is based on
                     //       whether the exception is user or system-generated, so
                     //       it may be necessary to exclude a list of function names
                     //       instead.
-                    static enum FIRSTFRAME = 0;
+                    enum FIRSTFRAME = 0;
                 }
-                int ret = 0;
 
-                const framelist = backtrace_symbols( callstack.ptr, numframes );
-                scope(exit) free(cast(void*) framelist);
-
-                for( int i = FIRSTFRAME; i < numframes; ++i )
+                version(linux)
                 {
-                    char[4096] fixbuf;
-                    auto buf = framelist[i][0 .. strlen(framelist[i])];
-                    auto pos = cast(size_t)(i - FIRSTFRAME);
-                    buf = fixline( buf, fixbuf );
-                    ret = dg( pos, buf );
-                    if( ret )
-                        break;
+                    import core.internal.traits : externDFunc;
+
+                    alias traceHandlerOpApplyImpl = externDFunc!(
+                        "rt.backtrace.dwarf.traceHandlerOpApplyImpl",
+                        int function(const void*[], scope int delegate(ref size_t, ref const(char[])))
+                    );
+
+                    if (numframes >= FIRSTFRAME)
+                    {
+                        return traceHandlerOpApplyImpl(
+                            callstack[FIRSTFRAME .. numframes],
+                            dg
+                        );
+                    }
+                    else
+                    {
+                        return 0;
+                    }
                 }
-                return ret;
+                else
+                {
+                    const framelist = backtrace_symbols( callstack.ptr, numframes );
+                    scope(exit) free(cast(void*) framelist);
+
+                    int ret = 0;
+                    for( int i = FIRSTFRAME; i < numframes; ++i )
+                    {
+                        char[4096] fixbuf;
+                        auto buf = framelist[i][0 .. strlen(framelist[i])];
+                        auto pos = cast(size_t)(i - FIRSTFRAME);
+                        buf = fixline( buf, fixbuf );
+                        ret = dg( pos, buf );
+                        if( ret )
+                            break;
+                    }
+                    return ret;
+                }
+
             }
 
             override string toString() const

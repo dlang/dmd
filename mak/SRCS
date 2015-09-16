@@ -130,6 +130,9 @@ SRCS=\
 	src\rt\trace.d \
 	src\rt\tracegc.d \
 	\
+	src\rt\backtrace\dwarf.d \
+	src\rt\backtrace\elf.d \
+	\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
 	src\rt\util\random.d \
