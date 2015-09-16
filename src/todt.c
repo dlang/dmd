@@ -43,7 +43,7 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e);
 void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
 void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 void membersToDt(AggregateDeclaration *cd, dt_t **pdt, ClassDeclaration * = NULL);
-void membersToDt(AggregateDeclaration *ad, dt_t **pdt, Expressions *elements, size_t = 0, ClassDeclaration * = NULL);
+dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt, Expressions *elements, size_t = 0, ClassDeclaration * = NULL);
 dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 Symbol *toSymbol(Dsymbol *s);
@@ -446,7 +446,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
         {
             //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", sle->toChars(), sle->ownedByCtfe);
             assert(sle->sd->fields.dim - sle->sd->isNested() <= sle->elements->dim);
-            membersToDt(sle->sd, pdt, sle->elements);
+            pdt = membersToDt(sle->sd, pdt, sle->elements);
         }
 
         void visit(SymOffExp *e)
@@ -719,7 +719,7 @@ void membersToDt(AggregateDeclaration *ad, dt_t **pdt,
 /****************************************************
  * Put out elements[].
  */
-void membersToDt(AggregateDeclaration *ad, dt_t **pdt,
+dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
         Expressions *elements, size_t firstFieldIndex,
         ClassDeclaration *concreteType)
 {
@@ -817,6 +817,8 @@ void membersToDt(AggregateDeclaration *ad, dt_t **pdt,
 
     if (offset < ad->structsize)
         dtnzeros(pdt, ad->structsize - offset);
+
+    return pdt;
 }
 
 /* ================================================================= */
