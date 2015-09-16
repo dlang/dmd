@@ -46,11 +46,11 @@ extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
 
-void TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d);
-dt_t *Initializer_toDt(Initializer *init);
+dt_t **TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d);
+dt_t **Initializer_toDt(Initializer *init, dt_t **pdt);
 dt_t **Type_toDt(Type *t, dt_t **pdt);
-void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
-void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
+dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
+dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj);
@@ -948,7 +948,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             if (vd->init)
             {
-                s->Sdt = Initializer_toDt(vd->init);
+                Initializer_toDt(vd->init, &s->Sdt);
 
                 // Look for static array that is block initialized
                 ExpInitializer *ie = vd->init->isExpInitializer();
