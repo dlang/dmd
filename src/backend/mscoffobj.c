@@ -38,10 +38,6 @@
 
 #if TARGET_WINDOS
 
-#if MARS
-#include        "mars.h"
-#endif
-
 #include        "mscoff.h"
 
 static Outbuffer *fobjbuf;
@@ -2177,7 +2173,6 @@ unsigned MsCoffObj::bytes(segidx_t seg, targ_size_t offset, unsigned nbytes, voi
     {
         //dbg_printf("MsCoffObj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n", seg, offset, nbytes, p);
         //raise(SIGSEGV);
-if (!buf) halt();
         assert(buf != NULL);
     }
     int save = buf->size();
