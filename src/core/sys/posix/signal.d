@@ -108,10 +108,24 @@ union sigval
 version( Solaris )
 {
     import core.sys.posix.unistd;
-    private int _sigrtmin() { return cast(int) sysconf(_SC_SIGRT_MIN); }
-    private int _sigrtmax() { return cast(int) sysconf(_SC_SIGRT_MAX); }
+
+    @property int SIGRTMIN() nothrow @nogc {
+        static int sig = -1;
+        if (sig == -1) {
+            sig = cast(int)sysconf(_SC_SIGRT_MIN);
+        }
+        return sig;
+    }
+
+    @property int SIGRTMAX() nothrow @nogc {
+        static int sig = -1;
+        if (sig == -1) {
+            sig = cast(int)sysconf(_SC_SIGRT_MAX);
+        }
+        return sig;
+    }
 }
-else version( Posix )
+else version( linux )
 {
     private extern (C) nothrow @nogc
     {
@@ -119,25 +133,23 @@ else version( Posix )
         int __libc_current_sigrtmax();
     }
 
-    alias __libc_current_sigrtmin _sigrtmin;
-    alias __libc_current_sigrtmax _sigrtmax;
-}
-
-@property int SIGRTMIN() {
-    static int sig = -1;
-    if (sig == -1) {
-        sig = _sigrtmin();
+    @property int SIGRTMIN() nothrow @nogc {
+        static int sig = -1;
+        if (sig == -1) {
+            sig = __libc_current_sigrtmin();
+        }
+        return sig;
     }
-    return sig;
-}
 
-@property int SIGRTMAX() {
-    static int sig = -1;
-    if (sig == -1) {
-        sig = _sigrtmax();
+    @property int SIGRTMAX() nothrow @nogc {
+        static int sig = -1;
+        if (sig == -1) {
+            sig = __libc_current_sigrtmax();
+        }
+        return sig;
     }
-    return sig;
 }
+// Note: it appears that FreeBSD/OSX do not support realtime signals
 
 version( linux )
 {
