@@ -121,9 +121,14 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             Type tb = e.type.toBasetype();
             if (tb.ty == Tsarray || tb.ty == Tarray)
             {
+                if (e.basis)
+                    e.basis.accept(this);
                 for (size_t i = 0; i < e.elements.dim; i++)
                 {
-                    (*e.elements)[i].accept(this);
+                    auto el = (*e.elements)[i];
+                    if (!el)
+                        continue;
+                    el.accept(this);
                 }
             }
         }

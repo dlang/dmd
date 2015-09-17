@@ -246,6 +246,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         {
             if (e.elements)
             {
+                expOptimize(e.basis, result & WANTexpand);
                 for (size_t i = 0; i < e.elements.dim; i++)
                 {
                     expOptimize((*e.elements)[i], result & WANTexpand);

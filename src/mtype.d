@@ -4774,8 +4774,8 @@ public:
         auto elements = new Expressions();
         elements.setDim(d);
         for (size_t i = 0; i < d; i++)
-            (*elements)[i] = elementinit;
-        auto ae = new ArrayLiteralExp(Loc(), elements);
+            (*elements)[i] = null;
+        auto ae = new ArrayLiteralExp(Loc(), elementinit, elements);
         ae.type = this;
         return ae;
     }

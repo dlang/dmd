@@ -2874,7 +2874,7 @@ elem *toElem(Expression *e, IRState *irs)
                         e1 = el_bin(OPeq, TYnptr, el_var(stmp), e1);
 
                         // Eliminate _d_arrayliteralTX call in ae->e2.
-                        e = ExpressionsToStaticArray(ale->loc, ale->elements, &stmp, 0);
+                        e = ExpressionsToStaticArray(ale->loc, ale->elements, &stmp, 0, ale->basis);
                         e = el_combine(e1, e);
                     }
                     goto Lret;
@@ -4846,7 +4846,7 @@ elem *toElem(Expression *e, IRState *irs)
             if (tb->ty == Tsarray && dim)
             {
                 Symbol *stmp = NULL;
-                e = ExpressionsToStaticArray(ale->loc, ale->elements, &stmp, 0);
+                e = ExpressionsToStaticArray(ale->loc, ale->elements, &stmp, 0, ale->basis);
                 e = el_combine(e, el_ptr(stmp));
             }
             else if (ale->elements)
@@ -4870,7 +4870,7 @@ elem *toElem(Expression *e, IRState *irs)
                  * to return null for 0 length.
                  */
                 if (dim)
-                    e = el_combine(e, ExpressionsToStaticArray(ale->loc, ale->elements, &stmp, 0));
+                    e = el_combine(e, ExpressionsToStaticArray(ale->loc, ale->elements, &stmp, 0, ale->basis));
 
                 e = el_combine(e, el_var(stmp));
             }
@@ -5051,13 +5051,13 @@ elem *toElem(Expression *e, IRState *irs)
          * exps[].
          * Return the initialization expression, and the symbol for the static array in *psym.
          */
-        elem *ExpressionsToStaticArray(Loc loc, Expressions *exps, symbol **psym, size_t offset = 0)
+        elem *ExpressionsToStaticArray(Loc loc, Expressions *exps, symbol **psym, size_t offset = 0, Expression *basis = NULL)
         {
             // Create a static array of type telem[dim]
             size_t dim = exps->dim;
             assert(dim);
 
-            Type *telem = (*exps)[0]->type;
+            Type *telem = ((*exps)[0] ? (*exps)[0] : basis)->type;
             Type *tsarray = telem->sarrayOf(dim);
             targ_size_t szelem = telem->size();
             ::type *te = Type_toCtype(telem);   // stmp[] element type
@@ -5074,6 +5074,8 @@ elem *toElem(Expression *e, IRState *irs)
             for (size_t i = 0; i < dim; )
             {
                 Expression *el = (*exps)[i];
+                if (!el)
+                    el = basis;
                 if (el->op == TOKarrayliteral &&
                     el->type->toBasetype()->ty == Tsarray)
                 {
@@ -5081,7 +5083,7 @@ elem *toElem(Expression *e, IRState *irs)
                     if (ale->elements && ale->elements->dim)
                     {
                         elem *ex = ExpressionsToStaticArray(
-                            ale->loc, ale->elements, &stmp, offset + i * szelem);
+                            ale->loc, ale->elements, &stmp, offset + i * szelem, ale->basis);
                         e = el_combine(e, ex);
                     }
                     i++;
@@ -5095,6 +5097,8 @@ elem *toElem(Expression *e, IRState *irs)
                     while (j < dim)
                     {
                         Expression *en = (*exps)[j];
+                        if (!en)
+                            en = basis;
                         if (!el->equals(en))
                             break;
                         j++;

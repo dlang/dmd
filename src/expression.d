@@ -4561,6 +4561,12 @@ public:
 extern (C++) final class ArrayLiteralExp : Expression
 {
 public:
+    /* If !is null, elements[] can be sparse and basis is used for the
+     * "default" element value. In other words, non-null elements[i] overrides
+     * this 'basis' value.
+     */
+    Expression basis;
+
     Expressions* elements;
     OwnedBy ownedByCtfe = OWNEDcode;
 
@@ -4579,9 +4585,18 @@ public:
         elements.push(e);
     }
 
+    extern (D) this(Loc loc, Expression basis, Expressions* elements)
+    {
+        super(loc, TOKarrayliteral, __traits(classInstanceSize, ArrayLiteralExp));
+        this.basis = basis;
+        this.elements = elements;
+    }
+
     override Expression syntaxCopy()
     {
-        return new ArrayLiteralExp(loc, arraySyntaxCopy(elements));
+        return new ArrayLiteralExp(loc,
+            basis ? basis.syntaxCopy() : null,
+            arraySyntaxCopy(elements));
     }
 
     override bool equals(RootObject o)
@@ -4601,6 +4616,10 @@ public:
             {
                 Expression e1 = (*elements)[i];
                 Expression e2 = (*ae.elements)[i];
+                if (!e1)
+                    e1 = basis;
+                if (!e2)
+                    e2 = ae.basis;
                 if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
                     return false;
             }
@@ -4663,6 +4682,8 @@ public:
                 for (size_t i = 0; i < elements.dim; ++i)
                 {
                     Expression ch = (*elements)[i];
+                    if (!ch)
+                        ch = basis;
                     if (ch.op != TOKint64)
                         return null;
                     if (sz == 1)

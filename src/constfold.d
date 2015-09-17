@@ -762,6 +762,10 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
             {
                 Expression ee1 = (*es1.elements)[i];
                 Expression ee2 = (*es2.elements)[i];
+                if (!ee1)
+                    ee1 = es1.basis;
+                if (!ee2)
+                    ee2 = es2.basis;
                 ue = Equal(TOKequal, loc, Type.tint32, ee1, ee2);
                 if (CTFEExp.isCantExp(ue.exp()))
                     return ue;
@@ -795,6 +799,8 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
             {
                 uinteger_t c = es1.charAt(i);
                 Expression ee2 = (*es2.elements)[i];
+                if (!ee2)
+                    ee2 = es2.basis;
                 if (ee2.isConst() != 1)
                 {
                     emplaceExp!(CTFEExp)(&ue, TOKcantexp);
@@ -1431,6 +1437,8 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
         {
             ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
             Expression e = (*ale.elements)[cast(size_t)i];
+            if (!e)
+                e = ale.basis;
             e.type = type;
             e.loc = loc;
             if (hasSideEffect(e))
@@ -1455,6 +1463,8 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
             else
             {
                 Expression e = (*ale.elements)[cast(size_t)i];
+                if (!e)
+                    e = ale.basis;
                 e.type = type;
                 e.loc = loc;
                 if (hasSideEffect(e))
@@ -1600,7 +1610,10 @@ extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayL
     void* s = existingSE.string;
     for (size_t j = 0; j < newae.elements.dim; j++)
     {
-        uint val = cast(uint)(*newae.elements)[j].toInteger();
+        auto el = (*newae.elements)[j];
+        if (!el)
+            el = newae.basis;
+        uint val = cast(uint)el.toInteger();
         switch (existingSE.sz)
         {
         case 1:
@@ -1650,7 +1663,10 @@ extern (C++) int sliceCmpStringWithArray(StringExp se1, ArrayLiteralExp ae2, siz
     size_t sz = se1.sz;
     for (size_t j = 0; j < len; j++)
     {
-        uint val2 = cast(uint)(*ae2.elements)[j + lo2].toInteger();
+        auto el = (*ae2.elements)[j + lo2];
+        if (!el)
+            el = ae2.basis;
+        uint val2 = cast(uint)el.toInteger();
         uint val1;
         switch (sz)
         {
@@ -1797,7 +1813,10 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         elems.setDim(len);
         for (size_t i = 0; i < ea.elements.dim; ++i)
         {
-            (*elems)[i] = (*ea.elements)[i];
+            auto el = (*ea.elements)[i];
+            if (!el)
+                el = ea.basis;
+            (*elems)[i] = el;
         }
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elems);
         ArrayLiteralExp dest = cast(ArrayLiteralExp)ue.exp();
@@ -1816,7 +1835,10 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         elems.setDim(len);
         for (size_t i = 0; i < ea.elements.dim; ++i)
         {
-            (*elems)[es.len + i] = (*ea.elements)[i];
+            auto el = (*ea.elements)[i];
+            if (!el)
+                el = ea.basis;
+            (*elems)[es.len + i] = el;
         }
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elems);
         ArrayLiteralExp dest = cast(ArrayLiteralExp)ue.exp();
@@ -1878,13 +1900,26 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         // Concatenate the arrays
         ArrayLiteralExp es1 = cast(ArrayLiteralExp)e1;
         ArrayLiteralExp es2 = cast(ArrayLiteralExp)e2;
-        emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, cast(Expressions*)es1.elements.copy());
-        es1 = cast(ArrayLiteralExp)ue.exp();
-        es1.elements.insert(es1.elements.dim, es2.elements);
-        e = es1;
+
+        auto elems = es1.elements.copy();
+        elems.append(es2.elements);
+        foreach (ref el; (*elems)[][0 .. es1.elements.dim])
+        {
+            if (!el)
+                el = es1.basis;
+        }
+        foreach (ref el; (*elems)[][es1.elements.dim .. elems.dim])
+        {
+            if (!el)
+                el = es2.basis;
+        }
+
+        emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, elems);
+
+        e = ue.exp();
         if (type.toBasetype().ty == Tsarray)
         {
-            e.type = t1.nextOf().sarrayOf(es1.elements.dim);
+            e.type = t1.nextOf().sarrayOf(elems.dim);
         }
         else
             e.type = type;
@@ -1902,12 +1937,20 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
     L3:
         // Concatenate the array with null
         ArrayLiteralExp es = cast(ArrayLiteralExp)e;
-        emplaceExp!(ArrayLiteralExp)(&ue, es.loc, cast(Expressions*)es.elements.copy());
-        es = cast(ArrayLiteralExp)ue.exp();
-        e = es;
+
+        auto elems = es.elements.copy();
+        foreach (ref el; *elems)
+        {
+            if (!el)
+                el = es.basis;
+        }
+
+        emplaceExp!(ArrayLiteralExp)(&ue, es.loc, elems);
+
+        e = ue.exp();
         if (type.toBasetype().ty == Tsarray)
         {
-            e.type = t1.nextOf().sarrayOf(es.elements.dim);
+            e.type = t1.nextOf().sarrayOf(elems.dim);
         }
         else
             e.type = type;
@@ -1916,23 +1959,25 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
     }
     else if ((e1.op == TOKarrayliteral || e1.op == TOKnull) && e1.type.toBasetype().nextOf() && e1.type.toBasetype().nextOf().equals(e2.type))
     {
-        ArrayLiteralExp es1;
+        auto elems = new Expressions();
         if (e1.op == TOKarrayliteral)
         {
-            es1 = cast(ArrayLiteralExp)e1;
-            emplaceExp!(ArrayLiteralExp)(&ue, es1.loc, cast(Expressions*)es1.elements.copy());
-            es1 = cast(ArrayLiteralExp)ue.exp();
-            es1.elements.push(e2);
+            auto es1 = cast(ArrayLiteralExp)e1;
+            elems.append(es1.elements);
+            foreach (ref el; *elems)
+            {
+                if (!el)
+                    el = es1.basis;
+            }
         }
-        else
-        {
-            emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, e2);
-            es1 = cast(ArrayLiteralExp)ue.exp();
-        }
-        e = es1;
+        elems.push(e2);
+
+        emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elems);
+
+        e = ue.exp();
         if (type.toBasetype().ty == Tsarray)
         {
-            e.type = e2.type.sarrayOf(es1.elements.dim);
+            e.type = e2.type.sarrayOf(elems.dim);
         }
         else
             e.type = type;
@@ -1942,13 +1987,21 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
     else if (e2.op == TOKarrayliteral && e2.type.toBasetype().nextOf().equals(e1.type))
     {
         ArrayLiteralExp es2 = cast(ArrayLiteralExp)e2;
-        emplaceExp!(ArrayLiteralExp)(&ue, es2.loc, cast(Expressions*)es2.elements.copy());
-        es2 = cast(ArrayLiteralExp)ue.exp();
-        es2.elements.shift(e1);
-        e = es2;
+        auto elems = new Expressions();
+        elems.push(e1);
+        elems.append(es2.elements);
+        foreach (ref el; (*elems)[][1 .. elems.dim])
+        {
+            if (!el)
+                el = es2.basis;
+        }
+
+        emplaceExp!(ArrayLiteralExp)(&ue, es2.loc, elems);
+
+        e = ue.exp();
         if (type.toBasetype().ty == Tsarray)
         {
-            e.type = e1.type.sarrayOf(es2.elements.dim);
+            e.type = e1.type.sarrayOf(elems.dim);
         }
         else
             e.type = type;
