@@ -244,13 +244,13 @@ version (unittest)
             [null, null, null]
         ];
         //printf("unittest_speller()\n");
-        const(void)* p = speller("hello", &speller_test, cast(void*)"hell", idchars);
+        const(void)* p = speller(cast(const(char)*)"hello", &speller_test, cast(char*)"hell", idchars);
         assert(p !is null);
         for (int i = 0; cases[i][0]; i++)
         {
             //printf("case [%d]\n", i);
-            void* p = speller(cases[i][0], &speller_test, cast(void*)cases[i][1], idchars);
-            if (p)
+            void* p2 = speller(cases[i][0], &speller_test, cast(void*)cases[i][1], idchars);
+            if (p2)
                 assert(cases[i][2][0] == 'y');
             else
                 assert(cases[i][2][0] == 'n');

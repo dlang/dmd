@@ -146,7 +146,7 @@ endif
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
 CFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
-DFLAGS += -g -debug
+DFLAGS += -g -debug -unittest
 endif
 ifdef ENABLE_RELEASE
 CFLAGS += -O2
