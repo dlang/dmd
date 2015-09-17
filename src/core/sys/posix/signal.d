@@ -110,9 +110,6 @@ version( Solaris )
     import core.sys.posix.unistd;
     private int _sigrtmin() { return cast(int) sysconf(_SC_SIGRT_MIN); }
     private int _sigrtmax() { return cast(int) sysconf(_SC_SIGRT_MAX); }
-
-    alias _sigrtmin SIGRTMIN;
-    alias _sigrtmax SIGRTMAX;
 }
 else version( Posix )
 {
@@ -122,8 +119,24 @@ else version( Posix )
         int __libc_current_sigrtmax();
     }
 
-    alias __libc_current_sigrtmin SIGRTMIN;
-    alias __libc_current_sigrtmax SIGRTMAX;
+    alias __libc_current_sigrtmin _sigrtmin;
+    alias __libc_current_sigrtmax _sigrtmax;
+}
+
+@property int SIGRTMIN() {
+    static int sig = -1;
+    if (sig == -1) {
+        sig = _sigrtmin();
+    }
+    return sig;
+}
+
+@property int SIGRTMAX() {
+    static int sig = -1;
+    if (sig == -1) {
+        sig = _sigrtmax();
+    }
+    return sig;
 }
 
 version( linux )
