@@ -817,7 +817,6 @@ public:
         print();
         printf("%s %s\n", kind(), toChars());
         assert(0);
-        return null;
     }
 
     /**************************************

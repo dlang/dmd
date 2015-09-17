@@ -162,7 +162,6 @@ struct Target
             return 24;
         }
         assert(0);
-        return 0;
     }
 
     /***********************************
@@ -190,7 +189,6 @@ struct Target
         else
         {
             assert(0);
-            return null;
         }
     }
 

@@ -2911,7 +2911,6 @@ public:
             break;
         default:
             assert(0);
-            break;
         }
         if (a && token.value == TOKsemicolon)
         {
@@ -3517,7 +3516,6 @@ public:
             assert(0);
         }
         assert(0);
-        return null;
     }
 
     Type parseDeclarator(Type t, int* palt, Identifier* pident, TemplateParameters** tpl = null, StorageClass storageClass = 0, int* pdisable = null, Expressions** pudas = null)
@@ -4477,7 +4475,6 @@ public:
                 goto Ldeclaration;
             else
                 goto Lexp;
-            break;
         case TOKassert:
         case TOKthis:
         case TOKsuper:

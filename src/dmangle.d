@@ -419,7 +419,6 @@ public:
             default:
                 fprintf(stderr, "'%s', linkage = %d\n", d.toChars(), d.linkage);
                 assert(0);
-                return;
             }
         }
         buf.writestring("_D");

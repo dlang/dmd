@@ -241,7 +241,6 @@ public:
             return cast(char*)"<goto>";
         default:
             assert(0);
-            return null;
         }
     }
 
@@ -458,7 +457,6 @@ extern (C++) UnionExp copyLiteral(Expression e)
     }
     e.error("CTFE internal error: literal %s", e.toChars());
     assert(0);
-    return ue;
 }
 
 /* Deal with type painting.
@@ -572,7 +570,6 @@ extern (C++) uinteger_t resolveArrayLength(Expression e)
         return ale.keys.dim;
     }
     assert(0);
-    return 0;
 }
 
 /******************************
@@ -648,7 +645,6 @@ extern (C++) TypeAArray toBuiltinAAType(Type t)
     if (t.ty == Taarray)
         return cast(TypeAArray)t;
     assert(0);
-    return null;
 }
 
 /************** TypeInfo operations ************************************/
@@ -1019,7 +1015,6 @@ extern (C++) void intUnary(TOK op, IntegerExp e)
         break;
     default:
         assert(0);
-        break;
     }
 }
 
@@ -1666,7 +1661,6 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
     }
     error(loc, "CTFE internal error: bad compare");
     assert(0);
-    return 0;
 }
 
 /// Evaluate ==, !=.  Resolves slices before comparing. Returns 0 or 1

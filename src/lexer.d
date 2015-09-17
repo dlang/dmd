@@ -1861,7 +1861,7 @@ public:
         alias FLAGS_decimal = FLAGS.FLAGS_decimal;
         alias FLAGS_unsigned = FLAGS.FLAGS_unsigned;
         alias FLAGS_long = FLAGS.FLAGS_long;
-        ;
+
         FLAGS flags = (base == 10) ? FLAGS_decimal : FLAGS_none;
         // Parse trailing 'u', 'U', 'l' or 'L' in any combination
         const(char)* psuffix = p;

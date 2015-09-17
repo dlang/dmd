@@ -57,7 +57,6 @@ extern (C++) int isConst(Expression e)
         return 0;
     }
     assert(0);
-    return 0;
 }
 
 /* =============================== constFold() ============================== */
@@ -1599,7 +1598,6 @@ extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, 
             break;
         default:
             assert(0);
-            break;
         }
         (*existingAE.elements)[j + firstIndex] = new IntegerExp(newval.loc, val, elemType);
     }
@@ -1627,7 +1625,6 @@ extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayL
             break;
         default:
             assert(0);
-            break;
         }
     }
 }
@@ -1679,7 +1676,6 @@ extern (C++) int sliceCmpStringWithArray(StringExp se1, ArrayLiteralExp ae2, siz
             break;
         default:
             assert(0);
-            break;
         }
         int c = val1 - val2;
         if (c)
