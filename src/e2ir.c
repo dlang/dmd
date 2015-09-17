@@ -4832,8 +4832,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(ArrayLiteralExp *ale)
         {
-            elem *e;
-            size_t dim;
+            size_t dim = ale->elements ? ale->elements->dim : 0;
 
             //printf("ArrayLiteralExp::toElem() %s, type = %s\n", ale->toChars(), ale->type->toChars());
             Type *tb = ale->type->toBasetype();
@@ -4842,11 +4841,13 @@ elem *toElem(Expression *e, IRState *irs)
                 // Convert void[n] to ubyte[n]
                 tb = Type::tuns8->sarrayOf(((TypeSArray *)tb)->dim->toUInteger());
             }
-            if (tb->ty == Tsarray && ale->elements && ale->elements->dim)
+
+            elem *e;
+            if (tb->ty == Tsarray && dim)
             {
-                Symbol *sdata = NULL;
-                e = ExpressionsToStaticArray(ale->loc, ale->elements, &sdata);
-                e = el_combine(e, el_ptr(sdata));
+                Symbol *stmp = NULL;
+                e = ExpressionsToStaticArray(ale->loc, ale->elements, &stmp, 0);
+                e = el_combine(e, el_ptr(stmp));
             }
             else if (ale->elements)
             {
@@ -4854,51 +4855,30 @@ elem *toElem(Expression *e, IRState *irs)
                  * array and assign the members inline.
                  * Avoids the whole variadic arg mess.
                  */
-                dim = ale->elements->dim;
-                Elems args;
-                args.setDim(dim);           // +1 for number of args parameter
-                e = el_long(TYsize_t, dim);
-                e = el_param(e, getTypeInfo(ale->type, irs));
+
                 // call _d_arrayliteralTX(ti, dim)
-                e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_ARRAYLITERALTX)),e);
+                e = el_bin(OPcall, TYnptr,
+                    el_var(getRtlsym(RTLSYM_ARRAYLITERALTX)),
+                    el_param(el_long(TYsize_t, dim), getTypeInfo(ale->type, irs)));
                 toTraceGC(irs, e, &ale->loc);
+
                 Symbol *stmp = symbol_genauto(Type_toCtype(Type::tvoid->pointerTo()));
-                e = el_bin(OPeq,TYnptr,el_var(stmp),e);
+                e = el_bin(OPeq, TYnptr, el_var(stmp), e);
 
-                targ_size_t sz = tb->nextOf()->size();      // element size
-                ::type *te = Type_toCtype(tb->nextOf());       // element type
-                for (size_t i = 0; i < dim; i++)
-                {
-                    Expression *el = (*ale->elements)[i];
-                    /* Generate: *(stmp + i * sz) = element[i]
-                     */
-                    elem *ep = toElem(el, irs);
-                    elem *ev = el_var(stmp);
-                    ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * sz));
-                    ev = el_una(OPind, te->Tty, ev);
-                    elem *eeq = el_bin(OPeq,te->Tty,ev,ep);
+                /* Note: Even if dm == 0, the druntime function will be called so
+                 * GC heap may be allocated. However, currently it's implemented
+                 * to return null for 0 length.
+                 */
+                if (dim)
+                    e = el_combine(e, ExpressionsToStaticArray(ale->loc, ale->elements, &stmp, 0));
 
-                    if (tybasic(te->Tty) == TYstruct)
-                    {
-                        eeq->Eoper = OPstreq;
-                        eeq->ET = te;
-                    }
-                    else if (tybasic(te->Tty) == TYarray)
-                    {
-                        eeq->Eoper = OPstreq;
-                        eeq->Ejty = eeq->Ety = TYstruct;
-                        eeq->ET = te;
-                    }
-                    args[i] = eeq;
-                }
-                e = el_combine(e, el_combines((void **)args.tdata(), dim));
                 e = el_combine(e, el_var(stmp));
             }
             else
             {
-                dim = 0;
                 e = el_long(TYsize_t, 0);
             }
+
             if (tb->ty == Tarray)
             {
                 e = el_pair(TYdarray, el_long(TYsize_t, dim), e);
@@ -4908,7 +4888,7 @@ elem *toElem(Expression *e, IRState *irs)
             }
             else
             {
-                e = el_una(OPind,TYstruct,e);
+                e = el_una(OPind, TYstruct, e);
                 e->ET = Type_toCtype(ale->type);
             }
 
