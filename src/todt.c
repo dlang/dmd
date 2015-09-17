@@ -475,7 +475,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v && (v->isConst() || v->isImmutable()) &&
-                e->type->toBasetype()->ty != Tsarray && v->init)
+                e->type->toBasetype()->ty != Tsarray && v->_init)
             {
                 if (v->inuse)
                 {
@@ -483,7 +483,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                     return;
                 }
                 v->inuse++;
-                pdt = Initializer_toDt(v->init, pdt);
+                pdt = Initializer_toDt(v->_init, pdt);
                 v->inuse--;
                 return;
             }
@@ -632,7 +632,7 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
 
     for (size_t i = 0; i < ad->fields.dim; i++)
     {
-        if (ad->fields[i]->init && ad->fields[i]->init->isVoidInitializer())
+        if (ad->fields[i]->_init && ad->fields[i]->_init->isVoidInitializer())
             continue;
 
         VarDeclaration *vd = NULL;
@@ -642,7 +642,7 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
             VarDeclaration *v2 = ad->fields[j];
             if (v2->offset < offset)
                 continue;
-            if (v2->init && v2->init->isVoidInitializer())
+            if (v2->_init && v2->_init->isVoidInitializer())
                 continue;
             // find the nearest field
             if (!vd || v2->offset < vd->offset)
@@ -660,7 +660,7 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
             pdt = dtnzeros(pdt, vd->offset - offset);
 
         dt_t *dt = NULL;
-        if (Initializer *init = vd->init)
+        if (Initializer *init = vd->_init)
         {
             //printf("\t\t%s has initializer %s\n", vd->toChars(), init->toChars());
             if (init->isVoidInitializer())
@@ -672,8 +672,8 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
              * As a workaround for the issue 9057, have to resolve forward reference
              * in `init` before its use.
              */
-            if (vd->sem < Semantic2Done && vd->scope)
-                vd->semantic2(vd->scope);
+            if (vd->sem < Semantic2Done && vd->_scope)
+                vd->semantic2(vd->_scope);
 
             ExpInitializer *ei = init->isExpInitializer();
             Type *tb = vd->type->toBasetype();

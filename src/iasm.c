@@ -2318,9 +2318,9 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
             goto L2;
         }
         if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
-            !v->type->isfloating() && v->init)
+            !v->type->isfloating() && v->_init)
         {
-            ExpInitializer *ei = v->init->isExpInitializer();
+            ExpInitializer *ei = v->_init->isExpInitializer();
             if (ei)
             {
                 o1->disp = ei->exp->toInteger();
