@@ -623,9 +623,9 @@ extern (C++) int runLINK()
             char* buf = cast(char*)malloc(3 + slen + 1);
             strcpy(buf, "-l");
 
-            if (slen > 3 + 2 && memcmp(libname, cast(char*)"lib", 3) == 0)
+            if (slen > 3 + 2 && memcmp(libname, "lib".ptr, 3) == 0)
             {
-                if (memcmp(libname + slen - 2, cast(char*)".a", 2) == 0)
+                if (memcmp(libname + slen - 2, ".a".ptr, 2) == 0)
                 {
                     argv.push("-Xlinker");
                     argv.push("-Bstatic");
@@ -634,7 +634,7 @@ extern (C++) int runLINK()
                     argv.push("-Xlinker");
                     argv.push("-Bdynamic");
                 }
-                else if (memcmp(libname + slen - 3, cast(char*)".so", 3) == 0)
+                else if (memcmp(libname + slen - 3, ".so".ptr, 3) == 0)
                 {
                     strncat(buf, libname + 3, slen - 3 - 3);
                     argv.push(buf);
