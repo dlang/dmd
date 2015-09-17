@@ -126,13 +126,13 @@ public:
         return null;
     }
 
-    final void print()
+    override final void print()
     {
         fprintf(stderr, "%s\n", toChars());
         fflush(stderr);
     }
 
-    final char* toChars()
+    override final char* toChars()
     {
         HdrGenState hgs;
         OutBuffer buf;
@@ -218,26 +218,26 @@ public:
         {
             alias visit = super.visit;
         public:
-            void visit(Statement s)
+            override void visit(Statement s)
             {
             }
 
-            void visit(TryCatchStatement s)
-            {
-                stop = true;
-            }
-
-            void visit(TryFinallyStatement s)
+            override void visit(TryCatchStatement s)
             {
                 stop = true;
             }
 
-            void visit(OnScopeStatement s)
+            override void visit(TryFinallyStatement s)
             {
                 stop = true;
             }
 
-            void visit(SynchronizedStatement s)
+            override void visit(OnScopeStatement s)
+            {
+                stop = true;
+            }
+
+            override void visit(SynchronizedStatement s)
             {
                 stop = true;
             }
@@ -268,7 +268,7 @@ public:
                 result = BEnone;
             }
 
-            void visit(Statement s)
+            override void visit(Statement s)
             {
                 printf("Statement::blockExit(%p)\n", s);
                 printf("%s\n", s.toChars());
@@ -276,12 +276,12 @@ public:
                 result = BEany;
             }
 
-            void visit(ErrorStatement s)
+            override void visit(ErrorStatement s)
             {
                 result = BEany;
             }
 
-            void visit(ExpStatement s)
+            override void visit(ExpStatement s)
             {
                 result = BEfallthru;
                 if (s.exp)
@@ -305,13 +305,13 @@ public:
                 }
             }
 
-            void visit(CompileStatement s)
+            override void visit(CompileStatement s)
             {
                 assert(global.errors);
                 result = BEfallthru;
             }
 
-            void visit(CompoundStatement cs)
+            override void visit(CompoundStatement cs)
             {
                 //printf("CompoundStatement::blockExit(%p) %d\n", cs, cs->statements->dim);
                 result = BEfallthru;
@@ -358,7 +358,7 @@ public:
                 }
             }
 
-            void visit(UnrolledLoopStatement uls)
+            override void visit(UnrolledLoopStatement uls)
             {
                 result = BEfallthru;
                 foreach (s; *uls.statements)
@@ -373,19 +373,19 @@ public:
                 }
             }
 
-            void visit(ScopeStatement s)
+            override void visit(ScopeStatement s)
             {
                 //printf("ScopeStatement::blockExit(%p)\n", s->statement);
                 result = s.statement ? s.statement.blockExit(func, mustNotThrow) : BEfallthru;
             }
 
-            void visit(WhileStatement s)
+            override void visit(WhileStatement s)
             {
                 assert(global.errors);
                 result = BEfallthru;
             }
 
-            void visit(DoStatement s)
+            override void visit(DoStatement s)
             {
                 if (s._body)
                 {
@@ -410,7 +410,7 @@ public:
                 result &= ~(BEbreak | BEcontinue);
             }
 
-            void visit(ForStatement s)
+            override void visit(ForStatement s)
             {
                 result = BEfallthru;
                 if (s._init)
@@ -441,7 +441,7 @@ public:
                     result |= BEthrow;
             }
 
-            void visit(ForeachStatement s)
+            override void visit(ForeachStatement s)
             {
                 result = BEfallthru;
                 if (canThrow(s.aggr, func, mustNotThrow))
@@ -450,13 +450,13 @@ public:
                     result |= s._body.blockExit(func, mustNotThrow) & ~(BEbreak | BEcontinue);
             }
 
-            void visit(ForeachRangeStatement s)
+            override void visit(ForeachRangeStatement s)
             {
                 assert(global.errors);
                 result = BEfallthru;
             }
 
-            void visit(IfStatement s)
+            override void visit(IfStatement s)
             {
                 //printf("IfStatement::blockExit(%p)\n", s);
                 result = BEnone;
@@ -490,24 +490,24 @@ public:
                 //printf("IfStatement::blockExit(%p) = x%x\n", s, result);
             }
 
-            void visit(ConditionalStatement s)
+            override void visit(ConditionalStatement s)
             {
                 result = s.ifbody.blockExit(func, mustNotThrow);
                 if (s.elsebody)
                     result |= s.elsebody.blockExit(func, mustNotThrow);
             }
 
-            void visit(PragmaStatement s)
+            override void visit(PragmaStatement s)
             {
                 result = BEfallthru;
             }
 
-            void visit(StaticAssertStatement s)
+            override void visit(StaticAssertStatement s)
             {
                 result = BEfallthru;
             }
 
-            void visit(SwitchStatement s)
+            override void visit(SwitchStatement s)
             {
                 result = BEnone;
                 if (canThrow(s.condition, func, mustNotThrow))
@@ -525,56 +525,56 @@ public:
                     result |= BEfallthru;
             }
 
-            void visit(CaseStatement s)
+            override void visit(CaseStatement s)
             {
                 result = s.statement.blockExit(func, mustNotThrow);
             }
 
-            void visit(DefaultStatement s)
+            override void visit(DefaultStatement s)
             {
                 result = s.statement.blockExit(func, mustNotThrow);
             }
 
-            void visit(GotoDefaultStatement s)
+            override void visit(GotoDefaultStatement s)
             {
                 result = BEgoto;
             }
 
-            void visit(GotoCaseStatement s)
+            override void visit(GotoCaseStatement s)
             {
                 result = BEgoto;
             }
 
-            void visit(SwitchErrorStatement s)
+            override void visit(SwitchErrorStatement s)
             {
                 // Switch errors are non-recoverable
                 result = BEhalt;
             }
 
-            void visit(ReturnStatement s)
+            override void visit(ReturnStatement s)
             {
                 result = BEreturn;
                 if (s.exp && canThrow(s.exp, func, mustNotThrow))
                     result |= BEthrow;
             }
 
-            void visit(BreakStatement s)
+            override void visit(BreakStatement s)
             {
                 //printf("BreakStatement::blockExit(%p) = x%x\n", s, s->ident ? BEgoto : BEbreak);
                 result = s.ident ? BEgoto : BEbreak;
             }
 
-            void visit(ContinueStatement s)
+            override void visit(ContinueStatement s)
             {
                 result = s.ident ? BEgoto : BEcontinue;
             }
 
-            void visit(SynchronizedStatement s)
+            override void visit(SynchronizedStatement s)
             {
                 result = s._body ? s._body.blockExit(func, mustNotThrow) : BEfallthru;
             }
 
-            void visit(WithStatement s)
+            override void visit(WithStatement s)
             {
                 result = BEnone;
                 if (canThrow(s.exp, func, mustNotThrow))
@@ -585,7 +585,7 @@ public:
                     result |= BEfallthru;
             }
 
-            void visit(TryCatchStatement s)
+            override void visit(TryCatchStatement s)
             {
                 assert(s._body);
                 result = s._body.blockExit(func, false);
@@ -625,7 +625,7 @@ public:
                 result |= catchresult;
             }
 
-            void visit(TryFinallyStatement s)
+            override void visit(TryFinallyStatement s)
             {
                 result = BEfallthru;
                 if (s._body)
@@ -661,13 +661,13 @@ public:
                 result |= finalresult & ~BEfallthru;
             }
 
-            void visit(OnScopeStatement s)
+            override void visit(OnScopeStatement s)
             {
                 // At this point, this statement is just an empty placeholder
                 result = BEfallthru;
             }
 
-            void visit(ThrowStatement s)
+            override void visit(ThrowStatement s)
             {
                 if (s.internalThrow)
                 {
@@ -688,13 +688,13 @@ public:
                 result = BEthrow;
             }
 
-            void visit(GotoStatement s)
+            override void visit(GotoStatement s)
             {
                 //printf("GotoStatement::blockExit(%p)\n", s);
                 result = BEgoto;
             }
 
-            void visit(LabelStatement s)
+            override void visit(LabelStatement s)
             {
                 //printf("LabelStatement::blockExit(%p)\n", s);
                 result = s.statement ? s.statement.blockExit(func, mustNotThrow) : BEfallthru;
@@ -702,7 +702,7 @@ public:
                     result |= BEfallthru;
             }
 
-            void visit(CompoundAsmStatement s)
+            override void visit(CompoundAsmStatement s)
             {
                 if (mustNotThrow && !(s.stc & STCnothrow))
                     s.deprecation("asm statement is assumed to throw - mark it with 'nothrow' if it does not");
@@ -712,7 +712,7 @@ public:
                     result |= BEthrow;
             }
 
-            void visit(ImportStatement s)
+            override void visit(ImportStatement s)
             {
                 result = BEfallthru;
             }
@@ -731,26 +731,26 @@ public:
         {
             alias visit = super.visit;
         public:
-            void visit(Statement s)
+            override void visit(Statement s)
             {
             }
 
-            void visit(CaseStatement s)
-            {
-                stop = true;
-            }
-
-            void visit(DefaultStatement s)
+            override void visit(CaseStatement s)
             {
                 stop = true;
             }
 
-            void visit(LabelStatement s)
+            override void visit(DefaultStatement s)
             {
                 stop = true;
             }
 
-            void visit(AsmStatement s)
+            override void visit(LabelStatement s)
+            {
+                stop = true;
+            }
+
+            override void visit(AsmStatement s)
             {
                 stop = true;
             }
@@ -768,25 +768,25 @@ public:
         {
             alias visit = super.visit;
         public:
-            void visit(Statement s)
+            override void visit(Statement s)
             {
                 stop = true;
             }
 
-            void visit(ExpStatement s)
+            override void visit(ExpStatement s)
             {
                 stop = s.exp !is null;
             }
 
-            void visit(CompoundStatement s)
+            override void visit(CompoundStatement s)
             {
             }
 
-            void visit(ScopeStatement s)
+            override void visit(ScopeStatement s)
             {
             }
 
-            void visit(ImportStatement s)
+            override void visit(ImportStatement s)
             {
             }
         }
@@ -899,22 +899,22 @@ public:
         assert(global.gaggedErrors || global.errors);
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return this;
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         return this;
     }
 
-    ErrorStatement isErrorStatement()
+    override ErrorStatement isErrorStatement()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -932,7 +932,7 @@ public:
         this.s = s;
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         /* "peel" off this wrapper, and don't run semantic()
          * on the result.
@@ -940,7 +940,7 @@ public:
         return s;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -969,13 +969,13 @@ extern (C++) Statement toStatement(Dsymbol s)
             return new CompoundStatement(loc, statements);
         }
 
-        void visit(Dsymbol s)
+        override void visit(Dsymbol s)
         {
             .error(Loc(), "Internal Compiler Error: cannot mixin %s %s\n", s.kind(), s.toChars());
             result = new ErrorStatement();
         }
 
-        void visit(TemplateMixin tm)
+        override void visit(TemplateMixin tm)
         {
             auto a = new Statements();
             foreach (m; *tm.members)
@@ -997,32 +997,32 @@ extern (C++) Statement toStatement(Dsymbol s)
             return new ExpStatement(s.loc, de);
         }
 
-        void visit(VarDeclaration d)
+        override void visit(VarDeclaration d)
         {
             result = declStmt(d);
         }
 
-        void visit(AggregateDeclaration d)
+        override void visit(AggregateDeclaration d)
         {
             result = declStmt(d);
         }
 
-        void visit(FuncDeclaration d)
+        override void visit(FuncDeclaration d)
         {
             result = declStmt(d);
         }
 
-        void visit(EnumDeclaration d)
+        override void visit(EnumDeclaration d)
         {
             result = declStmt(d);
         }
 
-        void visit(AliasDeclaration d)
+        override void visit(AliasDeclaration d)
         {
             result = declStmt(d);
         }
 
-        void visit(TemplateDeclaration d)
+        override void visit(TemplateDeclaration d)
         {
             result = declStmt(d);
         }
@@ -1031,54 +1031,54 @@ extern (C++) Statement toStatement(Dsymbol s)
          * 'bottom' declarations (function, struct, class, etc).
          * So we don't have to copy them.
          */
-        void visit(StorageClassDeclaration d)
+        override void visit(StorageClassDeclaration d)
         {
             result = visitMembers(d.loc, d.decl);
         }
 
-        void visit(DeprecatedDeclaration d)
+        override void visit(DeprecatedDeclaration d)
         {
             result = visitMembers(d.loc, d.decl);
         }
 
-        void visit(LinkDeclaration d)
+        override void visit(LinkDeclaration d)
         {
             result = visitMembers(d.loc, d.decl);
         }
 
-        void visit(ProtDeclaration d)
+        override void visit(ProtDeclaration d)
         {
             result = visitMembers(d.loc, d.decl);
         }
 
-        void visit(AlignDeclaration d)
+        override void visit(AlignDeclaration d)
         {
             result = visitMembers(d.loc, d.decl);
         }
 
-        void visit(UserAttributeDeclaration d)
+        override void visit(UserAttributeDeclaration d)
         {
             result = visitMembers(d.loc, d.decl);
         }
 
-        void visit(StaticAssert s)
+        override void visit(StaticAssert s)
         {
         }
 
-        void visit(Import s)
+        override void visit(Import s)
         {
         }
 
-        void visit(PragmaDeclaration d)
+        override void visit(PragmaDeclaration d)
         {
         }
 
-        void visit(ConditionalDeclaration d)
+        override void visit(ConditionalDeclaration d)
         {
             result = visitMembers(d.loc, d.include(null, null));
         }
 
-        void visit(CompileDeclaration d)
+        override void visit(CompileDeclaration d)
         {
             result = visitMembers(d.loc, d.include(null, null));
         }
@@ -1114,12 +1114,12 @@ public:
         return new ExpStatement(loc, exp);
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new ExpStatement(loc, exp ? exp.syntaxCopy() : null);
     }
 
-    final Statement semantic(Scope* sc)
+    override final Statement semantic(Scope* sc)
     {
         if (exp)
         {
@@ -1152,7 +1152,7 @@ public:
         return this;
     }
 
-    final Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
+    override final Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
         //printf("ExpStatement::scopeCode()\n");
         //print();
@@ -1201,7 +1201,7 @@ public:
         return this;
     }
 
-    final Statements* flatten(Scope* sc)
+    override final Statements* flatten(Scope* sc)
     {
         /* Bugzilla 14243: expand template mixin in statement scope
          * to handle variable destructors.
@@ -1237,12 +1237,12 @@ public:
         return null;
     }
 
-    final ExpStatement isExpStatement()
+    override final ExpStatement isExpStatement()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1262,17 +1262,17 @@ public:
         this.var = v;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new DtorExpStatement(loc, exp ? exp.syntaxCopy() : null, var);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
 
-    DtorExpStatement isDtorExpStatement()
+    override DtorExpStatement isDtorExpStatement()
     {
         return this;
     }
@@ -1290,12 +1290,12 @@ public:
         this.exp = exp;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new CompileStatement(loc, exp.syntaxCopy());
     }
 
-    Statements* flatten(Scope* sc)
+    override Statements* flatten(Scope* sc)
     {
         //printf("CompileStatement::flatten() %s\n", exp->toChars());
         sc = sc.startCTFE();
@@ -1333,7 +1333,7 @@ public:
         return a;
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("CompileStatement::semantic() %s\n", exp->toChars());
         Statements* a = flatten(sc);
@@ -1343,7 +1343,7 @@ public:
         return s.semantic(sc);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1382,7 +1382,7 @@ public:
         return new CompoundStatement(loc, s1, s2);
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         auto a = new Statements();
         a.setDim(statements.dim);
@@ -1393,7 +1393,7 @@ public:
         return new CompoundStatement(loc, a);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", this, sc);
         version (none)
@@ -1541,12 +1541,12 @@ public:
         return this;
     }
 
-    Statements* flatten(Scope* sc)
+    override Statements* flatten(Scope* sc)
     {
         return statements;
     }
 
-    final ReturnStatement isReturnStatement()
+    override final ReturnStatement isReturnStatement()
     {
         ReturnStatement rs = null;
         foreach (s; *statements)
@@ -1561,7 +1561,7 @@ public:
         return rs;
     }
 
-    final Statement last()
+    override final Statement last()
     {
         Statement s = null;
         for (size_t i = statements.dim; i; --i)
@@ -1577,12 +1577,12 @@ public:
         return s;
     }
 
-    final CompoundStatement isCompoundStatement()
+    override final CompoundStatement isCompoundStatement()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1598,7 +1598,7 @@ public:
         statements = s;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         auto a = new Statements();
         a.setDim(statements.dim);
@@ -1609,7 +1609,7 @@ public:
         return new CompoundDeclarationStatement(loc, a);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1630,7 +1630,7 @@ public:
         statements = s;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         auto a = new Statements();
         a.setDim(statements.dim);
@@ -1641,7 +1641,7 @@ public:
         return new UnrolledLoopStatement(loc, a);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("UnrolledLoopStatement::semantic(this = %p, sc = %p)\n", this, sc);
         Scope* scd = sc.push();
@@ -1662,17 +1662,17 @@ public:
         return serror ? serror : this;
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         return true;
     }
 
-    bool hasContinue()
+    override bool hasContinue()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1690,24 +1690,24 @@ public:
         this.statement = s;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new ScopeStatement(loc, statement ? statement.syntaxCopy() : null);
     }
 
-    ScopeStatement isScopeStatement()
+    override ScopeStatement isScopeStatement()
     {
         return this;
     }
 
-    ReturnStatement isReturnStatement()
+    override ReturnStatement isReturnStatement()
     {
         if (statement)
             return statement.isReturnStatement();
         return null;
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         ScopeDsymbol sym;
         //printf("ScopeStatement::semantic(sc = %p)\n", sc);
@@ -1747,18 +1747,18 @@ public:
         return this;
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         //printf("ScopeStatement::hasBreak() %s\n", toChars());
         return statement ? statement.hasBreak() : false;
     }
 
-    bool hasContinue()
+    override bool hasContinue()
     {
         return statement ? statement.hasContinue() : false;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1780,12 +1780,12 @@ public:
         this.endloc = endloc;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new WhileStatement(loc, condition.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         /* Rewrite as a for(;condition;) loop
          */
@@ -1794,17 +1794,17 @@ public:
         return s;
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         return true;
     }
 
-    bool hasContinue()
+    override bool hasContinue()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1824,12 +1824,12 @@ public:
         condition = c;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new DoStatement(loc, _body ? _body.syntaxCopy() : null, condition.syntaxCopy());
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         sc.noctor++;
         if (_body)
@@ -1847,17 +1847,17 @@ public:
         return this;
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         return true;
     }
 
-    bool hasContinue()
+    override bool hasContinue()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1887,12 +1887,12 @@ public:
         this.endloc = endloc;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new ForStatement(loc, _init ? _init.syntaxCopy() : null, condition ? condition.syntaxCopy() : null, increment ? increment.syntaxCopy() : null, _body.syntaxCopy(), endloc);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("ForStatement::semantic %s\n", toChars());
         if (_init)
@@ -1955,30 +1955,30 @@ public:
         return this;
     }
 
-    Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
+    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
         //printf("ForStatement::scopeCode()\n");
         Statement.scopeCode(sc, sentry, sexception, sfinally);
         return this;
     }
 
-    Statement getRelatedLabeled()
+    override Statement getRelatedLabeled()
     {
         return relatedLabeled ? relatedLabeled : this;
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         //printf("ForStatement::hasBreak()\n");
         return true;
     }
 
-    bool hasContinue()
+    override bool hasContinue()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2014,12 +2014,12 @@ public:
         this.gotos = null;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new ForeachStatement(loc, op, Parameter.arraySyntaxCopy(parameters), aggr.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("ForeachStatement::semantic() %p\n", this);
         ScopeDsymbol sym;
@@ -2944,17 +2944,17 @@ public:
         return result;
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         return true;
     }
 
-    bool hasContinue()
+    override bool hasContinue()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2984,12 +2984,12 @@ public:
         this.key = null;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new ForeachRangeStatement(loc, op, prm.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("ForeachRangeStatement::semantic() %p\n", this);
         lwr = lwr.semantic(sc);
@@ -3163,17 +3163,17 @@ public:
         return s.semantic(sc);
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         return true;
     }
 
-    bool hasContinue()
+    override bool hasContinue()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3199,12 +3199,12 @@ public:
         this.match = null;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new IfStatement(loc, prm ? prm.syntaxCopy() : null, condition.syntaxCopy(), ifbody ? ifbody.syntaxCopy() : null, elsebody ? elsebody.syntaxCopy() : null);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         // Evaluate at runtime
         uint cs0 = sc.callSuper;
@@ -3277,12 +3277,12 @@ public:
         return this;
     }
 
-    IfStatement isIfStatement()
+    override IfStatement isIfStatement()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3304,12 +3304,12 @@ public:
         this.elsebody = elsebody;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new ConditionalStatement(loc, condition.syntaxCopy(), ifbody.syntaxCopy(), elsebody ? elsebody.syntaxCopy() : null);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("ConditionalStatement::semantic()\n");
         // If we can short-circuit evaluate the if statement, don't do the
@@ -3337,7 +3337,7 @@ public:
         }
     }
 
-    Statements* flatten(Scope* sc)
+    override Statements* flatten(Scope* sc)
     {
         Statement s;
         //printf("ConditionalStatement::flatten()\n");
@@ -3356,7 +3356,7 @@ public:
         return a;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3378,12 +3378,12 @@ public:
         this._body = _body;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new PragmaStatement(loc, ident, Expression.arraySyntaxCopy(args), _body ? _body.syntaxCopy() : null);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         // Should be merged with PragmaDeclaration
         //printf("PragmaStatement::semantic() %s\n", toChars());
@@ -3532,7 +3532,7 @@ public:
         return new ErrorStatement();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3550,18 +3550,18 @@ public:
         this.sa = sa;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new StaticAssertStatement(cast(StaticAssert)sa.syntaxCopy(null));
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         sa.semantic2(sc);
         return null;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3594,12 +3594,12 @@ public:
         hasVars = 0;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new SwitchStatement(loc, condition.syntaxCopy(), _body.syntaxCopy(), isFinal);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("SwitchStatement::semantic(%p)\n", this);
         tf = sc.tf;
@@ -3728,12 +3728,12 @@ public:
         return new ErrorStatement();
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3755,12 +3755,12 @@ public:
         index = 0;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new CaseStatement(loc, exp.syntaxCopy(), statement.syntaxCopy());
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         SwitchStatement sw = sc.sw;
         bool errors = false;
@@ -3846,19 +3846,19 @@ public:
         return this;
     }
 
-    int compare(RootObject obj)
+    override int compare(RootObject obj)
     {
         // Sort cases so we can do an efficient lookup
         CaseStatement cs2 = cast(CaseStatement)obj;
         return exp.compare(cs2.exp);
     }
 
-    CaseStatement isCaseStatement()
+    override CaseStatement isCaseStatement()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3880,12 +3880,12 @@ public:
         this.statement = s;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new CaseRangeStatement(loc, first.syntaxCopy(), last.syntaxCopy(), statement.syntaxCopy());
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         SwitchStatement sw = sc.sw;
         if (sw is null)
@@ -3958,7 +3958,7 @@ public:
         return s;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3976,12 +3976,12 @@ public:
         this.statement = s;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new DefaultStatement(loc, statement.syntaxCopy());
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("DefaultStatement::semantic()\n");
         bool errors = false;
@@ -4015,12 +4015,12 @@ public:
         return this;
     }
 
-    DefaultStatement isDefaultStatement()
+    override DefaultStatement isDefaultStatement()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4038,12 +4038,12 @@ public:
         sw = null;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new GotoDefaultStatement(loc);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         sw = sc.sw;
         if (!sw)
@@ -4054,7 +4054,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4074,12 +4074,12 @@ public:
         this.exp = exp;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new GotoCaseStatement(loc, exp ? exp.syntaxCopy() : null);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         if (!sc.sw)
         {
@@ -4098,7 +4098,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4113,7 +4113,7 @@ public:
         super(loc);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4133,12 +4133,12 @@ public:
         this.caseDim = 0;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new ReturnStatement(loc, exp ? exp.syntaxCopy() : null);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("ReturnStatement::semantic() %s\n", toChars());
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
@@ -4427,12 +4427,12 @@ public:
         return this;
     }
 
-    ReturnStatement isReturnStatement()
+    override ReturnStatement isReturnStatement()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4450,12 +4450,12 @@ public:
         this.ident = ident;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new BreakStatement(loc, ident);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("BreakStatement::semantic()\n");
         // If:
@@ -4522,7 +4522,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4540,12 +4540,12 @@ public:
         this.ident = ident;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new ContinueStatement(loc, ident);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("ContinueStatement::semantic() %p\n", this);
         if (ident)
@@ -4618,7 +4618,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4638,12 +4638,12 @@ public:
         this._body = _body;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new SynchronizedStatement(loc, exp ? exp.syntaxCopy() : null, _body ? _body.syntaxCopy() : null);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         if (exp)
         {
@@ -4750,17 +4750,17 @@ public:
         return this;
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         return false; //true;
     }
 
-    bool hasContinue()
+    override bool hasContinue()
     {
         return false; //true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4782,12 +4782,12 @@ public:
         wthis = null;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new WithStatement(loc, exp.syntaxCopy(), _body ? _body.syntaxCopy() : null);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         ScopeDsymbol sym;
         Initializer _init;
@@ -4883,7 +4883,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4903,7 +4903,7 @@ public:
         this.catches = catches;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         auto a = new Catches();
         a.setDim(catches.dim);
@@ -4914,7 +4914,7 @@ public:
         return new TryCatchStatement(loc, _body.syntaxCopy(), a);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         _body = _body.semanticScope(sc, null, null);
         assert(_body);
@@ -4968,12 +4968,12 @@ public:
         return this;
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         return false;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5087,12 +5087,12 @@ public:
         return new TryFinallyStatement(loc, _body, finalbody);
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new TryFinallyStatement(loc, _body.syntaxCopy(), finalbody.syntaxCopy());
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("TryFinallyStatement::semantic()\n");
         _body = _body.semantic(sc);
@@ -5114,17 +5114,17 @@ public:
         return this;
     }
 
-    bool hasBreak()
+    override bool hasBreak()
     {
         return false; //true;
     }
 
-    bool hasContinue()
+    override bool hasContinue()
     {
         return false; //true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5144,12 +5144,12 @@ public:
         this.statement = statement;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new OnScopeStatement(loc, tok, statement.syntaxCopy());
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         static if (!IN_GCC)
         {
@@ -5187,7 +5187,7 @@ public:
         return this;
     }
 
-    Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
+    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
         //printf("OnScopeStatement::scopeCode()\n");
         //print();
@@ -5229,7 +5229,7 @@ public:
         return null;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5251,14 +5251,14 @@ public:
         this.internalThrow = false;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         auto s = new ThrowStatement(loc, exp.syntaxCopy());
         s.internalThrow = internalThrow;
         return s;
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("ThrowStatement::semantic()\n");
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
@@ -5277,7 +5277,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5295,12 +5295,12 @@ public:
         this.statement = statement;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new DebugStatement(loc, statement ? statement.syntaxCopy() : null);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         if (statement)
         {
@@ -5312,7 +5312,7 @@ public:
         return statement;
     }
 
-    Statements* flatten(Scope* sc)
+    override Statements* flatten(Scope* sc)
     {
         Statements* a = statement ? statement.flatten(sc) : null;
         if (a)
@@ -5325,7 +5325,7 @@ public:
         return a;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5351,12 +5351,12 @@ public:
         this.lastVar = null;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new GotoStatement(loc, ident);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("GotoStatement::semantic()\n");
         FuncDeclaration fd = sc.func;
@@ -5439,7 +5439,7 @@ public:
         return false;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5469,12 +5469,12 @@ public:
         this.breaks = false;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new LabelStatement(loc, ident, statement ? statement.syntaxCopy() : null);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         //printf("LabelStatement::semantic()\n");
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
@@ -5506,7 +5506,7 @@ public:
         return this;
     }
 
-    Statements* flatten(Scope* sc)
+    override Statements* flatten(Scope* sc)
     {
         Statements* a = null;
         if (statement)
@@ -5526,7 +5526,7 @@ public:
         return a;
     }
 
-    Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexit, Statement* sfinally)
+    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexit, Statement* sfinally)
     {
         //printf("LabelStatement::scopeCode()\n");
         if (statement)
@@ -5540,12 +5540,12 @@ public:
         return this;
     }
 
-    LabelStatement isLabelStatement()
+    override LabelStatement isLabelStatement()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5569,12 +5569,12 @@ public:
     }
 
     // is this a LabelDsymbol()?
-    LabelDsymbol isLabel()
+    override LabelDsymbol isLabel()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5602,17 +5602,17 @@ public:
         regs = 0;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         return new AsmStatement(loc, tokens);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         return asmSemantic(this, sc);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5631,7 +5631,7 @@ public:
         this.stc = stc;
     }
 
-    CompoundAsmStatement syntaxCopy()
+    override CompoundAsmStatement syntaxCopy()
     {
         auto a = new Statements();
         a.setDim(statements.dim);
@@ -5642,7 +5642,7 @@ public:
         return new CompoundAsmStatement(loc, a, stc);
     }
 
-    CompoundAsmStatement semantic(Scope* sc)
+    override CompoundAsmStatement semantic(Scope* sc)
     {
         foreach (ref s; *statements)
         {
@@ -5660,12 +5660,12 @@ public:
         return this;
     }
 
-    Statements* flatten(Scope* sc)
+    override Statements* flatten(Scope* sc)
     {
         return null;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5683,7 +5683,7 @@ public:
         this.imports = imports;
     }
 
-    Statement syntaxCopy()
+    override Statement syntaxCopy()
     {
         auto m = new Dsymbols();
         m.setDim(imports.dim);
@@ -5694,7 +5694,7 @@ public:
         return new ImportStatement(loc, m);
     }
 
-    Statement semantic(Scope* sc)
+    override Statement semantic(Scope* sc)
     {
         foreach (i; 0 .. imports.dim)
         {
@@ -5721,7 +5721,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

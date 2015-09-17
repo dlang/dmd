@@ -359,7 +359,7 @@ public:
         objc.objc = false;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("ClassDeclaration::syntaxCopy('%s')\n", toChars());
         ClassDeclaration cd = s ? cast(ClassDeclaration)s : new ClassDeclaration(loc, ident, null);
@@ -374,7 +374,7 @@ public:
         return ScopeDsymbol.syntaxCopy(cd);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
         //printf("\tparent = %p, '%s'\n", sc->parent, sc->parent ? sc->parent->toChars() : "");
@@ -927,7 +927,7 @@ public:
         return baseok >= BASEOKdone;
     }
 
-    final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
         //if (scope) printf("%s baseok = %d\n", toChars(), baseok);
@@ -990,7 +990,7 @@ public:
         return null;
     }
 
-    void finalizeSize(Scope* sc)
+    override void finalizeSize(Scope* sc)
     {
         if (sizeok != SIZEOKnone)
             return;
@@ -1258,14 +1258,14 @@ public:
 
     /****************************************
      */
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "class";
     }
 
     /****************************************
      */
-    final void addLocalClass(ClassDeclarations* aclasses)
+    override final void addLocalClass(ClassDeclarations* aclasses)
     {
         aclasses.push(this);
     }
@@ -1273,12 +1273,12 @@ public:
     // Back end
     Symbol* vtblsym;
 
-    final ClassDeclaration isClassDeclaration()
+    override final ClassDeclaration isClassDeclaration()
     {
         return cast(ClassDeclaration)this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1298,13 +1298,13 @@ public:
         }
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         InterfaceDeclaration id = s ? cast(InterfaceDeclaration)s : new InterfaceDeclaration(loc, ident, null);
         return ClassDeclaration.syntaxCopy(id);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
         if (semanticRun >= PASSsemanticdone)
@@ -1579,7 +1579,7 @@ public:
         assert(type.ty != Tclass || (cast(TypeClass)type).sym == this);
     }
 
-    void finalizeSize(Scope* sc)
+    override void finalizeSize(Scope* sc)
     {
         structsize = Target.ptrsize * 2;
         sizeok = SIZEOKdone;
@@ -1597,7 +1597,7 @@ public:
      *      false   not a base
      *      true    is a base
      */
-    bool isBaseOf(ClassDeclaration cd, int* poffset)
+    override bool isBaseOf(ClassDeclaration cd, int* poffset)
     {
         //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
         assert(!baseClass);
@@ -1666,7 +1666,7 @@ public:
 
     /*******************************************
      */
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "interface";
     }
@@ -1677,29 +1677,29 @@ public:
      * For COM interfaces, no.
      * For non-COM interfaces, yes, this is where the Interface ptr goes.
      */
-    int vtblOffset()
+    override int vtblOffset()
     {
         if (isCOMinterface() || isCPPinterface())
             return 0;
         return 1;
     }
 
-    bool isCPPinterface()
+    override bool isCPPinterface()
     {
         return cpp;
     }
 
-    bool isCOMinterface()
+    override bool isCOMinterface()
     {
         return com;
     }
 
-    InterfaceDeclaration isInterfaceDeclaration()
+    override InterfaceDeclaration isInterfaceDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

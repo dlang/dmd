@@ -62,7 +62,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             result = null;
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             //printf("Expression::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
             MATCH match = e.implicitConvTo(t);
@@ -110,7 +110,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             result = new ErrorExp();
         }
 
-        void visit(StringExp e)
+        override void visit(StringExp e)
         {
             //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
             visit(cast(Expression)e);
@@ -121,12 +121,12 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             }
         }
 
-        void visit(ErrorExp e)
+        override void visit(ErrorExp e)
         {
             result = e;
         }
 
-        void visit(FuncExp e)
+        override void visit(FuncExp e)
         {
             //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
             FuncExp fe;
@@ -138,7 +138,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
         }
 
-        void visit(ArrayLiteralExp e)
+        override void visit(ArrayLiteralExp e)
         {
             visit(cast(Expression)e);
             Type tb = result.type.toBasetype();
@@ -146,7 +146,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 semanticTypeInfo(sc, (cast(TypeDArray)tb).next);
         }
 
-        void visit(SliceExp e)
+        override void visit(SliceExp e)
         {
             visit(cast(Expression)e);
             if (result.op != TOKslice)
@@ -190,7 +190,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             result = MATCHnomatch;
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             version (none)
             {
@@ -285,7 +285,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             return MATCHnomatch;
         }
 
-        void visit(AddExp e)
+        override void visit(AddExp e)
         {
             version (none)
             {
@@ -296,7 +296,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 result = implicitConvToAddMin(e, t);
         }
 
-        void visit(MinExp e)
+        override void visit(MinExp e)
         {
             version (none)
             {
@@ -307,7 +307,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 result = implicitConvToAddMin(e, t);
         }
 
-        void visit(IntegerExp e)
+        override void visit(IntegerExp e)
         {
             version (none)
             {
@@ -474,12 +474,12 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             result = MATCHconvert;
         }
 
-        void visit(ErrorExp e)
+        override void visit(ErrorExp e)
         {
             // no match
         }
 
-        void visit(NullExp e)
+        override void visit(NullExp e)
         {
             version (none)
             {
@@ -502,7 +502,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
         }
 
-        void visit(StructLiteralExp e)
+        override void visit(StructLiteralExp e)
         {
             version (none)
             {
@@ -529,7 +529,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
         }
 
-        void visit(StringExp e)
+        override void visit(StringExp e)
         {
             version (none)
             {
@@ -651,7 +651,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
         }
 
-        void visit(ArrayLiteralExp e)
+        override void visit(ArrayLiteralExp e)
         {
             version (none)
             {
@@ -720,7 +720,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
         }
 
-        void visit(AssocArrayLiteralExp e)
+        override void visit(AssocArrayLiteralExp e)
         {
             Type typeb = e.type.toBasetype();
             Type tb = t.toBasetype();
@@ -750,7 +750,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 visit(cast(Expression)e);
         }
 
-        void visit(CallExp e)
+        override void visit(CallExp e)
         {
             enum LOG = 0;
             static if (LOG)
@@ -874,7 +874,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             result = MATCHconst;
         }
 
-        void visit(AddrExp e)
+        override void visit(AddrExp e)
         {
             version (none)
             {
@@ -921,7 +921,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             //printf("\tresult = %d\n", result);
         }
 
-        void visit(SymOffExp e)
+        override void visit(SymOffExp e)
         {
             version (none)
             {
@@ -950,7 +950,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             //printf("\tresult = %d\n", result);
         }
 
-        void visit(DelegateExp e)
+        override void visit(DelegateExp e)
         {
             version (none)
             {
@@ -968,7 +968,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
         }
 
-        void visit(FuncExp e)
+        override void visit(FuncExp e)
         {
             //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
             MATCH m = e.matchType(t, null, null, 1);
@@ -980,7 +980,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
         }
 
-        void visit(OrExp e)
+        override void visit(OrExp e)
         {
             visit(cast(Expression)e);
             if (result != MATCHnomatch)
@@ -991,7 +991,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             result = (m1 < m2) ? m1 : m2;
         }
 
-        void visit(XorExp e)
+        override void visit(XorExp e)
         {
             visit(cast(Expression)e);
             if (result != MATCHnomatch)
@@ -1002,7 +1002,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             result = (m1 < m2) ? m1 : m2;
         }
 
-        void visit(CondExp e)
+        override void visit(CondExp e)
         {
             MATCH m1 = e.e1.implicitConvTo(t);
             MATCH m2 = e.e2.implicitConvTo(t);
@@ -1011,12 +1011,12 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             result = (m1 < m2) ? m1 : m2;
         }
 
-        void visit(CommaExp e)
+        override void visit(CommaExp e)
         {
             e.e2.accept(this);
         }
 
-        void visit(CastExp e)
+        override void visit(CastExp e)
         {
             version (none)
             {
@@ -1031,7 +1031,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 visit(cast(Expression)e);
         }
 
-        void visit(NewExp e)
+        override void visit(NewExp e)
         {
             version (none)
             {
@@ -1226,7 +1226,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             result = MATCHconst;
         }
 
-        void visit(SliceExp e)
+        override void visit(SliceExp e)
         {
             //printf("SliceExp::implicitConvTo e = %s, type = %s\n", e->toChars(), e->type->toChars());
             visit(cast(Expression)e);
@@ -1327,7 +1327,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             result = null;
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             //printf("Expression::castTo(this=%s, t=%s)\n", e->toChars(), t->toChars());
             version (none)
@@ -1517,12 +1517,12 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             //printf("Returning: %s\n", result->toChars());
         }
 
-        void visit(ErrorExp e)
+        override void visit(ErrorExp e)
         {
             result = e;
         }
 
-        void visit(RealExp e)
+        override void visit(RealExp e)
         {
             if (!e.type.equals(t))
             {
@@ -1538,7 +1538,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             result = e;
         }
 
-        void visit(ComplexExp e)
+        override void visit(ComplexExp e)
         {
             if (!e.type.equals(t))
             {
@@ -1554,7 +1554,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             result = e;
         }
 
-        void visit(NullExp e)
+        override void visit(NullExp e)
         {
             //printf("NullExp::castTo(t = %s) %s\n", t->toChars(), toChars());
             visit(cast(Expression)e);
@@ -1566,14 +1566,14 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
         }
 
-        void visit(StructLiteralExp e)
+        override void visit(StructLiteralExp e)
         {
             visit(cast(Expression)e);
             if (result.op == TOKstructliteral)
                 (cast(StructLiteralExp)result).stype = t; // commit type
         }
 
-        void visit(StringExp e)
+        override void visit(StringExp e)
         {
             /* This follows copy-on-write; any changes to 'this'
              * will result in a copy.
@@ -1818,7 +1818,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             result.type = t; // so semantic() won't be run on e
         }
 
-        void visit(AddrExp e)
+        override void visit(AddrExp e)
         {
             Type tb;
             version (none)
@@ -1886,7 +1886,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             result.type = t;
         }
 
-        void visit(TupleExp e)
+        override void visit(TupleExp e)
         {
             if (e.type.equals(t))
             {
@@ -1915,7 +1915,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
              */
         }
 
-        void visit(ArrayLiteralExp e)
+        override void visit(ArrayLiteralExp e)
         {
             version (none)
             {
@@ -1996,7 +1996,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)ae);
         }
 
-        void visit(AssocArrayLiteralExp e)
+        override void visit(AssocArrayLiteralExp e)
         {
             if (e.type == t)
             {
@@ -2027,7 +2027,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
         }
 
-        void visit(SymOffExp e)
+        override void visit(SymOffExp e)
         {
             version (none)
             {
@@ -2091,7 +2091,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
         }
 
-        void visit(DelegateExp e)
+        override void visit(DelegateExp e)
         {
             version (none)
             {
@@ -2135,7 +2135,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
         }
 
-        void visit(FuncExp e)
+        override void visit(FuncExp e)
         {
             //printf("FuncExp::castTo type = %s, t = %s\n", e->type->toChars(), t->toChars());
             FuncExp fe;
@@ -2147,7 +2147,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
         }
 
-        void visit(CondExp e)
+        override void visit(CondExp e)
         {
             if (!e.type.equals(t))
             {
@@ -2158,7 +2158,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             result = e;
         }
 
-        void visit(CommaExp e)
+        override void visit(CommaExp e)
         {
             Expression e2c = e.e2.castTo(sc, t);
             if (e2c != e.e2)
@@ -2173,7 +2173,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
         }
 
-        void visit(SliceExp e)
+        override void visit(SliceExp e)
         {
             //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e->toChars(), e->type->toChars(), t->toChars());
             Type typeb = e.type.toBasetype();
@@ -2271,12 +2271,12 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
             result = null;
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             result = e;
         }
 
-        void visit(ArrayLiteralExp ale)
+        override void visit(ArrayLiteralExp ale)
         {
             Type tb = t.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -2295,7 +2295,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
             result = ale;
         }
 
-        void visit(AssocArrayLiteralExp aale)
+        override void visit(AssocArrayLiteralExp aale)
         {
             Type tb = t.toBasetype();
             if (tb.ty == Taarray)
@@ -2325,7 +2325,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
             result = aale;
         }
 
-        void visit(FuncExp fe)
+        override void visit(FuncExp fe)
         {
             //printf("FuncExp::inferType('%s'), to=%s\n", fe->type ? fe->type->toChars() : "null", t->toChars());
             if (t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction)
@@ -2335,7 +2335,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
             result = fe;
         }
 
-        void visit(CondExp ce)
+        override void visit(CondExp ce)
         {
             Type tb = t.toBasetype();
             ce.e1 = inferType(ce.e1, tb, flag);
@@ -3248,36 +3248,36 @@ extern (C++) IntRange getIntRange(Expression e)
     public:
         IntRange range;
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             range = IntRange.fromType(e.type);
         }
 
-        void visit(IntegerExp e)
+        override void visit(IntegerExp e)
         {
             range = IntRange(SignExtendedNumber(e.getInteger()))._cast(e.type);
         }
 
-        void visit(CastExp e)
+        override void visit(CastExp e)
         {
             range = getIntRange(e.e1)._cast(e.type);
         }
 
-        void visit(AddExp e)
+        override void visit(AddExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
             range = IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax)._cast(e.type);
         }
 
-        void visit(MinExp e)
+        override void visit(MinExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
             range = IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin)._cast(e.type);
         }
 
-        void visit(DivExp e)
+        override void visit(DivExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
@@ -3296,7 +3296,7 @@ extern (C++) IntRange getIntRange(Expression e)
             range = IntRange.fromNumbers4(bdy.ptr)._cast(e.type);
         }
 
-        void visit(MulExp e)
+        override void visit(MulExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
@@ -3309,7 +3309,7 @@ extern (C++) IntRange getIntRange(Expression e)
             range = IntRange.fromNumbers4(bdy.ptr)._cast(e.type);
         }
 
-        void visit(ModExp e)
+        override void visit(ModExp e)
         {
             IntRange irNum = getIntRange(e.e1);
             IntRange irDen = getIntRange(e.e2).absNeg();
@@ -3349,7 +3349,7 @@ extern (C++) IntRange getIntRange(Expression e)
             range = irNum._cast(e.type);
         }
 
-        void visit(AndExp e)
+        override void visit(AndExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
@@ -3371,7 +3371,7 @@ extern (C++) IntRange getIntRange(Expression e)
             range = result._cast(e.type);
         }
 
-        void visit(OrExp e)
+        override void visit(OrExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
@@ -3393,7 +3393,7 @@ extern (C++) IntRange getIntRange(Expression e)
             range = result._cast(e.type);
         }
 
-        void visit(XorExp e)
+        override void visit(XorExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
@@ -3415,7 +3415,7 @@ extern (C++) IntRange getIntRange(Expression e)
             range = result._cast(e.type);
         }
 
-        void visit(ShlExp e)
+        override void visit(ShlExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
@@ -3426,7 +3426,7 @@ extern (C++) IntRange getIntRange(Expression e)
             range = IntRange(lower, upper)._cast(e.type);
         }
 
-        void visit(ShrExp e)
+        override void visit(ShrExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
@@ -3437,7 +3437,7 @@ extern (C++) IntRange getIntRange(Expression e)
             range = IntRange(lower, upper)._cast(e.type);
         }
 
-        void visit(UshrExp e)
+        override void visit(UshrExp e)
         {
             IntRange ir1 = getIntRange(e.e1).castUnsigned(e.e1.type);
             IntRange ir2 = getIntRange(e.e2);
@@ -3446,12 +3446,12 @@ extern (C++) IntRange getIntRange(Expression e)
             range = IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin)._cast(e.type);
         }
 
-        void visit(AssignExp e)
+        override void visit(AssignExp e)
         {
             range = getIntRange(e.e2)._cast(e.type);
         }
 
-        void visit(CondExp e)
+        override void visit(CondExp e)
         {
             // No need to check e->econd; assume caller has called optimize()
             IntRange ir1 = getIntRange(e.e1);
@@ -3459,7 +3459,7 @@ extern (C++) IntRange getIntRange(Expression e)
             range = ir1.unionWith(ir2)._cast(e.type);
         }
 
-        void visit(VarExp e)
+        override void visit(VarExp e)
         {
             Expression ie;
             VarDeclaration vd = e.var.isVarDeclaration();
@@ -3471,18 +3471,18 @@ extern (C++) IntRange getIntRange(Expression e)
                 visit(cast(Expression)e);
         }
 
-        void visit(CommaExp e)
+        override void visit(CommaExp e)
         {
             e.e2.accept(this);
         }
 
-        void visit(ComExp e)
+        override void visit(ComExp e)
         {
             IntRange ir = getIntRange(e.e1);
             range = IntRange(SignExtendedNumber(~ir.imax.value, !ir.imax.negative), SignExtendedNumber(~ir.imin.value, !ir.imin.negative))._cast(e.type);
         }
 
-        void visit(NegExp e)
+        override void visit(NegExp e)
         {
             IntRange ir = getIntRange(e.e1);
             range = IntRange(-ir.imax, -ir.imin)._cast(e.type);

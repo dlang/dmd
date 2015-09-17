@@ -151,24 +151,24 @@ public:
         t.accept(this);
     }
 
-    void visit(Type t)
+    override void visit(Type t)
     {
         buf.writestring(mangleChar[t.ty]);
     }
 
-    void visit(TypeNext t)
+    override void visit(TypeNext t)
     {
         visit(cast(Type)t);
         visitWithMask(t.next, t.mod);
     }
 
-    void visit(TypeVector t)
+    override void visit(TypeVector t)
     {
         buf.writestring("Nh");
         visitWithMask(t.basetype, t.mod);
     }
 
-    void visit(TypeSArray t)
+    override void visit(TypeSArray t)
     {
         visit(cast(Type)t);
         if (t.dim)
@@ -177,21 +177,21 @@ public:
             visitWithMask(t.next, t.mod);
     }
 
-    void visit(TypeDArray t)
+    override void visit(TypeDArray t)
     {
         visit(cast(Type)t);
         if (t.next)
             visitWithMask(t.next, t.mod);
     }
 
-    void visit(TypeAArray t)
+    override void visit(TypeAArray t)
     {
         visit(cast(Type)t);
         visitWithMask(t.index, 0);
         visitWithMask(t.next, t.mod);
     }
 
-    void visit(TypeFunction t)
+    override void visit(TypeFunction t)
     {
         //printf("TypeFunction::toDecoBuffer() t = %p %s\n", t, t->toChars());
         //static int nest; if (++nest == 50) *(char*)0=0;
@@ -269,7 +269,7 @@ public:
         t.inuse--;
     }
 
-    void visit(TypeIdentifier t)
+    override void visit(TypeIdentifier t)
     {
         visit(cast(Type)t);
         const(char)* name = t.ident.toChars();
@@ -277,27 +277,27 @@ public:
         buf.printf("%u%s", cast(uint)len, name);
     }
 
-    void visit(TypeEnum t)
+    override void visit(TypeEnum t)
     {
         visit(cast(Type)t);
         t.sym.accept(this);
     }
 
-    void visit(TypeStruct t)
+    override void visit(TypeStruct t)
     {
         //printf("TypeStruct::toDecoBuffer('%s') = '%s'\n", t->toChars(), name);
         visit(cast(Type)t);
         t.sym.accept(this);
     }
 
-    void visit(TypeClass t)
+    override void visit(TypeClass t)
     {
         //printf("TypeClass::toDecoBuffer('%s' mod=%x) = '%s'\n", t->toChars(), mod, name);
         visit(cast(Type)t);
         t.sym.accept(this);
     }
 
-    void visit(TypeTuple t)
+    override void visit(TypeTuple t)
     {
         //printf("TypeTuple::toDecoBuffer() t = %p, %s\n", t, t->toChars());
         visit(cast(Type)t);
@@ -309,7 +309,7 @@ public:
         buf.printf("%d%.*s", len, len, buf2.extractData());
     }
 
-    void visit(TypeNull t)
+    override void visit(TypeNull t)
     {
         visit(cast(Type)t);
     }
@@ -393,7 +393,7 @@ public:
         }
     }
 
-    void visit(Declaration d)
+    override void visit(Declaration d)
     {
         //printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d)\n",
         //        d, d->toChars(), d->parent ? d->parent->toChars() : "null", d->linkage);
@@ -459,7 +459,7 @@ public:
      *      pragma(msg, bar.mangleof);  // still prints "_D4test3barFZv"
      *                                  // by calling FuncDeclaration::mangleExact().
      */
-    void visit(FuncDeclaration fd)
+    override void visit(FuncDeclaration fd)
     {
         if (fd.isUnique())
             mangleExact(fd);
@@ -468,7 +468,7 @@ public:
     }
 
     // ditto
-    void visit(FuncAliasDeclaration fd)
+    override void visit(FuncAliasDeclaration fd)
     {
         FuncDeclaration f = fd.toAliasFunc();
         FuncAliasDeclaration fa = f.isFuncAliasDeclaration();
@@ -485,7 +485,7 @@ public:
         visit(cast(Dsymbol)fd);
     }
 
-    void visit(OverDeclaration od)
+    override void visit(OverDeclaration od)
     {
         if (od.overnext)
         {
@@ -532,7 +532,7 @@ public:
         visit(cast(Declaration)fd);
     }
 
-    void visit(VarDeclaration vd)
+    override void visit(VarDeclaration vd)
     {
         if (vd.mangleOverride)
         {
@@ -542,7 +542,7 @@ public:
         visit(cast(Declaration)vd);
     }
 
-    void visit(AggregateDeclaration ad)
+    override void visit(AggregateDeclaration ad)
     {
         ClassDeclaration cd = ad.isClassDeclaration();
         Dsymbol parentsave = ad.parent;
@@ -561,7 +561,7 @@ public:
         ad.parent = parentsave;
     }
 
-    void visit(TemplateInstance ti)
+    override void visit(TemplateInstance ti)
     {
         version (none)
         {
@@ -580,7 +580,7 @@ public:
         //printf("TemplateInstance::mangle() %s = %s\n", ti->toChars(), ti->id);
     }
 
-    void visit(Dsymbol s)
+    override void visit(Dsymbol s)
     {
         version (none)
         {
@@ -596,12 +596,12 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    void visit(Expression e)
+    override void visit(Expression e)
     {
         e.error("expression %s is not a valid template value argument", e.toChars());
     }
 
-    void visit(IntegerExp e)
+    override void visit(IntegerExp e)
     {
         if (cast(sinteger_t)e.value < 0)
             buf.printf("N%lld", -e.value);
@@ -609,7 +609,7 @@ public:
             buf.printf("i%lld", e.value);
     }
 
-    void visit(RealExp e)
+    override void visit(RealExp e)
     {
         buf.writeByte('e');
         realToMangleBuffer(e.value);
@@ -661,7 +661,7 @@ public:
         }
     }
 
-    void visit(ComplexExp e)
+    override void visit(ComplexExp e)
     {
         buf.writeByte('c');
         realToMangleBuffer(e.toReal());
@@ -669,12 +669,12 @@ public:
         realToMangleBuffer(e.toImaginary());
     }
 
-    void visit(NullExp e)
+    override void visit(NullExp e)
     {
         buf.writeByte('n');
     }
 
-    void visit(StringExp e)
+    override void visit(StringExp e)
     {
         char m;
         OutBuffer tmp;
@@ -732,7 +732,7 @@ public:
         buf.offset += 2 * qlen;
     }
 
-    void visit(ArrayLiteralExp e)
+    override void visit(ArrayLiteralExp e)
     {
         size_t dim = e.elements ? e.elements.dim : 0;
         buf.printf("A%u", dim);
@@ -742,7 +742,7 @@ public:
         }
     }
 
-    void visit(AssocArrayLiteralExp e)
+    override void visit(AssocArrayLiteralExp e)
     {
         size_t dim = e.keys.dim;
         buf.printf("A%u", dim);
@@ -753,7 +753,7 @@ public:
         }
     }
 
-    void visit(StructLiteralExp e)
+    override void visit(StructLiteralExp e)
     {
         size_t dim = e.elements ? e.elements.dim : 0;
         buf.printf("S%u", dim);
@@ -780,7 +780,7 @@ public:
         return 0;
     }
 
-    void visit(Parameter p)
+    override void visit(Parameter p)
     {
         if (p.storageClass & STCscope)
             buf.writeByte('M');

@@ -351,12 +351,12 @@ public:
     Objects objects;
 
     // kludge for template.isType()
-    int dyncast()
+    override int dyncast()
     {
         return DYNCAST_TUPLE;
     }
 
-    char* toChars()
+    override char* toChars()
     {
         return objects.toChars();
     }
@@ -438,7 +438,7 @@ public:
         }
     }
 
-    Dsymbol syntaxCopy(Dsymbol)
+    override Dsymbol syntaxCopy(Dsymbol)
     {
         //printf("TemplateDeclaration::syntaxCopy()\n");
         TemplateParameters* p = null;
@@ -452,7 +452,7 @@ public:
         return new TemplateDeclaration(loc, ident, p, constraint ? constraint.syntaxCopy() : null, Dsymbol.arraySyntaxCopy(members), ismixin, literal);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         static if (LOG)
         {
@@ -562,7 +562,7 @@ public:
      * Overload existing TemplateDeclaration 'this' with the new one 's'.
      * Return true if successful; i.e. no conflict.
      */
-    bool overloadInsert(Dsymbol s)
+    override bool overloadInsert(Dsymbol s)
     {
         static if (LOG)
         {
@@ -593,17 +593,17 @@ public:
         return true;
     }
 
-    bool hasStaticCtorOrDtor()
+    override bool hasStaticCtorOrDtor()
     {
         return false; // don't scan uninstantiated templates
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return (onemember && onemember.isAggregateDeclaration()) ? onemember.kind() : cast(char*)"template";
     }
 
-    char* toChars()
+    override char* toChars()
     {
         if (literal)
             return Dsymbol.toChars();
@@ -637,7 +637,7 @@ public:
         return buf.extractString();
     }
 
-    Prot prot()
+    override Prot prot()
     {
         return protection;
     }
@@ -2111,7 +2111,7 @@ public:
         --numinstances;
     }
 
-    TemplateDeclaration isTemplateDeclaration()
+    override TemplateDeclaration isTemplateDeclaration()
     {
         return this;
     }
@@ -2124,12 +2124,12 @@ public:
     /***********************************
      * We can overload templates.
      */
-    bool isOverloadable()
+    override bool isOverloadable()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3021,7 +3021,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             result = MATCHnomatch;
         }
 
-        void visit(Type t)
+        override void visit(Type t)
         {
             version (none)
             {
@@ -3275,7 +3275,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             result = MATCHconst;
         }
 
-        void visit(TypeVector t)
+        override void visit(TypeVector t)
         {
             version (none)
             {
@@ -3294,7 +3294,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Type)t);
         }
 
-        void visit(TypeDArray t)
+        override void visit(TypeDArray t)
         {
             version (none)
             {
@@ -3307,7 +3307,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Type)t);
         }
 
-        void visit(TypeSArray t)
+        override void visit(TypeSArray t)
         {
             version (none)
             {
@@ -3368,7 +3368,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             result = MATCHnomatch;
         }
 
-        void visit(TypeAArray t)
+        override void visit(TypeAArray t)
         {
             version (none)
             {
@@ -3391,7 +3391,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Type)t);
         }
 
-        void visit(TypeFunction t)
+        override void visit(TypeFunction t)
         {
             //printf("TypeFunction::deduceType()\n");
             //printf("\tthis   = %d, ", t->ty); t->print();
@@ -3505,7 +3505,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Type)t);
         }
 
-        void visit(TypeIdentifier t)
+        override void visit(TypeIdentifier t)
         {
             // Extra check
             if (tparam && tparam.ty == Tident)
@@ -3525,7 +3525,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Type)t);
         }
 
-        void visit(TypeInstance t)
+        override void visit(TypeInstance t)
         {
             version (none)
             {
@@ -3767,7 +3767,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             result = MATCHnomatch;
         }
 
-        void visit(TypeStruct t)
+        override void visit(TypeStruct t)
         {
             version (none)
             {
@@ -3828,7 +3828,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Type)t);
         }
 
-        void visit(TypeEnum t)
+        override void visit(TypeEnum t)
         {
             // Extra check
             if (tparam && tparam.ty == Tenum)
@@ -3901,7 +3901,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             }
         }
 
-        void visit(TypeClass t)
+        override void visit(TypeClass t)
         {
             //printf("TypeClass::deduceType(this = %s)\n", t->toChars());
             /* If this class is a template class, and we're matching
@@ -3995,7 +3995,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Type)t);
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             //printf("Expression::deduceType(e = %s)\n", e->toChars());
             size_t i = templateParameterLookup(tparam, parameters);
@@ -4140,7 +4140,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             return deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
         }
 
-        void visit(NullExp e)
+        override void visit(NullExp e)
         {
             if (tparam.ty == Tarray && e.type.ty == Tnull)
             {
@@ -4151,7 +4151,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Expression)e);
         }
 
-        void visit(StringExp e)
+        override void visit(StringExp e)
         {
             Type taai;
             if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
@@ -4163,7 +4163,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Expression)e);
         }
 
-        void visit(ArrayLiteralExp e)
+        override void visit(ArrayLiteralExp e)
         {
             if ((!e.elements || !e.elements.dim) && e.type.toBasetype().nextOf().ty == Tvoid && tparam.ty == Tarray)
             {
@@ -4195,7 +4195,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Expression)e);
         }
 
-        void visit(AssocArrayLiteralExp e)
+        override void visit(AssocArrayLiteralExp e)
         {
             if (tparam.ty == Taarray && e.keys && e.keys.dim)
             {
@@ -4219,7 +4219,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Expression)e);
         }
 
-        void visit(FuncExp e)
+        override void visit(FuncExp e)
         {
             //printf("e->type = %s, tparam = %s\n", e->type->toChars(), tparam->toChars());
             if (e.td)
@@ -4289,7 +4289,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(t);
         }
 
-        void visit(SliceExp e)
+        override void visit(SliceExp e)
         {
             Type taai;
             if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
@@ -4304,7 +4304,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Expression)e);
         }
 
-        void visit(CommaExp e)
+        override void visit(CommaExp e)
         {
             (cast(CommaExp)e).e2.accept(this);
         }
@@ -4349,28 +4349,28 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
             result = null;
         }
 
-        void visit(Type t)
+        override void visit(Type t)
         {
         }
 
-        void visit(TypeNext t)
+        override void visit(TypeNext t)
         {
             t.next.accept(this);
         }
 
-        void visit(TypeVector t)
+        override void visit(TypeVector t)
         {
             t.basetype.accept(this);
         }
 
-        void visit(TypeAArray t)
+        override void visit(TypeAArray t)
         {
             visit(cast(TypeNext)t);
             if (!result)
                 t.index.accept(this);
         }
 
-        void visit(TypeFunction t)
+        override void visit(TypeFunction t)
         {
             size_t dim = Parameter.dim(t.parameters);
             for (size_t i = 0; i < dim; i++)
@@ -4384,7 +4384,7 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
                 t.next.accept(this);
         }
 
-        void visit(TypeIdentifier t)
+        override void visit(TypeIdentifier t)
         {
             if (!tparams)
             {
@@ -4402,7 +4402,7 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
             }
         }
 
-        void visit(TypeInstance t)
+        override void visit(TypeInstance t)
         {
             if (!tparams)
                 return;
@@ -4429,7 +4429,7 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
             }
         }
 
-        void visit(TypeTuple t)
+        override void visit(TypeTuple t)
         {
             if (t.arguments)
             {
@@ -4591,17 +4591,17 @@ public:
         this.defaultType = defaultType;
     }
 
-    final TemplateTypeParameter isTemplateTypeParameter()
+    override final TemplateTypeParameter isTemplateTypeParameter()
     {
         return this;
     }
 
-    TemplateParameter syntaxCopy()
+    override TemplateParameter syntaxCopy()
     {
         return new TemplateTypeParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
     }
 
-    final bool declareParameter(Scope* sc)
+    override final bool declareParameter(Scope* sc)
     {
         //printf("TemplateTypeParameter::declareParameter('%s')\n", ident->toChars());
         auto ti = new TypeIdentifier(loc, ident);
@@ -4609,7 +4609,7 @@ public:
         return sc.insert(ad) !is null;
     }
 
-    final bool semantic(Scope* sc, TemplateParameters* parameters)
+    override final bool semantic(Scope* sc, TemplateParameters* parameters)
     {
         //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
         if (specType && !reliesOnTident(specType, parameters))
@@ -4627,7 +4627,7 @@ public:
         return !(specType && isError(specType));
     }
 
-    final void print(RootObject oarg, RootObject oded)
+    override final void print(RootObject oarg, RootObject oded)
     {
         printf(" %s\n", ident.toChars());
         Type t = isType(oarg);
@@ -4641,12 +4641,12 @@ public:
         printf("\tDeduced Type:   %s\n", ta.toChars());
     }
 
-    final RootObject specialization()
+    override final RootObject specialization()
     {
         return specType;
     }
 
-    final RootObject defaultArg(Loc instLoc, Scope* sc)
+    override final RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         Type t = defaultType;
         if (t)
@@ -4657,12 +4657,12 @@ public:
         return t;
     }
 
-    final bool hasDefaultArg()
+    override final bool hasDefaultArg()
     {
         return defaultType !is null;
     }
 
-    final MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    override final MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
     {
         //printf("TemplateTypeParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -4729,7 +4729,7 @@ public:
         return MATCHnomatch;
     }
 
-    final void* dummyArg()
+    override final void* dummyArg()
     {
         Type t = specType;
         if (!t)
@@ -4742,7 +4742,7 @@ public:
         return cast(void*)t;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4761,17 +4761,17 @@ public:
         super(loc, ident, specType, defaultType);
     }
 
-    TemplateThisParameter isTemplateThisParameter()
+    override TemplateThisParameter isTemplateThisParameter()
     {
         return this;
     }
 
-    TemplateParameter syntaxCopy()
+    override TemplateParameter syntaxCopy()
     {
         return new TemplateThisParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4799,24 +4799,24 @@ public:
         this.defaultValue = defaultValue;
     }
 
-    TemplateValueParameter isTemplateValueParameter()
+    override TemplateValueParameter isTemplateValueParameter()
     {
         return this;
     }
 
-    TemplateParameter syntaxCopy()
+    override TemplateParameter syntaxCopy()
     {
         return new TemplateValueParameter(loc, ident, valType.syntaxCopy(), specValue ? specValue.syntaxCopy() : null, defaultValue ? defaultValue.syntaxCopy() : null);
     }
 
-    bool declareParameter(Scope* sc)
+    override bool declareParameter(Scope* sc)
     {
         auto v = new VarDeclaration(loc, valType, ident, null);
         v.storage_class = STCtemplateparameter;
         return sc.insert(v) !is null;
     }
 
-    bool semantic(Scope* sc, TemplateParameters* parameters)
+    override bool semantic(Scope* sc, TemplateParameters* parameters)
     {
         valType = valType.semantic(loc, sc);
         version (none)
@@ -4850,7 +4850,7 @@ public:
         return !isError(valType);
     }
 
-    void print(RootObject oarg, RootObject oded)
+    override void print(RootObject oarg, RootObject oded)
     {
         printf(" %s\n", ident.toChars());
         Expression ea = isExpression(oded);
@@ -4859,12 +4859,12 @@ public:
         printf("\tParameter Value: %s\n", ea ? ea.toChars() : "NULL");
     }
 
-    RootObject specialization()
+    override RootObject specialization()
     {
         return specValue;
     }
 
-    RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         Expression e = defaultValue;
         if (e)
@@ -4878,12 +4878,12 @@ public:
         return e;
     }
 
-    bool hasDefaultArg()
+    override bool hasDefaultArg()
     {
         return defaultValue !is null;
     }
 
-    MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    override MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
     {
         //printf("TemplateValueParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -4990,7 +4990,7 @@ public:
         return MATCHnomatch;
     }
 
-    void* dummyArg()
+    override void* dummyArg()
     {
         Expression e = specValue;
         if (!e)
@@ -5004,7 +5004,7 @@ public:
         return cast(void*)e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5057,24 +5057,24 @@ public:
         this.defaultAlias = defaultAlias;
     }
 
-    TemplateAliasParameter isTemplateAliasParameter()
+    override TemplateAliasParameter isTemplateAliasParameter()
     {
         return this;
     }
 
-    TemplateParameter syntaxCopy()
+    override TemplateParameter syntaxCopy()
     {
         return new TemplateAliasParameter(loc, ident, specType ? specType.syntaxCopy() : null, objectSyntaxCopy(specAlias), objectSyntaxCopy(defaultAlias));
     }
 
-    bool declareParameter(Scope* sc)
+    override bool declareParameter(Scope* sc)
     {
         auto ti = new TypeIdentifier(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
         return sc.insert(ad) !is null;
     }
 
-    bool semantic(Scope* sc, TemplateParameters* parameters)
+    override bool semantic(Scope* sc, TemplateParameters* parameters)
     {
         if (specType && !reliesOnTident(specType, parameters))
         {
@@ -5090,7 +5090,7 @@ public:
         return !(specType && isError(specType)) && !(specAlias && isError(specAlias));
     }
 
-    void print(RootObject oarg, RootObject oded)
+    override void print(RootObject oarg, RootObject oded)
     {
         printf(" %s\n", ident.toChars());
         Dsymbol sa = isDsymbol(oded);
@@ -5098,12 +5098,12 @@ public:
         printf("\tParameter alias: %s\n", sa.toChars());
     }
 
-    RootObject specialization()
+    override RootObject specialization()
     {
         return specAlias;
     }
 
-    RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         RootObject da = defaultAlias;
         Type ta = isType(defaultAlias);
@@ -5119,12 +5119,12 @@ public:
         return o;
     }
 
-    bool hasDefaultArg()
+    override bool hasDefaultArg()
     {
         return defaultAlias !is null;
     }
 
-    MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    override MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
     {
         //printf("TemplateAliasParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -5243,7 +5243,7 @@ public:
         return MATCHnomatch;
     }
 
-    void* dummyArg()
+    override void* dummyArg()
     {
         RootObject s = specAlias;
         if (!s)
@@ -5255,7 +5255,7 @@ public:
         return cast(void*)s;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5275,29 +5275,29 @@ public:
         this.ident = ident;
     }
 
-    TemplateTupleParameter isTemplateTupleParameter()
+    override TemplateTupleParameter isTemplateTupleParameter()
     {
         return this;
     }
 
-    TemplateParameter syntaxCopy()
+    override TemplateParameter syntaxCopy()
     {
         return new TemplateTupleParameter(loc, ident);
     }
 
-    bool declareParameter(Scope* sc)
+    override bool declareParameter(Scope* sc)
     {
         auto ti = new TypeIdentifier(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
         return sc.insert(ad) !is null;
     }
 
-    bool semantic(Scope* sc, TemplateParameters* parameters)
+    override bool semantic(Scope* sc, TemplateParameters* parameters)
     {
         return true;
     }
 
-    void print(RootObject oarg, RootObject oded)
+    override void print(RootObject oarg, RootObject oded)
     {
         printf(" %s... [", ident.toChars());
         Tuple v = isTuple(oded);
@@ -5322,22 +5322,22 @@ public:
         printf("]\n");
     }
 
-    RootObject specialization()
+    override RootObject specialization()
     {
         return null;
     }
 
-    RootObject defaultArg(Loc instLoc, Scope* sc)
+    override RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         return null;
     }
 
-    bool hasDefaultArg()
+    override bool hasDefaultArg()
     {
         return false;
     }
 
-    MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    override MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
     {
         /* The rest of the actual arguments (tiargs[]) form the match
          * for the variadic parameter.
@@ -5366,7 +5366,7 @@ public:
         return matchArg(sc, ovar, i, parameters, dedtypes, psparam);
     }
 
-    MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    override MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
     {
         //printf("TemplateTupleParameter::matchArg('%s')\n", ident->toChars());
         Tuple ovar = isTuple(oarg);
@@ -5386,12 +5386,12 @@ public:
         return dependent ? MATCHexact : MATCHconvert;
     }
 
-    void* dummyArg()
+    override void* dummyArg()
     {
         return null;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5504,7 +5504,7 @@ public:
         return a;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         TemplateInstance ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name);
         ti.tiargs = arraySyntaxCopy(tiargs);
@@ -5989,12 +5989,12 @@ public:
         }
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         semantic(sc, null);
     }
 
-    void semantic2(Scope* sc)
+    override void semantic2(Scope* sc)
     {
         if (semanticRun >= PASSsemantic2)
             return;
@@ -6051,7 +6051,7 @@ public:
         }
     }
 
-    void semantic3(Scope* sc)
+    override void semantic3(Scope* sc)
     {
         static if (LOG)
         {
@@ -6106,7 +6106,7 @@ public:
     }
 
     // resolve real symbol
-    final Dsymbol toAlias()
+    override final Dsymbol toAlias()
     {
         static if (LOG)
         {
@@ -6135,25 +6135,25 @@ public:
         return inst;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "template instance";
     }
 
-    bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         *ps = null;
         return true;
     }
 
-    char* toChars()
+    override char* toChars()
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf);
         return buf.extractString();
     }
 
-    final char* toPrettyCharsHelper()
+    override final char* toPrettyCharsHelper()
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf, true);
@@ -6237,14 +6237,14 @@ public:
      * Lazily generate identifier for template instance.
      * This is because 75% of the ident's are never needed.
      */
-    final Identifier getIdent()
+    override final Identifier getIdent()
     {
         if (!ident && inst && !errors)
             ident = genIdent(tiargs); // need an identifier for name mangling purposes.
         return ident;
     }
 
-    final int compare(RootObject o)
+    override final int compare(RootObject o)
     {
         TemplateInstance ti = cast(TemplateInstance)o;
         //printf("this = %p, ti = %p\n", this, ti);
@@ -7617,12 +7617,12 @@ public:
         --nest;
     }
 
-    final TemplateInstance isTemplateInstance()
+    override final TemplateInstance isTemplateInstance()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7740,13 +7740,13 @@ public:
         this.tiargs = tiargs ? tiargs : new Objects();
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         auto tm = new TemplateMixin(loc, ident, cast(TypeQualified)tqual.syntaxCopy(), tiargs);
         return TemplateInstance.syntaxCopy(tm);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         static if (LOG)
         {
@@ -7973,7 +7973,7 @@ public:
         }
     }
 
-    void semantic2(Scope* sc)
+    override void semantic2(Scope* sc)
     {
         if (semanticRun >= PASSsemantic2)
             return;
@@ -8005,7 +8005,7 @@ public:
         }
     }
 
-    void semantic3(Scope* sc)
+    override void semantic3(Scope* sc)
     {
         if (semanticRun >= PASSsemantic3)
             return;
@@ -8028,17 +8028,17 @@ public:
         }
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "mixin";
     }
 
-    bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         return Dsymbol.oneMember(ps, ident);
     }
 
-    int apply(Dsymbol_apply_ft_t fp, void* param)
+    override int apply(Dsymbol_apply_ft_t fp, void* param)
     {
         if (members)
         {
@@ -8055,7 +8055,7 @@ public:
         return 0;
     }
 
-    bool hasPointers()
+    override bool hasPointers()
     {
         //printf("TemplateMixin::hasPointers() %s\n", toChars());
         if (members)
@@ -8073,7 +8073,7 @@ public:
         return false;
     }
 
-    void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         //printf("TemplateMixin::setFieldOffset() %s\n", toChars());
         if (_scope) // if fwd reference
@@ -8089,7 +8089,7 @@ public:
         }
     }
 
-    char* toChars()
+    override char* toChars()
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf);
@@ -8168,12 +8168,12 @@ public:
         return true;
     }
 
-    TemplateMixin isTemplateMixin()
+    override TemplateMixin isTemplateMixin()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

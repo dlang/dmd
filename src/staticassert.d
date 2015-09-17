@@ -36,22 +36,22 @@ public:
         this.msg = msg;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new StaticAssert(loc, exp.syntaxCopy(), msg ? msg.syntaxCopy() : null);
     }
 
-    void addMember(Scope* sc, ScopeDsymbol sds)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         // we didn't add anything
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
     }
 
-    void semantic2(Scope* sc)
+    override void semantic2(Scope* sc)
     {
         //printf("StaticAssert::semantic2() %s\n", toChars());
         auto sds = new ScopeDsymbol();
@@ -109,19 +109,19 @@ public:
         }
     }
 
-    bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         //printf("StaticAssert::oneMember())\n");
         *ps = null;
         return true;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "static assert";
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

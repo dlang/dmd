@@ -72,12 +72,12 @@ public:
         this.ident = ident;
     }
 
-    final Condition syntaxCopy()
+    override final Condition syntaxCopy()
     {
         return this; // don't need to copy
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -104,7 +104,7 @@ public:
         super(mod, level, ident);
     }
 
-    int include(Scope* sc, ScopeDsymbol sds)
+    override int include(Scope* sc, ScopeDsymbol sds)
     {
         //printf("DebugCondition::include() level = %d, debuglevel = %d\n", level, global.params.debuglevel);
         if (inc == 0)
@@ -135,12 +135,12 @@ public:
         return (inc == 1);
     }
 
-    DebugCondition isDebugCondition()
+    override DebugCondition isDebugCondition()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -283,7 +283,7 @@ public:
         super(mod, level, ident);
     }
 
-    int include(Scope* sc, ScopeDsymbol sds)
+    override int include(Scope* sc, ScopeDsymbol sds)
     {
         //printf("VersionCondition::include() level = %d, versionlevel = %d\n", level, global.params.versionlevel);
         //if (ident) printf("\tident = '%s'\n", ident->toChars());
@@ -315,7 +315,7 @@ public:
         return (inc == 1);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -335,12 +335,12 @@ public:
         this.nest = 0;
     }
 
-    Condition syntaxCopy()
+    override Condition syntaxCopy()
     {
         return new StaticIfCondition(loc, exp.syntaxCopy());
     }
 
-    int include(Scope* sc, ScopeDsymbol sds)
+    override int include(Scope* sc, ScopeDsymbol sds)
     {
         version (none)
         {
@@ -406,7 +406,7 @@ public:
         return 0;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

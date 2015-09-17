@@ -67,14 +67,14 @@ public:
         inuse = 0;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ed = new EnumDeclaration(loc, ident, memtype ? memtype.syntaxCopy() : null);
         return ScopeDsymbol.syntaxCopy(ed);
     }
 
-    void addMember(Scope* sc, ScopeDsymbol sds)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         version (none)
         {
@@ -107,14 +107,14 @@ public:
         added = true;
     }
 
-    void setScope(Scope* sc)
+    override void setScope(Scope* sc)
     {
         if (semanticRun > PASSinit)
             return;
         ScopeDsymbol.setScope(sc);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc->scopesym, sc->scopesym->toChars(), toChars());
         //printf("EnumDeclaration::semantic() %p %s\n", this, toChars());
@@ -275,24 +275,24 @@ public:
         //printf("members = %s\n", members->toChars());
     }
 
-    bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         if (isAnonymous())
             return Dsymbol.oneMembers(members, ps, ident);
         return Dsymbol.oneMember(ps, ident);
     }
 
-    Type getType()
+    override Type getType()
     {
         return type;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "enum";
     }
 
-    Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
         if (_scope)
@@ -311,12 +311,12 @@ public:
     }
 
     // is Dsymbol deprecated?
-    bool isDeprecated()
+    override bool isDeprecated()
     {
         return isdeprecated;
     }
 
-    Prot prot()
+    override Prot prot()
     {
         return protection;
     }
@@ -457,14 +457,14 @@ public:
         return memtype;
     }
 
-    EnumDeclaration isEnumDeclaration()
+    override EnumDeclaration isEnumDeclaration()
     {
         return this;
     }
 
     Symbol* sinit;
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -499,18 +499,18 @@ public:
         this.vd = null;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new EnumMember(loc, ident, value ? value.syntaxCopy() : null, type ? type.syntaxCopy() : null);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "enum member";
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("EnumMember::semantic() %s\n", toChars());
         if (errors || semanticRun >= PASSsemanticdone)
@@ -713,12 +713,12 @@ public:
         return e.semantic(sc);
     }
 
-    EnumMember isEnumMember()
+    override EnumMember isEnumMember()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

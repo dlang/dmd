@@ -78,192 +78,192 @@ extern (C++) static Identifier opId(Expression e)
     public:
         Identifier id;
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             assert(0);
         }
 
-        void visit(UAddExp e)
+        override void visit(UAddExp e)
         {
             id = Id.uadd;
         }
 
-        void visit(NegExp e)
+        override void visit(NegExp e)
         {
             id = Id.neg;
         }
 
-        void visit(ComExp e)
+        override void visit(ComExp e)
         {
             id = Id.com;
         }
 
-        void visit(CastExp e)
+        override void visit(CastExp e)
         {
             id = Id._cast;
         }
 
-        void visit(InExp e)
+        override void visit(InExp e)
         {
             id = Id.opIn;
         }
 
-        void visit(PostExp e)
+        override void visit(PostExp e)
         {
             id = (e.op == TOKplusplus) ? Id.postinc : Id.postdec;
         }
 
-        void visit(AddExp e)
+        override void visit(AddExp e)
         {
             id = Id.add;
         }
 
-        void visit(MinExp e)
+        override void visit(MinExp e)
         {
             id = Id.sub;
         }
 
-        void visit(MulExp e)
+        override void visit(MulExp e)
         {
             id = Id.mul;
         }
 
-        void visit(DivExp e)
+        override void visit(DivExp e)
         {
             id = Id.div;
         }
 
-        void visit(ModExp e)
+        override void visit(ModExp e)
         {
             id = Id.mod;
         }
 
-        void visit(PowExp e)
+        override void visit(PowExp e)
         {
             id = Id.pow;
         }
 
-        void visit(ShlExp e)
+        override void visit(ShlExp e)
         {
             id = Id.shl;
         }
 
-        void visit(ShrExp e)
+        override void visit(ShrExp e)
         {
             id = Id.shr;
         }
 
-        void visit(UshrExp e)
+        override void visit(UshrExp e)
         {
             id = Id.ushr;
         }
 
-        void visit(AndExp e)
+        override void visit(AndExp e)
         {
             id = Id.iand;
         }
 
-        void visit(OrExp e)
+        override void visit(OrExp e)
         {
             id = Id.ior;
         }
 
-        void visit(XorExp e)
+        override void visit(XorExp e)
         {
             id = Id.ixor;
         }
 
-        void visit(CatExp e)
+        override void visit(CatExp e)
         {
             id = Id.cat;
         }
 
-        void visit(AssignExp e)
+        override void visit(AssignExp e)
         {
             id = Id.assign;
         }
 
-        void visit(AddAssignExp e)
+        override void visit(AddAssignExp e)
         {
             id = Id.addass;
         }
 
-        void visit(MinAssignExp e)
+        override void visit(MinAssignExp e)
         {
             id = Id.subass;
         }
 
-        void visit(MulAssignExp e)
+        override void visit(MulAssignExp e)
         {
             id = Id.mulass;
         }
 
-        void visit(DivAssignExp e)
+        override void visit(DivAssignExp e)
         {
             id = Id.divass;
         }
 
-        void visit(ModAssignExp e)
+        override void visit(ModAssignExp e)
         {
             id = Id.modass;
         }
 
-        void visit(AndAssignExp e)
+        override void visit(AndAssignExp e)
         {
             id = Id.andass;
         }
 
-        void visit(OrAssignExp e)
+        override void visit(OrAssignExp e)
         {
             id = Id.orass;
         }
 
-        void visit(XorAssignExp e)
+        override void visit(XorAssignExp e)
         {
             id = Id.xorass;
         }
 
-        void visit(ShlAssignExp e)
+        override void visit(ShlAssignExp e)
         {
             id = Id.shlass;
         }
 
-        void visit(ShrAssignExp e)
+        override void visit(ShrAssignExp e)
         {
             id = Id.shrass;
         }
 
-        void visit(UshrAssignExp e)
+        override void visit(UshrAssignExp e)
         {
             id = Id.ushrass;
         }
 
-        void visit(CatAssignExp e)
+        override void visit(CatAssignExp e)
         {
             id = Id.catass;
         }
 
-        void visit(PowAssignExp e)
+        override void visit(PowAssignExp e)
         {
             id = Id.powass;
         }
 
-        void visit(EqualExp e)
+        override void visit(EqualExp e)
         {
             id = Id.eq;
         }
 
-        void visit(CmpExp e)
+        override void visit(CmpExp e)
         {
             id = Id.cmp;
         }
 
-        void visit(ArrayExp e)
+        override void visit(ArrayExp e)
         {
             id = Id.index;
         }
 
-        void visit(PtrExp e)
+        override void visit(PtrExp e)
         {
             id = Id.opStar;
         }
@@ -286,77 +286,77 @@ extern (C++) static Identifier opId_r(Expression e)
     public:
         Identifier id;
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             id = null;
         }
 
-        void visit(InExp e)
+        override void visit(InExp e)
         {
             id = Id.opIn_r;
         }
 
-        void visit(AddExp e)
+        override void visit(AddExp e)
         {
             id = Id.add_r;
         }
 
-        void visit(MinExp e)
+        override void visit(MinExp e)
         {
             id = Id.sub_r;
         }
 
-        void visit(MulExp e)
+        override void visit(MulExp e)
         {
             id = Id.mul_r;
         }
 
-        void visit(DivExp e)
+        override void visit(DivExp e)
         {
             id = Id.div_r;
         }
 
-        void visit(ModExp e)
+        override void visit(ModExp e)
         {
             id = Id.mod_r;
         }
 
-        void visit(PowExp e)
+        override void visit(PowExp e)
         {
             id = Id.pow_r;
         }
 
-        void visit(ShlExp e)
+        override void visit(ShlExp e)
         {
             id = Id.shl_r;
         }
 
-        void visit(ShrExp e)
+        override void visit(ShrExp e)
         {
             id = Id.shr_r;
         }
 
-        void visit(UshrExp e)
+        override void visit(UshrExp e)
         {
             id = Id.ushr_r;
         }
 
-        void visit(AndExp e)
+        override void visit(AndExp e)
         {
             id = Id.iand_r;
         }
 
-        void visit(OrExp e)
+        override void visit(OrExp e)
         {
             id = Id.ior_r;
         }
 
-        void visit(XorExp e)
+        override void visit(XorExp e)
         {
             id = Id.ixor_r;
         }
 
-        void visit(CatExp e)
+        override void visit(CatExp e)
         {
             id = Id.cat_r;
         }
@@ -464,12 +464,12 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             result = null;
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             assert(0);
         }
 
-        void visit(UnaExp e)
+        override void visit(UnaExp e)
         {
             //printf("UnaExp::op_overload() (%s)\n", e->toChars());
             if (e.e1.op == TOKarray)
@@ -619,7 +619,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             }
         }
 
-        void visit(ArrayExp ae)
+        override void visit(ArrayExp ae)
         {
             //printf("ArrayExp::op_overload() (%s)\n", ae->toChars());
             ae.e1 = ae.e1.semantic(sc);
@@ -743,7 +743,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
          * This is mostly the same as UnaryExp::op_overload(), but has
          * a different rewrite.
          */
-        void visit(CastExp e)
+        override void visit(CastExp e)
         {
             //printf("CastExp::op_overload() (%s)\n", e->toChars());
             AggregateDeclaration ad = isAggregate(e.e1.type);
@@ -788,7 +788,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             }
         }
 
-        void visit(BinExp e)
+        override void visit(BinExp e)
         {
             //printf("BinExp::op_overload() (%s)\n", e->toChars());
             Identifier id = opId(e);
@@ -1090,7 +1090,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             return;
         }
 
-        void visit(EqualExp e)
+        override void visit(EqualExp e)
         {
             //printf("EqualExp::op_overload() (%s)\n", e->toChars());
             Type t1 = e.e1.type.toBasetype();
@@ -1133,7 +1133,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             }
         }
 
-        void visit(CmpExp e)
+        override void visit(CmpExp e)
         {
             //printf("CmpExp::op_overload() (%s)\n", e->toChars());
             result = compare_overload(e, sc, Id.cmp);
@@ -1142,7 +1142,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
         /*********************************
          * Operator overloading for op=
          */
-        void visit(BinAssignExp e)
+        override void visit(BinAssignExp e)
         {
             //printf("BinAssignExp::op_overload() (%s)\n", e->toChars());
             if (e.e1.op == TOKarray)

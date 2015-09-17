@@ -66,21 +66,21 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             }
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
         }
 
-        void visit(AddrExp e)
+        override void visit(AddrExp e)
         {
             result |= checkEscapeRef(sc, e.e1, gag);
         }
 
-        void visit(SymOffExp e)
+        override void visit(SymOffExp e)
         {
             check(e.loc, e.var);
         }
 
-        void visit(VarExp e)
+        override void visit(VarExp e)
         {
             VarDeclaration v = e.var.isVarDeclaration();
             if (v)
@@ -109,7 +109,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             }
         }
 
-        void visit(TupleExp e)
+        override void visit(TupleExp e)
         {
             for (size_t i = 0; i < e.exps.dim; i++)
             {
@@ -117,7 +117,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             }
         }
 
-        void visit(ArrayLiteralExp e)
+        override void visit(ArrayLiteralExp e)
         {
             Type tb = e.type.toBasetype();
             if (tb.ty == Tsarray || tb.ty == Tarray)
@@ -129,7 +129,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             }
         }
 
-        void visit(StructLiteralExp e)
+        override void visit(StructLiteralExp e)
         {
             if (e.elements)
             {
@@ -142,7 +142,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             }
         }
 
-        void visit(NewExp e)
+        override void visit(NewExp e)
         {
             Type tb = e.newtype.toBasetype();
             if (tb.ty == Tstruct && !e.member && e.arguments)
@@ -156,7 +156,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             }
         }
 
-        void visit(CastExp e)
+        override void visit(CastExp e)
         {
             Type tb = e.type.toBasetype();
             if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
@@ -165,7 +165,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             }
         }
 
-        void visit(SliceExp e)
+        override void visit(SliceExp e)
         {
             if (e.e1.op == TOKvar)
             {
@@ -189,7 +189,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
                 e.e1.accept(this);
         }
 
-        void visit(BinExp e)
+        override void visit(BinExp e)
         {
             Type tb = e.type.toBasetype();
             if (tb.ty == Tpointer)
@@ -199,22 +199,22 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             }
         }
 
-        void visit(BinAssignExp e)
+        override void visit(BinAssignExp e)
         {
             e.e2.accept(this);
         }
 
-        void visit(AssignExp e)
+        override void visit(AssignExp e)
         {
             e.e2.accept(this);
         }
 
-        void visit(CommaExp e)
+        override void visit(CommaExp e)
         {
             e.e2.accept(this);
         }
 
-        void visit(CondExp e)
+        override void visit(CondExp e)
         {
             e.e1.accept(this);
             e.e2.accept(this);
@@ -310,27 +310,27 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
             }
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
         }
 
-        void visit(VarExp e)
+        override void visit(VarExp e)
         {
             check(e.loc, e.var);
         }
 
-        void visit(ThisExp e)
+        override void visit(ThisExp e)
         {
             if (e.var)
                 check(e.loc, e.var);
         }
 
-        void visit(PtrExp e)
+        override void visit(PtrExp e)
         {
             result |= checkEscape(sc, e.e1, gag);
         }
 
-        void visit(IndexExp e)
+        override void visit(IndexExp e)
         {
             if (e.e1.op == TOKvar)
             {
@@ -355,7 +355,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
             }
         }
 
-        void visit(DotVarExp e)
+        override void visit(DotVarExp e)
         {
             Type t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tclass)
@@ -364,28 +364,28 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                 e.e1.accept(this);
         }
 
-        void visit(BinAssignExp e)
+        override void visit(BinAssignExp e)
         {
             e.e1.accept(this);
         }
 
-        void visit(AssignExp e)
+        override void visit(AssignExp e)
         {
             e.e1.accept(this);
         }
 
-        void visit(CommaExp e)
+        override void visit(CommaExp e)
         {
             e.e2.accept(this);
         }
 
-        void visit(CondExp e)
+        override void visit(CondExp e)
         {
             e.e1.accept(this);
             e.e2.accept(this);
         }
 
-        void visit(CallExp e)
+        override void visit(CallExp e)
         {
             /* If the function returns by ref, check each argument that is
              * passed as 'return ref'.

@@ -37,22 +37,22 @@ public:
         return new Identifier(string, value);
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         return this == o || strncmp(string, o.toChars(), len + 1) == 0;
     }
 
-    int compare(RootObject o)
+    override int compare(RootObject o)
     {
         return strncmp(string, o.toChars(), len + 1);
     }
 
-    void print()
+    override void print()
     {
         fprintf(stderr, "%s", string);
     }
 
-    char* toChars()
+    override char* toChars()
     {
         return cast(char*)string;
     }
@@ -90,7 +90,7 @@ public:
         return p;
     }
 
-    int dyncast()
+    override int dyncast()
     {
         return DYNCAST_IDENTIFIER;
     }

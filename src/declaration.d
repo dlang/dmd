@@ -229,16 +229,16 @@ public:
         mangleOverride = null;
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "declaration";
     }
 
-    final uint size(Loc loc)
+    override final uint size(Loc loc)
     {
         assert(type);
         return cast(uint)type.size();
@@ -276,7 +276,7 @@ public:
         return 1;
     }
 
-    final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         Dsymbol s = Dsymbol.search(loc, ident, flags);
         if (!s && type)
@@ -363,7 +363,7 @@ public:
         return (storage_class & STCparameter) != 0;
     }
 
-    final bool isDeprecated()
+    override final bool isDeprecated()
     {
         return (storage_class & STCdeprecated) != 0;
     }
@@ -398,17 +398,17 @@ public:
         return (storage_class & STCref) != 0;
     }
 
-    final Prot prot()
+    override final Prot prot()
     {
         return protection;
     }
 
-    final Declaration isDeclaration()
+    override final Declaration isDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -433,18 +433,18 @@ public:
         this.tupletype = null;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(0);
         return null;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "tuple";
     }
 
-    Type getType()
+    override Type getType()
     {
         /* If this tuple represents a type, return that type
          */
@@ -497,7 +497,7 @@ public:
         return tupletype;
     }
 
-    Dsymbol toAlias2()
+    override Dsymbol toAlias2()
     {
         //printf("TupleDeclaration::toAlias2() '%s' objects = %s\n", toChars(), objects->toChars());
         for (size_t i = 0; i < objects.dim; i++)
@@ -512,7 +512,7 @@ public:
         return this;
     }
 
-    bool needThis()
+    override bool needThis()
     {
         //printf("TupleDeclaration::needThis(%s)\n", toChars());
         for (size_t i = 0; i < objects.dim; i++)
@@ -535,12 +535,12 @@ public:
         return false;
     }
 
-    TupleDeclaration isTupleDeclaration()
+    override TupleDeclaration isTupleDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -581,7 +581,7 @@ public:
         assert(s);
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
@@ -590,7 +590,7 @@ public:
         return sa;
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("AliasDeclaration::semantic() %s\n", toChars());
         if (aliassym)
@@ -764,7 +764,7 @@ public:
         semanticRun = PASSsemanticdone;
     }
 
-    bool overloadInsert(Dsymbol s)
+    override bool overloadInsert(Dsymbol s)
     {
         //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
         //    loc.toChars(), toChars(), s->kind(), s->toChars(), s->loc.toChars());
@@ -807,19 +807,19 @@ public:
         return true;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "alias";
     }
 
-    Type getType()
+    override Type getType()
     {
         if (type)
             return type;
         return toAlias().getType();
     }
 
-    Dsymbol toAlias()
+    override Dsymbol toAlias()
     {
         //printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inuse = %d)\n",
         //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym->kind() : "", inuse);
@@ -882,7 +882,7 @@ public:
         return s;
     }
 
-    Dsymbol toAlias2()
+    override Dsymbol toAlias2()
     {
         if (inuse)
         {
@@ -895,12 +895,12 @@ public:
         return s;
     }
 
-    AliasDeclaration isAliasDeclaration()
+    override AliasDeclaration isAliasDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -933,16 +933,16 @@ public:
         }
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "overload alias"; // todo
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -970,7 +970,7 @@ public:
         return false;
     }
 
-    bool overloadInsert(Dsymbol s)
+    override bool overloadInsert(Dsymbol s)
     {
         //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s->toChars(), aliassym, overnext);
         if (overnext is null)
@@ -988,7 +988,7 @@ public:
         }
     }
 
-    Dsymbol toAlias()
+    override Dsymbol toAlias()
     {
         return this;
     }
@@ -1021,12 +1021,12 @@ public:
         return result;
     }
 
-    OverDeclaration isOverDeclaration()
+    override OverDeclaration isOverDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1093,7 +1093,7 @@ public:
         range = null;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
@@ -1102,7 +1102,7 @@ public:
         return v;
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         version (none)
         {
@@ -1756,7 +1756,7 @@ public:
             errors = true;
     }
 
-    final void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override final void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad->toChars(), toChars());
         if (aliassym)
@@ -1841,7 +1841,7 @@ public:
         //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad->toChars(), offset, memsize);
     }
 
-    final void semantic2(Scope* sc)
+    override final void semantic2(Scope* sc)
     {
         if (sem < SemanticDone && inuse)
             return;
@@ -1941,12 +1941,12 @@ public:
         sem = Semantic2Done;
     }
 
-    final const(char)* kind()
+    override final const(char)* kind()
     {
         return "variable";
     }
 
-    final AggregateDeclaration isThis()
+    override final AggregateDeclaration isThis()
     {
         AggregateDeclaration ad = null;
         if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe)))
@@ -1963,18 +1963,18 @@ public:
         return ad;
     }
 
-    final bool needThis()
+    override final bool needThis()
     {
         //printf("VarDeclaration::needThis(%s, x%x)\n", toChars(), storage_class);
         return isField();
     }
 
-    final bool isExport()
+    override final bool isExport()
     {
         return protection.kind == PROTexport;
     }
 
-    final bool isImportedSymbol()
+    override final bool isImportedSymbol()
     {
         if (protection.kind == PROTexport && !_init && (storage_class & STCstatic || parent.isModule()))
             return true;
@@ -1985,7 +1985,7 @@ public:
      * Does symbol go into data segment?
      * Includes extern variables.
      */
-    final bool isDataseg()
+    override final bool isDataseg()
     {
         version (none)
         {
@@ -2008,7 +2008,7 @@ public:
     /************************************
      * Does symbol go into thread local storage?
      */
-    final bool isThreadlocal()
+    override final bool isThreadlocal()
     {
         //printf("VarDeclaration::isThreadlocal(%p, '%s')\n", this, toChars());
         /* Data defaults to being thread-local. It is not thread-local
@@ -2033,7 +2033,7 @@ public:
                 v.offset <   offset +   type.size());
     }
 
-    final bool hasPointers()
+    override final bool hasPointers()
     {
         //printf("VarDeclaration::hasPointers() %s, ty = %d\n", toChars(), type->ty);
         return (!isDataseg() && type.hasPointers());
@@ -2181,7 +2181,7 @@ public:
         return e;
     }
 
-    final void checkCtorConstInit()
+    override final void checkCtorConstInit()
     {
         version (none)
         {
@@ -2293,7 +2293,7 @@ public:
         return false;
     }
 
-    final Dsymbol toAlias()
+    override final Dsymbol toAlias()
     {
         //printf("VarDeclaration::toAlias('%s', this = %p, aliassym = %p)\n", toChars(), this, aliassym);
         assert(this != aliassym);
@@ -2302,12 +2302,12 @@ public:
     }
 
     // Eliminate need for dynamic_cast
-    final VarDeclaration isVarDeclaration()
+    override final VarDeclaration isVarDeclaration()
     {
         return cast(VarDeclaration)this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2330,12 +2330,12 @@ public:
     }
 
     // Eliminate need for dynamic_cast
-    SymbolDeclaration isSymbolDeclaration()
+    override SymbolDeclaration isSymbolDeclaration()
     {
         return cast(SymbolDeclaration)this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2361,18 +2361,18 @@ public:
         return new TypeInfoDeclaration(tinfo, internal);
     }
 
-    final Dsymbol syntaxCopy(Dsymbol s)
+    override final Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(0); // should never be produced by syntax
         return null;
     }
 
-    final void semantic(Scope* sc)
+    override final void semantic(Scope* sc)
     {
         assert(linkage == LINKc);
     }
 
-    final char* toChars()
+    override final char* toChars()
     {
         //printf("TypeInfoDeclaration::toChars() tinfo = %s\n", tinfo->toChars());
         OutBuffer buf;
@@ -2382,12 +2382,12 @@ public:
         return buf.extractString();
     }
 
-    final TypeInfoDeclaration isTypeInfoDeclaration()
+    override final TypeInfoDeclaration isTypeInfoDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2412,7 +2412,7 @@ public:
         return new TypeInfoStructDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2437,7 +2437,7 @@ public:
         return new TypeInfoClassDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2462,7 +2462,7 @@ public:
         return new TypeInfoInterfaceDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2487,7 +2487,7 @@ public:
         return new TypeInfoPointerDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2512,7 +2512,7 @@ public:
         return new TypeInfoArrayDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2537,7 +2537,7 @@ public:
         return new TypeInfoStaticArrayDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2562,7 +2562,7 @@ public:
         return new TypeInfoAssociativeArrayDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2587,7 +2587,7 @@ public:
         return new TypeInfoEnumDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2612,7 +2612,7 @@ public:
         return new TypeInfoFunctionDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2637,7 +2637,7 @@ public:
         return new TypeInfoDelegateDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2662,7 +2662,7 @@ public:
         return new TypeInfoTupleDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2687,7 +2687,7 @@ public:
         return new TypeInfoConstDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2712,7 +2712,7 @@ public:
         return new TypeInfoInvariantDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2737,7 +2737,7 @@ public:
         return new TypeInfoSharedDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2762,7 +2762,7 @@ public:
         return new TypeInfoWildDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2787,7 +2787,7 @@ public:
         return new TypeInfoVectorDeclaration(tinfo);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2805,18 +2805,18 @@ public:
         noscope = 1;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(0); // should never be produced by syntax
         return null;
     }
 
-    ThisDeclaration isThisDeclaration()
+    override ThisDeclaration isThisDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

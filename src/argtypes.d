@@ -33,17 +33,17 @@ extern (C++) TypeTuple toArgTypes(Type t)
             result = null;
         }
 
-        void visit(Type)
+        override void visit(Type)
         {
             // not valid for a parameter
         }
 
-        void visit(TypeError)
+        override void visit(TypeError)
         {
             result = new TypeTuple(Type.terror);
         }
 
-        void visit(TypeBasic t)
+        override void visit(TypeBasic t)
         {
             Type t1 = null;
             Type t2 = null;
@@ -116,12 +116,12 @@ extern (C++) TypeTuple toArgTypes(Type t)
                 result = new TypeTuple();
         }
 
-        void visit(TypeVector t)
+        override void visit(TypeVector t)
         {
             result = new TypeTuple(t);
         }
 
-        void visit(TypeSArray t)
+        override void visit(TypeSArray t)
         {
             if (t.dim)
             {
@@ -140,12 +140,12 @@ extern (C++) TypeTuple toArgTypes(Type t)
             result = new TypeTuple(); // pass on the stack for efficiency
         }
 
-        void visit(TypeAArray)
+        override void visit(TypeAArray)
         {
             result = new TypeTuple(Type.tvoidptr);
         }
 
-        void visit(TypePointer)
+        override void visit(TypePointer)
         {
             result = new TypeTuple(Type.tvoidptr);
         }
@@ -235,7 +235,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             return t;
         }
 
-        void visit(TypeDArray)
+        override void visit(TypeDArray)
         {
             /* Should be done as if it were:
              * struct S { size_t length; void* ptr; }
@@ -254,7 +254,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             result = new TypeTuple(Type.tsize_t, Type.tvoidptr);
         }
 
-        void visit(TypeDelegate)
+        override void visit(TypeDelegate)
         {
             /* Should be done as if it were:
              * struct S { size_t length; void* ptr; }
@@ -273,7 +273,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             result = new TypeTuple(Type.tvoidptr, Type.tvoidptr);
         }
 
-        void visit(TypeStruct t)
+        override void visit(TypeStruct t)
         {
             //printf("TypeStruct::toArgTypes() %s\n", t->toChars());
             if (!t.sym.isPOD() || t.sym.fields.dim == 0)
@@ -436,12 +436,12 @@ extern (C++) TypeTuple toArgTypes(Type t)
                 goto Lmemory;
         }
 
-        void visit(TypeEnum t)
+        override void visit(TypeEnum t)
         {
             t.toBasetype().accept(this);
         }
 
-        void visit(TypeClass)
+        override void visit(TypeClass)
         {
             result = new TypeTuple(Type.tvoidptr);
         }

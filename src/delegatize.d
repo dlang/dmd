@@ -61,16 +61,16 @@ extern (C++) void lambdaSetParent(Expression e, Scope* sc)
             this.sc = sc;
         }
 
-        void visit(Expression)
+        override void visit(Expression)
         {
         }
 
-        void visit(DeclarationExp e)
+        override void visit(DeclarationExp e)
         {
             e.declaration.parent = sc.parent;
         }
 
-        void visit(IndexExp e)
+        override void visit(IndexExp e)
         {
             if (e.lengthVar)
             {
@@ -79,7 +79,7 @@ extern (C++) void lambdaSetParent(Expression e, Scope* sc)
             }
         }
 
-        void visit(SliceExp e)
+        override void visit(SliceExp e)
         {
             if (e.lengthVar)
             {
@@ -112,32 +112,32 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
             this.result = false;
         }
 
-        void visit(Expression)
+        override void visit(Expression)
         {
         }
 
-        void visit(SymOffExp e)
-        {
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v)
-                result = v.checkNestedReference(sc, Loc());
-        }
-
-        void visit(VarExp e)
+        override void visit(SymOffExp e)
         {
             VarDeclaration v = e.var.isVarDeclaration();
             if (v)
                 result = v.checkNestedReference(sc, Loc());
         }
 
-        void visit(ThisExp e)
+        override void visit(VarExp e)
         {
             VarDeclaration v = e.var.isVarDeclaration();
             if (v)
                 result = v.checkNestedReference(sc, Loc());
         }
 
-        void visit(DeclarationExp e)
+        override void visit(ThisExp e)
+        {
+            VarDeclaration v = e.var.isVarDeclaration();
+            if (v)
+                result = v.checkNestedReference(sc, Loc());
+        }
+
+        override void visit(DeclarationExp e)
         {
             VarDeclaration v = e.declaration.isVarDeclaration();
             if (v)

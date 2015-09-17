@@ -122,14 +122,14 @@ public:
         getRTInfo = null;
     }
 
-    final void setScope(Scope* sc)
+    override final void setScope(Scope* sc)
     {
         if (sizeok == SIZEOKdone)
             return;
         ScopeDsymbol.setScope(sc);
     }
 
-    final void semantic2(Scope* sc)
+    override final void semantic2(Scope* sc)
     {
         //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
         if (!members)
@@ -159,7 +159,7 @@ public:
         sc2.pop();
     }
 
-    final void semantic3(Scope* sc)
+    override final void semantic3(Scope* sc)
     {
         //printf("AggregateDeclaration::semantic3(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
         if (!members)
@@ -212,7 +212,7 @@ public:
             sd.semanticTypeInfoMembers();
     }
 
-    final uint size(Loc loc)
+    override final uint size(Loc loc)
     {
         //printf("AggregateDeclaration::size() %s, scope = %p\n", toChars(), scope);
         if (loc.linnum == 0)
@@ -571,13 +571,13 @@ public:
         return memoffset;
     }
 
-    final Type getType()
+    override final Type getType()
     {
         return type;
     }
 
     // is aggregate deprecated?
-    final bool isDeprecated()
+    override final bool isDeprecated()
     {
         return isdeprecated;
     }
@@ -642,7 +642,7 @@ public:
         }
     }
 
-    final bool isExport()
+    override final bool isExport()
     {
         return protection.kind == PROTexport;
     }
@@ -665,7 +665,7 @@ public:
         return s;
     }
 
-    final Prot prot()
+    override final Prot prot()
     {
         return protection;
     }
@@ -680,12 +680,12 @@ public:
     Symbol* stag; // tag symbol for debug data
     Symbol* sinit;
 
-    final AggregateDeclaration isAggregateDeclaration()
+    override final AggregateDeclaration isAggregateDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

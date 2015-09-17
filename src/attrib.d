@@ -55,7 +55,7 @@ public:
         return decl;
     }
 
-    final int apply(Dsymbol_apply_ft_t fp, void* param)
+    override final int apply(Dsymbol_apply_ft_t fp, void* param)
     {
         Dsymbols* d = include(_scope, null);
         if (d)
@@ -105,7 +105,7 @@ public:
         return sc;
     }
 
-    void addMember(Scope* sc, ScopeDsymbol sds)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         Dsymbols* d = include(sc, sds);
         if (d)
@@ -122,7 +122,7 @@ public:
         }
     }
 
-    void setScope(Scope* sc)
+    override void setScope(Scope* sc)
     {
         Dsymbols* d = include(sc, null);
         //printf("\tAttribDeclaration::setScope '%s', d = %p\n",toChars(), d);
@@ -139,7 +139,7 @@ public:
         }
     }
 
-    void importAll(Scope* sc)
+    override void importAll(Scope* sc)
     {
         Dsymbols* d = include(sc, null);
         //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
@@ -156,7 +156,7 @@ public:
         }
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         Dsymbols* d = include(sc, null);
         //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
@@ -173,7 +173,7 @@ public:
         }
     }
 
-    void semantic2(Scope* sc)
+    override void semantic2(Scope* sc)
     {
         Dsymbols* d = include(sc, null);
         if (d)
@@ -189,7 +189,7 @@ public:
         }
     }
 
-    void semantic3(Scope* sc)
+    override void semantic3(Scope* sc)
     {
         Dsymbols* d = include(sc, null);
         if (d)
@@ -205,7 +205,7 @@ public:
         }
     }
 
-    void addComment(const(char)* comment)
+    override void addComment(const(char)* comment)
     {
         //printf("AttribDeclaration::addComment %s\n", comment);
         if (comment)
@@ -223,18 +223,18 @@ public:
         }
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "attribute";
     }
 
-    bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         Dsymbols* d = include(null, null);
         return Dsymbol.oneMembers(d, ps, ident);
     }
 
-    void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         Dsymbols* d = include(null, null);
         if (d)
@@ -247,7 +247,7 @@ public:
         }
     }
 
-    final bool hasPointers()
+    override final bool hasPointers()
     {
         Dsymbols* d = include(null, null);
         if (d)
@@ -262,7 +262,7 @@ public:
         return false;
     }
 
-    final bool hasStaticCtorOrDtor()
+    override final bool hasStaticCtorOrDtor()
     {
         Dsymbols* d = include(null, null);
         if (d)
@@ -277,7 +277,7 @@ public:
         return false;
     }
 
-    final void checkCtorConstInit()
+    override final void checkCtorConstInit()
     {
         Dsymbols* d = include(null, null);
         if (d)
@@ -292,7 +292,7 @@ public:
 
     /****************************************
      */
-    final void addLocalClass(ClassDeclarations* aclasses)
+    override final void addLocalClass(ClassDeclarations* aclasses)
     {
         Dsymbols* d = include(null, null);
         if (d)
@@ -305,12 +305,12 @@ public:
         }
     }
 
-    final AttribDeclaration isAttribDeclaration()
+    override final AttribDeclaration isAttribDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -328,13 +328,13 @@ public:
         this.stc = stc;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new StorageClassDeclaration(stc, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    final Scope* newScope(Scope* sc)
+    override final Scope* newScope(Scope* sc)
     {
         StorageClass scstc = sc.stc;
         /* These sets of storage classes are mutually exclusive,
@@ -355,7 +355,7 @@ public:
         return createNewScope(sc, scstc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, sc.inlining);
     }
 
-    final bool oneMember(Dsymbol* ps, Identifier ident)
+    override final bool oneMember(Dsymbol* ps, Identifier ident)
     {
         bool t = Dsymbol.oneMembers(decl, ps, ident);
         if (t && *ps)
@@ -382,7 +382,7 @@ public:
         return t;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -400,13 +400,13 @@ public:
         this.msg = msg;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new DeprecatedDeclaration(msg.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl));
     }
 
-    void setScope(Scope* sc)
+    override void setScope(Scope* sc)
     {
         assert(msg);
         char* depmsg = null;
@@ -421,7 +421,7 @@ public:
         scx.pop();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -440,23 +440,23 @@ public:
         linkage = p;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new LinkDeclaration(linkage, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    Scope* newScope(Scope* sc)
+    override Scope* newScope(Scope* sc)
     {
         return createNewScope(sc, sc.stc, this.linkage, sc.protection, sc.explicitProtection, sc.structalign, sc.inlining);
     }
 
-    char* toChars()
+    override char* toChars()
     {
         return cast(char*)"extern ()";
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -499,7 +499,7 @@ public:
         this.pkg_identifiers = pkg_identifiers;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         if (protection.kind == PROTpackage)
@@ -508,14 +508,14 @@ public:
             return new ProtDeclaration(this.loc, protection, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    Scope* newScope(Scope* sc)
+    override Scope* newScope(Scope* sc)
     {
         if (pkg_identifiers)
             semantic(sc);
         return createNewScope(sc, sc.stc, sc.linkage, this.protection, 1, sc.structalign, sc.inlining);
     }
 
-    void addMember(Scope* sc, ScopeDsymbol sds)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         if (pkg_identifiers)
         {
@@ -534,12 +534,12 @@ public:
         return AttribDeclaration.addMember(sc, sds);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "protection attribute";
     }
 
-    const(char)* toPrettyChars(bool)
+    override const(char)* toPrettyChars(bool)
     {
         assert(protection.kind > PROTundefined);
         OutBuffer buf;
@@ -549,7 +549,7 @@ public:
         return buf.extractString();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -567,18 +567,18 @@ public:
         salign = sa;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new AlignDeclaration(salign, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    Scope* newScope(Scope* sc)
+    override Scope* newScope(Scope* sc)
     {
         return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, this.salign, sc.inlining);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -601,13 +601,13 @@ public:
         this.sem = 0;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new AnonDeclaration(loc, isunion, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
         assert(sc.parent);
@@ -634,7 +634,7 @@ public:
         }
     }
 
-    void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         //printf("\tAnonDeclaration::setFieldOffset %s %p\n", isunion ? "union" : "struct", this);
         if (decl)
@@ -694,12 +694,12 @@ public:
         }
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return (isunion ? "anonymous union" : "anonymous struct");
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -719,14 +719,14 @@ public:
         this.args = args;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("PragmaDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
         return new PragmaDeclaration(loc, ident, Expression.arraySyntaxCopy(args), Dsymbol.arraySyntaxCopy(decl));
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
@@ -964,7 +964,7 @@ public:
         }
     }
 
-    Scope* newScope(Scope* sc)
+    override Scope* newScope(Scope* sc)
     {
         if (ident == Id.Pinline)
         {
@@ -998,12 +998,12 @@ public:
         return sc;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "pragma";
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1024,13 +1024,13 @@ public:
         this.elsedecl = elsedecl;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new ConditionalDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
-    final bool oneMember(Dsymbol* ps, Identifier ident)
+    override final bool oneMember(Dsymbol* ps, Identifier ident)
     {
         //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition->inc);
         if (condition.inc)
@@ -1047,14 +1047,14 @@ public:
     }
 
     // Decide if 'then' or 'else' code should be included
-    Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
         //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
         assert(condition);
         return condition.include(_scope ? _scope : sc, sds) ? decl : elsedecl;
     }
 
-    final void addComment(const(char)* comment)
+    override final void addComment(const(char)* comment)
     {
         /* Because addComment is called by the parser, if we called
          * include() it would define a version before it was used.
@@ -1080,7 +1080,7 @@ public:
         }
     }
 
-    void setScope(Scope* sc)
+    override void setScope(Scope* sc)
     {
         Dsymbols* d = include(sc, null);
         //printf("\tConditionalDeclaration::setScope '%s', d = %p\n",toChars(), d);
@@ -1094,7 +1094,7 @@ public:
         }
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1115,7 +1115,7 @@ public:
         addisdone = 0;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new StaticIfDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
@@ -1125,7 +1125,7 @@ public:
      * Different from other AttribDeclaration subclasses, include() call requires
      * the completion of addMember and setScope phases.
      */
-    Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
         //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
         if (condition.inc == 0)
@@ -1157,7 +1157,7 @@ public:
         }
     }
 
-    void addMember(Scope* sc, ScopeDsymbol sds)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         //printf("StaticIfDeclaration::addMember() '%s'\n", toChars());
         /* This is deferred until the condition evaluated later (by the include() call),
@@ -1174,29 +1174,29 @@ public:
         this.scopesym = sds;
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         AttribDeclaration.semantic(sc);
     }
 
-    void importAll(Scope* sc)
+    override void importAll(Scope* sc)
     {
         // do not evaluate condition before semantic pass
     }
 
-    void setScope(Scope* sc)
+    override void setScope(Scope* sc)
     {
         // do not evaluate condition before semantic pass
         // But do set the scope, in case we need it for forward referencing
         Dsymbol.setScope(sc);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "static if";
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1222,19 +1222,19 @@ public:
         this.compiled = 0;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
         return new CompileDeclaration(loc, exp.syntaxCopy());
     }
 
-    void addMember(Scope* sc, ScopeDsymbol sds)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         //printf("CompileDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
         this.scopesym = sds;
     }
 
-    void setScope(Scope* sc)
+    override void setScope(Scope* sc)
     {
         Dsymbol.setScope(sc);
     }
@@ -1270,7 +1270,7 @@ public:
         }
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("CompileDeclaration::semantic()\n");
         if (!compiled)
@@ -1290,12 +1290,12 @@ public:
         AttribDeclaration.semantic(sc);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "mixin";
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1318,14 +1318,14 @@ public:
         this.atts = atts;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("UserAttributeDeclaration::syntaxCopy('%s')\n", toChars());
         assert(!s);
         return new UserAttributeDeclaration(Expression.arraySyntaxCopy(this.atts), Dsymbol.arraySyntaxCopy(decl));
     }
 
-    Scope* newScope(Scope* sc)
+    override Scope* newScope(Scope* sc)
     {
         Scope* sc2 = sc;
         if (atts && atts.dim)
@@ -1337,7 +1337,7 @@ public:
         return sc2;
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("UserAttributeDeclaration::semantic() %p\n", this);
         if (decl && !_scope)
@@ -1345,7 +1345,7 @@ public:
         return AttribDeclaration.semantic(sc);
     }
 
-    void semantic2(Scope* sc)
+    override void semantic2(Scope* sc)
     {
         if (decl && atts && atts.dim)
         {
@@ -1358,7 +1358,7 @@ public:
         AttribDeclaration.semantic2(sc);
     }
 
-    void setScope(Scope* sc)
+    override void setScope(Scope* sc)
     {
         //printf("UserAttributeDeclaration::setScope() %p\n", this);
         if (decl)
@@ -1401,12 +1401,12 @@ public:
         return exps;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "UserAttribute";
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

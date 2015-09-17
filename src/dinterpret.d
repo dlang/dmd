@@ -250,11 +250,11 @@ struct CompiledCtfeFunction
                 this.ccf = ccf;
             }
 
-            void visit(Expression e)
+            override void visit(Expression e)
             {
             }
 
-            void visit(ErrorExp e)
+            override void visit(ErrorExp e)
             {
                 // Currently there's a front-end bug: silent errors
                 // can occur inside delegate literals inside is(typeof()).
@@ -268,7 +268,7 @@ struct CompiledCtfeFunction
                 assert(0);
             }
 
-            void visit(DeclarationExp e)
+            override void visit(DeclarationExp e)
             {
                 VarDeclaration v = e.declaration.isVarDeclaration();
                 if (!v)
@@ -301,13 +301,13 @@ struct CompiledCtfeFunction
                 }
             }
 
-            void visit(IndexExp e)
+            override void visit(IndexExp e)
             {
                 if (e.lengthVar)
                     ccf.onDeclaration(e.lengthVar);
             }
 
-            void visit(SliceExp e)
+            override void visit(SliceExp e)
             {
                 if (e.lengthVar)
                     ccf.onDeclaration(e.lengthVar);
@@ -330,7 +330,7 @@ public:
         this.ccf = ccf;
     }
 
-    void visit(Statement s)
+    override void visit(Statement s)
     {
         static if (LOGCOMPILE)
         {
@@ -339,7 +339,7 @@ public:
         assert(0);
     }
 
-    void visit(ExpStatement s)
+    override void visit(ExpStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -349,7 +349,7 @@ public:
             ccf.onExpression(s.exp);
     }
 
-    void visit(CompoundStatement s)
+    override void visit(CompoundStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -363,7 +363,7 @@ public:
         }
     }
 
-    void visit(UnrolledLoopStatement s)
+    override void visit(UnrolledLoopStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -377,7 +377,7 @@ public:
         }
     }
 
-    void visit(IfStatement s)
+    override void visit(IfStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -390,7 +390,7 @@ public:
             ctfeCompile(s.elsebody);
     }
 
-    void visit(ScopeStatement s)
+    override void visit(ScopeStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -400,7 +400,7 @@ public:
             ctfeCompile(s.statement);
     }
 
-    void visit(OnScopeStatement s)
+    override void visit(OnScopeStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -410,7 +410,7 @@ public:
         assert(0);
     }
 
-    void visit(DoStatement s)
+    override void visit(DoStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -421,7 +421,7 @@ public:
             ctfeCompile(s._body);
     }
 
-    void visit(WhileStatement s)
+    override void visit(WhileStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -431,7 +431,7 @@ public:
         assert(0);
     }
 
-    void visit(ForStatement s)
+    override void visit(ForStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -447,7 +447,7 @@ public:
             ctfeCompile(s._body);
     }
 
-    void visit(ForeachStatement s)
+    override void visit(ForeachStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -457,7 +457,7 @@ public:
         assert(0);
     }
 
-    void visit(SwitchStatement s)
+    override void visit(SwitchStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -474,7 +474,7 @@ public:
             ctfeCompile(s._body);
     }
 
-    void visit(CaseStatement s)
+    override void visit(CaseStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -484,7 +484,7 @@ public:
             ctfeCompile(s.statement);
     }
 
-    void visit(DefaultStatement s)
+    override void visit(DefaultStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -494,7 +494,7 @@ public:
             ctfeCompile(s.statement);
     }
 
-    void visit(GotoDefaultStatement s)
+    override void visit(GotoDefaultStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -502,7 +502,7 @@ public:
         }
     }
 
-    void visit(GotoCaseStatement s)
+    override void visit(GotoCaseStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -510,7 +510,7 @@ public:
         }
     }
 
-    void visit(SwitchErrorStatement s)
+    override void visit(SwitchErrorStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -518,7 +518,7 @@ public:
         }
     }
 
-    void visit(ReturnStatement s)
+    override void visit(ReturnStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -528,7 +528,7 @@ public:
             ccf.onExpression(s.exp);
     }
 
-    void visit(BreakStatement s)
+    override void visit(BreakStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -536,7 +536,7 @@ public:
         }
     }
 
-    void visit(ContinueStatement s)
+    override void visit(ContinueStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -544,7 +544,7 @@ public:
         }
     }
 
-    void visit(WithStatement s)
+    override void visit(WithStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -563,7 +563,7 @@ public:
             ctfeCompile(s._body);
     }
 
-    void visit(TryCatchStatement s)
+    override void visit(TryCatchStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -581,7 +581,7 @@ public:
         }
     }
 
-    void visit(TryFinallyStatement s)
+    override void visit(TryFinallyStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -593,7 +593,7 @@ public:
             ctfeCompile(s.finalbody);
     }
 
-    void visit(ThrowStatement s)
+    override void visit(ThrowStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -602,7 +602,7 @@ public:
         ccf.onExpression(s.exp);
     }
 
-    void visit(GotoStatement s)
+    override void visit(GotoStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -610,7 +610,7 @@ public:
         }
     }
 
-    void visit(LabelStatement s)
+    override void visit(LabelStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -620,7 +620,7 @@ public:
             ctfeCompile(s.statement);
     }
 
-    void visit(ImportStatement s)
+    override void visit(ImportStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -629,7 +629,7 @@ public:
         // Contains no variables or executable code
     }
 
-    void visit(ForeachRangeStatement s)
+    override void visit(ForeachRangeStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -639,7 +639,7 @@ public:
         assert(0);
     }
 
-    void visit(AsmStatement s)
+    override void visit(AsmStatement s)
     {
         static if (LOGCOMPILE)
         {
@@ -1022,7 +1022,7 @@ public:
     }
 
     /******************************** Statement ***************************/
-    void visit(Statement s)
+    override void visit(Statement s)
     {
         static if (LOG)
         {
@@ -1038,7 +1038,7 @@ public:
         result = CTFEExp.cantexp;
     }
 
-    void visit(ExpStatement s)
+    override void visit(ExpStatement s)
     {
         static if (LOG)
         {
@@ -1055,7 +1055,7 @@ public:
             return;
     }
 
-    void visit(CompoundStatement s)
+    override void visit(CompoundStatement s)
     {
         static if (LOG)
         {
@@ -1077,7 +1077,7 @@ public:
         }
     }
 
-    void visit(UnrolledLoopStatement s)
+    override void visit(UnrolledLoopStatement s)
     {
         static if (LOG)
         {
@@ -1122,7 +1122,7 @@ public:
         }
     }
 
-    void visit(IfStatement s)
+    override void visit(IfStatement s)
     {
         static if (LOG)
         {
@@ -1154,7 +1154,7 @@ public:
         }
     }
 
-    void visit(ScopeStatement s)
+    override void visit(ScopeStatement s)
     {
         static if (LOG)
         {
@@ -1237,7 +1237,7 @@ public:
         return true;
     }
 
-    void visit(ReturnStatement s)
+    override void visit(ReturnStatement s)
     {
         static if (LOG)
         {
@@ -1306,7 +1306,7 @@ public:
         return target;
     }
 
-    void visit(BreakStatement s)
+    override void visit(BreakStatement s)
     {
         static if (LOG)
         {
@@ -1322,7 +1322,7 @@ public:
         result = CTFEExp.breakexp;
     }
 
-    void visit(ContinueStatement s)
+    override void visit(ContinueStatement s)
     {
         static if (LOG)
         {
@@ -1338,7 +1338,7 @@ public:
         result = CTFEExp.continueexp;
     }
 
-    void visit(WhileStatement s)
+    override void visit(WhileStatement s)
     {
         static if (LOG)
         {
@@ -1347,7 +1347,7 @@ public:
         assert(0); // rewritten to ForStatement
     }
 
-    void visit(DoStatement s)
+    override void visit(DoStatement s)
     {
         static if (LOG)
         {
@@ -1403,7 +1403,7 @@ public:
         assert(result is null);
     }
 
-    void visit(ForStatement s)
+    override void visit(ForStatement s)
     {
         static if (LOG)
         {
@@ -1464,17 +1464,17 @@ public:
         assert(result is null);
     }
 
-    void visit(ForeachStatement s)
+    override void visit(ForeachStatement s)
     {
         assert(0); // rewritten to ForStatement
     }
 
-    void visit(ForeachRangeStatement s)
+    override void visit(ForeachRangeStatement s)
     {
         assert(0); // rewritten to ForStatement
     }
 
-    void visit(SwitchStatement s)
+    override void visit(SwitchStatement s)
     {
         static if (LOG)
         {
@@ -1544,7 +1544,7 @@ public:
         result = e;
     }
 
-    void visit(CaseStatement s)
+    override void visit(CaseStatement s)
     {
         static if (LOG)
         {
@@ -1555,7 +1555,7 @@ public:
         result = interpret(s.statement, istate);
     }
 
-    void visit(DefaultStatement s)
+    override void visit(DefaultStatement s)
     {
         static if (LOG)
         {
@@ -1566,7 +1566,7 @@ public:
         result = interpret(s.statement, istate);
     }
 
-    void visit(GotoStatement s)
+    override void visit(GotoStatement s)
     {
         static if (LOG)
         {
@@ -1583,7 +1583,7 @@ public:
         result = CTFEExp.gotoexp;
     }
 
-    void visit(GotoCaseStatement s)
+    override void visit(GotoCaseStatement s)
     {
         static if (LOG)
         {
@@ -1600,7 +1600,7 @@ public:
         result = CTFEExp.gotoexp;
     }
 
-    void visit(GotoDefaultStatement s)
+    override void visit(GotoDefaultStatement s)
     {
         static if (LOG)
         {
@@ -1617,7 +1617,7 @@ public:
         result = CTFEExp.gotoexp;
     }
 
-    void visit(LabelStatement s)
+    override void visit(LabelStatement s)
     {
         static if (LOG)
         {
@@ -1628,7 +1628,7 @@ public:
         result = interpret(s.statement, istate);
     }
 
-    void visit(TryCatchStatement s)
+    override void visit(TryCatchStatement s)
     {
         static if (LOG)
         {
@@ -1724,7 +1724,7 @@ public:
         return oldest;
     }
 
-    void visit(TryFinallyStatement s)
+    override void visit(TryFinallyStatement s)
     {
         static if (LOG)
         {
@@ -1786,7 +1786,7 @@ public:
         result = ex;
     }
 
-    void visit(ThrowStatement s)
+    override void visit(ThrowStatement s)
     {
         static if (LOG)
         {
@@ -1805,12 +1805,12 @@ public:
         result = new ThrownExceptionExp(s.loc, cast(ClassReferenceExp)e);
     }
 
-    void visit(OnScopeStatement s)
+    override void visit(OnScopeStatement s)
     {
         assert(0);
     }
 
-    void visit(WithStatement s)
+    override void visit(WithStatement s)
     {
         static if (LOG)
         {
@@ -1862,7 +1862,7 @@ public:
         result = e;
     }
 
-    void visit(AsmStatement s)
+    override void visit(AsmStatement s)
     {
         static if (LOG)
         {
@@ -1878,7 +1878,7 @@ public:
         result = CTFEExp.cantexp;
     }
 
-    void visit(ImportStatement s)
+    override void visit(ImportStatement s)
     {
         static if (LOG)
         {
@@ -1893,7 +1893,7 @@ public:
     }
 
     /******************************** Expression ***************************/
-    void visit(Expression e)
+    override void visit(Expression e)
     {
         static if (LOG)
         {
@@ -1905,7 +1905,7 @@ public:
         result = CTFEExp.cantexp;
     }
 
-    void visit(ThisExp e)
+    override void visit(ThisExp e)
     {
         static if (LOG)
         {
@@ -1932,12 +1932,12 @@ public:
         result = CTFEExp.cantexp;
     }
 
-    void visit(NullExp e)
+    override void visit(NullExp e)
     {
         result = e;
     }
 
-    void visit(IntegerExp e)
+    override void visit(IntegerExp e)
     {
         static if (LOG)
         {
@@ -1946,7 +1946,7 @@ public:
         result = e;
     }
 
-    void visit(RealExp e)
+    override void visit(RealExp e)
     {
         static if (LOG)
         {
@@ -1955,12 +1955,12 @@ public:
         result = e;
     }
 
-    void visit(ComplexExp e)
+    override void visit(ComplexExp e)
     {
         result = e;
     }
 
-    void visit(StringExp e)
+    override void visit(StringExp e)
     {
         static if (LOG)
         {
@@ -1972,7 +1972,7 @@ public:
         result = e;
     }
 
-    void visit(FuncExp e)
+    override void visit(FuncExp e)
     {
         static if (LOG)
         {
@@ -1981,7 +1981,7 @@ public:
         result = e;
     }
 
-    void visit(SymOffExp e)
+    override void visit(SymOffExp e)
     {
         static if (LOG)
         {
@@ -2105,7 +2105,7 @@ public:
         result = CTFEExp.cantexp;
     }
 
-    void visit(AddrExp e)
+    override void visit(AddrExp e)
     {
         static if (LOG)
         {
@@ -2129,7 +2129,7 @@ public:
         result.type = e.type;
     }
 
-    void visit(DelegateExp e)
+    override void visit(DelegateExp e)
     {
         static if (LOG)
         {
@@ -2286,7 +2286,7 @@ public:
         return e;
     }
 
-    void visit(VarExp e)
+    override void visit(VarExp e)
     {
         static if (LOG)
         {
@@ -2346,7 +2346,7 @@ public:
         }
     }
 
-    void visit(DeclarationExp e)
+    override void visit(DeclarationExp e)
     {
         static if (LOG)
         {
@@ -2460,7 +2460,7 @@ public:
         }
     }
 
-    void visit(TypeidExp e)
+    override void visit(TypeidExp e)
     {
         static if (LOG)
         {
@@ -2497,7 +2497,7 @@ public:
         visit(cast(Expression)e);
     }
 
-    void visit(TupleExp e)
+    override void visit(TupleExp e)
     {
         static if (LOG)
         {
@@ -2549,7 +2549,7 @@ public:
         return;
     }
 
-    void visit(ArrayLiteralExp e)
+    override void visit(ArrayLiteralExp e)
     {
         static if (LOG)
         {
@@ -2620,7 +2620,7 @@ public:
         result = copyLiteral(e).copy();
     }
 
-    void visit(AssocArrayLiteralExp e)
+    override void visit(AssocArrayLiteralExp e)
     {
         Expressions* keysx = e.keys;
         Expressions* valuesx = e.values;
@@ -2705,7 +2705,7 @@ public:
         result = copyLiteral(e).copy();
     }
 
-    void visit(StructLiteralExp e)
+    override void visit(StructLiteralExp e)
     {
         static if (LOG)
         {
@@ -2822,7 +2822,7 @@ public:
         return createBlockDuplicatedArrayLiteral(loc, newtype, elemType.defaultInitLiteral(loc), len);
     }
 
-    void visit(NewExp e)
+    override void visit(NewExp e)
     {
         static if (LOG)
         {
@@ -2980,7 +2980,7 @@ public:
         result = CTFEExp.cantexp;
     }
 
-    void visit(UnaExp e)
+    override void visit(UnaExp e)
     {
         static if (LOG)
         {
@@ -3013,7 +3013,7 @@ public:
         result = ue.copy();
     }
 
-    void visit(DotTypeExp e)
+    override void visit(DotTypeExp e)
     {
         static if (LOG)
         {
@@ -3162,7 +3162,7 @@ public:
         result = new IntegerExp(e.loc, cmp, e.type);
     }
 
-    void visit(BinExp e)
+    override void visit(BinExp e)
     {
         switch (e.op)
         {
@@ -4244,12 +4244,12 @@ public:
         return CTFEExp.cantexp;
     }
 
-    void visit(AssignExp e)
+    override void visit(AssignExp e)
     {
         interpretAssignCommon(e, null);
     }
 
-    void visit(BinAssignExp e)
+    override void visit(BinAssignExp e)
     {
         switch (e.op)
         {
@@ -4298,7 +4298,7 @@ public:
         }
     }
 
-    void visit(PostExp e)
+    override void visit(PostExp e)
     {
         static if (LOG)
         {
@@ -4491,7 +4491,7 @@ public:
         result = new IntegerExp(e.loc, (e.op == TOKandand) ? 0 : 1, e.type);
     }
 
-    void visit(AndAndExp e)
+    override void visit(AndAndExp e)
     {
         static if (LOG)
         {
@@ -4539,7 +4539,7 @@ public:
             result = new IntegerExp(e.loc, res, e.type);
     }
 
-    void visit(OrOrExp e)
+    override void visit(OrOrExp e)
     {
         static if (LOG)
         {
@@ -4636,7 +4636,7 @@ public:
         CtfeStatus.stackTraceCallsToSuppress = numToSuppress;
     }
 
-    void visit(CallExp e)
+    override void visit(CallExp e)
     {
         static if (LOG)
         {
@@ -4787,7 +4787,7 @@ public:
             showCtfeBackTrace(e, fd); // Print a stack trace.
     }
 
-    void visit(CommaExp e)
+    override void visit(CommaExp e)
     {
         static if (LOG)
         {
@@ -4846,7 +4846,7 @@ public:
             ctfeStack.endFrame();
     }
 
-    void visit(CondExp e)
+    override void visit(CondExp e)
     {
         static if (LOG)
         {
@@ -4875,7 +4875,7 @@ public:
         }
     }
 
-    void visit(ArrayLengthExp e)
+    override void visit(ArrayLengthExp e)
     {
         static if (LOG)
         {
@@ -4894,7 +4894,7 @@ public:
         result = new IntegerExp(e.loc, resolveArrayLength(e1), e.type);
     }
 
-    void visit(DelegatePtrExp e)
+    override void visit(DelegatePtrExp e)
     {
         static if (LOG)
         {
@@ -4908,7 +4908,7 @@ public:
         result = CTFEExp.cantexp;
     }
 
-    void visit(DelegateFuncptrExp e)
+    override void visit(DelegateFuncptrExp e)
     {
         static if (LOG)
         {
@@ -5034,7 +5034,7 @@ public:
         return true;
     }
 
-    void visit(IndexExp e)
+    override void visit(IndexExp e)
     {
         static if (LOG)
         {
@@ -5140,7 +5140,7 @@ public:
         result = paintTypeOntoLiteral(e.type, result);
     }
 
-    void visit(SliceExp e)
+    override void visit(SliceExp e)
     {
         static if (LOG)
         {
@@ -5300,7 +5300,7 @@ public:
         result.type = e.type;
     }
 
-    void visit(InExp e)
+    override void visit(InExp e)
     {
         static if (LOG)
         {
@@ -5341,7 +5341,7 @@ public:
         }
     }
 
-    void visit(CatExp e)
+    override void visit(CatExp e)
     {
         static if (LOG)
         {
@@ -5368,7 +5368,7 @@ public:
             (cast(StringExp)result).ownedByCtfe = OWNEDctfe;
     }
 
-    void visit(CastExp e)
+    override void visit(CastExp e)
     {
         static if (LOG)
         {
@@ -5578,7 +5578,7 @@ public:
         result = ctfeCast(e.loc, e.type, e.to, e1);
     }
 
-    void visit(AssertExp e)
+    override void visit(AssertExp e)
     {
         static if (LOG)
         {
@@ -5614,7 +5614,7 @@ public:
         return;
     }
 
-    void visit(PtrExp e)
+    override void visit(PtrExp e)
     {
         static if (LOG)
         {
@@ -5702,7 +5702,7 @@ public:
         }
     }
 
-    void visit(DotVarExp e)
+    override void visit(DotVarExp e)
     {
         static if (LOG)
         {
@@ -5814,7 +5814,7 @@ public:
         }
     }
 
-    void visit(RemoveExp e)
+    override void visit(RemoveExp e)
     {
         static if (LOG)
         {
@@ -5853,20 +5853,20 @@ public:
         result = new IntegerExp(e.loc, removed ? 1 : 0, Type.tbool);
     }
 
-    void visit(ClassReferenceExp e)
+    override void visit(ClassReferenceExp e)
     {
         //printf("ClassReferenceExp::interpret() %s\n", e->value->toChars());
         result = e;
     }
 
-    void visit(VoidInitExp e)
+    override void visit(VoidInitExp e)
     {
         e.error("CTFE internal error: trying to read uninitialized variable");
         assert(0);
         result = CTFEExp.cantexp;
     }
 
-    void visit(ThrownExceptionExp e)
+    override void visit(ThrownExceptionExp e)
     {
         assert(0); // This should never be interpreted
         result = e;
