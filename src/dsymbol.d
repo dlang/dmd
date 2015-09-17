@@ -1186,7 +1186,6 @@ public:
     /********************************* ScopeDsymbol ****************************/
     final extern (D) this()
     {
-        super();
     }
 
     final extern (D) this(Identifier id)
@@ -1563,7 +1562,6 @@ public:
     /****************************** WithScopeSymbol ******************************/
     extern (D) this(WithStatement withstate)
     {
-        super();
         this.withstate = withstate;
     }
 
@@ -1621,7 +1619,6 @@ public:
     /****************************** ArrayScopeSymbol ******************************/
     extern (D) this(Scope* sc, Expression e)
     {
-        super();
         assert(e.op == TOKindex || e.op == TOKslice || e.op == TOKarray);
         exp = e;
         this.sc = sc;
@@ -1629,14 +1626,12 @@ public:
 
     extern (D) this(Scope* sc, TypeTuple t)
     {
-        super();
         type = t;
         this.sc = sc;
     }
 
     extern (D) this(Scope* sc, TupleDeclaration s)
     {
-        super();
         td = s;
         this.sc = sc;
     }

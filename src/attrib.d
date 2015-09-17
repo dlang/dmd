@@ -46,7 +46,6 @@ public:
     /********************************* AttribDeclaration ****************************/
     final extern (D) this(Dsymbols* decl)
     {
-        super();
         this.decl = decl;
     }
 
