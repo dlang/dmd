@@ -32,60 +32,62 @@ import ddmd.root.port;
 import ddmd.utf;
 import ddmd.visitor;
 
-extern (C++) __gshared const(char)*[TMAX] mangleChar;
-
-extern (C++) void initTypeMangle()
-{
-    mangleChar[Tarray] = "A";
-    mangleChar[Tsarray] = "G";
-    mangleChar[Taarray] = "H";
-    mangleChar[Tpointer] = "P";
-    mangleChar[Treference] = "R";
-    mangleChar[Tfunction] = "F";
-    mangleChar[Tident] = "I";
-    mangleChar[Tclass] = "C";
-    mangleChar[Tstruct] = "S";
-    mangleChar[Tenum] = "E";
-    mangleChar[Tdelegate] = "D";
-    mangleChar[Tnone] = "n";
-    mangleChar[Tvoid] = "v";
-    mangleChar[Tint8] = "g";
-    mangleChar[Tuns8] = "h";
-    mangleChar[Tint16] = "s";
-    mangleChar[Tuns16] = "t";
-    mangleChar[Tint32] = "i";
-    mangleChar[Tuns32] = "k";
-    mangleChar[Tint64] = "l";
-    mangleChar[Tuns64] = "m";
-    mangleChar[Tint128] = "zi";
-    mangleChar[Tuns128] = "zk";
-    mangleChar[Tfloat32] = "f";
-    mangleChar[Tfloat64] = "d";
-    mangleChar[Tfloat80] = "e";
-    mangleChar[Timaginary32] = "o";
-    mangleChar[Timaginary64] = "p";
-    mangleChar[Timaginary80] = "j";
-    mangleChar[Tcomplex32] = "q";
-    mangleChar[Tcomplex64] = "r";
-    mangleChar[Tcomplex80] = "c";
-    mangleChar[Tbool] = "b";
-    mangleChar[Tchar] = "a";
-    mangleChar[Twchar] = "u";
-    mangleChar[Tdchar] = "w";
+extern (C++) __gshared const(char)*[TMAX] mangleChar =
+[
+    Tarray : "A",
+    Tsarray : "G",
+    Taarray : "H",
+    Tpointer : "P",
+    Treference : "R",
+    Tfunction : "F",
+    Tident : "I",
+    Tclass : "C",
+    Tstruct : "S",
+    Tenum : "E",
+    Tdelegate : "D",
+    Tnone : "n",
+    Tvoid : "v",
+    Tint8 : "g",
+    Tuns8 : "h",
+    Tint16 : "s",
+    Tuns16 : "t",
+    Tint32 : "i",
+    Tuns32 : "k",
+    Tint64 : "l",
+    Tuns64 : "m",
+    Tint128 : "zi",
+    Tuns128 : "zk",
+    Tfloat32 : "f",
+    Tfloat64 : "d",
+    Tfloat80 : "e",
+    Timaginary32 : "o",
+    Timaginary64 : "p",
+    Timaginary80 : "j",
+    Tcomplex32 : "q",
+    Tcomplex64 : "r",
+    Tcomplex80 : "c",
+    Tbool : "b",
+    Tchar : "a",
+    Twchar : "u",
+    Tdchar : "w",
     // '@' shouldn't appear anywhere in the deco'd names
-    mangleChar[Tinstance] = "@";
-    mangleChar[Terror] = "@";
-    mangleChar[Ttypeof] = "@";
-    mangleChar[Ttuple] = "B";
-    mangleChar[Tslice] = "@";
-    mangleChar[Treturn] = "@";
-    mangleChar[Tvector] = "@";
-    mangleChar[Tnull] = "n"; // same as TypeNone
-    for (size_t i = 0; i < TMAX; i++)
+    Tinstance : "@",
+    Terror : "@",
+    Ttypeof : "@",
+    Ttuple : "B",
+    Tslice : "@",
+    Treturn : "@",
+    Tvector : "@",
+    Tnull : "n", // same as TypeNone
+];
+
+unittest
+{
+    foreach (i, mangle; mangleChar)
     {
-        if (!mangleChar[i])
+        if (!mangle)
             fprintf(stderr, "ty = %llu\n", cast(ulong)i);
-        assert(mangleChar[i]);
+        assert(mangle);
     }
 }
 
