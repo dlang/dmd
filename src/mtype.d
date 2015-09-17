@@ -587,8 +587,32 @@ public:
     extern (C++) static __gshared ClassDeclaration typeinfowild;
     extern (C++) static __gshared TemplateDeclaration rtinfo;
     extern (C++) static __gshared Type[TMAX] basic;
-    extern (C++) static __gshared ubyte[TMAX] sizeTy;
     extern (C++) static __gshared StringTable stringtable;
+
+    extern (C++) static __gshared ubyte[TMAX] sizeTy = ()
+        {
+            ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
+            sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
+            sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
+            sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
+            sizeTy[Tpointer] = __traits(classInstanceSize, TypePointer);
+            sizeTy[Treference] = __traits(classInstanceSize, TypeReference);
+            sizeTy[Tfunction] = __traits(classInstanceSize, TypeFunction);
+            sizeTy[Tdelegate] = __traits(classInstanceSize, TypeDelegate);
+            sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
+            sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
+            sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
+            sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
+            sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
+            sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
+            sizeTy[Ttuple] = __traits(classInstanceSize, TypeTuple);
+            sizeTy[Tslice] = __traits(classInstanceSize, TypeSlice);
+            sizeTy[Treturn] = __traits(classInstanceSize, TypeReturn);
+            sizeTy[Terror] = __traits(classInstanceSize, TypeError);
+            sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
+            sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
+            return sizeTy;
+        }();
 
     final extern (D) this(TY ty)
     {
@@ -832,27 +856,6 @@ public:
     final static void _init()
     {
         stringtable._init(14000);
-        foreach (ref szty; sizeTy)
-            szty = __traits(classInstanceSize, TypeBasic);
-        sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
-        sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
-        sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
-        sizeTy[Tpointer] = __traits(classInstanceSize, TypePointer);
-        sizeTy[Treference] = __traits(classInstanceSize, TypeReference);
-        sizeTy[Tfunction] = __traits(classInstanceSize, TypeFunction);
-        sizeTy[Tdelegate] = __traits(classInstanceSize, TypeDelegate);
-        sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
-        sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
-        sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
-        sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
-        sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
-        sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
-        sizeTy[Ttuple] = __traits(classInstanceSize, TypeTuple);
-        sizeTy[Tslice] = __traits(classInstanceSize, TypeSlice);
-        sizeTy[Treturn] = __traits(classInstanceSize, TypeReturn);
-        sizeTy[Terror] = __traits(classInstanceSize, TypeError);
-        sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
-        sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
         // Set basic types
         static __gshared TY* basetab =
         [
