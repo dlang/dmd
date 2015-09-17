@@ -119,7 +119,6 @@ public:
     {
         super(ident);
         this.isPkgMod = PKGunknown;
-        this.mod = null;
     }
 
     override const(char)* kind()
@@ -352,46 +351,6 @@ public:
         const(char)* srcfilename;
         //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
         this.arg = filename;
-        md = null;
-        errors = 0;
-        numlines = 0;
-        members = null;
-        isDocFile = 0;
-        isPackageFile = false;
-        needmoduleinfo = 0;
-        selfimports = 0;
-        rootimports = 0;
-        insearch = 0;
-        searchCacheIdent = null;
-        searchCacheSymbol = null;
-        searchCacheFlags = 0;
-        decldefs = null;
-        massert = null;
-        munittest = null;
-        marray = null;
-        sictor = null;
-        sctor = null;
-        sdtor = null;
-        ssharedctor = null;
-        sshareddtor = null;
-        stest = null;
-        sfilename = null;
-        importedFrom = null;
-        srcfile = null;
-        docfile = null;
-        debuglevel = 0;
-        debugids = null;
-        debugidsNot = null;
-        versionlevel = 0;
-        versionids = null;
-        versionidsNot = null;
-        macrotable = null;
-        escapetable = null;
-        doppelganger = 0;
-        cov = null;
-        covb = null;
-        nameoffset = 0;
-        namelen = 0;
         srcfilename = FileName.defaultExt(filename, global.mars_ext);
         if (global.run_noext && global.params.run && !FileName.ext(filename) && FileName.exists(srcfilename) == 0 && FileName.exists(filename) == 1)
         {
@@ -1311,8 +1270,6 @@ struct ModuleDeclaration
         this.loc = loc;
         this.packages = packages;
         this.id = id;
-        this.isdeprecated = false;
-        this.msg = null;
     }
 
     extern (C++) char* toChars()

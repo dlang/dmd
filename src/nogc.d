@@ -36,7 +36,6 @@ public:
     extern (D) this(FuncDeclaration f)
     {
         this.f = f;
-        this.err = false;
     }
 
     void doCond(Expression exp)

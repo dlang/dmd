@@ -511,7 +511,6 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
     public:
         extern (D) this()
         {
-            this.is_top_level = false;
             this.components_on = true;
         }
 
@@ -931,7 +930,6 @@ else static if (TARGET_WINDOS)
 
         extern (D) this(VisualCPPMangler rvl)
         {
-            this.flags = 0;
             flags |= (rvl.flags & IS_DMC);
             memcpy(&saved_idents, &rvl.saved_idents, (const(char)*).sizeof * VC_SAVED_IDENT_CNT);
             memcpy(&saved_types, &rvl.saved_types, Type.sizeof * VC_SAVED_TYPE_CNT);
@@ -940,7 +938,6 @@ else static if (TARGET_WINDOS)
     public:
         extern (D) this(bool isdmc)
         {
-            this.flags = 0;
             if (isdmc)
             {
                 flags |= IS_DMC;

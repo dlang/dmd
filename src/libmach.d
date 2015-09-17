@@ -49,7 +49,6 @@ public:
 
     extern (D) this()
     {
-        libfile = null;
         tab._init(14000);
     }
 

@@ -28,11 +28,6 @@ extern (C++) TypeTuple toArgTypes(Type t)
     public:
         TypeTuple result;
 
-        extern (D) this()
-        {
-            result = null;
-        }
-
         override void visit(Type)
         {
             // not valid for a parameter

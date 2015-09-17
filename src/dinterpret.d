@@ -228,7 +228,6 @@ struct CompiledCtfeFunction
     extern (D) this(FuncDeclaration f)
     {
         func = f;
-        numVars = 0;
     }
 
     extern (C++) void onDeclaration(VarDeclaration v)
@@ -1006,7 +1005,6 @@ public:
     {
         this.istate = istate;
         this.goal = goal;
-        result = null;
     }
 
     // If e is TOKthrowexception or TOKcantexp,

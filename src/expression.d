@@ -14217,7 +14217,6 @@ public:
             {
                 this.sc = sc;
                 this.ce = ce;
-                this.vcond = null;
             }
 
             override void visit(Expression e)

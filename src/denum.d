@@ -56,15 +56,7 @@ public:
         this.loc = loc;
         type = new TypeEnum(this);
         this.memtype = memtype;
-        maxval = null;
-        minval = null;
-        defaultval = null;
-        sinit = null;
-        isdeprecated = false;
         protection = Prot(PROTundefined);
-        parent = null;
-        added = false;
-        inuse = 0;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -491,12 +483,10 @@ public:
     extern (D) this(Loc loc, Identifier id, Expression value, Type type)
     {
         super(id);
-        this.ed = null;
         this.value = value;
         this.origValue = value;
         this.type = type;
         this.loc = loc;
-        this.vd = null;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

@@ -415,16 +415,10 @@ public:
         this.origParameters = parameters;
         this.constraint = constraint;
         this.members = decldefs;
-        this.overnext = null;
-        this.overroot = null;
-        this.funcroot = null;
-        this.onemember = null;
         this.literal = literal;
         this.ismixin = ismixin;
         this.isstatic = true;
-        this.previous = null;
         this.protection = Prot(PROTundefined);
-        this.numinstances = 0;
         // Compute in advance for Ddoc's use
         // Bugzilla 11153: ident could be NULL if parsing fails.
         if (members && ident)
@@ -4343,7 +4337,6 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
         {
             this.tparams = tparams;
             this.iStart = iStart;
-            result = null;
         }
 
         override void visit(Type t)
@@ -4479,7 +4472,6 @@ public:
     {
         this.loc = loc;
         this.ident = ident;
-        this.dependent = false;
     }
 
     TemplateTypeParameter isTemplateTypeParameter()
@@ -5438,22 +5430,6 @@ public:
         }
         this.loc = loc;
         this.name = ident;
-        this.tiargs = null;
-        this.tempdecl = null;
-        this.inst = null;
-        this.tinst = null;
-        this.tnext = null;
-        this.minst = null;
-        this.deferred = null;
-        this.argsym = null;
-        this.aliasdecl = null;
-        this.semantictiargsdone = false;
-        this.nest = 0;
-        this.havetempdecl = false;
-        this.enclosing = null;
-        this.gagged = false;
-        this.hash = 0;
-        this.fargs = null;
     }
 
     /*****************
@@ -5471,20 +5447,8 @@ public:
         this.name = td.ident;
         this.tiargs = tiargs;
         this.tempdecl = td;
-        this.inst = null;
-        this.tinst = null;
-        this.tnext = null;
-        this.minst = null;
-        this.deferred = null;
-        this.argsym = null;
-        this.aliasdecl = null;
         this.semantictiargsdone = true;
-        this.nest = 0;
         this.havetempdecl = true;
-        this.enclosing = null;
-        this.gagged = false;
-        this.hash = 0;
-        this.fargs = null;
         assert(tempdecl._scope);
     }
 

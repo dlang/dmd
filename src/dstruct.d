@@ -212,17 +212,7 @@ public:
     {
         super(loc, id);
         zeroInit = 0; // assume false until we do semantic processing
-        hasIdentityAssign = false;
-        hasIdentityEquals = false;
-        postblit = null;
-        xeq = null;
-        xcmp = null;
-        xhash = null;
-        alignment = 0;
         ispod = ISPODfwd;
-        arg1type = null;
-        arg2type = null;
-        requestTypeInfo = false;
         // For forward references
         type = new TypeStruct(this);
         if (id == Id.ModuleInfo && !Module.moduleinfo)

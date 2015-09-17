@@ -113,9 +113,7 @@ public:
         p = base + begoffset;
         line = p;
         this.doDocComment = doDocComment;
-        this.anyToken = 0;
         this.commentToken = commentToken;
-        this.errors = false;
         //initKeywords();
         /* If first line starts with '#!', ignore the line
          */

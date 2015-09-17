@@ -89,7 +89,6 @@ public:
     {
         this.buf = buf;
         this.hgs = hgs;
-        this.declstring = false;
     }
 
     override void visit(Statement s)

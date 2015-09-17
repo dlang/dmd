@@ -136,7 +136,6 @@ struct Objc_FuncDeclaration
     extern (D) this(FuncDeclaration fdecl)
     {
         this.fdecl = fdecl;
-        selector = null;
     }
 }
 

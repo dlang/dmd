@@ -60,16 +60,10 @@ public:
     int hdrscan; // !=0 if inline scan for 'header' content
     bool allowAlloca;
     FuncDeclaration fd;
-    int cost;
+    int cost; // zero start for subsequent AST
 
     extern (D) this()
     {
-        nested = 0;
-        hasthis = 0;
-        hdrscan = 0;
-        allowAlloca = false;
-        fd = null;
-        cost = 0;
     }
 
     extern (D) this(InlineCostVisitor icv)
@@ -79,7 +73,6 @@ public:
         hdrscan = icv.hdrscan;
         allowAlloca = icv.allowAlloca;
         fd = icv.fd;
-        cost = 0; // zero start for subsequent AST
     }
 
     override void visit(Statement s)
@@ -412,7 +405,6 @@ extern (C++) Statement inlineAsStatement(Statement s, InlineDoState* ids)
         extern (D) this(InlineDoState* ids)
         {
             this.ids = ids;
-            result = null;
         }
 
         override void visit(Statement s)
@@ -536,7 +528,6 @@ extern (C++) Expression doInline(Statement s, InlineDoState* ids)
         extern (D) this(InlineDoState* ids)
         {
             this.ids = ids;
-            result = null;
         }
 
         override void visit(Statement s)
@@ -660,7 +651,6 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
         extern (D) this(InlineDoState* ids)
         {
             this.ids = ids;
-            result = null;
         }
 
         /******************************
@@ -1119,9 +1109,6 @@ public:
 
     extern (D) this()
     {
-        this.parent = null;
-        this.result = null;
-        this.eresult = null;
     }
 
     override void visit(Statement s)

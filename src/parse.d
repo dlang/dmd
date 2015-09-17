@@ -245,11 +245,7 @@ public:
             scanloc.filename = filename;
         }
         mod = _module;
-        md = null;
         linkage = LINKd;
-        endloc = Loc();
-        inBrackets = 0;
-        lookingForElse = Loc();
         //nextToken();              // start up the scanner
     }
 
@@ -258,11 +254,7 @@ public:
         super(_module ? _module.srcfile.toChars() : null, base, 0, length, doDocComment, 0);
         //printf("Parser::Parser()\n");
         mod = _module;
-        md = null;
         linkage = LINKd;
-        endloc = Loc();
-        inBrackets = 0;
-        lookingForElse = Loc();
         //nextToken();              // start up the scanner
     }
 

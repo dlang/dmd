@@ -378,7 +378,6 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
         extern (D) this(Array!(d_uns64)* _data, d_uns64 _sz_size_t)
         {
             this.data = _data;
-            this.offset = 0;
             this.sz_size_t = _sz_size_t;
         }
 
