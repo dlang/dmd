@@ -598,7 +598,6 @@ public:
     const(char)* kind()
     {
         assert(false); // should be overridden
-        return null;
     }
 
     final Type copy()
@@ -613,7 +612,6 @@ public:
         print();
         fprintf(stderr, "ty = %d\n", ty);
         assert(0);
-        return this;
     }
 
     bool equals(RootObject o)
@@ -3416,7 +3414,6 @@ public:
             break;
         default:
             assert(0);
-            break;
         }
         //printf("TypeBasic::size() = %d\n", size);
         return size;
@@ -7926,10 +7923,10 @@ public:
             {
                 assert(0); // cannot find a case where this happens; leave
                 // assert in until we do
-                ScopeExp se = cast(ScopeExp)de.e1;
-                s = se.sds.search(e.loc, ident);
-                e = de.e1;
-                goto L1;
+                // ScopeExp se = cast(ScopeExp)de.e1;
+                // s = se.sds.search(e.loc, ident);
+                // e = de.e1;
+                // goto L1;
             }
         }
         s = sym.search(e.loc, ident);

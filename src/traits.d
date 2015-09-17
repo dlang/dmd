@@ -1296,7 +1296,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("unrecognized trait '%s'", e.ident.toChars());
         return new ErrorExp();
     }
-    return null;
+    assert(0);
 Ldimerror:
     e.error("wrong number of arguments %d", cast(int)dim);
     return new ErrorExp();

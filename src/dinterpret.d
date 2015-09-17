@@ -2228,7 +2228,6 @@ public:
                         // var should have been initialized when it was created
                         error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
-                        return CTFEExp.cantexp;
                     }
                     e = v._init.toExpression();
                 }
@@ -3227,7 +3226,6 @@ public:
         default:
             printf("be = '%s' %s at [%s]\n", Token.toChars(e.op), e.toChars(), e.loc.toChars());
             assert(0);
-            return;
         }
     }
 
@@ -3768,7 +3766,6 @@ public:
                     break;
                 default:
                     assert(0);
-                    break;
                 }
                 return null;
             }
@@ -4034,7 +4031,6 @@ public:
                     break;
                 default:
                     assert(0);
-                    break;
                 }
             }
             if (goal == ctfeNeedNothing)
@@ -4294,7 +4290,6 @@ public:
             return;
         default:
             assert(0);
-            return;
         }
     }
 
@@ -4362,7 +4357,7 @@ public:
         case TOKlt:
             return TOKge;
         default:
-            return assert(0), TOKreserved;
+            assert(0);
         }
     }
 
@@ -5082,7 +5077,6 @@ public:
                 if (goal == ctfeNeedLvalue && e1.type.ty == Taarray && e.modifiable)
                 {
                     assert(0); // does not reach here?
-                    return;
                 }
                 e.error("cannot index null array %s", e.e1.toChars());
                 result = CTFEExp.cantexp;
@@ -5863,13 +5857,11 @@ public:
     {
         e.error("CTFE internal error: trying to read uninitialized variable");
         assert(0);
-        result = CTFEExp.cantexp;
     }
 
     void visit(ThrownExceptionExp e)
     {
         assert(0); // This should never be interpreted
-        result = e;
     }
 }
 
@@ -6576,7 +6568,6 @@ extern (C++) Expression evaluatePostblit(InterState* istate, Expression e)
         return null;
     }
     assert(0);
-    return null;
 }
 
 extern (C++) Expression evaluateDtor(InterState* istate, Expression e)

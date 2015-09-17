@@ -436,7 +436,6 @@ public:
     Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(0);
-        return null;
     }
 
     const(char)* kind()
@@ -2364,7 +2363,6 @@ public:
     final Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(0); // should never be produced by syntax
-        return null;
     }
 
     final void semantic(Scope* sc)
@@ -2808,7 +2806,6 @@ public:
     Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(0); // should never be produced by syntax
-        return null;
     }
 
     ThisDeclaration isThisDeclaration()

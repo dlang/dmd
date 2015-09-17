@@ -39,21 +39,18 @@ struct ObjcSelector
     {
         printf("Should never be called when D_OBJC is false\n");
         assert(0);
-        return null;
     }
 
     extern (C++) static ObjcSelector* lookup(const(char)* s, size_t len, size_t pcount)
     {
         printf("Should never be called when D_OBJC is false\n");
         assert(0);
-        return null;
     }
 
     extern (C++) static ObjcSelector* create(FuncDeclaration fdecl)
     {
         printf("Should never be called when D_OBJC is false\n");
         assert(0);
-        return null;
     }
 }
 
@@ -104,7 +101,6 @@ extern (C++) bool objc_isUdaSelector(StructDeclaration sd)
 {
     printf("Should never be called when D_OBJC is false\n");
     assert(0);
-    return false;
 }
 
 extern (C++) void objc_FuncDeclaration_semantic_validateSelector(FuncDeclaration fd)

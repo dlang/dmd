@@ -4415,7 +4415,6 @@ public:
             break;
         default:
             assert(0);
-            break;
         }
         return value;
     }

@@ -658,7 +658,6 @@ struct FileName
         else
         {
             assert(0);
-            return null;
         }
     }
 

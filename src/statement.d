@@ -123,7 +123,6 @@ public:
     Statement syntaxCopy()
     {
         assert(0);
-        return null;
     }
 
     final void print()
@@ -273,7 +272,6 @@ public:
                 printf("Statement::blockExit(%p)\n", s);
                 printf("%s\n", s.toChars());
                 assert(0);
-                result = BEany;
             }
 
             void visit(ErrorStatement s)

@@ -1194,7 +1194,6 @@ public:
             break;
         default:
             assert(0);
-            break;
         }
         buf.writestring("extern (");
         buf.writestring(p);
@@ -3062,7 +3061,6 @@ extern (C++) const(char)* trustToChars(TRUST trust)
     default:
         assert(0);
     }
-    return null; // never reached
 }
 
 extern (C++) void linkageToBuffer(OutBuffer* buf, LINK linkage)
@@ -3097,7 +3095,6 @@ extern (C++) const(char)* linkageToChars(LINK linkage)
     default:
         assert(0);
     }
-    return null; // never reached
 }
 
 extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
@@ -3134,7 +3131,6 @@ extern (C++) const(char)* protectionToChars(PROTKIND kind)
     default:
         assert(0);
     }
-    return null; // never reached
 }
 
 // Print the full function signature with correct ident, attributes and template args

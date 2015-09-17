@@ -1688,7 +1688,7 @@ public:
                 default:
                     goto Lnomatch;
                 }
-                ++argi;
+                assert(0);
             }
             //printf("-> argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
             if (argi != nfargs2 && !fvarargs)
@@ -2976,7 +2976,6 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         return MATCHnomatch;
     default:
         assert(0);
-        return MATCHnomatch; // silence compiler warning about missing return
     }
 }
 
@@ -3364,8 +3363,6 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 }
             }
             visit(cast(Type)t);
-            return;
-            result = MATCHnomatch;
         }
 
         void visit(TypeAArray t)
