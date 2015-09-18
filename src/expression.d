@@ -2343,18 +2343,18 @@ public:
     }
 
     // kludge for template.isExpression()
-    final int dyncast()
+    override final int dyncast()
     {
         return DYNCAST_EXPRESSION;
     }
 
-    final void print()
+    override final void print()
     {
         fprintf(stderr, "%s\n", toChars());
         fflush(stderr);
     }
 
-    char* toChars()
+    override char* toChars()
     {
         OutBuffer buf;
         HdrGenState hgs;
@@ -3172,7 +3172,7 @@ public:
         this.value = cast(d_int32)value;
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -3187,7 +3187,7 @@ public:
         return false;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         assert(type);
         if (type.ty == Terror)
@@ -3197,13 +3197,13 @@ public:
         return this;
     }
 
-    dinteger_t toInteger()
+    override dinteger_t toInteger()
     {
         normalize(); // necessary until we fix all the paints of 'type'
         return value;
     }
 
-    real_t toReal()
+    override real_t toReal()
     {
         normalize(); // necessary until we fix all the paints of 'type'
         Type t = type.toBasetype();
@@ -3213,23 +3213,23 @@ public:
             return ldouble(cast(d_int64)value);
     }
 
-    real_t toImaginary()
+    override real_t toImaginary()
     {
         return ldouble(0);
     }
 
-    complex_t toComplex()
+    override complex_t toComplex()
     {
         return cast(complex_t)toReal();
     }
 
-    bool isBool(bool result)
+    override bool isBool(bool result)
     {
         bool r = toInteger() != 0;
         return result ? r : !r;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         if (!e)
             e = this;
@@ -3239,7 +3239,7 @@ public:
         return new ErrorExp();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3319,12 +3319,12 @@ public:
         type = Type.terror;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3346,7 +3346,7 @@ public:
         this.type = type;
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -3361,7 +3361,7 @@ public:
         return false;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (!type)
             type = Type.tfloat64;
@@ -3370,37 +3370,37 @@ public:
         return this;
     }
 
-    dinteger_t toInteger()
+    override dinteger_t toInteger()
     {
         return cast(sinteger_t)toReal();
     }
 
-    uinteger_t toUInteger()
+    override uinteger_t toUInteger()
     {
         return cast(uinteger_t)toReal();
     }
 
-    real_t toReal()
+    override real_t toReal()
     {
         return type.isreal() ? value : ldouble(0);
     }
 
-    real_t toImaginary()
+    override real_t toImaginary()
     {
         return type.isreal() ? ldouble(0) : value;
     }
 
-    complex_t toComplex()
+    override complex_t toComplex()
     {
         return complex_t(toReal(), toImaginary());
     }
 
-    bool isBool(bool result)
+    override bool isBool(bool result)
     {
         return result ? (value != 0) : (value == 0);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3420,7 +3420,7 @@ public:
         //printf("ComplexExp::ComplexExp(%s)\n", toChars());
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -3435,7 +3435,7 @@ public:
         return false;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (!type)
             type = Type.tcomplex80;
@@ -3444,32 +3444,32 @@ public:
         return this;
     }
 
-    dinteger_t toInteger()
+    override dinteger_t toInteger()
     {
         return cast(sinteger_t)toReal();
     }
 
-    uinteger_t toUInteger()
+    override uinteger_t toUInteger()
     {
         return cast(uinteger_t)toReal();
     }
 
-    real_t toReal()
+    override real_t toReal()
     {
         return creall(value);
     }
 
-    real_t toImaginary()
+    override real_t toImaginary()
     {
         return cimagl(value);
     }
 
-    complex_t toComplex()
+    override complex_t toComplex()
     {
         return value;
     }
 
-    bool isBool(bool result)
+    override bool isBool(bool result)
     {
         if (result)
             return cast(bool)value;
@@ -3477,7 +3477,7 @@ public:
             return !value;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3501,7 +3501,7 @@ public:
         return new IdentifierExp(loc, ident);
     }
 
-    final Expression semantic(Scope* sc)
+    override final Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -3627,17 +3627,17 @@ public:
         return new ErrorExp();
     }
 
-    final bool isLvalue()
+    override final bool isLvalue()
     {
         return true;
     }
 
-    final Expression toLvalue(Scope* sc, Expression e)
+    override final Expression toLvalue(Scope* sc, Expression e)
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3652,7 +3652,7 @@ public:
         super(loc, Id.dollar);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3672,7 +3672,7 @@ public:
         this.hasOverloads = hasOverloads;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -3868,17 +3868,17 @@ public:
         return new ErrorExp();
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         return true;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3896,7 +3896,7 @@ public:
         //printf("ThisExp::ThisExp() loc = %d\n", loc.linnum);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -3948,19 +3948,19 @@ public:
         return new ErrorExp();
     }
 
-    final bool isBool(bool result)
+    override final bool isBool(bool result)
     {
         return result ? true : false;
     }
 
-    final bool isLvalue()
+    override final bool isLvalue()
     {
         // Class `this` should be an rvalue; struct `this` should be an lvalue.
         // Need to deprecate the old behavior first, see Bugzilla 14262.
         return true;
     }
 
-    final Expression toLvalue(Scope* sc, Expression e)
+    override final Expression toLvalue(Scope* sc, Expression e)
     {
         if (type.toBasetype().ty == Tclass)
         {
@@ -3974,7 +3974,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3990,7 +3990,7 @@ public:
         op = TOKsuper;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -4062,7 +4062,7 @@ public:
         return new ErrorExp();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4080,7 +4080,7 @@ public:
         this.type = type;
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (o && o.dyncast() == DYNCAST_EXPRESSION)
         {
@@ -4093,7 +4093,7 @@ public:
         return false;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -4106,12 +4106,12 @@ public:
         return this;
     }
 
-    bool isBool(bool result)
+    override bool isBool(bool result)
     {
         return result ? false : true;
     }
 
-    StringExp toStringExp()
+    override StringExp toStringExp()
     {
         if (implicitConvTo(Type.tstring))
         {
@@ -4122,7 +4122,7 @@ public:
         return null;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4166,7 +4166,7 @@ public:
         return new StringExp(loc, s);
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         //printf("StringExp::equals('%s') %s\n", o->toChars(), toChars());
         if (o && o.dyncast() == DYNCAST_EXPRESSION)
@@ -4180,7 +4180,7 @@ public:
         return false;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -4303,7 +4303,7 @@ public:
         return result;
     }
 
-    StringExp toStringExp()
+    override StringExp toStringExp()
     {
         return this;
     }
@@ -4327,7 +4327,7 @@ public:
         return this;
     }
 
-    int compare(RootObject obj)
+    override int compare(RootObject obj)
     {
         //printf("StringExp::compare()\n");
         // Used to sort case statement expressions so we can do an efficient lookup
@@ -4374,12 +4374,12 @@ public:
         return cast(int)(len1 - len2);
     }
 
-    bool isBool(bool result)
+    override bool isBool(bool result)
     {
         return result ? true : false;
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         /* string literal is rvalue in default, but
          * conversion to reference of static array is only allowed.
@@ -4387,13 +4387,13 @@ public:
         return (type && type.toBasetype().ty == Tsarray);
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         //printf("StringExp::toLvalue(%s) type = %s\n", toChars(), type ? type->toChars() : NULL);
         return (type && type.toBasetype().ty == Tsarray) ? this : Expression.toLvalue(sc, e);
     }
 
-    Expression modifiableLvalue(Scope* sc, Expression e)
+    override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         error("cannot modify string literal %s", toChars());
         return new ErrorExp();
@@ -4419,7 +4419,7 @@ public:
         return value;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4489,12 +4489,12 @@ public:
         }
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new TupleExp(loc, e0 ? e0.syntaxCopy() : null, arraySyntaxCopy(exps));
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -4517,7 +4517,7 @@ public:
         return false;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -4552,7 +4552,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4579,12 +4579,12 @@ public:
         elements.push(e);
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new ArrayLiteralExp(loc, arraySyntaxCopy(elements));
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -4609,7 +4609,7 @@ public:
         return false;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -4641,13 +4641,13 @@ public:
         return this;
     }
 
-    bool isBool(bool result)
+    override bool isBool(bool result)
     {
         size_t dim = elements ? elements.dim : 0;
         return result ? (dim != 0) : (dim == 0);
     }
 
-    StringExp toStringExp()
+    override StringExp toStringExp()
     {
         TY telem = type.nextOf().toBasetype().ty;
         if (telem == Tchar || telem == Twchar || telem == Tdchar || (telem == Tvoid && (!elements || elements.dim == 0)))
@@ -4698,7 +4698,7 @@ public:
         return null;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4721,7 +4721,7 @@ public:
         this.values = values;
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -4748,12 +4748,12 @@ public:
         return false;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new AssocArrayLiteralExp(loc, arraySyntaxCopy(keys), arraySyntaxCopy(values));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -4787,13 +4787,13 @@ public:
         return this;
     }
 
-    bool isBool(bool result)
+    override bool isBool(bool result)
     {
         size_t dim = keys.dim;
         return result ? (dim != 0) : (dim == 0);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4856,7 +4856,7 @@ public:
         return new StructLiteralExp(loc, sd, cast(Expressions*)elements, stype);
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -4879,14 +4879,14 @@ public:
         return false;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         auto exp = new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), type ? type : stype);
         exp.origin = this;
         return exp;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -5000,7 +5000,7 @@ public:
         return -1;
     }
 
-    Expression addDtorHook(Scope* sc)
+    override Expression addDtorHook(Scope* sc)
     {
         /* If struct requires a destructor, rewrite as:
          *    (S tmp = S()),tmp
@@ -5028,7 +5028,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5046,12 +5046,12 @@ public:
         this.type = type;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new TypeExp(loc, type.syntaxCopy());
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         //printf("TypeExp::semantic(%s)\n", type->toChars());
         Expression e;
@@ -5082,13 +5082,13 @@ public:
         return e;
     }
 
-    bool checkValue()
+    override bool checkValue()
     {
         error("type %s has no value", toChars());
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5109,12 +5109,12 @@ public:
         this.sds = pkg;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new ScopeExp(loc, cast(ScopeDsymbol)sds.syntaxCopy(null));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -5206,7 +5206,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5228,12 +5228,12 @@ public:
         this.fd = fd;
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         return fd !is null;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         if (!fd)
             return Expression.toLvalue(sc, e);
@@ -5243,13 +5243,13 @@ public:
         return ex;
     }
 
-    bool checkValue()
+    override bool checkValue()
     {
         error("template %s has no value", toChars());
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5280,12 +5280,12 @@ public:
         this.arguments = arguments;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new NewExp(loc, thisexp ? thisexp.syntaxCopy() : null, arraySyntaxCopy(newargs), newtype.syntaxCopy(), arraySyntaxCopy(arguments));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -5645,7 +5645,7 @@ public:
         return new ErrorExp();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5671,12 +5671,12 @@ public:
         this.arguments = arguments;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new NewAnonClassExp(loc, thisexp ? thisexp.syntaxCopy() : null, arraySyntaxCopy(newargs), cast(ClassDeclaration)cd.syntaxCopy(null), arraySyntaxCopy(arguments));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -5699,7 +5699,7 @@ public:
         return c.semantic(sc);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5720,7 +5720,7 @@ public:
         this.hasOverloads = hasOverloads;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5742,7 +5742,7 @@ public:
             error("need 'this' for address of %s", v.toChars());
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -5764,12 +5764,12 @@ public:
         return this;
     }
 
-    bool isBool(bool result)
+    override bool isBool(bool result)
     {
         return result ? true : false;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5793,7 +5793,7 @@ public:
         return new VarExp(loc, var, hasOverloads);
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -5808,7 +5808,7 @@ public:
         return false;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -5853,7 +5853,7 @@ public:
         return this;
     }
 
-    int checkModifiable(Scope* sc, int flag)
+    override int checkModifiable(Scope* sc, int flag)
     {
         //printf("VarExp::checkModifiable %s", toChars());
         assert(type);
@@ -5862,14 +5862,14 @@ public:
 
     bool checkReadModifyWrite();
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         if (var.storage_class & (STClazy | STCrvalue | STCmanifest))
             return false;
         return true;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         if (var.storage_class & STCmanifest)
         {
@@ -5894,7 +5894,7 @@ public:
         return this;
     }
 
-    Expression modifiableLvalue(Scope* sc, Expression e)
+    override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
         if (var.storage_class & STCmanifest)
@@ -5906,7 +5906,7 @@ public:
         return Expression.modifiableLvalue(sc, e);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5927,17 +5927,17 @@ public:
         type = Type.tvoid;
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         return true;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6013,7 +6013,7 @@ public:
         }
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         if (td)
             return new FuncExp(loc, td.syntaxCopy(null));
@@ -6023,7 +6023,7 @@ public:
             return new FuncExp(loc, fd);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -6311,12 +6311,12 @@ public:
         return m;
     }
 
-    char* toChars()
+    override char* toChars()
     {
         return fd.toChars();
     }
 
-    bool checkValue()
+    override bool checkValue()
     {
         if (td)
         {
@@ -6326,7 +6326,7 @@ public:
         return false;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6348,12 +6348,12 @@ public:
         this.declaration = declaration;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new DeclarationExp(loc, declaration.syntaxCopy(null));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -6446,7 +6446,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6467,12 +6467,12 @@ public:
         this.obj = o;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new TypeidExp(loc, objectSyntaxCopy(obj));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -6535,7 +6535,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6558,17 +6558,17 @@ public:
         this.args = args;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new TraitsExp(loc, ident, TemplateInstance.arraySyntaxCopy(args));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         return semanticTraits(this, sc);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6583,7 +6583,7 @@ public:
         super(loc, TOKhalt, __traits(classInstanceSize, HaltExp));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -6593,7 +6593,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6624,7 +6624,7 @@ public:
         this.parameters = parameters;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         // This section is identical to that in TemplateDeclaration::syntaxCopy()
         TemplateParameters* p = null;
@@ -6638,7 +6638,7 @@ public:
         return new IsExp(loc, targ.syntaxCopy(), id, tok, tspec ? tspec.syntaxCopy() : null, tok2, p);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         /* is(targ id tok tspec)
          * is(targ id :  tok2)
@@ -6918,7 +6918,7 @@ public:
         return new IntegerExp(loc, 0, Type.tbool);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6938,7 +6938,7 @@ public:
         this.e1 = e1;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         UnaExp e = cast(UnaExp)copy();
         e.type = null;
@@ -6946,7 +6946,7 @@ public:
         return e;
     }
 
-    abstract Expression semantic(Scope* sc);
+    override abstract Expression semantic(Scope* sc);
 
     /**************************
      * Helper function for easy error propagation.
@@ -6965,13 +6965,13 @@ public:
         return null;
     }
 
-    final Expression resolveLoc(Loc loc, Scope* sc)
+    override final Expression resolveLoc(Loc loc, Scope* sc)
     {
         e1 = e1.resolveLoc(loc, sc);
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6996,7 +6996,7 @@ public:
         this.e2 = e2;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         BinExp e = cast(BinExp)copy();
         e.type = null;
@@ -7005,7 +7005,7 @@ public:
         return e;
     }
 
-    abstract Expression semantic(Scope* sc);
+    override abstract Expression semantic(Scope* sc);
 
     /**************************
      * Helper function for easy error propagation.
@@ -7271,7 +7271,7 @@ public:
         return Expression.combine(de, be);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7286,7 +7286,7 @@ public:
     }
 
     /********************** BinAssignExp **************************************/
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -7359,24 +7359,24 @@ public:
         return (cast(BinExp)e).reorderSettingAAElem(sc);
     }
 
-    final bool isLvalue()
+    override final bool isLvalue()
     {
         return true;
     }
 
-    final Expression toLvalue(Scope* sc, Expression ex)
+    override final Expression toLvalue(Scope* sc, Expression ex)
     {
         // Lvalue-ness will be handled in glue layer.
         return this;
     }
 
-    final Expression modifiableLvalue(Scope* sc, Expression e)
+    override final Expression modifiableLvalue(Scope* sc, Expression e)
     {
         // should check e1->checkModifiable() ?
         return toLvalue(sc, this);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7392,7 +7392,7 @@ public:
         super(loc, TOKmixin, __traits(classInstanceSize, CompileExp), e);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -7435,7 +7435,7 @@ public:
         return e.semantic(sc);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7450,7 +7450,7 @@ public:
         super(loc, TOKmixin, __traits(classInstanceSize, FileExp), e);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         const(char)* name;
         StringExp se;
@@ -7524,7 +7524,7 @@ public:
         return new ErrorExp();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7542,12 +7542,12 @@ public:
         this.msg = msg;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new AssertExp(loc, e1.syntaxCopy(), msg ? msg.syntaxCopy() : null);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -7592,7 +7592,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7615,7 +7615,7 @@ public:
         return new DotIdExp(loc, e, ident);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -7970,7 +7970,7 @@ public:
         }
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7989,14 +7989,14 @@ public:
         this.td = td;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (Expression ex = unaSemantic(sc))
             return ex;
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -8017,7 +8017,7 @@ public:
         this.hasOverloads = hasOverloads;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -8153,7 +8153,7 @@ public:
         return this;
     }
 
-    int checkModifiable(Scope* sc, int flag)
+    override int checkModifiable(Scope* sc, int flag)
     {
         //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type->toChars());
         if (e1.op == TOKthis)
@@ -8164,18 +8164,18 @@ public:
 
     bool checkReadModifyWrite();
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         return true;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         //printf("DotVarExp::toLvalue(%s)\n", toChars());
         return this;
     }
 
-    Expression modifiableLvalue(Scope* sc, Expression e)
+    override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         version (none)
         {
@@ -8186,7 +8186,7 @@ public:
         return Expression.modifiableLvalue(sc, e);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -8215,7 +8215,7 @@ public:
         this.ti = ti;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new DotTemplateInstanceExp(loc, e1.syntaxCopy(), ti.name, TemplateInstance.arraySyntaxCopy(ti.tiargs));
     }
@@ -8256,7 +8256,7 @@ public:
         return ti.updateTempDecl(sc, s);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -8471,7 +8471,7 @@ public:
         return new ErrorExp();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -8491,7 +8491,7 @@ public:
         this.hasOverloads = hasOverloads;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -8515,7 +8515,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -8534,7 +8534,7 @@ public:
         this.type = s.getType();
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -8545,7 +8545,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -8607,12 +8607,12 @@ public:
         return new CallExp(loc, e, earg1);
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -9411,7 +9411,7 @@ public:
         return combine(argprefix, this);
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         Type tb = e1.type.toBasetype();
         if (tb.ty == Tdelegate || tb.ty == Tpointer)
@@ -9426,14 +9426,14 @@ public:
         return false;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         if (isLvalue())
             return this;
         return Expression.toLvalue(sc, e);
     }
 
-    Expression addDtorHook(Scope* sc)
+    override Expression addDtorHook(Scope* sc)
     {
         /* Only need to add dtor hook if it's a type that needs destruction.
          * Use same logic as VarDeclaration::callScopeDtor()
@@ -9466,7 +9466,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9481,7 +9481,7 @@ public:
         super(loc, TOKaddress, __traits(classInstanceSize, AddrExp), e);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -9653,7 +9653,7 @@ public:
         return optimize(WANTvalue);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9676,7 +9676,7 @@ public:
         type = t;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -9709,7 +9709,7 @@ public:
         return this;
     }
 
-    int checkModifiable(Scope* sc, int flag)
+    override int checkModifiable(Scope* sc, int flag)
     {
         if (e1.op == TOKsymoff)
         {
@@ -9724,23 +9724,23 @@ public:
         return 1;
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         return true;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         return this;
     }
 
-    Expression modifiableLvalue(Scope* sc, Expression e)
+    override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         //printf("PtrExp::modifiableLvalue() %s, type %s\n", toChars(), type->toChars());
         return Expression.modifiableLvalue(sc, e);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9755,7 +9755,7 @@ public:
         super(loc, TOKneg, __traits(classInstanceSize, NegExp), e);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -9784,7 +9784,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9799,7 +9799,7 @@ public:
         super(loc, TOKuadd, __traits(classInstanceSize, UAddExp), e);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -9816,7 +9816,7 @@ public:
         return e1;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9831,7 +9831,7 @@ public:
         super(loc, TOKtilde, __traits(classInstanceSize, ComExp), e);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -9856,7 +9856,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9871,7 +9871,7 @@ public:
         super(loc, TOKnot, __traits(classInstanceSize, NotExp), e);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -9889,7 +9889,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9905,7 +9905,7 @@ public:
         type = t;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -9920,7 +9920,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9935,7 +9935,7 @@ public:
         super(loc, TOKdelete, __traits(classInstanceSize, DeleteExp), e);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (Expression ex = unaSemantic(sc))
             return ex;
@@ -10033,13 +10033,13 @@ public:
         return new ErrorExp();
     }
 
-    Expression toBoolean(Scope* sc)
+    override Expression toBoolean(Scope* sc)
     {
         error("delete does not give a boolean result");
         return new ErrorExp();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10067,12 +10067,12 @@ public:
         this.mod = mod;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return to ? new CastExp(loc, e1.syntaxCopy(), to.syntaxCopy()) : new CastExp(loc, e1.syntaxCopy(), mod);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -10200,7 +10200,7 @@ public:
         return ex;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10220,12 +10220,12 @@ public:
         to = cast(TypeVector)t;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new VectorExp(loc, e1.syntaxCopy(), to.syntaxCopy());
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -10245,7 +10245,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10275,14 +10275,14 @@ public:
         this.lwr = lwr;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         auto se = new SliceExp(loc, e1.syntaxCopy(), lwr ? lwr.syntaxCopy() : null, upr ? upr.syntaxCopy() : null);
         se.lengthVar = this.lengthVar; // bug7871
         return se;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -10501,7 +10501,7 @@ public:
         return this;
     }
 
-    int checkModifiable(Scope* sc, int flag)
+    override int checkModifiable(Scope* sc, int flag)
     {
         //printf("SliceExp::checkModifiable %s\n", toChars());
         if (e1.type.ty == Tsarray || (e1.op == TOKindex && e1.type.ty != Tarray) || e1.op == TOKslice)
@@ -10511,7 +10511,7 @@ public:
         return 1;
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         /* slice expression is rvalue in default, but
          * conversion to reference of static array is only allowed.
@@ -10519,24 +10519,24 @@ public:
         return (type && type.toBasetype().ty == Tsarray);
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         //printf("SliceExp::toLvalue(%s) type = %s\n", toChars(), type ? type->toChars() : NULL);
         return (type && type.toBasetype().ty == Tsarray) ? this : Expression.toLvalue(sc, e);
     }
 
-    Expression modifiableLvalue(Scope* sc, Expression e)
+    override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         error("slice expression %s is not a modifiable lvalue", toChars());
         return this;
     }
 
-    bool isBool(bool result)
+    override bool isBool(bool result)
     {
         return e1.isBool(result);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10551,7 +10551,7 @@ public:
         super(loc, TOKarraylength, __traits(classInstanceSize, ArrayLengthExp), e1);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -10603,7 +10603,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10633,14 +10633,14 @@ public:
         arguments = args;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         auto ae = new ArrayExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments));
         ae.lengthVar = this.lengthVar; // bug7871
         return ae;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -10657,21 +10657,21 @@ public:
         return new ErrorExp();
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         if (type && type.toBasetype().ty == Tvoid)
             return false;
         return true;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         if (type && type.toBasetype().ty == Tvoid)
             error("voids have no value");
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10687,7 +10687,7 @@ public:
         super(loc, TOKdotexp, __traits(classInstanceSize, DotExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -10715,7 +10715,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10730,7 +10730,7 @@ public:
         super(loc, TOKcomma, __traits(classInstanceSize, CommaExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -10741,40 +10741,40 @@ public:
         return this;
     }
 
-    int checkModifiable(Scope* sc, int flag)
+    override int checkModifiable(Scope* sc, int flag)
     {
         return e2.checkModifiable(sc, flag);
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         return e2.isLvalue();
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         e2 = e2.toLvalue(sc, null);
         return this;
     }
 
-    Expression modifiableLvalue(Scope* sc, Expression e)
+    override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         e2 = e2.modifiableLvalue(sc, e);
         return this;
     }
 
-    bool isBool(bool result)
+    override bool isBool(bool result)
     {
         return e2.isBool(result);
     }
 
-    Expression addDtorHook(Scope* sc)
+    override Expression addDtorHook(Scope* sc)
     {
         e2 = e2.addDtorHook(sc);
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10795,12 +10795,12 @@ public:
         this.upr = upr;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new IntervalExp(loc, lwr.syntaxCopy(), upr.syntaxCopy());
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -10824,7 +10824,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10839,7 +10839,7 @@ public:
         super(loc, TOKdelegateptr, __traits(classInstanceSize, DelegatePtrExp), e1);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -10856,18 +10856,18 @@ public:
         return this;
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         return e1.isLvalue();
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         e1 = e1.toLvalue(sc, e);
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10882,7 +10882,7 @@ public:
         super(loc, TOKdelegatefuncptr, __traits(classInstanceSize, DelegateFuncptrExp), e1);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -10899,18 +10899,18 @@ public:
         return this;
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         return e1.isLvalue();
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         e1 = e1.toLvalue(sc, e);
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -10931,14 +10931,14 @@ public:
         //printf("IndexExp::IndexExp('%s')\n", toChars());
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         auto ie = new IndexExp(loc, e1.syntaxCopy(), e2.syntaxCopy());
         ie.lengthVar = this.lengthVar; // bug7871
         return ie;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -11109,7 +11109,7 @@ public:
         return this;
     }
 
-    int checkModifiable(Scope* sc, int flag)
+    override int checkModifiable(Scope* sc, int flag)
     {
         if (e1.type.ty == Tsarray || e1.type.ty == Taarray || (e1.op == TOKindex && e1.type.ty != Tarray) || e1.op == TOKslice)
         {
@@ -11118,17 +11118,17 @@ public:
         return 1;
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         return true;
     }
 
-    Expression toLvalue(Scope* sc, Expression e)
+    override Expression toLvalue(Scope* sc, Expression e)
     {
         return this;
     }
 
-    Expression modifiableLvalue(Scope* sc, Expression e)
+    override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         //printf("IndexExp::modifiableLvalue(%s)\n", toChars());
         Expression ex = markSettingAAElem();
@@ -11159,7 +11159,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -11176,7 +11176,7 @@ public:
         super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -11254,7 +11254,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -11271,7 +11271,7 @@ public:
         super(loc, op, __traits(classInstanceSize, PreExp), e);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         Expression e = op_overload(sc);
         // printf("PreExp::semantic('%s')\n", toChars());
@@ -11285,7 +11285,7 @@ public:
         return e.semantic(sc);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -11305,7 +11305,7 @@ public:
         super(loc, TOKassign, __traits(classInstanceSize, AssignExp), e1, e2);
     }
 
-    final Expression semantic(Scope* sc)
+    override final Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -12124,7 +12124,7 @@ public:
         return op == TOKassign ? reorderSettingAAElem(sc) : this;
     }
 
-    final bool isLvalue()
+    override final bool isLvalue()
     {
         // Array-op 'x[] = y[]' should make an rvalue.
         // Setting array length 'x.length = v' should make an rvalue.
@@ -12135,7 +12135,7 @@ public:
         return true;
     }
 
-    final Expression toLvalue(Scope* sc, Expression ex)
+    override final Expression toLvalue(Scope* sc, Expression ex)
     {
         if (e1.op == TOKslice || e1.op == TOKarraylength)
         {
@@ -12148,7 +12148,7 @@ public:
         return this;
     }
 
-    final Expression toBoolean(Scope* sc)
+    override final Expression toBoolean(Scope* sc)
     {
         // Things like:
         //  if (a = b) ...
@@ -12157,7 +12157,7 @@ public:
         return new ErrorExp();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12173,7 +12173,7 @@ public:
         op = TOKconstruct;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12189,7 +12189,7 @@ public:
         op = TOKblit;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12204,7 +12204,7 @@ public:
         super(loc, TOKaddass, __traits(classInstanceSize, AddAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12219,7 +12219,7 @@ public:
         super(loc, TOKminass, __traits(classInstanceSize, MinAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12234,7 +12234,7 @@ public:
         super(loc, TOKmulass, __traits(classInstanceSize, MulAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12249,7 +12249,7 @@ public:
         super(loc, TOKdivass, __traits(classInstanceSize, DivAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12264,7 +12264,7 @@ public:
         super(loc, TOKmodass, __traits(classInstanceSize, ModAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12279,7 +12279,7 @@ public:
         super(loc, TOKandass, __traits(classInstanceSize, AndAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12294,7 +12294,7 @@ public:
         super(loc, TOKorass, __traits(classInstanceSize, OrAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12309,7 +12309,7 @@ public:
         super(loc, TOKxorass, __traits(classInstanceSize, XorAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12324,7 +12324,7 @@ public:
         super(loc, TOKpowass, __traits(classInstanceSize, PowAssignExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -12392,7 +12392,7 @@ public:
         return incompatibleTypes();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12407,7 +12407,7 @@ public:
         super(loc, TOKshlass, __traits(classInstanceSize, ShlAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12422,7 +12422,7 @@ public:
         super(loc, TOKshrass, __traits(classInstanceSize, ShrAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12437,7 +12437,7 @@ public:
         super(loc, TOKushrass, __traits(classInstanceSize, UshrAssignExp), e1, e2);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12452,7 +12452,7 @@ public:
         super(loc, TOKcatass, __traits(classInstanceSize, CatAssignExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -12513,7 +12513,7 @@ public:
         return reorderSettingAAElem(sc);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12528,7 +12528,7 @@ public:
         super(loc, TOKadd, __traits(classInstanceSize, AddExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -12602,7 +12602,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12617,7 +12617,7 @@ public:
         super(loc, TOKmin, __traits(classInstanceSize, MinExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -12721,7 +12721,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12736,7 +12736,7 @@ public:
         super(loc, TOKcat, __traits(classInstanceSize, CatExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         //printf("CatExp::semantic() %s\n", toChars());
         if (type)
@@ -12887,7 +12887,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12902,7 +12902,7 @@ public:
         super(loc, TOKmul, __traits(classInstanceSize, MulExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         version (none)
         {
@@ -12982,7 +12982,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -12997,7 +12997,7 @@ public:
         super(loc, TOKdiv, __traits(classInstanceSize, DivExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -13074,7 +13074,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13089,7 +13089,7 @@ public:
         super(loc, TOKmod, __traits(classInstanceSize, ModExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -13128,7 +13128,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13143,7 +13143,7 @@ public:
         super(loc, TOKpow, __traits(classInstanceSize, PowExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -13227,7 +13227,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13261,7 +13261,7 @@ public:
         super(loc, TOKshl, __traits(classInstanceSize, ShlExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         //printf("ShlExp::semantic(), type = %p\n", type);
         if (type)
@@ -13283,7 +13283,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13298,7 +13298,7 @@ public:
         super(loc, TOKshr, __traits(classInstanceSize, ShrExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -13319,7 +13319,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13334,7 +13334,7 @@ public:
         super(loc, TOKushr, __traits(classInstanceSize, UshrExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -13355,7 +13355,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13370,7 +13370,7 @@ public:
         super(loc, TOKand, __traits(classInstanceSize, AndExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -13401,7 +13401,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13416,7 +13416,7 @@ public:
         super(loc, TOKor, __traits(classInstanceSize, OrExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -13447,7 +13447,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13462,7 +13462,7 @@ public:
         super(loc, TOKxor, __traits(classInstanceSize, XorExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -13493,7 +13493,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13508,7 +13508,7 @@ public:
         super(loc, TOKoror, __traits(classInstanceSize, OrOrExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         // same as for AndAnd
         e1 = e1.semantic(sc);
@@ -13547,13 +13547,13 @@ public:
         return this;
     }
 
-    Expression toBoolean(Scope* sc)
+    override Expression toBoolean(Scope* sc)
     {
         e2 = e2.toBoolean(sc);
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13568,7 +13568,7 @@ public:
         super(loc, TOKandand, __traits(classInstanceSize, AndAndExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         // same as for OrOr
         e1 = e1.semantic(sc);
@@ -13607,13 +13607,13 @@ public:
         return this;
     }
 
-    Expression toBoolean(Scope* sc)
+    override Expression toBoolean(Scope* sc)
     {
         e2 = e2.toBoolean(sc);
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13628,7 +13628,7 @@ public:
         super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -13769,7 +13769,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13784,7 +13784,7 @@ public:
         super(loc, TOKin, __traits(classInstanceSize, InExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -13818,7 +13818,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13836,14 +13836,14 @@ public:
         type = Type.tbool;
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (Expression ex = binSemantic(sc))
             return ex;
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -13860,7 +13860,7 @@ public:
         assert(op == TOKequal || op == TOKnotequal);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         //printf("EqualExp::semantic('%s')\n", toChars());
         if (type)
@@ -14011,7 +14011,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -14027,7 +14027,7 @@ public:
         super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
@@ -14047,7 +14047,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -14066,12 +14066,12 @@ public:
         this.econd = econd;
     }
 
-    Expression syntaxCopy()
+    override Expression syntaxCopy()
     {
         return new CondExp(loc, econd.syntaxCopy(), e1.syntaxCopy(), e2.syntaxCopy());
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
@@ -14167,17 +14167,17 @@ public:
         return this;
     }
 
-    int checkModifiable(Scope* sc, int flag)
+    override int checkModifiable(Scope* sc, int flag)
     {
         return e1.checkModifiable(sc, flag) && e2.checkModifiable(sc, flag);
     }
 
-    bool isLvalue()
+    override bool isLvalue()
     {
         return e1.isLvalue() && e2.isLvalue();
     }
 
-    Expression toLvalue(Scope* sc, Expression ex)
+    override Expression toLvalue(Scope* sc, Expression ex)
     {
         // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
         CondExp e = cast(CondExp)copy();
@@ -14187,7 +14187,7 @@ public:
         return new PtrExp(loc, e, type);
     }
 
-    Expression modifiableLvalue(Scope* sc, Expression e)
+    override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         //error("conditional expression %s is not a modifiable lvalue", toChars());
         e1 = e1.modifiableLvalue(sc, e1);
@@ -14195,7 +14195,7 @@ public:
         return toLvalue(sc, this);
     }
 
-    Expression toBoolean(Scope* sc)
+    override Expression toBoolean(Scope* sc)
     {
         e1 = e1.toBoolean(sc);
         e2 = e2.toBoolean(sc);
@@ -14220,12 +14220,12 @@ public:
                 this.vcond = null;
             }
 
-            void visit(Expression e)
+            override void visit(Expression e)
             {
                 //printf("(e = %s)\n", e->toChars());
             }
 
-            void visit(DeclarationExp e)
+            override void visit(DeclarationExp e)
             {
                 VarDeclaration v = e.declaration.isVarDeclaration();
                 if (v && !v.noscope && !v.isDataseg())
@@ -14270,7 +14270,7 @@ public:
         //printf("-%s\n", toChars());
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -14289,7 +14289,7 @@ public:
         this.subop = subop;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -14304,14 +14304,14 @@ public:
         super(loc, TOKfile, __traits(classInstanceSize, FileInitExp));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         //printf("FileInitExp::semantic()\n");
         type = Type.tstring;
         return this;
     }
 
-    Expression resolveLoc(Loc loc, Scope* sc)
+    override Expression resolveLoc(Loc loc, Scope* sc)
     {
         //printf("FileInitExp::resolve() %s\n", toChars());
         const(char)* s = loc.filename ? loc.filename : sc._module.ident.toChars();
@@ -14321,7 +14321,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -14336,20 +14336,20 @@ public:
         super(loc, TOKline, __traits(classInstanceSize, LineInitExp));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         type = Type.tint32;
         return this;
     }
 
-    Expression resolveLoc(Loc loc, Scope* sc)
+    override Expression resolveLoc(Loc loc, Scope* sc)
     {
         Expression e = new IntegerExp(loc, loc.linnum, Type.tint32);
         e = e.castTo(sc, type);
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -14364,14 +14364,14 @@ public:
         super(loc, TOKmodulestring, __traits(classInstanceSize, ModuleInitExp));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         //printf("ModuleInitExp::semantic()\n");
         type = Type.tstring;
         return this;
     }
 
-    Expression resolveLoc(Loc loc, Scope* sc)
+    override Expression resolveLoc(Loc loc, Scope* sc)
     {
         const(char)* s;
         if (sc.callsc)
@@ -14384,7 +14384,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -14399,7 +14399,7 @@ public:
         super(loc, TOKfuncstring, __traits(classInstanceSize, FuncInitExp));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         //printf("FuncInitExp::semantic()\n");
         type = Type.tstring;
@@ -14408,7 +14408,7 @@ public:
         return this;
     }
 
-    Expression resolveLoc(Loc loc, Scope* sc)
+    override Expression resolveLoc(Loc loc, Scope* sc)
     {
         const(char)* s;
         if (sc.callsc && sc.callsc.func)
@@ -14423,7 +14423,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -14438,7 +14438,7 @@ public:
         super(loc, TOKprettyfunc, __traits(classInstanceSize, PrettyFuncInitExp));
     }
 
-    Expression semantic(Scope* sc)
+    override Expression semantic(Scope* sc)
     {
         //printf("PrettyFuncInitExp::semantic()\n");
         type = Type.tstring;
@@ -14447,7 +14447,7 @@ public:
         return this;
     }
 
-    Expression resolveLoc(Loc loc, Scope* sc)
+    override Expression resolveLoc(Loc loc, Scope* sc)
     {
         FuncDeclaration fd;
         if (sc.callsc && sc.callsc.func)
@@ -14472,7 +14472,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

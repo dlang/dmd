@@ -122,7 +122,7 @@ public:
         this.mod = null;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "package";
     }
@@ -187,7 +187,7 @@ public:
         return dst;
     }
 
-    final Package isPackage()
+    override final Package isPackage()
     {
         return this;
     }
@@ -218,11 +218,11 @@ public:
         return false;
     }
 
-    final void semantic(Scope* sc)
+    override final void semantic(Scope* sc)
     {
     }
 
-    Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         if (!isModule() && mod)
         {
@@ -236,7 +236,7 @@ public:
         return ScopeDsymbol.search(loc, ident, flags);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -472,7 +472,7 @@ public:
         return m;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "module";
     }
@@ -918,7 +918,7 @@ public:
         return this;
     }
 
-    void importAll(Scope* prevsc)
+    override void importAll(Scope* prevsc)
     {
         //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         if (_scope)
@@ -1084,7 +1084,7 @@ public:
         return needmoduleinfo || global.params.cov;
     }
 
-    Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         /* Since modules can be circularly referenced,
          * need to stop infinite recursive searches.
@@ -1114,7 +1114,7 @@ public:
         return s;
     }
 
-    Dsymbol symtabInsert(Dsymbol s)
+    override Dsymbol symtabInsert(Dsymbol s)
     {
         searchCacheIdent = null; // symbol is inserted, so invalidate cache
         return Package.symtabInsert(s);
@@ -1286,12 +1286,12 @@ public:
     Symbol* munittest; // module unittest failure function
     Symbol* marray; // module array bounds function
 
-    Module isModule()
+    override Module isModule()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

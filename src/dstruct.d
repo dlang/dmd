@@ -67,41 +67,41 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
     public:
         Scope* sc;
 
-        void visit(Type t)
+        override void visit(Type t)
         {
             Type tb = t.toBasetype();
             if (tb != t)
                 tb.accept(this);
         }
 
-        void visit(TypeNext t)
+        override void visit(TypeNext t)
         {
             if (t.next)
                 t.next.accept(this);
         }
 
-        void visit(TypeBasic t)
+        override void visit(TypeBasic t)
         {
         }
 
-        void visit(TypeVector t)
+        override void visit(TypeVector t)
         {
             t.basetype.accept(this);
         }
 
-        void visit(TypeAArray t)
+        override void visit(TypeAArray t)
         {
             t.index.accept(this);
             visit(cast(TypeNext)t);
         }
 
-        void visit(TypeFunction t)
+        override void visit(TypeFunction t)
         {
             visit(cast(TypeNext)t);
             // Currently TypeInfo_Function doesn't store parameter types.
         }
 
-        void visit(TypeStruct t)
+        override void visit(TypeStruct t)
         {
             StructDeclaration sd = t.sym;
             if (!sd.members)
@@ -137,11 +137,11 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
                 sd.requestTypeInfo = true;
         }
 
-        void visit(TypeClass t)
+        override void visit(TypeClass t)
         {
         }
 
-        void visit(TypeTuple t)
+        override void visit(TypeTuple t)
         {
             if (t.arguments)
             {
@@ -229,13 +229,13 @@ public:
             Module.moduleinfo = this;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         StructDeclaration sd = s ? cast(StructDeclaration)s : new StructDeclaration(loc, ident);
         return ScopeDsymbol.syntaxCopy(sd);
     }
 
-    final void semantic(Scope* sc)
+    override final void semantic(Scope* sc)
     {
         //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
         //static int count; if (++count == 20) assert(0);
@@ -486,7 +486,7 @@ public:
         }
     }
 
-    final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("%s.StructDeclaration::search('%s')\n", toChars(), ident->toChars());
         if (_scope && !symtab)
@@ -499,12 +499,12 @@ public:
         return ScopeDsymbol.search(loc, ident, flags);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "struct";
     }
 
-    final void finalizeSize(Scope* sc)
+    override final void finalizeSize(Scope* sc)
     {
         //printf("StructDeclaration::finalizeSize() %s\n", toChars());
         if (sizeok != SIZEOKnone)
@@ -708,12 +708,12 @@ public:
         return (ispod == ISPODyes);
     }
 
-    final StructDeclaration isStructDeclaration()
+    override final StructDeclaration isStructDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -728,24 +728,24 @@ public:
         super(loc, id);
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ud = new UnionDeclaration(loc, ident);
         return StructDeclaration.syntaxCopy(ud);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "union";
     }
 
-    UnionDeclaration isUnionDeclaration()
+    override UnionDeclaration isUnionDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

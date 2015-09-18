@@ -153,7 +153,7 @@ extern (C++) final class ParamSection : Section
 public:
     /***************************************************
      */
-    void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
+    override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
         Dsymbol s = (*a)[0]; // test
@@ -300,7 +300,7 @@ extern (C++) final class MacroSection : Section
 public:
     /***************************************************
      */
-    void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
+    override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         //printf("MacroSection::write()\n");
         DocComment.parseMacros(dc.pescapetable, dc.pmacrotable, _body, bodylen);
@@ -769,35 +769,35 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             this.sc = sc;
         }
 
-        void visit(Dsymbol)
+        override void visit(Dsymbol)
         {
         }
 
-        void visit(InvariantDeclaration)
+        override void visit(InvariantDeclaration)
         {
         }
 
-        void visit(UnitTestDeclaration)
+        override void visit(UnitTestDeclaration)
         {
         }
 
-        void visit(PostBlitDeclaration)
+        override void visit(PostBlitDeclaration)
         {
         }
 
-        void visit(DtorDeclaration)
+        override void visit(DtorDeclaration)
         {
         }
 
-        void visit(StaticCtorDeclaration)
+        override void visit(StaticCtorDeclaration)
         {
         }
 
-        void visit(StaticDtorDeclaration)
+        override void visit(StaticDtorDeclaration)
         {
         }
 
-        void visit(TypeInfoDeclaration)
+        override void visit(TypeInfoDeclaration)
         {
         }
 
@@ -850,7 +850,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
         }
 
-        void visit(Declaration d)
+        override void visit(Declaration d)
         {
             //printf("Declaration::emitComment(%p '%s'), comment = '%s'\n", d, d->toChars(), d->comment);
             //printf("type = %p\n", d->type);
@@ -876,7 +876,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             emit(sc, d, com);
         }
 
-        void visit(AggregateDeclaration ad)
+        override void visit(AggregateDeclaration ad)
         {
             //printf("AggregateDeclaration::emitComment() '%s'\n", ad->toChars());
             const(char)* com = ad.comment;
@@ -899,7 +899,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             emit(sc, ad, com);
         }
 
-        void visit(TemplateDeclaration td)
+        override void visit(TemplateDeclaration td)
         {
             //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", td->toChars(), td->kind());
             if (td.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
@@ -914,7 +914,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             emit(sc, td, td.comment);
         }
 
-        void visit(EnumDeclaration ed)
+        override void visit(EnumDeclaration ed)
         {
             if (ed.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
                 return;
@@ -934,7 +934,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             emit(sc, ed, ed.comment);
         }
 
-        void visit(EnumMember em)
+        override void visit(EnumMember em)
         {
             //printf("EnumMember::emitComment(%p '%s'), comment = '%s'\n", em, em->toChars(), em->comment);
             if (em.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
@@ -944,7 +944,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             emit(sc, em, em.comment);
         }
 
-        void visit(AttribDeclaration ad)
+        override void visit(AttribDeclaration ad)
         {
             //printf("AttribDeclaration::emitComment(sc = %p)\n", sc);
             /* A general problem with this, illustrated by BUGZILLA 2516,
@@ -966,7 +966,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
         }
 
-        void visit(ProtDeclaration pd)
+        override void visit(ProtDeclaration pd)
         {
             if (pd.decl)
             {
@@ -979,7 +979,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
         }
 
-        void visit(ConditionalDeclaration cd)
+        override void visit(ConditionalDeclaration cd)
         {
             //printf("ConditionalDeclaration::emitComment(sc = %p)\n", sc);
             if (cd.condition.inc)
@@ -1022,7 +1022,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             this.sc = sc;
         }
 
-        void visit(Dsymbol s)
+        override void visit(Dsymbol s)
         {
             //printf("Dsymbol::toDocbuffer() %s\n", s->toChars());
             HdrGenState hgs;
@@ -1057,7 +1057,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
         }
 
-        void visit(Declaration d)
+        override void visit(Declaration d)
         {
             if (!d.ident)
                 return;
@@ -1106,7 +1106,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             buf.writestring(";\n");
         }
 
-        void visit(AliasDeclaration ad)
+        override void visit(AliasDeclaration ad)
         {
             //printf("AliasDeclaration::toDocbuffer() %s\n", ad->toChars());
             if (!ad.ident)
@@ -1182,7 +1182,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
         }
 
-        void visit(AggregateDeclaration ad)
+        override void visit(AggregateDeclaration ad)
         {
             if (!ad.ident)
                 return;
@@ -1194,7 +1194,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             buf.writestring(";\n");
         }
 
-        void visit(StructDeclaration sd)
+        override void visit(StructDeclaration sd)
         {
             //printf("StructDeclaration::toDocbuffer() %s\n", sd->toChars());
             if (!sd.ident)
@@ -1214,7 +1214,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             buf.writestring(";\n");
         }
 
-        void visit(ClassDeclaration cd)
+        override void visit(ClassDeclaration cd)
         {
             //printf("ClassDeclaration::toDocbuffer() %s\n", cd->toChars());
             if (!cd.ident)
@@ -1262,7 +1262,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             buf.writestring(";\n");
         }
 
-        void visit(EnumDeclaration ed)
+        override void visit(EnumDeclaration ed)
         {
             if (!ed.ident)
                 return;
@@ -1277,7 +1277,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             buf.writestring(";\n");
         }
 
-        void visit(EnumMember em)
+        override void visit(EnumMember em)
         {
             if (!em.ident)
                 return;

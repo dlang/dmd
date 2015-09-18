@@ -45,11 +45,11 @@ public:
             walkPostorder(exp, this);
     }
 
-    void visit(Expression e)
+    override void visit(Expression e)
     {
     }
 
-    void visit(DeclarationExp e)
+    override void visit(DeclarationExp e)
     {
         // Note that, walkPostorder does not support DeclarationExp today.
         VarDeclaration v = e.declaration.isVarDeclaration();
@@ -62,11 +62,11 @@ public:
         }
     }
 
-    void visit(CallExp e)
+    override void visit(CallExp e)
     {
     }
 
-    void visit(ArrayLiteralExp e)
+    override void visit(ArrayLiteralExp e)
     {
         if (e.type.ty != Tarray || !e.elements || !e.elements.dim)
             return;
@@ -79,7 +79,7 @@ public:
         f.printGCUsage(e.loc, "array literal may cause GC allocation");
     }
 
-    void visit(AssocArrayLiteralExp e)
+    override void visit(AssocArrayLiteralExp e)
     {
         if (!e.keys.dim)
             return;
@@ -92,7 +92,7 @@ public:
         f.printGCUsage(e.loc, "associative array literal may cause GC allocation");
     }
 
-    void visit(NewExp e)
+    override void visit(NewExp e)
     {
         if (e.member && !e.member.isNogc() && f.setGC())
         {
@@ -112,7 +112,7 @@ public:
         f.printGCUsage(e.loc, "'new' causes GC allocation");
     }
 
-    void visit(DeleteExp e)
+    override void visit(DeleteExp e)
     {
         if (e.e1.op == TOKvar)
         {
@@ -129,7 +129,7 @@ public:
         f.printGCUsage(e.loc, "'delete' requires GC");
     }
 
-    void visit(IndexExp e)
+    override void visit(IndexExp e)
     {
         Type t1b = e.e1.type.toBasetype();
         if (t1b.ty == Taarray)
@@ -144,7 +144,7 @@ public:
         }
     }
 
-    void visit(AssignExp e)
+    override void visit(AssignExp e)
     {
         if (e.e1.op == TOKarraylength)
         {
@@ -158,7 +158,7 @@ public:
         }
     }
 
-    void visit(CatAssignExp e)
+    override void visit(CatAssignExp e)
     {
         if (f.setGC())
         {
@@ -169,7 +169,7 @@ public:
         f.printGCUsage(e.loc, "operator ~= may cause GC allocation");
     }
 
-    void visit(CatExp e)
+    override void visit(CatExp e)
     {
         if (f.setGC())
         {

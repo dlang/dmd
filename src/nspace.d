@@ -36,13 +36,13 @@ public:
         this.members = members;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         auto ns = new Nspace(loc, ident, null);
         return ScopeDsymbol.syntaxCopy(ns);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         if (semanticRun >= PASSsemantic)
             return;
@@ -108,7 +108,7 @@ public:
         }
     }
 
-    void semantic2(Scope* sc)
+    override void semantic2(Scope* sc)
     {
         if (semanticRun >= PASSsemantic2)
             return;
@@ -139,7 +139,7 @@ public:
         }
     }
 
-    void semantic3(Scope* sc)
+    override void semantic3(Scope* sc)
     {
         if (semanticRun >= PASSsemantic3)
             return;
@@ -161,12 +161,12 @@ public:
         }
     }
 
-    bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         return Dsymbol.oneMember(ps, ident);
     }
 
-    int apply(Dsymbol_apply_ft_t fp, void* param)
+    override int apply(Dsymbol_apply_ft_t fp, void* param)
     {
         if (members)
         {
@@ -183,7 +183,7 @@ public:
         return 0;
     }
 
-    bool hasPointers()
+    override bool hasPointers()
     {
         //printf("Nspace::hasPointers() %s\n", toChars());
         if (members)
@@ -201,7 +201,7 @@ public:
         return false;
     }
 
-    void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
+    override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         //printf("Nspace::setFieldOffset() %s\n", toChars());
         if (_scope) // if fwd reference
@@ -217,17 +217,17 @@ public:
         }
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "namespace";
     }
 
-    Nspace isNspace()
+    override Nspace isNspace()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

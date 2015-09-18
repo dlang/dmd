@@ -614,7 +614,7 @@ public:
         assert(0);
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         Type t = cast(Type)o;
         //printf("Type::equals(%s, %s)\n", toChars(), t->toChars());
@@ -635,7 +635,7 @@ public:
     }
 
     // kludge for template.isType()
-    final int dyncast()
+    override final int dyncast()
     {
         return DYNCAST_TYPE;
     }
@@ -804,7 +804,7 @@ public:
     /********************************
      * For pretty-printing a type.
      */
-    char* toChars()
+    override char* toChars()
     {
         OutBuffer buf;
         buf.reserve(16);
@@ -2897,38 +2897,38 @@ public:
         super(Terror);
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         // No semantic analysis done, no need to copy
         return this;
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         return SIZE_INVALID;
     }
 
-    Expression getProperty(Loc loc, Identifier ident, int flag)
+    override Expression getProperty(Loc loc, Identifier ident, int flag)
     {
         return new ErrorExp();
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         return new ErrorExp();
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         return new ErrorExp();
     }
 
-    Expression defaultInitLiteral(Loc loc)
+    override Expression defaultInitLiteral(Loc loc)
     {
         return new ErrorExp();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -2946,14 +2946,14 @@ public:
         this.next = next;
     }
 
-    final void checkDeprecated(Loc loc, Scope* sc)
+    override final void checkDeprecated(Loc loc, Scope* sc)
     {
         Type.checkDeprecated(loc, sc);
         if (next) // next can be NULL if TypeFunction and auto return type
             next.checkDeprecated(loc, sc);
     }
 
-    final int hasWild()
+    override final int hasWild()
     {
         if (ty == Tfunction)
             return 0;
@@ -2967,12 +2967,12 @@ public:
      * type is meant to be inferred, and semantic() hasn't yet ben run
      * on the function. After semantic(), it must no longer be NULL.
      */
-    final Type nextOf()
+    override final Type nextOf()
     {
         return next;
     }
 
-    final Type makeConst()
+    override final Type makeConst()
     {
         //printf("TypeNext::makeConst() %p, %s\n", this, toChars());
         if (cto)
@@ -3002,7 +3002,7 @@ public:
         return t;
     }
 
-    final Type makeImmutable()
+    override final Type makeImmutable()
     {
         //printf("TypeNext::makeImmutable() %s\n", toChars());
         if (ito)
@@ -3018,7 +3018,7 @@ public:
         return t;
     }
 
-    final Type makeShared()
+    override final Type makeShared()
     {
         //printf("TypeNext::makeShared() %s\n", toChars());
         if (sto)
@@ -3048,7 +3048,7 @@ public:
         return t;
     }
 
-    final Type makeSharedConst()
+    override final Type makeSharedConst()
     {
         //printf("TypeNext::makeSharedConst() %s\n", toChars());
         if (scto)
@@ -3068,7 +3068,7 @@ public:
         return t;
     }
 
-    final Type makeWild()
+    override final Type makeWild()
     {
         //printf("TypeNext::makeWild() %s\n", toChars());
         if (wto)
@@ -3098,7 +3098,7 @@ public:
         return t;
     }
 
-    final Type makeWildConst()
+    override final Type makeWildConst()
     {
         //printf("TypeNext::makeWildConst() %s\n", toChars());
         if (wcto)
@@ -3118,7 +3118,7 @@ public:
         return t;
     }
 
-    final Type makeSharedWild()
+    override final Type makeSharedWild()
     {
         //printf("TypeNext::makeSharedWild() %s\n", toChars());
         if (swto)
@@ -3138,7 +3138,7 @@ public:
         return t;
     }
 
-    final Type makeSharedWildConst()
+    override final Type makeSharedWildConst()
     {
         //printf("TypeNext::makeSharedWildConst() %s\n", toChars());
         if (swcto)
@@ -3155,7 +3155,7 @@ public:
         return t;
     }
 
-    final Type makeMutable()
+    override final Type makeMutable()
     {
         //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
         TypeNext t = cast(TypeNext)Type.makeMutable();
@@ -3167,7 +3167,7 @@ public:
         return t;
     }
 
-    MATCH constConv(Type to)
+    override MATCH constConv(Type to)
     {
         //printf("TypeNext::constConv from = %s, to = %s\n", toChars(), to->toChars());
         if (equals(to))
@@ -3193,7 +3193,7 @@ public:
         return m;
     }
 
-    final ubyte deduceWild(Type t, bool isRef)
+    override final ubyte deduceWild(Type t, bool isRef)
     {
         if (ty == Tfunction)
             return 0;
@@ -3221,7 +3221,7 @@ public:
         next = next.addMod(mod);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3343,18 +3343,18 @@ public:
         merge();
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return dstring;
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         // No semantic analysis done on basic types, no need to copy
         return this;
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         uint size;
         //printf("TypeBasic::size()\n");
@@ -3418,12 +3418,12 @@ public:
         return size;
     }
 
-    uint alignsize()
+    override uint alignsize()
     {
         return Target.alignsize(this);
     }
 
-    Expression getProperty(Loc loc, Identifier ident, int flag)
+    override Expression getProperty(Loc loc, Identifier ident, int flag)
     {
         Expression e;
         dinteger_t ivalue;
@@ -3791,7 +3791,7 @@ public:
         return e;
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
         {
@@ -3888,43 +3888,43 @@ public:
         return e;
     }
 
-    bool isintegral()
+    override bool isintegral()
     {
         //printf("TypeBasic::isintegral('%s') x%x\n", toChars(), flags);
         return (flags & TFLAGSintegral) != 0;
     }
 
-    bool isfloating()
+    override bool isfloating()
     {
         return (flags & TFLAGSfloating) != 0;
     }
 
-    bool isreal()
+    override bool isreal()
     {
         return (flags & TFLAGSreal) != 0;
     }
 
-    bool isimaginary()
+    override bool isimaginary()
     {
         return (flags & TFLAGSimaginary) != 0;
     }
 
-    bool iscomplex()
+    override bool iscomplex()
     {
         return (flags & TFLAGScomplex) != 0;
     }
 
-    bool isscalar()
+    override bool isscalar()
     {
         return (flags & (TFLAGSintegral | TFLAGSfloating)) != 0;
     }
 
-    bool isunsigned()
+    override bool isunsigned()
     {
         return (flags & TFLAGSunsigned) != 0;
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         //printf("TypeBasic::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
         if (this == to)
@@ -3993,7 +3993,7 @@ public:
         return MATCHconvert;
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -4035,7 +4035,7 @@ public:
         return new IntegerExp(loc, value, this);
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         switch (ty)
         {
@@ -4058,12 +4058,12 @@ public:
     }
 
     // For eliminating dynamic_cast
-    TypeBasic isTypeBasic()
+    override TypeBasic isTypeBasic()
     {
         return cast(TypeBasic)this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4086,17 +4086,17 @@ public:
         this.basetype = basetype;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "vector";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         return new TypeVector(Loc(), basetype.syntaxCopy());
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         uint errors = global.errors;
         basetype = basetype.semantic(loc, sc);
@@ -4133,22 +4133,22 @@ public:
         return merge();
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         return basetype.size();
     }
 
-    uint alignsize()
+    override uint alignsize()
     {
         return cast(uint)basetype.size();
     }
 
-    Expression getProperty(Loc loc, Identifier ident, int flag)
+    override Expression getProperty(Loc loc, Identifier ident, int flag)
     {
         return Type.getProperty(loc, ident, flag);
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
         {
@@ -4172,33 +4172,33 @@ public:
         return basetype.dotExp(sc, e.castTo(sc, basetype), ident, flag);
     }
 
-    bool isintegral()
+    override bool isintegral()
     {
         //printf("TypeVector::isintegral('%s') x%x\n", toChars(), flags);
         return basetype.nextOf().isintegral();
     }
 
-    bool isfloating()
+    override bool isfloating()
     {
         return basetype.nextOf().isfloating();
     }
 
-    bool isscalar()
+    override bool isscalar()
     {
         return basetype.nextOf().isscalar();
     }
 
-    bool isunsigned()
+    override bool isunsigned()
     {
         return basetype.nextOf().isunsigned();
     }
 
-    bool isBoolean()
+    override bool isBoolean()
     {
         return false;
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         //printf("TypeVector::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
         if (this == to)
@@ -4208,7 +4208,7 @@ public:
         return MATCHnomatch;
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         //printf("TypeVector::defaultInit()\n");
         assert(basetype.ty == Tsarray);
@@ -4219,7 +4219,7 @@ public:
         return ve;
     }
 
-    Expression defaultInitLiteral(Loc loc)
+    override Expression defaultInitLiteral(Loc loc)
     {
         //printf("TypeVector::defaultInitLiteral()\n");
         assert(basetype.ty == Tsarray);
@@ -4239,12 +4239,12 @@ public:
         return tb;
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         return basetype.isZeroInit(loc);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4259,7 +4259,7 @@ public:
         super(ty, next);
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         Type n = this.next.toBasetype(); // uncover any typedef's
         static if (LOGDOTEXP)
@@ -4384,7 +4384,7 @@ public:
         return new ErrorExp();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4404,12 +4404,12 @@ public:
         this.dim = dim;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "sarray";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         Type t = next.syntaxCopy();
         Expression e = dim.syntaxCopy();
@@ -4418,7 +4418,7 @@ public:
         return t;
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         dinteger_t sz;
         if (!dim)
@@ -4436,12 +4436,12 @@ public:
         return SIZE_INVALID;
     }
 
-    uint alignsize()
+    override uint alignsize()
     {
         return next.alignsize();
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeSArray::semantic() %s\n", toChars());
         Type t;
@@ -4558,7 +4558,7 @@ public:
         return Type.terror;
     }
 
-    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeSArray::resolve() %s\n", toChars());
         next.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -4642,7 +4642,7 @@ public:
         }
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
         {
@@ -4672,23 +4672,23 @@ public:
         return e;
     }
 
-    bool isString()
+    override bool isString()
     {
         TY nty = next.toBasetype().ty;
         return nty == Tchar || nty == Twchar || nty == Tdchar;
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         return next.isZeroInit(loc);
     }
 
-    structalign_t alignment()
+    override structalign_t alignment()
     {
         return next.alignment();
     }
 
-    MATCH constConv(Type to)
+    override MATCH constConv(Type to)
     {
         if (to.ty == Tsarray)
         {
@@ -4699,7 +4699,7 @@ public:
         return TypeNext.constConv(to);
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
         if (to.ty == Tarray)
@@ -4744,7 +4744,7 @@ public:
         return MATCHnomatch;
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -4756,7 +4756,7 @@ public:
             return next.defaultInit(loc);
     }
 
-    Expression defaultInitLiteral(Loc loc)
+    override Expression defaultInitLiteral(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -4777,7 +4777,7 @@ public:
         return ae;
     }
 
-    Expression toExpression()
+    override Expression toExpression()
     {
         Expression e = next.toExpression();
         if (e)
@@ -4785,7 +4785,7 @@ public:
         return e;
     }
 
-    bool hasPointers()
+    override bool hasPointers()
     {
         /* Don't want to do this, because:
          *    struct S { T* array[0]; }
@@ -4802,7 +4802,7 @@ public:
             return next.hasPointers();
     }
 
-    bool needsDestruction()
+    override bool needsDestruction()
     {
         return next.needsDestruction();
     }
@@ -4810,12 +4810,12 @@ public:
     /*********************************
      *
      */
-    bool needsNested()
+    override bool needsNested()
     {
         return next.needsNested();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4832,12 +4832,12 @@ public:
         //printf("TypeDArray(t = %p)\n", t);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "darray";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         Type t = next.syntaxCopy();
         if (t == next)
@@ -4850,20 +4850,20 @@ public:
         return t;
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         //printf("TypeDArray::size()\n");
         return Target.ptrsize * 2;
     }
 
-    uint alignsize()
+    override uint alignsize()
     {
         // A DArray consists of two ptr-sized values, so align it on pointer size
         // boundary
         return Target.ptrsize;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         Type tn = next.semantic(loc, sc);
         Type tbn = tn.toBasetype();
@@ -4890,7 +4890,7 @@ public:
         return merge();
     }
 
-    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeDArray::resolve() %s\n", toChars());
         next.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -4921,7 +4921,7 @@ public:
         }
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
         {
@@ -4957,23 +4957,23 @@ public:
         return e;
     }
 
-    bool isString()
+    override bool isString()
     {
         TY nty = next.toBasetype().ty;
         return nty == Tchar || nty == Twchar || nty == Tdchar;
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    bool isBoolean()
+    override bool isBoolean()
     {
         return true;
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
         if (equals(to))
@@ -5000,7 +5000,7 @@ public:
         return Type.implicitConvTo(to);
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -5009,12 +5009,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    bool hasPointers()
+    override bool hasPointers()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5040,12 +5040,12 @@ public:
         return new TypeAArray(t, index);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "aarray";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         Type t = next.syntaxCopy();
         Type ti = index.syntaxCopy();
@@ -5059,12 +5059,12 @@ public:
         return t;
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeAArray::semantic() %s index->ty = %d\n", toChars(), index->ty);
         if (deco)
@@ -5245,7 +5245,7 @@ public:
         return merge();
     }
 
-    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeAArray::resolve() %s\n", toChars());
         // Deal with the case where we thought the index was a type, but
@@ -5272,7 +5272,7 @@ public:
         Type.resolve(loc, sc, pe, pt, ps, intypeid);
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
         {
@@ -5300,7 +5300,7 @@ public:
         return e;
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -5309,17 +5309,17 @@ public:
         return new NullExp(loc, this);
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    bool isBoolean()
+    override bool isBoolean()
     {
         return true;
     }
 
-    Expression toExpression()
+    override Expression toExpression()
     {
         Expression e = next.toExpression();
         if (e)
@@ -5331,12 +5331,12 @@ public:
         return null;
     }
 
-    bool hasPointers()
+    override bool hasPointers()
     {
         return true;
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
         if (equals(to))
@@ -5358,7 +5358,7 @@ public:
         return Type.implicitConvTo(to);
     }
 
-    MATCH constConv(Type to)
+    override MATCH constConv(Type to)
     {
         if (to.ty == Taarray)
         {
@@ -5371,7 +5371,7 @@ public:
         return Type.constConv(to);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5386,12 +5386,12 @@ public:
         super(Tpointer, t);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "pointer";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         Type t = next.syntaxCopy();
         if (t == next)
@@ -5404,7 +5404,7 @@ public:
         return t;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypePointer::semantic() %s\n", toChars());
         if (deco)
@@ -5444,12 +5444,12 @@ public:
         }
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize;
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         //printf("TypePointer::implicitConvTo(to = %s) %s\n", to->toChars(), toChars());
         if (equals(to))
@@ -5512,7 +5512,7 @@ public:
         return MATCHnomatch;
     }
 
-    MATCH constConv(Type to)
+    override MATCH constConv(Type to)
     {
         if (next.ty == Tfunction)
         {
@@ -5524,12 +5524,12 @@ public:
         return TypeNext.constConv(to);
     }
 
-    bool isscalar()
+    override bool isscalar()
     {
         return true;
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -5538,17 +5538,17 @@ public:
         return new NullExp(loc, this);
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    bool hasPointers()
+    override bool hasPointers()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5564,12 +5564,12 @@ public:
         // BUG: what about references to static arrays?
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "reference";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         Type t = next.syntaxCopy();
         if (t == next)
@@ -5582,7 +5582,7 @@ public:
         return t;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeReference::semantic()\n");
         Type n = next.semantic(loc, sc);
@@ -5593,12 +5593,12 @@ public:
         return merge();
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize;
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
         {
@@ -5608,7 +5608,7 @@ public:
         return next.dotExp(sc, e, ident, flag);
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -5617,12 +5617,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5729,12 +5729,12 @@ public:
         return new TypeFunction(parameters, treturn, varargs, linkage, stc);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "function";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         Type treturn = next ? next.syntaxCopy() : null;
         Parameters* params = Parameter.arraySyntaxCopy(parameters);
@@ -5752,7 +5752,7 @@ public:
         return t;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         if (deco) // if semantic() already run
         {
@@ -6193,7 +6193,7 @@ public:
         return true;
     }
 
-    Type addStorageClass(StorageClass stc)
+    override Type addStorageClass(StorageClass stc)
     {
         TypeFunction t = cast(TypeFunction)Type.addStorageClass(stc);
         if ((stc & STCpure && !t.purity) || (stc & STCnothrow && !t.isnothrow) || (stc & STCnogc && !t.isnogc) || (stc & STCsafe && t.trust < TRUSTtrusted))
@@ -6265,7 +6265,7 @@ public:
         return fp(param, trustToChars(trustAttrib));
     }
 
-    Type substWildTo(uint)
+    override Type substWildTo(uint)
     {
         if (!iswild && !(mod & MODwild))
             return this;
@@ -6581,13 +6581,13 @@ public:
         return false;
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         error(loc, "function does not have a default initializer");
         return new ErrorExp();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6603,12 +6603,12 @@ public:
         ty = Tdelegate;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "delegate";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         Type t = next.syntaxCopy();
         if (t == next)
@@ -6621,7 +6621,7 @@ public:
         return t;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeDelegate::semantic() %s\n", toChars());
         if (deco) // if semantic() already run
@@ -6650,17 +6650,17 @@ public:
         }
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize * 2;
     }
 
-    uint alignsize()
+    override uint alignsize()
     {
         return Target.ptrsize;
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         //printf("TypeDelegate::implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
@@ -6691,7 +6691,7 @@ public:
         return MATCHnomatch;
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -6700,17 +6700,17 @@ public:
         return new NullExp(loc, this);
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    bool isBoolean()
+    override bool isBoolean()
     {
         return true;
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
         {
@@ -6733,12 +6733,12 @@ public:
         return e;
     }
 
-    bool hasPointers()
+    override bool hasPointers()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6803,7 +6803,7 @@ public:
         idents.push(e);
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         error(this.loc, "size of type %s is not known", toChars());
         return SIZE_INVALID;
@@ -7160,7 +7160,7 @@ public:
         }
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7179,12 +7179,12 @@ public:
         this.ident = ident;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "identifier";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         auto t = new TypeIdentifier(loc, ident);
         t.syntaxCopyHelper(this);
@@ -7199,7 +7199,7 @@ public:
      *      if expression, *pe is set
      *      if type, *pt is set
      */
-    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
         if ((ident.equals(Id._super) || ident.equals(Id.This)) && !hasThis(sc))
@@ -7242,7 +7242,7 @@ public:
      * See if type resolves to a symbol, if so,
      * return that symbol.
      */
-    Dsymbol toDsymbol(Scope* sc)
+    override Dsymbol toDsymbol(Scope* sc)
     {
         //printf("TypeIdentifier::toDsymbol('%s')\n", toChars());
         if (!sc)
@@ -7256,7 +7256,7 @@ public:
         return s;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         Type t;
         Expression e;
@@ -7283,7 +7283,7 @@ public:
         return t;
     }
 
-    Expression toExpression()
+    override Expression toExpression()
     {
         Expression e = new IdentifierExp(loc, ident);
         for (size_t i = 0; i < idents.dim; i++)
@@ -7320,7 +7320,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7340,12 +7340,12 @@ public:
         this.tempinst = tempinst;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "instance";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         //printf("TypeInstance::syntaxCopy() %s, %d\n", toChars(), idents.dim);
         auto t = new TypeInstance(loc, cast(TemplateInstance)tempinst.syntaxCopy(null));
@@ -7354,7 +7354,7 @@ public:
         return t;
     }
 
-    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         // Note close similarity to TypeIdentifier::resolve()
         Dsymbol s;
@@ -7388,7 +7388,7 @@ public:
         //printf("pt = '%s'\n", (*pt)->toChars());
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         Type t;
         Expression e;
@@ -7416,7 +7416,7 @@ public:
         return t;
     }
 
-    Dsymbol toDsymbol(Scope* sc)
+    override Dsymbol toDsymbol(Scope* sc)
     {
         Type t;
         Expression e;
@@ -7428,7 +7428,7 @@ public:
         return s;
     }
 
-    Expression toExpression()
+    override Expression toExpression()
     {
         Expression e = new ScopeExp(loc, tempinst);
         for (size_t i = 0; i < idents.dim; i++)
@@ -7465,7 +7465,7 @@ public:
         return e;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7484,12 +7484,12 @@ public:
         this.exp = exp;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "typeof";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         //printf("TypeTypeof::syntaxCopy() %s\n", toChars());
         auto t = new TypeTypeof(loc, exp.syntaxCopy());
@@ -7498,7 +7498,7 @@ public:
         return t;
     }
 
-    Dsymbol toDsymbol(Scope* sc)
+    override Dsymbol toDsymbol(Scope* sc)
     {
         //printf("TypeTypeof::toDsymbol('%s')\n", toChars());
         Expression e;
@@ -7508,7 +7508,7 @@ public:
         return s;
     }
 
-    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         *pe = null;
         *pt = null;
@@ -7624,7 +7624,7 @@ public:
         return;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeTypeof::semantic() %s\n", toChars());
         Expression e;
@@ -7641,7 +7641,7 @@ public:
         return t;
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         if (exp.type)
             return exp.type.size(loc);
@@ -7649,7 +7649,7 @@ public:
             return TypeQualified.size(loc);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7664,12 +7664,12 @@ public:
         super(Treturn, loc);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "return";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         auto t = new TypeReturn(loc);
         t.syntaxCopyHelper(this);
@@ -7677,7 +7677,7 @@ public:
         return t;
     }
 
-    Dsymbol toDsymbol(Scope* sc)
+    override Dsymbol toDsymbol(Scope* sc)
     {
         Expression e;
         Type t;
@@ -7686,7 +7686,7 @@ public:
         return s;
     }
 
-    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         *pe = null;
         *pt = null;
@@ -7766,7 +7766,7 @@ public:
         return;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeReturn::semantic() %s\n", toChars());
         Expression e;
@@ -7783,7 +7783,7 @@ public:
         return t;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -7819,28 +7819,28 @@ public:
         this.sym = sym;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "struct";
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         return sym.size(loc);
     }
 
-    uint alignsize()
+    override uint alignsize()
     {
         sym.size(Loc()); // give error for forward references
         return sym.alignsize;
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         return this;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeStruct::semantic('%s')\n", sym->toChars());
         /* Don't semantic for sym because it should be deferred until
@@ -7853,12 +7853,12 @@ public:
         return merge();
     }
 
-    Dsymbol toDsymbol(Scope* sc)
+    override Dsymbol toDsymbol(Scope* sc)
     {
         return sym;
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         Dsymbol s;
         static if (LOGDOTEXP)
@@ -8092,14 +8092,14 @@ public:
         return de.semantic(sc);
     }
 
-    structalign_t alignment()
+    override structalign_t alignment()
     {
         if (sym.alignment == 0)
             sym.size(Loc());
         return sym.alignment;
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -8116,7 +8116,7 @@ public:
      * Use when we prefer the default initializer to be a literal,
      * rather than a global immutable variable.
      */
-    Expression defaultInitLiteral(Loc loc)
+    override Expression defaultInitLiteral(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -8164,12 +8164,12 @@ public:
         return structinit;
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         return sym.zeroInit != 0;
     }
 
-    bool isAssignable()
+    override bool isAssignable()
     {
         bool assignable = true;
         uint offset = ~0; // dead-store initialize to prevent spurious warning
@@ -8204,17 +8204,17 @@ public:
         return assignable;
     }
 
-    bool isBoolean()
+    override bool isBoolean()
     {
         return false;
     }
 
-    bool needsDestruction()
+    override bool needsDestruction()
     {
         return sym.dtor !is null;
     }
 
-    bool needsNested()
+    override bool needsNested()
     {
         if (sym.isNested())
             return true;
@@ -8227,7 +8227,7 @@ public:
         return false;
     }
 
-    bool hasPointers()
+    override bool hasPointers()
     {
         // Probably should cache this information in sym rather than recompute
         StructDeclaration s = sym;
@@ -8241,7 +8241,7 @@ public:
         return false;
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         MATCH m;
         //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
@@ -8303,7 +8303,7 @@ public:
         return m;
     }
 
-    MATCH constConv(Type to)
+    override MATCH constConv(Type to)
     {
         if (equals(to))
             return MATCHexact;
@@ -8312,7 +8312,7 @@ public:
         return MATCHnomatch;
     }
 
-    ubyte deduceWild(Type t, bool isRef)
+    override ubyte deduceWild(Type t, bool isRef)
     {
         if (ty == t.ty && sym == (cast(TypeStruct)t).sym)
             return Type.deduceWild(t, isRef);
@@ -8326,12 +8326,12 @@ public:
         return wm;
     }
 
-    Type toHeadMutable()
+    override Type toHeadMutable()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -8349,22 +8349,22 @@ public:
         this.sym = sym;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "enum";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         return this;
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         return sym.getMemtype(loc).size(loc);
     }
 
-    uint alignsize()
+    override uint alignsize()
     {
         Type t = sym.getMemtype(Loc());
         if (t.ty == Terror)
@@ -8372,7 +8372,7 @@ public:
         return t.alignsize();
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeEnum::semantic() %s\n", toChars());
         if (deco)
@@ -8380,12 +8380,12 @@ public:
         return merge();
     }
 
-    Dsymbol toDsymbol(Scope* sc)
+    override Dsymbol toDsymbol(Scope* sc)
     {
         return sym;
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
         {
@@ -8420,7 +8420,7 @@ public:
         return m.getVarExp(e.loc, sc);
     }
 
-    Expression getProperty(Loc loc, Identifier ident, int flag)
+    override Expression getProperty(Loc loc, Identifier ident, int flag)
     {
         Expression e;
         if (ident == Id.max || ident == Id.min)
@@ -8449,67 +8449,67 @@ public:
         return e;
     }
 
-    bool isintegral()
+    override bool isintegral()
     {
         return sym.getMemtype(Loc()).isintegral();
     }
 
-    bool isfloating()
+    override bool isfloating()
     {
         return sym.getMemtype(Loc()).isfloating();
     }
 
-    bool isreal()
+    override bool isreal()
     {
         return sym.getMemtype(Loc()).isreal();
     }
 
-    bool isimaginary()
+    override bool isimaginary()
     {
         return sym.getMemtype(Loc()).isimaginary();
     }
 
-    bool iscomplex()
+    override bool iscomplex()
     {
         return sym.getMemtype(Loc()).iscomplex();
     }
 
-    bool isscalar()
+    override bool isscalar()
     {
         return sym.getMemtype(Loc()).isscalar();
     }
 
-    bool isunsigned()
+    override bool isunsigned()
     {
         return sym.getMemtype(Loc()).isunsigned();
     }
 
-    bool isBoolean()
+    override bool isBoolean()
     {
         return sym.getMemtype(Loc()).isBoolean();
     }
 
-    bool isString()
+    override bool isString()
     {
         return sym.getMemtype(Loc()).isString();
     }
 
-    bool isAssignable()
+    override bool isAssignable()
     {
         return sym.getMemtype(Loc()).isAssignable();
     }
 
-    bool needsDestruction()
+    override bool needsDestruction()
     {
         return sym.getMemtype(Loc()).needsDestruction();
     }
 
-    bool needsNested()
+    override bool needsNested()
     {
         return sym.getMemtype(Loc()).needsNested();
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         MATCH m;
         //printf("TypeEnum::implicitConvTo()\n");
@@ -8522,7 +8522,7 @@ public:
         return m;
     }
 
-    MATCH constConv(Type to)
+    override MATCH constConv(Type to)
     {
         if (equals(to))
             return MATCHexact;
@@ -8531,14 +8531,14 @@ public:
         return MATCHnomatch;
     }
 
-    Type toBasetype()
+    override Type toBasetype()
     {
         if (!sym.members && !sym.memtype)
             return this;
         return sym.getMemtype(Loc()).toBasetype();
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -8552,22 +8552,22 @@ public:
         return e;
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         return sym.getDefaultValue(loc).isBool(false);
     }
 
-    bool hasPointers()
+    override bool hasPointers()
     {
         return sym.getMemtype(Loc()).hasPointers();
     }
 
-    Type nextOf()
+    override Type nextOf()
     {
         return sym.getMemtype(Loc()).nextOf();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -8586,22 +8586,22 @@ public:
         this.sym = sym;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "class";
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize;
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         return this;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeClass::semantic(%s)\n", sym->toChars());
         /* Don't semantic for sym because it should be deferred until
@@ -8614,12 +8614,12 @@ public:
         return merge();
     }
 
-    Dsymbol toDsymbol(Scope* sc)
+    override Dsymbol toDsymbol(Scope* sc)
     {
         return sym;
     }
 
-    Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
+    override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         Dsymbol s;
         static if (LOGDOTEXP)
@@ -8992,12 +8992,12 @@ public:
         return de.semantic(sc);
     }
 
-    ClassDeclaration isClassHandle()
+    override ClassDeclaration isClassHandle()
     {
         return sym;
     }
 
-    bool isBaseOf(Type t, int* poffset)
+    override bool isBaseOf(Type t, int* poffset)
     {
         if (t && t.ty == Tclass)
         {
@@ -9008,7 +9008,7 @@ public:
         return false;
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to->toChars(), toChars());
         MATCH m = constConv(to);
@@ -9038,7 +9038,7 @@ public:
         return m;
     }
 
-    MATCH constConv(Type to)
+    override MATCH constConv(Type to)
     {
         if (equals(to))
             return MATCHexact;
@@ -9058,7 +9058,7 @@ public:
         return MATCHnomatch;
     }
 
-    ubyte deduceWild(Type t, bool isRef)
+    override ubyte deduceWild(Type t, bool isRef)
     {
         ClassDeclaration cd = t.isClassHandle();
         if (cd && (sym == cd || cd.isBaseOf(sym, null)))
@@ -9073,12 +9073,12 @@ public:
         return wm;
     }
 
-    Type toHeadMutable()
+    override Type toHeadMutable()
     {
         return this;
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -9087,27 +9087,27 @@ public:
         return new NullExp(loc, this);
     }
 
-    bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    bool isscope()
+    override bool isscope()
     {
         return sym.isscope;
     }
 
-    bool isBoolean()
+    override bool isBoolean()
     {
         return true;
     }
 
-    bool hasPointers()
+    override bool hasPointers()
     {
         return true;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9191,12 +9191,12 @@ public:
         arguments.push(new Parameter(0, t2, null, null));
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "tuple";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         Parameters* args = Parameter.arraySyntaxCopy(arguments);
         Type t = new TypeTuple(args);
@@ -9204,7 +9204,7 @@ public:
         return t;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeTuple::semantic(this = %p)\n", this);
         //printf("TypeTuple::semantic() %p, %s\n", this, toChars());
@@ -9216,7 +9216,7 @@ public:
         return this;
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         Type t = cast(Type)o;
         //printf("TypeTuple::equals(%s, %s)\n", toChars(), t->toChars());
@@ -9240,7 +9240,7 @@ public:
         return false;
     }
 
-    Expression getProperty(Loc loc, Identifier ident, int flag)
+    override Expression getProperty(Loc loc, Identifier ident, int flag)
     {
         Expression e;
         static if (LOGDOTEXP)
@@ -9267,7 +9267,7 @@ public:
         return e;
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         auto exps = new Expressions();
         exps.setDim(arguments.dim);
@@ -9283,7 +9283,7 @@ public:
         return new TupleExp(loc, exps);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9305,19 +9305,19 @@ public:
         this.upr = upr;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "slice";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         Type t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
         t.mod = mod;
         return t;
     }
 
-    Type semantic(Loc loc, Scope* sc)
+    override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeSlice::semantic() %s\n", toChars());
         Type tn = next.semantic(loc, sc);
@@ -9353,7 +9353,7 @@ public:
         return t.semantic(loc, sc);
     }
 
-    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         next.resolve(loc, sc, pe, pt, ps, intypeid);
         if (*pe)
@@ -9417,7 +9417,7 @@ public:
         }
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9432,18 +9432,18 @@ public:
         super(Tnull);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "null";
     }
 
-    Type syntaxCopy()
+    override Type syntaxCopy()
     {
         // No semantic analysis done, no need to copy
         return this;
     }
 
-    MATCH implicitConvTo(Type to)
+    override MATCH implicitConvTo(Type to)
     {
         //printf("TypeNull::implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
@@ -9461,22 +9461,22 @@ public:
         return MATCHnomatch;
     }
 
-    bool isBoolean()
+    override bool isBoolean()
     {
         return true;
     }
 
-    d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc)
     {
         return tvoidptr.size(loc);
     }
 
-    Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc)
     {
         return new NullExp(Loc(), Type.tnull);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -9541,7 +9541,7 @@ public:
     }
 
     // kludge for template.isType()
-    int dyncast()
+    override int dyncast()
     {
         return DYNCAST_PARAMETER;
     }

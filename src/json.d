@@ -449,11 +449,11 @@ public:
     }
 
     /* ========================================================================== */
-    void visit(Dsymbol s)
+    override void visit(Dsymbol s)
     {
     }
 
-    void visit(Module s)
+    override void visit(Module s)
     {
         objectStart();
         if (s.md)
@@ -472,7 +472,7 @@ public:
         objectEnd();
     }
 
-    void visit(Import s)
+    override void visit(Import s)
     {
         if (s.id == Id.object)
             return;
@@ -540,7 +540,7 @@ public:
         objectEnd();
     }
 
-    void visit(AttribDeclaration d)
+    override void visit(AttribDeclaration d)
     {
         Dsymbols* ds = d.include(null, null);
         if (ds)
@@ -553,7 +553,7 @@ public:
         }
     }
 
-    void visit(ConditionalDeclaration d)
+    override void visit(ConditionalDeclaration d)
     {
         if (d.condition.inc)
         {
@@ -561,15 +561,15 @@ public:
         }
     }
 
-    void visit(TypeInfoDeclaration d)
+    override void visit(TypeInfoDeclaration d)
     {
     }
 
-    void visit(PostBlitDeclaration d)
+    override void visit(PostBlitDeclaration d)
     {
     }
 
-    void visit(Declaration d)
+    override void visit(Declaration d)
     {
         objectStart();
         //property("unknown", "declaration");
@@ -577,7 +577,7 @@ public:
         objectEnd();
     }
 
-    void visit(AggregateDeclaration d)
+    override void visit(AggregateDeclaration d)
     {
         objectStart();
         jsonProperties(d);
@@ -614,7 +614,7 @@ public:
         objectEnd();
     }
 
-    void visit(FuncDeclaration d)
+    override void visit(FuncDeclaration d)
     {
         objectStart();
         jsonProperties(d);
@@ -646,7 +646,7 @@ public:
         objectEnd();
     }
 
-    void visit(TemplateDeclaration d)
+    override void visit(TemplateDeclaration d)
     {
         objectStart();
         // TemplateDeclaration::kind returns the kind of its Aggregate onemember, if it is one
@@ -713,7 +713,7 @@ public:
         objectEnd();
     }
 
-    void visit(EnumDeclaration d)
+    override void visit(EnumDeclaration d)
     {
         if (d.isAnonymous())
         {
@@ -744,7 +744,7 @@ public:
         objectEnd();
     }
 
-    void visit(EnumMember s)
+    override void visit(EnumMember s)
     {
         objectStart();
         jsonProperties(s);
@@ -752,7 +752,7 @@ public:
         objectEnd();
     }
 
-    void visit(VarDeclaration d)
+    override void visit(VarDeclaration d)
     {
         objectStart();
         jsonProperties(d);
@@ -765,7 +765,7 @@ public:
         objectEnd();
     }
 
-    void visit(TemplateMixin d)
+    override void visit(TemplateMixin d)
     {
         objectStart();
         jsonProperties(d);

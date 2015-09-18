@@ -535,7 +535,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             return buf.extractString();
         }
 
-        void visit(Type t)
+        override void visit(Type t)
         {
             if (t.isImmutable() || t.isShared())
             {
@@ -548,7 +548,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             assert(0); //Assert, because this error should be handled in frontend
         }
 
-        void visit(TypeBasic t)
+        override void visit(TypeBasic t)
         {
             /* ABI spec says:
              * v        void
@@ -684,7 +684,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             buf.writeByte(c);
         }
 
-        void visit(TypeVector t)
+        override void visit(TypeVector t)
         {
             is_top_level = false;
             if (substitute(t))
@@ -703,7 +703,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             t.basetype.nextOf().accept(this);
         }
 
-        void visit(TypeSArray t)
+        override void visit(TypeSArray t)
         {
             is_top_level = false;
             if (!substitute(t))
@@ -718,17 +718,17 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             t.next.accept(this);
         }
 
-        void visit(TypeDArray t)
+        override void visit(TypeDArray t)
         {
             visit(cast(Type)t);
         }
 
-        void visit(TypeAArray t)
+        override void visit(TypeAArray t)
         {
             visit(cast(Type)t);
         }
 
-        void visit(TypePointer t)
+        override void visit(TypePointer t)
         {
             is_top_level = false;
             if (substitute(t))
@@ -744,7 +744,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             store(t);
         }
 
-        void visit(TypeReference t)
+        override void visit(TypeReference t)
         {
             is_top_level = false;
             if (substitute(t))
@@ -754,7 +754,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             store(t);
         }
 
-        void visit(TypeFunction t)
+        override void visit(TypeFunction t)
         {
             is_top_level = false;
             /*
@@ -792,12 +792,12 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             store(t);
         }
 
-        void visit(TypeDelegate t)
+        override void visit(TypeDelegate t)
         {
             visit(cast(Type)t);
         }
 
-        void visit(TypeStruct t)
+        override void visit(TypeStruct t)
         {
             Identifier id = t.sym.ident;
             //printf("struct id = '%s'\n", id->toChars());
@@ -851,7 +851,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 store(t);
         }
 
-        void visit(TypeEnum t)
+        override void visit(TypeEnum t)
         {
             is_top_level = false;
             if (substitute(t))
@@ -870,7 +870,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 store(t);
         }
 
-        void visit(TypeClass t)
+        override void visit(TypeClass t)
         {
             if (substitute(t))
                 return;
@@ -949,7 +949,7 @@ else static if (TARGET_WINDOS)
             memset(&saved_types, 0, Type.sizeof * VC_SAVED_TYPE_CNT);
         }
 
-        void visit(Type type)
+        override void visit(Type type)
         {
             if (type.isImmutable() || type.isShared())
             {
@@ -962,7 +962,7 @@ else static if (TARGET_WINDOS)
             assert(0); // Assert, because this error should be handled in frontend
         }
 
-        void visit(TypeBasic type)
+        override void visit(TypeBasic type)
         {
             //printf("visit(TypeBasic); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
             if (type.isImmutable() || type.isShared())
@@ -1066,7 +1066,7 @@ else static if (TARGET_WINDOS)
             flags &= ~IGNORE_CONST;
         }
 
-        void visit(TypeVector type)
+        override void visit(TypeVector type)
         {
             //printf("visit(TypeVector); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
             if (checkTypeSaved(type))
@@ -1076,7 +1076,7 @@ else static if (TARGET_WINDOS)
             flags &= ~IGNORE_CONST;
         }
 
-        void visit(TypeSArray type)
+        override void visit(TypeSArray type)
         {
             // This method can be called only for static variable type mangling.
             //printf("visit(TypeSArray); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
@@ -1101,7 +1101,7 @@ else static if (TARGET_WINDOS)
 
         // attention: D int[1][2]* arr mapped to C++ int arr[][2][1]; (because it's more typical situation)
         // There is not way to map int C++ (*arr)[2][1] to D
-        void visit(TypePointer type)
+        override void visit(TypePointer type)
         {
             //printf("visit(TypePointer); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
             if (type.isImmutable() || type.isShared())
@@ -1164,7 +1164,7 @@ else static if (TARGET_WINDOS)
             }
         }
 
-        void visit(TypeReference type)
+        override void visit(TypeReference type)
         {
             //printf("visit(TypeReference); type = %s\n", type->toChars());
             if (checkTypeSaved(type))
@@ -1189,7 +1189,7 @@ else static if (TARGET_WINDOS)
             }
         }
 
-        void visit(TypeFunction type)
+        override void visit(TypeFunction type)
         {
             const(char)* arg = mangleFunctionType(type);
             if ((flags & IS_DMC))
@@ -1205,7 +1205,7 @@ else static if (TARGET_WINDOS)
             flags &= ~(IS_NOT_TOP_TYPE | IGNORE_CONST);
         }
 
-        void visit(TypeStruct type)
+        override void visit(TypeStruct type)
         {
             Identifier id = type.sym.ident;
             char c;
@@ -1248,7 +1248,7 @@ else static if (TARGET_WINDOS)
             flags &= ~IGNORE_CONST;
         }
 
-        void visit(TypeEnum type)
+        override void visit(TypeEnum type)
         {
             //printf("visit(TypeEnum); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
             if (checkTypeSaved(type))
@@ -1293,7 +1293,7 @@ else static if (TARGET_WINDOS)
 
         // D class mangled as pointer to C++ class
         // const(Object) mangled as Object const* const
-        void visit(TypeClass type)
+        override void visit(TypeClass type)
         {
             //printf("visit(TypeClass); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
             if (checkTypeSaved(type))

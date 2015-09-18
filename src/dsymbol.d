@@ -233,7 +233,7 @@ public:
         return new Dsymbol(ident);
     }
 
-    char* toChars()
+    override char* toChars()
     {
         return ident ? ident.toChars() : cast(char*)"__anonymous";
     }
@@ -260,7 +260,7 @@ public:
         return getLoc().toChars();
     }
 
-    bool equals(RootObject o)
+    override bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -465,7 +465,7 @@ public:
     }
 
     // kludge for template.isSymbol()
-    final int dyncast()
+    override final int dyncast()
     {
         return DYNCAST_DSYMBOL;
     }
@@ -1223,7 +1223,7 @@ public:
         prots = null;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
@@ -1235,7 +1235,7 @@ public:
      * This function is #1 on the list of functions that eat cpu time.
      * Be very, very careful about slowing it down.
      */
-    Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
         //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
@@ -1408,7 +1408,7 @@ public:
         }
     }
 
-    final bool isforwardRef()
+    override final bool isforwardRef()
     {
         return (members is null);
     }
@@ -1431,7 +1431,7 @@ public:
         }
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "ScopeDsymbol";
     }
@@ -1476,7 +1476,7 @@ public:
      * Return true if any of the members are static ctors or static dtors, or if
      * any members have members that are.
      */
-    bool hasStaticCtorOrDtor()
+    override bool hasStaticCtorOrDtor()
     {
         if (members)
         {
@@ -1572,12 +1572,12 @@ public:
         return result;
     }
 
-    final ScopeDsymbol isScopeDsymbol()
+    override final ScopeDsymbol isScopeDsymbol()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1596,7 +1596,7 @@ public:
         this.withstate = withstate;
     }
 
-    Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         // Acts as proxy to the with class declaration
         Dsymbol s = null;
@@ -1627,12 +1627,12 @@ public:
         return null;
     }
 
-    WithScopeSymbol isWithScopeSymbol()
+    override WithScopeSymbol isWithScopeSymbol()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1676,7 +1676,7 @@ public:
         this.sc = sc;
     }
 
-    Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident->toChars(), flags);
         if (ident == Id.dollar)
@@ -1848,12 +1848,12 @@ public:
         return null;
     }
 
-    ArrayScopeSymbol isArrayScopeSymbol()
+    override ArrayScopeSymbol isArrayScopeSymbol()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -1881,17 +1881,17 @@ public:
         a.push(s);
     }
 
-    OverloadSet isOverloadSet()
+    override OverloadSet isOverloadSet()
     {
         return this;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "overloadset";
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

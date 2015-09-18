@@ -75,7 +75,7 @@ public:
 
     abstract Expression toExpression(Type t = null);
 
-    final char* toChars()
+    override final char* toChars()
     {
         OutBuffer buf;
         HdrGenState hgs;
@@ -126,35 +126,35 @@ public:
         type = null;
     }
 
-    Initializer syntaxCopy()
+    override Initializer syntaxCopy()
     {
         return new VoidInitializer(loc);
     }
 
-    Initializer inferType(Scope* sc)
+    override Initializer inferType(Scope* sc)
     {
         error(loc, "cannot infer type from void initializer");
         return new ErrorInitializer();
     }
 
-    Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
     {
         //printf("VoidInitializer::semantic(t = %p)\n", t);
         type = t;
         return this;
     }
 
-    Expression toExpression(Type t = null)
+    override Expression toExpression(Type t = null)
     {
         return null;
     }
 
-    VoidInitializer isVoidInitializer()
+    override VoidInitializer isVoidInitializer()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -169,33 +169,33 @@ public:
         super(Loc());
     }
 
-    Initializer syntaxCopy()
+    override Initializer syntaxCopy()
     {
         return this;
     }
 
-    Initializer inferType(Scope* sc)
+    override Initializer inferType(Scope* sc)
     {
         return this;
     }
 
-    Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
     {
         //printf("ErrorInitializer::semantic(t = %p)\n", t);
         return this;
     }
 
-    Expression toExpression(Type t = null)
+    override Expression toExpression(Type t = null)
     {
         return new ErrorExp();
     }
 
-    ErrorInitializer isErrorInitializer()
+    override ErrorInitializer isErrorInitializer()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -213,7 +213,7 @@ public:
         super(loc);
     }
 
-    Initializer syntaxCopy()
+    override Initializer syntaxCopy()
     {
         auto ai = new StructInitializer(loc);
         assert(field.dim == value.dim);
@@ -234,13 +234,13 @@ public:
         this.value.push(value);
     }
 
-    Initializer inferType(Scope* sc)
+    override Initializer inferType(Scope* sc)
     {
         error(loc, "cannot infer type from struct initializer");
         return new ErrorInitializer();
     }
 
-    Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
     {
         //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
         t = t.toBasetype();
@@ -361,18 +361,18 @@ public:
      * a struct literal. In the future, the two should be the
      * same thing.
      */
-    Expression toExpression(Type t = null)
+    override Expression toExpression(Type t = null)
     {
         // cannot convert to an expression without target 'ad'
         return null;
     }
 
-    StructInitializer isStructInitializer()
+    override StructInitializer isStructInitializer()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -396,7 +396,7 @@ public:
         sem = false;
     }
 
-    Initializer syntaxCopy()
+    override Initializer syntaxCopy()
     {
         //printf("ArrayInitializer::syntaxCopy()\n");
         auto ai = new ArrayInitializer(loc);
@@ -429,7 +429,7 @@ public:
         return false;
     }
 
-    Initializer inferType(Scope* sc)
+    override Initializer inferType(Scope* sc)
     {
         //printf("ArrayInitializer::inferType() %s\n", toChars());
         Expressions* keys = null;
@@ -494,7 +494,7 @@ public:
         return new ErrorInitializer();
     }
 
-    Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
     {
         size_t length;
         const(uint) amax = 0x80000000;
@@ -614,7 +614,7 @@ public:
      * If possible, convert array initializer to array literal.
      * Otherwise return NULL.
      */
-    Expression toExpression(Type tx = null)
+    override Expression toExpression(Type tx = null)
     {
         //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
         //static int i; if (++i == 2) assert(0);
@@ -739,12 +739,12 @@ public:
         return new ErrorExp();
     }
 
-    ArrayInitializer isArrayInitializer()
+    override ArrayInitializer isArrayInitializer()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -764,12 +764,12 @@ public:
         this.expandTuples = false;
     }
 
-    Initializer syntaxCopy()
+    override Initializer syntaxCopy()
     {
         return new ExpInitializer(loc, exp.syntaxCopy());
     }
 
-    Initializer inferType(Scope* sc)
+    override Initializer inferType(Scope* sc)
     {
         //printf("ExpInitializer::inferType() %s\n", toChars());
         exp = exp.semantic(sc);
@@ -819,7 +819,7 @@ public:
         return this;
     }
 
-    Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
+    override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
     {
         //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
         if (needInterpret)
@@ -955,7 +955,7 @@ public:
         return this;
     }
 
-    Expression toExpression(Type t = null)
+    override Expression toExpression(Type t = null)
     {
         if (t)
         {
@@ -978,12 +978,12 @@ public:
         return exp;
     }
 
-    ExpInitializer isExpInitializer()
+    override ExpInitializer isExpInitializer()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

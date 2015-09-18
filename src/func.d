@@ -94,29 +94,29 @@ public:
         *ps = s;
     }
 
-    void visit(ErrorStatement s)
+    override void visit(ErrorStatement s)
     {
     }
 
-    void visit(PeelStatement s)
+    override void visit(PeelStatement s)
     {
         if (s.s)
             visitStmt(s.s);
     }
 
-    void visit(ExpStatement s)
+    override void visit(ExpStatement s)
     {
     }
 
-    void visit(DtorExpStatement s)
+    override void visit(DtorExpStatement s)
     {
     }
 
-    void visit(CompileStatement s)
+    override void visit(CompileStatement s)
     {
     }
 
-    void visit(CompoundStatement s)
+    override void visit(CompoundStatement s)
     {
         if (s.statements && s.statements.dim)
         {
@@ -128,12 +128,12 @@ public:
         }
     }
 
-    void visit(CompoundDeclarationStatement s)
+    override void visit(CompoundDeclarationStatement s)
     {
         visit(cast(CompoundStatement)s);
     }
 
-    void visit(UnrolledLoopStatement s)
+    override void visit(UnrolledLoopStatement s)
     {
         if (s.statements && s.statements.dim)
         {
@@ -145,25 +145,25 @@ public:
         }
     }
 
-    void visit(ScopeStatement s)
+    override void visit(ScopeStatement s)
     {
         if (s.statement)
             visitStmt(s.statement);
     }
 
-    void visit(WhileStatement s)
+    override void visit(WhileStatement s)
     {
         if (s._body)
             visitStmt(s._body);
     }
 
-    void visit(DoStatement s)
+    override void visit(DoStatement s)
     {
         if (s._body)
             visitStmt(s._body);
     }
 
-    void visit(ForStatement s)
+    override void visit(ForStatement s)
     {
         if (s._init)
             visitStmt(s._init);
@@ -171,19 +171,19 @@ public:
             visitStmt(s._body);
     }
 
-    void visit(ForeachStatement s)
+    override void visit(ForeachStatement s)
     {
         if (s._body)
             visitStmt(s._body);
     }
 
-    void visit(ForeachRangeStatement s)
+    override void visit(ForeachRangeStatement s)
     {
         if (s._body)
             visitStmt(s._body);
     }
 
-    void visit(IfStatement s)
+    override void visit(IfStatement s)
     {
         if (s.ifbody)
             visitStmt(s.ifbody);
@@ -191,79 +191,79 @@ public:
             visitStmt(s.elsebody);
     }
 
-    void visit(ConditionalStatement s)
+    override void visit(ConditionalStatement s)
     {
     }
 
-    void visit(PragmaStatement s)
+    override void visit(PragmaStatement s)
     {
     }
 
-    void visit(StaticAssertStatement s)
+    override void visit(StaticAssertStatement s)
     {
     }
 
-    void visit(SwitchStatement s)
-    {
-        if (s._body)
-            visitStmt(s._body);
-    }
-
-    void visit(CaseStatement s)
-    {
-        if (s.statement)
-            visitStmt(s.statement);
-    }
-
-    void visit(CaseRangeStatement s)
-    {
-        if (s.statement)
-            visitStmt(s.statement);
-    }
-
-    void visit(DefaultStatement s)
-    {
-        if (s.statement)
-            visitStmt(s.statement);
-    }
-
-    void visit(GotoDefaultStatement s)
-    {
-    }
-
-    void visit(GotoCaseStatement s)
-    {
-    }
-
-    void visit(SwitchErrorStatement s)
-    {
-    }
-
-    void visit(ReturnStatement s)
-    {
-    }
-
-    void visit(BreakStatement s)
-    {
-    }
-
-    void visit(ContinueStatement s)
-    {
-    }
-
-    void visit(SynchronizedStatement s)
+    override void visit(SwitchStatement s)
     {
         if (s._body)
             visitStmt(s._body);
     }
 
-    void visit(WithStatement s)
+    override void visit(CaseStatement s)
+    {
+        if (s.statement)
+            visitStmt(s.statement);
+    }
+
+    override void visit(CaseRangeStatement s)
+    {
+        if (s.statement)
+            visitStmt(s.statement);
+    }
+
+    override void visit(DefaultStatement s)
+    {
+        if (s.statement)
+            visitStmt(s.statement);
+    }
+
+    override void visit(GotoDefaultStatement s)
+    {
+    }
+
+    override void visit(GotoCaseStatement s)
+    {
+    }
+
+    override void visit(SwitchErrorStatement s)
+    {
+    }
+
+    override void visit(ReturnStatement s)
+    {
+    }
+
+    override void visit(BreakStatement s)
+    {
+    }
+
+    override void visit(ContinueStatement s)
+    {
+    }
+
+    override void visit(SynchronizedStatement s)
     {
         if (s._body)
             visitStmt(s._body);
     }
 
-    void visit(TryCatchStatement s)
+    override void visit(WithStatement s)
+    {
+        if (s._body)
+            visitStmt(s._body);
+    }
+
+    override void visit(TryCatchStatement s)
     {
         if (s._body)
             visitStmt(s._body);
@@ -278,7 +278,7 @@ public:
         }
     }
 
-    void visit(TryFinallyStatement s)
+    override void visit(TryFinallyStatement s)
     {
         if (s._body)
             visitStmt(s._body);
@@ -286,35 +286,35 @@ public:
             visitStmt(s.finalbody);
     }
 
-    void visit(OnScopeStatement s)
+    override void visit(OnScopeStatement s)
     {
     }
 
-    void visit(ThrowStatement s)
+    override void visit(ThrowStatement s)
     {
     }
 
-    void visit(DebugStatement s)
-    {
-        if (s.statement)
-            visitStmt(s.statement);
-    }
-
-    void visit(GotoStatement s)
-    {
-    }
-
-    void visit(LabelStatement s)
+    override void visit(DebugStatement s)
     {
         if (s.statement)
             visitStmt(s.statement);
     }
 
-    void visit(AsmStatement s)
+    override void visit(GotoStatement s)
     {
     }
 
-    void visit(ImportStatement s)
+    override void visit(LabelStatement s)
+    {
+        if (s.statement)
+            visitStmt(s.statement);
+    }
+
+    override void visit(AsmStatement s)
+    {
+    }
+
+    override void visit(ImportStatement s)
     {
     }
 }
@@ -328,7 +328,7 @@ public:
     FuncDeclaration fd;
     Scope* sc;
 
-    void visit(ReturnStatement s)
+    override void visit(ReturnStatement s)
     {
         // See if all returns are instead to be replaced with a goto returnLabel;
         if (fd.returnLabel)
@@ -347,7 +347,7 @@ public:
         }
     }
 
-    void visit(TryFinallyStatement s)
+    override void visit(TryFinallyStatement s)
     {
         DtorExpStatement des;
         if (fd.nrvo_can && s.finalbody && (des = s.finalbody.isDtorExpStatement()) !is null && fd.nrvo_var == des.var)
@@ -504,7 +504,7 @@ public:
         inferRetType = (type && type.nextOf() is null);
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
         FuncDeclaration f = s ? cast(FuncDeclaration)s : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
@@ -517,7 +517,7 @@ public:
     }
 
     // Do the semantic analysis on the external interface to the function.
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         TypeFunction f;
         AggregateDeclaration ad;
@@ -1279,7 +1279,7 @@ public:
         assert(type.ty != Terror || errors);
     }
 
-    final void semantic2(Scope* sc)
+    override final void semantic2(Scope* sc)
     {
         if (semanticRun >= PASSsemantic2done)
             return;
@@ -1294,7 +1294,7 @@ public:
     }
 
     // Do the semantic analysis on the internals of the function.
-    final void semantic3(Scope* sc)
+    override final void semantic3(Scope* sc)
     {
         VarDeclaration argptr = null;
         VarDeclaration _arguments = null;
@@ -2287,7 +2287,7 @@ public:
         return null;
     }
 
-    final bool equals(RootObject o)
+    override final bool equals(RootObject o)
     {
         if (this == o)
             return true;
@@ -2414,7 +2414,7 @@ public:
      * Overload this FuncDeclaration with the new one f.
      * Return true if successful; i.e. no conflict.
      */
-    bool overloadInsert(Dsymbol s)
+    override bool overloadInsert(Dsymbol s)
     {
         //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
         assert(s != this);
@@ -2758,7 +2758,7 @@ public:
      * return the aggregate it is a member of.
      * Otherwise, return NULL.
      */
-    AggregateDeclaration isThis()
+    override AggregateDeclaration isThis()
     {
         //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
         AggregateDeclaration ad = null;
@@ -2858,7 +2858,7 @@ public:
         return 1;
     }
 
-    const(char)* toPrettyChars(bool QualifyTypes = false)
+    override const(char)* toPrettyChars(bool QualifyTypes = false)
     {
         if (isMain())
             return "D main";
@@ -2904,29 +2904,29 @@ public:
         return ident == Id.DllMain && linkage != LINKc && !isMember();
     }
 
-    final bool isExport()
+    override final bool isExport()
     {
         return protection.kind == PROTexport;
     }
 
-    final bool isImportedSymbol()
+    override final bool isImportedSymbol()
     {
         //printf("isImportedSymbol()\n");
         //printf("protection = %d\n", protection);
         return (protection.kind == PROTexport) && !fbody;
     }
 
-    final bool isCodeseg()
+    override final bool isCodeseg()
     {
         return true; // functions are always in the code segment
     }
 
-    final bool isOverloadable()
+    override final bool isOverloadable()
     {
         return true; // functions can be overloaded
     }
 
-    final bool hasOverloads()
+    override final bool hasOverloads()
     {
         return overnext !is null;
     }
@@ -3131,7 +3131,7 @@ public:
         return ((f.storage_class & STCstatic) == 0) && (f.linkage == LINKd) && (f.toParent2().isFuncDeclaration() !is null);
     }
 
-    final bool needThis()
+    override final bool needThis()
     {
         //printf("FuncDeclaration::needThis() '%s'\n", toChars());
         return toAliasFunc().isThis() !is null;
@@ -3198,7 +3198,7 @@ public:
         return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants && (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) && !naked);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "function";
     }
@@ -3674,7 +3674,7 @@ public:
         return fd;
     }
 
-    final FuncDeclaration isFuncDeclaration()
+    override final FuncDeclaration isFuncDeclaration()
     {
         return this;
     }
@@ -3684,7 +3684,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4214,22 +4214,22 @@ public:
         userAttribDecl = funcalias.userAttribDecl;
     }
 
-    FuncAliasDeclaration isFuncAliasDeclaration()
+    override FuncAliasDeclaration isFuncAliasDeclaration()
     {
         return this;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "function alias";
     }
 
-    FuncDeclaration toAliasFunc()
+    override FuncDeclaration toAliasFunc()
     {
         return funcalias.toAliasFunc();
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4251,7 +4251,7 @@ public:
         //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this->ident->toChars(), type->toChars());
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("FuncLiteralDeclaration::syntaxCopy('%s')\n", toChars());
         assert(!s);
@@ -4260,23 +4260,23 @@ public:
         return FuncDeclaration.syntaxCopy(f);
     }
 
-    bool isNested()
+    override bool isNested()
     {
         //printf("FuncLiteralDeclaration::isNested() '%s'\n", toChars());
         return (tok != TOKfunction);
     }
 
-    bool isVirtual()
+    override bool isVirtual()
     {
         return false;
     }
 
-    bool addPreInvariant()
+    override bool addPreInvariant()
     {
         return false;
     }
 
-    bool addPostInvariant()
+    override bool addPostInvariant()
     {
         return false;
     }
@@ -4302,7 +4302,7 @@ public:
             Type tret;
             FuncLiteralDeclaration fld;
 
-            void visit(ReturnStatement s)
+            override void visit(ReturnStatement s)
             {
                 Expression exp = s.exp;
                 if (exp && !exp.type.equals(tret))
@@ -4328,18 +4328,18 @@ public:
             (cast(TypeFunction)type).next = tret;
     }
 
-    FuncLiteralDeclaration isFuncLiteralDeclaration()
+    override FuncLiteralDeclaration isFuncLiteralDeclaration()
     {
         return this;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         // GCC requires the (char*) casts
         return (tok != TOKfunction) ? cast(char*)"delegate" : cast(char*)"function";
     }
 
-    const(char)* toPrettyChars(bool QualifyTypes = false)
+    override const(char)* toPrettyChars(bool QualifyTypes = false)
     {
         if (parent)
         {
@@ -4350,7 +4350,7 @@ public:
         return Dsymbol.toPrettyChars(QualifyTypes);
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4366,14 +4366,14 @@ public:
         //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto f = new CtorDeclaration(loc, endloc, storage_class, type.syntaxCopy());
         return FuncDeclaration.syntaxCopy(f);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("CtorDeclaration::semantic() %s\n", toChars());
         if (semanticRun >= PASSsemanticdone)
@@ -4425,37 +4425,37 @@ public:
         }
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "constructor";
     }
 
-    char* toChars()
+    override char* toChars()
     {
         return cast(char*)"this";
     }
 
-    bool isVirtual()
+    override bool isVirtual()
     {
         return false;
     }
 
-    bool addPreInvariant()
+    override bool addPreInvariant()
     {
         return false;
     }
 
-    bool addPostInvariant()
+    override bool addPostInvariant()
     {
         return (isThis() && vthis && global.params.useInvariants);
     }
 
-    CtorDeclaration isCtorDeclaration()
+    override CtorDeclaration isCtorDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4470,14 +4470,14 @@ public:
         super(loc, endloc, id, stc, null);
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto dd = new PostBlitDeclaration(loc, endloc, storage_class, ident);
         return FuncDeclaration.syntaxCopy(dd);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("PostBlitDeclaration::semantic() %s\n", toChars());
         //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
@@ -4510,32 +4510,32 @@ public:
         sc.pop();
     }
 
-    bool isVirtual()
+    override bool isVirtual()
     {
         return false;
     }
 
-    bool addPreInvariant()
+    override bool addPreInvariant()
     {
         return false;
     }
 
-    bool addPostInvariant()
+    override bool addPostInvariant()
     {
         return (isThis() && vthis && global.params.useInvariants);
     }
 
-    bool overloadInsert(Dsymbol s)
+    override bool overloadInsert(Dsymbol s)
     {
         return false; // cannot overload postblits
     }
 
-    PostBlitDeclaration isPostBlitDeclaration()
+    override PostBlitDeclaration isPostBlitDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4555,14 +4555,14 @@ public:
         super(loc, endloc, id, stc, null);
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto dd = new DtorDeclaration(loc, endloc, storage_class, ident);
         return FuncDeclaration.syntaxCopy(dd);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("DtorDeclaration::semantic() %s\n", toChars());
         //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
@@ -4594,43 +4594,43 @@ public:
         sc.pop();
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "destructor";
     }
 
-    char* toChars()
+    override char* toChars()
     {
         return cast(char*)"~this";
     }
 
-    bool isVirtual()
+    override bool isVirtual()
     {
         // false so that dtor's don't get put into the vtbl[]
         return false;
     }
 
-    bool addPreInvariant()
+    override bool addPreInvariant()
     {
         return (isThis() && vthis && global.params.useInvariants);
     }
 
-    bool addPostInvariant()
+    override bool addPostInvariant()
     {
         return false;
     }
 
-    bool overloadInsert(Dsymbol s)
+    override bool overloadInsert(Dsymbol s)
     {
         return false; // cannot overload destructors
     }
 
-    DtorDeclaration isDtorDeclaration()
+    override DtorDeclaration isDtorDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4650,14 +4650,14 @@ public:
         super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto scd = new StaticCtorDeclaration(loc, endloc, storage_class);
         return FuncDeclaration.syntaxCopy(scd);
     }
 
-    final void semantic(Scope* sc)
+    override final void semantic(Scope* sc)
     {
         //printf("StaticCtorDeclaration::semantic()\n");
         if (semanticRun >= PASSsemanticdone)
@@ -4717,37 +4717,37 @@ public:
         }
     }
 
-    final AggregateDeclaration isThis()
+    override final AggregateDeclaration isThis()
     {
         return null;
     }
 
-    final bool isVirtual()
+    override final bool isVirtual()
     {
         return false;
     }
 
-    final bool addPreInvariant()
+    override final bool addPreInvariant()
     {
         return false;
     }
 
-    final bool addPostInvariant()
+    override final bool addPostInvariant()
     {
         return false;
     }
 
-    final bool hasStaticCtorOrDtor()
+    override final bool hasStaticCtorOrDtor()
     {
         return true;
     }
 
-    final StaticCtorDeclaration isStaticCtorDeclaration()
+    override final StaticCtorDeclaration isStaticCtorDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4762,19 +4762,19 @@ public:
         super(loc, endloc, "_sharedStaticCtor", stc);
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto scd = new SharedStaticCtorDeclaration(loc, endloc, storage_class);
         return FuncDeclaration.syntaxCopy(scd);
     }
 
-    SharedStaticCtorDeclaration isSharedStaticCtorDeclaration()
+    override SharedStaticCtorDeclaration isSharedStaticCtorDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4796,14 +4796,14 @@ public:
         super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto sdd = new StaticDtorDeclaration(loc, endloc, storage_class);
         return FuncDeclaration.syntaxCopy(sdd);
     }
 
-    final void semantic(Scope* sc)
+    override final void semantic(Scope* sc)
     {
         if (semanticRun >= PASSsemanticdone)
             return;
@@ -4864,37 +4864,37 @@ public:
         }
     }
 
-    final AggregateDeclaration isThis()
+    override final AggregateDeclaration isThis()
     {
         return null;
     }
 
-    final bool isVirtual()
+    override final bool isVirtual()
     {
         return false;
     }
 
-    final bool hasStaticCtorOrDtor()
+    override final bool hasStaticCtorOrDtor()
     {
         return true;
     }
 
-    final bool addPreInvariant()
+    override final bool addPreInvariant()
     {
         return false;
     }
 
-    final bool addPostInvariant()
+    override final bool addPostInvariant()
     {
         return false;
     }
 
-    final StaticDtorDeclaration isStaticDtorDeclaration()
+    override final StaticDtorDeclaration isStaticDtorDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4909,19 +4909,19 @@ public:
         super(loc, endloc, "_sharedStaticDtor", stc);
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto sdd = new SharedStaticDtorDeclaration(loc, endloc, storage_class);
         return FuncDeclaration.syntaxCopy(sdd);
     }
 
-    SharedStaticDtorDeclaration isSharedStaticDtorDeclaration()
+    override SharedStaticDtorDeclaration isSharedStaticDtorDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -4936,14 +4936,14 @@ public:
         super(loc, endloc, id ? id : Identifier.generateId("__invariant"), stc, null);
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto id = new InvariantDeclaration(loc, endloc, storage_class);
         return FuncDeclaration.syntaxCopy(id);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         if (semanticRun >= PASSsemanticdone)
             return;
@@ -4975,27 +4975,27 @@ public:
         sc.pop();
     }
 
-    bool isVirtual()
+    override bool isVirtual()
     {
         return false;
     }
 
-    bool addPreInvariant()
+    override bool addPreInvariant()
     {
         return false;
     }
 
-    bool addPostInvariant()
+    override bool addPostInvariant()
     {
         return false;
     }
 
-    InvariantDeclaration isInvariantDeclaration()
+    override InvariantDeclaration isInvariantDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5026,14 +5026,14 @@ public:
         this.codedoc = codedoc;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto utd = new UnitTestDeclaration(loc, endloc, storage_class, codedoc);
         return FuncDeclaration.syntaxCopy(utd);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         if (semanticRun >= PASSsemanticdone)
             return;
@@ -5078,32 +5078,32 @@ public:
         }
     }
 
-    AggregateDeclaration isThis()
+    override AggregateDeclaration isThis()
     {
         return null;
     }
 
-    bool isVirtual()
+    override bool isVirtual()
     {
         return false;
     }
 
-    bool addPreInvariant()
+    override bool addPreInvariant()
     {
         return false;
     }
 
-    bool addPostInvariant()
+    override bool addPostInvariant()
     {
         return false;
     }
 
-    UnitTestDeclaration isUnitTestDeclaration()
+    override UnitTestDeclaration isUnitTestDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5123,14 +5123,14 @@ public:
         this.varargs = varargs;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto f = new NewDeclaration(loc, endloc, storage_class, Parameter.arraySyntaxCopy(parameters), varargs);
         return FuncDeclaration.syntaxCopy(f);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("NewDeclaration::semantic()\n");
         if (semanticRun >= PASSsemanticdone)
@@ -5169,32 +5169,32 @@ public:
         FuncDeclaration.semantic(sc);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "allocator";
     }
 
-    bool isVirtual()
+    override bool isVirtual()
     {
         return false;
     }
 
-    bool addPreInvariant()
+    override bool addPreInvariant()
     {
         return false;
     }
 
-    bool addPostInvariant()
+    override bool addPostInvariant()
     {
         return false;
     }
 
-    NewDeclaration isNewDeclaration()
+    override NewDeclaration isNewDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -5212,14 +5212,14 @@ public:
         this.parameters = fparams;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto f = new DeleteDeclaration(loc, endloc, storage_class, Parameter.arraySyntaxCopy(parameters));
         return FuncDeclaration.syntaxCopy(f);
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("DeleteDeclaration::semantic()\n");
         if (semanticRun >= PASSsemanticdone)
@@ -5257,37 +5257,37 @@ public:
         FuncDeclaration.semantic(sc);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "deallocator";
     }
 
-    bool isDelete()
+    override bool isDelete()
     {
         return true;
     }
 
-    bool isVirtual()
+    override bool isVirtual()
     {
         return false;
     }
 
-    bool addPreInvariant()
+    override bool addPreInvariant()
     {
         return false;
     }
 
-    bool addPostInvariant()
+    override bool addPostInvariant()
     {
         return false;
     }
 
-    DeleteDeclaration isDeleteDeclaration()
+    override DeleteDeclaration isDeleteDeclaration()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

@@ -56,67 +56,67 @@ public:
         return true;
     }
 
-    void visit(Expression e)
+    override void visit(Expression e)
     {
         applyTo(e);
     }
 
-    void visit(NewExp e)
+    override void visit(NewExp e)
     {
         //printf("NewExp::apply(): %s\n", toChars());
         doCond(e.thisexp) || doCond(e.newargs) || doCond(e.arguments) || applyTo(e);
     }
 
-    void visit(NewAnonClassExp e)
+    override void visit(NewAnonClassExp e)
     {
         //printf("NewAnonClassExp::apply(): %s\n", toChars());
         doCond(e.thisexp) || doCond(e.newargs) || doCond(e.arguments) || applyTo(e);
     }
 
-    void visit(UnaExp e)
+    override void visit(UnaExp e)
     {
         doCond(e.e1) || applyTo(e);
     }
 
-    void visit(BinExp e)
+    override void visit(BinExp e)
     {
         doCond(e.e1) || doCond(e.e2) || applyTo(e);
     }
 
-    void visit(AssertExp e)
+    override void visit(AssertExp e)
     {
         //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
         doCond(e.e1) || doCond(e.msg) || applyTo(e);
     }
 
-    void visit(CallExp e)
+    override void visit(CallExp e)
     {
         //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
         doCond(e.e1) || doCond(e.arguments) || applyTo(e);
     }
 
-    void visit(ArrayExp e)
+    override void visit(ArrayExp e)
     {
         //printf("ArrayExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
         doCond(e.e1) || doCond(e.arguments) || applyTo(e);
     }
 
-    void visit(SliceExp e)
+    override void visit(SliceExp e)
     {
         doCond(e.e1) || doCond(e.lwr) || doCond(e.upr) || applyTo(e);
     }
 
-    void visit(ArrayLiteralExp e)
+    override void visit(ArrayLiteralExp e)
     {
         doCond(e.elements) || applyTo(e);
     }
 
-    void visit(AssocArrayLiteralExp e)
+    override void visit(AssocArrayLiteralExp e)
     {
         doCond(e.keys) || doCond(e.values) || applyTo(e);
     }
 
-    void visit(StructLiteralExp e)
+    override void visit(StructLiteralExp e)
     {
         if (e.stageflags & stageApply)
             return;
@@ -126,12 +126,12 @@ public:
         e.stageflags = old;
     }
 
-    void visit(TupleExp e)
+    override void visit(TupleExp e)
     {
         doCond(e.e0) || doCond(e.exps) || applyTo(e);
     }
 
-    void visit(CondExp e)
+    override void visit(CondExp e)
     {
         doCond(e.econd) || doCond(e.e1) || doCond(e.e2) || applyTo(e);
     }

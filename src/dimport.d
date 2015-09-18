@@ -97,18 +97,18 @@ public:
         aliases.push(_alias);
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return isstatic ? cast(char*)"static import" : cast(char*)"import";
     }
 
-    Prot prot()
+    override Prot prot()
     {
         return Prot(protection);
     }
 
     // copy only syntax trees
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto si = new Import(loc, packages, id, aliasId, isstatic);
@@ -193,7 +193,7 @@ public:
         //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
     }
 
-    void importAll(Scope* sc)
+    override void importAll(Scope* sc)
     {
         if (!mod)
         {
@@ -219,7 +219,7 @@ public:
         }
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("Import::semantic('%s')\n", toPrettyChars());
         if (_scope)
@@ -362,7 +362,7 @@ public:
         //printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
     }
 
-    void semantic2(Scope* sc)
+    override void semantic2(Scope* sc)
     {
         //printf("Import::semantic2('%s')\n", toChars());
         if (mod)
@@ -376,7 +376,7 @@ public:
         }
     }
 
-    Dsymbol toAlias()
+    override Dsymbol toAlias()
     {
         if (aliasId)
             return mod;
@@ -386,7 +386,7 @@ public:
     /*****************************
      * Add import to sd's symbol table.
      */
-    void addMember(Scope* sc, ScopeDsymbol sd)
+    override void addMember(Scope* sc, ScopeDsymbol sd)
     {
         if (names.dim == 0)
             return Dsymbol.addMember(sc, sd);
@@ -409,7 +409,7 @@ public:
         }
     }
 
-    Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
         if (!pkg)
@@ -422,7 +422,7 @@ public:
         return pkg.search(loc, ident, flags);
     }
 
-    bool overloadInsert(Dsymbol s)
+    override bool overloadInsert(Dsymbol s)
     {
         /* Allow multiple imports with the same package base, but disallow
          * alias collisions (Bugzilla 5412).
@@ -435,12 +435,12 @@ public:
             return false;
     }
 
-    Import isImport()
+    override Import isImport()
     {
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

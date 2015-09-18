@@ -63,7 +63,7 @@ public:
      * and the filename.
      * Add default library file name extension.
      */
-    void setFilename(const(char)* dir, const(char)* filename)
+    override void setFilename(const(char)* dir, const(char)* filename)
     {
         const(char)* arg = filename;
         if (!arg || !*arg)
@@ -88,7 +88,7 @@ public:
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    void addObject(const(char)* module_name, void* buf, size_t buflen)
+    override void addObject(const(char)* module_name, void* buf, size_t buflen)
     {
         static if (LOG)
         {
@@ -206,12 +206,12 @@ public:
     }
 
     /*****************************************************************************/
-    void addLibrary(void* buf, size_t buflen)
+    override void addLibrary(void* buf, size_t buflen)
     {
         addObject(null, buf, buflen);
     }
 
-    void write()
+    override void write()
     {
         if (global.params.verbose)
             fprintf(global.stdmsg, "library   %s\n", libfile.name.toChars());

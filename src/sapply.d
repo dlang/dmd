@@ -46,17 +46,17 @@ public:
         return true;
     }
 
-    void visit(Statement s)
+    override void visit(Statement s)
     {
         applyTo(s);
     }
 
-    void visit(PeelStatement s)
+    override void visit(PeelStatement s)
     {
         doCond(s.s) || applyTo(s);
     }
 
-    void visit(CompoundStatement s)
+    override void visit(CompoundStatement s)
     {
         for (size_t i = 0; i < s.statements.dim; i++)
             if (doCond((*s.statements)[i]))
@@ -64,7 +64,7 @@ public:
         applyTo(s);
     }
 
-    void visit(UnrolledLoopStatement s)
+    override void visit(UnrolledLoopStatement s)
     {
         for (size_t i = 0; i < s.statements.dim; i++)
             if (doCond((*s.statements)[i]))
@@ -72,72 +72,72 @@ public:
         applyTo(s);
     }
 
-    void visit(ScopeStatement s)
+    override void visit(ScopeStatement s)
     {
         doCond(s.statement) || applyTo(s);
     }
 
-    void visit(WhileStatement s)
+    override void visit(WhileStatement s)
     {
         doCond(s._body) || applyTo(s);
     }
 
-    void visit(DoStatement s)
+    override void visit(DoStatement s)
     {
         doCond(s._body) || applyTo(s);
     }
 
-    void visit(ForStatement s)
+    override void visit(ForStatement s)
     {
         doCond(s._init) || doCond(s._body) || applyTo(s);
     }
 
-    void visit(ForeachStatement s)
+    override void visit(ForeachStatement s)
     {
         doCond(s._body) || applyTo(s);
     }
 
-    void visit(ForeachRangeStatement s)
+    override void visit(ForeachRangeStatement s)
     {
         doCond(s._body) || applyTo(s);
     }
 
-    void visit(IfStatement s)
+    override void visit(IfStatement s)
     {
         doCond(s.ifbody) || doCond(s.elsebody) || applyTo(s);
     }
 
-    void visit(PragmaStatement s)
+    override void visit(PragmaStatement s)
     {
         doCond(s._body) || applyTo(s);
     }
 
-    void visit(SwitchStatement s)
+    override void visit(SwitchStatement s)
     {
         doCond(s._body) || applyTo(s);
     }
 
-    void visit(CaseStatement s)
+    override void visit(CaseStatement s)
     {
         doCond(s.statement) || applyTo(s);
     }
 
-    void visit(DefaultStatement s)
+    override void visit(DefaultStatement s)
     {
         doCond(s.statement) || applyTo(s);
     }
 
-    void visit(SynchronizedStatement s)
+    override void visit(SynchronizedStatement s)
     {
         doCond(s._body) || applyTo(s);
     }
 
-    void visit(WithStatement s)
+    override void visit(WithStatement s)
     {
         doCond(s._body) || applyTo(s);
     }
 
-    void visit(TryCatchStatement s)
+    override void visit(TryCatchStatement s)
     {
         if (doCond(s._body))
             return;
@@ -147,22 +147,22 @@ public:
         applyTo(s);
     }
 
-    void visit(TryFinallyStatement s)
+    override void visit(TryFinallyStatement s)
     {
         doCond(s._body) || doCond(s.finalbody) || applyTo(s);
     }
 
-    void visit(OnScopeStatement s)
+    override void visit(OnScopeStatement s)
     {
         doCond(s.statement) || applyTo(s);
     }
 
-    void visit(DebugStatement s)
+    override void visit(DebugStatement s)
     {
         doCond(s.statement) || applyTo(s);
     }
 
-    void visit(LabelStatement s)
+    override void visit(LabelStatement s)
     {
         doCond(s.statement) || applyTo(s);
     }

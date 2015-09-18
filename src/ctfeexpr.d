@@ -129,7 +129,7 @@ public:
         return -1;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -150,12 +150,12 @@ public:
         this.type = var.type;
     }
 
-    char* toChars()
+    override char* toChars()
     {
         return cast(char*)"void";
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -189,7 +189,7 @@ public:
         this.type = victim.type;
     }
 
-    char* toChars()
+    override char* toChars()
     {
         return cast(char*)"CTFE ThrownException";
     }
@@ -208,7 +208,7 @@ public:
             errorSupplemental(loc, "thrown from here");
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -225,7 +225,7 @@ public:
         type = Type.tvoid;
     }
 
-    char* toChars()
+    override char* toChars()
     {
         switch (op)
         {

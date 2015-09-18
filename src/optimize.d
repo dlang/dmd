@@ -215,12 +215,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             return ret.op == TOKerror;
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             //printf("Expression::optimize(result = x%x) %s\n", result, e->toChars());
         }
 
-        void visit(VarExp e)
+        override void visit(VarExp e)
         {
             if (keepLvalue)
             {
@@ -231,7 +231,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             ret = fromConstInitializer(result, e);
         }
 
-        void visit(TupleExp e)
+        override void visit(TupleExp e)
         {
             expOptimize(e.e0, WANTvalue);
             for (size_t i = 0; i < e.exps.dim; i++)
@@ -240,7 +240,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(ArrayLiteralExp e)
+        override void visit(ArrayLiteralExp e)
         {
             if (e.elements)
             {
@@ -251,7 +251,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(AssocArrayLiteralExp e)
+        override void visit(AssocArrayLiteralExp e)
         {
             assert(e.keys.dim == e.values.dim);
             for (size_t i = 0; i < e.keys.dim; i++)
@@ -261,7 +261,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(StructLiteralExp e)
+        override void visit(StructLiteralExp e)
         {
             if (e.stageflags & stageOptimize)
                 return;
@@ -277,14 +277,14 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             e.stageflags = old;
         }
 
-        void visit(UnaExp e)
+        override void visit(UnaExp e)
         {
             //printf("UnaExp::optimize() %s\n", e->toChars());
             if (unaOptimize(e, result))
                 return;
         }
 
-        void visit(NegExp e)
+        override void visit(NegExp e)
         {
             if (unaOptimize(e, result))
                 return;
@@ -294,7 +294,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(ComExp e)
+        override void visit(ComExp e)
         {
             if (unaOptimize(e, result))
                 return;
@@ -304,7 +304,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(NotExp e)
+        override void visit(NotExp e)
         {
             if (unaOptimize(e, result))
                 return;
@@ -314,7 +314,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(BoolExp e)
+        override void visit(BoolExp e)
         {
             if (unaOptimize(e, result))
                 return;
@@ -324,12 +324,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(SymOffExp e)
+        override void visit(SymOffExp e)
         {
             assert(e.var);
         }
 
-        void visit(AddrExp e)
+        override void visit(AddrExp e)
         {
             //printf("AddrExp::optimize(result = %d) %s\n", result, e->toChars());
             /* Rewrite &(a,b) as (a,&b)
@@ -396,7 +396,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(PtrExp e)
+        override void visit(PtrExp e)
         {
             //printf("PtrExp::optimize(result = x%x) %s\n", result, e->toChars());
             if (expOptimize(e.e1, result))
@@ -444,7 +444,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(DotVarExp e)
+        override void visit(DotVarExp e)
         {
             //printf("DotVarExp::optimize(result = x%x) %s\n", result, e->toChars());
             if (expOptimize(e.e1, result))
@@ -476,7 +476,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(NewExp e)
+        override void visit(NewExp e)
         {
             expOptimize(e.thisexp, WANTvalue);
             // Optimize parameters
@@ -496,7 +496,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(CallExp e)
+        override void visit(CallExp e)
         {
             //printf("CallExp::optimize(result = %d) %s\n", result, e->toChars());
             // Optimize parameters with keeping lvalue-ness
@@ -518,7 +518,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(CastExp e)
+        override void visit(CastExp e)
         {
             //printf("CastExp::optimize(result = %d) %s\n", result, e->toChars());
             //printf("from %s to %s\n", e->type->toChars(), e->to->toChars());
@@ -607,7 +607,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             //printf(" returning6 %s\n", ret->toChars());
         }
 
-        void visit(BinExp e)
+        override void visit(BinExp e)
         {
             //printf("BinExp::optimize(result = %d) %s\n", result, e->toChars());
             // don't replace const variable with its initializer in e1
@@ -630,7 +630,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(AddExp e)
+        override void visit(AddExp e)
         {
             //printf("AddExp::optimize(%s)\n", e->toChars());
             if (binOptimize(e, result))
@@ -643,7 +643,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(MinExp e)
+        override void visit(MinExp e)
         {
             if (binOptimize(e, result))
                 return;
@@ -655,7 +655,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(MulExp e)
+        override void visit(MulExp e)
         {
             //printf("MulExp::optimize(result = %d) %s\n", result, e->toChars());
             if (binOptimize(e, result))
@@ -666,7 +666,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(DivExp e)
+        override void visit(DivExp e)
         {
             //printf("DivExp::optimize(%s)\n", e->toChars());
             if (binOptimize(e, result))
@@ -677,7 +677,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(ModExp e)
+        override void visit(ModExp e)
         {
             if (binOptimize(e, result))
                 return;
@@ -706,25 +706,25 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(ShlExp e)
+        override void visit(ShlExp e)
         {
             //printf("ShlExp::optimize(result = %d) %s\n", result, e->toChars());
             shift_optimize(e, &Shl);
         }
 
-        void visit(ShrExp e)
+        override void visit(ShrExp e)
         {
             //printf("ShrExp::optimize(result = %d) %s\n", result, e->toChars());
             shift_optimize(e, &Shr);
         }
 
-        void visit(UshrExp e)
+        override void visit(UshrExp e)
         {
             //printf("UshrExp::optimize(result = %d) %s\n", result, toChars());
             shift_optimize(e, &Ushr);
         }
 
-        void visit(AndExp e)
+        override void visit(AndExp e)
         {
             if (binOptimize(e, result))
                 return;
@@ -732,7 +732,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = And(e.type, e.e1, e.e2).copy();
         }
 
-        void visit(OrExp e)
+        override void visit(OrExp e)
         {
             if (binOptimize(e, result))
                 return;
@@ -740,7 +740,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = Or(e.type, e.e1, e.e2).copy();
         }
 
-        void visit(XorExp e)
+        override void visit(XorExp e)
         {
             if (binOptimize(e, result))
                 return;
@@ -748,7 +748,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = Xor(e.type, e.e1, e.e2).copy();
         }
 
-        void visit(PowExp e)
+        override void visit(PowExp e)
         {
             if (binOptimize(e, result))
                 return;
@@ -823,7 +823,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(CommaExp e)
+        override void visit(CommaExp e)
         {
             //printf("CommaExp::optimize(result = %d) %s\n", result, e->toChars());
             // Comma needs special treatment, because it may
@@ -844,7 +844,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             //printf("-CommaExp::optimize(result = %d) %s\n", result, e->e->toChars());
         }
 
-        void visit(ArrayLengthExp e)
+        override void visit(ArrayLengthExp e)
         {
             //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, e->toChars());
             if (unaOptimize(e, WANTexpand))
@@ -865,7 +865,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(EqualExp e)
+        override void visit(EqualExp e)
         {
             //printf("EqualExp::optimize(result = %x) %s\n", result, e->toChars());
             if (binOptimize(e, WANTvalue))
@@ -887,7 +887,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = e;
         }
 
-        void visit(IdentityExp e)
+        override void visit(IdentityExp e)
         {
             //printf("IdentityExp::optimize(result = %d) %s\n", result, e->toChars());
             if (binOptimize(e, WANTvalue))
@@ -928,7 +928,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             lengthVar.storage_class |= STCstatic | STCconst;
         }
 
-        void visit(IndexExp e)
+        override void visit(IndexExp e)
         {
             //printf("IndexExp::optimize(result = %d) %s\n", result, e->toChars());
             if (expOptimize(e.e1, result & WANTexpand))
@@ -945,7 +945,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = e;
         }
 
-        void visit(SliceExp e)
+        override void visit(SliceExp e)
         {
             //printf("SliceExp::optimize(result = %d) %s\n", result, e->toChars());
             if (expOptimize(e.e1, result & WANTexpand))
@@ -987,7 +987,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             //printf("-SliceExp::optimize() %s\n", ret->toChars());
         }
 
-        void visit(AndAndExp e)
+        override void visit(AndAndExp e)
         {
             //printf("AndAndExp::optimize(%d) %s\n", result, e->toChars());
             if (expOptimize(e.e1, WANTvalue))
@@ -1025,7 +1025,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(OrOrExp e)
+        override void visit(OrOrExp e)
         {
             //printf("OrOrExp::optimize(%d) %s\n", result, e->toChars());
             if (expOptimize(e.e1, WANTvalue))
@@ -1063,7 +1063,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void visit(CmpExp e)
+        override void visit(CmpExp e)
         {
             //printf("CmpExp::optimize() %s\n", e->toChars());
             if (binOptimize(e, WANTvalue))
@@ -1075,7 +1075,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = e;
         }
 
-        void visit(CatExp e)
+        override void visit(CatExp e)
         {
             //printf("CatExp::optimize(%d) %s\n", result, e->toChars());
             if (binOptimize(e, result))
@@ -1111,7 +1111,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = e;
         }
 
-        void visit(CondExp e)
+        override void visit(CondExp e)
         {
             if (expOptimize(e.econd, WANTvalue))
                 return;

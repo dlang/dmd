@@ -43,7 +43,7 @@ public:
         this.loc = loc;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ds = new DebugSymbol(loc, ident);
@@ -51,7 +51,7 @@ public:
         return ds;
     }
 
-    char* toChars()
+    override char* toChars()
     {
         if (ident)
             return ident.toChars();
@@ -63,7 +63,7 @@ public:
         }
     }
 
-    void addMember(Scope* sc, ScopeDsymbol sds)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         //printf("DebugSymbol::addMember('%s') %s\n", sds->toChars(), toChars());
         Module m = sds.isModule();
@@ -100,17 +100,17 @@ public:
         }
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         //printf("DebugSymbol::semantic() %s\n", toChars());
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "debug";
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -139,7 +139,7 @@ public:
         this.loc = loc;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         auto ds = new VersionSymbol(loc, ident);
@@ -147,7 +147,7 @@ public:
         return ds;
     }
 
-    char* toChars()
+    override char* toChars()
     {
         if (ident)
             return ident.toChars();
@@ -159,7 +159,7 @@ public:
         }
     }
 
-    void addMember(Scope* sc, ScopeDsymbol sds)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         //printf("VersionSymbol::addMember('%s') %s\n", sds->toChars(), toChars());
         Module m = sds.isModule();
@@ -197,16 +197,16 @@ public:
         }
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "version";
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

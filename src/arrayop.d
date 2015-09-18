@@ -238,13 +238,13 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             this.arguments = arguments;
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             buf.writestring("Exp");
             arguments.shift(e);
         }
 
-        void visit(CastExp e)
+        override void visit(CastExp e)
         {
             Type tb = e.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -255,19 +255,19 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                 visit(cast(Expression)e);
         }
 
-        void visit(ArrayLiteralExp e)
+        override void visit(ArrayLiteralExp e)
         {
             buf.writestring("Slice");
             arguments.shift(e);
         }
 
-        void visit(SliceExp e)
+        override void visit(SliceExp e)
         {
             buf.writestring("Slice");
             arguments.shift(e);
         }
 
-        void visit(AssignExp e)
+        override void visit(AssignExp e)
         {
             /* Evaluate assign expressions right to left
              */
@@ -276,7 +276,7 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             buf.writestring("Assign");
         }
 
-        void visit(BinAssignExp e)
+        override void visit(BinAssignExp e)
         {
             /* Evaluate assign expressions right to left
              */
@@ -318,19 +318,19 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             buf.writestring(s);
         }
 
-        void visit(NegExp e)
+        override void visit(NegExp e)
         {
             e.e1.accept(this);
             buf.writestring("Neg");
         }
 
-        void visit(ComExp e)
+        override void visit(ComExp e)
         {
             e.e1.accept(this);
             buf.writestring("Com");
         }
 
-        void visit(BinExp e)
+        override void visit(BinExp e)
         {
             /* Evaluate assign expressions left to right
              */
@@ -420,7 +420,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             this.result = null;
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             Identifier id = Identifier.generateId("c", fparams.dim);
             auto param = new Parameter(0, e.type, id, null);
@@ -428,7 +428,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             result = new IdentifierExp(Loc(), id);
         }
 
-        void visit(CastExp e)
+        override void visit(CastExp e)
         {
             Type tb = e.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -439,7 +439,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
                 visit(cast(Expression)e);
         }
 
-        void visit(ArrayLiteralExp e)
+        override void visit(ArrayLiteralExp e)
         {
             Identifier id = Identifier.generateId("p", fparams.dim);
             auto param = new Parameter(STCconst, e.type, id, null);
@@ -449,7 +449,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             result = new ArrayExp(Loc(), ie, index);
         }
 
-        void visit(SliceExp e)
+        override void visit(SliceExp e)
         {
             Identifier id = Identifier.generateId("p", fparams.dim);
             auto param = new Parameter(STCconst, e.type, id, null);
@@ -459,7 +459,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             result = new ArrayExp(Loc(), ie, index);
         }
 
-        void visit(AssignExp e)
+        override void visit(AssignExp e)
         {
             /* Evaluate assign expressions right to left
              */
@@ -476,7 +476,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             result = new AssignExp(Loc(), ex1, ex2);
         }
 
-        void visit(BinAssignExp e)
+        override void visit(BinAssignExp e)
         {
             /* Evaluate assign expressions right to left
              */
@@ -518,19 +518,19 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             }
         }
 
-        void visit(NegExp e)
+        override void visit(NegExp e)
         {
             Expression ex1 = buildArrayLoop(e.e1);
             result = new NegExp(Loc(), ex1);
         }
 
-        void visit(ComExp e)
+        override void visit(ComExp e)
         {
             Expression ex1 = buildArrayLoop(e.e1);
             result = new ComExp(Loc(), ex1);
         }
 
-        void visit(BinExp e)
+        override void visit(BinExp e)
         {
             if (isBinArrayOp(e.op))
             {

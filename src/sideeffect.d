@@ -33,7 +33,7 @@ extern (C++) bool isTrivialExp(Expression e)
         {
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             /* Bugzilla 11201: CallExp is always non trivial expression,
              * especially for inlining.
@@ -65,7 +65,7 @@ extern (C++) bool hasSideEffect(Expression e)
         {
         }
 
-        void visit(Expression e)
+        override void visit(Expression e)
         {
             // stop walking if we determine this expression has side effects
             stop = lambdaHasSideEffect(e);

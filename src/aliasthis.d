@@ -39,7 +39,7 @@ public:
         this.ident = ident;
     }
 
-    Dsymbol syntaxCopy(Dsymbol s)
+    override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         /* Since there is no semantic information stored here,
@@ -48,7 +48,7 @@ public:
         return this;
     }
 
-    void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
@@ -100,7 +100,7 @@ public:
         ad.aliasthis = s;
     }
 
-    const(char)* kind()
+    override const(char)* kind()
     {
         return "alias this";
     }
@@ -110,7 +110,7 @@ public:
         return this;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }

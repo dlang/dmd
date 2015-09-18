@@ -123,41 +123,41 @@ extern (C++) bool isSpeculativeType(Type t)
             this.result = false;
         }
 
-        void visit(Type t)
+        override void visit(Type t)
         {
             Type tb = t.toBasetype();
             if (tb != t)
                 tb.accept(this);
         }
 
-        void visit(TypeNext t)
+        override void visit(TypeNext t)
         {
             if (t.next)
                 t.next.accept(this);
         }
 
-        void visit(TypeBasic t)
+        override void visit(TypeBasic t)
         {
         }
 
-        void visit(TypeVector t)
+        override void visit(TypeVector t)
         {
             t.basetype.accept(this);
         }
 
-        void visit(TypeAArray t)
+        override void visit(TypeAArray t)
         {
             t.index.accept(this);
             visit(cast(TypeNext)t);
         }
 
-        void visit(TypeFunction t)
+        override void visit(TypeFunction t)
         {
             visit(cast(TypeNext)t);
             // Currently TypeInfo_Function doesn't store parameter types.
         }
 
-        void visit(TypeStruct t)
+        override void visit(TypeStruct t)
         {
             StructDeclaration sd = t.sym;
             if (auto ti = sd.isInstantiated())
@@ -188,11 +188,11 @@ extern (C++) bool isSpeculativeType(Type t)
             }
         }
 
-        void visit(TypeClass t)
+        override void visit(TypeClass t)
         {
         }
 
-        void visit(TypeTuple t)
+        override void visit(TypeTuple t)
         {
             if (t.arguments)
             {

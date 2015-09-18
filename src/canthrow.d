@@ -45,16 +45,16 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             this.mustNotThrow = mustNotThrow;
         }
 
-        void visit(Expression)
+        override void visit(Expression)
         {
         }
 
-        void visit(DeclarationExp de)
+        override void visit(DeclarationExp de)
         {
             stop = Dsymbol_canThrow(de.declaration, func, mustNotThrow);
         }
 
-        void visit(CallExp ce)
+        override void visit(CallExp ce)
         {
             if (global.errors && !ce.e1.type)
                 return; // error recovery
@@ -92,7 +92,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             }
         }
 
-        void visit(NewExp ne)
+        override void visit(NewExp ne)
         {
             if (ne.member)
             {
@@ -108,7 +108,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             // regard storage allocation failures as not recoverable
         }
 
-        void visit(AssignExp ae)
+        override void visit(AssignExp ae)
         {
             // blit-init cannot throw
             if (ae.op == TOKblit)
@@ -143,7 +143,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             }
         }
 
-        void visit(NewAnonClassExp)
+        override void visit(NewAnonClassExp)
         {
             assert(0); // should have been lowered by semantic()
         }

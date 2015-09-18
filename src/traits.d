@@ -388,39 +388,39 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
             (*data)[cast(size_t)(ptroff / (8 * sz_size_t))] |= 1L << (ptroff % (8 * sz_size_t));
         }
 
-        void visit(Type t)
+        override void visit(Type t)
         {
             Type tb = t.toBasetype();
             if (tb != t)
                 tb.accept(this);
         }
 
-        void visit(TypeError t)
+        override void visit(TypeError t)
         {
             visit(cast(Type)t);
         }
 
-        void visit(TypeNext t)
+        override void visit(TypeNext t)
         {
             assert(0);
         }
 
-        void visit(TypeBasic t)
+        override void visit(TypeBasic t)
         {
             if (t.ty == Tvoid)
                 setpointer(offset);
         }
 
-        void visit(TypeVector t)
+        override void visit(TypeVector t)
         {
         }
 
-        void visit(TypeArray t)
+        override void visit(TypeArray t)
         {
             assert(0);
         }
 
-        void visit(TypeSArray t)
+        override void visit(TypeSArray t)
         {
             d_uns64 arrayoff = offset;
             d_uns64 nextsize = t.next.size();
@@ -433,90 +433,90 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
             offset = arrayoff;
         }
 
-        void visit(TypeDArray t)
+        override void visit(TypeDArray t)
         {
             setpointer(offset + sz_size_t);
         }
 
         // dynamic array is {length,ptr}
-        void visit(TypeAArray t)
+        override void visit(TypeAArray t)
         {
             setpointer(offset);
         }
 
-        void visit(TypePointer t)
+        override void visit(TypePointer t)
         {
             if (t.nextOf().ty != Tfunction) // don't mark function pointers
                 setpointer(offset);
         }
 
-        void visit(TypeReference t)
+        override void visit(TypeReference t)
         {
             setpointer(offset);
         }
 
-        void visit(TypeClass t)
+        override void visit(TypeClass t)
         {
             setpointer(offset);
         }
 
-        void visit(TypeFunction t)
+        override void visit(TypeFunction t)
         {
         }
 
-        void visit(TypeDelegate t)
+        override void visit(TypeDelegate t)
         {
             setpointer(offset);
         }
 
         // delegate is {context, function}
-        void visit(TypeQualified t)
+        override void visit(TypeQualified t)
         {
             assert(0);
         }
 
         // assume resolved
-        void visit(TypeIdentifier t)
+        override void visit(TypeIdentifier t)
         {
             assert(0);
         }
 
-        void visit(TypeInstance t)
+        override void visit(TypeInstance t)
         {
             assert(0);
         }
 
-        void visit(TypeTypeof t)
+        override void visit(TypeTypeof t)
         {
             assert(0);
         }
 
-        void visit(TypeReturn t)
+        override void visit(TypeReturn t)
         {
             assert(0);
         }
 
-        void visit(TypeEnum t)
+        override void visit(TypeEnum t)
         {
             visit(cast(Type)t);
         }
 
-        void visit(TypeTuple t)
+        override void visit(TypeTuple t)
         {
             visit(cast(Type)t);
         }
 
-        void visit(TypeSlice t)
+        override void visit(TypeSlice t)
         {
             assert(0);
         }
 
-        void visit(TypeNull t)
+        override void visit(TypeNull t)
         {
             assert(0);
         }
 
-        void visit(TypeStruct t)
+        override void visit(TypeStruct t)
         {
             d_uns64 structoff = offset;
             for (size_t i = 0; i < t.sym.fields.dim; i++)
