@@ -60,145 +60,134 @@ enum CARRAYDECL = 1;
 /**********************************
  * Set operator precedence for each operator.
  */
-extern (C++) __gshared PREC[TOKMAX] precedence = PREC_zero;
-
-extern (C++) void initPrecedence()
-{
-    precedence[TOKtype] = PREC_expr;
-    precedence[TOKerror] = PREC_expr;
-    precedence[TOKtypeof] = PREC_primary;
-    precedence[TOKmixin] = PREC_primary;
-    precedence[TOKdotvar] = PREC_primary;
-    precedence[TOKimport] = PREC_primary;
-    precedence[TOKidentifier] = PREC_primary;
-    precedence[TOKthis] = PREC_primary;
-    precedence[TOKsuper] = PREC_primary;
-    precedence[TOKint64] = PREC_primary;
-    precedence[TOKfloat64] = PREC_primary;
-    precedence[TOKcomplex80] = PREC_primary;
-    precedence[TOKnull] = PREC_primary;
-    precedence[TOKstring] = PREC_primary;
-    precedence[TOKarrayliteral] = PREC_primary;
-    precedence[TOKassocarrayliteral] = PREC_primary;
-    precedence[TOKclassreference] = PREC_primary;
-    precedence[TOKfile] = PREC_primary;
-    precedence[TOKline] = PREC_primary;
-    precedence[TOKmodulestring] = PREC_primary;
-    precedence[TOKfuncstring] = PREC_primary;
-    precedence[TOKprettyfunc] = PREC_primary;
-    precedence[TOKtypeid] = PREC_primary;
-    precedence[TOKis] = PREC_primary;
-    precedence[TOKassert] = PREC_primary;
-    precedence[TOKhalt] = PREC_primary;
-    precedence[TOKtemplate] = PREC_primary;
-    precedence[TOKdsymbol] = PREC_primary;
-    precedence[TOKfunction] = PREC_primary;
-    precedence[TOKvar] = PREC_primary;
-    precedence[TOKsymoff] = PREC_primary;
-    precedence[TOKstructliteral] = PREC_primary;
-    precedence[TOKarraylength] = PREC_primary;
-    precedence[TOKdelegateptr] = PREC_primary;
-    precedence[TOKdelegatefuncptr] = PREC_primary;
-    precedence[TOKremove] = PREC_primary;
-    precedence[TOKtuple] = PREC_primary;
-    precedence[TOKtraits] = PREC_primary;
-    precedence[TOKdefault] = PREC_primary;
-    precedence[TOKoverloadset] = PREC_primary;
-    precedence[TOKvoid] = PREC_primary;
+extern (C++) __gshared PREC[TOKMAX] precedence =
+[
+    TOKtype : PREC_expr,
+    TOKerror : PREC_expr,
+    TOKtypeof : PREC_primary,
+    TOKmixin : PREC_primary,
+    TOKdotvar : PREC_primary,
+    TOKimport : PREC_primary,
+    TOKidentifier : PREC_primary,
+    TOKthis : PREC_primary,
+    TOKsuper : PREC_primary,
+    TOKint64 : PREC_primary,
+    TOKfloat64 : PREC_primary,
+    TOKcomplex80 : PREC_primary,
+    TOKnull : PREC_primary,
+    TOKstring : PREC_primary,
+    TOKarrayliteral : PREC_primary,
+    TOKassocarrayliteral : PREC_primary,
+    TOKclassreference : PREC_primary,
+    TOKfile : PREC_primary,
+    TOKline : PREC_primary,
+    TOKmodulestring : PREC_primary,
+    TOKfuncstring : PREC_primary,
+    TOKprettyfunc : PREC_primary,
+    TOKtypeid : PREC_primary,
+    TOKis : PREC_primary,
+    TOKassert : PREC_primary,
+    TOKhalt : PREC_primary,
+    TOKtemplate : PREC_primary,
+    TOKdsymbol : PREC_primary,
+    TOKfunction : PREC_primary,
+    TOKvar : PREC_primary,
+    TOKsymoff : PREC_primary,
+    TOKstructliteral : PREC_primary,
+    TOKarraylength : PREC_primary,
+    TOKdelegateptr : PREC_primary,
+    TOKdelegatefuncptr : PREC_primary,
+    TOKremove : PREC_primary,
+    TOKtuple : PREC_primary,
+    TOKtraits : PREC_primary,
+    TOKdefault : PREC_primary,
+    TOKoverloadset : PREC_primary,
+    TOKvoid : PREC_primary,
     // post
-    precedence[TOKdotti] = PREC_primary;
-    precedence[TOKdot] = PREC_primary;
-    precedence[TOKdottd] = PREC_primary;
-    precedence[TOKdotexp] = PREC_primary;
-    precedence[TOKdottype] = PREC_primary;
-    //  precedence[TOKarrow] = PREC_primary;
-    precedence[TOKplusplus] = PREC_primary;
-    precedence[TOKminusminus] = PREC_primary;
-    precedence[TOKpreplusplus] = PREC_primary;
-    precedence[TOKpreminusminus] = PREC_primary;
-    precedence[TOKcall] = PREC_primary;
-    precedence[TOKslice] = PREC_primary;
-    precedence[TOKarray] = PREC_primary;
-    precedence[TOKindex] = PREC_primary;
-    precedence[TOKdelegate] = PREC_unary;
-    precedence[TOKaddress] = PREC_unary;
-    precedence[TOKstar] = PREC_unary;
-    precedence[TOKneg] = PREC_unary;
-    precedence[TOKuadd] = PREC_unary;
-    precedence[TOKnot] = PREC_unary;
-    precedence[TOKtobool] = PREC_add;
-    precedence[TOKtilde] = PREC_unary;
-    precedence[TOKdelete] = PREC_unary;
-    precedence[TOKnew] = PREC_unary;
-    precedence[TOKnewanonclass] = PREC_unary;
-    precedence[TOKcast] = PREC_unary;
-    precedence[TOKvector] = PREC_unary;
-    precedence[TOKpow] = PREC_pow;
-    precedence[TOKmul] = PREC_mul;
-    precedence[TOKdiv] = PREC_mul;
-    precedence[TOKmod] = PREC_mul;
-    precedence[TOKadd] = PREC_add;
-    precedence[TOKmin] = PREC_add;
-    precedence[TOKcat] = PREC_add;
-    precedence[TOKshl] = PREC_shift;
-    precedence[TOKshr] = PREC_shift;
-    precedence[TOKushr] = PREC_shift;
-    precedence[TOKlt] = PREC_rel;
-    precedence[TOKle] = PREC_rel;
-    precedence[TOKgt] = PREC_rel;
-    precedence[TOKge] = PREC_rel;
-    precedence[TOKunord] = PREC_rel;
-    precedence[TOKlg] = PREC_rel;
-    precedence[TOKleg] = PREC_rel;
-    precedence[TOKule] = PREC_rel;
-    precedence[TOKul] = PREC_rel;
-    precedence[TOKuge] = PREC_rel;
-    precedence[TOKug] = PREC_rel;
-    precedence[TOKue] = PREC_rel;
-    precedence[TOKin] = PREC_rel;
-    version (none)
-    {
-        precedence[TOKequal] = PREC_equal;
-        precedence[TOKnotequal] = PREC_equal;
-        precedence[TOKidentity] = PREC_equal;
-        precedence[TOKnotidentity] = PREC_equal;
-    }
-    else
-    {
-        /* Note that we changed precedence, so that < and != have the same
-         * precedence. This change is in the parser, too.
-         */
-        precedence[TOKequal] = PREC_rel;
-        precedence[TOKnotequal] = PREC_rel;
-        precedence[TOKidentity] = PREC_rel;
-        precedence[TOKnotidentity] = PREC_rel;
-    }
-    precedence[TOKand] = PREC_and;
-    precedence[TOKxor] = PREC_xor;
-    precedence[TOKor] = PREC_or;
-    precedence[TOKandand] = PREC_andand;
-    precedence[TOKoror] = PREC_oror;
-    precedence[TOKquestion] = PREC_cond;
-    precedence[TOKassign] = PREC_assign;
-    precedence[TOKconstruct] = PREC_assign;
-    precedence[TOKblit] = PREC_assign;
-    precedence[TOKaddass] = PREC_assign;
-    precedence[TOKminass] = PREC_assign;
-    precedence[TOKcatass] = PREC_assign;
-    precedence[TOKmulass] = PREC_assign;
-    precedence[TOKdivass] = PREC_assign;
-    precedence[TOKmodass] = PREC_assign;
-    precedence[TOKpowass] = PREC_assign;
-    precedence[TOKshlass] = PREC_assign;
-    precedence[TOKshrass] = PREC_assign;
-    precedence[TOKushrass] = PREC_assign;
-    precedence[TOKandass] = PREC_assign;
-    precedence[TOKorass] = PREC_assign;
-    precedence[TOKxorass] = PREC_assign;
-    precedence[TOKcomma] = PREC_expr;
-    precedence[TOKdeclaration] = PREC_expr;
-    precedence[TOKinterval] = PREC_assign;
-}
+    TOKdotti : PREC_primary,
+    TOKdot : PREC_primary,
+    TOKdottd : PREC_primary,
+    TOKdotexp : PREC_primary,
+    TOKdottype : PREC_primary,
+    TOKplusplus : PREC_primary,
+    TOKminusminus : PREC_primary,
+    TOKpreplusplus : PREC_primary,
+    TOKpreminusminus : PREC_primary,
+    TOKcall : PREC_primary,
+    TOKslice : PREC_primary,
+    TOKarray : PREC_primary,
+    TOKindex : PREC_primary,
+    TOKdelegate : PREC_unary,
+    TOKaddress : PREC_unary,
+    TOKstar : PREC_unary,
+    TOKneg : PREC_unary,
+    TOKuadd : PREC_unary,
+    TOKnot : PREC_unary,
+    TOKtobool : PREC_add,
+    TOKtilde : PREC_unary,
+    TOKdelete : PREC_unary,
+    TOKnew : PREC_unary,
+    TOKnewanonclass : PREC_unary,
+    TOKcast : PREC_unary,
+    TOKvector : PREC_unary,
+    TOKpow : PREC_pow,
+    TOKmul : PREC_mul,
+    TOKdiv : PREC_mul,
+    TOKmod : PREC_mul,
+    TOKadd : PREC_add,
+    TOKmin : PREC_add,
+    TOKcat : PREC_add,
+    TOKshl : PREC_shift,
+    TOKshr : PREC_shift,
+    TOKushr : PREC_shift,
+    TOKlt : PREC_rel,
+    TOKle : PREC_rel,
+    TOKgt : PREC_rel,
+    TOKge : PREC_rel,
+    TOKunord : PREC_rel,
+    TOKlg : PREC_rel,
+    TOKleg : PREC_rel,
+    TOKule : PREC_rel,
+    TOKul : PREC_rel,
+    TOKuge : PREC_rel,
+    TOKug : PREC_rel,
+    TOKue : PREC_rel,
+    TOKin : PREC_rel,
+
+    /* Note that we changed precedence, so that < and != have the same
+     * precedence. This change is in the parser, too.
+     */
+    TOKequal : PREC_rel,
+    TOKnotequal : PREC_rel,
+    TOKidentity : PREC_rel,
+    TOKnotidentity : PREC_rel,
+
+    TOKand : PREC_and,
+    TOKxor : PREC_xor,
+    TOKor : PREC_or,
+    TOKandand : PREC_andand,
+    TOKoror : PREC_oror,
+    TOKquestion : PREC_cond,
+    TOKassign : PREC_assign,
+    TOKconstruct : PREC_assign,
+    TOKblit : PREC_assign,
+    TOKaddass : PREC_assign,
+    TOKminass : PREC_assign,
+    TOKcatass : PREC_assign,
+    TOKmulass : PREC_assign,
+    TOKdivass : PREC_assign,
+    TOKmodass : PREC_assign,
+    TOKpowass : PREC_assign,
+    TOKshlass : PREC_assign,
+    TOKshrass : PREC_assign,
+    TOKushrass : PREC_assign,
+    TOKandass : PREC_assign,
+    TOKorass : PREC_assign,
+    TOKxorass : PREC_assign,
+    TOKcomma : PREC_expr,
+    TOKdeclaration : PREC_expr,
+    TOKinterval : PREC_assign,
+];
 
 enum ParseStatementFlags : int
 {

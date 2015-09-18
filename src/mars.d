@@ -1199,7 +1199,6 @@ Language changes listed by -transition=id:
     Target._init();
     Expression._init();
     objc_tryMain_init();
-    initPrecedence();
     builtin_init();
     initTraitsStringTable();
     if (global.params.verbose)
