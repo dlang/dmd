@@ -853,7 +853,6 @@ public:
         sizeTy[Terror] = __traits(classInstanceSize, TypeError);
         sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
         sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
-        initTypeMangle();
         // Set basic types
         static __gshared TY* basetab =
         [
