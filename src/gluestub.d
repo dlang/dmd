@@ -69,22 +69,7 @@ extern (C++) void backend_term()
 {
 }
 
-// lib
-
-extern (C++) Library LibMSCoff_factory()
-{
-    assert(0);
-}
-
-extern (C++) Library LibElf_factory()
-{
-    assert(0);
-}
-
-extern (C++) Library LibMach_factory()
-{
-    assert(0);
-}
+// iasm
 
 extern (C++) Statement asmSemantic(AsmStatement s, Scope* sc)
 {
