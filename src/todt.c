@@ -928,7 +928,8 @@ dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt)
     ClassDeclaration *cd = ce->originalClass();
 
     pdt = dtxoff(pdt, toVtblSymbol(cd), 0);
-    pdt = dtsize_t(pdt, 0);                 // monitor
+    if (!cd->cpp)
+        pdt = dtsize_t(pdt, 0);                 // monitor
 
     // Put in the rest
     size_t firstFieldIndex = 0;
