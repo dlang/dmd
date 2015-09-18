@@ -1,27 +1,12 @@
-# set from top makefile
-OS:=
-MODEL:=
-DMD:=
-DRUNTIME:=
-DRUNTIMESO:=
-QUIET:=
-LINKDL:=
+include ../common.mak
 
-SRC:=src
-ROOT:=./obj/$(OS)/$(MODEL)/$(BUILD)
-TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,profile profilegc both))
+TESTS:=profile profilegc both
 
 DIFF:=diff
 GREP:=grep
 
-ifneq (default,$(MODEL))
-	MODEL_FLAG:=-m$(MODEL)
-endif
-CFLAGS:=$(MODEL_FLAG) -Wall
-DFLAGS:=$(MODEL_FLAG) -w -I../../src -I../../import -I$(SRC) -L$(DRUNTIME) -defaultlib= -debuglib=
-
 .PHONY: all clean
-all: $(TESTS)
+all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 $(ROOT)/profile.done: DFLAGS+=-profile
 $(ROOT)/profile.done: $(ROOT)/%.done: $(ROOT)/%
@@ -56,4 +41,4 @@ $(ROOT)/%: $(SRC)/%.d
 	$(QUIET)$(DMD) $(DFLAGS) -of$(ROOT)/$* $<
 
 clean:
-	rm -rf obj *.log *.def
+	rm -rf $(ROOT) *.log *.def
