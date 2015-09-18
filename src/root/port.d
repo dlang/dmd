@@ -11,6 +11,7 @@ module ddmd.root.port;
 import core.stdc.ctype;
 import core.stdc.string;
 import core.stdc.stdio;
+import core.stdc.errno;
 import core.math;
 
 version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
@@ -24,6 +25,15 @@ version(CRuntime_Microsoft)
     extern (C++) longdouble strtold_dm(const(char)* p, char** endp);
 else
     extern (C) real strtold(const(char)* p, char** endp);
+
+version(CRuntime_Microsoft)
+{
+    enum _OVERFLOW = 3;   /* overflow range error */
+    enum _UNDERFLOW = 4;   /* underflow range error */
+
+    extern (C) int _atoflt(float* value, const char * str);
+    extern (C) int _atodbl(double* value, const char * str);
+}
 
 extern (C++) struct Port
 {
@@ -141,7 +151,24 @@ extern (C++) struct Port
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
-        auto r = .strtof(p, endp);
+        version (CRuntime_Microsoft)
+        {
+            float r;
+            if(endp)
+            {
+                r = .strtod(p, endp); // does not set errno for underflows, but unused
+            }
+            else
+            {
+                int res = _atoflt(&r, p);
+                if (res == _UNDERFLOW || res == _OVERFLOW)
+                    errno = ERANGE;
+            }
+        }
+        else
+        {
+            auto r = .strtof(p, endp);
+        }
         version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
@@ -153,7 +180,24 @@ extern (C++) struct Port
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
-        auto r = .strtod(p, endp);
+        version (CRuntime_Microsoft)
+        {
+            double r;
+            if(endp)
+            {
+                r = .strtod(p, endp); // does not set errno for underflows, but unused
+            }
+            else
+            {
+                int res = _atodbl(&r, p);
+                if (res == _UNDERFLOW || res == _OVERFLOW)
+                    errno = ERANGE;
+            }
+        }
+        else
+        {
+            auto r = .strtod(p, endp);
+        }
         version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
@@ -187,13 +231,13 @@ extern (C++) struct Port
                 // ((1.5 -> 1 -> 1.0) == 1.5) is false
                 // ((1.0 -> 1 -> 1.0) == 1.0) is true
                 // see http://en.cppreference.com/w/cpp/io/c/fprintf
-                char sfmt[5] = "%#Lg\0";
+                char[5] sfmt = "%#Lg\0";
                 sfmt[3] = cast(char)fmt;
                 return sprintf(str, sfmt.ptr, x);
             }
             else
             {
-                char sfmt[4] = "%Lg\0";
+                char[4] sfmt = "%Lg\0";
                 sfmt[2] = cast(char)fmt;
                 return sprintf(str, sfmt.ptr, x);
             }
