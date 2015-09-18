@@ -1382,6 +1382,5 @@ public:
 
     final extern (D) this()
     {
-        this.stop = false;
     }
 }

@@ -59,7 +59,6 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
         {
             this.sc = sc;
             this.t = t;
-            result = null;
         }
 
         override void visit(Expression e)
@@ -1324,7 +1323,6 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
         {
             this.sc = sc;
             this.t = t;
-            result = null;
         }
 
         override void visit(Expression e)
@@ -2268,7 +2266,6 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
         {
             this.t = t;
             this.flag = flag;
-            result = null;
         }
 
         override void visit(Expression e)

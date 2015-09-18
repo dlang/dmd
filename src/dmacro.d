@@ -29,12 +29,10 @@ private:
 
     extern (D) this(const(char)* name, size_t namelen, const(char)* text, size_t textlen)
     {
-        next = null;
         this.name = name;
         this.namelen = namelen;
         this.text = text;
         this.textlen = textlen;
-        inuse = 0;
     }
 
     extern (C++) Macro* search(const(char)* name, size_t namelen)

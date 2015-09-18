@@ -67,8 +67,6 @@ public:
         this.aliasId = aliasId;
         this.isstatic = isstatic;
         this.protection = PROTprivate; // default to private
-        this.pkg = null;
-        this.mod = null;
         // Set symbol name (bracketed)
         if (aliasId)
         {

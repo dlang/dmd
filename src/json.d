@@ -41,8 +41,6 @@ public:
     extern (D) this(OutBuffer* buf)
     {
         this.buf = buf;
-        this.indentLevel = 0;
-        this.filename = null;
     }
 
     void indent()

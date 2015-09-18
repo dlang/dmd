@@ -120,7 +120,6 @@ extern (C++) bool isSpeculativeType(Type t)
 
         extern (D) this()
         {
-            this.result = false;
         }
 
         override void visit(Type t)

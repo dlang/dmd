@@ -219,14 +219,10 @@ public:
     final extern (D) this(Identifier id)
     {
         super(id);
-        type = null;
-        originalType = null;
         storage_class = STCundefined;
         protection = Prot(PROTundefined);
         linkage = LINKdefault;
-        inuse = 0;
         sem = SemanticStart;
-        mangleOverride = null;
     }
 
     override void semantic(Scope* sc)
@@ -427,10 +423,7 @@ public:
     {
         super(id);
         this.loc = loc;
-        this.type = null;
         this.objects = objects;
-        this.isexp = false;
-        this.tupletype = null;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -561,9 +554,6 @@ public:
         //printf("type = '%s'\n", type->toChars());
         this.loc = loc;
         this.type = type;
-        this.aliassym = null;
-        this._import = null;
-        this.overnext = null;
         assert(type);
     }
 
@@ -573,10 +563,7 @@ public:
         //printf("AliasDeclaration(id = '%s', s = %p)\n", id->toChars(), s);
         assert(s != this);
         this.loc = loc;
-        this.type = null;
         this.aliassym = s;
-        this._import = null;
-        this.overnext = null;
         assert(s);
     }
 
@@ -917,7 +904,6 @@ public:
     extern (D) this(Identifier ident, Dsymbol s, bool hasOverloads = true)
     {
         super(ident);
-        this.overnext = null;
         this.aliassym = s;
         this.hasOverloads = hasOverloads;
         if (hasOverloads)
@@ -1076,20 +1062,7 @@ public:
         this.type = type;
         this._init = _init;
         this.loc = loc;
-        offset = 0;
-        noscope = 0;
-        isargptr = false;
-        alignment = 0;
-        ctorinit = 0;
-        aliassym = null;
-        onstack = 0;
-        canassign = 0;
-        overlapped = false;
-        lastVar = null;
         ctfeAdrOnStack = -1;
-        rundtor = null;
-        edtor = null;
-        range = null;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

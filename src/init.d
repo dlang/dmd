@@ -123,7 +123,6 @@ public:
     extern (D) this(Loc loc)
     {
         super(loc);
-        type = null;
     }
 
     override Initializer syntaxCopy()
@@ -391,9 +390,6 @@ public:
     extern (D) this(Loc loc)
     {
         super(loc);
-        dim = 0;
-        type = null;
-        sem = false;
     }
 
     override Initializer syntaxCopy()
@@ -761,7 +757,6 @@ public:
     {
         super(loc);
         this.exp = exp;
-        this.expandTuples = false;
     }
 
     override Initializer syntaxCopy()

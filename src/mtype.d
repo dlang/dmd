@@ -5032,7 +5032,6 @@ public:
     {
         super(Taarray, t);
         this.index = index;
-        this.loc = Loc();
     }
 
     static TypeAArray create(Type t, Type index)

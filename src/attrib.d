@@ -46,7 +46,6 @@ public:
     /********************************* AttribDeclaration ****************************/
     final extern (D) this(Dsymbols* decl)
     {
-        super();
         this.decl = decl;
     }
 
@@ -480,7 +479,6 @@ public:
         super(decl);
         this.loc = loc;
         this.protection = p;
-        this.pkg_identifiers = null;
         //printf("decl = %p\n", decl);
     }
 
@@ -596,9 +594,7 @@ public:
     {
         super(decl);
         this.loc = loc;
-        this.alignment = 0;
         this.isunion = isunion;
-        this.sem = 0;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -1111,8 +1107,6 @@ public:
     {
         super(condition, decl, elsedecl);
         //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
-        scopesym = null;
-        addisdone = 0;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -1218,8 +1212,6 @@ public:
         //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
         this.loc = loc;
         this.exp = exp;
-        this.scopesym = null;
-        this.compiled = 0;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

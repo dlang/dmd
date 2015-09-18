@@ -99,27 +99,8 @@ public:
     {
         super(id);
         this.loc = loc;
-        storage_class = 0;
         protection = Prot(PROTpublic);
-        type = null;
-        structsize = 0; // size of struct
-        alignsize = 0; // size of struct for alignment purposes
         sizeok = SIZEOKnone; // size not determined yet
-        deferred = null;
-        isdeprecated = false;
-        inv = null;
-        aggNew = null;
-        aggDelete = null;
-        stag = null;
-        sinit = null;
-        enclosing = null;
-        vthis = null;
-        ctor = null;
-        defaultCtor = null;
-        aliasthis = null;
-        noDefaultCtor = false;
-        dtor = null;
-        getRTInfo = null;
     }
 
     override final void setScope(Scope* sc)

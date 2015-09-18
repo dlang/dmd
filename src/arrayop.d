@@ -417,7 +417,6 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
         extern (D) this(Parameters* fparams)
         {
             this.fparams = fparams;
-            this.result = null;
         }
 
         override void visit(Expression e)

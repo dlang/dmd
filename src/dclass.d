@@ -53,10 +53,6 @@ struct BaseClass
         //printf("BaseClass(this = %p, '%s')\n", this, type->toChars());
         this.type = type;
         this.protection = protection;
-        this.sym = null;
-        this.offset = 0;
-        this.baseInterfaces_dim = 0;
-        this.baseInterfaces = null;
     }
 
     /****************************************
@@ -203,17 +199,9 @@ public:
         }
         else
             this.baseclasses = new BaseClasses();
-        baseClass = null;
-        interfaces_dim = 0;
-        interfaces = null;
-        vtblInterfaces = null;
         //printf("ClassDeclaration(%s), dim = %d\n", id->toChars(), this->baseclasses->dim);
         // For forward references
         type = new TypeClass(this);
-        staticCtor = null;
-        staticDtor = null;
-        vtblsym = null;
-        vclassinfo = null;
         if (id)
         {
             // Look for special class names
@@ -350,13 +338,7 @@ public:
                 errorException = this;
             }
         }
-        com = false;
-        cpp = false;
-        isscope = false;
-        isabstract = false;
-        inuse = 0;
         baseok = BASEOKnone;
-        objc.objc = false;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

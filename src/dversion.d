@@ -38,7 +38,6 @@ public:
 
     extern (D) this(Loc loc, uint level)
     {
-        super();
         this.level = level;
         this.loc = loc;
     }
@@ -134,7 +133,6 @@ public:
 
     extern (D) this(Loc loc, uint level)
     {
-        super();
         this.level = level;
         this.loc = loc;
     }

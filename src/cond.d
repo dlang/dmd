@@ -38,7 +38,6 @@ public:
     final extern (D) this(Loc loc)
     {
         this.loc = loc;
-        inc = 0;
     }
 
     abstract Condition syntaxCopy();
@@ -332,7 +331,6 @@ public:
     {
         super(loc);
         this.exp = exp;
-        this.nest = 0;
     }
 
     override Condition syntaxCopy()

@@ -89,7 +89,6 @@ struct Prot
     extern (D) this(PROTKIND kind)
     {
         this.kind = kind;
-        this.pkg = null;
     }
 
     /**
@@ -194,38 +193,18 @@ public:
     UnitTestDeclaration ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
 
     /****************************** Dsymbol ******************************/
+
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
-        this.ident = null;
-        this.parent = null;
-        this.csym = null;
-        this.isym = null;
-        this.loc = Loc();
-        this.comment = null;
-        this._scope = null;
         this.semanticRun = PASSinit;
-        this.errors = false;
-        this.depmsg = null;
-        this.userAttribDecl = null;
-        this.ddocUnittest = null;
     }
 
     final extern (D) this(Identifier ident)
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
         this.ident = ident;
-        this.parent = null;
-        this.csym = null;
-        this.isym = null;
-        this.loc = Loc();
-        this.comment = null;
-        this._scope = null;
         this.semanticRun = PASSinit;
-        this.errors = false;
-        this.depmsg = null;
-        this.userAttribDecl = null;
-        this.ddocUnittest = null;
     }
 
     final static Dsymbol create(Identifier ident)
@@ -1207,20 +1186,11 @@ public:
     /********************************* ScopeDsymbol ****************************/
     final extern (D) this()
     {
-        super();
-        members = null;
-        symtab = null;
-        imports = null;
-        prots = null;
     }
 
     final extern (D) this(Identifier id)
     {
         super(id);
-        members = null;
-        symtab = null;
-        imports = null;
-        prots = null;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -1592,7 +1562,6 @@ public:
     /****************************** WithScopeSymbol ******************************/
     extern (D) this(WithStatement withstate)
     {
-        super();
         this.withstate = withstate;
     }
 
@@ -1650,28 +1619,19 @@ public:
     /****************************** ArrayScopeSymbol ******************************/
     extern (D) this(Scope* sc, Expression e)
     {
-        super();
         assert(e.op == TOKindex || e.op == TOKslice || e.op == TOKarray);
         exp = e;
-        type = null;
-        td = null;
         this.sc = sc;
     }
 
     extern (D) this(Scope* sc, TypeTuple t)
     {
-        super();
-        exp = null;
         type = t;
-        td = null;
         this.sc = sc;
     }
 
     extern (D) this(Scope* sc, TupleDeclaration s)
     {
-        super();
-        exp = null;
-        type = null;
         td = s;
         this.sc = sc;
     }
@@ -1904,10 +1864,6 @@ public:
     AA* tab;
 
     /****************************** DsymbolTable ******************************/
-    extern (D) this()
-    {
-        tab = null;
-    }
 
     // Look up Identifier. Return Dsymbol if found, NULL if not.
     Dsymbol lookup(Identifier ident)

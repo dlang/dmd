@@ -44,7 +44,6 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
         {
             this.sc = sc;
             this.gag = gag;
-            this.result = false;
         }
 
         void error(Loc loc, const(char)* format, Dsymbol s)
@@ -249,7 +248,6 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
         {
             this.sc = sc;
             this.gag = gag;
-            this.result = false;
         }
 
         void error(Loc loc, const(char)* format, RootObject o)

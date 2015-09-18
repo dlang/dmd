@@ -109,7 +109,6 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
         extern (D) this(Scope* sc)
         {
             this.sc = sc;
-            this.result = false;
         }
 
         override void visit(Expression)

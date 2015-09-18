@@ -461,7 +461,6 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
         extern (D) this(Scope* sc)
         {
             this.sc = sc;
-            result = null;
         }
 
         override void visit(Expression e)

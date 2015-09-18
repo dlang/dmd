@@ -2005,11 +2005,6 @@ public:
         this.aggr = aggr;
         this._body = _body;
         this.endloc = endloc;
-        this.key = null;
-        this.value = null;
-        this.func = null;
-        this.cases = null;
-        this.gotos = null;
     }
 
     override Statement syntaxCopy()
@@ -2979,7 +2974,6 @@ public:
         this.upr = upr;
         this._body = _body;
         this.endloc = endloc;
-        this.key = null;
     }
 
     override Statement syntaxCopy()
@@ -3194,7 +3188,6 @@ public:
         this.condition = condition;
         this.ifbody = ifbody;
         this.elsebody = elsebody;
-        this.match = null;
     }
 
     override Statement syntaxCopy()
@@ -3585,11 +3578,6 @@ public:
         this.condition = c;
         this._body = b;
         this.isFinal = isFinal;
-        sdefault = null;
-        tf = null;
-        cases = null;
-        hasNoDefault = 0;
-        hasVars = 0;
     }
 
     override Statement syntaxCopy()
@@ -3750,7 +3738,6 @@ public:
         super(loc);
         this.exp = exp;
         this.statement = s;
-        index = 0;
     }
 
     override Statement syntaxCopy()
@@ -4033,7 +4020,6 @@ public:
     extern (D) this(Loc loc)
     {
         super(loc);
-        sw = null;
     }
 
     override Statement syntaxCopy()
@@ -4068,7 +4054,6 @@ public:
     extern (D) this(Loc loc, Expression exp)
     {
         super(loc);
-        cs = null;
         this.exp = exp;
     }
 
@@ -4128,7 +4113,6 @@ public:
     {
         super(loc);
         this.exp = exp;
-        this.caseDim = 0;
     }
 
     override Statement syntaxCopy()
@@ -4777,7 +4761,6 @@ public:
         super(loc);
         this.exp = exp;
         this._body = _body;
-        wthis = null;
     }
 
     override Statement syntaxCopy()
@@ -4997,8 +4980,6 @@ public:
         this.type = t;
         this.ident = id;
         this.handler = handler;
-        var = null;
-        internalCatch = false;
     }
 
     Catch syntaxCopy()
@@ -5246,7 +5227,6 @@ public:
     {
         super(loc);
         this.exp = exp;
-        this.internalThrow = false;
     }
 
     override Statement syntaxCopy()
@@ -5343,10 +5323,6 @@ public:
     {
         super(loc);
         this.ident = ident;
-        this.label = null;
-        this.tf = null;
-        this.os = null;
-        this.lastVar = null;
     }
 
     override Statement syntaxCopy()
@@ -5460,11 +5436,6 @@ public:
         super(loc);
         this.ident = ident;
         this.statement = statement;
-        this.tf = null;
-        this.os = null;
-        this.lastVar = null;
-        this.gotoTarget = null;
-        this.breaks = false;
     }
 
     override Statement syntaxCopy()
@@ -5558,7 +5529,6 @@ public:
     extern (D) this(Identifier ident)
     {
         super(ident);
-        statement = null;
     }
 
     static LabelDsymbol create(Identifier ident)
@@ -5593,11 +5563,6 @@ public:
     {
         super(loc);
         this.tokens = tokens;
-        asmcode = null;
-        asmalign = 0;
-        refparam = false;
-        naked = false;
-        regs = 0;
     }
 
     override Statement syntaxCopy()

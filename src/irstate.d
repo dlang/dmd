@@ -46,15 +46,6 @@ struct IRState
     {
         prev = irs;
         statement = s;
-        symbol = null;
-        breakBlock = null;
-        contBlock = null;
-        switchBlock = null;
-        defaultBlock = null;
-        finallyBlock = null;
-        ident = null;
-        ehidden = null;
-        startaddress = null;
         if (irs)
         {
             m = irs.m;
@@ -65,33 +56,13 @@ struct IRState
             deferToObj = irs.deferToObj;
             varsInScope = irs.varsInScope;
             labels = irs.labels;
-        }
-        else
-        {
-            m = null;
-            shidden = null;
-            sclosure = null;
-            sthis = null;
-            blx = null;
-            deferToObj = null;
-            varsInScope = null;
-            labels = null;
         }
     }
 
     extern (D) this(IRState* irs, Dsymbol s)
     {
         prev = irs;
-        statement = null;
         symbol = s;
-        breakBlock = null;
-        contBlock = null;
-        switchBlock = null;
-        defaultBlock = null;
-        finallyBlock = null;
-        ident = null;
-        ehidden = null;
-        startaddress = null;
         if (irs)
         {
             m = irs.m;
@@ -103,40 +74,12 @@ struct IRState
             varsInScope = irs.varsInScope;
             labels = irs.labels;
         }
-        else
-        {
-            m = null;
-            shidden = null;
-            sclosure = null;
-            sthis = null;
-            blx = null;
-            deferToObj = null;
-            varsInScope = null;
-            labels = null;
-        }
     }
 
     extern (D) this(Module m, Dsymbol s)
     {
-        prev = null;
-        statement = null;
         this.m = m;
         symbol = s;
-        breakBlock = null;
-        contBlock = null;
-        switchBlock = null;
-        defaultBlock = null;
-        finallyBlock = null;
-        ident = null;
-        ehidden = null;
-        shidden = null;
-        sclosure = null;
-        sthis = null;
-        blx = null;
-        deferToObj = null;
-        startaddress = null;
-        varsInScope = null;
-        labels = null;
     }
 
     extern (C++) block* getBreakBlock(Identifier ident)
