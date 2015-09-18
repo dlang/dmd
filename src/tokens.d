@@ -14,7 +14,7 @@ import core.stdc.string;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
-import ddmd.root.longdouble;
+import ddmd.root.port;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.utf;
@@ -741,26 +741,26 @@ struct Token
             sprintf(&buffer[0], "%lluUL", cast(ulong)uns64value);
             break;
         case TOKfloat32v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            Port.ld_sprint(&buffer[0], 'g', float80value);
             strcat(&buffer[0], "f");
             break;
         case TOKfloat64v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            Port.ld_sprint(&buffer[0], 'g', float80value);
             break;
         case TOKfloat80v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            Port.ld_sprint(&buffer[0], 'g', float80value);
             strcat(&buffer[0], "L");
             break;
         case TOKimaginary32v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            Port.ld_sprint(&buffer[0], 'g', float80value);
             strcat(&buffer[0], "fi");
             break;
         case TOKimaginary64v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            Port.ld_sprint(&buffer[0], 'g', float80value);
             strcat(&buffer[0], "i");
             break;
         case TOKimaginary80v:
-            ld_sprint(&buffer[0], 'g', float80value);
+            Port.ld_sprint(&buffer[0], 'g', float80value);
             strcat(&buffer[0], "Li");
             break;
         case TOKstring:

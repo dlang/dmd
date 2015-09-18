@@ -2157,13 +2157,13 @@ public:
          Plus one for rounding. */
         const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
         char[BUFFER_LEN] buffer;
-        ld_sprint(buffer.ptr, 'g', value);
+        Port.ld_sprint(buffer.ptr, 'g', value);
         assert(strlen(buffer.ptr) < BUFFER_LEN);
         if (hgs.hdrgen)
         {
             real_t r = Port.strtold(buffer.ptr, null);
             if (r != value) // if exact duplication
-                ld_sprint(buffer.ptr, 'a', value);
+                Port.ld_sprint(buffer.ptr, 'a', value);
         }
         buf.writestring(buffer.ptr);
         if (type)
