@@ -8,7 +8,7 @@ QUIET:=
 LINKDL:=
 
 SRC:=src
-ROOT:=./obj/$(OS)/$(MODEL)
+ROOT:=./obj/$(OS)/$(MODEL)/$(BUILD)
 TESTS:=$(addprefix $(ROOT)/,$(addsuffix .done,profile profilegc both))
 
 DIFF:=diff
