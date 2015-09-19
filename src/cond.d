@@ -216,6 +216,7 @@ public:
             "SPARC64",
             "S390",
             "S390X",
+            "SystemZ",
             "HPPA",
             "HPPA64",
             "SH",
