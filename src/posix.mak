@@ -214,8 +214,6 @@ else
     DMD_SRCS += libelf.d scanelf.d
 endif
 
-#GLUE_OBJS=gluestub.o
-
 BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
 	glocal.o os.o nteh.o evalu8.o cgcs.o \
 	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
