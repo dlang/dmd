@@ -227,6 +227,7 @@ public:
             "BigEndian",
             "ELFv1",
             "ELFv2",
+            "CRuntime_Bionic",
             "CRuntime_Digitalmars",
             "CRuntime_Glibc",
             "CRuntime_Microsoft",
