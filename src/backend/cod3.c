@@ -4753,6 +4753,9 @@ void assignaddrc(code *c)
             case FLallocatmp:
                 c->IEVpointer1 += Alloca.offset + BPoff;
                 goto L2;
+            case FLfuncarg:
+                c->IEVpointer1 += cgstate.funcarg.offset + BPoff;
+                goto L2;
             case FLbprel:
                 c->IEVpointer1 += s->Soffset;
                 break;
@@ -4859,6 +4862,9 @@ void assignaddrc(code *c)
                 break;
             case FLallocatmp:
                 c->IEVpointer2 += Alloca.offset + BPoff;
+                break;
+            case FLfuncarg:
+                c->IEVpointer2 += cgstate.funcarg.offset + BPoff;
                 break;
             case FLbprel:
                 c->IEVpointer2 += s->Soffset;

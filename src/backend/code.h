@@ -174,6 +174,13 @@ extern unsigned usednteh;
 typedef struct CGstate
 {
     int stackclean;     // if != 0, then clean the stack after function call
+
+    LocalSection funcarg;       // where function arguments are placed
+    targ_size_t funcargtos;     // current high water level of arguments being moved onto
+                                // the funcarg section. It is filled from top to bottom,
+                                // as if they were 'pushed' on the stack.
+                                // Special case: if funcargtos==~0, then no
+                                // arguments are there.
 } CGstate;
 
 extern CGstate cgstate;
@@ -282,7 +289,7 @@ code *fixresult (elem *e , regm_t retregs , regm_t *pretregs );
 code *callclib (elem *e , unsigned clib , regm_t *pretregs , regm_t keepmask );
 cd_t cdfunc;
 cd_t cdstrthis;
-code *params(elem *, unsigned);
+code *pushParams(elem *, unsigned);
 code *offsetinreg (elem *e , regm_t *pretregs );
 code *loaddata (elem *e , regm_t *pretregs );
 

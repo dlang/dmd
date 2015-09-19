@@ -147,6 +147,8 @@ void codgen()
     cod3_initregs();
     allregs = ALLREGS;
     pass = PASSinit;
+    Alloca.init();
+    anyiasm = 0;
 
 tryagain:
     #ifdef DEBUG
@@ -162,12 +164,13 @@ tryagain:
     stackchanged = 0;
     stackpush = 0;
     refparam = 0;
-    anyiasm = 0;
     calledafunc = 0;
-    cgstate.stackclean = 1;
     retsym = NULL;
 
-    Alloca.init();
+    cgstate.stackclean = 1;
+    cgstate.funcarg.init();
+    cgstate.funcargtos = ~0;
+
     regsave.reset();
 #if TX86
     memset(_8087elems,0,sizeof(_8087elems));
@@ -783,7 +786,7 @@ Lagain:
          */
         int xmmtopush = numbitsset(topush & XMMREGS);   // XMM regs take 16 bytes
         int gptopush = numbitsset(topush) - xmmtopush;  // general purpose registers to save
-        if (NDPoff || xmmtopush)
+        if (NDPoff || xmmtopush || cgstate.funcarg.size)
         {
             pushoff = alignsection(pushoff - (gptopush * REGSIZE + xmmtopush * 16),
                     xmmtopush ? STACKALIGN : REGSIZE, bias);
@@ -793,7 +796,10 @@ Lagain:
 
     //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
 
-    localsize = -pushoff;
+    cgstate.funcarg.alignment = STACKALIGN;
+    cgstate.funcarg.offset = alignsection(pushoff - cgstate.funcarg.size, cgstate.funcarg.alignment, bias);
+
+    localsize = -cgstate.funcarg.offset;
 
     //printf("Alloca.offset = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
         //(long long)Alloca.offset, (long long)cstop, (long long)CSoff, (long long)NDPoff, (long long)localsize);
@@ -809,7 +815,7 @@ Lagain:
             npush = 0;
 
         //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
-        //       npush, Para.size, needframe, localsize);
+               //npush, Para.size, needframe, localsize);
 
         int sz = Para.size + (needframe ? 0 : -REGSIZE) + localsize + npush * REGSIZE;
         if (STACKALIGN == 16)
@@ -820,6 +826,7 @@ Lagain:
         else if (sz & 4)
             localsize += 4;
     }
+    cgstate.funcarg.offset = -localsize;
 
     //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
         //(int)Foff,(int)Auto.size,(int)NDPoff,(int)CSoff,(int)Para.size,(int)localsize);

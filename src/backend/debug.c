@@ -267,6 +267,7 @@ void WRFL(enum FL fl)
          "bprel ","frameh","blocko","alloca",
          "stack ","dsym  ",
          "got   ","gotoff",
+         "funcar",
     };
 
     if ((unsigned)fl >= (unsigned)FLMAX)

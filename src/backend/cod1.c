@@ -43,7 +43,8 @@ enum MF
 code * genf2(code *c,unsigned op,unsigned rm);
 
 targ_size_t paramsize(elem *e);
-STATIC code * funccall (elem *,unsigned,unsigned,regm_t *,regm_t);
+STATIC code *funccall(elem *,unsigned,unsigned,regm_t *,regm_t,bool);
+static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos);
 
 /* array to convert from index register to r/m field    */
                                        /* AX CX DX BX SP BP SI DI       */
@@ -323,7 +324,7 @@ unsigned gensaverestore2(regm_t regm,code **csave,code **crestore)
             {
                 gensaverestore87(1 << i, &cs1, &cs2);
             }
-            else if (i >= XMM0 || I64)
+            else if (i >= XMM0 || I64 || cgstate.funcarg.size)
             {   unsigned idx;
                 cs1 = regsave.save(cs1, i, &idx);
                 cs2 = regsave.restore(cs2, i, idx);
@@ -2804,8 +2805,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
 {
     //printf("cdfunc()\n"); elem_print(e);
     assert(e);
-    unsigned numpara = 0;
-    unsigned numalign = 0;
+    unsigned numpara = 0;               // bytes of parameters
+    unsigned numalign = 0;              // bytes to align stack before pushing parameters
     unsigned stackpushsave = stackpush;            // so we can compute # of parameters
     cgstate.stackclean++;
     code *c = CNIL;
@@ -2823,14 +2824,18 @@ code *cdfunc(elem *e,regm_t *pretregs)
         assert(n == np);
     }
 
+    symbol *sf = NULL;                  // symbol of the function being called
+    if (e->E1->Eoper == OPvar)
+        sf = e->E1->EV.sp.Vsym;
+
     /* Special handling for call to __tls_get_addr, we must save registers
      * before evaluating the parameter, so that the parameter load and call
      * are adjacent.
      */
-    if (np == 1 && e->E1->Eoper == OPvar)
-    {   symbol *s = e->E1->EV.sp.Vsym;
-        if (s == tls_get_addr_sym)
-            c = getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
+    if (np == 1 && sf)
+    {
+        if (sf == tls_get_addr_sym)
+            c = getregs(~sf->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
     }
 
     unsigned stackalign = REGSIZE;
@@ -2891,10 +2896,64 @@ code *cdfunc(elem *e,regm_t *pretregs)
      * pushed. We can reorder args that are constants or relconst's.
      */
 
+    /* Determine if we should use cgstate.funcarg for the parameters or push them
+     */
+    bool usefuncarg = FALSE;
+#if 0
+    printf("test1 %d %d %d %d %d %d %d %d\n", (config.flags4 & CFG4speed)!=0, !Alloca.size,
+        !(usednteh & ~NTEHjmonitor),
+        (int)numpara, !stackpush,
+        (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos),
+        (!typfunc(tyf) || sf && sf->Sflags & SFLexit), !I16);
+#endif
+    if (config.flags4 & CFG4speed &&
+        !Alloca.size &&
+        /* The cleanup code calls a local function, leaving the return address on
+         * the top of the stack. If parameters are placed there, the return address
+         * is stepped on.
+         * A better solution is turn this off only inside the cleanup code.
+         */
+        !(usednteh & ~NTEHjmonitor) &&
+        (numpara || config.exe == EX_WIN64) &&
+        stackpush == 0 &&               // cgstate.funcarg needs to be at top of stack
+        (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos) &&
+        (!(typfunc(tyf) || tyf == TYhfunc) || sf && sf->Sflags & SFLexit) &&
+        !anyiasm && !I16
+       )
+    {
+        for (int i = 0; i < np; i++)
+        {
+            elem *ep = parameters[i].e;
+            int preg = parameters[i].reg;
+            //printf("parameter[%d] = %d, np = %d\n", i, preg, np);
+            if (preg == NOREG)
+            {
+                switch (ep->Eoper)
+                {
+                    case OPstrctor:
+                    case OPstrthis:
+                    case OPstrpar:
+#if TARGET_SEGMENTED
+                    case OPnp_fp:
+#endif
+                        goto Lno;
+                }
+            }
+        }
+
+        if (numpara > cgstate.funcarg.size)
+        {   // New high water mark
+            //printf("increasing size from %d to %d\n", (int)cgstate.funcarg.size, (int)numpara);
+            cgstate.funcarg.size = numpara;
+        }
+        usefuncarg = TRUE;
+    }
+  Lno: ;
+
     /* Adjust start of the stack so after all args are pushed,
      * the stack will be aligned.
      */
-    if (STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
+    if (!usefuncarg && STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
     {
         numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
         c = cod3_stackadj(c, numalign);
@@ -2907,12 +2966,18 @@ code *cdfunc(elem *e,regm_t *pretregs)
     {
         //printf("np = %d, numpara = %d, stackpush = %d\n", np, numpara, stackpush);
         assert(numpara == ((np < 4) ? 4 * REGSIZE : np * REGSIZE));
+
+        // Allocate stack space for four entries anyway
+        // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
     }
 
     int regsaved[XMM7 + 1];
     memset(regsaved, -1, sizeof(regsaved));
     code *crest = NULL;
     regm_t saved = 0;
+    targ_size_t funcargtossave = cgstate.funcargtos;
+    targ_size_t funcargtos = numpara;
+    //printf("funcargtos1 = %d\n", (int)funcargtos);
 
     /* Parameters go into the registers RDI,RSI,RDX,RCX,R8,R9
      * float and double parameters go into XMM0..XMM7
@@ -2932,7 +2997,11 @@ code *cdfunc(elem *e,regm_t *pretregs)
             code *csave = NULL;
             regm_t overlap = msavereg & keepmsk;
             msavereg |= keepmsk;
-            code *cp = params(ep,stackalign);
+            code *cp;
+            if (usefuncarg)
+                cp = movParams(ep, stackalign, funcargtos);
+            else
+                cp = pushParams(ep,stackalign);
             regm_t tosave = keepmsk & ~msavereg;
             msavereg &= ~keepmsk | overlap;
 
@@ -2955,7 +3024,12 @@ code *cdfunc(elem *e,regm_t *pretregs)
 
             // Alignment for parameter comes after it got pushed
             unsigned numalign = parameters[i].numalign;
-            if (numalign)
+            if (usefuncarg)
+            {
+                funcargtos -= align(stackalign, paramsize(ep)) + numalign;
+                cgstate.funcargtos = funcargtos;
+            }
+            else if (numalign)
             {
                 c = cod3_stackadj(c, numalign);
                 c = genadjesp(c, numalign);
@@ -3086,9 +3160,17 @@ code *cdfunc(elem *e,regm_t *pretregs)
     {   // Allocate stack space for four entries anyway
         // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
         {   unsigned sz = 4 * REGSIZE;
-            c = cod3_stackadj(c, sz);
-            c = genadjesp(c, sz);
-            stackpush += sz;
+            if (usefuncarg)
+            {
+                funcargtos -= sz;
+                cgstate.funcargtos = funcargtos;
+            }
+            else
+            {
+                c = cod3_stackadj(c, sz);
+                c = genadjesp(c, sz);
+                stackpush += sz;
+            }
         }
 
         /* Variadic functions store XMM parameters into their corresponding GP registers
@@ -3126,19 +3208,23 @@ code *cdfunc(elem *e,regm_t *pretregs)
         keepmsk |= mAX;
     }
 
+    //printf("funcargtos2 = %d\n", (int)funcargtos);
+    assert(!usefuncarg || (funcargtos == 0 && cgstate.funcargtos == 0));
     cgstate.stackclean--;
 
 #ifdef DEBUG
-    if (numpara != stackpush - stackpushsave)
+    if (!usefuncarg && numpara != stackpush - stackpushsave)
     {
         printf("function %s\n", funcsym_p->Sident);
         printf("numpara = %d, stackpush = %d, stackpushsave = %d\n", numpara, stackpush, stackpushsave);
         elem_print(e);
     }
 #endif
-    assert(numpara == stackpush - stackpushsave);
+    assert(usefuncarg || numpara == stackpush - stackpushsave);
 
-    return cat(c,funccall(e,numpara,numalign,pretregs,keepmsk));
+    c = cat(c,funccall(e,numpara,numalign,pretregs,keepmsk,usefuncarg));
+    cgstate.funcargtos = funcargtossave;
+    return c;
 }
 
 /***********************************
@@ -3161,11 +3247,18 @@ code *cdstrthis(elem *e,regm_t *pretregs)
 }
 
 /******************************
- * Call function. All parameters are pushed onto the stack, numpara gives
- * the size of them all.
+ * Call function. All parameters have already been pushed onto the stack.
+ * Params:
+ *      e          = function call
+ *      numpara    = size in bytes of all the parameters
+ *      numalign   = amount the stack was aligned by before the parameters were pushed
+ *      pretregs   = where return value goes
+ *      keepmsk    = registers to not change when evaluating the function address
+ *      usefuncarg = using cgstate.funcarg, so no need to adjust stack after func return
  */
 
-STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretregs,regm_t keepmsk)
+STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
+        regm_t *pretregs,regm_t keepmsk, bool usefuncarg)
 {
     elem *e1;
     code *c,*ce,cs;
@@ -3410,27 +3503,30 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 
     retregs = regmask(e->Ety, tym1);
 
-    // If stack needs cleanup
-    if ((OTbinary(e->Eoper) || config.exe == EX_WIN64) &&
-        (!typfunc(tym1) || config.exe == EX_WIN64) &&
-      !(s && s->Sflags & SFLexit))
+    if (!usefuncarg)
     {
-        if (tym1 == TYhfunc)
-        {   // Hidden parameter is popped off by the callee
-            c = genadjesp(c, -REGSIZE);
-            stackpush -= REGSIZE;
-            if (numpara + numalign > REGSIZE)
-                c = genstackclean(c, numpara + numalign - REGSIZE, retregs);
+        // If stack needs cleanup
+        if ((OTbinary(e->Eoper) || config.exe == EX_WIN64) &&
+            (!typfunc(tym1) || config.exe == EX_WIN64) &&
+          !(s && s->Sflags & SFLexit))
+        {
+            if (tym1 == TYhfunc)
+            {   // Hidden parameter is popped off by the callee
+                c = genadjesp(c, -REGSIZE);
+                stackpush -= REGSIZE;
+                if (numpara + numalign > REGSIZE)
+                    c = genstackclean(c, numpara + numalign - REGSIZE, retregs);
+            }
+            else
+                c = genstackclean(c,numpara + numalign,retregs);
         }
         else
-            c = genstackclean(c,numpara + numalign,retregs);
-    }
-    else
-    {
-        c = genadjesp(c,-numpara);
-        stackpush -= numpara;
-        if (numalign)
-            c = genstackclean(c,numalign,retregs);
+        {
+            c = genadjesp(c,-numpara);
+            stackpush -= numpara;
+            if (numalign)
+                c = genstackclean(c,numalign,retregs);
+        }
     }
 
     /* Special handling for functions which return a floating point
@@ -3491,11 +3587,140 @@ targ_size_t paramsize(elem *e)
 }
 
 /***************************
+ * Generate code to move argument e on the stack.
+ */
+
+static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
+{
+    //printf("movParams(e = %p, stackalign = %d, funcargtos = %d)\n", e, stackalign, funcargtos);
+    //printf("movParams()\n"); elem_print(e);
+    assert(!I16);
+    code *cp = NULL;
+    assert(e && e->Eoper != OPparam);
+
+    tym_t tym = tybasic(e->Ety);
+    if (tyfloating(tym))
+        objmod->fltused();
+
+    int grex = I64 ? REX_W << 16 : 0;
+
+    targ_size_t szb = paramsize(e);               // size before alignment
+    targ_size_t sz = align(stackalign,szb);       // size after alignment
+    assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
+    assert((sz & (REGSIZE - 1)) == 0);
+    //printf("szb = %d sz = %d\n", (int)szb, (int)sz);
+
+    code *c = CNIL;
+    code cs;
+    cs.Iflags = 0;
+    cs.Irex = 0;
+    switch (e->Eoper)
+    {
+        case OPstrctor:
+        case OPstrthis:
+        case OPstrpar:
+#if TARGET_SEGMENTED
+        case OPnp_fp:
+#endif
+            assert(0);
+        case OPind:
+            break;
+        case OPrelconst:
+            break;
+        case OPvar:
+            break;
+        case OPconst:
+            break;
+        default:
+            break;
+    }
+    regm_t retregs = tybyte(tym) ? BYTEREGS : allregs;
+    if (tyvector(tym))
+    {
+        retregs = XMMREGS;
+        c = cat(c,codelem(e,&retregs,FALSE));
+        unsigned op = xmmstore(tym);
+        unsigned r = findreg(retregs);
+        c = genc1(c,op,modregxrm(2,r - XMM0,BPRM),FLfuncarg,funcargtos - 16);   // MOV funcarg[EBP],r
+        goto ret;
+    }
+    else if (tyfloating(tym))
+    {
+        if (config.inline8087)
+        {
+            retregs = tycomplex(tym) ? mST01 : mST0;
+            c = cat(c,codelem(e,&retregs,FALSE));
+
+            unsigned op;
+            unsigned r;
+            switch (tym)
+            {
+                case TYfloat:
+                case TYifloat:
+                case TYcfloat:
+                    op = 0xD9;
+                    r = 3;
+                    break;
+
+                case TYdouble:
+                case TYidouble:
+                case TYdouble_alias:
+                case TYcdouble:
+                    op = 0xDD;
+                    r = 3;
+                    break;
+
+                case TYldouble:
+                case TYildouble:
+                case TYcldouble:
+                    op = 0xDB;
+                    r = 7;
+                    break;
+
+                default:
+                    assert(0);
+            }
+            code *c2 = NULL;
+            if (tycomplex(tym))
+            {
+                // FSTP sz/2[ESP]
+                c2 = genc1(CNIL,op,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - sz/2);
+                pop87();
+            }
+            pop87();
+            c2 = genc1(c2,op,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - sz);    // FSTP -sz[EBP]
+            c = cat(c,c2);
+            goto ret;
+        }
+    }
+    c = cat(c,scodelem(e,&retregs,0,TRUE));
+    if (sz <= REGSIZE)
+    {
+        unsigned r = findreg(retregs);
+        c = genc1(c,0x89,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE);   // MOV -REGSIZE[EBP],r
+        if (sz == 8)
+            code_orrex(c, REX_W);
+    }
+    else if (sz == REGSIZE * 2)
+    {
+        unsigned r = findregmsw(retregs);
+        c = genc1(c,0x89,grex | modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE);    // MOV -REGSIZE[EBP],r
+        r = findreglsw(retregs);
+        c = genc1(c,0x89,grex | modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE * 2); // MOV -2*REGSIZE[EBP],r
+    }
+    else
+        assert(0);
+ret:
+    return cat(cp,c);
+}
+
+
+/***************************
  * Generate code to push argument e on the stack.
  * stackpush is incremented by stackalign for each PUSH.
  */
 
-code *params(elem *e,unsigned stackalign)
+code *pushParams(elem *e,unsigned stackalign)
 { code *c,*ce,cs;
   code *cp;
   unsigned reg;
@@ -3815,7 +4040,7 @@ code *params(elem *e,unsigned stackalign)
                 code_orflag(c,CFopsize);        // push a word
             c = genadjesp(c,stackalign);
             stackpush += stackalign;
-            ce = params(e1,stackalign);
+            ce = pushParams(e1,stackalign);
             goto L2;
         }
         break;
