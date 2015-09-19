@@ -223,7 +223,7 @@ version( CRuntime_Glibc )
         private enum DEFAULTS = true;
     else version (S390)
         private enum DEFAULTS = true;
-    else version (S390X)
+    else version (SystemZ)
         private enum DEFAULTS = true;
     else version (IA64)
         private enum DEFAULTS = true;
