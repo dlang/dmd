@@ -148,11 +148,11 @@ DMD_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d		\
 	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
 	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
 	traits.d utf.d visitor.d libomf.d scanomf.d typinf.d \
-	libmscoff.d scanmscoff.d irstate.d
+	libmscoff.d scanmscoff.d irstate.d toctype.d
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
-	toobj.obj toctype.obj tocvdebug.obj toir.obj \
+	toobj.obj tocvdebug.obj toir.obj \
 	iasm.obj objc_glue_stubs.obj
 
 # D back end
@@ -185,7 +185,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
-	toobj.c toctype.c tocvdebug.c toir.h toir.c \
+	toobj.c tocvdebug.c toir.h toir.c \
 	irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c eh.c objc_glue_stubs.c objc_glue.c
@@ -530,9 +530,6 @@ ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 
 ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
 	$(CC) -c $(MFLAGS) -I. $C\ti_pvoid
-
-toctype.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h toctype.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) toctype
 
 tocvdebug.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h tocvdebug.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) tocvdebug

@@ -203,7 +203,7 @@ int typematch(type *t1, type *t2, int relax);
 
 type *type_pointer(type *tnext);
 type *type_dyn_array(type *tnext);
-type *type_static_array(unsigned long long dim, type *tnext);
+extern "C" type *type_static_array(targ_size_t dim, type *tnext);
 type *type_assoc_array(type *tkey, type *tvalue);
 type *type_delegate(type *tnext);
 type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);

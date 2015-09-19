@@ -388,7 +388,7 @@ type *type_dyn_array(type *tnext)
  *      Tcount already incremented
  */
 
-type *type_static_array(unsigned long long dim, type *tnext)
+type *type_static_array(targ_size_t dim, type *tnext)
 {
     type *t = type_allocn(TYarray, tnext);
     t->Tdim = dim;
