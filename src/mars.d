@@ -343,7 +343,6 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OSX");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isOSX = true;
         // For legacy compatibility
         VersionCondition.addPredefinedGlobalIdent("darwin");
