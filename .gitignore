@@ -10,4 +10,3 @@ trace.log
 Makefile
 /errno_c.obj
 make
-test/*
