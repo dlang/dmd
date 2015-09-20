@@ -8,6 +8,10 @@
 
 module ddmd.dunittest;
 
+import ddmd.root.aav;
+import ddmd.root.speller;
+import ddmd.imphint;
+
 extern (C++) void unittests()
 {
     version (unittest)
