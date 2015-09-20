@@ -110,7 +110,7 @@ version( Solaris )
     import core.sys.posix.unistd;
 
     @property int SIGRTMIN() nothrow @nogc {
-        static int sig = -1;
+        __gshared static int sig = -1;
         if (sig == -1) {
             sig = cast(int)sysconf(_SC_SIGRT_MIN);
         }
@@ -118,7 +118,7 @@ version( Solaris )
     }
 
     @property int SIGRTMAX() nothrow @nogc {
-        static int sig = -1;
+        __gshared static int sig = -1;
         if (sig == -1) {
             sig = cast(int)sysconf(_SC_SIGRT_MAX);
         }
@@ -134,7 +134,7 @@ else version( linux )
     }
 
     @property int SIGRTMIN() nothrow @nogc {
-        static int sig = -1;
+        __gshared static int sig = -1;
         if (sig == -1) {
             sig = __libc_current_sigrtmin();
         }
@@ -142,7 +142,7 @@ else version( linux )
     }
 
     @property int SIGRTMAX() nothrow @nogc {
-        static int sig = -1;
+        __gshared static int sig = -1;
         if (sig == -1) {
             sig = __libc_current_sigrtmax();
         }
