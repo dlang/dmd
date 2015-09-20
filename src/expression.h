@@ -420,6 +420,9 @@ public:
 
     Expression *syntaxCopy();
     bool equals(RootObject *o);
+    Expression *getElement(size_t i);
+    static Expressions* copyElements(Expression *e1, Expression *e2 = NULL);
+    Expressions *copyElements();
     Expression *semantic(Scope *sc);
     bool isBool(bool result);
     StringExp *toStringExp();

@@ -418,10 +418,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             dt_t **pdtend = &d;
             for (size_t i = 0; i < e->elements->dim; i++)
             {
-                Expression *el = (*e->elements)[i];
-                if (!el)
-                    el = e->basis;
-                pdtend = Expression_toDt(el, pdtend);
+                pdtend = Expression_toDt(e->getElement(i), pdtend);
             }
             Type *t = e->type->toBasetype();
 
@@ -532,9 +529,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 if (e->e1->op == TOKarrayliteral)
                 {
                     ArrayLiteralExp *ale = (ArrayLiteralExp *)e->e1;
-                    elem = (*ale->elements)[i];
-                    if (!elem)
-                        elem = ale->basis;
+                    elem = ale->getElement(i);
                 }
                 else
                     elem = e->e1;

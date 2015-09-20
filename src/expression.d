@@ -4628,6 +4628,57 @@ public:
         return false;
     }
 
+    final Expression getElement(size_t i)
+    {
+        auto el = (*elements)[i];
+        if (!el)
+            el = basis;
+        return el;
+    }
+
+    /* Copy element `Expressions` in the parameters when they're `ArrayLiteralExp`s.
+     * Params:
+     *      e1  = If it's ArrayLiteralExp, its `elements` will be copied.
+     *            Otherwise, `e1` itself will be pushed into the new `Expressions`.
+     *      e2  = If it's not `null`, it will be pushed/appended to the new
+     *            `Expressions` by the same way with `e1`.
+     * Returns:
+     *      Newly allocated `Expresions. Note that it points the original
+     *      `Expression` values in e1 and e2.
+     */
+    static Expressions* copyElements(Expression e1, Expression e2 = null)
+    {
+        auto elems = new Expressions();
+
+        void append(ArrayLiteralExp ale)
+        {
+            if (!ale.elements)
+                return;
+            auto d = elems.dim;
+            elems.append(ale.elements);
+            foreach (ref el; (*elems)[][d .. elems.dim])
+            {
+                if (!el)
+                    el = ale.basis;
+            }
+        }
+
+        if (e1.op == TOKarrayliteral)
+            append(cast(ArrayLiteralExp)e1);
+        else
+            elems.push(e1);
+
+        if (e2)
+        {
+            if (e2.op == TOKarrayliteral)
+                append(cast(ArrayLiteralExp)e2);
+            else
+                elems.push(e2);
+        }
+
+        return elems;
+    }
+
     override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
@@ -4681,9 +4732,7 @@ public:
             {
                 for (size_t i = 0; i < elements.dim; ++i)
                 {
-                    Expression ch = (*elements)[i];
-                    if (!ch)
-                        ch = basis;
+                    auto ch = getElement(i);
                     if (ch.op != TOKint64)
                         return null;
                     if (sz == 1)

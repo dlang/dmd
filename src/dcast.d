@@ -2430,9 +2430,7 @@ extern (C++) bool isVoidArrayLiteral(Expression e, Type other)
     while (e.op == TOKarrayliteral && e.type.ty == Tarray && ((cast(ArrayLiteralExp)e).elements.dim == 1))
     {
         auto ale = cast(ArrayLiteralExp)e;
-        e = (*ale.elements)[0];
-        if (!e)
-            e = ale.basis;
+        e = ale.getElement(0);
         if (other.ty == Tsarray || other.ty == Tarray)
             other = other.nextOf();
         else
