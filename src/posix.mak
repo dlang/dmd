@@ -19,6 +19,7 @@ else
 endif
 
 INSTALL_DIR=../../install
+SYSCONFDIR=/etc
 PGO_DIR=$(abspath pgo)
 
 C=backend
@@ -278,6 +279,8 @@ TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
 
+STRING_IMPORT_FILES = verstr.h SYSCONFDIR.imp
+
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
@@ -292,17 +295,17 @@ backend.a: $(BACK_OBJS)
 	$(AR) rcs backend.a $(BACK_OBJS)
 
 ifdef ENABLE_LTO
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) verstr.h $(HOST_DMD_PATH)
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out verstr.h $(HOST_DMD_PATH),$^)
+dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a verstr.h $(HOST_DMD_PATH)
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out verstr.h $(HOST_DMD_PATH),$^)
+dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 endif
 
 clean:
 	rm -f newdelete.o $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o	\
 		idgen $(idgen_output) optabgen $(optabgen_output)	\
-		verstr.h core *.cov *.deps *.gcda *.gcno *.a
+		verstr.h SYSCONFDIR.imp core *.cov *.deps *.gcda *.gcno *.a
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
@@ -348,7 +351,8 @@ idgen: idgen.d $(HOST_DMD_PATH)
 	./idgen
 
 #########
-
+# STRING_IMPORT_FILES
+#
 # Create (or update) the verstr.h file.
 # The file is only updated if the VERSION file changes, or, only when RELEASE=1
 # is not used, when the full version string changes (i.e. when the git hash or
@@ -365,6 +369,8 @@ VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
 endif
 $(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
 		&& printf \"$(VERSION)\" > verstr.h )
+$(shell test $(SYSCONFDIR) != "`cat SYSCONFDIR.imp 2> /dev/null`" \
+		&& echo -n '$(SYSCONFDIR)' > SYSCONFDIR.imp )
 
 #########
 
@@ -386,8 +392,6 @@ cgelem.o: elxxx.c
 debug.o: debtab.c
 
 iasm.o: CFLAGS += -fexceptions
-
-inifile.o: CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"'
 
 var.o: optab.c tytab.c
 
