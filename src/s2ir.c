@@ -258,8 +258,8 @@ public:
         mystate.contBlock->appendSucc(blx->curblock);
         mystate.contBlock->appendSucc(mystate.breakBlock);
 
-        if (s->body)
-            Statement_toIR(s->body, &mystate);
+        if (s->_body)
+            Statement_toIR(s->_body, &mystate);
         blx->curblock->appendSucc(mystate.contBlock);
 
         block_next(blx, BCgoto, mystate.contBlock);
@@ -281,8 +281,8 @@ public:
         mystate.breakBlock = block_calloc(blx);
         mystate.contBlock = block_calloc(blx);
 
-        if (s->init)
-            Statement_toIR(s->init, &mystate);
+        if (s->_init)
+            Statement_toIR(s->_init, &mystate);
         block *bpre = blx->curblock;
         block_next(blx,BCgoto,NULL);
         block *bcond = blx->curblock;
@@ -303,8 +303,8 @@ public:
             bcond->appendSucc(blx->curblock);
         }
 
-        if (s->body)
-            Statement_toIR(s->body, &mystate);
+        if (s->_body)
+            Statement_toIR(s->_body, &mystate);
         /* End of the body goes to the continue block
          */
         blx->curblock->appendSucc(mystate.contBlock);
@@ -528,7 +528,7 @@ public:
             block_next(blx, BCgoto, NULL);
             b->appendSucc(mystate.defaultBlock);
 
-            Statement_toIR(s->body, &mystate);
+            Statement_toIR(s->_body, &mystate);
 
             /* Have the end of the switch body fall through to the block
              * following the switch statement.
@@ -627,7 +627,7 @@ public:
             }
         }
 
-        Statement_toIR(s->body, &mystate);
+        Statement_toIR(s->_body, &mystate);
 
         /* Have the end of the switch body fall through to the block
          * following the switch statement.
@@ -948,7 +948,7 @@ public:
             symbol_add(sp);
 
             // Perform initialization of with handle
-            ie = s->wthis->init->isExpInitializer();
+            ie = s->wthis->_init->isExpInitializer();
             assert(ie);
             ei = toElemDtor(ie->exp, irs);
             e = el_var(sp);
@@ -958,8 +958,8 @@ public:
             block_appendexp(blx->curblock,e);
         }
         // Execute with block
-        if (s->body)
-            Statement_toIR(s->body, irs);
+        if (s->_body)
+            Statement_toIR(s->_body, irs);
     }
 
 
@@ -1013,9 +1013,9 @@ public:
         blx->tryblock = tryblock;
         block *breakblock = block_calloc(blx);
         block_goto(blx,BC_try,NULL);
-        if (s->body)
+        if (s->_body)
         {
-            Statement_toIR(s->body, &mystate);
+            Statement_toIR(s->_body, &mystate);
         }
         blx->tryblock = tryblock->Btry;
 
@@ -1108,8 +1108,8 @@ public:
         contblock->BC = BC_finally;
         bodyirs.finallyBlock = contblock;
 
-        if (s->body)
-            Statement_toIR(s->body, &bodyirs);
+        if (s->_body)
+            Statement_toIR(s->_body, &bodyirs);
         blx->tryblock = tryblock->Btry;     // back to previous tryblock
 
         setScopeIndex(blx,blx->curblock,previndex);

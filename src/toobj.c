@@ -268,7 +268,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (global.params.symdebug)
                 toDebug(cd);
 
-            assert(!cd->scope);     // semantic() should have been run to completion
+            assert(!cd->_scope);     // semantic() should have been run to completion
 
             enum_SC scclass = SCcomdat;
 
@@ -946,12 +946,12 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             } while (parent);
             s->Sfl = FLdata;
 
-            if (vd->init)
+            if (vd->_init)
             {
-                Initializer_toDt(vd->init, &s->Sdt);
+                Initializer_toDt(vd->_init, &s->Sdt);
 
                 // Look for static array that is block initialized
-                ExpInitializer *ie = vd->init->isExpInitializer();
+                ExpInitializer *ie = vd->_init->isExpInitializer();
 
                 Type *tb = vd->type->toBasetype();
                 if (tb->ty == Tsarray && ie &&

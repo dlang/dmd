@@ -151,7 +151,7 @@ public:
     Symbol *isym;               // import version of csym
     const utf8_t *comment;      // documentation comment for this Dsymbol
     Loc loc;                    // where defined
-    Scope *scope;               // !=NULL means context to use for semantic()
+    Scope *_scope;               // !=NULL means context to use for semantic()
     bool errors;                // this symbol failed to pass semantic()
     PASS semanticRun;
     char *depmsg;               // customized deprecation message
