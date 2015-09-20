@@ -371,9 +371,12 @@ public:
         postblit = buildPostBlit(this, sc2);
         buildOpAssign(this, sc2);
         buildOpEquals(this, sc2);
-        xeq = buildXopEquals(this, sc2);
-        xcmp = buildXopCmp(this, sc2);
-        xhash = buildXtoHash(this, sc2);
+        if (!global.params.noRTTI)
+        {
+            xeq = buildXopEquals(this, sc2);
+            xcmp = buildXopCmp(this, sc2);
+            xhash = buildXtoHash(this, sc2);
+        }
         /* Even if the struct is merely imported and its semantic3 is not run,
          * the TypeInfo object would be speculatively stored in each object
          * files. To set correct function pointer, run semantic3 for xeq and xcmp.

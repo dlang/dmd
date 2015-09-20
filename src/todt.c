@@ -555,6 +555,12 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
         void visit(TypeidExp *e)
         {
+            if (global.params.noRTTI)
+            {
+                e->error(global.params.noRTTIMessage);
+                pdt = NULL;
+                return;
+            }
             if (Type *t = isType(e->obj))
             {
                 genTypeInfo(t, NULL);
@@ -694,7 +700,7 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
         offset = vd->offset + vd->type->size();
     }
 
-    if (cd)
+    if (cd && !global.params.noRTTI)
     {
         // Interface vptr initializations
         toSymbol(cd);                                         // define csym
@@ -1439,6 +1445,7 @@ public:
 
 dt_t **TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d)
 {
+    assert(!global.params.noRTTI);
     TypeInfoDtVisitor v(pdt);
     d->accept(&v);
     return v.pdt;

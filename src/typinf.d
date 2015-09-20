@@ -14,6 +14,7 @@ import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.errors;
+import ddmd.expression;
 import ddmd.globals;
 import ddmd.mtype;
 import ddmd.visitor;
@@ -22,12 +23,15 @@ extern (C++) void toObjFile(Dsymbol ds, bool multiobj);
 
 /****************************************************
  * Get the exact TypeInfo.
+ * exp is the Expression which requires this TypeInfo to be built, used
+ * for error messages.
  */
 extern (C++) void genTypeInfo(Type torig, Scope* sc)
 {
     //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
     if (!Type.dtypeinfo)
     {
+        assert(!global.params.noRTTI);
         torig.error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
         fatal();
     }
@@ -68,11 +72,33 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
     assert(torig.vtinfo);
 }
 
-extern (C++) Type getTypeInfoType(Type t, Scope* sc)
+/**
+ * Semantic sometimes requires the full TypeInfo type.
+ * Return a valid type, even if global.params.noRTTI is set to allow
+ * RTTI to work in CTFE. If object.d does not contain the required
+ * declarations this will fail anyway.
+ * exp is the expression which requires TypeInfo generation and is used
+ * for error messages.
+ */
+extern (C++) Type getTypeInfoType(Type t, Scope* sc, Expression exp = null)
 {
     assert(t.ty != Terror);
-    genTypeInfo(t, sc);
-    return t.vtinfo.type;
+
+    // Output nicer error message if noRTTI is set
+    if (!Type.dtypeinfo && global.params.noRTTI)
+    {
+        if (exp)
+            exp.error(global.params.noRTTIMessage);
+        else
+            t.error(Loc(), global.params.noRTTIMessage);
+
+        return Type.terror;
+    }
+    else
+    {
+        genTypeInfo(t, sc);
+        return t.vtinfo.type;
+    }
 }
 
 extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
