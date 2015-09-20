@@ -638,6 +638,8 @@ extern (C++) int runLINK()
         {
             // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
             argv.push("-lrt");
+            // Link against libdl for phobos usage of dlopen
+            argv.push("-ldl");
         }
         if (global.params.verbose)
         {
