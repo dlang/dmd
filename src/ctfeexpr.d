@@ -1785,9 +1785,8 @@ extern (C++) int ctfeCmp(Loc loc, TOK op, Expression e1, Expression e2)
     return n;
 }
 
-extern (C++) UnionExp ctfeCat(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
 {
-    Loc loc = e1.loc;
     Type t1 = e1.type.toBasetype();
     Type t2 = e2.type.toBasetype();
     UnionExp ue;
@@ -1963,7 +1962,7 @@ extern (C++) Expression ctfeCast(Loc loc, Type type, Type to, Expression e)
     }
     else
     {
-        r = Cast(type, to, e).copy();
+        r = Cast(loc, type, to, e).copy();
     }
     if (CTFEExp.isCantExp(r))
         error(loc, "cannot cast %s to %s at compile time", e.toChars(), to.toChars());
