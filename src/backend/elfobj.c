@@ -1069,10 +1069,6 @@ void Obj::term(const char *objfilename)
         dwarf_termfile();
     }
 
-#if MARS
-    obj_rtinit();
-#endif
-
 #if SCPP
     if (errcnt)
         return;
@@ -1360,6 +1356,17 @@ void Obj::term(const char *objfilename)
     }
     fobjbuf->position(foffset, 0);
     fobjbuf->flush();
+}
+
+/*********************************
+ * Generate code to register DSO with druntime.
+ */
+
+void Obj::register_dso()
+{
+#if MARS
+    obj_rtinit();
+#endif
 }
 
 /*****************************

@@ -255,6 +255,8 @@ void obj_start(char *srcfile)
 void obj_end(Library *library, File *objfile)
 {
     const char *objfilename = objfile->name->toChars();
+    if (!global.params.betterC)
+        objmod->register_dso();
     objmod->term(objfilename);
     delete objmod;
     objmod = NULL;
