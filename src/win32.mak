@@ -187,7 +187,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	irstate.h iasm.c \
-	toelfdebug.c libelf.d scanelf.d libmach.d scanmach.d \
+	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c eh.c objc_glue_stubs.c objc_glue.c
 
 # D back end
