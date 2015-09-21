@@ -6977,7 +6977,7 @@ public:
     }
 }
 
-extern (C++) alias fp_t = UnionExp function(Type, Expression, Expression);
+extern (C++) alias fp_t = UnionExp function(Loc loc, Type, Expression, Expression);
 extern (C++) alias fp2_t = int function(Loc loc, TOK, Expression, Expression);
 
 extern (C++) class BinExp : Expression

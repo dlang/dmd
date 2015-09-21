@@ -8,6 +8,8 @@
 
 module ddmd.optimize;
 
+import core.stdc.stdio;
+
 import ddmd.constfold;
 import ddmd.ctfeexpr;
 import ddmd.dclass;
@@ -27,7 +29,7 @@ import ddmd.visitor;
  */
 extern (C++) Expression expandVar(int result, VarDeclaration v)
 {
-    //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v->toChars() : "null");
+    //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
     Expression e = null;
     if (!v)
         return e;
@@ -139,7 +141,7 @@ Lerror:
 
 extern (C++) Expression fromConstInitializer(int result, Expression e1)
 {
-    //printf("fromConstInitializer(result = %x, %s)\n", result, e1->toChars());
+    //printf("fromConstInitializer(result = %x, %s)\n", result, e1.toChars());
     //static int xx; if (xx++ == 10) assert(0);
     Expression e = e1;
     if (e1.op == TOKvar)
@@ -601,7 +603,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     if (e.e1.type.equals(e.type) && e.type.equals(e.to))
                         ret = e.e1;
                     else
-                        ret = Cast(e.type, e.to, e.e1).copy();
+                        ret = Cast(e.loc, e.type, e.to, e.e1).copy();
                 }
             }
             //printf(" returning6 %s\n", ret->toChars());
@@ -639,7 +641,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             {
                 if (e.e1.op == TOKsymoff && e.e2.op == TOKsymoff)
                     return;
-                ret = Add(e.type, e.e1, e.e2).copy();
+                ret = Add(e.loc, e.type, e.e1, e.e2).copy();
             }
         }
 
@@ -651,7 +653,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             {
                 if (e.e2.op == TOKsymoff)
                     return;
-                ret = Min(e.type, e.e1, e.e2).copy();
+                ret = Min(e.loc, e.type, e.e1, e.e2).copy();
             }
         }
 
@@ -662,7 +664,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
             {
-                ret = Mul(e.type, e.e1, e.e2).copy();
+                ret = Mul(e.loc, e.type, e.e1, e.e2).copy();
             }
         }
 
@@ -673,7 +675,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
             {
-                ret = Div(e.type, e.e1, e.e2).copy();
+                ret = Div(e.loc, e.type, e.e1, e.e2).copy();
             }
         }
 
@@ -683,11 +685,11 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
             {
-                ret = Mod(e.type, e.e1, e.e2).copy();
+                ret = Mod(e.loc, e.type, e.e1, e.e2).copy();
             }
         }
 
-        void shift_optimize(BinExp e, UnionExp function(Type, Expression, Expression) shift)
+        void shift_optimize(BinExp e, UnionExp function(Loc, Type, Expression, Expression) shift)
         {
             if (binOptimize(e, result))
                 return;
@@ -702,7 +704,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     return;
                 }
                 if (e.e1.isConst() == 1)
-                    ret = (*shift)(e.type, e.e1, e.e2).copy();
+                    ret = (*shift)(e.loc, e.type, e.e1, e.e2).copy();
             }
         }
 
@@ -729,7 +731,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (binOptimize(e, result))
                 return;
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
-                ret = And(e.type, e.e1, e.e2).copy();
+                ret = And(e.loc, e.type, e.e1, e.e2).copy();
         }
 
         override void visit(OrExp e)
@@ -737,7 +739,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (binOptimize(e, result))
                 return;
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
-                ret = Or(e.type, e.e1, e.e2).copy();
+                ret = Or(e.loc, e.type, e.e1, e.e2).copy();
         }
 
         override void visit(XorExp e)
@@ -745,7 +747,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (binOptimize(e, result))
                 return;
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
-                ret = Xor(e.type, e.e1, e.e2).copy();
+                ret = Xor(e.loc, e.type, e.e1, e.e2).copy();
         }
 
         override void visit(PowExp e)
@@ -800,7 +802,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
             {
-                Expression ex = Pow(e.type, e.e1, e.e2).copy();
+                Expression ex = Pow(e.loc, e.type, e.e1, e.e2).copy();
                 if (!CTFEExp.isCantExp(ex))
                 {
                     ret = ex;
@@ -882,7 +884,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = e2;
                 return;
             }
-            ret = Equal(e.op, e.type, e1, e2).copy();
+            ret = Equal(e.op, e.loc, e.type, e1, e2).copy();
             if (CTFEExp.isCantExp(ret))
                 ret = e;
         }
@@ -894,7 +896,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             if ((e.e1.isConst() && e.e2.isConst()) || (e.e1.op == TOKnull && e.e2.op == TOKnull))
             {
-                ret = Identity(e.op, e.type, e.e1, e.e2).copy();
+                ret = Identity(e.op, e.loc, e.type, e.e1, e.e2).copy();
                 if (CTFEExp.isCantExp(ret))
                     ret = e;
             }
@@ -1070,7 +1072,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             Expression e1 = fromConstInitializer(result, e.e1);
             Expression e2 = fromConstInitializer(result, e.e2);
-            ret = Cmp(e.op, e.type, e1, e2).copy();
+            ret = Cmp(e.op, e.loc, e.type, e1, e2).copy();
             if (CTFEExp.isCantExp(ret))
                 ret = e;
         }

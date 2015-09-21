@@ -9,6 +9,7 @@
 module ddmd.constfold;
 
 import core.stdc.string;
+import core.stdc.stdio;
 import ddmd.arraytypes;
 import ddmd.builtin;
 import ddmd.complex;
@@ -111,10 +112,9 @@ extern (C++) UnionExp Bool(Type type, Expression e1)
     return ue;
 }
 
-extern (C++) UnionExp Add(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     static if (LOG)
     {
         printf("Add(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
@@ -219,10 +219,9 @@ extern (C++) UnionExp Add(Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Min(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     if (type.isreal())
     {
         emplaceExp!(RealExp)(&ue, loc, e1.toReal() - e2.toReal(), type);
@@ -319,10 +318,9 @@ extern (C++) UnionExp Min(Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Mul(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     if (type.isfloating())
     {
         complex_t c;
@@ -369,10 +367,9 @@ extern (C++) UnionExp Mul(Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Div(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     if (type.isfloating())
     {
         complex_t c;
@@ -430,10 +427,9 @@ extern (C++) UnionExp Div(Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Mod(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     if (type.isfloating())
     {
         complex_t c;
@@ -493,10 +489,9 @@ extern (C++) UnionExp Mod(Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Pow(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     // Handle integer power operations.
     if (e2.type.isintegral())
     {
@@ -538,18 +533,18 @@ extern (C++) UnionExp Pow(Type type, Expression e1, Expression e2)
             if (n & 1)
             {
                 // v = v * r;
-                uv = Mul(v.type, v, r);
+                uv = Mul(loc, v.type, v, r);
             }
             n >>= 1;
             // r = r * r
-            ur = Mul(r.type, r, r);
+            ur = Mul(loc, r.type, r, r);
         }
         if (neg)
         {
             // ue = 1.0 / v
             UnionExp one;
             emplaceExp!(RealExp)(&one, loc, ldouble(1.0), v.type);
-            uv = Div(v.type, one.exp(), v);
+            uv = Div(loc, v.type, one.exp(), v);
         }
         if (type.iscomplex())
             emplaceExp!(ComplexExp)(&ue, loc, v.toComplex(), type);
@@ -573,18 +568,16 @@ extern (C++) UnionExp Pow(Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Shl(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Shl(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() << e2.toInteger(), type);
     return ue;
 }
 
-extern (C++) UnionExp Shr(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Shr(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     dinteger_t value = e1.toInteger();
     dinteger_t dcount = e2.toInteger();
     assert(dcount <= 0xFFFFFFFF);
@@ -628,10 +621,9 @@ extern (C++) UnionExp Shr(Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Ushr(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Ushr(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     dinteger_t value = e1.toInteger();
     dinteger_t dcount = e2.toInteger();
     assert(dcount <= 0xFFFFFFFF);
@@ -669,33 +661,33 @@ extern (C++) UnionExp Ushr(Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp And(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp And(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    emplaceExp!(IntegerExp)(&ue, e1.loc, e1.toInteger() & e2.toInteger(), type);
+    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() & e2.toInteger(), type);
     return ue;
 }
 
-extern (C++) UnionExp Or(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Or(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    emplaceExp!(IntegerExp)(&ue, e1.loc, e1.toInteger() | e2.toInteger(), type);
+    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() | e2.toInteger(), type);
     return ue;
 }
 
-extern (C++) UnionExp Xor(Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Xor(Loc loc, Type type, Expression e1, Expression e2)
 {
+    //printf("Xor(linnum = %d, e1 = %s, e2 = %s)\n", loc.linnum, e1.toChars(), e2.toChars());
     UnionExp ue;
-    emplaceExp!(IntegerExp)(&ue, e1.loc, e1.toInteger() ^ e2.toInteger(), type);
+    emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() ^ e2.toInteger(), type);
     return ue;
 }
 
 /* Also returns TOKcantexp if cannot be computed.
  */
-extern (C++) UnionExp Equal(TOK op, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     int cmp = 0;
     real_t r1;
     real_t r2;
@@ -770,7 +762,7 @@ extern (C++) UnionExp Equal(TOK op, Type type, Expression e1, Expression e2)
             {
                 Expression ee1 = (*es1.elements)[i];
                 Expression ee2 = (*es2.elements)[i];
-                ue = Equal(TOKequal, Type.tint32, ee1, ee2);
+                ue = Equal(TOKequal, loc, Type.tint32, ee1, ee2);
                 if (CTFEExp.isCantExp(ue.exp()))
                     return ue;
                 cmp = cast(int)ue.exp().toInteger();
@@ -840,7 +832,7 @@ extern (C++) UnionExp Equal(TOK op, Type type, Expression e1, Expression e2)
                     cmp = 0;
                     break;
                 }
-                ue = Equal(TOKequal, Type.tint32, ee1, ee2);
+                ue = Equal(TOKequal, loc, Type.tint32, ee1, ee2);
                 if (ue.exp().op == TOKcantexp)
                     return ue;
                 cmp = cast(int)ue.exp().toInteger();
@@ -898,10 +890,9 @@ extern (C++) UnionExp Equal(TOK op, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Identity(TOK op, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Identity(TOK op, Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     int cmp;
     if (e1.op == TOKnull)
     {
@@ -935,7 +926,7 @@ extern (C++) UnionExp Identity(TOK op, Type type, Expression e1, Expression e2)
         }
         else
         {
-            ue = Equal((op == TOKidentity) ? TOKequal : TOKnotequal, type, e1, e2);
+            ue = Equal((op == TOKidentity) ? TOKequal : TOKnotequal, loc, type, e1, e2);
             return ue;
         }
     }
@@ -945,10 +936,9 @@ extern (C++) UnionExp Identity(TOK op, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Cmp(TOK op, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     dinteger_t n;
     real_t r1;
     real_t r2;
@@ -1221,10 +1211,9 @@ extern (C++) UnionExp Cmp(TOK op, Type type, Expression e1, Expression e2)
  *  to: type to cast to
  *  type: type to paint the result
  */
-extern (C++) UnionExp Cast(Type type, Type to, Expression e1)
+extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
 {
     UnionExp ue;
-    Loc loc = e1.loc;
     Type tb = to.toBasetype();
     Type typeb = type.toBasetype();
     //printf("Cast(type = %s, to = %s, e1 = %s)\n", type->toChars(), to->toChars(), e1->toChars());
@@ -1354,7 +1343,7 @@ extern (C++) UnionExp Cast(Type type, Type to, Expression e1)
             VarDeclaration v = sd.fields[i];
             UnionExp zero;
             emplaceExp!(IntegerExp)(&zero, 0);
-            ue = Cast(v.type, v.type, zero.exp());
+            ue = Cast(loc, v.type, v.type, zero.exp());
             if (ue.exp().op == TOKcantexp)
                 return ue;
             elements.push(ue.exp().copy());
@@ -1486,7 +1475,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
         {
             i--;
             Expression ekey = (*ae.keys)[i];
-            ue = Equal(TOKequal, Type.tbool, ekey, e2);
+            ue = Equal(TOKequal, loc, Type.tbool, ekey, e2);
             if (CTFEExp.isCantExp(ue.exp()))
                 return ue;
             if (ue.exp().isBool(true))

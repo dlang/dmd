@@ -3102,7 +3102,7 @@ public:
                 return;
             }
         }
-        result = (*fp)(e.type, e1, e2).copy();
+        result = (*fp)(e.loc, e.type, e1, e2).copy();
         if (CTFEExp.isCantExp(result))
             e.error("%s cannot be interpreted at compile time", e.toChars());
     }
@@ -3535,7 +3535,7 @@ public:
                     }
                 }
                 oldval = resolveSlice(oldval);
-                newval = (*fp)(e.type, oldval, newval).copy();
+                newval = (*fp)(e.loc, e.type, oldval, newval).copy();
             }
             else if (e.e2.type.isintegral() && (e.op == TOKaddass || e.op == TOKminass || e.op == TOKplusplus || e.op == TOKminusminus))
             {
@@ -5347,7 +5347,7 @@ public:
             return;
         e1 = resolveSlice(e1);
         e2 = resolveSlice(e2);
-        result = ctfeCat(e.type, e1, e2).copy();
+        result = ctfeCat(e.loc, e.type, e1, e2).copy();
         if (CTFEExp.isCantExp(result))
         {
             e.error("%s cannot be interpreted at compile time", e.toChars());
