@@ -206,7 +206,7 @@ type *type_dyn_array(type *tnext);
 extern "C" type *type_static_array(targ_size_t dim, type *tnext);
 type *type_assoc_array(type *tkey, type *tvalue);
 type *type_delegate(type *tnext);
-type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
+extern "C" type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
 type *type_enum(const char *name, type *tbase);
 type *type_struct_class(const char *name, unsigned alignsize, unsigned structsize,
         type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD);

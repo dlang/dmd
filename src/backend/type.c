@@ -435,6 +435,8 @@ type *type_delegate(type *tnext)
  * Returns:
  *      Tcount already incremented
  */
+extern "C" // because of size_t on OSX 32
+{
 type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret)
 {
     param_t *paramtypes = NULL;
@@ -449,6 +451,7 @@ type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, typ
     t->Tparamtypes = paramtypes;
     t->Tcount++;
     return t;
+}
 }
 
 /***************************************
