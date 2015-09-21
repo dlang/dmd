@@ -1420,6 +1420,8 @@ enum FL
         FLgot,          // global offset table entry outside this object file
         FLgotoff,       // global offset table entry inside this object file
 
+        FLfuncarg,      // argument to upcoming function call
+
         FLMAX
 };
 

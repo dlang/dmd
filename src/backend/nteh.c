@@ -671,7 +671,7 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
     stackpush += 4;
     genadjesp(c,4);
 
-    c = cat(c,params(e->E1,REGSIZE));
+    c = cat(c,pushParams(e->E1,REGSIZE));
 
     c = cat(c,getregs(~getRtlsym(RTLSYM_SETJMP3)->Sregsaved & (ALLREGS | mES)));
     gencs(c,0xE8,0,FLfunc,getRtlsym(RTLSYM_SETJMP3));      // CALL __setjmp3

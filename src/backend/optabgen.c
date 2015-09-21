@@ -650,7 +650,7 @@ void fltables()
         static char indatafl[] =        /* is FLxxxx a data type?       */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,
           FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
-          FLstack,FLregsave,
+          FLstack,FLregsave,FLfuncarg,
 #if TX86
           FLndp,
 #endif
@@ -661,6 +661,7 @@ void fltables()
 
         static char instackfl[] =       /* is FLxxxx a stack data type? */
         { FLauto,FLfast,FLpara,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
+          FLfuncarg,
 #if TX86
           FLndp,
 #endif
@@ -756,6 +757,7 @@ void fltables()
                 case FLframehandler:    segfl[i] = -1;  break;
                 case FLasm:     segfl[i] = -1;  break;
                 case FLallocatmp:       segfl[i] = SS;  break;
+                case FLfuncarg:         segfl[i] = SS;  break;
                 default:
                         printf("error in segfl[%d]\n", i);
                         exit(1);
