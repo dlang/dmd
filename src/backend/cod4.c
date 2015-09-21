@@ -1159,6 +1159,8 @@ code *cdaddass(elem *e,regm_t *pretregs)
             code_newreg(&cs, reg);              // OP1 EA,reg
             if (sz == 1 && reg >= 4 && I64)
                 cs.Irex |= REX;
+            if (forccs)
+                cs.Iflags |= CFpsw;
         }
 #if TARGET_SEGMENTED
         else if (tyml == TYhptr)

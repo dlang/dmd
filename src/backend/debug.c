@@ -109,8 +109,7 @@ void WRBC(unsigned bc)
          "exit  ","asm   ","switch","ifthen","jmptab",
          "try   ","catch ","jump  ",
          "_try  ","_filte","_final","_ret  ","_excep",
-         "jcatch",
-         "jplace",
+         "jcatch"
         };
 
     assert(sizeof(bcs) / sizeof(bcs[0]) == BCMAX);
@@ -253,27 +252,23 @@ void WRdefnod()
 }
 
 void WRFL(enum FL fl)
-{ static char fls[FLMAX][7] =
-        {"unde  ","const ","oper  ","func  ","data  ",
+{
+    static const char fls[FLMAX][7] =
+    {    "unde  ","const ","oper  ","func  ","data  ",
          "reg   ",
          "pseudo",
          "auto  ","fast  ","para  ","extrn ",
          "code  ","block ","udata ","cs    ","swit  ",
          "fltrg ","offst ","datsg ",
          "ctor  ","dtor  ","regsav","asm   ",
-#if TX86
          "ndp   ",
-#endif
-#if TARGET_SEGMENTED
          "farda ","csdat ",
-#endif
          "local ","tlsdat",
          "bprel ","frameh","blocko","alloca",
          "stack ","dsym  ",
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
          "got   ","gotoff",
-#endif
-        };
+         "funcar",
+    };
 
     if ((unsigned)fl >= (unsigned)FLMAX)
         dbg_printf("FL%d",fl);

@@ -1428,7 +1428,7 @@ void ThrowStatement::toIR(IRState *irs)
 
     incUsage(irs, loc);
     elem *e = exp->toElem(irs);
-#if TARGET_WINDOS
+#if 0 && TARGET_WINDOS
     int rtl = config.exe == EX_WIN64 ? RTLSYM_THROWC : RTLSYM_THROW;
 #else
     int rtl = RTLSYM_THROWC;
