@@ -27,9 +27,9 @@ $(ROOT)/unittest_assert.done: $(ROOT)/unittest_assert
 
 $(ROOT)/line_trace.done: $(ROOT)/line_trace
 	@echo Testing line_trace
-	@rm -f line_trace.output
-	$(QUIET)./$(ROOT)/line_trace $(RUN_ARGS) >line_trace.output
-	$(QUIET)$(SED) "s/\[0x[0-9a-f]*\]/\[ADDR\]/g" line_trace.output | $(DIFF) line_trace.exp -
+	@rm -f $(ROOT)/line_trace.output
+	$(QUIET)./$(ROOT)/line_trace $(RUN_ARGS) > $(ROOT)/line_trace.output
+	$(QUIET)$(SED) "s/\[0x[0-9a-f]*\]/\[ADDR\]/g" $(ROOT)/line_trace.output | $(DIFF) line_trace.exp -
 	@touch $@
 
 $(ROOT)/unittest_assert: DFLAGS+=-unittest
