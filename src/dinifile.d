@@ -48,7 +48,7 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
      *      o home directory
      *      o exe directory (windows)
      *      o directory off of argv0
-     *      o /etc (non-windows)
+     *      o SYSCONFDIR=/etc (non-windows)
      */
     const(char)* filename = FileName.combine(getenv("HOME"), inifile);
     if (FileName.exists(filename))
@@ -91,8 +91,8 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
             if (FileName.exists(filename))
                 return filename;
         }
-        // Search /etc/ for inifile
-        filename = FileName.combine("/etc", inifile);
+        // Search SYSCONFDIR=/etc for inifile
+        filename = FileName.combine(import("SYSCONFDIR.imp"), inifile);
     }
     // __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     return filename;
