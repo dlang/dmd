@@ -462,7 +462,7 @@ version (CRuntime_Glibc)
         enum __SIZEOF_PTHREAD_BARRIER_T = 20;
         enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
     }
-    else version (S390X)
+    else version (SystemZ)
     {
         enum __SIZEOF_PTHREAD_ATTR_T = 56;
         enum __SIZEOF_PTHREAD_MUTEX_T = 40;

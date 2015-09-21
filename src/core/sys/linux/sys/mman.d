@@ -80,7 +80,7 @@ else version (S390)
     }
 }
 // http://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/s390/bits/mman.h
-else version (S390X)
+else version (SystemZ)
 {
     static if (__USE_MISC) enum
     {

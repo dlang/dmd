@@ -80,7 +80,7 @@ static @property int[string] sPredefinedVersions()
             "SPARC_HardFloat" : -1,
             "SPARC64" : -1,
             "S390" : -1,
-            "S390X" : -1,
+            "SystemZ" : -1,
             "HPPA" : -1,
             "HPPA64" : -1,
             "SH" : -1,
