@@ -61,7 +61,7 @@ extern extern (C++) type* type_dyn_array(type* tnext);
 extern extern (C) type* type_static_array(targ_size_t dim, type* tnext);
 extern extern (C++) type* type_assoc_array(type* tkey, type* tvalue);
 extern extern (C++) type* type_delegate(type* tnext);
-extern extern (C++) type* type_function(tym_t tyf, type** ptypes, size_t nparams, bool variadic, type* tret);
+extern extern (C) type* type_function(tym_t tyf, type** ptypes, size_t nparams, bool variadic, type* tret);
 extern extern (C++) type* type_enum(const(char)* name, type* tbase);
 extern extern (C++) type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
     type* arg1type, type* arg2type, bool isUnion, bool isClass, bool isPOD);
