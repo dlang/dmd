@@ -205,6 +205,30 @@ else version (AArch64)
         void _dl_mcount_wrapper_check(void* __selfpc);
     }
 }
+else version (SystemZ)
+{
+    // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/dlfcn.h
+    // enum RTLD_LAZY = 0x0001; // POSIX
+    // enum RTLD_NOW = 0x0002; // POSIX
+    enum RTLD_BINDING_MASK = 0x3;
+    enum RTLD_NOLOAD = 0x00004;
+    enum RTLD_DEEPBIND = 0x00008;
+
+    // enum RTLD_GLOBAL = 0x00100; // POSIX
+    // enum RTLD_LOCAL = 0; // POSIX
+    enum RTLD_NODELETE = 0x01000;
+
+    static if (__USE_GNU)
+    {
+        RT DL_CALL_FCT(RT, Args...)(RT function(Args) fctp, auto ref Args args)
+        {
+            _dl_mcount_wrapper_check(cast(void*)fctp);
+            return fctp(args);
+        }
+
+        void _dl_mcount_wrapper_check(void* __selfpc);
+    }
+}
 else
     static assert(0, "unimplemented");
 
