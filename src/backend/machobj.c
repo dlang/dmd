@@ -2310,6 +2310,9 @@ void MachObj::addrel(int seg, targ_size_t offset, symbol *targsym,
         unsigned targseg, int rtype, int val)
 {
     Relocation rel;
+#ifdef DEBUG
+    memset(&rel, 0, sizeof(rel));
+#endif
     rel.offset = offset;
     rel.targsym = targsym;
     rel.targseg = targseg;
