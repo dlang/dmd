@@ -739,7 +739,7 @@ public:
         buf.printf("A%u", dim);
         for (size_t i = 0; i < dim; i++)
         {
-            (*e.elements)[i].accept(this);
+            e.getElement(i).accept(this);
         }
     }
 

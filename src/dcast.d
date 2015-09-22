@@ -676,12 +676,19 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 }
                 else
                 {
+                    if (e.basis)
+                    {
+                        MATCH m = e.basis.implicitConvTo(telement);
+                        if (m < result)
+                            result = m;
+                    }
                     for (size_t i = 0; i < e.elements.dim; i++)
                     {
                         Expression el = (*e.elements)[i];
                         if (result == MATCHnomatch)
                             break;
-                        // no need to check for worse
+                        if (!el)
+                            continue;
                         MATCH m = el.implicitConvTo(telement);
                         if (m < result)
                             result = m; // remember worst match
@@ -1946,10 +1953,14 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                             goto L1;
                     }
                     ae = cast(ArrayLiteralExp)e.copy();
+                    if (e.basis)
+                        ae.basis = e.basis.castTo(sc, tb.nextOf());
                     ae.elements = e.elements.copy();
                     for (size_t i = 0; i < e.elements.dim; i++)
                     {
                         Expression ex = (*e.elements)[i];
+                        if (!ex)
+                            continue;
                         ex = ex.castTo(sc, tb.nextOf());
                         (*ae.elements)[i] = ex;
                     }
@@ -2279,6 +2290,8 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
                 Type tn = tb.nextOf();
+                if (ale.basis)
+                    ale.basis = inferType(ale.basis, tn, flag);
                 for (size_t i = 0; i < ale.elements.dim; i++)
                 {
                     Expression e = (*ale.elements)[i];
@@ -2416,7 +2429,8 @@ extern (C++) bool isVoidArrayLiteral(Expression e, Type other)
 {
     while (e.op == TOKarrayliteral && e.type.ty == Tarray && ((cast(ArrayLiteralExp)e).elements.dim == 1))
     {
-        e = (*(cast(ArrayLiteralExp)e).elements)[0];
+        auto ale = cast(ArrayLiteralExp)e;
+        e = ale.getElement(0);
         if (other.ty == Tsarray || other.ty == Tarray)
             other = other.nextOf();
         else

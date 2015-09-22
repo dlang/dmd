@@ -1103,6 +1103,8 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
         override void visit(ArrayLiteralExp e)
         {
             ArrayLiteralExp ce = cast(ArrayLiteralExp)e.copy();
+            if (e.basis)
+                ce.basis = doInline(e.basis, ids);
             ce.elements = arrayExpressiondoInline(e.elements);
             result = ce;
 
@@ -1547,6 +1549,7 @@ public:
     override void visit(ArrayLiteralExp e)
     {
         //printf("ArrayLiteralExp::inlineScan()\n");
+        inlineScan(&e.basis);
         arrayInlineScan(e.elements);
     }
 

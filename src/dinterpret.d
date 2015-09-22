@@ -2559,38 +2559,57 @@ public:
         }
         Type tn = e.type.toBasetype().nextOf().toBasetype();
         bool wantCopy = (tn.ty == Tsarray || tn.ty == Tstruct);
+
+        auto basis = interpret(e.basis, istate);
+        if (exceptionOrCant(basis))
+            return;
+
         Expressions* expsx = null;
         size_t dim = e.elements ? e.elements.dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
             Expression exp = (*e.elements)[i];
-            if (exp.op == TOKindex) // segfault bug 6250
-                assert((cast(IndexExp)exp).e1 != e);
-            Expression ex = interpret(exp, istate);
+            Expression ex;
+            if (!exp)
+            {
+                ex = copyLiteral(basis).copy();
+                goto Lcow;
+            }
+
+            // segfault bug 6250
+            assert(exp.op != TOKindex || (cast(IndexExp)exp).e1 != e);
+
+            ex = interpret(exp, istate);
             if (exceptionOrCant(ex))
                 return;
+
             /* Each elements should have distinct CFE memory.
              *  int[1] z = 7;
              *  int[1][] pieces = [z,z];    // here
              */
             if (wantCopy || ex == exp && expsx)
                 ex = copyLiteral(ex).copy();
+
+            if (ex == exp && !expsx)
+                continue;
+
             /* If any changes, do Copy On Write
              */
-            if (ex != exp)
+        Lcow:
+            if (!expsx)
             {
-                if (!expsx)
+                expsx = new Expressions();
+                ++CtfeStatus.numArrayAllocs;
+                expsx.setDim(dim);
+                for (size_t j = 0; j < i; j++)
                 {
-                    expsx = new Expressions();
-                    ++CtfeStatus.numArrayAllocs;
-                    expsx.setDim(dim);
-                    for (size_t j = 0; j < i; j++)
-                    {
-                        (*expsx)[j] = copyLiteral((*e.elements)[j]).copy();
-                    }
+                    auto el = (*e.elements)[j];
+                    if (!el)
+                        el = e.basis;
+                    (*expsx)[j] = copyLiteral(el).copy();
                 }
-                (*expsx)[i] = ex;
             }
+            (*expsx)[i] = ex;
         }
         if (expsx)
         {
@@ -2602,7 +2621,7 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            auto ae = new ArrayLiteralExp(e.loc, expsx);
+            auto ae = new ArrayLiteralExp(e.loc, basis, expsx);
             ae.type = e.type;
             ae.ownedByCtfe = OWNEDctfe;
             result = ae;

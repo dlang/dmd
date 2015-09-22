@@ -4561,6 +4561,12 @@ public:
 extern (C++) final class ArrayLiteralExp : Expression
 {
 public:
+    /* If !is null, elements[] can be sparse and basis is used for the
+     * "default" element value. In other words, non-null elements[i] overrides
+     * this 'basis' value.
+     */
+    Expression basis;
+
     Expressions* elements;
     OwnedBy ownedByCtfe = OWNEDcode;
 
@@ -4579,9 +4585,18 @@ public:
         elements.push(e);
     }
 
+    extern (D) this(Loc loc, Expression basis, Expressions* elements)
+    {
+        super(loc, TOKarrayliteral, __traits(classInstanceSize, ArrayLiteralExp));
+        this.basis = basis;
+        this.elements = elements;
+    }
+
     override Expression syntaxCopy()
     {
-        return new ArrayLiteralExp(loc, arraySyntaxCopy(elements));
+        return new ArrayLiteralExp(loc,
+            basis ? basis.syntaxCopy() : null,
+            arraySyntaxCopy(elements));
     }
 
     override bool equals(RootObject o)
@@ -4601,12 +4616,67 @@ public:
             {
                 Expression e1 = (*elements)[i];
                 Expression e2 = (*ae.elements)[i];
+                if (!e1)
+                    e1 = basis;
+                if (!e2)
+                    e2 = ae.basis;
                 if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
                     return false;
             }
             return true;
         }
         return false;
+    }
+
+    final Expression getElement(size_t i)
+    {
+        auto el = (*elements)[i];
+        if (!el)
+            el = basis;
+        return el;
+    }
+
+    /* Copy element `Expressions` in the parameters when they're `ArrayLiteralExp`s.
+     * Params:
+     *      e1  = If it's ArrayLiteralExp, its `elements` will be copied.
+     *            Otherwise, `e1` itself will be pushed into the new `Expressions`.
+     *      e2  = If it's not `null`, it will be pushed/appended to the new
+     *            `Expressions` by the same way with `e1`.
+     * Returns:
+     *      Newly allocated `Expresions. Note that it points the original
+     *      `Expression` values in e1 and e2.
+     */
+    static Expressions* copyElements(Expression e1, Expression e2 = null)
+    {
+        auto elems = new Expressions();
+
+        void append(ArrayLiteralExp ale)
+        {
+            if (!ale.elements)
+                return;
+            auto d = elems.dim;
+            elems.append(ale.elements);
+            foreach (ref el; (*elems)[][d .. elems.dim])
+            {
+                if (!el)
+                    el = ale.basis;
+            }
+        }
+
+        if (e1.op == TOKarrayliteral)
+            append(cast(ArrayLiteralExp)e1);
+        else
+            elems.push(e1);
+
+        if (e2)
+        {
+            if (e2.op == TOKarrayliteral)
+                append(cast(ArrayLiteralExp)e2);
+            else
+                elems.push(e2);
+        }
+
+        return elems;
     }
 
     override Expression semantic(Scope* sc)
@@ -4662,7 +4732,7 @@ public:
             {
                 for (size_t i = 0; i < elements.dim; ++i)
                 {
-                    Expression ch = (*elements)[i];
+                    auto ch = getElement(i);
                     if (ch.op != TOKint64)
                         return null;
                     if (sz == 1)

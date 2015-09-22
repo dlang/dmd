@@ -1974,16 +1974,42 @@ public:
     /**************************************************
      * Write out argument list to buf.
      */
-    void argsToBuffer(Expressions* expressions)
+    void argsToBuffer(Expressions* expressions, Expression basis = null)
     {
         if (!expressions || !expressions.dim)
             return;
-        for (size_t i = 0; i < expressions.dim; i++)
+        version (all)
         {
-            if (i)
-                buf.writestring(", ");
-            if (Expression e = (*expressions)[i])
-                expToBuffer(e, PREC_assign);
+            foreach (i, el; *expressions)
+            {
+                if (i)
+                    buf.writestring(", ");
+                if (!el)
+                    el = basis;
+                if (el)
+                    expToBuffer(el, PREC_assign);
+            }
+        }
+        else
+        {
+            // Sparse style formatting, for debug use only
+            //      [0..dim: basis, 1: e1, 5: e5]
+            if (basis)
+            {
+                buf.printf("0..%llu: ", cast(ulong)expressions.dim);
+                expToBuffer(basis, PREC_assign);
+            }
+            foreach (i, el; *expressions)
+            {
+                if (el)
+                {
+                    if (basis)
+                        buf.printf(", %llu: ", cast(ulong)i);
+                    else if (i)
+                        buf.writestring(", ");
+                    expToBuffer(el, PREC_assign);
+                }
+            }
         }
     }
 
@@ -2271,7 +2297,7 @@ public:
     override void visit(ArrayLiteralExp e)
     {
         buf.writeByte('[');
-        argsToBuffer(e.elements);
+        argsToBuffer(e.elements, e.basis);
         buf.writeByte(']');
     }
 

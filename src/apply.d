@@ -108,7 +108,7 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        doCond(e.elements) || applyTo(e);
+        doCond(e.basis) || doCond(e.elements) || applyTo(e);
     }
 
     override void visit(AssocArrayLiteralExp e)
