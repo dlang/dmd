@@ -478,7 +478,7 @@ void genObjFile(Module *m, bool multiobj)
     /* Always generate module info, because of templates and -cov.
      * But module info needs the runtime library, so disable it for betterC.
      */
-    if (!global.params.betterC /*|| needModuleInfo()*/)
+    if (!global.params.noRTTI /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
     /* Always generate helper functions b/c of later templates instantiations
