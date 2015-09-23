@@ -2087,7 +2087,7 @@ public:
                             if (isStatic())
                             {
                                 // The monitor is in the ClassInfo
-                                vsync = new DotIdExp(loc, new DsymbolExp(loc, cd), Id.classinfo);
+                                vsync = new DotIdExp(loc, DsymbolExp.resolve(loc, sc2, cd, false), Id.classinfo);
                             }
                             else
                             {

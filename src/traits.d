@@ -795,7 +795,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 return ex.semantic(sc);
             }
         }
-        return (new DsymbolExp(e.loc, s)).semantic(sc);
+        return DsymbolExp.resolve(e.loc, sc, s, false);
     }
     else if (e.ident == Id.hasMember || e.ident == Id.getMember || e.ident == Id.getOverloads || e.ident == Id.getVirtualMethods || e.ident == Id.getVirtualFunctions)
     {
