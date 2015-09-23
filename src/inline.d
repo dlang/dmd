@@ -32,21 +32,22 @@ import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 
-private enum LOG = false;
+private:
+enum LOG = false;
 enum CANINLINE_LOG = false;
 
 /* ========== Compute cost of inlining =============== */
 /* Walk trees to determine if inlining can be done, and if so,
  * if it is too complex to be worth inlining or not.
  */
-extern (C++) __gshared const(int) COST_MAX = 250;
-extern (C++) __gshared const(int) STATEMENT_COST = 0x1000;
-extern (C++) __gshared const(int) STATEMENT_COST_MAX = 250 * 0x1000;
+enum COST_MAX = 250;
+enum STATEMENT_COST = 0x1000;
+enum STATEMENT_COST_MAX = 250 * 0x1000;
 
 // STATEMENT_COST be power of 2 and greater than COST_MAX
 //static assert((STATEMENT_COST & (STATEMENT_COST - 1)) == 0);
 //static assert(STATEMENT_COST > COST_MAX);
-extern (C++) bool tooCostly(int cost)
+bool tooCostly(int cost)
 {
     return ((cost & (STATEMENT_COST - 1)) >= COST_MAX);
 }
@@ -419,7 +420,7 @@ struct InlineDoState
 }
 
 /* -------------------------------------------------------------------- */
-extern (C++) Statement inlineAsStatement(Statement s, InlineDoState* ids)
+Statement inlineAsStatement(Statement s, InlineDoState* ids)
 {
     extern (C++) final class InlineAsStatement : Visitor
     {
@@ -542,7 +543,7 @@ extern (C++) Statement inlineAsStatement(Statement s, InlineDoState* ids)
 }
 
 /* -------------------------------------------------------------------- */
-extern (C++) Expression doInline(Statement s, InlineDoState* ids)
+Expression doInline(Statement s, InlineDoState* ids)
 {
     extern (C++) final class InlineStatement : Visitor
     {
@@ -702,7 +703,7 @@ extern (C++) Expression doInline(Statement s, InlineDoState* ids)
 }
 
 /* --------------------------------------------------------------- */
-extern (C++) Expression doInline(Expression e, InlineDoState* ids)
+Expression doInline(Expression e, InlineDoState* ids)
 {
     extern (C++) final class InlineExpression : Visitor
     {
@@ -1445,7 +1446,7 @@ public:
                 {
                     /* Inlining:
                      *   S s = foo();   // initializing by rvalue
-                     *   S s = S(1);    // constrcutor call
+                     *   S s = S(1);    // constructor call
                      */
                     Declaration d = (cast(VarExp)e.e1).var;
                     if (d.storage_class & (STCout | STCref)) // refinit
@@ -1669,7 +1670,7 @@ public:
     }
 }
 
-extern (C++) bool canInline(FuncDeclaration fd, int hasthis, int hdrscan, int statementsToo)
+bool canInline(FuncDeclaration fd, int hasthis, int hdrscan, int statementsToo)
 {
     int cost;
     enum CANINLINE_LOG = 0;
@@ -1827,8 +1828,14 @@ Lno:
     return false;
 }
 
-// scan for functions to inline
-extern (C++) void inlineScan(Module m)
+/**************************
+ * Scan function implementations in Module m looking for functions that can be inlined,
+ * and inline them in situ.
+ *
+ * Params:
+ *    m = module to scan
+ */
+public void inlineScan(Module m)
 {
     if (m.semanticRun != PASSsemantic3done)
         return;
@@ -1848,7 +1855,22 @@ extern (C++) void inlineScan(Module m)
     m.semanticRun = PASSinlinedone;
 }
 
-extern (C++) static Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret, Expression ethis, Expressions* arguments, Statement* ps)
+/********************************************
+ * Expand a function call inline,
+ *      ethis.fd(arguments)
+ *
+ * Params:
+ *      fd = function to expand
+ *      parent = function that the call to fd is being expanded into
+ *      eret = expression describing the lvalue of where the return value goes
+ *      ethis = 'this' reference
+ *      arguments = arguments passed to fd
+ *      ps = if expanding to a statement, this is where the statement is written to
+ *           (and ignore the return value)
+ * Returns:
+ *      Expression it expanded to
+ */
+Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret, Expression ethis, Expressions* arguments, Statement* ps)
 {
     InlineDoState ids;
     Expression e = null;
@@ -1889,12 +1911,10 @@ extern (C++) static Expression expandInline(FuncDeclaration fd, FuncDeclaration 
             vret.storage_class |= STCtemp | STCforeach | STCref;
             vret.linkage = LINKd;
             vret.parent = parent;
-            Expression de;
-            de = new DeclarationExp(fd.loc, vret);
+            Expression de = new DeclarationExp(fd.loc, vret);
             de.type = Type.tvoid;
             e = Expression.combine(e, de);
-            Expression ex;
-            ex = new VarExp(fd.loc, vret);
+            Expression ex = new VarExp(fd.loc, vret);
             ex.type = vret.type;
             ex = new ConstructExp(fd.loc, ex, eret);
             ex.type = vret.type;
@@ -2066,7 +2086,7 @@ extern (C++) static Expression expandInline(FuncDeclaration fd, FuncDeclaration 
 /****************************************************
  * Perform the "inline copying" of a default argument for a function parameter.
  */
-extern (C++) Expression inlineCopy(Expression e, Scope* sc)
+public Expression inlineCopy(Expression e, Scope* sc)
 {
     /* See Bugzilla 2935 for explanation of why just a copy() is broken
      */
