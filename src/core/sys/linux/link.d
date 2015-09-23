@@ -9,7 +9,7 @@ version (linux):
 extern (C):
 nothrow:
 
-import core.stdc.stdint : uintptr_t, uint32_t;
+import core.stdc.stdint : uintptr_t, uint32_t, uint64_t;
 import core.sys.linux.config : __WORDSIZE;
 import core.sys.linux.dlfcn : Lmid_t;
 import core.sys.linux.elf;
@@ -62,6 +62,12 @@ else version (AArch64)
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
     alias __WORDSIZE __ELF_NATIVE_CLASS;
     alias uint32_t Elf_Symndx;
+}
+else version (SystemZ)
+{
+    // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
+    alias __WORDSIZE __ELF_NATIVE_CLASS;
+    alias uint64_t Elf_Symndx;
 }
 else
     static assert(0, "unimplemented");
