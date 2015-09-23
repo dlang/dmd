@@ -525,6 +525,66 @@ version( CRuntime_Glibc )
         else
             static assert(stat_t.sizeof == 128);
     }
+    else version (SystemZ)
+    {
+        private
+        {
+            alias __dev_t = ulong;
+            alias __ino_t = c_ulong;
+            alias __ino64_t = ulong;
+            alias __mode_t = uint;
+            alias __nlink_t = uint;
+            alias __uid_t = uint;
+            alias __gid_t = uint;
+            alias __off_t = c_long;
+            alias __off64_t = long;
+            alias __blksize_t = int;
+            alias __blkcnt_t = c_long;
+            alias __blkcnt64_t = long;
+            alias __timespec = timespec;
+            alias __time_t = time_t;
+        }
+        struct stat_t
+        {
+            __dev_t st_dev;
+            __ino_t st_ino;
+            __nlink_t st_nlink;
+            __mode_t st_mode;
+            __uid_t st_uid;
+            __gid_t st_gid;
+            int __glibc_reserved0;
+            __dev_t st_rdev;
+            __off_t st_size;
+            static if (__USE_XOPEN2K8)
+            {
+                __timespec st_atim;
+                __timespec st_mtim;
+                __timespec st_ctim;
+                extern(D)
+                {
+                    @property ref time_t st_atime() { return st_atim.tv_sec; }
+                    @property ref time_t st_mtime() { return st_mtim.tv_sec; }
+                    @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+                }
+            }
+            else
+            {
+                __time_t st_atime;
+                c_ulong st_atimensec;
+                __time_t st_mtime;
+                c_ulong st_mtimensec;
+                __time_t st_ctime;
+                c_ulong st_ctimensec;
+            }
+            __blksize_t st_blksize;
+            __blkcnt_t st_blocks;
+            c_long[3] __glibc_reserved;
+        }
+        static if(__USE_XOPEN2K8)
+            static assert(stat_t.sizeof == 144);
+        else
+            static assert(stat_t.sizeof == 144);
+    }
     else
         static assert(0, "unimplemented");
 

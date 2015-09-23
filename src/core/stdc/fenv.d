@@ -116,6 +116,17 @@ version( GNUFP )
         alias fenv_t = double;
         alias fexcept_t = uint;
     }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/s390/fpu/bits/fenv.h
+    else version (SystemZ)
+    {
+        struct fenv_t
+        {
+            fexcept_t __fpc;
+            void*     __unused;
+        }
+
+        alias fexcept_t = uint;
+    }
     else
     {
         static assert(0, "Unimplemented architecture");
