@@ -435,6 +435,11 @@ pvs:
 checkwhitespace:
 	$(HOST_DC) -run checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC)
 
+######################################################
+
+..\changelog.html: ..\changelog.dd
+	$(HOST_DC) -Df$@ $<
+
 ############################## Generated Source ##############################
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \

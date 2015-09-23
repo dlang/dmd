@@ -1,0 +1,25 @@
+Ddoc
+
+$(COMMENT Pending changelog for 2.068.2.
+)
+
+$(BUGSTITLE Compiler Changes,
+$(LI The fix for $(BUGZILLA 14708) was reverted: destructor for temporary not called during stack unwinding, see $(DMDPR 5110).)
+)
+
+$(BUGSTITLE Compiler Changes,
+)
+
+Macros:
+    TITLE=Change Log
+
+    BUGSTITLE = <div class="bugsfixed">$(H4 $1) $(OL $2 )</div>
+
+    RELATIVE_LINK2=<a href="#$1">$+</a>
+    LNAME2=<a class="anchor" title="Permalink to this section" id="$1" href="#$1">$+</a>
+
+    BUGZILLA = <a href="https://issues.dlang.org/show_bug.cgi?id=$0">Bugzilla $0</a>
+    PULL_REQUEST = $(LINK2 https://github.com/D-Programming-Language/$1/pull/$2, $1#$2)
+    DMDPR = $(PULL_REQUEST dmd,$1)
+
+    BOOKTABLE = <table><caption>$1</caption>$+</table>
