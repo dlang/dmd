@@ -175,17 +175,20 @@ public:
             auto tiargs = new Objects();
             tiargs.push(type);
             auto ti = new TemplateInstance(loc, Type.rtinfo, tiargs);
+
             Scope* sc3 = ti.tempdecl._scope.startCTFE();
             sc3.tinst = sc.tinst;
             sc3.minst = sc.minst;
             if (isDeprecated())
                 sc3.stc |= STCdeprecated;
+
             ti.semantic(sc3);
             ti.semantic2(sc3);
             ti.semantic3(sc3);
-            Expression e = new DsymbolExp(Loc(), ti.toAlias(), 0);
-            e = e.semantic(sc3);
+            auto e = DsymbolExp.resolve(Loc(), sc3, ti.toAlias(), false);
+
             sc3.endCTFE();
+
             e = e.ctfeInterpret();
             getRTInfo = e;
         }

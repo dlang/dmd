@@ -3555,6 +3555,7 @@ public:
                         t = (cast(TypePointer)t).next;
                     e = typeDotIdExp(loc, t, ident);
                 }
+                e = e.semantic(sc);
             }
             else
             {
@@ -3564,6 +3565,7 @@ public:
                     if (d)
                         checkAccess(loc, sc, null, d);
                 }
+
                 /* If f is really a function template,
                  * then replace f with the function template declaration.
                  */
@@ -3581,9 +3583,9 @@ public:
                     }
                 }
                 // Haven't done overload resolution yet, so pass 1
-                e = new DsymbolExp(loc, s, 1);
+                e = DsymbolExp.resolve(loc, sc, s, true);
             }
-            return e.semantic(sc);
+            return e;
         }
         if (hasThis(sc))
         {
@@ -3674,9 +3676,14 @@ public:
 
     override Expression semantic(Scope* sc)
     {
+        return resolve(loc ,sc, s, hasOverloads);
+    }
+
+    static Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
+    {
         static if (LOGSEMANTIC)
         {
-            printf("DsymbolExp::semantic(%s %s)\n", s.kind(), s.toChars());
+            printf("DsymbolExp::resolve(%s %s)\n", s.kind(), s.toChars());
         }
     Lagain:
         Expression e;
@@ -3691,11 +3698,11 @@ public:
         else
         {
             if (!s.isFuncDeclaration()) // functions are checked after overloading
-                checkDeprecated(sc, s);
+                s.checkDeprecated(loc, sc);
             s = s.toAlias();
             //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
             if (s != olds && !s.isFuncDeclaration())
-                checkDeprecated(sc, s);
+                s.checkDeprecated(loc, sc);
         }
         if (VarDeclaration v = s.isVarDeclaration())
         {
@@ -3729,14 +3736,10 @@ public:
         if (VarDeclaration v = s.isVarDeclaration())
         {
             //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
-            if (!type)
+            if (!v.type)
             {
-                type = v.type;
-                if (!v.type)
-                {
-                    error("forward reference of %s %s", s.kind(), s.toChars());
-                    return new ErrorExp();
-                }
+                .error(loc, "forward reference of %s %s", s.kind(), s.toChars());
+                return new ErrorExp();
             }
             if ((v.storage_class & STCmanifest) && v._init)
             {
@@ -3744,7 +3747,7 @@ public:
                 // BUG: The check for speculative gagging is not correct
                 if (v.inuse && !global.gag)
                 {
-                    error("circular initialization of %s", v.toChars());
+                    .error(loc, "circular initialization of %s", v.toChars());
                     return new ErrorExp();
                 }
                 if (v._scope)
@@ -3757,7 +3760,7 @@ public:
                 e = v._init.toExpression(v.type);
                 if (!e)
                 {
-                    error("cannot make expression out of initializer for %s", v.toChars());
+                    .error(loc, "cannot make expression out of initializer for %s", v.toChars());
                     return new ErrorExp();
                 }
                 e = e.copy();
@@ -3766,7 +3769,7 @@ public:
                 return e;
             }
             e = new VarExp(loc, v);
-            e.type = type;
+            e.type = v.type;
             e = e.semantic(sc);
             return e.deref();
         }
@@ -3784,7 +3787,7 @@ public:
             if (!f.type.deco)
             {
                 const(char)* trailMsg = f.inferRetType ? "inferred return type of function call " : "";
-                error("forward reference to %s'%s'", trailMsg, toChars());
+                .error(loc, "forward reference to %s'%s'", trailMsg, f.toChars());
                 return new ErrorExp();
             }
             FuncDeclaration fd = s.isFuncDeclaration();
@@ -3806,7 +3809,7 @@ public:
         {
             if (!imp.pkg)
             {
-                error("forward reference of import %s", imp.toChars());
+                .error(loc, "forward reference of import %s", imp.toChars());
                 return new ErrorExp();
             }
             auto ie = new ScopeExp(loc, imp.pkg);
@@ -3864,7 +3867,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        error("%s '%s' is not a variable", s.kind(), s.toChars());
+        .error(loc, "%s '%s' is not a variable", s.kind(), s.toChars());
         return new ErrorExp();
     }
 
@@ -5142,8 +5145,7 @@ public:
         else if (s)
         {
             //printf("s = %s %s\n", s->kind(), s->toChars());
-            e = new DsymbolExp(loc, s, s.hasOverloads());
-            e = e.semantic(sc);
+            e = DsymbolExp.resolve(loc, sc, s, s.hasOverloads());
         }
         else
             assert(0);
@@ -5247,10 +5249,10 @@ public:
                         // Same as wthis.s
                         e = new VarExp(loc, withsym.withstate.wthis);
                         e = new DotVarExp(loc, e, s.isDeclaration());
+                        e = e.semantic(sc);
                     }
                     else
-                        e = new DsymbolExp(loc, s, s.hasOverloads());
-                    e = e.semantic(sc);
+                        e = DsymbolExp.resolve(loc, sc, s, s.hasOverloads());
                     //printf("-1ScopeExp::semantic()\n");
                     return e;
                 }
@@ -5308,9 +5310,7 @@ public:
         if (!fd)
             return Expression.toLvalue(sc, e);
         assert(sc);
-        Expression ex = new DsymbolExp(loc, fd, 1);
-        ex = ex.semantic(sc);
-        return ex;
+        return DsymbolExp.resolve(loc, sc, fd, true);
     }
 
     override bool checkValue()
@@ -6558,10 +6558,10 @@ public:
         }
         if (ea)
         {
-            Dsymbol sym = getDsymbol(ea);
-            if (sym)
-                ea = new DsymbolExp(loc, sym);
-            ea = ea.semantic(sc);
+            if (auto sym = getDsymbol(ea))
+                ea = DsymbolExp.resolve(loc, sc, sym, false);
+            else
+                ea = ea.semantic(sc);
             ea = resolveProperties(sc, ea);
             ta = ea.type;
             if (ea.op == TOKtype)
@@ -8166,8 +8166,7 @@ public:
             if (fd.isNested() || fd.isFuncLiteralDeclaration())
             {
                 // (e1, fd)
-                Expression e = new DsymbolExp(loc, fd);
-                e = e.semantic(sc);
+                auto e = DsymbolExp.resolve(loc, sc, fd, false);
                 return Expression.combine(e1, e);
             }
             type = fd.type;
@@ -8456,8 +8455,7 @@ public:
             }
             if (e1.op == TOKtype)
             {
-                e = new DsymbolExp(loc, s);
-                e = e.semantic(sc);
+                e = DsymbolExp.resolve(loc, sc, s, false);
                 return e;
             }
             e = new ScopeExp(loc, ti);
@@ -8513,8 +8511,7 @@ public:
             {
                 // This should *really* be moved to ScopeExp::semantic()
                 ScopeExp se = cast(ScopeExp)de.e2;
-                de.e2 = new DsymbolExp(loc, se.sds);
-                de.e2 = de.e2.semantic(sc);
+                de.e2 = DsymbolExp.resolve(loc, sc, se.sds, false);
             }
             if (de.e2.op == TOKtemplate)
             {
@@ -8880,8 +8877,7 @@ public:
             {
                 // Perhaps this should be moved to ScopeExp::semantic()
                 ScopeExp se = cast(ScopeExp)e1;
-                e1 = new DsymbolExp(loc, se.sds);
-                e1 = e1.semantic(sc);
+                e1 = DsymbolExp.resolve(loc, sc, se.sds, false);
             }
             else if (e1.op == TOKsymoff && (cast(SymOffExp)e1).hasOverloads)
             {
@@ -8902,8 +8898,7 @@ public:
                 {
                     // This should *really* be moved to ScopeExp::semantic()
                     ScopeExp se = cast(ScopeExp)de.e2;
-                    de.e2 = new DsymbolExp(loc, se.sds);
-                    de.e2 = de.e2.semantic(sc);
+                    de.e2 = DsymbolExp.resolve(loc, sc, se.sds, false);
                 }
                 if (de.e2.op == TOKtemplate)
                 {
