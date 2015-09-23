@@ -1352,6 +1352,14 @@ void Obj::term(const char *objfilename)
     fobjbuf->flush();
 }
 
+/*********************************
+ * Generate code to register DSO with druntime.
+ */
+
+void Obj::register_dso()
+{
+}
+
 /*****************************
  * Line number support.
  */

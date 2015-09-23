@@ -89,9 +89,11 @@ struct Param
     bool nofloat;       // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;      // rather than error on them
     bool enforcePropertySyntax;
-    bool betterC;       // be a "better C" compiler; no dependency on D runtime
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
+    bool betterC;       // be a "better C" compiler; no dependency on D runtime
+    bool noRTTI;                // disable runtime type information
+    const char *noRTTIMessage;  // message to use for noRTTI errors
 
     BOUNDSCHECK useArrayBounds;
 

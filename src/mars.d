@@ -797,7 +797,11 @@ Language changes listed by -transition=id:
             else if (strcmp(p + 1, "release") == 0)
                 global.params.release = true;
             else if (strcmp(p + 1, "betterC") == 0)
+            {
                 global.params.betterC = true;
+                global.params.noRTTI = true;
+                global.params.noRTTIMessage = "TypeInfo is not available with -betterC";
+            }
             else if (strcmp(p + 1, "noboundscheck") == 0)
             {
                 global.params.useArrayBounds = BOUNDSCHECKoff;

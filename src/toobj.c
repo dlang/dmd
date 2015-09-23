@@ -299,7 +299,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            genTypeInfo(cd->type, NULL);
+            if (!global.params.noRTTI)
+                genTypeInfo(cd->type, NULL);
             //toObjFile(cd->type->vtinfo, multiobj);
 
             //////////////////////////////////////////////
@@ -329,264 +330,267 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                }
              */
             dt_t *dt = NULL;
-            unsigned offset = Target::classinfosize;    // must be ClassInfo.size
-            if (Type::typeinfoclass)
+            if (!global.params.noRTTI)
             {
-                if (Type::typeinfoclass->structsize != Target::classinfosize)
+                unsigned offset = Target::classinfosize;    // must be ClassInfo.size
+                if (Type::typeinfoclass)
                 {
-        #ifdef DEBUG
-                    printf("Target::classinfosize = x%x, Type::typeinfoclass->structsize = x%x\n", offset, Type::typeinfoclass->structsize);
-        #endif
-                    cd->error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
-                    fatal();
-                }
-            }
-
-            if (Type::typeinfoclass)
-                dtxoff(&dt, toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
-            else
-                dtsize_t(&dt, 0);                // BUG: should be an assert()
-            dtsize_t(&dt, 0);                    // monitor
-
-            // initializer[]
-            assert(cd->structsize >= 8 || (cd->cpp && cd->structsize >= 4));
-            dtsize_t(&dt, cd->structsize);           // size
-            dtxoff(&dt, sinit, 0, TYnptr);      // initializer
-
-            // name[]
-            const char *name = cd->ident->toChars();
-            size_t namelen = strlen(name);
-            if (!(namelen > 9 && memcmp(name, "TypeInfo_", 9) == 0))
-            {
-                name = cd->toPrettyChars();
-                namelen = strlen(name);
-            }
-            dt_t **pdtname = dtsize_t(&dt, namelen);
-            dtxoff(&dt, cd->csym, 0, TYnptr);
-
-            // vtbl[]
-            dtsize_t(&dt, cd->vtbl.dim);
-            if (cd->vtbl.dim)
-                dtxoff(&dt, cd->vtblsym, 0, TYnptr);
-            else
-                dtsize_t(&dt, 0);
-
-            // interfaces[]
-            dtsize_t(&dt, cd->vtblInterfaces->dim);
-            if (cd->vtblInterfaces->dim)
-                dtxoff(&dt, cd->csym, offset, TYnptr);      // (*)
-            else
-                dtsize_t(&dt, 0);
-
-            // base
-            if (cd->baseClass)
-                dtxoff(&dt, toSymbol(cd->baseClass), 0, TYnptr);
-            else
-                dtsize_t(&dt, 0);
-
-            // destructor
-            if (cd->dtor)
-                dtxoff(&dt, toSymbol(cd->dtor), 0, TYnptr);
-            else
-                dtsize_t(&dt, 0);
-
-            // invariant
-            if (cd->inv)
-                dtxoff(&dt, toSymbol(cd->inv), 0, TYnptr);
-            else
-                dtsize_t(&dt, 0);
-
-            // flags
-            ClassFlags::Type flags = ClassFlags::hasOffTi;
-            if (cd->isCOMclass()) flags |= ClassFlags::isCOMclass;
-            if (cd->isCPPclass()) flags |= ClassFlags::isCPPclass;
-            flags |= ClassFlags::hasGetMembers;
-            flags |= ClassFlags::hasTypeInfo;
-            if (cd->ctor)
-                flags |= ClassFlags::hasCtor;
-            for (ClassDeclaration *pc = cd; pc; pc = pc->baseClass)
-            {
-                if (pc->dtor)
-                {
-                    flags |= ClassFlags::hasDtor;
-                    break;
-                }
-            }
-            if (cd->isabstract)
-                flags |= ClassFlags::isAbstract;
-            for (ClassDeclaration *pc = cd; pc; pc = pc->baseClass)
-            {
-                if (pc->members)
-                {
-                    for (size_t i = 0; i < pc->members->dim; i++)
+                    if (Type::typeinfoclass->structsize != Target::classinfosize)
                     {
-                        Dsymbol *sm = (*pc->members)[i];
-                        //printf("sm = %s %s\n", sm->kind(), sm->toChars());
-                        if (sm->hasPointers())
-                            goto L2;
+            #ifdef DEBUG
+                        printf("Target::classinfosize = x%x, Type::typeinfoclass->structsize = x%x\n", offset, Type::typeinfoclass->structsize);
+            #endif
+                        cd->error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
+                        fatal();
                     }
                 }
-            }
-            flags |= ClassFlags::noPointers;
-          L2:
-            dtsize_t(&dt, flags);
 
+                if (Type::typeinfoclass)
+                    dtxoff(&dt, toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
+                else
+                    dtsize_t(&dt, 0);                // BUG: should be an assert()
+                dtsize_t(&dt, 0);                    // monitor
 
-            // deallocator
-            if (cd->aggDelete)
-                dtxoff(&dt, toSymbol(cd->aggDelete), 0, TYnptr);
-            else
-                dtsize_t(&dt, 0);
+                // initializer[]
+                assert(cd->structsize >= 8 || (cd->cpp && cd->structsize >= 4));
+                dtsize_t(&dt, cd->structsize);           // size
+                dtxoff(&dt, sinit, 0, TYnptr);      // initializer
 
-            // offTi[]
-            dtsize_t(&dt, 0);
-            dtsize_t(&dt, 0);            // null for now, fix later
-
-            // defaultConstructor
-            if (cd->defaultCtor && !(cd->defaultCtor->storage_class & STCdisable))
-                dtxoff(&dt, toSymbol(cd->defaultCtor), 0, TYnptr);
-            else
-                dtsize_t(&dt, 0);
-
-            // xgetRTInfo
-            if (cd->getRTInfo)
-                Expression_toDt(cd->getRTInfo, &dt);
-            else if (flags & ClassFlags::noPointers)
-                dtsize_t(&dt, 0);
-            else
-                dtsize_t(&dt, 1);
-
-            //dtxoff(&dt, toSymbol(type->vtinfo), 0, TYnptr); // typeinfo
-
-            //////////////////////////////////////////////
-
-            // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
-            // of the fixup (*)
-
-            offset += cd->vtblInterfaces->dim * (4 * Target::ptrsize);
-            for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
-            {
-                BaseClass *b = (*cd->vtblInterfaces)[i];
-                ClassDeclaration *id = b->sym;
-
-                /* The layout is:
-                 *  struct Interface
-                 *  {
-                 *      ClassInfo *interface;
-                 *      void *[] vtbl;
-                 *      size_t offset;
-                 *  }
-                 */
-
-                // Fill in vtbl[]
-                b->fillVtbl(cd, &b->vtbl, 1);
-
-                dtxoff(&dt, toSymbol(id), 0, TYnptr);         // ClassInfo
+                // name[]
+                const char *name = cd->ident->toChars();
+                size_t namelen = strlen(name);
+                if (!(namelen > 9 && memcmp(name, "TypeInfo_", 9) == 0))
+                {
+                    name = cd->toPrettyChars();
+                    namelen = strlen(name);
+                }
+                dt_t **pdtname = dtsize_t(&dt, namelen);
+                dtxoff(&dt, cd->csym, 0, TYnptr);
 
                 // vtbl[]
-                dtsize_t(&dt, id->vtbl.dim);
-                dtxoff(&dt, cd->csym, offset, TYnptr);
+                dtsize_t(&dt, cd->vtbl.dim);
+                if (cd->vtbl.dim)
+                    dtxoff(&dt, cd->vtblsym, 0, TYnptr);
+                else
+                    dtsize_t(&dt, 0);
 
-                dtsize_t(&dt, b->offset);                        // this offset
+                // interfaces[]
+                dtsize_t(&dt, cd->vtblInterfaces->dim);
+                if (cd->vtblInterfaces->dim)
+                    dtxoff(&dt, cd->csym, offset, TYnptr);      // (*)
+                else
+                    dtsize_t(&dt, 0);
 
-                offset += id->vtbl.dim * Target::ptrsize;
-            }
+                // base
+                if (cd->baseClass)
+                    dtxoff(&dt, toSymbol(cd->baseClass), 0, TYnptr);
+                else
+                    dtsize_t(&dt, 0);
 
-            // Put out the (*vtblInterfaces)[].vtbl[]
-            // This must be mirrored with ClassDeclaration::baseVtblOffset()
-            //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces->dim, toChars());
-            for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
-            {
-                BaseClass *b = (*cd->vtblInterfaces)[i];
-                ClassDeclaration *id = b->sym;
+                // destructor
+                if (cd->dtor)
+                    dtxoff(&dt, toSymbol(cd->dtor), 0, TYnptr);
+                else
+                    dtsize_t(&dt, 0);
 
-                //printf("    interface[%d] is '%s'\n", i, id->toChars());
-                size_t j = 0;
-                if (id->vtblOffset())
+                // invariant
+                if (cd->inv)
+                    dtxoff(&dt, toSymbol(cd->inv), 0, TYnptr);
+                else
+                    dtsize_t(&dt, 0);
+
+                // flags
+                ClassFlags::Type flags = ClassFlags::hasOffTi;
+                if (cd->isCOMclass()) flags |= ClassFlags::isCOMclass;
+                if (cd->isCPPclass()) flags |= ClassFlags::isCPPclass;
+                flags |= ClassFlags::hasGetMembers;
+                flags |= ClassFlags::hasTypeInfo;
+                if (cd->ctor)
+                    flags |= ClassFlags::hasCtor;
+                for (ClassDeclaration *pc = cd; pc; pc = pc->baseClass)
                 {
-                    // First entry is ClassInfo reference
-                    //dtxoff(&dt, toSymbol(id), 0, TYnptr);
-
-                    // First entry is struct Interface reference
-                    dtxoff(&dt, cd->csym, Target::classinfosize + i * (4 * Target::ptrsize), TYnptr);
-                    j = 1;
-                }
-                assert(id->vtbl.dim == b->vtbl.dim);
-                for (; j < id->vtbl.dim; j++)
-                {
-                    assert(j < b->vtbl.dim);
-        #if 0
-                    RootObject *o = b->vtbl[j];
-                    if (o)
+                    if (pc->dtor)
                     {
-                        printf("o = %p\n", o);
-                        assert(o->dyncast() == DYNCAST_DSYMBOL);
-                        Dsymbol *s = (Dsymbol *)o;
-                        printf("s->kind() = '%s'\n", s->kind());
+                        flags |= ClassFlags::hasDtor;
+                        break;
                     }
-        #endif
-                    FuncDeclaration *fd = b->vtbl[j];
-                    if (fd)
-                        dtxoff(&dt, toThunkSymbol(fd, b->offset), 0, TYnptr);
-                    else
-                        dtsize_t(&dt, 0);
                 }
-            }
-
-            // Put out the overriding interface vtbl[]s.
-            // This must be mirrored with ClassDeclaration::baseVtblOffset()
-            //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
-            ClassDeclaration *pc;
-            for (pc = cd->baseClass; pc; pc = pc->baseClass)
-            {
-                for (size_t k = 0; k < pc->vtblInterfaces->dim; k++)
+                if (cd->isabstract)
+                    flags |= ClassFlags::isAbstract;
+                for (ClassDeclaration *pc = cd; pc; pc = pc->baseClass)
                 {
-                    BaseClass *bs = (*pc->vtblInterfaces)[k];
-                    FuncDeclarations bvtbl;
-                    if (bs->fillVtbl(cd, &bvtbl, 0))
+                    if (pc->members)
                     {
-                        //printf("\toverriding vtbl[] for %s\n", bs->sym->toChars());
-                        ClassDeclaration *id = bs->sym;
-
-                        size_t j = 0;
-                        if (id->vtblOffset())
+                        for (size_t i = 0; i < pc->members->dim; i++)
                         {
-                            // First entry is ClassInfo reference
-                            //dtxoff(&dt, toSymbol(id), 0, TYnptr);
-
-                            // First entry is struct Interface reference
-                            dtxoff(&dt, toSymbol(pc), Target::classinfosize + k * (4 * Target::ptrsize), TYnptr);
-                            offset += Target::ptrsize;
-                            j = 1;
-                        }
-
-                        for (; j < id->vtbl.dim; j++)
-                        {
-                            assert(j < bvtbl.dim);
-                            FuncDeclaration *fd = bvtbl[j];
-                            if (fd)
-                                dtxoff(&dt, toThunkSymbol(fd, bs->offset), 0, TYnptr);
-                            else
-                                dtsize_t(&dt, 0);
-                            offset += Target::ptrsize;
+                            Dsymbol *sm = (*pc->members)[i];
+                            //printf("sm = %s %s\n", sm->kind(), sm->toChars());
+                            if (sm->hasPointers())
+                                goto L2;
                         }
                     }
                 }
+                flags |= ClassFlags::noPointers;
+              L2:
+                dtsize_t(&dt, flags);
+
+
+                // deallocator
+                if (cd->aggDelete)
+                    dtxoff(&dt, toSymbol(cd->aggDelete), 0, TYnptr);
+                else
+                    dtsize_t(&dt, 0);
+
+                // offTi[]
+                dtsize_t(&dt, 0);
+                dtsize_t(&dt, 0);            // null for now, fix later
+
+                // defaultConstructor
+                if (cd->defaultCtor && !(cd->defaultCtor->storage_class & STCdisable))
+                    dtxoff(&dt, toSymbol(cd->defaultCtor), 0, TYnptr);
+                else
+                    dtsize_t(&dt, 0);
+
+                // xgetRTInfo
+                if (cd->getRTInfo)
+                    Expression_toDt(cd->getRTInfo, &dt);
+                else if (flags & ClassFlags::noPointers)
+                    dtsize_t(&dt, 0);
+                else
+                    dtsize_t(&dt, 1);
+
+                //dtxoff(&dt, toSymbol(type->vtinfo), 0, TYnptr); // typeinfo
+
+                //////////////////////////////////////////////
+
+                // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
+                // of the fixup (*)
+
+                offset += cd->vtblInterfaces->dim * (4 * Target::ptrsize);
+                for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+                {
+                    BaseClass *b = (*cd->vtblInterfaces)[i];
+                    ClassDeclaration *id = b->sym;
+
+                    /* The layout is:
+                     *  struct Interface
+                     *  {
+                     *      ClassInfo *interface;
+                     *      void *[] vtbl;
+                     *      size_t offset;
+                     *  }
+                     */
+
+                    // Fill in vtbl[]
+                    b->fillVtbl(cd, &b->vtbl, 1);
+
+                    dtxoff(&dt, toSymbol(id), 0, TYnptr);         // ClassInfo
+
+                    // vtbl[]
+                    dtsize_t(&dt, id->vtbl.dim);
+                    dtxoff(&dt, cd->csym, offset, TYnptr);
+
+                    dtsize_t(&dt, b->offset);                        // this offset
+
+                    offset += id->vtbl.dim * Target::ptrsize;
+                }
+
+                // Put out the (*vtblInterfaces)[].vtbl[]
+                // This must be mirrored with ClassDeclaration::baseVtblOffset()
+                //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces->dim, toChars());
+                for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+                {
+                    BaseClass *b = (*cd->vtblInterfaces)[i];
+                    ClassDeclaration *id = b->sym;
+
+                    //printf("    interface[%d] is '%s'\n", i, id->toChars());
+                    size_t j = 0;
+                    if (id->vtblOffset())
+                    {
+                        // First entry is ClassInfo reference
+                        //dtxoff(&dt, toSymbol(id), 0, TYnptr);
+
+                        // First entry is struct Interface reference
+                        dtxoff(&dt, cd->csym, Target::classinfosize + i * (4 * Target::ptrsize), TYnptr);
+                        j = 1;
+                    }
+                    assert(id->vtbl.dim == b->vtbl.dim);
+                    for (; j < id->vtbl.dim; j++)
+                    {
+                        assert(j < b->vtbl.dim);
+            #if 0
+                        RootObject *o = b->vtbl[j];
+                        if (o)
+                        {
+                            printf("o = %p\n", o);
+                            assert(o->dyncast() == DYNCAST_DSYMBOL);
+                            Dsymbol *s = (Dsymbol *)o;
+                            printf("s->kind() = '%s'\n", s->kind());
+                        }
+            #endif
+                        FuncDeclaration *fd = b->vtbl[j];
+                        if (fd)
+                            dtxoff(&dt, toThunkSymbol(fd, b->offset), 0, TYnptr);
+                        else
+                            dtsize_t(&dt, 0);
+                    }
+                }
+
+                // Put out the overriding interface vtbl[]s.
+                // This must be mirrored with ClassDeclaration::baseVtblOffset()
+                //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
+                ClassDeclaration *pc;
+                for (pc = cd->baseClass; pc; pc = pc->baseClass)
+                {
+                    for (size_t k = 0; k < pc->vtblInterfaces->dim; k++)
+                    {
+                        BaseClass *bs = (*pc->vtblInterfaces)[k];
+                        FuncDeclarations bvtbl;
+                        if (bs->fillVtbl(cd, &bvtbl, 0))
+                        {
+                            //printf("\toverriding vtbl[] for %s\n", bs->sym->toChars());
+                            ClassDeclaration *id = bs->sym;
+
+                            size_t j = 0;
+                            if (id->vtblOffset())
+                            {
+                                // First entry is ClassInfo reference
+                                //dtxoff(&dt, toSymbol(id), 0, TYnptr);
+
+                                // First entry is struct Interface reference
+                                dtxoff(&dt, toSymbol(pc), Target::classinfosize + k * (4 * Target::ptrsize), TYnptr);
+                                offset += Target::ptrsize;
+                                j = 1;
+                            }
+
+                            for (; j < id->vtbl.dim; j++)
+                            {
+                                assert(j < bvtbl.dim);
+                                FuncDeclaration *fd = bvtbl[j];
+                                if (fd)
+                                    dtxoff(&dt, toThunkSymbol(fd, bs->offset), 0, TYnptr);
+                                else
+                                    dtsize_t(&dt, 0);
+                                offset += Target::ptrsize;
+                            }
+                        }
+                    }
+                }
+
+                //////////////////////////////////////////////
+
+                dtpatchoffset(*pdtname, offset);
+
+                dtnbytes(&dt, namelen + 1, name);
+                const size_t namepad = -(namelen + 1) & (Target::ptrsize - 1); // align
+                dtnzeros(&dt, namepad);
+
+                cd->csym->Sdt = dt;
+                // ClassInfo cannot be const data, because we use the monitor on it
+                outdata(cd->csym);
+                if (cd->isExport())
+                    objmod->export_symbol(cd->csym, 0);
             }
-
-            //////////////////////////////////////////////
-
-            dtpatchoffset(*pdtname, offset);
-
-            dtnbytes(&dt, namelen + 1, name);
-            const size_t namepad = -(namelen + 1) & (Target::ptrsize - 1); // align
-            dtnzeros(&dt, namepad);
-
-            cd->csym->Sdt = dt;
-            // ClassInfo cannot be const data, because we use the monitor on it
-            outdata(cd->csym);
-            if (cd->isExport())
-                objmod->export_symbol(cd->csym, 0);
 
             //////////////////////////////////////////////
 
@@ -594,7 +598,13 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //printf("putting out %s.vtbl[]\n", toChars());
             dt = NULL;
             if (cd->vtblOffset())
-                dtxoff(&dt, cd->csym, 0, TYnptr);           // first entry is ClassInfo reference
+            {
+                // first entry is ClassInfo reference
+                if (global.params.noRTTI)
+                    dtsize_t(&dt, 0);
+                else
+                    dtxoff(&dt, cd->csym, 0, TYnptr);
+            }
             for (size_t i = cd->vtblOffset(); i < cd->vtbl.dim; i++)
             {
                 FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
@@ -692,8 +702,11 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            genTypeInfo(id->type, NULL);
-            id->type->vtinfo->accept(this);
+            if (!global.params.noRTTI)
+            {
+                genTypeInfo(id->type, NULL);
+                id->type->vtinfo->accept(this);
+            }
 
             //////////////////////////////////////////////
 
@@ -860,7 +873,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 if (global.params.symdebug)
                     toDebug(sd);
 
-                genTypeInfo(sd->type, NULL);
+                if (!global.params.noRTTI)
+                    genTypeInfo(sd->type, NULL);
 
                 // Generate static initializer
                 toInitializer(sd);
@@ -1015,7 +1029,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (global.params.symdebug)
                 toDebug(ed);
 
-            genTypeInfo(ed->type, NULL);
+            if (!global.params.noRTTI)
+                genTypeInfo(ed->type, NULL);
 
             TypeEnum *tc = (TypeEnum *)ed->type;
             if (!tc->sym->members || ed->type->isZeroInit())
@@ -1044,6 +1059,9 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 return;
             }
             //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", tid, tid->toChars(), tid->protection);
+
+            if (global.params.noRTTI)
+                return;
 
             if (multiobj)
             {

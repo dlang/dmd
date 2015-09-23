@@ -255,6 +255,8 @@ void obj_start(char *srcfile)
 void obj_end(Library *library, File *objfile)
 {
     const char *objfilename = objfile->name->toChars();
+    if (!global.params.betterC)
+        objmod->register_dso();
     objmod->term(objfilename);
     delete objmod;
     objmod = NULL;
@@ -476,7 +478,7 @@ void genObjFile(Module *m, bool multiobj)
     /* Always generate module info, because of templates and -cov.
      * But module info needs the runtime library, so disable it for betterC.
      */
-    if (!global.params.betterC /*|| needModuleInfo()*/)
+    if (!global.params.noRTTI /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
     /* Always generate helper functions b/c of later templates instantiations

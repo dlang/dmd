@@ -29,6 +29,7 @@ struct Obj
     VIRTUAL void initfile(const char *filename, const char *csegname, const char *modname);
     VIRTUAL void termfile();
     VIRTUAL void term(const char *objfilename);
+    VIRTUAL void register_dso();
 
     VIRTUAL size_t mangle(Symbol *s,char *dest);
     VIRTUAL void import(elem *e);

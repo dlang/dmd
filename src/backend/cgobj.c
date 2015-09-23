@@ -819,6 +819,14 @@ void Obj::term(const char *objfilename)
         obj.buf->setsize(size);
 }
 
+/*********************************
+ * Generate code to register DSO with druntime.
+ */
+
+void Obj::register_dso()
+{
+}
+
 /*****************************
  * Line number support.
  */

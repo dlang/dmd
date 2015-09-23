@@ -6592,7 +6592,7 @@ public:
         {
             // Handle this in the glue layer
             e = new TypeidExp(loc, ta);
-            e.type = getTypeInfoType(ta, sc);
+            e.type = getTypeInfoType(ta, sc, this);
 
             semanticTypeInfo(sc, ta);
 
