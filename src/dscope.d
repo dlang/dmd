@@ -114,49 +114,49 @@ extern (C++) void* scope_search_fp(void* arg, const(char)* seed, int* cost)
     return cast(void*)s;
 }
 
-enum CSXthis_ctor = 1;
 // called this()
-enum CSXsuper_ctor = 2;
+enum CSXthis_ctor = 1;
 // called super()
-enum CSXthis = 4;
+enum CSXsuper_ctor = 2;
 // referenced this
-enum CSXsuper = 8;
+enum CSXthis = 4;
 // referenced super
-enum CSXlabel = 0x10;
+enum CSXsuper = 8;
 // seen a label
-enum CSXreturn = 0x20;
+enum CSXlabel = 0x10;
 // seen a return statement
-enum CSXany_ctor = 0x40;
+enum CSXreturn = 0x20;
 // either this() or super() was called
-enum CSXhalt = 0x80;
+enum CSXany_ctor = 0x40;
 // assert(0)
 // Flags that would not be inherited beyond scope nesting
-enum SCOPEctor = 0x0001;
+enum CSXhalt = 0x80;
 // constructor type
-enum SCOPEnoaccesscheck = 0x0002;
+enum SCOPEctor = 0x0001;
 // don't do access checks
-enum SCOPEcondition = 0x0004;
+enum SCOPEnoaccesscheck = 0x0002;
 // inside static if/assert condition
-enum SCOPEdebug = 0x0008;
+enum SCOPEcondition = 0x0004;
 // inside debug conditional
 // Flags that would be inherited beyond scope nesting
-enum SCOPEconstraint = 0x0010;
+enum SCOPEdebug = 0x0008;
 // inside template constraint
-enum SCOPEinvariant = 0x0020;
+enum SCOPEconstraint = 0x0010;
 // inside invariant code
-enum SCOPErequire = 0x0040;
+enum SCOPEinvariant = 0x0020;
 // inside in contract code
-enum SCOPEensure = 0x0060;
+enum SCOPErequire = 0x0040;
 // inside out contract code
-enum SCOPEcontract = 0x0060;
+enum SCOPEensure = 0x0060;
 // [mask] we're inside contract code
-enum SCOPEctfe = 0x0080;
+enum SCOPEcontract = 0x0060;
 // inside a ctfe-only expression
-enum SCOPEcompile = 0x0100;
+enum SCOPEctfe = 0x0080;
 // inside __traits(compile)
+enum SCOPEcompile = 0x0100;
+// is on free list
 enum SCOPEfree = 0x8000;
 
-// is on free list
 struct Scope
 {
     Scope* enclosing = null; // enclosing Scope
