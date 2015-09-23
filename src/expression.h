@@ -312,6 +312,7 @@ public:
 
     DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
+    static Expression resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
