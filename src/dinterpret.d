@@ -36,6 +36,17 @@ import ddmd.tokens;
 import ddmd.utf;
 import ddmd.visitor;
 
+enum CtfeGoal : int
+{
+    ctfeNeedRvalue,     // Must return an Rvalue (== CTFE value)
+    ctfeNeedLvalue,     // Must return an Lvalue (== CTFE reference)
+    ctfeNeedNothing,    // The return value is not required
+}
+
+alias ctfeNeedRvalue = CtfeGoal.ctfeNeedRvalue;
+alias ctfeNeedLvalue = CtfeGoal.ctfeNeedLvalue;
+alias ctfeNeedNothing = CtfeGoal.ctfeNeedNothing;
+
 private enum LOG = false;
 
 enum LOGASSIGN = 0;
@@ -51,28 +62,31 @@ struct CtfeStack
 {
 private:
     /* The stack. Every declaration we encounter is pushed here,
-     together with the VarDeclaration, and the previous
-     stack address of that variable, so that we can restore it
-     when we leave the stack frame.
-     Note that when a function is forward referenced, the interpreter must
-     run semantic3, and that may start CTFE again with a NULL istate. Thus
-     the stack might not be empty when CTFE begins.
-
-     Ctfe Stack addresses are just 0-based integers, but we save
-     them as 'void *' because Array can only do pointers.
+     * together with the VarDeclaration, and the previous
+     * stack address of that variable, so that we can restore it
+     * when we leave the stack frame.
+     * Note that when a function is forward referenced, the interpreter must
+     * run semantic3, and that may start CTFE again with a NULL istate. Thus
+     * the stack might not be empty when CTFE begins.
+     *
+     * Ctfe Stack addresses are just 0-based integers, but we save
+     * them as 'void *' because Array can only do pointers.
      */
-    Expressions values; // values on the stack
-    VarDeclarations vars; // corresponding variables
-    Array!(void*) savedId; // id of the previous state of that var
-    Array!(void*) frames; // all previous frame pointers
-    Expressions savedThis; // all previous values of localThis
+    Expressions values;         // values on the stack
+    VarDeclarations vars;       // corresponding variables
+    Array!(void*) savedId;      // id of the previous state of that var
+
+    Array!(void*) frames;       // all previous frame pointers
+    Expressions savedThis;      // all previous values of localThis
+
     /* Global constants get saved here after evaluation, so we never
      * have to redo them. This saves a lot of time and memory.
      */
-    Expressions globalValues; // values of global constants
-    size_t framepointer; // current frame pointer
-    size_t maxStackPointer; // most stack we've ever used
-    Expression localThis; // value of 'this', or NULL if none
+    Expressions globalValues;   // values of global constants
+
+    size_t framepointer;        // current frame pointer
+    size_t maxStackPointer;     // most stack we've ever used
+    Expression localThis;       // value of 'this', or NULL if none
 
 public:
     extern (C++) size_t stackPointer()
@@ -190,17 +204,17 @@ public:
 
 struct InterState
 {
-    InterState* caller; // calling function's InterState
-    FuncDeclaration fd; // function being interpreted
-    Statement start; // if !=NULL, start execution at this statement
+    InterState* caller;     // calling function's InterState
+    FuncDeclaration fd;     // function being interpreted
+    Statement start;        // if !=NULL, start execution at this statement
+
     /* target of CTFEExp result; also
      * target of labelled CTFEExp or
-     * CTFEExp. (NULL if no label).
+     * CTFEExp. (null if no label).
      */
     Statement gotoTarget;
 }
 
-/************** CtfeStack ********************************************/
 extern (C++) __gshared CtfeStack ctfeStack;
 
 // CTFE diagnostic information
@@ -214,7 +228,7 @@ extern (C++) void printCtfePerformanceStats()
     }
 }
 
-/*************************************
+/***********************************************************
  * CTFE-object code for a single function
  *
  * Currently only counts the number of local variables in the function
@@ -1020,6 +1034,7 @@ public:
     }
 
     /******************************** Statement ***************************/
+
     override void visit(Statement s)
     {
         static if (LOG)
@@ -1891,6 +1906,7 @@ public:
     }
 
     /******************************** Expression ***************************/
+
     override void visit(Expression e)
     {
         static if (LOG)

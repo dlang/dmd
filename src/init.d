@@ -39,12 +39,13 @@ enum NeedInterpret : int
 alias INITnointerpret = NeedInterpret.INITnointerpret;
 alias INITinterpret = NeedInterpret.INITinterpret;
 
+/***********************************************************
+ */
 extern (C++) class Initializer : RootObject
 {
 public:
     Loc loc;
 
-    /********************************** Initializer *******************************/
     final extern (D) this(Loc loc)
     {
         this.loc = loc;
@@ -114,12 +115,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class VoidInitializer : Initializer
 {
 public:
-    Type type; // type that this will initialize to
+    Type type;      // type that this will initialize to
 
-    /********************************** VoidInitializer ***************************/
     extern (D) this(Loc loc)
     {
         super(loc);
@@ -159,10 +161,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ErrorInitializer : Initializer
 {
 public:
-    /********************************** ErrorInitializer ***************************/
     extern (D) this()
     {
         super(Loc());
@@ -200,13 +203,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class StructInitializer : Initializer
 {
 public:
-    Identifiers field; // of Identifier *'s
-    Initializers value; // parallel array of Initializer *'s
+    Identifiers field;      // of Identifier *'s
+    Initializers value;     // parallel array of Initializer *'s
 
-    /********************************** StructInitializer *************************/
     extern (D) this(Loc loc)
     {
         super(loc);
@@ -377,16 +381,17 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ArrayInitializer : Initializer
 {
 public:
-    Expressions index; // indices
-    Initializers value; // of Initializer *'s
-    size_t dim; // length of array being initialized
-    Type type; // type that array will be used to initialize
-    bool sem; // true if semantic() is run
+    Expressions index;      // indices
+    Initializers value;     // of Initializer *'s
+    size_t dim;             // length of array being initialized
+    Type type;              // type that array will be used to initialize
+    bool sem;               // true if semantic() is run
 
-    /********************************** ArrayInitializer ************************************/
     extern (D) this(Loc loc)
     {
         super(loc);
@@ -746,13 +751,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ExpInitializer : Initializer
 {
 public:
     Expression exp;
     bool expandTuples;
 
-    /********************************** ExpInitializer ************************************/
     extern (D) this(Loc loc, Expression exp)
     {
         super(loc);

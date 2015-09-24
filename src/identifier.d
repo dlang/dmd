@@ -17,6 +17,8 @@ import ddmd.root.rootobject;
 import ddmd.root.stringtable;
 import ddmd.tokens;
 
+/***********************************************************
+ */
 extern (C++) final class Identifier : RootObject
 {
 public:

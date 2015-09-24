@@ -37,6 +37,7 @@ enum LOG = false;
 enum CANINLINE_LOG = false;
 
 /* ========== Compute cost of inlining =============== */
+
 /* Walk trees to determine if inlining can be done, and if so,
  * if it is too complex to be worth inlining or not.
  */
@@ -47,6 +48,7 @@ enum STATEMENT_COST_MAX = 250 * 0x1000;
 // STATEMENT_COST be power of 2 and greater than COST_MAX
 //static assert((STATEMENT_COST & (STATEMENT_COST - 1)) == 0);
 //static assert(STATEMENT_COST > COST_MAX);
+
 bool tooCostly(int cost)
 {
     return ((cost & (STATEMENT_COST - 1)) >= COST_MAX);
@@ -58,10 +60,10 @@ extern (C++) final class InlineCostVisitor : Visitor
 public:
     int nested;
     int hasthis;
-    int hdrscan; // !=0 if inline scan for 'header' content
+    int hdrscan;        // !=0 if inline scan for 'header' content
     bool allowAlloca;
     FuncDeclaration fd;
-    int cost; // zero start for subsequent AST
+    int cost;           // zero start for subsequent AST
 
     extern (D) this()
     {
@@ -402,7 +404,9 @@ public:
 }
 
 /* ======================== Perform the inlining ============================== */
-/* Inlining is done by:
+
+/***********************************************************
+ * Inlining is done by:
  * o    Converting to an Expression
  * o    Copying the trees of the function to be inlined
  * o    Renaming the variables
@@ -411,15 +415,14 @@ struct InlineDoState
 {
     // inline context
     VarDeclaration vthis;
-    Dsymbols from; // old Dsymbols
-    Dsymbols to; // parallel array of new Dsymbols
-    Dsymbol parent; // new parent
+    Dsymbols from;      // old Dsymbols
+    Dsymbols to;        // parallel array of new Dsymbols
+    Dsymbol parent;     // new parent
     FuncDeclaration fd; // function being inlined (old parent)
     // inline result
     bool foundReturn;
 }
 
-/* -------------------------------------------------------------------- */
 Statement inlineAsStatement(Statement s, InlineDoState* ids)
 {
     extern (C++) final class InlineAsStatement : Visitor
@@ -542,7 +545,8 @@ Statement inlineAsStatement(Statement s, InlineDoState* ids)
     return v.result;
 }
 
-/* -------------------------------------------------------------------- */
+/***********************************************************
+ */
 Expression doInline(Statement s, InlineDoState* ids)
 {
     extern (C++) final class InlineStatement : Visitor
@@ -702,7 +706,8 @@ Expression doInline(Statement s, InlineDoState* ids)
     return v.result;
 }
 
-/* --------------------------------------------------------------- */
+/***********************************************************
+ */
 Expression doInline(Expression e, InlineDoState* ids)
 {
     extern (C++) final class InlineExpression : Visitor
@@ -1160,14 +1165,16 @@ Expression doInline(Expression e, InlineDoState* ids)
 }
 
 /* ========== Walk the parse trees, and inline expand functions ============= */
-/* Walk the trees, looking for functions to inline.
+
+/***********************************************************
+ * Walk the trees, looking for functions to inline.
  * Inline any that can be.
  */
 extern (C++) final class InlineScanVisitor : Visitor
 {
     alias visit = super.visit;
 public:
-    FuncDeclaration parent; // function being scanned
+    FuncDeclaration parent;     // function being scanned
     // As the visit method cannot return a value, these variables
     // are used to pass the result from 'visit' back to 'inlineScan'
     Statement result;

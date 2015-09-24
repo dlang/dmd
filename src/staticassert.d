@@ -21,13 +21,14 @@ import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.visitor;
 
+/***********************************************************
+ */
 extern (C++) final class StaticAssert : Dsymbol
 {
 public:
     Expression exp;
     Expression msg;
 
-    /********************************* AttribDeclaration ****************************/
     extern (D) this(Loc loc, Expression exp, Expression msg)
     {
         super(Id.empty);

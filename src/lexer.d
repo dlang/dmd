@@ -27,9 +27,9 @@ import ddmd.root.stringtable;
 import ddmd.tokens;
 import ddmd.utf;
 
-enum LS = 0x2028;
-// UTF line separator
-enum PS = 0x2029;
+enum LS = 0x2028;       // UTF line separator
+enum PS = 0x2029;       // UTF paragraph separator
+
 /********************************************
  * Do our own char maps
  */
@@ -86,21 +86,24 @@ version (unittest)
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class Lexer
 {
 public:
-    /*************************** Lexer ********************************************/
     extern (C++) static __gshared OutBuffer stringbuffer;
-    Loc scanloc; // for error messages
-    const(char)* base; // pointer to start of buffer
-    const(char)* end; // past end of buffer
-    const(char)* p; // current character
-    const(char)* line; // start of current line
+
+    Loc scanloc;            // for error messages
+
+    const(char)* base;      // pointer to start of buffer
+    const(char)* end;       // past end of buffer
+    const(char)* p;         // current character
+    const(char)* line;      // start of current line
     Token token;
-    int doDocComment; // collect doc comment information
-    int anyToken; // !=0 means seen at least one token
-    int commentToken; // !=0 means comments are TOKcomment's
-    bool errors; // errors occurred during lexing or parsing
+    int doDocComment;       // collect doc comment information
+    int anyToken;           // !=0 means seen at least one token
+    int commentToken;       // !=0 means comments are TOKcomment's
+    bool errors;            // errors occurred during lexing or parsing
 
     final extern (D) this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset, int doDocComment, int commentToken)
     {

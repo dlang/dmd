@@ -27,27 +27,27 @@ private string stripRight(string s)
     return s;
 }
 
-enum __linux__ = xversion!`linux`;
-enum __APPLE__ = xversion!`OSX`;
-enum __FreeBSD__ = xversion!`FreeBSD`;
-enum __OpenBSD__ = xversion!`OpenBSD`;
-enum __sun = xversion!`Solaris`;
+enum __linux__      = xversion!`linux`;
+enum __APPLE__      = xversion!`OSX`;
+enum __FreeBSD__    = xversion!`FreeBSD`;
+enum __OpenBSD__    = xversion!`OpenBSD`;
+enum __sun          = xversion!`Solaris`;
 
-enum IN_GCC = xversion!`IN_GCC`;
+enum IN_GCC     = xversion!`IN_GCC`;
 
-enum TARGET_LINUX = xversion!`linux`;
-enum TARGET_OSX = xversion!`OSX`;
+enum TARGET_LINUX   = xversion!`linux`;
+enum TARGET_OSX     = xversion!`OSX`;
 enum TARGET_FREEBSD = xversion!`FreeBSD`;
 enum TARGET_OPENBSD = xversion!`OpenBSD`;
 enum TARGET_SOLARIS = xversion!`Solaris`;
-enum TARGET_WINDOS = xversion!`Windows`;
+enum TARGET_WINDOS  = xversion!`Windows`;
 
 enum BOUNDSCHECK : int
 {
-    BOUNDSCHECKdefault, // initial value
-    BOUNDSCHECKoff, // never do bounds checking
-    BOUNDSCHECKon, // always do bounds checking
-    BOUNDSCHECKsafeonly, // do bounds checking only in @safe functions
+    BOUNDSCHECKdefault,     // initial value
+    BOUNDSCHECKoff,         // never do bounds checking
+    BOUNDSCHECKon,          // always do bounds checking
+    BOUNDSCHECKsafeonly,    // do bounds checking only in @safe functions
 }
 
 alias BOUNDSCHECKdefault = BOUNDSCHECK.BOUNDSCHECKdefault;
@@ -58,86 +58,96 @@ alias BOUNDSCHECKsafeonly = BOUNDSCHECK.BOUNDSCHECKsafeonly;
 // Put command line switches in here
 struct Param
 {
-    bool obj; // write object file
-    bool link; // perform link
-    bool dll; // generate shared dynamic library
-    bool lib; // write library file instead of object file(s)
-    bool multiobj; // break one object file into multiple ones
-    bool oneobj; // write one object file instead of multiple ones
-    bool trace; // insert profiling hooks
-    bool tracegc; // instrument calls to 'new'
-    bool verbose; // verbose compile
-    bool showColumns; // print character (column) numbers in diagnostics
-    bool vtls; // identify thread local variables
-    char vgc; // identify gc usage
-    bool vfield; // identify non-mutable field variables
-    bool vcomplex; // identify complex/imaginary type usage
-    char symdebug; // insert debug symbolic information
-    bool alwaysframe; // always emit standard stack frame
-    bool optimize; // run optimizer
-    bool map; // generate linker .map file
-    bool is64bit; // generate 64 bit code
-    bool isLP64; // generate code for LP64
-    bool isLinux; // generate code for linux
-    bool isOSX; // generate code for Mac OSX
-    bool isWindows; // generate code for Windows
-    bool isFreeBSD; // generate code for FreeBSD
-    bool isOpenBSD; // generate code for OpenBSD
-    bool isSolaris; // generate code for Solaris
-    bool mscoff; // for Win32: write COFF object files instead of OMF
+    bool obj;               // write object file
+    bool link;              // perform link
+    bool dll;               // generate shared dynamic library
+    bool lib;               // write library file instead of object file(s)
+    bool multiobj;          // break one object file into multiple ones
+    bool oneobj;            // write one object file instead of multiple ones
+    bool trace;             // insert profiling hooks
+    bool tracegc;           // instrument calls to 'new'
+    bool verbose;           // verbose compile
+    bool showColumns;       // print character (column) numbers in diagnostics
+    bool vtls;              // identify thread local variables
+    char vgc;               // identify gc usage
+    bool vfield;            // identify non-mutable field variables
+    bool vcomplex;          // identify complex/imaginary type usage
+    char symdebug;          // insert debug symbolic information
+    bool alwaysframe;       // always emit standard stack frame
+    bool optimize;          // run optimizer
+    bool map;               // generate linker .map file
+    bool is64bit;           // generate 64 bit code
+    bool isLP64;            // generate code for LP64
+    bool isLinux;           // generate code for linux
+    bool isOSX;             // generate code for Mac OSX
+    bool isWindows;         // generate code for Windows
+    bool isFreeBSD;         // generate code for FreeBSD
+    bool isOpenBSD;         // generate code for OpenBSD
+    bool isSolaris;         // generate code for Solaris
+    bool mscoff;            // for Win32: write COFF object files instead of OMF
     // 0: don't allow use of deprecated features
     // 1: silently allow use of deprecated features
     // 2: warn about the use of deprecated features
     char useDeprecated;
-    bool useAssert; // generate runtime code for assert()'s
-    bool useInvariants; // generate class invariant checks
-    bool useIn; // generate precondition checks
-    bool useOut; // generate postcondition checks
-    bool stackstomp; // add stack stomping code
-    bool useSwitchError; // check for switches without a default
-    bool useUnitTests; // generate unittest code
-    bool useInline; // inline expand functions
-    bool useDIP25; // implement http://wiki.dlang.org/DIP25
-    bool release; // build release version
-    bool preservePaths; // true means don't strip path from source file
+    bool useAssert;         // generate runtime code for assert()'s
+    bool useInvariants;     // generate class invariant checks
+    bool useIn;             // generate precondition checks
+    bool useOut;            // generate postcondition checks
+    bool stackstomp;        // add stack stomping code
+    bool useSwitchError;    // check for switches without a default
+    bool useUnitTests;      // generate unittest code
+    bool useInline;         // inline expand functions
+    bool useDIP25;          // implement http://wiki.dlang.org/DIP25
+    bool release;           // build release version
+    bool preservePaths;     // true means don't strip path from source file
     // 0: disable warnings
     // 1: warnings as errors
     // 2: informational warnings (no errors)
     char warnings;
-    bool pic; // generate position-independent-code for shared libs
-    bool color; // use ANSI colors in console output
-    bool cov; // generate code coverage data
-    ubyte covPercent; // 0..100 code coverage percentage required
-    bool nofloat; // code should not pull in floating point support
-    bool ignoreUnsupportedPragmas; // rather than error on them
+    bool pic;               // generate position-independent-code for shared libs
+    bool color;             // use ANSI colors in console output
+    bool cov;               // generate code coverage data
+    ubyte covPercent;       // 0..100 code coverage percentage required
+    bool nofloat;           // code should not pull in floating point support
+    bool ignoreUnsupportedPragmas;  // rather than error on them
     bool enforcePropertySyntax;
-    bool betterC; // be a "better C" compiler; no dependency on D runtime
-    bool addMain; // add a default main() function
-    bool allInst; // generate code for all template instantiations
+    bool betterC;           // be a "better C" compiler; no dependency on D runtime
+    bool addMain;           // add a default main() function
+    bool allInst;           // generate code for all template instantiations
+
     BOUNDSCHECK useArrayBounds;
-    const(char)* argv0; // program name
-    Array!(const(char)*)* imppath; // array of char*'s of where to look for import modules
-    Array!(const(char)*)* fileImppath; // array of char*'s of where to look for file import modules
-    const(char)* objdir; // .obj/.lib file output directory
-    const(char)* objname; // .obj file output name
-    const(char)* libname; // .lib file output name
-    bool doDocComments; // process embedded documentation comments
-    const(char)* docdir; // write documentation file to docdir directory
-    const(char)* docname; // write documentation file to docname
-    Array!(const(char)*)* ddocfiles; // macro include files for Ddoc
-    bool doHdrGeneration; // process embedded documentation comments
-    const(char)* hdrdir; // write 'header' file to docdir directory
-    const(char)* hdrname; // write 'header' file to docname
-    bool doJsonGeneration; // write JSON file
-    const(char)* jsonfilename; // write JSON file to jsonfilename
-    uint debuglevel; // debug level
-    Array!(const(char)*)* debugids; // debug identifiers
-    uint versionlevel; // version level
-    Array!(const(char)*)* versionids; // version identifiers
-    const(char)* defaultlibname; // default library for non-debug builds
-    const(char)* debuglibname; // default library for debug builds
-    const(char)* moduleDepsFile; // filename for deps output
-    OutBuffer* moduleDeps; // contents to be written to deps file
+
+    const(char)* argv0;                 // program name
+    Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
+    Array!(const(char)*)* fileImppath;  // array of char*'s of where to look for file import modules
+    const(char)* objdir;                // .obj/.lib file output directory
+    const(char)* objname;               // .obj file output name
+    const(char)* libname;               // .lib file output name
+
+    bool doDocComments;                 // process embedded documentation comments
+    const(char)* docdir;                // write documentation file to docdir directory
+    const(char)* docname;               // write documentation file to docname
+    Array!(const(char)*)* ddocfiles;    // macro include files for Ddoc
+
+    bool doHdrGeneration;               // process embedded documentation comments
+    const(char)* hdrdir;                // write 'header' file to docdir directory
+    const(char)* hdrname;               // write 'header' file to docname
+
+    bool doJsonGeneration;              // write JSON file
+    const(char)* jsonfilename;          // write JSON file to jsonfilename
+
+    uint debuglevel;                    // debug level
+    Array!(const(char)*)* debugids;     // debug identifiers
+
+    uint versionlevel;                  // version level
+    Array!(const(char)*)* versionids;   // version identifiers
+
+    const(char)* defaultlibname;        // default library for non-debug builds
+    const(char)* debuglibname;          // default library for debug builds
+
+    const(char)* moduleDepsFile;        // filename for deps output
+    OutBuffer* moduleDeps;              // contents to be written to deps file
+
     // Hidden debug switches
     bool debugb;
     bool debugc;
@@ -145,8 +155,10 @@ struct Param
     bool debugr;
     bool debugx;
     bool debugy;
+
     bool run; // run resulting executable
     Strings runargs; // arguments for executable
+
     // Linker stuff
     Array!(const(char)*)* objfiles;
     Array!(const(char)*)* linkswitches;
@@ -176,25 +188,29 @@ struct Global
     const(char)* obj_ext;
     const(char)* lib_ext;
     const(char)* dll_ext;
-    const(char)* doc_ext; // for Ddoc generated files
-    const(char)* ddoc_ext; // for Ddoc macro include files
-    const(char)* hdr_ext; // for D 'header' import files
-    const(char)* json_ext; // for JSON files
-    const(char)* map_ext; // for .map files
-    bool run_noext; // allow -run sources without extensions.
+    const(char)* doc_ext;           // for Ddoc generated files
+    const(char)* ddoc_ext;          // for Ddoc macro include files
+    const(char)* hdr_ext;           // for D 'header' import files
+    const(char)* json_ext;          // for JSON files
+    const(char)* map_ext;           // for .map files
+    bool run_noext;                 // allow -run sources without extensions.
+
     const(char)* copyright;
     const(char)* written;
-    const(char)* main_d; // dummy filename for dummy main()
-    Array!(const(char)*)* path; // Array of char*'s which form the import lookup path
+    const(char)* main_d;            // dummy filename for dummy main()
+    Array!(const(char)*)* path;     // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath; // Array of char*'s which form the file import lookup path
+
     const(char)* _version;
+
     Compiler compiler;
     Param params;
-    uint errors; // number of errors reported so far
-    uint warnings; // number of warnings reported so far
-    FILE* stdmsg; // where to send verbose messages
-    uint gag; // !=0 means gag reporting of errors & warnings
-    uint gaggedErrors; // number of errors reported while gagged
+    uint errors;            // number of errors reported so far
+    uint warnings;          // number of warnings reported so far
+    FILE* stdmsg;           // where to send verbose messages
+    uint gag;               // !=0 means gag reporting of errors & warnings
+    uint gaggedErrors;      // number of errors reported while gagged
+
     uint errorLimit;
 
     /* Start gagging. Return the current number of gagged errors
@@ -408,10 +424,10 @@ alias DYNCAST_PARAMETER = DYNCAST.DYNCAST_PARAMETER;
 
 enum MATCH : int
 {
-    MATCHnomatch, // no match
-    MATCHconvert, // match with conversions
-    MATCHconst, // match with conversion to const
-    MATCHexact, // exact match
+    MATCHnomatch,   // no match
+    MATCHconvert,   // match with conversions
+    MATCHconst,     // match with conversion to const
+    MATCHexact,     // exact match
 }
 
 alias MATCHnomatch = MATCH.MATCHnomatch;
@@ -422,8 +438,8 @@ alias MATCHexact = MATCH.MATCHexact;
 enum PINLINE : int
 {
     PINLINEdefault, // as specified on the command line
-    PINLINEnever, // never inline
-    PINLINEalways, // always inline
+    PINLINEnever,   // never inline
+    PINLINEalways,  // always inline
 }
 
 alias PINLINEdefault = PINLINE.PINLINEdefault;

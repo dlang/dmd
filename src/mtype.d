@@ -55,10 +55,9 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
 
-enum LOGDOTEXP = 0;
-// log ::dotExp()
-enum LOGDEFAULTINIT = 0;
-// log ::defaultInit()
+enum LOGDOTEXP = 0;         // log ::dotExp()
+enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
+
 extern (C++) __gshared int Tsize_t = Tuns32;
 extern (C++) __gshared int Tptrdiff_t = Tint32;
 
@@ -301,13 +300,12 @@ Lnot:
     return t;
 }
 
-/* ============================= TypeBasic =========================== */
-enum TFLAGSintegral = 1;
-enum TFLAGSfloating = 2;
-enum TFLAGSunsigned = 4;
-enum TFLAGSreal = 8;
-enum TFLAGSimaginary = 0x10;
-enum TFLAGScomplex = 0x20;
+enum TFLAGSintegral     = 1;
+enum TFLAGSfloating     = 2;
+enum TFLAGSunsigned     = 4;
+enum TFLAGSreal         = 8;
+enum TFLAGSimaginary    = 0x10;
+enum TFLAGScomplex      = 0x20;
 
 extern (C++) Expression semanticLength(Scope* sc, TupleDeclaration s, Expression exp)
 {
@@ -392,9 +390,9 @@ extern (C++) static int getNthParamDg(void* ctx, size_t n, Parameter p)
 
 enum ENUMTY : int
 {
-    Tarray, // slice array, aka T[]
-    Tsarray, // static array, aka T[dimension]
-    Taarray, // associative array, aka T[type]
+    Tarray,     // slice array, aka T[]
+    Tsarray,    // static array, aka T[dimension]
+    Taarray,    // associative array, aka T[type]
     Tpointer,
     Treference,
     Tfunction,
@@ -402,6 +400,7 @@ enum ENUMTY : int
     Tclass,
     Tstruct,
     Tenum,
+
     Tdelegate,
     Tnone,
     Tvoid,
@@ -412,6 +411,7 @@ enum ENUMTY : int
     Tint32,
     Tuns32,
     Tint64,
+
     Tuns64,
     Tfloat32,
     Tfloat64,
@@ -422,6 +422,7 @@ enum ENUMTY : int
     Tcomplex32,
     Tcomplex64,
     Tcomplex80,
+
     Tbool,
     Tchar,
     Twchar,
@@ -432,6 +433,7 @@ enum ENUMTY : int
     Ttuple,
     Tslice,
     Treturn,
+
     Tnull,
     Tvector,
     Tint128,
@@ -489,12 +491,12 @@ alias TY = ubyte;
 
 enum MODFlags : int
 {
-    MODconst = 1, // type is const
-    MODimmutable = 4, // type is immutable
-    MODshared = 2, // type is shared
-    MODwild = 8, // type is wild
-    MODwildconst = (MODwild | MODconst), // type is wild const
-    MODmutable = 0x10, // type is mutable (only used in wildcard matching)
+    MODconst        = 1,    // type is const
+    MODimmutable    = 4,    // type is immutable
+    MODshared       = 2,    // type is shared
+    MODwild         = 8,    // type is wild
+    MODwildconst    = (MODwild | MODconst), // type is wild const
+    MODmutable      = 0x10, // type is mutable (only used in wildcard matching)
 }
 
 alias MODconst = MODFlags.MODconst;
@@ -506,31 +508,38 @@ alias MODmutable = MODFlags.MODmutable;
 
 alias MOD = ubyte;
 
+/***********************************************************
+ */
 extern (C++) class Type : RootObject
 {
 public:
     TY ty;
     MOD mod; // modifiers MODxxxx
     char* deco;
+
     /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
      * They should not be referenced by anybody but mtype.c.
      * They can be NULL if not lazily evaluated yet.
      * Note that there is no "shared immutable", because that is just immutable
      * Naked == no MOD bits
      */
-    Type cto; // MODconst                 ? naked version of this type : const version
-    Type ito; // MODimmutable             ? naked version of this type : immutable version
-    Type sto; // MODshared                ? naked version of this type : shared mutable version
-    Type scto; // MODshared | MODconst     ? naked version of this type : shared const version
-    Type wto; // MODwild                  ? naked version of this type : wild version
-    Type wcto; // MODwildconst             ? naked version of this type : wild const version
-    Type swto; // MODshared | MODwild      ? naked version of this type : shared wild version
-    Type swcto; // MODshared | MODwildconst ? naked version of this type : shared wild const version
-    Type pto; // merged pointer to this type
-    Type rto; // reference to this type
-    Type arrayof; // array of this type
-    TypeInfoDeclaration vtinfo; // TypeInfo object for this Type
-    type* ctype; // for back end
+    Type cto;       // MODconst                 ? naked version of this type : const version
+    Type ito;       // MODimmutable             ? naked version of this type : immutable version
+    Type sto;       // MODshared                ? naked version of this type : shared mutable version
+    Type scto;      // MODshared | MODconst     ? naked version of this type : shared const version
+    Type wto;       // MODwild                  ? naked version of this type : wild version
+    Type wcto;      // MODwildconst             ? naked version of this type : wild const version
+    Type swto;      // MODshared | MODwild      ? naked version of this type : shared wild version
+    Type swcto;     // MODshared | MODwildconst ? naked version of this type : shared wild const version
+
+    Type pto;       // merged pointer to this type
+    Type rto;       // reference to this type
+    Type arrayof;   // array of this type
+
+    TypeInfoDeclaration vtinfo;     // TypeInfo object for this Type
+
+    type* ctype;                    // for back end
+
     extern (C++) static __gshared Type tvoid;
     extern (C++) static __gshared Type tint8;
     extern (C++) static __gshared Type tuns8;
@@ -555,19 +564,21 @@ public:
     extern (C++) static __gshared Type tchar;
     extern (C++) static __gshared Type twchar;
     extern (C++) static __gshared Type tdchar;
+
     // Some special types
     extern (C++) static __gshared Type tshiftcnt;
-    extern (C++) static __gshared Type tvoidptr; // void*
-    extern (C++) static __gshared Type tstring; // immutable(char)[]
-    extern (C++) static __gshared Type twstring; // immutable(wchar)[]
-    extern (C++) static __gshared Type tdstring; // immutable(dchar)[]
-    extern (C++) static __gshared Type tvalist; // va_list alias
-    extern (C++) static __gshared Type terror; // for error recovery
-    extern (C++) static __gshared Type tnull; // for null type
-    extern (C++) static __gshared Type tsize_t; // matches size_t alias
-    extern (C++) static __gshared Type tptrdiff_t; // matches ptrdiff_t alias
-    extern (C++) static __gshared Type thash_t; // matches hash_t alias
-    /***************************** Type *****************************/
+    extern (C++) static __gshared Type tvoidptr;    // void*
+    extern (C++) static __gshared Type tstring;     // immutable(char)[]
+    extern (C++) static __gshared Type twstring;    // immutable(wchar)[]
+    extern (C++) static __gshared Type tdstring;    // immutable(dchar)[]
+    extern (C++) static __gshared Type tvalist;     // va_list alias
+    extern (C++) static __gshared Type terror;      // for error recovery
+    extern (C++) static __gshared Type tnull;       // for null type
+
+    extern (C++) static __gshared Type tsize_t;     // matches size_t alias
+    extern (C++) static __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
+    extern (C++) static __gshared Type thash_t;     // matches hash_t alias
+
     extern (C++) static __gshared ClassDeclaration dtypeinfo;
     extern (C++) static __gshared ClassDeclaration typeinfoclass;
     extern (C++) static __gshared ClassDeclaration typeinfointerface;
@@ -585,7 +596,9 @@ public:
     extern (C++) static __gshared ClassDeclaration typeinfoinvariant;
     extern (C++) static __gshared ClassDeclaration typeinfoshared;
     extern (C++) static __gshared ClassDeclaration typeinfowild;
+
     extern (C++) static __gshared TemplateDeclaration rtinfo;
+
     extern (C++) static __gshared Type[TMAX] basic;
     extern (C++) static __gshared StringTable stringtable;
 
@@ -2891,10 +2904,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeError : Type
 {
 public:
-    /* ============================= TypeError =========================== */
     extern (D) this()
     {
         super(Terror);
@@ -2937,12 +2951,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class TypeNext : Type
 {
 public:
     Type next;
 
-    /* ============================= TypeNext =========================== */
     final extern (D) this(TY ty, Type next)
     {
         super(ty);
@@ -3230,6 +3245,8 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeBasic : Type
 {
 public:
@@ -4072,17 +4089,17 @@ public:
     }
 }
 
+/***********************************************************
+ * The basetype must be one of:
+ *   byte[16],ubyte[16],short[8],ushort[8],int[4],uint[4],long[2],ulong[2],float[4],double[2]
+ * For AVX:
+ *   byte[32],ubyte[32],short[16],ushort[16],int[8],uint[8],long[4],ulong[4],float[8],double[4]
+ */
 extern (C++) final class TypeVector : Type
 {
 public:
     Type basetype;
 
-    /* ============================= TypeVector =========================== */
-    /* The basetype must be one of:
-     *   byte[16],ubyte[16],short[8],ushort[8],int[4],uint[4],long[2],ulong[2],float[4],double[2]
-     * For AVX:
-     *   byte[32],ubyte[32],short[16],ushort[16],int[8],uint[8],long[4],ulong[4],float[8],double[4]
-     */
     extern (D) this(Loc loc, Type basetype)
     {
         super(Tvector);
@@ -4253,10 +4270,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class TypeArray : TypeNext
 {
 public:
-    /***************************** TypeArray *****************************/
     final extern (D) this(TY ty, Type next)
     {
         super(ty, next);
@@ -4393,13 +4411,14 @@ public:
     }
 }
 
-// Static array, one with a fixed dimension
+/***********************************************************
+ * Static array, one with a fixed dimension
+ */
 extern (C++) final class TypeSArray : TypeArray
 {
 public:
     Expression dim;
 
-    /***************************** TypeSArray *****************************/
     extern (D) this(Type t, Expression dim)
     {
         super(Tsarray, t);
@@ -4824,11 +4843,12 @@ public:
     }
 }
 
-// Dynamic array, no dimension
+/***********************************************************
+ * Dynamic array, no dimension
+ */
 extern (C++) final class TypeDArray : TypeArray
 {
 public:
-    /***************************** TypeDArray *****************************/
     extern (D) this(Type t)
     {
         super(Tarray, t);
@@ -5023,14 +5043,15 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeAArray : TypeArray
 {
 public:
-    Type index; // key type
+    Type index;     // key type
     Loc loc;
     Scope* sc;
 
-    /***************************** TypeAArray *****************************/
     extern (D) this(Type t, Type index)
     {
         super(Taarray, t);
@@ -5379,10 +5400,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypePointer : TypeNext
 {
 public:
-    /***************************** TypePointer *****************************/
     extern (D) this(Type t)
     {
         super(Tpointer, t);
@@ -5556,10 +5578,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeReference : TypeNext
 {
 public:
-    /***************************** TypeReference *****************************/
     extern (D) this(Type t)
     {
         super(Treference, t);
@@ -5632,8 +5655,8 @@ public:
 
 enum RET : int
 {
-    RETregs = 1, // returned in registers
-    RETstack = 2, // returned on stack
+    RETregs         = 1,    // returned in registers
+    RETstack        = 2,    // returned on stack
 }
 
 alias RETregs = RET.RETregs;
@@ -5641,10 +5664,10 @@ alias RETstack = RET.RETstack;
 
 enum TRUST : int
 {
-    TRUSTdefault = 0,
-    TRUSTsystem = 1, // @system (same as TRUSTdefault)
-    TRUSTtrusted = 2, // @trusted
-    TRUSTsafe = 3, // @safe
+    TRUSTdefault    = 0,
+    TRUSTsystem     = 1,    // @system (same as TRUSTdefault)
+    TRUSTtrusted    = 2,    // @trusted
+    TRUSTsafe       = 3,    // @safe
 }
 
 alias TRUSTdefault = TRUST.TRUSTdefault;
@@ -5654,8 +5677,8 @@ alias TRUSTsafe = TRUST.TRUSTsafe;
 
 enum TRUSTformat : int
 {
-    TRUSTformatDefault, // do not emit @system when trust == TRUSTdefault
-    TRUSTformatSystem, // emit @system when trust == TRUSTdefault
+    TRUSTformatDefault,     // do not emit @system when trust == TRUSTdefault
+    TRUSTformatSystem,      // emit @system when trust == TRUSTdefault
 }
 
 alias TRUSTformatDefault = TRUSTformat.TRUSTformatDefault;
@@ -5663,11 +5686,11 @@ alias TRUSTformatSystem = TRUSTformat.TRUSTformatSystem;
 
 enum PURE : int
 {
-    PUREimpure = 0, // not pure at all
-    PUREfwdref = 1, // it's pure, but not known which level yet
-    PUREweak = 2, // no mutable globals are read or written
-    PUREconst = 3, // parameters are values or const
-    PUREstrong = 4, // parameters are values or immutable
+    PUREimpure      = 0,    // not pure at all
+    PUREfwdref      = 1,    // it's pure, but not known which level yet
+    PUREweak        = 2,    // no mutable globals are read or written
+    PUREconst       = 3,    // parameters are values or const
+    PUREstrong      = 4,    // parameters are values or immutable
 }
 
 alias PUREimpure = PURE.PUREimpure;
@@ -5676,26 +5699,28 @@ alias PUREweak = PURE.PUREweak;
 alias PUREconst = PURE.PUREconst;
 alias PUREstrong = PURE.PUREstrong;
 
+/***********************************************************
+ */
 extern (C++) final class TypeFunction : TypeNext
 {
 public:
     // .next is the return type
-    Parameters* parameters; // function parameters
-    int varargs; // 1: T t, ...) style for variable number of arguments
-    // 2: T t ...) style for variable number of arguments
-    bool isnothrow; // true: nothrow
-    bool isnogc; // true: is @nogc
-    bool isproperty; // can be called without parentheses
-    bool isref; // true: returns a reference
-    bool isreturn; // true: 'this' is returned by ref
-    LINK linkage; // calling convention
-    TRUST trust; // level of trust
-    PURE purity = PUREimpure; // PURExxxx
-    ubyte iswild; // bit0: inout on params, bit1: inout on qualifier
-    Expressions* fargs; // function arguments
+
+    Parameters* parameters;     // function parameters
+    int varargs;                // 1: T t, ...) style for variable number of arguments
+                                // 2: T t ...) style for variable number of arguments
+    bool isnothrow;             // true: nothrow
+    bool isnogc;                // true: is @nogc
+    bool isproperty;            // can be called without parentheses
+    bool isref;                 // true: returns a reference
+    bool isreturn;              // true: 'this' is returned by ref
+    LINK linkage;               // calling convention
+    TRUST trust;                // level of trust
+    PURE purity = PUREimpure;
+    ubyte iswild;               // bit0: inout on params, bit1: inout on qualifier
+    Expressions* fargs;         // function arguments
     int inuse;
 
-    /***************************** TypeFunction *****************************/
     extern (D) this(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
     {
         super(Tfunction, treturn);
@@ -6595,10 +6620,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeDelegate : TypeNext
 {
 public:
-    /***************************** TypeDelegate *****************************/
+    // .next is a TypeFunction
+
     extern (D) this(Type t)
     {
         super(Tfunction, t);
@@ -6746,15 +6774,17 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class TypeQualified : Type
 {
 public:
     Loc loc;
+
     // array of Identifier and TypeInstance,
     // representing ident.ident!tiargs.ident. ... etc.
     Objects idents;
 
-    /***************************** TypeQualified *****************************/
     final extern (D) this(TY ty, Loc loc)
     {
         super(ty);
@@ -7168,13 +7198,16 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeIdentifier : TypeQualified
 {
 public:
     Identifier ident;
-    Dsymbol originalSymbol; // The symbol representing this identifier, before alias resolution
 
-    /***************************** TypeIdentifier *****************************/
+    // The symbol representing this identifier, before alias resolution
+    Dsymbol originalSymbol;
+
     extern (D) this(Loc loc, Identifier ident)
     {
         super(Tident, loc);
@@ -7328,14 +7361,14 @@ public:
     }
 }
 
-/* Similar to TypeIdentifier, but with a TemplateInstance as the root
+/***********************************************************
+ * Similar to TypeIdentifier, but with a TemplateInstance as the root
  */
 extern (C++) final class TypeInstance : TypeQualified
 {
 public:
     TemplateInstance tempinst;
 
-    /***************************** TypeInstance *****************************/
     extern (D) this(Loc loc, TemplateInstance tempinst)
     {
         super(Tinstance, loc);
@@ -7473,13 +7506,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeTypeof : TypeQualified
 {
 public:
     Expression exp;
     int inuse;
 
-    /***************************** TypeTypeof *****************************/
     extern (D) this(Loc loc, Expression exp)
     {
         super(Ttypeof, loc);
@@ -7657,10 +7691,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeReturn : TypeQualified
 {
 public:
-    /***************************** TypeReturn *****************************/
     extern (D) this(Loc loc)
     {
         super(Treturn, loc);
@@ -7791,14 +7826,15 @@ public:
     }
 }
 
+// Whether alias this dependency is recursive or not.
 enum AliasThisRec : int
 {
-    RECno = 0, // no alias this recursion
-    RECyes = 1, // alias this has recursive dependency
-    RECfwdref = 2, // not yet known
-    RECtypeMask = 3, // mask to read no/yes/fwdref
-    RECtracing = 0x4, // mark in progress of implicitConvTo/deduceWild
-    RECtracingDT = 0x8, // mark in progress of deduceType
+    RECno           = 0,    // no alias this recursion
+    RECyes          = 1,    // alias this has recursive dependency
+    RECfwdref       = 2,    // not yet known
+    RECtypeMask     = 3,    // mask to read no/yes/fwdref
+    RECtracing      = 0x4,  // mark in progress of implicitConvTo/deduceWild
+    RECtracingDT    = 0x8,  // mark in progress of deduceType
 }
 
 alias RECno = AliasThisRec.RECno;
@@ -7808,13 +7844,14 @@ alias RECtypeMask = AliasThisRec.RECtypeMask;
 alias RECtracing = AliasThisRec.RECtracing;
 alias RECtracingDT = AliasThisRec.RECtracingDT;
 
+/***********************************************************
+ */
 extern (C++) final class TypeStruct : Type
 {
 public:
     StructDeclaration sym;
     AliasThisRec att = RECfwdref;
 
-    /***************************** TypeStruct *****************************/
     extern (D) this(StructDeclaration sym)
     {
         super(Tstruct);
@@ -8338,12 +8375,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeEnum : Type
 {
 public:
     EnumDeclaration sym;
 
-    /***************************** TypeEnum *****************************/
     extern (D) this(EnumDeclaration sym)
     {
         super(Tenum);
@@ -8574,13 +8612,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeClass : Type
 {
 public:
     ClassDeclaration sym;
     AliasThisRec att = RECfwdref;
 
-    /***************************** TypeClass *****************************/
     extern (D) this(ClassDeclaration sym)
     {
         super(Tclass);
@@ -9113,12 +9152,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeTuple : Type
 {
 public:
-    Parameters* arguments; // types making up the tuple
+    Parameters* arguments;  // types making up the tuple
 
-    /***************************** TypeTuple *****************************/
     extern (D) this(Parameters* arguments)
     {
         super(Ttuple);
@@ -9289,14 +9329,15 @@ public:
     }
 }
 
+/***********************************************************
+ * This is so we can slice a TypeTuple
+ */
 extern (C++) final class TypeSlice : TypeNext
 {
 public:
     Expression lwr;
     Expression upr;
 
-    /***************************** TypeSlice *****************************/
-    /* This is so we can slice a TypeTuple */
     extern (D) this(Type next, Expression lwr, Expression upr)
     {
         super(Tslice, next);
@@ -9423,10 +9464,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeNull : Type
 {
 public:
-    /***************************** TypeNull *****************************/
     extern (D) this()
     {
         super(Tnull);
@@ -9482,18 +9524,16 @@ public:
     }
 }
 
-/**************************************************************/
-//enum InOut { None, In, Out, InOut, Lazy };
+/***********************************************************
+ */
 extern (C++) final class Parameter : RootObject
 {
 public:
-    //enum InOut inout;
     StorageClass storageClass;
     Type type;
     Identifier ident;
     Expression defaultArg;
 
-    /***************************** Parameter *****************************/
     extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg)
     {
         this.type = type;

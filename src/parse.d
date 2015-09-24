@@ -51,12 +51,15 @@ import ddmd.tokens;
 //      int* p;
 //      int* i;
 enum CDECLSYNTAX = 0;
+
 // Support C cast syntax:
 //      (type)(expression)
 enum CCASTSYNTAX = 1;
+
 // Support postfix C array declarations, such as
 //      int a[3][4];
 enum CARRAYDECL = 1;
+
 /**********************************
  * Set operator precedence for each operator.
  */
@@ -191,11 +194,11 @@ extern (C++) __gshared PREC[TOKMAX] precedence =
 
 enum ParseStatementFlags : int
 {
-    PSsemi = 1, // empty ';' statements are allowed, but deprecated
-    PSscope = 2, // start a new scope
-    PScurly = 4, // { } statement is required
-    PScurlyscope = 8, // { } starts a new scope
-    PSsemi_ok = 0x10, // empty ';' are really ok
+    PSsemi          = 1,        // empty ';' statements are allowed, but deprecated
+    PSscope         = 2,        // start a new scope
+    PScurly         = 4,        // { } statement is required
+    PScurlyscope    = 8,        // { } starts a new scope
+    PSsemi_ok       = 0x10,     // empty ';' are really ok
 }
 
 alias PSsemi = ParseStatementFlags.PSsemi;
@@ -215,6 +218,8 @@ struct PrefixAttributes
     const(char)* comment;
 }
 
+/***********************************************************
+ */
 extern (C++) final class Parser : Lexer
 {
 public:

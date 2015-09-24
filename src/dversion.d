@@ -20,16 +20,16 @@ import ddmd.identifier;
 import ddmd.root.outbuffer;
 import ddmd.visitor;
 
+/***********************************************************
+ * DebugSymbol's happen for statements like:
+ *      debug = identifier;
+ *      debug = integer;
+ */
 extern (C++) final class DebugSymbol : Dsymbol
 {
 public:
     uint level;
 
-    /* ================================================== */
-    /* DebugSymbol's happen for statements like:
-     *      debug = identifier;
-     *      debug = integer;
-     */
     extern (D) this(Loc loc, Identifier ident)
     {
         super(ident);
@@ -115,16 +115,16 @@ public:
     }
 }
 
+/***********************************************************
+ * VersionSymbol's happen for statements like:
+ *      version = identifier;
+ *      version = integer;
+ */
 extern (C++) final class VersionSymbol : Dsymbol
 {
 public:
     uint level;
 
-    /* ================================================== */
-    /* VersionSymbol's happen for statements like:
-     *      version = identifier;
-     *      version = integer;
-     */
     extern (D) this(Loc loc, Identifier ident)
     {
         super(ident);

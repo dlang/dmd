@@ -102,99 +102,75 @@ extern (C++) void ObjectNotFound(Identifier id)
     fatal();
 }
 
-enum STCundefined = 0L;
-enum STCstatic = 1L;
-enum STCextern = 2L;
-enum STCconst = 4L;
-enum STCfinal = 8L;
-enum STCabstract = 0x10L;
-enum STCparameter = 0x20L;
-enum STCfield = 0x40L;
-enum STCoverride = 0x80L;
-enum STCauto = 0x100L;
-enum STCsynchronized = 0x200L;
-enum STCdeprecated = 0x400L;
-enum STCin = 0x800L;
-// in parameter
-enum STCout = 0x1000L;
-// out parameter
-enum STClazy = 0x2000L;
-// lazy parameter
-enum STCforeach = 0x4000L;
-// variable for foreach loop
-enum STCvariadic = 0x10000L;
-// variadic function argument
-enum STCctorinit = 0x20000L;
-// can only be set inside constructor
-enum STCtemplateparameter = 0x40000L;
-// template parameter
-enum STCscope = 0x80000L;
-enum STCimmutable = 0x100000L;
-enum STCref = 0x200000L;
-enum STCinit = 0x400000L;
-// has explicit initializer
-enum STCmanifest = 0x800000L;
-// manifest constant
-enum STCnodtor = 0x1000000L;
-// don't run destructor
-enum STCnothrow = 0x2000000L;
-// never throws exceptions
-enum STCpure = 0x4000000L;
-// pure function
-enum STCtls = 0x8000000L;
-// thread local
-enum STCalias = 0x10000000L;
-// alias parameter
-enum STCshared = 0x20000000L;
-// accessible from multiple threads
-// accessible from multiple threads
-// but not typed as "shared"
-enum STCgshared = 0x40000000L;
-enum STCwild = 0x80000000L;
-// for "wild" type constructor
+enum STCundefined           = 0L;
+enum STCstatic              = (1L << 0);
+enum STCextern              = (1L << 1);
+enum STCconst               = (1L << 2);
+enum STCfinal               = (1L << 3);
+enum STCabstract            = (1L << 4);
+enum STCparameter           = (1L << 5);
+enum STCfield               = (1L << 6);
+enum STCoverride            = (1L << 7);
+enum STCauto                = (1L << 8);
+enum STCsynchronized        = (1L << 9);
+enum STCdeprecated          = (1L << 10);
+enum STCin                  = (1L << 11);   // in parameter
+enum STCout                 = (1L << 12);   // out parameter
+enum STClazy                = (1L << 13);   // lazy parameter
+enum STCforeach             = (1L << 14);   // variable for foreach loop
+//                            (1L << 15)
+enum STCvariadic            = (1L << 16);   // variadic function argument
+enum STCctorinit            = (1L << 17);   // can only be set inside constructor
+enum STCtemplateparameter   = (1L << 18);   // template parameter
+enum STCscope               = (1L << 19);
+enum STCimmutable           = (1L << 20);
+enum STCref                 = (1L << 21);
+enum STCinit                = (1L << 22);   // has explicit initializer
+enum STCmanifest            = (1L << 23);   // manifest constant
+enum STCnodtor              = (1L << 24);   // don't run destructor
+enum STCnothrow             = (1L << 25);   // never throws exceptions
+enum STCpure                = (1L << 26);   // pure function
+enum STCtls                 = (1L << 27);   // thread local
+enum STCalias               = (1L << 28);   // alias parameter
+enum STCshared              = (1L << 29);   // accessible from multiple threads
+enum STCgshared             = (1L << 30);   // accessible from multiple threads, but not typed as "shared"
+enum STCwild                = (1L << 31);   // for "wild" type constructor
+enum STCproperty            = (1L << 32);
+enum STCsafe                = (1L << 33);
+enum STCtrusted             = (1L << 34);
+enum STCsystem              = (1L << 35);
+enum STCctfe                = (1L << 36);   // can be used in CTFE, even if it is static
+enum STCdisable             = (1L << 37);   // for functions that are not callable
+enum STCresult              = (1L << 38);   // for result variables passed to out contracts
+enum STCnodefaultctor       = (1L << 39);   // must be set inside constructor
+enum STCtemp                = (1L << 40);   // temporary variable
+enum STCrvalue              = (1L << 41);   // force rvalue for variables
+enum STCnogc                = (1L << 42);   // @nogc
+enum STCvolatile            = (1L << 43);   // destined for volatile in the back end
+enum STCreturn              = (1L << 44);   // 'return ref' for function parameters
+enum STCautoref             = (1L << 45);   // Mark for the already deduced 'auto ref' parameter
+
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
-enum STCproperty = 0x100000000L;
-enum STCsafe = 0x200000000L;
-enum STCtrusted = 0x400000000L;
-enum STCsystem = 0x800000000L;
-enum STCctfe = 0x1000000000L;
-// can be used in CTFE, even if it is static
-enum STCdisable = 0x2000000000L;
-// for functions that are not callable
-enum STCresult = 0x4000000000L;
-// for result variables passed to out contracts
-enum STCnodefaultctor = 0x8000000000L;
-// must be set inside constructor
-enum STCtemp = 0x10000000000L;
-// temporary variable
-enum STCrvalue = 0x20000000000L;
-// force rvalue for variables
-enum STCnogc = 0x40000000000L;
-// @nogc
-enum STCvolatile = 0x80000000000L;
-// destined for volatile in the back end
-enum STCreturn = 0x100000000000L;
-// 'return ref' for function parameters
-enum STCautoref = 0x200000000000L;
-// Mark for the already deduced 'auto ref' parameter
-extern (C++) __gshared const(StorageClass) STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
+
+extern (C++) __gshared const(StorageClass) STCStorageClass =
+    (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 
 struct Match
 {
-    int count; // number of matches found
-    MATCH last; // match level of lastf
-    FuncDeclaration lastf; // last matching function we found
-    FuncDeclaration nextf; // current matching function
-    FuncDeclaration anyf; // pick a func, any func, to use for error recovery
+    int count;              // number of matches found
+    MATCH last;             // match level of lastf
+    FuncDeclaration lastf;  // last matching function we found
+    FuncDeclaration nextf;  // current matching function
+    FuncDeclaration anyf;   // pick a func, any func, to use for error recovery
 }
 
 enum Semantic : int
 {
-    SemanticStart, // semantic has not been run
-    SemanticIn, // semantic() is in progress
-    SemanticDone, // semantic() has been run
-    Semantic2Done, // semantic2() has been run
+    SemanticStart,          // semantic has not been run
+    SemanticIn,             // semantic() is in progress
+    SemanticDone,           // semantic() has been run
+    Semantic2Done,          // semantic2() has been run
 }
 
 alias SemanticStart = Semantic.SemanticStart;
@@ -202,20 +178,23 @@ alias SemanticIn = Semantic.SemanticIn;
 alias SemanticDone = Semantic.SemanticDone;
 alias Semantic2Done = Semantic.Semantic2Done;
 
-/**************************************************************/
+/***********************************************************
+ */
 extern (C++) class Declaration : Dsymbol
 {
 public:
     Type type;
-    Type originalType; // before semantic analysis
+    Type originalType;  // before semantic analysis
     StorageClass storage_class;
     Prot protection;
     LINK linkage;
-    int inuse; // used to detect cycles
-    const(char)* mangleOverride; // overridden symbol with pragma(mangle, "...")
+    int inuse;          // used to detect cycles
+
+    // overridden symbol with pragma(mangle, "...")
+    const(char)* mangleOverride;
+
     Semantic sem;
 
-    /********************************* Declaration ****************************/
     final extern (D) this(Identifier id)
     {
         super(id);
@@ -410,15 +389,15 @@ public:
     }
 }
 
-/**************************************************************/
+/***********************************************************
+ */
 extern (C++) final class TupleDeclaration : Declaration
 {
 public:
     Objects* objects;
-    bool isexp; // true: expression tuple
-    TypeTuple tupletype; // !=NULL if this is a type tuple
+    bool isexp;             // true: expression tuple
+    TypeTuple tupletype;    // !=null if this is a type tuple
 
-    /********************************* TupleDeclaration ****************************/
     extern (D) this(Loc loc, Identifier id, Objects* objects)
     {
         super(id);
@@ -538,15 +517,15 @@ public:
     }
 }
 
-/**************************************************************/
+/***********************************************************
+ */
 extern (C++) final class AliasDeclaration : Declaration
 {
 public:
     Dsymbol aliassym;
-    Dsymbol overnext; // next in overload list
-    Dsymbol _import; // !=NULL if unresolved internal alias for selective import
+    Dsymbol overnext;   // next in overload list
+    Dsymbol _import;    // !=null if unresolved internal alias for selective import
 
-    /********************************* AliasDeclaration ****************************/
     extern (D) this(Loc loc, Identifier id, Type type)
     {
         super(id);
@@ -892,15 +871,15 @@ public:
     }
 }
 
-/**************************************************************/
+/***********************************************************
+ */
 extern (C++) final class OverDeclaration : Declaration
 {
 public:
-    Dsymbol overnext; // next in overload list
+    Dsymbol overnext;   // next in overload list
     Dsymbol aliassym;
     bool hasOverloads;
 
-    /****************************** OverDeclaration **************************/
     extern (D) this(Identifier ident, Dsymbol s, bool hasOverloads = true)
     {
         super(ident);
@@ -1017,34 +996,39 @@ public:
     }
 }
 
-/**************************************************************/
+/***********************************************************
+ */
 extern (C++) class VarDeclaration : Declaration
 {
 public:
     Initializer _init;
     uint offset;
-    bool noscope; // no auto semantics
-    FuncDeclarations nestedrefs; // referenced by these lexically nested functions
-    bool isargptr; // if parameter that _argptr points to
+    bool noscope;                   // no auto semantics
+    FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
+    bool isargptr;                  // if parameter that _argptr points to
     structalign_t alignment;
-    bool ctorinit; // it has been initialized in a ctor
-    short onstack; // 1: it has been allocated on the stack
+    bool ctorinit;                  // it has been initialized in a ctor
+
+    // 1: it has been allocated on the stack
     // 2: on stack, run destructor anyway
-    int canassign; // it can be assigned to
-    bool overlapped; // if it is a field and has overlapping
-    Dsymbol aliassym; // if redone as alias to another symbol
-    VarDeclaration lastVar; // Linked list of variables for goto-skips-init detection
+    short onstack;
+
+    int canassign;                  // it can be assigned to
+    bool overlapped;                // if it is a field and has overlapping
+    Dsymbol aliassym;               // if redone as alias to another symbol
+    VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
+
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, -1 if not allocated
     int ctfeAdrOnStack;
-    // if !NULL, rundtor is tested at runtime to see
+
+    // if !=NULL, rundtor is tested at runtime to see
     // if the destructor should be run. Used to prevent
     // dtor calls on postblitted vars
     VarDeclaration rundtor;
-    Expression edtor; // if !=NULL, does the destruction of the variable
-    IntRange* range; // if !NULL, the variable is known to be within the range
+    Expression edtor;               // if !=null, does the destruction of the variable
+    IntRange* range;                // if !=null, the variable is known to be within the range
 
-    /********************************* VarDeclaration ****************************/
     final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init)
     {
         super(id);
@@ -2285,14 +2269,14 @@ public:
     }
 }
 
-/**************************************************************/
-// This is a shell around a back end symbol
+/***********************************************************
+ * This is a shell around a back end symbol
+ */
 extern (C++) final class SymbolDeclaration : Declaration
 {
 public:
     StructDeclaration dsym;
 
-    /******************************** SymbolDeclaration ********************************/
     extern (D) this(Loc loc, StructDeclaration dsym)
     {
         super(dsym.ident);
@@ -2313,12 +2297,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class TypeInfoDeclaration : VarDeclaration
 {
 public:
     Type tinfo;
 
-    /********************************* TypeInfoDeclaration ****************************/
     final extern (D) this(Type tinfo, int internal)
     {
         super(Loc(), Type.dtypeinfo.type, tinfo.getTypeInfoIdent(internal), null);
@@ -2364,10 +2349,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoStructDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoStructDeclaration **********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2389,10 +2375,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoClassDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoClassDeclaration ***********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2414,10 +2401,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoInterfaceDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoInterfaceDeclaration *******************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2439,10 +2427,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoPointerDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoPointerDeclaration *********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2464,10 +2453,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoArrayDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoArrayDeclaration ***********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2489,10 +2479,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoStaticArrayDeclaration *****************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2514,10 +2505,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoAssociativeArrayDeclaration ************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2539,10 +2531,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoEnumDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoEnumDeclaration ***********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2564,10 +2557,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoFunctionDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoFunctionDeclaration ********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2589,10 +2583,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoDelegateDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoDelegateDeclaration ********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2614,10 +2609,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoTupleDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoTupleDeclaration **********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2639,10 +2635,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoConstDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoConstDeclaration **********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2664,10 +2661,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoInvariantDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoInvariantDeclaration **********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2689,10 +2687,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoSharedDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoSharedDeclaration **********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2714,10 +2713,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoWildDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoWildDeclaration **********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2739,10 +2739,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
 {
 public:
-    /***************************** TypeInfoVectorDeclaration ***********************/
     extern (D) this(Type tinfo)
     {
         super(tinfo, 0);
@@ -2764,12 +2765,12 @@ public:
     }
 }
 
-/**************************************************************/
+/***********************************************************
+ * For the "this" parameter to member functions
+ */
 extern (C++) final class ThisDeclaration : VarDeclaration
 {
 public:
-    /********************************* ThisDeclaration ****************************/
-    // For the "this" parameter to member functions
     extern (D) this(Loc loc, Type t)
     {
         super(loc, t, Id.This, null);

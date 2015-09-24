@@ -2226,43 +2226,31 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, 
     return ae;
 }
 
-enum CtfeGoal : int
-{
-    ctfeNeedRvalue, // Must return an Rvalue (== CTFE value)
-    ctfeNeedLvalue, // Must return an Lvalue (== CTFE reference)
-    ctfeNeedNothing, // The return value is not required
-}
-
-alias ctfeNeedRvalue = CtfeGoal.ctfeNeedRvalue;
-alias ctfeNeedLvalue = CtfeGoal.ctfeNeedLvalue;
-alias ctfeNeedNothing = CtfeGoal.ctfeNeedNothing;
-
 enum OwnedBy : int
 {
-    OWNEDcode, // normal code expression in AST
-    OWNEDctfe, // value expression for CTFE
-    OWNEDcache, // constant value cached for CTFE
+    OWNEDcode,          // normal code expression in AST
+    OWNEDctfe,          // value expression for CTFE
+    OWNEDcache,         // constant value cached for CTFE
 }
 
 alias OWNEDcode = OwnedBy.OWNEDcode;
 alias OWNEDctfe = OwnedBy.OWNEDctfe;
 alias OWNEDcache = OwnedBy.OWNEDcache;
 
-enum WANTvalue = 0;
-// default
-enum WANTexpand = 1;
+enum WANTvalue  = 0;    // default
+enum WANTexpand = 1;    // expand const/immutable variables if possible
 
-// expand const/immutable variables if possible
+/***********************************************************
+ */
 extern (C++) class Expression : RootObject
 {
 public:
-    Loc loc; // file location
-    Type type; // !=NULL means that semantic() has been run
-    TOK op; // to minimize use of dynamic_cast
-    ubyte size; // # of bytes in Expression so we can copy() it
-    ubyte parens; // if this is a parenthesized expression
+    Loc loc;        // file location
+    Type type;      // !=null means that semantic() has been run
+    TOK op;         // to minimize use of dynamic_cast
+    ubyte size;     // # of bytes in Expression so we can copy() it
+    ubyte parens;   // if this is a parenthesized expression
 
-    /******************************** Expression **************************/
     final extern (D) this(Loc loc, TOK op, int size)
     {
         //printf("Expression::Expression(op = %d) this = %p\n", op, this);
@@ -3143,12 +3131,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class IntegerExp : Expression
 {
 public:
     dinteger_t value;
 
-    /******************************** IntegerExp **************************/
     extern (D) this(Loc loc, dinteger_t value, Type type)
     {
         super(loc, TOKint64, __traits(classInstanceSize, IntegerExp));
@@ -3306,13 +3295,13 @@ private:
     }
 }
 
+/***********************************************************
+ * Use this expression for error recovery.
+ * It should behave as a 'sink' to prevent further cascaded error messages.
+ */
 extern (C++) final class ErrorExp : Expression
 {
 public:
-    /******************************** ErrorExp **************************/
-    /* Use this expression for error recovery.
-     * It should behave as a 'sink' to prevent further cascaded error messages.
-     */
     extern (D) this()
     {
         super(Loc(), TOKerror, __traits(classInstanceSize, ErrorExp));
@@ -3332,12 +3321,13 @@ public:
     extern (C++) static __gshared ErrorExp errorexp; // handy shared value
 }
 
+/***********************************************************
+ */
 extern (C++) final class RealExp : Expression
 {
 public:
     real_t value;
 
-    /******************************** RealExp **************************/
     extern (D) this(Loc loc, real_t value, Type type)
     {
         super(loc, TOKfloat64, __traits(classInstanceSize, RealExp));
@@ -3406,12 +3396,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ComplexExp : Expression
 {
 public:
     complex_t value;
 
-    /******************************** ComplexExp **************************/
     extern (D) this(Loc loc, complex_t value, Type type)
     {
         super(loc, TOKcomplex80, __traits(classInstanceSize, ComplexExp));
@@ -3483,13 +3474,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class IdentifierExp : Expression
 {
 public:
     Identifier ident;
     Declaration var;
 
-    /******************************** IdentifierExp **************************/
     final extern (D) this(Loc loc, Identifier ident)
     {
         super(loc, TOKidentifier, __traits(classInstanceSize, IdentifierExp));
@@ -3645,10 +3637,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DollarExp : IdentifierExp
 {
 public:
-    /******************************** DollarExp **************************/
     extern (D) this(Loc loc)
     {
         super(loc, Id.dollar);
@@ -3660,13 +3653,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DsymbolExp : Expression
 {
 public:
     Dsymbol s;
     bool hasOverloads;
 
-    /******************************** DsymbolExp **************************/
     extern (D) this(Loc loc, Dsymbol s, bool hasOverloads = false)
     {
         super(loc, TOKdsymbol, __traits(classInstanceSize, DsymbolExp));
@@ -3887,12 +3881,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class ThisExp : Expression
 {
 public:
     Declaration var;
 
-    /******************************** ThisExp **************************/
     final extern (D) this(Loc loc)
     {
         super(loc, TOKthis, __traits(classInstanceSize, ThisExp));
@@ -3983,10 +3978,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class SuperExp : ThisExp
 {
 public:
-    /******************************** SuperExp **************************/
     extern (D) this(Loc loc)
     {
         super(loc);
@@ -4071,12 +4067,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class NullExp : Expression
 {
 public:
-    ubyte committed; // !=0 if type is committed
+    ubyte committed;    // !=0 if type is committed
 
-    /******************************** NullExp **************************/
     extern (D) this(Loc loc, Type type = null)
     {
         super(loc, TOKnull, __traits(classInstanceSize, NullExp));
@@ -4131,17 +4128,18 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class StringExp : Expression
 {
 public:
-    void* string; // char, wchar, or dchar data
-    size_t len; // number of chars, wchars, or dchars
-    ubyte sz = 1; // 1: char, 2: wchar, 4: dchar
-    ubyte committed; // !=0 if type is committed
-    char postfix = 0; // 'c', 'w', 'd'
+    void* string;       // char, wchar, or dchar data
+    size_t len;         // number of chars, wchars, or dchars
+    ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
+    ubyte committed;    // !=0 if type is committed
+    char postfix = 0;   // 'c', 'w', 'd'
     OwnedBy ownedByCtfe = OWNEDcode;
 
-    /******************************** StringExp **************************/
     extern (D) this(Loc loc, char* string)
     {
         super(loc, TOKstring, __traits(classInstanceSize, StringExp));
@@ -4428,21 +4426,22 @@ public:
     }
 }
 
-// Tuple
+/***********************************************************
+ */
 extern (C++) final class TupleExp : Expression
 {
 public:
-    Expression e0; // side-effect part
     /* Tuple-field access may need to take out its side effect part.
      * For example:
      *      foo().tupleof
      * is rewritten as:
      *      (ref __tup = foo(); tuple(__tup.field0, __tup.field1, ...))
-     * The declaration of temporary variable __tup will be stored in TupleExp::e0.
+     * The declaration of temporary variable __tup will be stored in TupleExp.e0.
      */
+    Expression e0;
+
     Expressions* exps;
 
-    /******************************** TupleExp **************************/
     extern (D) this(Loc loc, Expression e0, Expressions* exps)
     {
         super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
@@ -4561,6 +4560,9 @@ public:
     }
 }
 
+/***********************************************************
+ * [ e1, e2, e3, ... ]
+ */
 extern (C++) final class ArrayLiteralExp : Expression
 {
 public:
@@ -4573,8 +4575,6 @@ public:
     Expressions* elements;
     OwnedBy ownedByCtfe = OWNEDcode;
 
-    /************************ ArrayLiteralExp ************************************/
-    // [ e1, e2, e3, ... ]
     extern (D) this(Loc loc, Expressions* elements)
     {
         super(loc, TOKarrayliteral, __traits(classInstanceSize, ArrayLiteralExp));
@@ -4777,6 +4777,9 @@ public:
     }
 }
 
+/***********************************************************
+ * [ key0 : value0, key1 : value1, ... ]
+ */
 extern (C++) final class AssocArrayLiteralExp : Expression
 {
 public:
@@ -4784,8 +4787,6 @@ public:
     Expressions* values;
     OwnedBy ownedByCtfe = OWNEDcode;
 
-    /************************ AssocArrayLiteralExp ************************************/
-    // [ key0 : value0, key1 : value1, ... ]
     extern (D) this(Loc loc, Expressions* keys, Expressions* values)
     {
         super(loc, TOKassocarrayliteral, __traits(classInstanceSize, AssocArrayLiteralExp));
@@ -4872,29 +4873,27 @@ public:
     }
 }
 
-// scrubReturnValue is running
-enum stageScrub = 0x1;
-// hasNonConstPointers is running
-enum stageSearchPointers = 0x2;
-// optimize is running
-enum stageOptimize = 0x4;
-// apply is running
-enum stageApply = 0x8;
-//inlineScan is running
-enum stageInlineScan = 0x10;
-// toCBuffer is running
-enum stageToCBuffer = 0x20;
+enum stageScrub             = 0x1;  // scrubReturnValue is running
+enum stageSearchPointers    = 0x2;  // hasNonConstPointers is running
+enum stageOptimize          = 0x4;  // optimize is running
+enum stageApply             = 0x8;  // apply is running
+enum stageInlineScan        = 0x10; // inlineScan is running
+enum stageToCBuffer         = 0x20; // toCBuffer is running
 
+/***********************************************************
+ * sd( e1, e2, e3, ... )
+ */
 extern (C++) final class StructLiteralExp : Expression
 {
 public:
-    StructDeclaration sd; // which aggregate this is for
-    Expressions* elements; // parallels sd->fields[] with NULL entries for fields to skip
-    Type stype; // final type of result (can be different from sd's type)
-    Symbol* sinit; // if this is a defaultInitLiteral, this symbol contains the default initializer
-    Symbol* sym; // back end symbol to initialize with literal
-    size_t soffset; // offset from start of s
-    int fillHoles = 1;                // fill alignment 'holes' with zero
+    StructDeclaration sd;   // which aggregate this is for
+    Expressions* elements;  // parallels sd.fields[] with null entries for fields to skip
+    Type stype;             // final type of result (can be different from sd's type)
+
+    Symbol* sinit;          // if this is a defaultInitLiteral, this symbol contains the default initializer
+    Symbol* sym;            // back end symbol to initialize with literal
+    size_t soffset;         // offset from start of s
+    int fillHoles = 1;      // fill alignment 'holes' with zero
     OwnedBy ownedByCtfe = OWNEDcode;
 
     // pointer to the origin instance of the expression.
@@ -4902,16 +4901,16 @@ public:
     // anytime when an expression copy is created, 'origin' pointer is set to
     // 'origin' pointer value of the original expression.
     StructLiteralExp origin;
+
     // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     StructLiteralExp inlinecopy;
+
     // anytime when recursive function is calling, 'stageflags' marks with bit flag of
     // current stage and unmarks before return from this function.
     // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
     // (with infinite recursion) of this expression.
     int stageflags;
 
-    /************************ StructLiteralExp ************************************/
-    // sd( e1, e2, e3, ... )
     extern (D) this(Loc loc, StructDeclaration sd, Expressions* elements, Type stype = null)
     {
         super(loc, TOKstructliteral, __traits(classInstanceSize, StructLiteralExp));
@@ -5107,11 +5106,12 @@ public:
     }
 }
 
+/***********************************************************
+ * Mainly just a placeholder
+ */
 extern (C++) final class TypeExp : Expression
 {
 public:
-    /************************************************************/
-    // Mainly just a placeholder
     extern (D) this(Loc loc, Type type)
     {
         super(loc, TOKtype, __traits(classInstanceSize, TypeExp));
@@ -5166,13 +5166,14 @@ public:
     }
 }
 
+/***********************************************************
+ * Mainly just a placeholder
+ */
 extern (C++) final class ScopeExp : Expression
 {
 public:
     ScopeDsymbol sds;
 
-    /************************************************************/
-    // Mainly just a placeholder
     extern (D) this(Loc loc, ScopeDsymbol pkg)
     {
         super(loc, TOKimport, __traits(classInstanceSize, ScopeExp));
@@ -5284,14 +5285,15 @@ public:
     }
 }
 
+/***********************************************************
+ * Mainly just a placeholder
+ */
 extern (C++) final class TemplateExp : Expression
 {
 public:
     TemplateDeclaration td;
     FuncDeclaration fd;
 
-    /********************** TemplateExp **************************************/
-    // Mainly just a placeholder
     extern (D) this(Loc loc, TemplateDeclaration td, FuncDeclaration fd = null)
     {
         super(loc, TOKtemplate, __traits(classInstanceSize, TemplateExp));
@@ -5325,22 +5327,21 @@ public:
     }
 }
 
+/***********************************************************
+ * thisexp.new(newargs) newtype(arguments)
+ */
 extern (C++) final class NewExp : Expression
 {
 public:
-    /* thisexp.new(newargs) newtype(arguments)
-     */
-    Expression thisexp; // if !NULL, 'this' for class being allocated
-    Expressions* newargs; // Array of Expression's to call new operator
+    Expression thisexp;         // if !=null, 'this' for class being allocated
+    Expressions* newargs;       // Array of Expression's to call new operator
     Type newtype;
-    Expressions* arguments; // Array of Expression's
-    Expression argprefix; // expression to be evaluated just before arguments[]
-    CtorDeclaration member; // constructor function
-    NewDeclaration allocator; // allocator function
-    int onstack; // allocate on stack
+    Expressions* arguments;     // Array of Expression's
+    Expression argprefix;       // expression to be evaluated just before arguments[]
+    CtorDeclaration member;     // constructor function
+    NewDeclaration allocator;   // allocator function
+    int onstack;                // allocate on stack
 
-    /********************** NewExp **************************************/
-    /* thisexp.new(newargs) newtype(arguments) */
     extern (D) this(Loc loc, Expression thisexp, Expressions* newargs, Type newtype, Expressions* arguments)
     {
         super(loc, TOKnew, __traits(classInstanceSize, NewExp));
@@ -5721,17 +5722,17 @@ public:
     }
 }
 
+/***********************************************************
+ * thisexp.new(newargs) class baseclasses { } (arguments)
+ */
 extern (C++) final class NewAnonClassExp : Expression
 {
 public:
-    /* thisexp.new(newargs) class baseclasses { } (arguments)
-     */
-    Expression thisexp; // if !NULL, 'this' for class being allocated
-    Expressions* newargs; // Array of Expression's to call new operator
-    ClassDeclaration cd; // class being instantiated
+    Expression thisexp;     // if !=null, 'this' for class being allocated
+    Expressions* newargs;   // Array of Expression's to call new operator
+    ClassDeclaration cd;    // class being instantiated
     Expressions* arguments; // Array of Expression's to call class constructor
 
-    /********************** NewAnonClassExp **************************************/
     extern (D) this(Loc loc, Expression thisexp, Expressions* newargs, ClassDeclaration cd, Expressions* arguments)
     {
         super(loc, TOKnewanonclass, __traits(classInstanceSize, NewAnonClassExp));
@@ -5775,13 +5776,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class SymbolExp : Expression
 {
 public:
     Declaration var;
     bool hasOverloads;
 
-    /********************** SymbolExp **************************************/
     final extern (D) this(Loc loc, TOK op, int size, Declaration var, bool hasOverloads)
     {
         super(loc, op, size);
@@ -5796,13 +5798,14 @@ public:
     }
 }
 
-// Offset from symbol
+/***********************************************************
+ * Offset from symbol
+ */
 extern (C++) final class SymOffExp : SymbolExp
 {
 public:
     dinteger_t offset;
 
-    /********************** SymOffExp **************************************/
     extern (D) this(Loc loc, Declaration var, dinteger_t offset, bool hasOverloads = false)
     {
         super(loc, TOKsymoff, __traits(classInstanceSize, SymOffExp), var, hasOverloads);
@@ -5845,11 +5848,12 @@ public:
     }
 }
 
-// Variable
+/***********************************************************
+ * Variable
+ */
 extern (C++) final class VarExp : SymbolExp
 {
 public:
-    /******************************** VarExp **************************/
     extern (D) this(Loc loc, Declaration var, bool hasOverloads = false)
     {
         super(loc, TOKvar, __traits(classInstanceSize, VarExp), var, hasOverloads);
@@ -5982,13 +5986,14 @@ public:
     }
 }
 
-// Overload Set
+/***********************************************************
+ * Overload Set
+ */
 extern (C++) final class OverExp : Expression
 {
 public:
     OverloadSet vars;
 
-    /******************************** OverExp **************************/
     extern (D) this(Loc loc, OverloadSet s)
     {
         super(loc, TOKoverloadset, __traits(classInstanceSize, OverExp));
@@ -6013,7 +6018,9 @@ public:
     }
 }
 
-// Function/Delegate literal
+/***********************************************************
+ * Function/Delegate literal
+ */
 extern (C++) final class FuncExp : Expression
 {
 public:
@@ -6021,7 +6028,6 @@ public:
     TemplateDeclaration td;
     TOK tok;
 
-    /******************************** FuncExp *********************************/
     extern (D) this(Loc loc, Dsymbol s)
     {
         super(loc, TOKfunction, __traits(classInstanceSize, FuncExp));
@@ -6402,16 +6408,18 @@ public:
     }
 }
 
-// Declaration of a symbol
-// D grammar allows declarations only as statements. However in AST representation
-// it can be part of any expression. This is used, for example, during internal
-// syntax re-writes to inject hidden symbols.
+/***********************************************************
+ * Declaration of a symbol
+ *
+ * D grammar allows declarations only as statements. However in AST representation
+ * it can be part of any expression. This is used, for example, during internal
+ * syntax re-writes to inject hidden symbols.
+ */
 extern (C++) final class DeclarationExp : Expression
 {
 public:
     Dsymbol declaration;
 
-    /******************************** DeclarationExp **************************/
     extern (D) this(Loc loc, Dsymbol declaration)
     {
         super(loc, TOKdeclaration, __traits(classInstanceSize, DeclarationExp));
@@ -6522,15 +6530,14 @@ public:
     }
 }
 
+/***********************************************************
+ * typeid(int)
+ */
 extern (C++) final class TypeidExp : Expression
 {
 public:
     RootObject obj;
 
-    /************************ TypeidExp ************************************/
-    /*
-     *      typeid(int)
-     */
     extern (D) this(Loc loc, RootObject o)
     {
         super(loc, TOKtypeid, __traits(classInstanceSize, TypeidExp));
@@ -6611,16 +6618,15 @@ public:
     }
 }
 
+/***********************************************************
+ * __traits(identifier, args...)
+ */
 extern (C++) final class TraitsExp : Expression
 {
 public:
     Identifier ident;
     Objects* args;
 
-    /************************ TraitsExp ************************************/
-    /*
-     *      __traits(identifier, args...)
-     */
     extern (D) this(Loc loc, Identifier ident, Objects* args)
     {
         super(loc, TOKtraits, __traits(classInstanceSize, TraitsExp));
@@ -6644,10 +6650,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class HaltExp : Expression
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc)
     {
         super(loc, TOKhalt, __traits(classInstanceSize, HaltExp));
@@ -6669,20 +6676,20 @@ public:
     }
 }
 
+/***********************************************************
+ * is(targ id tok tspec)
+ * is(targ id == tok2)
+ */
 extern (C++) final class IsExp : Expression
 {
 public:
-    /* is(targ id tok tspec)
-     * is(targ id == tok2)
-     */
     Type targ;
-    Identifier id; // can be NULL
-    TOK tok; // ':' or '=='
-    Type tspec; // can be NULL
-    TOK tok2; // 'struct', 'union', 'typedef', etc.
+    Identifier id;      // can be null
+    TOK tok;            // ':' or '=='
+    Type tspec;         // can be null
+    TOK tok2;           // 'struct', 'union', 'typedef', etc.
     TemplateParameters* parameters;
 
-    /************************************************************/
     extern (D) this(Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters)
     {
         super(loc, TOKis, __traits(classInstanceSize, IsExp));
@@ -6994,14 +7001,14 @@ public:
     }
 }
 
-/****************************************************************/
+/***********************************************************
+ */
 extern (C++) class UnaExp : Expression
 {
 public:
     Expression e1;
-    Type att1; // Save alias this type to detect recursion
+    Type att1;      // Save alias this type to detect recursion
 
-    /************************************************************/
     final extern (D) this(Loc loc, TOK op, int size, Expression e1)
     {
         super(loc, op, size);
@@ -7050,15 +7057,16 @@ public:
 extern (C++) alias fp_t = UnionExp function(Loc loc, Type, Expression, Expression);
 extern (C++) alias fp2_t = int function(Loc loc, TOK, Expression, Expression);
 
+/***********************************************************
+ */
 extern (C++) class BinExp : Expression
 {
 public:
     Expression e1;
     Expression e2;
-    Type att1; // Save alias this type to detect recursion
-    Type att2; // Save alias this type to detect recursion
+    Type att1;      // Save alias this type to detect recursion
+    Type att2;      // Save alias this type to detect recursion
 
-    /************************************************************/
     final extern (D) this(Loc loc, TOK op, int size, Expression e1, Expression e2)
     {
         super(loc, op, size);
@@ -7347,6 +7355,8 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class BinAssignExp : BinExp
 {
 public:
@@ -7355,7 +7365,6 @@ public:
         super(loc, op, size, e1, e2);
     }
 
-    /********************** BinAssignExp **************************************/
     override Expression semantic(Scope* sc)
     {
         if (type)
@@ -7452,11 +7461,11 @@ public:
     }
 }
 
-/****************************************************************/
+/***********************************************************
+ */
 extern (C++) final class CompileExp : UnaExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e)
     {
         super(loc, TOKmixin, __traits(classInstanceSize, CompileExp), e);
@@ -7511,10 +7520,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class FileExp : UnaExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e)
     {
         super(loc, TOKmixin, __traits(classInstanceSize, FileExp), e);
@@ -7600,12 +7610,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class AssertExp : UnaExp
 {
 public:
     Expression msg;
 
-    /************************************************************/
     extern (D) this(Loc loc, Expression e, Expression msg = null)
     {
         super(loc, TOKassert, __traits(classInstanceSize, AssertExp), e);
@@ -7668,12 +7679,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DotIdExp : UnaExp
 {
 public:
     Identifier ident;
 
-    /************************************************************/
     extern (D) this(Loc loc, Expression e, Identifier ident)
     {
         super(loc, TOKdot, __traits(classInstanceSize, DotIdExp), e);
@@ -8046,13 +8058,14 @@ public:
     }
 }
 
+/***********************************************************
+ * Mainly just a placeholder
+ */
 extern (C++) final class DotTemplateExp : UnaExp
 {
 public:
     TemplateDeclaration td;
 
-    /********************** DotTemplateExp ***********************************/
-    // Mainly just a placeholder
     extern (D) this(Loc loc, Expression e, TemplateDeclaration td)
     {
         super(loc, TOKdottd, __traits(classInstanceSize, DotTemplateExp), e);
@@ -8072,13 +8085,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DotVarExp : UnaExp
 {
 public:
     Declaration var;
     bool hasOverloads;
 
-    /************************************************************/
     extern (D) this(Loc loc, Expression e, Declaration v, bool hasOverloads = false)
     {
         super(loc, TOKdotvar, __traits(classInstanceSize, DotVarExp), e);
@@ -8261,15 +8275,14 @@ public:
     }
 }
 
+/***********************************************************
+ * foo.bar!(args)
+ */
 extern (C++) final class DotTemplateInstanceExp : UnaExp
 {
 public:
     TemplateInstance ti;
 
-    /************************************************************/
-    /* Things like:
-     *      foo.bar!(args)
-     */
     extern (D) this(Loc loc, Expression e, Identifier name, Objects* tiargs)
     {
         super(loc, TOKdotti, __traits(classInstanceSize, DotTemplateInstanceExp), e);
@@ -8544,13 +8557,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DelegateExp : UnaExp
 {
 public:
     FuncDeclaration func;
     bool hasOverloads;
 
-    /************************************************************/
     extern (D) this(Loc loc, Expression e, FuncDeclaration f, bool hasOverloads = false)
     {
         super(loc, TOKdelegate, __traits(classInstanceSize, DelegateExp), e);
@@ -8588,12 +8602,13 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DotTypeExp : UnaExp
 {
 public:
-    Dsymbol sym; // symbol that represents a type
+    Dsymbol sym;        // symbol that represents a type
 
-    /************************************************************/
     extern (D) this(Loc loc, Expression e, Dsymbol s)
     {
         super(loc, TOKdottype, __traits(classInstanceSize, DotTypeExp), e);
@@ -8618,14 +8633,15 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class CallExp : UnaExp
 {
 public:
     Expressions* arguments; // function arguments
-    FuncDeclaration f; // symbol to call
-    bool directcall; // true if a virtual call is devirtualized
+    FuncDeclaration f;      // symbol to call
+    bool directcall;        // true if a virtual call is devirtualized
 
-    /************************************************************/
     extern (D) this(Loc loc, Expression e, Expressions* exps)
     {
         super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
@@ -9537,10 +9553,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class AddrExp : UnaExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e)
     {
         super(loc, TOKaddress, __traits(classInstanceSize, AddrExp), e);
@@ -9724,15 +9741,16 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class PtrExp : UnaExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e)
     {
         super(loc, TOKstar, __traits(classInstanceSize, PtrExp), e);
-        //    if (e->type)
-        //      type = ((TypePointer *)e->type)->next;
+        //if (e->type)
+        //  type = ((TypePointer *)e->type)->next;
     }
 
     extern (D) this(Loc loc, Expression e, Type t)
@@ -9811,10 +9829,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class NegExp : UnaExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e)
     {
         super(loc, TOKneg, __traits(classInstanceSize, NegExp), e);
@@ -9855,10 +9874,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class UAddExp : UnaExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e)
     {
         super(loc, TOKuadd, __traits(classInstanceSize, UAddExp), e);
@@ -9887,10 +9907,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ComExp : UnaExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e)
     {
         super(loc, TOKtilde, __traits(classInstanceSize, ComExp), e);
@@ -9927,10 +9948,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class NotExp : UnaExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e)
     {
         super(loc, TOKnot, __traits(classInstanceSize, NotExp), e);
@@ -9960,10 +9982,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class BoolExp : UnaExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e, Type t)
     {
         super(loc, TOKtobool, __traits(classInstanceSize, BoolExp), e);
@@ -9991,10 +10014,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DeleteExp : UnaExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e)
     {
         super(loc, TOKdelete, __traits(classInstanceSize, DeleteExp), e);
@@ -10110,14 +10134,15 @@ public:
     }
 }
 
+/***********************************************************
+ * Possible to cast to one type while painting to another type
+ */
 extern (C++) final class CastExp : UnaExp
 {
 public:
-    // Possible to cast to one type while painting to another type
-    Type to; // type to cast to
-    ubyte mod = cast(ubyte)~0; // MODxxxxx
+    Type to;                    // type to cast to
+    ubyte mod = cast(ubyte)~0;  // MODxxxxx
 
-    /************************************************************/
     extern (D) this(Loc loc, Expression e, Type t)
     {
         super(loc, TOKcast, __traits(classInstanceSize, CastExp), e);
@@ -10271,13 +10296,14 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class VectorExp : UnaExp
 {
 public:
-    TypeVector to; // the target vector type before semantic()
-    uint dim = ~0; // number of elements in the vector
+    TypeVector to;      // the target vector type before semantic()
+    uint dim = ~0;      // number of elements in the vector
 
-    /************************************************************/
     extern (D) this(Loc loc, Expression e, Type t)
     {
         super(loc, TOKvector, __traits(classInstanceSize, VectorExp), e);
@@ -10316,14 +10342,16 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class SliceExp : UnaExp
 {
 public:
-    Expression upr; // NULL if implicit 0
-    Expression lwr; // NULL if implicit [length - 1]
+    Expression upr;             // null if implicit 0
+    Expression lwr;             // null if implicit [length - 1]
     VarDeclaration lengthVar;
-    bool upperIsInBounds; // true if upr <= e1.length
-    bool lowerIsLessThanUpper; // true if lwr <= upr
+    bool upperIsInBounds;       // true if upr <= e1.length
+    bool lowerIsLessThanUpper;  // true if lwr <= upr
 
     /************************************************************/
     extern (D) this(Loc loc, Expression e1, IntervalExp ie)
@@ -10607,10 +10635,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ArrayLengthExp : UnaExp
 {
 public:
-    /********************** ArrayLength **************************************/
     extern (D) this(Loc loc, Expression e1)
     {
         super(loc, TOKarraylength, __traits(classInstanceSize, ArrayLengthExp), e1);
@@ -10674,16 +10703,16 @@ public:
     }
 }
 
-// e1[a0,a1,a2,a3,...]
+/***********************************************************
+ * e1 [ a0, a1, a2, a3 ,... ]
+ */
 extern (C++) final class ArrayExp : UnaExp
 {
 public:
-    Expressions* arguments; // Array of Expression's
-    size_t currentDimension; // for opDollar
+    Expressions* arguments;     // Array of Expression's
+    size_t currentDimension;    // for opDollar
     VarDeclaration lengthVar;
 
-    /*********************** ArrayExp *************************************/
-    // e1 [ i1, i2, i3, ... ]
     extern (D) this(Loc loc, Expression e1, Expression index = null)
     {
         super(loc, TOKarray, __traits(classInstanceSize, ArrayExp), e1);
@@ -10742,11 +10771,11 @@ public:
     }
 }
 
-/****************************************************************/
+/***********************************************************
+ */
 extern (C++) final class DotExp : BinExp
 {
 public:
-    /************************* DotExp ***********************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKdotexp, __traits(classInstanceSize, DotExp), e1, e2);
@@ -10786,10 +10815,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class CommaExp : BinExp
 {
 public:
-    /************************* CommaExp ***********************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKcomma, __traits(classInstanceSize, CommaExp), e1, e2);
@@ -10845,14 +10875,15 @@ public:
     }
 }
 
+/***********************************************************
+ * Mainly just a placeholder
+ */
 extern (C++) final class IntervalExp : Expression
 {
 public:
     Expression lwr;
     Expression upr;
 
-    /*********************** IntervalExp ********************************/
-    // Mainly just a placeholder
     extern (D) this(Loc loc, Expression lwr, Expression upr)
     {
         super(loc, TOKinterval, __traits(classInstanceSize, IntervalExp));
@@ -10898,7 +10929,6 @@ public:
 extern (C++) final class DelegatePtrExp : UnaExp
 {
 public:
-    /********************** DelegatePtrExp **************************************/
     extern (D) this(Loc loc, Expression e1)
     {
         super(loc, TOKdelegateptr, __traits(classInstanceSize, DelegatePtrExp), e1);
@@ -10938,10 +10968,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DelegateFuncptrExp : UnaExp
 {
 public:
-    /********************** DelegateFuncptrExp **************************************/
     extern (D) this(Loc loc, Expression e1)
     {
         super(loc, TOKdelegatefuncptr, __traits(classInstanceSize, DelegateFuncptrExp), e1);
@@ -10981,6 +11012,9 @@ public:
     }
 }
 
+/***********************************************************
+ * e1 [ e2 ]
+ */
 extern (C++) final class IndexExp : BinExp
 {
 public:
@@ -10988,8 +11022,6 @@ public:
     bool modifiable = false;    // assume it is an rvalue
     bool indexIsInBounds;       // true if 0 <= e2 && e2 <= e1.length - 1
 
-    /************************** IndexExp **********************************/
-    // e1 [ e2 ]
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKindex, __traits(classInstanceSize, IndexExp), e1, e2);
@@ -11230,12 +11262,12 @@ public:
     }
 }
 
-/* For both i++ and i--
+/***********************************************************
+ * For both i++ and i--
  */
 extern (C++) final class PostExp : BinExp
 {
 public:
-    /************************* PostExp ***********************************/
     extern (D) this(TOK op, Loc loc, Expression e)
     {
         super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
@@ -11325,12 +11357,12 @@ public:
     }
 }
 
-/* For both ++i and --i
+/***********************************************************
+ * For both ++i and --i
  */
 extern (C++) final class PreExp : UnaExp
 {
 public:
-    /************************* PreExp ***********************************/
     extern (D) this(TOK op, Loc loc, Expression e)
     {
         super(loc, op, __traits(classInstanceSize, PreExp), e);
@@ -11356,6 +11388,8 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) class AssignExp : BinExp
 {
 public:
@@ -12228,10 +12262,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ConstructExp : AssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, e1, e2);
@@ -12244,10 +12279,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class BlitExp : AssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, e1, e2);
@@ -12260,10 +12296,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class AddAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKaddass, __traits(classInstanceSize, AddAssignExp), e1, e2);
@@ -12275,10 +12312,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class MinAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKminass, __traits(classInstanceSize, MinAssignExp), e1, e2);
@@ -12290,10 +12328,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class MulAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKmulass, __traits(classInstanceSize, MulAssignExp), e1, e2);
@@ -12305,10 +12344,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DivAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKdivass, __traits(classInstanceSize, DivAssignExp), e1, e2);
@@ -12320,10 +12360,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ModAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKmodass, __traits(classInstanceSize, ModAssignExp), e1, e2);
@@ -12335,10 +12376,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class AndAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKandass, __traits(classInstanceSize, AndAssignExp), e1, e2);
@@ -12350,10 +12392,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class OrAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKorass, __traits(classInstanceSize, OrAssignExp), e1, e2);
@@ -12365,10 +12408,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class XorAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKxorass, __traits(classInstanceSize, XorAssignExp), e1, e2);
@@ -12380,10 +12424,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class PowAssignExp : BinAssignExp
 {
 public:
-    /***************** PowAssignExp *******************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKpowass, __traits(classInstanceSize, PowAssignExp), e1, e2);
@@ -12463,10 +12508,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ShlAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKshlass, __traits(classInstanceSize, ShlAssignExp), e1, e2);
@@ -12478,10 +12524,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ShrAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKshrass, __traits(classInstanceSize, ShrAssignExp), e1, e2);
@@ -12493,10 +12540,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class UshrAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKushrass, __traits(classInstanceSize, UshrAssignExp), e1, e2);
@@ -12508,10 +12556,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class CatAssignExp : BinAssignExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKcatass, __traits(classInstanceSize, CatAssignExp), e1, e2);
@@ -12584,10 +12633,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class AddExp : BinExp
 {
 public:
-    /************************* AddExp *****************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKadd, __traits(classInstanceSize, AddExp), e1, e2);
@@ -12673,10 +12723,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class MinExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKmin, __traits(classInstanceSize, MinExp), e1, e2);
@@ -12792,10 +12843,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class CatExp : BinExp
 {
 public:
-    /************************* CatExp *****************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKcat, __traits(classInstanceSize, CatExp), e1, e2);
@@ -12958,10 +13010,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class MulExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKmul, __traits(classInstanceSize, MulExp), e1, e2);
@@ -13053,10 +13106,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class DivExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKdiv, __traits(classInstanceSize, DivExp), e1, e2);
@@ -13145,10 +13199,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ModExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKmod, __traits(classInstanceSize, ModExp), e1, e2);
@@ -13199,10 +13254,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class PowExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKpow, __traits(classInstanceSize, PowExp), e1, e2);
@@ -13317,10 +13373,11 @@ extern (C++) Module loadStdMath()
     return impStdMath.mod;
 }
 
+/***********************************************************
+ */
 extern (C++) final class ShlExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKshl, __traits(classInstanceSize, ShlExp), e1, e2);
@@ -13354,10 +13411,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ShrExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKshr, __traits(classInstanceSize, ShrExp), e1, e2);
@@ -13390,10 +13448,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class UshrExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKushr, __traits(classInstanceSize, UshrExp), e1, e2);
@@ -13426,10 +13485,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class AndExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKand, __traits(classInstanceSize, AndExp), e1, e2);
@@ -13472,10 +13532,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class OrExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKor, __traits(classInstanceSize, OrExp), e1, e2);
@@ -13518,10 +13579,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class XorExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKxor, __traits(classInstanceSize, XorExp), e1, e2);
@@ -13564,10 +13626,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class OrOrExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKoror, __traits(classInstanceSize, OrOrExp), e1, e2);
@@ -13624,10 +13687,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class AndAndExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKandand, __traits(classInstanceSize, AndAndExp), e1, e2);
@@ -13684,10 +13748,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class CmpExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
@@ -13840,10 +13905,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class InExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKin, __traits(classInstanceSize, InExp), e1, e2);
@@ -13889,12 +13955,12 @@ public:
     }
 }
 
+/***********************************************************
+ * This deletes the key e1 from the associative array e2
+ */
 extern (C++) final class RemoveExp : BinExp
 {
 public:
-    /************************************************************/
-    /* This deletes the key e1 from the associative array e2
-     */
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOKremove, __traits(classInstanceSize, RemoveExp), e1, e2);
@@ -13914,11 +13980,12 @@ public:
     }
 }
 
-// == and !=
+/***********************************************************
+ * == and !=
+ */
 extern (C++) final class EqualExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, EqualExp), e1, e2);
@@ -14082,11 +14149,12 @@ public:
     }
 }
 
-// is and !is
+/***********************************************************
+ * is and !is
+ */
 extern (C++) final class IdentityExp : BinExp
 {
 public:
-    /************************************************************/
     extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
@@ -14118,13 +14186,13 @@ public:
     }
 }
 
-/****************************************************************/
+/***********************************************************
+ */
 extern (C++) final class CondExp : BinExp
 {
 public:
     Expression econd;
 
-    /****************************************************************/
     extern (D) this(Loc loc, Expression econd, Expression e1, Expression e2)
     {
         super(loc, TOKquestion, __traits(classInstanceSize, CondExp), e1, e2);
@@ -14340,13 +14408,13 @@ public:
     }
 }
 
-/****************************************************************/
+/***********************************************************
+ */
 extern (C++) class DefaultInitExp : Expression
 {
 public:
-    TOK subop; // which of the derived classes this is
+    TOK subop;      // which of the derived classes this is
 
-    /****************************************************************/
     final extern (D) this(Loc loc, TOK subop, int size)
     {
         super(loc, TOKdefault, size);
@@ -14359,10 +14427,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class FileInitExp : DefaultInitExp
 {
 public:
-    /****************************************************************/
     extern (D) this(Loc loc)
     {
         super(loc, TOKfile, __traits(classInstanceSize, FileInitExp));
@@ -14391,10 +14460,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class LineInitExp : DefaultInitExp
 {
 public:
-    /****************************************************************/
     extern (D) this(Loc loc)
     {
         super(loc, TOKline, __traits(classInstanceSize, LineInitExp));
@@ -14419,10 +14489,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class ModuleInitExp : DefaultInitExp
 {
 public:
-    /****************************************************************/
     extern (D) this(Loc loc)
     {
         super(loc, TOKmodulestring, __traits(classInstanceSize, ModuleInitExp));
@@ -14454,10 +14525,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class FuncInitExp : DefaultInitExp
 {
 public:
-    /****************************************************************/
     extern (D) this(Loc loc)
     {
         super(loc, TOKfuncstring, __traits(classInstanceSize, FuncInitExp));
@@ -14493,10 +14565,11 @@ public:
     }
 }
 
+/***********************************************************
+ */
 extern (C++) final class PrettyFuncInitExp : DefaultInitExp
 {
 public:
-    /****************************************************************/
     extern (D) this(Loc loc)
     {
         super(loc, TOKprettyfunc, __traits(classInstanceSize, PrettyFuncInitExp));

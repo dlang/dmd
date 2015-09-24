@@ -13,6 +13,8 @@ import ddmd.root.array, ddmd.root.filename, ddmd.root.rmem;
 
 version (Windows) alias WIN32_FIND_DATAA = WIN32_FIND_DATA;
 
+/***********************************************************
+ */
 struct File
 {
     int _ref; // != 0 if this is a reference to someone else's buffer
@@ -33,7 +35,6 @@ struct File
         return new File(n);
     }
 
-    /****************************** File ********************************/
     extern (D) this(const(FileName)* n)
     {
         _ref = 0;

@@ -30,7 +30,6 @@ import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 
-/******************************** Expression **************************/
 /***********************************
  * Determine if operands of binary op can be reversed
  * to fit operator overload.

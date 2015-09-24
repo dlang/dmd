@@ -24,17 +24,17 @@ import ddmd.root.outbuffer;
 import ddmd.tokens;
 import ddmd.visitor;
 
-/**************************************************************/
+/***********************************************************
+ * alias ident this;
+ */
 extern (C++) final class AliasThis : Dsymbol
 {
 public:
-    // alias Identifier this;
     Identifier ident;
 
-    // it's anonymous (no identifier)
     extern (D) this(Loc loc, Identifier ident)
     {
-        super(null);
+        super(null);    // it's anonymous (no identifier)
         this.loc = loc;
         this.ident = ident;
     }
