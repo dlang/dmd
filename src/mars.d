@@ -1526,7 +1526,7 @@ Language changes listed by -transition=id:
             Module m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "inline scan %s\n", m.toChars());
-            inlineScan(m);
+            inlineScanModule(m);
         }
     }
     // Do not attempt to generate output files if errors or warnings occurred
