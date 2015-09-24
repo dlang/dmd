@@ -2504,7 +2504,7 @@ elem *toElem(Expression *e, IRState *irs)
                 Type *ta = are->e1->type->toBasetype();
 
                 // which we do if the 'next' types match
-                if (ae->ismemset)
+                if (ae->ismemset & 1)
                 {
                     // Do a memset for array[]=v
                     //printf("Lpair %s\n", ae->toChars());
@@ -2694,7 +2694,7 @@ elem *toElem(Expression *e, IRState *irs)
 
             /* Look for reference initializations
              */
-            if (ae->op == TOKconstruct && ae->e1->op == TOKvar)
+            if (ae->op == TOKconstruct && ae->e1->op == TOKvar && !(ae->ismemset & 2))
             {
                 VarExp *ve = (VarExp *)ae->e1;
                 Declaration *s = ve->var;
@@ -3352,12 +3352,12 @@ elem *toElem(Expression *e, IRState *irs)
         {
             elem *ec = toElem(ce->econd, irs);
 
-            elem *eleft = toElemDtor(ce->e1, irs);
+            elem *eleft = toElem(ce->e1, irs);
             tym_t ty = eleft->Ety;
             if (global.params.cov && ce->e1->loc.linnum)
                 eleft = el_combine(incUsageElem(irs, ce->e1->loc), eleft);
 
-            elem *eright = toElemDtor(ce->e2, irs);
+            elem *eright = toElem(ce->e2, irs);
             if (global.params.cov && ce->e2->loc.linnum)
                 eright = el_combine(incUsageElem(irs, ce->e2->loc), eright);
 

@@ -1834,6 +1834,36 @@ void test14806()
 }
 
 /***************************************************/
+// 14948
+
+struct RefCounted14948(T)
+{
+    struct Impl
+    {
+        T data;
+    }
+    Impl* impl;
+
+    @property ref T payload() { return impl.data; }
+
+    alias payload this;
+}
+
+struct HTTP14948
+{
+    struct Impl
+    {
+    }
+
+    RefCounted14948!Impl p;
+}
+
+void test14948()
+{
+    int[HTTP14948] aa;
+}
+
+/***************************************************/
 
 int main()
 {

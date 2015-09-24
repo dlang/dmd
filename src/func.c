@@ -1169,6 +1169,7 @@ Ldone:
     TemplateInstance *ti;
     if (fbody &&
         (isFuncLiteralDeclaration() ||
+         (storage_class & STCinference) ||
          (inferRetType && !isCtorDeclaration()) ||
          isInstantiated() && !isVirtualMethod() &&
          !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->tempdecl->ident != ident)))
@@ -1240,7 +1241,6 @@ void FuncDeclaration::semantic3(Scope *sc)
 {
     VarDeclaration *argptr = NULL;
     VarDeclaration *_arguments = NULL;
-    int nerrors = global.errors;
 
     if (!parent)
     {
@@ -1256,6 +1256,28 @@ void FuncDeclaration::semantic3(Scope *sc)
     //printf("storage class = x%x %x\n", sc->stc, storage_class);
     //{ static int x; if (++x == 2) *(char*)0=0; }
     //printf("\tlinkage = %d\n", sc->linkage);
+
+    if (ident == Id::assign && !inuse)
+    {
+        if (storage_class & STCinference)
+        {
+            /* Bugzilla 15044: For generated opAssign function, any errors
+             * from its body need to be gagged.
+             */
+            unsigned oldErrors = global.startGagging();
+            ++inuse;
+            semantic3(sc);
+            --inuse;
+            if (global.endGagging(oldErrors))   // if errors happened
+            {
+                // Disable generated opAssign, because some members forbid identity assignment.
+                storage_class |= STCdisable;
+                fbody = NULL;   // remove fbody which contains the error
+                semantic3Errors = false;
+            }
+            return;
+        }
+    }
 
     //printf(" sc->incontract = %d\n", (sc->flags & SCOPEcontract));
     if (semanticRun >= PASSsemantic3)
@@ -1274,6 +1296,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         error("has no function body with return type inference");
         return;
     }
+
+    unsigned oldErrors = global.errors;
 
     if (frequire)
     {
@@ -2203,7 +2227,7 @@ void FuncDeclaration::semantic3(Scope *sc)
      * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
      */
     semanticRun = PASSsemantic3done;
-    semantic3Errors = (global.errors != nerrors) || (fbody && fbody->isErrorStatement());
+    semantic3Errors = (global.errors != oldErrors) || (fbody && fbody->isErrorStatement());
     if (type->ty == Terror)
         errors = true;
     //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
@@ -2250,6 +2274,9 @@ bool FuncDeclaration::functionSemantic()
         else
             return functionSemantic3();
     }
+
+    if (storage_class & STCinference)
+        return functionSemantic3();
 
     return true;
 }
@@ -4134,20 +4161,50 @@ const char *FuncDeclaration::kind()
 bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
-    if (parent && parent != sc->parent && this->isNested() &&
-        this->ident != Id::require && this->ident != Id::ensure)
+    if (!parent || parent == sc->parent)
+        return false;
+    if (ident == Id::require || ident == Id::ensure)
+        return false;
+    if (!isThis() && !isNested())
+        return false;
+
+    // The current function
+    FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
+    if (!fdthis)
+        return false;   // out of function scope
+
+    Dsymbol *p = toParent2();
+
+    // Function literals from fdthis to p must be delegates
+    // TODO: here is similar to checkFrameAccess.
+    for (Dsymbol *s = fdthis; s && s != p; s = s->toParent2())
+    {
+        // function literal has reference to enclosing scope is delegate
+        if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
+            fld->tok = TOKdelegate;
+
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+        {
+            if (!fd->isThis() && !fd->isNested())
+                break;
+        }
+        if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
+        {
+            if (ad2->storage_class & STCstatic)
+                break;
+        }
+    }
+
+    if (isNested())
     {
         // The function that this function is in
-        FuncDeclaration *fdv2 = toParent2()->isFuncDeclaration();
-
-        // The current function
-        FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
+        FuncDeclaration *fdv2 = p->isFuncDeclaration();
 
         //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
         //printf("fdv2 = %s in [%s]\n", fdv2->toChars(), fdv2->loc.toChars());
         //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
 
-        if (fdv2 && fdthis && fdv2 != fdthis)
+        if (fdv2 && fdv2 != fdthis)
         {
             // Add this function to the list of those which called us
             if (fdthis != this)
@@ -4167,7 +4224,7 @@ bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
             }
         }
 
-        FuncDeclaration *fdv = toParent2()->isFuncDeclaration();
+        FuncDeclaration *fdv = p->isFuncDeclaration();
         if (fdv && fdthis && fdv != fdthis)
         {
             int lv = fdthis->getLevel(loc, sc, fdv);
@@ -4179,12 +4236,6 @@ bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 return false;   // same level call
 
             // Uplevel call
-
-            // BUG: may need to walk up outer scopes like Declaration::checkNestedReference() does
-
-            // function literal has reference to enclosing scope is delegate
-            if (FuncLiteralDeclaration *fld = fdthis->isFuncLiteralDeclaration())
-                fld->tok = TOKdelegate;
         }
     }
     return false;

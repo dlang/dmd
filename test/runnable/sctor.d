@@ -317,6 +317,26 @@ class D14351c : B14351
 }
 
 /***************************************************/
+// 14944
+
+static int[2] tbl14944;
+
+static this()
+{
+    foreach (ref v; tbl14944)
+    {
+        // This is an initialization of referenced memory
+        // rather than the initialization of the reference.
+        v = 1;
+    }
+}
+
+void test14944()
+{
+    assert(tbl14944[0] == 1);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -324,6 +344,7 @@ int main()
     test9665();
     test11246();
     test13515();
+    test14944();
 
     printf("Success\n");
     return 0;

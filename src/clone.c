@@ -235,6 +235,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     TypeFunction *tf = new TypeFunction(fparams, sd->handleType(), 0, LINKd, stc | STCref);
 
     FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, tf);
+    fop->storage_class |= STCinference;
 
     Expression *e = NULL;
     if (stc & STCdisable)
@@ -310,7 +311,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
 
     fop->semantic(sc2);
     fop->semantic2(sc2);
-    fop->semantic3(sc2);
+    // Bugzilla 15044: fop->semantic3 isn't run here for lazy forward reference resolution.
 
     sc2->pop();
     if (global.endGagging(errors))    // if errors happened
@@ -697,6 +698,8 @@ bool needToHash(StructDeclaration *sd)
             TypeStruct *ts = (TypeStruct *)tv;
             if (needToHash(ts->sym))
                 goto Lneed;
+            if (ts->sym->aliasthis)     // Bugzilla 14948
+                goto Lneed;
         }
     }
 Ldontneed:
@@ -797,6 +800,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
         if (!sdv->postblit)
             continue;
+        sdv->postblit->functionSemantic();
 
         stc = mergeFuncAttrs(stc, sdv->postblit);
         stc = mergeFuncAttrs(stc, sdv->dtor);
@@ -850,6 +854,8 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
          */
         if (!sdv->dtor)
             continue;
+        sdv->dtor->functionSemantic();
+
         ex = new ThisExp(loc);
         ex = new DotVarExp(loc, ex, v, 0);
         if (v->type->toBasetype()->ty == Tstruct)
@@ -894,6 +900,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
     {
         //printf("Building __fieldPostBlit()\n");
         PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id::__fieldPostblit);
+        dd->storage_class |= STCinference;
         dd->fbody = a ? new CompoundStatement(loc, a) : NULL;
         sd->postblits.shift(dd);
         sd->members->push(dd);
@@ -928,6 +935,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
                 e = Expression::combine(e, ex);
             }
             PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id::__aggrPostblit);
+            dd->storage_class |= STCinference;
             dd->fbody = new ExpStatement(loc, e);
             sd->members->push(dd);
             dd->semantic(sc);
@@ -971,6 +979,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
         StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
         if (!sdv->dtor)
             continue;
+        sdv->dtor->functionSemantic();
 
         stc = mergeFuncAttrs(stc, sdv->dtor);
         if (stc & STCdisable)
@@ -1023,6 +1032,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
     {
         //printf("Building __fieldDtor()\n");
         DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Id::__fieldDtor);
+        dd->storage_class |= STCinference;
         dd->fbody = new ExpStatement(loc, e);
         ad->dtors.shift(dd);
         ad->members->push(dd);
@@ -1057,6 +1067,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
                 e = Expression::combine(ex, e);
             }
             DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Id::__aggrDtor);
+            dd->storage_class |= STCinference;
             dd->fbody = new ExpStatement(loc, e);
             ad->members->push(dd);
             dd->semantic(sc);

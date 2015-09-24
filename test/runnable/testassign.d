@@ -1130,6 +1130,39 @@ void test14672()
 }
 
 /***************************************************/
+// 15044
+
+void destroy15044(T)(ref T obj)
+{
+    static if (__traits(hasMember, T, "__xdtor"))
+        obj.__xdtor();
+    else
+        static assert(0, T.stringof);
+}
+
+struct V15044
+{
+    ~this()
+    {
+    }
+
+    RC15044!V15044 dup()
+    {
+        return RC15044!V15044(&this);
+    }
+}
+
+struct RC15044(T)
+{
+    ~this()
+    {
+        destroy15044(*t);
+        static assert(__traits(hasMember, T, "__xdtor"));
+    }
+    T* t;
+}
+
+/***************************************************/
 
 int main()
 {
