@@ -1244,7 +1244,7 @@ public:
          * the function body.
          */
         TemplateInstance ti;
-        if (fbody && (isFuncLiteralDeclaration() || (inferRetType && !isCtorDeclaration()) || isInstantiated() && !isVirtualMethod() && !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident)))
+        if (fbody && (isFuncLiteralDeclaration() || (storage_class & STCinference) || (inferRetType && !isCtorDeclaration()) || isInstantiated() && !isVirtualMethod() && !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident)))
         {
             if (f.purity == PUREimpure) // purity not specified
                 flags |= FUNCFLAGpurityInprocess;
@@ -1300,7 +1300,7 @@ public:
     {
         VarDeclaration argptr = null;
         VarDeclaration _arguments = null;
-        int nerrors = global.errors;
+
         if (!parent)
         {
             if (global.errors)
@@ -1315,6 +1315,29 @@ public:
         //printf("storage class = x%x %x\n", sc->stc, storage_class);
         //{ static int x; if (++x == 2) *(char*)0=0; }
         //printf("\tlinkage = %d\n", sc->linkage);
+
+        if (ident == Id.assign && !inuse)
+        {
+            if (storage_class & STCinference)
+            {
+                /* Bugzilla 15044: For generated opAssign function, any errors
+                 * from its body need to be gagged.
+                 */
+                uint oldErrors = global.startGagging();
+                ++inuse;
+                semantic3(sc);
+                --inuse;
+                if (global.endGagging(oldErrors))   // if errors happened
+                {
+                    // Disable generated opAssign, because some members forbid identity assignment.
+                    storage_class |= STCdisable;
+                    fbody = null;   // remove fbody which contains the error
+                    semantic3Errors = false;
+                }
+                return;
+            }
+        }
+
         //printf(" sc->incontract = %d\n", (sc->flags & SCOPEcontract));
         if (semanticRun >= PASSsemantic3)
             return;
@@ -1330,6 +1353,9 @@ public:
             error("has no function body with return type inference");
             return;
         }
+
+        uint oldErrors = global.errors;
+
         if (frequire)
         {
             for (size_t i = 0; i < foverrides.dim; i++)
@@ -2172,7 +2198,7 @@ public:
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
          */
         semanticRun = PASSsemantic3done;
-        semantic3Errors = (global.errors != nerrors) || (fbody && fbody.isErrorStatement());
+        semantic3Errors = (global.errors != oldErrors) || (fbody && fbody.isErrorStatement());
         if (type.ty == Terror)
             errors = true;
         //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
@@ -2215,6 +2241,10 @@ public:
             else
                 return functionSemantic3();
         }
+
+        if (storage_class & STCinference)
+            return functionSemantic3();
+
         return true;
     }
 

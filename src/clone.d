@@ -216,6 +216,8 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     fparams.push(new Parameter(STCnodtor, sd.type, Id.p, null));
     auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINKd, stc | STCref);
     auto fop = new FuncDeclaration(declLoc, Loc(), Id.assign, stc, tf);
+    fop.storage_class |= STCinference;
+
     Expression e = null;
     if (stc & STCdisable)
     {
@@ -283,7 +285,8 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     sc2.linkage = LINKd;
     fop.semantic(sc2);
     fop.semantic2(sc2);
-    fop.semantic3(sc2);
+    // Bugzilla 15044: fop->semantic3 isn't run here for lazy forward reference resolution.
+
     sc2.pop();
     if (global.endGagging(errors)) // if errors happened
     {
@@ -735,6 +738,8 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         StructDeclaration sdv = (cast(TypeStruct)tv).sym;
         if (!sdv.postblit)
             continue;
+        sdv.postblit.functionSemantic();
+
         stc = mergeFuncAttrs(stc, sdv.postblit);
         stc = mergeFuncAttrs(stc, sdv.dtor);
         if (stc & STCdisable)
@@ -779,6 +784,8 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
          */
         if (!sdv.dtor)
             continue;
+        sdv.dtor.functionSemantic();
+
         ex = new ThisExp(loc);
         ex = new DotVarExp(loc, ex, v, 0);
         if (v.type.toBasetype().ty == Tstruct)
@@ -816,6 +823,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     {
         //printf("Building __fieldPostBlit()\n");
         auto dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id.__fieldPostblit);
+        dd.storage_class |= STCinference;
         dd.fbody = a ? new CompoundStatement(loc, a) : null;
         sd.postblits.shift(dd);
         sd.members.push(dd);
@@ -847,6 +855,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             e = Expression.combine(e, ex);
         }
         auto dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id.__aggrPostblit);
+        dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         sd.members.push(dd);
         dd.semantic(sc);
@@ -889,6 +898,8 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         StructDeclaration sdv = (cast(TypeStruct)tv).sym;
         if (!sdv.dtor)
             continue;
+        sdv.dtor.functionSemantic();
+
         stc = mergeFuncAttrs(stc, sdv.dtor);
         if (stc & STCdisable)
         {
@@ -932,6 +943,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     {
         //printf("Building __fieldDtor()\n");
         auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__fieldDtor);
+        dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         ad.dtors.shift(dd);
         ad.members.push(dd);
@@ -963,6 +975,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             e = Expression.combine(ex, e);
         }
         auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__aggrDtor);
+        dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         ad.members.push(dd);
         dd.semantic(sc);
