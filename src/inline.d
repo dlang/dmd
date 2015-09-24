@@ -1835,7 +1835,7 @@ Lno:
  * Params:
  *    m = module to scan
  */
-public void inlineScan(Module m)
+public void inlineScanModule(Module m)
 {
     if (m.semanticRun != PASSsemantic3done)
         return;
