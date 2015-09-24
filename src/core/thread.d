@@ -107,6 +107,17 @@ private
     //
     extern (C) void  rt_moduleTlsCtor();
     extern (C) void  rt_moduleTlsDtor();
+
+    /**
+     * Hook for whatever EH implementation is used to save/restore some data
+     * per stack.
+     *
+     * Params:
+     *     newContext = The return value of the prior call to this function
+     *         where the stack was last swapped out, or null when a fiber stack
+     *         is switched in for the first time.
+     */
+    extern(C) void* _d_eh_swapContext(void* newContext) nothrow;
 }
 
 
@@ -1458,6 +1469,7 @@ private:
     }
     body
     {
+        m_curr.ehContext = _d_eh_swapContext(c.ehContext);
         c.within = m_curr;
         m_curr = c;
     }
@@ -1472,6 +1484,7 @@ private:
     {
         Context* c = m_curr;
         m_curr = c.within;
+        c.ehContext = _d_eh_swapContext(m_curr.ehContext);
         c.within = null;
     }
 
@@ -1491,6 +1504,12 @@ private:
     {
         void*           bstack,
                         tstack;
+
+        /// Slot for the EH implementation to keep some state for each stack
+        /// (will be necessary for exception chaining, etc.). Opaque as far as
+        /// we are concerned here.
+        void*           ehContext;
+
         Context*        within;
         Context*        next,
                         prev;
@@ -4994,6 +5013,43 @@ version (Win32) {
     }
 }
 
+// Test exception chaining when switching contexts in finally blocks.
+unittest
+{
+    static void throwAndYield(string msg) {
+      try {
+        throw new Exception(msg);
+      } finally {
+        Fiber.yield();
+      }
+    }
+
+    static void fiber(string name) {
+      try {
+        try {
+          throwAndYield(name ~ ".1");
+        } finally {
+          throwAndYield(name ~ ".2");
+        }
+      } catch (Exception e) {
+        assert(e.msg == name ~ ".1");
+        assert(e.next);
+        assert(e.next.msg == name ~ ".2");
+        assert(!e.next.next);
+      }
+    }
+
+    auto first = new Fiber(() => fiber("first"));
+    auto second = new Fiber(() => fiber("second"));
+    first.call();
+    second.call();
+    first.call();
+    second.call();
+    first.call();
+    second.call();
+    assert(first.state == Fiber.State.TERM);
+    assert(second.state == Fiber.State.TERM);
+}
 
 // Test Fiber resetting
 unittest
