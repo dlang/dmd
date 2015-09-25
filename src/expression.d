@@ -8449,8 +8449,9 @@ public:
                 {
                     if (eleft)
                     {
-                        error("cannot have e.tuple");
-                        return new ErrorExp();
+                        e = new DotVarExp(loc, eleft, tup);
+                        e = e.semantic(sc);
+                        return e;
                     }
                     e = new TupleExp(loc, tup);
                     e = e.semantic(sc);

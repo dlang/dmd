@@ -7660,6 +7660,28 @@ void test15045()
 }
 
 /***************************************************/
+// 15116
+
+alias TypeTuple15116(T...) = T;
+
+template Mix15116()
+{
+    TypeTuple15116!(int, int) tup;
+}
+
+struct S15116
+{
+    mixin Mix15116 mix;
+}
+
+void test15116()
+{
+    S15116 s;
+    auto x1 = s.tup;        // OK
+    auto x2 = s.mix.tup;    // OK <- NG
+}
+
+/***************************************************/
 // 15126
 
 struct Json15126
