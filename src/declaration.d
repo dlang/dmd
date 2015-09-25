@@ -2275,6 +2275,9 @@ public:
     override final Dsymbol toAlias()
     {
         //printf("VarDeclaration::toAlias('%s', this = %p, aliassym = %p)\n", toChars(), this, aliassym);
+        if ((!type || !type.deco) && _scope)
+            semantic(_scope);
+
         assert(this != aliassym);
         Dsymbol s = aliassym ? aliassym.toAlias() : this;
         return s;

@@ -3703,36 +3703,15 @@ public:
         {
             if (!s.isFuncDeclaration()) // functions are checked after overloading
                 s.checkDeprecated(loc, sc);
+
+            // Bugzilla 12023: if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
+
             //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
             if (s != olds && !s.isFuncDeclaration())
                 s.checkDeprecated(loc, sc);
         }
-        if (VarDeclaration v = s.isVarDeclaration())
-        {
-            /* Bugzilla 12023: forward reference should be resolved
-             * before 's->needThis()' is called.
-             */
-            if ((!v.type || !v.type.deco) && v._scope)
-            {
-                v.semantic(v._scope);
-                s = v.toAlias(); // Need this if 'v' is a tuple variable
-            }
-            // Change the ancestor lambdas to delegate before hasThis(sc) call.
-            if (v.checkNestedReference(sc, loc))
-                return new ErrorExp();
-        }
-        if (s.needThis() && hasThis(sc))
-        {
-            // For functions, this should happen after overload resolution
-            if (!s.isFuncDeclaration())
-            {
-                // Supply an implicit 'this', as in
-                //    this.ident
-                auto de = new DotVarExp(loc, new ThisExp(loc), s.isDeclaration());
-                return de.semantic(sc);
-            }
-        }
+
         if (EnumMember em = s.isEnumMember())
         {
             return em.getVarExp(loc, sc);
@@ -3758,10 +3737,17 @@ public:
                 v.inuse--;
                 return e;
             }
-            e = new VarExp(loc, v);
-            e.type = v.type;
+
+            // Change the ancestor lambdas to delegate before hasThis(sc) call.
+            if (v.checkNestedReference(sc, loc))
+                return new ErrorExp();
+
+            if (v.needThis() && hasThis(sc))
+                e = new DotVarExp(loc, new ThisExp(loc), v);
+            else
+                e = new VarExp(loc, v);
             e = e.semantic(sc);
-            return e.deref();
+            return e;
         }
         if (FuncLiteralDeclaration fld = s.isFuncLiteralDeclaration())
         {
@@ -3827,7 +3813,10 @@ public:
         }
         if (TupleDeclaration tup = s.isTupleDeclaration())
         {
-            e = new TupleExp(loc, tup);
+            if (tup.needThis() && hasThis(sc))
+                e = new DotVarExp(loc, new ThisExp(loc), tup);
+            else
+                e = new TupleExp(loc, tup);
             e = e.semantic(sc);
             return e;
         }
@@ -5263,9 +5252,6 @@ public:
 
             if (auto v = s.isVarDeclaration())
             {
-                if ((!v.type || !v.type.deco) && v._scope)
-                    v.semantic(v._scope);
-
                 if (!v.type)
                 {
                     error("forward reference of %s %s", v.kind(), v.toChars());
@@ -7925,8 +7911,12 @@ public:
                  */
                 if (Declaration d = s.isDeclaration())
                     checkAccess(loc, sc, null, d);
+
+                // if 's' is a tuple variable, the tuple is returned.
                 s = s.toAlias();
+
                 checkDeprecated(sc, s);
+
                 EnumMember em = s.isEnumMember();
                 if (em)
                 {
@@ -7941,7 +7931,6 @@ public:
                         error("circular reference to '%s'", v.toChars());
                         return new ErrorExp();
                     }
-                    type = v.type;
                     if (v.needThis())
                     {
                         if (!eleft)
