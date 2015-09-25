@@ -306,15 +306,17 @@ enum TFLAGSreal         = 8;
 enum TFLAGSimaginary    = 0x10;
 enum TFLAGScomplex      = 0x20;
 
-extern (C++) Expression semanticLength(Scope* sc, TupleDeclaration s, Expression exp)
+extern (C++) Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
 {
-    ScopeDsymbol sym = new ArrayScopeSymbol(sc, s);
+    ScopeDsymbol sym = new ArrayScopeSymbol(sc, tup);
     sym.parent = sc.scopesym;
+
     sc = sc.push(sym);
     sc = sc.startCTFE();
     exp = exp.semantic(sc);
     sc = sc.endCTFE();
     sc.pop();
+
     return exp;
 }
 
@@ -4473,18 +4475,21 @@ public:
         Expression e;
         Dsymbol s;
         next.resolve(loc, sc, &e, &t, &s);
-        if (dim && s && s.isTupleDeclaration())
+
+        if (auto tup = s ? s.isTupleDeclaration() : null)
         {
-            TupleDeclaration sd = s.isTupleDeclaration();
-            dim = semanticLength(sc, sd, dim);
+            dim = semanticLength(sc, tup, dim);
             dim = dim.ctfeInterpret();
+            if (dim.op == TOKerror)
+                return Type.terror;
             uinteger_t d = dim.toUInteger();
-            if (d >= sd.objects.dim)
+            if (d >= tup.objects.dim)
             {
-                error(loc, "tuple index %llu exceeds %u", d, sd.objects.dim);
+                error(loc, "tuple index %llu exceeds %u", d, tup.objects.dim);
                 return Type.terror;
             }
-            RootObject o = (*sd.objects)[cast(size_t)d];
+
+            RootObject o = (*tup.objects)[cast(size_t)d];
             if (o.dyncast() != DYNCAST_TYPE)
             {
                 error(loc, "%s is not a type", toChars());
@@ -4598,26 +4603,26 @@ public:
         else if (*ps)
         {
             Dsymbol s = *ps;
-            TupleDeclaration td = s.isTupleDeclaration();
-            if (td)
+            if (auto tup = s.isTupleDeclaration())
             {
-                ScopeDsymbol sym = new ArrayScopeSymbol(sc, td);
-                sym.parent = sc.scopesym;
-                sc = sc.push(sym);
-                sc = sc.startCTFE();
-                dim = dim.semantic(sc);
-                sc = sc.endCTFE();
-                sc = sc.pop();
+                dim = semanticLength(sc, tup, dim);
                 dim = dim.ctfeInterpret();
-                uinteger_t d = dim.toUInteger();
-                if (d >= td.objects.dim)
+                if (dim.op == TOKerror)
                 {
-                    error(loc, "tuple index %llu exceeds length %u", d, td.objects.dim);
                     *ps = null;
                     *pt = Type.terror;
                     return;
                 }
-                RootObject o = (*td.objects)[cast(size_t)d];
+                uinteger_t d = dim.toUInteger();
+                if (d >= tup.objects.dim)
+                {
+                    error(loc, "tuple index %llu exceeds length %u", d, tup.objects.dim);
+                    *ps = null;
+                    *pt = Type.terror;
+                    return;
+                }
+
+                RootObject o = (*tup.objects)[cast(size_t)d];
                 if (o.dyncast() == DYNCAST_DSYMBOL)
                 {
                     *ps = cast(Dsymbol)o;
@@ -4644,6 +4649,7 @@ public:
                     *pt = (cast(Type)o).addMod(this.mod);
                     return;
                 }
+
                 /* Create a new TupleDeclaration which
                  * is a slice [d..d+1] out of the old one.
                  * Do it this way because TemplateInstance::semanticTiargs()
@@ -4652,8 +4658,7 @@ public:
                 auto objects = new Objects();
                 objects.setDim(1);
                 (*objects)[0] = o;
-                auto tds = new TupleDeclaration(loc, td.ident, objects);
-                *ps = tds;
+                *ps = new TupleDeclaration(loc, tup.ident, objects);
             }
             else
                 goto Ldefault;
@@ -4930,8 +4935,7 @@ public:
         }
         else if (*ps)
         {
-            TupleDeclaration td = (*ps).isTupleDeclaration();
-            if (td)
+            if (auto tup = (*ps).isTupleDeclaration())
             {
                 // keep *ps
             }
@@ -6852,11 +6856,11 @@ public:
         *pt = null;
         *ps = null;
         *pe = null;
-        TupleDeclaration td = s.isTupleDeclaration();
-        Expression eindex = isExpression(oindex);
-        Type tindex = isType(oindex);
-        Dsymbol sindex = isDsymbol(oindex);
-        if (!td)
+        auto tup = s.isTupleDeclaration();
+        auto eindex = isExpression(oindex);
+        auto tindex = isType(oindex);
+        auto sindex = isDsymbol(oindex);
+        if (!tup)
         {
             // It's really an index expression
             if (tindex)
@@ -6884,9 +6888,8 @@ public:
             *pt = Type.terror;
             return;
         }
-        sc = sc.startCTFE();
-        eindex = eindex.semantic(sc);
-        sc = sc.endCTFE();
+
+        eindex = semanticLength(sc, tup, eindex);
         eindex = eindex.ctfeInterpret();
         if (eindex.op == TOKerror)
         {
@@ -6894,13 +6897,14 @@ public:
             return;
         }
         const(uinteger_t) d = eindex.toUInteger();
-        if (d >= td.objects.dim)
+        if (d >= tup.objects.dim)
         {
-            .error(loc, "tuple index %llu exceeds length %u", d, td.objects.dim);
+            .error(loc, "tuple index %llu exceeds length %u", d, tup.objects.dim);
             *pt = Type.terror;
             return;
         }
-        RootObject o = (*td.objects)[cast(size_t)d];
+
+        RootObject o = (*tup.objects)[cast(size_t)d];
         *pt = isType(o);
         *ps = isDsymbol(o);
         *pe = isExpression(o);
@@ -9263,16 +9267,19 @@ public:
         }
         TypeTuple tt = cast(TypeTuple)tbn;
         lwr = semanticLength(sc, tbn, lwr);
-        lwr = lwr.ctfeInterpret();
-        uinteger_t i1 = lwr.toUInteger();
         upr = semanticLength(sc, tbn, upr);
+        lwr = lwr.ctfeInterpret();
         upr = upr.ctfeInterpret();
+        if (lwr.op == TOKerror || upr.op == TOKerror)
+            return Type.terror;
+        uinteger_t i1 = lwr.toUInteger();
         uinteger_t i2 = upr.toUInteger();
         if (!(i1 <= i2 && i2 <= tt.arguments.dim))
         {
             error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, tt.arguments.dim);
             return Type.terror;
         }
+
         next = tn;
         transitive();
         auto args = new Parameters();
