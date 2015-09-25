@@ -7682,6 +7682,21 @@ void test15116()
 }
 
 /***************************************************/
+// 15117
+
+template Mix15117()
+{
+    int y = { typeof(this)* s; return s ? s.mix.y : 0; }();
+}
+
+struct S15117
+{
+    int x = { typeof(this)* s; return s ? s.x : 0; }(); // OK
+
+    mixin Mix15117 mix;     // OK <- NG
+}
+
+/***************************************************/
 // 15126
 
 struct Json15126

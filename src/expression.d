@@ -8367,9 +8367,12 @@ public:
                 if (v)
                 {
                     //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
-                    if (v.inuse)
+                    if (!v.type)
                     {
-                        error("circular reference to '%s'", v.toChars());
+                        if (v.inuse)
+                            error("circular reference to '%s'", v.toChars());
+                        else
+                            error("forward reference of %s %s", s.kind(), s.toChars());
                         return new ErrorExp();
                     }
                     if (v.needThis())
