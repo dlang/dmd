@@ -1179,6 +1179,7 @@ public:
     // are used to pass the result from 'visit' back to 'inlineScan'
     Statement result;
     Expression eresult;
+    bool again;
 
     extern (D) this()
     {
@@ -1209,7 +1210,7 @@ public:
                     FuncDeclaration fd = ve.var.isFuncDeclaration();
                     if (fd && fd != parent && canInline(fd, 0, 0, 1))
                     {
-                        expandInline(fd, parent, null, null, ce.arguments, &result);
+                        expandInline(fd, parent, null, null, ce.arguments, &result, again);
                     }
                 }
             }
@@ -1494,7 +1495,7 @@ public:
             FuncDeclaration fd = ve.var.isFuncDeclaration();
             if (fd && fd != parent && canInline(fd, 0, 0, 0))
             {
-                Expression ex = expandInline(fd, parent, eret, null, e.arguments, null);
+                Expression ex = expandInline(fd, parent, eret, null, e.arguments, null, again);
                 if (ex)
                 {
                     eresult = ex;
@@ -1518,7 +1519,7 @@ public:
                 }
                 else
                 {
-                    Expression ex = expandInline(fd, parent, eret, dve.e1, e.arguments, null);
+                    Expression ex = expandInline(fd, parent, eret, dve.e1, e.arguments, null, again);
                     if (ex)
                     {
                         eresult = ex;
@@ -1619,17 +1620,26 @@ public:
         {
             printf("FuncDeclaration::inlineScan('%s')\n", fd.toPrettyChars());
         }
-        if (fd.isUnitTestDeclaration() && !global.params.useUnitTests)
+        if (fd.isUnitTestDeclaration() && !global.params.useUnitTests ||
+            fd.flags & FUNCFLAGinlineScanned)
             return;
-        FuncDeclaration oldparent = parent;
-        parent = fd;
         if (fd.fbody && !fd.naked)
         {
-            fd.inlineNest++;
-            inlineScan(&fd.fbody);
-            fd.inlineNest--;
+            auto againsave = again;
+            auto parentsave = parent;
+            parent = fd;
+            do
+            {
+                again = false;
+                fd.inlineNest++;
+                fd.flags |= FUNCFLAGinlineScanned;
+                inlineScan(&fd.fbody);
+                fd.inlineNest--;
+            }
+            while (again);
+            again = againsave;
+            parent = parentsave;
         }
-        parent = oldparent;
     }
 
     override void visit(AttribDeclaration d)
@@ -1874,10 +1884,13 @@ public void inlineScanModule(Module m)
  *      arguments = arguments passed to fd
  *      ps = if expanding to a statement, this is where the statement is written to
  *           (and ignore the return value)
+ *      again = if true, then fd can be inline scanned again because there may be
+ *           more opportunities for inlining
  * Returns:
  *      Expression it expanded to
  */
-Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret, Expression ethis, Expressions* arguments, Statement* ps)
+Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
+        Expression ethis, Expressions* arguments, Statement* ps, out bool again)
 {
     InlineDoState ids;
     Expression e = null;
@@ -2022,6 +2035,16 @@ Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression e
             auto de = new DeclarationExp(Loc(), vto);
             de.type = Type.tvoid;
             e = Expression.combine(e, de);
+
+            /* If function pointer or delegate parameters are present,
+             * inline scan again because if they are initialized to a symbol,
+             * any calls to the fp or dg can be inlined.
+             */
+            if (vfrom.type.ty == Tdelegate ||
+                vfrom.type.ty == Tpointer && vfrom.type.nextOf().ty == Tfunction)
+            {
+                again = true;
+            }
         }
     }
     if (ps)

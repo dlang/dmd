@@ -393,6 +393,7 @@ enum FUNCFLAGsafetyInprocess  = 2;      // working on determining safety
 enum FUNCFLAGnothrowInprocess = 4;      // working on determining nothrow
 enum FUNCFLAGnogcInprocess    = 8;      // working on determining @nogc
 enum FUNCFLAGreturnInprocess  = 0x10;   // working on inferring 'return' for parameters
+enum FUNCFLAGinlineScanned    = 0x20;   // function has been scanned for inline possibilities
 
 /***********************************************************
  */
