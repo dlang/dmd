@@ -7437,7 +7437,7 @@ public:
                 *pe = em.getVarExp(loc, sc);
                 return;
             }
-            if (VarDeclaration v = s.isVarDeclaration())
+            if (auto v = s.isVarDeclaration())
             {
                 /* This is mostly same with DsymbolExp::semantic(), but we cannot use it
                  * because some variables used in type context need to prevent lowering
@@ -7449,18 +7449,16 @@ public:
                  *      // TypeIdentifier 'a', 'e', and 'v' should be TOKvar,
                  *      // because getDsymbol() need to work in AliasDeclaration::semantic().
                  */
-                if (!v.type || !v.type.deco)
+                if (!v.type ||
+                    !v.type.deco && v.inuse)
                 {
                     if (v.inuse) // Bugzilla 9494
-                    {
-                        error(loc, "circular reference to '%s'", v.toPrettyChars());
-                        *pe = new ErrorExp();
-                        return;
-                    }
-                    if (v.semanticRun < PASSsemanticdone && v._scope)
-                        v.semantic(null);
+                        error(loc, "circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                    else
+                        error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
+                    *pt = Type.terror;
+                    return;
                 }
-                assert(v.type); // Bugzilla 14642
                 if (v.type.ty == Terror)
                     *pt = Type.terror;
                 else
@@ -8226,28 +8224,32 @@ public:
         {
             return em.getVarExp(e.loc, sc);
         }
-
-        VarDeclaration v = s.isVarDeclaration();
-        if (v && (!v.type || !v.type.deco))
+        if (auto v = s.isVarDeclaration())
         {
-            if (v.inuse) // Bugzilla 9494
+            if (!v.type ||
+                !v.type.deco && v.inuse)
             {
-                e.error("circular reference to '%s'", v.toPrettyChars());
+                if (v.inuse) // Bugzilla 9494
+                    e.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                else
+                    e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
             }
-            if (v._scope)
+            if (v.type.ty == Terror)
+                return new ErrorExp();
+
+            if ((v.storage_class & STCmanifest) && v._init)
             {
-                v.semantic(v._scope);
-                s = v.toAlias(); // Need this if 'v' is a tuple variable
-                v = s.isVarDeclaration();
+                if (v.inuse)
+                {
+                    e.error("circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
+                    return new ErrorExp();
+                }
+                checkAccess(e.loc, sc, null, v);
+                Expression ve = new VarExp(e.loc, v);
+                ve = ve.semantic(sc);
+                return ve;
             }
-        }
-        if (v && !v.isDataseg() && (v.storage_class & STCmanifest))
-        {
-            checkAccess(e.loc, sc, null, v);
-            Expression ve = new VarExp(e.loc, v);
-            ve = ve.semantic(sc);
-            return ve;
         }
 
         if (auto t = s.getType())
@@ -9184,28 +9186,32 @@ public:
         {
             return em.getVarExp(e.loc, sc);
         }
-
-        VarDeclaration v = s.isVarDeclaration();
-        if (v && (!v.type || !v.type.deco))
+        if (auto v = s.isVarDeclaration())
         {
-            if (v.inuse) // Bugzilla 9494
+            if (!v.type ||
+                !v.type.deco && v.inuse)
             {
-                e.error("circular reference to '%s'", v.toPrettyChars());
+                if (v.inuse) // Bugzilla 9494
+                    e.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                else
+                    e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
             }
-            if (v._scope)
+            if (v.type.ty == Terror)
+                return new ErrorExp();
+
+            if ((v.storage_class & STCmanifest) && v._init)
             {
-                v.semantic(v._scope);
-                s = v.toAlias(); // Need this if 'v' is a tuple variable
-                v = s.isVarDeclaration();
+                if (v.inuse)
+                {
+                    e.error("circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
+                    return new ErrorExp();
+                }
+                checkAccess(e.loc, sc, null, v);
+                Expression ve = new VarExp(e.loc, v);
+                ve = ve.semantic(sc);
+                return ve;
             }
-        }
-        if (v && !v.isDataseg() && (v.storage_class & STCmanifest))
-        {
-            checkAccess(e.loc, sc, null, v);
-            Expression ve = new VarExp(e.loc, v);
-            ve = ve.semantic(sc);
-            return ve;
         }
 
         if (auto t = s.getType())
