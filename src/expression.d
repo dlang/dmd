@@ -5195,9 +5195,10 @@ public:
         }
         //if (type == Type::tvoid)
         //    return this;
-    Lagain:
-        TemplateInstance ti = sds.isTemplateInstance();
-        if (ti)
+
+        ScopeDsymbol sds2 = sds;
+        TemplateInstance ti = sds2.isTemplateInstance();
+        while (ti)
         {
             WithScopeSymbol withsym;
             if (!ti.findTempDecl(sc, &withsym) || !ti.semanticTiargs(sc))
@@ -5238,42 +5239,36 @@ public:
             ti.semantic(sc);
             if (!ti.inst || ti.errors)
                 return new ErrorExp();
+
+            Dsymbol s = ti.toAlias();
+            if (s == ti)
             {
-                Dsymbol s = ti.toAlias();
-                ScopeDsymbol sds2 = s.isScopeDsymbol();
-                if (!sds2)
-                {
-                    Expression e;
-                    //printf("s = %s, '%s'\n", s->kind(), s->toChars());
-                    if (withsym && withsym.withstate.wthis)
-                    {
-                        // Same as wthis.s
-                        e = new VarExp(loc, withsym.withstate.wthis);
-                        e = new DotVarExp(loc, e, s.isDeclaration());
-                        e = e.semantic(sc);
-                    }
-                    else
-                        e = DsymbolExp.resolve(loc, sc, s, s.hasOverloads());
-                    //printf("-1ScopeExp::semantic()\n");
-                    return e;
-                }
-                if (sds2 != sds)
-                {
-                    sds = sds2;
-                    goto Lagain;
-                }
-                //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
+                sds = ti;
+                type = Type.tvoid;
+                return this;
             }
+            sds2 = s.isScopeDsymbol();
+            if (sds2)
+            {
+                ti = sds2.isTemplateInstance();
+                //printf("+ sds2 = %s, '%s'\n", sds2.kind(), sds2.toChars());
+                continue;
+            }
+
+            //printf("s = %s, '%s'\n", s.kind(), s.toChars());
+            auto e = DsymbolExp.resolve(loc, sc, s, s.hasOverloads());
+            //printf("-1ScopeExp::semantic()\n");
+            return e;
         }
-        else
-        {
-            //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
-            //printf("\tparent = '%s'\n", sds->parent->toChars());
-            sds.semantic(sc);
-            AggregateDeclaration ad = sds.isAggregateDeclaration();
-            if (ad)
-                return (new TypeExp(loc, ad.type)).semantic(sc);
-        }
+
+        //printf("sds2 = %s, '%s'\n", sds2.kind(), sds2.toChars());
+        //printf("\tparent = '%s'\n", sds2.parent.toChars());
+        sds2.semantic(sc);
+
+        if (auto ad = sds2.isAggregateDeclaration())
+            return (new TypeExp(loc, ad.type)).semantic(sc);
+
+        sds = sds2;
         type = Type.tvoid;
         //printf("-2ScopeExp::semantic() %s\n", toChars());
         return this;
