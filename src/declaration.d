@@ -2113,11 +2113,12 @@ public:
 
     /*******************************************
      * If variable has a constant expression initializer, get it.
-     * Otherwise, return NULL.
+     * Otherwise, return null.
      */
     final Expression getConstInitializer(bool needFullType = true)
     {
         assert(type && _init);
+
         // Ungag errors when not speculative
         uint oldgag = global.gag;
         if (global.gag)
@@ -2126,6 +2127,7 @@ public:
             if (sym && !sym.isSpeculative())
                 global.gag = 0;
         }
+
         if (_scope)
         {
             inuse++;
@@ -2133,8 +2135,28 @@ public:
             _scope = null;
             inuse--;
         }
+
         Expression e = _init.toExpression(needFullType ? type : null);
         global.gag = oldgag;
+        return e;
+    }
+
+    /*******************************************
+     * Helper function for the expansion of manifest constant.
+     */
+    final Expression expandInitializer(Loc loc)
+    {
+        assert((storage_class & STCmanifest) && _init);
+
+        auto e = getConstInitializer();
+        if (!e)
+        {
+            .error(loc, "cannot make expression out of initializer for %s", toChars());
+            return new ErrorExp();
+        }
+
+        e = e.copy();
+        e.loc = loc;    // for better error message
         return e;
     }
 
