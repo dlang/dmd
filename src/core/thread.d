@@ -762,6 +762,25 @@ class Thread
 
 
     /**
+     * Gets the OS identifier for this thread.
+     *
+     * Returns:
+     *  If the thread hasn't been started yet, returns $(LREF ThreadID)$(D.init).
+     *  Otherwise, returns the result of $(D GetCurrentThreadId) on Windows,
+     *  and $(D pthread_self) on POSIX.
+     *
+     *  The value is unique for the current process.
+     */
+    final @property ThreadID id()
+    {
+        synchronized( this )
+        {
+            return m_addr;
+        }
+    }
+
+
+    /**
      * Gets the user-readable label for this thread.
      *
      * Returns:
@@ -1355,12 +1374,10 @@ private:
     version( Windows )
     {
         alias uint TLSKey;
-        alias uint ThreadAddr;
     }
     else version( Posix )
     {
         alias pthread_key_t TLSKey;
-        alias pthread_t     ThreadAddr;
     }
 
 
@@ -1408,7 +1425,7 @@ private:
     {
         mach_port_t     m_tmach;
     }
-    ThreadAddr          m_addr;
+    ThreadID            m_addr;
     Call                m_call;
     string              m_name;
     union
@@ -2086,14 +2103,14 @@ version( Windows )
     //       that only does the TLS lookup without the fancy fallback stuff.
 
     /// ditto
-    extern (C) Thread thread_attachByAddr( Thread.ThreadAddr addr )
+    extern (C) Thread thread_attachByAddr( ThreadID addr )
     {
         return thread_attachByAddrB( addr, getThreadStackBottom( addr ) );
     }
 
 
     /// ditto
-    extern (C) Thread thread_attachByAddrB( Thread.ThreadAddr addr, void* bstack )
+    extern (C) Thread thread_attachByAddrB( ThreadID addr, void* bstack )
     {
         GC.disable(); scope(exit) GC.enable();
 
@@ -2164,7 +2181,7 @@ extern (C) void thread_detachThis() nothrow
  *
  *       $(D extern(C) void rt_moduleTlsDtor();)
  */
-extern (C) void thread_detachByAddr( Thread.ThreadAddr addr )
+extern (C) void thread_detachByAddr( ThreadID addr )
 {
     if( auto t = thread_findByAddr( addr ) )
         Thread.remove( t );
@@ -2205,7 +2222,7 @@ unittest
  * Returns:
  *  The thread object associated with the thread identifier, null if not found.
  */
-static Thread thread_findByAddr( Thread.ThreadAddr addr )
+static Thread thread_findByAddr( ThreadID addr )
 {
     Thread.slock.lock_nothrow();
     scope(exit) Thread.slock.unlock_nothrow();
@@ -5285,3 +5302,13 @@ unittest
     auto thr = new Thread(function{}, 4096 + 1).start();
     thr.join();
 }
+
+/**
+ * Represents the ID of a thread, as returned by $(D Thread.)$(LREF id).
+ * The exact type varies from platform to platform.
+ */
+version (Windows)
+    alias ThreadID = uint;
+else
+version (Posix)
+    alias ThreadID = pthread_t;
