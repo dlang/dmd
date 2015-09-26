@@ -40,7 +40,7 @@ int _binary[] =
          OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
          OPinfo,OPpair,OPrpair,
          OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
-         OPremquo,
+         OPremquo,OPcmpxchg,
 #if TX86
          OPoutp,OPscale,OPyl2x,OPyl2xp1,
          OPvecsto,
@@ -82,7 +82,7 @@ int _assoc[] = {OPadd,OPand,OPor,OPxor,OPmul};
 int _assign[] =
         {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
          OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,OPpostinc,OPpostdec,
-         OPnegass,OPvecsto,
+         OPnegass,OPvecsto,OPcmpxchg,
         };
 int _wid[] =
         {OPadd,OPmin,OPand,OPor,OPxor,OPcom,OPneg,OPmul,OPaddass,OPnegass,
@@ -112,7 +112,7 @@ int _def[] = {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
                 OPcall,OPucall,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPnegass,
                 OPbtc,OPbtr,OPbts,
-                OPvecsto,
+                OPvecsto,OPcmpxchg,
              };
 int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPcall,OPeq,OPstreq,OPpostinc,OPpostdec,
@@ -121,6 +121,7 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPnegass,OPctor,OPdtor,OPmark,OPvoid,
                 OPbtc,OPbtr,OPbts,
                 OPhalt,OPdctor,OPddtor,
+                OPcmpxchg,
 #if TX86 && MARS
                 OPva_start,
 #endif
@@ -132,7 +133,7 @@ int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,
                 OPcall,OPcallns,OPinfo,OPmemset,
-                OPvecsto,
+                OPvecsto,OPcmpxchg,
                 };
 int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPabs,OPrndtol,OPrint,
@@ -469,6 +470,7 @@ void dotab()
         case OPyl2x:    X("yl2x",       elzot,  cdscale);
         case OPyl2xp1:  X("yl2xp1",     elzot,  cdscale);
 #endif
+        case OPcmpxchg:     X("cas",        elzot,  cdcmpxchg);
         case OPrint:    X("rint",       evalu8, cdneg);
         case OPrndtol:  X("rndtol",     evalu8, cdrndtol);
         case OPstrlen:  X("strlen",     elzot,  cdstrlen);
@@ -738,24 +740,18 @@ void fltables()
                 case FLblockoff: segfl[i] = CS; break;
                 case FLcs:      segfl[i] = SS;  break;
                 case FLregsave: segfl[i] = SS;  break;
-#if TX86
                 case FLndp:     segfl[i] = SS;  break;
-#endif
                 case FLswitch:  segfl[i] = -1;  break;
                 case FLfltreg:  segfl[i] = SS;  break;
                 case FLoffset:  segfl[i] = -1;  break;
-#if TARGET_SEGMENTED
                 case FLfardata: segfl[i] = -1;  break;
                 case FLcsdata:  segfl[i] = CS;  break;
-#endif
                 case FLdatseg:  segfl[i] = DS;  break;
                 case FLctor:    segfl[i] = -1;  break;
                 case FLdtor:    segfl[i] = -1;  break;
                 case FLdsymbol: segfl[i] = -1;  break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 case FLgot:     segfl[i] = -1;  break;
                 case FLgotoff:  segfl[i] = -1;  break;
-#endif
                 case FLlocalsize: segfl[i] = -1;        break;
                 case FLtlsdata: segfl[i] = -1;  break;
                 case FLframehandler:    segfl[i] = -1;  break;
