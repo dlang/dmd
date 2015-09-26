@@ -49,7 +49,7 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         header_old = cast(IMAGE_FILE_HEADER*)malloc(IMAGE_FILE_HEADER.sizeof);
         memcpy(header_old, buf, IMAGE_FILE_HEADER.sizeof);
         header = cast(BIGOBJ_HEADER*)malloc(BIGOBJ_HEADER.sizeof);
-        memset(header, 0, BIGOBJ_HEADER.sizeof);
+        *header = BIGOBJ_HEADER.init;
         header.Machine = header_old.Machine;
         header.NumberOfSections = header_old.NumberOfSections;
         header.TimeDateStamp = header_old.TimeDateStamp;

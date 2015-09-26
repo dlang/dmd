@@ -110,7 +110,7 @@ public:
         scanloc = Loc(filename, 1, 1);
         //printf("Lexer::Lexer(%p,%d)\n",base,length);
         //printf("lexer.filename = %s\n", filename);
-        memset(&token, 0, token.sizeof);
+        token = Token.init;
         this.base = base;
         this.end = base + endoffset;
         p = base + begoffset;

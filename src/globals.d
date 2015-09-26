@@ -69,10 +69,10 @@ struct Param
     bool verbose;           // verbose compile
     bool showColumns;       // print character (column) numbers in diagnostics
     bool vtls;              // identify thread local variables
-    char vgc;               // identify gc usage
+    bool vgc;               // identify gc usage
     bool vfield;            // identify non-mutable field variables
     bool vcomplex;          // identify complex/imaginary type usage
-    char symdebug;          // insert debug symbolic information
+    ubyte symdebug;         // insert debug symbolic information
     bool alwaysframe;       // always emit standard stack frame
     bool optimize;          // run optimizer
     bool map;               // generate linker .map file
@@ -88,7 +88,7 @@ struct Param
     // 0: don't allow use of deprecated features
     // 1: silently allow use of deprecated features
     // 2: warn about the use of deprecated features
-    char useDeprecated;
+    byte useDeprecated;
     bool useAssert;         // generate runtime code for assert()'s
     bool useInvariants;     // generate class invariant checks
     bool useIn;             // generate precondition checks
@@ -103,7 +103,7 @@ struct Param
     // 0: disable warnings
     // 1: warnings as errors
     // 2: informational warnings (no errors)
-    char warnings;
+    byte warnings;
     bool pic;               // generate position-independent-code for shared libs
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
@@ -314,7 +314,6 @@ struct Global
         compiler.vendor = "Digital Mars D";
         stdmsg = stdout;
         main_d = "__main.d";
-        memset(&params, 0, Param.sizeof);
         errorLimit = 20;
     }
 }

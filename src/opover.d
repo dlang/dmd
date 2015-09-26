@@ -879,7 +879,6 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 expandTuples(&args2);
                 argsset = 1;
                 Match m;
-                memset(&m, 0, m.sizeof);
                 m.last = MATCHnomatch;
                 if (s)
                 {
@@ -966,7 +965,6 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                             expandTuples(&args2);
                         }
                         Match m;
-                        memset(&m, 0, m.sizeof);
                         m.last = MATCHnomatch;
                         if (s_r)
                         {
@@ -1297,7 +1295,6 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 args2[0] = e.e2;
                 expandTuples(&args2);
                 Match m;
-                memset(&m, 0, m.sizeof);
                 m.last = MATCHnomatch;
                 if (s)
                 {
@@ -1404,7 +1401,6 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         args2[0] = e.e2;
         expandTuples(&args2);
         Match m;
-        memset(&m, 0, m.sizeof);
         m.last = MATCHnomatch;
         if (0 && s && s_r)
         {
