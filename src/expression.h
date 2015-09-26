@@ -19,6 +19,8 @@
 #include "visitor.h"
 #include "tokens.h"
 
+#include "rmem.h"
+
 class Type;
 class TypeVector;
 struct Scope;
@@ -421,7 +423,7 @@ public:
 
     Expression *syntaxCopy();
     bool equals(RootObject *o);
-    Expression *getElement(size_t i);
+    Expression *getElement(d_size_t i);
     static Expressions* copyElements(Expression *e1, Expression *e2 = NULL);
     Expressions *copyElements();
     Expression *semantic(Scope *sc);
