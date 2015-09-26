@@ -3732,14 +3732,12 @@ public:
             //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
             if (!v.type)
             {
-                .error(loc, "forward reference of %s %s", s.kind(), s.toChars());
+                .error(loc, "forward reference of %s %s", v.kind(), v.toChars());
                 return new ErrorExp();
             }
             if ((v.storage_class & STCmanifest) && v._init)
             {
-                // Detect recursive initializers.
-                // BUG: The check for speculative gagging is not correct
-                if (v.inuse && !global.gag)
+                if (v.inuse)
                 {
                     .error(loc, "circular initialization of %s", v.toChars());
                     return new ErrorExp();
@@ -3751,6 +3749,7 @@ public:
                     v._scope = null;
                     v.inuse--;
                 }
+
                 e = v._init.toExpression(v.type);
                 if (!e)
                 {
@@ -3759,7 +3758,10 @@ public:
                 }
                 e = e.copy();
                 e.loc = loc; // for better error message
+
+                v.inuse++;
                 e = e.semantic(sc);
+                v.inuse--;
                 return e;
             }
             e = new VarExp(loc, v);
@@ -5191,7 +5193,7 @@ public:
     {
         static if (LOGSEMANTIC)
         {
-            printf("+ScopeExp::semantic('%s')\n", toChars());
+            printf("+ScopeExp::semantic(%p '%s')\n", this, toChars());
         }
         //if (type == Type::tvoid)
         //    return this;
@@ -5253,6 +5255,66 @@ public:
                 ti = sds2.isTemplateInstance();
                 //printf("+ sds2 = %s, '%s'\n", sds2.kind(), sds2.toChars());
                 continue;
+            }
+
+            if (auto v = s.isVarDeclaration())
+            {
+                if ((!v.type || !v.type.deco) && v._scope)
+                    v.semantic(v._scope);
+
+                if (!v.type)
+                {
+                    error("forward reference of %s %s", v.kind(), v.toChars());
+                    return new ErrorExp();
+                }
+                if ((v.storage_class & STCmanifest) && v._init)
+                {
+                    /* When an instance that will be converted to a constant exists,
+                     * the instance representation "foo!tiargs" is treated like a
+                     * variable name, and its recursive appearance check (note that
+                     * it's equivalent with a recursive instantiation of foo) is done
+                     * separately from the circular initialization check for the
+                     * eponymous enum variable declaration.
+                     *
+                     *  template foo(T) {
+                     *    enum bool foo = foo;    // recursive definition check (v.inuse)
+                     *  }
+                     *  template bar(T) {
+                     *    enum bool bar = bar!T;  // recursive instantiation check (ti.inuse)
+                     *  }
+                     */
+                    if (ti.inuse)
+                    {
+                        error("recursive expansion of %s '%s'", ti.kind(), ti.toPrettyChars());
+                        return new ErrorExp();
+                    }
+                    //if (v.inuse)  // This is the point.
+                    //{
+                    //    .error(loc, "circular initialization of %s", v.toChars());
+                    //    return new ErrorExp();
+                    //}
+                    if (v._scope)
+                    {
+                        v.inuse++;
+                        v._init = v._init.semantic(v._scope, v.type, INITinterpret);
+                        v._scope = null;
+                        v.inuse--;
+                    }
+
+                    auto e = v._init.toExpression(v.type);
+                    if (!e)
+                    {
+                        error("cannot make expression out of initializer for %s", v.toChars());
+                        return new ErrorExp();
+                    }
+                    e = e.copy();
+                    e.loc = loc; // for better error message
+
+                    ti.inuse++;
+                    e = e.semantic(sc);
+                    ti.inuse--;
+                    return e;
+                }
             }
 
             //printf("s = %s, '%s'\n", s.kind(), s.toChars());
