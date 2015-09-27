@@ -1397,6 +1397,20 @@ void test13988()
 }
 
 /*****************************************/
+// 15123
+
+void test15123()
+{
+    alias Vector16s = TypeTuple!(
+        void16,  byte16,  short8,  int4,  long2,
+                ubyte16, ushort8, uint4, ulong2, float4, double2);
+    foreach (V; Vector16s)
+    {
+        auto x = V.init;
+    }
+}
+
+/*****************************************/
 
 int main()
 {
