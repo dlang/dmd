@@ -6907,38 +6907,32 @@ public:
 
     final void resolveExprType(Loc loc, Scope* sc, Expression e, size_t i, Expression* pe, Type* pt)
     {
-        //printf("resolveExprType(e = %s %s, type = %s)\n", Token::toChars(e->op), e->toChars(), e->type->toChars());
-        e = e.semantic(sc);
+        //printf("resolveExprType(e = %s %s, type = %s)\n", Token.toChars(e.op), e.toChars(), e.type.toChars());
         for (; i < idents.dim; i++)
         {
-            if (e.op == TOKerror)
-                break;
             RootObject id = idents[i];
             //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
             if (id.dyncast() == DYNCAST_IDENTIFIER)
             {
-                auto die = new DotIdExp(e.loc, e, cast(Identifier)id);
-                e = die.semanticY(sc, 0);
+                e = new DotIdExp(e.loc, e, cast(Identifier)id);
             }
             else if (id.dyncast() == DYNCAST_TYPE) // Bugzilla 1215
             {
                 e = new IndexExp(loc, e, new TypeExp(loc, cast(Type)id));
-                e = e.semantic(sc);
             }
             else if (id.dyncast() == DYNCAST_EXPRESSION) // Bugzilla 1215
             {
                 e = new IndexExp(loc, e, cast(Expression)id);
-                e = e.semantic(sc);
             }
             else
             {
                 assert(id.dyncast() == DYNCAST_DSYMBOL);
                 TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
                 assert(ti);
-                auto dte = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
-                e = dte.semanticY(sc, 0);
+                e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
             }
         }
+        e = e.semantic(sc);
         if (e.op == TOKerror)
             *pt = Type.terror;
         else if (e.op == TOKtype)
