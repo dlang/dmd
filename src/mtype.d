@@ -2725,6 +2725,10 @@ public:
         return id;
     }
 
+    /***************************************
+     * Resolve 'this' type to either type, symbol, or expression.
+     * If errors happened, resolved to Type.terror.
+     */
     void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("Type::resolve() %s, %d\n", toChars(), ty);
@@ -6905,46 +6909,43 @@ public:
             *pt = (*pt).semantic(loc, sc);
     }
 
-    final void resolveExprType(Loc loc, Scope* sc, Expression e, size_t i, Expression* pe, Type* pt)
+    final Expression toExpressionHelper(Expression e, size_t i = 0)
     {
-        //printf("resolveExprType(e = %s %s, type = %s)\n", Token::toChars(e->op), e->toChars(), e->type->toChars());
-        e = e.semantic(sc);
+        //printf("toExpressionHelper(e = %s %s)\n", Token.toChars(e.op), e.toChars());
         for (; i < idents.dim; i++)
         {
-            if (e.op == TOKerror)
-                break;
             RootObject id = idents[i];
-            //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
-            if (id.dyncast() == DYNCAST_IDENTIFIER)
+            //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
+
+            switch (id.dyncast())
             {
-                auto die = new DotIdExp(e.loc, e, cast(Identifier)id);
-                e = die.semanticY(sc, 0);
-            }
-            else if (id.dyncast() == DYNCAST_TYPE) // Bugzilla 1215
-            {
-                e = new IndexExp(loc, e, new TypeExp(loc, cast(Type)id));
-                e = e.semantic(sc);
-            }
-            else if (id.dyncast() == DYNCAST_EXPRESSION) // Bugzilla 1215
-            {
-                e = new IndexExp(loc, e, cast(Expression)id);
-                e = e.semantic(sc);
-            }
-            else
-            {
-                assert(id.dyncast() == DYNCAST_DSYMBOL);
-                TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
-                assert(ti);
-                auto dte = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
-                e = dte.semanticY(sc, 0);
+                // ... '. ident'
+                case DYNCAST_IDENTIFIER:
+                    e = new DotIdExp(e.loc, e, cast(Identifier)id);
+                    break;
+
+                // ... '. name!(tiargs)'
+                case DYNCAST_DSYMBOL:
+                    auto ti = (cast(Dsymbol)id).isTemplateInstance();
+                    assert(ti);
+                    e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
+                    break;
+
+                // ... '[type]'
+                case DYNCAST_TYPE:          // Bugzilla 1215
+                    e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
+                    break;
+
+                // ... '[expr]'
+                case DYNCAST_EXPRESSION:    // Bugzilla 1215
+                    e = new ArrayExp(loc, e, cast(Expression)id);
+                    break;
+
+                default:
+                    assert(0);
             }
         }
-        if (e.op == TOKerror)
-            *pt = Type.terror;
-        else if (e.op == TOKtype)
-            *pt = e.type;
-        else
-            *pe = e;
+        return e;
     }
 
     /*************************************
@@ -6954,7 +6955,8 @@ public:
      *      if expression, *pe is set
      *      if type, *pt is set
      */
-    final void resolveHelper(Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    final void resolveHelper(Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
+        Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         version (none)
         {
@@ -6992,7 +6994,15 @@ public:
                     if (tx)
                         ex = new TypeExp(loc, tx);
                     assert(ex);
-                    resolveExprType(loc, sc, ex, i + 1, pe, pt);
+
+                    ex = toExpressionHelper(ex, i + 1);
+                    ex = ex.semantic(sc);
+                    if (ex.op == TOKerror)
+                        *pt = Type.terror;
+                    else if (ex.op == TOKtype)
+                        *pt = ex.type;
+                    else if ((*ps = getDsymbol(ex)) is null)
+                        *pe = ex;
                     return;
                 }
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
@@ -7047,7 +7057,15 @@ public:
                             e = DsymbolExp.resolve(loc, sc, s, false);
                         else
                             e = new VarExp(loc, s.isDeclaration());
-                        resolveExprType(loc, sc, e, i, pe, pt);
+
+                        e = toExpressionHelper(e, i);
+                        e = e.semantic(sc);
+                        if (e.op == TOKerror)
+                            *pt = Type.terror;
+                        else if (e.op == TOKtype)
+                            *pt = e.type;
+                        else if ((*ps = getDsymbol(e)) is null)
+                            *pe = e;
                         return;
                     }
                     else
@@ -7320,39 +7338,7 @@ public:
 
     override Expression toExpression()
     {
-        Expression e = new IdentifierExp(loc, ident);
-        for (size_t i = 0; i < idents.dim; i++)
-        {
-            RootObject id = idents[i];
-            switch (id.dyncast())
-            {
-                case DYNCAST_IDENTIFIER:
-                {
-                    e = new DotIdExp(loc, e, cast(Identifier)id);
-                    break;
-                }
-                case DYNCAST_DSYMBOL:
-                {
-                    TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
-                    assert(ti);
-                    e = new DotTemplateInstanceExp(loc, e, ti.name, ti.tiargs);
-                    break;
-                }
-                case DYNCAST_TYPE:
-                {
-                    e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
-                    break;
-                }
-                case DYNCAST_EXPRESSION:
-                {
-                    e = new ArrayExp(loc, e, cast(Expression)id);
-                    break;
-                }
-                default:
-                    assert(0);
-            }
-        }
-        return e;
+        return toExpressionHelper(new IdentifierExp(loc, ident));
     }
 
     override void accept(Visitor v)
@@ -7465,39 +7451,7 @@ public:
 
     override Expression toExpression()
     {
-        Expression e = new ScopeExp(loc, tempinst);
-        for (size_t i = 0; i < idents.dim; i++)
-        {
-            RootObject id = idents[i];
-            switch (id.dyncast())
-            {
-                case DYNCAST_IDENTIFIER:
-                {
-                    e = new DotIdExp(loc, e, cast(Identifier)id);
-                    break;
-                }
-                case DYNCAST_DSYMBOL:
-                {
-                    TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
-                    assert(ti);
-                    e = new DotTemplateInstanceExp(loc, e, ti.name, ti.tiargs);
-                    break;
-                }
-                case DYNCAST_TYPE:
-                {
-                    e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
-                    break;
-                }
-                case DYNCAST_EXPRESSION:
-                {
-                    e = new ArrayExp(loc, e, cast(Expression)id);
-                    break;
-                }
-                default:
-                    assert(0);
-            }
-        }
-        return e;
+        return toExpressionHelper(new ScopeExp(loc, tempinst));
     }
 
     override void accept(Visitor v)
@@ -7613,45 +7567,14 @@ public:
                 resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
-                Expression e = new TypeExp(loc, t);
-                for (size_t i = 0; i < idents.dim; i++)
-                {
-                    RootObject id = idents[i];
-                    switch (id.dyncast())
-                    {
-                        case DYNCAST_IDENTIFIER:
-                        {
-                            e = new DotIdExp(loc, e, cast(Identifier)id);
-                            break;
-                        }
-                        case DYNCAST_DSYMBOL:
-                        {
-                            TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
-                            e = new DotExp(loc, e, new ScopeExp(loc, ti));
-                            break;
-                        }
-                        case DYNCAST_TYPE:
-                        {
-                            e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
-                            break;
-                        }
-                        case DYNCAST_EXPRESSION:
-                        {
-                            e = new ArrayExp(loc, e, cast(Expression)id);
-                            break;
-                        }
-                        default:
-                            assert(0);
-                    }
-                }
+                auto e = toExpressionHelper(new TypeExp(loc, t));
                 e = e.semantic(sc);
-                if ((*ps = getDsymbol(e)) is null)
-                {
-                    if (e.op == TOKtype)
-                        *pt = e.type;
-                    else
-                        *pe = e;
-                }
+                if (e.op == TOKerror)
+                    goto Lerr;
+                else if (e.op == TOKtype)
+                    *pt = e.type;
+                else if ((*ps = getDsymbol(e)) is null)
+                    *pe = e;
             }
         }
         if (*pt)
@@ -7754,50 +7677,20 @@ public:
                 resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
-                Expression e = new TypeExp(loc, t);
-                for (size_t i = 0; i < idents.dim; i++)
-                {
-                    RootObject id = idents[i];
-                    switch (id.dyncast())
-                    {
-                        case DYNCAST_IDENTIFIER:
-                        {
-                            e = new DotIdExp(loc, e, cast(Identifier)id);
-                            break;
-                        }
-                        case DYNCAST_DSYMBOL:
-                        {
-                            TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
-                            e = new DotExp(loc, e, new ScopeExp(loc, ti));
-                            break;
-                        }
-                        case DYNCAST_TYPE:
-                        {
-                            e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
-                            break;
-                        }
-                        case DYNCAST_EXPRESSION:
-                        {
-                            e = new ArrayExp(loc, e, cast(Expression)id);
-                            break;
-                        }
-                        default:
-                            assert(0);
-                    }
-                }
+                auto e = toExpressionHelper(new TypeExp(loc, t));
                 e = e.semantic(sc);
-                if ((*ps = getDsymbol(e)) is null)
-                {
-                    if (e.op == TOKtype)
-                        *pt = e.type;
-                    else
-                        *pe = e;
-                }
+                if (e.op == TOKerror)
+                    goto Lerr;
+                else if (e.op == TOKtype)
+                    *pt = e.type;
+                else if ((*ps = getDsymbol(e)) is null)
+                    *pe = e;
             }
         }
         if (*pt)
             (*pt) = (*pt).addMod(mod);
         return;
+
     Lerr:
         *pt = Type.terror;
         return;
