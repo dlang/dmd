@@ -128,6 +128,9 @@ public:
     bool isunion;
     structalign_t alignment;
     int sem;                    // 1 if successful semantic()
+    unsigned anonoffset;        // offset of anonymous struct
+    unsigned anonstructsize;    // size of anonymous struct
+    unsigned anonalignsize;     // size of anonymous struct for alignment purposes
 
     AnonDeclaration(Loc loc, bool isunion, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
