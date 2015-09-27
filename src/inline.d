@@ -1,15 +1,17 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the D programming language
+ *
+ * Copyright: Copyright (c) 1999-2015 by Digital Mars, All Rights Reserved
+ * Authors: Walter Bright, http://www.digitalmars.com
+ * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:    $(DMDSRC inline.d)
+ */
 
 module ddmd.inline;
 
 import core.stdc.stdio;
 import core.stdc.string;
+
 import ddmd.aggregate;
 import ddmd.apply;
 import ddmd.arraytypes;
@@ -1177,7 +1179,7 @@ public:
     FuncDeclaration parent;     // function being scanned
     // As the visit method cannot return a value, these variables
     // are used to pass the result from 'visit' back to 'inlineScan'
-    Statement result;
+    Statement sresult;
     Expression eresult;
     bool again;
 
@@ -1197,23 +1199,13 @@ public:
         }
         if (s.exp)
         {
-            inlineScan(&s.exp);
-            /* See if we can inline as a statement rather than as
-             * an Expression.
+            inlineScan(&s.exp);                 // inline as an expression
+            /* If there's a TOKcall at the top, then it failed to inline
+             * as an Expression. Try to inline as a Statement instead.
+             * Note that inline scanning of s.exp.e1 and s.exp.arguments was already done.
              */
             if (s.exp && s.exp.op == TOKcall)
-            {
-                CallExp ce = cast(CallExp)s.exp;
-                if (ce.e1.op == TOKvar)
-                {
-                    VarExp ve = cast(VarExp)ce.e1;
-                    FuncDeclaration fd = ve.var.isFuncDeclaration();
-                    if (fd && fd != parent && canInline(fd, 0, 0, 1))
-                    {
-                        expandInline(fd, parent, null, null, ce.arguments, &result, again);
-                    }
-                }
-            }
+                visitCallExp(cast(CallExp)s.exp, null, true);
         }
     }
 
@@ -1360,11 +1352,13 @@ public:
     {
         if (!*s)
             return;
-        Statement save = result;
-        result = *s;
+        assert(sresult is null);
         (*s).accept(this);
-        *s = result;
-        result = save;
+        if (sresult)
+        {
+            *s = sresult;
+            sresult = null;
+        }
     }
 
     /* -------------------------- */
@@ -1383,7 +1377,7 @@ public:
     {
     }
 
-    Expression scanVar(Dsymbol s)
+    void scanVar(Dsymbol s)
     {
         //printf("scanVar(%s %s)\n", s->kind(), s->toPrettyChars());
         VarDeclaration vd = s.isVarDeclaration();
@@ -1392,7 +1386,7 @@ public:
             TupleDeclaration td = vd.toAlias().isTupleDeclaration();
             if (td)
             {
-                for (size_t i = 0; i < td.objects.dim; i++)
+                foreach (i; 0 .. td.objects.dim)
                 {
                     DsymbolExp se = cast(DsymbolExp)(*td.objects)[i];
                     assert(se.op == TOKdsymbol);
@@ -1403,11 +1397,7 @@ public:
             {
                 if (ExpInitializer ie = vd._init.isExpInitializer())
                 {
-                    Expression e = ie.exp;
-                    inlineScan(&e);
-                    if (vd._init != ie) // DeclareExp with vd appears in e
-                        return e;
-                    ie.exp = e;
+                    inlineScan(&ie.exp);
                 }
             }
         }
@@ -1415,15 +1405,12 @@ public:
         {
             s.accept(this);
         }
-        return null;
     }
 
     override void visit(DeclarationExp e)
     {
         //printf("DeclarationExp::inlineScan()\n");
-        Expression ed = scanVar(e.declaration);
-        if (ed)
-            eresult = ed;
+        scanVar(e.declaration);
     }
 
     override void visit(UnaExp e)
@@ -1445,6 +1432,7 @@ public:
 
     override void visit(AssignExp e)
     {
+        // Look for NRVO, as inlining NRVO function returns require special handling
         if (e.op == TOKconstruct && e.e2.op == TOKcall)
         {
             CallExp ce = cast(CallExp)e.e2;
@@ -1467,10 +1455,12 @@ public:
                      */
                     inlineScan(&e.e1);
                 }
-                visitCallExp(ce, e.e1);
+                inlineScan(&ce.e1);
+                arrayInlineScan(ce.arguments);
+                visitCallExp(ce, e.e1, false);
                 if (eresult)
                 {
-                    //printf("call with nrvo: %s ==> %s\n", e->toChars(), eresult->toChars());
+                    //printf("call with nrvo: %s ==> %s\n", e.toChars(), eresult.toChars());
                     return;
                 }
             }
@@ -1481,34 +1471,37 @@ public:
 
     override void visit(CallExp e)
     {
-        visitCallExp(e, null);
-    }
-
-    void visitCallExp(CallExp e, Expression eret)
-    {
-        //printf("CallExp::inlineScan()\n");
         inlineScan(&e.e1);
         arrayInlineScan(e.arguments);
+        visitCallExp(e, null, false);
+    }
+
+    /**************************************
+     * Check function call to see if can be inlined,
+     * and then inline it if it can.
+     * Params:
+     *  e = the function call
+     *  eret = if !null, then this is the lvalue of the nrvo function result
+     *  asStatements = if inline as statements rather than as an Expression
+     */
+    void visitCallExp(CallExp e, Expression eret, bool asStatements)
+    {
+        //printf("CallExp::inlineScan()\n");
+        FuncDeclaration fd;
         if (e.e1.op == TOKvar)
         {
             VarExp ve = cast(VarExp)e.e1;
-            FuncDeclaration fd = ve.var.isFuncDeclaration();
-            if (fd && fd != parent && canInline(fd, 0, 0, 0))
+            fd = ve.var.isFuncDeclaration();
+            if (fd && fd != parent && canInline(fd, 0, 0, asStatements))
             {
-                Expression ex = expandInline(fd, parent, eret, null, e.arguments, null, again);
-                if (ex)
-                {
-                    eresult = ex;
-                    if (global.params.verbose)
-                        fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd.toPrettyChars(), parent.toPrettyChars());
-                }
+                eresult = expandInline(fd, parent, eret, null, e.arguments, asStatements ? &sresult : null, again);
             }
         }
         else if (e.e1.op == TOKdotvar)
         {
             DotVarExp dve = cast(DotVarExp)e.e1;
-            FuncDeclaration fd = dve.var.isFuncDeclaration();
-            if (fd && fd != parent && canInline(fd, 1, 0, 0))
+            fd = dve.var.isFuncDeclaration();
+            if (fd && fd != parent && canInline(fd, 1, 0, asStatements))
             {
                 if (dve.e1.op == TOKcall && dve.e1.type.toBasetype().ty == Tstruct)
                 {
@@ -1519,16 +1512,16 @@ public:
                 }
                 else
                 {
-                    Expression ex = expandInline(fd, parent, eret, dve.e1, e.arguments, null, again);
-                    if (ex)
-                    {
-                        eresult = ex;
-                        if (global.params.verbose)
-                            fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd.toPrettyChars(), parent.toPrettyChars());
-                    }
+                    eresult = expandInline(fd, parent, eret, dve.e1, e.arguments, asStatements ? &sresult : null, again);
                 }
             }
         }
+        else
+            return;
+
+        if (global.params.verbose && (eresult || sresult))
+            fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd.toPrettyChars(), parent.toPrettyChars());
+
         if (eresult && e.type.ty != Tvoid)
         {
             Expression ex = eresult;
@@ -1598,12 +1591,13 @@ public:
     {
         if (!*e)
             return;
-        Expression save = eresult;
-        eresult = *e;
+        assert(eresult is null);
         (*e).accept(this);
-        assert(eresult);
-        *e = eresult;
-        eresult = save;
+        if (eresult)
+        {
+            *e = eresult;
+            eresult = null;
+        }
     }
 
     /*************************************
@@ -1687,7 +1681,7 @@ public:
     }
 }
 
-bool canInline(FuncDeclaration fd, int hasthis, int hdrscan, int statementsToo)
+bool canInline(FuncDeclaration fd, int hasthis, int hdrscan, bool statementsToo)
 {
     int cost;
     enum CANINLINE_LOG = 0;
@@ -1883,11 +1877,10 @@ public void inlineScanModule(Module m)
  *      ethis = 'this' reference
  *      arguments = arguments passed to fd
  *      ps = if expanding to a statement, this is where the statement is written to
- *           (and ignore the return value)
  *      again = if true, then fd can be inline scanned again because there may be
  *           more opportunities for inlining
  * Returns:
- *      Expression it expanded to
+ *      Expression it expanded to (null if ps is not null)
  */
 Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         Expression ethis, Expressions* arguments, Statement* ps, out bool again)
@@ -2050,7 +2043,10 @@ Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression e
     if (ps)
     {
         if (e)
+        {
             as.push(new ExpStatement(Loc(), e));
+            e = null;
+        }
         fd.inlineNest++;
         Statement s = inlineAsStatement(fd.fbody, &ids);
         as.push(s);
