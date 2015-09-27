@@ -3804,10 +3804,7 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 Expression *elem;
                 if (ve->e1->op == TOKarrayliteral)
-                {
-                    ArrayLiteralExp *ea = (ArrayLiteralExp *)ve->e1;
-                    elem = (*ea->elements)[i];
-                }
+                    elem = ((ArrayLiteralExp *)ve->e1)->getElement(i);
                 else
                     elem = ve->e1;
                 switch (elem->type->toBasetype()->ty)
