@@ -701,6 +701,11 @@ public:
         return (isunion ? "anonymous union" : "anonymous struct");
     }
 
+    override final AnonDeclaration isAnonDeclaration()
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
