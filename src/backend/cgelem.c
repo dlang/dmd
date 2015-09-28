@@ -784,10 +784,8 @@ L1:
   e2 = e->E2;
   if (e2->Eoper == OPconst)
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (e1->Eoper == OPrelconst && e1->EV.sp.Vsym->Sfl == FLgot)
                 goto ret;
-#endif
         if (e1->Eoper == OPrelconst             /* if (&v) + c          */
             || e1->Eoper == OPstring
            )
@@ -800,10 +798,8 @@ L1:
   }
   else if (e1->Eoper == OPconst)
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (e2->Eoper == OPrelconst && e2->EV.sp.Vsym->Sfl == FLgot)
                 goto ret;
-#endif
         if (e2->Eoper == OPrelconst             /* if c + (&v)          */
             || e2->Eoper == OPstring
            )
@@ -3312,7 +3308,6 @@ STATIC elem * eleq(elem *e, goal_t goal)
     unsigned t,w,b;
     unsigned sz;
     elem *l,*l2,*r,*r2,*e1,*eres;
-    tym_t tyl;
 
 #if SCPP
     goal_t wantres = goal;
@@ -3341,7 +3336,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
      * so that garbage doesn't creep into the extra 2 bytes
      * and throw off compares.
      */
-    tyl = tybasic(e1->Ety);
+    tym_t tyl = tybasic(e1->Ety);
     if (e1->Eoper == OPvar && (tyl == TYldouble || tyl == TYildouble || tyl == TYcldouble))
     {
 #if 1
@@ -3525,8 +3520,68 @@ STATIC elem * eleq(elem *e, goal_t goal)
             e2->E2 = es;
             e2->Eoper = OPxor;
             return optelem(e,GOALvalue);
+
+        L8: ;
         }
-    L8: ;
+
+        // Replace (a=(r1 pair r2)) with (a1=r1), (a2=r2)
+        if (tysize(e1->Ety) == 2 * REGSIZE &&
+            e1->Eoper == OPvar &&
+            (e2->Eoper == OPpair || e2->Eoper == OPrpair) &&
+            goal == GOALnone
+           )
+        {
+            tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
+            if (tyfloating(e1->Ety) && REGSIZE >= 4)
+                ty = (REGSIZE == 8) ? TYdouble : TYfloat;
+            ty |= e1->Ety & ~mTYbasic;
+            e2->Ety = ty;
+            e->Ety = ty;
+            e1->Ety = ty;
+            elem *eb = el_copytree(e1);
+            eb->EV.sp.Voffset += REGSIZE;
+
+            if (e2->Eoper == OPpair)
+            {
+                e->E2 = e2->E1;
+                eb = el_bin(OPeq,ty,eb,e2->E2);
+                e2->E1 = eb;
+                e2->E2 = e;
+            }
+            else
+            {
+                e->E2 = e2->E2;
+                eb = el_bin(OPeq,ty,eb,e2->E1);
+                e2->E1 = eb;
+                e2->E2 = e;
+            }
+
+            e2->Eoper = OPcomma;
+            return optelem(e2,goal);
+        }
+
+        // Replace (a=b) with (a1=b1),(a2=b2)
+        if (tysize(e1->Ety) == 2 * REGSIZE &&
+            e1->Eoper == OPvar &&
+            e2->Eoper == OPvar &&
+            goal == GOALnone
+           )
+        {
+            tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
+            if (tyfloating(e1->Ety) && REGSIZE >= 4)
+                ty = (REGSIZE == 8) ? TYdouble : TYfloat;
+            ty |= e1->Ety & ~mTYbasic;
+            e2->Ety = ty;
+            e->Ety = ty;
+            e1->Ety = ty;
+
+            elem *eb = el_copytree(e);
+            eb->E1->EV.sp.Voffset += REGSIZE;
+            eb->E2->EV.sp.Voffset += REGSIZE;
+
+            e = el_bin(OPcomma,ty,e,eb);
+            return optelem(e,goal);
+        }
     }
 
    if (e1->Eoper == OPcomma)
@@ -3542,7 +3597,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
   t = e->Ety;
   l = e1->E1;                           /* lvalue                       */
   r = e->E2;
-  tyl = l->Ety;
+  tym_t tyl = l->Ety;
   sz = tysize(tyl) * 8;
   w = (e1->E2->EV.Vuns >> 8);           /* width in bits of field       */
   m = ((targ_ullong)1 << w) - 1;        // mask w bits wide
@@ -4076,6 +4131,7 @@ ret:
 
 STATIC elem * elbool(elem *e, goal_t goal)
 {
+    //printf("elbool()\n");
     if (OTlogical(e->E1->Eoper) ||
         // bool bool => bool
         (tybasic(e->E1->Ety) == TYbool && tysize(e->Ety) == 1)
@@ -4245,11 +4301,10 @@ STATIC elem * elvptrfptr(elem *e, goal_t goal)
  */
 
 STATIC elem * ellngsht(elem *e, goal_t goal)
-{ elem *e1;
-  tym_t ty;
-
-  ty = e->Ety;
-  e1 = e->E1;
+{
+  //printf("ellngsht()\n");
+  tym_t ty = e->Ety;
+  elem *e1 = e->E1;
   switch (e1->Eoper)
   { case OPs16_32:
     case OPu16_32:
@@ -4292,6 +4347,10 @@ STATIC elem * ellngsht(elem *e, goal_t goal)
         e->Ety = ty;                    // retain original type
         break;
 #endif
+
+    case OPbtst:
+        e = el_selecte1(e);
+        break;
 
     default: /* operator */
     case_default:

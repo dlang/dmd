@@ -927,6 +927,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPpostinc: case OPpostdec:
         case OPcall:
         case OPvecsto:
+        case OPcmpxchg:
                         markinvar(n->E2,rd);
         case OPnegass:
                         n1 = n->E1;
@@ -1492,7 +1493,8 @@ Lnextlis:
                 // first block of the function. Unfortunately, the rd vector
                 // does not take this into account. Therefore, we assume the
                 // worst and reject assignments to function parameters.
-                if (v->Sclass == SCparameter || v->Sclass == SCregpar || v->Sclass == SCfastpar)
+                if (v->Sclass == SCparameter || v->Sclass == SCregpar ||
+                    v->Sclass == SCfastpar || v->Sclass == SCshadowreg)
                         goto L3;
 
                 if (el_sideeffect(n->E2)) goto L3;              // case 5

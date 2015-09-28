@@ -115,7 +115,7 @@ L7B:    mov     [EDX],ECX
     }
 }
 #else
-code * __pascal cat(code *c1,code *c2)
+code *cat(code *c1,code *c2)
 {   code **pc;
 
     if (!c1)

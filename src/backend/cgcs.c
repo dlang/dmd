@@ -233,6 +233,7 @@ STATIC void ecom(elem **pe)
     case OPbtc:
     case OPbts:
     case OPbtr:
+    case OPcmpxchg:
         ecom(&e->E1);
         ecom(&e->E2);
         touchfunc(0);                   // indirect assignment

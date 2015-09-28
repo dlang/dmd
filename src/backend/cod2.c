@@ -1706,6 +1706,27 @@ code *cdnot(elem *e,regm_t *pretregs)
         op ^= (OPbool ^ OPnot);                 // switch operators
         goto L2;
     }
+    else if (config.target_cpu >= TARGET_80486 &&
+        tysize(e->Ety) == 1)
+    {
+        int jop = jmpopcode(e->E1);
+        retregs = mPSW;
+        c = codelem(e->E1,&retregs,FALSE);
+        retregs = *pretregs & BYTEREGS;
+        if (!retregs)
+            retregs = BYTEREGS;
+        c1 = allocreg(&retregs,&reg,TYint);
+
+        int iop = 0x0F90 | (jop & 0x0F);        // SETcc rm8
+        if (op == OPnot)
+            iop ^= 1;
+        c1 = gen2(c1,iop,grex | modregrmx(3,0,reg));
+        if (reg >= 4)
+            code_orrex(c1, REX);
+        if (op == OPbool)
+            *pretregs &= ~mPSW;
+        goto L4;
+    }
     else if (sz <= REGSIZE &&
         // NEG bytereg is too expensive
         (sz != 1 || config.target_cpu < TARGET_PentiumPro))
@@ -4322,13 +4343,9 @@ code *getoffset(elem *e,unsigned reg)
 #endif
     case FLdata:
     case FLudata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
-#endif
-#if TARGET_SEGMENTED
     case FLcsdata:
-#endif
     L4:
         cs.IEVsym2 = e->EV.sp.Vsym;
         cs.IEVoffset2 = e->EV.sp.Voffset;
@@ -4366,27 +4383,6 @@ code *getoffset(elem *e,unsigned reg)
         cs.IFL2 = fl;
         c = gen(c,&cs);
         break;
-
-#if 0 && TARGET_LINUX
-    case FLgot:
-    case FLgotoff:
-        {
-        gotref = 1;
-        symbol *s = e->EV.sp.Vsym;
-        // When using 8B (MOV), indicating that rm is used
-        // rm operands are always placed in IEV1 not IEV2
-        cs.IEVsym1 = s;
-        cs.IEVoffset1 = e->EV.sp.Voffset;
-        cs.Irm = modregrm(2,reg,BX);    // reg,disp32[EBX]
-        cs.IFL1 = fl;
-        cs.Iop = (fl == FLgotoff)
-                ? 0x8D                  // LEA reg, s[EBX]
-                : 0x8B;                 // MOV reg, s[EBX]
-        cs.Iflags = CFoff;              // want offset only
-        c = gen(NULL,&cs);
-        break;
-        }
-#endif
 
     case FLreg:
         /* Allow this since the tree optimizer puts & in front of       */

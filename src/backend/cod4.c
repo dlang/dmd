@@ -2375,11 +2375,14 @@ L3:
             cg = gen2(cg,0x0F90 + (jop & 0x0F),modregrmx(3,0,reg)); // SETcc reg
             if (I64 && reg >= 4)
                 code_orrex(cg,REX);
-            genregs(cg,0x0FB6,reg,reg);                 // MOVZX reg,reg
-            if (I64 && sz == 8)
-                code_orrex(cg,REX_W);
-            if (I64 && reg >= 4)
-                code_orrex(cg,REX);
+            if (tysize(e->Ety) > 1)
+            {
+                genregs(cg,0x0FB6,reg,reg);                 // MOVZX reg,reg
+                if (I64 && sz == 8)
+                    code_orrex(cg,REX_W);
+                if (I64 && reg >= 4)
+                    code_orrex(cg,REX);
+            }
             *pretregs &= ~mPSW;
             c = cat3(c,cg,fixresult(e,resregs,pretregs));
         }
@@ -3481,27 +3484,40 @@ code *cdbtst(elem *e, regm_t *pretregs)
 
     if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
     {
-        code *nop = CNIL;
-        regm_t save = regcon.immed.mval;
-        code *cg = allocreg(&retregs,&reg,TYint);
-        regcon.immed.mval = save;
-        if ((*pretregs & mPSW) == 0)
+        if (tysize(e->Ety) == 1)
         {
-            cg = cat(cg,getregs(retregs));
-            cg = genregs(cg,0x19,reg,reg);              // SBB reg,reg
-            cg = gen2(cg,0xF7,modregrmx(3,3,reg));      // NEG reg
+            assert(I64 || retregs & BYTEREGS);
+            code *cg = allocreg(&retregs,&reg,TYint);
+            cg = gen2(cg,0x0F92,modregrmx(3,0,reg));        // SETC reg
+            if (I64 && reg >= 4)
+                code_orrex(cg, REX);
+            *pretregs = retregs;
+            c2 = cat(c2,cg);
         }
         else
         {
-            cg = movregconst(cg,reg,1,8);               // MOV reg,1
-            nop = gennop(nop);
-            cg = genjmp(cg,JC,FLcode,(block *) nop);    // Jtrue nop
-                                                        // MOV reg,0
-            movregconst(cg,reg,0,8);
-            regcon.immed.mval &= ~mask[reg];
+            code *nop = CNIL;
+            regm_t save = regcon.immed.mval;
+            code *cg = allocreg(&retregs,&reg,TYint);
+            regcon.immed.mval = save;
+            if ((*pretregs & mPSW) == 0)
+            {
+                cg = cat(cg,getregs(retregs));
+                cg = genregs(cg,0x19,reg,reg);              // SBB reg,reg
+                cg = gen2(cg,0xF7,modregrmx(3,3,reg));      // NEG reg
+            }
+            else
+            {
+                cg = movregconst(cg,reg,1,8);               // MOV reg,1
+                nop = gennop(nop);
+                cg = genjmp(cg,JC,FLcode,(block *) nop);    // Jtrue nop
+                                                            // MOV reg,0
+                movregconst(cg,reg,0,8);
+                regcon.immed.mval &= ~mask[reg];
+            }
+            *pretregs = retregs;
+            c2 = cat3(c2,cg,nop);
         }
-        *pretregs = retregs;
-        c2 = cat3(c2,cg,nop);
     }
 
     return cat(c,c2);
@@ -3513,6 +3529,8 @@ code *cdbtst(elem *e, regm_t *pretregs)
 
 code *cdbt(elem *e, regm_t *pretregs)
 {
+    //printf("cdbt(%p, %s)\n", e, regm_str(*pretregs));
+
     elem *e1;
     elem *e2;
     code *c;
@@ -3588,27 +3606,40 @@ code *cdbt(elem *e, regm_t *pretregs)
 
     if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
     {
-        code *nop = CNIL;
-        regm_t save = regcon.immed.mval;
-        code *cg = allocreg(&retregs,&reg,TYint);
-        regcon.immed.mval = save;
-        if ((*pretregs & mPSW) == 0)
+        if (tysize[e->Ety] == 1)
         {
-            cg = cat(cg,getregs(retregs));
-            cg = genregs(cg,0x19,reg,reg);              // SBB reg,reg
-            cg = gen2(cg,0xF7,modregrmx(3,3,reg));      // NEG reg
+            assert(I64 || retregs & BYTEREGS);
+            code *cg = allocreg(&retregs,&reg,TYint);
+            cg = gen2(cg,0x0F92,modregrmx(3,0,reg));        // SETC reg
+            if (I64 && reg >= 4)
+                code_orrex(cg, REX);
+            *pretregs = retregs;
+            c2 = cat(c2,cg);
         }
         else
         {
-            cg = movregconst(cg,reg,1,8);               // MOV reg,1
-            nop = gennop(nop);
-            cg = genjmp(cg,JC,FLcode,(block *) nop);    // Jtrue nop
-                                                        // MOV reg,0
-            movregconst(cg,reg,0,8);
-            regcon.immed.mval &= ~mask[reg];
+            code *nop = CNIL;
+            regm_t save = regcon.immed.mval;
+            code *cg = allocreg(&retregs,&reg,TYint);
+            regcon.immed.mval = save;
+            if ((*pretregs & mPSW) == 0)
+            {
+                cg = cat(cg,getregs(retregs));
+                cg = genregs(cg,0x19,reg,reg);              // SBB reg,reg
+                cg = gen2(cg,0xF7,modregrmx(3,3,reg));      // NEG reg
+            }
+            else
+            {
+                cg = movregconst(cg,reg,1,8);               // MOV reg,1
+                nop = gennop(nop);
+                cg = genjmp(cg,JC,FLcode,(block *) nop);    // Jtrue nop
+                                                            // MOV reg,0
+                movregconst(cg,reg,0,8);
+                regcon.immed.mval &= ~mask[reg];
+            }
+            *pretregs = retregs;
+            c2 = cat3(c2,cg,nop);
         }
-        *pretregs = retregs;
-        c2 = cat3(c2,cg,nop);
     }
 
     return cat(c,c2);
@@ -3767,6 +3798,90 @@ code *cdpair(elem *e, regm_t *pretregs)
 
     //printf("regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
     return cat4(c1,c2,cg,fixresult(e,regs1 | regs2,pretregs));
+}
+
+/*************************
+ * Generate code for OPcmpxchg
+ */
+
+code *cdcmpxchg(elem *e, regm_t *pretregs)
+{
+    /* The form is:
+     *     OPcmpxchg
+     *    /     \
+     * lvalue   OPparam
+     *          /     \
+     *        old     new
+     */
+    code *cr1,*cr,*cl,*c,cs;
+
+    //printf("cdmulass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
+    assert(e2->Eoper == OPparam);
+    assert(!e2->Ecount);
+
+    tym_t tyml = tybasic(e1->Ety);              // type of lvalue
+    unsigned sz = tysize[tyml];
+
+    if (I32 && sz == 8)
+    {
+        regm_t retregs = mDX|mAX;
+        cr1 = codelem(e2->E1,&retregs,FALSE);         // [DX,AX] = e2->E1
+
+        retregs = mCX|mBX;
+        cr = scodelem(e2->E2,&retregs,mDX|mAX,FALSE); // [CX,BX] = e2->E2
+        cl = getlvalue(&cs,e1,mCX|mBX|mAX|mDX);       // get EA
+        cs.Iop = 0x0FC7;                              // CMPXCHG8B EA
+        cs.Iflags |= CFpsw;
+        code_newreg(&cs,1);
+        c = getregs(mDX|mAX);                         // CMPXCHG destroys these regs
+        if (e1->Ety & mTYvolatile)
+            c = gen1(c,LOCK);                         // LOCK prefix
+        c = gen(c,&cs);
+        assert(!e1->Ecount);
+        freenode(e1);
+    }
+    else
+    {
+        unsigned byte = (sz == 1);                  // 1 for byte operation
+        unsigned char word = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
+        unsigned rex = (I64 && sz == 8) ? REX_W : 0;
+
+        regm_t retregs = mAX;
+        cr1 = codelem(e2->E1,&retregs,FALSE);   // AX = e2->E1
+
+        retregs = (ALLREGS | mBP) & ~mAX;
+        cr = scodelem(e2->E2,&retregs,mAX,FALSE);   // load rvalue in reg
+        cl = getlvalue(&cs,e1,mAX | retregs);       // get EA
+        cs.Iop = 0x0FB1 ^ byte;                     // CMPXCHG EA,reg
+        cs.Iflags |= CFpsw | word;
+        cs.Irex |= rex;
+        unsigned reg = findreg(retregs);
+        code_newreg(&cs,reg);
+        c = getregs(mAX);                               // CMPXCHG destroys AX
+        if (e1->Ety & mTYvolatile)
+            c = gen1(c,LOCK);                   // LOCK prefix
+        c = gen(c,&cs);
+        assert(!e1->Ecount);
+        freenode(e1);
+    }
+
+    regm_t retregs;
+    if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
+    {
+        assert(tysize(e->Ety) == 1);
+        assert(I64 || retregs & BYTEREGS);
+        unsigned reg;
+        code *cg = allocreg(&retregs,&reg,TYint);
+        cg = gen2(cg,0x0F94,modregrmx(3,0,reg));        // SETZ reg
+        if (I64 && reg >= 4)
+            code_orrex(cg, REX);
+        *pretregs = retregs;
+        c = cat(c,cg);
+    }
+
+    return cat4(cr1,cr,cl,c);
 }
 
 #endif // !SPP

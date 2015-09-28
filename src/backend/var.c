@@ -28,10 +28,6 @@
 #include        "optab.c"
 #include        "tytab.c"
 
-#if __DMC__ && _MSDOS
-unsigned __cdecl _stack = 100000;       // set default stack size
-#endif
-
 /* Global flags:
  */
 

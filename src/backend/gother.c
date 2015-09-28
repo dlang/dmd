@@ -1034,7 +1034,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
                 elem *foundelem = NULL;
                 tym_t ty;
 
-                //dbg_printf("Checking copyprop for '%s', ty=x%x\n",v->Sident,n->Ety);
+                //printf("Checking copyprop for '%s', ty=x%x\n",v->Sident,n->Ety);
                 symbol_debug(v);
                 ty = n->Ety;
                 unsigned sz = tysize(n->Ety);
@@ -1052,13 +1052,13 @@ STATIC void cpwalk(elem *n,vec_t IN)
                             csz = type_size(c->ET);
                         assert((int)csz >= 0);
 
-                        //dbg_printf("looking at: ("); WReqn(c); dbg_printf("), ty=x%x\n",c->E1->Ety);
+                        //printf("looking at: ("); WReqn(c); dbg_printf("), ty=x%x\n",c->E1->Ety);
                         /* Not only must symbol numbers match, but      */
                         /* offsets too (in case of arrays) and sizes    */
                         /* (in case of unions).                         */
                         if (v == c->E1->EV.sp.Vsym &&
-                            n->EV.sp.Voffset == c->E1->EV.sp.Voffset &&
-                            sz <= csz)
+                            n->EV.sp.Voffset >= c->E1->EV.sp.Voffset &&
+                            n->EV.sp.Voffset + sz <= c->E1->EV.sp.Voffset + csz)
                         {       if (foundelem)
                                 {       if (c->E2->EV.sp.Vsym != f)
                                                 goto noprop;
@@ -1080,9 +1080,11 @@ STATIC void cpwalk(elem *n,vec_t IN)
                         }
 #endif
                         type *nt = n->ET;
+                        targ_size_t noffset = n->EV.sp.Voffset;
                         el_copy(n,foundelem->E2);
                         n->Ety = ty;    // retain original type
                         n->ET = nt;
+                        n->EV.sp.Voffset += noffset - foundelem->E1->EV.sp.Voffset;
 
                         /* original => rewrite
                          *  v = f
@@ -1244,6 +1246,10 @@ void elimass(elem *n)
         case OPbtr:
         case OPbts:
             n->Eoper = OPbt;
+            break;
+        case OPcmpxchg:
+            n->Eoper = OPcomma;
+            n->E2->Eoper = OPcomma;
             break;
         default:
             assert(0);

@@ -29,7 +29,6 @@
 #define __pascal
 #define __far
 #define  _far
-#define __ss
 #define __cs
 
 #if SCPP
