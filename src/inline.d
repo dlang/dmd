@@ -61,8 +61,8 @@ extern (C++) final class InlineCostVisitor : Visitor
     alias visit = super.visit;
 public:
     int nested;
-    int hasthis;
-    int hdrscan;        // !=0 if inline scan for 'header' content
+    bool hasthis;
+    bool hdrscan;       // if inline scan for 'header' content
     bool allowAlloca;
     FuncDeclaration fd;
     int cost;           // zero start for subsequent AST
@@ -1492,7 +1492,7 @@ public:
         {
             VarExp ve = cast(VarExp)e.e1;
             fd = ve.var.isFuncDeclaration();
-            if (fd && fd != parent && canInline(fd, 0, 0, asStatements))
+            if (fd && fd != parent && canInline(fd, false, false, asStatements))
             {
                 eresult = expandInline(fd, parent, eret, null, e.arguments, asStatements ? &sresult : null, again);
             }
@@ -1501,7 +1501,7 @@ public:
         {
             DotVarExp dve = cast(DotVarExp)e.e1;
             fd = dve.var.isFuncDeclaration();
-            if (fd && fd != parent && canInline(fd, 1, 0, asStatements))
+            if (fd && fd != parent && canInline(fd, true, false, asStatements))
             {
                 if (dve.e1.op == TOKcall && dve.e1.type.toBasetype().ty == Tstruct)
                 {
@@ -1681,7 +1681,7 @@ public:
     }
 }
 
-bool canInline(FuncDeclaration fd, int hasthis, int hdrscan, bool statementsToo)
+bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsToo)
 {
     int cost;
     enum CANINLINE_LOG = 0;
