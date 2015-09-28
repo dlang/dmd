@@ -63,7 +63,7 @@ enum CARRAYDECL = 1;
 /**********************************
  * Set operator precedence for each operator.
  */
-extern (C++) __gshared PREC[TOKMAX] precedence =
+__gshared PREC[TOKMAX] precedence =
 [
     TOKtype : PREC_expr,
     TOKerror : PREC_expr,
@@ -220,7 +220,7 @@ struct PrefixAttributes
 
 /***********************************************************
  */
-extern (C++) final class Parser : Lexer
+final class Parser : Lexer
 {
 public:
     Module mod;

@@ -14,6 +14,7 @@ import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.time;
+
 import ddmd.entity;
 import ddmd.errors;
 import ddmd.globals;
@@ -33,29 +34,29 @@ enum PS = 0x2029;       // UTF paragraph separator
 /********************************************
  * Do our own char maps
  */
-extern (C++) __gshared ubyte[256] cmtable;
-extern (C++) __gshared const(int) CMoctal = 0x1;
-extern (C++) __gshared const(int) CMhex = 0x2;
-extern (C++) __gshared const(int) CMidchar = 0x4;
+immutable ubyte[256] cmtable;
+enum CMoctal  = 0x1;
+enum CMhex    = 0x2;
+enum CMidchar = 0x4;
 
-extern (C++) bool isoctal(char c)
+bool isoctal(char c)
 {
     return (cmtable[c] & CMoctal) != 0;
 }
 
-extern (C++) bool ishex(char c)
+bool ishex(char c)
 {
     return (cmtable[c] & CMhex) != 0;
 }
 
-extern (C++) bool isidchar(char c)
+bool isidchar(char c)
 {
     return (cmtable[c] & CMidchar) != 0;
 }
 
-extern (C++) static void cmtable_init()
+static this()
 {
-    for (uint c = 0; c < 256; c++)
+    foreach (const c; 0 .. cmtable.length)
     {
         if ('0' <= c && c <= '7')
             cmtable[c] |= CMoctal;
@@ -68,7 +69,7 @@ extern (C++) static void cmtable_init()
 
 version (unittest)
 {
-    extern (C++) void unittest_lexer()
+    void unittest_lexer()
     {
         //printf("unittest_lexer()\n");
         /* Not much here, just trying things out.
@@ -88,10 +89,10 @@ version (unittest)
 
 /***********************************************************
  */
-extern (C++) class Lexer
+class Lexer
 {
 public:
-    extern (C++) static __gshared OutBuffer stringbuffer;
+    __gshared OutBuffer stringbuffer;
 
     Loc scanloc;            // for error messages
 
@@ -157,7 +158,6 @@ public:
 
     final static void initLexer()
     {
-        cmtable_init();
         Identifier.initTable();
         Token.initTokens();
         version (unittest)
@@ -360,10 +360,10 @@ public:
                     anyToken = 1;
                     if (*t.ptr == '_') // if special identifier token
                     {
-                        static __gshared bool initdone = false;
-                        static __gshared char[11 + 1] date;
-                        static __gshared char[8 + 1] time;
-                        static __gshared char[24 + 1] timestamp;
+                        __gshared bool initdone = false;
+                        __gshared char[11 + 1] date;
+                        __gshared char[8 + 1] time;
+                        __gshared char[24 + 1] timestamp;
                         if (!initdone) // lazy evaluation
                         {
                             initdone = true;
@@ -1441,7 +1441,7 @@ public:
                 if (startline && isalpha(c) && hereid)
                 {
                     Token tok;
-                    const(char)* psave = p;
+                    auto psave = p;
                     p--;
                     scan(&tok); // read in possible heredoc identifier
                     //printf("endid = '%s'\n", tok.ident->toChars());
