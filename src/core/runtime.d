@@ -568,7 +568,11 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                     enum FIRSTFRAME = 0;
                 }
 
-                version(linux)
+                version(linux) enum enableDwarf = true;
+                else version(FreeBSD) enum enableDwarf = true;
+                else enum enableDwarf = false;
+
+                static if (enableDwarf)
                 {
                     import core.internal.traits : externDFunc;
 

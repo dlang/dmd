@@ -12,7 +12,10 @@
 
 module rt.backtrace.dwarf;
 
-version(linux):
+version(linux) version = linux_or_freebsd;
+else version(FreeBSD) version = linux_or_freebsd;
+
+version(linux_or_freebsd):
 
 import rt.util.container.array;
 import rt.backtrace.elf;
@@ -31,7 +34,8 @@ struct Location
 int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
 {
     import core.stdc.stdio : snprintf;
-    import core.sys.linux.execinfo : backtrace_symbols;
+    version(linux) import core.sys.linux.execinfo : backtrace_symbols;
+    else version(FreeBSD) import core.sys.freebsd.execinfo : backtrace_symbols;
     import core.sys.posix.stdlib : free;
 
     const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
@@ -373,11 +377,21 @@ bool runStateMachine(const(LPHeader)* lpHeader, const(ubyte)[] program, const(ub
 
 const(char)[] getDemangledSymbol(const(char)[] btSymbol, ref char[1024] buffer)
 {
-    // format is:  module(_D6module4funcAFZv) [0x00000000]
-    // or:         module(_D6module4funcAFZv+0x78) [0x00000000]
-    auto bptr = cast(char*) memchr(btSymbol.ptr, '(', btSymbol.length);
-    auto eptr = cast(char*) memchr(btSymbol.ptr, ')', btSymbol.length);
-    auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
+    version(linux)
+    {
+        // format is:  module(_D6module4funcAFZv) [0x00000000]
+        // or:         module(_D6module4funcAFZv+0x78) [0x00000000]
+        auto bptr = cast(char*) memchr(btSymbol.ptr, '(', btSymbol.length);
+        auto eptr = cast(char*) memchr(btSymbol.ptr, ')', btSymbol.length);
+        auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
+    }
+    else version(FreeBSD)
+    {
+        // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
+        auto bptr = cast(char*) memchr(btSymbol.ptr, '<', btSymbol.length);
+        auto eptr = cast(char*) memchr(btSymbol.ptr, '>', btSymbol.length);
+        auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
+    }
 
     if (pptr && pptr < eptr)
         eptr = pptr;

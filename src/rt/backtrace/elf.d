@@ -11,18 +11,33 @@
 
 module rt.backtrace.elf;
 
-version(linux):
+version(linux) version = linux_or_freebsd;
+else version(FreeBSD) version = linux_or_freebsd;
+
+version(linux_or_freebsd):
 
 import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 
-public import core.sys.linux.elf;
+version(linux) public import core.sys.linux.elf;
+version(FreeBSD) public import core.sys.freebsd.sys.elf;
 
 struct ElfFile
 {
     static bool openSelf(ElfFile* file) @nogc nothrow
     {
-        file.fd = open("/proc/self/exe", O_RDONLY);
+        version (linux)
+        {
+            auto selfPath = "/proc/self/exe".ptr;
+        }
+        else version (FreeBSD)
+        {
+            char[1024] selfPathBuffer = void;
+            auto selfPath = getFreeBSDExePath(selfPathBuffer[]);
+            if (selfPath is null) return false;
+        }
+
+        file.fd = open(selfPath, O_RDONLY);
         if (file.fd >= 0)
         {
             // memory map header
@@ -119,6 +134,29 @@ size_t findSectionByName(const(ElfFile)* file, ElfSection* stringSection, const(
 }
 
 private:
+
+version (FreeBSD)
+{
+    extern (C) int sysctl(const int* name, uint namelen, void* oldp, size_t* oldlenp, const void* newp, size_t newlen) @nogc nothrow;
+    const(char)* getFreeBSDExePath(char[] buffer) @nogc nothrow
+    {
+        enum
+        {
+            CTL_KERN = 1,
+            KERN_PROC = 14,
+            KERN_PROC_PATHNAME = 12
+        }
+
+        int[4] mib = [CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1];
+        size_t len = buffer.length;
+
+        auto result = sysctl(mib.ptr, mib.length, buffer.ptr, &len, null, 0); // get the length of the path
+        if (result != 0) return null;
+        if (len + 1 > buffer.length) return null;
+        buffer[len] = 0;
+        return buffer.ptr;
+    }
+}
 
 bool isValidElfHeader(const(Elf_Ehdr)* ehdr) @nogc nothrow
 {
