@@ -244,7 +244,7 @@ SRC = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 
 ROOT_SRC = $(addprefix $(ROOT)/,aav.h array.h file.h filename.h		\
 	longdouble.h newdelete.c object.h outbuffer.h port.h rmem.h	\
-	root.h speller.h stringtable.h)
+	root.h stringtable.h)
 
 GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c tocvdebug.c toir.h toir.c \
