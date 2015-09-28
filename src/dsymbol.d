@@ -1143,6 +1143,11 @@ public:
         return null;
     }
 
+    AnonDeclaration isAnonDeclaration()
+    {
+        return null;
+    }
+
     OverloadSet isOverloadSet()
     {
         return null;

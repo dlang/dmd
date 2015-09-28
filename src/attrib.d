@@ -595,6 +595,9 @@ public:
     bool isunion;
     structalign_t alignment;
     int sem;        // 1 if successful semantic()
+    uint anonoffset;        // offset of anonymous struct
+    uint anonstructsize;    // size of anonymous struct
+    uint anonalignsize;     // size of anonymous struct for alignment purposes
 
     extern (D) this(Loc loc, bool isunion, Dsymbols* decl)
     {
@@ -661,8 +664,8 @@ public:
                 if (this.isunion)
                     offset = 0;
             }
-            uint anonstructsize = ad.structsize;
-            uint anonalignsize = ad.alignsize;
+            anonstructsize = ad.structsize;
+            anonalignsize = ad.alignsize;
             ad.structsize = savestructsize;
             ad.alignsize = savealignsize;
             if (fieldstart == ad.fields.dim)
@@ -684,7 +687,7 @@ public:
             /* Given the anon 'member's size and alignment,
              * go ahead and place it.
              */
-            uint anonoffset = AggregateDeclaration.placeField(poffset, anonstructsize, anonalignsize, alignment, &ad.structsize, &ad.alignsize, isunion);
+            anonoffset = AggregateDeclaration.placeField(poffset, anonstructsize, anonalignsize, alignment, &ad.structsize, &ad.alignsize, isunion);
             // Add to the anon fields the base offset of this anonymous aggregate
             //printf("anon fields, anonoffset = %d\n", anonoffset);
             for (size_t i = fieldstart; i < ad.fields.dim; i++)
@@ -699,6 +702,11 @@ public:
     override const(char)* kind()
     {
         return (isunion ? "anonymous union" : "anonymous struct");
+    }
+
+    override final AnonDeclaration isAnonDeclaration()
+    {
+        return this;
     }
 
     override void accept(Visitor v)
