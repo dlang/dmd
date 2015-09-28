@@ -925,12 +925,8 @@ public:
     virtual void accept(Visitor *v) { v->visit(this); }
 
     static Parameters *arraySyntaxCopy(Parameters *parameters);
-    static int isTPL(Parameters *parameters);
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
-
-    typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
-    static int foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn=NULL);
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);

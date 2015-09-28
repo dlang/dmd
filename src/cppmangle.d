@@ -465,43 +465,42 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             }
         }
 
-        static int paramsCppMangleDg(void* ctx, size_t n, Parameter fparam)
-        {
-            CppMangleVisitor mangler = cast(CppMangleVisitor)ctx;
-            Type t = fparam.type.merge2();
-            if (fparam.storageClass & (STCout | STCref))
-                t = t.referenceTo();
-            else if (fparam.storageClass & STClazy)
-            {
-                // Mangle as delegate
-                Type td = new TypeFunction(null, t, 0, LINKd);
-                td = new TypeDelegate(td);
-                t = t.merge();
-            }
-            if (t.ty == Tsarray)
-            {
-                // Mangle static arrays as pointers
-                t.error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
-                t.error(Loc(), "Use pointer instead.");
-                assert(0);
-                //t = t->nextOf()->pointerTo();
-            }
-            /* If it is a basic, enum or struct type,
-             * then don't mark it const
-             */
-            mangler.is_top_level = true;
-            if ((t.ty == Tenum || t.ty == Tstruct || t.ty == Tpointer || t.isTypeBasic()) && t.isConst())
-                t.mutableOf().accept(mangler);
-            else
-                t.accept(mangler);
-            mangler.is_top_level = false;
-            return 0;
-        }
-
         void argsCppMangle(Parameters* parameters, int varargs)
         {
+            int paramsCppMangleDg(size_t n, Parameter fparam)
+            {
+                Type t = fparam.type.merge2();
+                if (fparam.storageClass & (STCout | STCref))
+                    t = t.referenceTo();
+                else if (fparam.storageClass & STClazy)
+                {
+                    // Mangle as delegate
+                    Type td = new TypeFunction(null, t, 0, LINKd);
+                    td = new TypeDelegate(td);
+                    t = t.merge();
+                }
+                if (t.ty == Tsarray)
+                {
+                    // Mangle static arrays as pointers
+                    t.error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
+                    t.error(Loc(), "Use pointer instead.");
+                    assert(0);
+                    //t = t->nextOf()->pointerTo();
+                }
+                /* If it is a basic, enum or struct type,
+                 * then don't mark it const
+                 */
+                this.is_top_level = true;
+                if ((t.ty == Tenum || t.ty == Tstruct || t.ty == Tpointer || t.isTypeBasic()) && t.isConst())
+                    t.mutableOf().accept(this);
+                else
+                    t.accept(this);
+                this.is_top_level = false;
+                return 0;
+            }
+
             if (parameters)
-                Parameter._foreach(parameters, &paramsCppMangleDg, cast(void*)this);
+                Parameter._foreach(parameters, &paramsCppMangleDg);
             if (varargs)
                 buf.writestring("z");
             else if (!parameters || !parameters.dim)
@@ -1794,33 +1793,6 @@ else static if (TARGET_WINDOS)
             cur.accept(this);
         }
 
-        static int mangleParameterDg(void* ctx, size_t n, Parameter p)
-        {
-            VisualCPPMangler mangler = cast(VisualCPPMangler)ctx;
-            Type t = p.type;
-            if (p.storageClass & (STCout | STCref))
-            {
-                t = t.referenceTo();
-            }
-            else if (p.storageClass & STClazy)
-            {
-                // Mangle as delegate
-                Type td = new TypeFunction(null, t, 0, LINKd);
-                td = new TypeDelegate(td);
-                t = t.merge();
-            }
-            if (t.ty == Tsarray)
-            {
-                t.error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
-                t.error(Loc(), "Use pointer instead.");
-                assert(0);
-            }
-            mangler.flags &= ~IS_NOT_TOP_TYPE;
-            mangler.flags &= ~IGNORE_CONST;
-            t.accept(mangler);
-            return 0;
-        }
-
         const(char)* mangleFunctionType(TypeFunction type, bool needthis = false, bool noreturn = false)
         {
             scope VisualCPPMangler tmp = new VisualCPPMangler(this);
@@ -1886,7 +1858,33 @@ else static if (TARGET_WINDOS)
             }
             else
             {
-                Parameter._foreach(type.parameters, &mangleParameterDg, cast(void*)tmp);
+                int mangleParameterDg(size_t n, Parameter p)
+                {
+                    Type t = p.type;
+                    if (p.storageClass & (STCout | STCref))
+                    {
+                        t = t.referenceTo();
+                    }
+                    else if (p.storageClass & STClazy)
+                    {
+                        // Mangle as delegate
+                        Type td = new TypeFunction(null, t, 0, LINKd);
+                        td = new TypeDelegate(td);
+                        t = t.merge();
+                    }
+                    if (t.ty == Tsarray)
+                    {
+                        t.error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
+                        t.error(Loc(), "Use pointer instead.");
+                        assert(0);
+                    }
+                    tmp.flags &= ~IS_NOT_TOP_TYPE;
+                    tmp.flags &= ~IGNORE_CONST;
+                    t.accept(tmp);
+                    return 0;
+                }
+
+                Parameter._foreach(type.parameters, &mangleParameterDg);
                 if (type.varargs == 1)
                 {
                     tmp.buf.writeByte('Z');

@@ -344,50 +344,6 @@ extern (C++) Expression semanticLength(Scope* sc, Type t, Expression exp)
     return exp;
 }
 
-/****************************************
- * Determine if parameter list is really a template parameter list
- * (i.e. it has auto or alias parameters)
- */
-extern (C++) static int isTPLDg(void* ctx, size_t n, Parameter p)
-{
-    if (p.storageClass & (STCalias | STCauto | STCstatic))
-        return 1;
-    return 0;
-}
-
-/***************************************
- * Determine number of arguments, folding in tuples.
- */
-extern (C++) static int dimDg(void* ctx, size_t n, Parameter)
-{
-    ++*cast(size_t*)ctx;
-    return 0;
-}
-
-/***************************************
- * Get nth Parameter, folding in tuples.
- * Returns:
- *      Parameter*      nth Parameter
- *      NULL            not found, *pn gets incremented by the number
- *                      of Parameters
- */
-struct GetNthParamCtx
-{
-    size_t nth;
-    Parameter param;
-}
-
-extern (C++) static int getNthParamDg(void* ctx, size_t n, Parameter p)
-{
-    GetNthParamCtx* c = cast(GetNthParamCtx*)ctx;
-    if (n == c.nth)
-    {
-        c.param = p;
-        return 1;
-    }
-    return 0;
-}
-
 enum ENUMTY : int
 {
     Tarray,     // slice array, aka T[]
@@ -9497,27 +9453,69 @@ public:
         return params;
     }
 
+    extern (D):
+
+    /****************************************
+     * Determine if parameter list is really a template parameter list
+     * (i.e. it has auto or alias parameters)
+     */
     static int isTPL(Parameters* parameters)
     {
         //printf("Parameter::isTPL()\n");
-        return _foreach(parameters, &isTPLDg, null);
+
+        int isTPLDg(size_t n, Parameter p)
+        {
+            if (p.storageClass & (STCalias | STCauto | STCstatic))
+                return 1;
+            return 0;
+        }
+
+        return _foreach(parameters, &isTPLDg);
     }
 
-    static size_t dim(Parameters* parameters)
+    /***************************************
+     * Determine number of arguments, folding in tuples.
+     */
+    extern (C++) static size_t dim(Parameters* parameters)
     {
-        size_t n = 0;
-        _foreach(parameters, &dimDg, &n);
-        return n;
+        size_t nargs = 0;
+
+        int dimDg(size_t n, Parameter p)
+        {
+            ++nargs;
+            return 0;
+        }
+
+        _foreach(parameters, &dimDg);
+        return nargs;
     }
 
-    static Parameter getNth(Parameters* parameters, size_t nth, size_t* pn = null)
+    /***************************************
+     * Get nth Parameter, folding in tuples.
+     * Returns:
+     *      Parameter*      nth Parameter
+     *      NULL            not found, *pn gets incremented by the number
+     *                      of Parameters
+     */
+    extern (C++) static Parameter getNth(Parameters* parameters, size_t nth, size_t* pn = null)
     {
-        GetNthParamCtx ctx = GetNthParamCtx(nth, null);
-        int res = _foreach(parameters, &getNthParamDg, &ctx);
-        return res ? ctx.param : null;
+        Parameter param;
+
+        int getNthParamDg(size_t n, Parameter p)
+        {
+            if (n == nth)
+            {
+                param = p;
+                return 1;
+            }
+            return 0;
+        }
+
+        int res = _foreach(parameters, &getNthParamDg);
+        return res ? param : null;
     }
 
-    extern (C++) alias ForeachDg = int function(void* ctx, size_t paramidx, Parameter param);
+    alias ForeachDg = int delegate(size_t paramidx, Parameter param);
 
     /***************************************
      * Expands tuples in args in depth first order. Calls
@@ -9526,24 +9524,24 @@ public:
      * Use this function to avoid the O(N + N^2/2) complexity of
      * calculating dim and calling N times getNth.
      */
-    static int _foreach(Parameters* parameters, ForeachDg dg, void* ctx, size_t* pn = null)
+    static int _foreach(Parameters* parameters, scope ForeachDg dg, size_t* pn = null)
     {
         assert(dg);
         if (!parameters)
             return 0;
         size_t n = pn ? *pn : 0; // take over index
         int result = 0;
-        for (size_t i = 0; i < parameters.dim; i++)
+        foreach (i; 0 .. parameters.dim)
         {
             Parameter p = (*parameters)[i];
             Type t = p.type.toBasetype();
             if (t.ty == Ttuple)
             {
                 TypeTuple tu = cast(TypeTuple)t;
-                result = _foreach(tu.arguments, dg, ctx, &n);
+                result = _foreach(tu.arguments, dg, &n);
             }
             else
-                result = dg(ctx, n++, p);
+                result = dg(n++, p);
             if (result)
                 break;
         }
