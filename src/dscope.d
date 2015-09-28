@@ -79,41 +79,6 @@ extern (C++) bool mergeFieldInit(Loc loc, ref uint fieldInit, uint fi, bool must
     return true;
 }
 
-/************************************************
- * Given the failed search attempt, try to find
- * one with a close spelling.
- */
-extern (C++) void* scope_search_fp(void* arg, const(char)* seed, int* cost)
-{
-    //printf("scope_search_fp('%s')\n", seed);
-    /* If not in the lexer's string table, it certainly isn't in the symbol table.
-     * Doing this first is a lot faster.
-     */
-    size_t len = strlen(seed);
-    if (!len)
-        return null;
-    Identifier id = Identifier.lookup(seed, len);
-    if (!id)
-        return null;
-    Scope* sc = cast(Scope*)arg;
-    Module.clearCache();
-    Dsymbol scopesym = null;
-    Dsymbol s = sc.search(Loc(), id, &scopesym, IgnoreErrors);
-    if (s)
-    {
-        for (*cost = 0; sc; sc = sc.enclosing, (*cost)++)
-            if (sc.scopesym == scopesym)
-                break;
-        if (scopesym != s.parent)
-        {
-            (*cost)++; // got to the symbol through an import
-            if (s.prot().kind == PROTprivate)
-                return null;
-        }
-    }
-    return cast(void*)s;
-}
-
 enum CSXthis_ctor       = 0x01;     // called this()
 enum CSXsuper_ctor      = 0x02;     // called super()
 enum CSXthis            = 0x04;     // referenced this
@@ -491,7 +456,43 @@ struct Scope
     {
         if (global.gag)
             return null; // don't do it for speculative compiles; too time consuming
-        return cast(Dsymbol)speller(ident.toChars(), &scope_search_fp, &this, idchars);
+
+        /************************************************
+         * Given the failed search attempt, try to find
+         * one with a close spelling.
+         */
+        extern (D) void* scope_search_fp(const(char)* seed, ref int cost)
+        {
+            //printf("scope_search_fp('%s')\n", seed);
+            /* If not in the lexer's string table, it certainly isn't in the symbol table.
+             * Doing this first is a lot faster.
+             */
+            size_t len = strlen(seed);
+            if (!len)
+                return null;
+            Identifier id = Identifier.lookup(seed, len);
+            if (!id)
+                return null;
+            Scope* sc = &this;
+            Module.clearCache();
+            Dsymbol scopesym = null;
+            Dsymbol s = sc.search(Loc(), id, &scopesym, IgnoreErrors);
+            if (s)
+            {
+                for (cost = 0; sc; sc = sc.enclosing, ++cost)
+                    if (sc.scopesym == scopesym)
+                        break;
+                if (scopesym != s.parent)
+                {
+                    ++cost; // got to the symbol through an import
+                    if (s.prot().kind == PROTprivate)
+                        return null;
+                }
+            }
+            return cast(void*)s;
+        }
+
+        return cast(Dsymbol)speller(ident.toChars(), &scope_search_fp, idchars);
     }
 
     extern (C++) Dsymbol insert(Dsymbol s)

@@ -305,17 +305,6 @@ extern (C++) void initTraitsStringTable()
     }
 }
 
-extern (C++) void* trait_search_fp(void* arg, const(char)* seed, int* cost)
-{
-    //printf("trait_search_fp('%s')\n", seed);
-    size_t len = strlen(seed);
-    if (!len)
-        return null;
-    *cost = 0;
-    StringValue* sv = traitsStringTable.lookup(seed, len);
-    return sv ? cast(void*)sv.ptrvalue : null;
-}
-
 extern (C++) bool isTemplate(Dsymbol s)
 {
     if (!s.toAlias().isOverloadable())
@@ -1291,7 +1280,18 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     else
     {
-        if (const(char)* sub = cast(const(char)*)speller(e.ident.toChars(), &trait_search_fp, null, idchars))
+        extern (D) void* trait_search_fp(const(char)* seed, ref int cost)
+        {
+            //printf("trait_search_fp('%s')\n", seed);
+            size_t len = strlen(seed);
+            if (!len)
+                return null;
+            cost = 0;
+            StringValue* sv = traitsStringTable.lookup(seed, len);
+            return sv ? cast(void*)sv.ptrvalue : null;
+        }
+
+        if (auto sub = cast(const(char)*)speller(e.ident.toChars(), &trait_search_fp, idchars))
             e.error("unrecognized trait '%s', did you mean '%s'?", e.ident.toChars(), sub);
         else
             e.error("unrecognized trait '%s'", e.ident.toChars());

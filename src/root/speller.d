@@ -10,9 +10,9 @@ module ddmd.root.speller;
 
 import core.stdc.limits, core.stdc.stdlib, core.stdc.string;
 
-extern (C++) alias fp_speller_t = void* function(void*, const(char)*, int*);
+alias dg_speller_t = void* delegate(const(char)*, ref int);
 
-extern (C++) __gshared const(char)* idchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+__gshared const(char)* idchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 
 /**************************************************
  * combine a new result from the spell checker to
@@ -28,7 +28,7 @@ extern (C++) __gshared const(char)* idchars = "abcdefghijklmnopqrstuvwxyzABCDEFG
  *      true    if the cost is less or equal 0
  *      false   otherwise
  */
-extern (C++) bool combineSpellerResult(ref void* p, ref int cost, void* np, int ncost)
+bool combineSpellerResult(ref void* p, ref int cost, void* np, int ncost)
 {
     if (np && ncost < cost)
     {
@@ -40,7 +40,7 @@ extern (C++) bool combineSpellerResult(ref void* p, ref int cost, void* np, int 
     return false;
 }
 
-extern (C++) void* spellerY(const(char)* seed, size_t seedlen, fp_speller_t fp, void* fparg, const(char)* charset, size_t index, int* cost)
+void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset, size_t index, int* cost)
 {
     if (!seedlen)
         return null;
@@ -64,7 +64,7 @@ extern (C++) void* spellerY(const(char)* seed, size_t seedlen, fp_speller_t fp, 
     {
         memcpy(buf + index, seed + index + 1, seedlen - index);
         assert(buf[seedlen - 1] == 0);
-        void* np = (*fp)(fparg, buf, &ncost);
+        void* np = dg(buf, ncost);
         if (combineSpellerResult(p, *cost, np, ncost))
             return p;
     }
@@ -78,7 +78,7 @@ extern (C++) void* spellerY(const(char)* seed, size_t seedlen, fp_speller_t fp, 
             {
                 buf[index] = *s;
                 //printf("sub buf = '%s'\n", buf);
-                void* np = (*fp)(fparg, buf, &ncost);
+                void* np = dg(buf, ncost);
                 if (combineSpellerResult(p, *cost, np, ncost))
                     return p;
             }
@@ -90,7 +90,7 @@ extern (C++) void* spellerY(const(char)* seed, size_t seedlen, fp_speller_t fp, 
         {
             buf[index] = *s;
             //printf("ins buf = '%s'\n", buf);
-            void* np = (*fp)(fparg, buf, &ncost);
+            void* np = dg(buf, ncost);
             if (combineSpellerResult(p, *cost, np, ncost))
                 return p;
         }
@@ -99,7 +99,7 @@ extern (C++) void* spellerY(const(char)* seed, size_t seedlen, fp_speller_t fp, 
     return p; // return "best" result
 }
 
-extern (C++) void* spellerX(const(char)* seed, size_t seedlen, fp_speller_t fp, void* fparg, const(char)* charset, int flag)
+void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset, int flag)
 {
     if (!seedlen)
         return null;
@@ -121,9 +121,9 @@ extern (C++) void* spellerX(const(char)* seed, size_t seedlen, fp_speller_t fp, 
     {
         //printf("del buf = '%s'\n", buf);
         if (flag)
-            np = spellerY(buf, seedlen - 1, fp, fparg, charset, i, &ncost);
+            np = spellerY(buf, seedlen - 1, dg, charset, i, &ncost);
         else
-            np = (*fp)(fparg, buf, &ncost);
+            np = dg(buf, ncost);
         if (combineSpellerResult(p, cost, np, ncost))
             return p;
         buf[i] = seed[i];
@@ -138,7 +138,7 @@ extern (C++) void* spellerX(const(char)* seed, size_t seedlen, fp_speller_t fp, 
             buf[i] = seed[i + 1];
             buf[i + 1] = seed[i];
             //printf("tra buf = '%s'\n", buf);
-            if (combineSpellerResult(p, cost, (*fp)(fparg, buf, &ncost), ncost))
+            if (combineSpellerResult(p, cost, dg(buf, ncost), ncost))
                 return p;
             buf[i] = seed[i];
         }
@@ -154,9 +154,9 @@ extern (C++) void* spellerX(const(char)* seed, size_t seedlen, fp_speller_t fp, 
                 buf[i] = *s;
                 //printf("sub buf = '%s'\n", buf);
                 if (flag)
-                    np = spellerY(buf, seedlen, fp, fparg, charset, i + 1, &ncost);
+                    np = spellerY(buf, seedlen, dg, charset, i + 1, &ncost);
                 else
-                    np = (*fp)(fparg, buf, &ncost);
+                    np = dg(buf, ncost);
                 if (combineSpellerResult(p, cost, np, ncost))
                     return p;
             }
@@ -171,9 +171,9 @@ extern (C++) void* spellerX(const(char)* seed, size_t seedlen, fp_speller_t fp, 
                 buf[i] = *s;
                 //printf("ins buf = '%s'\n", buf);
                 if (flag)
-                    np = spellerY(buf, seedlen + 1, fp, fparg, charset, i + 1, &ncost);
+                    np = spellerY(buf, seedlen + 1, dg, charset, i + 1, &ncost);
                 else
-                    np = (*fp)(fparg, buf, &ncost);
+                    np = dg(buf, ncost);
                 if (combineSpellerResult(p, cost, np, ncost))
                     return p;
             }
@@ -189,20 +189,19 @@ extern (C++) void* spellerX(const(char)* seed, size_t seedlen, fp_speller_t fp, 
  * This does an exhaustive search, so can potentially be very slow.
  * Input:
  *      seed            wrongly spelled word
- *      fp              search function
- *      fparg           argument to search function
+ *      dg              search delegate
  *      charset         character set
  * Returns:
  *      NULL            no correct spellings found
- *      void*           value returned by fp() for first possible correct spelling
+ *      void*           value returned by dg() for first possible correct spelling
  */
-extern (C++) void* speller(const(char)* seed, fp_speller_t fp, void* fparg, const(char)* charset)
+void* speller(const(char)* seed, scope dg_speller_t dg, const(char)* charset)
 {
     size_t seedlen = strlen(seed);
     size_t maxdist = seedlen < 4 ? seedlen / 2 : 2;
     for (int distance = 0; distance < maxdist; distance++)
     {
-        void* p = spellerX(seed, seedlen, fp, fparg, charset, distance);
+        void* p = spellerX(seed, seedlen, dg, charset, distance);
         if (p)
             return p;
         //      if (seedlen > 10)
@@ -213,16 +212,7 @@ extern (C++) void* speller(const(char)* seed, fp_speller_t fp, void* fparg, cons
 
 version (unittest)
 {
-    extern (C++) void* speller_test(void* fparg, const(char)* s, int* cost)
-    {
-        //printf("speller_test(%s, %s)\n", fparg, s);
-        *cost = 0;
-        if (strcmp(cast(char*)fparg, s) == 0)
-            return fparg;
-        return null;
-    }
-
-    extern (C++) void unittest_speller()
+    void unittest_speller()
     {
         static __gshared const(char)*** cases =
         [
@@ -244,12 +234,26 @@ version (unittest)
             [null, null, null]
         ];
         //printf("unittest_speller()\n");
-        const(void)* p = speller(cast(const(char)*)"hello", &speller_test, cast(char*)"hell", idchars);
+
+        void* dgarg;
+
+        void* speller_test(const(char)* s, ref int cost)
+        {
+            //printf("speller_test(%s, %s)\n", dgarg, s);
+            cost = 0;
+            if (strcmp(cast(char*)dgarg, s) == 0)
+                return dgarg;
+            return null;
+        }
+
+        dgarg = cast(char*)"hell";
+        const(void)* p = speller(cast(const(char)*)"hello", &speller_test, idchars);
         assert(p !is null);
         for (int i = 0; cases[i][0]; i++)
         {
             //printf("case [%d]\n", i);
-            void* p2 = speller(cases[i][0], &speller_test, cast(void*)cases[i][1], idchars);
+            dgarg = cast(void*)cases[i][1];
+            void* p2 = speller(cases[i][0], &speller_test, idchars);
             if (p2)
                 assert(cases[i][2][0] == 'y');
             else
