@@ -1199,7 +1199,7 @@ public:
         }
         if (s.exp)
         {
-            inlineScan(&s.exp);                 // inline as an expression
+            inlineScan(s.exp);                 // inline as an expression
             /* If there's a TOKcall at the top, then it failed to inline
              * as an Expression. Try to inline as a Statement instead.
              * Note that inline scanning of s.exp.e1 and s.exp.arguments was already done.
@@ -1213,7 +1213,7 @@ public:
     {
         for (size_t i = 0; i < s.statements.dim; i++)
         {
-            inlineScan(&(*s.statements)[i]);
+            inlineScan((*s.statements)[i]);
         }
     }
 
@@ -1221,69 +1221,69 @@ public:
     {
         for (size_t i = 0; i < s.statements.dim; i++)
         {
-            inlineScan(&(*s.statements)[i]);
+            inlineScan((*s.statements)[i]);
         }
     }
 
     override void visit(ScopeStatement s)
     {
-        inlineScan(&s.statement);
+        inlineScan(s.statement);
     }
 
     override void visit(WhileStatement s)
     {
-        inlineScan(&s.condition);
-        inlineScan(&s._body);
+        inlineScan(s.condition);
+        inlineScan(s._body);
     }
 
     override void visit(DoStatement s)
     {
-        inlineScan(&s._body);
-        inlineScan(&s.condition);
+        inlineScan(s._body);
+        inlineScan(s.condition);
     }
 
     override void visit(ForStatement s)
     {
-        inlineScan(&s._init);
-        inlineScan(&s.condition);
-        inlineScan(&s.increment);
-        inlineScan(&s._body);
+        inlineScan(s._init);
+        inlineScan(s.condition);
+        inlineScan(s.increment);
+        inlineScan(s._body);
     }
 
     override void visit(ForeachStatement s)
     {
-        inlineScan(&s.aggr);
-        inlineScan(&s._body);
+        inlineScan(s.aggr);
+        inlineScan(s._body);
     }
 
     override void visit(ForeachRangeStatement s)
     {
-        inlineScan(&s.lwr);
-        inlineScan(&s.upr);
-        inlineScan(&s._body);
+        inlineScan(s.lwr);
+        inlineScan(s.upr);
+        inlineScan(s._body);
     }
 
     override void visit(IfStatement s)
     {
-        inlineScan(&s.condition);
-        inlineScan(&s.ifbody);
-        inlineScan(&s.elsebody);
+        inlineScan(s.condition);
+        inlineScan(s.ifbody);
+        inlineScan(s.elsebody);
     }
 
     override void visit(SwitchStatement s)
     {
         //printf("SwitchStatement::inlineScan()\n");
-        inlineScan(&s.condition);
-        inlineScan(&s._body);
+        inlineScan(s.condition);
+        inlineScan(s._body);
         Statement sdefault = s.sdefault;
-        inlineScan(&sdefault);
+        inlineScan(sdefault);
         s.sdefault = cast(DefaultStatement)sdefault;
         if (s.cases)
         {
             for (size_t i = 0; i < s.cases.dim; i++)
             {
                 Statement scase = (*s.cases)[i];
-                inlineScan(&scase);
+                inlineScan(scase);
                 (*s.cases)[i] = cast(CaseStatement)scase;
             }
         }
@@ -1292,71 +1292,77 @@ public:
     override void visit(CaseStatement s)
     {
         //printf("CaseStatement::inlineScan()\n");
-        inlineScan(&s.exp);
-        inlineScan(&s.statement);
+        inlineScan(s.exp);
+        inlineScan(s.statement);
     }
 
     override void visit(DefaultStatement s)
     {
-        inlineScan(&s.statement);
+        inlineScan(s.statement);
     }
 
     override void visit(ReturnStatement s)
     {
         //printf("ReturnStatement::inlineScan()\n");
-        inlineScan(&s.exp);
+        inlineScan(s.exp);
     }
 
     override void visit(SynchronizedStatement s)
     {
-        inlineScan(&s.exp);
-        inlineScan(&s._body);
+        inlineScan(s.exp);
+        inlineScan(s._body);
     }
 
     override void visit(WithStatement s)
     {
-        inlineScan(&s.exp);
-        inlineScan(&s._body);
+        inlineScan(s.exp);
+        inlineScan(s._body);
     }
 
     override void visit(TryCatchStatement s)
     {
-        inlineScan(&s._body);
+        inlineScan(s._body);
         if (s.catches)
         {
             for (size_t i = 0; i < s.catches.dim; i++)
             {
                 Catch c = (*s.catches)[i];
-                inlineScan(&c.handler);
+                inlineScan(c.handler);
             }
         }
     }
 
     override void visit(TryFinallyStatement s)
     {
-        inlineScan(&s._body);
-        inlineScan(&s.finalbody);
+        inlineScan(s._body);
+        inlineScan(s.finalbody);
     }
 
     override void visit(ThrowStatement s)
     {
-        inlineScan(&s.exp);
+        inlineScan(s.exp);
     }
 
     override void visit(LabelStatement s)
     {
-        inlineScan(&s.statement);
+        inlineScan(s.statement);
     }
 
-    void inlineScan(Statement* s)
+    /********************************
+     * Scan Statement s for inlining opportunities,
+     * and if found replace s with an inlined one.
+     * Params:
+     *  s = Statement to be scanned and updated
+     */
+    void inlineScan(ref Statement s)
     {
-        if (!*s)
+        if (!s)
             return;
         assert(sresult is null);
-        (*s).accept(this);
+        s.accept(this);
         if (sresult)
         {
-            *s = sresult;
+            s = sresult;
             sresult = null;
         }
     }
@@ -1368,7 +1374,7 @@ public:
         {
             for (size_t i = 0; i < arguments.dim; i++)
             {
-                inlineScan(&(*arguments)[i]);
+                inlineScan((*arguments)[i]);
             }
         }
     }
@@ -1397,7 +1403,7 @@ public:
             {
                 if (ExpInitializer ie = vd._init.isExpInitializer())
                 {
-                    inlineScan(&ie.exp);
+                    inlineScan(ie.exp);
                 }
             }
         }
@@ -1415,19 +1421,19 @@ public:
 
     override void visit(UnaExp e)
     {
-        inlineScan(&e.e1);
+        inlineScan(e.e1);
     }
 
     override void visit(AssertExp e)
     {
-        inlineScan(&e.e1);
-        inlineScan(&e.msg);
+        inlineScan(e.e1);
+        inlineScan(e.msg);
     }
 
     override void visit(BinExp e)
     {
-        inlineScan(&e.e1);
-        inlineScan(&e.e2);
+        inlineScan(e.e1);
+        inlineScan(e.e2);
     }
 
     override void visit(AssignExp e)
@@ -1453,9 +1459,9 @@ public:
                     /* Inlining:
                      *   this.field = foo();   // inside constructor
                      */
-                    inlineScan(&e.e1);
+                    inlineScan(e.e1);
                 }
-                inlineScan(&ce.e1);
+                inlineScan(ce.e1);
                 arrayInlineScan(ce.arguments);
                 visitCallExp(ce, e.e1, false);
                 if (eresult)
@@ -1471,7 +1477,7 @@ public:
 
     override void visit(CallExp e)
     {
-        inlineScan(&e.e1);
+        inlineScan(e.e1);
         arrayInlineScan(e.arguments);
         visitCallExp(e, null, false);
     }
@@ -1536,22 +1542,22 @@ public:
 
     override void visit(SliceExp e)
     {
-        inlineScan(&e.e1);
-        inlineScan(&e.lwr);
-        inlineScan(&e.upr);
+        inlineScan(e.e1);
+        inlineScan(e.lwr);
+        inlineScan(e.upr);
     }
 
     override void visit(TupleExp e)
     {
         //printf("TupleExp::inlineScan()\n");
-        inlineScan(&e.e0);
+        inlineScan(e.e0);
         arrayInlineScan(e.exps);
     }
 
     override void visit(ArrayLiteralExp e)
     {
         //printf("ArrayLiteralExp::inlineScan()\n");
-        inlineScan(&e.basis);
+        inlineScan(e.basis);
         arrayInlineScan(e.elements);
     }
 
@@ -1576,26 +1582,32 @@ public:
     override void visit(ArrayExp e)
     {
         //printf("ArrayExp::inlineScan()\n");
-        inlineScan(&e.e1);
+        inlineScan(e.e1);
         arrayInlineScan(e.arguments);
     }
 
     override void visit(CondExp e)
     {
-        inlineScan(&e.econd);
-        inlineScan(&e.e1);
-        inlineScan(&e.e2);
+        inlineScan(e.econd);
+        inlineScan(e.e1);
+        inlineScan(e.e2);
     }
 
-    void inlineScan(Expression* e)
+    /********************************
+     * Scan Expression e for inlining opportunities,
+     * and if found replace e with an inlined one.
+     * Params:
+     *  e = Expression to be scanned and updated
+     */
+    void inlineScan(ref Expression e)
     {
-        if (!*e)
+        if (!e)
             return;
         assert(eresult is null);
-        (*e).accept(this);
+        e.accept(this);
         if (eresult)
         {
-            *e = eresult;
+            e = eresult;
             eresult = null;
         }
     }
@@ -1627,7 +1639,7 @@ public:
                 again = false;
                 fd.inlineNest++;
                 fd.flags |= FUNCFLAGinlineScanned;
-                inlineScan(&fd.fbody);
+                inlineScan(fd.fbody);
                 fd.inlineNest--;
             }
             while (again);
