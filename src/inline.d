@@ -1523,6 +1523,35 @@ public:
                 }
             }
         }
+        else if (e.e1.op == TOKstar &&
+                 (cast(PtrExp)e.e1).e1.op == TOKvar)
+        {
+            /* See if calling function pointer, and that function pointer is only
+             * assigned its _init.
+             * If so, do 'copy propagation' of the _init value and try to inline it.
+             */
+            VarExp ve = cast(VarExp)(cast(PtrExp)e.e1).e1;
+            VarDeclaration v = ve.var.isVarDeclaration();
+            if (v && v._init && onlyOneAssign(v, parent))
+            {
+                //printf("init: %s\n", v._init.toChars());
+                auto ei = v._init.isExpInitializer();
+                if (ei && ei.exp.op == TOKblit)
+                {
+                    Expression e2 = (cast(AssignExp)ei.exp).e2;
+                    if (e2.op == TOKfunction)
+                    {
+                        auto fld = (cast(FuncExp)e2).fd;
+                        assert(fld.tok == TOKfunction);
+                        fd = fld;
+                        if (fd && fd != parent && canInline(fd, false, false, asStatements))
+                        {
+                            expandInline(fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
+                        }
+                    }
+                }
+            }
+        }
         else
             return;
 
@@ -2154,3 +2183,36 @@ public Expression inlineCopy(Expression e, Scope* sc)
     scope ids = new InlineDoState(sc.parent, null);
     return doInline(e, ids);
 }
+
+/*************************************
+ * Determine if v is 'head const', meaning
+ * that once it is initialized it is not changed
+ * again.
+ *
+ * This is done using a primitive flow analysis.
+ *
+ * v is head const if v is const or immutable.
+ * Otherwise, v is assumed to be head const unless one of the
+ * following is true:
+ *      1. v is a `ref` or `out` variable
+ *      2. v is a parameter and fd is a variadic function
+ *      3. v is assigned to again
+ *      4. the address of v is taken
+ *      5. v is referred to by a function nested within fd
+ *      6. v is ever assigned to a `ref` or `out` variable
+ *      7. v is ever passed to another function as `ref` or `out`
+ *
+ * Params:
+ *      v       variable to check
+ *      fd      function that v is local to
+ * Returns:
+ *      true if v's initializer is the only value assigned to v
+ */
+
+bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
+{
+    if (!v.type.isMutable())
+        return true;            // currently the only case handled atm
+    return false;
+}
+
