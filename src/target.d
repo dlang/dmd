@@ -232,7 +232,6 @@ struct Target
     {
         // We support up to 512-bit values.
         ubyte[64] buffer;
-        memset(buffer.ptr, 0, buffer.sizeof);
         assert(e.type.size() == type.size());
         // Write the expression into the buffer.
         switch (e.type.ty)

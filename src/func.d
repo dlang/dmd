@@ -2568,7 +2568,6 @@ public:
     {
         //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
         Match m;
-        memset(&m, 0, m.sizeof);
         m.last = MATCHnomatch;
         overloadApply(this, (Dsymbol s)
         {
@@ -3928,7 +3927,6 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
         return null;
     }
     Match m;
-    memset(&m, 0, m.sizeof);
     m.last = MATCHnomatch;
     functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
     if (m.last > MATCHnomatch && m.lastf)

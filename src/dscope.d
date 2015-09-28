@@ -106,42 +106,42 @@ enum SCOPEfree          = 0x8000;   // is on free list
 
 struct Scope
 {
-    Scope* enclosing = null;        // enclosing Scope
+    Scope* enclosing;               // enclosing Scope
 
-    Module _module = null;          // Root module
-    ScopeDsymbol scopesym = null;   // current symbol
-    ScopeDsymbol sds = null;        // if in static if, and declaring new symbols,
+    Module _module;                 // Root module
+    ScopeDsymbol scopesym;          // current symbol
+    ScopeDsymbol sds;               // if in static if, and declaring new symbols,
                                     // sds gets the addMember()
-    FuncDeclaration func = null;    // function we are in
-    Dsymbol parent = null;          // parent to use
-    LabelStatement slabel = null;   // enclosing labelled statement
-    SwitchStatement sw = null;      // enclosing switch statement
-    TryFinallyStatement tf = null;  // enclosing try finally statement
-    OnScopeStatement os = null;     // enclosing scope(xxx) statement
-    Statement sbreak = null;        // enclosing statement that supports "break"
-    Statement scontinue = null;     // enclosing statement that supports "continue"
-    ForeachStatement fes = null;    // if nested function for ForeachStatement, this is it
-    Scope* callsc = null;           // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    int inunion = 0;                // we're processing members of a union
-    int nofree = 0;                 // set if shouldn't free it
-    int noctor = 0;                 // set if constructor calls aren't allowed
-    int intypeof = 0;               // in typeof(exp)
-    VarDeclaration lastVar = null;  // Previous symbol used to prevent goto-skips-init
+    FuncDeclaration func;           // function we are in
+    Dsymbol parent;                 // parent to use
+    LabelStatement slabel;          // enclosing labelled statement
+    SwitchStatement sw;             // enclosing switch statement
+    TryFinallyStatement tf;         // enclosing try finally statement
+    OnScopeStatement os;            // enclosing scope(xxx) statement
+    Statement sbreak;               // enclosing statement that supports "break"
+    Statement scontinue;            // enclosing statement that supports "continue"
+    ForeachStatement fes;           // if nested function for ForeachStatement, this is it
+    Scope* callsc;                  // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
+    int inunion;                    // we're processing members of a union
+    int nofree;                     // set if shouldn't free it
+    int noctor;                     // set if constructor calls aren't allowed
+    int intypeof;                   // in typeof(exp)
+    VarDeclaration lastVar;         // Previous symbol used to prevent goto-skips-init
 
     /* If  minst && !tinst, it's in definitely non-speculative scope (eg. module member scope).
      * If !minst && !tinst, it's in definitely speculative scope (eg. template constraint).
      * If  minst &&  tinst, it's in instantiated code scope without speculation.
      * If !minst &&  tinst, it's in instantiated code scope with speculation.
      */
-    Module minst = null;            // root module where the instantiated templates should belong to
-    TemplateInstance tinst = null;  // enclosing template instance
+    Module minst;                   // root module where the instantiated templates should belong to
+    TemplateInstance tinst;         // enclosing template instance
 
     // primitive flow analysis for constructors
-    uint callSuper = 0;
+    uint callSuper;
 
     // primitive flow analysis for field initializations
-    uint* fieldinit = null;
-    size_t fieldinit_dim = 0;
+    uint* fieldinit;
+    size_t fieldinit_dim;
 
     // alignment for struct members
     structalign_t structalign = STRUCTALIGN_DEFAULT;
@@ -154,21 +154,21 @@ struct Scope
 
     // protection for class members
     Prot protection = Prot(PROTpublic);
-    int explicitProtection = 0;     // set if in an explicit protection attribute
+    int explicitProtection;         // set if in an explicit protection attribute
 
-    StorageClass stc = 0;           // storage class
-    char* depmsg = null;            // customized deprecation message
+    StorageClass stc;               // storage class
+    char* depmsg;                   // customized deprecation message
 
-    uint flags = 0;
+    uint flags;
 
     // user defined attributes
-    UserAttributeDeclaration userAttribDecl = null;
+    UserAttributeDeclaration userAttribDecl;
 
-    DocComment* lastdc = null; // documentation comment for last symbol at this scope
-    AA* anchorCounts = null; // lookup duplicate anchor name count
-    Identifier prevAnchor = null; // qualified symbol name of last doc anchor
+    DocComment* lastdc;        // documentation comment for last symbol at this scope
+    AA* anchorCounts;        // lookup duplicate anchor name count
+    Identifier prevAnchor;        // qualified symbol name of last doc anchor
 
-    extern (C++) static __gshared Scope* freelist = null;
+    extern (C++) static __gshared Scope* freelist;
 
     extern (C++) static Scope* alloc()
     {
@@ -187,13 +187,8 @@ struct Scope
     extern (C++) static Scope* createGlobal(Module _module)
     {
         Scope* sc = Scope.alloc();
-        memset(sc, 0, Scope.sizeof);
-        sc.structalign = STRUCTALIGN_DEFAULT;
-        sc.linkage = LINKd;
-        sc.inlining = PINLINEdefault;
-        sc.protection = Prot(PROTpublic);
+        *sc = Scope.init;
         sc._module = _module;
-        sc.tinst = null;
         sc.minst = _module;
         sc.scopesym = new ScopeDsymbol();
         sc.scopesym.symtab = new DsymbolTable();
@@ -212,7 +207,7 @@ struct Scope
     extern (C++) Scope* copy()
     {
         Scope* sc = Scope.alloc();
-        memcpy(sc, &this, Scope.sizeof);
+        *sc = this;
         /* Bugzilla 11777: The copied scope should not inherit fieldinit.
          */
         sc.fieldinit = null;
