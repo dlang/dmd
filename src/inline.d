@@ -413,7 +413,7 @@ public:
  * o    Copying the trees of the function to be inlined
  * o    Renaming the variables
  */
-struct InlineDoState
+final class InlineDoState
 {
     // inline context
     VarDeclaration vthis;
@@ -423,18 +423,24 @@ struct InlineDoState
     FuncDeclaration fd; // function being inlined (old parent)
     // inline result
     bool foundReturn;
+
+    this(Dsymbol parent, FuncDeclaration fd)
+    {
+        this.parent = parent;
+        this.fd = fd;
+    }
 }
 
-Statement inlineAsStatement(Statement s, InlineDoState* ids)
+Statement inlineAsStatement(Statement s, InlineDoState ids)
 {
     extern (C++) final class InlineAsStatement : Visitor
     {
         alias visit = super.visit;
     public:
-        InlineDoState* ids;
+        InlineDoState ids;
         Statement result;
 
-        extern (D) this(InlineDoState* ids)
+        extern (D) this(InlineDoState ids)
         {
             this.ids = ids;
         }
@@ -549,16 +555,16 @@ Statement inlineAsStatement(Statement s, InlineDoState* ids)
 
 /***********************************************************
  */
-Expression doInline(Statement s, InlineDoState* ids)
+Expression doInline(Statement s, InlineDoState ids)
 {
     extern (C++) final class InlineStatement : Visitor
     {
         alias visit = super.visit;
     public:
-        InlineDoState* ids;
+        InlineDoState ids;
         Expression result;
 
-        extern (D) this(InlineDoState* ids)
+        extern (D) this(InlineDoState ids)
         {
             this.ids = ids;
         }
@@ -710,16 +716,16 @@ Expression doInline(Statement s, InlineDoState* ids)
 
 /***********************************************************
  */
-Expression doInline(Expression e, InlineDoState* ids)
+Expression doInline(Expression e, InlineDoState ids)
 {
     extern (C++) final class InlineExpression : Visitor
     {
         alias visit = super.visit;
     public:
-        InlineDoState* ids;
+        InlineDoState ids;
         Expression result;
 
-        extern (D) this(InlineDoState* ids)
+        extern (D) this(InlineDoState ids)
         {
             this.ids = ids;
         }
@@ -1888,7 +1894,6 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         Expression ethis, Expressions* arguments, bool asStatements,
         out Expression eresult, out Statement sresult, out bool again)
 {
-    InlineDoState ids;
     Expression e = null;
     Statements* as = null;
     TypeFunction tf = cast(TypeFunction)fd.type;
@@ -1896,9 +1901,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
     {
         printf("FuncDeclaration::expandInline('%s')\n", fd.toChars());
     }
-    memset(&ids, 0, ids.sizeof);
-    ids.parent = parent;
-    ids.fd = fd;
+    scope ids = new InlineDoState(parent, fd);
 
     // When the function is actually expanded
     if (TemplateInstance ti = fd.isInstantiated())
@@ -2051,7 +2054,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             e = null;
         }
         fd.inlineNest++;
-        Statement s = inlineAsStatement(fd.fbody, &ids);
+        Statement s = inlineAsStatement(fd.fbody, ids);
         as.push(s);
         sresult = new ScopeStatement(Loc(), new CompoundStatement(Loc(), as));
         fd.inlineNest--;
@@ -2059,7 +2062,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
     else
     {
         fd.inlineNest++;
-        Expression eb = doInline(fd.fbody, &ids);
+        Expression eb = doInline(fd.fbody, ids);
         e = Expression.combine(e, eb);
         fd.inlineNest--;
         //eb->type->print();
@@ -2141,8 +2144,6 @@ public Expression inlineCopy(Expression e, Scope* sc)
         e.error("cannot inline default argument %s", e.toChars());
         return new ErrorExp();
     }
-    InlineDoState ids;
-    memset(&ids, 0, ids.sizeof);
-    ids.parent = sc.parent;
-    return doInline(e, &ids);
+    scope ids = new InlineDoState(sc.parent, null);
+    return doInline(e, ids);
 }
