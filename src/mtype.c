@@ -2798,7 +2798,8 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf)
     Parameter::argsToDecoBuffer(buf, parameters);
     //if (buf->data[buf->offset - 1] == '@') halt();
     buf->writeByte('Z' - varargs);      // mark end of arg list
-    next->toDecoBuffer(buf);
+    if (next != NULL)
+        next->toDecoBuffer(buf);
     inuse--;
 }
 
