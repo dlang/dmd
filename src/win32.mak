@@ -188,7 +188,7 @@ GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c tocvdebug.c toir.h toir.c \
 	irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c eh.c objc_glue_stubs.c objc_glue.c
+	tk.c eh.c objc_glue_stubs.c objc_glue.c gluestub.d
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
