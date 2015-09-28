@@ -1,10 +1,11 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the D programming language
+ *
+ * Copyright: Copyright (c) 1999-2015 by Digital Mars, All Rights Reserved
+ * Authors: Walter Bright, http://www.digitalmars.com
+ * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:    $(DMDSRC mtype.d)
+ */
 
 module ddmd.mtype;
 
@@ -14,6 +15,7 @@ import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+
 import ddmd.access;
 import ddmd.aggregate;
 import ddmd.aliasthis;
@@ -229,32 +231,29 @@ extern (C++) StorageClass ModToStc(uint mod)
  */
 extern (C++) Type stripDefaultArgs(Type t)
 {
-    struct N
+    static Parameters* stripParams(Parameters* parameters)
     {
-        extern (C++) static Parameters* stripParams(Parameters* parameters)
+        Parameters* params = parameters;
+        if (params && params.dim > 0)
         {
-            Parameters* params = parameters;
-            if (params && params.dim > 0)
+            foreach (i; 0 .. params.dim)
             {
-                for (size_t i = 0; i < params.dim; i++)
+                Parameter p = (*params)[i];
+                Type ta = stripDefaultArgs(p.type);
+                if (ta != p.type || p.defaultArg || p.ident)
                 {
-                    Parameter p = (*params)[i];
-                    Type ta = stripDefaultArgs(p.type);
-                    if (ta != p.type || p.defaultArg || p.ident)
+                    if (params == parameters)
                     {
-                        if (params == parameters)
-                        {
-                            params = new Parameters();
-                            params.setDim(parameters.dim);
-                            for (size_t j = 0; j < params.dim; j++)
-                                (*params)[j] = (*parameters)[j];
-                        }
-                        (*params)[i] = new Parameter(p.storageClass, ta, null, null);
+                        params = new Parameters();
+                        params.setDim(parameters.dim);
+                        foreach (j; 0 .. params.dim)
+                            (*params)[j] = (*parameters)[j];
                     }
+                    (*params)[i] = new Parameter(p.storageClass, ta, null, null);
                 }
             }
-            return params;
         }
+        return params;
     }
 
     if (t is null)
@@ -263,7 +262,7 @@ extern (C++) Type stripDefaultArgs(Type t)
     {
         TypeFunction tf = cast(TypeFunction)t;
         Type tret = stripDefaultArgs(tf.next);
-        Parameters* params = N.stripParams(tf.parameters);
+        Parameters* params = stripParams(tf.parameters);
         if (tret == tf.next && params == tf.parameters)
             goto Lnot;
         tf = cast(TypeFunction)tf.copy();
@@ -275,7 +274,7 @@ extern (C++) Type stripDefaultArgs(Type t)
     else if (t.ty == Ttuple)
     {
         TypeTuple tt = cast(TypeTuple)t;
-        Parameters* args = N.stripParams(tt.arguments);
+        Parameters* args = stripParams(tt.arguments);
         if (args == tt.arguments)
             goto Lnot;
         t = t.copy();
