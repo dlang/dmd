@@ -1494,7 +1494,7 @@ public:
             fd = ve.var.isFuncDeclaration();
             if (fd && fd != parent && canInline(fd, false, false, asStatements))
             {
-                eresult = expandInline(fd, parent, eret, null, e.arguments, asStatements ? &sresult : null, again);
+                expandInline(fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
             }
         }
         else if (e.e1.op == TOKdotvar)
@@ -1512,7 +1512,7 @@ public:
                 }
                 else
                 {
-                    eresult = expandInline(fd, parent, eret, dve.e1, e.arguments, asStatements ? &sresult : null, again);
+                    expandInline(fd, parent, eret, dve.e1, e.arguments, asStatements, eresult, sresult, again);
                 }
             }
         }
@@ -1876,14 +1876,17 @@ public void inlineScanModule(Module m)
  *      eret = expression describing the lvalue of where the return value goes
  *      ethis = 'this' reference
  *      arguments = arguments passed to fd
- *      ps = if expanding to a statement, this is where the statement is written to
+ *      asStatements = expand to Statements rather than Expressions
+ *      eresult = if expanding to an expression, this is where the expression is written to
+ *      sresult = if expanding to a statement, this is where the statement is written to
  *      again = if true, then fd can be inline scanned again because there may be
  *           more opportunities for inlining
  * Returns:
  *      Expression it expanded to (null if ps is not null)
  */
-Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
-        Expression ethis, Expressions* arguments, Statement* ps, out bool again)
+void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
+        Expression ethis, Expressions* arguments, bool asStatements,
+        out Expression eresult, out Statement sresult, out bool again)
 {
     InlineDoState ids;
     Expression e = null;
@@ -1905,7 +1908,7 @@ Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression e
             ti.minst = ti.tempdecl.getModule().importedFrom;
     }
 
-    if (ps)
+    if (asStatements)
         as = new Statements();
     VarDeclaration vret = null;
     if (eret)
@@ -1973,7 +1976,7 @@ Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression e
         de.type = Type.tvoid;
         e = Expression.combine(e, de);
     }
-    if (!ps && fd.nrvo_var)
+    if (!asStatements && fd.nrvo_var)
     {
         if (vret)
         {
@@ -2040,7 +2043,7 @@ Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression e
             }
         }
     }
-    if (ps)
+    if (asStatements)
     {
         if (e)
         {
@@ -2050,7 +2053,7 @@ Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression e
         fd.inlineNest++;
         Statement s = inlineAsStatement(fd.fbody, &ids);
         as.push(s);
-        *ps = new ScopeStatement(Loc(), new CompoundStatement(Loc(), as));
+        sresult = new ScopeStatement(Loc(), new CompoundStatement(Loc(), as));
         fd.inlineNest--;
     }
     else
@@ -2101,12 +2104,12 @@ Expression expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression e
             e = Expression.combine(de, ve);
             //fprintf(stderr, "CallExp::inlineScan: e = "); e->print();
         }
+        eresult = e;
     }
     //printf("%s->expandInline = { %s }\n", fd->toChars(), e->toChars());
     // Need to reevaluate whether parent can now be inlined
     // in expressions, as we might have inlined statements
     parent.inlineStatusExp = ILSuninitialized;
-    return e;
 }
 
 /****************************************************
