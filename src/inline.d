@@ -82,9 +82,9 @@ public:
 
     override void visit(Statement s)
     {
-        //printf("Statement::inlineCost = %d\n", COST_MAX);
-        //printf("%p\n", s->isScopeStatement());
-        //printf("%s\n", s->toChars());
+        //printf("Statement.inlineCost = %d\n", COST_MAX);
+        //printf("%p\n", s.isScopeStatement());
+        //printf("%s\n", s.toChars());
         cost += COST_MAX; // default is we can't inline it
     }
 
@@ -96,7 +96,7 @@ public:
     override void visit(CompoundStatement s)
     {
         scope InlineCostVisitor icv = new InlineCostVisitor(this);
-        for (size_t i = 0; i < s.statements.dim; i++)
+        foreach (i; 0 .. s.statements.dim)
         {
             Statement s2 = (*s.statements)[i];
             if (s2)
@@ -138,9 +138,8 @@ public:
     override void visit(UnrolledLoopStatement s)
     {
         scope InlineCostVisitor icv = new InlineCostVisitor(this);
-        for (size_t i = 0; i < s.statements.dim; i++)
+        foreach (s2; *s.statements)
         {
-            Statement s2 = (*s.statements)[i];
             if (s2)
             {
                 s2.accept(icv);
@@ -191,7 +190,7 @@ public:
                 s.elsebody.accept(this);
             nested -= 1;
         }
-        //printf("IfStatement::inlineCost = %d\n", cost);
+        //printf("IfStatement.inlineCost = %d\n", cost);
     }
 
     override void visit(ReturnStatement s)
@@ -235,7 +234,7 @@ public:
     void expressionInlineCost(Expression e)
     {
         //printf("expressionInlineCost()\n");
-        //e->print();
+        //e.print();
         if (e)
         {
             extern (C++) final class LambdaInlineCost : StoppableVisitor
@@ -270,7 +269,7 @@ public:
 
     override void visit(VarExp e)
     {
-        //printf("VarExp::inlineCost3() %s\n", toChars());
+        //printf("VarExp.inlineCost3() %s\n", toChars());
         Type tb = e.type.toBasetype();
         if (tb.ty == Tstruct)
         {
@@ -298,7 +297,7 @@ public:
 
     override void visit(ThisExp e)
     {
-        //printf("ThisExp::inlineCost3() %s\n", toChars());
+        //printf("ThisExp.inlineCost3() %s\n", toChars());
         if (!fd)
         {
             cost = COST_MAX;
@@ -317,7 +316,7 @@ public:
 
     override void visit(StructLiteralExp e)
     {
-        //printf("StructLiteralExp::inlineCost3() %s\n", toChars());
+        //printf("StructLiteralExp.inlineCost3() %s\n", toChars());
         if (e.sd.isNested())
             cost = COST_MAX;
         else
@@ -326,7 +325,7 @@ public:
 
     override void visit(NewExp e)
     {
-        //printf("NewExp::inlineCost3() %s\n", e->toChars());
+        //printf("NewExp.inlineCost3() %s\n", e.toChars());
         AggregateDeclaration ad = isAggregate(e.newtype);
         if (ad && ad.isNested())
             cost = COST_MAX;
@@ -336,27 +335,27 @@ public:
 
     override void visit(FuncExp e)
     {
-        //printf("FuncExp::inlineCost3()\n");
+        //printf("FuncExp.inlineCost3()\n");
         // Right now, this makes the function be output to the .obj file twice.
         cost = COST_MAX;
     }
 
     override void visit(DelegateExp e)
     {
-        //printf("DelegateExp::inlineCost3()\n");
+        //printf("DelegateExp.inlineCost3()\n");
         cost = COST_MAX;
     }
 
     override void visit(DeclarationExp e)
     {
-        //printf("DeclarationExp::inlineCost3()\n");
+        //printf("DeclarationExp.inlineCost3()\n");
         VarDeclaration vd = e.declaration.isVarDeclaration();
         if (vd)
         {
             TupleDeclaration td = vd.toAlias().isTupleDeclaration();
             if (td)
             {
-                cost = COST_MAX; // finish DeclarationExp::doInline
+                cost = COST_MAX; // finish DeclarationExp.doInline
                 return;
             }
             if (!hdrscan && vd.isDataseg())
@@ -371,7 +370,7 @@ public:
                 cost = COST_MAX;
                 return;
             }
-            // Scan initializer (vd->init)
+            // Scan initializer (vd.init)
             if (vd._init)
             {
                 ExpInitializer ie = vd._init.isExpInitializer();
@@ -388,12 +387,12 @@ public:
             cost = COST_MAX;
             return;
         }
-        //printf("DeclarationExp::inlineCost3('%s')\n", toChars());
+        //printf("DeclarationExp.inlineCost3('%s')\n", toChars());
     }
 
     override void visit(CallExp e)
     {
-        //printf("CallExp::inlineCost3() %s\n", toChars());
+        //printf("CallExp.inlineCost3() %s\n", toChars());
         // Bugzilla 3500: super.func() calls must be devirtualized, and the inliner
         // can't handle that at present.
         if (e.e1.op == TOKdotvar && (cast(DotVarExp)e.e1).e1.op == TOKsuper)
@@ -455,19 +454,18 @@ Statement inlineAsStatement(Statement s, InlineDoState ids)
             static if (LOG)
             {
                 if (s.exp)
-                    printf("ExpStatement::inlineAsStatement() '%s'\n", s.exp.toChars());
+                    printf("ExpStatement.inlineAsStatement() '%s'\n", s.exp.toChars());
             }
             result = new ExpStatement(s.loc, s.exp ? doInline(s.exp, ids) : null);
         }
 
         override void visit(CompoundStatement s)
         {
-            //printf("CompoundStatement::inlineAsStatement() %d\n", s->statements->dim);
+            //printf("CompoundStatement.inlineAsStatement() %d\n", s.statements.dim);
             auto as = new Statements();
             as.reserve(s.statements.dim);
-            for (size_t i = 0; i < s.statements.dim; i++)
+            foreach (sx; *s.statements)
             {
-                Statement sx = (*s.statements)[i];
                 if (sx)
                 {
                     as.push(inlineAsStatement(sx, ids));
@@ -482,12 +480,11 @@ Statement inlineAsStatement(Statement s, InlineDoState ids)
 
         override void visit(UnrolledLoopStatement s)
         {
-            //printf("UnrolledLoopStatement::inlineAsStatement() %d\n", s->statements->dim);
+            //printf("UnrolledLoopStatement.inlineAsStatement() %d\n", s.statements.dim);
             auto as = new Statements();
             as.reserve(s.statements.dim);
-            for (size_t i = 0; i < s.statements.dim; i++)
+            foreach (sx; *s.statements)
             {
-                Statement sx = (*s.statements)[i];
                 if (sx)
                 {
                     as.push(inlineAsStatement(sx, ids));
@@ -502,7 +499,7 @@ Statement inlineAsStatement(Statement s, InlineDoState ids)
 
         override void visit(ScopeStatement s)
         {
-            //printf("ScopeStatement::inlineAsStatement() %d\n", s->statement->dim);
+            //printf("ScopeStatement.inlineAsStatement() %d\n", s.statement.dim);
             result = s.statement ? new ScopeStatement(s.loc, inlineAsStatement(s.statement, ids)) : s;
         }
 
@@ -520,7 +517,7 @@ Statement inlineAsStatement(Statement s, InlineDoState ids)
 
         override void visit(ReturnStatement s)
         {
-            //printf("ReturnStatement::inlineAsStatement() '%s'\n", s->exp ? s->exp->toChars() : "");
+            //printf("ReturnStatement.inlineAsStatement() '%s'\n", s.exp ? s.exp.toChars() : "");
             ids.foundReturn = true;
             if (s.exp) // Bugzilla 14560: 'return' must not leave in the expand result
                 result = new ReturnStatement(s.loc, doInline(s.exp, ids));
@@ -533,7 +530,7 @@ Statement inlineAsStatement(Statement s, InlineDoState ids)
 
         override void visit(ForStatement s)
         {
-            //printf("ForStatement::inlineAsStatement()\n");
+            //printf("ForStatement.inlineAsStatement()\n");
             Statement _init = s._init ? inlineAsStatement(s._init, ids) : null;
             Expression condition = s.condition ? doInline(s.condition, ids) : null;
             Expression increment = s.increment ? doInline(s.increment, ids) : null;
@@ -543,7 +540,7 @@ Statement inlineAsStatement(Statement s, InlineDoState ids)
 
         override void visit(ThrowStatement s)
         {
-            //printf("ThrowStatement::inlineAsStatement() '%s'\n", s->exp->toChars());
+            //printf("ThrowStatement.inlineAsStatement() '%s'\n", s.exp.toChars());
             result = new ThrowStatement(s.loc, doInline(s.exp, ids));
         }
     }
@@ -571,7 +568,7 @@ Expression doInline(Statement s, InlineDoState ids)
 
         override void visit(Statement s)
         {
-            printf("Statement::doInline()\n%s\n", s.toChars());
+            printf("Statement.doInline()\n%s\n", s.toChars());
             fflush(stdout);
             assert(0); // default is we can't inline it
         }
@@ -581,15 +578,15 @@ Expression doInline(Statement s, InlineDoState ids)
             static if (LOG)
             {
                 if (s.exp)
-                    printf("ExpStatement::doInline() '%s'\n", s.exp.toChars());
+                    printf("ExpStatement.doInline() '%s'\n", s.exp.toChars());
             }
             result = s.exp ? doInline(s.exp, ids) : null;
         }
 
         override void visit(CompoundStatement s)
         {
-            //printf("CompoundStatement::doInline() %d\n", s->statements->dim);
-            for (size_t i = 0; i < s.statements.dim; i++)
+            //printf("CompoundStatement.doInline() %d\n", s.statements.dim);
+            foreach (i; 0 .. s.statements.dim)
             {
                 Statement sx = (*s.statements)[i];
                 if (sx)
@@ -641,10 +638,9 @@ Expression doInline(Statement s, InlineDoState ids)
 
         override void visit(UnrolledLoopStatement s)
         {
-            //printf("UnrolledLoopStatement::doInline() %d\n", s->statements->dim);
-            for (size_t i = 0; i < s.statements.dim; i++)
+            //printf("UnrolledLoopStatement.doInline() %d\n", s.statements.dim);
+            foreach (sx; *s.statements)
             {
-                Statement sx = (*s.statements)[i];
                 if (sx)
                 {
                     Expression e = doInline(sx, ids);
@@ -699,7 +695,7 @@ Expression doInline(Statement s, InlineDoState ids)
 
         override void visit(ReturnStatement s)
         {
-            //printf("ReturnStatement::doInline() '%s'\n", s->exp ? s->exp->toChars() : "");
+            //printf("ReturnStatement.doInline() '%s'\n", s.exp ? s.exp.toChars() : "");
             ids.foundReturn = true;
             result = s.exp ? doInline(s.exp, ids) : null;
         }
@@ -739,7 +735,7 @@ Expression doInline(Expression e, InlineDoState ids)
                 return null;
             auto newa = new Expressions();
             newa.setDim(a.dim);
-            for (size_t i = 0; i < a.dim; i++)
+            foreach (i;  0 .. a.dim)
             {
                 Expression e = (*a)[i];
                 if (e)
@@ -751,14 +747,14 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(Expression e)
         {
-            //printf("Expression::doInline(%s): %s\n", Token::toChars(e->op), e->toChars());
+            //printf("Expression.doInline(%s): %s\n", Token.toChars(e.op), e.toChars());
             result = e.copy();
         }
 
         override void visit(SymOffExp e)
         {
-            //printf("SymOffExp::doInline(%s)\n", e->toChars());
-            for (size_t i = 0; i < ids.from.dim; i++)
+            //printf("SymOffExp.doInline(%s)\n", e.toChars());
+            foreach (i; 0 .. ids.from.dim)
             {
                 if (e.var == ids.from[i])
                 {
@@ -773,8 +769,8 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(VarExp e)
         {
-            //printf("VarExp::doInline(%s)\n", e->toChars());
-            for (size_t i = 0; i < ids.from.dim; i++)
+            //printf("VarExp.doInline(%s)\n", e.toChars());
+            foreach (i; 0 .. ids.from.dim)
             {
                 if (e.var == ids.from[i])
                 {
@@ -807,7 +803,7 @@ Expression doInline(Expression e, InlineDoState ids)
              * 'i' and 'g' are nested referenced variables in Result.bar(), so:
              *      auto x = t.bar();
              * should be inlined to:
-             *      auto x = *(t.vthis.vthis + i->voffset) + *(t.vthis + g->voffset)
+             *      auto x = *(t.vthis.vthis + i.voffset) + *(t.vthis + g.voffset)
              */
             VarDeclaration v = e.var.isVarDeclaration();
             if (v && v.nestedrefs.dim && ids.vthis)
@@ -843,7 +839,7 @@ Expression doInline(Expression e, InlineDoState ids)
                 }
                 result = new DotVarExp(e.loc, result, v);
                 result.type = v.type;
-                //printf("\t==> result = %s, type = %s\n", result->toChars(), result->type->toChars());
+                //printf("\t==> result = %s, type = %s\n", result.toChars(), result.type.toChars());
                 return;
             }
             result = e;
@@ -851,8 +847,8 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(ThisExp e)
         {
-            //if (!ids->vthis)
-            //e->error("no 'this' when inlining %s", ids->parent->toChars());
+            //if (!ids.vthis)
+            //e.error("no 'this' when inlining %s", ids.parent.toChars());
             if (!ids.vthis)
             {
                 result = e;
@@ -871,7 +867,7 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(DeclarationExp e)
         {
-            //printf("DeclarationExp::doInline(%s)\n", e->toChars());
+            //printf("DeclarationExp.doInline(%s)\n", e.toChars());
             if (VarDeclaration vd = e.declaration.isVarDeclaration())
             {
                 version (none)
@@ -880,7 +876,7 @@ Expression doInline(Expression e, InlineDoState ids)
                     TupleDeclaration td = vd.toAlias().isTupleDeclaration();
                     if (td)
                     {
-                        for (size_t i = 0; i < td.objects.dim; i++)
+                        foreach (i; 0 .. td.objects.dim)
                         {
                             DsymbolExp se = (*td.objects)[i];
                             assert(se.op == TOKdsymbol);
@@ -894,7 +890,7 @@ Expression doInline(Expression e, InlineDoState ids)
                 {
                     if (ids.fd && vd == ids.fd.nrvo_var)
                     {
-                        for (size_t i = 0; i < ids.from.dim; i++)
+                        foreach (i; 0 .. ids.from.dim)
                         {
                             if (vd == ids.from[i])
                             {
@@ -936,7 +932,7 @@ Expression doInline(Expression e, InlineDoState ids)
                     return;
                 }
             }
-            /* This needs work, like DeclarationExp::toElem(), if we are
+            /* This needs work, like DeclarationExp.toElem(), if we are
              * to handle TemplateMixin's. For now, we just don't inline them.
              */
             visit(cast(Expression)e);
@@ -944,7 +940,7 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(TypeidExp e)
         {
-            //printf("TypeidExp::doInline(): %s\n", e->toChars());
+            //printf("TypeidExp.doInline(): %s\n", e.toChars());
             TypeidExp te = cast(TypeidExp)e.copy();
             if (Expression ex = isExpression(te.obj))
             {
@@ -957,7 +953,7 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(NewExp e)
         {
-            //printf("NewExp::doInline(): %s\n", e->toChars());
+            //printf("NewExp.doInline(): %s\n", e.toChars());
             NewExp ne = cast(NewExp)e.copy();
             if (e.thisexp)
                 ne.thisexp = doInline(e.thisexp, ids);
@@ -1201,7 +1197,7 @@ public:
     {
         static if (LOG)
         {
-            printf("ExpStatement::inlineScan(%s)\n", s.toChars());
+            printf("ExpStatement.inlineScan(%s)\n", s.toChars());
         }
         if (s.exp)
         {
@@ -1217,7 +1213,7 @@ public:
 
     override void visit(CompoundStatement s)
     {
-        for (size_t i = 0; i < s.statements.dim; i++)
+        foreach (i; 0 .. s.statements.dim)
         {
             inlineScan((*s.statements)[i]);
         }
@@ -1225,7 +1221,7 @@ public:
 
     override void visit(UnrolledLoopStatement s)
     {
-        for (size_t i = 0; i < s.statements.dim; i++)
+        foreach (i; 0 .. s.statements.dim)
         {
             inlineScan((*s.statements)[i]);
         }
@@ -1278,7 +1274,7 @@ public:
 
     override void visit(SwitchStatement s)
     {
-        //printf("SwitchStatement::inlineScan()\n");
+        //printf("SwitchStatement.inlineScan()\n");
         inlineScan(s.condition);
         inlineScan(s._body);
         Statement sdefault = s.sdefault;
@@ -1286,7 +1282,7 @@ public:
         s.sdefault = cast(DefaultStatement)sdefault;
         if (s.cases)
         {
-            for (size_t i = 0; i < s.cases.dim; i++)
+            foreach (i; 0 .. s.cases.dim)
             {
                 Statement scase = (*s.cases)[i];
                 inlineScan(scase);
@@ -1297,7 +1293,7 @@ public:
 
     override void visit(CaseStatement s)
     {
-        //printf("CaseStatement::inlineScan()\n");
+        //printf("CaseStatement.inlineScan()\n");
         inlineScan(s.exp);
         inlineScan(s.statement);
     }
@@ -1309,7 +1305,7 @@ public:
 
     override void visit(ReturnStatement s)
     {
-        //printf("ReturnStatement::inlineScan()\n");
+        //printf("ReturnStatement.inlineScan()\n");
         inlineScan(s.exp);
     }
 
@@ -1330,9 +1326,8 @@ public:
         inlineScan(s._body);
         if (s.catches)
         {
-            for (size_t i = 0; i < s.catches.dim; i++)
+            foreach (c; *s.catches)
             {
-                Catch c = (*s.catches)[i];
                 inlineScan(c.handler);
             }
         }
@@ -1378,7 +1373,7 @@ public:
     {
         if (arguments)
         {
-            for (size_t i = 0; i < arguments.dim; i++)
+            foreach (i; 0 .. arguments.dim)
             {
                 inlineScan((*arguments)[i]);
             }
@@ -1391,7 +1386,7 @@ public:
 
     void scanVar(Dsymbol s)
     {
-        //printf("scanVar(%s %s)\n", s->kind(), s->toPrettyChars());
+        //printf("scanVar(%s %s)\n", s.kind(), s.toPrettyChars());
         VarDeclaration vd = s.isVarDeclaration();
         if (vd)
         {
@@ -1421,7 +1416,7 @@ public:
 
     override void visit(DeclarationExp e)
     {
-        //printf("DeclarationExp::inlineScan()\n");
+        //printf("DeclarationExp.inlineScan()\n");
         scanVar(e.declaration);
     }
 
@@ -1498,7 +1493,7 @@ public:
      */
     void visitCallExp(CallExp e, Expression eret, bool asStatements)
     {
-        //printf("CallExp::inlineScan()\n");
+        //printf("CallExp.inlineScan()\n");
         FuncDeclaration fd;
         if (e.e1.op == TOKvar)
         {
@@ -1518,7 +1513,7 @@ public:
                 if (dve.e1.op == TOKcall && dve.e1.type.toBasetype().ty == Tstruct)
                 {
                     /* To create ethis, we'll need to take the address
-                     * of dve->e1, but this won't work if dve->e1 is
+                     * of dve.e1, but this won't work if dve.e1 is
                      * a function call.
                      */
                 }
@@ -1555,28 +1550,28 @@ public:
 
     override void visit(TupleExp e)
     {
-        //printf("TupleExp::inlineScan()\n");
+        //printf("TupleExp.inlineScan()\n");
         inlineScan(e.e0);
         arrayInlineScan(e.exps);
     }
 
     override void visit(ArrayLiteralExp e)
     {
-        //printf("ArrayLiteralExp::inlineScan()\n");
+        //printf("ArrayLiteralExp.inlineScan()\n");
         inlineScan(e.basis);
         arrayInlineScan(e.elements);
     }
 
     override void visit(AssocArrayLiteralExp e)
     {
-        //printf("AssocArrayLiteralExp::inlineScan()\n");
+        //printf("AssocArrayLiteralExp.inlineScan()\n");
         arrayInlineScan(e.keys);
         arrayInlineScan(e.values);
     }
 
     override void visit(StructLiteralExp e)
     {
-        //printf("StructLiteralExp::inlineScan()\n");
+        //printf("StructLiteralExp.inlineScan()\n");
         if (e.stageflags & stageInlineScan)
             return;
         int old = e.stageflags;
@@ -1587,7 +1582,7 @@ public:
 
     override void visit(ArrayExp e)
     {
-        //printf("ArrayExp::inlineScan()\n");
+        //printf("ArrayExp.inlineScan()\n");
         inlineScan(e.e1);
         arrayInlineScan(e.arguments);
     }
@@ -1630,7 +1625,7 @@ public:
     {
         static if (LOG)
         {
-            printf("FuncDeclaration::inlineScan('%s')\n", fd.toPrettyChars());
+            printf("FuncDeclaration.inlineScan('%s')\n", fd.toPrettyChars());
         }
         if (fd.isUnitTestDeclaration() && !global.params.useUnitTests ||
             fd.flags & FUNCFLAGinlineScanned)
@@ -1659,10 +1654,10 @@ public:
         Dsymbols* decls = d.include(null, null);
         if (decls)
         {
-            for (size_t i = 0; i < decls.dim; i++)
+            foreach (i; 0 .. decls.dim)
             {
                 Dsymbol s = (*decls)[i];
-                //printf("AttribDeclaration::inlineScan %s\n", s->toChars());
+                //printf("AttribDeclaration.inlineScan %s\n", s.toChars());
                 s.accept(this);
             }
         }
@@ -1670,13 +1665,13 @@ public:
 
     override void visit(AggregateDeclaration ad)
     {
-        //printf("AggregateDeclaration::inlineScan(%s)\n", toChars());
+        //printf("AggregateDeclaration.inlineScan(%s)\n", toChars());
         if (ad.members)
         {
-            for (size_t i = 0; i < ad.members.dim; i++)
+            foreach (i; 0 .. ad.members.dim)
             {
                 Dsymbol s = (*ad.members)[i];
-                //printf("inline scan aggregate symbol '%s'\n", s->toChars());
+                //printf("inline scan aggregate symbol '%s'\n", s.toChars());
                 s.accept(this);
             }
         }
@@ -1686,11 +1681,11 @@ public:
     {
         static if (LOG)
         {
-            printf("TemplateInstance::inlineScan('%s')\n", ti.toChars());
+            printf("TemplateInstance.inlineScan('%s')\n", ti.toChars());
         }
         if (!ti.errors && ti.members)
         {
-            for (size_t i = 0; i < ti.members.dim; i++)
+            foreach (i; 0 .. ti.members.dim)
             {
                 Dsymbol s = (*ti.members)[i];
                 s.accept(this);
@@ -1705,7 +1700,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     enum CANINLINE_LOG = 0;
     static if (CANINLINE_LOG)
     {
-        printf("FuncDeclaration::canInline(hasthis = %d, statementsToo = %d, '%s')\n", hasthis, statementsToo, fd.toPrettyChars());
+        printf("FuncDeclaration.canInline(hasthis = %d, statementsToo = %d, '%s')\n", hasthis, statementsToo, fd.toPrettyChars());
     }
     if (fd.needThis() && !hasthis)
         return false;
@@ -1772,7 +1767,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
             goto Lno;
         /* Bugzilla 14560: If fd returns void, all explicit `return;`s
          * must not appear in the expanded result.
-         * See also ReturnStatement::inlineAsStatement().
+         * See also ReturnStatement.inlineAsStatement().
          */
     }
     // cannot inline constructor calls because we need to convert:
@@ -1872,12 +1867,12 @@ public void inlineScanModule(Module m)
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
     // gets imported, it is unaffected by context.
-    //printf("Module = %p\n", m->sc.scopesym);
-    for (size_t i = 0; i < m.members.dim; i++)
+    //printf("Module = %p\n", m.sc.scopesym);
+    foreach (i; 0 .. m.members.dim)
     {
         Dsymbol s = (*m.members)[i];
         //if (global.params.verbose)
-        //    fprintf(global.stdmsg, "inline scan symbol %s\n", s->toChars());
+        //    fprintf(global.stdmsg, "inline scan symbol %s\n", s.toChars());
         scope InlineScanVisitor v = new InlineScanVisitor();
         s.accept(v);
     }
@@ -1911,7 +1906,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
     TypeFunction tf = cast(TypeFunction)fd.type;
     static if (LOG || CANINLINE_LOG)
     {
-        printf("FuncDeclaration::expandInline('%s')\n", fd.toChars());
+        printf("FuncDeclaration.expandInline('%s')\n", fd.toChars());
     }
     scope ids = new InlineDoState(parent, fd);
 
@@ -2016,7 +2011,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
     if (arguments && arguments.dim)
     {
         assert(fd.parameters.dim == arguments.dim);
-        for (size_t i = 0; i < arguments.dim; i++)
+        foreach (i; 0 .. arguments.dim)
         {
             VarDeclaration vfrom = (*fd.parameters)[i];
             VarDeclaration vto;
@@ -2028,19 +2023,19 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             vto.storage_class |= vfrom.storage_class & (STCtemp | STCin | STCout | STClazy | STCref);
             vto.linkage = vfrom.linkage;
             vto.parent = parent;
-            //printf("vto = '%s', vto->storage_class = x%x\n", vto->toChars(), vto->storage_class);
-            //printf("vto->parent = '%s'\n", parent->toChars());
+            //printf("vto = '%s', vto.storage_class = x%x\n", vto.toChars(), vto.storage_class);
+            //printf("vto.parent = '%s'\n", parent.toChars());
             ve = new VarExp(vto.loc, vto);
-            //ve->type = vto->type;
+            //ve.type = vto.type;
             ve.type = arg.type;
             if (vfrom.storage_class & (STCout | STCref))
                 ei.exp = new ConstructExp(vto.loc, ve, arg);
             else
                 ei.exp = new BlitExp(vto.loc, ve, arg);
             ei.exp.type = ve.type;
-            //ve->type->print();
-            //arg->type->print();
-            //ei->exp->print();
+            //ve.type.print();
+            //arg.type.print();
+            //ei.exp.print();
             ids.from.push(vfrom);
             ids.to.push(vto);
             auto de = new DeclarationExp(Loc(), vto);
@@ -2077,9 +2072,9 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         Expression eb = doInline(fd.fbody, ids);
         e = Expression.combine(e, eb);
         fd.inlineNest--;
-        //eb->type->print();
-        //eb->print();
-        //eb->print();
+        //eb.type.print();
+        //eb.print();
+        //eb.print();
         // Bugzilla 11322:
         if (tf.isref)
             e = e.toLvalue(null, null);
@@ -2117,11 +2112,11 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             // Chain the two together:
             //   ( typeof(return) __inlineretval = ( inlined body )) , __inlineretval
             e = Expression.combine(de, ve);
-            //fprintf(stderr, "CallExp::inlineScan: e = "); e->print();
+            //fprintf(stderr, "CallExp.inlineScan: e = "); e.print();
         }
         eresult = e;
     }
-    //printf("%s->expandInline = { %s }\n", fd->toChars(), e->toChars());
+    //printf("%s.expandInline = { %s }\n", fd.toChars(), e.toChars());
     // Need to reevaluate whether parent can now be inlined
     // in expressions, as we might have inlined statements
     parent.inlineStatusExp = ILSuninitialized;
@@ -2134,7 +2129,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
 {
     /* See Bugzilla 2935 for explanation of why just a copy() is broken
      */
-    //return e->copy();
+    //return e.copy();
     if (e.op == TOKdelegate)
     {
         DelegateExp de = cast(DelegateExp)e;
