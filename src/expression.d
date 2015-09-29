@@ -1030,15 +1030,20 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
      * which works if the array literal is initialized top down with the ubyte[][]
      * type, but fails with this function doing bottom up typing.
      */
+
     //printf("arrayExpressionToCommonType()\n");
     scope IntegerExp integerexp = new IntegerExp(0);
     scope CondExp condexp = new CondExp(Loc(), integerexp, null, null);
     Type t0 = null;
-    Expression e0 = null; // dead-store to prevent spurious warning
-    size_t j0 = ~0; // dead-store to prevent spurious warning
+    Expression e0 = null;
+    size_t j0 = ~0;
+
     for (size_t i = 0; i < exps.dim; i++)
     {
         Expression e = (*exps)[i];
+        if (!e)
+            continue;
+
         e = resolveProperties(sc, e);
         if (!e.type)
         {
@@ -1057,7 +1062,9 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
             t0 = Type.terror;
             continue;
         }
+
         e = e.isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
+
         if (t0 && !t0.equals(e.type))
         {
             /* This applies ?: to merge the types. It's backwards;
@@ -1089,6 +1096,9 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
         for (size_t i = 0; i < exps.dim; i++)
         {
             Expression e = (*exps)[i];
+            if (!e)
+                continue;
+
             e = e.implicitCastTo(sc, t0);
             //assert(e->op != TOKerror);
             if (e.op == TOKerror)
@@ -4692,17 +4702,27 @@ public:
         }
         if (type)
             return this;
+
         /* Perhaps an empty array literal [ ] should be rewritten as null?
          */
-        if (arrayExpressionSemantic(elements, sc)) // run semantic() on each element
+
+        if (basis)
+            basis = basis.semantic(sc);
+        if (arrayExpressionSemantic(elements, sc) || (basis && basis.op == TOKerror))
             return new ErrorExp();
         expandTuples(elements);
+
         Type t0;
-        if (arrayExpressionToCommonType(sc, elements, &t0))
+        if (basis)
+            elements.push(basis);
+        bool err = arrayExpressionToCommonType(sc, elements, &t0);
+        if (basis)
+            basis = elements.pop();
+        if (err)
             return new ErrorExp();
         type = t0.arrayOf();
-        //type = new TypeSArray(t0, new IntegerExp(elements->dim));
         type = type.semantic(loc, sc);
+
         /* Disallow array literals of type void being used.
          */
         if (elements.dim > 0 && t0.ty == Tvoid)

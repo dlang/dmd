@@ -7660,6 +7660,23 @@ void test15045()
 }
 
 /***************************************************/
+// 15126
+
+struct Json15126
+{
+    ubyte[16] m_data;
+    int opDispatch(string prop)() const { return 0; }
+    int opDispatch(string prop)() { return 0; }
+}
+
+template isCustomSerializable15126(T)
+{
+    enum isCustomSerializable15126 = T.init.toRepresentation();
+}
+
+alias bug15126 = isCustomSerializable15126!Json15126;
+
+/***************************************************/
 
 int main()
 {
