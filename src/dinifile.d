@@ -13,6 +13,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.posix.stdlib;
 import core.sys.windows.windows;
+
 import ddmd.errors;
 import ddmd.globals;
 import ddmd.root.file;
@@ -26,9 +27,9 @@ private enum LOG = false;
 
 /*****************************
  * Find the config file
- * Input:
- *      argv0           program name (argv[0])
- *      inifile         .ini file name
+ * Params:
+ *      argv0 = program name (argv[0])
+ *      inifile = .ini file name
  * Returns:
  *      file path of the config file or NULL
  *      Note: this is a memory leak
@@ -50,7 +51,7 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
      *      o directory off of argv0
      *      o SYSCONFDIR=/etc (non-windows)
      */
-    const(char)* filename = FileName.combine(getenv("HOME"), inifile);
+    auto filename = FileName.combine(getenv("HOME"), inifile);
     if (FileName.exists(filename))
         return filename;
     version (Windows)
@@ -70,16 +71,16 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
     static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
     {
         // Search PATH for argv0
-        const(char)* p = getenv("PATH");
+        auto p = getenv("PATH");
         static if (LOG)
         {
             printf("\tPATH='%s'\n", p);
         }
-        Strings* paths = FileName.splitPath(p);
-        const(char)* abspath = FileName.searchPath(paths, argv0, false);
+        auto paths = FileName.splitPath(p);
+        auto abspath = FileName.searchPath(paths, argv0, false);
         if (abspath)
         {
-            const(char)* absname = FileName.replaceName(abspath, inifile);
+            auto absname = FileName.replaceName(abspath, inifile);
             if (FileName.exists(absname))
                 return absname;
         }
@@ -94,17 +95,21 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
         // Search SYSCONFDIR=/etc for inifile
         filename = FileName.combine(import("SYSCONFDIR.imp"), inifile);
     }
-    // __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     return filename;
 }
 
 /**********************************
  * Read from environment, looking for cached value first.
+ * Params:
+ *      environment = cached copy of the environment
+ *      name = name to look for
+ * Returns:
+ *      environment value corresponding to name
  */
 const(char)* readFromEnv(StringTable* environment, const(char)* name)
 {
-    size_t len = strlen(name);
-    StringValue* sv = environment.lookup(name, len);
+    const len = strlen(name);
+    auto sv = environment.lookup(name, len);
     if (sv)
         return cast(const(char)*)sv.ptrvalue; // get cached value
     return getenv(name);
@@ -115,36 +120,38 @@ const(char)* readFromEnv(StringTable* environment, const(char)* name)
  */
 private bool writeToEnv(StringTable* environment, char* nameEqValue)
 {
-    char* p = strchr(nameEqValue, '=');
+    auto p = strchr(nameEqValue, '=');
     if (!p)
         return false;
-    StringValue* sv = environment.update(nameEqValue, p - nameEqValue);
+    auto sv = environment.update(nameEqValue, p - nameEqValue);
     sv.ptrvalue = cast(void*)(p + 1);
     return true;
 }
 
 /************************************
  * Update real enviroment with our copy.
+ * Params:
+ *      environment = our copy of the environment
  */
-extern (C++) private int envput(StringValue* sv)
-{
-    const(char)* name = sv.toDchars();
-    size_t namelen = strlen(name);
-    const(char)* value = cast(const(char)*)sv.ptrvalue;
-    size_t valuelen = strlen(value);
-    char* s = cast(char*)malloc(namelen + 1 + valuelen + 1);
-    assert(s);
-    memcpy(s, name, namelen);
-    s[namelen] = '=';
-    memcpy(s + namelen + 1, value, valuelen);
-    s[namelen + 1 + valuelen] = 0;
-    //printf("envput('%s')\n", s);
-    putenv(s);
-    return 0; // do all of them
-}
-
 void updateRealEnvironment(StringTable* environment)
 {
+    extern (C++) static int envput(StringValue* sv)
+    {
+        const name = sv.toDchars();
+        const namelen = strlen(name);
+        const value = cast(const(char)*)sv.ptrvalue;
+        const valuelen = strlen(value);
+        auto s = cast(char*)malloc(namelen + 1 + valuelen + 1);
+        assert(s);
+        memcpy(s, name, namelen);
+        s[namelen] = '=';
+        memcpy(s + namelen + 1, value, valuelen);
+        s[namelen + 1 + valuelen] = 0;
+        //printf("envput('%s')\n", s);
+        putenv(s);
+        return 0; // do all of them
+    }
+
     environment.apply(&envput);
 }
 
@@ -162,6 +169,16 @@ void updateRealEnvironment(StringTable* environment)
  */
 void parseConfFile(StringTable* environment, const(char)* filename, const(char)* path, size_t length, ubyte* buffer, Strings* sections)
 {
+    /********************
+     * Skip spaces.
+     */
+    static inout(char)* skipspace(inout(char)* p)
+    {
+        while (isspace(*p))
+            p++;
+        return p;
+    }
+
     // Parse into lines
     bool envsection = true; // default is to read
     OutBuffer buf;
@@ -198,48 +215,49 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         buf.reset();
         // First, expand the macros.
         // Macros are bracketed by % characters.
-        for (size_t k = 0; k < i - linestart; k++)
+      Kloop:
+        for (size_t k = 0; k < i - linestart; ++k)
         {
             // The line is buffer[linestart..i]
             char* line = cast(char*)&buffer[linestart];
             if (line[k] == '%')
             {
-                for (size_t j = k + 1; j < i - linestart; j++)
+                foreach (size_t j; k + 1 .. i - linestart)
                 {
                     if (line[j] != '%')
                         continue;
                     if (j - k == 3 && Port.memicmp(&line[k + 1], "@P", 2) == 0)
                     {
                         // %@P% is special meaning the path to the .ini file
-                        const(char)* p = path;
+                        auto p = path;
                         if (!*p)
                             p = ".";
                         buf.writestring(p);
                     }
                     else
                     {
-                        size_t len2 = j - k;
-                        char* p = cast(char*)malloc(len2);
+                        auto len2 = j - k;
+                        auto p = cast(char*)malloc(len2);
                         len2--;
                         memcpy(p, &line[k + 1], len2);
                         p[len2] = 0;
                         Port.strupr(p);
-                        const(char)* penv = readFromEnv(environment, p);
+                        const penv = readFromEnv(environment, p);
                         if (penv)
                             buf.writestring(penv);
                         free(p);
                     }
                     k = j;
-                    goto L1;
+                    continue Kloop;
                 }
             }
             buf.writeByte(line[k]);
-        L1:
         }
+
         // Remove trailing spaces
         while (buf.offset && isspace(buf.data[buf.offset - 1]))
             buf.offset--;
-        char* p = buf.peekString();
+        auto p = buf.peekString();
         // The expanded line is in p.
         // Now parse it for meaning.
         p = skipspace(p);
@@ -254,7 +272,7 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
             // look for [Environment]
             p = skipspace(p + 1);
             char* pn;
-            for (pn = p; isalnum(cast(char)*pn); pn++)
+            for (pn = p; isalnum(*pn); pn++)
             {
             }
             if (*skipspace(pn) != ']')
@@ -273,8 +291,8 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
                     envsection = false;
                     break;
                 }
-                const(char)* sectionname = (*sections)[j];
-                size_t len = strlen(sectionname);
+                const sectionname = (*sections)[j];
+                const len = strlen(sectionname);
                 if (pn - p == len && Port.memicmp(p, sectionname, len) == 0)
                 {
                     envsection = true;
@@ -285,14 +303,14 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         default:
             if (envsection)
             {
-                char* pn = p;
+                auto pn = p;
                 // Convert name to upper case;
                 // remove spaces bracketing =
-                for (p = pn; *p; p++)
+                for (; *p; p++)
                 {
-                    if (islower(cast(char)*p))
+                    if (islower(*p))
                         *p &= ~0x20;
-                    else if (isspace(cast(char)*p))
+                    else if (isspace(*p))
                     {
                         memmove(p, p + 1, strlen(p));
                         p--;
@@ -314,7 +332,7 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
                     else if (*p == '=')
                     {
                         p++;
-                        while (isspace(cast(char)*p))
+                        while (isspace(*p))
                             memmove(p, p + 1, strlen(p));
                         break;
                     }
@@ -338,12 +356,3 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
     }
 }
 
-/********************
- * Skip spaces.
- */
-private char* skipspace(char* p)
-{
-    while (isspace(cast(char)*p))
-        p++;
-    return p;
-}
