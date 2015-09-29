@@ -9459,13 +9459,11 @@ public:
         return params;
     }
 
-    extern (D):
-
     /****************************************
      * Determine if parameter list is really a template parameter list
      * (i.e. it has auto or alias parameters)
      */
-    static int isTPL(Parameters* parameters)
+    extern (D) static int isTPL(Parameters* parameters)
     {
         //printf("Parameter::isTPL()\n");
 
@@ -9482,7 +9480,7 @@ public:
     /***************************************
      * Determine number of arguments, folding in tuples.
      */
-    extern (C++) static size_t dim(Parameters* parameters)
+    static size_t dim(Parameters* parameters)
     {
         size_t nargs = 0;
 
@@ -9503,7 +9501,7 @@ public:
      *      NULL            not found, *pn gets incremented by the number
      *                      of Parameters
      */
-    extern (C++) static Parameter getNth(Parameters* parameters, size_t nth, size_t* pn = null)
+    static Parameter getNth(Parameters* parameters, size_t nth, size_t* pn = null)
     {
         Parameter param;
 
@@ -9521,7 +9519,7 @@ public:
         return res ? param : null;
     }
 
-    alias ForeachDg = int delegate(size_t paramidx, Parameter param);
+    alias ForeachDg = extern (D) int delegate(size_t paramidx, Parameter param);
 
     /***************************************
      * Expands tuples in args in depth first order. Calls
@@ -9530,7 +9528,7 @@ public:
      * Use this function to avoid the O(N + N^2/2) complexity of
      * calculating dim and calling N times getNth.
      */
-    static int _foreach(Parameters* parameters, scope ForeachDg dg, size_t* pn = null)
+    extern (D) static int _foreach(Parameters* parameters, scope ForeachDg dg, size_t* pn = null)
     {
         assert(dg);
         if (!parameters)
