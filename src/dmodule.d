@@ -764,7 +764,7 @@ public:
             dst = modules; // and so this module goes into global module symbol table
             /* Check to see if module name is a valid identifier
              */
-            if (!Lexer.isValidIdentifier(this.ident.toChars()))
+            if (!Identifier.isValidIdentifier(this.ident.toChars()))
                 error("has non-identifier characters in filename, use module declaration instead");
         }
         // Add internal used functions in 'object' module members.
