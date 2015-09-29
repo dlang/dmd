@@ -772,13 +772,14 @@ public:
     void paramsToDecoBuffer(Parameters* parameters)
     {
         //printf("Parameter::paramsToDecoBuffer()\n");
-        Parameter._foreach(parameters, &paramsToDecoBufferDg, cast(void*)this);
-    }
 
-    static int paramsToDecoBufferDg(void* ctx, size_t n, Parameter p)
-    {
-        p.accept(cast(Visitor)ctx);
-        return 0;
+        int paramsToDecoBufferDg(size_t n, Parameter p)
+        {
+            p.accept(this);
+            return 0;
+        }
+
+        Parameter._foreach(parameters, &paramsToDecoBufferDg);
     }
 
     override void visit(Parameter p)
