@@ -5417,7 +5417,8 @@ public:
     Dsymbol aliasdecl;          // !=null if instance is an alias for its sole member
     TemplateInstance inst;      // refer to existing instance
     ScopeDsymbol argsym;        // argument symbol table
-    int nest;                   // for recursion detection
+    int inuse;                  // for recursive expansion detection
+    int nest;                   // for recursive pretty printing detection
     bool semantictiargsdone;    // has semanticTiargs() been done?
     bool havetempdecl;          // if used second constructor
     bool gagged;                // if the instantiation is done with error gagging
