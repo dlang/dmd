@@ -2437,36 +2437,6 @@ public:
             *dc = cast(char*)buf.extractData();
     }
 
-    /**********************************
-     * Determine if string is a valid Identifier.
-     * Placed here because of commonality with Lexer functionality.
-     * Returns:
-     *      0       invalid
-     */
-    final static bool isValidIdentifier(const(char)* p)
-    {
-        size_t len;
-        size_t idx;
-        if (!p || !*p)
-            goto Linvalid;
-        if (*p >= '0' && *p <= '9') // beware of isdigit() on signed chars
-            goto Linvalid;
-        len = strlen(p);
-        idx = 0;
-        while (p[idx])
-        {
-            dchar_t dc;
-            const(char)* q = utf_decodeChar(cast(char*)p, len, &idx, &dc);
-            if (q)
-                goto Linvalid;
-            if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
-                goto Linvalid;
-        }
-        return true;
-    Linvalid:
-        return false;
-    }
-
     /********************************************
      * Combine two document comments into one,
      * separated by a newline.

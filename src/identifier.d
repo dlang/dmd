@@ -8,6 +8,7 @@
 
 module ddmd.identifier;
 
+import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.globals;
@@ -16,6 +17,7 @@ import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.root.stringtable;
 import ddmd.tokens;
+import ddmd.utf;
 
 /***********************************************************
  */
@@ -132,6 +134,35 @@ public:
             sv.ptrvalue = cast(char*)id;
         }
         return id;
+    }
+
+    /**********************************
+     * Determine if string is a valid Identifier.
+     * Returns:
+     *      0       invalid
+     */
+    final static bool isValidIdentifier(const(char)* p)
+    {
+        size_t len;
+        size_t idx;
+        if (!p || !*p)
+            goto Linvalid;
+        if (*p >= '0' && *p <= '9') // beware of isdigit() on signed chars
+            goto Linvalid;
+        len = strlen(p);
+        idx = 0;
+        while (p[idx])
+        {
+            dchar_t dc;
+            const(char)* q = utf_decodeChar(cast(char*)p, len, &idx, &dc);
+            if (q)
+                goto Linvalid;
+            if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
+                goto Linvalid;
+        }
+        return true;
+    Linvalid:
+        return false;
     }
 
     static Identifier lookup(const(char)* s, size_t len)
