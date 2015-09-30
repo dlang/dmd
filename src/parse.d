@@ -1100,8 +1100,7 @@ public:
             TemplateParameters* tpl = null;
             if (token.value == TOKlparen)
                 tpl = parseTemplateParameterList();
-            assert(token.value == TOKassign);
-            nextToken(); // skip over '='
+            check(TOKassign);   // skip over '='
             Initializer _init = parseInitializer();
             auto v = new VarDeclaration(loc, null, ident, _init);
             v.storage_class = storageClass;
