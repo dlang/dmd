@@ -3623,13 +3623,90 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
         case OPnp_fp:
 #endif
             assert(0);
-        case OPind:
-            break;
         case OPrelconst:
+        {
+            int fl;
+            if (!evalinregister(e) &&
+                !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64)) &&
+                ((fl = el_fl(e)) == FLdata || fl == FLudata || fl == FLextern)
+               )
+            {
+                // MOV -stackoffset[EBP],&variable
+                cs.Iop = 0xC7;
+                cs.Irm = modregrm(2,0,BPRM);
+                if (I64 && sz == 8)
+                    cs.Irex |= REX_W;
+                cs.IFL1 = FLfuncarg;
+                cs.IEVoffset1 = funcargtos - REGSIZE;
+                cs.IEVoffset2 = e->EV.sp.Voffset;
+                cs.IFL2 = fl;
+                cs.IEVsym2 = e->EV.sp.Vsym;
+                cs.Iflags |= CFoff;
+                c = gen(c,&cs);
+                return c;
+            }
             break;
-        case OPvar:
-            break;
+        }
         case OPconst:
+            if (!evalinregister(e))
+            {
+                cs.Iop = (sz == 1) ? 0xC6 : 0xC7;
+                cs.Irm = modregrm(2,0,BPRM);
+                cs.IFL1 = FLfuncarg;
+                cs.IEVoffset1 = funcargtos - sz;
+                cs.IFL2 = FLconst;
+                targ_size_t *p = (targ_size_t *) &(e->EV);
+                cs.IEV2.Vsize_t = *p;
+                if (I64 && tym == TYcldouble)
+                    // The alignment of EV.Vcldouble is not the same on the compiler
+                    // as on the target
+                    goto Lbreak;
+                if (I64 && sz >= 8)
+                {
+                    int i = sz;
+                    do
+                    {
+                        if (*p >= 0x80000000)
+                        {   // Use 64 bit register MOV, as the 32 bit one gets sign extended
+                            // MOV reg,imm64
+                            // MOV EA,reg
+                            goto Lbreak;
+                        }
+                        p = (targ_size_t *)((char *) p + REGSIZE);
+                        i -= REGSIZE;
+                    } while (i > 0);
+                    p = (targ_size_t *) &(e->EV);
+                }
+
+                int i = sz;
+                do
+                {   int regsize = REGSIZE;
+                    regm_t retregs = (sz == 1) ? BYTEREGS : allregs;
+                    unsigned reg;
+                    if (reghasvalue(retregs,*p,&reg))
+                    {
+                        cs.Iop = (cs.Iop & 1) | 0x88;
+                        cs.Irm |= modregrm(0,reg & 7,0); // MOV EA,reg
+                        if (reg & 8)
+                            cs.Irex |= REX_R;
+                        if (I64 && sz == 1 && reg >= 4)
+                            cs.Irex |= REX;
+                    }
+                    if (I64 && sz >= 8)
+                        cs.Irex |= REX_W;
+                    c = gen(c,&cs);           // MOV EA,const
+
+                    p = (targ_size_t *)((char *) p + regsize);
+                    cs.Iop = 0xC7;
+                    cs.Irm &= ~modregrm(0,7,0);
+                    cs.Irex &= ~REX_R;
+                    cs.IEVoffset1 += regsize;
+                    cs.IEV2.Vint = *p;
+                    i -= regsize;
+                } while (i > 0);
+                return c;
+            }
+        Lbreak:
             break;
         default:
             break;
