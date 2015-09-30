@@ -1,5 +1,5 @@
 
-import std.stdio;
+import core.stdc.stdio;
 
 // Test function inlining
 
@@ -78,10 +78,10 @@ void func(void function () v)
 void test4()
 {
    static void f1() { }
-   
+
    func(&f1);
-   //func(f1);  
-} 
+   //func(f1);
+}
 
 
 /************************************/
@@ -116,7 +116,7 @@ struct Struct
     void bar(out Struct Q)
     {
         if (foo() < 0)
-            Q = this; 
+            Q = this;
     }
 }
 
@@ -747,7 +747,7 @@ struct S14975 {
 void test14975() {
     S14975 baz = 1;
     if (baz.bar != 1)
-	assert(0);
+        assert(0);
 }
 
 /**********************************/
@@ -776,8 +776,28 @@ void test7625()
 {
     int x = foo7625(1);
     if (x != 1)
-	assert(0);
+        assert(0);
 }
+
+/**********************************/
+// 9785 partial fix
+
+void test9785()
+{
+        int j = 3;
+
+        void loop(scope const void function(int x) dg) {
+            pragma(inline, true);
+            dg(++j);
+        }
+
+        loop((x) {
+                pragma(inline, true);
+                printf("%d\n", x);
+                assert(x == 4);
+        });
+}
+
 
 /**********************************/
 
@@ -807,6 +827,7 @@ int main()
     test14606();
     test14975();
     test7625();
+    test9785();
 
     printf("Success\n");
     return 0;
