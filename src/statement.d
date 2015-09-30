@@ -11,6 +11,7 @@ module ddmd.statement;
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import ddmd.aggregate;
+import ddmd.aliasthis;
 import ddmd.arrayop;
 import ddmd.arraytypes;
 import ddmd.attrib;
@@ -3614,29 +3615,50 @@ public:
         tf = sc.tf;
         if (cases)
             return this; // already run
+
         bool conditionError = false;
         condition = condition.semantic(sc);
         condition = resolveProperties(sc, condition);
+
+        Type att = null;
         TypeEnum te = null;
-        // preserve enum type for final switches
-        if (condition.type.ty == Tenum)
-            te = cast(TypeEnum)condition.type;
-        if (condition.type.isString())
+        while (condition.op != TOKerror)
         {
-            // If it's not an array, cast it to one
-            if (condition.type.ty != Tarray)
+            // preserve enum type for final switches
+            if (condition.type.ty == Tenum)
+                te = cast(TypeEnum)condition.type;
+            if (condition.type.isString())
             {
-                condition = condition.implicitCastTo(sc, condition.type.nextOf().arrayOf());
+                // If it's not an array, cast it to one
+                if (condition.type.ty != Tarray)
+                {
+                    condition = condition.implicitCastTo(sc, condition.type.nextOf().arrayOf());
+                }
+                condition.type = condition.type.constOf();
+                break;
             }
-            condition.type = condition.type.constOf();
-        }
-        else
-        {
             condition = integralPromotions(condition, sc);
-            if (condition.op != TOKerror && !condition.type.isintegral())
+            if (condition.op != TOKerror && condition.type.isintegral())
+                break;
+
+            auto ad = isAggregate(condition.type);
+            if (ad && ad.aliasthis && condition.type != att)
             {
-                error("'%s' must be of integral or string type, it is a %s", condition.toChars(), condition.type.toChars());
+                if (!att && condition.type.checkAliasThisRec())
+                    att = condition.type;
+                if (auto e = resolveAliasThis(sc, condition, true))
+                {
+                    condition = e;
+                    continue;
+                }
+            }
+
+            if (condition.op != TOKerror)
+            {
+                error("'%s' must be of integral or string type, it is a %s",
+                    condition.toChars(), condition.type.toChars());
                 conditionError = true;
+                break;
             }
         }
         condition = condition.optimize(WANTvalue);
