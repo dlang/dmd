@@ -303,7 +303,7 @@ extern (C++) int runLINK()
                     linkcmd = linkcmdbuf.extractString();
                 }
                 else
-                    linkcmd = "link";
+                    linkcmd = "optlink";
             }
             int status = executecmd(linkcmd, p);
             if (lnkfilename)
