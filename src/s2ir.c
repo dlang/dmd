@@ -14,7 +14,6 @@
 #include        <time.h>
 
 #include        "mars.h"
-#include        "lexer.h"
 #include        "statement.h"
 #include        "expression.h"
 #include        "mtype.h"

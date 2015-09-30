@@ -547,7 +547,7 @@ enum TOKwild = TOKinout;
 
 /***********************************************************
  */
-struct Token
+extern (C++) struct Token
 {
     Token* next;
     Loc loc;
@@ -574,15 +574,15 @@ struct Token
         Identifier ident;
     }
 
-    extern (C++) static __gshared const(char)*[TOKMAX] tochars;
+    static __gshared const(char)*[TOKMAX] tochars;
 
-    extern (C++) static void initTokens()
+    static void initTokens()
     {
-        for (nkeywords = 0; keywords[nkeywords].name; nkeywords++)
+        foreach (kw; keywords)
         {
             //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
-            const(char)* s = keywords[nkeywords].name;
-            TOK v = keywords[nkeywords].value;
+            const(char)* s = kw.name;
+            TOK v = kw.value;
             Identifier id = Identifier.idPool(s);
             id.value = v;
             //printf("tochars[%d] = '%s'\n",v, s);
@@ -695,9 +695,9 @@ struct Token
         Token.tochars[TOKon_scope_failure] = "scope(failure)";
     }
 
-    extern (C++) static __gshared Token* freelist = null;
+    static __gshared Token* freelist = null;
 
-    extern (C++) static Token* alloc()
+    static Token* alloc()
     {
         if (Token.freelist)
         {
@@ -709,17 +709,17 @@ struct Token
         return new Token();
     }
 
-    extern (C++) void free()
+    void free()
     {
         next = freelist;
         freelist = &this;
     }
 
-    extern (C++) int isKeyword()
+    int isKeyword()
     {
-        foreach (size_t u; 0 .. nkeywords)
+        foreach (kw; keywords)
         {
-            if (keywords[u].value == value)
+            if (kw.value == value)
                 return 1;
         }
         return 0;
@@ -727,7 +727,7 @@ struct Token
 
     debug
     {
-        extern (C++) void print()
+        void print()
         {
             fprintf(stderr, "%s\n", toChars());
         }
@@ -735,7 +735,7 @@ struct Token
 
     extern (C++) const(char)* toChars()
     {
-        static __gshared char[3 + 3 * float80value.sizeof + 1] buffer;
+        __gshared char[3 + 3 * float80value.sizeof + 1] buffer;
         const(char)* p = &buffer[0];
         switch (value)
         {
@@ -869,7 +869,7 @@ struct Token
         return p;
     }
 
-    extern (C++) static const(char)* toChars(TOK value)
+    static const(char)* toChars(TOK value)
     {
         static __gshared char[3 + 3 * value.sizeof + 1] buffer;
         const(char)* p = tochars[value];
@@ -886,12 +886,11 @@ struct Token
  */
 struct Keyword
 {
-    const(char)* name;
+    immutable(char)* name;
     TOK value;
 }
 
-extern (C++) __gshared size_t nkeywords;
-extern (C++) __gshared Keyword* keywords =
+immutable Keyword[] keywords =
 [
     Keyword("this", TOKthis),
     Keyword("super", TOKsuper),
@@ -1006,5 +1005,4 @@ extern (C++) __gshared Keyword* keywords =
     Keyword("__PRETTY_FUNCTION__", TOKprettyfunc),
     Keyword("shared", TOKshared),
     Keyword("immutable", TOKimmutable),
-    Keyword(null, TOKreserved)
 ];
