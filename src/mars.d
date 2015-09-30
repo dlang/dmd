@@ -313,11 +313,11 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
         global.params.is64bit = false;
         global.params.defaultlibname = "phobos";
     }
-    else static if (TARGET_LINUX)
+    else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
     {
         global.params.defaultlibname = "libphobos2.a";
     }
-    else static if (TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+    else static if (TARGET_OSX)
     {
         global.params.defaultlibname = "phobos2";
     }

@@ -622,14 +622,34 @@ extern (C++) int runLINK()
         {
             char* buf = cast(char*)malloc(3 + slen + 1);
             strcpy(buf, "-l");
-            /* Use "-l:libname.a" if the library name is complete
-             */
-            if (slen > 3 + 2 && memcmp(libname, cast(char*)"lib", 3) == 0 && (memcmp(libname + slen - 2, cast(char*)".a", 2) == 0 || memcmp(libname + slen - 3, cast(char*)".so", 3) == 0))
+
+            if (slen > 3 + 2 && memcmp(libname, "lib".ptr, 3) == 0)
             {
-                strcat(buf, ":");
+                if (memcmp(libname + slen - 2, ".a".ptr, 2) == 0)
+                {
+                    argv.push("-Xlinker");
+                    argv.push("-Bstatic");
+                    strncat(buf, libname + 3, slen - 3 - 2);
+                    argv.push(buf);
+                    argv.push("-Xlinker");
+                    argv.push("-Bdynamic");
+                }
+                else if (memcmp(libname + slen - 3, ".so".ptr, 3) == 0)
+                {
+                    strncat(buf, libname + 3, slen - 3 - 3);
+                    argv.push(buf);
+                }
+                else
+                {
+                    strcat(buf, libname);
+                    argv.push(buf);
+                }
             }
-            strcat(buf, libname);
-            argv.push(buf); // turns into /usr/lib/libphobos2.a
+            else
+            {
+                strcat(buf, libname);
+                argv.push(buf);
+            }
         }
         //    argv.push("-ldruntime");
         argv.push("-lpthread");
