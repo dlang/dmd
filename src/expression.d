@@ -3752,23 +3752,7 @@ public:
                     .error(loc, "circular initialization of %s", v.toChars());
                     return new ErrorExp();
                 }
-                if (v._scope)
-                {
-                    v.inuse++;
-                    v._init = v._init.semantic(v._scope, v.type, INITinterpret);
-                    v._scope = null;
-                    v.inuse--;
-                }
-
-                e = v._init.toExpression(v.type);
-                if (!e)
-                {
-                    .error(loc, "cannot make expression out of initializer for %s", v.toChars());
-                    return new ErrorExp();
-                }
-                e = e.copy();
-                e.loc = loc; // for better error message
-
+                e = v.expandInitializer(loc);
                 v.inuse++;
                 e = e.semantic(sc);
                 v.inuse--;
@@ -5308,28 +5292,7 @@ public:
                         error("recursive expansion of %s '%s'", ti.kind(), ti.toPrettyChars());
                         return new ErrorExp();
                     }
-                    //if (v.inuse)  // This is the point.
-                    //{
-                    //    .error(loc, "circular initialization of %s", v.toChars());
-                    //    return new ErrorExp();
-                    //}
-                    if (v._scope)
-                    {
-                        v.inuse++;
-                        v._init = v._init.semantic(v._scope, v.type, INITinterpret);
-                        v._scope = null;
-                        v.inuse--;
-                    }
-
-                    auto e = v._init.toExpression(v.type);
-                    if (!e)
-                    {
-                        error("cannot make expression out of initializer for %s", v.toChars());
-                        return new ErrorExp();
-                    }
-                    e = e.copy();
-                    e.loc = loc; // for better error message
-
+                    auto e = v.expandInitializer(loc);
                     ti.inuse++;
                     e = e.semantic(sc);
                     ti.inuse--;
