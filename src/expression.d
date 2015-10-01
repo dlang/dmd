@@ -1689,116 +1689,147 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
      */
     if (1)
     {
-        /* Compute indices of first and last throwing argument.
-         * Used to not set up destructors unless a throw can happen in a later argument.
+        /* TODO: tackle problem 1)
          */
-        bool anythrow = false;
-        size_t firstthrow = ~0;
-        size_t lastthrow = ~0;
-        for (size_t i = 0; i < arguments.dim; ++i)
+        const bool leftToRight = true; // TODO: something like !fd.isArrayOp
+        if (!leftToRight)
+            assert(nargs == nparams); // no variadics for RTL order, as they would probably be evaluated LTR and so add complexity
+
+        const ptrdiff_t start = (leftToRight ? 0 : cast(ptrdiff_t)nargs - 1);
+        const ptrdiff_t end = (leftToRight ? cast(ptrdiff_t)nargs : -1);
+        const ptrdiff_t step = (leftToRight ? 1 : -1);
+
+        /* Compute indices of last throwing argument and first arg needing destruction.
+         * Used to not set up destructors unless an arg needs destruction on a throw
+         * in a later argument.
+         */
+        ptrdiff_t lastthrow = -1;
+        ptrdiff_t firstdtor = -1;
+        for (ptrdiff_t i = start; i != end; i += step)
         {
             Expression arg = (*arguments)[i];
             if (canThrow(arg, sc.func, false))
-            {
-                if (!anythrow)
-                {
-                    anythrow = true;
-                    firstthrow = i;
-                }
                 lastthrow = i;
+            if (firstdtor == -1 && arg.type.needsDestruction())
+            {
+                Parameter p = (i >= nparams ? null : Parameter.getNth(tf.parameters, i));
+                if (!(p && (p.storageClass & (STClazy | STCref | STCout))))
+                    firstdtor = i;
             }
         }
-        bool appendToPrefix = false;
+
+        /* Does problem 3) apply to this call?
+         */
+        const bool needsPrefix = (firstdtor >= 0 && lastthrow >= 0
+            && (lastthrow - firstdtor) * step > 0);
+
+        /* If so, initialize 'eprefix' by declaring the gate
+         */
         VarDeclaration gate = null;
-        for (size_t i = 0; i < arguments.dim; ++i)
+        if (needsPrefix)
+        {
+            // eprefix => bool __gate [= false]
+            Identifier idtmp = Identifier.generateId("__gate");
+            gate = new VarDeclaration(loc, Type.tbool, idtmp, null);
+            gate.storage_class |= STCtemp | STCctfe | STCvolatile;
+            gate.semantic(sc);
+
+            auto ae = new DeclarationExp(loc, gate);
+            eprefix = ae.semantic(sc);
+        }
+
+        for (ptrdiff_t i = start; i != end; i += step)
         {
             Expression arg = (*arguments)[i];
-            /* Skip reference parameters
+
+            Parameter parameter = (i >= nparams ? null : Parameter.getNth(tf.parameters, i));
+            const bool isRef = (parameter && (parameter.storageClass & (STCref | STCout)));
+            const bool isLazy = (parameter && (parameter.storageClass & STClazy));
+
+            /* Skip lazy parameters
              */
-            if (i < nparams)
+            if (isLazy)
+                continue;
+
+            /* Do we have a gate? Then we have a prefix and we're not yet past the last throwing arg.
+             * Declare a temporary variable for this arg and append that declaration to 'eprefix',
+             * which will implicitly take care of potential problem 2) for this arg.
+             * 'eprefix' will therefore finally contain all args up to and including the last
+             * potentially throwing arg, excluding all lazy parameters.
+             */
+            if (gate)
             {
-                Parameter p = Parameter.getNth(tf.parameters, i);
-                if (p.storageClass & (STClazy | STCref | STCout))
-                    continue;
-            }
-            TypeStruct ts = null;
-            Type tv = arg.type.baseElemOf();
-            if (tv.ty == Tstruct)
-                ts = cast(TypeStruct)tv;
-            if (anythrow && i < lastthrow) // if there are throws after this arg
-            {
-                if (ts && ts.sym.dtor)
+                const bool needsDtor = (!isRef && arg.type.needsDestruction() && i != lastthrow);
+
+                /* Declare temporary 'auto __pfx = arg' (needsDtor) or 'auto __pfy = arg' (!needsDtor)
+                 */
+                Identifier idtmp = Identifier.generateId(needsDtor ? "__pfx" : "__pfy");
+                VarDeclaration tmp = (!isRef
+                    ? new VarDeclaration(loc, arg.type, idtmp, new ExpInitializer(loc, arg))
+                    : new VarDeclaration(loc, arg.type.pointerTo(), idtmp, new ExpInitializer(loc, arg.addressOf())));
+                tmp.storage_class |= STCtemp | STCctfe;
+                tmp.semantic(sc);
+
+                /* Modify the destructor so it only runs if gate==false, i.e.,
+                 * only if there was a throw while constructing the args
+                 */
+                if (!needsDtor)
                 {
-                    appendToPrefix = true;
-                    // Need the gate because throws may occur after this arg is constructed
-                    if (!gate)
+                    if (tmp.edtor)
                     {
-                        Identifier idtmp = Identifier.generateId("__gate");
-                        gate = new VarDeclaration(loc, Type.tbool, idtmp, null);
-                        gate.storage_class |= STCtemp | STCctfe | STCvolatile;
-                        gate.semantic(sc);
-                        Expression ae = new DeclarationExp(loc, gate);
-                        ae = ae.semantic(sc);
-                        eprefix = Expression.combine(eprefix, ae);
+                        assert(i == lastthrow);
+                        tmp.edtor = null;
                     }
                 }
-            }
-            if (anythrow && i == lastthrow)
-            {
-                appendToPrefix = false;
-            }
-            if (appendToPrefix) // don't need to add to prefix until there's something to destruct
-            {
-                Identifier idtmp = Identifier.generateId("__pfx");
-                auto tmp = new VarDeclaration(loc, arg.type, idtmp, new ExpInitializer(loc, arg));
-                tmp.storage_class |= STCtemp | STCctfe;
-                tmp.semantic(sc);
-                /* Modify the destructor so it only runs if gate==false
-                 */
-                if (tmp.edtor)
+                else
                 {
+                    // edtor => (__gate || edtor)
+                    assert(tmp.edtor);
                     Expression e = tmp.edtor;
-                    e = new OrOrExp(e.loc, new VarExp(e.loc, gate), e); // (gate || destructor)
+                    e = new OrOrExp(e.loc, new VarExp(e.loc, gate), e);
                     tmp.edtor = e.semantic(sc);
-                    //printf("edtor: %s\n", tmp->edtor->toChars());
+                    //printf("edtor: %s\n", tmp.edtor.toChars());
                 }
-                // auto __pfx = arg
-                Expression ae = new DeclarationExp(loc, tmp);
-                ae = ae.semantic(sc);
-                eprefix = Expression.combine(eprefix, ae);
+
+                // eprefix => (eprefix, auto __pfx/y = arg)
+                auto ae = new DeclarationExp(loc, tmp);
+                eprefix = Expression.combine(eprefix, ae.semantic(sc));
+
+                // arg => __pfx/y
                 arg = new VarExp(loc, tmp);
                 arg = arg.semantic(sc);
-            }
-            else if (anythrow && firstthrow <= i && i <= lastthrow && gate)
-            {
-                Identifier id = Identifier.generateId("__pfy");
-                auto tmp = new VarDeclaration(loc, arg.type, id, new ExpInitializer(loc, arg));
-                tmp.storage_class |= STCtemp | STCctfe;
-                tmp.semantic(sc);
-                Expression ae = new DeclarationExp(loc, tmp);
-                ae = ae.semantic(sc);
-                eprefix = Expression.combine(eprefix, ae);
-                arg = new VarExp(loc, tmp);
-                arg = arg.semantic(sc);
-            }
-            else if (ts)
-            {
-                arg = arg.isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
-            }
-            if (anythrow && i == lastthrow)
-            {
-                /* Set gate to true after prefix runs
-                 */
-                if (eprefix)
+                if (isRef)
                 {
-                    assert(gate);
-                    // (gate = true)
-                    Expression e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), new IntegerExp(gate.loc, 1, Type.tbool));
-                    e = e.semantic(sc);
-                    eprefix = Expression.combine(eprefix, e);
+                    arg = new PtrExp(loc, arg);
+                    arg = arg.semantic(sc);
+                }
+
+                /* Last throwing arg? Then finalize eprefix => (eprefix, gate = true),
+                 * i.e., disable the dtors right after constructing the last throwing arg.
+                 * From now on, the callee will take care of destructing the args because
+                 * the args are implicitly moved into function parameters.
+                 *
+                 * Set gate to null to let the next iterations know they don't need to
+                 * append to eprefix anymore.
+                 */
+                if (i == lastthrow)
+                {
+                    auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), new IntegerExp(gate.loc, 1, Type.tbool));
+                    eprefix = Expression.combine(eprefix, e.semantic(sc));
                     gate = null;
                 }
             }
+            else
+            {
+                /* No gate, no prefix to append to.
+                 * Handle problem 2) by calling the copy constructor for value structs
+                 * (or static arrays of them) if appropriate.
+                 */
+                Type tv = arg.type.baseElemOf();
+                if (!isRef && tv.ty == Tstruct)
+                    arg = arg.isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
+            }
+
             (*arguments)[i] = arg;
         }
     }
