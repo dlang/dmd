@@ -143,6 +143,7 @@ public:
 
     void print();
     char *toChars();
+    virtual void printAST(int ident = 0);
     void error(const char *format, ...);
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
@@ -741,6 +742,7 @@ public:
     Expression *resolveLoc(Loc loc, Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
+    void printAST(int ident);
 };
 
 typedef UnionExp (*fp_t)(Type *, Expression *, Expression *);
@@ -768,6 +770,7 @@ public:
     Expression *reorderSettingAAElem(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
+    void printAST(int ident);
 };
 
 class BinAssignExp : public BinExp
