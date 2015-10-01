@@ -1769,10 +1769,6 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 arg = new VarExp(loc, tmp);
                 arg = arg.semantic(sc);
             }
-            else if (ts)
-            {
-                arg = arg.isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
-            }
             else if (anythrow && firstthrow <= i && i <= lastthrow && gate)
             {
                 Identifier id = Identifier.generateId("__pfy");
@@ -1784,6 +1780,10 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 eprefix = Expression.combine(eprefix, ae);
                 arg = new VarExp(loc, tmp);
                 arg = arg.semantic(sc);
+            }
+            else if (ts)
+            {
+                arg = arg.isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
             }
             if (anythrow && i == lastthrow)
             {
