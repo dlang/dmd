@@ -800,6 +800,26 @@ void test9785()
 
 
 /**********************************/
+// 9785 partial fix
+
+void test9785_2() {
+        int j = 3;
+
+        void loop(scope const void function(int x) dg) {
+            pragma(inline, true);
+            dg(++j);
+        }
+
+        static void func(int x) {
+                pragma(inline, true);
+                printf("%d\n", x);
+                assert(x == 4);
+        }
+
+        loop(&func);
+}
+
+/**********************************/
 
 int main()
 {
@@ -828,6 +848,7 @@ int main()
     test14975();
     test7625();
     test9785();
+    test9785_2();
 
     printf("Success\n");
     return 0;
