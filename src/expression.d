@@ -1598,7 +1598,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                         if (f)
                         {
                             f.tookAddressOf--;
-                            //printf("tookAddressOf = %d\n", f->tookAddressOf);
+                            //printf("--tookAddressOf = %d\n", f.tookAddressOf);
                         }
                     }
                 }
@@ -5848,6 +5848,14 @@ public:
     {
         v.visit(this);
     }
+
+    override void printAST(int indent)
+    {
+        Expression.printAST(indent);
+        foreach (i; 0 .. indent + 2)
+            printf(" ");
+        printf(".var: %s\n", var ? var.toChars() : "");
+    }
 }
 
 /***********************************************************
@@ -8664,6 +8672,14 @@ public:
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    override void printAST(int indent)
+    {
+        UnaExp.printAST(indent);
+        foreach (i; 0 .. indent + 2)
+            printf(" ");
+        printf(".func: %s\n", func ? func.toChars() : "");
     }
 }
 

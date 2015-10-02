@@ -820,6 +820,36 @@ void test9785_2() {
 }
 
 /**********************************/
+// 9785 partial fix
+
+void test9785_3() @nogc
+{
+    int j = 3;
+
+    void loop(scope const void delegate(int x) @nogc dg) @nogc {
+	pragma(inline, true);
+	dg(++j);
+    }
+
+    loop((x) @nogc {
+	    pragma(inline, true);
+	    //printf("%d\n", x + j * 2);
+	    assert(x == 4);
+	    assert(j == 4);
+    });
+
+    j = 3;
+    void func(int x) @nogc {
+	    pragma(inline, true);
+	    //printf("%d\n", x + j * 2);
+	    assert(x == 4);
+	    assert(j == 4);
+    }
+
+    loop(&func);
+}
+
+/**********************************/
 
 int main()
 {
@@ -849,6 +879,7 @@ int main()
     test7625();
     test9785();
     test9785_2();
+    test9785_3();
 
     printf("Success\n");
     return 0;

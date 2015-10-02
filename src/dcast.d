@@ -2120,7 +2120,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                             int offset;
                             if (f.tintro && f.tintro.nextOf().isBaseOf(f.type.nextOf(), &offset) && offset)
                                 e.error("%s", msg);
-                            f.tookAddressOf++;
+                            if (f != e.func)    // if address not already marked as taken
+                                f.tookAddressOf++;
                             result = new DelegateExp(e.loc, e.e1, f);
                             result.type = t;
                             return;

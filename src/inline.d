@@ -1495,13 +1495,57 @@ public:
     {
         //printf("CallExp.inlineScan() %s\n", e.toChars());
         FuncDeclaration fd;
+
+        void inlineFd()
+        {
+            if (fd && fd != parent && canInline(fd, false, false, asStatements))
+            {
+                expandInline(fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
+            }
+        }
+
+        /* Pattern match various ASTs looking for indirect function calls, delegate calls,
+         * function literal calls, delegate literal calls, and dot member calls.
+         * If so, and that is only assigned its _init.
+         * If so, do 'copy propagation' of the _init value and try to inline it.
+         */
         if (e.e1.op == TOKvar)
         {
             VarExp ve = cast(VarExp)e.e1;
             fd = ve.var.isFuncDeclaration();
-            if (fd && fd != parent && canInline(fd, false, false, asStatements))
+            if (fd)
+                // delegate call
+                inlineFd();
+            else
             {
-                expandInline(fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
+                // delegate literal call
+                auto v = ve.var.isVarDeclaration();
+                if (v && v._init && v.type.ty == Tdelegate && onlyOneAssign(v, parent))
+                {
+                    //printf("init: %s\n", v._init.toChars());
+                    auto ei = v._init.isExpInitializer();
+                    if (ei && ei.exp.op == TOKblit)
+                    {
+                        Expression e2 = (cast(AssignExp)ei.exp).e2;
+                        if (e2.op == TOKfunction)
+                        {
+                            auto fld = (cast(FuncExp)e2).fd;
+                            assert(fld.tok == TOKdelegate);
+                            fd = fld;
+                            inlineFd();
+                        }
+                        else if (e2.op == TOKdelegate)
+                        {
+                            auto de = cast(DelegateExp)e2;
+                            if (de.e1.op == TOKvar)
+                            {
+                                auto ve2 = cast(VarExp)de.e1;
+                                fd = ve2.var.isFuncDeclaration();
+                                inlineFd();
+                            }
+                        }
+                    }
+                }
             }
         }
         else if (e.e1.op == TOKdotvar)
@@ -1526,10 +1570,6 @@ public:
         else if (e.e1.op == TOKstar &&
                  (cast(PtrExp)e.e1).e1.op == TOKvar)
         {
-            /* See if calling function pointer, and that function pointer is only
-             * assigned its _init.
-             * If so, do 'copy propagation' of the _init value and try to inline it.
-             */
             VarExp ve = cast(VarExp)(cast(PtrExp)e.e1).e1;
             VarDeclaration v = ve.var.isVarDeclaration();
             if (v && v._init && onlyOneAssign(v, parent))
@@ -1539,24 +1579,20 @@ public:
                 if (ei && ei.exp.op == TOKblit)
                 {
                     Expression e2 = (cast(AssignExp)ei.exp).e2;
+                    // function pointer call
                     if (e2.op == TOKsymoff)
                     {
                         auto se = cast(SymOffExp)e2;
                         fd = se.var.isFuncDeclaration();
-                        if (fd && fd != parent && canInline(fd, false, false, asStatements))
-                        {
-                            expandInline(fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
-                        }
+                        inlineFd();
                     }
+                    // function literal call
                     else if (e2.op == TOKfunction)
                     {
                         auto fld = (cast(FuncExp)e2).fd;
                         assert(fld.tok == TOKfunction);
                         fd = fld;
-                        if (fd && fd != parent && canInline(fd, false, false, asStatements))
-                        {
-                            expandInline(fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
-                        }
+                        inlineFd();
                     }
                 }
             }
