@@ -1493,7 +1493,7 @@ public:
      */
     void visitCallExp(CallExp e, Expression eret, bool asStatements)
     {
-        //printf("CallExp.inlineScan()\n");
+        //printf("CallExp.inlineScan() %s\n", e.toChars());
         FuncDeclaration fd;
         if (e.e1.op == TOKvar)
         {
@@ -1539,7 +1539,16 @@ public:
                 if (ei && ei.exp.op == TOKblit)
                 {
                     Expression e2 = (cast(AssignExp)ei.exp).e2;
-                    if (e2.op == TOKfunction)
+                    if (e2.op == TOKsymoff)
+                    {
+                        auto se = cast(SymOffExp)e2;
+                        fd = se.var.isFuncDeclaration();
+                        if (fd && fd != parent && canInline(fd, false, false, asStatements))
+                        {
+                            expandInline(fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
+                        }
+                    }
+                    else if (e2.op == TOKfunction)
                     {
                         auto fld = (cast(FuncExp)e2).fd;
                         assert(fld.tok == TOKfunction);
