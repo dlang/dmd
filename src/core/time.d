@@ -983,6 +983,44 @@ public:
 
 
     /++
+        Divides two durations.
+
+        The legal types of arithmetic for $(D Duration) using this operator are
+
+        $(TABLE
+        $(TR $(TD Duration) $(TD /) $(TD Duration) $(TD -->) $(TD long))
+        )
+
+        Params:
+            rhs = The duration to divide this $(D Duration) by.
+      +/
+    long opBinary(string op)(Duration rhs) const nothrow @nogc
+        if(op == "/")
+    {
+        return _hnsecs / rhs._hnsecs;
+    }
+
+    unittest
+    {
+        assert(Duration(5) / Duration(7) == 0);
+        assert(Duration(7) / Duration(5) == 1);
+        assert(Duration(8) / Duration(4) == 2);
+
+        assert(Duration(5) / Duration(-7) == 0);
+        assert(Duration(7) / Duration(-5) == -1);
+        assert(Duration(8) / Duration(-4) == -2);
+
+        assert(Duration(-5) / Duration(7) == 0);
+        assert(Duration(-7) / Duration(5) == -1);
+        assert(Duration(-8) / Duration(4) == -2);
+
+        assert(Duration(-5) / Duration(-7) == 0);
+        assert(Duration(-7) / Duration(-5) == 1);
+        assert(Duration(-8) / Duration(-4) == 2);
+    }
+
+
+    /++
         Multiplies an integral value and a $(D Duration).
 
         The legal types of arithmetic for $(D Duration) using this operator
