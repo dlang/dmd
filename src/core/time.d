@@ -753,7 +753,12 @@ public:
     }
 
 
+    // Note: opBinary!"*" and opBinary!"/" have to be implemented separately
+    // because opBinary!"/" may throw TimeException, and opBinary!"*" is nothrow
+
     /++
+        Multiplies the duration by an integer value.
+
         The legal types of arithmetic for $(D Duration) using this operator
         overload are
 
@@ -793,6 +798,9 @@ public:
 
 
     /++
+        Multiplies the duration by an integer value as well as
+        assigning the result to this $(D Duration).
+
         The legal types of arithmetic for $(D Duration) using this operator
         overload are
 
@@ -845,6 +853,8 @@ public:
 
 
     /++
+        Divides the duration by an integer value.
+
         The legal types of arithmetic for $(D Duration) using this operator
         overload are
 
@@ -896,6 +906,9 @@ public:
 
 
     /++
+        Divides the duration by an integer value as well as
+        assigning the result to this $(D Duration).
+
         The legal types of arithmetic for $(D Duration) using this operator
         overload are
 
