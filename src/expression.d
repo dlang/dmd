@@ -2360,6 +2360,18 @@ public:
         return buf.extractString();
     }
 
+    /********************
+     * Print AST data structure in a nice format.
+     * Params:
+     *  indent = indentation level
+     */
+    void printAST(int indent = 0)
+    {
+        foreach (i; 0 .. indent)
+            printf(" ");
+        printf("%s %s\n", Token.toChars(op), type ? type.toChars() : "");
+    }
+
     final void error(const(char)* format, ...)
     {
         if (type != Type.terror)
@@ -7092,6 +7104,12 @@ public:
     {
         v.visit(this);
     }
+
+    override void printAST(int indent)
+    {
+        Expression.printAST(indent);
+        e1.printAST(indent + 2);
+    }
 }
 
 extern (C++) alias fp_t = UnionExp function(Loc loc, Type, Expression, Expression);
@@ -7392,6 +7410,13 @@ public:
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    override void printAST(int indent)
+    {
+        Expression.printAST(indent);
+        e1.printAST(indent + 2);
+        e2.printAST(indent + 2);
     }
 }
 
