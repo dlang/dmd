@@ -13,12 +13,12 @@ enum __W32API_VERSION = 3.17;
 enum __W32API_MAJOR_VERSION = 3;
 enum __W32API_MINOR_VERSION = 17;
 
-/*	These version identifiers are used to specify the minimum version of Windows that an
- *	application will support.
+/*  These version identifiers are used to specify the minimum version of Windows that an
+ *  application will support.
  *
- *	Previously the minimum Windows 9x and Windows NT versions could be specified.  However, since
- *	Windows 9x is no longer supported, either by Microsoft or by DMD, this distinction has been
- *	removed in order to simplify the bindings.
+ *  Previously the minimum Windows 9x and Windows NT versions could be specified.  However, since
+ *  Windows 9x is no longer supported, either by Microsoft or by DMD, this distinction has been
+ *  removed in order to simplify the bindings.
  */
  version (Windows10) {
     enum uint _WIN32_WINNT = 0x604;

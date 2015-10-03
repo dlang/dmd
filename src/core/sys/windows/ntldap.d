@@ -9,8 +9,8 @@
  */
 module core.sys.windows.ntldap;
 
-/*	TOTHINKABOUT: These constants don't have ANSI/Unicode versioned
- *	aliases.  Should we merge them anyway?
+/*  TOTHINKABOUT: These constants don't have ANSI/Unicode versioned
+ *  aliases.  Should we merge them anyway?
  */
 
 const char[]

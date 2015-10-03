@@ -194,10 +194,10 @@ struct MIDL_STUB_MESSAGE {
     int fCheckBounds;
     // FIXME:
     byte bit_fields_for_D; // FIXME: Bitfields
-//	int fInDontFree :1;
-//	int fDontCallFreeInst :1;
-//	int fInOnlyParam :1;
-//	int fHasReturn :1;
+//  int fInDontFree :1;
+//  int fDontCallFreeInst :1;
+//  int fInOnlyParam :1;
+//  int fHasReturn :1;
     uint dwDestContext;
     void* pvDestContext;
     NDR_SCONTEXT * SavedContextHandles;

@@ -119,8 +119,8 @@ extern(Windows) {
 version(Win32_Winsock1) {
 } else {
     static if (_WIN32_WINNT > 0x501) {
-        /*	These appear to be constants for the TRANSMIT_PACKETS_ELEMENT
-         *	structure below, so I've given them the same minimum version
+        /*  These appear to be constants for the TRANSMIT_PACKETS_ELEMENT
+         *  structure below, so I've given them the same minimum version
          */
         enum {
             TP_ELEMENT_FILE   = 1,
@@ -128,8 +128,8 @@ version(Win32_Winsock1) {
             TP_ELEMENT_EOP    = 4
         }
 
-        /*	WinXP+, Srv2k3+
-         *	ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/transmit_packets_element_2.htm
+        /*  WinXP+, Srv2k3+
+         *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/transmit_packets_element_2.htm
          */
         struct TRANSMIT_PACKETS_ELEMENT {
             ULONG dwElFlags;
@@ -143,8 +143,8 @@ version(Win32_Winsock1) {
             }
         }
 
-        /*	WinXP+, Server2003+:
-         *	ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsamsg_2.htm
+        /*  WinXP+, Server2003+:
+         *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsamsg_2.htm
          */
         struct WSAMSG {
             LPSOCKADDR name;
@@ -182,13 +182,13 @@ version(Win32_Winsock1) {
 
         extern(Windows)
         {
-            /*	WinXP+, Srv2k3+
-             *	ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/disconnectex_2.htm
+            /*  WinXP+, Srv2k3+
+             *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/disconnectex_2.htm
              */
             BOOL DisconnectEx(SOCKET, LPOVERLAPPED, DWORD, DWORD);
 
-            /*	WinXP+, Srv2k3+
-             *	ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsarecvmsg_2.htm
+            /*  WinXP+, Srv2k3+
+             *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsarecvmsg_2.htm
              */
             int WSARecvMsg(SOCKET, LPWSAMSG, LPDWORD, LPWSAOVERLAPPED, LPWSAOVERLAPPED_COMPLETION_ROUTINE);
         }

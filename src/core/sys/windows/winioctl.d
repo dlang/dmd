@@ -94,8 +94,8 @@ enum {
     FILE_WRITE_ACCESS
 }
 
-/*	Bit pattern:
- *	tttttttt tttttttt aaffffff ffffffmm
+/*  Bit pattern:
+ *  tttttttt tttttttt aaffffff ffffffmm
  */
 /+
 #define CTL_CODE(t, f, m, a) (((t)<<16)|((a)<<14)|((f)<<2)|(m))

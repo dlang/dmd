@@ -11,8 +11,8 @@ module core.sys.windows.odbcinst;
 import core.sys.windows.sql;
 private import core.sys.windows.windef;
 
-/*	FIXME: The Unicode/Ansi functions situation is a mess. How do the xxxA
- *	versions of these functions fit into the scheme?
+/*  FIXME: The Unicode/Ansi functions situation is a mess. How do the xxxA
+ *  versions of these functions fit into the scheme?
  */
 
 // SQLConfigDataSource()

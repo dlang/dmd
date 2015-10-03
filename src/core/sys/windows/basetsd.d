@@ -9,9 +9,9 @@
  */
 module core.sys.windows.basetsd;
 
-/*	This template is used in these modules to declare constant pointer types,
- *	in order to support both D 1.x and 2.x.
- *	Since removed - now supporting only D2
+/*  This template is used in these modules to declare constant pointer types,
+ *  in order to support both D 1.x and 2.x.
+ *  Since removed - now supporting only D2
  */
 /*template CPtr(T) {
     version (D_Version2) {
@@ -22,7 +22,7 @@ module core.sys.windows.basetsd;
     }
 }*/
 
-/*	[CyberShadow VP 2011.12.22] typedef is now deprecated in D2.
+/*  [CyberShadow VP 2011.12.22] typedef is now deprecated in D2.
  */
 template TypeDef(T) {
     version (D_Version2) {

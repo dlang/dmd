@@ -92,7 +92,7 @@ struct NDdeShareInfo_tag {
     LONG    cNumItems;
     LPTSTR  lpszItemList;
 }
-extern (C) {	// huh?
+extern (C) {    // huh?
     NDdeShareInfo_tag  NDDESHAREINFO;
     NDdeShareInfo_tag* PNDDESHAREINFO;
 }

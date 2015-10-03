@@ -199,9 +199,9 @@ enum RASCONNSTATE {
     RASCS_RetryAuthentication,
     RASCS_CallbackSetByCaller,
     RASCS_PasswordExpired,
-//	static if (_WIN32_WINNT >= 0x500) {
+//  static if (_WIN32_WINNT >= 0x500) {
         RASCS_InvokeEapUI,
-//	}
+//  }
     RASCS_Connected = RASCS_DONE,
     RASCS_Disconnected
 }
@@ -212,9 +212,9 @@ enum RASPROJECTION {
     RASP_PppNbf =   0x803F,
     RASP_PppIpx =   0x802B,
     RASP_PppIp =    0x8021,
-//	static if (_WIN32_WINNT >= 0x500) {
+//  static if (_WIN32_WINNT >= 0x500) {
         RASP_PppCcp =   0x80FD,
-//	}
+//  }
     RASP_PppLcp =   0xC021,
     RASP_Slip =     0x20000
 }

@@ -43,9 +43,9 @@ enum {
     LDAP_VERSION_MAX = LDAP_VERSION3
 }
 
-/*	MinGW defines ANSI and Unicode versions as LDAP_VENDOR_NAME and
- *	LDAP_VENDOR_NAME_W respectively; similarly with other string constants
- *	defined in this module.
+/*  MinGW defines ANSI and Unicode versions as LDAP_VENDOR_NAME and
+ *  LDAP_VENDOR_NAME_W respectively; similarly with other string constants
+ *  defined in this module.
  */
 const TCHAR[] LDAP_VENDOR_NAME = "Microsoft Corporation.";
 
@@ -356,9 +356,9 @@ struct LDAPControlW {
 }
 alias LDAPControlW* PLDAPControlW;
 
-/*	Do we really need these?  In MinGW, LDAPModA/W have only mod_op, mod_type
- *	and mod_vals, and macros are used to simulate anonymous unions in those
- *	structures.
+/*  Do we really need these?  In MinGW, LDAPModA/W have only mod_op, mod_type
+ *  and mod_vals, and macros are used to simulate anonymous unions in those
+ *  structures.
  */
 union mod_vals_u_tA {
     PCHAR*     modv_strvals;
@@ -397,7 +397,7 @@ struct LDAPModW {
 alias LDAPModW* PLDAPModW;
 
 /* Opaque structure
- *	http://msdn.microsoft.com/library/en-us/ldap/ldap/ldapsearch.asp
+ *  http://msdn.microsoft.com/library/en-us/ldap/ldap/ldapsearch.asp
  */
 struct LDAPSearch;
 alias LDAPSearch* PLDAPSearch;
@@ -416,8 +416,8 @@ struct LDAPSortKeyW {
 }
 alias LDAPSortKeyW* PLDAPSortKeyW;
 
-/*	MinGW defines these as immediate function typedefs, which don't translate
- *	well into D.
+/*  MinGW defines these as immediate function typedefs, which don't translate
+ *  well into D.
  */
 extern (C) {
     alias ULONG function(PLDAP, PLDAP, PWCHAR, PCHAR, ULONG, PVOID, PVOID,
@@ -457,8 +457,8 @@ int ldap_perror(LDAP* handle, char* message) {
     return printf("%s: %s\n", message, handle.ld_error);
 }
 
-/*	FIXME: In MinGW, these are WINLDAPAPI == DECLSPEC_IMPORT.  Linkage
- *	attribute?
+/*  FIXME: In MinGW, these are WINLDAPAPI == DECLSPEC_IMPORT.  Linkage
+ *  attribute?
  */
 extern (C) {
     PLDAP ldap_initA(PCHAR, ULONG);

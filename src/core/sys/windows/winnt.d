@@ -1165,7 +1165,7 @@ const WORD
     IMAGE_DLL_CHARACTERISTICS_FORCE_INTEGRITY      = 0x0080,
     IMAGE_DLL_CHARACTERISTICS_NX_COMPAT            = 0x0100,
     IMAGE_DLLCHARACTERISTICS_NO_ISOLATION          = 0x0200,
-    IMAGE_DLLCHARACTERISTICS_NO_SEH	               = 0x0400,
+    IMAGE_DLLCHARACTERISTICS_NO_SEH                = 0x0400,
     IMAGE_DLLCHARACTERISTICS_NO_BIND               = 0x0800,
     IMAGE_DLLCHARACTERISTICS_WDM_DRIVER            = 0x2000,
     IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE = 0x8000;
@@ -1258,9 +1258,9 @@ const DWORD
     IMAGE_SCN_MEM_READ               = 0x40000000,
     IMAGE_SCN_MEM_WRITE              = 0x80000000;
 
-/*	The following constants are mostlydocumented at
- *	http://download.microsoft.com/download/1/6/1/161ba512-40e2-4cc9-843a-923143f3456c/pecoff.doc
- *	but don't seem to be defined in the HTML docs.
+/*  The following constants are mostlydocumented at
+ *  http://download.microsoft.com/download/1/6/1/161ba512-40e2-4cc9-843a-923143f3456c/pecoff.doc
+ *  but don't seem to be defined in the HTML docs.
  */
 enum : SHORT {
     IMAGE_SYM_UNDEFINED =  0,
@@ -1936,8 +1936,8 @@ const ULONG
     IO_REPARSE_TAG_SYMLINK        = 0xA000000C,
     IO_REPARSE_TAG_VALID_VALUES   = 0xE000FFFF;
 
-/*	Although these are semantically boolean, they are documented and
- *	implemented to return ULONG; this behaviour is preserved for compatibility
+/*  Although these are semantically boolean, they are documented and
+ *  implemented to return ULONG; this behaviour is preserved for compatibility
  */
 ULONG IsReparseTagMicrosoft(ULONG x)     { return x & 0x80000000; }
 ULONG IsReparseTagHighLatency(ULONG x)   { return x & 0x40000000; }

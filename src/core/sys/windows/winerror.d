@@ -1566,7 +1566,7 @@ enum : uint {
     DNS_ERROR_DP_ALREADY_ENLISTED,
     DNS_ERROR_DP_NOT_AVAILABLE,                        // =  9905
 
-/+	already in winsock2.d defined!
+/+  already in winsock2.d defined!
 
     WSABASEERR                                            = 10000,
     WSAEINTR                                              = 10004,

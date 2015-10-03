@@ -140,13 +140,13 @@ const TCHAR[]
     REGSTR_VAL_EISA_FLAGS          = "EISAFlags",
     REGSTR_VAL_EISA_SIMULATE_INT15 = "EISASimulateInt15";
 // #else
-// #define REGSTR_KEY_ISAENUM	TEXT("C98PnP")
-// #define REGSTR_KEY_EISAENUM	TEXT("NESA")
-// #define	REGSTR_VAL_EISA_RANGES	TEXT("NESARanges")
-// #define	REGSTR_VAL_EISA_FUNCTIONS	TEXT("NESAFunctions")
-// #define	REGSTR_VAL_EISA_FUNCTIONS_MASK	TEXT("NESAFunctionsMask")
-// #define	REGSTR_VAL_EISA_FLAGS	TEXT("NESAFlags")
-// #define	REGSTR_VAL_EISA_SIMULATE_INT15	TEXT("NESASimulateInt15")
+// #define REGSTR_KEY_ISAENUM   TEXT("C98PnP")
+// #define REGSTR_KEY_EISAENUM  TEXT("NESA")
+// #define  REGSTR_VAL_EISA_RANGES  TEXT("NESARanges")
+// #define  REGSTR_VAL_EISA_FUNCTIONS   TEXT("NESAFunctions")
+// #define  REGSTR_VAL_EISA_FUNCTIONS_MASK  TEXT("NESAFunctionsMask")
+// #define  REGSTR_VAL_EISA_FLAGS   TEXT("NESAFlags")
+// #define  REGSTR_VAL_EISA_SIMULATE_INT15  TEXT("NESASimulateInt15")
 // #endif
 
 const TCHAR[]
@@ -797,7 +797,7 @@ enum {
 //#ifndef NEC_98
 const PCIC_DEFAULT_IRQMASK = 0x4EB8;
 //#else
-//#define PCIC_DEFAULT_IRQMASK	0x1468
+//#define PCIC_DEFAULT_IRQMASK  0x1468
 //#endif
 const PCIC_DEFAULT_NUMSOCKETS = 0;
 

@@ -38,8 +38,8 @@ enum {
 
 bool LSA_SUCCESS(int x) { return x >= 0; }
 
-/*	TOTHINKABOUT: These constants don't have ANSI/Unicode versioned
- *	aliases.  Should we merge them anyway?
+/*  TOTHINKABOUT: These constants don't have ANSI/Unicode versioned
+ *  aliases.  Should we merge them anyway?
  */
 const char[]  MICROSOFT_KERBEROS_NAME_A = "Kerberos";
 const wchar[] MICROSOFT_KERBEROS_NAME_W = "Kerberos";
@@ -339,9 +339,9 @@ struct LSA_TRUST_INFORMATION {
 }
 alias LSA_TRUST_INFORMATION TRUSTED_DOMAIN_INFORMATION_BASIC;
 alias LSA_TRUST_INFORMATION* PLSA_TRUST_INFORMATION;
-/*	in MinGW (further down the code):
- *		typedef PLSA_TRUST_INFORMATION *PTRUSTED_DOMAIN_INFORMATION_BASIC;
- *	but it doesn't look right....
+/*  in MinGW (further down the code):
+ *      typedef PLSA_TRUST_INFORMATION *PTRUSTED_DOMAIN_INFORMATION_BASIC;
+ *  but it doesn't look right....
  */
 alias LSA_TRUST_INFORMATION** PTRUSTED_DOMAIN_INFORMATION_BASIC;
 

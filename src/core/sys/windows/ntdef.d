@@ -34,9 +34,9 @@ void InitializeObjectAttributes(OBJECT_ATTRIBUTES* p, UNICODE_STRING* n,
 
 bool NT_SUCCESS(int x) { return x >= 0; }
 
-/*	In MinGW, NTSTATUS, UNICODE_STRING, STRING and their associated pointer
- *	type aliases are defined in ntdef.h, ntsecapi.h and subauth.h, each of
- *	which checks that none of the others is already included.
+/*  In MinGW, NTSTATUS, UNICODE_STRING, STRING and their associated pointer
+ *  type aliases are defined in ntdef.h, ntsecapi.h and subauth.h, each of
+ *  which checks that none of the others is already included.
  */
 alias int  NTSTATUS;
 alias int* PNTSTATUS;
@@ -65,8 +65,8 @@ enum SECTION_INHERIT {
     ViewUnmap
 }
 
-/*	In MinGW, this is defined in ntdef.h and ntsecapi.h, each of which checks
- *	that the other isn't already included.
+/*  In MinGW, this is defined in ntdef.h and ntsecapi.h, each of which checks
+ *  that the other isn't already included.
  */
 struct OBJECT_ATTRIBUTES {
     ULONG           Length = OBJECT_ATTRIBUTES.sizeof;

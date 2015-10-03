@@ -2710,7 +2710,7 @@ static if (_WIN32_WINNT >= 0x501) {
         LIF_ITEMINDEX = 1,
         LIF_STATE     = 2,
         LIF_ITEMID    = 4,
-        LIF_URL	      = 8
+        LIF_URL       = 8
     }
 
     enum {
@@ -3780,8 +3780,8 @@ alias LVCOLUMNA LV_COLUMNA;
 alias LVCOLUMNW LV_COLUMNW;
 
 static if (_WIN32_WINNT >= 0x501) {
-    /*	SG: The definitions in this static if block are from the MSDN docs.
-     *	They are not in MinGW, but nonetheless required for macros that are.
+    /*  SG: The definitions in this static if block are from the MSDN docs.
+     *  They are not in MinGW, but nonetheless required for macros that are.
      */
     struct LVGROUP {
         UINT    cbSize = LVGROUP.sizeof;
@@ -5550,8 +5550,8 @@ static if (_WIN32_WINNT >= 0x501) {
         return cast(UINT) SendMessage(w, LVM_MAPIDTOINDEX, i, 0);
     }
 
-    /*	??? MSDN documents this as "Not implemented", except in relation to
-     *	Windows CE/Mobile.
+    /*  ??? MSDN documents this as "Not implemented", except in relation to
+     *  Windows CE/Mobile.
      */
     void ListView_MoveGroup(HWND w, int i, int t) {
         SendMessage(w, LVM_MOVEGROUP, i, t);

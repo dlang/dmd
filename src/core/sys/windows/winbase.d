@@ -398,8 +398,8 @@ const DWORD
 // Thread exit code
 const DWORD STILL_ACTIVE = 0x103;
 
-/*	??? The only documentation of this seems to be about Windows CE and to
- *	state what _doesn't_ support it.
+/*  ??? The only documentation of this seems to be about Windows CE and to
+ *  state what _doesn't_ support it.
  */
 const DWORD FIND_FIRST_EX_CASE_SENSITIVE = 1;
 
@@ -1283,7 +1283,7 @@ struct WIN32_FIND_DATAA {
     DWORD          nFileSizeHigh;
     DWORD          nFileSizeLow;
 // #ifdef _WIN32_WCE
-//	DWORD dwOID;
+//  DWORD dwOID;
 // #else
     DWORD          dwReserved0;
     DWORD          dwReserved1;
@@ -1303,7 +1303,7 @@ struct WIN32_FIND_DATAW {
     DWORD           nFileSizeHigh;
     DWORD           nFileSizeLow;
 // #ifdef _WIN32_WCE
-// 	DWORD dwOID;
+//  DWORD dwOID;
 // #else
     DWORD           dwReserved0;
     DWORD           dwReserved1;
@@ -1357,8 +1357,8 @@ struct HW_PROFILE_INFOW {
 }
 alias HW_PROFILE_INFOW* LPHW_PROFILE_INFOW;
 
-/*	??? MSDN documents this only for Windows CE/Mobile, but it's used by
- *	GetFileAttributesEx, which is in desktop Windows.
+/*  ??? MSDN documents this only for Windows CE/Mobile, but it's used by
+ *  GetFileAttributesEx, which is in desktop Windows.
  */
 enum GET_FILEEX_INFO_LEVELS {
     GetFileExInfoStandard,
@@ -1489,8 +1489,8 @@ struct LDT_ENTRY {
 }
 alias LDT_ENTRY* PLDT_ENTRY, LPLDT_ENTRY;
 
-/*	As with the other memory management functions and structures, MSDN's
- *	Windows version info shall be taken with a cup of salt.
+/*  As with the other memory management functions and structures, MSDN's
+ *  Windows version info shall be taken with a cup of salt.
  */
 struct PROCESS_HEAP_ENTRY {
     PVOID lpData;
@@ -1523,8 +1523,8 @@ struct OFSTRUCT {
 }
 alias OFSTRUCT* LPOFSTRUCT, POFSTRUCT;
 
-/*	??? MSDN documents this only for Windows CE, but it's used by
- *	ImageGetCertificateData, which is in desktop Windows.
+/*  ??? MSDN documents this only for Windows CE, but it's used by
+ *  ImageGetCertificateData, which is in desktop Windows.
  */
 struct WIN_CERTIFICATE {
     DWORD dwLength;
@@ -1602,8 +1602,8 @@ static if (_WIN32_WINNT >= 0x501) {
 } // (_WIN32_WINNT >= 0x501)
 
 static if (_WIN32_WINNT >= 0x410) {
-    /*	apparently used only by SetThreadExecutionState (Win2000+)
-     *	and DDK functions (version compatibility not established)
+    /*  apparently used only by SetThreadExecutionState (Win2000+)
+     *  and DDK functions (version compatibility not established)
      */
     alias DWORD EXECUTION_STATE;
 }
@@ -1882,10 +1882,10 @@ WINBASEAPI DWORD WINAPI GetCurrentThreadId(void);
 
     BOOL InitAtomTable(DWORD);
     VOID InitializeCriticalSection(LPCRITICAL_SECTION);
-    /*	??? The next two are allegedly obsolete and "supported only for
-     *	backward compatibility with the 16-bit Windows API".  Yet the
-     *	replacements IsBadReadPtr and IsBadWritePtr are apparently Win2000+
-     *	only.  Where's the mistake?
+    /*  ??? The next two are allegedly obsolete and "supported only for
+     *  backward compatibility with the 16-bit Windows API".  Yet the
+     *  replacements IsBadReadPtr and IsBadWritePtr are apparently Win2000+
+     *  only.  Where's the mistake?
      */
     BOOL IsBadHugeReadPtr(PCVOID, UINT_PTR);
     BOOL IsBadHugeWritePtr(PVOID, UINT_PTR);
@@ -2041,9 +2041,9 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
     BOOL WriteProfileStringA(LPCSTR, LPCSTR, LPCSTR);
     BOOL WriteProfileStringW(LPCWSTR, LPCWSTR, LPCWSTR);
 
-    /*	Memory allocation functions.
-     *	MSDN documents these erroneously as Win2000+; thus it is uncertain what
-     *	version compatibility they really have.
+    /*  Memory allocation functions.
+     *  MSDN documents these erroneously as Win2000+; thus it is uncertain what
+     *  version compatibility they really have.
      */
     HGLOBAL GlobalAlloc(UINT, DWORD);
     HGLOBAL GlobalDiscard(HGLOBAL);

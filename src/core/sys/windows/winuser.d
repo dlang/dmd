@@ -1073,7 +1073,7 @@ enum : int {
     SM_REMOTESESSION     = 0x1000,
 }
 static if (_WIN32_WINNT >= 0x501) {
-    enum {	// These are only for WinXP and later
+    enum {  // These are only for WinXP and later
         SM_SHUTTINGDOWN  = 0x2000,
         SM_REMOTECONTROL = 0x2001
     }
@@ -1557,15 +1557,15 @@ enum WM_QUERYUISTATE  = 0x0129;
 
 // LOWORD(wParam) values in WM_*UISTATE*
 enum {
-    UIS_SET			 = 	1,
-    UIS_CLEAR		 = 	2,
-    UIS_INITIALIZE	 = 	3
+    UIS_SET          =  1,
+    UIS_CLEAR        =  2,
+    UIS_INITIALIZE   =  3
 }
 
 // HIWORD(wParam) values in WM_*UISTATE*
 enum {
-    UISF_HIDEFOCUS	 = 	0x1,
-    UISF_HIDEACCEL	 = 	0x2
+    UISF_HIDEFOCUS   =  0x1,
+    UISF_HIDEACCEL   =  0x2
 }
 
 
@@ -1573,7 +1573,7 @@ static if (_WIN32_WINNT >= 0x501) {
 
     // HIWORD(wParam) values in WM_*UISTATE*
     enum {
-        UISF_ACTIVE		 = 	0x4
+        UISF_ACTIVE      =  0x4
     }
 
 }
@@ -3265,8 +3265,8 @@ struct MENUBARINFO {
     HMENU hMenu;
     HWND  hwndMenu;
     byte bf_; // Simulated bitfield
-//	BOOL  fBarFocused:1;
-//	BOOL  fFocused:1;
+//  BOOL  fBarFocused:1;
+//  BOOL  fFocused:1;
     bool fBarFocused()       { return (bf_ & 1) == 1; }
     bool fFocused()          { return (bf_ & 2) == 2; }
     bool fBarFocused(bool b) { bf_ = cast(byte) ((bf_ & 0xFE) | b);           return b; }

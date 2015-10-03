@@ -115,8 +115,8 @@ enum : UCHAR {
 
 struct ACTION_HEADER {
     union {
-        /*	transport_id is defined as a ULONG, but both the above constants
-         *	and the documented description suggest it should be a char[4]
+        /*  transport_id is defined as a ULONG, but both the above constants
+         *  and the documented description suggest it should be a char[4]
          */
         ULONG   transport_id;
         char[4] c_transport_id;
@@ -158,14 +158,14 @@ struct ADAPTER_STATUS {
 alias ADAPTER_STATUS* PADAPTER_STATUS;
 
 struct FIND_NAME_BUFFER {
-    /*	From Win32 API docs
+    /*  From Win32 API docs
      *
-     *	length
-     *		Specifies the length, in bytes, of the FIND_NAME_BUFFER
-     *		structure. Although this structure always occupies 33 bytes,
-     *		not all of the structure is necessarily valid.
+     *  length
+     *      Specifies the length, in bytes, of the FIND_NAME_BUFFER
+     *      structure. Although this structure always occupies 33 bytes,
+     *      not all of the structure is necessarily valid.
      *
-     *	On this basis, should length be initialised?
+     *  On this basis, should length be initialised?
      */
     UCHAR     length;
     UCHAR     access_control;
