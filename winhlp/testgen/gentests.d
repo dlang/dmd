@@ -6,6 +6,7 @@ import std.format;
 import std.process;
 import std.stdio;
 
+import ae.sys.persistence;
 import ae.utils.array;
 import ae.utils.json;
 import ae.utils.text;
@@ -54,6 +55,8 @@ int main()
 		string constraint;
 	}
 
+	auto exclusions = PersistentStringSet("exclusions.txt");
+
 	File o = File("wintest.d", "wb");
 	o.writeln("import std.format : format;");
 
@@ -80,6 +83,7 @@ int main()
 				scope(failure) stderr.writefln("Error processing member %s:", d.name);
 				auto qname = (prefix ~ d.name).join(".");
 				auto lname = qname.replace(".", "_");
+				if (qname in exclusions) o.writeln("/+");
 				o.writefln("\talias %s = %s.%s;", lname, (m.name ~ prefix).join("."), d.name); // check existence
 				switch (d.kind)
 				{
@@ -126,6 +130,7 @@ int main()
 
 				if (d.offset != uint.max)
 					o.writefln("\tstatic assert(%s.offsetof == %d);", lname, d.offset);
+				if (qname in exclusions) o.writeln("+/");
 
 				handleMembers(prefix ~ d.name, d.members);
 			}
