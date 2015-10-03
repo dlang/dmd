@@ -47,7 +47,7 @@ version (Win32_Winsock1) {
     public import core.sys.windows.winsock;
 } else {
     public import core.sys.windows.winsock2;
-    public import core.sys.windows.ws2tcpip;
+    //public import core.sys.windows.ws2tcpip;
 }
 
 /+
