@@ -640,7 +640,7 @@ struct PRINTER_NOTIFY_INFO_DATA {
             PVOID pBuf;
         }
     }
-    _NotifyData NotifyData;	
+    _NotifyData NotifyData;
 }
 alias PRINTER_NOTIFY_INFO_DATA* PPRINTER_NOTIFY_INFO_DATA, LPPRINTER_NOTIFY_INFO_DATA;
 

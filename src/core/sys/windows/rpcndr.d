@@ -291,7 +291,7 @@ struct MIDL_STUB_DESC {
         handle_t *pPrimitiveHandle;
         PGENERIC_BINDING_INFO pGenericBindingInfo;
     }
-    _IMPLICIT_HANDLE_INFO IMPLICIT_HANDLE_INFO;	
+    _IMPLICIT_HANDLE_INFO IMPLICIT_HANDLE_INFO;
     const(NDR_RUNDOWN)* apfnNdrRundownRoutines;
     const(GENERIC_BINDING_ROUTINE_PAIR)* aGenericBindingRoutinePairs;
     const(EXPR_EVAL)* apfnExprEval;

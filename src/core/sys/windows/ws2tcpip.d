@@ -32,7 +32,7 @@ enum {
     IP_BLOCK_SOURCE				= 17,
     IP_UNBLOCK_SOURCE			= 18,
     IP_PKTINFO					= 19
-}	
+}
 
 enum {
     IPV6_UNICAST_HOPS		= 4,
@@ -139,7 +139,7 @@ alias SOCKADDR_IN6* PSOCKADDR_IN6, LPSOCKADDR_IN6;
 extern IN6_ADDR in6addr_any;
 extern IN6_ADDR in6addr_loopback;
 
-/+ TODO: 
+/+ TODO:
 #define IN6_ARE_ADDR_EQUAL(a, b)	\
     (memcmp ((void*)(a), (void*)(b), sizeof (struct in6_addr)) == 0)
 
@@ -179,7 +179,7 @@ extern IN6_ADDR in6addr_loopback;
 
 #define IN6_IS_ADDR_MC_NODELOCAL(_addr)	\
     (   IN6_IS_ADDR_MULTICAST(_addr)		\
-     && ((((const u_char *)(_addr))[1] & 0xf) == 0x1)) 
+     && ((((const u_char *)(_addr))[1] & 0xf) == 0x1))
 
 #define IN6_IS_ADDR_MC_LINKLOCAL(_addr)	\
     (   IN6_IS_ADDR_MULTICAST (_addr)		\

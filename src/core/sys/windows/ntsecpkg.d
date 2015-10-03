@@ -68,7 +68,7 @@ enum :ULONG{
 enum LSA_TOKEN_INFORMATION_TYPE {
     LsaTokenInformationNull,
     LsaTokenInformationV1
-} 
+}
 alias LSA_TOKEN_INFORMATION_TYPE* PLSA_TOKEN_INFORMATION_TYPE;
 enum SECPKG_EXTENDED_INFORMATION_CLASS
 {
@@ -76,13 +76,13 @@ enum SECPKG_EXTENDED_INFORMATION_CLASS
     SecpkgContextThunks,
     SecpkgMutualAuthLevel,
     SecpkgMaxInfo
-} 
+}
 enum SECPKG_NAME_TYPE {
     SecNameSamCompatible,
     SecNameAlternateId,
     SecNameFlat,
     SecNameDN
-} 
+}
 
 /* struct definitions for SSP/AP */
 struct SECPKG_PRIMARY_CRED {
@@ -100,18 +100,18 @@ struct SECPKG_PRIMARY_CRED {
     UNICODE_STRING Spare2;
     UNICODE_STRING Spare3;
     UNICODE_STRING Spare4;
-} 
+}
 alias SECPKG_PRIMARY_CRED* PSECPKG_PRIMARY_CRED;
 struct SECPKG_SUPPLEMENTAL_CRED {
     UNICODE_STRING PackageName;
     ULONG CredentialSize;
     PUCHAR Credentials;
-} 
+}
 alias SECPKG_SUPPLEMENTAL_CRED* PSECPKG_SUPPLEMENTAL_CRED;
 struct SECPKG_SUPPLEMENTAL_CRED_ARRAY {
     ULONG CredentialCount;
     SECPKG_SUPPLEMENTAL_CRED[1] Credentials;
-} 
+}
 alias SECPKG_SUPPLEMENTAL_CRED_ARRAY* PSECPKG_SUPPLEMENTAL_CRED_ARRAY;
 struct SECPKG_PARAMETERS {
     ULONG Version;
@@ -121,7 +121,7 @@ struct SECPKG_PARAMETERS {
     UNICODE_STRING DomainName;
     UNICODE_STRING DnsDomainName;
     GUID DomainGuid;
-} 
+}
 alias SECPKG_PARAMETERS* PSECPKG_PARAMETERS,PSECPKG_EVENT_DOMAIN_CHANGE;
 alias SECPKG_PARAMETERS SECPKG_EVENT_DOMAIN_CHANGE;
 struct SECPKG_CLIENT_INFO {
@@ -131,36 +131,36 @@ struct SECPKG_CLIENT_INFO {
   BOOLEAN HasTcbPrivilege;
   BOOLEAN Impersonating;
   BOOLEAN Restricted;
-} 
+}
 alias SECPKG_CLIENT_INFO* PSECPKG_CLIENT_INFO;
 struct SECURITY_USER_DATA {
     SECURITY_STRING UserName;
     SECURITY_STRING LogonDomainName;
     SECURITY_STRING LogonServer;
     PSID pSid;
-} 
+}
 alias SECURITY_USER_DATA* PSECURITY_USER_DATA,PSecurityUserData;
 alias SECURITY_USER_DATA SecurityUserData;
 struct SECPKG_GSS_INFO {
     ULONG EncodedIdLength;
     UCHAR[4] EncodedId;
-} 
+}
 alias SECPKG_GSS_INFO* PSECPKG_GSS_INFO;
 struct SECPKG_CONTEXT_THUNKS {
     ULONG InfoLevelCount;
     ULONG[1] Levels;
-} 
+}
 alias SECPKG_CONTEXT_THUNKS* PSECPKG_CONTEXT_THUNKS;
 struct SECPKG_MUTUAL_AUTH_LEVEL {
     ULONG MutualAuthLevel;
-} 
+}
 alias SECPKG_MUTUAL_AUTH_LEVEL* PSECPKG_MUTUAL_AUTH_LEVEL;
 struct SECPKG_CALL_INFO {
     ULONG ProcessId;
     ULONG ThreadId;
     ULONG Attributes;
     ULONG CallCount;
-} 
+}
 alias SECPKG_CALL_INFO* PSECPKG_CALL_INFO;
 struct SECPKG_EXTENDED_INFORMATION {
     SECPKG_EXTENDED_INFORMATION_CLASS Class;
@@ -168,9 +168,9 @@ struct SECPKG_EXTENDED_INFORMATION {
         SECPKG_GSS_INFO GssInfo;
         SECPKG_CONTEXT_THUNKS ContextThunks;
         SECPKG_MUTUAL_AUTH_LEVEL MutualAuthLevel;
-    } 
+    }
     _Info Info;
-} 
+}
 alias SECPKG_EXTENDED_INFORMATION* PSECPKG_EXTENDED_INFORMATION;
 
 /* callbacks implemented by SSP/AP dlls and called by the LSA */
@@ -257,7 +257,7 @@ struct SECPKG_DLL_FUNCTIONS {
     PLSA_ALLOCATE_LSA_HEAP AllocateHeap;
     PLSA_FREE_LSA_HEAP FreeHeap;
     PLSA_REGISTER_CALLBACK RegisterCallback;
-} 
+}
 alias SECPKG_DLL_FUNCTIONS* PSECPKG_DLL_FUNCTIONS;
 struct LSA_DISPATCH_TABLE {
     PLSA_CREATE_LOGON_SESSION CreateLogonSession;
@@ -271,7 +271,7 @@ struct LSA_DISPATCH_TABLE {
     PLSA_FREE_CLIENT_BUFFER FreeClientBuffer;
     PLSA_COPY_TO_CLIENT_BUFFER CopyToClientBuffer;
     PLSA_COPY_FROM_CLIENT_BUFFER CopyFromClientBuffer;
-} 
+}
 alias LSA_DISPATCH_TABLE* PLSA_DISPATCH_TABLE;
 struct LSA_SECPKG_FUNCTION_TABLE {
     PLSA_CREATE_LOGON_SESSION CreateLogonSession;
@@ -315,7 +315,7 @@ struct LSA_SECPKG_FUNCTION_TABLE {
     PLSA_CRACK_SINGLE_NAME CrackSingleName;
     PLSA_AUDIT_ACCOUNT_LOGON AuditAccountLogon;
     PLSA_CALL_PACKAGE_PASSTHROUGH CallPackagePassthrough;
-} 
+}
 alias LSA_SECPKG_FUNCTION_TABLE* PLSA_SECPKG_FUNCTION_TABLE;
 
 /* functions implemented by SSP/AP obtainable by dispatch tables */
@@ -416,7 +416,7 @@ struct SECPKG_FUNCTION_TABLE {
     SpQueryContextAttributesFn *QueryContextAttributes;
     SpAddCredentialsFn *AddCredentials;
     SpSetExtendedInformationFn *SetExtendedInformation;
-} 
+}
 alias SECPKG_FUNCTION_TABLE* PSECPKG_FUNCTION_TABLE;
 
 struct SECPKG_USER_FUNCTION_TABLE {
@@ -434,7 +434,7 @@ struct SECPKG_USER_FUNCTION_TABLE {
     SpMarshallSupplementalCredsFn *MarshallSupplementalCreds;
     SpExportSecurityContextFn *ExportContext;
     SpImportSecurityContextFn *ImportContext;
-} 
+}
 alias SECPKG_USER_FUNCTION_TABLE* PSECPKG_USER_FUNCTION_TABLE;
 
 /* Entry points to SSP/AP */

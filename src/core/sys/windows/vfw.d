@@ -748,7 +748,7 @@ extern (Windows) {
     void StretchDIB(LPBITMAPINFOHEADER biDst, LPVOID lpDst, int	DstX, int DstY,
         int DstXE, int DstYE, LPBITMAPINFOHEADER biSrc, LPVOID lpSrc,
         int SrcX, int SrcY, int SrcXE, int SrcYE);
-} 	
+}
 
 alias DWORD FOURCC;
 
@@ -832,7 +832,7 @@ struct AVIStreamHeader {
     WORD		wPriority;
     WORD		wLanguage;
     DWORD		dwInitialFrames;
-    DWORD		dwScale;	
+    DWORD		dwScale;
     DWORD		dwRate;
     DWORD		dwStart;
     DWORD		dwLength;
@@ -930,7 +930,7 @@ struct AVIFILEINFOW {
     DWORD	dwSuggestedBufferSize;
     DWORD	dwWidth;
     DWORD	dwHeight;
-    DWORD	dwScale;	
+    DWORD	dwScale;
     DWORD	dwRate;
     DWORD	dwLength;
     DWORD	dwEditCount;
@@ -946,7 +946,7 @@ struct AVIFILEINFOA {
     DWORD	dwSuggestedBufferSize;
     DWORD	dwWidth;
     DWORD	dwHeight;
-    DWORD	dwScale;	
+    DWORD	dwScale;
     DWORD	dwRate;
     DWORD	dwLength;
     DWORD	dwEditCount;
@@ -1186,9 +1186,9 @@ STDAPI AVIFileOpenA       (PAVIFILE FAR * ppfile, LPCSTR szFile,
 STDAPI AVIFileOpenW       (PAVIFILE FAR * ppfile, LPCWSTR szFile,
               UINT uMode, LPCLSID lpHandler);
 #ifdef UNICODE
-#define AVIFileOpen	  AVIFileOpenW	
+#define AVIFileOpen	  AVIFileOpenW
 #else
-#define AVIFileOpen	  AVIFileOpenA	
+#define AVIFileOpen	  AVIFileOpenA
 #endif
 #else
 STDAPI AVIFileOpen       (PAVIFILE FAR * ppfile, LPCSTR szFile,

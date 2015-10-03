@@ -89,7 +89,7 @@ struct CHAR_INFO {
         WCHAR UnicodeChar;
         CHAR AsciiChar;
     }
-    _Char Char;	
+    _Char Char;
     WORD Attributes;
 }
 alias CHAR_INFO* PCHAR_INFO;
@@ -140,7 +140,7 @@ struct KEY_EVENT_RECORD {
         WCHAR UnicodeChar;
         CHAR  AsciiChar;
     }
-    _uChar uChar;	
+    _uChar uChar;
     DWORD dwControlKeyState;
 }
 
@@ -173,7 +173,7 @@ struct INPUT_RECORD {
         MENU_EVENT_RECORD MenuEvent;
         FOCUS_EVENT_RECORD FocusEvent;
     }
-    _Event Event;	
+    _Event Event;
 }
 alias INPUT_RECORD* PINPUT_RECORD;
 

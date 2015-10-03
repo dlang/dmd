@@ -35,23 +35,23 @@ enum DWORD WINHTTP_FLAG_ASYNC = 0x10000000;
 
 // WinHttpOpenRequest() Flags:
 enum : DWORD {
-    WINHTTP_FLAG_SECURE               = 0x00800000, 
-    WINHTTP_FLAG_ESCAPE_PERCENT       = 0x00000004, 
-    WINHTTP_FLAG_NULL_CODEPAGE        = 0x00000008, 
-    WINHTTP_FLAG_BYPASS_PROXY_CACHE   = 0x00000100, 
+    WINHTTP_FLAG_SECURE               = 0x00800000,
+    WINHTTP_FLAG_ESCAPE_PERCENT       = 0x00000004,
+    WINHTTP_FLAG_NULL_CODEPAGE        = 0x00000008,
+    WINHTTP_FLAG_BYPASS_PROXY_CACHE   = 0x00000100,
     WINHTTP_FLAG_REFRESH              = WINHTTP_FLAG_BYPASS_PROXY_CACHE,
-    WINHTTP_FLAG_ESCAPE_DISABLE       = 0x00000040, 
-    WINHTTP_FLAG_ESCAPE_DISABLE_QUERY = 0x00000080, 
-    
+    WINHTTP_FLAG_ESCAPE_DISABLE       = 0x00000040,
+    WINHTTP_FLAG_ESCAPE_DISABLE_QUERY = 0x00000080,
+
     SECURITY_FLAG_IGNORE_UNKNOWN_CA        = 0x00000100,
-    SECURITY_FLAG_IGNORE_CERT_DATE_INVALID = 0x00002000, 
+    SECURITY_FLAG_IGNORE_CERT_DATE_INVALID = 0x00002000,
     SECURITY_FLAG_IGNORE_CERT_CN_INVALID   = 0x00001000,
     SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE  = 0x00000200
 }
 
 struct WINHTTP_ASYNC_RESULT {
-    DWORD_PTR dwResult;  
-    DWORD dwError;       
+    DWORD_PTR dwResult;
+    DWORD dwError;
 }
 alias LPWINHTTP_ASYNC_RESULT = WINHTTP_ASYNC_RESULT*;
 
@@ -70,30 +70,30 @@ enum : DWORD {
 }
 
 struct URL_COMPONENTS {
-    DWORD   dwStructSize;       
-    LPWSTR  lpszScheme;         
-    DWORD   dwSchemeLength;     
-    INTERNET_SCHEME nScheme;    
-    LPWSTR  lpszHostName;       
-    DWORD   dwHostNameLength;   
-    INTERNET_PORT nPort;        
-    LPWSTR  lpszUserName;       
-    DWORD   dwUserNameLength;   
-    LPWSTR  lpszPassword;       
-    DWORD   dwPasswordLength;   
-    LPWSTR  lpszUrlPath;        
-    DWORD   dwUrlPathLength;    
-    LPWSTR  lpszExtraInfo;      
-    DWORD   dwExtraInfoLength;  
+    DWORD   dwStructSize;
+    LPWSTR  lpszScheme;
+    DWORD   dwSchemeLength;
+    INTERNET_SCHEME nScheme;
+    LPWSTR  lpszHostName;
+    DWORD   dwHostNameLength;
+    INTERNET_PORT nPort;
+    LPWSTR  lpszUserName;
+    DWORD   dwUserNameLength;
+    LPWSTR  lpszPassword;
+    DWORD   dwPasswordLength;
+    LPWSTR  lpszUrlPath;
+    DWORD   dwUrlPathLength;
+    LPWSTR  lpszExtraInfo;
+    DWORD   dwExtraInfoLength;
 }
 alias LPURL_COMPONENTS = URL_COMPONENTS*;
 alias URL_COMPONENTSW = URL_COMPONENTS;
 alias LPURL_COMPONENTSW = URL_COMPONENTS*;
 
 struct WINHTTP_PROXY_INFO {
-    DWORD  dwAccessType;      
-    LPWSTR lpszProxy;         
-    LPWSTR lpszProxyBypass;   
+    DWORD  dwAccessType;
+    LPWSTR lpszProxy;
+    LPWSTR lpszProxyBypass;
 }
 alias LPWINHTTP_PROXY_INFO = WINHTTP_PROXY_INFO*;
 alias WINHTTP_PROXY_INFOW = WINHTTP_PROXY_INFO;
@@ -142,8 +142,8 @@ struct WINHTTP_CERTIFICATE_INFO {
 // This structure is only defined #if _WS2DEF_ defined (from <ws2def.h>) - per Windows SDK
 struct WINHTTP_CONNECTION_INFO {
     DWORD cbSize;
-    SOCKADDR_STORAGE LocalAddress;  
-    SOCKADDR_STORAGE RemoteAddress; 
+    SOCKADDR_STORAGE LocalAddress;
+    SOCKADDR_STORAGE RemoteAddress;
 }
 
 // WinHttpTimeFromSystemTime
@@ -151,18 +151,18 @@ enum DWORD WINHTTP_TIME_FORMAT_BUFSIZE  = 62;
 
 // CrackUrl, CombineUrl
 enum : DWORD {
-    ICU_NO_ENCODE           = 0x20000000,  
-    ICU_DECODE              = 0x10000000,  
-    ICU_NO_META             = 0x08000000,  
-    ICU_ENCODE_SPACES_ONLY  = 0x04000000,  
-    ICU_BROWSER_MODE        = 0x02000000, 
-    ICU_ENCODE_PERCENT      = 0x00001000      
+    ICU_NO_ENCODE           = 0x20000000,
+    ICU_DECODE              = 0x10000000,
+    ICU_NO_META             = 0x08000000,
+    ICU_ENCODE_SPACES_ONLY  = 0x04000000,
+    ICU_BROWSER_MODE        = 0x02000000,
+    ICU_ENCODE_PERCENT      = 0x00001000
 }
 // WinHttpCrackUrl, WinHttpCreateUrl
 enum : DWORD {
-    ICU_ESCAPE            = 0x80000000,  
-    ICU_ESCAPE_AUTHORITY  = 0x00002000, 
-    ICU_REJECT_USERPWD    = 0x00004000  
+    ICU_ESCAPE            = 0x80000000,
+    ICU_ESCAPE_AUTHORITY  = 0x00002000,
+    ICU_REJECT_USERPWD    = 0x00004000
 }
 enum : DWORD {
     WINHTTP_ACCESS_TYPE_DEFAULT_PROXY             = 0,
@@ -198,14 +198,14 @@ enum : DWORD {
     WINHTTP_OPTION_SECURITY_KEY_BITNESS         = 36,
     WINHTTP_OPTION_PROXY                        = 38,
     WINHTTP_OPTION_PROXY_RESULT_ENTRY           = 39,
-    
+
     WINHTTP_OPTION_USER_AGENT                   = 41,
     WINHTTP_OPTION_CONTEXT_VALUE                = 45,
     WINHTTP_OPTION_CLIENT_CERT_CONTEXT          = 47,
     WINHTTP_OPTION_REQUEST_PRIORITY             = 58,
     WINHTTP_OPTION_HTTP_VERSION                 = 59,
     WINHTTP_OPTION_DISABLE_FEATURE              = 63,
-    
+
     WINHTTP_OPTION_CODEPAGE                     = 68,
     WINHTTP_OPTION_MAX_CONNS_PER_SERVER         = 73,
     WINHTTP_OPTION_MAX_CONNS_PER_1_0_SERVER     = 74,
@@ -228,7 +228,7 @@ enum : DWORD {
     WINHTTP_OPTION_CONNECTION_INFO              = 93,
     WINHTTP_OPTION_CLIENT_CERT_ISSUER_LIST      = 94,
     WINHTTP_OPTION_SPN                          = 96,
-    
+
     WINHTTP_OPTION_GLOBAL_PROXY_CREDS           = 97,
     WINHTTP_OPTION_GLOBAL_SERVER_CREDS          = 98,
 
@@ -243,10 +243,10 @@ enum : DWORD {
     WINHTTP_OPTION_PROXY_SPN_USED               = 107,
 
     WINHTTP_OPTION_SERVER_CBT                   = 108,
-    
+
     WINHTTP_OPTION_UNSAFE_HEADER_PARSING          = 110,
     WINHTTP_OPTION_ASSURED_NON_BLOCKING_CALLBACKS = 111,
-    
+
     WINHTTP_OPTION_UPGRADE_TO_WEB_SOCKET          = 114,
     WINHTTP_OPTION_WEB_SOCKET_CLOSE_TIMEOUT       = 115,
     WINHTTP_OPTION_WEB_SOCKET_KEEPALIVE_INTERVAL  = 116,
@@ -262,15 +262,15 @@ enum : DWORD {
     WINHTTP_OPTION_PASSWORD                      = 0x1001,
     WINHTTP_OPTION_PROXY_USERNAME                = 0x1002,
     WINHTTP_OPTION_PROXY_PASSWORD                = 0x1003,
-    
+
     WINHTTP_CONNS_PER_SERVER_UNLIMITED    = 0xFFFFFFFF,
-    
+
     WINHTTP_AUTOLOGON_SECURITY_LEVEL_MEDIUM = 0,
     WINHTTP_AUTOLOGON_SECURITY_LEVEL_LOW    = 1,
     WINHTTP_AUTOLOGON_SECURITY_LEVEL_HIGH   = 2,
 
     WINHTTP_AUTOLOGON_SECURITY_LEVEL_DEFAULT = WINHTTP_AUTOLOGON_SECURITY_LEVEL_MEDIUM,
-    
+
     WINHTTP_OPTION_REDIRECT_POLICY_NEVER                      = 0,
     WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP     = 1,
     WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS                     = 2,
@@ -282,22 +282,22 @@ enum : DWORD {
     WINHTTP_ENABLE_PASSPORT_AUTH     = 0x10000000,
     WINHTTP_DISABLE_PASSPORT_KEYRING = 0x20000000,
     WINHTTP_ENABLE_PASSPORT_KEYRING  = 0x40000000,
-    
+
     WINHTTP_DISABLE_COOKIES                   = 0x00000001,
     WINHTTP_DISABLE_REDIRECTS                 = 0x00000002,
     WINHTTP_DISABLE_AUTHENTICATION            = 0x00000004,
     WINHTTP_DISABLE_KEEP_ALIVE                = 0x00000008,
-    
+
     WINHTTP_ENABLE_SSL_REVOCATION             = 0x00000001,
     WINHTTP_ENABLE_SSL_REVERT_IMPERSONATION   = 0x00000002,
-    
+
     WINHTTP_DISABLE_SPN_SERVER_PORT           = 0x00000000,
     WINHTTP_ENABLE_SPN_SERVER_PORT            = 0x00000001,
     WINHTTP_OPTION_SPN_MASK                   = WINHTTP_ENABLE_SPN_SERVER_PORT
 }
 
 // Windows 8.1 SDK:
-static if (_WIN32_WINNT >= 0x602) {	
+static if (_WIN32_WINNT >= 0x602) {
     enum DWORD WINHTTP_LAST_OPTION            = WINHTTP_OPTION_WEB_SOCKET_SEND_BUFFER_SIZE;
 } else {	// Windows 7.0A SDK:
     enum DWORD WINHTTP_LAST_OPTION            = WINHTTP_OPTION_SERVER_CBT;
@@ -340,15 +340,15 @@ enum : DWORD {
     WINHTTP_AUTH_SCHEME_PASSPORT   = 0x00000004,
     WINHTTP_AUTH_SCHEME_DIGEST     = 0x00000008,
     WINHTTP_AUTH_SCHEME_NEGOTIATE  = 0x00000010,
-    
+
     WINHTTP_AUTH_TARGET_SERVER = 0x00000000,
     WINHTTP_AUTH_TARGET_PROXY  = 0x00000001,
-    
-    SECURITY_FLAG_SECURE                    = 0x00000001, 
+
+    SECURITY_FLAG_SECURE                    = 0x00000001,
     SECURITY_FLAG_STRENGTH_WEAK             = 0x10000000,
     SECURITY_FLAG_STRENGTH_MEDIUM           = 0x40000000,
     SECURITY_FLAG_STRENGTH_STRONG           = 0x20000000,
-    
+
     WINHTTP_CALLBACK_STATUS_FLAG_CERT_REV_FAILED         = 0x00000001,
     WINHTTP_CALLBACK_STATUS_FLAG_INVALID_CERT            = 0x00000002,
     WINHTTP_CALLBACK_STATUS_FLAG_CERT_REVOKED            = 0x00000004,
@@ -363,8 +363,8 @@ enum : DWORD {
     WINHTTP_FLAG_SECURE_PROTOCOL_TLS1   = 0x00000080,
     WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 = 0x00000200,
     WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 = 0x00000800,
-    WINHTTP_FLAG_SECURE_PROTOCOL_ALL    = (WINHTTP_FLAG_SECURE_PROTOCOL_SSL2 | 
-                                                 WINHTTP_FLAG_SECURE_PROTOCOL_SSL3 | 
+    WINHTTP_FLAG_SECURE_PROTOCOL_ALL    = (WINHTTP_FLAG_SECURE_PROTOCOL_SSL2 |
+                                                 WINHTTP_FLAG_SECURE_PROTOCOL_SSL3 |
                                                  WINHTTP_FLAG_SECURE_PROTOCOL_TLS1)
 }
 
@@ -447,7 +447,7 @@ static if (_WIN32_WINNT >= 0x602)	{
                                                         | WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE
                                                         | WINHTTP_CALLBACK_STATUS_READ_COMPLETE
                                                         | WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE
-                                                        | WINHTTP_CALLBACK_STATUS_REQUEST_ERROR                                                        
+                                                        | WINHTTP_CALLBACK_STATUS_REQUEST_ERROR
                                                         | WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE);
 }
 
@@ -474,11 +474,11 @@ enum : DWORD {
     WINHTTP_QUERY_COST                       = 15,
     WINHTTP_QUERY_LINK                       = 16,
     WINHTTP_QUERY_PRAGMA                     = 17,
-    WINHTTP_QUERY_VERSION                    = 18,  
-    WINHTTP_QUERY_STATUS_CODE                = 19,  
-    WINHTTP_QUERY_STATUS_TEXT                = 20,  
-    WINHTTP_QUERY_RAW_HEADERS                = 21,  
-    WINHTTP_QUERY_RAW_HEADERS_CRLF           = 22,  
+    WINHTTP_QUERY_VERSION                    = 18,
+    WINHTTP_QUERY_STATUS_CODE                = 19,
+    WINHTTP_QUERY_STATUS_TEXT                = 20,
+    WINHTTP_QUERY_RAW_HEADERS                = 21,
+    WINHTTP_QUERY_RAW_HEADERS_CRLF           = 22,
     WINHTTP_QUERY_CONNECTION                 = 23,
     WINHTTP_QUERY_ACCEPT                     = 24,
     WINHTTP_QUERY_ACCEPT_CHARSET             = 25,
@@ -501,7 +501,7 @@ enum : DWORD {
     WINHTTP_QUERY_ACCEPT_RANGES              = 42,
     WINHTTP_QUERY_SET_COOKIE                 = 43,
     WINHTTP_QUERY_COOKIE                     = 44,
-    WINHTTP_QUERY_REQUEST_METHOD             = 45,  
+    WINHTTP_QUERY_REQUEST_METHOD             = 45,
     WINHTTP_QUERY_REFRESH                    = 46,
     WINHTTP_QUERY_CONTENT_DISPOSITION        = 47,
 
@@ -548,50 +548,50 @@ enum : DWORD {
 }
 
 enum : DWORD {
-    HTTP_STATUS_CONTINUE            = 100, 
-    HTTP_STATUS_SWITCH_PROTOCOLS    = 101, 
+    HTTP_STATUS_CONTINUE            = 100,
+    HTTP_STATUS_SWITCH_PROTOCOLS    = 101,
 
-    HTTP_STATUS_OK                  = 200, 
-    HTTP_STATUS_CREATED             = 201, 
-    HTTP_STATUS_ACCEPTED            = 202, 
-    HTTP_STATUS_PARTIAL             = 203, 
-    HTTP_STATUS_NO_CONTENT          = 204, 
-    HTTP_STATUS_RESET_CONTENT       = 205, 
-    HTTP_STATUS_PARTIAL_CONTENT     = 206, 
-    HTTP_STATUS_WEBDAV_MULTI_STATUS = 207, 
+    HTTP_STATUS_OK                  = 200,
+    HTTP_STATUS_CREATED             = 201,
+    HTTP_STATUS_ACCEPTED            = 202,
+    HTTP_STATUS_PARTIAL             = 203,
+    HTTP_STATUS_NO_CONTENT          = 204,
+    HTTP_STATUS_RESET_CONTENT       = 205,
+    HTTP_STATUS_PARTIAL_CONTENT     = 206,
+    HTTP_STATUS_WEBDAV_MULTI_STATUS = 207,
 
-    HTTP_STATUS_AMBIGUOUS           = 300, 
-    HTTP_STATUS_MOVED               = 301, 
-    HTTP_STATUS_REDIRECT            = 302, 
-    HTTP_STATUS_REDIRECT_METHOD     = 303, 
-    HTTP_STATUS_NOT_MODIFIED        = 304, 
-    HTTP_STATUS_USE_PROXY           = 305, 
-    HTTP_STATUS_REDIRECT_KEEP_VERB  = 307, 
+    HTTP_STATUS_AMBIGUOUS           = 300,
+    HTTP_STATUS_MOVED               = 301,
+    HTTP_STATUS_REDIRECT            = 302,
+    HTTP_STATUS_REDIRECT_METHOD     = 303,
+    HTTP_STATUS_NOT_MODIFIED        = 304,
+    HTTP_STATUS_USE_PROXY           = 305,
+    HTTP_STATUS_REDIRECT_KEEP_VERB  = 307,
 
-    HTTP_STATUS_BAD_REQUEST       = 400, 
-    HTTP_STATUS_DENIED            = 401, 
-    HTTP_STATUS_PAYMENT_REQ       = 402, 
-    HTTP_STATUS_FORBIDDEN         = 403, 
-    HTTP_STATUS_NOT_FOUND         = 404, 
-    HTTP_STATUS_BAD_METHOD        = 405, 
-    HTTP_STATUS_NONE_ACCEPTABLE   = 406, 
-    HTTP_STATUS_PROXY_AUTH_REQ    = 407, 
-    HTTP_STATUS_REQUEST_TIMEOUT   = 408, 
-    HTTP_STATUS_CONFLICT          = 409, 
-    HTTP_STATUS_GONE              = 410, 
-    HTTP_STATUS_LENGTH_REQUIRED   = 411, 
-    HTTP_STATUS_PRECOND_FAILED    = 412, 
-    HTTP_STATUS_REQUEST_TOO_LARGE = 413, 
-    HTTP_STATUS_URI_TOO_LONG      = 414, 
-    HTTP_STATUS_UNSUPPORTED_MEDIA = 415, 
-    HTTP_STATUS_RETRY_WITH        = 449, 
+    HTTP_STATUS_BAD_REQUEST       = 400,
+    HTTP_STATUS_DENIED            = 401,
+    HTTP_STATUS_PAYMENT_REQ       = 402,
+    HTTP_STATUS_FORBIDDEN         = 403,
+    HTTP_STATUS_NOT_FOUND         = 404,
+    HTTP_STATUS_BAD_METHOD        = 405,
+    HTTP_STATUS_NONE_ACCEPTABLE   = 406,
+    HTTP_STATUS_PROXY_AUTH_REQ    = 407,
+    HTTP_STATUS_REQUEST_TIMEOUT   = 408,
+    HTTP_STATUS_CONFLICT          = 409,
+    HTTP_STATUS_GONE              = 410,
+    HTTP_STATUS_LENGTH_REQUIRED   = 411,
+    HTTP_STATUS_PRECOND_FAILED    = 412,
+    HTTP_STATUS_REQUEST_TOO_LARGE = 413,
+    HTTP_STATUS_URI_TOO_LONG      = 414,
+    HTTP_STATUS_UNSUPPORTED_MEDIA = 415,
+    HTTP_STATUS_RETRY_WITH        = 449,
 
-    HTTP_STATUS_SERVER_ERROR      = 500, 
-    HTTP_STATUS_NOT_SUPPORTED     = 501, 
-    HTTP_STATUS_BAD_GATEWAY       = 502, 
-    HTTP_STATUS_SERVICE_UNAVAIL   = 503, 
-    HTTP_STATUS_GATEWAY_TIMEOUT   = 504, 
-    HTTP_STATUS_VERSION_NOT_SUP   = 505, 
+    HTTP_STATUS_SERVER_ERROR      = 500,
+    HTTP_STATUS_NOT_SUPPORTED     = 501,
+    HTTP_STATUS_BAD_GATEWAY       = 502,
+    HTTP_STATUS_SERVICE_UNAVAIL   = 503,
+    HTTP_STATUS_GATEWAY_TIMEOUT   = 504,
+    HTTP_STATUS_VERSION_NOT_SUP   = 505,
 
     HTTP_STATUS_FIRST             = HTTP_STATUS_CONTINUE,
     HTTP_STATUS_LAST              = HTTP_STATUS_VERSION_NOT_SUP
@@ -654,7 +654,7 @@ enum : DWORD {
     ERROR_WINHTTP_RESEND_REQUEST         = (WINHTTP_ERROR_BASE + 32),
 
     ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED = (WINHTTP_ERROR_BASE, + 44),
-    
+
     ERROR_WINHTTP_CANNOT_CALL_BEFORE_OPEN = (WINHTTP_ERROR_BASE + 100),
     ERROR_WINHTTP_CANNOT_CALL_BEFORE_SEND = (WINHTTP_ERROR_BASE + 101),
     ERROR_WINHTTP_CANNOT_CALL_AFTER_SEND  = (WINHTTP_ERROR_BASE + 102),
@@ -693,7 +693,7 @@ enum : DWORD {
     ERROR_WINHTTP_CLIENT_CERT_NO_PRIVATE_KEY            = (WINHTTP_ERROR_BASE + 185),
     ERROR_WINHTTP_CLIENT_CERT_NO_ACCESS_PRIVATE_KEY     = (WINHTTP_ERROR_BASE + 186),
 
-    WINHTTP_ERROR_LAST                                  = (WINHTTP_ERROR_BASE + 186)	
+    WINHTTP_ERROR_LAST                                  = (WINHTTP_ERROR_BASE + 186)
 }
 
 enum : DWORD {
@@ -712,7 +712,7 @@ enum : DWORD {
 }
 
 // Version(Windows8) || Version(Windows2012):
-static if (_WIN32_WINNT >= 0x602)	
+static if (_WIN32_WINNT >= 0x602)
 {
     enum WINHTTP_WEB_SOCKET_OPERATION : DWORD
     {
@@ -745,11 +745,11 @@ static if (_WIN32_WINNT >= 0x602)
         WINHTTP_WEB_SOCKET_SECURE_HANDSHAKE_ERROR_CLOSE_STATUS = 1015
     }
     struct WINHTTP_PROXY_RESULT_ENTRY {
-        BOOL            fProxy;                
-        BOOL            fBypass;               
-        INTERNET_SCHEME ProxyScheme;           
-        PWSTR           pwszProxy;             
-        INTERNET_PORT   ProxyPort;             
+        BOOL            fProxy;
+        BOOL            fBypass;
+        INTERNET_SCHEME ProxyScheme;
+        PWSTR           pwszProxy;
+        INTERNET_PORT   ProxyPort;
     }
     struct WINHTTP_PROXY_RESULT {
         DWORD cEntries;
@@ -803,7 +803,7 @@ extern (Windows) {
                          LPDWORD lpdwNumberOfBytesRead);
     BOOL WinHttpReceiveResponse(HINTERNET hRequest, LPVOID lpReserved);
 
-    BOOL WinHttpSendRequest(HINTERNET hRequest, LPCWSTR pwszHeaders, DWORD dwHeadersLength, 
+    BOOL WinHttpSendRequest(HINTERNET hRequest, LPCWSTR pwszHeaders, DWORD dwHeadersLength,
                             LPVOID lpOptional, DWORD dwOptionalLength, DWORD dwTotalLength, DWORD_PTR dwContext);
 
     BOOL WinHttpSetCredentials(HINTERNET hRequest, DWORD AuthTargets, DWORD AuthScheme,
@@ -829,7 +829,7 @@ extern (Windows) {
     DWORD WinHttpGetProxyForUrlEx(HINTERNET hResolver, PCWSTR pcwszUrl,
                                   WINHTTP_AUTOPROXY_OPTIONS *pAutoProxyOptions, DWORD_PTR pContext);
     DWORD WinHttpGetProxyResult(HINTERNET hResolver, WINHTTP_PROXY_RESULT *pProxyResult);
-    DWORD WinHttpResetAutoProxy(HINTERNET hSession, DWORD dwFlags);	                      
+    DWORD WinHttpResetAutoProxy(HINTERNET hSession, DWORD dwFlags);
     DWORD WinHttpWebSocketClose(HINTERNET hWebSocket, USHORT usStatus, PVOID pvReason, DWORD dwReasonLength);
     HINTERNET WinHttpWebSocketCompleteUpgrade(HINTERNET hRequest, DWORD_PTR pContext);
     DWORD WinHttpWebSocketQueryCloseStatus(HINTERNET hWebSocket, USHORT *pusStatus, PVOID pvReason,

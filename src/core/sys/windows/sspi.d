@@ -81,13 +81,13 @@ extern(Windows):
 struct SecHandle {
     ULONG_PTR dwLower;
     ULONG_PTR dwUpper;
-} 
+}
 alias SecHandle* PSecHandle;
 struct SecBuffer {
     ULONG cbBuffer;
     ULONG BufferType;
     PVOID pvBuffer;
-} 
+}
 alias SecBuffer* PSecBuffer;
 alias SecHandle CredHandle;
 alias PSecHandle PCredHandle;
@@ -96,14 +96,14 @@ alias PSecHandle PCtxtHandle;
 struct SECURITY_INTEGER {
     uint LowPart;
     int HighPart;
-} 
+}
 alias SECURITY_INTEGER TimeStamp;
 alias SECURITY_INTEGER* PTimeStamp;
 struct SecBufferDesc {
     ULONG ulVersion;
     ULONG cBuffers;
     PSecBuffer pBuffers;
-} 
+}
 alias SecBufferDesc* PSecBufferDesc;
 struct SecPkgContext_StreamSizes {
     ULONG cbHeader;
@@ -111,22 +111,22 @@ struct SecPkgContext_StreamSizes {
     ULONG cbMaximumMessage;
     ULONG cBuffers;
     ULONG cbBlockSize;
-} 
+}
 alias SecPkgContext_StreamSizes* PSecPkgContext_StreamSizes;
 struct SecPkgContext_Sizes {
     ULONG cbMaxToken;
     ULONG cbMaxSignature;
     ULONG cbBlockSize;
     ULONG cbSecurityTrailer;
-} 
+}
 alias SecPkgContext_Sizes* PSecPkgContext_Sizes;
 struct SecPkgContext_AuthorityW {
     SEC_WCHAR* sAuthorityName;
-} 
+}
 alias SecPkgContext_AuthorityW* PSecPkgContext_AuthorityW;
 struct SecPkgContext_AuthorityA {
     SEC_CHAR* sAuthorityName;
-} 
+}
 alias SecPkgContext_AuthorityA* PSecPkgContext_AuthorityA;
 struct SecPkgContext_KeyInfoW {
     SEC_WCHAR* sSignatureAlgorithmName;
@@ -134,7 +134,7 @@ struct SecPkgContext_KeyInfoW {
     ULONG KeySize;
     ULONG SignatureAlgorithm;
     ULONG EncryptAlgorithm;
-} 
+}
 alias SecPkgContext_KeyInfoW* PSecPkgContext_KeyInfoW;
 struct SecPkgContext_KeyInfoA {
     SEC_CHAR* sSignatureAlgorithmName;
@@ -142,20 +142,20 @@ struct SecPkgContext_KeyInfoA {
     ULONG KeySize;
     ULONG SignatureAlgorithm;
     ULONG EncryptAlgorithm;
-} 
+}
 alias SecPkgContext_KeyInfoA* PSecPkgContext_KeyInfoA;
 struct SecPkgContext_LifeSpan {
     TimeStamp tsStart;
     TimeStamp tsExpiry;
-} 
+}
 alias SecPkgContext_LifeSpan* PSecPkgContext_LifeSpan;
 struct SecPkgContext_NamesW {
     SEC_WCHAR* sUserName;
-} 
+}
 alias SecPkgContext_NamesW* PSecPkgContext_NamesW;
 struct SecPkgContext_NamesA {
     SEC_CHAR* sUserName;
-} 
+}
 alias SecPkgContext_NamesA* PSecPkgContext_NamesA;
 struct SecPkgInfoW {
     ULONG fCapabilities;
@@ -164,7 +164,7 @@ struct SecPkgInfoW {
     ULONG cbMaxToken;
     SEC_WCHAR* Name;
     SEC_WCHAR* Comment;
-} 
+}
 alias SecPkgInfoW* PSecPkgInfoW;
 struct SecPkgInfoA {
     ULONG fCapabilities;
@@ -173,21 +173,21 @@ struct SecPkgInfoA {
     ULONG cbMaxToken;
     SEC_CHAR* Name;
     SEC_CHAR* Comment;
-} 
+}
 alias SecPkgInfoA* PSecPkgInfoA;
 /* supported only in win2k+, so it should be a PSecPkgInfoW */
 /* PSDK does not say it has ANSI/Unicode versions */
 struct SecPkgContext_PackageInfo {
     PSecPkgInfoW PackageInfo;
-} 
+}
 alias SecPkgContext_PackageInfo* PSecPkgContext_PackageInfo;
 struct SecPkgCredentials_NamesW {
     SEC_WCHAR* sUserName;
-} 
+}
 alias SecPkgCredentials_NamesW* PSecPkgCredentials_NamesW;
 struct SecPkgCredentials_NamesA {
     SEC_CHAR* sUserName;
-} 
+}
 alias SecPkgCredentials_NamesA* PSecPkgCredentials_NamesA;
 
 /* TODO: missing type in SDK */
@@ -220,7 +220,7 @@ alias SECURITY_STATUS function(SEC_WCHAR*,PSecPkgInfoW*) QUERY_SECURITY_PACKAGE_
 alias SECURITY_STATUS function(PCtxtHandle,ULONG,PSecBufferDesc,ULONG) ENCRYPT_MESSAGE_FN;
 alias SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc,ULONG,PULONG) DECRYPT_MESSAGE_FN;
 
-/* No, it really is FreeCredentialsHandle, see the thread beginning 
+/* No, it really is FreeCredentialsHandle, see the thread beginning
  * http://sourceforge.net/mailarchive/message.php?msg_id=4321080 for a
  * discovery discussion. */
 struct SecurityFunctionTableW{
@@ -251,7 +251,7 @@ struct SecurityFunctionTableW{
     QUERY_SECURITY_CONTEXT_TOKEN_FN QuerySecurityContextToken;
     ENCRYPT_MESSAGE_FN EncryptMessage;
     DECRYPT_MESSAGE_FN DecryptMessage;
-} 
+}
 alias SecurityFunctionTableW* PSecurityFunctionTableW;
 struct SecurityFunctionTableA{
     uint dwVersion;
@@ -281,7 +281,7 @@ struct SecurityFunctionTableA{
     void* Unknown5;
     ENCRYPT_MESSAGE_FN EncryptMessage;
     DECRYPT_MESSAGE_FN DecryptMessage;
-} 
+}
 alias SecurityFunctionTableA* PSecurityFunctionTableA;
 alias PSecurityFunctionTableA function() INIT_SECURITY_INTERFACE_A;
 alias PSecurityFunctionTableW function() INIT_SECURITY_INTERFACE_W;

@@ -37,7 +37,7 @@ struct HEAPLIST32 {
     DWORD th32ProcessID;
     ULONG_PTR th32HeapID;
     DWORD dwFlags;
-} 
+}
 alias HEAPLIST32* PHEAPLIST32;
 alias HEAPLIST32* LPHEAPLIST32;
 
@@ -90,7 +90,7 @@ struct MODULEENTRY32W {
     DWORD ProccntUsage;
     BYTE *modBaseAddr;
     DWORD modBaseSize;
-    HMODULE hModule; 
+    HMODULE hModule;
     WCHAR[MAX_MODULE_NAME32 + 1] szModule;
     WCHAR[MAX_PATH] szExePath;
 }

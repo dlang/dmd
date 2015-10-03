@@ -126,7 +126,7 @@ struct SQL_INTERVAL_STRUCT {
         SQL_YEAR_MONTH_STRUCT year_month;
         SQL_DAY_SECOND_STRUCT day_second;
     }
-    _intval intval;	
+    _intval intval;
 }
 
 const SQL_MAX_NUMERIC_LEN = 16;

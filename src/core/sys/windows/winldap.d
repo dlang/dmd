@@ -452,7 +452,7 @@ struct LDAPVLVInfo {
  * Under Microsoft WinLDAP the function ldap_error is only stub.
  * This macro uses LDAP structure to get error string and pass it to the user.
  */
-private extern (C) int printf(in char* format, ...); 
+private extern (C) int printf(in char* format, ...);
 int ldap_perror(LDAP* handle, char* message) {
     return printf("%s: %s\n", message, handle.ld_error);
 }
