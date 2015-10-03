@@ -25,9 +25,9 @@ const WM_IME_CONTROL          = 0x283;
 const WM_IME_COMPOSITIONFULL  = 0x284;
 const WM_IME_SELECT           = 0x285;
 const WM_IME_CHAR             = 0x286;
-static if (_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
 	const WM_IME_REQUEST      = 0x288;
-}
+//}
 const WM_IME_KEYDOWN          = 0x290;
 const WM_IME_KEYUP            = 0x291;
 

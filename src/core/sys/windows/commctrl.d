@@ -944,21 +944,18 @@ static if (_WIN32_IE >= 0x400) {  // IE4.0 ???
 		TTM_SETTITLEA,
 		TTM_SETTITLEW // = WM_USER + 33
 	}
-    static if (_WIN32_IE >= 0x500)
-    {
-        alias TTM_SETTITLEW TTM_SETTITLE;
-    }
-    else
-    {
-        alias TTM_SETTITLEA TTM_SETTITLE;
-    }
+	static if (_WIN32_IE >= 0x500) {
+		alias TTM_SETTITLEW TTM_SETTITLE;
+	} else {
+		alias TTM_SETTITLEA TTM_SETTITLE;
+	}
 }
 
 static if (_WIN32_WINNT >= 0x501) {
-    enum {
-        TTM_POPUP = (WM_USER + 34),
-        TTM_GETTITLE = (WM_USER + 35),
-    }
+	enum {
+		TTM_POPUP = (WM_USER + 34),
+		TTM_GETTITLE = (WM_USER + 35),
+	}
 }
 
 enum {
@@ -5483,11 +5480,11 @@ int ListView_EnableGroupView(HWND w, BOOL i) {
 	return cast(int) SendMessage(w, LVM_ENABLEGROUPVIEW, i, 0);
 }
 
-static if (_WIN32_WINNT >= 0x500 || _WIN32_IE >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500 || _WIN32_IE >= 0x500) {
 	BOOL ListView_SortItemsEx(HWND w, PFNLVCOMPARE c, LPARAM p) {
 		return cast(BOOL) SendMessage(w, LVM_SORTITEMSEX, cast(WPARAM) p, cast(LPARAM)c);
 	}
-}
+//}
 
 static if (_WIN32_WINNT >= 0x501) {
 	int ListView_GetGroupInfo(HWND w, int i, PLVGROUP p) {

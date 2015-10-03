@@ -406,7 +406,7 @@ struct MSV1_0_LM20_LOGON {
 }
 alias MSV1_0_LM20_LOGON* PMSV1_0_LM20_LOGON;
 
-static if (_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
 	struct MSV1_0_SUBAUTH_LOGON {
 		MSV1_0_LOGON_SUBMIT_TYPE       MessageType;
 		UNICODE_STRING                 LogonDomainName;
@@ -419,7 +419,7 @@ static if (_WIN32_WINNT >= 0x500) {
 		ULONG                          SubAuthPackageId;
 	}
 	alias MSV1_0_SUBAUTH_LOGON* PMSV1_0_SUBAUTH_LOGON;
-}
+//}
 
 struct MSV1_0_LM20_LOGON_PROFILE {
 	MSV1_0_PROFILE_BUFFER_TYPE              MessageType;

@@ -19,6 +19,6 @@ align(1) struct GUID {  // size is 16
 }
 alias GUID UUID, IID, CLSID, FMTID, uuid_t;
 alias GUID* LPGUID, LPCLSID, LPIID;
-alias const(GUID)* REFGUID, REFIID, REFCLSID, REFFMTID;
+alias const(GUID)* LPCGUID, REFGUID, REFIID, REFCLSID, REFFMTID;
 
 alias uint error_status_t, PROPID;

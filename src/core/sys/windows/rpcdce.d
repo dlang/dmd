@@ -406,6 +406,6 @@ RPC_STATUS RpcMgmtSetParameter(uint, uint);
 RPC_STATUS RpcMgmtBindingInqParameter(RPC_BINDING_HANDLE, uint, uint*);
 RPC_STATUS RpcMgmtBindingSetParameter(RPC_BINDING_HANDLE, uint, uint);
 
-static if (_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
 	RPC_STATUS UuidCreateSequential(UUID*);
-}
+//}

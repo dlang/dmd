@@ -35,12 +35,11 @@ enum : UINT {
 	CDN_TYPECHANGE     = CDN_FIRST - 6,
 }
 
-static if(_WIN32_WINNT >= 0x500)
-{
+//static if(_WIN32_WINNT >= 0x500) {
     enum : UINT {
         CDN_INCLUDEITEM    = CDN_FIRST - 7,
     }
-}
+//}
 
 enum : UINT {
 	CDM_FIRST           = WM_USER + 100,
@@ -195,7 +194,7 @@ enum : DWORD {
 	PD_NONETWORKBUTTON            = 0x200000
 }
 
-static if (_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
 	enum : DWORD {
 		PD_CURRENTPAGE      = 0x00400000,
 		PD_NOCURRENTPAGE    = 0x00800000,
@@ -210,7 +209,7 @@ static if (_WIN32_WINNT >= 0x500) {
 	}
 
 	const DWORD START_PAGE_GENERAL = 0xFFFFFFFF;
-}
+//}
 
 enum {
 	PSD_DEFAULTMINMARGINS             = 0,
@@ -428,12 +427,12 @@ struct OPENFILENAMEA {
 	DWORD         lCustData;
 	LPOFNHOOKPROC lpfnHook;
 	LPCSTR        lpTemplateName;
-    
-    static if (_WIN32_WINNT >= 0x500) {
+
+    //static if (_WIN32_WINNT >= 0x500) {
         void          *pvReserved;
         DWORD         dwReserved;
         DWORD         FlagsEx;
-    }    
+    //}
 }
 alias OPENFILENAMEA* LPOPENFILENAMEA;
 
@@ -458,12 +457,12 @@ struct OPENFILENAMEW {
 	DWORD         lCustData;
 	LPOFNHOOKPROC lpfnHook;
 	LPCWSTR       lpTemplateName;
-    
-    static if (_WIN32_WINNT >= 0x500) {
-        void          *pvReserved;
-        DWORD         dwReserved;
-        DWORD         FlagsEx;
-    }       
+
+	//static if (_WIN32_WINNT >= 0x500) {
+		void          *pvReserved;
+		DWORD         dwReserved;
+		DWORD         FlagsEx;
+	//}
 }
 alias OPENFILENAMEW* LPOPENFILENAMEW;
 
@@ -565,7 +564,7 @@ struct PRINTDLGW {
 }
 alias PRINTDLGW* LPPRINTDLGW;
 
-static if (_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
 	import win32.unknwn; // for LPUNKNOWN
 	import win32.prsht;  // for HPROPSHEETPAGE
 
@@ -625,7 +624,7 @@ static if (_WIN32_WINNT >= 0x500) {
 	}
 	alias PRINTDLGEXW* LPPRINTDLGEXW;
 
-} // _WIN32_WINNT >= 0x500
+//} // _WIN32_WINNT >= 0x500
 
 extern (Windows) {
 	BOOL ChooseColorA(LPCHOOSECOLORA);
@@ -648,10 +647,10 @@ extern (Windows) {
 	HWND ReplaceTextA(LPFINDREPLACEA);
 	HWND ReplaceTextW(LPFINDREPLACEW);
 
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		HRESULT PrintDlgExA(LPPRINTDLGEXA);
 		HRESULT PrintDlgExW(LPPRINTDLGEXW);
-	}
+	//}
 }
 
 version (Unicode) {
@@ -673,10 +672,10 @@ version (Unicode) {
 	alias PrintDlgW PrintDlg;
 	alias ReplaceTextW ReplaceText;
 
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		alias PRINTDLGEXW PRINTDLGEX;
 		alias PrintDlgExW PrintDlgEx;
-	}
+	//}
 
 } else { // UNICODE
 
@@ -698,10 +697,10 @@ version (Unicode) {
 	alias PrintDlgA PrintDlg;
 	alias ReplaceTextA ReplaceText;
 
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		alias PRINTDLGEXA PRINTDLGEX;
 		alias PrintDlgExA PrintDlgEx;
-	}
+	//}
 
 } // UNICODE
 
@@ -712,6 +711,6 @@ alias OPENFILENAME* LPOPENFILENAME;
 alias OFNOTIFY* LPOFNOTIFY;
 alias PAGESETUPDLG* LPPAGESETUPDLG;
 alias PRINTDLG* LPPRINTDLG;
-static if (_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
 	alias PRINTDLGEX* LPPRINTDLGEX;
-}
+//}

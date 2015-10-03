@@ -12,11 +12,11 @@ module win32.aclui;
 pragma(lib, "aclui");
 
 private import win32.w32api;
-
+/*
 static assert (_WIN32_WINNT >= 0x500,
 	"win32.aclui is available only if version Windows2000, WindowsXP, Windows2003 "
 	"or WindowsVista is set");
-
+*/
 import win32.accctrl, win32.commctrl, win32.objbase;
 private import win32.basetyps, win32.prsht, win32.unknwn, win32.windef,
   win32.winuser;

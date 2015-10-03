@@ -26,14 +26,14 @@ version (Win32_Winsock1) {
 	import win32.winsock2;
 }
 
-static if (_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
 	enum {
 		/* WinNT5+:
 		   ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/socket_options.htm */
 		SO_MAXDG             = 0x7009,
 		SO_MAXPATHDG         = 0x700A,
 	}
-}
+//}
 
 enum {
 	/* WinNT4+:

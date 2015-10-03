@@ -2015,6 +2015,7 @@ alias RGBTRIPLE* LPRGBTRIPLE;
 
 align(2):
 struct BITMAPFILEHEADER {
+align(2):
 	WORD  bfType;
 	DWORD bfSize;
 	WORD  bfReserved1;
@@ -2179,9 +2180,11 @@ struct DEVMODEA {
 			short dmDefaultSource;
 			short dmPrintQuality;
 		}
-		POINTL dmPosition;
-		DWORD  dmDisplayOrientation;
-		DWORD  dmDisplayFixedOutput;
+		struct {
+			POINTL dmPosition;
+			DWORD  dmDisplayOrientation;
+			DWORD  dmDisplayFixedOutput;
+		}
 	}
 	short  dmColor;
 	short  dmDuplex;
@@ -2227,9 +2230,11 @@ struct DEVMODEW {
 			short dmDefaultSource;
 			short dmPrintQuality;
 		}
-		POINTL dmPosition;
-		DWORD  dmDisplayOrientation;
-		DWORD  dmDisplayFixedOutput;
+		struct {
+			POINTL dmPosition;
+			DWORD  dmDisplayOrientation;
+			DWORD  dmDisplayFixedOutput;
+		}
 	}
 
 	short  dmColor;
@@ -3259,6 +3264,7 @@ static if (_WIN32_WINNT >= 0x500) {
 
 align(2):
 struct METAHEADER {
+align(2):
 	WORD mtType;
 	WORD mtHeaderSize;
 	WORD mtVersion;

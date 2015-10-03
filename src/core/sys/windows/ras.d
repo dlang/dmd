@@ -115,7 +115,7 @@ static if (_WIN32_WINNT >= 0x401) {
 	const RASADP_FailedConnectionTimeout = 3;
 	const RASADP_ConnectionQueryTimeout = 4;
 }
-static if (_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
 	const RDEOPT_CustomDial = 0x00001000;
 	const RASLCPAP_PAP = 0xC023;
 	const RASLCPAP_SPAP = 0xC027;
@@ -167,7 +167,7 @@ static if (_WIN32_WINNT >= 0x500) {
 	const ET_Require = 1;
 	const ET_RequireMax = 2;
 	const ET_Optional = 3;
-}
+//}
 
 const RASCS_PAUSED = 0x1000;
 const RASCS_DONE = 0x2000;
@@ -230,13 +230,13 @@ struct RASCONNW {
 	WCHAR[RAS_MaxEntryName + 1] szEntryName;
 	WCHAR[RAS_MaxDeviceType + 1] szDeviceType;
 	WCHAR[RAS_MaxDeviceName + 1] szDeviceName;
-	static if (_WIN32_WINNT >= 0x401) {
+	//static if (_WIN32_WINNT >= 0x401) {
 		WCHAR[MAX_PATH] szPhonebook;
 		DWORD dwSubEntry;
-	}
-	static if (_WIN32_WINNT >= 0x500) {
+	//}
+	//static if (_WIN32_WINNT >= 0x500) {
 		GUID guidEntry;
-	}
+	//}
 	static if (_WIN32_WINNT >= 0x501) {
 		DWORD dwFlags;
 		LUID luid;
@@ -250,13 +250,13 @@ struct RASCONNA {
 	CHAR[RAS_MaxEntryName + 1] szEntryName;
 	CHAR[RAS_MaxDeviceType + 1] szDeviceType;
 	CHAR[RAS_MaxDeviceName + 1] szDeviceName;
-	static if (_WIN32_WINNT >= 0x401) {
+	//static if (_WIN32_WINNT >= 0x401) {
 		CHAR[MAX_PATH] szPhonebook;
 		DWORD dwSubEntry;
-	}
-	static if (_WIN32_WINNT >= 0x500) {
+	//}
+	//static if (_WIN32_WINNT >= 0x500) {
 		GUID guidEntry;
-	}
+	//}
 	static if (_WIN32_WINNT >= 0x501) {
 		DWORD dwFlags;
 		LUID luid;
@@ -318,42 +318,42 @@ struct RASDIALPARAMSA{
 }
 alias RASDIALPARAMSA* LPRASDIALPARAMSA;
 
-static if (_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
 	struct RASEAPINFO {
 		DWORD dwSizeofEapInfo;
 		BYTE *pbEapInfo;
 	}
-}
+//}
 
 struct RASDIALEXTENSIONS {
 	DWORD dwSize;
 	DWORD dwfOptions;
 	HWND hwndParent;
 	ULONG_PTR reserved;
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		ULONG_PTR reserved1;
 		RASEAPINFO RasEapInfo;
-	}
+	//}
 }
 alias RASDIALEXTENSIONS* LPRASDIALEXTENSIONS;
 
 struct RASENTRYNAMEW {
 	DWORD dwSize;
 	WCHAR[RAS_MaxEntryName + 1] szEntryName;
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		DWORD dwFlags;
 		WCHAR[MAX_PATH + 1] szPhonebookPath;
-	}
+	//}
 }
 alias RASENTRYNAMEW* LPRASENTRYNAMEW;
 
 struct RASENTRYNAMEA{
 	DWORD dwSize;
 	CHAR[RAS_MaxEntryName + 1] szEntryName;
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		DWORD dwFlags;
 		CHAR[MAX_PATH + 1] szPhonebookPath;
-	}
+	//}
 }
 alias RASENTRYNAMEA* LPRASENTRYNAMEA;
 
@@ -414,10 +414,10 @@ struct RASPPPIPW{
 	//#ifndef WINNT35COMPATIBLE
 	WCHAR[RAS_MaxIpAddress + 1] szServerIpAddress;
 	//#endif
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		DWORD dwOptions;
 		DWORD dwServerOptions;
-	}
+	//}
 }
 alias RASPPPIPW* LPRASPPPIPW;
 
@@ -428,17 +428,17 @@ struct RASPPPIPA{
 	//#ifndef WINNT35COMPATIBLE
 	CHAR[RAS_MaxIpAddress + 1] szServerIpAddress;
 	//#endif
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		DWORD dwOptions;
 		DWORD dwServerOptions;
-	}
+	//}
 }
 alias RASPPPIPA* LPRASPPPIPA;
 
 struct RASPPPLCPW{
 	DWORD dwSize;
 	BOOL fBundled;
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		DWORD dwError;
 		DWORD dwAuthenticationProtocol;
 		DWORD dwAuthenticationData;
@@ -452,14 +452,14 @@ struct RASPPPLCPW{
 		WCHAR[RAS_MaxReplyMessage] szReplyMessage;
 		DWORD dwOptions;
 		DWORD dwServerOptions;
-	}
+	//}
 }
 alias RASPPPLCPW* LPRASPPPLCPW;
 
 struct RASPPPLCPA{
 	DWORD dwSize;
 	BOOL fBundled;
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		DWORD dwError;
 		DWORD dwAuthenticationProtocol;
 		DWORD dwAuthenticationData;
@@ -473,7 +473,7 @@ struct RASPPPLCPA{
 		CHAR[RAS_MaxReplyMessage] szReplyMessage;
 		DWORD dwOptions;
 		DWORD dwServerOptions;
-	}
+	//}
 }
 alias RASPPPLCPA* LPRASPPPLCPA;
 
@@ -552,7 +552,7 @@ struct RASENTRYW {
 	DWORD dwChannels;
 	DWORD dwReserved1;
 	DWORD dwReserved2;
-	static if (_WIN32_WINNT >= 0x401) {
+	//static if (_WIN32_WINNT >= 0x401) {
 		DWORD dwSubEntries;
 		DWORD dwDialMode;
 		DWORD dwDialExtraPercent;
@@ -560,15 +560,15 @@ struct RASENTRYW {
 		DWORD dwHangUpExtraPercent;
 		DWORD dwHangUpExtraSampleSeconds;
 		DWORD dwIdleDisconnectSeconds;
-	}
-	static if (_WIN32_WINNT >= 0x500) {
+	//}
+	//static if (_WIN32_WINNT >= 0x500) {
 		DWORD dwType;
 		DWORD dwEncryptionType;
 		DWORD dwCustomAuthKey;
 		GUID guidId;
 		WCHAR[MAX_PATH] szCustomDialDll;
 		DWORD dwVpnStrategy;
-	}
+	//}
 }
 alias RASENTRYW* LPRASENTRYW;
 
@@ -600,7 +600,7 @@ struct RASENTRYA {
 	DWORD dwChannels;
 	DWORD dwReserved1;
 	DWORD dwReserved2;
-	static if (_WIN32_WINNT >= 0x401) {
+	//static if (_WIN32_WINNT >= 0x401) {
 		DWORD dwSubEntries;
 		DWORD dwDialMode;
 		DWORD dwDialExtraPercent;
@@ -608,20 +608,20 @@ struct RASENTRYA {
 		DWORD dwHangUpExtraPercent;
 		DWORD dwHangUpExtraSampleSeconds;
 		DWORD dwIdleDisconnectSeconds;
-	}
-	static if (_WIN32_WINNT >= 0x500) {
+	//}
+	//static if (_WIN32_WINNT >= 0x500) {
 		DWORD dwType;
 		DWORD dwEncryptionType;
 		DWORD dwCustomAuthKey;
 		GUID guidId;
 		CHAR[MAX_PATH] szCustomDialDll;
 		DWORD dwVpnStrategy;
-	}
+	//}
 }
 alias RASENTRYA* LPRASENTRYA;
 
 
-static if (_WIN32_WINNT >= 0x401) {
+//static if (_WIN32_WINNT >= 0x401) {
 	struct RASADPARAMS {
 		DWORD dwSize;
 		HWND hwndOwner;
@@ -684,9 +684,9 @@ static if (_WIN32_WINNT >= 0x401) {
 		CHAR[RAS_MaxEntryName + 1] szEntry;
 	}
 	alias RASAUTODIALENTRYA* LPRASAUTODIALENTRYA;
-}
+//}
 
-static if (_WIN32_WINNT >= 0x500) {
+//static if (_WIN32_WINNT >= 0x500) {
 	struct RASPPPCCP{
 		DWORD dwSize;
 		DWORD dwError;
@@ -729,7 +729,7 @@ static if (_WIN32_WINNT >= 0x500) {
 		DWORD dwConnectDuration;
 	}
 	alias RAS_STATS* PRAS_STATS;
-}
+//}
 
 
 /* UNICODE typedefs for structures*/
@@ -747,15 +747,15 @@ version (Unicode) {
 	alias RASDEVINFOW RASDEVINFO;
 	alias RASENTRYNAMEW RASENTRYNAME;
 
-	static if (_WIN32_WINNT >= 0x401) {
+	//static if (_WIN32_WINNT >= 0x401) {
 		alias RASSUBENTRYW RASSUBENTRY;
 		alias RASCREDENTIALSW RASCREDENTIALS;
 		alias RASAUTODIALENTRYW RASAUTODIALENTRY;
-	}
+	//}
 
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		alias RASEAPUSERIDENTITYW RASEAPUSERIDENTITY;
-	}
+	//}
 
 } else { // ! defined UNICODE
 
@@ -772,14 +772,14 @@ version (Unicode) {
 	alias RASDEVINFOA  RASDEVINFO;
 	alias RASENTRYNAMEA RASENTRYNAME;
 
-	static if (_WIN32_WINNT >= 0x401) {
+	//static if (_WIN32_WINNT >= 0x401) {
 		alias RASSUBENTRYA RASSUBENTRY;
 		alias RASCREDENTIALSA RASCREDENTIALS;
 		alias RASAUTODIALENTRYA RASAUTODIALENTRY;
-	}
-	static if (_WIN32_WINNT >= 0x500) {
+	//}
+	//static if (_WIN32_WINNT >= 0x500) {
 		alias RASEAPUSERIDENTITYA RASEAPUSERIDENTITY;
-	}
+	//}
 }// ! UNICODE
 
 
@@ -796,14 +796,14 @@ alias RASSLIP* LPRASSLIP;
 alias RASDEVINFO* LPRASDEVINFO;
 alias RASENTRYNAME* LPRASENTRYNAME;
 
-static if (_WIN32_WINNT >= 0x401) {
+//static if (_WIN32_WINNT >= 0x401) {
 	alias RASSUBENTRY* LPRASSUBENTRY;
 	alias RASCREDENTIALS* LPRASCREDENTIALS;
 	alias RASAUTODIALENTRY* LPRASAUTODIALENTRY;
-}
-static if (_WIN32_WINNT >= 0x500) {
+//}
+//static if (_WIN32_WINNT >= 0x500) {
 	alias RASEAPUSERIDENTITY* LPRASEAPUSERIDENTITY;
-}
+//}
 
 /* Callback prototypes */
 deprecated {
@@ -811,122 +811,103 @@ deprecated {
 }
 
 alias void function (UINT, RASCONNSTATE, DWORD) RASDIALFUNC;
-alias void function(HRASCONN, UINT, RASCONNSTATE, DWORD,
-DWORD) RASDIALFUNC1;
+alias void function(HRASCONN, UINT, RASCONNSTATE, DWORD, DWORD) RASDIALFUNC1;
 alias DWORD function (ULONG_PTR, DWORD, HRASCONN, UINT,
 RASCONNSTATE, DWORD, DWORD) RASDIALFUNC2;
 
 /* External functions */
-DWORD RasDialA (LPRASDIALEXTENSIONS, LPCSTR, LPRASDIALPARAMSA,
-DWORD, LPVOID, LPHRASCONN);
-DWORD RasDialW (LPRASDIALEXTENSIONS, LPCWSTR, LPRASDIALPARAMSW,
-DWORD, LPVOID, LPHRASCONN);
-DWORD RasEnumConnectionsA (LPRASCONNA, LPDWORD, LPDWORD);
-DWORD RasEnumConnectionsW (LPRASCONNW, LPDWORD, LPDWORD);
-DWORD RasEnumEntriesA (LPCSTR, LPCSTR, LPRASENTRYNAMEA, LPDWORD,
-LPDWORD);
-DWORD RasEnumEntriesW (LPCWSTR, LPCWSTR, LPRASENTRYNAMEW, LPDWORD,
-LPDWORD);
-DWORD RasGetConnectStatusA (HRASCONN, LPRASCONNSTATUSA);
-DWORD RasGetConnectStatusW (HRASCONN, LPRASCONNSTATUSW);
-DWORD RasGetErrorStringA (UINT, LPSTR, DWORD);
-DWORD RasGetErrorStringW (UINT, LPWSTR, DWORD);
-DWORD RasHangUpA (HRASCONN);
-DWORD RasHangUpW (HRASCONN);
-DWORD RasGetProjectionInfoA (HRASCONN, RASPROJECTION, LPVOID,
-LPDWORD);
-DWORD RasGetProjectionInfoW (HRASCONN, RASPROJECTION, LPVOID,
-LPDWORD);
-DWORD RasCreatePhonebookEntryA (HWND, LPCSTR);
-DWORD RasCreatePhonebookEntryW (HWND, LPCWSTR);
-DWORD RasEditPhonebookEntryA (HWND, LPCSTR, LPCSTR);
-DWORD RasEditPhonebookEntryW (HWND, LPCWSTR, LPCWSTR);
-DWORD RasSetEntryDialParamsA (LPCSTR, LPRASDIALPARAMSA, BOOL);
-DWORD RasSetEntryDialParamsW (LPCWSTR, LPRASDIALPARAMSW, BOOL);
-DWORD RasGetEntryDialParamsA (LPCSTR, LPRASDIALPARAMSA, LPBOOL);
-DWORD RasGetEntryDialParamsW (LPCWSTR, LPRASDIALPARAMSW, LPBOOL);
-DWORD RasEnumDevicesA (LPRASDEVINFOA, LPDWORD, LPDWORD);
-DWORD RasEnumDevicesW (LPRASDEVINFOW, LPDWORD, LPDWORD);
-DWORD RasGetCountryInfoA (LPRASCTRYINFOA, LPDWORD);
-DWORD RasGetCountryInfoW (LPRASCTRYINFOW, LPDWORD);
-DWORD RasGetEntryPropertiesA (LPCSTR, LPCSTR, LPRASENTRYA, LPDWORD,
-LPBYTE, LPDWORD);
-DWORD RasGetEntryPropertiesW (LPCWSTR, LPCWSTR, LPRASENTRYW,
-LPDWORD, LPBYTE, LPDWORD);
-DWORD RasSetEntryPropertiesA (LPCSTR, LPCSTR, LPRASENTRYA, DWORD,
-LPBYTE, DWORD);
-DWORD RasSetEntryPropertiesW (LPCWSTR, LPCWSTR, LPRASENTRYW, DWORD,
-LPBYTE, DWORD);
-DWORD RasRenameEntryA (LPCSTR, LPCSTR, LPCSTR);
-DWORD RasRenameEntryW (LPCWSTR, LPCWSTR, LPCWSTR);
-DWORD RasDeleteEntryA (LPCSTR, LPCSTR);
-DWORD RasDeleteEntryW (LPCWSTR, LPCWSTR);
-DWORD RasValidateEntryNameA (LPCSTR, LPCSTR);
-DWORD RasValidateEntryNameW (LPCWSTR, LPCWSTR);
+DWORD RasDialA(LPRASDIALEXTENSIONS, LPCSTR, LPRASDIALPARAMSA, DWORD, LPVOID, LPHRASCONN);
+DWORD RasDialW(LPRASDIALEXTENSIONS, LPCWSTR, LPRASDIALPARAMSW, DWORD, LPVOID, LPHRASCONN);
+DWORD RasEnumConnectionsA(LPRASCONNA, LPDWORD, LPDWORD);
+DWORD RasEnumConnectionsW(LPRASCONNW, LPDWORD, LPDWORD);
+DWORD RasEnumEntriesA(LPCSTR, LPCSTR, LPRASENTRYNAMEA, LPDWORD, LPDWORD);
+DWORD RasEnumEntriesW(LPCWSTR, LPCWSTR, LPRASENTRYNAMEW, LPDWORD, LPDWORD);
+DWORD RasGetConnectStatusA(HRASCONN, LPRASCONNSTATUSA);
+DWORD RasGetConnectStatusW(HRASCONN, LPRASCONNSTATUSW);
+DWORD RasGetErrorStringA(UINT, LPSTR, DWORD);
+DWORD RasGetErrorStringW(UINT, LPWSTR, DWORD);
+DWORD RasHangUpA(HRASCONN);
+DWORD RasHangUpW(HRASCONN);
+DWORD RasGetProjectionInfoA(HRASCONN, RASPROJECTION, LPVOID, LPDWORD);
+DWORD RasGetProjectionInfoW(HRASCONN, RASPROJECTION, LPVOID, LPDWORD);
+DWORD RasCreatePhonebookEntryA(HWND, LPCSTR);
+DWORD RasCreatePhonebookEntryW(HWND, LPCWSTR);
+DWORD RasEditPhonebookEntryA(HWND, LPCSTR, LPCSTR);
+DWORD RasEditPhonebookEntryW(HWND, LPCWSTR, LPCWSTR);
+DWORD RasSetEntryDialParamsA(LPCSTR, LPRASDIALPARAMSA, BOOL);
+DWORD RasSetEntryDialParamsW(LPCWSTR, LPRASDIALPARAMSW, BOOL);
+DWORD RasGetEntryDialParamsA(LPCSTR, LPRASDIALPARAMSA, LPBOOL);
+DWORD RasGetEntryDialParamsW(LPCWSTR, LPRASDIALPARAMSW, LPBOOL);
+DWORD RasEnumDevicesA(LPRASDEVINFOA, LPDWORD, LPDWORD);
+DWORD RasEnumDevicesW(LPRASDEVINFOW, LPDWORD, LPDWORD);
+DWORD RasGetCountryInfoA(LPRASCTRYINFOA, LPDWORD);
+DWORD RasGetCountryInfoW(LPRASCTRYINFOW, LPDWORD);
+DWORD RasGetEntryPropertiesA(LPCSTR, LPCSTR, LPRASENTRYA, LPDWORD, LPBYTE, LPDWORD);
+DWORD RasGetEntryPropertiesW(LPCWSTR, LPCWSTR, LPRASENTRYW, LPDWORD, LPBYTE, LPDWORD);
+DWORD RasSetEntryPropertiesA(LPCSTR, LPCSTR, LPRASENTRYA, DWORD, LPBYTE, DWORD);
+DWORD RasSetEntryPropertiesW(LPCWSTR, LPCWSTR, LPRASENTRYW, DWORD, LPBYTE, DWORD);
+DWORD RasRenameEntryA(LPCSTR, LPCSTR, LPCSTR);
+DWORD RasRenameEntryW(LPCWSTR, LPCWSTR, LPCWSTR);
+DWORD RasDeleteEntryA(LPCSTR, LPCSTR);
+DWORD RasDeleteEntryW(LPCWSTR, LPCWSTR);
+DWORD RasValidateEntryNameA(LPCSTR, LPCSTR);
+DWORD RasValidateEntryNameW(LPCWSTR, LPCWSTR);
 
-static if (_WIN32_WINNT >= 0x401) {
-	alias BOOL function (LPSTR, LPSTR, LPRASADPARAMS, LPDWORD) RASADFUNCA;
-	alias BOOL function (LPWSTR, LPWSTR, LPRASADPARAMS, LPDWORD) RASADFUNCW;
+//static if(_WIN32_WINNT >= 0x401) {
+	alias BOOL function(LPSTR, LPSTR, LPRASADPARAMS, LPDWORD) RASADFUNCA;
+	alias BOOL function(LPWSTR, LPWSTR, LPRASADPARAMS, LPDWORD) RASADFUNCW;
 
-	DWORD RasGetSubEntryHandleA (HRASCONN, DWORD, LPHRASCONN);
-	DWORD RasGetSubEntryHandleW (HRASCONN, DWORD, LPHRASCONN);
-	DWORD RasGetCredentialsA (LPCSTR, LPCSTR, LPRASCREDENTIALSA);
-	DWORD RasGetCredentialsW (LPCWSTR, LPCWSTR, LPRASCREDENTIALSW);
-	DWORD RasSetCredentialsA (LPCSTR, LPCSTR, LPRASCREDENTIALSA, BOOL);
-	DWORD RasSetCredentialsW (LPCWSTR, LPCWSTR, LPRASCREDENTIALSW, BOOL);
-	DWORD RasConnectionNotificationA (HRASCONN, HANDLE, DWORD);
-	DWORD RasConnectionNotificationW (HRASCONN, HANDLE, DWORD);
-	DWORD RasGetSubEntryPropertiesA (LPCSTR, LPCSTR, DWORD,
-	LPRASSUBENTRYA, LPDWORD, LPBYTE, LPDWORD);
-	DWORD RasGetSubEntryPropertiesW (LPCWSTR, LPCWSTR, DWORD,
-	LPRASSUBENTRYW, LPDWORD, LPBYTE, LPDWORD);
-	DWORD RasSetSubEntryPropertiesA (LPCSTR, LPCSTR, DWORD,
-	LPRASSUBENTRYA, DWORD, LPBYTE, DWORD);
-	DWORD RasSetSubEntryPropertiesW (LPCWSTR, LPCWSTR, DWORD,
-	LPRASSUBENTRYW, DWORD, LPBYTE, DWORD);
-	DWORD RasGetAutodialAddressA (LPCSTR, LPDWORD, LPRASAUTODIALENTRYA,
-	LPDWORD, LPDWORD);
-	DWORD RasGetAutodialAddressW (LPCWSTR, LPDWORD,
-	LPRASAUTODIALENTRYW, LPDWORD, LPDWORD);
-	DWORD RasSetAutodialAddressA (LPCSTR, DWORD, LPRASAUTODIALENTRYA,
-	DWORD, DWORD);
-	DWORD RasSetAutodialAddressW (LPCWSTR, DWORD, LPRASAUTODIALENTRYW,
-	DWORD, DWORD);
-	DWORD RasEnumAutodialAddressesA (LPSTR *, LPDWORD, LPDWORD);
-	DWORD RasEnumAutodialAddressesW (LPWSTR *, LPDWORD, LPDWORD);
-	DWORD RasGetAutodialEnableA (DWORD, LPBOOL);
-	DWORD RasGetAutodialEnableW (DWORD, LPBOOL);
-	DWORD RasSetAutodialEnableA (DWORD, BOOL);
-	DWORD RasSetAutodialEnableW (DWORD, BOOL);
-	DWORD RasGetAutodialParamA (DWORD, LPVOID, LPDWORD);
-	DWORD RasGetAutodialParamW (DWORD, LPVOID, LPDWORD);
-	DWORD RasSetAutodialParamA (DWORD, LPVOID, DWORD);
-	DWORD RasSetAutodialParamW (DWORD, LPVOID, DWORD);
-}
+	DWORD RasGetSubEntryHandleA(HRASCONN, DWORD, LPHRASCONN);
+	DWORD RasGetSubEntryHandleW(HRASCONN, DWORD, LPHRASCONN);
+	DWORD RasGetCredentialsA(LPCSTR, LPCSTR, LPRASCREDENTIALSA);
+	DWORD RasGetCredentialsW(LPCWSTR, LPCWSTR, LPRASCREDENTIALSW);
+	DWORD RasSetCredentialsA(LPCSTR, LPCSTR, LPRASCREDENTIALSA, BOOL);
+	DWORD RasSetCredentialsW(LPCWSTR, LPCWSTR, LPRASCREDENTIALSW, BOOL);
+	DWORD RasConnectionNotificationA(HRASCONN, HANDLE, DWORD);
+	DWORD RasConnectionNotificationW(HRASCONN, HANDLE, DWORD);
+	DWORD RasGetSubEntryPropertiesA(LPCSTR, LPCSTR, DWORD, LPRASSUBENTRYA, LPDWORD, LPBYTE, LPDWORD);
+	DWORD RasGetSubEntryPropertiesW(LPCWSTR, LPCWSTR, DWORD, LPRASSUBENTRYW, LPDWORD, LPBYTE, LPDWORD);
+	DWORD RasSetSubEntryPropertiesA(LPCSTR, LPCSTR, DWORD, LPRASSUBENTRYA, DWORD, LPBYTE, DWORD);
+	DWORD RasSetSubEntryPropertiesW(LPCWSTR, LPCWSTR, DWORD, LPRASSUBENTRYW, DWORD, LPBYTE, DWORD);
+	DWORD RasGetAutodialAddressA(LPCSTR, LPDWORD, LPRASAUTODIALENTRYA, LPDWORD, LPDWORD);
+	DWORD RasGetAutodialAddressW(LPCWSTR, LPDWORD, LPRASAUTODIALENTRYW, LPDWORD, LPDWORD);
+	DWORD RasSetAutodialAddressA(LPCSTR, DWORD, LPRASAUTODIALENTRYA, DWORD, DWORD);
+	DWORD RasSetAutodialAddressW(LPCWSTR, DWORD, LPRASAUTODIALENTRYW, DWORD, DWORD);
+	DWORD RasEnumAutodialAddressesA(LPSTR*, LPDWORD, LPDWORD);
+	DWORD RasEnumAutodialAddressesW(LPWSTR*, LPDWORD, LPDWORD);
+	DWORD RasGetAutodialEnableA(DWORD, LPBOOL);
+	DWORD RasGetAutodialEnableW(DWORD, LPBOOL);
+	DWORD RasSetAutodialEnableA(DWORD, BOOL);
+	DWORD RasSetAutodialEnableW(DWORD, BOOL);
+	DWORD RasGetAutodialParamA(DWORD, LPVOID, LPDWORD);
+	DWORD RasGetAutodialParamW(DWORD, LPVOID, LPDWORD);
+	DWORD RasSetAutodialParamA(DWORD, LPVOID, DWORD);
+	DWORD RasSetAutodialParamW(DWORD, LPVOID, DWORD);
+//}
 
 static if (_WIN32_WINNT >= 0x500) {
-	alias DWORD function (HRASCONN) RasCustomHangUpFn;
-	alias DWORD function (LPCTSTR,	LPCTSTR, DWORD) RasCustomDeleteEntryNotifyFn;
-	alias DWORD function (HINSTANCE, LPRASDIALEXTENSIONS,
-	LPCTSTR, LPRASDIALPARAMS, DWORD, LPVOID, LPHRASCONN, DWORD) RasCustomDialFn;
+	alias DWORD function(HRASCONN) RasCustomHangUpFn;
+	alias DWORD function(LPCTSTR, LPCTSTR, DWORD) RasCustomDeleteEntryNotifyFn;
+	alias DWORD function(HINSTANCE, LPRASDIALEXTENSIONS, LPCTSTR, LPRASDIALPARAMS, DWORD, LPVOID,
+	                     LPHRASCONN, DWORD) RasCustomDialFn;
 
-	DWORD RasInvokeEapUI (HRASCONN, DWORD, LPRASDIALEXTENSIONS, HWND);
-	DWORD RasGetLinkStatistics (HRASCONN, DWORD, RAS_STATS*);
-	DWORD RasGetConnectionStatistics (HRASCONN, RAS_STATS*);
-	DWORD RasClearLinkStatistics (HRASCONN, DWORD);
-	DWORD RasClearConnectionStatistics (HRASCONN);
-	DWORD RasGetEapUserDataA (HANDLE, LPCSTR, LPCSTR, BYTE*, DWORD*);
-	DWORD RasGetEapUserDataW (HANDLE, LPCWSTR, LPCWSTR, BYTE*, DWORD*);
-	DWORD RasSetEapUserDataA (HANDLE, LPCSTR, LPCSTR, BYTE*, DWORD);
-	DWORD RasSetEapUserDataW (HANDLE, LPCWSTR, LPCWSTR, BYTE*, DWORD);
-	DWORD RasGetCustomAuthDataA (LPCSTR,	LPCSTR,	BYTE*,	DWORD*);
-	DWORD RasGetCustomAuthDataW (LPCWSTR, LPCWSTR, BYTE*, DWORD*);
-	DWORD RasSetCustomAuthDataA (LPCSTR,	LPCSTR,	BYTE*,	DWORD);
-	DWORD RasSetCustomAuthDataW (LPCWSTR, LPCWSTR, BYTE*, DWORD);
-	DWORD RasGetEapUserIdentityW (LPCWSTR, LPCWSTR, DWORD, HWND, LPRASEAPUSERIDENTITYW*);
-	DWORD RasGetEapUserIdentityA (LPCSTR, LPCSTR, DWORD, HWND, LPRASEAPUSERIDENTITYA*);
-	void RasFreeEapUserIdentityW (LPRASEAPUSERIDENTITYW);
-	void RasFreeEapUserIdentityA (LPRASEAPUSERIDENTITYA);
+	DWORD RasInvokeEapUI(HRASCONN, DWORD, LPRASDIALEXTENSIONS, HWND);
+	DWORD RasGetLinkStatistics(HRASCONN, DWORD, RAS_STATS*);
+	DWORD RasGetConnectionStatistics(HRASCONN, RAS_STATS*);
+	DWORD RasClearLinkStatistics(HRASCONN, DWORD);
+	DWORD RasClearConnectionStatistics(HRASCONN);
+	DWORD RasGetEapUserDataA(HANDLE, LPCSTR, LPCSTR, BYTE*, DWORD*);
+	DWORD RasGetEapUserDataW(HANDLE, LPCWSTR, LPCWSTR, BYTE*, DWORD*);
+	DWORD RasSetEapUserDataA(HANDLE, LPCSTR, LPCSTR, BYTE*, DWORD);
+	DWORD RasSetEapUserDataW(HANDLE, LPCWSTR, LPCWSTR, BYTE*, DWORD);
+	DWORD RasGetCustomAuthDataA(LPCSTR, LPCSTR, BYTE*, DWORD*);
+	DWORD RasGetCustomAuthDataW(LPCWSTR, LPCWSTR, BYTE*, DWORD*);
+	DWORD RasSetCustomAuthDataA(LPCSTR, LPCSTR, BYTE*, DWORD);
+	DWORD RasSetCustomAuthDataW(LPCWSTR, LPCWSTR, BYTE*, DWORD);
+	DWORD RasGetEapUserIdentityW(LPCWSTR, LPCWSTR, DWORD, HWND, LPRASEAPUSERIDENTITYW*);
+	DWORD RasGetEapUserIdentityA(LPCSTR, LPCSTR, DWORD, HWND, LPRASEAPUSERIDENTITYA*);
+	void RasFreeEapUserIdentityW(LPRASEAPUSERIDENTITYW);
+	void RasFreeEapUserIdentityA(LPRASEAPUSERIDENTITYA);
 }
 
 
@@ -951,7 +932,7 @@ version(Unicode) {
 	alias RasDeleteEntryW RasDeleteEntry;
 	alias RasValidateEntryNameW RasValidateEntryName;
 
-	static if (_WIN32_WINNT >= 0x401) {
+	//static if (_WIN32_WINNT >= 0x401) {
 		alias RASADFUNCW RASADFUNC;
 		alias RasGetSubEntryHandleW RasGetSubEntryHandle;
 		alias RasConnectionNotificationW RasConnectionNotification;
@@ -966,16 +947,16 @@ version(Unicode) {
 		alias RasSetAutodialEnableW RasSetAutodialEnable;
 		alias RasGetAutodialParamW RasGetAutodialParam;
 		alias RasSetAutodialParamW RasSetAutodialParam;
-	}
+	//}
 
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		alias RasGetEapUserDataW RasGetEapUserData;
 		alias RasSetEapUserDataW RasSetEapUserData;
 		alias RasGetCustomAuthDataW RasGetCustomAuthData;
 		alias RasSetCustomAuthDataW RasSetCustomAuthData;
 		alias RasGetEapUserIdentityW RasGetEapUserIdentity;
 		alias RasFreeEapUserIdentityW RasFreeEapUserIdentity;
-	}
+	//}
 
 } else { // !Unicode
 	alias RasDialA RasDial;
@@ -997,7 +978,7 @@ version(Unicode) {
 	alias RasDeleteEntryA RasDeleteEntry;
 	alias RasValidateEntryNameA RasValidateEntryName;
 
-	static if (_WIN32_WINNT >= 0x401) {
+	//static if (_WIN32_WINNT >= 0x401) {
 		alias RASADFUNCA RASADFUNC;
 		alias RasGetSubEntryHandleA RasGetSubEntryHandle;
 		alias RasConnectionNotificationA RasConnectionNotification;
@@ -1012,14 +993,14 @@ version(Unicode) {
 		alias RasSetAutodialEnableA RasSetAutodialEnable;
 		alias RasGetAutodialParamA RasGetAutodialParam;
 		alias RasSetAutodialParamA RasSetAutodialParam;
-	}
+	//}
 
-	static if (_WIN32_WINNT >= 0x500) {
+	//static if (_WIN32_WINNT >= 0x500) {
 		alias RasGetEapUserDataA RasGetEapUserData;
 		alias RasSetEapUserDataA RasSetEapUserData;
 		alias RasGetCustomAuthDataA RasGetCustomAuthData;
 		alias RasSetCustomAuthDataA RasSetCustomAuthData;
 		alias RasGetEapUserIdentityA RasGetEapUserIdentity;
 		alias RasFreeEapUserIdentityA RasFreeEapUserIdentity;
-	}
+	//}
 } //#endif // !Unicode

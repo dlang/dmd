@@ -23,19 +23,21 @@ enum __W32API_MINOR_VERSION = 17;
  */
  version (Windows10) {
 	enum uint _WIN32_WINNT = 0x604;
-} else version (Windows8_1) {	// also Windows2012R2
+} else version (Windows8_1) {    // also Windows2012R2
 	enum uint _WIN32_WINNT = 0x603;
-} else version (Windows8) {	// also Windows2012
+} else version (Windows8) {      // also Windows2012
 	enum uint _WIN32_WINNT = 0x602;
-} else version (Windows7) {	// also Windows2008R2
+} else version (Windows7) {      // also Windows2008R2
 	enum uint _WIN32_WINNT = 0x601;
-} else version (WindowsVista) {	// also Windows2008
+} else version (WindowsVista) {  // also Windows2008
 	enum uint _WIN32_WINNT = 0x600;
-} else version (Windows2003) {	// also WindowsHomeServer, WindowsXP64
+} else version (Windows2003) {   // also WindowsHomeServer, WindowsXP64
 	enum uint _WIN32_WINNT = 0x502;
 } else version (WindowsXP) {
 	enum uint _WIN32_WINNT = 0x501;
 } else version (Windows2000) {
+	// Current DMD doesn't support any version of Windows older than XP,
+	// but third-party compilers could use this
 	enum uint _WIN32_WINNT = 0x500;
 } else {
 	enum uint _WIN32_WINNT = 0x501;
