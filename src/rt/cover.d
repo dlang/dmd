@@ -232,6 +232,10 @@ shared static ~this()
                 exit(EXIT_FAILURE);
             }
         }
+        else
+        {
+            fprintf(flst, "%.*s has no code\n", cast(int)c.filename.length, c.filename.ptr);
+        }
 
         version (Windows)
             SetEndOfFile(handle(fileno(flst)));
