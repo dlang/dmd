@@ -2244,66 +2244,68 @@ enum : uint {
 
 // C Macros
 
-bool SUCCEEDED(HRESULT Status) {
-    return Status >= 0;
-}
+pure nothrow @nogc {
+    bool SUCCEEDED(HRESULT Status) {
+        return Status >= 0;
+    }
 
-bool FAILED(HRESULT Status) {
-    return Status < 0;
-}
+    bool FAILED(HRESULT Status) {
+        return Status < 0;
+    }
 
-bool IS_ERROR(HRESULT Status) {
-    return (Status >>> 31) == SEVERITY_ERROR;
-}
+    bool IS_ERROR(HRESULT Status) {
+        return (Status >>> 31) == SEVERITY_ERROR;
+    }
 
-ushort HRESULT_CODE(HRESULT r) {
-    return cast(ushort) (r & 0xFFFF);
-}
+    ushort HRESULT_CODE(HRESULT r) {
+        return cast(ushort) (r & 0xFFFF);
+    }
 
-ushort SCODE_CODE(SCODE r) {
-    return cast(ushort) (r & 0xFFFF);
-}
+    ushort SCODE_CODE(SCODE r) {
+        return cast(ushort) (r & 0xFFFF);
+    }
 
-ushort HRESULT_FACILITY(HRESULT r) {
-    return cast(ushort) ((r>>16) & 0x1fff);
-}
+    ushort HRESULT_FACILITY(HRESULT r) {
+        return cast(ushort) ((r>>16) & 0x1fff);
+    }
 
-ushort SCODE_FACILITY(SCODE r) {
-    return cast(ushort) ((r>>16) & 0x1fff);
-}
+    ushort SCODE_FACILITY(SCODE r) {
+        return cast(ushort) ((r>>16) & 0x1fff);
+    }
 
-ushort HRESULT_SEVERITY(HRESULT r) {
-    return cast(ushort) ((r>>31) & 0x1);
-}
+    ushort HRESULT_SEVERITY(HRESULT r) {
+        return cast(ushort) ((r>>31) & 0x1);
+    }
 
-ushort SCODE_SEVERITY(SCODE r) {
-    return cast(ushort) ((r>>31) & 0x1);
-}
+    ushort SCODE_SEVERITY(SCODE r) {
+        return cast(ushort) ((r>>31) & 0x1);
+    }
 
-HRESULT MAKE_HRESULT(bool s, uint f, uint c) {
-    return (s << 31) | (f << 16) | c;
-}
+    HRESULT MAKE_HRESULT(bool s, uint f, uint c) {
+        return (s << 31) | (f << 16) | c;
+    }
 
-SCODE MAKE_SCODE(bool s, uint f, uint c) {
-    return (s << 31) | (f << 16) | c;
-}
+    SCODE MAKE_SCODE(bool s, uint f, uint c) {
+        return (s << 31) | (f << 16) | c;
+    }
 
-SCODE GetScode(HRESULT hr) {
-    return hr;
-}
+    SCODE GetScode(HRESULT hr) {
+        return hr;
+    }
 
-HRESULT ResultFromScode(SCODE c) {
-    return c;
-}
+    HRESULT ResultFromScode(SCODE c) {
+        return c;
+    }
 
-HRESULT HRESULT_FROM_NT(HRESULT x) {
-    return x | FACILITY_NT_BIT;
-}
+    HRESULT HRESULT_FROM_NT(HRESULT x) {
+        return x | FACILITY_NT_BIT;
+    }
 
-HRESULT HRESULT_FROM_WIN32(HRESULT x) {
-    return  x ? (x & 0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000 : 0;
-}
+    HRESULT HRESULT_FROM_WIN32(HRESULT x) {
+        return  x ? (x & 0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000 : 0;
+    }
 
-HRESULT PropagateResult(HRESULT hrPrevious, SCODE scBase) {
-    return scBase;
+    HRESULT PropagateResult(HRESULT hrPrevious, SCODE scBase) {
+        return scBase;
+    }
 }

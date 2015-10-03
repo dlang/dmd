@@ -644,12 +644,14 @@ template MAKEINTRESOURCE_T(WORD i) {
     enum LPTSTR MAKEINTRESOURCE_T = cast(LPTSTR)(i);
 }
 
-LPSTR MAKEINTRESOURCEA()(WORD i) {
-    return cast(LPSTR) i;
-}
+nothrow @nogc {
+    LPSTR MAKEINTRESOURCEA(/*WORD*/uint i) {
+        return cast(LPSTR) i;
+    }
 
-LPWSTR MAKEINTRESOURCEW()(WORD i) {
-    return cast(LPWSTR) i;
+    LPWSTR MAKEINTRESOURCEW(/*WORD*/uint i) {
+        return cast(LPWSTR) i;
+    }
 }
 
 enum RT_CURSOR       = MAKEINTRESOURCE_T!(1);
@@ -3543,7 +3545,7 @@ POINTS POINTTOPOINTS()(in POINT p) {
     return MAKELONG(p.x, p.y);
 }
 
-extern (Windows) {
+extern (Windows) nothrow @nogc {
     HKL ActivateKeyboardLayout(HKL, UINT);
     BOOL AdjustWindowRect(LPRECT, DWORD, BOOL);
     BOOL AdjustWindowRectEx(LPRECT, DWORD, BOOL, DWORD);
@@ -3662,56 +3664,58 @@ extern (Windows) {
 
 } // extern (Windows)
 
-HCURSOR CopyCursor()(HCURSOR c) {
-    return cast(HCURSOR)CopyIcon(cast(HICON)c);
-}
+nothrow @nogc {
+    HCURSOR CopyCursor(HCURSOR c) {
+        return cast(HCURSOR)CopyIcon(cast(HICON)c);
+    }
 
-HWND CreateDialogA()(HINSTANCE h, LPCSTR n, HWND w, DLGPROC f) {
-    return CreateDialogParamA(h, n, w, f, 0);
-}
+    HWND CreateDialogA(HINSTANCE h, LPCSTR n, HWND w, DLGPROC f) {
+        return CreateDialogParamA(h, n, w, f, 0);
+    }
 
-HWND CreateDialogW()(HINSTANCE h, LPCWSTR n, HWND w, DLGPROC f) {
-    return CreateDialogParamW(h, n, w, f, 0);
-}
+    HWND CreateDialogW(HINSTANCE h, LPCWSTR n, HWND w, DLGPROC f) {
+        return CreateDialogParamW(h, n, w, f, 0);
+    }
 
-HWND CreateDialogIndirectA()(HINSTANCE h, LPCDLGTEMPLATE t, HWND w, DLGPROC f) {
-    return CreateDialogIndirectParamA(h, t, w, f, 0);
-}
+    HWND CreateDialogIndirectA(HINSTANCE h, LPCDLGTEMPLATE t, HWND w, DLGPROC f) {
+        return CreateDialogIndirectParamA(h, t, w, f, 0);
+    }
 
-HWND CreateDialogIndirectW()(HINSTANCE h, LPCDLGTEMPLATE t, HWND w, DLGPROC f) {
-    return CreateDialogIndirectParamW(h, t, w, f, 0);
-}
+    HWND CreateDialogIndirectW(HINSTANCE h, LPCDLGTEMPLATE t, HWND w, DLGPROC f) {
+        return CreateDialogIndirectParamW(h, t, w, f, 0);
+    }
 
-HWND CreateWindowA()(LPCSTR a, LPCSTR b, DWORD c, int d, int e, int f, int g, HWND h, HMENU i, HINSTANCE j, LPVOID k) {
-    return CreateWindowExA(0, a, b, c, d, e, f, g, h, i, j, k);
-}
+    HWND CreateWindowA(LPCSTR a, LPCSTR b, DWORD c, int d, int e, int f, int g, HWND h, HMENU i, HINSTANCE j, LPVOID k) {
+        return CreateWindowExA(0, a, b, c, d, e, f, g, h, i, j, k);
+    }
 
-HWND CreateWindowW()(LPCWSTR a, LPCWSTR b, DWORD c, int d, int e, int f, int g, HWND h, HMENU i, HINSTANCE j, LPVOID k) {
-    return CreateWindowExW(0, a, b, c, d, e, f, g, h, i, j, k);
-}
+    HWND CreateWindowW(LPCWSTR a, LPCWSTR b, DWORD c, int d, int e, int f, int g, HWND h, HMENU i, HINSTANCE j, LPVOID k) {
+        return CreateWindowExW(0, a, b, c, d, e, f, g, h, i, j, k);
+    }
 
-INT_PTR DialogBoxA()(HINSTANCE i, LPCSTR t, HWND p, DLGPROC f) {
-    return DialogBoxParamA(i, t, p, f, 0);
-}
+    INT_PTR DialogBoxA(HINSTANCE i, LPCSTR t, HWND p, DLGPROC f) {
+        return DialogBoxParamA(i, t, p, f, 0);
+    }
 
-INT_PTR DialogBoxW()(HINSTANCE i, LPCWSTR t, HWND p, DLGPROC f) {
-    return DialogBoxParamW(i, t, p, f, 0);
-}
+    INT_PTR DialogBoxW(HINSTANCE i, LPCWSTR t, HWND p, DLGPROC f) {
+        return DialogBoxParamW(i, t, p, f, 0);
+    }
 
-INT_PTR DialogBoxIndirectA()(HINSTANCE i, LPCDLGTEMPLATE t, HWND p, DLGPROC f) {
-    return DialogBoxIndirectParamA(i, t, p, f, 0);
-}
+    INT_PTR DialogBoxIndirectA(HINSTANCE i, LPCDLGTEMPLATE t, HWND p, DLGPROC f) {
+        return DialogBoxIndirectParamA(i, t, p, f, 0);
+    }
 
-INT_PTR DialogBoxIndirectW()(HINSTANCE i, LPCDLGTEMPLATE t, HWND p, DLGPROC f) {
-    return DialogBoxIndirectParamW(i, t, p, f, 0);
-}
+    INT_PTR DialogBoxIndirectW(HINSTANCE i, LPCDLGTEMPLATE t, HWND p, DLGPROC f) {
+        return DialogBoxIndirectParamW(i, t, p, f, 0);
+    }
 
-BOOL ExitWindows()(UINT r, DWORD c) {
-    return ExitWindowsEx(EWX_LOGOFF, 0);
+    BOOL ExitWindows(UINT r, DWORD c) {
+        return ExitWindowsEx(EWX_LOGOFF, 0);
+    }
 }
 alias GetWindow GetNextWindow;
 
-extern (Windows):
+extern (Windows) nothrow @nogc:
 LONG DispatchMessageA(const(MSG)*);
 LONG DispatchMessageW(const(MSG)*);
 int DlgDirListA(HWND, LPSTR, int, int, UINT);

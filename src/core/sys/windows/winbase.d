@@ -1179,6 +1179,7 @@ struct PROCESS_INFORMATION {
 }
 alias PROCESS_INFORMATION* PPROCESS_INFORMATION, LPPROCESS_INFORMATION;
 
+/*
 struct CRITICAL_SECTION_DEBUG {
     WORD              Type;
     WORD              CreatorBackTraceIndex;
@@ -1198,6 +1199,13 @@ struct CRITICAL_SECTION {
     HANDLE LockSemaphore;
     DWORD  SpinCount;
 }
+alias CRITICAL_SECTION* PCRITICAL_SECTION, LPCRITICAL_SECTION;
+*/
+
+alias CRITICAL_SECTION_DEBUG = RTL_CRITICAL_SECTION_DEBUG;
+alias CRITICAL_SECTION_DEBUG* PCRITICAL_SECTION_DEBUG;
+
+alias CRITICAL_SECTION = RTL_CRITICAL_SECTION;
 alias CRITICAL_SECTION* PCRITICAL_SECTION, LPCRITICAL_SECTION;
 
 struct SYSTEMTIME {
@@ -1596,7 +1604,7 @@ LPTSTR MAKEINTATOM()(ushort i) {
     return cast(LPTSTR) cast(size_t) i;
 }
 
-extern (Windows) {
+extern (Windows) nothrow @nogc {
     // The following Win16 functions are obselete in Win32.
     int _hread(HFILE, LPVOID, int);
     int _hwrite(HFILE, LPCSTR, int);
@@ -1673,7 +1681,7 @@ extern (Windows) {
     BOOL CheckTokenMembership(HANDLE, PSID, PBOOL);
     BOOL ClearCommBreak(HANDLE);
     BOOL ClearCommError(HANDLE, PDWORD, LPCOMSTAT);
-    BOOL CloseHandle(HANDLE);
+    BOOL CloseHandle(HANDLE) @trusted;
     BOOL CommConfigDialogA(LPCSTR, HWND, LPCOMMCONFIG);
     BOOL CommConfigDialogW(LPCWSTR, HWND, LPCOMMCONFIG);
     LONG CompareFileTime(const(FILETIME)*, const(FILETIME)*);
@@ -1716,8 +1724,8 @@ extern (Windows) {
     BOOL CreatePipe(PHANDLE, PHANDLE, LPSECURITY_ATTRIBUTES, DWORD);
     BOOL CreateProcessA(LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, PVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION);
     BOOL CreateProcessW(LPCWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, PVOID, LPCWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION);
-    HANDLE CreateSemaphoreA(LPSECURITY_ATTRIBUTES, LONG, LONG, LPCSTR);
-    HANDLE CreateSemaphoreW(LPSECURITY_ATTRIBUTES, LONG, LONG, LPCWSTR);
+    HANDLE CreateSemaphoreA(LPSECURITY_ATTRIBUTES, LONG, LONG, LPCSTR) @trusted;
+    HANDLE CreateSemaphoreW(LPSECURITY_ATTRIBUTES, LONG, LONG, LPCWSTR) @trusted;
     HANDLE CreateThread(LPSECURITY_ATTRIBUTES, DWORD, LPTHREAD_START_ROUTINE, PVOID, DWORD, PDWORD);
     BOOL DebugActiveProcess(DWORD);
     void DebugBreak();
@@ -1823,7 +1831,7 @@ WINBASEAPI DWORD WINAPI GetCurrentThreadId(void);
     DWORD GetFileType(HANDLE);
     DWORD GetFullPathNameA(LPCSTR, DWORD, LPSTR, LPSTR*);
     DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*);
-    DWORD GetLastError();
+    DWORD GetLastError() @trusted;
     void GetLocalTime(LPSYSTEMTIME);
     DWORD GetLogicalDrives();
     DWORD GetLogicalDriveStringsA(DWORD, LPSTR);
@@ -1900,7 +1908,7 @@ WINBASEAPI DWORD WINAPI GetCurrentThreadId(void);
     }
 
     BOOL InitAtomTable(DWORD);
-    VOID InitializeCriticalSection(LPCRITICAL_SECTION);
+    VOID InitializeCriticalSection(LPCRITICAL_SECTION) @trusted;
     /*  ??? The next two are allegedly obsolete and "supported only for
      *  backward compatibility with the 16-bit Windows API".  Yet the
      *  replacements IsBadReadPtr and IsBadWritePtr are apparently Win2000+
@@ -2385,7 +2393,7 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
         BOOL SetVolumeMountPointA(LPCSTR, LPCSTR);
         BOOL SetVolumeMountPointW(LPCWSTR, LPCWSTR);
         BOOL TerminateJobObject(HANDLE, UINT);
-        BOOL UnmapViewOfFile(PVOID);
+        BOOL UnmapViewOfFile(PCVOID);
         BOOL UnregisterWait(HANDLE);
         BOOL UnregisterWaitEx(HANDLE, HANDLE);
         BOOL VerifyVersionInfoA(LPOSVERSIONINFOEXA, DWORD, DWORDLONG);
@@ -2455,6 +2463,13 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
     static if (_WIN32_WINNT >= 0x510) {
         VOID RestoreLastError(DWORD);
     }
+}
+
+// For compatibility with old core.sys.windows.windows:
+version (LittleEndian) nothrow @nogc
+{
+    BOOL QueryPerformanceCounter(long* lpPerformanceCount) { return QueryPerformanceCounter(cast(PLARGE_INTEGER)lpPerformanceCount); }
+    BOOL QueryPerformanceFrequency(long* lpFrequency) { return QueryPerformanceFrequency(cast(PLARGE_INTEGER)lpFrequency); }
 }
 
 mixin DECLARE_AW!("STARTUPINFO");

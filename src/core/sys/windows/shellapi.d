@@ -338,7 +338,7 @@ align(1) struct SHQUERYRBINFO {
 }
 alias SHQUERYRBINFO* LPSHQUERYRBINFO;
 
-extern (Windows) {
+extern (Windows) nothrow @nogc {
     LPWSTR* CommandLineToArgvW(LPCWSTR, int*);
     void DragAcceptFiles(HWND, BOOL);
     void DragFinish(HDROP);

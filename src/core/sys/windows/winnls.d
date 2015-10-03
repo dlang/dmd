@@ -621,7 +621,7 @@ struct NUMBERFMTW {
 }
 alias NUMBERFMTW* LPNUMBERFMTW;
 
-extern (Windows) {
+extern (Windows) nothrow @nogc {
     int CompareStringA(LCID, DWORD, LPCSTR, int, LPCSTR, int);
     int CompareStringW(LCID, DWORD, LPCWSTR, int, LPCWSTR, int);
     LCID ConvertDefaultLocale(LCID);

@@ -851,16 +851,18 @@ enum : WORD {
     SORT_GEORGIAN_MODERN      = 1
 }
 
-WORD MAKELANGID(USHORT p, USHORT s) { return cast(WORD)((s << 10) | p); }
-WORD PRIMARYLANGID(WORD lgid) { return cast(WORD)(lgid & 0x3FF); }
-WORD SUBLANGID(WORD lgid) { return cast(WORD)(lgid >>> 10); }
+pure nothrow @nogc {
+    WORD MAKELANGID(/*USHORT*/uint p, /*USHORT*/ uint s) { return cast(WORD)((s << 10) | p); }
+    WORD PRIMARYLANGID(/*WORD*/uint lgid) { return cast(WORD)(lgid & 0x3FF); }
+    WORD SUBLANGID(/*WORD*/uint lgid) { return cast(WORD)(lgid >>> 10); }
 
-DWORD MAKELCID(WORD lgid, WORD srtid) { return (cast(DWORD) srtid << 16) | cast(DWORD) lgid; }
-// ???
-//DWORD MAKESORTLCID(WORD lgid, WORD srtid, WORD ver) { return (MAKELCID(lgid, srtid)) | ((cast(DWORD)ver) << 20); }
-WORD LANGIDFROMLCID(LCID lcid) { return cast(WORD) lcid; }
-WORD SORTIDFROMLCID(LCID lcid) { return cast(WORD) ((lcid >>> 16) & 0x0F); }
-WORD SORTVERSIONFROMLCID(LCID lcid) { return cast(WORD) ((lcid >>> 20) & 0x0F); }
+    DWORD MAKELCID(/*WORD*/uint lgid, /*WORD*/uint srtid) { return (cast(DWORD) srtid << 16) | cast(DWORD) lgid; }
+    // ???
+    //DWORD MAKESORTLCID(WORD lgid, WORD srtid, WORD ver) { return (MAKELCID(lgid, srtid)) | ((cast(DWORD)ver) << 20); }
+    WORD LANGIDFROMLCID(LCID lcid) { return cast(WORD) lcid; }
+    WORD SORTIDFROMLCID(LCID lcid) { return cast(WORD) ((lcid >>> 16) & 0x0F); }
+    WORD SORTVERSIONFROMLCID(LCID lcid) { return cast(WORD) ((lcid >>> 20) & 0x0F); }
+}
 
 const WORD LANG_SYSTEM_DEFAULT = (SUBLANG_SYS_DEFAULT << 10) | LANG_NEUTRAL;
 const WORD LANG_USER_DEFAULT   = (SUBLANG_DEFAULT << 10) | LANG_NEUTRAL;

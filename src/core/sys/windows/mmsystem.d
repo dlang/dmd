@@ -1814,7 +1814,7 @@ struct MCI_WAVE_SET_PARMS {
 }
 alias MCI_WAVE_SET_PARMS* PMCI_WAVE_SET_PARMS, LPMCI_WAVE_SET_PARMS;
 
-extern (Windows):
+extern (Windows) nothrow @nogc:
 LRESULT CloseDriver(HDRVR, LONG, LONG);
 HDRVR OpenDriver(LPCWSTR, LPCWSTR, LONG);
 LRESULT SendDriverMessage(HDRVR, UINT, LONG, LONG);

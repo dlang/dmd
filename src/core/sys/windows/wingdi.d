@@ -3961,55 +3961,57 @@ alias DWORD function (LPSTR, LPSTR, UINT, LPSTR, LPDEVMODEA) LPFNDEVCAPS;
 // FIXME:
 //POINTS MAKEPOINTS(DWORD dwValue) #define MAKEPOINTS(l) (*((POINTS*)&(l)))
 
-DWORD MAKEROP4(DWORD fore, DWORD back) {
-    return ((back<<8) & 0xFF000000) | (fore);
+nothrow @nogc {
+    DWORD MAKEROP4(DWORD fore, DWORD back) {
+        return ((back<<8) & 0xFF000000) | (fore);
+    }
+
+    COLORREF CMYK(BYTE c, BYTE m, BYTE y, BYTE k) {
+        return cast(COLORREF)(k | (y << 8) | (m << 16) | (c << 24));
+    }
+
+    BYTE GetCValue(COLORREF cmyk) {
+        return cast(BYTE)(cmyk >> 24);
+    }
+
+    BYTE GetMValue(COLORREF cmyk) {
+        return cast(BYTE)(cmyk >> 16);
+    }
+
+    BYTE GetYValue(COLORREF cmyk) {
+        return cast(BYTE)(cmyk >> 8);
+    }
+
+    BYTE GetKValue(COLORREF cmyk) {
+        return cast(BYTE)cmyk;
+    }
+
+    COLORREF RGB(/*BYTE*/uint r, /*BYTE*/uint g, /*BYTE*/uint b) {
+        return cast(COLORREF)(r | (g << 8) | (b << 16));
+    }
+
+    BYTE GetRValue(COLORREF c) {
+        return cast(BYTE)c;
+    }
+
+    BYTE GetGValue(COLORREF c) {
+        return cast(BYTE)(c >> 8);
+    }
+
+    BYTE GetBValue(COLORREF c) {
+        return cast(BYTE)(c >> 16);
+    }
+
+    COLORREF PALETTEINDEX(WORD i) {
+        return 0x01000000 | cast(COLORREF) i;
+    }
+
+    COLORREF PALETTERGB(BYTE r, BYTE g, BYTE b) {
+        return 0x02000000|RGB(r, g, b);
+    }
 }
 
-COLORREF CMYK(BYTE c, BYTE m, BYTE y, BYTE k) {
-    return cast(COLORREF)(k | (y << 8) | (m << 16) | (c << 24));
-}
-
-BYTE GetCValue(COLORREF cmyk) {
-    return cast(BYTE)(cmyk >> 24);
-}
-
-BYTE GetMValue(COLORREF cmyk) {
-    return cast(BYTE)(cmyk >> 16);
-}
-
-BYTE GetYValue(COLORREF cmyk) {
-    return cast(BYTE)(cmyk >> 8);
-}
-
-BYTE GetKValue(COLORREF cmyk) {
-    return cast(BYTE)cmyk;
-}
-
-COLORREF RGB(BYTE r, BYTE g, BYTE b) {
-    return cast(COLORREF)(r | (g << 8) | (b << 16));
-}
-
-BYTE GetRValue(COLORREF c) {
-    return cast(BYTE)c;
-}
-
-BYTE GetGValue(COLORREF c) {
-    return cast(BYTE)(c >> 8);
-}
-
-BYTE GetBValue(COLORREF c) {
-    return cast(BYTE)(c >> 16);
-}
-
-COLORREF PALETTEINDEX(WORD i) {
-    return 0x01000000 | cast(COLORREF) i;
-}
-
-COLORREF PALETTERGB(BYTE r, BYTE g, BYTE b) {
-    return 0x02000000|RGB(r, g, b);
-}
-
-extern(Windows) {
+extern(Windows) nothrow @nogc {
     int AbortDoc(HDC);
     BOOL AbortPath(HDC);
     int AddFontResourceA(LPCSTR);

@@ -196,10 +196,10 @@ struct INPUT_RECORD {
 }
 alias INPUT_RECORD* PINPUT_RECORD;
 
-extern (Windows):
+extern (Windows) nothrow @nogc:
 
 BOOL AllocConsole();
-HANDLE CreateConsoleScreenBuffer(DWORD, DWORD, SECURITY_ATTRIBUTES*, DWORD, LPVOID);
+HANDLE CreateConsoleScreenBuffer(DWORD, DWORD, const(SECURITY_ATTRIBUTES)*, DWORD, LPVOID);
 BOOL FillConsoleOutputAttribute(HANDLE, WORD, DWORD, COORD, PDWORD);
 BOOL FillConsoleOutputCharacterA(HANDLE, CHAR, DWORD, COORD, PDWORD);
 BOOL FillConsoleOutputCharacterW(HANDLE, WCHAR, DWORD, COORD, PDWORD);
