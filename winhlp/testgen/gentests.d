@@ -55,6 +55,13 @@ int main()
 	}
 
 	File o = File("wintest.d", "wb");
+	o.writeln("import std.format : format;");
+
+	void typeCheck(string name, string typeA, string typeB)
+	{
+		o.writefln("\tstatic if(!is(%s == %s)) pragma(msg, \"%%s(%%d): Error: type of %s is:\\n%%s\\nbut should be:\\n%%s\\n\".format(__FILE__, __LINE__, %s.stringof, %s.stringof));",
+			typeA, typeB, name, typeA, typeB);
+	}
 
 	auto modules = "druntime.json".readText.jsonParse!(Member[]);
 	foreach (m; modules)
@@ -71,7 +78,8 @@ int main()
 			foreach (d; members)
 			{
 				scope(failure) stderr.writefln("Error processing member %s:", d.name);
-				auto lname = (prefix ~ d.name).join(".").replace(".", "_");
+				auto qname = (prefix ~ d.name).join(".");
+				auto lname = qname.replace(".", "_");
 				o.writefln("\talias %s = %s.%s;", lname, (m.name ~ prefix).join("."), d.name); // check existence
 				switch (d.kind)
 				{
@@ -81,12 +89,12 @@ int main()
 						if (type.isValidDType())
 						{
 							o.writefln("\talias typeof_%s = %s;", lname, type);
-							o.writefln("\tstatic assert(is(typeof(&%s) == typeof_%s));", lname, lname);
+							typeCheck(qname, "typeof(&%s)".format(lname), "typeof_%s".format(lname));
 						}
 						if (d.originalType)
 						{
 							o.writefln("\talias typeof_orig_%s = %s;", lname, d.originalType.functionToFunctionPointerType());
-							o.writefln("\tstatic assert(is(typeof(&%s) == typeof_orig_%s));", lname, lname);
+							typeCheck(qname, "typeof(&%s)".format(lname), "typeof_orig_%s".format(lname));
 						}
 						break;
 					}
