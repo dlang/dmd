@@ -17,29 +17,6 @@ LockSegment(w), MakeProcInstance(p, i), UnlockResource(h), UnlockSegment(w)
 FreeModule(m), FreeProcInstance(p), GetFreeSpace(w), DefineHandleTable(w)
 SetSwapAreaSize(w), LimitEmsPages(n), Yield()
 
-// The following Win16 functions are obselete in Win32.
-
- int _hread(HFILE, LPVOID, int);
- int _hwrite(HFILE, LPCSTR, int);
- HFILE _lclose(HFILE);
- HFILE _lcreat(LPCSTR, int);
- LONG _llseek(HFILE, LONG, int);
- HFILE _lopen(LPCSTR, int);
- UINT _lread(HFILE, LPVOID, UINT);
- UINT _lwrite(HFILE, LPCSTR, UINT);
- SIZE_T GlobalCompact(DWORD);
- VOID GlobalFix(HGLOBAL);
-* MSDN contradicts itself on GlobalFlags:
-* "This function is provided only for compatibility with 16-bit versions of Windows."
-* but also requires Windows 2000 or above
- UINT GlobalFlags(HGLOBAL);
- VOID GlobalUnfix(HGLOBAL);
- BOOL GlobalUnWire(HGLOBAL);
- PVOID GlobalWire(HGLOBAL);
- SIZE_T LocalCompact(UINT);
- UINT LocalFlags(HLOCAL);
- SIZE_T LocalShrink(HLOCAL, UINT);
-
 // These are not required for DMD.
 
 //FIXME:
@@ -58,37 +35,6 @@ private import core.sys.windows.basetyps, core.sys.windows.w32api, core.sys.wind
 // FIXME:
 alias void va_list;
 
-
-/+
-//--------------------------------------
-// These functions are problematic
-
-version(UseNtoSKernel) {}else {
-    /* CAREFUL: These are exported from ntoskrnl.exe and declared in winddk.h
-       as __fastcall functions, but are  exported from kernel32.dll as __stdcall */
-    static if (_WIN32_WINNT >= 0x501) {
-     VOID InitializeSListHead(PSLIST_HEADER);
-    }
-    LONG InterlockedCompareExchange(LPLONG, LONG, LONG);
-    // PVOID WINAPI InterlockedCompareExchangePointer(PVOID*, PVOID, PVOID);
-    (PVOID)InterlockedCompareExchange((LPLONG)(d)    (PVOID)InterlockedCompareExchange((LPLONG)(d), (LONG)(e), (LONG)(c))
-    LONG InterlockedDecrement(LPLONG);
-    LONG InterlockedExchange(LPLONG, LONG);
-    // PVOID WINAPI InterlockedExchangePointer(PVOID*, PVOID);
-    (PVOID)InterlockedExchange((LPLONG)((PVOID)InterlockedExchange((LPLONG)(t), (LONG)(v))
-    LONG InterlockedExchangeAdd(LPLONG, LONG);
-
-    static if (_WIN32_WINNT >= 0x501) {
-    PSLIST_ENTRY InterlockedFlushSList(PSLIST_HEADER);
-    }
-    LONG InterlockedIncrement(LPLONG);
-    static if (_WIN32_WINNT >= 0x501) {
-    PSLIST_ENTRY InterlockedPopEntrySList(PSLIST_HEADER);
-    PSLIST_ENTRY InterlockedPushEntrySList(PSLIST_HEADER, PSLIST_ENTRY);
-    }
-} // #endif //  __USE_NTOSKRNL__
-//--------------------------------------
-+/
 
 // COMMPROP structure, used by GetCommProperties()
 // -----------------------------------------------
@@ -1222,7 +1168,8 @@ struct STARTUPINFOW {
     HANDLE hStdOutput;
     HANDLE hStdError;
 }
-alias STARTUPINFOW* LPSTARTUPINFOW;
+alias STARTUPINFOW STARTUPINFO_W;
+alias STARTUPINFOW* LPSTARTUPINFOW, LPSTARTUPINFO_W;
 
 struct PROCESS_INFORMATION {
     HANDLE hProcess;
@@ -1407,6 +1354,18 @@ struct TIME_ZONE_INFORMATION {
     LONG       DaylightBias;
 }
 alias TIME_ZONE_INFORMATION* LPTIME_ZONE_INFORMATION;
+
+// Does not exist in Windows headers, only MSDN
+// documentation (for TIME_ZONE_INFORMATION).
+// Provided solely for compatibility with the old
+// core.sys.windows.windows
+struct REG_TZI_FORMAT {
+    LONG Bias;
+    LONG StandardBias;
+    LONG DaylightBias;
+    SYSTEMTIME StandardDate;
+    SYSTEMTIME DaylightDate;
+}
 
 // MSDN documents this, possibly erroneously, as Win2000+.
 struct MEMORYSTATUS {
@@ -1638,6 +1597,66 @@ LPTSTR MAKEINTATOM()(ushort i) {
 }
 
 extern (Windows) {
+    // The following Win16 functions are obselete in Win32.
+    int _hread(HFILE, LPVOID, int);
+    int _hwrite(HFILE, LPCSTR, int);
+    HFILE _lclose(HFILE);
+    HFILE _lcreat(LPCSTR, int);
+    LONG _llseek(HFILE, LONG, int);
+    HFILE _lopen(LPCSTR, int);
+    UINT _lread(HFILE, LPVOID, UINT);
+    UINT _lwrite(HFILE, LPCSTR, UINT);
+    SIZE_T GlobalCompact(DWORD);
+    VOID GlobalFix(HGLOBAL);
+
+    // MSDN contradicts itself on GlobalFlags:
+    // "This function is provided only for compatibility with 16-bit versions of Windows."
+    // but also requires Windows 2000 or above
+    UINT GlobalFlags(HGLOBAL);
+    VOID GlobalUnfix(HGLOBAL);
+    BOOL GlobalUnWire(HGLOBAL);
+    PVOID GlobalWire(HGLOBAL);
+    SIZE_T LocalCompact(UINT);
+    UINT LocalFlags(HLOCAL);
+    SIZE_T LocalShrink(HLOCAL, UINT);
+
+    /+
+    //--------------------------------------
+    // These functions are problematic
+
+    version(UseNtoSKernel) {}else {
+        /* CAREFUL: These are exported from ntoskrnl.exe and declared in winddk.h
+           as __fastcall functions, but are  exported from kernel32.dll as __stdcall */
+        static if (_WIN32_WINNT >= 0x501) {
+         VOID InitializeSListHead(PSLIST_HEADER);
+        }
+        LONG InterlockedCompareExchange(LPLONG, LONG, LONG);
+        // PVOID WINAPI InterlockedCompareExchangePointer(PVOID*, PVOID, PVOID);
+        (PVOID)InterlockedCompareExchange((LPLONG)(d)    (PVOID)InterlockedCompareExchange((LPLONG)(d), (LONG)(e), (LONG)(c))
+        LONG InterlockedDecrement(LPLONG);
+        LONG InterlockedExchange(LPLONG, LONG);
+        // PVOID WINAPI InterlockedExchangePointer(PVOID*, PVOID);
+        (PVOID)InterlockedExchange((LPLONG)((PVOID)InterlockedExchange((LPLONG)(t), (LONG)(v))
+        LONG InterlockedExchangeAdd(LPLONG, LONG);
+
+        static if (_WIN32_WINNT >= 0x501) {
+        PSLIST_ENTRY InterlockedFlushSList(PSLIST_HEADER);
+        }
+        LONG InterlockedIncrement(LPLONG);
+        static if (_WIN32_WINNT >= 0x501) {
+        PSLIST_ENTRY InterlockedPopEntrySList(PSLIST_HEADER);
+        PSLIST_ENTRY InterlockedPushEntrySList(PSLIST_HEADER, PSLIST_ENTRY);
+        }
+    } // #endif //  __USE_NTOSKRNL__
+    //--------------------------------------
+    +/
+
+    LONG InterlockedIncrement(LPLONG lpAddend);
+    LONG InterlockedDecrement(LPLONG lpAddend);
+    LONG InterlockedExchange(LPLONG Target, LONG Value);
+    LONG InterlockedExchangeAdd(LPLONG Addend, LONG Value);
+    LONG InterlockedCompareExchange(LONG *Destination, LONG Exchange, LONG Comperand);
+
     ATOM AddAtomA(LPCSTR);
     ATOM AddAtomW(LPCWSTR);
     BOOL AreFileApisANSI();
@@ -2278,6 +2297,7 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
     DWORD SignalObjectAndWait(HANDLE, HANDLE, DWORD, BOOL);
     BOOL SwitchToThread();
     BOOL SystemTimeToTzSpecificLocalTime(LPTIME_ZONE_INFORMATION, LPSYSTEMTIME, LPSYSTEMTIME);
+    BOOL TzSpecificLocalTimeToSystemTime(LPTIME_ZONE_INFORMATION, LPSYSTEMTIME, LPSYSTEMTIME);
     BOOL TryEnterCriticalSection(LPCRITICAL_SECTION);
     BOOL UnlockFileEx(HANDLE, DWORD, DWORD, DWORD, LPOVERLAPPED);
     BOOL UpdateResourceA(HANDLE, LPCSTR, LPCSTR, WORD, PVOID, DWORD);

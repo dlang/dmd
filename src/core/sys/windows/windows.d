@@ -41,6 +41,9 @@ public import core.sys.windows.commdlg;
 public import core.sys.windows.winspool;
 public import core.sys.windows.ole2;
 
+public import core.sys.windows.winreg;
+
+
 // Select correct version of winsock.  Importing the incorrect
 // module will cause a static assert to prevent problems later on.
 version (Win32_Winsock1) {
@@ -62,3 +65,8 @@ version (Win32_Winsock1) {
 #include <winsock.h>
 #endif /*  (_WIN32_WINNT >= 0x400) */
 +/
+
+// For compatibility with previous
+// core.sys.windows.windows...
+public import core.sys.windows.imagehlp;
+public import core.sys.windows.dbghelp_types;

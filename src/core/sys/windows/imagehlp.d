@@ -172,6 +172,11 @@ struct KDHELP {
     DWORD KiCallUserMode;
     DWORD KeUserCallbackDispatcher;
     DWORD SystemRangeStart;
+    DWORD ThCallbackBStore;
+    DWORD KiUserExceptionDispatcher;
+    DWORD StackBase;
+    DWORD StackLimit;
+    DWORD[5] Reserved;
 }
 alias KDHELP* PKDHELP;
 
@@ -186,6 +191,7 @@ struct STACKFRAME {
     BOOL     Virtual;
     DWORD[3] Reserved;
     KDHELP   KdHelp;
+    ADDRESS  AddrBStore;
 }
 alias STACKFRAME* LPSTACKFRAME;
 

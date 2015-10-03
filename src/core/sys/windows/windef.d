@@ -68,7 +68,7 @@ alias ubyte*       PBYTE, LPBYTE;
 alias ushort       USHORT, WORD, ATOM;
 alias ushort*      PUSHORT, PWORD, LPWORD;
 alias uint         ULONG, DWORD, UINT, COLORREF;
-alias uint*        PULONG, PDWORD, LPDWORD, PUINT, LPUINT;
+alias uint*        PULONG, PDWORD, LPDWORD, PUINT, LPUINT, LPCOLORREF;
 alias int          WINBOOL, BOOL, INT, LONG, HFILE, HRESULT;
 alias int*         PWINBOOL, LPWINBOOL, PBOOL, LPBOOL, PINT, LPINT, LPLONG;
 alias float        FLOAT;
@@ -126,7 +126,7 @@ struct RECT {
     LONG bottom;
 }
 alias RECT RECTL;
-alias RECT*        PRECT, LPRECT, PRECTL, LPRECTL;
+alias RECT*        PRECT, NPRECT, LPRECT, PRECTL, LPRECTL;
 alias const(RECT)* LPCRECT, LPCRECTL;
 
 struct POINT {
@@ -134,7 +134,7 @@ struct POINT {
     LONG y;
 }
 alias POINT POINTL;
-alias POINT* PPOINT, LPPOINT, PPOINTL, LPPOINTL;
+alias POINT* PPOINT, NPPOINT, LPPOINT, PPOINTL, LPPOINTL;
 
 struct SIZE {
     LONG cx;

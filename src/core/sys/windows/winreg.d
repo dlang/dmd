@@ -13,19 +13,21 @@ pragma(lib, "advapi32");
 private import core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
 
 enum : HKEY { // for some reason, DMD errors if I don't give all the values explicitly
-    HKEY_CLASSES_ROOT     = cast(HKEY) 0x80000000,
-    HKEY_CURRENT_USER     = cast(HKEY) 0x80000001,
-    HKEY_LOCAL_MACHINE    = cast(HKEY) 0x80000002,
-    HKEY_USERS            = cast(HKEY) 0x80000003,
-    HKEY_PERFORMANCE_DATA = cast(HKEY) 0x80000004,
-    HKEY_CURRENT_CONFIG   = cast(HKEY) 0x80000005,
-    HKEY_DYN_DATA         = cast(HKEY) 0x80000006
+    HKEY_CLASSES_ROOT        = cast(HKEY) 0x80000000,
+    HKEY_CURRENT_USER        = cast(HKEY) 0x80000001,
+    HKEY_LOCAL_MACHINE       = cast(HKEY) 0x80000002,
+    HKEY_USERS               = cast(HKEY) 0x80000003,
+    HKEY_PERFORMANCE_DATA    = cast(HKEY) 0x80000004,
+    HKEY_CURRENT_CONFIG      = cast(HKEY) 0x80000005,
+    HKEY_DYN_DATA            = cast(HKEY) 0x80000006,
+    HKEY_PERFORMANCE_TEXT    = cast(HKEY) 0x80000050,
+    HKEY_PERFORMANCE_NLSTEXT = cast(HKEY) 0x80000060,
 }
 
-enum : DWORD {
-    REG_OPTION_NON_VOLATILE,
-    REG_OPTION_VOLATILE
-}
+//enum : DWORD {
+//    REG_OPTION_NON_VOLATILE,
+//    REG_OPTION_VOLATILE
+//}
 
 enum : DWORD {
     REG_CREATED_NEW_KEY = 1,
