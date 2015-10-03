@@ -21,11 +21,17 @@ enum __W32API_MINOR_VERSION = 17;
  *	Windows 9x is no longer supported, either by Microsoft or by DMD, this distinction has been
  *	removed in order to simplify the bindings.
  */
-version (Windows7) {
+ version (Windows10) {
+	enum uint _WIN32_WINNT = 0x604;
+} else version (Windows8_1) {	// also Windows2012R2
+	enum uint _WIN32_WINNT = 0x603;
+} else version (Windows8) {	// also Windows2012
+	enum uint _WIN32_WINNT = 0x602;
+} else version (Windows7) {	// also Windows2008R2
 	enum uint _WIN32_WINNT = 0x601;
-} else version (WindowsVista) {
+} else version (WindowsVista) {	// also Windows2008
 	enum uint _WIN32_WINNT = 0x600;
-} else version (Windows2003) {
+} else version (Windows2003) {	// also WindowsHomeServer, WindowsXP64
 	enum uint _WIN32_WINNT = 0x502;
 } else version (WindowsXP) {
 	enum uint _WIN32_WINNT = 0x501;
@@ -35,9 +41,13 @@ version (Windows7) {
 	enum uint _WIN32_WINNT = 0x501;
 }
 
-version (IE8) {
+version (IE10) {
+	enum uint _WIN32_IE = 0xA00;
+} else version (IE9) {
+	enum uint _WIN32_IE = 0x900;
+} else version (IE8) {
 	enum uint _WIN32_IE = 0x800;
-} version (IE7) {
+} else version (IE7) {
 	enum uint _WIN32_IE = 0x700;
 } else version (IE602) {
 	enum uint _WIN32_IE = 0x603;
