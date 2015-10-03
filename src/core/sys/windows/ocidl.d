@@ -1,13 +1,13 @@
-/***********************************************************************\
-*                                ocidl.d                                *
-*                                                                       *
-*                       Windows API header module                       *
-*                 Part of the Internet Development SDK                  *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Part of the Internet Development SDK
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_ocidl.d)
+ */
 module core.sys.windows.ocidl;
 
 private import core.sys.windows.ole2, core.sys.windows.oleidl, core.sys.windows.oaidl, core.sys.windows.objfwd,

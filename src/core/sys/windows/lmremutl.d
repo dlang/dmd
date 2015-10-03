@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               lmremutl.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_lmremutl.d)
+ */
 module core.sys.windows.lmremutl;
 pragma(lib, "netapi32");
 

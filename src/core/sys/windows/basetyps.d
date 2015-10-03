@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               basetyps.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*             Translated from MinGW API for MS-Windows 3.10             *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW API for MS-Windows 3.10
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_basetyps.d)
+ */
 module core.sys.windows.basetyps;
 
 private import core.sys.windows.windef, core.sys.windows.basetsd;

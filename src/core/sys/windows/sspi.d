@@ -1,13 +1,12 @@
-/***********************************************************************\
-*                               sspi.d                                  *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                           by Ellery Newcomer                          *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * Authors: Ellery Newcomer
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_sspi.d)
+ */
 module core.sys.windows.sspi;
 
 import core.sys.windows.windef;

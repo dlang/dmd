@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               tlhelp32.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_tlhelp32.d)
+ */
 module core.sys.windows.tlhelp32;
 
 private import core.sys.windows.windef;

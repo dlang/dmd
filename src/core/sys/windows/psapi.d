@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                psapi.d                                *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_psapi.d)
+ */
 /* Comment from MinGW
  *   Process status API (PSAPI)
  *   http://windowssdk.msdn.microsoft.com/library/ms684884.aspx

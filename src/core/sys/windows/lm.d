@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                  lm.d                                 *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_lm.d)
+ */
 module core.sys.windows.lm;
 /* removed - now supporting only Win2k up
 version (WindowsVista) {

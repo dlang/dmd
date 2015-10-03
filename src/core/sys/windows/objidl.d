@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                objidl.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_objidl.d)
+ */
 // TODO (Don):
 // # why is "alias IPSFactoryBuffer* LPPSFACTORYBUFFER;" in this file,
 // rather than in objfwd ?

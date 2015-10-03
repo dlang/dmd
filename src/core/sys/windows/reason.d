@@ -1,13 +1,12 @@
-/***********************************************************************\
-*                                reason.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                           by Stewart Gordon                           *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * Authors: Stewart Gordon
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_reason.d)
+ */
 module core.sys.windows.reason;
 
 private import core.sys.windows.w32api, core.sys.windows.windef;

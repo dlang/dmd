@@ -1,13 +1,12 @@
-/***********************************************************************\
-*                                security.d                             *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                           by Ellery Newcomer                          *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * Authors: Ellery Newcomer
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_security.d)
+ */
 module core.sys.windows.security;
 
 enum :SECURITY_STATUS{

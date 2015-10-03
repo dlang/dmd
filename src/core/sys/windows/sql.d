@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                 sql.d                                 *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_sql.d)
+ */
 module core.sys.windows.sql;
 
 public import core.sys.windows.sqltypes;

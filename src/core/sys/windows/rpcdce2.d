@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               rpcdce2.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_rpcdce2.d)
+ */
 module core.sys.windows.rpcdce2;
 
 import core.sys.windows.rpcdce;

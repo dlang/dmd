@@ -1,13 +1,12 @@
-/***********************************************************************\
-*                                w32api.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*             Translated from MinGW API for MS-Windows 4.0              *
-*                           by Stewart Gordon                           *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW API for MS-Windows 4.0
+ *
+ * Authors: Stewart Gordon
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_w32api.d)
+ */
 module core.sys.windows.w32api;
 
 enum __W32API_VERSION = 3.17;

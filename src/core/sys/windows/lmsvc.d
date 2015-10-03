@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                lmsvc.d                                *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_lmsvc.d)
+ */
 module core.sys.windows.lmsvc;
 
 // FIXME: Is this file deprecated? All of the functions are only for Win16.

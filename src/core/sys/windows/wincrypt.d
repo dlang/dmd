@@ -1,13 +1,12 @@
-/***********************************************************************\
-*                               wincrypt.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                           by Stewart Gordon                           *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * Authors: Stewart Gordon
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_wincrypt.d)
+ */
 module core.sys.windows.wincrypt;
 
 private import core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;

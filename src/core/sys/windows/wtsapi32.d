@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               wtsapi32.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                     Translated from MinGW-w64 API                     *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW-w64 API
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_wtsapi32.d)
+ */
 module core.sys.windows.wtsapi32;
 pragma(lib, "wtsapi32");
 private import core.sys.windows.w32api;

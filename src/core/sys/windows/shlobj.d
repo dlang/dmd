@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                shlobj.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*             Translated from MinGW API for MS-Windows 4.0              *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW API for MS-Windows 4.0
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_shlobj.d)
+ */
 module core.sys.windows.shlobj;
 pragma(lib, "shell32");
 

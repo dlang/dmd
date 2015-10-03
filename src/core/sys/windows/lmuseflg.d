@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               lmuseflg.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*             Translated from MinGW API for MS-Windows 3.10             *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW API for MS-Windows 3.10
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_lmuseflg.d)
+ */
 module core.sys.windows.lmuseflg;
 
 enum : uint {

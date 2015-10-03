@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                 ole2.d                                *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_ole2.d)
+ */
 module core.sys.windows.ole2;
 pragma(lib, "ole32");
 

@@ -1,11 +1,11 @@
-/***********************************************************************\
-*                                 vfw.d                                 *
-*                                                                       *
-*                       Windows API header module                       *
-*                 written in the D programming language                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * written in the D programming language
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_vfw.d)
+ */
 
 module core.sys.windows.vfw;
 pragma(lib, "vfw32");

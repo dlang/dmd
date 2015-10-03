@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                winnt.d                                *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*             Translated from MinGW API for MS-Windows 3.12             *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW API for MS-Windows 3.12
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_winnt.d)
+ */
 module core.sys.windows.winnt;
 
 public import core.sys.windows.basetsd, core.sys.windows.windef, core.sys.windows.winerror;

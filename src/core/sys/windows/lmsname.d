@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               lmsname.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_lmsname.d)
+ */
 module core.sys.windows.lmsname;
 
 private import core.sys.windows.windef;

@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                winhttp.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                  Translated from Windows SDK Headers                  *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from Windows SDK Headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_winhttp.d)
+ */
 module win32.winhttp;
 pragma(lib, "winhttp");
 // FIXME: Grouping of constants. Windows SDK doesn't make this entirely clear

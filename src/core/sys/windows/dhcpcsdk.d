@@ -1,13 +1,12 @@
-/***********************************************************************\
-*                               dhcpcsdk.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                           by Stewart Gordon                           *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * Authors: Stewart Gordon
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_dhcpcsdk.d)
+ */
 module core.sys.windows.dhcpcsdk;
 
 private import core.sys.windows.w32api, core.sys.windows.windef;

@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               commctrl.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*             Translated from MinGW API for MS-Windows 3.12             *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW API for MS-Windows 3.12
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_commctrl.d)
+ */
 module core.sys.windows.commctrl;
 pragma(lib, "comctl32");
 

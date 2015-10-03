@@ -1,13 +1,12 @@
-/***********************************************************************\
-*                                mciavi.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                           by Stewart Gordon                           *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * Authors: Stewart Gordon
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_mciavi.d)
+ */
 module core.sys.windows.mciavi;
 
 private import core.sys.windows.mmsystem;

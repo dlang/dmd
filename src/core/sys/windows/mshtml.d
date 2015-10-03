@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                mshtml.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_mshtml.d)
+ */
 module core.sys.windows.mshtml;
 
 private import core.sys.windows.basetyps, core.sys.windows.oaidl, core.sys.windows.unknwn,

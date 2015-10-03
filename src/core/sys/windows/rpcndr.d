@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               rpcndr.d                                *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_rpcndr.d)
+ */
 module core.sys.windows.rpcndr;
 pragma(lib, "rpcrt4");
 

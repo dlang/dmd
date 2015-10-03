@@ -1,13 +1,13 @@
-/***********************************************************************\
-*                                rpcnsi.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                     RPC Name Service (RpcNs APIs)                     *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * RPC Name Service (RpcNs APIs)
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_rpcnsi.d)
+ */
 module core.sys.windows.rpcnsi;
 pragma(lib, "rpcns4");
 

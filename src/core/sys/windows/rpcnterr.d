@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               rpcnterr.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_rpcnterr.d)
+ */
 module core.sys.windows.rpcnterr;
 
 import core.sys.windows.winerror;

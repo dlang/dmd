@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               lmerrlog.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_lmerrlog.d)
+ */
 module core.sys.windows.lmerrlog;
 
 // COMMENT: This appears to be only for Win16. All functions are deprecated.

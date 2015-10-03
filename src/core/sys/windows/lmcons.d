@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                lmcons.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_lmcons.d)
+ */
 module core.sys.windows.lmcons;
 
 private import core.sys.windows.windef;

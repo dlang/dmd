@@ -1,13 +1,12 @@
-/***********************************************************************\
-*                                ntsecpkg.d                             *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                           by Ellery Newcomer                          *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * Authors: Ellery Newcomer
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_ntsecpkg.d)
+ */
 module core.sys.windows.ntsecpkg;
 
 import core.sys.windows.windef, core.sys.windows.ntsecapi, core.sys.windows.security, core.sys.windows.ntdef, core.sys.windows.sspi;

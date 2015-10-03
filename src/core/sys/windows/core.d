@@ -1,10 +1,9 @@
-/***********************************************************************\
-*                                core.d                                 *
-*                                                                       *
-*                    Helper module for the Windows API                  *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Helper module for the Windows API
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_core.d)
+ */
 module core.sys.windows.core;
 
 /**

@@ -1,13 +1,12 @@
-/***********************************************************************\
-*                               basetsd.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*             Translated from MinGW API for MS-Windows 3.12             *
-*                           by Stewart Gordon                           *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW API for MS-Windows 3.12
+ *
+ * Authors: Stewart Gordon
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_basetsd.d)
+ */
 module core.sys.windows.basetsd;
 
 /*	This template is used in these modules to declare constant pointer types,

@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               lmaudit.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_lmaudit.d)
+ */
 // COMMENT: This file may be deprecated.
 module core.sys.windows.lmaudit;
 

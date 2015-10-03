@@ -1,13 +1,12 @@
-/***********************************************************************\
-*                               setupapi.d                              *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                           by Vladimir Vlasov                          *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * Authors: Vladimir Vlasov
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_setupapi.d)
+ */
 module core.sys.windows.setupapi;
 pragma(lib, "setupapi");
 

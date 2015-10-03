@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                                secext.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_secext.d)
+ */
 // Don't include this file directly, use core.sys.windows.security instead.
 module core.sys.windows.secext;
 pragma(lib, "secur32");

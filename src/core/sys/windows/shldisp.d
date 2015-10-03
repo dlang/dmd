@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               shldisp.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_shldisp.d)
+ */
 module core.sys.windows.shldisp;
 
 private import core.sys.windows.unknwn, core.sys.windows.windef, core.sys.windows.wtypes;

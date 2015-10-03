@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                              docobj.d                                 *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_docobj.d)
+ */
 module core.sys.windows.docobj;
 
 private import core.sys.windows.basetyps, core.sys.windows.oaidl, core.sys.windows.objidl, core.sys.windows.oleidl,

@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               exdisp.d                                *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_exdisp.d)
+ */
 module core.sys.windows.exdisp;
 
 import core.sys.windows.docobj, core.sys.windows.oaidl, core.sys.windows.ocidl;

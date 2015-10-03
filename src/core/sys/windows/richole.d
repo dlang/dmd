@@ -1,12 +1,11 @@
-/***********************************************************************\
-*                               richole.d                               *
-*                                                                       *
-*                       Windows API header module                       *
-*                                                                       *
-*                 Translated from MinGW Windows headers                 *
-*                                                                       *
-*                       Placed into public domain                       *
-\***********************************************************************/
+/**
+ * Windows API header module
+ *
+ * Translated from MinGW Windows headers
+ *
+ * License: Placed into public domain
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_richole.d)
+ */
 module core.sys.windows.richole;
 
 private import core.sys.windows.objfwd, core.sys.windows.objidl, core.sys.windows.ole2, core.sys.windows.unknwn,
