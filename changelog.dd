@@ -10,8 +10,8 @@ $(LI $(RELATIVE_LINK2 backtraces-with-line-numbers, Backtraces now include file 
 $(BUGSTITLE Library Changes,
 $(LI $(LNAME2 backtraces-with-line-numbers, Backtraces now include file name and line number.)
 
-    $(P The default tracehandler on linux now parses DWARF debug info
-        to add file names and line numbers to backtraces.
+    $(P The default tracehandler on linux and FreeBSD now parses DWARF
+        debug info to add file names and line numbers to backtraces.
     )
 
     $(PRE
