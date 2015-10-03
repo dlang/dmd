@@ -3096,19 +3096,29 @@ elem * elstruct(elem *e, goal_t goal)
         return e;
     //printf("\tnumbytes = %d\n", (int)type_size(e->ET));
 
+    type *t = e->ET;
     tym_t tym = ~0;
-    tym_t ty = tybasic(e->ET->Tty);
+    tym_t ty = tybasic(t->Tty);
+
+    unsigned sz = type_size(t);
+    //printf("\tsz = %d\n", (int)sz);
+    if (sz == 16)
+    {
+        while (ty == TYarray && t->Tdim == 1)
+        {
+            t = t->Tnext;
+            ty = tybasic(t->Tty);
+        }
+    }
 
     type *targ1 = NULL;
     type *targ2 = NULL;
     if (ty == TYstruct)
     {   // If a struct is a wrapper for another type, prefer that other type
-        targ1 = e->ET->Ttag->Sstruct->Sarg1type;
-        targ2 = e->ET->Ttag->Sstruct->Sarg2type;
+        targ1 = t->Ttag->Sstruct->Sarg1type;
+        targ2 = t->Ttag->Sstruct->Sarg2type;
     }
 
-    unsigned sz = type_size(e->ET);
-    //printf("\tsz = %d\n", (int)sz);
 //if (targ1) { printf("targ1\n"); type_print(targ1); }
 //if (targ2) { printf("targ2\n"); type_print(targ2); }
     switch ((int)sz)
@@ -3185,19 +3195,19 @@ elem * elstruct(elem *e, goal_t goal)
             {   // This needs to match what TypeFunction::retStyle() does
                 if (config.exe == EX_WIN64)
                 {
-                    //if (e->ET->Ttag->Sstruct->Sflags & STRnotpod)
+                    //if (t->Ttag->Sstruct->Sflags & STRnotpod)
                         //goto Ldefault;
                 }
                 // If a struct is a wrapper for another type, prefer that other type
                 else if (targ1 && !targ2)
                     tym = targ1->Tty;
                 else if (I64 && !targ1 && !targ2)
-                {   if (e->ET->Ttag->Sstruct->Sflags & STRnotpod)
+                {   if (t->Ttag->Sstruct->Sflags & STRnotpod)
                     {
                         // In-memory only
                         goto Ldefault;
                     }
-//                    if (type_size(e->ET) == 16)
+//                    if (type_size(t) == 16)
                         goto Ldefault;
                 }
                 else if (I64 && targ1 && targ2)
