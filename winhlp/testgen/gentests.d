@@ -29,7 +29,7 @@ int main()
 		Member[] members;
 		string type;
 		uint endline, endchar;
-		uint offset;
+		uint offset = uint.max;
 	@JSONName("default")
 		string default_;
 		string defaultDeco;
@@ -115,6 +115,9 @@ int main()
 						stderr.writeln("Unknown kind: ", d.kind);
 						break;
 				}
+
+				if (d.offset != uint.max)
+					o.writefln("\tstatic assert(%s.offsetof == %d);", lname, d.offset);
 
 				handleMembers(prefix ~ d.name, d.members);
 			}
