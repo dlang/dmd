@@ -7,9 +7,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.basetyps;
+module core.sys.windows.basetyps;
 
-private import win32.windef, win32.basetsd;
+private import core.sys.windows.windef, core.sys.windows.basetsd;
 
 align(1) struct GUID {  // size is 16
 	DWORD   Data1;

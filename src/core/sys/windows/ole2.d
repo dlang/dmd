@@ -7,13 +7,13 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ole2;
+module core.sys.windows.ole2;
 pragma(lib, "ole32");
 
-public import win32.basetyps, win32.objbase, win32.oleauto, win32.olectlid,
-  win32.oleidl, win32.unknwn, win32.winerror, win32.uuid;
-private import win32.objfwd, win32.objidl, win32.windef, win32.wtypes;
-private import win32.winuser; // for LPMSG
+public import core.sys.windows.basetyps, core.sys.windows.objbase, core.sys.windows.oleauto, core.sys.windows.olectlid,
+  core.sys.windows.oleidl, core.sys.windows.unknwn, core.sys.windows.winerror, core.sys.windows.uuid;
+private import core.sys.windows.objfwd, core.sys.windows.objidl, core.sys.windows.windef, core.sys.windows.wtypes;
+private import core.sys.windows.winuser; // for LPMSG
 
 const E_DRAW = VIEW_E_DRAW;
 

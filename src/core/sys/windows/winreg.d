@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.winreg;
+module core.sys.windows.winreg;
 pragma(lib, "advapi32");
 
-private import win32.w32api, win32.winbase, win32.windef;
+private import core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
 
 enum : HKEY { // for some reason, DMD errors if I don't give all the values explicitly
 	HKEY_CLASSES_ROOT     = cast(HKEY) 0x80000000,

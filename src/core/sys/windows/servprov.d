@@ -7,9 +7,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.servprov;
+module core.sys.windows.servprov;
 
-private import win32.basetyps, win32.unknwn, win32.windef, win32.wtypes;
+private import core.sys.windows.basetyps, core.sys.windows.unknwn, core.sys.windows.windef, core.sys.windows.wtypes;
 
 interface IServiceProvider : IUnknown {
 	HRESULT QueryService(REFGUID, REFIID, void**);

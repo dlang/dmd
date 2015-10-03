@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmcons;
+module core.sys.windows.lmcons;
 
-private import win32.windef;
-private import win32.lmerr; // for NERR_BASE
+private import core.sys.windows.windef;
+private import core.sys.windows.lmerr; // for NERR_BASE
 
 const TCHAR[]
 	MESSAGE_FILENAME = "NETMSG",

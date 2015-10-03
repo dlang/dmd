@@ -7,12 +7,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.imm;
+module core.sys.windows.imm;
 pragma(lib, "imm32");
 
-import win32.windef, win32.wingdi;
-import win32.winuser; // for the MFS_xxx enums.
-private import win32.w32api;
+import core.sys.windows.windef, core.sys.windows.wingdi;
+import core.sys.windows.winuser; // for the MFS_xxx enums.
+private import core.sys.windows.w32api;
 
 const WM_CONVERTREQUESTEX     = 0x108;
 const WM_IME_STARTCOMPOSITION = 0x10D;

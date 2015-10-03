@@ -7,9 +7,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.oaidl;
+module core.sys.windows.oaidl;
 
-private import win32.basetyps, win32.unknwn, win32.windef, win32.wtypes;
+private import core.sys.windows.basetyps, core.sys.windows.unknwn, core.sys.windows.windef, core.sys.windows.wtypes;
 
 const DISPID_UNKNOWN = -1;
 const DISPID_VALUE = 0;

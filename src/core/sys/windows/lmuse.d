@@ -7,11 +7,11 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmuse;
+module core.sys.windows.lmuse;
 pragma(lib, "netapi32");
 
-import win32.lmuseflg;
-private import win32.lmcons, win32.windef;
+import core.sys.windows.lmuseflg;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 enum {
 	USE_LOCAL_PARMNUM = 1,

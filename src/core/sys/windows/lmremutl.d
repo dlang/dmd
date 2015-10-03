@@ -7,12 +7,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmremutl;
+module core.sys.windows.lmremutl;
 pragma(lib, "netapi32");
 
 // D Conversion Note: DESC_CHAR is defined as TCHAR.
 
-private import win32.lmcons, win32.windef;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 const SUPPORTS_REMOTE_ADMIN_PROTOCOL =  2;
 const SUPPORTS_RPC                   =  4;

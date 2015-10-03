@@ -8,7 +8,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.security;
+module core.sys.windows.security;
 
 enum :SECURITY_STATUS{
     SEC_E_OK = 0,

@@ -7,7 +7,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmaccess;
+module core.sys.windows.lmaccess;
 pragma(lib, "netapi32");
 
 /**
@@ -16,7 +16,7 @@ pragma(lib, "netapi32");
 	the Platform SDK docs, so they have been dropped from this file.
 */
 
-private import win32.lmcons, win32.windef;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 const wchar[]
 	GROUP_SPECIALGRP_USERS  = "USERS",

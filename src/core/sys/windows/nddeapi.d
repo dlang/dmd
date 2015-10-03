@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.nddeapi;
+module core.sys.windows.nddeapi;
 
-private import win32.windef;
+private import core.sys.windows.windef;
 
 // FIXME: check types and grouping of constants
 

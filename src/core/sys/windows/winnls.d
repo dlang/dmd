@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.winnls;
+module core.sys.windows.winnls;
 pragma(lib, "kernel32");
 
-private import win32.basetsd, win32.w32api, win32.winbase, win32.windef;
+private import core.sys.windows.basetsd, core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
 
 alias DWORD LCTYPE, CALTYPE, CALID, LGRPID, GEOID, GEOTYPE, GEOCLASS;
 

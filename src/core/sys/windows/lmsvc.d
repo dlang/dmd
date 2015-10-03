@@ -7,16 +7,16 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmsvc;
+module core.sys.windows.lmsvc;
 
 // FIXME: Is this file deprecated? All of the functions are only for Win16.
 /**
   Changes relative to MinGW:
-  lmsname is not imported publicly (instead, win32.lm imports it directly).
+  lmsname is not imported publicly (instead, core.sys.windows.lm imports it directly).
 */
 // TODO: 5 macros
 
-private import win32.lmcons, win32.lmsname, win32.windef;
+private import core.sys.windows.lmcons, core.sys.windows.lmsname, core.sys.windows.windef;
 
 const TCHAR[] SERVICE_DOS_ENCRYPTION = "ENCRYPT";
 

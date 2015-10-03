@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.intshcut;
+module core.sys.windows.intshcut;
 
-private import win32.unknwn, win32.windef;
+private import core.sys.windows.unknwn, core.sys.windows.windef;
 
 enum : SCODE {
 	E_FLAGS                     = 0x80041000,

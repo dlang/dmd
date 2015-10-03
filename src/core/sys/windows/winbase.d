@@ -7,7 +7,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.winbase;
+module core.sys.windows.winbase;
 pragma(lib, "kernel32");
 
 /**
@@ -53,8 +53,8 @@ int wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int);
 
 */
 
-import win32.windef, win32.winver;
-private import win32.basetyps, win32.w32api, win32.winnt;
+import core.sys.windows.windef, core.sys.windows.winver;
+private import core.sys.windows.basetyps, core.sys.windows.w32api, core.sys.windows.winnt;
 
 // FIXME:
 alias void va_list;

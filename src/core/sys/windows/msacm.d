@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.msacm;
+module core.sys.windows.msacm;
 
-private import win32.basetsd, win32.mmsystem, win32.windef;
+private import core.sys.windows.basetsd, core.sys.windows.mmsystem, core.sys.windows.windef;
 
 mixin DECLARE_HANDLE!("HACMDRIVERID");
 mixin DECLARE_HANDLE!("HACMDRIVER");

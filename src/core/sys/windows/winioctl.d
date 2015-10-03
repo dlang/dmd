@@ -8,11 +8,11 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.winioctl;
+module core.sys.windows.winioctl;
 
 // FIXME: check types of some constants
 
-private import win32.basetyps, win32.windef;
+private import core.sys.windows.basetyps, core.sys.windows.windef;
 
 const size_t
 	HIST_NO_OF_BUCKETS = 24,

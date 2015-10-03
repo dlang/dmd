@@ -8,7 +8,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.w32api;
+module core.sys.windows.w32api;
 
 enum __W32API_VERSION = 3.17;
 enum __W32API_MAJOR_VERSION = 3;

@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.shellapi;
+module core.sys.windows.shellapi;
 pragma(lib, "shell32");
 
-private import win32.w32api, win32.windef, win32.basetyps;
+private import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.basetyps;
 
 enum : UINT {
 	ABE_LEFT,

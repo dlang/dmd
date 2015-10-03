@@ -7,12 +7,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.oleauto;
+module core.sys.windows.oleauto;
 pragma(lib, "oleaut32");
 
-import win32.oaidl;
-private import win32.basetyps, win32.unknwn, win32.windef, win32.wtypes;
-private import win32.winbase; // for SYSTEMTIME
+import core.sys.windows.oaidl;
+private import core.sys.windows.basetyps, core.sys.windows.unknwn, core.sys.windows.windef, core.sys.windows.wtypes;
+private import core.sys.windows.winbase; // for SYSTEMTIME
 
 align(8):
 const STDOLE_MAJORVERNUM = 1;

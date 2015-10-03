@@ -7,7 +7,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lm;
+module core.sys.windows.lm;
 /* removed - now supporting only Win2k up
 version (WindowsVista) {
 	version = WIN32_WINNT_ONLY;
@@ -19,29 +19,29 @@ version (WindowsVista) {
 	version = WIN32_WINNT_ONLY;
 }
 */
-public import win32.lmcons;
-public import win32.lmaccess;
-public import win32.lmalert;
-public import win32.lmat;
-public import win32.lmerr;
-public import win32.lmshare;
-public import win32.lmapibuf;
-public import win32.lmremutl;
-public import win32.lmrepl;
-public import win32.lmuse;
-public import win32.lmstats;
-public import win32.lmwksta;
-public import win32.lmserver;
+public import core.sys.windows.lmcons;
+public import core.sys.windows.lmaccess;
+public import core.sys.windows.lmalert;
+public import core.sys.windows.lmat;
+public import core.sys.windows.lmerr;
+public import core.sys.windows.lmshare;
+public import core.sys.windows.lmapibuf;
+public import core.sys.windows.lmremutl;
+public import core.sys.windows.lmrepl;
+public import core.sys.windows.lmuse;
+public import core.sys.windows.lmstats;
+public import core.sys.windows.lmwksta;
+public import core.sys.windows.lmserver;
 
 version (Windows2000) {
 } else {
-	public import win32.lmmsg;
+	public import core.sys.windows.lmmsg;
 }
 
 // FIXME: Everything in these next files seems to be deprecated!
-import win32.lmaudit;
-import win32.lmchdev; // can't find many docs for functions from this file.
-import win32.lmconfig;
-import win32.lmerrlog;
-import win32.lmsvc;
-import win32.lmsname; // in MinGW, this was publicly included by lm.lmsvc
+import core.sys.windows.lmaudit;
+import core.sys.windows.lmchdev; // can't find many docs for functions from this file.
+import core.sys.windows.lmconfig;
+import core.sys.windows.lmerrlog;
+import core.sys.windows.lmsvc;
+import core.sys.windows.lmsname; // in MinGW, this was publicly included by lm.lmsvc

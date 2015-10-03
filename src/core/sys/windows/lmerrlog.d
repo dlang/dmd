@@ -7,12 +7,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmerrlog;
+module core.sys.windows.lmerrlog;
 
 // COMMENT: This appears to be only for Win16. All functions are deprecated.
 
-private import win32.lmcons, win32.windef;
-private import win32.lmaudit; // for LPHLOG
+private import core.sys.windows.lmcons, core.sys.windows.windef;
+private import core.sys.windows.lmaudit; // for LPHLOG
 
 const ERRLOG_BASE=3100;
 const ERRLOG2_BASE=5700;

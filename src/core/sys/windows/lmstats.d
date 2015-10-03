@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmstats;
+module core.sys.windows.lmstats;
 pragma(lib, "netapi32");
 
-private import win32.lmcons, win32.windef;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 const ULONG
 	STATSOPT_CLR   = 1,

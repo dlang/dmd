@@ -7,13 +7,13 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmmsg;
+module core.sys.windows.lmmsg;
 pragma(lib, "netapi32");
 
-private import win32.lmcons, win32.windef, win32.w32api;
+private import core.sys.windows.lmcons, core.sys.windows.windef, core.sys.windows.w32api;
 
 static assert (_WIN32_WINNT >= 0x501,
-	"win32.lmmsg is available only if version WindowsXP, Windows2003 "
+	"core.sys.windows.lmmsg is available only if version WindowsXP, Windows2003 "
 	"or WindowsVista is set");
 
 const MSGNAME_NOT_FORWARDED  = 0;

@@ -8,18 +8,18 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.aclui;
+module core.sys.windows.aclui;
 pragma(lib, "aclui");
 
-private import win32.w32api;
+private import core.sys.windows.w32api;
 /*
 static assert (_WIN32_WINNT >= 0x500,
-	"win32.aclui is available only if version Windows2000, WindowsXP, Windows2003 "
+	"core.sys.windows.aclui is available only if version Windows2000, WindowsXP, Windows2003 "
 	"or WindowsVista is set");
 */
-import win32.accctrl, win32.commctrl, win32.objbase;
-private import win32.basetyps, win32.prsht, win32.unknwn, win32.windef,
-  win32.winuser;
+import core.sys.windows.accctrl, core.sys.windows.commctrl, core.sys.windows.objbase;
+private import core.sys.windows.basetyps, core.sys.windows.prsht, core.sys.windows.unknwn, core.sys.windows.windef,
+  core.sys.windows.winuser;
 
 
 struct SI_OBJECT_INFO {

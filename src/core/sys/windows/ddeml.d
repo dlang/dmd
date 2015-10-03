@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ddeml;
+module core.sys.windows.ddeml;
 pragma(lib, "user32");
 
-private import win32.basetsd, win32.windef, win32.winnt;
+private import core.sys.windows.basetsd, core.sys.windows.windef, core.sys.windows.winnt;
 
 enum : int {
 	CP_WINANSI    = 1004,

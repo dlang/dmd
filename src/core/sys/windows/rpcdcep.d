@@ -7,11 +7,11 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.rpcdcep;
+module core.sys.windows.rpcdcep;
 
-private import win32.basetyps;
-private import win32.w32api;
-private import win32.windef;
+private import core.sys.windows.basetyps;
+private import core.sys.windows.w32api;
+private import core.sys.windows.windef;
 
 mixin DECLARE_HANDLE!("I_RPC_HANDLE");
 alias long RPC_STATUS;

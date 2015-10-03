@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.unknwn;
+module core.sys.windows.unknwn;
 
-import win32.objfwd, win32.windef, win32.wtypes;
-private import win32.basetyps;
+import core.sys.windows.objfwd, core.sys.windows.windef, core.sys.windows.wtypes;
+private import core.sys.windows.basetyps;
 
 extern (Windows) {
 	void* MIDL_user_allocate(size_t);

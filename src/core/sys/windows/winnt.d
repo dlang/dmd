@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.winnt;
+module core.sys.windows.winnt;
 
-public import win32.basetsd, win32.windef, win32.winerror;
-private import win32.w32api;
+public import core.sys.windows.basetsd, core.sys.windows.windef, core.sys.windows.winerror;
+private import core.sys.windows.w32api;
 
 /* Translation Notes:
 The following macros are unneeded for D:
@@ -1953,8 +1953,8 @@ ULONG WT_SET_MAX_THREADPOOL_THREADS(ref ULONG Flags, ushort Limit) {
 	return Flags |= Limit << 16;
 }
 
-import win32.basetyps;
-/* also in win32.basetyps
+import core.sys.windows.basetyps;
+/* also in core.sys.windows.basetyps
 struct GUID {
 	uint  Data1;
 	ushort Data2;

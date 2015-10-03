@@ -7,9 +7,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.shlguid;
+module core.sys.windows.shlguid;
 
-private import win32.basetyps, win32.w32api;
+private import core.sys.windows.basetyps, core.sys.windows.w32api;
 
 // FIXME: clean up Windows version support
 

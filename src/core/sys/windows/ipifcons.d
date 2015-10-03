@@ -8,7 +8,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ipifcons;
+module core.sys.windows.ipifcons;
 
 // FIXME: check types of constants
 

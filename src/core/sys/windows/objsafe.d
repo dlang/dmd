@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.objsafe;
+module core.sys.windows.objsafe;
 
-private import win32.basetyps, win32.unknwn, win32.windef;
+private import core.sys.windows.basetyps, core.sys.windows.unknwn, core.sys.windows.windef;
 
 enum {
 	INTERFACESAFE_FOR_UNTRUSTED_CALLER = 1,

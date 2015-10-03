@@ -7,7 +7,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.shlwapi;
+module core.sys.windows.shlwapi;
 pragma(lib, "shlwapi");
 
 /* Changes compared to MinGW:
@@ -24,9 +24,9 @@ wnsprintf functions are not included.
          ((ULONGLONG)(  qfe) <<  0))
 */
 
-import win32.objbase, win32.shlobj;
-private import win32.basetyps, win32.objidl, win32.unknwn, win32.windef,
-  win32.winbase, win32.winreg;
+import core.sys.windows.objbase, core.sys.windows.shlobj;
+private import core.sys.windows.basetyps, core.sys.windows.objidl, core.sys.windows.unknwn, core.sys.windows.windef,
+  core.sys.windows.winbase, core.sys.windows.winreg;
 
 const DLLVER_PLATFORM_WINDOWS = 0x00000001;
 const DLLVER_PLATFORM_NT      = 0x00000002;

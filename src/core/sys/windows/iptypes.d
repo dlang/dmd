@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.iptypes;
+module core.sys.windows.iptypes;
 
-import win32.windef;
+import core.sys.windows.windef;
 version(Tango){
     private import tango.stdc.time;
 }else{

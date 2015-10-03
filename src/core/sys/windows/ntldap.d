@@ -8,7 +8,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ntldap;
+module core.sys.windows.ntldap;
 
 /*	TOTHINKABOUT: These constants don't have ANSI/Unicode versioned
  *	aliases.  Should we merge them anyway?

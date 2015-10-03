@@ -11,16 +11,16 @@
 // # why is "alias IPSFactoryBuffer* LPPSFACTORYBUFFER;" in this file,
 // rather than in objfwd ?
 // # do we need the proxies that are defined in this file?
-module win32.objidl;
+module core.sys.windows.objidl;
 
-import win32.unknwn;
-import win32.objfwd;
-private import win32.windef;
-private import win32.basetyps;
-private import win32.oleidl;
-private import win32.wtypes;
-private import win32.winbase; // for FILETIME
-private import win32.rpcdce;
+import core.sys.windows.unknwn;
+import core.sys.windows.objfwd;
+private import core.sys.windows.windef;
+private import core.sys.windows.basetyps;
+private import core.sys.windows.oleidl;
+private import core.sys.windows.wtypes;
+private import core.sys.windows.winbase; // for FILETIME
+private import core.sys.windows.rpcdce;
 
 struct  STATSTG {
 	LPOLESTR pwcsName;

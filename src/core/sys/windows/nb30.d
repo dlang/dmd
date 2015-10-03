@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.nb30;
+module core.sys.windows.nb30;
 
-private import win32.windef;
+private import core.sys.windows.windef;
 
 const size_t
 	NCBNAMSZ =  16,

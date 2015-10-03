@@ -7,14 +7,14 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.commctrl;
+module core.sys.windows.commctrl;
 pragma(lib, "comctl32");
 
-private import win32.w32api, win32.windef, win32.winuser;
-private import win32.winbase; // for SYSTEMTIME
-private import win32.objfwd;  // for LPSTREAM
+private import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.winuser;
+private import core.sys.windows.winbase; // for SYSTEMTIME
+private import core.sys.windows.objfwd;  // for LPSTREAM
 
-import win32.prsht;
+import core.sys.windows.prsht;
 
 const COMCTL32_VERSION = 6;
 

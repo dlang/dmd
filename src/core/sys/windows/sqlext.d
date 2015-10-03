@@ -7,7 +7,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.sqlext;
+module core.sys.windows.sqlext;
 
 /* Conversion notes:
    The MinGW file was a horrible mess. All of the #defines were sorted alphabetically,
@@ -16,8 +16,8 @@ module win32.sqlext;
    creating a circular dependency!
 */
 
-public import win32.sql;
-private import win32.windef;
+public import core.sys.windows.sql;
+private import core.sys.windows.windef;
 
 const SQL_SPEC_MAJOR = 3;
 const SQL_SPEC_MINOR = 51;

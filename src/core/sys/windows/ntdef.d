@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ntdef;
+module core.sys.windows.ntdef;
 
-private import win32.basetsd, win32.subauth, win32.windef, win32.winnt;
+private import core.sys.windows.basetsd, core.sys.windows.subauth, core.sys.windows.windef, core.sys.windows.winnt;
 
 const uint
 	OBJ_INHERIT          = 0x0002,

@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmat;
+module core.sys.windows.lmat;
 pragma(lib, "netapi32");
 
-private import win32.lmcons, win32.windef;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 const JOB_RUN_PERIODICALLY = 1;
 const JOB_EXEC_ERROR       = 2;

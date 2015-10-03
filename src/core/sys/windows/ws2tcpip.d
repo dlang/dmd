@@ -8,13 +8,13 @@
 *                       Placed into public domain                       *
 \***********************************************************************/
 
-module win32.ws2tcpip;
+module core.sys.windows.ws2tcpip;
 
-import win32.w32api;
-//import win32.winbase;
-import win32.windef;
-//import win32.basetyps;
-import win32.winsock2;
+import core.sys.windows.w32api;
+//import core.sys.windows.winbase;
+import core.sys.windows.windef;
+//import core.sys.windows.basetyps;
+import core.sys.windows.winsock2;
 
 enum {
 	IP_OPTIONS					= 1,

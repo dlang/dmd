@@ -7,7 +7,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.tmschema;
+module core.sys.windows.tmschema;
 
 /* BUTTON parts */
 enum {

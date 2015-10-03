@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lzexpand;
+module core.sys.windows.lzexpand;
 pragma(lib, "lz32");
 
-private import win32.winbase, win32.windef;
+private import core.sys.windows.winbase, core.sys.windows.windef;
 
 enum : LONG {
 	LZERROR_BADINHANDLE  = -1,

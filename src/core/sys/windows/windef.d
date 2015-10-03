@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.windef;
+module core.sys.windows.windef;
 
-public import win32.winnt;
-private import win32.w32api;
+public import core.sys.windows.winnt;
+private import core.sys.windows.w32api;
 
 const size_t MAX_PATH = 260;
 

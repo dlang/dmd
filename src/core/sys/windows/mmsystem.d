@@ -7,14 +7,14 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.mmsystem;
+module core.sys.windows.mmsystem;
 pragma(lib, "winmm");
 
 /*	The #defines MAKEFOURCC, mmioFOURCC, sndAlias are used to define
  *	compile-time constants, so they are implemented as templates.
  */
 
-private import win32.w32api, win32.windef, win32.winver;
+private import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.winver;
 
 align(1):
 

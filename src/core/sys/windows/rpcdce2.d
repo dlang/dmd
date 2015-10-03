@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.rpcdce2;
+module core.sys.windows.rpcdce2;
 
-import win32.rpcdce;
-private import win32.basetyps;
+import core.sys.windows.rpcdce;
+private import core.sys.windows.basetyps;
 
 // FIXME: deal with RPC_UNICODE_SUPPORTED
 // FIXME: check types of constants

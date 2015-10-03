@@ -8,9 +8,9 @@
 *                       Placed into public domain                       *
 \***********************************************************************/
 // COMMENT: This file may be deprecated.
-module win32.lmaudit;
+module core.sys.windows.lmaudit;
 
-private import win32.lmcons, win32.windef;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 const LOGFLAGS_FORWARD  = 0;
 const LOGFLAGS_BACKWARD = 1;

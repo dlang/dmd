@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.nspapi;
+module core.sys.windows.nspapi;
 
-private import win32.basetyps, win32.windef;
+private import core.sys.windows.basetyps, core.sys.windows.windef;
 
 // FIXME: check types of constants
 
@@ -51,9 +51,9 @@ enum {
  *	being included.  But that doesn't translate well into D.
  */
 version (Win32_Winsock1) {
-	import win32.winsock;
+	import core.sys.windows.winsock;
 } else {
-	import win32.winsock2;
+	import core.sys.windows.winsock2;
 }
 
 struct SOCKET_ADDRESS {

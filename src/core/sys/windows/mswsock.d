@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.mswsock;
+module core.sys.windows.mswsock;
 
-import win32.winbase, win32.windef;
-private import win32.basetyps, win32.w32api;
+import core.sys.windows.winbase, core.sys.windows.windef;
+private import core.sys.windows.basetyps, core.sys.windows.w32api;
 
 // FIXME: clean up Windows version support
 
@@ -21,9 +21,9 @@ version (Win32_Winsock2) pragma(msg,
 // Pull in Winsock1 if the user has put "Win32_Winsock1" on the compile
 // line; otherwise, default to Winsock2.
 version (Win32_Winsock1) {
-	import win32.winsock;
+	import core.sys.windows.winsock;
 } else {
-	import win32.winsock2;
+	import core.sys.windows.winsock2;
 }
 
 //static if (_WIN32_WINNT >= 0x500) {

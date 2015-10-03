@@ -12,11 +12,11 @@
  *   http://windowssdk.msdn.microsoft.com/library/ms684884.aspx
  */
 
-module win32.psapi;
+module core.sys.windows.psapi;
 
-private import win32.w32api;
-private import win32.winbase;
-private import win32.windef;
+private import core.sys.windows.w32api;
+private import core.sys.windows.winbase;
+private import core.sys.windows.windef;
 
 struct MODULEINFO {
 	LPVOID lpBaseOfDll;

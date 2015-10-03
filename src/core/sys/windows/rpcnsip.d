@@ -7,9 +7,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.rpcnsip;
+module core.sys.windows.rpcnsip;
 
-private import win32.rpcdce, win32.rpcdcep, win32.rpcnsi;
+private import core.sys.windows.rpcdce, core.sys.windows.rpcdcep, core.sys.windows.rpcnsi;
 
 struct RPC_IMPORT_CONTEXT_P {
 	RPC_NS_HANDLE       LookupContext;

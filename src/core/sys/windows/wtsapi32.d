@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.wtsapi32;
+module core.sys.windows.wtsapi32;
 pragma(lib, "wtsapi32");
-private import win32.w32api;
-import win32.windef;
+private import core.sys.windows.w32api;
+import core.sys.windows.windef;
 
 enum {
 	WTS_CURRENT_SERVER        = null,

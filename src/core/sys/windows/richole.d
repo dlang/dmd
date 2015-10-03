@@ -7,11 +7,11 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.richole;
+module core.sys.windows.richole;
 
-private import win32.objfwd, win32.objidl, win32.ole2, win32.unknwn,
-  win32.windef;
-private import win32.richedit; // for CHARRANGE
+private import core.sys.windows.objfwd, core.sys.windows.objidl, core.sys.windows.ole2, core.sys.windows.unknwn,
+  core.sys.windows.windef;
+private import core.sys.windows.richedit; // for CHARRANGE
 
 align(4):
 

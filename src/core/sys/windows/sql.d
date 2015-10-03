@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.sql;
+module core.sys.windows.sql;
 
-public import win32.sqltypes;
-private import win32.windef;
+public import core.sys.windows.sqltypes;
+private import core.sys.windows.windef;
 
 const ODBCVER = 0x0351;
 

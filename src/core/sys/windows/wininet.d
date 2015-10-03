@@ -8,12 +8,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.wininet;
+module core.sys.windows.wininet;
 pragma(lib, "wininet");
 
 // FIXME: check types and grouping of constants
 
-import win32.windows;
+import core.sys.windows.windows;
 
 enum {
 	INTERNET_INVALID_PORT_NUMBER =    0,

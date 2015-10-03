@@ -8,12 +8,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.errorrep;
+module core.sys.windows.errorrep;
 
-private import win32.w32api, win32.windef;
+private import core.sys.windows.w32api, core.sys.windows.windef;
 
 static assert (_WIN32_WINNT >= 0x501,
-	"win32.errorrep is available only if version WindowsXP, Windows2003 "
+	"core.sys.windows.errorrep is available only if version WindowsXP, Windows2003 "
 	"or WindowsVista is set");
 
 enum EFaultRepRetVal {

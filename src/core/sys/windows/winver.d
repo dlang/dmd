@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.winver;
+module core.sys.windows.winver;
 pragma(lib, "version");
 
-private import win32.windef;
+private import core.sys.windows.windef;
 
 // FIXME: type weirdness
 enum {

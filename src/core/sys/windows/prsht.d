@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.prsht;
+module core.sys.windows.prsht;
 pragma(lib, "comctl32");
 
-private import win32.w32api, win32.windef, win32.winuser;
+private import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.winuser;
 
 const MAXPROPPAGES = 100;
 

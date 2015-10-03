@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.iprtrmib;
+module core.sys.windows.iprtrmib;
 
-import win32.ipifcons;
-private import win32.windef;
+import core.sys.windows.ipifcons;
+private import core.sys.windows.windef;
 
 // FIXME: check types of constants
 

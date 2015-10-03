@@ -7,9 +7,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmbrowsr;
+module core.sys.windows.lmbrowsr;
 
-private import win32.lmcons, win32.windef;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 const BROWSER_ROLE_PDC = 1;
 const BROWSER_ROLE_BDC = 2;

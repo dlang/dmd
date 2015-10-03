@@ -8,7 +8,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.winber;
+module core.sys.windows.winber;
 
 /* Comment from MinGW
   winber.h - Header file for the Windows LDAP Basic Encoding Rules API
@@ -27,7 +27,7 @@ module win32.winber;
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
- import win32.basetsd;
+ import core.sys.windows.basetsd;
  
 /* Opaque structure
  *	http://msdn.microsoft.com/library/en-us/ldap/ldap/berelement.asp

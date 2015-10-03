@@ -8,11 +8,11 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.comcat;
+module core.sys.windows.comcat;
 
-import win32.windows, win32.ole2;
-private import win32.basetyps, win32.cguid, win32.objbase, win32.unknwn,
-  win32.windef, win32.wtypes;
+import core.sys.windows.windows, core.sys.windows.ole2;
+private import core.sys.windows.basetyps, core.sys.windows.cguid, core.sys.windows.objbase, core.sys.windows.unknwn,
+  core.sys.windows.windef, core.sys.windows.wtypes;
 
 alias IEnumGUID LPENUMGUID;
 

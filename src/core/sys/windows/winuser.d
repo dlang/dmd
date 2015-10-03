@@ -7,7 +7,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.winuser;
+module core.sys.windows.winuser;
 pragma(lib, "user32");
 
 // Conversion Notes:
@@ -20,8 +20,8 @@ pragma(lib, "user32");
 //#define GetWindowTask(hWnd) ((HANDLE)GetWindowThreadProcessId(hWnd, NULL))
 //#define DefHookProc(c, p, lp, h) CallNextHookEx((HHOOK)*h, c, p, lp)
 
-private import win32.w32api, win32.winbase, win32.wingdi;
-private import win32.windef; // for HMONITOR
+private import core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.wingdi;
+private import core.sys.windows.windef; // for HMONITOR
 
 // FIXME: clean up Windows version support
 

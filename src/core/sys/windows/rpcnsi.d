@@ -8,12 +8,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.rpcnsi;
+module core.sys.windows.rpcnsi;
 pragma(lib, "rpcns4");
 
-private import win32.basetyps, win32.rpcdcep, win32.rpcnsi, win32.rpcdce,
-  win32.w32api;
-private import win32.windef;  // for HANDLE
+private import core.sys.windows.basetyps, core.sys.windows.rpcdcep, core.sys.windows.rpcnsi, core.sys.windows.rpcdce,
+  core.sys.windows.w32api;
+private import core.sys.windows.windef;  // for HANDLE
 
 mixin DECLARE_HANDLE!("RPC_NS_HANDLE");
 

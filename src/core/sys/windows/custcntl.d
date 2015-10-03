@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.custcntl;
+module core.sys.windows.custcntl;
 
-private import win32.windef;
+private import core.sys.windows.windef;
 
 // FIXME: check type
 const CCF_NOTEXT = 1;

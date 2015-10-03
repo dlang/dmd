@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.accctrl;
+module core.sys.windows.accctrl;
 
-private import win32.basetyps, win32.w32api, win32.winbase, win32.windef;
+private import core.sys.windows.basetyps, core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
 
 // FIXME: check types and grouping of constants
 // FIXME: check Windows version support

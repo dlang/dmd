@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.mciavi;
+module core.sys.windows.mciavi;
 
-private import win32.mmsystem;
+private import core.sys.windows.mmsystem;
 
 // FIXME: check types and grouping of constants
 

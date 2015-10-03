@@ -8,12 +8,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.reason;
+module core.sys.windows.reason;
 
-private import win32.w32api, win32.windef;
+private import core.sys.windows.w32api, core.sys.windows.windef;
 
 static assert (_WIN32_WINNT >= 0x501,
-  "win32.reason is only available on WindowsXP and later");
+  "core.sys.windows.reason is only available on WindowsXP and later");
 
 
 enum : DWORD {

@@ -7,17 +7,17 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.olectl;
+module core.sys.windows.olectl;
 
 // In conversion from MinGW, the following was deleted:
 //#define FONTSIZE(n) {n##0000, 0}
 
-import win32.ocidl, win32.olectlid;
-private import win32.basetyps, win32.oaidl, win32.oleauto, win32.unknwn,
-  win32.windef, win32.wingdi, win32.winuser, win32.wtypes;
-private import win32.ntdef;     // for NTSTATUS
-private import win32.objfwd;    // for LPSTREAM
-private import win32.winerror;  // for SCODE
+import core.sys.windows.ocidl, core.sys.windows.olectlid;
+private import core.sys.windows.basetyps, core.sys.windows.oaidl, core.sys.windows.oleauto, core.sys.windows.unknwn,
+  core.sys.windows.windef, core.sys.windows.wingdi, core.sys.windows.winuser, core.sys.windows.wtypes;
+private import core.sys.windows.ntdef;     // for NTSTATUS
+private import core.sys.windows.objfwd;    // for LPSTREAM
+private import core.sys.windows.winerror;  // for SCODE
 
 
 private {

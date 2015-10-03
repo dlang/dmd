@@ -7,11 +7,11 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-// Don't include this file directly, use win32.security instead.
-module win32.secext;
+// Don't include this file directly, use core.sys.windows.security instead.
+module core.sys.windows.secext;
 pragma(lib, "secur32");
 
-private import win32.w32api, win32.windef;
+private import core.sys.windows.w32api, core.sys.windows.windef;
 
 static assert (_WIN32_WINNT >= 0x501,
   "SecExt is only available on WindowsXP and later");

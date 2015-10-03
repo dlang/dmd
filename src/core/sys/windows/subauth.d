@@ -7,9 +7,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.subauth;
+module core.sys.windows.subauth;
 
-private import win32.ntdef, win32.windef;
+private import core.sys.windows.ntdef, core.sys.windows.windef;
 
 /+
 alias LONG NTSTATUS;

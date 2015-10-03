@@ -7,7 +7,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.windows;
+module core.sys.windows.windows;
 
 /*
 	windows.h - main header file for the Win32 API
@@ -22,33 +22,33 @@ module win32.windows;
 
 */
 
-public import win32.w32api;
-public import win32.core;
+public import core.sys.windows.w32api;
+public import core.sys.windows.core;
 
-public import win32.cderr;
-public import win32.dde;
-public import win32.ddeml;
-public import win32.dlgs;
-public import win32.imm;
-public import win32.lzexpand;
-public import win32.mmsystem;
-public import win32.nb30;
-public import win32.winsvc;
+public import core.sys.windows.cderr;
+public import core.sys.windows.dde;
+public import core.sys.windows.ddeml;
+public import core.sys.windows.dlgs;
+public import core.sys.windows.imm;
+public import core.sys.windows.lzexpand;
+public import core.sys.windows.mmsystem;
+public import core.sys.windows.nb30;
+public import core.sys.windows.winsvc;
 
-public import win32.rpc;
-public import win32.shellapi;
-public import win32.winperf;
-public import win32.commdlg;
-public import win32.winspool;
-public import win32.ole2;
+public import core.sys.windows.rpc;
+public import core.sys.windows.shellapi;
+public import core.sys.windows.winperf;
+public import core.sys.windows.commdlg;
+public import core.sys.windows.winspool;
+public import core.sys.windows.ole2;
 
 // Select correct version of winsock.  Importing the incorrect
 // module will cause a static assert to prevent problems later on.
 version (Win32_Winsock1) {
-	public import win32.winsock;
+	public import core.sys.windows.winsock;
 } else {
-	public import win32.winsock2;
-	public import win32.ws2tcpip;
+	public import core.sys.windows.winsock2;
+	public import core.sys.windows.ws2tcpip;
 }
 
 /+

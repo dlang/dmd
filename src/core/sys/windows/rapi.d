@@ -8,14 +8,14 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.rapi;
+module core.sys.windows.rapi;
 
 /* Comment from MinGW
    NOTE: This strictly does not belong in the Win32 API since it's
    really part of Platform SDK.
  */
 
-private import win32.winbase, win32.windef;
+private import core.sys.windows.winbase, core.sys.windows.windef;
 
 extern (Windows):
 

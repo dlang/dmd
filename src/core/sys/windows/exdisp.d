@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.exdisp;
+module core.sys.windows.exdisp;
 
-import win32.docobj, win32.oaidl, win32.ocidl;
-private import win32.basetyps, win32.windef, win32.wtypes;
+import core.sys.windows.docobj, core.sys.windows.oaidl, core.sys.windows.ocidl;
+private import core.sys.windows.basetyps, core.sys.windows.windef, core.sys.windows.wtypes;
 
 
 enum BrowserNavConstants {

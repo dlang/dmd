@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmapibuf;
+module core.sys.windows.lmapibuf;
 pragma(lib, "netapi32");
 
-private import win32.lmcons, win32.windef;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 extern (Windows) {
 	NET_API_STATUS NetApiBufferAllocate(DWORD, PVOID*);

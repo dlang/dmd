@@ -7,17 +7,17 @@
 *                       Placed into public domain                       *
 \***********************************************************************/
 
-module win32.vfw;
+module core.sys.windows.vfw;
 pragma(lib, "vfw32");
 
 private import
-	win32.commdlg,
-	win32.wingdi,
-	win32.mmsystem,
-	win32.unknwn,
-	win32.w32api,
-	win32.windef,
-	win32.winuser;
+	core.sys.windows.commdlg,
+	core.sys.windows.wingdi,
+	core.sys.windows.mmsystem,
+	core.sys.windows.unknwn,
+	core.sys.windows.w32api,
+	core.sys.windows.windef,
+	core.sys.windows.winuser;
 
 extern(Windows) {
 	DWORD VideoForWindowsVersion();

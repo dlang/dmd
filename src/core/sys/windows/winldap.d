@@ -8,7 +8,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.winldap;
+module core.sys.windows.winldap;
 
 /* Comment from MinGW
   winldap.h - Header file for the Windows LDAP API
@@ -27,8 +27,8 @@ module win32.winldap;
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-import win32.schannel, win32.winber;
-private import win32.wincrypt, win32.windef;
+import core.sys.windows.schannel, core.sys.windows.winber;
+private import core.sys.windows.wincrypt, core.sys.windows.windef;
 version(Tango){
     private import tango.stdc.stdio;
 }

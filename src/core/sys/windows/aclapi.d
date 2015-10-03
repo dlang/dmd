@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.aclapi;
+module core.sys.windows.aclapi;
 pragma(lib, "advapi32");
 
-import win32.windows, win32.accctrl;
+import core.sys.windows.windows, core.sys.windows.accctrl;
 
 extern (Windows) {
 	VOID BuildExplicitAccessWithNameA(PEXPLICIT_ACCESS_A, LPSTR, DWORD,

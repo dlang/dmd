@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmalert;
+module core.sys.windows.lmalert;
 pragma(lib, "netapi32");
 
-private import win32.lmcons, win32.windef;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 const TCHAR[]
 	ALERTER_MAILSLOT     = `\\.\MAILSLOT\Alerter`,

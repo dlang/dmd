@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.wincrypt;
+module core.sys.windows.wincrypt;
 
-private import win32.w32api, win32.winbase, win32.windef;
+private import core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
 
 /* FIXME:
  *	Types of some constants

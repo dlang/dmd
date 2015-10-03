@@ -8,14 +8,14 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.sspi;
+module core.sys.windows.sspi;
 
-import win32.windef;
-import win32.ntdef;
-import win32.w32api;
-import win32.security;
-import win32.ntsecapi;
-import win32.subauth;
+import core.sys.windows.windef;
+import core.sys.windows.ntdef;
+import core.sys.windows.w32api;
+import core.sys.windows.security;
+import core.sys.windows.ntsecapi;
+import core.sys.windows.subauth;
 
 enum :ULONG{
     SECPKG_CRED_INBOUND = 1,

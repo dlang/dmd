@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ntdll;
+module core.sys.windows.ntdll;
 
-private import win32.w32api;
+private import core.sys.windows.w32api;
 
 
 enum SHUTDOWN_ACTION {

@@ -8,13 +8,13 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ocidl;
+module core.sys.windows.ocidl;
 
-private import win32.ole2, win32.oleidl, win32.oaidl, win32.objfwd,
-  win32.windef, win32.wtypes;
-private import win32.objidl;  // for CLIPFORMAT
-private import win32.wingdi;  // for TEXTMETRICW
-private import win32.winuser; // for LPMSG
+private import core.sys.windows.ole2, core.sys.windows.oleidl, core.sys.windows.oaidl, core.sys.windows.objfwd,
+  core.sys.windows.windef, core.sys.windows.wtypes;
+private import core.sys.windows.objidl;  // for CLIPFORMAT
+private import core.sys.windows.wingdi;  // for TEXTMETRICW
+private import core.sys.windows.winuser; // for LPMSG
 
 interface IBindHost : IUnknown {}
 
@@ -24,10 +24,10 @@ interface IServiceProvider : IUnknown{
 
 /*
 // TODO:
-//private import win32.servprov; // for IServiceProvider
-// private import win32.urlmon; // for IBindHost. This is not included in MinGW.
+//private import core.sys.windows.servprov; // for IServiceProvider
+// private import core.sys.windows.urlmon; // for IBindHost. This is not included in MinGW.
 
-// win32.urlmon should contain:
+// core.sys.windows.urlmon should contain:
 interface IBindHost : IUnknown
 {
 	HRESULT CreateMoniker(LPOLESTR szName, IBindCtx pBC, IMoniker* ppmk, DWORD);

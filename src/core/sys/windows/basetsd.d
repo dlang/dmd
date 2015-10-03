@@ -8,7 +8,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.basetsd;
+module core.sys.windows.basetsd;
 
 /*	This template is used in these modules to declare constant pointer types,
  *	in order to support both D 1.x and 2.x.

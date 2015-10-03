@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.winsvc;
+module core.sys.windows.winsvc;
 pragma(lib, "advapi32");
 
-private import win32.w32api, win32.windef;
+private import core.sys.windows.w32api, core.sys.windows.windef;
 
 // FIXME: check Windows version support
 

@@ -8,7 +8,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.imagehlp;
+module core.sys.windows.imagehlp;
 
 /* Comment from MinGW
 	NOTE: This strictly does not belong in the Win32 API since it's
@@ -16,7 +16,7 @@ module win32.imagehlp;
 	as well provide it here.
 */
 
-private import win32.winbase, win32.windef;
+private import core.sys.windows.winbase, core.sys.windows.windef;
 
 // FIXME: check types of constants
 

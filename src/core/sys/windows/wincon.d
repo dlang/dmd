@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.wincon;
+module core.sys.windows.wincon;
 pragma(lib, "kernel32");
 
-private import win32.w32api, win32.windef;
+private import core.sys.windows.w32api, core.sys.windows.windef;
 
 // FIXME: clean up Windows version support
 

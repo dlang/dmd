@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.richedit;
+module core.sys.windows.richedit;
 
-private import win32.windef, win32.winuser;
-private import win32.wingdi; // for LF_FACESIZE
+private import core.sys.windows.windef, core.sys.windows.winuser;
+private import core.sys.windows.wingdi; // for LF_FACESIZE
 
 align(4):
 

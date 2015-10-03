@@ -8,12 +8,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.setupapi;
+module core.sys.windows.setupapi;
 pragma(lib, "setupapi");
 
-private import win32.basetyps, win32.commctrl, win32.prsht, win32.w32api,
-  win32.winreg, win32.windef;
-private import win32.winbase; // for SYSTEMTIME
+private import core.sys.windows.basetyps, core.sys.windows.commctrl, core.sys.windows.prsht, core.sys.windows.w32api,
+  core.sys.windows.winreg, core.sys.windows.windef;
+private import core.sys.windows.winbase; // for SYSTEMTIME
 
 /*static if(_WIN32_WINNT < _WIN32_WINDOWS) {
 	const UINT _SETUPAPI_VER = _WIN32_WINNT; // SetupAPI version follows Windows NT version

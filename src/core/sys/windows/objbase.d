@@ -7,12 +7,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.objbase;
+module core.sys.windows.objbase;
 pragma(lib, "ole32");
 
-import win32.cguid, win32.objidl, win32.unknwn, win32.wtypes;
-private import win32.basetyps, win32.objfwd, win32.rpcdce, win32.winbase,
-  win32.windef;
+import core.sys.windows.cguid, core.sys.windows.objidl, core.sys.windows.unknwn, core.sys.windows.wtypes;
+private import core.sys.windows.basetyps, core.sys.windows.objfwd, core.sys.windows.rpcdce, core.sys.windows.winbase,
+  core.sys.windows.windef;
 
 // DAC: Not needed for D?
 //MACRO #define LISet32(li, v) ((li).HighPart=(v)<0?-1:0, (li).LowPart=(v))

@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.cpl;
+module core.sys.windows.cpl;
 
-private import win32.windef, win32.winuser;
+private import core.sys.windows.windef, core.sys.windows.winuser;
 
 enum : uint {
 	WM_CPL_LAUNCH = WM_USER + 1000,

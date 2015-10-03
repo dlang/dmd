@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.schannel;
+module core.sys.windows.schannel;
 
-import win32.wincrypt;
-private import win32.windef;
+import core.sys.windows.wincrypt;
+private import core.sys.windows.windef;
 
 const DWORD SCHANNEL_CRED_VERSION = 4;
 const SCHANNEL_SHUTDOWN           = 1;

@@ -7,11 +7,11 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmconfig;
+module core.sys.windows.lmconfig;
 
 // All functions in this file are deprecated!
 
-private import win32.lmcons, win32.windef;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 deprecated {
 	struct CONFIG_INFO_0 {

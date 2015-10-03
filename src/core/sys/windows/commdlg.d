@@ -7,12 +7,12 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.commdlg;
+module core.sys.windows.commdlg;
 pragma(lib, "comdlg32");
 
-private import win32.w32api;
-import win32.windef, win32.winuser;
-import win32.wingdi; // for LPLOGFONTA
+private import core.sys.windows.w32api;
+import core.sys.windows.windef, core.sys.windows.winuser;
+import core.sys.windows.wingdi; // for LPLOGFONTA
 
 const TCHAR[]
 	LBSELCHSTRING = "commdlg_LBSelChangedNotify",
@@ -565,8 +565,8 @@ struct PRINTDLGW {
 alias PRINTDLGW* LPPRINTDLGW;
 
 //static if (_WIN32_WINNT >= 0x500) {
-	import win32.unknwn; // for LPUNKNOWN
-	import win32.prsht;  // for HPROPSHEETPAGE
+	import core.sys.windows.unknwn; // for LPUNKNOWN
+	import core.sys.windows.prsht;  // for HPROPSHEETPAGE
 
 	struct PRINTPAGERANGE {
 		DWORD  nFromPage;

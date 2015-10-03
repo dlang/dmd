@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ipexport;
+module core.sys.windows.ipexport;
 
-private import win32.windef;
+private import core.sys.windows.windef;
 
 const size_t MAX_ADAPTER_NAME = 128;
 

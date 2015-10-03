@@ -8,9 +8,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ole;
+module core.sys.windows.ole;
 
-private import win32.windef, win32.wingdi, win32.uuid;
+private import core.sys.windows.windef, core.sys.windows.wingdi, core.sys.windows.uuid;
 
 alias LPCSTR OLE_LPCSTR;
 

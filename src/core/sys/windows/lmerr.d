@@ -7,9 +7,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.lmerr;
+module core.sys.windows.lmerr;
 
-import win32.winerror;
+import core.sys.windows.winerror;
 
 enum {
 	NERR_Success                      = 0,

@@ -7,18 +7,18 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.shlobj;
+module core.sys.windows.shlobj;
 pragma(lib, "shell32");
 
 // TODO: fix bitfields
 // TODO: CMIC_VALID_SEE_FLAGS
 // SHGetFolderPath in shfolder.dll on W9x, NT4, also in shell32.dll on W2K
 
-import win32.commctrl, win32.ole2, win32.shlguid, win32.shellapi;
-private import win32.prsht, win32.unknwn, win32.w32api, win32.winbase,
-  win32.winnt, win32.winuser, win32.wtypes, win32.objfwd, win32.objidl;
-private import win32.winnetwk; // for NETRESOURCE
-private import win32.oaidl : VARIANT;
+import core.sys.windows.commctrl, core.sys.windows.ole2, core.sys.windows.shlguid, core.sys.windows.shellapi;
+private import core.sys.windows.prsht, core.sys.windows.unknwn, core.sys.windows.w32api, core.sys.windows.winbase,
+  core.sys.windows.winnt, core.sys.windows.winuser, core.sys.windows.wtypes, core.sys.windows.objfwd, core.sys.windows.objidl;
+private import core.sys.windows.winnetwk; // for NETRESOURCE
+private import core.sys.windows.oaidl : VARIANT;
 
 
 // FIXME: clean up Windows version support

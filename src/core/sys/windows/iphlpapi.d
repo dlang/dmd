@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.iphlpapi;
+module core.sys.windows.iphlpapi;
 
-import win32.ipexport, win32.iprtrmib, win32.iptypes;
-private import win32.winbase, win32.windef;
+import core.sys.windows.ipexport, core.sys.windows.iprtrmib, core.sys.windows.iptypes;
+private import core.sys.windows.winbase, core.sys.windows.windef;
 
 extern (Windows) {
 	DWORD AddIPAddress(IPAddr, IPMask, DWORD, PULONG, PULONG);

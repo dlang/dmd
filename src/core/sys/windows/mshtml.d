@@ -7,10 +7,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.mshtml;
+module core.sys.windows.mshtml;
 
-private import win32.basetyps, win32.oaidl, win32.unknwn,
-  win32.windef, win32.wtypes;
+private import core.sys.windows.basetyps, core.sys.windows.oaidl, core.sys.windows.unknwn,
+  core.sys.windows.windef, core.sys.windows.wtypes;
 
 // These are used in this file, but not defined in MinGW.
 interface IHTMLStyleSheet {};

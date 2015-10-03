@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.rasdlg;
+module core.sys.windows.rasdlg;
 
-import win32.ras;
-private import win32.lmcons, win32.windef;
+import core.sys.windows.ras;
+private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 enum {
 	RASPBDEVENT_AddEntry = 1,

@@ -7,14 +7,14 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.rpcdce;
+module core.sys.windows.rpcdce;
 pragma(lib, "Rpcrt4");
 
 // TODO: I think MinGW got this wrong. RPC_UNICODE_SUPPORTED should be
 // replaced aliases for version(Unicode)
 
-public import win32.rpcdcep;
-private import win32.basetyps, win32.w32api, win32.windef;
+public import core.sys.windows.rpcdcep;
+private import core.sys.windows.basetyps, core.sys.windows.w32api, core.sys.windows.windef;
 
 // FIXME: clean up Windows version support
 

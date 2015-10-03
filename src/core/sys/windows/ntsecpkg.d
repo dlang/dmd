@@ -8,11 +8,11 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ntsecpkg;
+module core.sys.windows.ntsecpkg;
 
-import win32.windef, win32.ntsecapi, win32.security, win32.ntdef, win32.sspi;
-import win32.winnt: GUID;
-import win32.winbase;
+import core.sys.windows.windef, core.sys.windows.ntsecapi, core.sys.windows.security, core.sys.windows.ntdef, core.sys.windows.sspi;
+import core.sys.windows.winnt: GUID;
+import core.sys.windows.winbase;
 
 extern(Windows):
 

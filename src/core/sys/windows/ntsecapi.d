@@ -8,10 +8,10 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.ntsecapi;
+module core.sys.windows.ntsecapi;
 
 private import
-  win32.basetyps, win32.ntdef, win32.windef, win32.winnt, win32.w32api;
+  core.sys.windows.basetyps, core.sys.windows.ntdef, core.sys.windows.windef, core.sys.windows.winnt, core.sys.windows.w32api;
 
 // FIXME: check types and grouping of constants
 // FIXME: check Windows version support

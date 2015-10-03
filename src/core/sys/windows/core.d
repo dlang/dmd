@@ -5,7 +5,7 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.core;
+module core.sys.windows.core;
 
 /**
  The core Windows API functions.
@@ -18,13 +18,13 @@ module win32.core;
 
 */
 
-public import win32.windef;
-public import win32.winnt;
-public import win32.wincon;
-public import win32.winbase;
-public import win32.wingdi;
-public import win32.winuser;
-public import win32.winnls;
-public import win32.winver;
-public import win32.winnetwk;
-public import win32.winsvc;
+public import core.sys.windows.windef;
+public import core.sys.windows.winnt;
+public import core.sys.windows.wincon;
+public import core.sys.windows.winbase;
+public import core.sys.windows.wingdi;
+public import core.sys.windows.winuser;
+public import core.sys.windows.winnls;
+public import core.sys.windows.winver;
+public import core.sys.windows.winnetwk;
+public import core.sys.windows.winsvc;

@@ -7,11 +7,11 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.oledlg;
+module core.sys.windows.oledlg;
 
-import win32.commdlg, win32.dlgs, win32.ole2, win32.prsht, win32.shellapi,
-  win32.windows;
-private import win32.winbase, win32.objidl, win32.objfwd, win32.winnt;
+import core.sys.windows.commdlg, core.sys.windows.dlgs, core.sys.windows.ole2, core.sys.windows.prsht, core.sys.windows.shellapi,
+  core.sys.windows.windows;
+private import core.sys.windows.winbase, core.sys.windows.objidl, core.sys.windows.objfwd, core.sys.windows.winnt;
 
 // FIXME: remove inherited methods from interface definitions
 

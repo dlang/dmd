@@ -7,9 +7,9 @@
 *                                                                       *
 *                       Placed into public domain                       *
 \***********************************************************************/
-module win32.sqlucode;
+module core.sys.windows.sqlucode;
 
-private import win32.sqlext;
+private import core.sys.windows.sqlext;
 
 const SQL_WCHAR        = -8;
 const SQL_WVARCHAR     = -9;
