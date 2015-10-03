@@ -9,13 +9,13 @@
 module core.sys.windows.lm;
 /* removed - now supporting only Win2k up
 version (WindowsVista) {
-	version = WIN32_WINNT_ONLY;
+    version = WIN32_WINNT_ONLY;
 } else version (Windows2003) {
-	version = WIN32_WINNT_ONLY;
+    version = WIN32_WINNT_ONLY;
 } else version (WindowsXP) {
-	version = WIN32_WINNT_ONLY;
+    version = WIN32_WINNT_ONLY;
 } else version (WindowsNTonly) {
-	version = WIN32_WINNT_ONLY;
+    version = WIN32_WINNT_ONLY;
 }
 */
 public import core.sys.windows.lmcons;
@@ -34,7 +34,7 @@ public import core.sys.windows.lmserver;
 
 version (Windows2000) {
 } else {
-	public import core.sys.windows.lmmsg;
+    public import core.sys.windows.lmmsg;
 }
 
 // FIXME: Everything in these next files seems to be deprecated!

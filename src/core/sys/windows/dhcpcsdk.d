@@ -23,35 +23,35 @@ const DHCPCAPI_REQUEST_PERSISTENT    = 1;
 const DHCPCAPI_REQUEST_SYNCHRONOUS   = 2;
 
 struct DHCPCAPI_CLASSID {
-	ULONG  Flags;
-	LPBYTE Data;
-	ULONG  nBytesData;
+    ULONG  Flags;
+    LPBYTE Data;
+    ULONG  nBytesData;
 }
 alias DHCPCAPI_CLASSID* PDHCPCAPI_CLASSID, LPDHCPCAPI_CLASSID;
 
 struct DHCPAPI_PARAMS {
-	ULONG  Flags;
-	ULONG  OptionId;
-	BOOL   IsVendor;
-	LPBYTE Data;
-	DWORD  nBytesData;
+    ULONG  Flags;
+    ULONG  OptionId;
+    BOOL   IsVendor;
+    LPBYTE Data;
+    DWORD  nBytesData;
 }
 alias DHCPAPI_PARAMS* PDHCPAPI_PARAMS, LPDHCPAPI_PARAMS;
 
 struct DHCPCAPI_PARAMS_ARRAY {
-	ULONG            nParams;
-	LPDHCPAPI_PARAMS Params;
+    ULONG            nParams;
+    LPDHCPAPI_PARAMS Params;
 }
 alias DHCPCAPI_PARAMS_ARRAY* PDHCPCAPI_PARAMS_ARRAY, LPDHCPCAPI_PARAMS_ARRAY;
 
 extern (Windows) {
-	void DhcpCApiCleanup();
-	DWORD DhcpCApiInitialize(LPDWORD);
-	DWORD DhcpDeRegisterParamChange(DWORD, LPVOID, LPVOID);
-	DWORD DhcpRegisterParamChange(DWORD, LPVOID, PWSTR, LPDHCPCAPI_CLASSID,
-	  DHCPCAPI_PARAMS_ARRAY, LPVOID);
-	DWORD DhcpRemoveDNSRegistrations();
-	DWORD DhcpUndoRequestParams(DWORD, LPVOID, LPWSTR, LPWSTR);
+    void DhcpCApiCleanup();
+    DWORD DhcpCApiInitialize(LPDWORD);
+    DWORD DhcpDeRegisterParamChange(DWORD, LPVOID, LPVOID);
+    DWORD DhcpRegisterParamChange(DWORD, LPVOID, PWSTR, LPDHCPCAPI_CLASSID,
+      DHCPCAPI_PARAMS_ARRAY, LPVOID);
+    DWORD DhcpRemoveDNSRegistrations();
+    DWORD DhcpUndoRequestParams(DWORD, LPVOID, LPWSTR, LPWSTR);
 }
 
 //#endif // (_WIN32_WINNT >= 0x500)

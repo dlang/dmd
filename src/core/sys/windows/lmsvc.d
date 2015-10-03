@@ -114,39 +114,39 @@ const SERVICE_UIC_M_LSA_MACHINE_ACCT = SERVICE2_BASE+1;
 const SERVICE_UIC_M_DATABASE_ERROR = SERVICE2_BASE+2;
 
 struct SERVICE_INFO_0 {
-	LPWSTR svci0_name;
+    LPWSTR svci0_name;
 }
 alias SERVICE_INFO_0* PSERVICE_INFO_0, LPSERVICE_INFO_0;
 
 struct SERVICE_INFO_1 {
-	LPWSTR svci1_name;
-	DWORD svci1_status;
-	DWORD svci1_code;
-	DWORD svci1_pid;
+    LPWSTR svci1_name;
+    DWORD svci1_status;
+    DWORD svci1_code;
+    DWORD svci1_pid;
 }
 alias SERVICE_INFO_1* PSERVICE_INFO_1, LPSERVICE_INFO_1;
 
 struct SERVICE_INFO_2 {
-	LPWSTR svci2_name;
-	DWORD svci2_status;
-	DWORD svci2_code;
-	DWORD svci2_pid;
-	LPWSTR svci2_text;
-	DWORD svci2_specific_error;
-	LPWSTR svci2_display_name;
+    LPWSTR svci2_name;
+    DWORD svci2_status;
+    DWORD svci2_code;
+    DWORD svci2_pid;
+    LPWSTR svci2_text;
+    DWORD svci2_specific_error;
+    LPWSTR svci2_display_name;
 }
 alias SERVICE_INFO_2* PSERVICE_INFO_2, LPSERVICE_INFO_2;
 
 extern (Windows) {
-	deprecated {
-		NET_API_STATUS NetServiceControl(LPCWSTR, LPCWSTR, DWORD, DWORD,
-		  PBYTE*);
-		NET_API_STATUS NetServiceEnum(LPCWSTR, DWORD, PBYTE*, DWORD, PDWORD,
-		  PDWORD, PDWORD);
-		NET_API_STATUS NetServiceGetInfo(LPCWSTR, LPCWSTR, DWORD, PBYTE*);
-		NET_API_STATUS NetServiceInstall(LPCWSTR, LPCWSTR, DWORD, LPCWSTR*,
-		  PBYTE*);
-	}
+    deprecated {
+        NET_API_STATUS NetServiceControl(LPCWSTR, LPCWSTR, DWORD, DWORD,
+          PBYTE*);
+        NET_API_STATUS NetServiceEnum(LPCWSTR, DWORD, PBYTE*, DWORD, PDWORD,
+          PDWORD, PDWORD);
+        NET_API_STATUS NetServiceGetInfo(LPCWSTR, LPCWSTR, DWORD, PBYTE*);
+        NET_API_STATUS NetServiceInstall(LPCWSTR, LPCWSTR, DWORD, LPCWSTR*,
+          PBYTE*);
+    }
 }
 //MACRO #define SERVICE_IP_CODE(t, n) ((long)SERVICE_IP_QUERY_HINT|(long)(n|(t<<SERVICE_IP_WAITTIME_SHIFT)))
 //MACRO #define SERVICE_CCP_CODE(t, n) ((long)SERVICE_CCP_QUERY_HINT|(long)(n|(t<<SERVICE_IP_WAITTIME_SHIFT)))

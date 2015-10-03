@@ -79,14 +79,14 @@ alias UNICODE_STRING* PSECURITY_STRING;
 extern(Windows):
 
 struct SecHandle {
-	ULONG_PTR dwLower;
-	ULONG_PTR dwUpper;
+    ULONG_PTR dwLower;
+    ULONG_PTR dwUpper;
 } 
 alias SecHandle* PSecHandle;
 struct SecBuffer {
-	ULONG cbBuffer;
-	ULONG BufferType;
-	PVOID pvBuffer;
+    ULONG cbBuffer;
+    ULONG BufferType;
+    PVOID pvBuffer;
 } 
 alias SecBuffer* PSecBuffer;
 alias SecHandle CredHandle;
@@ -94,99 +94,99 @@ alias PSecHandle PCredHandle;
 alias SecHandle CtxtHandle;
 alias PSecHandle PCtxtHandle;
 struct SECURITY_INTEGER {
-	uint LowPart;
-	int HighPart;
+    uint LowPart;
+    int HighPart;
 } 
 alias SECURITY_INTEGER TimeStamp;
 alias SECURITY_INTEGER* PTimeStamp;
 struct SecBufferDesc {
-	ULONG ulVersion;
-	ULONG cBuffers;
-	PSecBuffer pBuffers;
+    ULONG ulVersion;
+    ULONG cBuffers;
+    PSecBuffer pBuffers;
 } 
 alias SecBufferDesc* PSecBufferDesc;
 struct SecPkgContext_StreamSizes {
-	ULONG cbHeader;
-	ULONG cbTrailer;
-	ULONG cbMaximumMessage;
-	ULONG cBuffers;
-	ULONG cbBlockSize;
+    ULONG cbHeader;
+    ULONG cbTrailer;
+    ULONG cbMaximumMessage;
+    ULONG cBuffers;
+    ULONG cbBlockSize;
 } 
 alias SecPkgContext_StreamSizes* PSecPkgContext_StreamSizes;
 struct SecPkgContext_Sizes {
-	ULONG cbMaxToken;
-	ULONG cbMaxSignature;
-	ULONG cbBlockSize;
-	ULONG cbSecurityTrailer;
+    ULONG cbMaxToken;
+    ULONG cbMaxSignature;
+    ULONG cbBlockSize;
+    ULONG cbSecurityTrailer;
 } 
 alias SecPkgContext_Sizes* PSecPkgContext_Sizes;
 struct SecPkgContext_AuthorityW {
-	SEC_WCHAR* sAuthorityName;
+    SEC_WCHAR* sAuthorityName;
 } 
 alias SecPkgContext_AuthorityW* PSecPkgContext_AuthorityW;
 struct SecPkgContext_AuthorityA {
-	SEC_CHAR* sAuthorityName;
+    SEC_CHAR* sAuthorityName;
 } 
 alias SecPkgContext_AuthorityA* PSecPkgContext_AuthorityA;
 struct SecPkgContext_KeyInfoW {
-	SEC_WCHAR* sSignatureAlgorithmName;
-	SEC_WCHAR* sEncryptAlgorithmName;
-	ULONG KeySize;
-	ULONG SignatureAlgorithm;
-	ULONG EncryptAlgorithm;
+    SEC_WCHAR* sSignatureAlgorithmName;
+    SEC_WCHAR* sEncryptAlgorithmName;
+    ULONG KeySize;
+    ULONG SignatureAlgorithm;
+    ULONG EncryptAlgorithm;
 } 
 alias SecPkgContext_KeyInfoW* PSecPkgContext_KeyInfoW;
 struct SecPkgContext_KeyInfoA {
-	SEC_CHAR* sSignatureAlgorithmName;
-	SEC_CHAR* sEncryptAlgorithmName;
-	ULONG KeySize;
-	ULONG SignatureAlgorithm;
-	ULONG EncryptAlgorithm;
+    SEC_CHAR* sSignatureAlgorithmName;
+    SEC_CHAR* sEncryptAlgorithmName;
+    ULONG KeySize;
+    ULONG SignatureAlgorithm;
+    ULONG EncryptAlgorithm;
 } 
 alias SecPkgContext_KeyInfoA* PSecPkgContext_KeyInfoA;
 struct SecPkgContext_LifeSpan {
-	TimeStamp tsStart;
-	TimeStamp tsExpiry;
+    TimeStamp tsStart;
+    TimeStamp tsExpiry;
 } 
 alias SecPkgContext_LifeSpan* PSecPkgContext_LifeSpan;
 struct SecPkgContext_NamesW {
-	SEC_WCHAR* sUserName;
+    SEC_WCHAR* sUserName;
 } 
 alias SecPkgContext_NamesW* PSecPkgContext_NamesW;
 struct SecPkgContext_NamesA {
-	SEC_CHAR* sUserName;
+    SEC_CHAR* sUserName;
 } 
 alias SecPkgContext_NamesA* PSecPkgContext_NamesA;
 struct SecPkgInfoW {
-	ULONG fCapabilities;
-	USHORT wVersion;
-	USHORT wRPCID;
-	ULONG cbMaxToken;
-	SEC_WCHAR* Name;
-	SEC_WCHAR* Comment;
+    ULONG fCapabilities;
+    USHORT wVersion;
+    USHORT wRPCID;
+    ULONG cbMaxToken;
+    SEC_WCHAR* Name;
+    SEC_WCHAR* Comment;
 } 
 alias SecPkgInfoW* PSecPkgInfoW;
 struct SecPkgInfoA {
-	ULONG fCapabilities;
-	USHORT wVersion;
-	USHORT wRPCID;
-	ULONG cbMaxToken;
-	SEC_CHAR* Name;
-	SEC_CHAR* Comment;
+    ULONG fCapabilities;
+    USHORT wVersion;
+    USHORT wRPCID;
+    ULONG cbMaxToken;
+    SEC_CHAR* Name;
+    SEC_CHAR* Comment;
 } 
 alias SecPkgInfoA* PSecPkgInfoA;
 /* supported only in win2k+, so it should be a PSecPkgInfoW */
 /* PSDK does not say it has ANSI/Unicode versions */
 struct SecPkgContext_PackageInfo {
-	PSecPkgInfoW PackageInfo;
+    PSecPkgInfoW PackageInfo;
 } 
 alias SecPkgContext_PackageInfo* PSecPkgContext_PackageInfo;
 struct SecPkgCredentials_NamesW {
-	SEC_WCHAR* sUserName;
+    SEC_WCHAR* sUserName;
 } 
 alias SecPkgCredentials_NamesW* PSecPkgCredentials_NamesW;
 struct SecPkgCredentials_NamesA {
-	SEC_CHAR* sUserName;
+    SEC_CHAR* sUserName;
 } 
 alias SecPkgCredentials_NamesA* PSecPkgCredentials_NamesA;
 
@@ -224,26 +224,26 @@ alias SECURITY_STATUS function(PCtxtHandle,PSecBufferDesc,ULONG,PULONG) DECRYPT_
  * http://sourceforge.net/mailarchive/message.php?msg_id=4321080 for a
  * discovery discussion. */
 struct SecurityFunctionTableW{
-	uint dwVersion;
-	ENUMERATE_SECURITY_PACKAGES_FN_W EnumerateSecurityPackagesW;
-	QUERY_CREDENTIALS_ATTRIBUTES_FN_W QueryCredentialsAttributesW;
-	ACQUIRE_CREDENTIALS_HANDLE_FN_W AcquireCredentialsHandleW;
-	FREE_CREDENTIALS_HANDLE_FN FreeCredentialsHandle;
-	void* Reserved2;
-	INITIALIZE_SECURITY_CONTEXT_FN_W InitializeSecurityContextW;
-	ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
-	COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
-	DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
-	APPLY_CONTROL_TOKEN_FN_W ApplyControlTokenW;
-	QUERY_CONTEXT_ATTRIBUTES_FN_W QueryContextAttributesW;
-	IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
-	REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
-	MAKE_SIGNATURE_FN MakeSignature;
-	VERIFY_SIGNATURE_FN VerifySignature;
-	FREE_CONTEXT_BUFFER_FN FreeContextBuffer;
-	QUERY_SECURITY_PACKAGE_INFO_FN_W QuerySecurityPackageInfoW;
-	void* Reserved3;
-	void* Reserved4;
+    uint dwVersion;
+    ENUMERATE_SECURITY_PACKAGES_FN_W EnumerateSecurityPackagesW;
+    QUERY_CREDENTIALS_ATTRIBUTES_FN_W QueryCredentialsAttributesW;
+    ACQUIRE_CREDENTIALS_HANDLE_FN_W AcquireCredentialsHandleW;
+    FREE_CREDENTIALS_HANDLE_FN FreeCredentialsHandle;
+    void* Reserved2;
+    INITIALIZE_SECURITY_CONTEXT_FN_W InitializeSecurityContextW;
+    ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
+    COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
+    DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
+    APPLY_CONTROL_TOKEN_FN_W ApplyControlTokenW;
+    QUERY_CONTEXT_ATTRIBUTES_FN_W QueryContextAttributesW;
+    IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
+    REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
+    MAKE_SIGNATURE_FN MakeSignature;
+    VERIFY_SIGNATURE_FN VerifySignature;
+    FREE_CONTEXT_BUFFER_FN FreeContextBuffer;
+    QUERY_SECURITY_PACKAGE_INFO_FN_W QuerySecurityPackageInfoW;
+    void* Reserved3;
+    void* Reserved4;
     void* Reserved5;
     void* Reserved6;
     void* Reserved7;
@@ -254,26 +254,26 @@ struct SecurityFunctionTableW{
 } 
 alias SecurityFunctionTableW* PSecurityFunctionTableW;
 struct SecurityFunctionTableA{
-	uint dwVersion;
-	ENUMERATE_SECURITY_PACKAGES_FN_A EnumerateSecurityPackagesA;
-	QUERY_CREDENTIALS_ATTRIBUTES_FN_A QueryCredentialsAttributesA;
-	ACQUIRE_CREDENTIALS_HANDLE_FN_A AcquireCredentialsHandleA;
-	FREE_CREDENTIALS_HANDLE_FN FreeCredentialsHandle;
-	void* Reserved2;
-	INITIALIZE_SECURITY_CONTEXT_FN_A InitializeSecurityContextA;
-	ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
-	COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
-	DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
-	APPLY_CONTROL_TOKEN_FN_A ApplyControlTokenA;
-	QUERY_CONTEXT_ATTRIBUTES_FN_A QueryContextAttributesA;
-	IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
-	REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
-	MAKE_SIGNATURE_FN MakeSignature;
-	VERIFY_SIGNATURE_FN VerifySignature;
-	FREE_CONTEXT_BUFFER_FN FreeContextBuffer;
-	QUERY_SECURITY_PACKAGE_INFO_FN_A QuerySecurityPackageInfoA;
-	void* Reserved3;
-	void* Reserved4;
+    uint dwVersion;
+    ENUMERATE_SECURITY_PACKAGES_FN_A EnumerateSecurityPackagesA;
+    QUERY_CREDENTIALS_ATTRIBUTES_FN_A QueryCredentialsAttributesA;
+    ACQUIRE_CREDENTIALS_HANDLE_FN_A AcquireCredentialsHandleA;
+    FREE_CREDENTIALS_HANDLE_FN FreeCredentialsHandle;
+    void* Reserved2;
+    INITIALIZE_SECURITY_CONTEXT_FN_A InitializeSecurityContextA;
+    ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
+    COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
+    DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
+    APPLY_CONTROL_TOKEN_FN_A ApplyControlTokenA;
+    QUERY_CONTEXT_ATTRIBUTES_FN_A QueryContextAttributesA;
+    IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
+    REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
+    MAKE_SIGNATURE_FN MakeSignature;
+    VERIFY_SIGNATURE_FN VerifySignature;
+    FREE_CONTEXT_BUFFER_FN FreeContextBuffer;
+    QUERY_SECURITY_PACKAGE_INFO_FN_A QuerySecurityPackageInfoA;
+    void* Reserved3;
+    void* Reserved4;
     void* Unknown1;
     void* Unknown2;
     void* Unknown3;

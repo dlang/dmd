@@ -49,9 +49,9 @@ alias SQLUSMALLINT SQLSETPOSIROW;
 alias wchar SQLWCHAR;
 
 version(Unicode) {
-	alias SQLWCHAR SQLTCHAR;
+    alias SQLWCHAR SQLTCHAR;
 } else {
-	alias SQLCHAR  SQLTCHAR;
+    alias SQLCHAR  SQLTCHAR;
 }
 //static if (ODBCVER >= 0x0300) {
 alias ubyte  SQLDATE, SQLDECIMAL;
@@ -64,25 +64,25 @@ alias ulong  SQLUBIGINT;
 //}
 
 struct DATE_STRUCT {
-	SQLSMALLINT year;
-	SQLUSMALLINT month;
-	SQLUSMALLINT day;
+    SQLSMALLINT year;
+    SQLUSMALLINT month;
+    SQLUSMALLINT day;
 }
 
 struct TIME_STRUCT {
-	SQLUSMALLINT hour;
-	SQLUSMALLINT minute;
-	SQLUSMALLINT second;
+    SQLUSMALLINT hour;
+    SQLUSMALLINT minute;
+    SQLUSMALLINT second;
 }
 
 struct TIMESTAMP_STRUCT {
-	SQLSMALLINT year;
-	SQLUSMALLINT month;
-	SQLUSMALLINT day;
-	SQLUSMALLINT hour;
-	SQLUSMALLINT minute;
-	SQLUSMALLINT second;
-	SQLUINTEGER fraction;
+    SQLSMALLINT year;
+    SQLUSMALLINT month;
+    SQLUSMALLINT day;
+    SQLUSMALLINT hour;
+    SQLUSMALLINT minute;
+    SQLUSMALLINT second;
+    SQLUINTEGER fraction;
 }
 
 //static if (ODBCVER >= 0x0300) {
@@ -91,51 +91,51 @@ alias TIME_STRUCT SQL_TIME_STRUCT;
 alias TIMESTAMP_STRUCT SQL_TIMESTAMP_STRUCT;
 
 enum SQLINTERVAL {
-	SQL_IS_YEAR = 1,
-	SQL_IS_MONTH,
-	SQL_IS_DAY,
-	SQL_IS_HOUR,
-	SQL_IS_MINUTE,
-	SQL_IS_SECOND,
-	SQL_IS_YEAR_TO_MONTH,
-	SQL_IS_DAY_TO_HOUR,
-	SQL_IS_DAY_TO_MINUTE,
-	SQL_IS_DAY_TO_SECOND,
-	SQL_IS_HOUR_TO_MINUTE,
-	SQL_IS_HOUR_TO_SECOND,
-	SQL_IS_MINUTE_TO_SECOND
+    SQL_IS_YEAR = 1,
+    SQL_IS_MONTH,
+    SQL_IS_DAY,
+    SQL_IS_HOUR,
+    SQL_IS_MINUTE,
+    SQL_IS_SECOND,
+    SQL_IS_YEAR_TO_MONTH,
+    SQL_IS_DAY_TO_HOUR,
+    SQL_IS_DAY_TO_MINUTE,
+    SQL_IS_DAY_TO_SECOND,
+    SQL_IS_HOUR_TO_MINUTE,
+    SQL_IS_HOUR_TO_SECOND,
+    SQL_IS_MINUTE_TO_SECOND
 }
 
 struct SQL_YEAR_MONTH_STRUCT {
-	SQLUINTEGER year;
-	SQLUINTEGER month;
+    SQLUINTEGER year;
+    SQLUINTEGER month;
 }
 
 struct SQL_DAY_SECOND_STRUCT {
-	SQLUINTEGER day;
-	SQLUINTEGER hour;
-	SQLUINTEGER minute;
-	SQLUINTEGER second;
-	SQLUINTEGER fraction;
+    SQLUINTEGER day;
+    SQLUINTEGER hour;
+    SQLUINTEGER minute;
+    SQLUINTEGER second;
+    SQLUINTEGER fraction;
 }
 
 struct SQL_INTERVAL_STRUCT {
-	SQLINTERVAL interval_type;
-	SQLSMALLINT interval_sign;
-	union _intval {
-		SQL_YEAR_MONTH_STRUCT year_month;
-		SQL_DAY_SECOND_STRUCT day_second;
-	}
-	_intval intval;	
+    SQLINTERVAL interval_type;
+    SQLSMALLINT interval_sign;
+    union _intval {
+        SQL_YEAR_MONTH_STRUCT year_month;
+        SQL_DAY_SECOND_STRUCT day_second;
+    }
+    _intval intval;	
 }
 
 const SQL_MAX_NUMERIC_LEN = 16;
 
 struct SQL_NUMERIC_STRUCT {
-	SQLCHAR precision;
-	SQLSCHAR scale;
-	SQLCHAR sign;
-	SQLCHAR[SQL_MAX_NUMERIC_LEN] val;
+    SQLCHAR precision;
+    SQLSCHAR scale;
+    SQLCHAR sign;
+    SQLCHAR[SQL_MAX_NUMERIC_LEN] val;
 }
 // } ODBCVER >= 0x0300
 alias GUID SQLGUID;

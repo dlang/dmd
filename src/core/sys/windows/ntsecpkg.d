@@ -66,61 +66,61 @@ enum :ULONG{
 
 /* enum definitions for Secure Service Provider/Authentication Packages */
 enum LSA_TOKEN_INFORMATION_TYPE {
-	LsaTokenInformationNull,
-	LsaTokenInformationV1
+    LsaTokenInformationNull,
+    LsaTokenInformationV1
 } 
 alias LSA_TOKEN_INFORMATION_TYPE* PLSA_TOKEN_INFORMATION_TYPE;
 enum SECPKG_EXTENDED_INFORMATION_CLASS
 {
-	SecpkgGssInfo = 1,
-	SecpkgContextThunks,
-	SecpkgMutualAuthLevel,
-	SecpkgMaxInfo
+    SecpkgGssInfo = 1,
+    SecpkgContextThunks,
+    SecpkgMutualAuthLevel,
+    SecpkgMaxInfo
 } 
 enum SECPKG_NAME_TYPE {
-	SecNameSamCompatible,
-	SecNameAlternateId,
-	SecNameFlat,
-	SecNameDN
+    SecNameSamCompatible,
+    SecNameAlternateId,
+    SecNameFlat,
+    SecNameDN
 } 
 
 /* struct definitions for SSP/AP */
 struct SECPKG_PRIMARY_CRED {
-	LUID LogonId;
-	UNICODE_STRING DownlevelName;
-	UNICODE_STRING DomainName;
-	UNICODE_STRING Password;
-	UNICODE_STRING OldPassword;
-	PSID UserSid;
-	ULONG Flags;
-	UNICODE_STRING DnsDomainName;
-	UNICODE_STRING Upn;
-	UNICODE_STRING LogonServer;
-	UNICODE_STRING Spare1;
-	UNICODE_STRING Spare2;
-	UNICODE_STRING Spare3;
-	UNICODE_STRING Spare4;
+    LUID LogonId;
+    UNICODE_STRING DownlevelName;
+    UNICODE_STRING DomainName;
+    UNICODE_STRING Password;
+    UNICODE_STRING OldPassword;
+    PSID UserSid;
+    ULONG Flags;
+    UNICODE_STRING DnsDomainName;
+    UNICODE_STRING Upn;
+    UNICODE_STRING LogonServer;
+    UNICODE_STRING Spare1;
+    UNICODE_STRING Spare2;
+    UNICODE_STRING Spare3;
+    UNICODE_STRING Spare4;
 } 
 alias SECPKG_PRIMARY_CRED* PSECPKG_PRIMARY_CRED;
 struct SECPKG_SUPPLEMENTAL_CRED {
-	UNICODE_STRING PackageName;
-	ULONG CredentialSize;
-	PUCHAR Credentials;
+    UNICODE_STRING PackageName;
+    ULONG CredentialSize;
+    PUCHAR Credentials;
 } 
 alias SECPKG_SUPPLEMENTAL_CRED* PSECPKG_SUPPLEMENTAL_CRED;
 struct SECPKG_SUPPLEMENTAL_CRED_ARRAY {
-	ULONG CredentialCount;
-	SECPKG_SUPPLEMENTAL_CRED[1] Credentials;
+    ULONG CredentialCount;
+    SECPKG_SUPPLEMENTAL_CRED[1] Credentials;
 } 
 alias SECPKG_SUPPLEMENTAL_CRED_ARRAY* PSECPKG_SUPPLEMENTAL_CRED_ARRAY;
 struct SECPKG_PARAMETERS {
-	ULONG Version;
-	ULONG MachineState;
-	ULONG SetupMode;
-	PSID DomainSid;
-	UNICODE_STRING DomainName;
-	UNICODE_STRING DnsDomainName;
-	GUID DomainGuid;
+    ULONG Version;
+    ULONG MachineState;
+    ULONG SetupMode;
+    PSID DomainSid;
+    UNICODE_STRING DomainName;
+    UNICODE_STRING DnsDomainName;
+    GUID DomainGuid;
 } 
 alias SECPKG_PARAMETERS* PSECPKG_PARAMETERS,PSECPKG_EVENT_DOMAIN_CHANGE;
 alias SECPKG_PARAMETERS SECPKG_EVENT_DOMAIN_CHANGE;
@@ -134,41 +134,41 @@ struct SECPKG_CLIENT_INFO {
 } 
 alias SECPKG_CLIENT_INFO* PSECPKG_CLIENT_INFO;
 struct SECURITY_USER_DATA {
-	SECURITY_STRING UserName;
-	SECURITY_STRING LogonDomainName;
-	SECURITY_STRING LogonServer;
-	PSID pSid;
+    SECURITY_STRING UserName;
+    SECURITY_STRING LogonDomainName;
+    SECURITY_STRING LogonServer;
+    PSID pSid;
 } 
 alias SECURITY_USER_DATA* PSECURITY_USER_DATA,PSecurityUserData;
 alias SECURITY_USER_DATA SecurityUserData;
 struct SECPKG_GSS_INFO {
-	ULONG EncodedIdLength;
-	UCHAR[4] EncodedId;
+    ULONG EncodedIdLength;
+    UCHAR[4] EncodedId;
 } 
 alias SECPKG_GSS_INFO* PSECPKG_GSS_INFO;
 struct SECPKG_CONTEXT_THUNKS {
-	ULONG InfoLevelCount;
-	ULONG[1] Levels;
+    ULONG InfoLevelCount;
+    ULONG[1] Levels;
 } 
 alias SECPKG_CONTEXT_THUNKS* PSECPKG_CONTEXT_THUNKS;
 struct SECPKG_MUTUAL_AUTH_LEVEL {
-	ULONG MutualAuthLevel;
+    ULONG MutualAuthLevel;
 } 
 alias SECPKG_MUTUAL_AUTH_LEVEL* PSECPKG_MUTUAL_AUTH_LEVEL;
 struct SECPKG_CALL_INFO {
-	ULONG ProcessId;
-	ULONG ThreadId;
-	ULONG Attributes;
-	ULONG CallCount;
+    ULONG ProcessId;
+    ULONG ThreadId;
+    ULONG Attributes;
+    ULONG CallCount;
 } 
 alias SECPKG_CALL_INFO* PSECPKG_CALL_INFO;
 struct SECPKG_EXTENDED_INFORMATION {
-	SECPKG_EXTENDED_INFORMATION_CLASS Class;
-	union _Info{
-		SECPKG_GSS_INFO GssInfo;
-		SECPKG_CONTEXT_THUNKS ContextThunks;
-		SECPKG_MUTUAL_AUTH_LEVEL MutualAuthLevel;
-	} 
+    SECPKG_EXTENDED_INFORMATION_CLASS Class;
+    union _Info{
+        SECPKG_GSS_INFO GssInfo;
+        SECPKG_CONTEXT_THUNKS ContextThunks;
+        SECPKG_MUTUAL_AUTH_LEVEL MutualAuthLevel;
+    } 
     _Info Info;
 } 
 alias SECPKG_EXTENDED_INFORMATION* PSECPKG_EXTENDED_INFORMATION;
@@ -254,67 +254,67 @@ alias NTSTATUS function(PUNICODE_STRING, PVOID,
 
 /* Dispatch tables of functions used by SSP/AP */
 struct SECPKG_DLL_FUNCTIONS {
-	PLSA_ALLOCATE_LSA_HEAP AllocateHeap;
-	PLSA_FREE_LSA_HEAP FreeHeap;
-	PLSA_REGISTER_CALLBACK RegisterCallback;
+    PLSA_ALLOCATE_LSA_HEAP AllocateHeap;
+    PLSA_FREE_LSA_HEAP FreeHeap;
+    PLSA_REGISTER_CALLBACK RegisterCallback;
 } 
 alias SECPKG_DLL_FUNCTIONS* PSECPKG_DLL_FUNCTIONS;
 struct LSA_DISPATCH_TABLE {
-	PLSA_CREATE_LOGON_SESSION CreateLogonSession;
-	PLSA_DELETE_LOGON_SESSION DeleteLogonSession;
-	PLSA_ADD_CREDENTIAL AddCredential;
-	PLSA_GET_CREDENTIALS GetCredentials;
-	PLSA_DELETE_CREDENTIAL DeleteCredential;
-	PLSA_ALLOCATE_LSA_HEAP AllocateLsaHeap;
-	PLSA_FREE_LSA_HEAP FreeLsaHeap;
-	PLSA_ALLOCATE_CLIENT_BUFFER AllocateClientBuffer;
-	PLSA_FREE_CLIENT_BUFFER FreeClientBuffer;
-	PLSA_COPY_TO_CLIENT_BUFFER CopyToClientBuffer;
-	PLSA_COPY_FROM_CLIENT_BUFFER CopyFromClientBuffer;
+    PLSA_CREATE_LOGON_SESSION CreateLogonSession;
+    PLSA_DELETE_LOGON_SESSION DeleteLogonSession;
+    PLSA_ADD_CREDENTIAL AddCredential;
+    PLSA_GET_CREDENTIALS GetCredentials;
+    PLSA_DELETE_CREDENTIAL DeleteCredential;
+    PLSA_ALLOCATE_LSA_HEAP AllocateLsaHeap;
+    PLSA_FREE_LSA_HEAP FreeLsaHeap;
+    PLSA_ALLOCATE_CLIENT_BUFFER AllocateClientBuffer;
+    PLSA_FREE_CLIENT_BUFFER FreeClientBuffer;
+    PLSA_COPY_TO_CLIENT_BUFFER CopyToClientBuffer;
+    PLSA_COPY_FROM_CLIENT_BUFFER CopyFromClientBuffer;
 } 
 alias LSA_DISPATCH_TABLE* PLSA_DISPATCH_TABLE;
 struct LSA_SECPKG_FUNCTION_TABLE {
-	PLSA_CREATE_LOGON_SESSION CreateLogonSession;
-	PLSA_DELETE_LOGON_SESSION DeleteLogonSession;
-	PLSA_ADD_CREDENTIAL AddCredential;
-	PLSA_GET_CREDENTIALS GetCredentials;
-	PLSA_DELETE_CREDENTIAL DeleteCredential;
-	PLSA_ALLOCATE_LSA_HEAP AllocateLsaHeap;
-	PLSA_FREE_LSA_HEAP FreeLsaHeap;
-	PLSA_ALLOCATE_CLIENT_BUFFER AllocateClientBuffer;
-	PLSA_FREE_CLIENT_BUFFER FreeClientBuffer;
-	PLSA_COPY_TO_CLIENT_BUFFER CopyToClientBuffer;
-	PLSA_COPY_FROM_CLIENT_BUFFER CopyFromClientBuffer;
-	PLSA_IMPERSONATE_CLIENT ImpersonateClient;
-	PLSA_UNLOAD_PACKAGE UnloadPackage;
-	PLSA_DUPLICATE_HANDLE DuplicateHandle;
-	PLSA_SAVE_SUPPLEMENTAL_CREDENTIALS SaveSupplementalCredentials;
-	PLSA_CREATE_THREAD CreateThread;
-	PLSA_GET_CLIENT_INFO GetClientInfo;
-	PLSA_REGISTER_NOTIFICATION RegisterNotification;
-	PLSA_CANCEL_NOTIFICATION CancelNotification;
-	PLSA_MAP_BUFFER MapBuffer;
-	PLSA_CREATE_TOKEN CreateToken;
-	PLSA_AUDIT_LOGON AuditLogon;
-	PLSA_CALL_PACKAGE CallPackage;
-	PLSA_FREE_LSA_HEAP FreeReturnBuffer;
-	PLSA_GET_CALL_INFO GetCallInfo;
-	PLSA_CALL_PACKAGEEX CallPackageEx;
-	PLSA_CREATE_SHARED_MEMORY CreateSharedMemory;
-	PLSA_ALLOCATE_SHARED_MEMORY AllocateSharedMemory;
-	PLSA_FREE_SHARED_MEMORY FreeSharedMemory;
-	PLSA_DELETE_SHARED_MEMORY DeleteSharedMemory;
-	PLSA_OPEN_SAM_USER OpenSamUser;
-	PLSA_GET_USER_CREDENTIALS GetUserCredentials;
-	PLSA_GET_USER_AUTH_DATA GetUserAuthData;
-	PLSA_CLOSE_SAM_USER CloseSamUser;
-	PLSA_CONVERT_AUTH_DATA_TO_TOKEN ConvertAuthDataToToken;
-	PLSA_CLIENT_CALLBACK ClientCallback;
-	PLSA_UPDATE_PRIMARY_CREDENTIALS UpdateCredentials;
-	PLSA_GET_AUTH_DATA_FOR_USER GetAuthDataForUser;
-	PLSA_CRACK_SINGLE_NAME CrackSingleName;
-	PLSA_AUDIT_ACCOUNT_LOGON AuditAccountLogon;
-	PLSA_CALL_PACKAGE_PASSTHROUGH CallPackagePassthrough;
+    PLSA_CREATE_LOGON_SESSION CreateLogonSession;
+    PLSA_DELETE_LOGON_SESSION DeleteLogonSession;
+    PLSA_ADD_CREDENTIAL AddCredential;
+    PLSA_GET_CREDENTIALS GetCredentials;
+    PLSA_DELETE_CREDENTIAL DeleteCredential;
+    PLSA_ALLOCATE_LSA_HEAP AllocateLsaHeap;
+    PLSA_FREE_LSA_HEAP FreeLsaHeap;
+    PLSA_ALLOCATE_CLIENT_BUFFER AllocateClientBuffer;
+    PLSA_FREE_CLIENT_BUFFER FreeClientBuffer;
+    PLSA_COPY_TO_CLIENT_BUFFER CopyToClientBuffer;
+    PLSA_COPY_FROM_CLIENT_BUFFER CopyFromClientBuffer;
+    PLSA_IMPERSONATE_CLIENT ImpersonateClient;
+    PLSA_UNLOAD_PACKAGE UnloadPackage;
+    PLSA_DUPLICATE_HANDLE DuplicateHandle;
+    PLSA_SAVE_SUPPLEMENTAL_CREDENTIALS SaveSupplementalCredentials;
+    PLSA_CREATE_THREAD CreateThread;
+    PLSA_GET_CLIENT_INFO GetClientInfo;
+    PLSA_REGISTER_NOTIFICATION RegisterNotification;
+    PLSA_CANCEL_NOTIFICATION CancelNotification;
+    PLSA_MAP_BUFFER MapBuffer;
+    PLSA_CREATE_TOKEN CreateToken;
+    PLSA_AUDIT_LOGON AuditLogon;
+    PLSA_CALL_PACKAGE CallPackage;
+    PLSA_FREE_LSA_HEAP FreeReturnBuffer;
+    PLSA_GET_CALL_INFO GetCallInfo;
+    PLSA_CALL_PACKAGEEX CallPackageEx;
+    PLSA_CREATE_SHARED_MEMORY CreateSharedMemory;
+    PLSA_ALLOCATE_SHARED_MEMORY AllocateSharedMemory;
+    PLSA_FREE_SHARED_MEMORY FreeSharedMemory;
+    PLSA_DELETE_SHARED_MEMORY DeleteSharedMemory;
+    PLSA_OPEN_SAM_USER OpenSamUser;
+    PLSA_GET_USER_CREDENTIALS GetUserCredentials;
+    PLSA_GET_USER_AUTH_DATA GetUserAuthData;
+    PLSA_CLOSE_SAM_USER CloseSamUser;
+    PLSA_CONVERT_AUTH_DATA_TO_TOKEN ConvertAuthDataToToken;
+    PLSA_CLIENT_CALLBACK ClientCallback;
+    PLSA_UPDATE_PRIMARY_CREDENTIALS UpdateCredentials;
+    PLSA_GET_AUTH_DATA_FOR_USER GetAuthDataForUser;
+    PLSA_CRACK_SINGLE_NAME CrackSingleName;
+    PLSA_AUDIT_ACCOUNT_LOGON AuditAccountLogon;
+    PLSA_CALL_PACKAGE_PASSTHROUGH CallPackagePassthrough;
 } 
 alias LSA_SECPKG_FUNCTION_TABLE* PLSA_SECPKG_FUNCTION_TABLE;
 
@@ -389,51 +389,51 @@ alias NTSTATUS function(PSecBuffer, HANDLE,
 
 /* Dispatch tables of functions implemented by SSP/AP */
 struct SECPKG_FUNCTION_TABLE {
-	PLSA_AP_INITIALIZE_PACKAGE InitializePackage;
-	PLSA_AP_LOGON_USER LogonUser;
-	PLSA_AP_CALL_PACKAGE CallPackage;
-	PLSA_AP_LOGON_TERMINATED LogonTerminated;
-	PLSA_AP_CALL_PACKAGE_UNTRUSTED CallPackageUntrusted;
-	PLSA_AP_CALL_PACKAGE_PASSTHROUGH CallPackagePassthrough;
-	PLSA_AP_LOGON_USER_EX LogonUserEx;
-	PLSA_AP_LOGON_USER_EX2 LogonUserEx2;
-	SpInitializeFn *Initialize;
-	SpShutDownFn *Shutdown;
-	SpGetInfoFn *GetInfo;
-	SpAcceptCredentialsFn *AcceptCredentials;
-	SpAcquireCredentialsHandleFn *AcquireCredentialsHandle;
-	SpQueryCredentialsAttributesFn *QueryCredentialsAttributes;
-	SpFreeCredentialsHandleFn *FreeCredentialsHandle;
-	SpSaveCredentialsFn *SaveCredentials;
-	SpGetCredentialsFn *GetCredentials;
-	SpDeleteCredentialsFn *DeleteCredentials;
-	SpInitLsaModeContextFn *InitLsaModeContext;
-	SpAcceptLsaModeContextFn *AcceptLsaModeContext;
-	SpDeleteContextFn *DeleteContext;
-	SpApplyControlTokenFn *ApplyControlToken;
-	SpGetUserInfoFn *GetUserInfo;
-	SpGetExtendedInformationFn *GetExtendedInformation;
-	SpQueryContextAttributesFn *QueryContextAttributes;
-	SpAddCredentialsFn *AddCredentials;
-	SpSetExtendedInformationFn *SetExtendedInformation;
+    PLSA_AP_INITIALIZE_PACKAGE InitializePackage;
+    PLSA_AP_LOGON_USER LogonUser;
+    PLSA_AP_CALL_PACKAGE CallPackage;
+    PLSA_AP_LOGON_TERMINATED LogonTerminated;
+    PLSA_AP_CALL_PACKAGE_UNTRUSTED CallPackageUntrusted;
+    PLSA_AP_CALL_PACKAGE_PASSTHROUGH CallPackagePassthrough;
+    PLSA_AP_LOGON_USER_EX LogonUserEx;
+    PLSA_AP_LOGON_USER_EX2 LogonUserEx2;
+    SpInitializeFn *Initialize;
+    SpShutDownFn *Shutdown;
+    SpGetInfoFn *GetInfo;
+    SpAcceptCredentialsFn *AcceptCredentials;
+    SpAcquireCredentialsHandleFn *AcquireCredentialsHandle;
+    SpQueryCredentialsAttributesFn *QueryCredentialsAttributes;
+    SpFreeCredentialsHandleFn *FreeCredentialsHandle;
+    SpSaveCredentialsFn *SaveCredentials;
+    SpGetCredentialsFn *GetCredentials;
+    SpDeleteCredentialsFn *DeleteCredentials;
+    SpInitLsaModeContextFn *InitLsaModeContext;
+    SpAcceptLsaModeContextFn *AcceptLsaModeContext;
+    SpDeleteContextFn *DeleteContext;
+    SpApplyControlTokenFn *ApplyControlToken;
+    SpGetUserInfoFn *GetUserInfo;
+    SpGetExtendedInformationFn *GetExtendedInformation;
+    SpQueryContextAttributesFn *QueryContextAttributes;
+    SpAddCredentialsFn *AddCredentials;
+    SpSetExtendedInformationFn *SetExtendedInformation;
 } 
 alias SECPKG_FUNCTION_TABLE* PSECPKG_FUNCTION_TABLE;
 
 struct SECPKG_USER_FUNCTION_TABLE {
-	SpInstanceInitFn *InstanceInit;
-	SpInitUserModeContextFn *InitUserModeContext;
-	SpMakeSignatureFn *MakeSignature;
-	SpVerifySignatureFn *VerifySignature;
-	SpSealMessageFn *SealMessage;
-	SpUnsealMessageFn *UnsealMessage;
-	SpGetContextTokenFn *GetContextToken;
-	SpQueryContextAttributesFn *QueryContextAttributes;
-	SpCompleteAuthTokenFn *CompleteAuthToken;
-	SpDeleteContextFn *DeleteUserModeContext;
-	SpFormatCredentialsFn *FormatCredentials;
-	SpMarshallSupplementalCredsFn *MarshallSupplementalCreds;
-	SpExportSecurityContextFn *ExportContext;
-	SpImportSecurityContextFn *ImportContext;
+    SpInstanceInitFn *InstanceInit;
+    SpInitUserModeContextFn *InitUserModeContext;
+    SpMakeSignatureFn *MakeSignature;
+    SpVerifySignatureFn *VerifySignature;
+    SpSealMessageFn *SealMessage;
+    SpUnsealMessageFn *UnsealMessage;
+    SpGetContextTokenFn *GetContextToken;
+    SpQueryContextAttributesFn *QueryContextAttributes;
+    SpCompleteAuthTokenFn *CompleteAuthToken;
+    SpDeleteContextFn *DeleteUserModeContext;
+    SpFormatCredentialsFn *FormatCredentials;
+    SpMarshallSupplementalCredsFn *MarshallSupplementalCreds;
+    SpExportSecurityContextFn *ExportContext;
+    SpImportSecurityContextFn *ImportContext;
 } 
 alias SECPKG_USER_FUNCTION_TABLE* PSECPKG_USER_FUNCTION_TABLE;
 

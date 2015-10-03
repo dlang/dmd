@@ -14,166 +14,166 @@ private import core.sys.windows.w32api, core.sys.windows.windef;
 // FIXME: clean up Windows version support
 
 enum {
-	FOREGROUND_BLUE      = 1,
-	FOREGROUND_GREEN     = 2,
-	FOREGROUND_RED       = 4,
-	FOREGROUND_INTENSITY = 8,
-	BACKGROUND_BLUE      = 16,
-	BACKGROUND_GREEN     = 32,
-	BACKGROUND_RED       = 64,
-	BACKGROUND_INTENSITY = 128
+    FOREGROUND_BLUE      = 1,
+    FOREGROUND_GREEN     = 2,
+    FOREGROUND_RED       = 4,
+    FOREGROUND_INTENSITY = 8,
+    BACKGROUND_BLUE      = 16,
+    BACKGROUND_GREEN     = 32,
+    BACKGROUND_RED       = 64,
+    BACKGROUND_INTENSITY = 128
 }
 
 static if (_WIN32_WINNT >= 0x501) {
-	enum {
-		CONSOLE_FULLSCREEN_MODE = 1,
-		CONSOLE_WINDOWED_MODE   = 0
-	}
+    enum {
+        CONSOLE_FULLSCREEN_MODE = 1,
+        CONSOLE_WINDOWED_MODE   = 0
+    }
 }
 
 enum {
-	CTRL_C_EVENT        = 0,
-	CTRL_BREAK_EVENT    = 1,
-	CTRL_CLOSE_EVENT    = 2,
-	CTRL_LOGOFF_EVENT   = 5,
-	CTRL_SHUTDOWN_EVENT = 6
+    CTRL_C_EVENT        = 0,
+    CTRL_BREAK_EVENT    = 1,
+    CTRL_CLOSE_EVENT    = 2,
+    CTRL_LOGOFF_EVENT   = 5,
+    CTRL_SHUTDOWN_EVENT = 6
 }
 
 enum {
-	ENABLE_PROCESSED_INPUT  = 1,
-	ENABLE_LINE_INPUT       = 2,
-	ENABLE_ECHO_INPUT       = 4,
-	ENABLE_WINDOW_INPUT     = 8,
-	ENABLE_MOUSE_INPUT      = 16
+    ENABLE_PROCESSED_INPUT  = 1,
+    ENABLE_LINE_INPUT       = 2,
+    ENABLE_ECHO_INPUT       = 4,
+    ENABLE_WINDOW_INPUT     = 8,
+    ENABLE_MOUSE_INPUT      = 16
 }
 
 enum {
-	ENABLE_PROCESSED_OUTPUT    = 1,
-	ENABLE_WRAP_AT_EOL_OUTPUT  = 2
+    ENABLE_PROCESSED_OUTPUT    = 1,
+    ENABLE_WRAP_AT_EOL_OUTPUT  = 2
 }
 
 enum {
-	KEY_EVENT                 = 1,
-	MOUSE_EVENT               = 2,
-	WINDOW_BUFFER_SIZE_EVENT  = 4,
-	MENU_EVENT                = 8,
-	FOCUS_EVENT               = 16
+    KEY_EVENT                 = 1,
+    MOUSE_EVENT               = 2,
+    WINDOW_BUFFER_SIZE_EVENT  = 4,
+    MENU_EVENT                = 8,
+    FOCUS_EVENT               = 16
 }
 enum {
-	RIGHT_ALT_PRESSED  = 1,
-	LEFT_ALT_PRESSED   = 2,
-	RIGHT_CTRL_PRESSED = 4,
-	LEFT_CTRL_PRESSED  = 8,
-	SHIFT_PRESSED      = 16,
-	NUMLOCK_ON         = 32,
-	SCROLLLOCK_ON      = 64,
-	CAPSLOCK_ON        = 128,
-	ENHANCED_KEY       = 256
+    RIGHT_ALT_PRESSED  = 1,
+    LEFT_ALT_PRESSED   = 2,
+    RIGHT_CTRL_PRESSED = 4,
+    LEFT_CTRL_PRESSED  = 8,
+    SHIFT_PRESSED      = 16,
+    NUMLOCK_ON         = 32,
+    SCROLLLOCK_ON      = 64,
+    CAPSLOCK_ON        = 128,
+    ENHANCED_KEY       = 256
 }
 enum {
-	FROM_LEFT_1ST_BUTTON_PRESSED  = 1,
-	RIGHTMOST_BUTTON_PRESSED      = 2,
-	FROM_LEFT_2ND_BUTTON_PRESSED  = 4,
-	FROM_LEFT_3RD_BUTTON_PRESSED  = 8,
-	FROM_LEFT_4TH_BUTTON_PRESSED  = 16
+    FROM_LEFT_1ST_BUTTON_PRESSED  = 1,
+    RIGHTMOST_BUTTON_PRESSED      = 2,
+    FROM_LEFT_2ND_BUTTON_PRESSED  = 4,
+    FROM_LEFT_3RD_BUTTON_PRESSED  = 8,
+    FROM_LEFT_4TH_BUTTON_PRESSED  = 16
 }
 
 enum {
-	MOUSE_MOVED   = 1,
-	DOUBLE_CLICK  = 2,
-	MOUSE_WHEELED = 4
+    MOUSE_MOVED   = 1,
+    DOUBLE_CLICK  = 2,
+    MOUSE_WHEELED = 4
 }
 
 struct CHAR_INFO {
-	union _Char {
-		WCHAR UnicodeChar;
-		CHAR AsciiChar;
-	}
-	_Char Char;	
-	WORD Attributes;
+    union _Char {
+        WCHAR UnicodeChar;
+        CHAR AsciiChar;
+    }
+    _Char Char;	
+    WORD Attributes;
 }
 alias CHAR_INFO* PCHAR_INFO;
 
 struct SMALL_RECT {
-	SHORT Left;
-	SHORT Top;
-	SHORT Right;
-	SHORT Bottom;
+    SHORT Left;
+    SHORT Top;
+    SHORT Right;
+    SHORT Bottom;
 }
 alias SMALL_RECT* PSMALL_RECT;
 
 struct CONSOLE_CURSOR_INFO {
-	DWORD dwSize;
-	BOOL  bVisible;
+    DWORD dwSize;
+    BOOL  bVisible;
 }
 alias CONSOLE_CURSOR_INFO* PCONSOLE_CURSOR_INFO;
 
 struct COORD {
-	SHORT X;
-	SHORT Y;
+    SHORT X;
+    SHORT Y;
 }
 alias COORD* PCOORD;
 
 struct CONSOLE_FONT_INFO {
-	DWORD nFont;
-	COORD dwFontSize;
+    DWORD nFont;
+    COORD dwFontSize;
 }
 alias CONSOLE_FONT_INFO* PCONSOLE_FONT_INFO;
 
 struct CONSOLE_SCREEN_BUFFER_INFO {
-	COORD      dwSize;
-	COORD      dwCursorPosition;
-	WORD       wAttributes;
-	SMALL_RECT srWindow;
-	COORD      dwMaximumWindowSize;
+    COORD      dwSize;
+    COORD      dwCursorPosition;
+    WORD       wAttributes;
+    SMALL_RECT srWindow;
+    COORD      dwMaximumWindowSize;
 }
 alias CONSOLE_SCREEN_BUFFER_INFO* PCONSOLE_SCREEN_BUFFER_INFO;
 
 alias BOOL function(DWORD) PHANDLER_ROUTINE;
 
 struct KEY_EVENT_RECORD {
-	BOOL  bKeyDown;
-	WORD  wRepeatCount;
-	WORD  wVirtualKeyCode;
-	WORD  wVirtualScanCode;
-	union _uChar {
-		WCHAR UnicodeChar;
-		CHAR  AsciiChar;
-	}
-	_uChar uChar;	
-	DWORD dwControlKeyState;
+    BOOL  bKeyDown;
+    WORD  wRepeatCount;
+    WORD  wVirtualKeyCode;
+    WORD  wVirtualScanCode;
+    union _uChar {
+        WCHAR UnicodeChar;
+        CHAR  AsciiChar;
+    }
+    _uChar uChar;	
+    DWORD dwControlKeyState;
 }
 
 struct MOUSE_EVENT_RECORD {
-	COORD dwMousePosition;
-	DWORD dwButtonState;
-	DWORD dwControlKeyState;
-	DWORD dwEventFlags;
+    COORD dwMousePosition;
+    DWORD dwButtonState;
+    DWORD dwControlKeyState;
+    DWORD dwEventFlags;
 }
 
 struct WINDOW_BUFFER_SIZE_RECORD {
-	COORD dwSize;
+    COORD dwSize;
 }
 
 struct MENU_EVENT_RECORD {
-	UINT dwCommandId;
+    UINT dwCommandId;
 }
 alias MENU_EVENT_RECORD* PMENU_EVENT_RECORD;
 
 struct FOCUS_EVENT_RECORD {
-	BOOL bSetFocus;
+    BOOL bSetFocus;
 }
 
 struct INPUT_RECORD {
-	WORD EventType;
-	union _Event {
-		KEY_EVENT_RECORD KeyEvent;
-		MOUSE_EVENT_RECORD MouseEvent;
-		WINDOW_BUFFER_SIZE_RECORD WindowBufferSizeEvent;
-		MENU_EVENT_RECORD MenuEvent;
-		FOCUS_EVENT_RECORD FocusEvent;
-	}
-	_Event Event;	
+    WORD EventType;
+    union _Event {
+        KEY_EVENT_RECORD KeyEvent;
+        MOUSE_EVENT_RECORD MouseEvent;
+        WINDOW_BUFFER_SIZE_RECORD WindowBufferSizeEvent;
+        MENU_EVENT_RECORD MenuEvent;
+        FOCUS_EVENT_RECORD FocusEvent;
+    }
+    _Event Event;	
 }
 alias INPUT_RECORD* PINPUT_RECORD;
 
@@ -246,31 +246,31 @@ BOOL WriteConsoleOutputCharacterA(HANDLE, LPCSTR, DWORD, COORD, PDWORD);
 BOOL WriteConsoleOutputCharacterW(HANDLE, LPCWSTR, DWORD, COORD, PDWORD);
 
 version (Unicode) {
-	alias FillConsoleOutputCharacterW FillConsoleOutputCharacter;
-	alias GetConsoleTitleW GetConsoleTitle;
-	alias PeekConsoleInputW PeekConsoleInput;
-	alias ReadConsoleW ReadConsole;
-	alias ReadConsoleInputW ReadConsoleInput;
-	alias ReadConsoleOutputW ReadConsoleOutput;
-	alias ReadConsoleOutputCharacterW ReadConsoleOutputCharacter;
-	alias ScrollConsoleScreenBufferW ScrollConsoleScreenBuffer;
-	alias SetConsoleTitleW SetConsoleTitle;
-	alias WriteConsoleW WriteConsole;
-	alias WriteConsoleInputW WriteConsoleInput;
-	alias WriteConsoleOutputW WriteConsoleOutput;
-	alias WriteConsoleOutputCharacterW WriteConsoleOutputCharacter;
+    alias FillConsoleOutputCharacterW FillConsoleOutputCharacter;
+    alias GetConsoleTitleW GetConsoleTitle;
+    alias PeekConsoleInputW PeekConsoleInput;
+    alias ReadConsoleW ReadConsole;
+    alias ReadConsoleInputW ReadConsoleInput;
+    alias ReadConsoleOutputW ReadConsoleOutput;
+    alias ReadConsoleOutputCharacterW ReadConsoleOutputCharacter;
+    alias ScrollConsoleScreenBufferW ScrollConsoleScreenBuffer;
+    alias SetConsoleTitleW SetConsoleTitle;
+    alias WriteConsoleW WriteConsole;
+    alias WriteConsoleInputW WriteConsoleInput;
+    alias WriteConsoleOutputW WriteConsoleOutput;
+    alias WriteConsoleOutputCharacterW WriteConsoleOutputCharacter;
 } else {
-	alias FillConsoleOutputCharacterA FillConsoleOutputCharacter;
-	alias GetConsoleTitleA GetConsoleTitle;
-	alias PeekConsoleInputA PeekConsoleInput;
-	alias ReadConsoleA ReadConsole;
-	alias ReadConsoleInputA ReadConsoleInput;
-	alias ReadConsoleOutputA ReadConsoleOutput;
-	alias ReadConsoleOutputCharacterA ReadConsoleOutputCharacter;
-	alias ScrollConsoleScreenBufferA ScrollConsoleScreenBuffer;
-	alias SetConsoleTitleA SetConsoleTitle;
-	alias WriteConsoleA WriteConsole;
-	alias WriteConsoleInputA WriteConsoleInput;
-	alias WriteConsoleOutputA WriteConsoleOutput;
-	alias WriteConsoleOutputCharacterA WriteConsoleOutputCharacter;
+    alias FillConsoleOutputCharacterA FillConsoleOutputCharacter;
+    alias GetConsoleTitleA GetConsoleTitle;
+    alias PeekConsoleInputA PeekConsoleInput;
+    alias ReadConsoleA ReadConsole;
+    alias ReadConsoleInputA ReadConsoleInput;
+    alias ReadConsoleOutputA ReadConsoleOutput;
+    alias ReadConsoleOutputCharacterA ReadConsoleOutputCharacter;
+    alias ScrollConsoleScreenBufferA ScrollConsoleScreenBuffer;
+    alias SetConsoleTitleA SetConsoleTitle;
+    alias WriteConsoleA WriteConsole;
+    alias WriteConsoleInputA WriteConsoleInput;
+    alias WriteConsoleOutputA WriteConsoleOutput;
+    alias WriteConsoleOutputCharacterA WriteConsoleOutputCharacter;
 }

@@ -30,52 +30,52 @@ const TIME_TICKS   = 32;
 
 template MAKEFOURCC(char c0, char c1, char c2, char c3)
 {
-	const DWORD MAKEFOURCC = c0 | (c1<<8) | (c2<<16) | (cast(DWORD)c3 <<24);
+    const DWORD MAKEFOURCC = c0 | (c1<<8) | (c2<<16) | (cast(DWORD)c3 <<24);
 }
 
 template mmioFOURCC(char c0, char c1, char c2, char c3)
 {
-	const DWORD mmioFOURCC = c0 | (c1<<8) | (c2<<16) | (cast(DWORD)c3 <<24);
+    const DWORD mmioFOURCC = c0 | (c1<<8) | (c2<<16) | (cast(DWORD)c3 <<24);
 }
 
 enum {
-	MM_JOY1MOVE            = 0x3A0,
-	MM_JOY2MOVE,
-	MM_JOY1ZMOVE,
-	MM_JOY2ZMOVE,       // = 0x3A3
-	MM_JOY1BUTTONDOWN      = 0x3B5,
-	MM_JOY2BUTTONDOWN,
-	MM_JOY1BUTTONUP,
-	MM_JOY2BUTTONUP,
-	MM_MCINOTIFY,       // = 0x3B9
-	MM_WOM_OPEN            = 0x3BB,
-	MM_WOM_CLOSE,
-	MM_WOM_DONE,
-	MM_WIM_OPEN,
-	MM_WIM_CLOSE,
-	MM_WIM_DATA,
-	MM_MIM_OPEN,
-	MM_MIM_CLOSE,
-	MM_MIM_DATA,
-	MM_MIM_LONGDATA,
-	MM_MIM_ERROR,
-	MM_MIM_LONGERROR,
-	MM_MOM_OPEN,
-	MM_MOM_CLOSE,
-	MM_MOM_DONE,        // = 0x3C9
-	MM_DRVM_OPEN           = 0x3D0,
-	MM_DRVM_CLOSE,
-	MM_DRVM_DATA,
-	MM_DRVM_ERROR,
-	MM_STREAM_OPEN,
-	MM_STREAM_CLOSE,
-	MM_STREAM_DONE,
-	MM_STREAM_ERROR,    // = 0x3D7
-	MM_MOM_POSITIONCB      = 0x3CA,
-	MM_MCISIGNAL,
-	MM_MIM_MOREDATA,    // = 0x3CC
-	MM_MIXM_LINE_CHANGE    = 0x3D0,
-	MM_MIXM_CONTROL_CHANGE = 0x3D1
+    MM_JOY1MOVE            = 0x3A0,
+    MM_JOY2MOVE,
+    MM_JOY1ZMOVE,
+    MM_JOY2ZMOVE,       // = 0x3A3
+    MM_JOY1BUTTONDOWN      = 0x3B5,
+    MM_JOY2BUTTONDOWN,
+    MM_JOY1BUTTONUP,
+    MM_JOY2BUTTONUP,
+    MM_MCINOTIFY,       // = 0x3B9
+    MM_WOM_OPEN            = 0x3BB,
+    MM_WOM_CLOSE,
+    MM_WOM_DONE,
+    MM_WIM_OPEN,
+    MM_WIM_CLOSE,
+    MM_WIM_DATA,
+    MM_MIM_OPEN,
+    MM_MIM_CLOSE,
+    MM_MIM_DATA,
+    MM_MIM_LONGDATA,
+    MM_MIM_ERROR,
+    MM_MIM_LONGERROR,
+    MM_MOM_OPEN,
+    MM_MOM_CLOSE,
+    MM_MOM_DONE,        // = 0x3C9
+    MM_DRVM_OPEN           = 0x3D0,
+    MM_DRVM_CLOSE,
+    MM_DRVM_DATA,
+    MM_DRVM_ERROR,
+    MM_STREAM_OPEN,
+    MM_STREAM_CLOSE,
+    MM_STREAM_DONE,
+    MM_STREAM_ERROR,    // = 0x3D7
+    MM_MOM_POSITIONCB      = 0x3CA,
+    MM_MCISIGNAL,
+    MM_MIM_MOREDATA,    // = 0x3CC
+    MM_MIXM_LINE_CHANGE    = 0x3D0,
+    MM_MIXM_CONTROL_CHANGE = 0x3D1
 }
 
 const MMSYSERR_BASE     =    0;
@@ -92,43 +92,43 @@ const MCI_WAVE_OFFSET   = 1152;
 const MCI_SEQ_OFFSET    = 1216;
 
 enum {
-	MMSYSERR_NOERROR        = 0,
-	MMSYSERR_ERROR          = MMSYSERR_BASE+1,
-	MMSYSERR_BADDEVICEID,
-	MMSYSERR_NOTENABLED,
-	MMSYSERR_ALLOCATED,
-	MMSYSERR_INVALHANDLE,
-	MMSYSERR_NODRIVER,
-	MMSYSERR_NOMEM,
-	MMSYSERR_NOTSUPPORTED,
-	MMSYSERR_BADERRNUM,
-	MMSYSERR_INVALFLAG,
-	MMSYSERR_INVALPARAM,
-	MMSYSERR_HANDLEBUSY,
-	MMSYSERR_INVALIDALIAS,
-	MMSYSERR_BADDB,
-	MMSYSERR_KEYNOTFOUND,
-	MMSYSERR_READERROR,
-	MMSYSERR_WRITEERROR,
-	MMSYSERR_DELETEERROR,
-	MMSYSERR_VALNOTFOUND,
-	MMSYSERR_NODRIVERCB, // = MMSYSERR_BASE+20
-	MMSYSERR_LASTERROR      = MMSYSERR_NODRIVERCB
+    MMSYSERR_NOERROR        = 0,
+    MMSYSERR_ERROR          = MMSYSERR_BASE+1,
+    MMSYSERR_BADDEVICEID,
+    MMSYSERR_NOTENABLED,
+    MMSYSERR_ALLOCATED,
+    MMSYSERR_INVALHANDLE,
+    MMSYSERR_NODRIVER,
+    MMSYSERR_NOMEM,
+    MMSYSERR_NOTSUPPORTED,
+    MMSYSERR_BADERRNUM,
+    MMSYSERR_INVALFLAG,
+    MMSYSERR_INVALPARAM,
+    MMSYSERR_HANDLEBUSY,
+    MMSYSERR_INVALIDALIAS,
+    MMSYSERR_BADDB,
+    MMSYSERR_KEYNOTFOUND,
+    MMSYSERR_READERROR,
+    MMSYSERR_WRITEERROR,
+    MMSYSERR_DELETEERROR,
+    MMSYSERR_VALNOTFOUND,
+    MMSYSERR_NODRIVERCB, // = MMSYSERR_BASE+20
+    MMSYSERR_LASTERROR      = MMSYSERR_NODRIVERCB
 }
 
 enum {
-	DRV_LOAD = 1,
-	DRV_ENABLE,
-	DRV_OPEN,
-	DRV_CLOSE,
-	DRV_DISABLE,
-	DRV_FREE,
-	DRV_CONFIGURE,
-	DRV_QUERYCONFIGURE,
-	DRV_INSTALL,
-	DRV_REMOVE,
-	DRV_EXITSESSION,
-	DRV_POWER
+    DRV_LOAD = 1,
+    DRV_ENABLE,
+    DRV_OPEN,
+    DRV_CLOSE,
+    DRV_DISABLE,
+    DRV_FREE,
+    DRV_CONFIGURE,
+    DRV_QUERYCONFIGURE,
+    DRV_INSTALL,
+    DRV_REMOVE,
+    DRV_EXITSESSION,
+    DRV_POWER
 }
 
 const DRV_RESERVED = 0x800;
@@ -168,7 +168,7 @@ const SND_ALIAS_START=0;
 
 template sndAlias(char c0, char c1)
 {
-	const DWORD sndAlias = SND_ALIAS_START + c0 | (c1<<8);
+    const DWORD sndAlias = SND_ALIAS_START + c0 | (c1<<8);
 }
 
 const SND_ALIAS_SYSTEMASTERISK    = sndAlias!('S', '*');
@@ -181,11 +181,11 @@ const SND_ALIAS_SYSTEMEXCLAMATION = sndAlias!('S', '!');
 const SND_ALIAS_SYSTEMDEFAULT     = sndAlias!('S', 'D');
 
 enum {
-	WAVERR_BADFORMAT  = (WAVERR_BASE + 0),
-	WAVERR_STILLPLAYING,
-	WAVERR_UNPREPARED,
-	WAVERR_SYNC,  // = WAVERR_BASE + 3;
-	WAVERR_LASTERROR = WAVERR_SYNC
+    WAVERR_BADFORMAT  = (WAVERR_BASE + 0),
+    WAVERR_STILLPLAYING,
+    WAVERR_UNPREPARED,
+    WAVERR_SYNC,  // = WAVERR_BASE + 3;
+    WAVERR_LASTERROR = WAVERR_SYNC
 }
 
 const WOM_OPEN  = MM_WOM_OPEN;
@@ -231,15 +231,15 @@ const WAVE_FORMAT_4S16=2048;
 const WAVE_FORMAT_PCM=1;
 
 enum {
-	MIDIERR_UNPREPARED = MIDIERR_BASE,
-	MIDIERR_STILLPLAYING,
-	MIDIERR_NOMAP,
-	MIDIERR_NOTREADY,
-	MIDIERR_NODEVICE,
-	MIDIERR_INVALIDSETUP,
-	MIDIERR_BADOPENMODE,
-	MIDIERR_DONT_CONTINUE, // = MIDIERR_BASE+7
-	MIDIERR_LASTERROR = MIDIERR_DONT_CONTINUE
+    MIDIERR_UNPREPARED = MIDIERR_BASE,
+    MIDIERR_STILLPLAYING,
+    MIDIERR_NOMAP,
+    MIDIERR_NOTREADY,
+    MIDIERR_NODEVICE,
+    MIDIERR_INVALIDSETUP,
+    MIDIERR_BADOPENMODE,
+    MIDIERR_DONT_CONTINUE, // = MIDIERR_BASE+7
+    MIDIERR_LASTERROR = MIDIERR_DONT_CONTINUE
 }
 
 const MIDIPATCHSIZE=128;
@@ -354,12 +354,12 @@ const MIXERLINE_COMPONENTTYPE_SRC_ANALOG=(MIXERLINE_COMPONENTTYPE_SRC_FIRST+10);
 const MIXERLINE_COMPONENTTYPE_SRC_LAST=(MIXERLINE_COMPONENTTYPE_SRC_FIRST+10);
 
 enum {
-	MIXERLINE_TARGETTYPE_UNDEFINED = 0,
-	MIXERLINE_TARGETTYPE_WAVEOUT,
-	MIXERLINE_TARGETTYPE_WAVEIN,
-	MIXERLINE_TARGETTYPE_MIDIOUT,
-	MIXERLINE_TARGETTYPE_MIDIIN,
-	MIXERLINE_TARGETTYPE_AUX // =5
+    MIXERLINE_TARGETTYPE_UNDEFINED = 0,
+    MIXERLINE_TARGETTYPE_WAVEOUT,
+    MIXERLINE_TARGETTYPE_WAVEIN,
+    MIXERLINE_TARGETTYPE_MIDIOUT,
+    MIXERLINE_TARGETTYPE_MIDIIN,
+    MIXERLINE_TARGETTYPE_AUX // =5
 }
 
 const MIXER_GETLINEINFOF_DESTINATION=0;
@@ -497,41 +497,41 @@ const JOY_BUTTON31=0x40000000;
 const JOY_BUTTON32=0x80000000;
 
 enum  : DWORD {
-	JOY_POVCENTERED = -1,
-	JOY_POVFORWARD  = 0,
-	JOY_POVBACKWARD = 18000,
-	JOY_POVLEFT     = 27000,
-	JOY_POVRIGHT    = 9000
+    JOY_POVCENTERED = -1,
+    JOY_POVFORWARD  = 0,
+    JOY_POVBACKWARD = 18000,
+    JOY_POVLEFT     = 27000,
+    JOY_POVRIGHT    = 9000
 }
 
 const DWORD
-	JOY_RETURNX        = 0x00000001,
-	JOY_RETURNY        = 0x00000002,
-	JOY_RETURNZ        = 0x00000004,
-	JOY_RETURNR        = 0x00000008,
-	JOY_RETURNU        = 0x00000010,
-	JOY_RETURNV        = 0x00000020,
-	JOY_RETURNPOV      = 0x00000040,
-	JOY_RETURNBUTTONS  = 0x00000080,
-	JOY_RETURNRAWDATA  = 0x00000100,
-	JOY_RETURNPOVCTS   = 0x00000200,
-	JOY_RETURNCENTERED = 0x00000400,
-	JOY_USEDEADZONE    = 0x00000800,
-	JOY_RETURNALL      = JOY_RETURNX | JOY_RETURNY | JOY_RETURNZ | JOY_RETURNR
-	                     | JOY_RETURNU | JOY_RETURNV | JOY_RETURNPOV
-	                     | JOY_RETURNBUTTONS,
-	JOY_CAL_READALWAYS = 0x00010000,
-	JOY_CAL_READXYONLY = 0x00020000,
-	JOY_CAL_READ3      = 0x00040000,
-	JOY_CAL_READ4      = 0x00080000,
-	JOY_CAL_READXONLY  = 0x00100000,
-	JOY_CAL_READYONLY  = 0x00200000,
-	JOY_CAL_READ5      = 0x00400000,
-	JOY_CAL_READ6      = 0x00800000,
-	JOY_CAL_READZONLY  = 0x01000000,
-	JOY_CAL_READRONLY  = 0x02000000,
-	JOY_CAL_READUONLY  = 0x04000000,
-	JOY_CAL_READVONLY  = 0x08000000;
+    JOY_RETURNX        = 0x00000001,
+    JOY_RETURNY        = 0x00000002,
+    JOY_RETURNZ        = 0x00000004,
+    JOY_RETURNR        = 0x00000008,
+    JOY_RETURNU        = 0x00000010,
+    JOY_RETURNV        = 0x00000020,
+    JOY_RETURNPOV      = 0x00000040,
+    JOY_RETURNBUTTONS  = 0x00000080,
+    JOY_RETURNRAWDATA  = 0x00000100,
+    JOY_RETURNPOVCTS   = 0x00000200,
+    JOY_RETURNCENTERED = 0x00000400,
+    JOY_USEDEADZONE    = 0x00000800,
+    JOY_RETURNALL      = JOY_RETURNX | JOY_RETURNY | JOY_RETURNZ | JOY_RETURNR
+                         | JOY_RETURNU | JOY_RETURNV | JOY_RETURNPOV
+                         | JOY_RETURNBUTTONS,
+    JOY_CAL_READALWAYS = 0x00010000,
+    JOY_CAL_READXYONLY = 0x00020000,
+    JOY_CAL_READ3      = 0x00040000,
+    JOY_CAL_READ4      = 0x00080000,
+    JOY_CAL_READXONLY  = 0x00100000,
+    JOY_CAL_READYONLY  = 0x00200000,
+    JOY_CAL_READ5      = 0x00400000,
+    JOY_CAL_READ6      = 0x00800000,
+    JOY_CAL_READZONLY  = 0x01000000,
+    JOY_CAL_READRONLY  = 0x02000000,
+    JOY_CAL_READUONLY  = 0x04000000,
+    JOY_CAL_READVONLY  = 0x08000000;
 
 const JOYSTICKID1=0;
 const JOYSTICKID2=1;
@@ -611,81 +611,81 @@ const FOURCC_MEM  = mmioFOURCC!('M', 'E', 'M', ' ');
 const MMIO_DEFAULTBUFFER=8192;
 
 enum {
-	MCIERR_INVALID_DEVICE_ID = MCIERR_BASE + 1,
-	MCIERR_UNRECOGNIZED_KEYWORD = MCIERR_BASE + 3,
-	MCIERR_UNRECOGNIZED_COMMAND = MCIERR_BASE + 5,
-	MCIERR_HARDWARE,
-	MCIERR_INVALID_DEVICE_NAME,
-	MCIERR_OUT_OF_MEMORY,
-	MCIERR_DEVICE_OPEN,
-	MCIERR_CANNOT_LOAD_DRIVER,
-	MCIERR_MISSING_COMMAND_STRING,
-	MCIERR_PARAM_OVERFLOW,
-	MCIERR_MISSING_STRING_ARGUMENT,
-	MCIERR_BAD_INTEGER,
-	MCIERR_PARSER_INTERNAL,
-	MCIERR_DRIVER_INTERNAL,
-	MCIERR_MISSING_PARAMETER,
-	MCIERR_UNSUPPORTED_FUNCTION,
-	MCIERR_FILE_NOT_FOUND,
-	MCIERR_DEVICE_NOT_READY,
-	MCIERR_INTERNAL,
-	MCIERR_DRIVER,
-	MCIERR_CANNOT_USE_ALL,
-	MCIERR_MULTIPLE,
-	MCIERR_EXTENSION_NOT_FOUND,
-	MCIERR_OUTOFRANGE, // = MCIERR_BASE+26
-	MCIERR_FLAGS_NOT_COMPATIBLE = MCIERR_BASE + 28,
-	MCIERR_FILE_NOT_SAVED = MCIERR_BASE + 30,
-	MCIERR_DEVICE_TYPE_REQUIRED,
-	MCIERR_DEVICE_LOCKED,
-	MCIERR_DUPLICATE_ALIAS,
-	MCIERR_BAD_CONSTANT,
-	MCIERR_MUST_USE_SHAREABLE,
-	MCIERR_MISSING_DEVICE_NAME,
-	MCIERR_BAD_TIME_FORMAT,
-	MCIERR_NO_CLOSING_QUOTE,
-	MCIERR_DUPLICATE_FLAGS,
-	MCIERR_INVALID_FILE,
-	MCIERR_NULL_PARAMETER_BLOCK,
-	MCIERR_UNNAMED_RESOURCE,
-	MCIERR_NEW_REQUIRES_ALIAS,
-	MCIERR_NOTIFY_ON_AUTO_OPEN,
-	MCIERR_NO_ELEMENT_ALLOWED,
-	MCIERR_NONAPPLICABLE_FUNCTION,
-	MCIERR_ILLEGAL_FOR_AUTO_OPEN,
-	MCIERR_FILENAME_REQUIRED,
-	MCIERR_EXTRA_CHARACTERS,
-	MCIERR_DEVICE_NOT_INSTALLED,
-	MCIERR_GET_CD,
-	MCIERR_SET_CD,
-	MCIERR_SET_DRIVE,
-	MCIERR_DEVICE_LENGTH,
-	MCIERR_DEVICE_ORD_LENGTH,
-	MCIERR_NO_INTEGER, // = MCIERR_BASE + 56
-	MCIERR_WAVE_OUTPUTSINUSE = MCIERR_BASE + 64,
-	MCIERR_WAVE_SETOUTPUTINUSE,
-	MCIERR_WAVE_INPUTSINUSE,
-	MCIERR_WAVE_SETINPUTINUSE,
-	MCIERR_WAVE_OUTPUTUNSPECIFIED,
-	MCIERR_WAVE_INPUTUNSPECIFIED,
-	MCIERR_WAVE_OUTPUTSUNSUITABLE,
-	MCIERR_WAVE_SETOUTPUTUNSUITABLE,
-	MCIERR_WAVE_INPUTSUNSUITABLE,
-	MCIERR_WAVE_SETINPUTUNSUITABLE, // = MCIERR_BASE + 73
-	MCIERR_SEQ_DIV_INCOMPATIBLE = MCIERR_BASE + 80,
-	MCIERR_SEQ_PORT_INUSE,
-	MCIERR_SEQ_PORT_NONEXISTENT,
-	MCIERR_SEQ_PORT_MAPNODEVICE,
-	MCIERR_SEQ_PORT_MISCERROR,
-	MCIERR_SEQ_TIMER,
-	MCIERR_SEQ_PORTUNSPECIFIED,
-	MCIERR_SEQ_NOMIDIPRESENT, // = MCIERR_BASE + 87
-	MCIERR_NO_WINDOW = MCIERR_BASE + 90,
-	MCIERR_CREATEWINDOW,
-	MCIERR_FILE_READ,
-	MCIERR_FILE_WRITE,
-	MCIERR_NO_IDENTITY // = MCIERR_BASE + 94
+    MCIERR_INVALID_DEVICE_ID = MCIERR_BASE + 1,
+    MCIERR_UNRECOGNIZED_KEYWORD = MCIERR_BASE + 3,
+    MCIERR_UNRECOGNIZED_COMMAND = MCIERR_BASE + 5,
+    MCIERR_HARDWARE,
+    MCIERR_INVALID_DEVICE_NAME,
+    MCIERR_OUT_OF_MEMORY,
+    MCIERR_DEVICE_OPEN,
+    MCIERR_CANNOT_LOAD_DRIVER,
+    MCIERR_MISSING_COMMAND_STRING,
+    MCIERR_PARAM_OVERFLOW,
+    MCIERR_MISSING_STRING_ARGUMENT,
+    MCIERR_BAD_INTEGER,
+    MCIERR_PARSER_INTERNAL,
+    MCIERR_DRIVER_INTERNAL,
+    MCIERR_MISSING_PARAMETER,
+    MCIERR_UNSUPPORTED_FUNCTION,
+    MCIERR_FILE_NOT_FOUND,
+    MCIERR_DEVICE_NOT_READY,
+    MCIERR_INTERNAL,
+    MCIERR_DRIVER,
+    MCIERR_CANNOT_USE_ALL,
+    MCIERR_MULTIPLE,
+    MCIERR_EXTENSION_NOT_FOUND,
+    MCIERR_OUTOFRANGE, // = MCIERR_BASE+26
+    MCIERR_FLAGS_NOT_COMPATIBLE = MCIERR_BASE + 28,
+    MCIERR_FILE_NOT_SAVED = MCIERR_BASE + 30,
+    MCIERR_DEVICE_TYPE_REQUIRED,
+    MCIERR_DEVICE_LOCKED,
+    MCIERR_DUPLICATE_ALIAS,
+    MCIERR_BAD_CONSTANT,
+    MCIERR_MUST_USE_SHAREABLE,
+    MCIERR_MISSING_DEVICE_NAME,
+    MCIERR_BAD_TIME_FORMAT,
+    MCIERR_NO_CLOSING_QUOTE,
+    MCIERR_DUPLICATE_FLAGS,
+    MCIERR_INVALID_FILE,
+    MCIERR_NULL_PARAMETER_BLOCK,
+    MCIERR_UNNAMED_RESOURCE,
+    MCIERR_NEW_REQUIRES_ALIAS,
+    MCIERR_NOTIFY_ON_AUTO_OPEN,
+    MCIERR_NO_ELEMENT_ALLOWED,
+    MCIERR_NONAPPLICABLE_FUNCTION,
+    MCIERR_ILLEGAL_FOR_AUTO_OPEN,
+    MCIERR_FILENAME_REQUIRED,
+    MCIERR_EXTRA_CHARACTERS,
+    MCIERR_DEVICE_NOT_INSTALLED,
+    MCIERR_GET_CD,
+    MCIERR_SET_CD,
+    MCIERR_SET_DRIVE,
+    MCIERR_DEVICE_LENGTH,
+    MCIERR_DEVICE_ORD_LENGTH,
+    MCIERR_NO_INTEGER, // = MCIERR_BASE + 56
+    MCIERR_WAVE_OUTPUTSINUSE = MCIERR_BASE + 64,
+    MCIERR_WAVE_SETOUTPUTINUSE,
+    MCIERR_WAVE_INPUTSINUSE,
+    MCIERR_WAVE_SETINPUTINUSE,
+    MCIERR_WAVE_OUTPUTUNSPECIFIED,
+    MCIERR_WAVE_INPUTUNSPECIFIED,
+    MCIERR_WAVE_OUTPUTSUNSUITABLE,
+    MCIERR_WAVE_SETOUTPUTUNSUITABLE,
+    MCIERR_WAVE_INPUTSUNSUITABLE,
+    MCIERR_WAVE_SETINPUTUNSUITABLE, // = MCIERR_BASE + 73
+    MCIERR_SEQ_DIV_INCOMPATIBLE = MCIERR_BASE + 80,
+    MCIERR_SEQ_PORT_INUSE,
+    MCIERR_SEQ_PORT_NONEXISTENT,
+    MCIERR_SEQ_PORT_MAPNODEVICE,
+    MCIERR_SEQ_PORT_MISCERROR,
+    MCIERR_SEQ_TIMER,
+    MCIERR_SEQ_PORTUNSPECIFIED,
+    MCIERR_SEQ_NOMIDIPRESENT, // = MCIERR_BASE + 87
+    MCIERR_NO_WINDOW = MCIERR_BASE + 90,
+    MCIERR_CREATEWINDOW,
+    MCIERR_FILE_READ,
+    MCIERR_FILE_WRITE,
+    MCIERR_NO_IDENTITY // = MCIERR_BASE + 94
 }
 const MCIERR_CUSTOM_DRIVER_BASE = MCIERR_BASE + 256;
 
@@ -1005,7 +1005,7 @@ const QUERYROPSUPPORT=40;
 const SELECTDIB=41;
 
 LONG DIBINDEX(WORD n) {
-	return MAKELONG(n, 0x10FF);
+    return MAKELONG(n, 0x10FF);
 }
 const CAPS1=94;
 const C1_TRANSPARENT=1;
@@ -1021,42 +1021,42 @@ alias UINT MMVERSION;
 alias UINT MMRESULT;
 
 struct MMTIME {
-	UINT wType;
-	union {
-		DWORD ms;
-		DWORD sample;
-		DWORD cb;
-		DWORD ticks;
-		struct smpte {
-			BYTE hour;
-			BYTE min;
-			BYTE sec;
-			BYTE frame;
-			BYTE fps;
-			BYTE dummy;
-			BYTE[2] pad;
-		};
-		struct midi {
-			DWORD songptrpos;
-		}
-	}
+    UINT wType;
+    union {
+        DWORD ms;
+        DWORD sample;
+        DWORD cb;
+        DWORD ticks;
+        struct smpte {
+            BYTE hour;
+            BYTE min;
+            BYTE sec;
+            BYTE frame;
+            BYTE fps;
+            BYTE dummy;
+            BYTE[2] pad;
+        };
+        struct midi {
+            DWORD songptrpos;
+        }
+    }
 }
 alias MMTIME* PMMTIME, LPMMTIME;
 
 alias TypeDef!(HANDLE) HDRVR;
 
 struct DRVCONFIGINFO {
-	DWORD dwDCISize;
-	LPCWSTR lpszDCISectionName;
-	LPCWSTR lpszDCIAliasName;
+    DWORD dwDCISize;
+    LPCWSTR lpszDCISectionName;
+    LPCWSTR lpszDCIAliasName;
 }
 alias DRVCONFIGINFO * PDRVCONFIGINFO, LPDRVCONFIGINFO;
 
 struct DRVCONFIGINFOEX {
-	DWORD dwDCISize;
-	LPCWSTR lpszDCISectionName;
-	LPCWSTR lpszDCIAliasName;
-	DWORD dnDevNode;
+    DWORD dwDCISize;
+    LPCWSTR lpszDCISectionName;
+    LPCWSTR lpszDCIAliasName;
+    DWORD dnDevNode;
 }
 alias DRVCONFIGINFOEX* PDRVCONFIGINFOEX, LPDRVCONFIGINFOEX;
 
@@ -1083,86 +1083,86 @@ alias HWAVEIN* LPHWAVEIN;
 alias HWAVEOUT* LPHWAVEOUT;
 
 struct WAVEHDR {
-	LPSTR lpData;
-	DWORD dwBufferLength;
-	DWORD dwBytesRecorded;
-	DWORD dwUser;
-	DWORD dwFlags;
-	DWORD dwLoops;
-	WAVEHDR *lpNext;
-	DWORD reserved;
+    LPSTR lpData;
+    DWORD dwBufferLength;
+    DWORD dwBytesRecorded;
+    DWORD dwUser;
+    DWORD dwFlags;
+    DWORD dwLoops;
+    WAVEHDR *lpNext;
+    DWORD reserved;
 }
 alias WAVEHDR* PWAVEHDR, LPWAVEHDR;
 
 struct WAVEOUTCAPSA {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	CHAR[MAXPNAMELEN] szPname;
-	DWORD dwFormats;
-	WORD wChannels;
-	WORD wReserved1;
-	DWORD dwSupport;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    CHAR[MAXPNAMELEN] szPname;
+    DWORD dwFormats;
+    WORD wChannels;
+    WORD wReserved1;
+    DWORD dwSupport;
 }
 alias WAVEOUTCAPSA* PWAVEOUTCAPSA, LPWAVEOUTCAPSA;
 
 struct WAVEOUTCAPSW {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	WCHAR[MAXPNAMELEN] szPname;
-	DWORD dwFormats;
-	WORD wChannels;
-	WORD wReserved1;
-	DWORD dwSupport;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    WCHAR[MAXPNAMELEN] szPname;
+    DWORD dwFormats;
+    WORD wChannels;
+    WORD wReserved1;
+    DWORD dwSupport;
 }
 alias WAVEOUTCAPSW* PWAVEOUTCAPSW, LPWAVEOUTCAPSW;
 
 struct WAVEINCAPSA {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	CHAR[MAXPNAMELEN] szPname;
-	DWORD dwFormats;
-	WORD wChannels;
-	WORD wReserved1;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    CHAR[MAXPNAMELEN] szPname;
+    DWORD dwFormats;
+    WORD wChannels;
+    WORD wReserved1;
 }
 alias WAVEINCAPSA* PWAVEINCAPSA, LPWAVEINCAPSA;
 
 struct WAVEINCAPSW {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	WCHAR[MAXPNAMELEN] szPname;
-	DWORD dwFormats;
-	WORD wChannels;
-	WORD wReserved1;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    WCHAR[MAXPNAMELEN] szPname;
+    DWORD dwFormats;
+    WORD wChannels;
+    WORD wReserved1;
 }
 alias WAVEINCAPSW* PWAVEINCAPSW, LPWAVEINCAPSW;
 
 struct WAVEFORMAT {
-	WORD wFormatTag;
-	WORD nChannels;
-	DWORD nSamplesPerSec;
-	DWORD nAvgBytesPerSec;
-	WORD nBlockAlign;
+    WORD wFormatTag;
+    WORD nChannels;
+    DWORD nSamplesPerSec;
+    DWORD nAvgBytesPerSec;
+    WORD nBlockAlign;
 }
 alias WAVEFORMAT* PWAVEFORMAT, LPWAVEFORMAT;
 
 struct PCMWAVEFORMAT {
-	WAVEFORMAT wf;
-	WORD wBitsPerSample;
+    WAVEFORMAT wf;
+    WORD wBitsPerSample;
 }
 alias PCMWAVEFORMAT* PPCMWAVEFORMAT, LPPCMWAVEFORMAT;
 
 struct WAVEFORMATEX {
-	WORD wFormatTag;
-	WORD nChannels;
-	DWORD nSamplesPerSec;
-	DWORD nAvgBytesPerSec;
-	WORD nBlockAlign;
-	WORD wBitsPerSample;
-	WORD cbSize;
+    WORD wFormatTag;
+    WORD nChannels;
+    DWORD nSamplesPerSec;
+    DWORD nAvgBytesPerSec;
+    WORD nBlockAlign;
+    WORD wBitsPerSample;
+    WORD cbSize;
 }
 alias WAVEFORMATEX* PWAVEFORMATEX, LPWAVEFORMATEX;
 alias const(WAVEFORMATEX)* LPCWAVEFORMATEX;
@@ -1183,106 +1183,106 @@ alias WORD[MIDIPATCHSIZE] KEYARRAY;
 alias WORD* LPKEYARRAY;
 
 struct MIDIOUTCAPSA {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	CHAR[MAXPNAMELEN] szPname;
-	WORD wTechnology;
-	WORD wVoices;
-	WORD wNotes;
-	WORD wChannelMask;
-	DWORD dwSupport;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    CHAR[MAXPNAMELEN] szPname;
+    WORD wTechnology;
+    WORD wVoices;
+    WORD wNotes;
+    WORD wChannelMask;
+    DWORD dwSupport;
 }
 alias MIDIOUTCAPSA* PMIDIOUTCAPSA, LPMIDIOUTCAPSA;
 
 struct MIDIOUTCAPSW {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	WCHAR[MAXPNAMELEN] szPname;
-	WORD wTechnology;
-	WORD wVoices;
-	WORD wNotes;
-	WORD wChannelMask;
-	DWORD dwSupport;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    WCHAR[MAXPNAMELEN] szPname;
+    WORD wTechnology;
+    WORD wVoices;
+    WORD wNotes;
+    WORD wChannelMask;
+    DWORD dwSupport;
 }
 alias MIDIOUTCAPSW* PMIDIOUTCAPSW, LPMIDIOUTCAPSW;
 
 struct MIDIINCAPSA {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	CHAR[MAXPNAMELEN] szPname;
-	DWORD dwSupport;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    CHAR[MAXPNAMELEN] szPname;
+    DWORD dwSupport;
 }
 alias MIDIINCAPSA* PMIDIINCAPSA, LPMIDIINCAPSA;
 
 struct MIDIINCAPSW {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	WCHAR[MAXPNAMELEN] szPname;
-	DWORD dwSupport;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    WCHAR[MAXPNAMELEN] szPname;
+    DWORD dwSupport;
 }
 alias MIDIINCAPSW* PMIDIINCAPSW, LPMIDIINCAPSW;
 
 struct MIDIHDR {
-	LPSTR lpData;
-	DWORD dwBufferLength;
-	DWORD dwBytesRecorded;
-	DWORD dwUser;
-	DWORD dwFlags;
-	MIDIHDR *lpNext;
-	DWORD reserved;
-	DWORD dwOffset;
-	DWORD[8] dwReserved;
+    LPSTR lpData;
+    DWORD dwBufferLength;
+    DWORD dwBytesRecorded;
+    DWORD dwUser;
+    DWORD dwFlags;
+    MIDIHDR *lpNext;
+    DWORD reserved;
+    DWORD dwOffset;
+    DWORD[8] dwReserved;
 }
 alias MIDIHDR* PMIDIHDR, LPMIDIHDR;
 
 struct MIDIEVENT {
-	DWORD dwDeltaTime;
-	DWORD dwStreamID;
-	DWORD dwEvent;
-	DWORD[1] dwParms;
+    DWORD dwDeltaTime;
+    DWORD dwStreamID;
+    DWORD dwEvent;
+    DWORD[1] dwParms;
 }
 
 struct MIDISTRMBUFFVER {
-	DWORD dwVersion;
-	DWORD dwMid;
-	DWORD dwOEMVersion;
+    DWORD dwVersion;
+    DWORD dwMid;
+    DWORD dwOEMVersion;
 }
 
 struct MIDIPROPTIMEDIV {
-	DWORD cbStruct;
-	DWORD dwTimeDiv;
+    DWORD cbStruct;
+    DWORD dwTimeDiv;
 }
 alias MIDIPROPTIMEDIV* LPMIDIPROPTIMEDIV;
 
 struct MIDIPROPTEMPO {
-	DWORD cbStruct;
-	DWORD dwTempo;
+    DWORD cbStruct;
+    DWORD dwTempo;
 }
 alias MIDIPROPTEMPO* LPMIDIPROPTEMPO;
 
 struct AUXCAPSA {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	CHAR[MAXPNAMELEN] szPname;
-	WORD wTechnology;
-	WORD wReserved1;
-	DWORD dwSupport;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    CHAR[MAXPNAMELEN] szPname;
+    WORD wTechnology;
+    WORD wReserved1;
+    DWORD dwSupport;
 }
 alias AUXCAPSA* PAUXCAPSA, LPAUXCAPSA;
 
 struct AUXCAPSW {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	WCHAR[MAXPNAMELEN] szPname;
-	WORD wTechnology;
-	WORD wReserved1;
-	DWORD dwSupport;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    WCHAR[MAXPNAMELEN] szPname;
+    WORD wTechnology;
+    WORD wReserved1;
+    DWORD dwSupport;
 }
 alias AUXCAPSW* PAUXCAPSW, LPAUXCAPSW;
 
@@ -1293,286 +1293,286 @@ alias TypeDef!(HANDLE) HMIXER;
 alias HMIXER* LPHMIXER;
 
 struct MIXERCAPSA {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	CHAR[MAXPNAMELEN] szPname;
-	DWORD fdwSupport;
-	DWORD cDestinations;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    CHAR[MAXPNAMELEN] szPname;
+    DWORD fdwSupport;
+    DWORD cDestinations;
 }
 alias MIXERCAPSA* PMIXERCAPSA, LPMIXERCAPSA;
 
 struct MIXERCAPSW {
-	WORD wMid;
-	WORD wPid;
-	MMVERSION vDriverVersion;
-	WCHAR[MAXPNAMELEN] szPname;
-	DWORD fdwSupport;
-	DWORD cDestinations;
+    WORD wMid;
+    WORD wPid;
+    MMVERSION vDriverVersion;
+    WCHAR[MAXPNAMELEN] szPname;
+    DWORD fdwSupport;
+    DWORD cDestinations;
 }
 alias MIXERCAPSW* PMIXERCAPSW, LPMIXERCAPSW;
 
 struct MIXERLINEA {
-	DWORD cbStruct;
-	DWORD dwDestination;
-	DWORD dwSource;
-	DWORD dwLineID;
-	DWORD fdwLine;
-	DWORD dwUser;
-	DWORD dwComponentType;
-	DWORD cChannels;
-	DWORD cConnections;
-	DWORD cControls;
-	CHAR[MIXER_SHORT_NAME_CHARS] szShortName;
-	CHAR[MIXER_LONG_NAME_CHARS] szName;
-	struct Target {
-		DWORD dwType;
-		DWORD dwDeviceID;
-		WORD wMid;
-		WORD wPid;
-		MMVERSION vDriverVersion;
-		CHAR[MAXPNAMELEN] szPname;
-	}
+    DWORD cbStruct;
+    DWORD dwDestination;
+    DWORD dwSource;
+    DWORD dwLineID;
+    DWORD fdwLine;
+    DWORD dwUser;
+    DWORD dwComponentType;
+    DWORD cChannels;
+    DWORD cConnections;
+    DWORD cControls;
+    CHAR[MIXER_SHORT_NAME_CHARS] szShortName;
+    CHAR[MIXER_LONG_NAME_CHARS] szName;
+    struct Target {
+        DWORD dwType;
+        DWORD dwDeviceID;
+        WORD wMid;
+        WORD wPid;
+        MMVERSION vDriverVersion;
+        CHAR[MAXPNAMELEN] szPname;
+    }
 }
 alias MIXERLINEA* PMIXERLINEA, LPMIXERLINEA;
 
 struct MIXERLINEW {
-	DWORD cbStruct;
-	DWORD dwDestination;
-	DWORD dwSource;
-	DWORD dwLineID;
-	DWORD fdwLine;
-	DWORD dwUser;
-	DWORD dwComponentType;
-	DWORD cChannels;
-	DWORD cConnections;
-	DWORD cControls;
-	WCHAR[MIXER_SHORT_NAME_CHARS] szShortName;
-	WCHAR[MIXER_LONG_NAME_CHARS] szName;
-	struct Target {
-		DWORD dwType;
-		DWORD dwDeviceID;
-		WORD wMid;
-		WORD wPid;
-		MMVERSION vDriverVersion;
-		WCHAR[MAXPNAMELEN] szPname;
-	}
+    DWORD cbStruct;
+    DWORD dwDestination;
+    DWORD dwSource;
+    DWORD dwLineID;
+    DWORD fdwLine;
+    DWORD dwUser;
+    DWORD dwComponentType;
+    DWORD cChannels;
+    DWORD cConnections;
+    DWORD cControls;
+    WCHAR[MIXER_SHORT_NAME_CHARS] szShortName;
+    WCHAR[MIXER_LONG_NAME_CHARS] szName;
+    struct Target {
+        DWORD dwType;
+        DWORD dwDeviceID;
+        WORD wMid;
+        WORD wPid;
+        MMVERSION vDriverVersion;
+        WCHAR[MAXPNAMELEN] szPname;
+    }
 }
 alias MIXERLINEW* PMIXERLINEW, LPMIXERLINEW;
 
 struct MIXERCONTROLA {
-	DWORD cbStruct;
-	DWORD dwControlID;
-	DWORD dwControlType;
-	DWORD fdwControl;
-	DWORD cMultipleItems;
-	CHAR[MIXER_SHORT_NAME_CHARS] szShortName;
-	CHAR[MIXER_LONG_NAME_CHARS] szName;
-	union _Bounds {
-		struct {
-			LONG lMinimum;
-			LONG lMaximum;
-		}
-		struct {
-			DWORD dwMinimum;
-			DWORD dwMaximum;
-		}
-		DWORD[6] dwReserved;
-	}
-	_Bounds Bounds;
-	union _Metrics {
-		DWORD cSteps;
-		DWORD cbCustomData;
-		DWORD[6] dwReserved;
-	}
-	_Metrics Metrics;
+    DWORD cbStruct;
+    DWORD dwControlID;
+    DWORD dwControlType;
+    DWORD fdwControl;
+    DWORD cMultipleItems;
+    CHAR[MIXER_SHORT_NAME_CHARS] szShortName;
+    CHAR[MIXER_LONG_NAME_CHARS] szName;
+    union _Bounds {
+        struct {
+            LONG lMinimum;
+            LONG lMaximum;
+        }
+        struct {
+            DWORD dwMinimum;
+            DWORD dwMaximum;
+        }
+        DWORD[6] dwReserved;
+    }
+    _Bounds Bounds;
+    union _Metrics {
+        DWORD cSteps;
+        DWORD cbCustomData;
+        DWORD[6] dwReserved;
+    }
+    _Metrics Metrics;
 }
 alias MIXERCONTROLA* PMIXERCONTROLA, LPMIXERCONTROLA;
 
 struct MIXERCONTROLW {
-	DWORD cbStruct;
-	DWORD dwControlID;
-	DWORD dwControlType;
-	DWORD fdwControl;
-	DWORD cMultipleItems;
-	WCHAR[MIXER_SHORT_NAME_CHARS] szShortName;
-	WCHAR[MIXER_LONG_NAME_CHARS] szName;
-	union _Bounds {
-		struct {
-			LONG lMinimum;
-			LONG lMaximum;
-		}
-		struct {
-			DWORD dwMinimum;
-			DWORD dwMaximum;
-		}
-		DWORD[6] dwReserved;
-	}
-	_Bounds Bounds;
-	union _Metrics {
-		DWORD cSteps;
-		DWORD cbCustomData;
-		DWORD[6] dwReserved;
-	}
-	_Metrics Metrics;
+    DWORD cbStruct;
+    DWORD dwControlID;
+    DWORD dwControlType;
+    DWORD fdwControl;
+    DWORD cMultipleItems;
+    WCHAR[MIXER_SHORT_NAME_CHARS] szShortName;
+    WCHAR[MIXER_LONG_NAME_CHARS] szName;
+    union _Bounds {
+        struct {
+            LONG lMinimum;
+            LONG lMaximum;
+        }
+        struct {
+            DWORD dwMinimum;
+            DWORD dwMaximum;
+        }
+        DWORD[6] dwReserved;
+    }
+    _Bounds Bounds;
+    union _Metrics {
+        DWORD cSteps;
+        DWORD cbCustomData;
+        DWORD[6] dwReserved;
+    }
+    _Metrics Metrics;
 }
 
 alias MIXERCONTROLW* PMIXERCONTROLW, LPMIXERCONTROLW;
 
 struct MIXERLINECONTROLSA {
-	DWORD cbStruct;
-	DWORD dwLineID;
-	union {
-		DWORD dwControlID;
-		DWORD dwControlType;
-	}
-	DWORD cControls;
-	DWORD cbmxctrl;
-	LPMIXERCONTROLA pamxctrl;
+    DWORD cbStruct;
+    DWORD dwLineID;
+    union {
+        DWORD dwControlID;
+        DWORD dwControlType;
+    }
+    DWORD cControls;
+    DWORD cbmxctrl;
+    LPMIXERCONTROLA pamxctrl;
 }
 alias MIXERLINECONTROLSA* PMIXERLINECONTROLSA, LPMIXERLINECONTROLSA;
 
 struct MIXERLINECONTROLSW {
-	DWORD cbStruct;
-	DWORD dwLineID;
-	union {
-		DWORD dwControlID;
-		DWORD dwControlType;
-	}
-	DWORD cControls;
-	DWORD cbmxctrl;
-	LPMIXERCONTROLW pamxctrl;
+    DWORD cbStruct;
+    DWORD dwLineID;
+    union {
+        DWORD dwControlID;
+        DWORD dwControlType;
+    }
+    DWORD cControls;
+    DWORD cbmxctrl;
+    LPMIXERCONTROLW pamxctrl;
 }
 alias MIXERLINECONTROLSW* PMIXERLINECONTROLSW, LPMIXERLINECONTROLSW;
 
 struct MIXERCONTROLDETAILS {
-	DWORD cbStruct;
-	DWORD dwControlID;
-	DWORD cChannels;
-	union {
-		HWND hwndOwner;
-		DWORD cMultipleItems;
-	}
-	DWORD cbDetails;
-	PVOID paDetails;
+    DWORD cbStruct;
+    DWORD dwControlID;
+    DWORD cChannels;
+    union {
+        HWND hwndOwner;
+        DWORD cMultipleItems;
+    }
+    DWORD cbDetails;
+    PVOID paDetails;
 }
 alias MIXERCONTROLDETAILS* PMIXERCONTROLDETAILS, LPMIXERCONTROLDETAILS;
 
 struct MIXERCONTROLDETAILS_LISTTEXTA {
-	DWORD dwParam1;
-	DWORD dwParam2;
-	CHAR[MIXER_LONG_NAME_CHARS] szName;
+    DWORD dwParam1;
+    DWORD dwParam2;
+    CHAR[MIXER_LONG_NAME_CHARS] szName;
 }
 alias MIXERCONTROLDETAILS_LISTTEXTA* PMIXERCONTROLDETAILS_LISTTEXTA, LPMIXERCONTROLDETAILS_LISTTEXTA;
 
 struct MIXERCONTROLDETAILS_LISTTEXTW {
-	DWORD dwParam1;
-	DWORD dwParam2;
-	WCHAR[MIXER_LONG_NAME_CHARS] szName;
+    DWORD dwParam1;
+    DWORD dwParam2;
+    WCHAR[MIXER_LONG_NAME_CHARS] szName;
 }
 alias MIXERCONTROLDETAILS_LISTTEXTW* PMIXERCONTROLDETAILS_LISTTEXTW, LPMIXERCONTROLDETAILS_LISTTEXTW;
 
 struct MIXERCONTROLDETAILS_BOOLEAN {
-	LONG fValue;
+    LONG fValue;
 }
 alias MIXERCONTROLDETAILS_BOOLEAN* PMIXERCONTROLDETAILS_BOOLEAN, LPMIXERCONTROLDETAILS_BOOLEAN;
 
 struct MIXERCONTROLDETAILS_SIGNED {
-	LONG lValue;
+    LONG lValue;
 }
 alias MIXERCONTROLDETAILS_SIGNED* PMIXERCONTROLDETAILS_SIGNED, LPMIXERCONTROLDETAILS_SIGNED;
 
 struct MIXERCONTROLDETAILS_UNSIGNED {
-	DWORD dwValue;
+    DWORD dwValue;
 }
 alias MIXERCONTROLDETAILS_UNSIGNED* PMIXERCONTROLDETAILS_UNSIGNED, LPMIXERCONTROLDETAILS_UNSIGNED;
 
 alias void function (UINT, UINT, DWORD, DWORD, DWORD) LPTIMECALLBACK;
 
 struct TIMECAPS {
-	UINT wPeriodMin;
-	UINT wPeriodMax;
+    UINT wPeriodMin;
+    UINT wPeriodMax;
 }
 alias TIMECAPS* PTIMECAPS, LPTIMECAPS;
 
 struct JOYCAPSA {
-	WORD wMid;
-	WORD wPid;
-	CHAR[MAXPNAMELEN] szPname;
-	UINT wXmin;
-	UINT wXmax;
-	UINT wYmin;
-	UINT wYmax;
-	UINT wZmin;
-	UINT wZmax;
-	UINT wNumButtons;
-	UINT wPeriodMin;
-	UINT wPeriodMax;
-	UINT wRmin;
-	UINT wRmax;
-	UINT wUmin;
-	UINT wUmax;
-	UINT wVmin;
-	UINT wVmax;
-	UINT wCaps;
-	UINT wMaxAxes;
-	UINT wNumAxes;
-	UINT wMaxButtons;
-	CHAR[MAXPNAMELEN] szRegKey;
-	CHAR[MAX_JOYSTICKOEMVXDNAME] szOEMVxD;
+    WORD wMid;
+    WORD wPid;
+    CHAR[MAXPNAMELEN] szPname;
+    UINT wXmin;
+    UINT wXmax;
+    UINT wYmin;
+    UINT wYmax;
+    UINT wZmin;
+    UINT wZmax;
+    UINT wNumButtons;
+    UINT wPeriodMin;
+    UINT wPeriodMax;
+    UINT wRmin;
+    UINT wRmax;
+    UINT wUmin;
+    UINT wUmax;
+    UINT wVmin;
+    UINT wVmax;
+    UINT wCaps;
+    UINT wMaxAxes;
+    UINT wNumAxes;
+    UINT wMaxButtons;
+    CHAR[MAXPNAMELEN] szRegKey;
+    CHAR[MAX_JOYSTICKOEMVXDNAME] szOEMVxD;
 }
 alias JOYCAPSA* PJOYCAPSA, LPJOYCAPSA;
 
 struct JOYCAPSW {
-	WORD wMid;
-	WORD wPid;
-	WCHAR[MAXPNAMELEN] szPname;
-	UINT wXmin;
-	UINT wXmax;
-	UINT wYmin;
-	UINT wYmax;
-	UINT wZmin;
-	UINT wZmax;
-	UINT wNumButtons;
-	UINT wPeriodMin;
-	UINT wPeriodMax;
-	UINT wRmin;
-	UINT wRmax;
-	UINT wUmin;
-	UINT wUmax;
-	UINT wVmin;
-	UINT wVmax;
-	UINT wCaps;
-	UINT wMaxAxes;
-	UINT wNumAxes;
-	UINT wMaxButtons;
-	WCHAR[MAXPNAMELEN] szRegKey;
-	WCHAR[MAX_JOYSTICKOEMVXDNAME] szOEMVxD;
+    WORD wMid;
+    WORD wPid;
+    WCHAR[MAXPNAMELEN] szPname;
+    UINT wXmin;
+    UINT wXmax;
+    UINT wYmin;
+    UINT wYmax;
+    UINT wZmin;
+    UINT wZmax;
+    UINT wNumButtons;
+    UINT wPeriodMin;
+    UINT wPeriodMax;
+    UINT wRmin;
+    UINT wRmax;
+    UINT wUmin;
+    UINT wUmax;
+    UINT wVmin;
+    UINT wVmax;
+    UINT wCaps;
+    UINT wMaxAxes;
+    UINT wNumAxes;
+    UINT wMaxButtons;
+    WCHAR[MAXPNAMELEN] szRegKey;
+    WCHAR[MAX_JOYSTICKOEMVXDNAME] szOEMVxD;
 }
 alias JOYCAPSW* PJOYCAPSW, LPJOYCAPSW;
 
 struct JOYINFO {
-	UINT wXpos;
-	UINT wYpos;
-	UINT wZpos;
-	UINT wButtons;
+    UINT wXpos;
+    UINT wYpos;
+    UINT wZpos;
+    UINT wButtons;
 }
 alias JOYINFO* PJOYINFO, LPJOYINFO;
 
 struct JOYINFOEX {
-	DWORD dwSize;
-	DWORD dwFlags;
-	DWORD dwXpos;
-	DWORD dwYpos;
-	DWORD dwZpos;
-	DWORD dwRpos;
-	DWORD dwUpos;
-	DWORD dwVpos;
-	DWORD dwButtons;
-	DWORD dwButtonNumber;
-	DWORD dwPOV;
-	DWORD dwReserved1;
-	DWORD dwReserved2;
+    DWORD dwSize;
+    DWORD dwFlags;
+    DWORD dwXpos;
+    DWORD dwYpos;
+    DWORD dwZpos;
+    DWORD dwRpos;
+    DWORD dwUpos;
+    DWORD dwVpos;
+    DWORD dwButtons;
+    DWORD dwButtonNumber;
+    DWORD dwPOV;
+    DWORD dwReserved1;
+    DWORD dwReserved2;
 }
 alias JOYINFOEX* PJOYINFOEX, LPJOYINFOEX;
 
@@ -1584,233 +1584,233 @@ alias TypeDef!(HANDLE) HMMIO;
 alias LRESULT function (LPSTR, UINT, LPARAM, LPARAM) LPMMIOPROC;
 
 struct MMIOINFO {
-	DWORD dwFlags;
-	FOURCC fccIOProc;
-	LPMMIOPROC pIOProc;
-	UINT wErrorRet;
-	HTASK htask;
-	LONG cchBuffer;
-	HPSTR pchBuffer;
-	HPSTR pchNext;
-	HPSTR pchEndRead;
-	HPSTR pchEndWrite;
-	LONG lBufOffset;
-	LONG lDiskOffset;
-	DWORD[3] adwInfo;
-	DWORD dwReserved1;
-	DWORD dwReserved2;
-	HMMIO hmmio;
+    DWORD dwFlags;
+    FOURCC fccIOProc;
+    LPMMIOPROC pIOProc;
+    UINT wErrorRet;
+    HTASK htask;
+    LONG cchBuffer;
+    HPSTR pchBuffer;
+    HPSTR pchNext;
+    HPSTR pchEndRead;
+    HPSTR pchEndWrite;
+    LONG lBufOffset;
+    LONG lDiskOffset;
+    DWORD[3] adwInfo;
+    DWORD dwReserved1;
+    DWORD dwReserved2;
+    HMMIO hmmio;
 }
 alias MMIOINFO* PMMIOINFO, LPMMIOINFO;
 alias const(MMIOINFO)* LPCMMIOINFO;
 
 struct MMCKINFO {
-	FOURCC ckid;
-	DWORD cksize;
-	FOURCC fccType;
-	DWORD dwDataOffset;
-	DWORD dwFlags;
+    FOURCC ckid;
+    DWORD cksize;
+    FOURCC fccType;
+    DWORD dwDataOffset;
+    DWORD dwFlags;
 }
 alias MMCKINFO* PMMCKINFO, LPMMCKINFO;
 alias const(MMCKINFO)* LPCMMCKINFO;
 
 struct MCI_GENERIC_PARMS {
-	DWORD dwCallback;
+    DWORD dwCallback;
 }
 alias MCI_GENERIC_PARMS* PMCI_GENERIC_PARMS, LPMCI_GENERIC_PARMS;
 
 struct MCI_OPEN_PARMSA {
-	DWORD dwCallback;
-	MCIDEVICEID wDeviceID;
-	LPCSTR lpstrDeviceType;
-	LPCSTR lpstrElementName;
-	LPCSTR lpstrAlias;
+    DWORD dwCallback;
+    MCIDEVICEID wDeviceID;
+    LPCSTR lpstrDeviceType;
+    LPCSTR lpstrElementName;
+    LPCSTR lpstrAlias;
 }
 alias MCI_OPEN_PARMSA* PMCI_OPEN_PARMSA, LPMCI_OPEN_PARMSA;
 
 struct MCI_OPEN_PARMSW {
-	DWORD dwCallback;
-	MCIDEVICEID wDeviceID;
-	LPCWSTR lpstrDeviceType;
-	LPCWSTR lpstrElementName;
-	LPCWSTR lpstrAlias;
+    DWORD dwCallback;
+    MCIDEVICEID wDeviceID;
+    LPCWSTR lpstrDeviceType;
+    LPCWSTR lpstrElementName;
+    LPCWSTR lpstrAlias;
 }
 alias MCI_OPEN_PARMSW* PMCI_OPEN_PARMSW, LPMCI_OPEN_PARMSW;
 
 struct MCI_PLAY_PARMS {
-	DWORD dwCallback;
-	DWORD dwFrom;
-	DWORD dwTo;
+    DWORD dwCallback;
+    DWORD dwFrom;
+    DWORD dwTo;
 }
 alias MCI_PLAY_PARMS* PMCI_PLAY_PARMS, LPMCI_PLAY_PARMS;
 
 struct MCI_SEEK_PARMS {
-	DWORD dwCallback;
-	DWORD dwTo;
+    DWORD dwCallback;
+    DWORD dwTo;
 }
 alias MCI_SEEK_PARMS* PMCI_SEEK_PARMS, LPMCI_SEEK_PARMS;
 
 struct MCI_STATUS_PARMS {
-	DWORD dwCallback;
-	DWORD dwReturn;
-	DWORD dwItem;
-	DWORD dwTrack;
+    DWORD dwCallback;
+    DWORD dwReturn;
+    DWORD dwItem;
+    DWORD dwTrack;
 }
 alias MCI_STATUS_PARMS* PMCI_STATUS_PARMS, LPMCI_STATUS_PARMS;
 
 struct MCI_INFO_PARMSA {
-	DWORD dwCallback;
-	LPSTR lpstrReturn;
-	DWORD dwRetSize;
+    DWORD dwCallback;
+    LPSTR lpstrReturn;
+    DWORD dwRetSize;
 }
 alias MCI_INFO_PARMSA* LPMCI_INFO_PARMSA;
 
 struct MCI_INFO_PARMSW {
-	DWORD dwCallback;
-	LPWSTR lpstrReturn;
-	DWORD dwRetSize;
+    DWORD dwCallback;
+    LPWSTR lpstrReturn;
+    DWORD dwRetSize;
 }
 alias MCI_INFO_PARMSW* LPMCI_INFO_PARMSW;
 
 struct MCI_GETDEVCAPS_PARMS {
-	DWORD dwCallback;
-	DWORD dwReturn;
-	DWORD dwItem;
+    DWORD dwCallback;
+    DWORD dwReturn;
+    DWORD dwItem;
 }
 alias MCI_GETDEVCAPS_PARMS* PMCI_GETDEVCAPS_PARMS, LPMCI_GETDEVCAPS_PARMS;
 
 struct MCI_SYSINFO_PARMSA {
-	DWORD dwCallback;
-	LPSTR lpstrReturn;
-	DWORD dwRetSize;
-	DWORD dwNumber;
-	UINT wDeviceType;
+    DWORD dwCallback;
+    LPSTR lpstrReturn;
+    DWORD dwRetSize;
+    DWORD dwNumber;
+    UINT wDeviceType;
 }
 alias MCI_SYSINFO_PARMSA* PMCI_SYSINFO_PARMSA, LPMCI_SYSINFO_PARMSA;
 
 struct MCI_SYSINFO_PARMSW {
-	DWORD dwCallback;
-	LPWSTR lpstrReturn;
-	DWORD dwRetSize;
-	DWORD dwNumber;
-	UINT wDeviceType;
+    DWORD dwCallback;
+    LPWSTR lpstrReturn;
+    DWORD dwRetSize;
+    DWORD dwNumber;
+    UINT wDeviceType;
 }
 alias MCI_SYSINFO_PARMSW* PMCI_SYSINFO_PARMSW, LPMCI_SYSINFO_PARMSW;
 
 struct MCI_SET_PARMS {
-	DWORD dwCallback;
-	DWORD dwTimeFormat;
-	DWORD dwAudio;
+    DWORD dwCallback;
+    DWORD dwTimeFormat;
+    DWORD dwAudio;
 }
 alias MCI_SET_PARMS* PMCI_SET_PARMS, LPMCI_SET_PARMS;
 
 struct MCI_BREAK_PARMS {
-	DWORD dwCallback;
-	int nVirtKey;
-	HWND hwndBreak;
+    DWORD dwCallback;
+    int nVirtKey;
+    HWND hwndBreak;
 }
 alias MCI_BREAK_PARMS* PMCI_BREAK_PARMS, LPMCI_BREAK_PARMS;
 
 struct MCI_SAVE_PARMSA {
-	DWORD dwCallback;
-	LPCSTR lpfilename;
+    DWORD dwCallback;
+    LPCSTR lpfilename;
 }
 alias MCI_SAVE_PARMSA* PMCI_SAVE_PARMSA, LPMCI_SAVE_PARMSA;
 
 struct MCI_SAVE_PARMSW {
-	DWORD dwCallback;
-	LPCWSTR lpfilename;
+    DWORD dwCallback;
+    LPCWSTR lpfilename;
 }
 alias MCI_SAVE_PARMSW* PMCI_SAVE_PARMSW, LPMCI_SAVE_PARMSW;
 
 struct MCI_LOAD_PARMSA {
-	DWORD dwCallback;
-	LPCSTR lpfilename;
+    DWORD dwCallback;
+    LPCSTR lpfilename;
 }
 alias MCI_LOAD_PARMSA* PMCI_LOAD_PARMSA, LPMCI_LOAD_PARMSA;
 
 struct MCI_LOAD_PARMSW {
-	DWORD dwCallback;
-	LPCWSTR lpfilename;
+    DWORD dwCallback;
+    LPCWSTR lpfilename;
 }
 alias MCI_LOAD_PARMSW* PMCI_LOAD_PARMSW, LPMCI_LOAD_PARMSW;
 
 struct MCI_RECORD_PARMS {
-	DWORD dwCallback;
-	DWORD dwFrom;
-	DWORD dwTo;
+    DWORD dwCallback;
+    DWORD dwFrom;
+    DWORD dwTo;
 }
 alias MCI_RECORD_PARMS* LPMCI_RECORD_PARMS;
 
 struct MCI_VD_PLAY_PARMS {
-	DWORD dwCallback;
-	DWORD dwFrom;
-	DWORD dwTo;
-	DWORD dwSpeed;
+    DWORD dwCallback;
+    DWORD dwFrom;
+    DWORD dwTo;
+    DWORD dwSpeed;
 }
 alias MCI_VD_PLAY_PARMS* PMCI_VD_PLAY_PARMS, LPMCI_VD_PLAY_PARMS;
 
 struct MCI_VD_STEP_PARMS {
-	DWORD dwCallback;
-	DWORD dwFrames;
+    DWORD dwCallback;
+    DWORD dwFrames;
 }
 alias MCI_VD_STEP_PARMS* PMCI_VD_STEP_PARMS, LPMCI_VD_STEP_PARMS;
 
 struct MCI_VD_ESCAPE_PARMSA {
-	DWORD dwCallback;
-	LPCSTR lpstrCommand;
+    DWORD dwCallback;
+    LPCSTR lpstrCommand;
 }
 alias MCI_VD_ESCAPE_PARMSA* PMCI_VD_ESCAPE_PARMSA, LPMCI_VD_ESCAPE_PARMSA;
 
 struct MCI_VD_ESCAPE_PARMSW {
-	DWORD dwCallback;
-	LPCWSTR lpstrCommand;
+    DWORD dwCallback;
+    LPCWSTR lpstrCommand;
 }
 alias MCI_VD_ESCAPE_PARMSW* PMCI_VD_ESCAPE_PARMSW, LPMCI_VD_ESCAPE_PARMSW;
 
 struct MCI_WAVE_OPEN_PARMSA {
-	DWORD dwCallback;
-	MCIDEVICEID wDeviceID;
-	LPCSTR lpstrDeviceType;
-	LPCSTR lpstrElementName;
-	LPCSTR lpstrAlias;
-	DWORD dwBufferSeconds;
+    DWORD dwCallback;
+    MCIDEVICEID wDeviceID;
+    LPCSTR lpstrDeviceType;
+    LPCSTR lpstrElementName;
+    LPCSTR lpstrAlias;
+    DWORD dwBufferSeconds;
 }
 alias MCI_WAVE_OPEN_PARMSA* PMCI_WAVE_OPEN_PARMSA, LPMCI_WAVE_OPEN_PARMSA;
 
 struct MCI_WAVE_OPEN_PARMSW {
-	DWORD dwCallback;
-	MCIDEVICEID wDeviceID;
-	LPCWSTR lpstrDeviceType;
-	LPCWSTR lpstrElementName;
-	LPCWSTR lpstrAlias;
-	DWORD dwBufferSeconds;
+    DWORD dwCallback;
+    MCIDEVICEID wDeviceID;
+    LPCWSTR lpstrDeviceType;
+    LPCWSTR lpstrElementName;
+    LPCWSTR lpstrAlias;
+    DWORD dwBufferSeconds;
 }
 alias MCI_WAVE_OPEN_PARMSW* PMCI_WAVE_OPEN_PARMSW, LPMCI_WAVE_OPEN_PARMSW;
 
 struct MCI_WAVE_DELETE_PARMS {
-	DWORD dwCallback;
-	DWORD dwFrom;
-	DWORD dwTo;
+    DWORD dwCallback;
+    DWORD dwFrom;
+    DWORD dwTo;
 }
 alias MCI_WAVE_DELETE_PARMS* PMCI_WAVE_DELETE_PARMS, LPMCI_WAVE_DELETE_PARMS;
 
 struct MCI_WAVE_SET_PARMS {
-	DWORD dwCallback;
-	DWORD dwTimeFormat;
-	DWORD dwAudio;
-	UINT wInput;
-	UINT wOutput;
-	WORD wFormatTag;
-	WORD wReserved2;
-	WORD nChannels;
-	WORD wReserved3;
-	DWORD nSamplesPerSec;
-	DWORD nAvgBytesPerSec;
-	WORD nBlockAlign;
-	WORD wReserved4;
-	WORD wBitsPerSample;
-	WORD wReserved5;
+    DWORD dwCallback;
+    DWORD dwTimeFormat;
+    DWORD dwAudio;
+    UINT wInput;
+    UINT wOutput;
+    WORD wFormatTag;
+    WORD wReserved2;
+    WORD nChannels;
+    WORD wReserved3;
+    DWORD nSamplesPerSec;
+    DWORD nAvgBytesPerSec;
+    WORD nBlockAlign;
+    WORD wReserved4;
+    WORD wBitsPerSample;
+    WORD wReserved5;
 }
 alias MCI_WAVE_SET_PARMS* PMCI_WAVE_SET_PARMS, LPMCI_WAVE_SET_PARMS;
 
@@ -1982,265 +1982,265 @@ HTASK mciGetCreatorTask(MCIDEVICEID);
 YIELDPROC mciGetYieldProc(MCIDEVICEID, PDWORD);
 
 struct MCI_SEQ_SET_PARMS {
-	DWORD dwCallback;
-	DWORD dwTimeFormat;
-	DWORD dwAudio;
-	DWORD dwTempo;
-	DWORD dwPort;
-	DWORD dwSlave;
-	DWORD dwMaster;
-	DWORD dwOffset;
+    DWORD dwCallback;
+    DWORD dwTimeFormat;
+    DWORD dwAudio;
+    DWORD dwTempo;
+    DWORD dwPort;
+    DWORD dwSlave;
+    DWORD dwMaster;
+    DWORD dwOffset;
 }
 alias MCI_SEQ_SET_PARMS* PMCI_SEQ_SET_PARMS, LPMCI_SEQ_SET_PARMS;
 
 struct MCI_ANIM_OPEN_PARMSA {
-	DWORD dwCallback;
-	MCIDEVICEID wDeviceID;
-	LPCSTR lpstrDeviceType;
-	LPCSTR lpstrElementName;
-	LPCSTR lpstrAlias;
-	DWORD dwStyle;
-	HWND hWndParent;
+    DWORD dwCallback;
+    MCIDEVICEID wDeviceID;
+    LPCSTR lpstrDeviceType;
+    LPCSTR lpstrElementName;
+    LPCSTR lpstrAlias;
+    DWORD dwStyle;
+    HWND hWndParent;
 }
 alias MCI_ANIM_OPEN_PARMSA* PMCI_ANIM_OPEN_PARMSA, LPMCI_ANIM_OPEN_PARMSA;
 
 struct MCI_ANIM_OPEN_PARMSW {
-	DWORD dwCallback;
-	MCIDEVICEID wDeviceID;
-	LPCWSTR lpstrDeviceType;
-	LPCWSTR lpstrElementName;
-	LPCWSTR lpstrAlias;
-	DWORD dwStyle;
-	HWND hWndParent;
+    DWORD dwCallback;
+    MCIDEVICEID wDeviceID;
+    LPCWSTR lpstrDeviceType;
+    LPCWSTR lpstrElementName;
+    LPCWSTR lpstrAlias;
+    DWORD dwStyle;
+    HWND hWndParent;
 }
 alias MCI_ANIM_OPEN_PARMSW* PMCI_ANIM_OPEN_PARMSW, LPMCI_ANIM_OPEN_PARMSW;
 
 struct MCI_ANIM_PLAY_PARMS {
-	DWORD dwCallback;
-	DWORD dwFrom;
-	DWORD dwTo;
-	DWORD dwSpeed;
+    DWORD dwCallback;
+    DWORD dwFrom;
+    DWORD dwTo;
+    DWORD dwSpeed;
 }
 alias MCI_ANIM_PLAY_PARMS* PMCI_ANIM_PLAY_PARMS, LPMCI_ANIM_PLAY_PARMS;
 
 struct MCI_ANIM_STEP_PARMS {
-	DWORD dwCallback;
-	DWORD dwFrames;
+    DWORD dwCallback;
+    DWORD dwFrames;
 }
 alias MCI_ANIM_STEP_PARMS* PMCI_ANIM_STEP_PARMS, LPMCI_ANIM_STEP_PARMS;
 
 struct MCI_ANIM_WINDOW_PARMSA {
-	DWORD dwCallback;
-	HWND hWnd;
-	UINT nCmdShow;
-	LPCSTR lpstrText;
+    DWORD dwCallback;
+    HWND hWnd;
+    UINT nCmdShow;
+    LPCSTR lpstrText;
 }
 alias MCI_ANIM_WINDOW_PARMSA* PMCI_ANIM_WINDOW_PARMSA, LPMCI_ANIM_WINDOW_PARMSA;
 
 struct MCI_ANIM_WINDOW_PARMSW {
-	DWORD dwCallback;
-	HWND hWnd;
-	UINT nCmdShow;
-	LPCWSTR lpstrText;
+    DWORD dwCallback;
+    HWND hWnd;
+    UINT nCmdShow;
+    LPCWSTR lpstrText;
 }
 alias MCI_ANIM_WINDOW_PARMSW* PMCI_ANIM_WINDOW_PARMSW, LPMCI_ANIM_WINDOW_PARMSW;
 
 struct MCI_ANIM_RECT_PARMS {
-	DWORD dwCallback;
-	//#ifdef MCI_USE_OFFEXT
-	//	POINT ptOffset;
-	//	POINT ptExtent;
-	//#else
-	RECT rc;
-	//#endif
+    DWORD dwCallback;
+    //#ifdef MCI_USE_OFFEXT
+    //	POINT ptOffset;
+    //	POINT ptExtent;
+    //#else
+    RECT rc;
+    //#endif
 }
 alias MCI_ANIM_RECT_PARMS* PMCI_ANIM_RECT_PARMS, LPMCI_ANIM_RECT_PARMS;
 
 struct MCI_ANIM_UPDATE_PARMS {
-	DWORD dwCallback;
-	RECT rc;
-	HDC hDC;
+    DWORD dwCallback;
+    RECT rc;
+    HDC hDC;
 }
 alias MCI_ANIM_UPDATE_PARMS* PMCI_ANIM_UPDATE_PARMS, LPMCI_ANIM_UPDATE_PARMS;
 
 struct MCI_OVLY_OPEN_PARMSA {
-	DWORD dwCallback;
-	MCIDEVICEID wDeviceID;
-	LPCSTR lpstrDeviceType;
-	LPCSTR lpstrElementName;
-	LPCSTR lpstrAlias;
-	DWORD dwStyle;
-	HWND hWndParent;
+    DWORD dwCallback;
+    MCIDEVICEID wDeviceID;
+    LPCSTR lpstrDeviceType;
+    LPCSTR lpstrElementName;
+    LPCSTR lpstrAlias;
+    DWORD dwStyle;
+    HWND hWndParent;
 }
 alias MCI_OVLY_OPEN_PARMSA* PMCI_OVLY_OPEN_PARMSA, LPMCI_OVLY_OPEN_PARMSA;
 
 struct MCI_OVLY_OPEN_PARMSW {
-	DWORD dwCallback;
-	MCIDEVICEID wDeviceID;
-	LPCWSTR lpstrDeviceType;
-	LPCWSTR lpstrElementName;
-	LPCWSTR lpstrAlias;
-	DWORD dwStyle;
-	HWND hWndParent;
+    DWORD dwCallback;
+    MCIDEVICEID wDeviceID;
+    LPCWSTR lpstrDeviceType;
+    LPCWSTR lpstrElementName;
+    LPCWSTR lpstrAlias;
+    DWORD dwStyle;
+    HWND hWndParent;
 }
 alias MCI_OVLY_OPEN_PARMSW* PMCI_OVLY_OPEN_PARMSW, LPMCI_OVLY_OPEN_PARMSW;
 
 struct MCI_OVLY_WINDOW_PARMSA {
-	DWORD dwCallback;
-	HWND hWnd;
-	UINT nCmdShow;
-	LPCSTR lpstrText;
+    DWORD dwCallback;
+    HWND hWnd;
+    UINT nCmdShow;
+    LPCSTR lpstrText;
 }
 alias MCI_OVLY_WINDOW_PARMSA* PMCI_OVLY_WINDOW_PARMSA, LPMCI_OVLY_WINDOW_PARMSA;
 
 struct MCI_OVLY_WINDOW_PARMSW {
-	DWORD dwCallback;
-	HWND hWnd;
-	UINT nCmdShow;
-	LPCWSTR lpstrText;
+    DWORD dwCallback;
+    HWND hWnd;
+    UINT nCmdShow;
+    LPCWSTR lpstrText;
 }
 alias MCI_OVLY_WINDOW_PARMSW* PMCI_OVLY_WINDOW_PARMSW, LPMCI_OVLY_WINDOW_PARMSW;
 
 struct MCI_OVLY_RECT_PARMS {
-	DWORD dwCallback;
-	//#ifdef MCI_USE_OFFEXT
-	//	POINT ptOffset;
-	//	POINT ptExtent;
-	//#else
-	RECT rc;
-	//#endif
+    DWORD dwCallback;
+    //#ifdef MCI_USE_OFFEXT
+    //	POINT ptOffset;
+    //	POINT ptExtent;
+    //#else
+    RECT rc;
+    //#endif
 }
 alias MCI_OVLY_RECT_PARMS* PMCI_OVLY_RECT_PARMS, LPMCI_OVLY_RECT_PARMS;
 
 struct MCI_OVLY_SAVE_PARMSA {
-	DWORD dwCallback;
-	LPCSTR lpfilename;
-	RECT rc;
+    DWORD dwCallback;
+    LPCSTR lpfilename;
+    RECT rc;
 }
 alias MCI_OVLY_SAVE_PARMSA* PMCI_OVLY_SAVE_PARMSA, LPMCI_OVLY_SAVE_PARMSA;
 
 struct MCI_OVLY_SAVE_PARMSW {
-	DWORD dwCallback;
-	LPCWSTR lpfilename;
-	RECT rc;
+    DWORD dwCallback;
+    LPCWSTR lpfilename;
+    RECT rc;
 }
 alias MCI_OVLY_SAVE_PARMSW* PMCI_OVLY_SAVE_PARMSW, LPMCI_OVLY_SAVE_PARMSW;
 
 struct MCI_OVLY_LOAD_PARMSA {
-	DWORD dwCallback;
-	LPCSTR lpfilename;
-	RECT rc;
+    DWORD dwCallback;
+    LPCSTR lpfilename;
+    RECT rc;
 }
 alias MCI_OVLY_LOAD_PARMSA* PMCI_OVLY_LOAD_PARMSA, LPMCI_OVLY_LOAD_PARMSA;
 
 struct MCI_OVLY_LOAD_PARMSW {
-	DWORD dwCallback;
-	LPCWSTR lpfilename;
-	RECT rc;
+    DWORD dwCallback;
+    LPCWSTR lpfilename;
+    RECT rc;
 }
 alias MCI_OVLY_LOAD_PARMSW* PMCI_OVLY_LOAD_PARMSW, LPMCI_OVLY_LOAD_PARMSW;
 
 version(Unicode) {
-	alias WAVEOUTCAPSW WAVEOUTCAPS;
-	alias WAVEINCAPSW WAVEINCAPS;
-	alias MIDIOUTCAPSW MIDIOUTCAPS;
-	alias MIDIINCAPSW MIDIINCAPS;
-	alias AUXCAPSW AUXCAPS;
-	alias MIXERCAPSW MIXERCAPS;
-	alias MIXERLINEW MIXERLINE;
-	alias MIXERCONTROLA MIXERCONTROL;
-	alias MIXERLINECONTROLSW MIXERLINECONTROLS;
-	alias MIXERCONTROLDETAILS_LISTTEXTW MIXERCONTROLDETAILS_LISTTEXT;
-	alias JOYCAPSW JOYCAPS;
-	alias MCI_OPEN_PARMSW MCI_OPEN_PARMS;
-	alias MCI_INFO_PARMSW MCI_INFO_PARMS;
-	alias MCI_SYSINFO_PARMSW MCI_SYSINFO_PARMS;
-	alias MCI_SAVE_PARMSW MCI_SAVE_PARMS;
-	alias MCI_LOAD_PARMSW MCI_LOAD_PARMS;
-	alias MCI_VD_ESCAPE_PARMSW MCI_VD_ESCAPE_PARMS;
-	alias MCI_WAVE_OPEN_PARMSW MCI_WAVE_OPEN_PARMS;
-	alias MCI_ANIM_OPEN_PARMSW MCI_ANIM_OPEN_PARMS;
-	alias MCI_ANIM_WINDOW_PARMSW MCI_ANIM_WINDOW_PARMS;
-	alias MCI_OVLY_OPEN_PARMSW MCI_OVLY_OPEN_PARMS;
-	alias MCI_OVLY_WINDOW_PARMSW MCI_OVLY_WINDOW_PARMS;
-	alias MCI_OVLY_SAVE_PARMSW MCI_OVLY_SAVE_PARMS;
+    alias WAVEOUTCAPSW WAVEOUTCAPS;
+    alias WAVEINCAPSW WAVEINCAPS;
+    alias MIDIOUTCAPSW MIDIOUTCAPS;
+    alias MIDIINCAPSW MIDIINCAPS;
+    alias AUXCAPSW AUXCAPS;
+    alias MIXERCAPSW MIXERCAPS;
+    alias MIXERLINEW MIXERLINE;
+    alias MIXERCONTROLA MIXERCONTROL;
+    alias MIXERLINECONTROLSW MIXERLINECONTROLS;
+    alias MIXERCONTROLDETAILS_LISTTEXTW MIXERCONTROLDETAILS_LISTTEXT;
+    alias JOYCAPSW JOYCAPS;
+    alias MCI_OPEN_PARMSW MCI_OPEN_PARMS;
+    alias MCI_INFO_PARMSW MCI_INFO_PARMS;
+    alias MCI_SYSINFO_PARMSW MCI_SYSINFO_PARMS;
+    alias MCI_SAVE_PARMSW MCI_SAVE_PARMS;
+    alias MCI_LOAD_PARMSW MCI_LOAD_PARMS;
+    alias MCI_VD_ESCAPE_PARMSW MCI_VD_ESCAPE_PARMS;
+    alias MCI_WAVE_OPEN_PARMSW MCI_WAVE_OPEN_PARMS;
+    alias MCI_ANIM_OPEN_PARMSW MCI_ANIM_OPEN_PARMS;
+    alias MCI_ANIM_WINDOW_PARMSW MCI_ANIM_WINDOW_PARMS;
+    alias MCI_OVLY_OPEN_PARMSW MCI_OVLY_OPEN_PARMS;
+    alias MCI_OVLY_WINDOW_PARMSW MCI_OVLY_WINDOW_PARMS;
+    alias MCI_OVLY_SAVE_PARMSW MCI_OVLY_SAVE_PARMS;
 
-	alias sndPlaySoundW sndPlaySound;
-	alias PlaySoundW PlaySound;
-	alias waveOutGetDevCapsW waveOutGetDevCaps;
-	alias waveOutGetErrorTextW waveOutGetErrorText;
-	alias waveInGetDevCapsW waveInGetDevCaps;
-	alias waveInGetErrorTextW waveInGetErrorText;
-	alias midiOutGetDevCapsW midiOutGetDevCaps;
-	alias midiOutGetErrorTextW midiOutGetErrorText;
-	alias midiInGetDevCapsW midiInGetDevCaps;
-	alias midiInGetErrorTextW midiInGetErrorText;
-	alias auxGetDevCapsW auxGetDevCaps;
-	alias mixerGetDevCapsW mixerGetDevCaps;
-	alias mixerGetLineInfoW mixerGetLineInfo;
-	alias mixerGetLineControlsW mixerGetLineControls;
-	alias mixerGetControlDetailsW mixerGetControlDetails;
-	alias joyGetDevCapsW joyGetDevCaps;
-	alias mmioInstallIOProcW mmioInstallIOProc;
-	alias mmioStringToFOURCCW mmioStringToFOURCC;
-	alias mmioOpenW mmioOpen;
-	alias mmioRenameW mmioRename;
-	alias mciSendCommandW mciSendCommand;
-	alias mciSendStringW mciSendString;
-	alias mciGetDeviceIDW mciGetDeviceID;
-	alias mciGetDeviceIDFromElementIDW mciGetDeviceIDFromElementID;
-	alias mciGetErrorStringW mciGetErrorString;
+    alias sndPlaySoundW sndPlaySound;
+    alias PlaySoundW PlaySound;
+    alias waveOutGetDevCapsW waveOutGetDevCaps;
+    alias waveOutGetErrorTextW waveOutGetErrorText;
+    alias waveInGetDevCapsW waveInGetDevCaps;
+    alias waveInGetErrorTextW waveInGetErrorText;
+    alias midiOutGetDevCapsW midiOutGetDevCaps;
+    alias midiOutGetErrorTextW midiOutGetErrorText;
+    alias midiInGetDevCapsW midiInGetDevCaps;
+    alias midiInGetErrorTextW midiInGetErrorText;
+    alias auxGetDevCapsW auxGetDevCaps;
+    alias mixerGetDevCapsW mixerGetDevCaps;
+    alias mixerGetLineInfoW mixerGetLineInfo;
+    alias mixerGetLineControlsW mixerGetLineControls;
+    alias mixerGetControlDetailsW mixerGetControlDetails;
+    alias joyGetDevCapsW joyGetDevCaps;
+    alias mmioInstallIOProcW mmioInstallIOProc;
+    alias mmioStringToFOURCCW mmioStringToFOURCC;
+    alias mmioOpenW mmioOpen;
+    alias mmioRenameW mmioRename;
+    alias mciSendCommandW mciSendCommand;
+    alias mciSendStringW mciSendString;
+    alias mciGetDeviceIDW mciGetDeviceID;
+    alias mciGetDeviceIDFromElementIDW mciGetDeviceIDFromElementID;
+    alias mciGetErrorStringW mciGetErrorString;
 
 } else {
-	alias WAVEOUTCAPSA WAVEOUTCAPS;
-	alias WAVEINCAPSA WAVEINCAPS;
-	alias MIDIOUTCAPSA MIDIOUTCAPS;
-	alias MIDIINCAPSA MIDIINCAPS;
-	alias AUXCAPSA AUXCAPS;
-	alias MIXERCAPSA MIXERCAPS;
-	alias MIXERLINEA MIXERLINE;
-	alias MIXERCONTROLA MIXERCONTROL;
-	alias MIXERLINECONTROLSA MIXERLINECONTROLS;
-	alias MIXERCONTROLDETAILS_LISTTEXTA MIXERCONTROLDETAILS_LISTTEXT;
-	alias JOYCAPSA JOYCAPS;
-	alias MCI_OPEN_PARMSA MCI_OPEN_PARMS;
-	alias MCI_INFO_PARMSA MCI_INFO_PARMS;
-	alias MCI_SYSINFO_PARMSA MCI_SYSINFO_PARMS;
-	alias MCI_SAVE_PARMSA MCI_SAVE_PARMS;
-	alias MCI_LOAD_PARMSA MCI_LOAD_PARMS;
-	alias MCI_VD_ESCAPE_PARMSA MCI_VD_ESCAPE_PARMS;
-	alias MCI_WAVE_OPEN_PARMSA MCI_WAVE_OPEN_PARMS;
-	alias MCI_ANIM_OPEN_PARMSA MCI_ANIM_OPEN_PARMS;
-	alias MCI_ANIM_WINDOW_PARMSA MCI_ANIM_WINDOW_PARMS;
-	alias MCI_OVLY_OPEN_PARMSA MCI_OVLY_OPEN_PARMS;
-	alias MCI_OVLY_WINDOW_PARMSA MCI_OVLY_WINDOW_PARMS;
-	alias MCI_OVLY_SAVE_PARMSA MCI_OVLY_SAVE_PARMS;
+    alias WAVEOUTCAPSA WAVEOUTCAPS;
+    alias WAVEINCAPSA WAVEINCAPS;
+    alias MIDIOUTCAPSA MIDIOUTCAPS;
+    alias MIDIINCAPSA MIDIINCAPS;
+    alias AUXCAPSA AUXCAPS;
+    alias MIXERCAPSA MIXERCAPS;
+    alias MIXERLINEA MIXERLINE;
+    alias MIXERCONTROLA MIXERCONTROL;
+    alias MIXERLINECONTROLSA MIXERLINECONTROLS;
+    alias MIXERCONTROLDETAILS_LISTTEXTA MIXERCONTROLDETAILS_LISTTEXT;
+    alias JOYCAPSA JOYCAPS;
+    alias MCI_OPEN_PARMSA MCI_OPEN_PARMS;
+    alias MCI_INFO_PARMSA MCI_INFO_PARMS;
+    alias MCI_SYSINFO_PARMSA MCI_SYSINFO_PARMS;
+    alias MCI_SAVE_PARMSA MCI_SAVE_PARMS;
+    alias MCI_LOAD_PARMSA MCI_LOAD_PARMS;
+    alias MCI_VD_ESCAPE_PARMSA MCI_VD_ESCAPE_PARMS;
+    alias MCI_WAVE_OPEN_PARMSA MCI_WAVE_OPEN_PARMS;
+    alias MCI_ANIM_OPEN_PARMSA MCI_ANIM_OPEN_PARMS;
+    alias MCI_ANIM_WINDOW_PARMSA MCI_ANIM_WINDOW_PARMS;
+    alias MCI_OVLY_OPEN_PARMSA MCI_OVLY_OPEN_PARMS;
+    alias MCI_OVLY_WINDOW_PARMSA MCI_OVLY_WINDOW_PARMS;
+    alias MCI_OVLY_SAVE_PARMSA MCI_OVLY_SAVE_PARMS;
 
-	alias sndPlaySoundA sndPlaySound;
-	alias PlaySoundA PlaySound;
-	alias waveOutGetDevCapsA waveOutGetDevCaps;
-	alias waveOutGetErrorTextA waveOutGetErrorText;
-	alias waveInGetDevCapsA waveInGetDevCaps;
-	alias waveInGetErrorTextA waveInGetErrorText;
-	alias midiOutGetDevCapsA midiOutGetDevCaps;
-	alias midiOutGetErrorTextA midiOutGetErrorText;
-	alias midiInGetDevCapsA midiInGetDevCaps;
-	alias midiInGetErrorTextA midiInGetErrorText;
-	alias auxGetDevCapsA auxGetDevCaps;
-	alias mixerGetDevCapsA mixerGetDevCaps;
-	alias mixerGetLineInfoA mixerGetLineInfo;
-	alias mixerGetLineControlsA mixerGetLineControls;
-	alias mixerGetControlDetailsA mixerGetControlDetails;
-	alias joyGetDevCapsA joyGetDevCaps;
-	alias mmioInstallIOProcA mmioInstallIOProc;
-	alias mmioStringToFOURCCA mmioStringToFOURCC;
-	alias mmioOpenA mmioOpen;
-	alias mmioRenameA mmioRename;
-	alias mciSendCommandA mciSendCommand;
-	alias mciSendStringA mciSendString;
-	alias mciGetDeviceIDA mciGetDeviceID;
-	alias mciGetDeviceIDFromElementIDA mciGetDeviceIDFromElementID;
-	alias mciGetErrorStringA mciGetErrorString;
+    alias sndPlaySoundA sndPlaySound;
+    alias PlaySoundA PlaySound;
+    alias waveOutGetDevCapsA waveOutGetDevCaps;
+    alias waveOutGetErrorTextA waveOutGetErrorText;
+    alias waveInGetDevCapsA waveInGetDevCaps;
+    alias waveInGetErrorTextA waveInGetErrorText;
+    alias midiOutGetDevCapsA midiOutGetDevCaps;
+    alias midiOutGetErrorTextA midiOutGetErrorText;
+    alias midiInGetDevCapsA midiInGetDevCaps;
+    alias midiInGetErrorTextA midiInGetErrorText;
+    alias auxGetDevCapsA auxGetDevCaps;
+    alias mixerGetDevCapsA mixerGetDevCaps;
+    alias mixerGetLineInfoA mixerGetLineInfo;
+    alias mixerGetLineControlsA mixerGetLineControls;
+    alias mixerGetControlDetailsA mixerGetControlDetails;
+    alias joyGetDevCapsA joyGetDevCaps;
+    alias mmioInstallIOProcA mmioInstallIOProc;
+    alias mmioStringToFOURCCA mmioStringToFOURCC;
+    alias mmioOpenA mmioOpen;
+    alias mmioRenameA mmioRename;
+    alias mciSendCommandA mciSendCommand;
+    alias mciSendStringA mciSendString;
+    alias mciGetDeviceIDA mciGetDeviceID;
+    alias mciGetDeviceIDFromElementIDA mciGetDeviceIDFromElementID;
+    alias mciGetErrorStringA mciGetErrorString;
 }
 
 alias WAVEOUTCAPS* PWAVEOUTCAPS, LPWAVEOUTCAPS;

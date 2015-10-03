@@ -14,56 +14,56 @@ private import core.sys.windows.wingdi; // for LF_FACESIZE
 align(4):
 
 version(Unicode) {
-	const wchar[] RICHEDIT_CLASS = "RichEdit20W";
+    const wchar[] RICHEDIT_CLASS = "RichEdit20W";
 } else {
-	const char[] RICHEDIT_CLASS  = "RichEdit20A";
+    const char[] RICHEDIT_CLASS  = "RichEdit20A";
 }
 
 const RICHEDIT_CLASS10A = "RICHEDIT";
 
 const TCHAR[]
-	CF_RTF       = "Rich Text Format",
-	CF_RTFNOOBJS = "Rich Text Format Without Objects",
-	CF_RETEXTOBJ = "RichEdit Text and Objects";
+    CF_RTF       = "Rich Text Format",
+    CF_RTFNOOBJS = "Rich Text Format Without Objects",
+    CF_RETEXTOBJ = "RichEdit Text and Objects";
 
 const DWORD
-	CFM_BOLD        = 1,
-	CFM_ITALIC      = 2,
-	CFM_UNDERLINE   = 4,
-	CFM_STRIKEOUT   = 8,
-	CFM_PROTECTED   = 16,
-	CFM_LINK        = 32,
-	CFM_SIZE        = 0x80000000,
-	CFM_COLOR       = 0x40000000,
-	CFM_FACE        = 0x20000000,
-	CFM_OFFSET      = 0x10000000,
-	CFM_CHARSET     = 0x08000000,
-	CFM_SUBSCRIPT   = 0x00030000,
-	CFM_SUPERSCRIPT = 0x00030000;
+    CFM_BOLD        = 1,
+    CFM_ITALIC      = 2,
+    CFM_UNDERLINE   = 4,
+    CFM_STRIKEOUT   = 8,
+    CFM_PROTECTED   = 16,
+    CFM_LINK        = 32,
+    CFM_SIZE        = 0x80000000,
+    CFM_COLOR       = 0x40000000,
+    CFM_FACE        = 0x20000000,
+    CFM_OFFSET      = 0x10000000,
+    CFM_CHARSET     = 0x08000000,
+    CFM_SUBSCRIPT   = 0x00030000,
+    CFM_SUPERSCRIPT = 0x00030000;
 
 const DWORD
-	CFE_BOLD        = 1,
-	CFE_ITALIC      = 2,
-	CFE_UNDERLINE   = 4,
-	CFE_STRIKEOUT   = 8,
-	CFE_PROTECTED   = 16,
-	CFE_SUBSCRIPT   = 0x00010000,
-	CFE_SUPERSCRIPT = 0x00020000,
-	CFE_AUTOCOLOR   = 0x40000000;
+    CFE_BOLD        = 1,
+    CFE_ITALIC      = 2,
+    CFE_UNDERLINE   = 4,
+    CFE_STRIKEOUT   = 8,
+    CFE_PROTECTED   = 16,
+    CFE_SUBSCRIPT   = 0x00010000,
+    CFE_SUPERSCRIPT = 0x00020000,
+    CFE_AUTOCOLOR   = 0x40000000;
 
 const CFM_EFFECTS = CFM_BOLD | CFM_ITALIC | CFM_UNDERLINE | CFM_COLOR
   | CFM_STRIKEOUT | CFE_PROTECTED | CFM_LINK;
 
 // flags for EM_SETIMEOPTIONS
 const LPARAM
-	IMF_FORCENONE         = 1,
-	IMF_FORCEENABLE       = 2,
-	IMF_FORCEDISABLE      = 4,
-	IMF_CLOSESTATUSWINDOW = 8,
-	IMF_VERTICAL          = 32,
-	IMF_FORCEACTIVE       = 64,
-	IMF_FORCEINACTIVE     = 128,
-	IMF_FORCEREMEMBER     = 256;
+    IMF_FORCENONE         = 1,
+    IMF_FORCEENABLE       = 2,
+    IMF_FORCEDISABLE      = 4,
+    IMF_CLOSESTATUSWINDOW = 8,
+    IMF_VERTICAL          = 32,
+    IMF_FORCEACTIVE       = 64,
+    IMF_FORCEINACTIVE     = 128,
+    IMF_FORCEREMEMBER     = 256;
 
 const SEL_EMPTY=0;
 const SEL_TEXT=1;
@@ -272,10 +272,10 @@ const ECO_SELECTIONBAR=0x1000000;
 const ECO_VERTICAL=0x400000;
 
 enum {
-	ECOOP_SET = 1,
-	ECOOP_OR,
-	ECOOP_AND,
-	ECOOP_XOR
+    ECOOP_SET = 1,
+    ECOOP_OR,
+    ECOOP_AND,
+    ECOOP_XOR
 }
 
 const SCF_DEFAULT    = 0;
@@ -307,250 +307,250 @@ const UID_CUT        = 4;
 const UID_PASTE      = 5;
 
 struct CHARFORMATA {
-	UINT cbSize = this.sizeof;
-	DWORD dwMask;
-	DWORD dwEffects;
-	LONG yHeight;
-	LONG yOffset;
-	COLORREF crTextColor;
-	BYTE bCharSet;
-	BYTE bPitchAndFamily;
-	char[LF_FACESIZE] szFaceName;
+    UINT cbSize = this.sizeof;
+    DWORD dwMask;
+    DWORD dwEffects;
+    LONG yHeight;
+    LONG yOffset;
+    COLORREF crTextColor;
+    BYTE bCharSet;
+    BYTE bPitchAndFamily;
+    char[LF_FACESIZE] szFaceName;
 }
 struct CHARFORMATW {
-	UINT cbSize = this.sizeof;
-	DWORD dwMask;
-	DWORD dwEffects;
-	LONG yHeight;
-	LONG yOffset;
-	COLORREF crTextColor;
-	BYTE bCharSet;
-	BYTE bPitchAndFamily;
-	WCHAR[LF_FACESIZE] szFaceName;
+    UINT cbSize = this.sizeof;
+    DWORD dwMask;
+    DWORD dwEffects;
+    LONG yHeight;
+    LONG yOffset;
+    COLORREF crTextColor;
+    BYTE bCharSet;
+    BYTE bPitchAndFamily;
+    WCHAR[LF_FACESIZE] szFaceName;
 }
 
 struct CHARFORMAT2A {
-	UINT cbSize = this.sizeof;
-	DWORD dwMask;
-	DWORD dwEffects;
-	LONG yHeight;
-	LONG yOffset;
-	COLORREF crTextColor;
-	BYTE bCharSet;
-	BYTE bPitchAndFamily;
-	char[LF_FACESIZE] szFaceName;
-	WORD wWeight;
-	SHORT sSpacing;
-	COLORREF crBackColor;
-	LCID lcid;
-	DWORD dwReserved;
-	SHORT sStyle;
-	WORD wKerning;
-	BYTE bUnderlineType;
-	BYTE bAnimation;
-	BYTE bRevAuthor;
+    UINT cbSize = this.sizeof;
+    DWORD dwMask;
+    DWORD dwEffects;
+    LONG yHeight;
+    LONG yOffset;
+    COLORREF crTextColor;
+    BYTE bCharSet;
+    BYTE bPitchAndFamily;
+    char[LF_FACESIZE] szFaceName;
+    WORD wWeight;
+    SHORT sSpacing;
+    COLORREF crBackColor;
+    LCID lcid;
+    DWORD dwReserved;
+    SHORT sStyle;
+    WORD wKerning;
+    BYTE bUnderlineType;
+    BYTE bAnimation;
+    BYTE bRevAuthor;
 }
 
 struct CHARFORMAT2W {
-	UINT cbSize = this.sizeof;
-	DWORD dwMask;
-	DWORD dwEffects;
-	LONG yHeight;
-	LONG yOffset;
-	COLORREF crTextColor;
-	BYTE bCharSet;
-	BYTE bPitchAndFamily;
-	WCHAR[LF_FACESIZE] szFaceName;
-	WORD wWeight;
-	SHORT sSpacing;
-	COLORREF crBackColor;
-	LCID lcid;
-	DWORD dwReserved;
-	SHORT sStyle;
-	WORD wKerning;
-	BYTE bUnderlineType;
-	BYTE bAnimation;
-	BYTE bRevAuthor;
+    UINT cbSize = this.sizeof;
+    DWORD dwMask;
+    DWORD dwEffects;
+    LONG yHeight;
+    LONG yOffset;
+    COLORREF crTextColor;
+    BYTE bCharSet;
+    BYTE bPitchAndFamily;
+    WCHAR[LF_FACESIZE] szFaceName;
+    WORD wWeight;
+    SHORT sSpacing;
+    COLORREF crBackColor;
+    LCID lcid;
+    DWORD dwReserved;
+    SHORT sStyle;
+    WORD wKerning;
+    BYTE bUnderlineType;
+    BYTE bAnimation;
+    BYTE bRevAuthor;
 }
 
 struct CHARRANGE {
-	LONG cpMin;
-	LONG cpMax;
+    LONG cpMin;
+    LONG cpMax;
 }
 
 struct COMPCOLOR {
-	COLORREF crText;
-	COLORREF crBackground;
-	DWORD dwEffects;
+    COLORREF crText;
+    COLORREF crBackground;
+    DWORD dwEffects;
 }
 
 extern (Windows) {
-	alias DWORD function(DWORD,PBYTE,LONG,LONG*) EDITSTREAMCALLBACK;
+    alias DWORD function(DWORD,PBYTE,LONG,LONG*) EDITSTREAMCALLBACK;
 }
 
 struct EDITSTREAM {
-	DWORD dwCookie;
-	DWORD dwError;
-	EDITSTREAMCALLBACK pfnCallback;
+    DWORD dwCookie;
+    DWORD dwError;
+    EDITSTREAMCALLBACK pfnCallback;
 }
 
 struct ENCORRECTTEXT {
-	NMHDR nmhdr;
-	CHARRANGE chrg;
-	WORD seltyp;
+    NMHDR nmhdr;
+    CHARRANGE chrg;
+    WORD seltyp;
 }
 
 struct ENDROPFILES {
-	NMHDR nmhdr;
-	HANDLE hDrop;
-	LONG cp;
-	BOOL fProtected;
+    NMHDR nmhdr;
+    HANDLE hDrop;
+    LONG cp;
+    BOOL fProtected;
 }
 
 struct ENLINK {
-	NMHDR nmhdr;
-	UINT msg;
-	WPARAM wParam;
-	LPARAM lParam;
-	CHARRANGE chrg;
+    NMHDR nmhdr;
+    UINT msg;
+    WPARAM wParam;
+    LPARAM lParam;
+    CHARRANGE chrg;
 }
 
 struct ENOLEOPFAILED {
-	NMHDR nmhdr;
-	LONG iob;
-	LONG lOper;
-	HRESULT hr;
+    NMHDR nmhdr;
+    LONG iob;
+    LONG lOper;
+    HRESULT hr;
 }
 
 struct ENPROTECTED {
-	NMHDR nmhdr;
-	UINT msg;
-	WPARAM wParam;
-	LPARAM lParam;
-	CHARRANGE chrg;
+    NMHDR nmhdr;
+    UINT msg;
+    WPARAM wParam;
+    LPARAM lParam;
+    CHARRANGE chrg;
 }
 alias ENPROTECTED* LPENPROTECTED;
 
 struct ENSAVECLIPBOARD {
-	NMHDR nmhdr;
-	LONG cObjectCount;
-	LONG cch;
+    NMHDR nmhdr;
+    LONG cObjectCount;
+    LONG cch;
 }
 
 struct FINDTEXTA {
-	CHARRANGE chrg;
-	LPSTR lpstrText;
+    CHARRANGE chrg;
+    LPSTR lpstrText;
 }
 
 struct FINDTEXTW {
-	CHARRANGE chrg;
-	LPWSTR lpstrText;
+    CHARRANGE chrg;
+    LPWSTR lpstrText;
 }
 
 struct FINDTEXTEXA {
-	CHARRANGE chrg;
-	LPSTR lpstrText;
-	CHARRANGE chrgText;
+    CHARRANGE chrg;
+    LPSTR lpstrText;
+    CHARRANGE chrgText;
 }
 
 struct FINDTEXTEXW {
-	CHARRANGE chrg;
-	LPWSTR lpstrText;
-	CHARRANGE chrgText;
+    CHARRANGE chrg;
+    LPWSTR lpstrText;
+    CHARRANGE chrgText;
 }
 
 struct FORMATRANGE {
-	HDC hdc;
-	HDC hdcTarget;
-	RECT rc;
-	RECT rcPage;
-	CHARRANGE chrg;
+    HDC hdc;
+    HDC hdcTarget;
+    RECT rc;
+    RECT rcPage;
+    CHARRANGE chrg;
 }
 
 struct MSGFILTER {
-	NMHDR nmhdr;
-	UINT msg;
-	WPARAM wParam;
-	LPARAM lParam;
+    NMHDR nmhdr;
+    UINT msg;
+    WPARAM wParam;
+    LPARAM lParam;
 }
 
 struct PARAFORMAT {
-	UINT cbSize = this.sizeof;
-	DWORD dwMask;
-	WORD wNumbering;
-	WORD wReserved;
-	LONG dxStartIndent;
-	LONG dxRightIndent;
-	LONG dxOffset;
-	WORD wAlignment;
-	SHORT cTabCount;
-	LONG[MAX_TAB_STOPS] rgxTabs;
+    UINT cbSize = this.sizeof;
+    DWORD dwMask;
+    WORD wNumbering;
+    WORD wReserved;
+    LONG dxStartIndent;
+    LONG dxRightIndent;
+    LONG dxOffset;
+    WORD wAlignment;
+    SHORT cTabCount;
+    LONG[MAX_TAB_STOPS] rgxTabs;
 }
 
 struct PARAFORMAT2 {
-	UINT cbSize = this.sizeof;
-	DWORD dwMask;
-	WORD wNumbering;
-	WORD wEffects;
-	LONG dxStartIndent;
-	LONG dxRightIndent;
-	LONG dxOffset;
-	WORD wAlignment;
-	SHORT cTabCount;
-	LONG[MAX_TAB_STOPS] rgxTabs;
-	LONG dySpaceBefore;
-	LONG dySpaceAfter;
-	LONG dyLineSpacing;
-	SHORT sStype;
-	BYTE bLineSpacingRule;
-	BYTE bOutlineLevel;
-	WORD wShadingWeight;
-	WORD wShadingStyle;
-	WORD wNumberingStart;
-	WORD wNumberingStyle;
-	WORD wNumberingTab;
-	WORD wBorderSpace;
-	WORD wBorderWidth;
-	WORD wBorders;
+    UINT cbSize = this.sizeof;
+    DWORD dwMask;
+    WORD wNumbering;
+    WORD wEffects;
+    LONG dxStartIndent;
+    LONG dxRightIndent;
+    LONG dxOffset;
+    WORD wAlignment;
+    SHORT cTabCount;
+    LONG[MAX_TAB_STOPS] rgxTabs;
+    LONG dySpaceBefore;
+    LONG dySpaceAfter;
+    LONG dyLineSpacing;
+    SHORT sStype;
+    BYTE bLineSpacingRule;
+    BYTE bOutlineLevel;
+    WORD wShadingWeight;
+    WORD wShadingStyle;
+    WORD wNumberingStart;
+    WORD wNumberingStyle;
+    WORD wNumberingTab;
+    WORD wBorderSpace;
+    WORD wBorderWidth;
+    WORD wBorders;
 }
 
 struct SELCHANGE {
-	NMHDR nmhdr;
-	CHARRANGE chrg;
-	WORD seltyp;
+    NMHDR nmhdr;
+    CHARRANGE chrg;
+    WORD seltyp;
 }
 
 struct TEXTRANGEA {
-	CHARRANGE chrg;
-	LPSTR lpstrText;
+    CHARRANGE chrg;
+    LPSTR lpstrText;
 }
 
 struct TEXTRANGEW {
-	CHARRANGE chrg;
-	LPWSTR lpstrText;
+    CHARRANGE chrg;
+    LPWSTR lpstrText;
 }
 
 struct REQRESIZE {
-	NMHDR nmhdr;
-	RECT rc;
+    NMHDR nmhdr;
+    RECT rc;
 }
 
 struct REPASTESPECIAL {
-	DWORD dwAspect;
-	DWORD dwParam;
+    DWORD dwAspect;
+    DWORD dwParam;
 }
 
 struct PUNCTUATION {
-	UINT iSize;
-	LPSTR szPunctuation;
+    UINT iSize;
+    LPSTR szPunctuation;
 }
 
 struct GETTEXTEX {
-	DWORD cb;
-	DWORD flags;
-	UINT codepage;
-	LPCSTR lpDefaultChar;
-	LPBOOL lpUsedDefChar;
+    DWORD cb;
+    DWORD flags;
+    UINT codepage;
+    LPCSTR lpDefaultChar;
+    LPBOOL lpUsedDefChar;
 }
 
 extern (Windows) {
@@ -570,20 +570,20 @@ const GTL_NUMCHARS = 8;
 const GTL_NUMBYTES = 16;
 
 struct GETTEXTLENGTHEX {
-	DWORD flags;
-	UINT codepage;
+    DWORD flags;
+    UINT codepage;
 }
 
 version(Unicode) {
-	alias CHARFORMATW CHARFORMAT;
-	alias CHARFORMAT2W CHARFORMAT2;
-	alias FINDTEXTW FINDTEXT;
-	alias FINDTEXTEXW FINDTEXTEX;
-	alias TEXTRANGEW TEXTRANGE;
+    alias CHARFORMATW CHARFORMAT;
+    alias CHARFORMAT2W CHARFORMAT2;
+    alias FINDTEXTW FINDTEXT;
+    alias FINDTEXTEXW FINDTEXTEX;
+    alias TEXTRANGEW TEXTRANGE;
 } else {
-	alias CHARFORMATA CHARFORMAT;
-	alias CHARFORMAT2A CHARFORMAT2;
-	alias FINDTEXTA FINDTEXT;
-	alias FINDTEXTEXA FINDTEXTEX;
-	alias TEXTRANGEA TEXTRANGE;
+    alias CHARFORMATA CHARFORMAT;
+    alias CHARFORMAT2A CHARFORMAT2;
+    alias FINDTEXTA FINDTEXT;
+    alias FINDTEXTEXA FINDTEXTEX;
+    alias TEXTRANGEA TEXTRANGE;
 }

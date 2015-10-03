@@ -198,24 +198,24 @@ const NELOG_RplInitRestoredDatabase=(ERRLOG2_BASE+69);
 const NELOG_NetlogonSessionTypeWrong=(ERRLOG2_BASE+70);
 
 struct ERROR_LOG {
-	DWORD el_len;
-	DWORD el_reserved;
-	DWORD el_time;
-	DWORD el_error;
-	LPWSTR el_name;
-	LPWSTR el_text;
-	LPBYTE el_data;
-	DWORD el_data_size;
-	DWORD el_nstrings;
+    DWORD el_len;
+    DWORD el_reserved;
+    DWORD el_time;
+    DWORD el_error;
+    LPWSTR el_name;
+    LPWSTR el_text;
+    LPBYTE el_data;
+    DWORD el_data_size;
+    DWORD el_nstrings;
 }
 alias ERROR_LOG* PERROR_LOG, LPERROR_LOG;
 
 extern (Windows) {
-	deprecated {
-		NET_API_STATUS NetErrorLogClear(LPCWSTR, LPCWSTR, LPBYTE);
-		NET_API_STATUS NetErrorLogRead(LPCWSTR, LPWSTR, LPHLOG, DWORD,
-		  LPDWORD, DWORD, DWORD, LPBYTE*, DWORD, LPDWORD, LPDWORD);
-		NET_API_STATUS NetErrorLogWrite(LPBYTE, DWORD, LPCWSTR, LPBYTE,
-		  DWORD, LPBYTE, DWORD, LPBYTE);
-	}
+    deprecated {
+        NET_API_STATUS NetErrorLogClear(LPCWSTR, LPCWSTR, LPBYTE);
+        NET_API_STATUS NetErrorLogRead(LPCWSTR, LPWSTR, LPHLOG, DWORD,
+          LPDWORD, DWORD, DWORD, LPBYTE*, DWORD, LPDWORD, LPDWORD);
+        NET_API_STATUS NetErrorLogWrite(LPBYTE, DWORD, LPCWSTR, LPBYTE,
+          DWORD, LPBYTE, DWORD, LPBYTE);
+    }
 }

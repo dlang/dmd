@@ -25,16 +25,16 @@ private import core.sys.windows.basetyps;
 extern (Windows):
 
 const uint NDR_CHAR_REP_MASK      = 0xF,
-	NDR_INT_REP_MASK              = 0xF0,
-	NDR_FLOAT_REP_MASK            = 0xFF00,
-	NDR_LITTLE_ENDIAN             = 0x10,
-	NDR_BIG_ENDIAN                = 0,
-	NDR_IEEE_FLOAT                = 0,
-	NDR_VAX_FLOAT                 = 0x100,
-	NDR_ASCII_CHAR                = 0,
-	NDR_EBCDIC_CHAR               = 1,
-	NDR_LOCAL_DATA_REPRESENTATION = 0x10,
-	NDR_LOCAL_ENDIAN              = NDR_LITTLE_ENDIAN;
+    NDR_INT_REP_MASK              = 0xF0,
+    NDR_FLOAT_REP_MASK            = 0xFF00,
+    NDR_LITTLE_ENDIAN             = 0x10,
+    NDR_BIG_ENDIAN                = 0,
+    NDR_IEEE_FLOAT                = 0,
+    NDR_VAX_FLOAT                 = 0x100,
+    NDR_ASCII_CHAR                = 0,
+    NDR_EBCDIC_CHAR               = 1,
+    NDR_LOCAL_DATA_REPRESENTATION = 0x10,
+    NDR_LOCAL_ENDIAN              = NDR_LITTLE_ENDIAN;
 
 alias MIDL_user_allocate midl_user_allocate;
 alias MIDL_user_free midl_user_free;
@@ -98,14 +98,14 @@ const cbNDRContext=20;
 
 alias void * NDR_CCONTEXT;
 struct tagNDR_SCONTEXT {
-	void*[2] pad;
-	void *userContext;
+    void*[2] pad;
+    void *userContext;
 }
 alias tagNDR_SCONTEXT * NDR_SCONTEXT;
 
 struct SCONTEXT_QUEUE {
-	uint NumberOfObjects;
-	NDR_SCONTEXT *ArrayOfObjects;
+    uint NumberOfObjects;
+    NDR_SCONTEXT *ArrayOfObjects;
 }
 alias SCONTEXT_QUEUE * PSCONTEXT_QUEUE;
 
@@ -119,12 +119,12 @@ alias uint RPC_LENGTH;
 alias const(char)* PFORMAT_STRING;
 
 struct ARRAY_INFO {
-	int Dimension;
-	uint *BufferConformanceMark;
-	uint *BufferVarianceMark;
-	uint *MaxCountArray;
-	uint *OffsetArray;
-	uint *ActualCountArray;
+    int Dimension;
+    uint *BufferConformanceMark;
+    uint *BufferVarianceMark;
+    uint *MaxCountArray;
+    uint *OffsetArray;
+    uint *ActualCountArray;
 }
 alias ARRAY_INFO * PARRAY_INFO;
 
@@ -163,224 +163,224 @@ void * midl_allocate(int);
 
 align(4):
 struct MIDL_STUB_MESSAGE {
-	PRPC_MESSAGE RpcMsg;
-	ubyte *Buffer;
-	ubyte *BufferStart;
-	ubyte *BufferEnd;
-	ubyte *BufferMark;
-	uint BufferLength;
-	uint MemorySize;
-	ubyte *Memory;
-	int IsClient;
-	int ReuseBuffer;
-	ubyte *AllocAllNodesMemory;
-	ubyte *AllocAllNodesMemoryEnd;
-	int IgnoreEmbeddedPointers;
-	ubyte *PointerBufferMark;
-	ubyte fBufferValid;
-	ubyte Unused;
-	uint MaxCount;
-	uint Offset;
-	uint ActualCount;
-	void* function (uint) pfnAllocate;
-	void function (void*) pfnFree;
-	ubyte * StackTop;
-	ubyte * pPresentedType;
-	ubyte * pTransmitType;
-	handle_t SavedHandle;
-	const(_MIDL_STUB_DESC)* StubDesc;
-	_FULL_PTR_XLAT_TABLES *FullPtrXlatTables;
-	uint FullPtrRefId;
-	int fCheckBounds;
-	// FIXME:
-	byte bit_fields_for_D; // FIXME: Bitfields
+    PRPC_MESSAGE RpcMsg;
+    ubyte *Buffer;
+    ubyte *BufferStart;
+    ubyte *BufferEnd;
+    ubyte *BufferMark;
+    uint BufferLength;
+    uint MemorySize;
+    ubyte *Memory;
+    int IsClient;
+    int ReuseBuffer;
+    ubyte *AllocAllNodesMemory;
+    ubyte *AllocAllNodesMemoryEnd;
+    int IgnoreEmbeddedPointers;
+    ubyte *PointerBufferMark;
+    ubyte fBufferValid;
+    ubyte Unused;
+    uint MaxCount;
+    uint Offset;
+    uint ActualCount;
+    void* function (uint) pfnAllocate;
+    void function (void*) pfnFree;
+    ubyte * StackTop;
+    ubyte * pPresentedType;
+    ubyte * pTransmitType;
+    handle_t SavedHandle;
+    const(_MIDL_STUB_DESC)* StubDesc;
+    _FULL_PTR_XLAT_TABLES *FullPtrXlatTables;
+    uint FullPtrRefId;
+    int fCheckBounds;
+    // FIXME:
+    byte bit_fields_for_D; // FIXME: Bitfields
 //	int fInDontFree :1;
 //	int fDontCallFreeInst :1;
 //	int fInOnlyParam :1;
 //	int fHasReturn :1;
-	uint dwDestContext;
-	void* pvDestContext;
-	NDR_SCONTEXT * SavedContextHandles;
-	int ParamNumber;
-	IRpcChannelBuffer  pRpcChannelBuffer;
-	PARRAY_INFO pArrayInfo;
-	uint * SizePtrCountArray;
-	uint * SizePtrOffsetArray;
-	uint * SizePtrLengthArray;
-	void* pArgQueue;
-	uint dwStubPhase;
-	uint[5] w2kReserved;
+    uint dwDestContext;
+    void* pvDestContext;
+    NDR_SCONTEXT * SavedContextHandles;
+    int ParamNumber;
+    IRpcChannelBuffer  pRpcChannelBuffer;
+    PARRAY_INFO pArrayInfo;
+    uint * SizePtrCountArray;
+    uint * SizePtrOffsetArray;
+    uint * SizePtrLengthArray;
+    void* pArgQueue;
+    uint dwStubPhase;
+    uint[5] w2kReserved;
 }
 alias MIDL_STUB_MESSAGE * PMIDL_STUB_MESSAGE;
 
 extern (Windows) {
-	alias void* function (void*) GENERIC_BINDING_ROUTINE;
-	alias void function (void*,ubyte*) GENERIC_UNBIND_ROUTINE;
-	alias uint function (uint *,uint,void *) USER_MARSHAL_SIZING_ROUTINE;
-	alias ubyte * function (uint *,ubyte *,void *) USER_MARSHAL_MARSHALLING_ROUTINE;
-	alias ubyte * function (uint *,ubyte *,void *) USER_MARSHAL_UNMARSHALLING_ROUTINE;
-	alias void function (uint *,void *) USER_MARSHAL_FREEING_ROUTINE;
-	alias void function () NDR_NOTIFY_ROUTINE;
+    alias void* function (void*) GENERIC_BINDING_ROUTINE;
+    alias void function (void*,ubyte*) GENERIC_UNBIND_ROUTINE;
+    alias uint function (uint *,uint,void *) USER_MARSHAL_SIZING_ROUTINE;
+    alias ubyte * function (uint *,ubyte *,void *) USER_MARSHAL_MARSHALLING_ROUTINE;
+    alias ubyte * function (uint *,ubyte *,void *) USER_MARSHAL_UNMARSHALLING_ROUTINE;
+    alias void function (uint *,void *) USER_MARSHAL_FREEING_ROUTINE;
+    alias void function () NDR_NOTIFY_ROUTINE;
 }
 
 align:
 struct GENERIC_BINDING_ROUTINE_PAIR {
-	GENERIC_BINDING_ROUTINE pfnBind;
-	GENERIC_UNBIND_ROUTINE pfnUnbind;
+    GENERIC_BINDING_ROUTINE pfnBind;
+    GENERIC_UNBIND_ROUTINE pfnUnbind;
 }
 alias GENERIC_BINDING_ROUTINE_PAIR * PGENERIC_BINDING_ROUTINE_PAIR;
 
 struct GENERIC_BINDING_INFO {
-	void *pObj;
-	uint Size;
-	GENERIC_BINDING_ROUTINE pfnBind;
-	GENERIC_UNBIND_ROUTINE pfnUnbind;
+    void *pObj;
+    uint Size;
+    GENERIC_BINDING_ROUTINE pfnBind;
+    GENERIC_UNBIND_ROUTINE pfnUnbind;
 }
 alias GENERIC_BINDING_INFO * PGENERIC_BINDING_INFO;
 
 
 struct XMIT_ROUTINE_QUINTUPLE {
-	XMIT_HELPER_ROUTINE pfnTranslateToXmit;
-	XMIT_HELPER_ROUTINE pfnTranslateFromXmit;
-	XMIT_HELPER_ROUTINE pfnFreeXmit;
-	XMIT_HELPER_ROUTINE pfnFreeInst;
+    XMIT_HELPER_ROUTINE pfnTranslateToXmit;
+    XMIT_HELPER_ROUTINE pfnTranslateFromXmit;
+    XMIT_HELPER_ROUTINE pfnFreeXmit;
+    XMIT_HELPER_ROUTINE pfnFreeInst;
 }
 alias XMIT_ROUTINE_QUINTUPLE * PXMIT_ROUTINE_QUINTUPLE;
 
 struct MALLOC_FREE_STRUCT {
-	void* function (uint) pfnAllocate;
-	void function (void*) pfnFree;
+    void* function (uint) pfnAllocate;
+    void function (void*) pfnFree;
 }
 
 struct COMM_FAULT_OFFSETS {
-	short CommOffset;
-	short FaultOffset;
+    short CommOffset;
+    short FaultOffset;
 }
 
 struct USER_MARSHAL_ROUTINE_QUADRUPLE {
-	USER_MARSHAL_SIZING_ROUTINE pfnBufferSize;
-	USER_MARSHAL_MARSHALLING_ROUTINE pfnMarshall;
-	USER_MARSHAL_UNMARSHALLING_ROUTINE pfnUnmarshall;
-	USER_MARSHAL_FREEING_ROUTINE pfnFree;
+    USER_MARSHAL_SIZING_ROUTINE pfnBufferSize;
+    USER_MARSHAL_MARSHALLING_ROUTINE pfnMarshall;
+    USER_MARSHAL_UNMARSHALLING_ROUTINE pfnUnmarshall;
+    USER_MARSHAL_FREEING_ROUTINE pfnFree;
 }
 
 enum IDL_CS_CONVERT {
-	IDL_CS_NO_CONVERT,
-	IDL_CS_IN_PLACE_CONVERT,
-	IDL_CS_NEW_BUFFER_CONVERT
+    IDL_CS_NO_CONVERT,
+    IDL_CS_IN_PLACE_CONVERT,
+    IDL_CS_NEW_BUFFER_CONVERT
 }
 
 struct NDR_CS_SIZE_CONVERT_ROUTINES {
-	CS_TYPE_NET_SIZE_ROUTINE pfnNetSize;
-	CS_TYPE_TO_NETCS_ROUTINE pfnToNetCs;
-	CS_TYPE_LOCAL_SIZE_ROUTINE pfnLocalSize;
-	CS_TYPE_FROM_NETCS_ROUTINE pfnFromNetCs;
+    CS_TYPE_NET_SIZE_ROUTINE pfnNetSize;
+    CS_TYPE_TO_NETCS_ROUTINE pfnToNetCs;
+    CS_TYPE_LOCAL_SIZE_ROUTINE pfnLocalSize;
+    CS_TYPE_FROM_NETCS_ROUTINE pfnFromNetCs;
 }
 
 struct NDR_CS_ROUTINES {
-	NDR_CS_SIZE_CONVERT_ROUTINES *pSizeConvertRoutines;
-	CS_TAG_GETTING_ROUTINE *pTagGettingRoutines;
+    NDR_CS_SIZE_CONVERT_ROUTINES *pSizeConvertRoutines;
+    CS_TAG_GETTING_ROUTINE *pTagGettingRoutines;
 }
 
 struct MIDL_STUB_DESC {
-	void* RpcInterfaceInformation;
-	void* function(uint) pfnAllocate;
-	void function (void*) pfnFree;
-	union _IMPLICIT_HANDLE_INFO {
-		handle_t *pAutoHandle;
-		handle_t *pPrimitiveHandle;
-		PGENERIC_BINDING_INFO pGenericBindingInfo;
-	}
-	_IMPLICIT_HANDLE_INFO IMPLICIT_HANDLE_INFO;	
-	const(NDR_RUNDOWN)* apfnNdrRundownRoutines;
-	const(GENERIC_BINDING_ROUTINE_PAIR)* aGenericBindingRoutinePairs;
-	const(EXPR_EVAL)* apfnExprEval;
-	const(XMIT_ROUTINE_QUINTUPLE)* aXmitQuintuple;
-	const(char)* *pFormatTypes;
-	int fCheckBounds;
-	uint Version;
-	MALLOC_FREE_STRUCT *pMallocFreeStruct;
-	int MIDLVersion;
-	const(COMM_FAULT_OFFSETS)* CommFaultOffsets;
-	const(USER_MARSHAL_ROUTINE_QUADRUPLE)* aUserMarshalQuadruple;
-	const(NDR_NOTIFY_ROUTINE)* NotifyRoutineTable;
-	ULONG_PTR mFlags;
-	const(NDR_CS_ROUTINES)* CsRoutineTables;
-	void *Reserved4;
-	ULONG_PTR Reserved5;
+    void* RpcInterfaceInformation;
+    void* function(uint) pfnAllocate;
+    void function (void*) pfnFree;
+    union _IMPLICIT_HANDLE_INFO {
+        handle_t *pAutoHandle;
+        handle_t *pPrimitiveHandle;
+        PGENERIC_BINDING_INFO pGenericBindingInfo;
+    }
+    _IMPLICIT_HANDLE_INFO IMPLICIT_HANDLE_INFO;	
+    const(NDR_RUNDOWN)* apfnNdrRundownRoutines;
+    const(GENERIC_BINDING_ROUTINE_PAIR)* aGenericBindingRoutinePairs;
+    const(EXPR_EVAL)* apfnExprEval;
+    const(XMIT_ROUTINE_QUINTUPLE)* aXmitQuintuple;
+    const(char)* *pFormatTypes;
+    int fCheckBounds;
+    uint Version;
+    MALLOC_FREE_STRUCT *pMallocFreeStruct;
+    int MIDLVersion;
+    const(COMM_FAULT_OFFSETS)* CommFaultOffsets;
+    const(USER_MARSHAL_ROUTINE_QUADRUPLE)* aUserMarshalQuadruple;
+    const(NDR_NOTIFY_ROUTINE)* NotifyRoutineTable;
+    ULONG_PTR mFlags;
+    const(NDR_CS_ROUTINES)* CsRoutineTables;
+    void *Reserved4;
+    ULONG_PTR Reserved5;
 }
 alias const(MIDL_STUB_DESC)* PMIDL_STUB_DESC;
 
 alias void * PMIDL_XMIT_TYPE;
 
 struct MIDL_FORMAT_STRING {
-	short Pad;
-	ubyte[1] Format;
+    short Pad;
+    ubyte[1] Format;
 }
 
 struct MIDL_SERVER_INFO {
-	PMIDL_STUB_DESC pStubDesc;
-	const(SERVER_ROUTINE)* DispatchTable;
-	PFORMAT_STRING ProcString;
-	const(ushort)* FmtStringOffset;
-	const(STUB_THUNK)* ThunkTable;
+    PMIDL_STUB_DESC pStubDesc;
+    const(SERVER_ROUTINE)* DispatchTable;
+    PFORMAT_STRING ProcString;
+    const(ushort)* FmtStringOffset;
+    const(STUB_THUNK)* ThunkTable;
 }
 alias MIDL_SERVER_INFO * PMIDL_SERVER_INFO;
 
 struct MIDL_STUBLESS_PROXY_INFO {
-	PMIDL_STUB_DESC pStubDesc;
-	PFORMAT_STRING ProcFormatString;
-	const(ushort)* FormatStringOffset;
+    PMIDL_STUB_DESC pStubDesc;
+    PFORMAT_STRING ProcFormatString;
+    const(ushort)* FormatStringOffset;
 }
 alias MIDL_STUBLESS_PROXY_INFO *PMIDL_STUBLESS_PROXY_INFO;
 
 union CLIENT_CALL_RETURN {
-	void *Pointer;
-	int Simple;
+    void *Pointer;
+    int Simple;
 }
 
 enum XLAT_SIDE {
-	XLAT_SERVER = 1,
-	XLAT_CLIENT
+    XLAT_SERVER = 1,
+    XLAT_CLIENT
 }
 struct FULL_PTR_TO_REFID_ELEMENT {
-	FULL_PTR_TO_REFID_ELEMENT * Next;
-	void* Pointer;
-	uint RefId;
-	ubyte State;
+    FULL_PTR_TO_REFID_ELEMENT * Next;
+    void* Pointer;
+    uint RefId;
+    ubyte State;
 }
 alias FULL_PTR_TO_REFID_ELEMENT * PFULL_PTR_TO_REFID_ELEMENT;
 
 struct FULL_PTR_XLAT_TABLES {
-	struct RefIdToPointer {
-		void **XlatTable;
-		ubyte *StateTable;
-		uint NumberOfEntries;
-	}
-	struct PointerToRefId {
-		PFULL_PTR_TO_REFID_ELEMENT *XlatTable;
-		uint NumberOfBuckets;
-		uint HashMask;
-	}
-	uint NextRefId;
-	XLAT_SIDE XlatSide;
+    struct RefIdToPointer {
+        void **XlatTable;
+        ubyte *StateTable;
+        uint NumberOfEntries;
+    }
+    struct PointerToRefId {
+        PFULL_PTR_TO_REFID_ELEMENT *XlatTable;
+        uint NumberOfBuckets;
+        uint HashMask;
+    }
+    uint NextRefId;
+    XLAT_SIDE XlatSide;
 }
 alias FULL_PTR_XLAT_TABLES * PFULL_PTR_XLAT_TABLES;
 
 
 enum STUB_PHASE {
-	STUB_UNMARSHAL,
-	STUB_CALL_SERVER,
-	STUB_MARSHAL,
-	STUB_CALL_SERVER_NO_HRESULT
+    STUB_UNMARSHAL,
+    STUB_CALL_SERVER,
+    STUB_MARSHAL,
+    STUB_CALL_SERVER_NO_HRESULT
 }
 
 enum PROXY_PHASE {
-	PROXY_CALCSIZE,
-	PROXY_GETBUFFER,
-	PROXY_MARSHAL,
-	PROXY_SENDRECEIVE,
-	PROXY_UNMARSHAL
+    PROXY_CALCSIZE,
+    PROXY_GETBUFFER,
+    PROXY_MARSHAL,
+    PROXY_SENDRECEIVE,
+    PROXY_UNMARSHAL
 }
 
 alias TypeDef!(void *) RPC_SS_THREAD_HANDLE;
@@ -400,8 +400,8 @@ alias void function (RPC_BINDING_HANDLE,int,uint*,uint*,uint*,error_status_t*) C
 alias void* function(uint) PRPC_CLIENT_ALLOC;
 alias void function(void*) PRPC_CLIENT_FREE;
 
-	alias void function (PMIDL_STUB_MESSAGE) STUB_THUNK;
-	alias int function() SERVER_ROUTINE;
+    alias void function (PMIDL_STUB_MESSAGE) STUB_THUNK;
+    alias int function() SERVER_ROUTINE;
 }
 
 void  NdrSimpleTypeMarshall(PMIDL_STUB_MESSAGE,ubyte*,ubyte);

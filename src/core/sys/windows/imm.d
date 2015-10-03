@@ -25,7 +25,7 @@ const WM_IME_COMPOSITIONFULL  = 0x284;
 const WM_IME_SELECT           = 0x285;
 const WM_IME_CHAR             = 0x286;
 //static if (_WIN32_WINNT >= 0x500) {
-	const WM_IME_REQUEST      = 0x288;
+    const WM_IME_REQUEST      = 0x288;
 //}
 const WM_IME_KEYDOWN          = 0x290;
 const WM_IME_KEYUP            = 0x291;
@@ -278,78 +278,78 @@ alias DWORD HIMCC;
 alias HKL* LPHKL;
 
 struct COMPOSITIONFORM{
-	DWORD dwStyle;
-	POINT ptCurrentPos;
-	RECT rcArea;
+    DWORD dwStyle;
+    POINT ptCurrentPos;
+    RECT rcArea;
 }
 alias COMPOSITIONFORM* PCOMPOSITIONFORM, LPCOMPOSITIONFORM;
 
 struct CANDIDATEFORM{
-	DWORD dwIndex;
-	DWORD dwStyle;
-	POINT ptCurrentPos;
-	RECT rcArea;
+    DWORD dwIndex;
+    DWORD dwStyle;
+    POINT ptCurrentPos;
+    RECT rcArea;
 }
 alias CANDIDATEFORM* PCANDIDATEFORM, LPCANDIDATEFORM;
 
 struct CANDIDATELIST{
-	DWORD dwSize;
-	DWORD dwStyle;
-	DWORD dwCount;
-	DWORD dwSelection;
-	DWORD dwPageStart;
-	DWORD dwPageSize;
-	DWORD[1] dwOffset;
+    DWORD dwSize;
+    DWORD dwStyle;
+    DWORD dwCount;
+    DWORD dwSelection;
+    DWORD dwPageStart;
+    DWORD dwPageSize;
+    DWORD[1] dwOffset;
 }
 alias CANDIDATELIST* PCANDIDATELIST, LPCANDIDATELIST;
 
 struct REGISTERWORDA{
-	LPSTR lpReading;
-	LPSTR lpWord;
+    LPSTR lpReading;
+    LPSTR lpWord;
 }
 alias REGISTERWORDA* PREGISTERWORDA, LPREGISTERWORDA;
 
 struct REGISTERWORDW{
-	LPWSTR lpReading;
-	LPWSTR lpWord;
+    LPWSTR lpReading;
+    LPWSTR lpWord;
 }
 alias REGISTERWORDW* PREGISTERWORDW, LPREGISTERWORDW;
 
 struct STYLEBUFA{
-	DWORD dwStyle;
-	CHAR[STYLE_DESCRIPTION_SIZE] szDescription;
+    DWORD dwStyle;
+    CHAR[STYLE_DESCRIPTION_SIZE] szDescription;
 }
 alias STYLEBUFA* PSTYLEBUFA, LPSTYLEBUFA;
 
 struct STYLEBUFW{
-	DWORD dwStyle;
-	WCHAR[STYLE_DESCRIPTION_SIZE] szDescription;
+    DWORD dwStyle;
+    WCHAR[STYLE_DESCRIPTION_SIZE] szDescription;
 }
 alias STYLEBUFW* PSTYLEBUFW, LPSTYLEBUFW;
 
 struct IMEMENUITEMINFOA{
-	UINT cbSize = this.sizeof;
-	UINT fType;
-	UINT fState;
-	UINT wID;
-	HBITMAP hbmpChecked;
-	HBITMAP hbmpUnchecked;
-	DWORD dwItemData;
-	CHAR[IMEMENUITEM_STRING_SIZE] szString;
-	HBITMAP hbmpItem;
+    UINT cbSize = this.sizeof;
+    UINT fType;
+    UINT fState;
+    UINT wID;
+    HBITMAP hbmpChecked;
+    HBITMAP hbmpUnchecked;
+    DWORD dwItemData;
+    CHAR[IMEMENUITEM_STRING_SIZE] szString;
+    HBITMAP hbmpItem;
 }
 alias IMEMENUITEMINFOA* PIMEMENUITEMINFOA, LPIMEMENUITEMINFOA;
 
 struct IMEMENUITEMINFOW{
-	UINT cbSize = this.sizeof;
-	UINT fType;
-	UINT fState;
-	UINT wID;
-	HBITMAP hbmpChecked;
-	HBITMAP hbmpUnchecked;
-	DWORD dwItemData;
-	WCHAR[IMEMENUITEM_STRING_SIZE] szString;
-	HBITMAP hbmpItem;
+    UINT cbSize = this.sizeof;
+    UINT fType;
+    UINT fState;
+    UINT wID;
+    HBITMAP hbmpChecked;
+    HBITMAP hbmpUnchecked;
+    DWORD dwItemData;
+    WCHAR[IMEMENUITEM_STRING_SIZE] szString;
+    HBITMAP hbmpItem;
 }
 alias IMEMENUITEMINFOW* PIMEMENUITEMINFOW, LPIMEMENUITEMINFOW;
 
@@ -357,15 +357,15 @@ alias int function (LPCSTR, DWORD, LPCSTR, LPVOID)  REGISTERWORDENUMPROCA;
 alias int function (LPCWSTR, DWORD, LPCWSTR, LPVOID) REGISTERWORDENUMPROCW;
 
 version(Unicode) {
-	alias REGISTERWORDENUMPROCW REGISTERWORDENUMPROC;
-	alias REGISTERWORDW REGISTERWORD;
-	alias IMEMENUITEMINFOW IMEMENUITEMINFO;
-	alias STYLEBUFW STYLEBUF;
+    alias REGISTERWORDENUMPROCW REGISTERWORDENUMPROC;
+    alias REGISTERWORDW REGISTERWORD;
+    alias IMEMENUITEMINFOW IMEMENUITEMINFO;
+    alias STYLEBUFW STYLEBUF;
 } else {
-	alias REGISTERWORDENUMPROCA REGISTERWORDENUMPROC;
-	alias REGISTERWORDA REGISTERWORD;
-	alias IMEMENUITEMINFOA IMEMENUITEMINFO;
-	alias STYLEBUFA STYLEBUF;
+    alias REGISTERWORDENUMPROCA REGISTERWORDENUMPROC;
+    alias REGISTERWORDA REGISTERWORD;
+    alias IMEMENUITEMINFOA IMEMENUITEMINFO;
+    alias STYLEBUFA STYLEBUF;
 }
 
 alias STYLEBUF* PSTYLEBUF, LPSTYLEBUF;
@@ -439,43 +439,43 @@ DWORD ImmGetImeMenuItemsA(HIMC, DWORD, DWORD, LPIMEMENUITEMINFOA, LPIMEMENUITEMI
 DWORD ImmGetImeMenuItemsW(HIMC, DWORD, DWORD, LPIMEMENUITEMINFOW, LPIMEMENUITEMINFOW, DWORD);
 
 version(Unicode) {
-	alias ImmEnumRegisterWordW ImmEnumRegisterWord;
-	alias ImmGetRegisterWordStyleW ImmGetRegisterWordStyle;
-	alias ImmUnregisterWordW ImmUnregisterWord;
-	alias ImmRegisterWordW ImmRegisterWord;
-	alias ImmInstallIMEW ImmInstallIME;
-	alias ImmIsUIMessageW ImmIsUIMessage;
-	alias ImmGetConversionListW ImmGetConversionList;
-	alias ImmEscapeW ImmEscape;
-	alias ImmConfigureIMEW ImmConfigureIME;
-	alias ImmSetCompositionFontW ImmSetCompositionFont;
-	alias ImmGetCompositionFontW ImmGetCompositionFont;
-	alias ImmGetGuideLineW ImmGetGuideLine;
-	alias ImmGetCandidateListW ImmGetCandidateList;
-	alias ImmGetCandidateListCountW ImmGetCandidateListCount;
-	alias ImmSetCompositionStringW ImmSetCompositionString;
-	alias ImmGetCompositionStringW ImmGetCompositionString;
-	alias ImmGetDescriptionW ImmGetDescription;
-	alias ImmGetIMEFileNameW ImmGetIMEFileName;
-	alias ImmGetImeMenuItemsW ImmGetImeMenuItems;
+    alias ImmEnumRegisterWordW ImmEnumRegisterWord;
+    alias ImmGetRegisterWordStyleW ImmGetRegisterWordStyle;
+    alias ImmUnregisterWordW ImmUnregisterWord;
+    alias ImmRegisterWordW ImmRegisterWord;
+    alias ImmInstallIMEW ImmInstallIME;
+    alias ImmIsUIMessageW ImmIsUIMessage;
+    alias ImmGetConversionListW ImmGetConversionList;
+    alias ImmEscapeW ImmEscape;
+    alias ImmConfigureIMEW ImmConfigureIME;
+    alias ImmSetCompositionFontW ImmSetCompositionFont;
+    alias ImmGetCompositionFontW ImmGetCompositionFont;
+    alias ImmGetGuideLineW ImmGetGuideLine;
+    alias ImmGetCandidateListW ImmGetCandidateList;
+    alias ImmGetCandidateListCountW ImmGetCandidateListCount;
+    alias ImmSetCompositionStringW ImmSetCompositionString;
+    alias ImmGetCompositionStringW ImmGetCompositionString;
+    alias ImmGetDescriptionW ImmGetDescription;
+    alias ImmGetIMEFileNameW ImmGetIMEFileName;
+    alias ImmGetImeMenuItemsW ImmGetImeMenuItems;
 } else {
-	alias ImmEnumRegisterWordA ImmEnumRegisterWord;
-	alias ImmGetRegisterWordStyleA ImmGetRegisterWordStyle;
-	alias ImmUnregisterWordA ImmUnregisterWord;
-	alias ImmRegisterWordA ImmRegisterWord;
-	alias ImmInstallIMEA ImmInstallIME;
-	alias ImmIsUIMessageA ImmIsUIMessage;
-	alias ImmGetConversionListA ImmGetConversionList;
-	alias ImmEscapeA ImmEscape;
-	alias ImmConfigureIMEA ImmConfigureIME;
-	alias ImmSetCompositionFontA ImmSetCompositionFont;
-	alias ImmGetCompositionFontA ImmGetCompositionFont;
-	alias ImmGetGuideLineA ImmGetGuideLine;
-	alias ImmGetCandidateListA ImmGetCandidateList;
-	alias ImmGetCandidateListCountA ImmGetCandidateListCount;
-	alias ImmSetCompositionStringA ImmSetCompositionString;
-	alias ImmGetCompositionStringA ImmGetCompositionString;
-	alias ImmGetDescriptionA ImmGetDescription;
-	alias ImmGetIMEFileNameA ImmGetIMEFileName;
-	alias ImmGetImeMenuItemsW ImmGetImeMenuItems;
+    alias ImmEnumRegisterWordA ImmEnumRegisterWord;
+    alias ImmGetRegisterWordStyleA ImmGetRegisterWordStyle;
+    alias ImmUnregisterWordA ImmUnregisterWord;
+    alias ImmRegisterWordA ImmRegisterWord;
+    alias ImmInstallIMEA ImmInstallIME;
+    alias ImmIsUIMessageA ImmIsUIMessage;
+    alias ImmGetConversionListA ImmGetConversionList;
+    alias ImmEscapeA ImmEscape;
+    alias ImmConfigureIMEA ImmConfigureIME;
+    alias ImmSetCompositionFontA ImmSetCompositionFont;
+    alias ImmGetCompositionFontA ImmGetCompositionFont;
+    alias ImmGetGuideLineA ImmGetGuideLine;
+    alias ImmGetCandidateListA ImmGetCandidateList;
+    alias ImmGetCandidateListCountA ImmGetCandidateListCount;
+    alias ImmSetCompositionStringA ImmSetCompositionString;
+    alias ImmGetCompositionStringA ImmGetCompositionString;
+    alias ImmGetDescriptionA ImmGetDescription;
+    alias ImmGetIMEFileNameA ImmGetIMEFileName;
+    alias ImmGetImeMenuItemsW ImmGetImeMenuItems;
 }

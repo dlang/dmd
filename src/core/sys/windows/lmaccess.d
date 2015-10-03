@@ -11,17 +11,17 @@ pragma(lib, "netapi32");
 
 /**
  Changes relative to MinGW:
-	USER_POSIX_ID_PARMNUM and GROUP_POSIX_ID_PARMNUM aren't in MinGW or in
-	the Platform SDK docs, so they have been dropped from this file.
+    USER_POSIX_ID_PARMNUM and GROUP_POSIX_ID_PARMNUM aren't in MinGW or in
+    the Platform SDK docs, so they have been dropped from this file.
 */
 
 private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 const wchar[]
-	GROUP_SPECIALGRP_USERS  = "USERS",
-	GROUP_SPECIALGRP_ADMINS = "ADMINS",
-	GROUP_SPECIALGRP_GUESTS = "GUESTS",
-	GROUP_SPECIALGRP_LOCAL  = "LOCAL";
+    GROUP_SPECIALGRP_USERS  = "USERS",
+    GROUP_SPECIALGRP_ADMINS = "ADMINS",
+    GROUP_SPECIALGRP_GUESTS = "GUESTS",
+    GROUP_SPECIALGRP_LOCAL  = "LOCAL";
 
 const ACCESS_LETTERS = "RWCXDAP ";
 
@@ -231,491 +231,491 @@ const NETLOGON_FULL_SYNC_REPLICATION=4;
 const NETLOGON_REDO_NEEDED=8;
 
 struct USER_INFO_0 {
-	LPWSTR usri0_name;
+    LPWSTR usri0_name;
 }
 alias USER_INFO_0* PUSER_INFO_0, LPUSER_INFO_0;
 
 struct USER_INFO_1{
-	LPWSTR usri1_name;
-	LPWSTR usri1_password;
-	DWORD usri1_password_age;
-	DWORD usri1_priv;
-	LPWSTR usri1_home_dir;
-	LPWSTR usri1_comment;
-	DWORD usri1_flags;
-	LPWSTR usri1_script_path;
+    LPWSTR usri1_name;
+    LPWSTR usri1_password;
+    DWORD usri1_password_age;
+    DWORD usri1_priv;
+    LPWSTR usri1_home_dir;
+    LPWSTR usri1_comment;
+    DWORD usri1_flags;
+    LPWSTR usri1_script_path;
 }
 alias USER_INFO_1* PUSER_INFO_1, LPUSER_INFO_1;
 
 struct USER_INFO_2{
-	LPWSTR usri2_name;
-	LPWSTR usri2_password;
-	DWORD usri2_password_age;
-	DWORD usri2_priv;
-	LPWSTR usri2_home_dir;
-	LPWSTR usri2_comment;
-	DWORD usri2_flags;
-	LPWSTR usri2_script_path;
-	DWORD usri2_auth_flags;
-	LPWSTR usri2_full_name;
-	LPWSTR usri2_usr_comment;
-	LPWSTR usri2_parms;
-	LPWSTR usri2_workstations;
-	DWORD usri2_last_logon;
-	DWORD usri2_last_logoff;
-	DWORD usri2_acct_expires;
-	DWORD usri2_max_storage;
-	DWORD usri2_units_per_week;
-	PBYTE usri2_logon_hours;
-	DWORD usri2_bad_pw_count;
-	DWORD usri2_num_logons;
-	LPWSTR usri2_logon_server;
-	DWORD usri2_country_code;
-	DWORD usri2_code_page;
+    LPWSTR usri2_name;
+    LPWSTR usri2_password;
+    DWORD usri2_password_age;
+    DWORD usri2_priv;
+    LPWSTR usri2_home_dir;
+    LPWSTR usri2_comment;
+    DWORD usri2_flags;
+    LPWSTR usri2_script_path;
+    DWORD usri2_auth_flags;
+    LPWSTR usri2_full_name;
+    LPWSTR usri2_usr_comment;
+    LPWSTR usri2_parms;
+    LPWSTR usri2_workstations;
+    DWORD usri2_last_logon;
+    DWORD usri2_last_logoff;
+    DWORD usri2_acct_expires;
+    DWORD usri2_max_storage;
+    DWORD usri2_units_per_week;
+    PBYTE usri2_logon_hours;
+    DWORD usri2_bad_pw_count;
+    DWORD usri2_num_logons;
+    LPWSTR usri2_logon_server;
+    DWORD usri2_country_code;
+    DWORD usri2_code_page;
 }
 alias USER_INFO_2* PUSER_INFO_2, LPUSER_INFO_2;
 
 struct USER_INFO_3{
-	LPWSTR usri3_name;
-	LPWSTR usri3_password;
-	DWORD usri3_password_age;
-	DWORD usri3_priv;
-	LPWSTR usri3_home_dir;
-	LPWSTR usri3_comment;
-	DWORD usri3_flags;
-	LPWSTR usri3_script_path;
-	DWORD usri3_auth_flags;
-	LPWSTR usri3_full_name;
-	LPWSTR usri3_usr_comment;
-	LPWSTR usri3_parms;
-	LPWSTR usri3_workstations;
-	DWORD usri3_last_logon;
-	DWORD usri3_last_logoff;
-	DWORD usri3_acct_expires;
-	DWORD usri3_max_storage;
-	DWORD usri3_units_per_week;
-	PBYTE usri3_logon_hours;
-	DWORD usri3_bad_pw_count;
-	DWORD usri3_num_logons;
-	LPWSTR usri3_logon_server;
-	DWORD usri3_country_code;
-	DWORD usri3_code_page;
-	DWORD usri3_user_id;
-	DWORD usri3_primary_group_id;
-	LPWSTR usri3_profile;
-	LPWSTR usri3_home_dir_drive;
-	DWORD usri3_password_expired;
+    LPWSTR usri3_name;
+    LPWSTR usri3_password;
+    DWORD usri3_password_age;
+    DWORD usri3_priv;
+    LPWSTR usri3_home_dir;
+    LPWSTR usri3_comment;
+    DWORD usri3_flags;
+    LPWSTR usri3_script_path;
+    DWORD usri3_auth_flags;
+    LPWSTR usri3_full_name;
+    LPWSTR usri3_usr_comment;
+    LPWSTR usri3_parms;
+    LPWSTR usri3_workstations;
+    DWORD usri3_last_logon;
+    DWORD usri3_last_logoff;
+    DWORD usri3_acct_expires;
+    DWORD usri3_max_storage;
+    DWORD usri3_units_per_week;
+    PBYTE usri3_logon_hours;
+    DWORD usri3_bad_pw_count;
+    DWORD usri3_num_logons;
+    LPWSTR usri3_logon_server;
+    DWORD usri3_country_code;
+    DWORD usri3_code_page;
+    DWORD usri3_user_id;
+    DWORD usri3_primary_group_id;
+    LPWSTR usri3_profile;
+    LPWSTR usri3_home_dir_drive;
+    DWORD usri3_password_expired;
 }
 alias USER_INFO_3* PUSER_INFO_3, LPUSER_INFO_3;
 
 struct USER_INFO_10{
-	LPWSTR usri10_name;
-	LPWSTR usri10_comment;
-	LPWSTR usri10_usr_comment;
-	LPWSTR usri10_full_name;
+    LPWSTR usri10_name;
+    LPWSTR usri10_comment;
+    LPWSTR usri10_usr_comment;
+    LPWSTR usri10_full_name;
 }
 alias USER_INFO_10* PUSER_INFO_10, LPUSER_INFO_10;
 
 struct USER_INFO_11{
-	LPWSTR usri11_name;
-	LPWSTR usri11_comment;
-	LPWSTR usri11_usr_comment;
-	LPWSTR usri11_full_name;
-	DWORD usri11_priv;
-	DWORD usri11_auth_flags;
-	DWORD usri11_password_age;
-	LPWSTR usri11_home_dir;
-	LPWSTR usri11_parms;
-	DWORD usri11_last_logon;
-	DWORD usri11_last_logoff;
-	DWORD usri11_bad_pw_count;
-	DWORD usri11_num_logons;
-	LPWSTR usri11_logon_server;
-	DWORD usri11_country_code;
-	LPWSTR usri11_workstations;
-	DWORD usri11_max_storage;
-	DWORD usri11_units_per_week;
-	PBYTE usri11_logon_hours;
-	DWORD usri11_code_page;
+    LPWSTR usri11_name;
+    LPWSTR usri11_comment;
+    LPWSTR usri11_usr_comment;
+    LPWSTR usri11_full_name;
+    DWORD usri11_priv;
+    DWORD usri11_auth_flags;
+    DWORD usri11_password_age;
+    LPWSTR usri11_home_dir;
+    LPWSTR usri11_parms;
+    DWORD usri11_last_logon;
+    DWORD usri11_last_logoff;
+    DWORD usri11_bad_pw_count;
+    DWORD usri11_num_logons;
+    LPWSTR usri11_logon_server;
+    DWORD usri11_country_code;
+    LPWSTR usri11_workstations;
+    DWORD usri11_max_storage;
+    DWORD usri11_units_per_week;
+    PBYTE usri11_logon_hours;
+    DWORD usri11_code_page;
 }
 alias USER_INFO_11* PUSER_INFO_11, LPUSER_INFO_11;
 
 struct USER_INFO_20 {
-	LPWSTR usri20_name;
-	LPWSTR usri20_full_name;
-	LPWSTR usri20_comment;
-	DWORD usri20_flags;
-	DWORD usri20_user_id;
+    LPWSTR usri20_name;
+    LPWSTR usri20_full_name;
+    LPWSTR usri20_comment;
+    DWORD usri20_flags;
+    DWORD usri20_user_id;
 }
 alias USER_INFO_20* PUSER_INFO_20, LPUSER_INFO_20;
 
 struct USER_INFO_21 {
-	BYTE[ENCRYPTED_PWLEN] usri21_password;
+    BYTE[ENCRYPTED_PWLEN] usri21_password;
 }
 alias USER_INFO_21* PUSER_INFO_21, LPUSER_INFO_21;
 
 struct USER_INFO_22{
-	LPWSTR usri22_name;
-	BYTE[ENCRYPTED_PWLEN] usri22_password;
-	DWORD usri22_password_age;
-	DWORD usri22_priv;
-	LPWSTR usri22_home_dir;
-	LPWSTR usri22_comment;
-	DWORD usri22_flags;
-	LPWSTR usri22_script_path;
-	DWORD usri22_auth_flags;
-	LPWSTR usri22_full_name;
-	LPWSTR usri22_usr_comment;
-	LPWSTR usri22_parms;
-	LPWSTR usri22_workstations;
-	DWORD usri22_last_logon;
-	DWORD usri22_last_logoff;
-	DWORD usri22_acct_expires;
-	DWORD usri22_max_storage;
-	DWORD usri22_units_per_week;
-	PBYTE usri22_logon_hours;
-	DWORD usri22_bad_pw_count;
-	DWORD usri22_num_logons;
-	LPWSTR usri22_logon_server;
-	DWORD usri22_country_code;
-	DWORD usri22_code_page;
+    LPWSTR usri22_name;
+    BYTE[ENCRYPTED_PWLEN] usri22_password;
+    DWORD usri22_password_age;
+    DWORD usri22_priv;
+    LPWSTR usri22_home_dir;
+    LPWSTR usri22_comment;
+    DWORD usri22_flags;
+    LPWSTR usri22_script_path;
+    DWORD usri22_auth_flags;
+    LPWSTR usri22_full_name;
+    LPWSTR usri22_usr_comment;
+    LPWSTR usri22_parms;
+    LPWSTR usri22_workstations;
+    DWORD usri22_last_logon;
+    DWORD usri22_last_logoff;
+    DWORD usri22_acct_expires;
+    DWORD usri22_max_storage;
+    DWORD usri22_units_per_week;
+    PBYTE usri22_logon_hours;
+    DWORD usri22_bad_pw_count;
+    DWORD usri22_num_logons;
+    LPWSTR usri22_logon_server;
+    DWORD usri22_country_code;
+    DWORD usri22_code_page;
 }
 alias USER_INFO_22* PUSER_INFO_22, LPUSER_INFO_22;
 
 struct USER_INFO_1003{
-	LPWSTR usri1003_password;
+    LPWSTR usri1003_password;
 }
 alias USER_INFO_1003* PUSER_INFO_1003, LPUSER_INFO_1003;
 
 struct USER_INFO_1005{
-	DWORD usri1005_priv;
+    DWORD usri1005_priv;
 }
 alias USER_INFO_1005* PUSER_INFO_1005, LPUSER_INFO_1005;
 
 struct USER_INFO_1006{
-	LPWSTR usri1006_home_dir;
+    LPWSTR usri1006_home_dir;
 }
 alias USER_INFO_1006* PUSER_INFO_1006, LPUSER_INFO_1006;
 
 struct USER_INFO_1007{
-	LPWSTR usri1007_comment;
+    LPWSTR usri1007_comment;
 }
 alias USER_INFO_1007* PUSER_INFO_1007, LPUSER_INFO_1007;
 
 struct USER_INFO_1008{
-	DWORD usri1008_flags;
+    DWORD usri1008_flags;
 }
 alias USER_INFO_1008* PUSER_INFO_1008, LPUSER_INFO_1008;
 
 struct USER_INFO_1009{
-	LPWSTR usri1009_script_path;
+    LPWSTR usri1009_script_path;
 }
 alias USER_INFO_1009* PUSER_INFO_1009, LPUSER_INFO_1009;
 
 struct USER_INFO_1010{
-	DWORD usri1010_auth_flags;
+    DWORD usri1010_auth_flags;
 }
 alias USER_INFO_1010* PUSER_INFO_1010, LPUSER_INFO_1010;
 
 struct USER_INFO_1011{
-	LPWSTR usri1011_full_name;
+    LPWSTR usri1011_full_name;
 }
 alias USER_INFO_1011* PUSER_INFO_1011, LPUSER_INFO_1011;
 
 struct USER_INFO_1012{
-	LPWSTR usri1012_usr_comment;
+    LPWSTR usri1012_usr_comment;
 }
 alias USER_INFO_1012* PUSER_INFO_1012, LPUSER_INFO_1012;
 
 struct USER_INFO_1013{
-	LPWSTR usri1013_parms;
+    LPWSTR usri1013_parms;
 }
 alias USER_INFO_1013* PUSER_INFO_1013, LPUSER_INFO_1013;
 
 struct USER_INFO_1014{
-	LPWSTR usri1014_workstations;
+    LPWSTR usri1014_workstations;
 }
 alias USER_INFO_1014* PUSER_INFO_1014, LPUSER_INFO_1014;
 
 struct USER_INFO_1017{
-	DWORD usri1017_acct_expires;
+    DWORD usri1017_acct_expires;
 }
 alias USER_INFO_1017* PUSER_INFO_1017, LPUSER_INFO_1017;
 
 struct USER_INFO_1018{
-	DWORD usri1018_max_storage;
+    DWORD usri1018_max_storage;
 }
 alias USER_INFO_1018* PUSER_INFO_1018, LPUSER_INFO_1018;
 
 struct USER_INFO_1020{
-	DWORD usri1020_units_per_week;
-	PBYTE usri1020_logon_hours;
+    DWORD usri1020_units_per_week;
+    PBYTE usri1020_logon_hours;
 }
 alias USER_INFO_1020* PUSER_INFO_1020, LPUSER_INFO_1020;
 
 struct USER_INFO_1023{
-	LPWSTR usri1023_logon_server;
+    LPWSTR usri1023_logon_server;
 }
 alias USER_INFO_1023* PUSER_INFO_1023, LPUSER_INFO_1023;
 
 struct USER_INFO_1024{
-	DWORD usri1024_country_code;
+    DWORD usri1024_country_code;
 }
 alias USER_INFO_1024* PUSER_INFO_1024, LPUSER_INFO_1024;
 
 struct USER_INFO_1025{
-	DWORD usri1025_code_page;
+    DWORD usri1025_code_page;
 }
 alias USER_INFO_1025* PUSER_INFO_1025, LPUSER_INFO_1025;
 
 struct USER_INFO_1051{
-	DWORD usri1051_primary_group_id;
+    DWORD usri1051_primary_group_id;
 }
 alias USER_INFO_1051* PUSER_INFO_1051, LPUSER_INFO_1051;
 
 struct USER_INFO_1052{
-	LPWSTR usri1052_profile;
+    LPWSTR usri1052_profile;
 }
 alias USER_INFO_1052* PUSER_INFO_1052, LPUSER_INFO_1052;
 
 struct USER_INFO_1053{
-	LPWSTR usri1053_home_dir_drive;
+    LPWSTR usri1053_home_dir_drive;
 }
 alias USER_INFO_1053* PUSER_INFO_1053, LPUSER_INFO_1053;
 
 struct USER_MODALS_INFO_0{
-	DWORD usrmod0_min_passwd_len;
-	DWORD usrmod0_max_passwd_age;
-	DWORD usrmod0_min_passwd_age;
-	DWORD usrmod0_force_logoff;
-	DWORD usrmod0_password_hist_len;
+    DWORD usrmod0_min_passwd_len;
+    DWORD usrmod0_max_passwd_age;
+    DWORD usrmod0_min_passwd_age;
+    DWORD usrmod0_force_logoff;
+    DWORD usrmod0_password_hist_len;
 }
 alias USER_MODALS_INFO_0* PUSER_MODALS_INFO_0, LPUSER_MODALS_INFO_0;
 
 struct USER_MODALS_INFO_1{
-	DWORD usrmod1_role;
-	LPWSTR usrmod1_primary;
+    DWORD usrmod1_role;
+    LPWSTR usrmod1_primary;
 }
 alias USER_MODALS_INFO_1* PUSER_MODALS_INFO_1, LPUSER_MODALS_INFO_1;
 
 struct USER_MODALS_INFO_2{
-	LPWSTR usrmod2_domain_name;
-	PSID usrmod2_domain_id;
+    LPWSTR usrmod2_domain_name;
+    PSID usrmod2_domain_id;
 }
 alias USER_MODALS_INFO_2* PUSER_MODALS_INFO_2, LPUSER_MODALS_INFO_2;
 
 struct USER_MODALS_INFO_3{
-	DWORD usrmod3_lockout_duration;
-	DWORD usrmod3_lockout_observation_window;
-	DWORD usrmod3_lockout_threshold;
+    DWORD usrmod3_lockout_duration;
+    DWORD usrmod3_lockout_observation_window;
+    DWORD usrmod3_lockout_threshold;
 }
 alias USER_MODALS_INFO_3* PUSER_MODALS_INFO_3, LPUSER_MODALS_INFO_3;
 
 struct USER_MODALS_INFO_1001{
-	DWORD usrmod1001_min_passwd_len;
+    DWORD usrmod1001_min_passwd_len;
 }
 alias USER_MODALS_INFO_1001* PUSER_MODALS_INFO_1001, LPUSER_MODALS_INFO_1001;
 
 struct USER_MODALS_INFO_1002{
-	DWORD usrmod1002_max_passwd_age;
+    DWORD usrmod1002_max_passwd_age;
 }
 alias USER_MODALS_INFO_1002* PUSER_MODALS_INFO_1002, LPUSER_MODALS_INFO_1002;
 
 struct USER_MODALS_INFO_1003{
-	DWORD usrmod1003_min_passwd_age;
+    DWORD usrmod1003_min_passwd_age;
 }
 alias USER_MODALS_INFO_1003* PUSER_MODALS_INFO_1003, LPUSER_MODALS_INFO_1003;
 
 struct USER_MODALS_INFO_1004{
-	DWORD usrmod1004_force_logoff;
+    DWORD usrmod1004_force_logoff;
 }
 alias USER_MODALS_INFO_1004* PUSER_MODALS_INFO_1004, LPUSER_MODALS_INFO_1004;
 
 struct USER_MODALS_INFO_1005{
-	DWORD usrmod1005_password_hist_len;
+    DWORD usrmod1005_password_hist_len;
 }
 alias USER_MODALS_INFO_1005* PUSER_MODALS_INFO_1005, LPUSER_MODALS_INFO_1005;
 
 struct USER_MODALS_INFO_1006{
-	DWORD usrmod1006_role;
+    DWORD usrmod1006_role;
 }
 alias USER_MODALS_INFO_1006* PUSER_MODALS_INFO_1006, LPUSER_MODALS_INFO_1006;
 
 struct USER_MODALS_INFO_1007{
-	LPWSTR usrmod1007_primary;
+    LPWSTR usrmod1007_primary;
 }
 alias USER_MODALS_INFO_1007* PUSER_MODALS_INFO_1007, LPUSER_MODALS_INFO_1007;
 
 struct GROUP_INFO_0{
-	LPWSTR grpi0_name;
+    LPWSTR grpi0_name;
 }
 alias GROUP_INFO_0* PGROUP_INFO_0, LPGROUP_INFO_0;
 
 struct GROUP_INFO_1{
-	LPWSTR grpi1_name;
-	LPWSTR grpi1_comment;
+    LPWSTR grpi1_name;
+    LPWSTR grpi1_comment;
 }
 alias GROUP_INFO_1* PGROUP_INFO_1, LPGROUP_INFO_1;
 
 struct GROUP_INFO_2{
-	LPWSTR grpi2_name;
-	LPWSTR grpi2_comment;
-	DWORD grpi2_group_id;
-	DWORD grpi2_attributes;
+    LPWSTR grpi2_name;
+    LPWSTR grpi2_comment;
+    DWORD grpi2_group_id;
+    DWORD grpi2_attributes;
 }
 alias GROUP_INFO_2* PGROUP_INFO_2;
 
 struct GROUP_INFO_1002{
-	LPWSTR grpi1002_comment;
+    LPWSTR grpi1002_comment;
 }
 alias GROUP_INFO_1002* PGROUP_INFO_1002, LPGROUP_INFO_1002;
 
 struct GROUP_INFO_1005{
-	DWORD grpi1005_attributes;
+    DWORD grpi1005_attributes;
 }
 alias GROUP_INFO_1005* PGROUP_INFO_1005, LPGROUP_INFO_1005;
 
 struct GROUP_USERS_INFO_0{
-	LPWSTR grui0_name;
+    LPWSTR grui0_name;
 }
 alias GROUP_USERS_INFO_0* PGROUP_USERS_INFO_0, LPGROUP_USERS_INFO_0;
 
 struct GROUP_USERS_INFO_1{
-	LPWSTR grui1_name;
-	DWORD grui1_attributes;
+    LPWSTR grui1_name;
+    DWORD grui1_attributes;
 }
 alias GROUP_USERS_INFO_1* PGROUP_USERS_INFO_1, LPGROUP_USERS_INFO_1;
 
 struct LOCALGROUP_INFO_0{
-	LPWSTR lgrpi0_name;
+    LPWSTR lgrpi0_name;
 }
 alias LOCALGROUP_INFO_0* PLOCALGROUP_INFO_0, LPLOCALGROUP_INFO_0;
 
 struct LOCALGROUP_INFO_1{
-	LPWSTR lgrpi1_name;
-	LPWSTR lgrpi1_comment;
+    LPWSTR lgrpi1_name;
+    LPWSTR lgrpi1_comment;
 }
 alias LOCALGROUP_INFO_1* PLOCALGROUP_INFO_1, LPLOCALGROUP_INFO_1;
 
 struct LOCALGROUP_INFO_1002{
-	LPWSTR lgrpi1002_comment;
+    LPWSTR lgrpi1002_comment;
 }
 alias LOCALGROUP_INFO_1002* PLOCALGROUP_INFO_1002, LPLOCALGROUP_INFO_1002;
 
 struct LOCALGROUP_MEMBERS_INFO_0{
-	PSID lgrmi0_sid;
+    PSID lgrmi0_sid;
 }
 alias LOCALGROUP_MEMBERS_INFO_0* PLOCALGROUP_MEMBERS_INFO_0, LPLOCALGROUP_MEMBERS_INFO_0;
 
 struct LOCALGROUP_MEMBERS_INFO_1{
-	PSID lgrmi1_sid;
-	SID_NAME_USE lgrmi1_sidusage;
-	LPWSTR lgrmi1_name;
+    PSID lgrmi1_sid;
+    SID_NAME_USE lgrmi1_sidusage;
+    LPWSTR lgrmi1_name;
 }
 alias LOCALGROUP_MEMBERS_INFO_1* PLOCALGROUP_MEMBERS_INFO_1, LPLOCALGROUP_MEMBERS_INFO_1;
 
 struct LOCALGROUP_MEMBERS_INFO_2{
-	PSID lgrmi2_sid;
-	SID_NAME_USE lgrmi2_sidusage;
-	LPWSTR lgrmi2_domainandname;
+    PSID lgrmi2_sid;
+    SID_NAME_USE lgrmi2_sidusage;
+    LPWSTR lgrmi2_domainandname;
 }
 alias LOCALGROUP_MEMBERS_INFO_2* PLOCALGROUP_MEMBERS_INFO_2, LPLOCALGROUP_MEMBERS_INFO_2;
 
 struct LOCALGROUP_MEMBERS_INFO_3{
-	LPWSTR lgrmi3_domainandname;
+    LPWSTR lgrmi3_domainandname;
 }
 alias LOCALGROUP_MEMBERS_INFO_3* PLOCALGROUP_MEMBERS_INFO_3, LPLOCALGROUP_MEMBERS_INFO_3;
 
 struct LOCALGROUP_USERS_INFO_0{
-	LPWSTR lgrui0_name;
+    LPWSTR lgrui0_name;
 }
 alias LOCALGROUP_USERS_INFO_0* PLOCALGROUP_USERS_INFO_0, LPLOCALGROUP_USERS_INFO_0;
 
 struct NET_DISPLAY_USER{
-	LPWSTR usri1_name;
-	LPWSTR usri1_comment;
-	DWORD usri1_flags;
-	LPWSTR usri1_full_name;
-	DWORD usri1_user_id;
-	DWORD usri1_next_index;
+    LPWSTR usri1_name;
+    LPWSTR usri1_comment;
+    DWORD usri1_flags;
+    LPWSTR usri1_full_name;
+    DWORD usri1_user_id;
+    DWORD usri1_next_index;
 }
 alias NET_DISPLAY_USER* PNET_DISPLAY_USER;
 
 struct NET_DISPLAY_MACHINE{
-	LPWSTR usri2_name;
-	LPWSTR usri2_comment;
-	DWORD usri2_flags;
-	DWORD usri2_user_id;
-	DWORD usri2_next_index;
+    LPWSTR usri2_name;
+    LPWSTR usri2_comment;
+    DWORD usri2_flags;
+    DWORD usri2_user_id;
+    DWORD usri2_next_index;
 }
 alias NET_DISPLAY_MACHINE* PNET_DISPLAY_MACHINE;
 
 struct NET_DISPLAY_GROUP{
-	LPWSTR grpi3_name;
-	LPWSTR grpi3_comment;
-	DWORD grpi3_group_id;
-	DWORD grpi3_attributes;
-	DWORD grpi3_next_index;
+    LPWSTR grpi3_name;
+    LPWSTR grpi3_comment;
+    DWORD grpi3_group_id;
+    DWORD grpi3_attributes;
+    DWORD grpi3_next_index;
 }
 alias NET_DISPLAY_GROUP* PNET_DISPLAY_GROUP;
 
 struct ACCESS_INFO_0{
-	LPTSTR acc0_resource_name;
+    LPTSTR acc0_resource_name;
 }
 alias ACCESS_INFO_0* PACCESS_INFO_0, LPACCESS_INFO_0;
 
 struct ACCESS_INFO_1{
-	LPTSTR acc1_resource_name;
-	DWORD acc1_attr;
-	DWORD acc1_count;
+    LPTSTR acc1_resource_name;
+    DWORD acc1_attr;
+    DWORD acc1_count;
 }
 alias ACCESS_INFO_1* PACCESS_INFO_1, LPACCESS_INFO_1;
 
 struct ACCESS_INFO_1002{
-	DWORD acc1002_attr;
+    DWORD acc1002_attr;
 }
 alias ACCESS_INFO_1002* PACCESS_INFO_1002, LPACCESS_INFO_1002;
 
 struct ACCESS_LIST{
-	LPTSTR acl_ugname;
-	DWORD acl_access;
+    LPTSTR acl_ugname;
+    DWORD acl_access;
 }
 alias ACCESS_LIST* PACCESS_LIST, LPACCESS_LIST;
 
 struct NETLOGON_INFO_1{
-	DWORD netlog1_flags;
-	NET_API_STATUS netlog1_pdc_connection_status;
+    DWORD netlog1_flags;
+    NET_API_STATUS netlog1_pdc_connection_status;
 }
 alias NETLOGON_INFO_1* PNETLOGON_INFO_1;
 
 struct NETLOGON_INFO_2{
-	DWORD netlog2_flags;
-	NET_API_STATUS netlog2_pdc_connection_status;
-	LPWSTR netlog2_trusted_dc_name;
-	NET_API_STATUS netlog2_tc_connection_status;
+    DWORD netlog2_flags;
+    NET_API_STATUS netlog2_pdc_connection_status;
+    LPWSTR netlog2_trusted_dc_name;
+    NET_API_STATUS netlog2_tc_connection_status;
 }
 alias NETLOGON_INFO_2* PNETLOGON_INFO_2;
 
 struct NETLOGON_INFO_3{
-	DWORD netlog3_flags;
-	DWORD netlog3_logon_attempts;
-	DWORD netlog3_reserved1;
-	DWORD netlog3_reserved2;
-	DWORD netlog3_reserved3;
-	DWORD netlog3_reserved4;
-	DWORD netlog3_reserved5;
+    DWORD netlog3_flags;
+    DWORD netlog3_logon_attempts;
+    DWORD netlog3_reserved1;
+    DWORD netlog3_reserved2;
+    DWORD netlog3_reserved3;
+    DWORD netlog3_reserved4;
+    DWORD netlog3_reserved5;
 }
 alias NETLOGON_INFO_3* PNETLOGON_INFO_3;
 
 extern (Windows) {
 deprecated {
-	/* These are obsolete */
-	NET_API_STATUS NetAccessAdd(LPCWSTR,DWORD,PBYTE,PDWORD);
-	NET_API_STATUS NetAccessEnum(LPCWSTR,LPCWSTR,DWORD,DWORD,PBYTE*,DWORD,PDWORD,PDWORD,PDWORD);
-	NET_API_STATUS NetAccessGetInfo(LPCWSTR,LPCWSTR,DWORD,PBYTE*);
-	NET_API_STATUS NetAccessSetInfo(LPCWSTR,LPCWSTR,DWORD,PBYTE,PDWORD);
-	NET_API_STATUS NetAccessDel(LPCWSTR,LPCWSTR);
-	NET_API_STATUS NetAccessGetUserPerms(LPCWSTR,LPCWSTR,LPCWSTR,PDWORD);
+    /* These are obsolete */
+    NET_API_STATUS NetAccessAdd(LPCWSTR,DWORD,PBYTE,PDWORD);
+    NET_API_STATUS NetAccessEnum(LPCWSTR,LPCWSTR,DWORD,DWORD,PBYTE*,DWORD,PDWORD,PDWORD,PDWORD);
+    NET_API_STATUS NetAccessGetInfo(LPCWSTR,LPCWSTR,DWORD,PBYTE*);
+    NET_API_STATUS NetAccessSetInfo(LPCWSTR,LPCWSTR,DWORD,PBYTE,PDWORD);
+    NET_API_STATUS NetAccessDel(LPCWSTR,LPCWSTR);
+    NET_API_STATUS NetAccessGetUserPerms(LPCWSTR,LPCWSTR,LPCWSTR,PDWORD);
 }
 NET_API_STATUS NetUserAdd(LPCWSTR,DWORD,PBYTE,PDWORD);
 NET_API_STATUS NetUserEnum(LPCWSTR,DWORD,DWORD,PBYTE*,DWORD,PDWORD,PDWORD,PDWORD);

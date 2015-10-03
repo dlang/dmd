@@ -81,67 +81,67 @@ const PERF_RAW_BASE=(PERF_SIZE_DWORD|PERF_TYPE_COUNTER|PERF_COUNTER_BASE|PERF_DI
 const PERF_ELAPSED_TIME=(PERF_SIZE_LARGE|PERF_TYPE_COUNTER|PERF_COUNTER_ELAPSED|PERF_OBJECT_TIMER|PERF_DISPLAY_SECONDS);
 
 struct PERF_DATA_BLOCK {
-	WCHAR[4] Signature;
-	DWORD LittleEndian;
-	DWORD Version;
-	DWORD Revision;
-	DWORD TotalByteLength;
-	DWORD HeaderLength;
-	DWORD NumObjectTypes;
-	LONG DefaultObject;
-	SYSTEMTIME SystemTime;
-	LARGE_INTEGER PerfTime;
-	LARGE_INTEGER PerfFreq;
-	LARGE_INTEGER PerfTime100nSec;
-	DWORD SystemNameLength;
-	DWORD SystemNameOffset;
+    WCHAR[4] Signature;
+    DWORD LittleEndian;
+    DWORD Version;
+    DWORD Revision;
+    DWORD TotalByteLength;
+    DWORD HeaderLength;
+    DWORD NumObjectTypes;
+    LONG DefaultObject;
+    SYSTEMTIME SystemTime;
+    LARGE_INTEGER PerfTime;
+    LARGE_INTEGER PerfFreq;
+    LARGE_INTEGER PerfTime100nSec;
+    DWORD SystemNameLength;
+    DWORD SystemNameOffset;
 }
 alias PERF_DATA_BLOCK * PPERF_DATA_BLOCK;
 
 struct PERF_OBJECT_TYPE {
-	DWORD TotalByteLength;
-	DWORD DefinitionLength;
-	DWORD HeaderLength;
-	DWORD ObjectNameTitleIndex;
-	LPWSTR ObjectNameTitle;
-	DWORD ObjectHelpTitleIndex;
-	LPWSTR ObjectHelpTitle;
-	DWORD DetailLevel;
-	DWORD NumCounters;
-	LONG DefaultCounter;
-	LONG NumInstances;
-	DWORD CodePage;
-	LARGE_INTEGER PerfTime;
-	LARGE_INTEGER PerfFreq;
+    DWORD TotalByteLength;
+    DWORD DefinitionLength;
+    DWORD HeaderLength;
+    DWORD ObjectNameTitleIndex;
+    LPWSTR ObjectNameTitle;
+    DWORD ObjectHelpTitleIndex;
+    LPWSTR ObjectHelpTitle;
+    DWORD DetailLevel;
+    DWORD NumCounters;
+    LONG DefaultCounter;
+    LONG NumInstances;
+    DWORD CodePage;
+    LARGE_INTEGER PerfTime;
+    LARGE_INTEGER PerfFreq;
 }
 alias PERF_OBJECT_TYPE * PPERF_OBJECT_TYPE;
 
 struct PERF_COUNTER_DEFINITION {
-	DWORD ByteLength;
-	DWORD CounterNameTitleIndex;
-	LPWSTR CounterNameTitle;
-	DWORD CounterHelpTitleIndex;
-	LPWSTR CounterHelpTitle;
-	LONG DefaultScale;
-	DWORD DetailLevel;
-	DWORD CounterType;
-	DWORD CounterSize;
-	DWORD CounterOffset;
+    DWORD ByteLength;
+    DWORD CounterNameTitleIndex;
+    LPWSTR CounterNameTitle;
+    DWORD CounterHelpTitleIndex;
+    LPWSTR CounterHelpTitle;
+    LONG DefaultScale;
+    DWORD DetailLevel;
+    DWORD CounterType;
+    DWORD CounterSize;
+    DWORD CounterOffset;
 }
 alias PERF_COUNTER_DEFINITION * PPERF_COUNTER_DEFINITION;
 
 struct PERF_INSTANCE_DEFINITION {
-	DWORD ByteLength;
-	DWORD ParentObjectTitleIndex;
-	DWORD ParentObjectInstance;
-	LONG UniqueID;
-	DWORD NameOffset;
-	DWORD NameLength;
+    DWORD ByteLength;
+    DWORD ParentObjectTitleIndex;
+    DWORD ParentObjectInstance;
+    LONG UniqueID;
+    DWORD NameOffset;
+    DWORD NameLength;
 }
 alias PERF_INSTANCE_DEFINITION * PPERF_INSTANCE_DEFINITION;
 
 struct PERF_COUNTER_BLOCK {
-	DWORD ByteLength;
+    DWORD ByteLength;
 }
 alias PERF_COUNTER_BLOCK * PPERF_COUNTER_BLOCK;
 

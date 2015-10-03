@@ -22,28 +22,28 @@ const JOB_OUTPUT_FLAGS     = JOB_RUN_PERIODICALLY | JOB_EXEC_ERROR
                              | JOB_RUNS_TODAY | JOB_NONINTERACTIVE;
 
 struct AT_ENUM {
-	DWORD JobId;
-	DWORD JobTime;
-	DWORD DaysOfMonth;
-	UCHAR DaysOfWeek;
-	UCHAR Flags;
-	LPWSTR Command;
+    DWORD JobId;
+    DWORD JobTime;
+    DWORD DaysOfMonth;
+    UCHAR DaysOfWeek;
+    UCHAR Flags;
+    LPWSTR Command;
 }
 alias AT_ENUM* PAT_ENUM, LPAT_ENUM;
 
 struct AT_INFO {
-	DWORD JobTime;
-	DWORD DaysOfMonth;
-	UCHAR DaysOfWeek;
-	UCHAR Flags;
-	LPWSTR Command;
+    DWORD JobTime;
+    DWORD DaysOfMonth;
+    UCHAR DaysOfWeek;
+    UCHAR Flags;
+    LPWSTR Command;
 }
 alias AT_INFO* PAT_INFO, LPAT_INFO;
 
 extern (Windows) {
-	NET_API_STATUS NetScheduleJobAdd(LPWSTR, PBYTE, LPDWORD);
-	NET_API_STATUS NetScheduleJobDel(LPWSTR, DWORD, DWORD);
-	NET_API_STATUS NetScheduleJobEnum(LPWSTR, PBYTE*, DWORD, PDWORD, PDWORD,
-	  PDWORD);
-	NET_API_STATUS NetScheduleJobGetInfo(LPWSTR, DWORD, PBYTE*);
+    NET_API_STATUS NetScheduleJobAdd(LPWSTR, PBYTE, LPDWORD);
+    NET_API_STATUS NetScheduleJobDel(LPWSTR, DWORD, DWORD);
+    NET_API_STATUS NetScheduleJobEnum(LPWSTR, PBYTE*, DWORD, PDWORD, PDWORD,
+      PDWORD);
+    NET_API_STATUS NetScheduleJobGetInfo(LPWSTR, DWORD, PBYTE*);
 }

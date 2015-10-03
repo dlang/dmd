@@ -245,440 +245,440 @@ const PORT_STATUS_WARMING_UP=11;
 const PORT_STATUS_POWER_SAVE=12;
 
 struct ADDJOB_INFO_1A {
-	LPSTR Path;
-	DWORD JobId;
+    LPSTR Path;
+    DWORD JobId;
 }
 alias ADDJOB_INFO_1A* PADDJOB_INFO_1A, LPADDJOB_INFO_1A;
 
 struct ADDJOB_INFO_1W {
-	LPWSTR Path;
-	DWORD JobId;
+    LPWSTR Path;
+    DWORD JobId;
 }
 alias ADDJOB_INFO_1W* PADDJOB_INFO_1W, LPADDJOB_INFO_1W;
 
 struct DATATYPES_INFO_1A {
-	LPSTR pName;
+    LPSTR pName;
 }
 alias DATATYPES_INFO_1A* PDATATYPES_INFO_1A, LPDATATYPES_INFO_1A;
 
 struct DATATYPES_INFO_1W {
-	LPWSTR pName;
+    LPWSTR pName;
 }
 alias DATATYPES_INFO_1W* PDATATYPES_INFO_1W, LPDATATYPES_INFO_1W;
 
 struct JOB_INFO_1A {
-	DWORD JobId;
-	LPSTR pPrinterName;
-	LPSTR pMachineName;
-	LPSTR pUserName;
-	LPSTR pDocument;
-	LPSTR pDatatype;
-	LPSTR pStatus;
-	DWORD Status;
-	DWORD Priority;
-	DWORD Position;
-	DWORD TotalPages;
-	DWORD PagesPrinted;
-	SYSTEMTIME Submitted;
+    DWORD JobId;
+    LPSTR pPrinterName;
+    LPSTR pMachineName;
+    LPSTR pUserName;
+    LPSTR pDocument;
+    LPSTR pDatatype;
+    LPSTR pStatus;
+    DWORD Status;
+    DWORD Priority;
+    DWORD Position;
+    DWORD TotalPages;
+    DWORD PagesPrinted;
+    SYSTEMTIME Submitted;
 }
 alias JOB_INFO_1A* PJOB_INFO_1A, LPJOB_INFO_1A;
 
 struct JOB_INFO_1W {
-	DWORD JobId;
-	LPWSTR pPrinterName;
-	LPWSTR pMachineName;
-	LPWSTR pUserName;
-	LPWSTR pDocument;
-	LPWSTR pDatatype;
-	LPWSTR pStatus;
-	DWORD Status;
-	DWORD Priority;
-	DWORD Position;
-	DWORD TotalPages;
-	DWORD PagesPrinted;
-	SYSTEMTIME Submitted;
+    DWORD JobId;
+    LPWSTR pPrinterName;
+    LPWSTR pMachineName;
+    LPWSTR pUserName;
+    LPWSTR pDocument;
+    LPWSTR pDatatype;
+    LPWSTR pStatus;
+    DWORD Status;
+    DWORD Priority;
+    DWORD Position;
+    DWORD TotalPages;
+    DWORD PagesPrinted;
+    SYSTEMTIME Submitted;
 }
 alias JOB_INFO_1W* PJOB_INFO_1W, LPJOB_INFO_1W;
 
 struct JOB_INFO_2A {
-	DWORD JobId;
-	LPSTR pPrinterName;
-	LPSTR pMachineName;
-	LPSTR pUserName;
-	LPSTR pDocument;
-	LPSTR pNotifyName;
-	LPSTR pDatatype;
-	LPSTR pPrintProcessor;
-	LPSTR pParameters;
-	LPSTR pDriverName;
-	LPDEVMODEA pDevMode;
-	LPSTR pStatus;
-	PSECURITY_DESCRIPTOR pSecurityDescriptor;
-	DWORD Status;
-	DWORD Priority;
-	DWORD Position;
-	DWORD StartTime;
-	DWORD UntilTime;
-	DWORD TotalPages;
-	DWORD Size;
-	SYSTEMTIME Submitted;
-	DWORD Time;
-	DWORD PagesPrinted;
+    DWORD JobId;
+    LPSTR pPrinterName;
+    LPSTR pMachineName;
+    LPSTR pUserName;
+    LPSTR pDocument;
+    LPSTR pNotifyName;
+    LPSTR pDatatype;
+    LPSTR pPrintProcessor;
+    LPSTR pParameters;
+    LPSTR pDriverName;
+    LPDEVMODEA pDevMode;
+    LPSTR pStatus;
+    PSECURITY_DESCRIPTOR pSecurityDescriptor;
+    DWORD Status;
+    DWORD Priority;
+    DWORD Position;
+    DWORD StartTime;
+    DWORD UntilTime;
+    DWORD TotalPages;
+    DWORD Size;
+    SYSTEMTIME Submitted;
+    DWORD Time;
+    DWORD PagesPrinted;
 }
 alias JOB_INFO_2A* PJOB_INFO_2A, LPJOB_INFO_2A;
 
 struct JOB_INFO_2W {
-	DWORD JobId;
-	LPWSTR pPrinterName;
-	LPWSTR pMachineName;
-	LPWSTR pUserName;
-	LPWSTR pDocument;
-	LPWSTR pNotifyName;
-	LPWSTR pDatatype;
-	LPWSTR pPrintProcessor;
-	LPWSTR pParameters;
-	LPWSTR pDriverName;
-	LPDEVMODEW pDevMode;
-	LPWSTR pStatus;
-	PSECURITY_DESCRIPTOR pSecurityDescriptor;
-	DWORD Status;
-	DWORD Priority;
-	DWORD Position;
-	DWORD StartTime;
-	DWORD UntilTime;
-	DWORD TotalPages;
-	DWORD Size;
-	SYSTEMTIME Submitted;
-	DWORD Time;
-	DWORD PagesPrinted;
+    DWORD JobId;
+    LPWSTR pPrinterName;
+    LPWSTR pMachineName;
+    LPWSTR pUserName;
+    LPWSTR pDocument;
+    LPWSTR pNotifyName;
+    LPWSTR pDatatype;
+    LPWSTR pPrintProcessor;
+    LPWSTR pParameters;
+    LPWSTR pDriverName;
+    LPDEVMODEW pDevMode;
+    LPWSTR pStatus;
+    PSECURITY_DESCRIPTOR pSecurityDescriptor;
+    DWORD Status;
+    DWORD Priority;
+    DWORD Position;
+    DWORD StartTime;
+    DWORD UntilTime;
+    DWORD TotalPages;
+    DWORD Size;
+    SYSTEMTIME Submitted;
+    DWORD Time;
+    DWORD PagesPrinted;
 }
 alias JOB_INFO_2W* PJOB_INFO_2W, LPJOB_INFO_2W;
 
 struct DOC_INFO_1A {
-	LPSTR pDocName;
-	LPSTR pOutputFile;
-	LPSTR pDatatype;
+    LPSTR pDocName;
+    LPSTR pOutputFile;
+    LPSTR pDatatype;
 }
 alias DOC_INFO_1A* PDOC_INFO_1A, LPDOC_INFO_1A;
 
 struct DOC_INFO_1W {
-	LPWSTR pDocName;
-	LPWSTR pOutputFile;
-	LPWSTR pDatatype;
+    LPWSTR pDocName;
+    LPWSTR pOutputFile;
+    LPWSTR pDatatype;
 }
 alias DOC_INFO_1W* PDOC_INFO_1W, LPDOC_INFO_1W;
 
 struct DOC_INFO_2A {
-	LPSTR pDocName;
-	LPSTR pOutputFile;
-	LPSTR pDatatype;
-	DWORD dwMode;
-	DWORD JobId;
+    LPSTR pDocName;
+    LPSTR pOutputFile;
+    LPSTR pDatatype;
+    DWORD dwMode;
+    DWORD JobId;
 }
 alias DOC_INFO_2A* PDOC_INFO_2A, LPDOC_INFO_2A;
 
 struct DOC_INFO_2W {
-	LPWSTR pDocName;
-	LPWSTR pOutputFile;
-	LPWSTR pDatatype;
-	DWORD  dwMode;
-	DWORD  JobId;
+    LPWSTR pDocName;
+    LPWSTR pOutputFile;
+    LPWSTR pDatatype;
+    DWORD  dwMode;
+    DWORD  JobId;
 }
 alias DOC_INFO_2W* PDOC_INFO_2W, LPDOC_INFO_2W;
 
 struct DRIVER_INFO_1A {
-	LPSTR pName;
+    LPSTR pName;
 }
 alias DRIVER_INFO_1A* PDRIVER_INFO_1A, LPDRIVER_INFO_1A;
 
 struct DRIVER_INFO_1W {
-	LPWSTR pName;
+    LPWSTR pName;
 }
 alias DRIVER_INFO_1W* PDRIVER_INFO_1W, LPDRIVER_INFO_1W;
 
 struct DRIVER_INFO_2A {
-	DWORD cVersion;
-	LPSTR pName;
-	LPSTR pEnvironment;
-	LPSTR pDriverPath;
-	LPSTR pDataFile;
-	LPSTR pConfigFile;
+    DWORD cVersion;
+    LPSTR pName;
+    LPSTR pEnvironment;
+    LPSTR pDriverPath;
+    LPSTR pDataFile;
+    LPSTR pConfigFile;
 }
 alias DRIVER_INFO_2A* PDRIVER_INFO_2A, LPDRIVER_INFO_2A;
 
 struct DRIVER_INFO_2W {
-	DWORD  cVersion;
-	LPWSTR pName;
-	LPWSTR pEnvironment;
-	LPWSTR pDriverPath;
-	LPWSTR pDataFile;
-	LPWSTR pConfigFile;
+    DWORD  cVersion;
+    LPWSTR pName;
+    LPWSTR pEnvironment;
+    LPWSTR pDriverPath;
+    LPWSTR pDataFile;
+    LPWSTR pConfigFile;
 }
 alias DRIVER_INFO_2W* PDRIVER_INFO_2W, LPDRIVER_INFO_2W;
 
 struct DRIVER_INFO_3A {
-	DWORD cVersion;
-	LPSTR pName;
-	LPSTR pEnvironment;
-	LPSTR pDriverPath;
-	LPSTR pDataFile;
-	LPSTR pConfigFile;
-	LPSTR pHelpFile;
-	LPSTR pDependentFiles;
-	LPSTR pMonitorName;
-	LPSTR pDefaultDataType;
+    DWORD cVersion;
+    LPSTR pName;
+    LPSTR pEnvironment;
+    LPSTR pDriverPath;
+    LPSTR pDataFile;
+    LPSTR pConfigFile;
+    LPSTR pHelpFile;
+    LPSTR pDependentFiles;
+    LPSTR pMonitorName;
+    LPSTR pDefaultDataType;
 }
 alias DRIVER_INFO_3A* PDRIVER_INFO_3A, LPDRIVER_INFO_3A;
 
 struct DRIVER_INFO_3W {
-	DWORD  cVersion;
-	LPWSTR pName;
-	LPWSTR pEnvironment;
-	LPWSTR pDriverPath;
-	LPWSTR pDataFile;
-	LPWSTR pConfigFile;
-	LPWSTR pHelpFile;
-	LPWSTR pDependentFiles;
-	LPWSTR pMonitorName;
-	LPWSTR pDefaultDataType;
+    DWORD  cVersion;
+    LPWSTR pName;
+    LPWSTR pEnvironment;
+    LPWSTR pDriverPath;
+    LPWSTR pDataFile;
+    LPWSTR pConfigFile;
+    LPWSTR pHelpFile;
+    LPWSTR pDependentFiles;
+    LPWSTR pMonitorName;
+    LPWSTR pDefaultDataType;
 }
 alias DRIVER_INFO_3W* PDRIVER_INFO_3W, LPDRIVER_INFO_3W;
 
 struct MONITOR_INFO_1A {
-	LPSTR pName;
+    LPSTR pName;
 }
 alias MONITOR_INFO_1A* PMONITOR_INFO_1A, LPMONITOR_INFO_1A;
 
 struct MONITOR_INFO_1W {
-	LPWSTR pName;
+    LPWSTR pName;
 }
 alias MONITOR_INFO_1W* PMONITOR_INFO_1W, LPMONITOR_INFO_1W;
 
 struct PORT_INFO_1A {
-	LPSTR pName;
+    LPSTR pName;
 }
 alias PORT_INFO_1A* PPORT_INFO_1A, LPPORT_INFO_1A;
 
 struct PORT_INFO_1W {
-	LPWSTR pName;
+    LPWSTR pName;
 }
 alias PORT_INFO_1W* PPORT_INFO_1W, LPPORT_INFO_1W;
 
 struct MONITOR_INFO_2A {
-	LPSTR pName;
-	LPSTR pEnvironment;
-	LPSTR pDLLName;
+    LPSTR pName;
+    LPSTR pEnvironment;
+    LPSTR pDLLName;
 }
 alias MONITOR_INFO_2A* PMONITOR_INFO_2A, LPMONITOR_INFO_2A;
 
 struct MONITOR_INFO_2W {
-	LPWSTR pName;
-	LPWSTR pEnvironment;
-	LPWSTR pDLLName;
+    LPWSTR pName;
+    LPWSTR pEnvironment;
+    LPWSTR pDLLName;
 }
 alias MONITOR_INFO_2W* PMONITOR_INFO_2W, LPMONITOR_INFO_2W;
 
 struct PORT_INFO_2A {
-	LPSTR pPortName;
-	LPSTR pMonitorName;
-	LPSTR pDescription;
-	DWORD fPortType;
-	DWORD Reserved;
+    LPSTR pPortName;
+    LPSTR pMonitorName;
+    LPSTR pDescription;
+    DWORD fPortType;
+    DWORD Reserved;
 }
 alias PORT_INFO_2A* PPORT_INFO_2A, LPPORT_INFO_2A;
 
 struct PORT_INFO_2W {
-	LPWSTR pPortName;
-	LPWSTR pMonitorName;
-	LPWSTR pDescription;
-	DWORD fPortType;
-	DWORD Reserved;
+    LPWSTR pPortName;
+    LPWSTR pMonitorName;
+    LPWSTR pDescription;
+    DWORD fPortType;
+    DWORD Reserved;
 }
 alias PORT_INFO_2W* PPORT_INFO_2W, LPPORT_INFO_2W;
 
 struct PORT_INFO_3A {
-	DWORD dwStatus;
-	LPSTR pszStatus;
-	DWORD dwSeverity;
+    DWORD dwStatus;
+    LPSTR pszStatus;
+    DWORD dwSeverity;
 }
 alias PORT_INFO_3A* PPORT_INFO_3A, LPPORT_INFO_3A;
 
 struct PORT_INFO_3W {
-	DWORD dwStatus;
-	LPWSTR pszStatus;
-	DWORD dwSeverity;
+    DWORD dwStatus;
+    LPWSTR pszStatus;
+    DWORD dwSeverity;
 }
 alias PORT_INFO_3W* PPORT_INFO_3W, LPPORT_INFO_3W;
 
 struct PRINTER_INFO_1A {
-	DWORD Flags;
-	LPSTR pDescription;
-	LPSTR pName;
-	LPSTR pComment;
+    DWORD Flags;
+    LPSTR pDescription;
+    LPSTR pName;
+    LPSTR pComment;
 }
 alias PRINTER_INFO_1A* PPRINTER_INFO_1A, LPPRINTER_INFO_1A;
 
 struct PRINTER_INFO_1W {
-	DWORD  Flags;
-	LPWSTR pDescription;
-	LPWSTR pName;
-	LPWSTR pComment;
+    DWORD  Flags;
+    LPWSTR pDescription;
+    LPWSTR pName;
+    LPWSTR pComment;
 }
 alias PRINTER_INFO_1W* PPRINTER_INFO_1W, LPPRINTER_INFO_1W;
 
 struct PRINTER_INFO_2A {
-	LPSTR pServerName;
-	LPSTR pPrinterName;
-	LPSTR pShareName;
-	LPSTR pPortName;
-	LPSTR pDriverName;
-	LPSTR pComment;
-	LPSTR pLocation;
-	LPDEVMODEA pDevMode;
-	LPSTR pSepFile;
-	LPSTR pPrintProcessor;
-	LPSTR pDatatype;
-	LPSTR pParameters;
-	PSECURITY_DESCRIPTOR pSecurityDescriptor;
-	DWORD Attributes;
-	DWORD Priority;
-	DWORD DefaultPriority;
-	DWORD StartTime;
-	DWORD UntilTime;
-	DWORD Status;
-	DWORD cJobs;
-	DWORD AveragePPM;
+    LPSTR pServerName;
+    LPSTR pPrinterName;
+    LPSTR pShareName;
+    LPSTR pPortName;
+    LPSTR pDriverName;
+    LPSTR pComment;
+    LPSTR pLocation;
+    LPDEVMODEA pDevMode;
+    LPSTR pSepFile;
+    LPSTR pPrintProcessor;
+    LPSTR pDatatype;
+    LPSTR pParameters;
+    PSECURITY_DESCRIPTOR pSecurityDescriptor;
+    DWORD Attributes;
+    DWORD Priority;
+    DWORD DefaultPriority;
+    DWORD StartTime;
+    DWORD UntilTime;
+    DWORD Status;
+    DWORD cJobs;
+    DWORD AveragePPM;
 }
 alias PRINTER_INFO_2A* PPRINTER_INFO_2A, LPPRINTER_INFO_2A;
 
 struct PRINTER_INFO_2W {
-	LPWSTR pServerName;
-	LPWSTR pPrinterName;
-	LPWSTR pShareName;
-	LPWSTR pPortName;
-	LPWSTR pDriverName;
-	LPWSTR pComment;
-	LPWSTR pLocation;
-	LPDEVMODEW pDevMode;
-	LPWSTR pSepFile;
-	LPWSTR pPrintProcessor;
-	LPWSTR pDatatype;
-	LPWSTR pParameters;
-	PSECURITY_DESCRIPTOR pSecurityDescriptor;
-	DWORD Attributes;
-	DWORD Priority;
-	DWORD DefaultPriority;
-	DWORD StartTime;
-	DWORD UntilTime;
-	DWORD Status;
-	DWORD cJobs;
-	DWORD AveragePPM;
+    LPWSTR pServerName;
+    LPWSTR pPrinterName;
+    LPWSTR pShareName;
+    LPWSTR pPortName;
+    LPWSTR pDriverName;
+    LPWSTR pComment;
+    LPWSTR pLocation;
+    LPDEVMODEW pDevMode;
+    LPWSTR pSepFile;
+    LPWSTR pPrintProcessor;
+    LPWSTR pDatatype;
+    LPWSTR pParameters;
+    PSECURITY_DESCRIPTOR pSecurityDescriptor;
+    DWORD Attributes;
+    DWORD Priority;
+    DWORD DefaultPriority;
+    DWORD StartTime;
+    DWORD UntilTime;
+    DWORD Status;
+    DWORD cJobs;
+    DWORD AveragePPM;
 }
 alias PRINTER_INFO_2W* PPRINTER_INFO_2W, LPPRINTER_INFO_2W;
 
 struct PRINTER_INFO_3 {
-	PSECURITY_DESCRIPTOR pSecurityDescriptor;
+    PSECURITY_DESCRIPTOR pSecurityDescriptor;
 }
 alias PRINTER_INFO_3* PPRINTER_INFO_3, LPPRINTER_INFO_3;
 
 struct PRINTER_INFO_4A {
-	LPSTR pPrinterName;
-	LPSTR pServerName;
-	DWORD Attributes;
+    LPSTR pPrinterName;
+    LPSTR pServerName;
+    DWORD Attributes;
 }
 alias PRINTER_INFO_4A* PPRINTER_INFO_4A, LPPRINTER_INFO_4A;
 
 struct PRINTER_INFO_4W {
-	LPWSTR pPrinterName;
-	LPWSTR pServerName;
-	DWORD Attributes;
+    LPWSTR pPrinterName;
+    LPWSTR pServerName;
+    DWORD Attributes;
 }
 alias PRINTER_INFO_4W* PPRINTER_INFO_4W, LPPRINTER_INFO_4W;
 
 struct PRINTER_INFO_5A {
-	LPSTR pPrinterName;
-	LPSTR pPortName;
-	DWORD Attributes;
-	DWORD DeviceNotSelectedTimeout;
-	DWORD TransmissionRetryTimeout;
+    LPSTR pPrinterName;
+    LPSTR pPortName;
+    DWORD Attributes;
+    DWORD DeviceNotSelectedTimeout;
+    DWORD TransmissionRetryTimeout;
 }
 alias PRINTER_INFO_5A* PPRINTER_INFO_5A, LPPRINTER_INFO_5A;
 
 struct PRINTER_INFO_5W {
-	LPWSTR pPrinterName;
-	LPWSTR pPortName;
-	DWORD Attributes;
-	DWORD DeviceNotSelectedTimeout;
-	DWORD TransmissionRetryTimeout;
+    LPWSTR pPrinterName;
+    LPWSTR pPortName;
+    DWORD Attributes;
+    DWORD DeviceNotSelectedTimeout;
+    DWORD TransmissionRetryTimeout;
 }
 alias PRINTER_INFO_5W* PPRINTER_INFO_5W, LPPRINTER_INFO_5W;
 
 struct PRINTER_INFO_6 {
-	DWORD dwStatus;
+    DWORD dwStatus;
 }
 alias PRINTER_INFO_6* PPRINTER_INFO_6, LPPRINTER_INFO_6;
 
 struct PRINTPROCESSOR_INFO_1A {
-	LPSTR pName;
+    LPSTR pName;
 }
 alias PRINTPROCESSOR_INFO_1A* PPRINTPROCESSOR_INFO_1A, LPPRINTPROCESSOR_INFO_1A;
 
 struct PRINTPROCESSOR_INFO_1W {
-	LPWSTR pName;
+    LPWSTR pName;
 }
 alias PRINTPROCESSOR_INFO_1W* PPRINTPROCESSOR_INFO_1W, LPPRINTPROCESSOR_INFO_1W;
 
 struct PRINTER_NOTIFY_INFO_DATA {
-	WORD  Type;
-	WORD  Field;
-	DWORD Reserved;
-	DWORD Id;
-	union _NotifyData {
-		DWORD[2] adwData;
-		struct Data {
-			DWORD cbBuf;
-			PVOID pBuf;
-		}
-	}
-	_NotifyData NotifyData;	
+    WORD  Type;
+    WORD  Field;
+    DWORD Reserved;
+    DWORD Id;
+    union _NotifyData {
+        DWORD[2] adwData;
+        struct Data {
+            DWORD cbBuf;
+            PVOID pBuf;
+        }
+    }
+    _NotifyData NotifyData;	
 }
 alias PRINTER_NOTIFY_INFO_DATA* PPRINTER_NOTIFY_INFO_DATA, LPPRINTER_NOTIFY_INFO_DATA;
 
 struct PRINTER_NOTIFY_INFO {
-	DWORD Version;
-	DWORD Flags;
-	DWORD Count;
-	PRINTER_NOTIFY_INFO_DATA[1] aData;
+    DWORD Version;
+    DWORD Flags;
+    DWORD Count;
+    PRINTER_NOTIFY_INFO_DATA[1] aData;
 }
 alias PRINTER_NOTIFY_INFO* PPRINTER_NOTIFY_INFO, LPPRINTER_NOTIFY_INFO;
 
 struct FORM_INFO_1A {
-	DWORD Flags;
-	LPSTR pName;
-	SIZEL Size;
-	RECTL ImageableArea;
+    DWORD Flags;
+    LPSTR pName;
+    SIZEL Size;
+    RECTL ImageableArea;
 }
 alias FORM_INFO_1A* PFORM_INFO_1A, LPFORM_INFO_1A;
 
 struct FORM_INFO_1W {
-	DWORD  Flags;
-	LPWSTR pName;
-	SIZEL  Size;
-	RECTL  ImageableArea;
+    DWORD  Flags;
+    LPWSTR pName;
+    SIZEL  Size;
+    RECTL  ImageableArea;
 }
 alias FORM_INFO_1W* PFORM_INFO_1W, LPFORM_INFO_1W;
 
 struct PRINTER_DEFAULTSA {
-	LPSTR       pDatatype;
-	LPDEVMODE   pDevMode;
-	ACCESS_MASK DesiredAccess;
+    LPSTR       pDatatype;
+    LPDEVMODE   pDevMode;
+    ACCESS_MASK DesiredAccess;
 }
 alias PRINTER_DEFAULTSA* PPRINTER_DEFAULTSA, LPPRINTER_DEFAULTSA;
 
 struct PRINTER_DEFAULTSW {
-	LPWSTR pDatatype;
-	LPDEVMODE pDevMode;
-	ACCESS_MASK DesiredAccess;
+    LPWSTR pDatatype;
+    LPDEVMODE pDevMode;
+    ACCESS_MASK DesiredAccess;
 }
 alias PRINTER_DEFAULTSW* PPRINTER_DEFAULTSW, LPPRINTER_DEFAULTSW;
 

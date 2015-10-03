@@ -15,7 +15,7 @@ private import core.sys.windows.w32api;
 const size_t MAX_PATH = 260;
 
 ushort MAKEWORD(ubyte a, ubyte b) {
-	return cast(ushort) ((b << 8) | a);
+    return cast(ushort) ((b << 8) | a);
 }
 
 ushort MAKEWORD(ushort a, ushort b) {
@@ -25,7 +25,7 @@ ushort MAKEWORD(ushort a, ushort b) {
 }
 
 uint MAKELONG(ushort a, ushort b) {
-	return cast(uint) ((b << 16) | a);
+    return cast(uint) ((b << 16) | a);
 }
 
 uint MAKELONG(uint a, uint b) {
@@ -35,31 +35,31 @@ uint MAKELONG(uint a, uint b) {
 }
 
 ushort LOWORD(ulong l) {
-	return cast(ushort) l;
+    return cast(ushort) l;
 }
 
 ushort HIWORD(ulong l) {
-	return cast(ushort) (l >>> 16);
+    return cast(ushort) (l >>> 16);
 }
 
 ubyte LOBYTE(ushort w) {
-	return cast(ubyte) w;
+    return cast(ubyte) w;
 }
 
 ubyte HIBYTE(ushort w) {
-	return cast(ubyte) (w >>> 8);
+    return cast(ubyte) (w >>> 8);
 }
 
 template max(T) {
-	T max(T a, T b) {
-		return a > b ? a : b;
-	}
+    T max(T a, T b) {
+        return a > b ? a : b;
+    }
 }
 
 template min(T) {
-	T min(T a, T b) {
-		return a < b ? a : b;
-	}
+    T min(T a, T b) {
+        return a < b ? a : b;
+    }
 }
 
 enum void* NULL = null;
@@ -113,43 +113,43 @@ mixin DECLARE_HANDLE!("HCURSOR");
 alias HKEY* PHKEY;
 
 static if (_WIN32_WINNT >= 0x500) {
-	mixin DECLARE_HANDLE!("HTERMINAL");
-	mixin DECLARE_HANDLE!("HWINEVENTHOOK");
+    mixin DECLARE_HANDLE!("HTERMINAL");
+    mixin DECLARE_HANDLE!("HWINEVENTHOOK");
 }
 
 alias extern (Windows) INT_PTR function() FARPROC, NEARPROC, PROC;
 
 struct RECT {
-	LONG left;
-	LONG top;
-	LONG right;
-	LONG bottom;
+    LONG left;
+    LONG top;
+    LONG right;
+    LONG bottom;
 }
 alias RECT RECTL;
 alias RECT*        PRECT, LPRECT, PRECTL, LPRECTL;
 alias const(RECT)* LPCRECT, LPCRECTL;
 
 struct POINT {
-	LONG x;
-	LONG y;
+    LONG x;
+    LONG y;
 }
 alias POINT POINTL;
 alias POINT* PPOINT, LPPOINT, PPOINTL, LPPOINTL;
 
 struct SIZE {
-	LONG cx;
-	LONG cy;
+    LONG cx;
+    LONG cy;
 }
 alias SIZE SIZEL;
 alias SIZE* PSIZE, LPSIZE, PSIZEL, LPSIZEL;
 
 struct POINTS {
-	SHORT x;
-	SHORT y;
+    SHORT x;
+    SHORT y;
 }
 alias POINTS* PPOINTS, LPPOINTS;
 
 enum : BOOL {
-	FALSE = 0,
-	TRUE  = 1
+    FALSE = 0,
+    TRUE  = 1
 }

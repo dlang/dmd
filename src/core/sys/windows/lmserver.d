@@ -12,669 +12,669 @@ import core.sys.windows.winsvc;
 private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 struct SERVER_INFO_100 {
-	DWORD  sv100_platform_id;
-	LPWSTR sv100_name;
+    DWORD  sv100_platform_id;
+    LPWSTR sv100_name;
 }
 alias SERVER_INFO_100* PSERVER_INFO_100, LPSERVER_INFO_100;
 
 struct SERVER_INFO_101 {
-	DWORD  sv101_platform_id;
-	LPWSTR sv101_name;
-	DWORD  sv101_version_major;
-	DWORD  sv101_version_minor;
-	DWORD  sv101_type;
-	LPWSTR sv101_comment;
+    DWORD  sv101_platform_id;
+    LPWSTR sv101_name;
+    DWORD  sv101_version_major;
+    DWORD  sv101_version_minor;
+    DWORD  sv101_type;
+    LPWSTR sv101_comment;
 }
 alias SERVER_INFO_101* PSERVER_INFO_101, LPSERVER_INFO_101;
 
 struct SERVER_INFO_102 {
-	DWORD  sv102_platform_id;
-	LPWSTR sv102_name;
-	DWORD  sv102_version_major;
-	DWORD  sv102_version_minor;
-	DWORD  sv102_type;
-	LPWSTR sv102_comment;
-	DWORD  sv102_users;
-	LONG   sv102_disc;
-	BOOL   sv102_hidden;
-	DWORD  sv102_announce;
-	DWORD  sv102_anndelta;
-	DWORD  sv102_licenses;
-	LPWSTR sv102_userpath;
+    DWORD  sv102_platform_id;
+    LPWSTR sv102_name;
+    DWORD  sv102_version_major;
+    DWORD  sv102_version_minor;
+    DWORD  sv102_type;
+    LPWSTR sv102_comment;
+    DWORD  sv102_users;
+    LONG   sv102_disc;
+    BOOL   sv102_hidden;
+    DWORD  sv102_announce;
+    DWORD  sv102_anndelta;
+    DWORD  sv102_licenses;
+    LPWSTR sv102_userpath;
 }
 alias SERVER_INFO_102* PSERVER_INFO_102, LPSERVER_INFO_102;
 
 struct SERVER_INFO_402 {
-	DWORD  sv402_ulist_mtime;
-	DWORD  sv402_glist_mtime;
-	DWORD  sv402_alist_mtime;
-	LPWSTR sv402_alerts;
-	DWORD  sv402_security;
-	DWORD  sv402_numadmin;
-	DWORD  sv402_lanmask;
-	LPWSTR sv402_guestacct;
-	DWORD  sv402_chdevs;
-	DWORD  sv402_chdevq;
-	DWORD  sv402_chdevjobs;
-	DWORD  sv402_connections;
-	DWORD  sv402_shares;
-	DWORD  sv402_openfiles;
-	DWORD  sv402_sessopens;
-	DWORD  sv402_sessvcs;
-	DWORD  sv402_sessreqs;
-	DWORD  sv402_opensearch;
-	DWORD  sv402_activelocks;
-	DWORD  sv402_numreqbuf;
-	DWORD  sv402_sizreqbuf;
-	DWORD  sv402_numbigbuf;
-	DWORD  sv402_numfiletasks;
-	DWORD  sv402_alertsched;
-	DWORD  sv402_erroralert;
-	DWORD  sv402_logonalert;
-	DWORD  sv402_accessalert;
-	DWORD  sv402_diskalert;
-	DWORD  sv402_netioalert;
-	DWORD  sv402_maxauditsz;
-	LPWSTR sv402_srvheuristics;
+    DWORD  sv402_ulist_mtime;
+    DWORD  sv402_glist_mtime;
+    DWORD  sv402_alist_mtime;
+    LPWSTR sv402_alerts;
+    DWORD  sv402_security;
+    DWORD  sv402_numadmin;
+    DWORD  sv402_lanmask;
+    LPWSTR sv402_guestacct;
+    DWORD  sv402_chdevs;
+    DWORD  sv402_chdevq;
+    DWORD  sv402_chdevjobs;
+    DWORD  sv402_connections;
+    DWORD  sv402_shares;
+    DWORD  sv402_openfiles;
+    DWORD  sv402_sessopens;
+    DWORD  sv402_sessvcs;
+    DWORD  sv402_sessreqs;
+    DWORD  sv402_opensearch;
+    DWORD  sv402_activelocks;
+    DWORD  sv402_numreqbuf;
+    DWORD  sv402_sizreqbuf;
+    DWORD  sv402_numbigbuf;
+    DWORD  sv402_numfiletasks;
+    DWORD  sv402_alertsched;
+    DWORD  sv402_erroralert;
+    DWORD  sv402_logonalert;
+    DWORD  sv402_accessalert;
+    DWORD  sv402_diskalert;
+    DWORD  sv402_netioalert;
+    DWORD  sv402_maxauditsz;
+    LPWSTR sv402_srvheuristics;
 }
 alias SERVER_INFO_402* PSERVER_INFO_402, LPSERVER_INFO_402;
 
 struct SERVER_INFO_403 {
-	DWORD  sv403_ulist_mtime;
-	DWORD  sv403_glist_mtime;
-	DWORD  sv403_alist_mtime;
-	LPWSTR sv403_alerts;
-	DWORD  sv403_security;
-	DWORD  sv403_numadmin;
-	DWORD  sv403_lanmask;
-	LPWSTR sv403_guestacct;
-	DWORD  sv403_chdevs;
-	DWORD  sv403_chdevq;
-	DWORD  sv403_chdevjobs;
-	DWORD  sv403_connections;
-	DWORD  sv403_shares;
-	DWORD  sv403_openfiles;
-	DWORD  sv403_sessopens;
-	DWORD  sv403_sessvcs;
-	DWORD  sv403_sessreqs;
-	DWORD  sv403_opensearch;
-	DWORD  sv403_activelocks;
-	DWORD  sv403_numreqbuf;
-	DWORD  sv403_sizreqbuf;
-	DWORD  sv403_numbigbuf;
-	DWORD  sv403_numfiletasks;
-	DWORD  sv403_alertsched;
-	DWORD  sv403_erroralert;
-	DWORD  sv403_logonalert;
-	DWORD  sv403_accessalert;
-	DWORD  sv403_diskalert;
-	DWORD  sv403_netioalert;
-	DWORD  sv403_maxauditsz;
-	LPWSTR sv403_srvheuristics;
-	DWORD  sv403_auditedevents;
-	DWORD  sv403_autoprofile;
-	LPWSTR sv403_autopath;
+    DWORD  sv403_ulist_mtime;
+    DWORD  sv403_glist_mtime;
+    DWORD  sv403_alist_mtime;
+    LPWSTR sv403_alerts;
+    DWORD  sv403_security;
+    DWORD  sv403_numadmin;
+    DWORD  sv403_lanmask;
+    LPWSTR sv403_guestacct;
+    DWORD  sv403_chdevs;
+    DWORD  sv403_chdevq;
+    DWORD  sv403_chdevjobs;
+    DWORD  sv403_connections;
+    DWORD  sv403_shares;
+    DWORD  sv403_openfiles;
+    DWORD  sv403_sessopens;
+    DWORD  sv403_sessvcs;
+    DWORD  sv403_sessreqs;
+    DWORD  sv403_opensearch;
+    DWORD  sv403_activelocks;
+    DWORD  sv403_numreqbuf;
+    DWORD  sv403_sizreqbuf;
+    DWORD  sv403_numbigbuf;
+    DWORD  sv403_numfiletasks;
+    DWORD  sv403_alertsched;
+    DWORD  sv403_erroralert;
+    DWORD  sv403_logonalert;
+    DWORD  sv403_accessalert;
+    DWORD  sv403_diskalert;
+    DWORD  sv403_netioalert;
+    DWORD  sv403_maxauditsz;
+    LPWSTR sv403_srvheuristics;
+    DWORD  sv403_auditedevents;
+    DWORD  sv403_autoprofile;
+    LPWSTR sv403_autopath;
 }
 alias SERVER_INFO_403* PSERVER_INFO_403, LPSERVER_INFO_403;
 
 struct SERVER_INFO_502 {
-	DWORD sv502_sessopens;
-	DWORD sv502_sessvcs;
-	DWORD sv502_opensearch;
-	DWORD sv502_sizreqbuf;
-	DWORD sv502_initworkitems;
-	DWORD sv502_maxworkitems;
-	DWORD sv502_rawworkitems;
-	DWORD sv502_irpstacksize;
-	DWORD sv502_maxrawbuflen;
-	DWORD sv502_sessusers;
-	DWORD sv502_sessconns;
-	DWORD sv502_maxpagedmemoryusage;
-	DWORD sv502_maxnonpagedmemoryusage;
-	BOOL  sv502_enablesoftcompat;
-	BOOL  sv502_enableforcedlogoff;
-	BOOL  sv502_timesource;
-	BOOL  sv502_acceptdownlevelapis;
-	BOOL  sv502_lmannounce;
+    DWORD sv502_sessopens;
+    DWORD sv502_sessvcs;
+    DWORD sv502_opensearch;
+    DWORD sv502_sizreqbuf;
+    DWORD sv502_initworkitems;
+    DWORD sv502_maxworkitems;
+    DWORD sv502_rawworkitems;
+    DWORD sv502_irpstacksize;
+    DWORD sv502_maxrawbuflen;
+    DWORD sv502_sessusers;
+    DWORD sv502_sessconns;
+    DWORD sv502_maxpagedmemoryusage;
+    DWORD sv502_maxnonpagedmemoryusage;
+    BOOL  sv502_enablesoftcompat;
+    BOOL  sv502_enableforcedlogoff;
+    BOOL  sv502_timesource;
+    BOOL  sv502_acceptdownlevelapis;
+    BOOL  sv502_lmannounce;
 }
 alias SERVER_INFO_502* PSERVER_INFO_502, LPSERVER_INFO_502;
 
 struct SERVER_INFO_503 {
-	DWORD  sv503_sessopens;
-	DWORD  sv503_sessvcs;
-	DWORD  sv503_opensearch;
-	DWORD  sv503_sizreqbuf;
-	DWORD  sv503_initworkitems;
-	DWORD  sv503_maxworkitems;
-	DWORD  sv503_rawworkitems;
-	DWORD  sv503_irpstacksize;
-	DWORD  sv503_maxrawbuflen;
-	DWORD  sv503_sessusers;
-	DWORD  sv503_sessconns;
-	DWORD  sv503_maxpagedmemoryusage;
-	DWORD  sv503_maxnonpagedmemoryusage;
-	BOOL   sv503_enablesoftcompat;
-	BOOL   sv503_enableforcedlogoff;
-	BOOL   sv503_timesource;
-	BOOL   sv503_acceptdownlevelapis;
-	BOOL   sv503_lmannounce;
-	LPWSTR sv503_domain;
-	DWORD  sv503_maxcopyreadlen;
-	DWORD  sv503_maxcopywritelen;
-	DWORD  sv503_minkeepsearch;
-	DWORD  sv503_maxkeepsearch;
-	DWORD  sv503_minkeepcomplsearch;
-	DWORD  sv503_maxkeepcomplsearch;
-	DWORD  sv503_threadcountadd;
-	DWORD  sv503_numblockthreads;
-	DWORD  sv503_scavtimeout;
-	DWORD  sv503_minrcvqueue;
-	DWORD  sv503_minfreeworkitems;
-	DWORD  sv503_xactmemsize;
-	DWORD  sv503_threadpriority;
-	DWORD  sv503_maxmpxct;
-	DWORD  sv503_oplockbreakwait;
-	DWORD  sv503_oplockbreakresponsewait;
-	BOOL   sv503_enableoplocks;
-	BOOL   sv503_enableoplockforceclose;
-	BOOL   sv503_enablefcbopens;
-	BOOL   sv503_enableraw;
-	BOOL   sv503_enablesharednetdrives;
-	DWORD  sv503_minfreeconnections;
-	DWORD  sv503_maxfreeconnections;
+    DWORD  sv503_sessopens;
+    DWORD  sv503_sessvcs;
+    DWORD  sv503_opensearch;
+    DWORD  sv503_sizreqbuf;
+    DWORD  sv503_initworkitems;
+    DWORD  sv503_maxworkitems;
+    DWORD  sv503_rawworkitems;
+    DWORD  sv503_irpstacksize;
+    DWORD  sv503_maxrawbuflen;
+    DWORD  sv503_sessusers;
+    DWORD  sv503_sessconns;
+    DWORD  sv503_maxpagedmemoryusage;
+    DWORD  sv503_maxnonpagedmemoryusage;
+    BOOL   sv503_enablesoftcompat;
+    BOOL   sv503_enableforcedlogoff;
+    BOOL   sv503_timesource;
+    BOOL   sv503_acceptdownlevelapis;
+    BOOL   sv503_lmannounce;
+    LPWSTR sv503_domain;
+    DWORD  sv503_maxcopyreadlen;
+    DWORD  sv503_maxcopywritelen;
+    DWORD  sv503_minkeepsearch;
+    DWORD  sv503_maxkeepsearch;
+    DWORD  sv503_minkeepcomplsearch;
+    DWORD  sv503_maxkeepcomplsearch;
+    DWORD  sv503_threadcountadd;
+    DWORD  sv503_numblockthreads;
+    DWORD  sv503_scavtimeout;
+    DWORD  sv503_minrcvqueue;
+    DWORD  sv503_minfreeworkitems;
+    DWORD  sv503_xactmemsize;
+    DWORD  sv503_threadpriority;
+    DWORD  sv503_maxmpxct;
+    DWORD  sv503_oplockbreakwait;
+    DWORD  sv503_oplockbreakresponsewait;
+    BOOL   sv503_enableoplocks;
+    BOOL   sv503_enableoplockforceclose;
+    BOOL   sv503_enablefcbopens;
+    BOOL   sv503_enableraw;
+    BOOL   sv503_enablesharednetdrives;
+    DWORD  sv503_minfreeconnections;
+    DWORD  sv503_maxfreeconnections;
 }
 alias SERVER_INFO_503* PSERVER_INFO_503, LPSERVER_INFO_503;
 
 struct SERVER_INFO_599 {
-	DWORD  sv599_sessopens;
-	DWORD  sv599_sessvcs;
-	DWORD  sv599_opensearch;
-	DWORD  sv599_sizreqbuf;
-	DWORD  sv599_initworkitems;
-	DWORD  sv599_maxworkitems;
-	DWORD  sv599_rawworkitems;
-	DWORD  sv599_irpstacksize;
-	DWORD  sv599_maxrawbuflen;
-	DWORD  sv599_sessusers;
-	DWORD  sv599_sessconns;
-	DWORD  sv599_maxpagedmemoryusage;
-	DWORD  sv599_maxnonpagedmemoryusage;
-	BOOL   sv599_enablesoftcompat;
-	BOOL   sv599_enableforcedlogoff;
-	BOOL   sv599_timesource;
-	BOOL   sv599_acceptdownlevelapis;
-	BOOL   sv599_lmannounce;
-	LPWSTR sv599_domain;
-	DWORD  sv599_maxcopyreadlen;
-	DWORD  sv599_maxcopywritelen;
-	DWORD  sv599_minkeepsearch;
-	DWORD  sv599_maxkeepsearch;
-	DWORD  sv599_minkeepcomplsearch;
-	DWORD  sv599_maxkeepcomplsearch;
-	DWORD  sv599_threadcountadd;
-	DWORD  sv599_numblockthreads;
-	DWORD  sv599_scavtimeout;
-	DWORD  sv599_minrcvqueue;
-	DWORD  sv599_minfreeworkitems;
-	DWORD  sv599_xactmemsize;
-	DWORD  sv599_threadpriority;
-	DWORD  sv599_maxmpxct;
-	DWORD  sv599_oplockbreakwait;
-	DWORD  sv599_oplockbreakresponsewait;
-	BOOL   sv599_enableoplocks;
-	BOOL   sv599_enableoplockforceclose;
-	BOOL   sv599_enablefcbopens;
-	BOOL   sv599_enableraw;
-	BOOL   sv599_enablesharednetdrives;
-	DWORD  sv599_minfreeconnections;
-	DWORD  sv599_maxfreeconnections;
-	DWORD  sv599_initsesstable;
-	DWORD  sv599_initconntable;
-	DWORD  sv599_initfiletable;
-	DWORD  sv599_initsearchtable;
-	DWORD  sv599_alertschedule;
-	DWORD  sv599_errorthreshold;
-	DWORD  sv599_networkerrorthreshold;
-	DWORD  sv599_diskspacethreshold;
-	DWORD  sv599_reserved;
-	DWORD  sv599_maxlinkdelay;
-	DWORD  sv599_minlinkthroughput;
-	DWORD  sv599_linkinfovalidtime;
-	DWORD  sv599_scavqosinfoupdatetime;
-	DWORD  sv599_maxworkitemidletime;
+    DWORD  sv599_sessopens;
+    DWORD  sv599_sessvcs;
+    DWORD  sv599_opensearch;
+    DWORD  sv599_sizreqbuf;
+    DWORD  sv599_initworkitems;
+    DWORD  sv599_maxworkitems;
+    DWORD  sv599_rawworkitems;
+    DWORD  sv599_irpstacksize;
+    DWORD  sv599_maxrawbuflen;
+    DWORD  sv599_sessusers;
+    DWORD  sv599_sessconns;
+    DWORD  sv599_maxpagedmemoryusage;
+    DWORD  sv599_maxnonpagedmemoryusage;
+    BOOL   sv599_enablesoftcompat;
+    BOOL   sv599_enableforcedlogoff;
+    BOOL   sv599_timesource;
+    BOOL   sv599_acceptdownlevelapis;
+    BOOL   sv599_lmannounce;
+    LPWSTR sv599_domain;
+    DWORD  sv599_maxcopyreadlen;
+    DWORD  sv599_maxcopywritelen;
+    DWORD  sv599_minkeepsearch;
+    DWORD  sv599_maxkeepsearch;
+    DWORD  sv599_minkeepcomplsearch;
+    DWORD  sv599_maxkeepcomplsearch;
+    DWORD  sv599_threadcountadd;
+    DWORD  sv599_numblockthreads;
+    DWORD  sv599_scavtimeout;
+    DWORD  sv599_minrcvqueue;
+    DWORD  sv599_minfreeworkitems;
+    DWORD  sv599_xactmemsize;
+    DWORD  sv599_threadpriority;
+    DWORD  sv599_maxmpxct;
+    DWORD  sv599_oplockbreakwait;
+    DWORD  sv599_oplockbreakresponsewait;
+    BOOL   sv599_enableoplocks;
+    BOOL   sv599_enableoplockforceclose;
+    BOOL   sv599_enablefcbopens;
+    BOOL   sv599_enableraw;
+    BOOL   sv599_enablesharednetdrives;
+    DWORD  sv599_minfreeconnections;
+    DWORD  sv599_maxfreeconnections;
+    DWORD  sv599_initsesstable;
+    DWORD  sv599_initconntable;
+    DWORD  sv599_initfiletable;
+    DWORD  sv599_initsearchtable;
+    DWORD  sv599_alertschedule;
+    DWORD  sv599_errorthreshold;
+    DWORD  sv599_networkerrorthreshold;
+    DWORD  sv599_diskspacethreshold;
+    DWORD  sv599_reserved;
+    DWORD  sv599_maxlinkdelay;
+    DWORD  sv599_minlinkthroughput;
+    DWORD  sv599_linkinfovalidtime;
+    DWORD  sv599_scavqosinfoupdatetime;
+    DWORD  sv599_maxworkitemidletime;
 }
 alias SERVER_INFO_599* PSERVER_INFO_599, LPSERVER_INFO_599;
 
 struct SERVER_INFO_598 {
-	DWORD sv598_maxrawworkitems;
-	DWORD sv598_maxthreadsperqueue;
-	DWORD sv598_producttype;
-	DWORD sv598_serversize;
-	DWORD sv598_connectionlessautodisc;
-	DWORD sv598_sharingviolationretries;
-	DWORD sv598_sharingviolationdelay;
-	DWORD sv598_maxglobalopensearch;
-	DWORD sv598_removeduplicatesearches;
-	DWORD sv598_lockviolationoffset;
-	DWORD sv598_lockviolationdelay;
-	DWORD sv598_mdlreadswitchover;
-	DWORD sv598_cachedopenlimit;
-	DWORD sv598_otherqueueaffinity;
-	BOOL  sv598_restrictnullsessaccess;
-	BOOL  sv598_enablewfw311directipx;
-	DWORD sv598_queuesamplesecs;
-	DWORD sv598_balancecount;
-	DWORD sv598_preferredaffinity;
-	DWORD sv598_maxfreerfcbs;
-	DWORD sv598_maxfreemfcbs;
-	DWORD sv598_maxfreelfcbs;
-	DWORD sv598_maxfreepagedpoolchunks;
-	DWORD sv598_minpagedpoolchunksize;
-	DWORD sv598_maxpagedpoolchunksize;
-	BOOL  sv598_sendsfrompreferredprocessor;
+    DWORD sv598_maxrawworkitems;
+    DWORD sv598_maxthreadsperqueue;
+    DWORD sv598_producttype;
+    DWORD sv598_serversize;
+    DWORD sv598_connectionlessautodisc;
+    DWORD sv598_sharingviolationretries;
+    DWORD sv598_sharingviolationdelay;
+    DWORD sv598_maxglobalopensearch;
+    DWORD sv598_removeduplicatesearches;
+    DWORD sv598_lockviolationoffset;
+    DWORD sv598_lockviolationdelay;
+    DWORD sv598_mdlreadswitchover;
+    DWORD sv598_cachedopenlimit;
+    DWORD sv598_otherqueueaffinity;
+    BOOL  sv598_restrictnullsessaccess;
+    BOOL  sv598_enablewfw311directipx;
+    DWORD sv598_queuesamplesecs;
+    DWORD sv598_balancecount;
+    DWORD sv598_preferredaffinity;
+    DWORD sv598_maxfreerfcbs;
+    DWORD sv598_maxfreemfcbs;
+    DWORD sv598_maxfreelfcbs;
+    DWORD sv598_maxfreepagedpoolchunks;
+    DWORD sv598_minpagedpoolchunksize;
+    DWORD sv598_maxpagedpoolchunksize;
+    BOOL  sv598_sendsfrompreferredprocessor;
 }
 alias SERVER_INFO_598* PSERVER_INFO_598, LPSERVER_INFO_598;
 
 struct SERVER_INFO_1005 {
-	LPWSTR sv1005_comment;
+    LPWSTR sv1005_comment;
 }
 alias SERVER_INFO_1005* PSERVER_INFO_1005, LPSERVER_INFO_1005;
 
 struct SERVER_INFO_1107 {
-	DWORD sv1107_users;
+    DWORD sv1107_users;
 }
 alias SERVER_INFO_1107* PSERVER_INFO_1107, LPSERVER_INFO_1107;
 
 struct SERVER_INFO_1010 {
-	LONG sv1010_disc;
+    LONG sv1010_disc;
 }
 alias SERVER_INFO_1010* PSERVER_INFO_1010, LPSERVER_INFO_1010;
 
 struct SERVER_INFO_1016 {
-	BOOL sv1016_hidden;
+    BOOL sv1016_hidden;
 }
 alias SERVER_INFO_1016* PSERVER_INFO_1016, LPSERVER_INFO_1016;
 
 struct SERVER_INFO_1017 {
-	DWORD sv1017_announce;
+    DWORD sv1017_announce;
 }
 alias SERVER_INFO_1017* PSERVER_INFO_1017, LPSERVER_INFO_1017;
 
 struct SERVER_INFO_1018 {
-	DWORD sv1018_anndelta;
+    DWORD sv1018_anndelta;
 }
 alias SERVER_INFO_1018* PSERVER_INFO_1018, LPSERVER_INFO_1018;
 
 struct SERVER_INFO_1501 {
-	DWORD sv1501_sessopens;
+    DWORD sv1501_sessopens;
 }
 alias SERVER_INFO_1501* PSERVER_INFO_1501, LPSERVER_INFO_1501;
 
 struct SERVER_INFO_1502 {
-	DWORD sv1502_sessvcs;
+    DWORD sv1502_sessvcs;
 }
 alias SERVER_INFO_1502* PSERVER_INFO_1502, LPSERVER_INFO_1502;
 
 struct SERVER_INFO_1503 {
-	DWORD sv1503_opensearch;
+    DWORD sv1503_opensearch;
 }
 alias SERVER_INFO_1503* PSERVER_INFO_1503, LPSERVER_INFO_1503;
 
 struct SERVER_INFO_1506 {
-	DWORD sv1506_maxworkitems;
+    DWORD sv1506_maxworkitems;
 }
 alias SERVER_INFO_1506* PSERVER_INFO_1506, LPSERVER_INFO_1506;
 
 struct SERVER_INFO_1509 {
-	DWORD sv1509_maxrawbuflen;
+    DWORD sv1509_maxrawbuflen;
 }
 alias SERVER_INFO_1509* PSERVER_INFO_1509, LPSERVER_INFO_1509;
 
 struct SERVER_INFO_1510 {
-	DWORD sv1510_sessusers;
+    DWORD sv1510_sessusers;
 }
 alias SERVER_INFO_1510* PSERVER_INFO_1510, LPSERVER_INFO_1510;
 
 struct SERVER_INFO_1511 {
-	DWORD sv1511_sessconns;
+    DWORD sv1511_sessconns;
 } alias SERVER_INFO_1511* PSERVER_INFO_1511, LPSERVER_INFO_1511;
 
 struct SERVER_INFO_1512 {
-	DWORD sv1512_maxnonpagedmemoryusage;
+    DWORD sv1512_maxnonpagedmemoryusage;
 }
 alias SERVER_INFO_1512* PSERVER_INFO_1512, LPSERVER_INFO_1512;
 
 struct SERVER_INFO_1513 {
-	DWORD sv1513_maxpagedmemoryusage;
+    DWORD sv1513_maxpagedmemoryusage;
 }
 alias SERVER_INFO_1513* PSERVER_INFO_1513, LPSERVER_INFO_1513;
 
 struct SERVER_INFO_1514 {
-	BOOL sv1514_enablesoftcompat;
+    BOOL sv1514_enablesoftcompat;
 }
 alias SERVER_INFO_1514* PSERVER_INFO_1514, LPSERVER_INFO_1514;
 
 struct SERVER_INFO_1515 {
-	BOOL sv1515_enableforcedlogoff;
+    BOOL sv1515_enableforcedlogoff;
 }
 alias SERVER_INFO_1515* PSERVER_INFO_1515, LPSERVER_INFO_1515;
 
 struct SERVER_INFO_1516 {
-	BOOL sv1516_timesource;
+    BOOL sv1516_timesource;
 }
 alias SERVER_INFO_1516* PSERVER_INFO_1516, LPSERVER_INFO_1516;
 
 struct SERVER_INFO_1518 {
-	BOOL sv1518_lmannounce;
+    BOOL sv1518_lmannounce;
 }
 alias SERVER_INFO_1518* PSERVER_INFO_1518, LPSERVER_INFO_1518;
 
 struct SERVER_INFO_1520 {
-	DWORD sv1520_maxcopyreadlen;
+    DWORD sv1520_maxcopyreadlen;
 }
 alias SERVER_INFO_1520* PSERVER_INFO_1520, LPSERVER_INFO_1520;
 
 struct SERVER_INFO_1521 {
-	DWORD sv1521_maxcopywritelen;
+    DWORD sv1521_maxcopywritelen;
 }
 alias SERVER_INFO_1521* PSERVER_INFO_1521, LPSERVER_INFO_1521;
 
 struct SERVER_INFO_1522 {
-	DWORD sv1522_minkeepsearch;
+    DWORD sv1522_minkeepsearch;
 }
 alias SERVER_INFO_1522* PSERVER_INFO_1522, LPSERVER_INFO_1522;
 
 struct SERVER_INFO_1523 {
-	DWORD sv1523_maxkeepsearch;
+    DWORD sv1523_maxkeepsearch;
 }
 alias SERVER_INFO_1523* PSERVER_INFO_1523, LPSERVER_INFO_1523;
 
 struct SERVER_INFO_1524 {
-	DWORD sv1524_minkeepcomplsearch;
+    DWORD sv1524_minkeepcomplsearch;
 }
 alias SERVER_INFO_1524* PSERVER_INFO_1524, LPSERVER_INFO_1524;
 
 struct SERVER_INFO_1525 {
-	DWORD sv1525_maxkeepcomplsearch;
+    DWORD sv1525_maxkeepcomplsearch;
 }
 alias SERVER_INFO_1525* PSERVER_INFO_1525, LPSERVER_INFO_1525;
 
 struct SERVER_INFO_1528 {
-	DWORD sv1528_scavtimeout;
+    DWORD sv1528_scavtimeout;
 }
 alias SERVER_INFO_1528* PSERVER_INFO_1528, LPSERVER_INFO_1528;
 
 struct SERVER_INFO_1529 {
-	DWORD sv1529_minrcvqueue;
+    DWORD sv1529_minrcvqueue;
 }
 alias SERVER_INFO_1529* PSERVER_INFO_1529, LPSERVER_INFO_1529;
 
 struct SERVER_INFO_1530 {
-	DWORD sv1530_minfreeworkitems;
+    DWORD sv1530_minfreeworkitems;
 }
 alias SERVER_INFO_1530* PSERVER_INFO_1530, LPSERVER_INFO_1530;
 
 struct SERVER_INFO_1533 {
-	DWORD sv1533_maxmpxct;
+    DWORD sv1533_maxmpxct;
 }
 alias SERVER_INFO_1533* PSERVER_INFO_1533, LPSERVER_INFO_1533;
 
 struct SERVER_INFO_1534 {
-	DWORD sv1534_oplockbreakwait;
+    DWORD sv1534_oplockbreakwait;
 }
 alias SERVER_INFO_1534* PSERVER_INFO_1534, LPSERVER_INFO_1534;
 
 struct SERVER_INFO_1535 {
-	DWORD sv1535_oplockbreakresponsewait;
+    DWORD sv1535_oplockbreakresponsewait;
 }
 alias SERVER_INFO_1535* PSERVER_INFO_1535, LPSERVER_INFO_1535;
 
 struct SERVER_INFO_1536 {
-	BOOL sv1536_enableoplocks;
+    BOOL sv1536_enableoplocks;
 }
 alias SERVER_INFO_1536* PSERVER_INFO_1536, LPSERVER_INFO_1536;
 
 struct SERVER_INFO_1537 {
-	BOOL sv1537_enableoplockforceclose;
+    BOOL sv1537_enableoplockforceclose;
 }
 alias SERVER_INFO_1537* PSERVER_INFO_1537, LPSERVER_INFO_1537;
 
 struct SERVER_INFO_1538 {
-	BOOL sv1538_enablefcbopens;
+    BOOL sv1538_enablefcbopens;
 }
 alias SERVER_INFO_1538* PSERVER_INFO_1538, LPSERVER_INFO_1538;
 
 struct SERVER_INFO_1539 {
-	BOOL sv1539_enableraw;
+    BOOL sv1539_enableraw;
 }
 alias SERVER_INFO_1539* PSERVER_INFO_1539, LPSERVER_INFO_1539;
 
 struct SERVER_INFO_1540 {
-	BOOL sv1540_enablesharednetdrives;
+    BOOL sv1540_enablesharednetdrives;
 }
 alias SERVER_INFO_1540* PSERVER_INFO_1540, LPSERVER_INFO_1540;
 
 struct SERVER_INFO_1541 {
-	BOOL sv1541_minfreeconnections;
+    BOOL sv1541_minfreeconnections;
 }
 alias SERVER_INFO_1541* PSERVER_INFO_1541, LPSERVER_INFO_1541;
 
 struct SERVER_INFO_1542 {
-	BOOL sv1542_maxfreeconnections;
+    BOOL sv1542_maxfreeconnections;
 }
 alias SERVER_INFO_1542* PSERVER_INFO_1542, LPSERVER_INFO_1542;
 
 struct SERVER_INFO_1543 {
-	DWORD sv1543_initsesstable;
+    DWORD sv1543_initsesstable;
 }
 alias SERVER_INFO_1543* PSERVER_INFO_1543, LPSERVER_INFO_1543;
 
 struct SERVER_INFO_1544 {
-	DWORD sv1544_initconntable;
+    DWORD sv1544_initconntable;
 }
 alias SERVER_INFO_1544* PSERVER_INFO_1544, LPSERVER_INFO_1544;
 
 struct SERVER_INFO_1545 {
-	DWORD sv1545_initfiletable;
+    DWORD sv1545_initfiletable;
 }
 alias SERVER_INFO_1545* PSERVER_INFO_1545, LPSERVER_INFO_1545;
 
 struct SERVER_INFO_1546 {
-	DWORD sv1546_initsearchtable;
+    DWORD sv1546_initsearchtable;
 }
 alias SERVER_INFO_1546* PSERVER_INFO_1546, LPSERVER_INFO_1546;
 
 struct SERVER_INFO_1547 {
-	DWORD sv1547_alertschedule;
+    DWORD sv1547_alertschedule;
 }
 alias SERVER_INFO_1547* PSERVER_INFO_1547, LPSERVER_INFO_1547;
 
 struct SERVER_INFO_1548 {
-	DWORD sv1548_errorthreshold;
+    DWORD sv1548_errorthreshold;
 }
 alias SERVER_INFO_1548* PSERVER_INFO_1548, LPSERVER_INFO_1548;
 
 struct SERVER_INFO_1549 {
-	DWORD sv1549_networkerrorthreshold;
+    DWORD sv1549_networkerrorthreshold;
 }
 alias SERVER_INFO_1549* PSERVER_INFO_1549, LPSERVER_INFO_1549;
 
 struct SERVER_INFO_1550 {
-	DWORD sv1550_diskspacethreshold;
+    DWORD sv1550_diskspacethreshold;
 }
 alias SERVER_INFO_1550* PSERVER_INFO_1550, LPSERVER_INFO_1550;
 
 struct SERVER_INFO_1552 {
-	DWORD sv1552_maxlinkdelay;
+    DWORD sv1552_maxlinkdelay;
 }
 alias SERVER_INFO_1552* PSERVER_INFO_1552, LPSERVER_INFO_1552;
 
 struct SERVER_INFO_1553 {
-	DWORD sv1553_minlinkthroughput;
+    DWORD sv1553_minlinkthroughput;
 }
 alias SERVER_INFO_1553* PSERVER_INFO_1553, LPSERVER_INFO_1553;
 
 struct SERVER_INFO_1554 {
-	DWORD sv1554_linkinfovalidtime;
+    DWORD sv1554_linkinfovalidtime;
 }
 alias SERVER_INFO_1554* PSERVER_INFO_1554, LPSERVER_INFO_1554;
 
 struct SERVER_INFO_1555 {
-	DWORD sv1555_scavqosinfoupdatetime;
+    DWORD sv1555_scavqosinfoupdatetime;
 }
 alias SERVER_INFO_1555* PSERVER_INFO_1555, LPSERVER_INFO_1555;
 
 struct SERVER_INFO_1556 {
-	DWORD sv1556_maxworkitemidletime;
+    DWORD sv1556_maxworkitemidletime;
 }
 alias SERVER_INFO_1556* PSERVER_INFO_1556, LPSERVER_INFO_1556;
 
 struct SERVER_INFO_1557 {
-	DWORD sv1557_maxrawworkitems;
+    DWORD sv1557_maxrawworkitems;
 }
 alias SERVER_INFO_1557* PSERVER_INFO_1557, LPSERVER_INFO_1557;
 
 struct SERVER_INFO_1560 {
-	DWORD sv1560_producttype;
+    DWORD sv1560_producttype;
 }
 alias SERVER_INFO_1560* PSERVER_INFO_1560, LPSERVER_INFO_1560;
 
 struct SERVER_INFO_1561 {
-	DWORD sv1561_serversize;
+    DWORD sv1561_serversize;
 }
 alias SERVER_INFO_1561* PSERVER_INFO_1561, LPSERVER_INFO_1561;
 
 struct SERVER_INFO_1562 {
-	DWORD sv1562_connectionlessautodisc;
+    DWORD sv1562_connectionlessautodisc;
 }
 alias SERVER_INFO_1562* PSERVER_INFO_1562, LPSERVER_INFO_1562;
 
 struct SERVER_INFO_1563 {
-	DWORD sv1563_sharingviolationretries;
+    DWORD sv1563_sharingviolationretries;
 }
 alias SERVER_INFO_1563* PSERVER_INFO_1563, LPSERVER_INFO_1563;
 
 struct SERVER_INFO_1564 {
-	DWORD sv1564_sharingviolationdelay;
+    DWORD sv1564_sharingviolationdelay;
 }
 alias SERVER_INFO_1564* PSERVER_INFO_1564, LPSERVER_INFO_1564;
 
 struct SERVER_INFO_1565 {
-	DWORD sv1565_maxglobalopensearch;
+    DWORD sv1565_maxglobalopensearch;
 }
 alias SERVER_INFO_1565* PSERVER_INFO_1565, LPSERVER_INFO_1565;
 
 struct SERVER_INFO_1566 {
-	BOOL sv1566_removeduplicatesearches;
+    BOOL sv1566_removeduplicatesearches;
 }
 alias SERVER_INFO_1566* PSERVER_INFO_1566, LPSERVER_INFO_1566;
 
 struct SERVER_INFO_1567 {
-	DWORD sv1567_lockviolationretries;
+    DWORD sv1567_lockviolationretries;
 }
 alias SERVER_INFO_1567* PSERVER_INFO_1567, LPSERVER_INFO_1567;
 
 struct SERVER_INFO_1568 {
-	DWORD sv1568_lockviolationoffset;
+    DWORD sv1568_lockviolationoffset;
 }
 alias SERVER_INFO_1568* PSERVER_INFO_1568, LPSERVER_INFO_1568;
 
 struct SERVER_INFO_1569 {
-	DWORD sv1569_lockviolationdelay;
+    DWORD sv1569_lockviolationdelay;
 }
 alias SERVER_INFO_1569* PSERVER_INFO_1569, LPSERVER_INFO_1569;
 
 struct SERVER_INFO_1570 {
-	DWORD sv1570_mdlreadswitchover;
+    DWORD sv1570_mdlreadswitchover;
 }
 alias SERVER_INFO_1570* PSERVER_INFO_1570, LPSERVER_INFO_1570;
 
 struct SERVER_INFO_1571 {
-	DWORD sv1571_cachedopenlimit;
+    DWORD sv1571_cachedopenlimit;
 }
 alias SERVER_INFO_1571* PSERVER_INFO_1571, LPSERVER_INFO_1571;
 
 struct SERVER_INFO_1572 {
-	DWORD sv1572_criticalthreads;
+    DWORD sv1572_criticalthreads;
 }
 alias SERVER_INFO_1572* PSERVER_INFO_1572, LPSERVER_INFO_1572;
 
 struct SERVER_INFO_1573 {
-	DWORD sv1573_restrictnullsessaccess;
+    DWORD sv1573_restrictnullsessaccess;
 }
 alias SERVER_INFO_1573* PSERVER_INFO_1573, LPSERVER_INFO_1573;
 
 struct SERVER_INFO_1574 {
-	DWORD sv1574_enablewfw311directipx;
+    DWORD sv1574_enablewfw311directipx;
 }
 alias SERVER_INFO_1574* PSERVER_INFO_1574, LPSERVER_INFO_1574;
 
 struct SERVER_INFO_1575 {
-	DWORD sv1575_otherqueueaffinity;
+    DWORD sv1575_otherqueueaffinity;
 }
 alias SERVER_INFO_1575* PSERVER_INFO_1575, LPSERVER_INFO_1575;
 
 struct SERVER_INFO_1576 {
-	DWORD sv1576_queuesamplesecs;
+    DWORD sv1576_queuesamplesecs;
 }
 alias SERVER_INFO_1576* PSERVER_INFO_1576, LPSERVER_INFO_1576;
 
 struct SERVER_INFO_1577 {
-	DWORD sv1577_balancecount;
+    DWORD sv1577_balancecount;
 }
 alias SERVER_INFO_1577* PSERVER_INFO_1577, LPSERVER_INFO_1577;
 
 struct SERVER_INFO_1578 {
-	DWORD sv1578_preferredaffinity;
+    DWORD sv1578_preferredaffinity;
 }
 alias SERVER_INFO_1578* PSERVER_INFO_1578, LPSERVER_INFO_1578;
 
 struct SERVER_INFO_1579 {
-	DWORD sv1579_maxfreerfcbs;
+    DWORD sv1579_maxfreerfcbs;
 }
 alias SERVER_INFO_1579* PSERVER_INFO_1579, LPSERVER_INFO_1579;
 
 struct SERVER_INFO_1580 {
-	DWORD sv1580_maxfreemfcbs;
+    DWORD sv1580_maxfreemfcbs;
 }
 alias SERVER_INFO_1580* PSERVER_INFO_1580, LPSERVER_INFO_1580;
 
 struct SERVER_INFO_1581 {
-	DWORD sv1581_maxfreemlcbs;
+    DWORD sv1581_maxfreemlcbs;
 }
 alias SERVER_INFO_1581* PSERVER_INFO_1581, LPSERVER_INFO_1581;
 
 struct SERVER_INFO_1582 {
-	DWORD sv1582_maxfreepagedpoolchunks;
+    DWORD sv1582_maxfreepagedpoolchunks;
 }
 alias SERVER_INFO_1582* PSERVER_INFO_1582, LPSERVER_INFO_1582;
 
 struct SERVER_INFO_1583 {
-	DWORD sv1583_minpagedpoolchunksize;
+    DWORD sv1583_minpagedpoolchunksize;
 }
 alias SERVER_INFO_1583* PSERVER_INFO_1583, LPSERVER_INFO_1583;
 
 struct SERVER_INFO_1584 {
-	DWORD sv1584_maxpagedpoolchunksize;
+    DWORD sv1584_maxpagedpoolchunksize;
 }
 alias SERVER_INFO_1584* PSERVER_INFO_1584, LPSERVER_INFO_1584;
 
 struct SERVER_INFO_1585 {
-	BOOL sv1585_sendsfrompreferredprocessor;
+    BOOL sv1585_sendsfrompreferredprocessor;
 }
 alias SERVER_INFO_1585* PSERVER_INFO_1585, LPSERVER_INFO_1585;
 
 struct SERVER_INFO_1586 {
-	BOOL sv1586_maxthreadsperqueue;
+    BOOL sv1586_maxthreadsperqueue;
 }
 alias SERVER_INFO_1586* PSERVER_INFO_1586, LPSERVER_INFO_1586;
 
 struct SERVER_TRANSPORT_INFO_0 {
-	DWORD  svti0_numberofvcs;
-	LPWSTR svti0_transportname;
-	PBYTE  svti0_transportaddress;
-	DWORD  svti0_transportaddresslength;
-	LPWSTR svti0_networkaddress;
+    DWORD  svti0_numberofvcs;
+    LPWSTR svti0_transportname;
+    PBYTE  svti0_transportaddress;
+    DWORD  svti0_transportaddresslength;
+    LPWSTR svti0_networkaddress;
 }
 alias SERVER_TRANSPORT_INFO_0* PSERVER_TRANSPORT_INFO_0,
   LPSERVER_TRANSPORT_INFO_0;

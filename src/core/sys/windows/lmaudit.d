@@ -89,177 +89,177 @@ const AA_A_ACL=32768;
 const AA_A_ALL = AA_F_OPEN|AA_F_WRITE|AA_F_DELETE|AA_F_ACL;
 
 struct AUDIT_ENTRY{
-	DWORD ae_len;
-	DWORD ae_reserved;
-	DWORD ae_time;
-	DWORD ae_type;
-	DWORD ae_data_offset;
-	DWORD ae_data_size;
+    DWORD ae_len;
+    DWORD ae_reserved;
+    DWORD ae_time;
+    DWORD ae_type;
+    DWORD ae_data_offset;
+    DWORD ae_data_size;
 }
 alias AUDIT_ENTRY* PAUDIT_ENTRY, LPAUDIT_ENTRY;
 
 struct HLOG{
-	DWORD time;
-	DWORD last_flags;
-	DWORD offset;
-	DWORD rec_offset;
+    DWORD time;
+    DWORD last_flags;
+    DWORD offset;
+    DWORD rec_offset;
 }
 alias HLOG* PHLOG, LPHLOG;
 
 struct AE_SRVSTATUS{
-	DWORD ae_sv_status;
+    DWORD ae_sv_status;
 }
 alias AE_SRVSTATUS* PAE_SRVSTATUS, LPAE_SRVSTATUS;
 
 struct AE_SESSLOGON{
-	DWORD ae_so_compname;
-	DWORD ae_so_username;
-	DWORD ae_so_privilege;
+    DWORD ae_so_compname;
+    DWORD ae_so_username;
+    DWORD ae_so_privilege;
 }
 alias AE_SESSLOGON* PAE_SESSLOGON, LPAE_SESSLOGON;
 
 struct AE_SESSLOGOFF{
-	DWORD ae_sf_compname;
-	DWORD ae_sf_username;
-	DWORD ae_sf_reason;
+    DWORD ae_sf_compname;
+    DWORD ae_sf_username;
+    DWORD ae_sf_reason;
 }
 alias AE_SESSLOGOFF* PAE_SESSLOGOFF, LPAE_SESSLOGOFF;
 
 struct AE_SESSPWERR{
-	DWORD ae_sp_compname;
-	DWORD ae_sp_username;
+    DWORD ae_sp_compname;
+    DWORD ae_sp_username;
 }
 alias AE_SESSPWERR* PAE_SESSPWERR, LPAE_SESSPWERR;
 
 struct AE_CONNSTART{
-	DWORD ae_ct_compname;
-	DWORD ae_ct_username;
-	DWORD ae_ct_netname;
-	DWORD ae_ct_connid;
+    DWORD ae_ct_compname;
+    DWORD ae_ct_username;
+    DWORD ae_ct_netname;
+    DWORD ae_ct_connid;
 }
 alias AE_CONNSTART* PAE_CONNSTART, LPAE_CONNSTART;
 
 struct AE_CONNSTOP{
-	DWORD ae_cp_compname;
-	DWORD ae_cp_username;
-	DWORD ae_cp_netname;
-	DWORD ae_cp_connid;
-	DWORD ae_cp_reason;
+    DWORD ae_cp_compname;
+    DWORD ae_cp_username;
+    DWORD ae_cp_netname;
+    DWORD ae_cp_connid;
+    DWORD ae_cp_reason;
 }
 alias AE_CONNSTOP* PAE_CONNSTOP, LPAE_CONNSTOP;
 
 struct AE_CONNREJ{
-	DWORD ae_cr_compname;
-	DWORD ae_cr_username;
-	DWORD ae_cr_netname;
-	DWORD ae_cr_reason;
+    DWORD ae_cr_compname;
+    DWORD ae_cr_username;
+    DWORD ae_cr_netname;
+    DWORD ae_cr_reason;
 }
 alias AE_CONNREJ* PAE_CONNREJ, LPAE_CONNREJ;
 
 struct AE_RESACCESS{
-	DWORD ae_ra_compname;
-	DWORD ae_ra_username;
-	DWORD ae_ra_resname;
-	DWORD ae_ra_operation;
-	DWORD ae_ra_returncode;
-	DWORD ae_ra_restype;
-	DWORD ae_ra_fileid;
+    DWORD ae_ra_compname;
+    DWORD ae_ra_username;
+    DWORD ae_ra_resname;
+    DWORD ae_ra_operation;
+    DWORD ae_ra_returncode;
+    DWORD ae_ra_restype;
+    DWORD ae_ra_fileid;
 }
 alias AE_RESACCESS* PAE_RESACCESS, LPAE_RESACCESS;
 
 struct AE_RESACCESSREJ{
-	DWORD ae_rr_compname;
-	DWORD ae_rr_username;
-	DWORD ae_rr_resname;
-	DWORD ae_rr_operation;
+    DWORD ae_rr_compname;
+    DWORD ae_rr_username;
+    DWORD ae_rr_resname;
+    DWORD ae_rr_operation;
 }
 alias AE_RESACCESSREJ* PAE_RESACCESSREJ, LPAE_RESACCESSREJ;
 
 struct AE_CLOSEFILE{
-	DWORD ae_cf_compname;
-	DWORD ae_cf_username;
-	DWORD ae_cf_resname;
-	DWORD ae_cf_fileid;
-	DWORD ae_cf_duration;
-	DWORD ae_cf_reason;
+    DWORD ae_cf_compname;
+    DWORD ae_cf_username;
+    DWORD ae_cf_resname;
+    DWORD ae_cf_fileid;
+    DWORD ae_cf_duration;
+    DWORD ae_cf_reason;
 }
 alias AE_CLOSEFILE* PAE_CLOSEFILE, LPAE_CLOSEFILE;
 
 struct AE_SERVICESTAT{
-	DWORD ae_ss_compname;
-	DWORD ae_ss_username;
-	DWORD ae_ss_svcname;
-	DWORD ae_ss_status;
-	DWORD ae_ss_code;
-	DWORD ae_ss_text;
-	DWORD ae_ss_returnval;
+    DWORD ae_ss_compname;
+    DWORD ae_ss_username;
+    DWORD ae_ss_svcname;
+    DWORD ae_ss_status;
+    DWORD ae_ss_code;
+    DWORD ae_ss_text;
+    DWORD ae_ss_returnval;
 }
 alias AE_SERVICESTAT* PAE_SERVICESTAT, LPAE_SERVICESTAT;
 
 struct AE_ACLMOD{
-	DWORD ae_am_compname;
-	DWORD ae_am_username;
-	DWORD ae_am_resname;
-	DWORD ae_am_action;
-	DWORD ae_am_datalen;
+    DWORD ae_am_compname;
+    DWORD ae_am_username;
+    DWORD ae_am_resname;
+    DWORD ae_am_action;
+    DWORD ae_am_datalen;
 }
 alias AE_ACLMOD* PAE_ACLMOD, LPAE_ACLMOD;
 
 struct AE_UASMOD{
-	DWORD ae_um_compname;
-	DWORD ae_um_username;
-	DWORD ae_um_resname;
-	DWORD ae_um_rectype;
-	DWORD ae_um_action;
-	DWORD ae_um_datalen;
+    DWORD ae_um_compname;
+    DWORD ae_um_username;
+    DWORD ae_um_resname;
+    DWORD ae_um_rectype;
+    DWORD ae_um_action;
+    DWORD ae_um_datalen;
 }
 alias AE_UASMOD* PAE_UASMOD, LPAE_UASMOD;
 
 struct AE_NETLOGON{
-	DWORD ae_no_compname;
-	DWORD ae_no_username;
-	DWORD ae_no_privilege;
-	DWORD ae_no_authflags;
+    DWORD ae_no_compname;
+    DWORD ae_no_username;
+    DWORD ae_no_privilege;
+    DWORD ae_no_authflags;
 }
 alias AE_NETLOGON* PAE_NETLOGON, LPAE_NETLOGON;
 
 struct AE_NETLOGOFF{
-	DWORD ae_nf_compname;
-	DWORD ae_nf_username;
-	DWORD ae_nf_reserved1;
-	DWORD ae_nf_reserved2;
+    DWORD ae_nf_compname;
+    DWORD ae_nf_username;
+    DWORD ae_nf_reserved1;
+    DWORD ae_nf_reserved2;
 }
 alias AE_NETLOGOFF* PAE_NETLOGOFF, LPAE_NETLOGOFF;
 
 struct AE_ACCLIM{
-	DWORD ae_al_compname;
-	DWORD ae_al_username;
-	DWORD ae_al_resname;
-	DWORD ae_al_limit;
+    DWORD ae_al_compname;
+    DWORD ae_al_username;
+    DWORD ae_al_resname;
+    DWORD ae_al_limit;
 }
 alias AE_ACCLIM* PAE_ACCLIM, LPAE_ACCLIM;
 
 struct AE_LOCKOUT{
-	DWORD ae_lk_compname;
-	DWORD ae_lk_username;
-	DWORD ae_lk_action;
-	DWORD ae_lk_bad_pw_count;
+    DWORD ae_lk_compname;
+    DWORD ae_lk_username;
+    DWORD ae_lk_action;
+    DWORD ae_lk_bad_pw_count;
 }
 alias AE_LOCKOUT* PAE_LOCKOUT, LPAE_LOCKOUT;
 
 struct AE_GENERIC{
-	DWORD ae_ge_msgfile;
-	DWORD ae_ge_msgnum;
-	DWORD ae_ge_params;
-	DWORD ae_ge_param1;
-	DWORD ae_ge_param2;
-	DWORD ae_ge_param3;
-	DWORD ae_ge_param4;
-	DWORD ae_ge_param5;
-	DWORD ae_ge_param6;
-	DWORD ae_ge_param7;
-	DWORD ae_ge_param8;
-	DWORD ae_ge_param9;
+    DWORD ae_ge_msgfile;
+    DWORD ae_ge_msgnum;
+    DWORD ae_ge_params;
+    DWORD ae_ge_param1;
+    DWORD ae_ge_param2;
+    DWORD ae_ge_param3;
+    DWORD ae_ge_param4;
+    DWORD ae_ge_param5;
+    DWORD ae_ge_param6;
+    DWORD ae_ge_param7;
+    DWORD ae_ge_param8;
+    DWORD ae_ge_param9;
 }
 alias AE_GENERIC* PAE_GENERIC, LPAE_GENERIC;
 

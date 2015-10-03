@@ -9,15 +9,15 @@
 module core.sys.windows.windows;
 
 /*
-	windows.h - main header file for the Win32 API
+    windows.h - main header file for the Win32 API
 
-	Written by Anders Norlander <anorland@hem2.passagen.se>
+    Written by Anders Norlander <anorland@hem2.passagen.se>
 
-	This file is part of a free library for the Win32 API.
+    This file is part of a free library for the Win32 API.
 
-	This library is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 */
 
@@ -44,10 +44,10 @@ public import core.sys.windows.ole2;
 // Select correct version of winsock.  Importing the incorrect
 // module will cause a static assert to prevent problems later on.
 version (Win32_Winsock1) {
-	public import core.sys.windows.winsock;
+    public import core.sys.windows.winsock;
 } else {
-	public import core.sys.windows.winsock2;
-	public import core.sys.windows.ws2tcpip;
+    public import core.sys.windows.winsock2;
+    public import core.sys.windows.ws2tcpip;
 }
 
 /+

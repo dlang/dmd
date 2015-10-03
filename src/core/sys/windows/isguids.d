@@ -12,5 +12,5 @@ module core.sys.windows.isguids;
 private import core.sys.windows.basetyps;
 
 extern (C) extern const GUID
-	CLSID_InternetShortcut,
-	IID_IUniformResourceLocator;
+    CLSID_InternetShortcut,
+    IID_IUniformResourceLocator;

@@ -22,873 +22,873 @@ private import core.sys.windows.winbase; // for FILETIME
 private import core.sys.windows.rpcdce;
 
 struct  STATSTG {
-	LPOLESTR pwcsName;
-	DWORD type;
-	ULARGE_INTEGER cbSize;
-	FILETIME mtime;
-	FILETIME ctime;
-	FILETIME atime;
-	DWORD grfMode;
-	DWORD grfLocksSupported;
-	CLSID clsid;
-	DWORD grfStateBits;
-	DWORD reserved;
+    LPOLESTR pwcsName;
+    DWORD type;
+    ULARGE_INTEGER cbSize;
+    FILETIME mtime;
+    FILETIME ctime;
+    FILETIME atime;
+    DWORD grfMode;
+    DWORD grfLocksSupported;
+    CLSID clsid;
+    DWORD grfStateBits;
+    DWORD reserved;
 }
 
 enum STGTY {
-	STGTY_STORAGE = 1,
-	STGTY_STREAM,
-	STGTY_LOCKBYTES,
-	STGTY_PROPERTY
+    STGTY_STORAGE = 1,
+    STGTY_STREAM,
+    STGTY_LOCKBYTES,
+    STGTY_PROPERTY
 }
 
 enum STREAM_SEEK {
-	STREAM_SEEK_SET,
-	STREAM_SEEK_CUR,
-	STREAM_SEEK_END
+    STREAM_SEEK_SET,
+    STREAM_SEEK_CUR,
+    STREAM_SEEK_END
 }
 
 struct INTERFACEINFO {
-	LPUNKNOWN pUnk;
-	IID iid;
-	WORD wMethod;
+    LPUNKNOWN pUnk;
+    IID iid;
+    WORD wMethod;
 }
 alias INTERFACEINFO* LPINTERFACEINFO;
 
 enum CALLTYPE {
-	CALLTYPE_TOPLEVEL = 1,
-	CALLTYPE_NESTED,
-	CALLTYPE_ASYNC,
-	CALLTYPE_TOPLEVEL_CALLPENDING,
-	CALLTYPE_ASYNC_CALLPENDING
+    CALLTYPE_TOPLEVEL = 1,
+    CALLTYPE_NESTED,
+    CALLTYPE_ASYNC,
+    CALLTYPE_TOPLEVEL_CALLPENDING,
+    CALLTYPE_ASYNC_CALLPENDING
 }
 
 enum PENDINGTYPE {
-	PENDINGTYPE_TOPLEVEL = 1,
-	PENDINGTYPE_NESTED
+    PENDINGTYPE_TOPLEVEL = 1,
+    PENDINGTYPE_NESTED
 }
 
 enum PENDINGMSG {
-	PENDINGMSG_CANCELCALL = 0,
-	PENDINGMSG_WAITNOPROCESS,
-	PENDINGMSG_WAITDEFPROCESS
+    PENDINGMSG_CANCELCALL = 0,
+    PENDINGMSG_WAITNOPROCESS,
+    PENDINGMSG_WAITDEFPROCESS
 }
 
 alias OLECHAR** SNB;
 
 enum DATADIR {
-	DATADIR_GET = 1,
-	DATADIR_SET
+    DATADIR_GET = 1,
+    DATADIR_SET
 }
 alias WORD CLIPFORMAT;
 alias CLIPFORMAT* LPCLIPFORMAT;
 
 struct DVTARGETDEVICE {
-	DWORD tdSize;
-	WORD tdDriverNameOffset;
-	WORD tdDeviceNameOffset;
-	WORD tdPortNameOffset;
-	WORD tdExtDevmodeOffset;
-	BYTE[1] tdData;
+    DWORD tdSize;
+    WORD tdDriverNameOffset;
+    WORD tdDeviceNameOffset;
+    WORD tdPortNameOffset;
+    WORD tdExtDevmodeOffset;
+    BYTE[1] tdData;
 }
 
 struct FORMATETC {
-	CLIPFORMAT cfFormat;
-	DVTARGETDEVICE* ptd;
-	DWORD dwAspect;
-	LONG lindex;
-	DWORD tymed;
+    CLIPFORMAT cfFormat;
+    DVTARGETDEVICE* ptd;
+    DWORD dwAspect;
+    LONG lindex;
+    DWORD tymed;
 }
 alias FORMATETC* LPFORMATETC;
 
 struct RemSTGMEDIUM {
-	DWORD tymed;
-	DWORD dwHandleType;
-	ULONG pData;
-	uint pUnkForRelease;
-	uint cbData;
-	BYTE[1] data;
+    DWORD tymed;
+    DWORD dwHandleType;
+    ULONG pData;
+    uint pUnkForRelease;
+    uint cbData;
+    BYTE[1] data;
 }
 
 struct HLITEM {
-	ULONG uHLID;
-	LPWSTR pwzFriendlyName;
+    ULONG uHLID;
+    LPWSTR pwzFriendlyName;
 }
 
 struct STATDATA {
-	FORMATETC formatetc;
-	DWORD grfAdvf;
-	IAdviseSink pAdvSink;
-	DWORD dwConnection;
+    FORMATETC formatetc;
+    DWORD grfAdvf;
+    IAdviseSink pAdvSink;
+    DWORD dwConnection;
 }
 
 struct STATPROPSETSTG {
-	FMTID fmtid;
-	CLSID clsid;
-	DWORD grfFlags;
-	FILETIME mtime;
-	FILETIME ctime;
-	FILETIME atime;
+    FMTID fmtid;
+    CLSID clsid;
+    DWORD grfFlags;
+    FILETIME mtime;
+    FILETIME ctime;
+    FILETIME atime;
 }
 
 enum EXTCONN {
-	EXTCONN_STRONG   = 1,
-	EXTCONN_WEAK     = 2,
-	EXTCONN_CALLABLE = 4
+    EXTCONN_STRONG   = 1,
+    EXTCONN_WEAK     = 2,
+    EXTCONN_CALLABLE = 4
 }
 
 struct MULTI_QI {
-	const(IID)* pIID;
-	IUnknown    pItf;
-	HRESULT     hr;
+    const(IID)* pIID;
+    IUnknown    pItf;
+    HRESULT     hr;
 }
 
 struct AUTH_IDENTITY {
-	USHORT* User;
-	ULONG UserLength;
-	USHORT* Domain;
-	ULONG DomainLength;
-	USHORT* Password;
-	ULONG PasswordLength;
-	ULONG Flags;
+    USHORT* User;
+    ULONG UserLength;
+    USHORT* Domain;
+    ULONG DomainLength;
+    USHORT* Password;
+    ULONG PasswordLength;
+    ULONG Flags;
 }
 
 struct COAUTHINFO {
-	DWORD dwAuthnSvc;
-	DWORD dwAuthzSvc;
-	LPWSTR pwszServerPrincName;
-	DWORD dwAuthnLevel;
-	DWORD dwImpersonationLevel;
-	AUTH_IDENTITY* pAuthIdentityData;
-	DWORD dwCapabilities;
+    DWORD dwAuthnSvc;
+    DWORD dwAuthzSvc;
+    LPWSTR pwszServerPrincName;
+    DWORD dwAuthnLevel;
+    DWORD dwImpersonationLevel;
+    AUTH_IDENTITY* pAuthIdentityData;
+    DWORD dwCapabilities;
 }
 
 struct  COSERVERINFO {
-	DWORD dwReserved1;
-	LPWSTR pwszName;
-	COAUTHINFO* pAuthInfo;
-	DWORD dwReserved2;
+    DWORD dwReserved1;
+    LPWSTR pwszName;
+    COAUTHINFO* pAuthInfo;
+    DWORD dwReserved2;
 }
 
 struct BIND_OPTS {
-	DWORD cbStruct;
-	DWORD grfFlags;
-	DWORD grfMode;
-	DWORD dwTickCountDeadline;
+    DWORD cbStruct;
+    DWORD grfFlags;
+    DWORD grfMode;
+    DWORD dwTickCountDeadline;
 }
 alias BIND_OPTS* LPBIND_OPTS;
 
 struct BIND_OPTS2 {
-	DWORD cbStruct;
-	DWORD grfFlags;
-	DWORD grfMode;
-	DWORD dwTickCountDeadline;
-	DWORD dwTrackFlags;
-	DWORD dwClassContext;
-	LCID locale;
-	COSERVERINFO* pServerInfo;
+    DWORD cbStruct;
+    DWORD grfFlags;
+    DWORD grfMode;
+    DWORD dwTickCountDeadline;
+    DWORD dwTrackFlags;
+    DWORD dwClassContext;
+    LCID locale;
+    COSERVERINFO* pServerInfo;
 }
 alias BIND_OPTS2* LPBIND_OPTS2;
 
 enum BIND_FLAGS {
-	BIND_MAYBOTHERUSER = 1,
-	BIND_JUSTTESTEXISTENCE
+    BIND_MAYBOTHERUSER = 1,
+    BIND_JUSTTESTEXISTENCE
 }
 
 struct STGMEDIUM {
-	DWORD tymed;
-	union {
-		HBITMAP hBitmap;
-		PVOID hMetaFilePict;
-		HENHMETAFILE hEnhMetaFile;
-		HGLOBAL hGlobal;
-		LPWSTR lpszFileName;
-		LPSTREAM pstm;
-		LPSTORAGE pstg;
-	}
-	LPUNKNOWN pUnkForRelease;
+    DWORD tymed;
+    union {
+        HBITMAP hBitmap;
+        PVOID hMetaFilePict;
+        HENHMETAFILE hEnhMetaFile;
+        HGLOBAL hGlobal;
+        LPWSTR lpszFileName;
+        LPSTREAM pstm;
+        LPSTORAGE pstg;
+    }
+    LPUNKNOWN pUnkForRelease;
 }
 alias STGMEDIUM* LPSTGMEDIUM;
 
 enum LOCKTYPE {
-	LOCK_WRITE     = 1,
-	LOCK_EXCLUSIVE = 2,
-	LOCK_ONLYONCE  = 4
+    LOCK_WRITE     = 1,
+    LOCK_EXCLUSIVE = 2,
+    LOCK_ONLYONCE  = 4
 }
 
 alias uint RPCOLEDATAREP;
 
 struct  RPCOLEMESSAGE {
-	PVOID reserved1;
-	RPCOLEDATAREP dataRepresentation;
-	PVOID Buffer;
-	ULONG cbBuffer;
-	ULONG iMethod;
-	PVOID[5] reserved2;
-	ULONG rpcFlags;
+    PVOID reserved1;
+    RPCOLEDATAREP dataRepresentation;
+    PVOID Buffer;
+    ULONG cbBuffer;
+    ULONG iMethod;
+    PVOID[5] reserved2;
+    ULONG rpcFlags;
 }
 alias RPCOLEMESSAGE* PRPCOLEMESSAGE;
 
 enum MKSYS {
-	MKSYS_NONE,
-	MKSYS_GENERICCOMPOSITE,
-	MKSYS_FILEMONIKER,
-	MKSYS_ANTIMONIKER,
-	MKSYS_ITEMMONIKER,
-	MKSYS_POINTERMONIKER
+    MKSYS_NONE,
+    MKSYS_GENERICCOMPOSITE,
+    MKSYS_FILEMONIKER,
+    MKSYS_ANTIMONIKER,
+    MKSYS_ITEMMONIKER,
+    MKSYS_POINTERMONIKER
 }
 
 enum MKREDUCE {
-	MKRREDUCE_ALL,
-	MKRREDUCE_ONE         = 196608,
-	MKRREDUCE_TOUSER      = 131072,
-	MKRREDUCE_THROUGHUSER = 65536
+    MKRREDUCE_ALL,
+    MKRREDUCE_ONE         = 196608,
+    MKRREDUCE_TOUSER      = 131072,
+    MKRREDUCE_THROUGHUSER = 65536
 }
 
 struct RemSNB {
-	uint ulCntStr;
-	uint ulCntChar;
-	OLECHAR[1] rgString;
+    uint ulCntStr;
+    uint ulCntChar;
+    OLECHAR[1] rgString;
 }
 
 enum ADVF {
-	ADVF_NODATA            = 1,
-	ADVF_PRIMEFIRST        = 2,
-	ADVF_ONLYONCE          = 4,
-	ADVFCACHE_NOHANDLER    = 8,
-	ADVFCACHE_FORCEBUILTIN = 16,
-	ADVFCACHE_ONSAVE       = 32,
-	ADVF_DATAONSTOP        = 64
+    ADVF_NODATA            = 1,
+    ADVF_PRIMEFIRST        = 2,
+    ADVF_ONLYONCE          = 4,
+    ADVFCACHE_NOHANDLER    = 8,
+    ADVFCACHE_FORCEBUILTIN = 16,
+    ADVFCACHE_ONSAVE       = 32,
+    ADVF_DATAONSTOP        = 64
 }
 
 enum TYMED {
-	TYMED_HGLOBAL  = 1,
-	TYMED_FILE     = 2,
-	TYMED_ISTREAM  = 4,
-	TYMED_ISTORAGE = 8,
-	TYMED_GDI      = 16,
-	TYMED_MFPICT   = 32,
-	TYMED_ENHMF    = 64,
-	TYMED_NULL     = 0
+    TYMED_HGLOBAL  = 1,
+    TYMED_FILE     = 2,
+    TYMED_ISTREAM  = 4,
+    TYMED_ISTORAGE = 8,
+    TYMED_GDI      = 16,
+    TYMED_MFPICT   = 32,
+    TYMED_ENHMF    = 64,
+    TYMED_NULL     = 0
 }
 
 enum SERVERCALL {
-	SERVERCALL_ISHANDLED,
-	SERVERCALL_REJECTED,
-	SERVERCALL_RETRYLATER
+    SERVERCALL_ISHANDLED,
+    SERVERCALL_REJECTED,
+    SERVERCALL_RETRYLATER
 }
 
 struct CAUB {
-	ULONG cElems;
-	ubyte* pElems;
+    ULONG cElems;
+    ubyte* pElems;
 }
 
 struct CAI {
-	ULONG cElems;
-	short* pElems;
+    ULONG cElems;
+    short* pElems;
 }
 
 struct CAUI {
-	ULONG cElems;
-	USHORT* pElems;
+    ULONG cElems;
+    USHORT* pElems;
 }
 
 struct CAL {
-	ULONG cElems;
-	int* pElems;
+    ULONG cElems;
+    int* pElems;
 }
 
 struct CAUL {
-	ULONG cElems;
-	ULONG* pElems;
+    ULONG cElems;
+    ULONG* pElems;
 }
 
 struct CAFLT {
-	ULONG cElems;
-	float* pElems;
+    ULONG cElems;
+    float* pElems;
 }
 
 struct CADBL {
-	ULONG cElems;
-	double* pElems;
+    ULONG cElems;
+    double* pElems;
 }
 
 struct CACY {
-	ULONG cElems;
-	CY* pElems;
+    ULONG cElems;
+    CY* pElems;
 }
 
 struct CADATE {
-	ULONG cElems;
-	DATE* pElems;
+    ULONG cElems;
+    DATE* pElems;
 }
 
 struct CABSTR {
-	ULONG cElems;
-	BSTR*  pElems;
+    ULONG cElems;
+    BSTR*  pElems;
 }
 
 struct CABSTRBLOB {
-	ULONG cElems;
-	BSTRBLOB* pElems;
+    ULONG cElems;
+    BSTRBLOB* pElems;
 }
 
 struct CABOOL {
-	ULONG cElems;
-	VARIANT_BOOL* pElems;
+    ULONG cElems;
+    VARIANT_BOOL* pElems;
 }
 
 struct CASCODE {
-	ULONG cElems;
-	SCODE* pElems;
+    ULONG cElems;
+    SCODE* pElems;
 }
 
 struct CAH {
-	ULONG cElems;
-	LARGE_INTEGER* pElems;
+    ULONG cElems;
+    LARGE_INTEGER* pElems;
 }
 
 struct CAUH {
-	ULONG cElems;
-	ULARGE_INTEGER* pElems;
+    ULONG cElems;
+    ULARGE_INTEGER* pElems;
 }
 
 struct CALPSTR {
-	ULONG cElems;
-	LPSTR* pElems;
+    ULONG cElems;
+    LPSTR* pElems;
 }
 
 struct CALPWSTR {
-	ULONG cElems;
-	LPWSTR* pElems;
+    ULONG cElems;
+    LPWSTR* pElems;
 }
 
 struct CAFILETIME {
-	ULONG cElems;
-	FILETIME* pElems;
+    ULONG cElems;
+    FILETIME* pElems;
 }
 
 struct CACLIPDATA {
-	ULONG cElems;
-	CLIPDATA* pElems;
+    ULONG cElems;
+    CLIPDATA* pElems;
 }
 
 struct CACLSID {
-	ULONG cElems;
-	CLSID* pElems;
+    ULONG cElems;
+    CLSID* pElems;
 }
 alias PROPVARIANT* LPPROPVARIANT;
 
 struct CAPROPVARIANT {
-	ULONG cElems;
-	LPPROPVARIANT pElems;
+    ULONG cElems;
+    LPPROPVARIANT pElems;
 }
 
 struct PROPVARIANT {
-	VARTYPE vt;
-	WORD wReserved1;
-	WORD wReserved2;
-	WORD wReserved3;
-	union {
-		CHAR cVal;
-		UCHAR bVal;
-		short iVal;
-		USHORT uiVal;
-		VARIANT_BOOL boolVal;
-		int lVal;
-		ULONG ulVal;
-		float fltVal;
-		SCODE scode;
-		LARGE_INTEGER hVal;
-		ULARGE_INTEGER uhVal;
-		double dblVal;
-		CY cyVal;
-		DATE date;
-		FILETIME filetime;
-		CLSID* puuid;
-		BLOB blob;
-		CLIPDATA* pclipdata;
-		LPSTREAM pStream;
-		LPSTORAGE pStorage;
-		BSTR bstrVal;
-		BSTRBLOB bstrblobVal;
-		LPSTR pszVal;
-		LPWSTR pwszVal;
-		CAUB caub;
-		CAI cai;
-		CAUI caui;
-		CABOOL cabool;
-		CAL cal;
-		CAUL caul;
-		CAFLT caflt;
-		CASCODE cascode;
-		CAH cah;
-		CAUH cauh;
-		CADBL cadbl;
-		CACY cacy;
-		CADATE cadate;
-		CAFILETIME cafiletime;
-		CACLSID cauuid;
-		CACLIPDATA caclipdata;
-		CABSTR cabstr;
-		CABSTRBLOB cabstrblob;
-		CALPSTR calpstr;
-		CALPWSTR calpwstr;
-		CAPROPVARIANT capropvar;
-	}
+    VARTYPE vt;
+    WORD wReserved1;
+    WORD wReserved2;
+    WORD wReserved3;
+    union {
+        CHAR cVal;
+        UCHAR bVal;
+        short iVal;
+        USHORT uiVal;
+        VARIANT_BOOL boolVal;
+        int lVal;
+        ULONG ulVal;
+        float fltVal;
+        SCODE scode;
+        LARGE_INTEGER hVal;
+        ULARGE_INTEGER uhVal;
+        double dblVal;
+        CY cyVal;
+        DATE date;
+        FILETIME filetime;
+        CLSID* puuid;
+        BLOB blob;
+        CLIPDATA* pclipdata;
+        LPSTREAM pStream;
+        LPSTORAGE pStorage;
+        BSTR bstrVal;
+        BSTRBLOB bstrblobVal;
+        LPSTR pszVal;
+        LPWSTR pwszVal;
+        CAUB caub;
+        CAI cai;
+        CAUI caui;
+        CABOOL cabool;
+        CAL cal;
+        CAUL caul;
+        CAFLT caflt;
+        CASCODE cascode;
+        CAH cah;
+        CAUH cauh;
+        CADBL cadbl;
+        CACY cacy;
+        CADATE cadate;
+        CAFILETIME cafiletime;
+        CACLSID cauuid;
+        CACLIPDATA caclipdata;
+        CABSTR cabstr;
+        CABSTRBLOB cabstrblob;
+        CALPSTR calpstr;
+        CALPWSTR calpwstr;
+        CAPROPVARIANT capropvar;
+    }
 }
 
 struct PROPSPEC {
-	ULONG ulKind;
-	union {
-		PROPID propid;
-		LPOLESTR lpwstr;
-	}
+    ULONG ulKind;
+    union {
+        PROPID propid;
+        LPOLESTR lpwstr;
+    }
 }
 
 struct  STATPROPSTG {
-	LPOLESTR lpwstrName;
-	PROPID propid;
-	VARTYPE vt;
+    LPOLESTR lpwstrName;
+    PROPID propid;
+    VARTYPE vt;
 }
 
 enum PROPSETFLAG {
-	PROPSETFLAG_DEFAULT,
-	PROPSETFLAG_NONSIMPLE,
-	PROPSETFLAG_ANSI,
-	PROPSETFLAG_UNBUFFERED = 4
+    PROPSETFLAG_DEFAULT,
+    PROPSETFLAG_NONSIMPLE,
+    PROPSETFLAG_ANSI,
+    PROPSETFLAG_UNBUFFERED = 4
 }
 
 struct STORAGELAYOUT {
-	DWORD LayoutType;
-	OLECHAR* pwcsElementName;
-	LARGE_INTEGER cOffset;
-	LARGE_INTEGER cBytes;
+    DWORD LayoutType;
+    OLECHAR* pwcsElementName;
+    LARGE_INTEGER cOffset;
+    LARGE_INTEGER cBytes;
 }
 
 struct SOLE_AUTHENTICATION_SERVICE {
-	DWORD dwAuthnSvc;
-	DWORD dwAuthzSvc;
-	OLECHAR* pPrincipalName;
-	HRESULT hr;
+    DWORD dwAuthnSvc;
+    DWORD dwAuthzSvc;
+    OLECHAR* pPrincipalName;
+    HRESULT hr;
 }
 
 const OLECHAR* COLE_DEFAULT_PRINCIPAL = cast ( OLECHAR* )(-1);
 
 enum EOLE_AUTHENTICATION_CAPABILITIES {
-	EOAC_NONE              = 0,
-	EOAC_MUTUAL_AUTH       = 0x1,
-	EOAC_SECURE_REFS       = 0x2,
-	EOAC_ACCESS_CONTROL    = 0x4,
-	EOAC_APPID             = 0x8,
-	EOAC_DYNAMIC           = 0x10,
-	EOAC_STATIC_CLOAKING   = 0x20,
-	EOAC_DYNAMIC_CLOAKING  = 0x40,
-	EOAC_ANY_AUTHORITY     = 0x80,
-	EOAC_MAKE_FULLSIC      = 0x100,
-	EOAC_REQUIRE_FULLSIC   = 0x200,
-	EOAC_AUTO_IMPERSONATE  = 0x400,
-	EOAC_DEFAULT           = 0x800,
-	EOAC_DISABLE_AAA       = 0x1000,
-	EOAC_NO_CUSTOM_MARSHAL = 0x2000
+    EOAC_NONE              = 0,
+    EOAC_MUTUAL_AUTH       = 0x1,
+    EOAC_SECURE_REFS       = 0x2,
+    EOAC_ACCESS_CONTROL    = 0x4,
+    EOAC_APPID             = 0x8,
+    EOAC_DYNAMIC           = 0x10,
+    EOAC_STATIC_CLOAKING   = 0x20,
+    EOAC_DYNAMIC_CLOAKING  = 0x40,
+    EOAC_ANY_AUTHORITY     = 0x80,
+    EOAC_MAKE_FULLSIC      = 0x100,
+    EOAC_REQUIRE_FULLSIC   = 0x200,
+    EOAC_AUTO_IMPERSONATE  = 0x400,
+    EOAC_DEFAULT           = 0x800,
+    EOAC_DISABLE_AAA       = 0x1000,
+    EOAC_NO_CUSTOM_MARSHAL = 0x2000
 }
 
 struct SOLE_AUTHENTICATION_INFO {
-	DWORD dwAuthnSvc;
-	DWORD dwAuthzSvc;
-	void* pAuthInfo;
+    DWORD dwAuthnSvc;
+    DWORD dwAuthzSvc;
+    void* pAuthInfo;
 }
 
 const void* COLE_DEFAULT_AUTHINFO = cast( void* )(-1 );
 
 struct SOLE_AUTHENTICATION_LIST {
-	DWORD cAuthInfo;
-	SOLE_AUTHENTICATION_INFO* aAuthInfo;
+    DWORD cAuthInfo;
+    SOLE_AUTHENTICATION_INFO* aAuthInfo;
 }
 
 interface IEnumFORMATETC : IUnknown {
-	  HRESULT Next(ULONG, FORMATETC*, ULONG*);
-	  HRESULT Skip(ULONG);
-	  HRESULT Reset();
-	  HRESULT Clone(IEnumFORMATETC*);
+      HRESULT Next(ULONG, FORMATETC*, ULONG*);
+      HRESULT Skip(ULONG);
+      HRESULT Reset();
+      HRESULT Clone(IEnumFORMATETC*);
 }
 
 interface IEnumHLITEM : IUnknown {
-	  HRESULT Next(ULONG, HLITEM*, ULONG*);
-	  HRESULT Skip(ULONG);
-	  HRESULT Reset();
-	  HRESULT Clone(IEnumHLITEM*);
+      HRESULT Next(ULONG, HLITEM*, ULONG*);
+      HRESULT Skip(ULONG);
+      HRESULT Reset();
+      HRESULT Clone(IEnumHLITEM*);
 }
 
 interface IEnumSTATDATA : IUnknown {
-	  HRESULT Next(ULONG, STATDATA*, ULONG*);
-	  HRESULT Skip(ULONG);
-	  HRESULT Reset();
-	  HRESULT Clone(IEnumSTATDATA*);
+      HRESULT Next(ULONG, STATDATA*, ULONG*);
+      HRESULT Skip(ULONG);
+      HRESULT Reset();
+      HRESULT Clone(IEnumSTATDATA*);
 }
 
 interface IEnumSTATPROPSETSTG : IUnknown {
-	  HRESULT Next(ULONG, STATPROPSETSTG*, ULONG*);
-	  HRESULT Skip(ULONG);
-	  HRESULT Reset();
-	  HRESULT Clone(IEnumSTATPROPSETSTG*);
+      HRESULT Next(ULONG, STATPROPSETSTG*, ULONG*);
+      HRESULT Skip(ULONG);
+      HRESULT Reset();
+      HRESULT Clone(IEnumSTATPROPSETSTG*);
 }
 
 interface IEnumSTATPROPSTG : IUnknown {
-	  HRESULT Next(ULONG, STATPROPSTG*, ULONG*);
-	  HRESULT Skip(ULONG);
-	  HRESULT Reset();
-	  HRESULT Clone(IEnumSTATPROPSTG*);
+      HRESULT Next(ULONG, STATPROPSTG*, ULONG*);
+      HRESULT Skip(ULONG);
+      HRESULT Reset();
+      HRESULT Clone(IEnumSTATPROPSTG*);
 }
 
 interface IEnumSTATSTG : IUnknown {
-	  HRESULT Next(ULONG, STATSTG*, ULONG*);
-	  HRESULT Skip(ULONG);
-	  HRESULT Reset();
-	  HRESULT Clone(IEnumSTATSTG*);
+      HRESULT Next(ULONG, STATSTG*, ULONG*);
+      HRESULT Skip(ULONG);
+      HRESULT Reset();
+      HRESULT Clone(IEnumSTATSTG*);
 }
 
 interface IEnumString : IUnknown {
-	  HRESULT Next(ULONG, LPOLESTR*, ULONG*);
-	  HRESULT Skip(ULONG);
-	  HRESULT Reset();
-	  HRESULT Clone(IEnumString*);
+      HRESULT Next(ULONG, LPOLESTR*, ULONG*);
+      HRESULT Skip(ULONG);
+      HRESULT Reset();
+      HRESULT Clone(IEnumString*);
 }
 
 interface IEnumMoniker : IUnknown {
-	  HRESULT Next(ULONG, IMoniker*, ULONG*);
-	  HRESULT Skip(ULONG);
-	  HRESULT Reset();
-	  HRESULT Clone(IEnumMoniker*);
+      HRESULT Next(ULONG, IMoniker*, ULONG*);
+      HRESULT Skip(ULONG);
+      HRESULT Reset();
+      HRESULT Clone(IEnumMoniker*);
 }
 
 
 interface IEnumUnknown : IUnknown {
-	  HRESULT Next(ULONG, IUnknown*, ULONG*);
-	  HRESULT Skip(ULONG);
-	  HRESULT Reset();
-	  HRESULT Clone(IEnumUnknown*);
+      HRESULT Next(ULONG, IUnknown*, ULONG*);
+      HRESULT Skip(ULONG);
+      HRESULT Reset();
+      HRESULT Clone(IEnumUnknown*);
 }
 
 interface ISequentialStream : IUnknown {
-	HRESULT Read(void*, ULONG, ULONG*);
-	HRESULT Write(void* , ULONG, ULONG*);
+    HRESULT Read(void*, ULONG, ULONG*);
+    HRESULT Write(void* , ULONG, ULONG*);
 }
 
 interface IStream : ISequentialStream {
-	HRESULT Seek(LARGE_INTEGER, DWORD, ULARGE_INTEGER*);
-	HRESULT SetSize(ULARGE_INTEGER);
-	HRESULT CopyTo(IStream, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*);
-	HRESULT Commit(DWORD);
-	HRESULT Revert();
-	HRESULT LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
-	HRESULT UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
-	HRESULT Stat(STATSTG*, DWORD);
-	HRESULT Clone(LPSTREAM*);
+    HRESULT Seek(LARGE_INTEGER, DWORD, ULARGE_INTEGER*);
+    HRESULT SetSize(ULARGE_INTEGER);
+    HRESULT CopyTo(IStream, ULARGE_INTEGER, ULARGE_INTEGER*, ULARGE_INTEGER*);
+    HRESULT Commit(DWORD);
+    HRESULT Revert();
+    HRESULT LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
+    HRESULT UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
+    HRESULT Stat(STATSTG*, DWORD);
+    HRESULT Clone(LPSTREAM*);
 }
 
 interface IMarshal : IUnknown {
-	HRESULT GetUnmarshalClass(REFIID, PVOID, DWORD, PVOID, DWORD, CLSID*);
-	HRESULT GetMarshalSizeMax(REFIID, PVOID, DWORD, PVOID, PDWORD, ULONG*);
-	HRESULT MarshalInterface(IStream, REFIID, PVOID, DWORD, PVOID, DWORD);
-	HRESULT UnmarshalInterface(IStream, REFIID, void**);
-	HRESULT ReleaseMarshalData(IStream);
-	HRESULT DisconnectObject(DWORD);
+    HRESULT GetUnmarshalClass(REFIID, PVOID, DWORD, PVOID, DWORD, CLSID*);
+    HRESULT GetMarshalSizeMax(REFIID, PVOID, DWORD, PVOID, PDWORD, ULONG*);
+    HRESULT MarshalInterface(IStream, REFIID, PVOID, DWORD, PVOID, DWORD);
+    HRESULT UnmarshalInterface(IStream, REFIID, void**);
+    HRESULT ReleaseMarshalData(IStream);
+    HRESULT DisconnectObject(DWORD);
 }
 
 interface IStdMarshalInfo : IUnknown {
-	HRESULT GetClassForHandler(DWORD, PVOID, CLSID*);
+    HRESULT GetClassForHandler(DWORD, PVOID, CLSID*);
 }
 
 interface IMalloc : IUnknown {
-	void* Alloc(ULONG);
-	void* Realloc(void*, ULONG);
-	void Free(void*);
-	ULONG GetSize(void*);
-	int DidAlloc(void*);
-	void HeapMinimize();
+    void* Alloc(ULONG);
+    void* Realloc(void*, ULONG);
+    void Free(void*);
+    ULONG GetSize(void*);
+    int DidAlloc(void*);
+    void HeapMinimize();
 }
 
 interface IMallocSpy : IUnknown {
-	ULONG PreAlloc(ULONG);
-	void* PostAlloc(void*);
-	void* PreFree(void*, BOOL);
-	void PostFree(BOOL);
-	ULONG PreRealloc(void*, ULONG, void**, BOOL);
-	void* PostRealloc(void*, BOOL);
-	void* PreGetSize(void*, BOOL);
-	ULONG PostGetSize(ULONG, BOOL);
-	void* PreDidAlloc(void*, BOOL);
-	int PostDidAlloc(void*, BOOL, int);
-	void PreHeapMinimize();
-	void PostHeapMinimize();
+    ULONG PreAlloc(ULONG);
+    void* PostAlloc(void*);
+    void* PreFree(void*, BOOL);
+    void PostFree(BOOL);
+    ULONG PreRealloc(void*, ULONG, void**, BOOL);
+    void* PostRealloc(void*, BOOL);
+    void* PreGetSize(void*, BOOL);
+    ULONG PostGetSize(ULONG, BOOL);
+    void* PreDidAlloc(void*, BOOL);
+    int PostDidAlloc(void*, BOOL, int);
+    void PreHeapMinimize();
+    void PostHeapMinimize();
 }
 
 interface IMessageFilter : IUnknown {
-	DWORD HandleInComingCall(DWORD, HTASK, DWORD, LPINTERFACEINFO);
-	DWORD RetryRejectedCall(HTASK, DWORD, DWORD);
-	DWORD MessagePending(HTASK, DWORD, DWORD);
+    DWORD HandleInComingCall(DWORD, HTASK, DWORD, LPINTERFACEINFO);
+    DWORD RetryRejectedCall(HTASK, DWORD, DWORD);
+    DWORD MessagePending(HTASK, DWORD, DWORD);
 }
 
 
 interface IPersist : IUnknown {
-	HRESULT GetClassID(CLSID*);
+    HRESULT GetClassID(CLSID*);
 }
 
 interface IPersistStream : IPersist {
-	HRESULT IsDirty();
-	HRESULT Load(IStream);
-	HRESULT Save(IStream, BOOL);
-	HRESULT GetSizeMax(PULARGE_INTEGER);
+    HRESULT IsDirty();
+    HRESULT Load(IStream);
+    HRESULT Save(IStream, BOOL);
+    HRESULT GetSizeMax(PULARGE_INTEGER);
 }
 
 interface IRunningObjectTable : IUnknown {
-	HRESULT Register(DWORD, LPUNKNOWN, LPMONIKER, PDWORD);
-	HRESULT Revoke(DWORD);
-	HRESULT IsRunning(LPMONIKER);
-	HRESULT GetObject(LPMONIKER, LPUNKNOWN*);
-	HRESULT NoteChangeTime(DWORD, LPFILETIME);
-	HRESULT GetTimeOfLastChange(LPMONIKER, LPFILETIME);
-	HRESULT EnumRunning(IEnumMoniker*);
+    HRESULT Register(DWORD, LPUNKNOWN, LPMONIKER, PDWORD);
+    HRESULT Revoke(DWORD);
+    HRESULT IsRunning(LPMONIKER);
+    HRESULT GetObject(LPMONIKER, LPUNKNOWN*);
+    HRESULT NoteChangeTime(DWORD, LPFILETIME);
+    HRESULT GetTimeOfLastChange(LPMONIKER, LPFILETIME);
+    HRESULT EnumRunning(IEnumMoniker*);
 }
 
 interface IBindCtx : IUnknown {
-	HRESULT RegisterObjectBound(LPUNKNOWN);
-	HRESULT RevokeObjectBound(LPUNKNOWN);
-	HRESULT ReleaseBoundObjects();
-	HRESULT SetBindOptions(LPBIND_OPTS);
-	HRESULT GetBindOptions(LPBIND_OPTS);
-	HRESULT GetRunningObjectTable(IRunningObjectTable*);
-	HRESULT RegisterObjectParam(LPOLESTR, IUnknown);
-	HRESULT GetObjectParam(LPOLESTR, IUnknown*);
-	HRESULT EnumObjectParam(IEnumString*);
-	HRESULT RevokeObjectParam(LPOLESTR);
+    HRESULT RegisterObjectBound(LPUNKNOWN);
+    HRESULT RevokeObjectBound(LPUNKNOWN);
+    HRESULT ReleaseBoundObjects();
+    HRESULT SetBindOptions(LPBIND_OPTS);
+    HRESULT GetBindOptions(LPBIND_OPTS);
+    HRESULT GetRunningObjectTable(IRunningObjectTable*);
+    HRESULT RegisterObjectParam(LPOLESTR, IUnknown);
+    HRESULT GetObjectParam(LPOLESTR, IUnknown*);
+    HRESULT EnumObjectParam(IEnumString*);
+    HRESULT RevokeObjectParam(LPOLESTR);
 }
 
 interface IMoniker: IPersistStream {
-	HRESULT BindToObject(IBindCtx, IMoniker, REFIID, PVOID*);
-	HRESULT BindToStorage(IBindCtx, IMoniker, REFIID, PVOID*);
-	HRESULT Reduce(IBindCtx, DWORD, IMoniker*, IMoniker*);
-	HRESULT ComposeWith(IMoniker, BOOL, IMoniker*);
-	HRESULT Enum(BOOL, IEnumMoniker*);
-	HRESULT IsEqual(IMoniker);
-	HRESULT Hash(PDWORD);
-	HRESULT IsRunning(IBindCtx, IMoniker, IMoniker);
-	HRESULT GetTimeOfLastChange(IBindCtx, IMoniker, LPFILETIME);
-	HRESULT Inverse(IMoniker*);
-	HRESULT CommonPrefixWith(IMoniker, IMoniker*);
-	HRESULT RelativePathTo(IMoniker, IMoniker*);
-	HRESULT GetDisplayName(IBindCtx, IMoniker, LPOLESTR*);
-	HRESULT ParseDisplayName(IBindCtx, IMoniker, LPOLESTR, ULONG*, IMoniker*);
-	HRESULT IsSystemMoniker(PDWORD);
+    HRESULT BindToObject(IBindCtx, IMoniker, REFIID, PVOID*);
+    HRESULT BindToStorage(IBindCtx, IMoniker, REFIID, PVOID*);
+    HRESULT Reduce(IBindCtx, DWORD, IMoniker*, IMoniker*);
+    HRESULT ComposeWith(IMoniker, BOOL, IMoniker*);
+    HRESULT Enum(BOOL, IEnumMoniker*);
+    HRESULT IsEqual(IMoniker);
+    HRESULT Hash(PDWORD);
+    HRESULT IsRunning(IBindCtx, IMoniker, IMoniker);
+    HRESULT GetTimeOfLastChange(IBindCtx, IMoniker, LPFILETIME);
+    HRESULT Inverse(IMoniker*);
+    HRESULT CommonPrefixWith(IMoniker, IMoniker*);
+    HRESULT RelativePathTo(IMoniker, IMoniker*);
+    HRESULT GetDisplayName(IBindCtx, IMoniker, LPOLESTR*);
+    HRESULT ParseDisplayName(IBindCtx, IMoniker, LPOLESTR, ULONG*, IMoniker*);
+    HRESULT IsSystemMoniker(PDWORD);
 }
 
 interface IPersistStorage : IPersist
 {
-	HRESULT IsDirty();
-	HRESULT InitNew(LPSTORAGE);
-	HRESULT Load(LPSTORAGE);
-	HRESULT Save(LPSTORAGE, BOOL);
-	HRESULT SaveCompleted(LPSTORAGE);
-	HRESULT HandsOffStorage();
+    HRESULT IsDirty();
+    HRESULT InitNew(LPSTORAGE);
+    HRESULT Load(LPSTORAGE);
+    HRESULT Save(LPSTORAGE, BOOL);
+    HRESULT SaveCompleted(LPSTORAGE);
+    HRESULT HandsOffStorage();
 }
 
 interface IPersistFile : IPersist
 {
-	HRESULT IsDirty();
-	HRESULT Load(LPCOLESTR, DWORD);
-	HRESULT Save(LPCOLESTR, BOOL);
-	HRESULT SaveCompleted(LPCOLESTR);
-	HRESULT GetCurFile(LPOLESTR*);
+    HRESULT IsDirty();
+    HRESULT Load(LPCOLESTR, DWORD);
+    HRESULT Save(LPCOLESTR, BOOL);
+    HRESULT SaveCompleted(LPCOLESTR);
+    HRESULT GetCurFile(LPOLESTR*);
 }
 
 interface IAdviseSink : IUnknown {
-	HRESULT QueryInterface(REFIID, PVOID*);
-	ULONG AddRef();
-	ULONG Release();
-	void OnDataChange(FORMATETC*, STGMEDIUM*);
-	void OnViewChange(DWORD, LONG);
-	void OnRename(IMoniker);
-	void OnSave();
-	void OnClose();
+    HRESULT QueryInterface(REFIID, PVOID*);
+    ULONG AddRef();
+    ULONG Release();
+    void OnDataChange(FORMATETC*, STGMEDIUM*);
+    void OnViewChange(DWORD, LONG);
+    void OnRename(IMoniker);
+    void OnSave();
+    void OnClose();
 }
 
 interface IAdviseSink2 : IAdviseSink
 {
-	void OnLinkSrcChange(IMoniker);
+    void OnLinkSrcChange(IMoniker);
 }
 
 interface IDataObject : IUnknown {
-	HRESULT GetData(FORMATETC*, STGMEDIUM*);
-	HRESULT GetDataHere(FORMATETC*, STGMEDIUM*);
-	HRESULT QueryGetData(FORMATETC*);
-	HRESULT GetCanonicalFormatEtc(FORMATETC*, FORMATETC*);
-	HRESULT SetData(FORMATETC*, STGMEDIUM*, BOOL);
-	HRESULT EnumFormatEtc(DWORD, IEnumFORMATETC*);
-	HRESULT DAdvise(FORMATETC*, DWORD, IAdviseSink, PDWORD);
-	HRESULT DUnadvise(DWORD);
-	HRESULT EnumDAdvise(IEnumSTATDATA*);
+    HRESULT GetData(FORMATETC*, STGMEDIUM*);
+    HRESULT GetDataHere(FORMATETC*, STGMEDIUM*);
+    HRESULT QueryGetData(FORMATETC*);
+    HRESULT GetCanonicalFormatEtc(FORMATETC*, FORMATETC*);
+    HRESULT SetData(FORMATETC*, STGMEDIUM*, BOOL);
+    HRESULT EnumFormatEtc(DWORD, IEnumFORMATETC*);
+    HRESULT DAdvise(FORMATETC*, DWORD, IAdviseSink, PDWORD);
+    HRESULT DUnadvise(DWORD);
+    HRESULT EnumDAdvise(IEnumSTATDATA*);
 }
 
 interface IDataAdviseHolder : IUnknown {
-	HRESULT Advise(IDataObject, FORMATETC*, DWORD, IAdviseSink, PDWORD);
-	HRESULT Unadvise(DWORD);
-	HRESULT EnumAdvise(IEnumSTATDATA*);
-	HRESULT SendOnDataChange(IDataObject, DWORD, DWORD);
+    HRESULT Advise(IDataObject, FORMATETC*, DWORD, IAdviseSink, PDWORD);
+    HRESULT Unadvise(DWORD);
+    HRESULT EnumAdvise(IEnumSTATDATA*);
+    HRESULT SendOnDataChange(IDataObject, DWORD, DWORD);
 }
 
 interface IStorage : IUnknown {
-	HRESULT CreateStream(LPCWSTR, DWORD, DWORD, DWORD, IStream);
-	HRESULT OpenStream(LPCWSTR, PVOID, DWORD, DWORD, IStream);
-	HRESULT CreateStorage(LPCWSTR, DWORD, DWORD, DWORD, IStorage);
-	HRESULT OpenStorage(LPCWSTR, IStorage, DWORD, SNB, DWORD, IStorage);
-	HRESULT CopyTo(DWORD, IID* , SNB, IStorage);
-	HRESULT MoveElementTo(LPCWSTR, IStorage, LPCWSTR, DWORD);
-	HRESULT Commit(DWORD);
-	HRESULT Revert();
-	HRESULT EnumElements(DWORD, PVOID, DWORD, IEnumSTATSTG);
-	HRESULT DestroyElement(LPCWSTR);
-	HRESULT RenameElement(LPCWSTR, LPCWSTR);
-	HRESULT SetElementTimes(LPCWSTR, FILETIME* , FILETIME* , FILETIME* );
-	HRESULT SetClass(REFCLSID);
-	HRESULT SetStateBits(DWORD, DWORD);
-	HRESULT Stat(STATSTG*, DWORD);
+    HRESULT CreateStream(LPCWSTR, DWORD, DWORD, DWORD, IStream);
+    HRESULT OpenStream(LPCWSTR, PVOID, DWORD, DWORD, IStream);
+    HRESULT CreateStorage(LPCWSTR, DWORD, DWORD, DWORD, IStorage);
+    HRESULT OpenStorage(LPCWSTR, IStorage, DWORD, SNB, DWORD, IStorage);
+    HRESULT CopyTo(DWORD, IID* , SNB, IStorage);
+    HRESULT MoveElementTo(LPCWSTR, IStorage, LPCWSTR, DWORD);
+    HRESULT Commit(DWORD);
+    HRESULT Revert();
+    HRESULT EnumElements(DWORD, PVOID, DWORD, IEnumSTATSTG);
+    HRESULT DestroyElement(LPCWSTR);
+    HRESULT RenameElement(LPCWSTR, LPCWSTR);
+    HRESULT SetElementTimes(LPCWSTR, FILETIME* , FILETIME* , FILETIME* );
+    HRESULT SetClass(REFCLSID);
+    HRESULT SetStateBits(DWORD, DWORD);
+    HRESULT Stat(STATSTG*, DWORD);
 }
 
 // FIXME: GetClassID from IPersist not there - what to do about it?
 interface IRootStorage : IPersist {
-	HRESULT QueryInterface(REFIID, PVOID*);
-	ULONG AddRef();
-	ULONG Release();
-	HRESULT SwitchToFile(LPOLESTR);
+    HRESULT QueryInterface(REFIID, PVOID*);
+    ULONG AddRef();
+    ULONG Release();
+    HRESULT SwitchToFile(LPOLESTR);
 }
 
 interface IRpcChannelBuffer : IUnknown {
-	HRESULT GetBuffer(RPCOLEMESSAGE*, REFIID);
-	HRESULT SendReceive(RPCOLEMESSAGE*, PULONG);
-	HRESULT FreeBuffer(RPCOLEMESSAGE*);
-	HRESULT GetDestCtx(PDWORD, PVOID*);
-	HRESULT IsConnected();
+    HRESULT GetBuffer(RPCOLEMESSAGE*, REFIID);
+    HRESULT SendReceive(RPCOLEMESSAGE*, PULONG);
+    HRESULT FreeBuffer(RPCOLEMESSAGE*);
+    HRESULT GetDestCtx(PDWORD, PVOID*);
+    HRESULT IsConnected();
 }
 
 interface IRpcProxyBuffer : IUnknown {
-	HRESULT Connect(IRpcChannelBuffer);
-	void Disconnect();
+    HRESULT Connect(IRpcChannelBuffer);
+    void Disconnect();
 }
 
 interface IRpcStubBuffer : IUnknown {
-	HRESULT Connect(LPUNKNOWN);
-	void Disconnect();
-	HRESULT Invoke(RPCOLEMESSAGE*, LPRPCSTUBBUFFER);
-	LPRPCSTUBBUFFER IsIIDSupported(REFIID);
-	ULONG CountRefs();
-	HRESULT DebugServerQueryInterface(PVOID*);
-	HRESULT DebugServerRelease(PVOID);
+    HRESULT Connect(LPUNKNOWN);
+    void Disconnect();
+    HRESULT Invoke(RPCOLEMESSAGE*, LPRPCSTUBBUFFER);
+    LPRPCSTUBBUFFER IsIIDSupported(REFIID);
+    ULONG CountRefs();
+    HRESULT DebugServerQueryInterface(PVOID*);
+    HRESULT DebugServerRelease(PVOID);
 }
 
 interface IPSFactoryBuffer : IUnknown {
-	HRESULT CreateProxy(LPUNKNOWN, REFIID, LPRPCPROXYBUFFER*, PVOID*);
-	HRESULT CreateStub(REFIID, LPUNKNOWN, LPRPCSTUBBUFFER*);
+    HRESULT CreateProxy(LPUNKNOWN, REFIID, LPRPCPROXYBUFFER*, PVOID*);
+    HRESULT CreateStub(REFIID, LPUNKNOWN, LPRPCSTUBBUFFER*);
 }
 alias IPSFactoryBuffer LPPSFACTORYBUFFER;
 
 interface ILockBytes : IUnknown {
-	HRESULT ReadAt(ULARGE_INTEGER, PVOID, ULONG, ULONG*);
-	HRESULT WriteAt(ULARGE_INTEGER, PCVOID, ULONG, ULONG*);
-	HRESULT Flush();
-	HRESULT SetSize(ULARGE_INTEGER);
-	HRESULT LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
-	HRESULT UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
-	HRESULT Stat(STATSTG*, DWORD);
+    HRESULT ReadAt(ULARGE_INTEGER, PVOID, ULONG, ULONG*);
+    HRESULT WriteAt(ULARGE_INTEGER, PCVOID, ULONG, ULONG*);
+    HRESULT Flush();
+    HRESULT SetSize(ULARGE_INTEGER);
+    HRESULT LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
+    HRESULT UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
+    HRESULT Stat(STATSTG*, DWORD);
 }
 
 interface IExternalConnection : IUnknown {
-	HRESULT AddConnection(DWORD, DWORD);
-	HRESULT ReleaseConnection(DWORD, DWORD, BOOL);
+    HRESULT AddConnection(DWORD, DWORD);
+    HRESULT ReleaseConnection(DWORD, DWORD, BOOL);
 }
 
 interface IRunnableObject : IUnknown {
-	HRESULT GetRunningClass(LPCLSID);
-	HRESULT Run(LPBC);
-	BOOL IsRunning();
-	HRESULT LockRunning(BOOL, BOOL);
-	HRESULT SetContainedObject(BOOL);
+    HRESULT GetRunningClass(LPCLSID);
+    HRESULT Run(LPBC);
+    BOOL IsRunning();
+    HRESULT LockRunning(BOOL, BOOL);
+    HRESULT SetContainedObject(BOOL);
 }
 
 interface IROTData : IUnknown {
-	HRESULT GetComparisonData(PVOID, ULONG, PULONG);
+    HRESULT GetComparisonData(PVOID, ULONG, PULONG);
 }
 
 interface IChannelHook : IUnknown {
-	void ClientGetSize(REFGUID, REFIID, PULONG);
-	void ClientFillBuffer(REFGUID, REFIID, PULONG, PVOID);
-	void ClientNotify(REFGUID, REFIID, ULONG, PVOID, DWORD, HRESULT);
-	void ServerNotify(REFGUID, REFIID, ULONG, PVOID, DWORD);
-	void ServerGetSize(REFGUID, REFIID, HRESULT, PULONG);
-	void ServerFillBuffer(REFGUID, REFIID, PULONG, PVOID, HRESULT);
+    void ClientGetSize(REFGUID, REFIID, PULONG);
+    void ClientFillBuffer(REFGUID, REFIID, PULONG, PVOID);
+    void ClientNotify(REFGUID, REFIID, ULONG, PVOID, DWORD, HRESULT);
+    void ServerNotify(REFGUID, REFIID, ULONG, PVOID, DWORD);
+    void ServerGetSize(REFGUID, REFIID, HRESULT, PULONG);
+    void ServerFillBuffer(REFGUID, REFIID, PULONG, PVOID, HRESULT);
 }
 
 interface IPropertyStorage : IUnknown {
-	HRESULT ReadMultiple(ULONG, PROPSPEC* , PROPVARIANT*);
-	HRESULT WriteMultiple(ULONG, PROPSPEC* , PROPVARIANT*, PROPID);
-	HRESULT DeleteMultiple(ULONG, PROPSPEC* );
-	HRESULT ReadPropertyNames(ULONG, PROPID* , LPWSTR*);
-	HRESULT WritePropertyNames(ULONG, PROPID* , LPWSTR* );
-	HRESULT DeletePropertyNames(ULONG, PROPID* );
-	HRESULT SetClass(REFCLSID);
-	HRESULT Commit(DWORD);
-	HRESULT Revert();
-	HRESULT Enum(IEnumSTATPROPSTG*);
-	HRESULT Stat(STATPROPSTG*);
-	HRESULT SetTimes(FILETIME* , FILETIME* , FILETIME* );
+    HRESULT ReadMultiple(ULONG, PROPSPEC* , PROPVARIANT*);
+    HRESULT WriteMultiple(ULONG, PROPSPEC* , PROPVARIANT*, PROPID);
+    HRESULT DeleteMultiple(ULONG, PROPSPEC* );
+    HRESULT ReadPropertyNames(ULONG, PROPID* , LPWSTR*);
+    HRESULT WritePropertyNames(ULONG, PROPID* , LPWSTR* );
+    HRESULT DeletePropertyNames(ULONG, PROPID* );
+    HRESULT SetClass(REFCLSID);
+    HRESULT Commit(DWORD);
+    HRESULT Revert();
+    HRESULT Enum(IEnumSTATPROPSTG*);
+    HRESULT Stat(STATPROPSTG*);
+    HRESULT SetTimes(FILETIME* , FILETIME* , FILETIME* );
 }
 
 interface IPropertySetStorage : IUnknown {
-	HRESULT Create(REFFMTID, CLSID*, DWORD, DWORD, LPPROPERTYSTORAGE*);
-	HRESULT Open(REFFMTID, DWORD, LPPROPERTYSTORAGE*);
-	HRESULT Delete(REFFMTID);
-	HRESULT Enum(IEnumSTATPROPSETSTG*);
+    HRESULT Create(REFFMTID, CLSID*, DWORD, DWORD, LPPROPERTYSTORAGE*);
+    HRESULT Open(REFFMTID, DWORD, LPPROPERTYSTORAGE*);
+    HRESULT Delete(REFFMTID);
+    HRESULT Enum(IEnumSTATPROPSETSTG*);
 }
 
 interface IClientSecurity : IUnknown {
-	HRESULT QueryBlanket(PVOID, PDWORD, PDWORD, OLECHAR**, PDWORD, PDWORD, RPC_AUTH_IDENTITY_HANDLE**, PDWORD*);
-	HRESULT SetBlanket(PVOID, DWORD, DWORD, LPWSTR, DWORD, DWORD, RPC_AUTH_IDENTITY_HANDLE*, DWORD);
-	HRESULT CopyProxy(LPUNKNOWN, LPUNKNOWN*);
+    HRESULT QueryBlanket(PVOID, PDWORD, PDWORD, OLECHAR**, PDWORD, PDWORD, RPC_AUTH_IDENTITY_HANDLE**, PDWORD*);
+    HRESULT SetBlanket(PVOID, DWORD, DWORD, LPWSTR, DWORD, DWORD, RPC_AUTH_IDENTITY_HANDLE*, DWORD);
+    HRESULT CopyProxy(LPUNKNOWN, LPUNKNOWN*);
 }
 
 interface IServerSecurity : IUnknown {
-	HRESULT QueryBlanket(PDWORD, PDWORD, OLECHAR**, PDWORD, PDWORD, RPC_AUTHZ_HANDLE*, PDWORD*);
-	HRESULT ImpersonateClient();
-	HRESULT RevertToSelf();
-	HRESULT IsImpersonating();
+    HRESULT QueryBlanket(PDWORD, PDWORD, OLECHAR**, PDWORD, PDWORD, RPC_AUTHZ_HANDLE*, PDWORD*);
+    HRESULT ImpersonateClient();
+    HRESULT RevertToSelf();
+    HRESULT IsImpersonating();
 }
 
 interface IClassActivator : IUnknown {
-	HRESULT GetClassObject(REFCLSID, DWORD, LCID, REFIID, PVOID*);
+    HRESULT GetClassObject(REFCLSID, DWORD, LCID, REFIID, PVOID*);
 }
 
 interface IFillLockBytes : IUnknown {
-	HRESULT FillAppend(void* , ULONG, PULONG);
-	HRESULT FillAt(ULARGE_INTEGER, void* , ULONG, PULONG);
-	HRESULT SetFillSize(ULARGE_INTEGER);
-	HRESULT Terminate(BOOL);
+    HRESULT FillAppend(void* , ULONG, PULONG);
+    HRESULT FillAt(ULARGE_INTEGER, void* , ULONG, PULONG);
+    HRESULT SetFillSize(ULARGE_INTEGER);
+    HRESULT Terminate(BOOL);
 }
 
 interface IProgressNotify : IUnknown {
-	HRESULT OnProgress(DWORD, DWORD, BOOL, BOOL);
+    HRESULT OnProgress(DWORD, DWORD, BOOL, BOOL);
 }
 
 interface ILayoutStorage : IUnknown {
-	HRESULT LayoutScript(STORAGELAYOUT*, DWORD, DWORD);
-	HRESULT BeginMonitor();
-	HRESULT EndMonitor();
-	HRESULT ReLayoutDocfile(OLECHAR*);
+    HRESULT LayoutScript(STORAGELAYOUT*, DWORD, DWORD);
+    HRESULT BeginMonitor();
+    HRESULT EndMonitor();
+    HRESULT ReLayoutDocfile(OLECHAR*);
 }
 
 interface IGlobalInterfaceTable : IUnknown {
-	HRESULT RegisterInterfaceInGlobal(IUnknown, REFIID, DWORD*);
-	HRESULT RevokeInterfaceFromGlobal(DWORD);
-	HRESULT GetInterfaceFromGlobal(DWORD, REFIID, void**);
+    HRESULT RegisterInterfaceInGlobal(IUnknown, REFIID, DWORD*);
+    HRESULT RevokeInterfaceFromGlobal(DWORD);
+    HRESULT GetInterfaceFromGlobal(DWORD, REFIID, void**);
 }
 
 /+

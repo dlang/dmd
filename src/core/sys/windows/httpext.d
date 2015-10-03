@@ -47,67 +47,67 @@ enum {
 mixin DECLARE_HANDLE!("HCONN");
 
 struct HSE_VERSION_INFO {
-	DWORD dwExtensionVersion;
-	CHAR[HSE_MAX_EXT_DLL_NAME_LEN] lpszExtensionDesc;
+    DWORD dwExtensionVersion;
+    CHAR[HSE_MAX_EXT_DLL_NAME_LEN] lpszExtensionDesc;
 }
 alias HSE_VERSION_INFO* LPHSE_VERSION_INFO;
 
 struct EXTENSION_CONTROL_BLOCK {
-	DWORD  cbSize = EXTENSION_CONTROL_BLOCK.sizeof;
-	DWORD  dwVersion;
-	HCONN  ConnID;
-	DWORD  dwHttpStatusCode;
-	CHAR[HSE_LOG_BUFFER_LEN] lpszLogData;
-	LPSTR  lpszMethod;
-	LPSTR  lpszQueryString;
-	LPSTR  lpszPathInfo;
-	LPSTR  lpszPathTranslated;
-	DWORD  cbTotalBytes;
-	DWORD  cbAvailable;
-	LPBYTE lpbData;
-	LPSTR  lpszContentType;
-	extern(Pascal) BOOL function(HCONN, LPSTR, LPVOID, LPDWORD)
-	  GetServerVariable;
-	extern(Pascal) BOOL function(HCONN, LPVOID, LPDWORD, DWORD) WriteClient;
-	extern(Pascal) BOOL function(HCONN, LPVOID, LPDWORD) ReadClient;
-	extern(Pascal) BOOL function(HCONN, DWORD, LPVOID, LPDWORD, LPDWORD)
-	  ServerSupportFunction;
+    DWORD  cbSize = EXTENSION_CONTROL_BLOCK.sizeof;
+    DWORD  dwVersion;
+    HCONN  ConnID;
+    DWORD  dwHttpStatusCode;
+    CHAR[HSE_LOG_BUFFER_LEN] lpszLogData;
+    LPSTR  lpszMethod;
+    LPSTR  lpszQueryString;
+    LPSTR  lpszPathInfo;
+    LPSTR  lpszPathTranslated;
+    DWORD  cbTotalBytes;
+    DWORD  cbAvailable;
+    LPBYTE lpbData;
+    LPSTR  lpszContentType;
+    extern(Pascal) BOOL function(HCONN, LPSTR, LPVOID, LPDWORD)
+      GetServerVariable;
+    extern(Pascal) BOOL function(HCONN, LPVOID, LPDWORD, DWORD) WriteClient;
+    extern(Pascal) BOOL function(HCONN, LPVOID, LPDWORD) ReadClient;
+    extern(Pascal) BOOL function(HCONN, DWORD, LPVOID, LPDWORD, LPDWORD)
+      ServerSupportFunction;
 }
 alias EXTENSION_CONTROL_BLOCK* LPEXTENSION_CONTROL_BLOCK;
 
 extern (Pascal) {
-	alias BOOL function(HSE_VERSION_INFO*) PFN_GETEXTENSIONVERSION;
-	alias DWORD function(EXTENSION_CONTROL_BLOCK*) PFN_HTTPEXTENSIONPROC;
-	alias BOOL function(DWORD) PFN_TERMINATEEXTENSION;
-	alias VOID function(EXTENSION_CONTROL_BLOCK*, PVOID, DWORD, DWORD) PFN_HSE_IO_COMPLETION;
+    alias BOOL function(HSE_VERSION_INFO*) PFN_GETEXTENSIONVERSION;
+    alias DWORD function(EXTENSION_CONTROL_BLOCK*) PFN_HTTPEXTENSIONPROC;
+    alias BOOL function(DWORD) PFN_TERMINATEEXTENSION;
+    alias VOID function(EXTENSION_CONTROL_BLOCK*, PVOID, DWORD, DWORD) PFN_HSE_IO_COMPLETION;
 }
 
 struct HSE_TF_INFO {
-	PFN_HSE_IO_COMPLETION pfnHseIO;
-	PVOID  pContext;
-	HANDLE hFile;
-	LPCSTR pszStatusCode;
-	DWORD  BytesToWrite;
-	DWORD  Offset;
-	PVOID  pHead;
-	DWORD  HeadLength;
-	PVOID  pTail;
-	DWORD  TailLength;
-	DWORD  dwFlags;
+    PFN_HSE_IO_COMPLETION pfnHseIO;
+    PVOID  pContext;
+    HANDLE hFile;
+    LPCSTR pszStatusCode;
+    DWORD  BytesToWrite;
+    DWORD  Offset;
+    PVOID  pHead;
+    DWORD  HeadLength;
+    PVOID  pTail;
+    DWORD  TailLength;
+    DWORD  dwFlags;
 }
 alias HSE_TF_INFO* LPHSE_TF_INFO;
 
 struct HSE_SEND_HEADER_EX_INFO {
-	LPCSTR pszStatus;
-	LPCSTR pszHeader;
-	DWORD  cchStatus;
-	DWORD  cchHeader;
-	BOOL   fKeepConn;
+    LPCSTR pszStatus;
+    LPCSTR pszHeader;
+    DWORD  cchStatus;
+    DWORD  cchHeader;
+    BOOL   fKeepConn;
 }
 alias HSE_SEND_HEADER_EX_INFO* LPHSE_SEND_HEADER_EX_INF;
 
 extern (Pascal) {
-	BOOL GetExtensionVersion(HSE_VERSION_INFO*);
-	DWORD HttpExtensionProc(EXTENSION_CONTROL_BLOCK*);
-	BOOL TerminateExtension(DWORD);
+    BOOL GetExtensionVersion(HSE_VERSION_INFO*);
+    DWORD HttpExtensionProc(EXTENSION_CONTROL_BLOCK*);
+    BOOL TerminateExtension(DWORD);
 }

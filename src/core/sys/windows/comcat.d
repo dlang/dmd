@@ -16,10 +16,10 @@ private import core.sys.windows.basetyps, core.sys.windows.cguid, core.sys.windo
 alias IEnumGUID LPENUMGUID;
 
 interface IEnumGUID : IUnknown {
-	HRESULT Next(ULONG, GUID*, ULONG*);
-	HRESULT Skip(ULONG);
-	HRESULT Reset();
-	HRESULT Clone(LPENUMGUID*);
+    HRESULT Next(ULONG, GUID*, ULONG*);
+    HRESULT Skip(ULONG);
+    HRESULT Reset();
+    HRESULT Clone(LPENUMGUID*);
 }
 
 alias GUID CATID;
@@ -28,9 +28,9 @@ alias GUID_NULL CATID_NULL;
 alias IsEqualGUID IsEqualCATID;
 
 struct CATEGORYINFO {
-	CATID        catid;
-	LCID         lcid;
-	OLECHAR[128] szDescription;
+    CATID        catid;
+    LCID         lcid;
+    OLECHAR[128] szDescription;
 }
 alias CATEGORYINFO* LPCATEGORYINFO;
 
@@ -43,30 +43,30 @@ alias LPENUMGUID LPENUMCLSID;
 alias IID_IEnumGUID IID_IEnumCLSID;
 
 interface ICatInformation : IUnknown {
-	HRESULT EnumCategories(LCID, LPENUMCATEGORYINFO*);
-	HRESULT GetCategoryDesc(REFCATID, LCID, PWCHAR*);
-	HRESULT EnumClassesOfCategories(ULONG, CATID*, ULONG, CATID*,
-	  LPENUMCLSID*);
-	HRESULT IsClassOfCategories(REFCLSID, ULONG, CATID*, ULONG, CATID*);
-	HRESULT EnumImplCategoriesOfClass(REFCLSID, LPENUMCATID*);
-	HRESULT EnumReqCategoriesOfClass(REFCLSID, LPENUMCATID*);
+    HRESULT EnumCategories(LCID, LPENUMCATEGORYINFO*);
+    HRESULT GetCategoryDesc(REFCATID, LCID, PWCHAR*);
+    HRESULT EnumClassesOfCategories(ULONG, CATID*, ULONG, CATID*,
+      LPENUMCLSID*);
+    HRESULT IsClassOfCategories(REFCLSID, ULONG, CATID*, ULONG, CATID*);
+    HRESULT EnumImplCategoriesOfClass(REFCLSID, LPENUMCATID*);
+    HRESULT EnumReqCategoriesOfClass(REFCLSID, LPENUMCATID*);
 }
 alias ICatInformation LPCATINFORMATION;
 
 interface ICatRegister : IUnknown {
-	HRESULT RegisterCategories(ULONG, CATEGORYINFO*);
-	HRESULT UnRegisterCategories(ULONG, CATID*);
-	HRESULT RegisterClassImplCategories(REFCLSID, ULONG, CATID*);
-	HRESULT UnRegisterClassImplCategories(REFCLSID, ULONG, CATID*);
-	HRESULT RegisterClassReqCategories(REFCLSID, ULONG, CATID*);
-	HRESULT UnRegisterClassReqCategories(REFCLSID, ULONG, CATID*);
+    HRESULT RegisterCategories(ULONG, CATEGORYINFO*);
+    HRESULT UnRegisterCategories(ULONG, CATID*);
+    HRESULT RegisterClassImplCategories(REFCLSID, ULONG, CATID*);
+    HRESULT UnRegisterClassImplCategories(REFCLSID, ULONG, CATID*);
+    HRESULT RegisterClassReqCategories(REFCLSID, ULONG, CATID*);
+    HRESULT UnRegisterClassReqCategories(REFCLSID, ULONG, CATID*);
 }
 alias ICatRegister LPCATREGISTER;
 
 interface IEnumCATEGORYINFO : IUnknown {
-	HRESULT Next(ULONG, CATEGORYINFO*, ULONG*);
-	HRESULT Skip(ULONG);
-	HRESULT Reset();
-	HRESULT Clone(LPENUMCATEGORYINFO*);
+    HRESULT Next(ULONG, CATEGORYINFO*, ULONG*);
+    HRESULT Skip(ULONG);
+    HRESULT Reset();
+    HRESULT Clone(LPENUMCATEGORYINFO*);
 }
 alias IEnumCATEGORYINFO LPENUMCATEGORYINFO;

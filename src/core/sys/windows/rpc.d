@@ -9,11 +9,11 @@
 module core.sys.windows.rpc;
 
 /* Moved to rpcdecp (duplicate definition).
-	typedef void *I_RPC_HANDLE;
-	alias long RPC_STATUS;
-	// Moved to rpcdce:
-	RpcImpersonateClient
-	RpcRevertToSelf
+    typedef void *I_RPC_HANDLE;
+    alias long RPC_STATUS;
+    // Moved to rpcdce:
+    RpcImpersonateClient
+    RpcRevertToSelf
 */
 
 public import core.sys.windows.unknwn;
@@ -26,5 +26,5 @@ alias MIDL_user_allocate midl_user_allocate;
 alias MIDL_user_free midl_user_free;
 
 extern (Windows) {
-	int I_RpcMapWin32Status(RPC_STATUS);
+    int I_RpcMapWin32Status(RPC_STATUS);
 }

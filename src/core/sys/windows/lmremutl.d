@@ -36,24 +36,24 @@ alias TCHAR DESC_CHAR;
 alias DESC_CHAR* LPDESC;
 
 struct TIME_OF_DAY_INFO {
-	DWORD tod_elapsedt;
-	DWORD tod_msecs;
-	DWORD tod_hours;
-	DWORD tod_mins;
-	DWORD tod_secs;
-	DWORD tod_hunds;
-	LONG  tod_timezone;
-	DWORD tod_tinterval;
-	DWORD tod_day;
-	DWORD tod_month;
-	DWORD tod_year;
-	DWORD tod_weekday;
+    DWORD tod_elapsedt;
+    DWORD tod_msecs;
+    DWORD tod_hours;
+    DWORD tod_mins;
+    DWORD tod_secs;
+    DWORD tod_hunds;
+    LONG  tod_timezone;
+    DWORD tod_tinterval;
+    DWORD tod_day;
+    DWORD tod_month;
+    DWORD tod_year;
+    DWORD tod_weekday;
 }
 alias TIME_OF_DAY_INFO* PTIME_OF_DAY_INFO, LPTIME_OF_DAY_INFO;
 
 extern (Windows) {
-	NET_API_STATUS NetRemoteTOD(LPCWSTR, PBYTE*);
-	NET_API_STATUS NetRemoteComputerSupports(LPCWSTR, DWORD, PDWORD);
-	NET_API_STATUS RxRemoteApi(DWORD, LPCWSTR, LPDESC, LPDESC, LPDESC,
-	  LPDESC, LPDESC, LPDESC, LPDESC, DWORD, ...);
+    NET_API_STATUS NetRemoteTOD(LPCWSTR, PBYTE*);
+    NET_API_STATUS NetRemoteComputerSupports(LPCWSTR, DWORD, PDWORD);
+    NET_API_STATUS RxRemoteApi(DWORD, LPCWSTR, LPDESC, LPDESC, LPDESC,
+      LPDESC, LPDESC, LPDESC, LPDESC, DWORD, ...);
 }

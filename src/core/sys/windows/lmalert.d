@@ -12,12 +12,12 @@ pragma(lib, "netapi32");
 private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 const TCHAR[]
-	ALERTER_MAILSLOT     = `\\.\MAILSLOT\Alerter`,
-	ALERT_PRINT_EVENT    = "PRINTING",
-	ALERT_MESSAGE_EVENT  = "MESSAGE",
-	ALERT_ERRORLOG_EVENT = "ERRORLOG",
-	ALERT_ADMIN_EVENT    = "ADMIN",
-	ALERT_USER_EVENT     = "USER";
+    ALERTER_MAILSLOT     = `\\.\MAILSLOT\Alerter`,
+    ALERT_PRINT_EVENT    = "PRINTING",
+    ALERT_MESSAGE_EVENT  = "MESSAGE",
+    ALERT_ERRORLOG_EVENT = "ERRORLOG",
+    ALERT_ADMIN_EVENT    = "ADMIN",
+    ALERT_USER_EVENT     = "USER";
 //MACRO #define ALERT_OTHER_INFO(x) ((PBYTE)(x)+sizeof(STD_ALERT))
 
 //MACRO #define ALERT_VAR_DATA(p) ((PBYTE)(p)+sizeof(*p))
@@ -38,35 +38,35 @@ const PRJOB_QS_SPOOLING = 2;
 const PRJOB_QS_PRINTING = 3;
 
 struct ADMIN_OTHER_INFO{
-	DWORD alrtad_errcode;
-	DWORD alrtad_numstrings;
+    DWORD alrtad_errcode;
+    DWORD alrtad_numstrings;
 }
 alias ADMIN_OTHER_INFO* PADMIN_OTHER_INFO, LPADMIN_OTHER_INFO;
 
 struct STD_ALERT{
-	DWORD alrt_timestamp;
-	TCHAR[EVLEN+1] alrt_eventname;
-	TCHAR[SNLEN+1] alrt_servicename;
+    DWORD alrt_timestamp;
+    TCHAR[EVLEN+1] alrt_eventname;
+    TCHAR[SNLEN+1] alrt_servicename;
 }
 alias STD_ALERT* PSTD_ALERT, LPSTD_ALERT;
 
 struct ERRLOG_OTHER_INFO{
-	DWORD alrter_errcode;
-	DWORD alrter_offset;
+    DWORD alrter_errcode;
+    DWORD alrter_offset;
 }
 alias ERRLOG_OTHER_INFO* PERRLOG_OTHER_INFO, LPERRLOG_OTHER_INFO;
 
 struct PRINT_OTHER_INFO{
-	DWORD alrtpr_jobid;
-	DWORD alrtpr_status;
-	DWORD alrtpr_submitted;
-	DWORD alrtpr_size;
+    DWORD alrtpr_jobid;
+    DWORD alrtpr_status;
+    DWORD alrtpr_submitted;
+    DWORD alrtpr_size;
 }
 alias PRINT_OTHER_INFO* PPRINT_OTHER_INFO, LPPRINT_OTHER_INFO;
 
 struct USER_OTHER_INFO{
-	DWORD alrtus_errcode;
-	DWORD alrtus_numstrings;
+    DWORD alrtus_errcode;
+    DWORD alrtus_numstrings;
 }
 alias USER_OTHER_INFO* PUSER_OTHER_INFO, LPUSER_OTHER_INFO;
 
