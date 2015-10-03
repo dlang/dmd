@@ -102,10 +102,14 @@ int main()
 							o.writefln("\tstatic assert(is(typeof(%s) == typeof_orig_%s));", lname, lname);
 						}
 						break;
+					case "alias":
+						o.writefln("\talias aliasof_%s = %s;", lname, d.deco.demangleType());
+						o.writefln("\tstatic assert(is(%s == aliasof_%s));", lname, lname);
+						break;
 					case "struct":
 					case "union":
-					case "alias":
 					case "enum":
+						// will descend to d.members below
 						break;
 					default:
 						stderr.writeln("Unknown kind: ", d.kind);
