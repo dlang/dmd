@@ -3,8 +3,8 @@ TEST_OUTPUT:
 ---
 fail_compilation/fail10528.d(19): Error: module fail10528 variable a10528.a is private
 fail_compilation/fail10528.d(20): Error: variable a10528.a is not accessible from module fail10528
-fail_compilation/fail10528.d(22): Error: variable a10528.b is not accessible from module fail10528
-fail_compilation/fail10528.d(23): Error: variable a10528.b is not accessible from module fail10528
+fail_compilation/fail10528.d(22): Error: module fail10528 enum member a10528.b is private
+fail_compilation/fail10528.d(23): Error: enum member a10528.b is not accessible from module fail10528
 fail_compilation/fail10528.d(25): Error: variable a10528.S.c is not accessible from module fail10528
 fail_compilation/fail10528.d(26): Error: variable a10528.S.c is not accessible from module fail10528
 fail_compilation/fail10528.d(28): Error: variable a10528.C.d is not accessible from module fail10528

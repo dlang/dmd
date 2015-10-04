@@ -1898,7 +1898,7 @@ public:
         sem = Semantic2Done;
     }
 
-    override final const(char)* kind()
+    override const(char)* kind()
     {
         return "variable";
     }
