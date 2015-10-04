@@ -1,32 +1,24 @@
-# set from top makefile
-OS:=
-MODEL:=
-DMD:=
-DRUNTIME:=
-DRUNTIMESO:=
-QUIET:=
-LINKDL:= # -L-ldl
-LDL:=$(subst -L,,$(LINKDL)) # -ldl
+LINK_SHARED:=1
 
-SRC:=src
-ROOT:=./obj/$(OS)/$(MODEL)
+include ../common.mak
+
 TESTS:=link load linkD linkDR loadDR host finalize
 TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep load_13414
-
-ifneq (default,$(MODEL))
-	MODEL_FLAG:=-m$(MODEL)
-endif
-CFLAGS:=$(MODEL_FLAG) -Wall
-DFLAGS:=$(MODEL_FLAG) -w -I../../src -I../../import -I$(SRC) -L$(DRUNTIMESO) -defaultlib= -debuglib=
+TESTS+=link_mod_collision load_mod_collision
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
-$(ROOT)/loadDR.done: RUN_ARGS:=$(DRUNTIMESO)
+$(ROOT)/loadDR.done $(ROOT)/host.done: RUN_ARGS:=$(DRUNTIMESO)
+
+$(ROOT)/%_mod_collision.done: $(ROOT)/%_mod_collision
+	@echo Testing $*_mod_collision
+	$(QUIET)($< $(RUN_ARGS) 2>&1 || true) | grep -qF 'already defined'
+	@touch $@
 
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
-	$(QUIET)$(ROOT)/$* $(RUN_ARGS)
+	$(QUIET)$< $(RUN_ARGS)
 	@touch $@
 
 $(ROOT)/link: $(SRC)/link.d $(ROOT)/lib.so $(DRUNTIMESO)
@@ -62,6 +54,14 @@ $(ROOT)/loadDR: $(SRC)/loadDR.c $(ROOT)/lib.so $(DRUNTIMESO)
 $(ROOT)/host: $(SRC)/host.c $(ROOT)/plugin1.so $(ROOT)/plugin2.so
 	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(LDL) -pthread
 
+$(ROOT)/link_mod_collision: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
+#	use no-as-needed to enforce linking of unused lib.so
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -L--no-as-needed -L$(ROOT)/lib.so
+
+$(ROOT)/load_mod_collision: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
+#	use export dynamic so that Module in exe can interposes Module in lib.so
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKDL) -L--export-dynamic
+
 $(ROOT)/liblinkdep.so: $(ROOT)/lib.so
 $(ROOT)/liblinkdep.so: DFLAGS+=-L$(ROOT)/lib.so
 
@@ -72,4 +72,4 @@ $(ROOT)/%.so: $(SRC)/%.d $(DRUNTIMESO)
 	$(QUIET)$(DMD) -fPIC -shared $(DFLAGS) -of$@ $< $(LINKDL)
 
 clean:
-	rm -rf obj
+	rm -rf $(ROOT)

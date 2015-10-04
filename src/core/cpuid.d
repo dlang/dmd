@@ -54,11 +54,6 @@
  * Source:    $(DRUNTIMESRC core/_cpuid.d)
  */
 
-/*          Copyright Don Clugston 2007 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module core.cpuid;
 
 @trusted:
@@ -120,113 +115,101 @@ public:
     // Note: When we deprecate it, we simply make it private.
     __gshared CacheInfo[5] datacache;
 
-    @property {
+@property pure
+{
     /// The data caches. If there are fewer than 5 physical caches levels,
     /// the remaining levels are set to size_t.max (== entire memory space)
-    const(CacheInfo)[5] dataCaches() { return datacache; }
+    const(CacheInfo)[5] dataCaches() { return _dataCaches; }
 
     /// Returns vendor string, for display purposes only.
     /// Do NOT use this to determine features!
     /// Note that some CPUs have programmable vendorIDs.
-    string vendor()     {return cast(string)vendorID;}
+    string vendor()     {return _vendor;}
     /// Returns processor string, for display purposes only
-    string processor()  {return processorName;}
+    string processor()  {return _processor;}
 
     /// Does it have an x87 FPU on-chip?
-    bool x87onChip()    {return (features&FPU_BIT)!=0;}
+    bool x87onChip()    {return _x87onChip;}
     /// Is MMX supported?
-    bool mmx()          {return (features&MMX_BIT)!=0;}
+    bool mmx()          {return _mmx;}
     /// Is SSE supported?
-    bool sse()          {return (features&SSE_BIT)!=0;}
+    bool sse()          {return _sse;}
     /// Is SSE2 supported?
-    bool sse2()         {return (features&SSE2_BIT)!=0;}
+    bool sse2()         {return _sse2;}
     /// Is SSE3 supported?
-    bool sse3()         {return (miscfeatures&SSE3_BIT)!=0;}
+    bool sse3()         {return _sse3;}
     /// Is SSSE3 supported?
-    bool ssse3()        {return (miscfeatures&SSSE3_BIT)!=0;}
+    bool ssse3()         {return _ssse3;}
     /// Is SSE4.1 supported?
-    bool sse41()        {return (miscfeatures&SSE41_BIT)!=0;}
+    bool sse41()        {return _sse41;}
     /// Is SSE4.2 supported?
-    bool sse42()        {return (miscfeatures&SSE42_BIT)!=0;}
+    bool sse42()        {return _sse42;}
     /// Is SSE4a supported?
-    bool sse4a()        {return (amdmiscfeatures&SSE4A_BIT)!=0;}
+    bool sse4a()        {return _sse4a;}
     /// Is AES supported
-    bool aes()          {return (miscfeatures&AES_BIT)!=0;}
+    bool aes()          {return _aes;}
     /// Is pclmulqdq supported
-    bool hasPclmulqdq() {return (miscfeatures&PCLMULQDQ_BIT)!=0;}
+    bool hasPclmulqdq() {return _hasPclmulqdq;}
     /// Is rdrand supported
-    bool hasRdrand()    {return (miscfeatures&RDRAND_BIT)!=0;}
+    bool hasRdrand()    {return _hasRdrand;}
     /// Is AVX supported
-    bool avx()
-    {
-        enum mask = XF_SSE_BIT|XF_YMM_BIT;
-        return (xfeatures & mask) == mask && (miscfeatures&AVX_BIT)!=0;
-    }
+    bool avx()          {return _avx;}
     /// Is VEX-Encoded AES supported
-    bool vaes()         {return avx && aes;}
+    bool vaes()         {return _vaes;}
     /// Is vpclmulqdq supported
-    bool hasVpclmulqdq(){return avx && hasPclmulqdq; }
+    bool hasVpclmulqdq(){return _hasVpclmulqdq; }
     /// Is FMA supported
-    bool fma()          {return avx && (miscfeatures&FMA_BIT)!=0;}
+    bool fma()          {return _fma;}
     /// Is FP16C supported
-    bool fp16c()        {return avx && (miscfeatures&FP16C_BIT)!=0;}
+    bool fp16c()        {return _fp16c;}
     /// Is AVX2 supported
-    bool avx2()         {return avx && (extfeatures & AVX2_BIT) != 0;}
+    bool avx2()         {return _avx2;}
     /// Is HLE (hardware lock elision) supported
-    bool hle()          {return (extfeatures & HLE_BIT) != 0;}
+    bool hle()          {return _hle;}
     /// Is RTM (restricted transactional memory) supported
-    bool rtm()          {return (extfeatures & RTM_BIT) != 0;}
+    bool rtm()          {return _rtm;}
     /// Is rdseed supported
-    bool hasRdseed()    {return (extfeatures&RDSEED_BIT)!=0;}
+    bool hasRdseed()    {return _hasRdseed;}
     /// Is SHA supported
-    bool hasSha()       {return (extfeatures&SHA_BIT)!=0;}
+    bool hasSha()       {return _hasSha;}
     /// Is AMD 3DNOW supported?
-    bool amd3dnow()     {return (amdfeatures&AMD_3DNOW_BIT)!=0;}
+    bool amd3dnow()     {return _amd3dnow;}
     /// Is AMD 3DNOW Ext supported?
-    bool amd3dnowExt()  {return (amdfeatures&AMD_3DNOW_EXT_BIT)!=0;}
+    bool amd3dnowExt()  {return _amd3dnowExt;}
     /// Are AMD extensions to MMX supported?
-    bool amdMmx()       {return (amdfeatures&AMD_MMX_BIT)!=0;}
+    bool amdMmx()       {return amdMmx;}
     /// Is fxsave/fxrstor supported?
-    bool hasFxsr()          {return (features&FXSR_BIT)!=0;}
+    bool hasFxsr()          {return _hasFxsr;}
     /// Is cmov supported?
-    bool hasCmov()          {return (features&CMOV_BIT)!=0;}
+    bool hasCmov()          {return _hasCmov;}
     /// Is rdtsc supported?
-    bool hasRdtsc()         {return (features&TIMESTAMP_BIT)!=0;}
+    bool hasRdtsc()         {return _hasRdtsc;}
     /// Is cmpxchg8b supported?
-    bool hasCmpxchg8b()     {return (features&CMPXCHG8B_BIT)!=0;}
+    bool hasCmpxchg8b()     {return _hasCmpxchg8b;}
     /// Is cmpxchg8b supported?
-    bool hasCmpxchg16b()    {return (miscfeatures&CMPXCHG16B_BIT)!=0;}
+    bool hasCmpxchg16b()    {return _hasCmpxchg16b;}
     /// Is SYSENTER/SYSEXIT supported?
-    bool hasSysEnterSysExit()     {
-        // The SYSENTER/SYSEXIT features were buggy on Pentium Pro and early PentiumII.
-        // (REF: www.geoffchappell.com).
-        if (probablyIntel && (family < 6 || (family==6 && (model< 3 || (model==3 && stepping<3)))))
-            return false;
-        return (features & SYSENTERSYSEXIT_BIT)!=0;
-    }
-
-
+    bool hasSysEnterSysExit() {return _hasSysEnterSysExit;}
     /// Is 3DNow prefetch supported?
-    bool has3dnowPrefetch()
-        {return (amdmiscfeatures&AMD_3DNOW_PREFETCH_BIT)!=0;}
+    bool has3dnowPrefetch()   {return _has3dnowPrefetch;}
     /// Are LAHF and SAHF supported in 64-bit mode?
-    bool hasLahfSahf()          {return (amdmiscfeatures&LAHFSAHF_BIT)!=0;}
+    bool hasLahfSahf()        {return _hasLahfSahf;}
     /// Is POPCNT supported?
-    bool hasPopcnt()        {return (miscfeatures&POPCNT_BIT)!=0;}
+    bool hasPopcnt()        {return _hasPopcnt;}
     /// Is LZCNT supported?
-    bool hasLzcnt()         {return (amdmiscfeatures&LZCNT_BIT)!=0;}
+    bool hasLzcnt()         {return _hasLzcnt;}
     /// Is this an Intel64 or AMD 64?
-    bool isX86_64()         {return (amdfeatures&AMD64_BIT)!=0;}
+    bool isX86_64()         {return _isX86_64;}
 
     /// Is this an IA64 (Itanium) processor?
-    bool isItanium()        { return (features&IA64_BIT)!=0; }
+    bool isItanium()        { return _isItanium; }
 
     /// Is hyperthreading supported?
-    bool hyperThreading()   { return maxThreads>maxCores; }
+    bool hyperThreading()   { return _hyperThreading; }
     /// Returns number of threads per CPU
-    uint threadsPerCPU()    {return maxThreads;}
+    uint threadsPerCPU()    {return _threadsPerCPU;}
     /// Returns number of cores in CPU
-    uint coresPerCPU()      {return maxCores;}
+    uint coresPerCPU()      {return _coresPerCPU;}
 
     /// Optimisation hints for assembly code.
     ///
@@ -254,12 +237,66 @@ public:
     /// instruction set improvements occur within each dynasty.
 
     /// Does this CPU perform better on AMD K7 code than PentiumPro..Core2 code?
-    bool preferAthlon() { return probablyAMD && family >=6; }
+    bool preferAthlon() { return _preferAthlon; }
     /// Does this CPU perform better on Pentium4 code than PentiumPro..Core2 code?
-    bool preferPentium4() { return probablyIntel && family == 0xF; }
+    bool preferPentium4() { return _preferPentium4; }
     /// Does this CPU perform better on Pentium I code than Pentium Pro code?
-    bool preferPentium1() { return family < 6 || (family==6 && model < 0xF && !probablyIntel); }
-    }
+    bool preferPentium1() { return _preferPentium1; }
+}
+
+private immutable
+{
+    /* These exist as immutables so that the query property functions can
+     * be backwards compatible with code that called them with ().
+     * Also, immutables can only be set by the static this().
+     */
+    const(CacheInfo)[5] _dataCaches;
+    string _vendor;
+    string _processor;
+    bool _x87onChip;
+    bool _mmx;
+    bool _sse;
+    bool _sse2;
+    bool _sse3;
+    bool _ssse3;
+    bool _sse41;
+    bool _sse42;
+    bool _sse4a;
+    bool _aes;
+    bool _hasPclmulqdq;
+    bool _hasRdrand;
+    bool _avx;
+    bool _vaes;
+    bool _hasVpclmulqdq;
+    bool _fma;
+    bool _fp16c;
+    bool _avx2;
+    bool _hle;
+    bool _rtm;
+    bool _hasRdseed;
+    bool _hasSha;
+    bool _amd3dnow;
+    bool _amd3dnowExt;
+    bool _amdMmx;
+    bool _hasFxsr;
+    bool _hasCmov;
+    bool _hasRdtsc;
+    bool _hasCmpxchg8b;
+    bool _hasCmpxchg16b;
+    bool _hasSysEnterSysExit;
+    bool _has3dnowPrefetch;
+    bool _hasLahfSahf;
+    bool _hasPopcnt;
+    bool _hasLzcnt;
+    bool _isX86_64;
+    bool _isItanium;
+    bool _hyperThreading;
+    uint _threadsPerCPU;
+    uint _coresPerCPU;
+    bool _preferAthlon;
+    bool _preferPentium4;
+    bool _preferPentium1;
+}
 
 __gshared:
     // All these values are set only once, and never subsequently modified.
@@ -274,6 +311,9 @@ public:
     /// The number of cache levels in the CPU.
     @property uint cacheLevels() { return numCacheLevels; }
 private:
+
+struct CpuFeatures
+{
     bool probablyIntel; // true = _probably_ an Intel processor, might be faking
     bool probablyAMD; // true = _probably_ an AMD processor
     string processorName;
@@ -287,8 +327,23 @@ private:
     ulong xfeatures = 0;   // XFEATURES_ENABLED_MASK
     uint maxCores = 1;
     uint maxThreads = 1;
+}
+
+CpuFeatures cpuFeatures;
+
+/* Hide from the optimizer where cf (a register) is coming from, so that
+ * cf doesn't get "optimized away". The idea is to  reference
+ * the global data through cf so not so many fixups are inserted
+ * into the executable image.
+ */
+CpuFeatures* getCpuFeatures() @nogc nothrow
+{
+    pragma(inline, false);
+    return &cpuFeatures;
+}
+
     // Note that this may indicate multi-core rather than hyperthreading.
-    @property bool hyperThreadingBit()    { return (features&HTT_BIT)!=0;}
+    @property bool hyperThreadingBit()    { return (cpuFeatures.features&HTT_BIT)!=0;}
 
     // feature flags CPUID1_EDX
     enum : uint
@@ -490,7 +545,7 @@ void getcacheinfoCPUID4()
         if ((a&0x1F)==0) break; // no more caches
         uint numthreads = ((a>>14) & 0xFFF)  + 1;
         uint numcores = ((a>>26) & 0x3F) + 1;
-        if (numcores > maxCores) maxCores = numcores;
+        if (numcores > cpuFeatures.maxCores) cpuFeatures.maxCores = numcores;
         if ((a&0x1F)!=1 && ((a&0x1F)!=3)) continue; // we only want data & unified caches
 
         ++number_of_sets;
@@ -539,7 +594,7 @@ void getAMDcacheinfo()
                 mov numcores, CL;
             }
             ++numcores;
-            if (numcores>maxCores) maxCores = numcores;
+            if (numcores>cpuFeatures.maxCores) cpuFeatures.maxCores = numcores;
         }
         asm pure nothrow @nogc {
             mov EAX, 0x8000_0006; // L2/L3 cache
@@ -583,8 +638,8 @@ void getCpuInfo0B()
             if (level==0)
                 threadsPerCore = b & 0xFFFF;
             else if (level==1) {
-                maxThreads = b & 0xFFFF;
-                maxCores = maxThreads / threadsPerCore;
+                cpuFeatures.maxThreads = b & 0xFFFF;
+                cpuFeatures.maxCores = cpuFeatures.maxThreads / threadsPerCore;
             }
 
         }
@@ -595,7 +650,9 @@ void getCpuInfo0B()
 
 void cpuidX86()
 {
-    char * venptr = vendorID.ptr;
+    auto cf = getCpuFeatures();
+
+    char * venptr = cf.vendorID.ptr;
     uint a, b, c, d, a2;
     version(D_InlineAsm_X86)
     {
@@ -630,8 +687,8 @@ void cpuidX86()
     max_extended_cpuid = a2;
 
 
-    probablyIntel = vendorID == "GenuineIntel";
-    probablyAMD = vendorID == "AuthenticAMD";
+    cf.probablyIntel = cf.vendorID == "GenuineIntel";
+    cf.probablyAMD = cf.vendorID == "AuthenticAMD";
     uint apic = 0; // brand index, apic id
     asm pure nothrow @nogc {
         mov EAX, 1; // model, stepping
@@ -641,8 +698,8 @@ void cpuidX86()
         mov c, ECX;
         mov d, EDX;
     }
-    features = d;
-    miscfeatures = c;
+    cf.features = d;
+    cf.miscfeatures = c;
 
     if (max_cpuid >= 7)
     {
@@ -656,10 +713,10 @@ void cpuidX86()
             mov ext, EBX; // HLE, AVX2, RTM, etc.
         }
 
-        extfeatures = ext;
+        cf.extfeatures = ext;
     }
 
-    if (miscfeatures & OSXSAVE_BIT)
+    if (cf.miscfeatures & OSXSAVE_BIT)
     {
         asm pure nothrow @nogc {
             mov ECX, 0;
@@ -667,10 +724,10 @@ void cpuidX86()
             mov d, EDX;
             mov a, EAX;
         }
-        xfeatures = cast(ulong)d << 32 | a;
+        cf.xfeatures = cast(ulong)d << 32 | a;
     }
-    amdfeatures = 0;
-    amdmiscfeatures = 0;
+    cf.amdfeatures = 0;
+    cf.amdmiscfeatures = 0;
     if (max_extended_cpuid >= 0x8000_0001) {
         asm pure nothrow @nogc {
             mov EAX, 0x8000_0001;
@@ -678,40 +735,35 @@ void cpuidX86()
             mov c, ECX;
             mov d, EDX;
         }
-        amdmiscfeatures = c;
-        amdfeatures = d;
+        cf.amdmiscfeatures = c;
+        cf.amdfeatures = d;
     }
     // Try to detect fraudulent vendorIDs
-    if (amd3dnow) probablyIntel = false;
+    if (amd3dnow) cf.probablyIntel = false;
 
     stepping = a & 0xF;
     uint fbase = (a >> 8) & 0xF;
     uint mbase = (a >> 4) & 0xF;
     family = ((fbase == 0xF) || (fbase == 0)) ? fbase + (a >> 20) & 0xFF : fbase;
-    model = ((fbase == 0xF) || (fbase == 6 && probablyIntel) ) ?
+    model = ((fbase == 0xF) || (fbase == 6 && cf.probablyIntel) ) ?
          mbase + ((a >> 12) & 0xF0) : mbase;
 
-    if (!probablyIntel && max_extended_cpuid >= 0x8000_0008) {
+    if (!cf.probablyIntel && max_extended_cpuid >= 0x8000_0008) {
         // determine max number of cores for AMD
         asm pure nothrow @nogc {
             mov EAX, 0x8000_0008;
             cpuid;
             mov c, ECX;
         }
-        uint apicsize = (c>>12) & 0xF;
-        if (apicsize == 0) {
-            // use legacy method
-            if (hyperThreadingBit)  maxCores = c & 0xFF;
-            else maxCores = 1;
-        } else {
-            // maxcores = 2^ apicsize
-            maxCores = 1;
-            while (apicsize) { maxCores<<=1; --apicsize; }
+        //http://support.amd.com/TechDocs/25481.pdf pg.36
+        cf.maxCores = 1;
+        if (hyperThreadingBit) {
+            cf.maxCores += c & 0xFF;
         }
     }
 
     if (max_extended_cpuid >= 0x8000_0004) {
-        char *procptr = processorNameBuffer.ptr;
+        char *procptr = cf.processorNameBuffer.ptr;
         version(D_InlineAsm_X86)
         {
             asm pure nothrow @nogc {
@@ -767,11 +819,11 @@ void cpuidX86()
         // Intel P4 and PM pad at front with spaces.
         // Other CPUs pad at end with nulls.
         int start = 0, end = 0;
-        while (processorNameBuffer[start] == ' ') { ++start; }
-        while (processorNameBuffer[processorNameBuffer.length-end-1] == 0) { ++end; }
-        processorName = cast(string)(processorNameBuffer[start..$-end]);
+        while (cf.processorNameBuffer[start] == ' ') { ++start; }
+        while (cf.processorNameBuffer[cf.processorNameBuffer.length-end-1] == 0) { ++end; }
+        cf.processorName = cast(string)(cf.processorNameBuffer[start..$-end]);
     } else {
-        processorName = "Unknown CPU";
+        cf.processorName = "Unknown CPU";
     }
     // Determine cache sizes
 
@@ -789,10 +841,10 @@ void cpuidX86()
     // Therefore, we try the AMD method unless it's an Intel chip.
     // If we still have no info, try the Intel methods.
     datacache[0].size = 0;
-    if (max_cpuid<2 || !probablyIntel) {
+    if (max_cpuid<2 || !cf.probablyIntel) {
         if (max_extended_cpuid >= 0x8000_0005) {
             getAMDcacheinfo();
-        } else if (probablyAMD) {
+        } else if (cf.probablyAMD) {
             // According to AMDProcRecognitionAppNote, this means CPU
             // K5 model 0, or Am5x86 (model 4), or Am4x86DX4 (model 4)
             // Am5x86 has 16Kb 4-way unified data & code cache.
@@ -832,8 +884,8 @@ void cpuidX86()
         // cores and hyperthreads.
         getCpuInfo0B();
     } else {
-        if (hyperThreadingBit) maxThreads = (apic>>>16) & 0xFF;
-        else maxThreads = maxCores;
+        if (hyperThreadingBit) cf.maxThreads = (apic>>>16) & 0xFF;
+        else cf.maxThreads = cf.maxCores;
     }
 }
 
@@ -915,6 +967,8 @@ void cpuidSparc()
 
 shared static this()
 {
+    auto cf = getCpuFeatures();
+
     if (hasCPUID()) {
         cpuidX86();
     } else {
@@ -939,4 +993,61 @@ shared static this()
         else
             ++numCacheLevels;
     }
+
+    // Set the immortals
+
+    _dataCaches =     datacache;
+    _vendor =         cast(string)cf.vendorID;
+    _processor =      cf.processorName;
+    _x87onChip =      (cf.features&FPU_BIT)!=0;
+    _mmx =            (cf.features&MMX_BIT)!=0;
+    _sse =            (cf.features&SSE_BIT)!=0;
+    _sse2 =           (cf.features&SSE2_BIT)!=0;
+    _sse3 =           (cf.miscfeatures&SSE3_BIT)!=0;
+    _ssse3 =          (cf.miscfeatures&SSSE3_BIT)!=0;
+    _sse41 =          (cf.miscfeatures&SSE41_BIT)!=0;
+    _sse42 =          (cf.miscfeatures&SSE42_BIT)!=0;
+    _sse4a =          (cf.amdmiscfeatures&SSE4A_BIT)!=0;
+    _aes =            (cf.miscfeatures&AES_BIT)!=0;
+    _hasPclmulqdq =   (cf.miscfeatures&PCLMULQDQ_BIT)!=0;
+    _hasRdrand =      (cf.miscfeatures&RDRAND_BIT)!=0;
+
+    enum avx_mask = XF_SSE_BIT|XF_YMM_BIT;
+    _avx =            (cf.xfeatures & avx_mask) == avx_mask && (cf.miscfeatures&AVX_BIT)!=0;
+
+    _vaes =           avx && aes;
+    _hasVpclmulqdq =  avx && hasPclmulqdq;
+    _fma =            avx && (cf.miscfeatures&FMA_BIT)!=0;
+    _fp16c =          avx && (cf.miscfeatures&FP16C_BIT)!=0;
+    _avx2 =           avx && (cf.extfeatures & AVX2_BIT) != 0;
+    _hle =            (cf.extfeatures & HLE_BIT) != 0;
+    _rtm =            (cf.extfeatures & RTM_BIT) != 0;
+    _hasRdseed =      (cf.extfeatures&RDSEED_BIT)!=0;
+    _hasSha =         (cf.extfeatures&SHA_BIT)!=0;
+    _amd3dnow =       (cf.amdfeatures&AMD_3DNOW_BIT)!=0;
+    _amd3dnowExt =    (cf.amdfeatures&AMD_3DNOW_EXT_BIT)!=0;
+    _amdMmx =         (cf.amdfeatures&AMD_MMX_BIT)!=0;
+    _hasFxsr =        (cf.features&FXSR_BIT)!=0;
+    _hasCmov =        (cf.features&CMOV_BIT)!=0;
+    _hasRdtsc =       (cf.features&TIMESTAMP_BIT)!=0;
+    _hasCmpxchg8b =   (cf.features&CMPXCHG8B_BIT)!=0;
+    _hasCmpxchg16b =  (cf.miscfeatures&CMPXCHG16B_BIT)!=0;
+    _hasSysEnterSysExit =
+        // The SYSENTER/SYSEXIT features were buggy on Pentium Pro and early PentiumII.
+        // (REF: www.geoffchappell.com).
+        (cf.probablyIntel && (family < 6 || (family==6 && (model< 3 || (model==3 && stepping<3)))))
+            ? false
+            : (cf.features & SYSENTERSYSEXIT_BIT)!=0;
+    _has3dnowPrefetch = (cf.amdmiscfeatures&AMD_3DNOW_PREFETCH_BIT)!=0;
+    _hasLahfSahf =    (cf.amdmiscfeatures&LAHFSAHF_BIT)!=0;
+    _hasPopcnt =      (cf.miscfeatures&POPCNT_BIT)!=0;
+    _hasLzcnt =       (cf.amdmiscfeatures&LZCNT_BIT)!=0;
+    _isX86_64 =       (cf.amdfeatures&AMD64_BIT)!=0;
+    _isItanium =      (cf.features&IA64_BIT)!=0;
+    _hyperThreading = cf.maxThreads>cf.maxCores;
+    _threadsPerCPU =  cf.maxThreads;
+    _coresPerCPU =    cf.maxCores;
+    _preferAthlon =   cf.probablyAMD && family >=6;
+    _preferPentium4 = cf.probablyIntel && family == 0xF;
+    _preferPentium1 = family < 6 || (family==6 && model < 0xF && !cf.probablyIntel);
 }

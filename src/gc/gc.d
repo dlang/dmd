@@ -3343,29 +3343,29 @@ else
 debug (MEMSTOMP)
 unittest
 {
-	import core.memory;
-	auto p = cast(uint*)GC.malloc(uint.sizeof*3);
-	assert(*p == 0xF0F0F0F0);
-	p[2] = 0; // First two will be used for free list
-	GC.free(p);
-	assert(p[2] == 0xF2F2F2F2);
+    import core.memory;
+    auto p = cast(uint*)GC.malloc(uint.sizeof*3);
+    assert(*p == 0xF0F0F0F0);
+    p[2] = 0; // First two will be used for free list
+    GC.free(p);
+    assert(p[2] == 0xF2F2F2F2);
 }
 
 debug (SENTINEL)
 unittest
 {
-	import core.memory;
-	auto p = cast(ubyte*)GC.malloc(1);
-	assert(p[-1] == 0xF4);
-	assert(p[ 1] == 0xF5);
+    import core.memory;
+    auto p = cast(ubyte*)GC.malloc(1);
+    assert(p[-1] == 0xF4);
+    assert(p[ 1] == 0xF5);
 /*
-	p[1] = 0;
-	bool thrown;
-	try
-		GC.free(p);
-	catch (Error e)
-		thrown = true;
-	p[1] = 0xF5;
-	assert(thrown);
+    p[1] = 0;
+    bool thrown;
+    try
+        GC.free(p);
+    catch (Error e)
+        thrown = true;
+    p[1] = 0xF5;
+    assert(thrown);
 */
 }

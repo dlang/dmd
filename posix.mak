@@ -7,13 +7,27 @@ QUIET:=@
 
 include osmodel.mak
 
+# Default to a release built, override with BUILD=debug
+ifeq (,$(BUILD))
+BUILD_WAS_SPECIFIED=0
+BUILD=release
+else
+BUILD_WAS_SPECIFIED=1
+endif
+
+ifneq ($(BUILD),release)
+    ifneq ($(BUILD),debug)
+        $(error Unrecognized BUILD=$(BUILD), must be 'debug' or 'release')
+    endif
+endif
+
 DMD=../dmd/src/dmd
 INSTALL_DIR=../install
 
 DOCDIR=doc
 IMPDIR=import
 
-override PIC:=$(if $(PIC),-fPIC,)
+OPTIONAL_PIC:=$(if $(PIC),-fPIC,)
 
 ifeq (osx,$(OS))
 	DOTDLL:=.dylib
@@ -23,21 +37,37 @@ else
 	DOTLIB:=.a
 endif
 
-DFLAGS=$(MODEL_FLAG) -conf= -O -release -dip25 -inline -w -Isrc -Iimport $(PIC)
-UDFLAGS=$(MODEL_FLAG) -conf= -O -release -dip25 -w -Isrc -Iimport $(PIC)
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
-CFLAGS=$(MODEL_FLAG) -O $(PIC)
+# Set CFLAGS
+CFLAGS=$(MODEL_FLAG) -fPIC -DHAVE_UNISTD_H
+ifeq ($(BUILD),debug)
+	CFLAGS += -g
+else
+	CFLAGS += -O3
+endif
 ifeq (solaris,$(OS))
-    CFLAGS+=-D_REENTRANT  # for thread-safe errno
+	CFLAGS+=-D_REENTRANT  # for thread-safe errno
 endif
 
-OBJDIR=obj/$(MODEL)
+# Set DFLAGS
+UDFLAGS:=-conf= -Isrc -Iimport -w -dip25 $(MODEL_FLAG) $(OPTIONAL_PIC)
+ifeq ($(BUILD),debug)
+	UDFLAGS += -g -debug
+	DFLAGS:=$(UDFLAGS)
+else
+	UDFLAGS += -O -release
+	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
+endif
+
+ROOT_OF_THEM_ALL = generated
+ROOT = $(ROOT_OF_THEM_ALL)/$(OS)/$(BUILD)/$(MODEL)
+OBJDIR=obj/$(OS)/$(BUILD)/$(MODEL)
 DRUNTIME_BASE=druntime-$(OS)$(MODEL)
-DRUNTIME=lib/lib$(DRUNTIME_BASE).a
-DRUNTIMESO=lib/lib$(DRUNTIME_BASE).so
-DRUNTIMESOOBJ=lib/lib$(DRUNTIME_BASE)so.o
-DRUNTIMESOLIB=lib/lib$(DRUNTIME_BASE)so.a
+DRUNTIME=$(ROOT)/libdruntime.a
+DRUNTIMESO=$(ROOT)/libdruntime.so
+DRUNTIMESOOBJ=$(ROOT)/libdruntime.so.o
+DRUNTIMESOLIB=$(ROOT)/libdruntime.so.a
 
 DOCFMT=
 
@@ -61,12 +91,14 @@ SRCS:=$(subst \,/,$(SRCS))
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32	 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/bss_section.o $(OBJDIR)/threadasm.o
+OBJS= $(ROOT)/errno_c.o $(ROOT)/bss_section.o $(ROOT)/threadasm.o
 
 # build with shared library support
 SHARED=$(if $(findstring $(OS),linux freebsd),1,)
 
 LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
+
+MAKEFILE = $(firstword $(MAKEFILE_LIST))
 
 ######################## All of'em ##############################
 
@@ -100,7 +132,7 @@ changelog.html: changelog.dd
 import: $(IMPORTS)
 
 $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
-	@mkdir -p `dirname $@`
+	@mkdir -p $(dir $@)
 	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $<
 
 ######################## Header .di file copy ##############################
@@ -108,36 +140,35 @@ $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 copy: $(COPY)
 
 $(IMPDIR)/object.d : src/object.d
-	@mkdir -p `dirname $@`
+	@mkdir -p $(dir $@)
 	@rm -f $(IMPDIR)/object.di
 	cp $< $@
 
 $(IMPDIR)/%.di : src/%.di
-	@mkdir -p `dirname $@`
+	@mkdir -p $(dir $@)
 	cp $< $@
 
 $(IMPDIR)/%.d : src/%.d
-	@mkdir -p `dirname $@`
+	@mkdir -p $(dir $@)
 	cp $< $@
 
 ################### C/ASM Targets ############################
 
-$(OBJDIR)/%.o : src/rt/%.c
-	@mkdir -p `dirname $@`
+$(ROOT)/%.o : src/rt/%.c
+	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(OBJDIR)/errno_c.o : src/core/stdc/errno.c
-	@mkdir -p `dirname $@`
+$(ROOT)/errno_c.o : src/core/stdc/errno.c
+	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(OBJDIR)/threadasm.o : src/core/threadasm.S
-	@mkdir -p $(OBJDIR)
+$(ROOT)/threadasm.o : src/core/threadasm.S
+	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
 ######################## Create a shared library ##############################
 
-$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: override PIC:=-fPIC
-$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared
+$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared -fPIC
 dll: $(DRUNTIMESOLIB)
 
 $(DRUNTIMESO): $(OBJS) $(SRCS)
@@ -152,15 +183,29 @@ $(DRUNTIMESOLIB): $(OBJS) $(SRCS)
 $(DRUNTIME): $(OBJS) $(SRCS)
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
-UT_MODULES:=$(patsubst src/%.d,$(OBJDIR)/%,$(SRCS))
+UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
 	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile
 	ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
 endif
 
+.PHONY : unittest
+ifeq (1,$(BUILD_WAS_SPECIFIED))
 unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
 	@echo done
+else
+unittest : unittest-debug unittest-release
+unittest-%:
+	$(MAKE) -f $(MAKEFILE) unittest OS=$(OS) MODEL=$(MODEL) DMD=$(DMD) BUILD=$*
+endif
+
+ifeq ($(OS),linux)
+  old_kernel:=$(shell [ "$$(uname -r | cut -d'-' -f1)" \< "2.6.39" ] && echo 1)
+  ifeq ($(old_kernel),1)
+    UDFLAGS+=-version=Linux_Pre_2639
+  endif
+endif
 
 ifeq ($(OS),freebsd)
 DISABLED_TESTS =
@@ -168,24 +213,23 @@ else
 DISABLED_TESTS =
 endif
 
-$(addprefix $(OBJDIR)/,$(DISABLED_TESTS)) :
+$(addprefix $(ROOT)/unittest/,$(DISABLED_TESTS)) :
 	@echo $@ - disabled
 
 ifeq (,$(SHARED))
 
-$(OBJDIR)/test_runner: $(OBJS) $(SRCS) src/test_runner.d
+$(ROOT)/unittest/test_runner: $(OBJS) $(SRCS) src/test_runner.d
 	$(DMD) $(UDFLAGS) -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib=
 
 else
 
-UT_DRUNTIME:=$(OBJDIR)/lib$(DRUNTIME_BASE)-ut$(DOTDLL)
+UT_DRUNTIME:=$(ROOT)/unittest/libdruntime-ut$(DOTDLL)
 
-$(UT_DRUNTIME): override PIC:=-fPIC
-$(UT_DRUNTIME): UDFLAGS+=-version=Shared
+$(UT_DRUNTIME): UDFLAGS+=-version=Shared -fPIC
 $(UT_DRUNTIME): $(OBJS) $(SRCS)
 	$(DMD) $(UDFLAGS) -shared -unittest -of$@ $(SRCS) $(OBJS) $(LINKDL) -debuglib= -defaultlib=
 
-$(OBJDIR)/test_runner: $(UT_DRUNTIME) src/test_runner.d
+$(ROOT)/unittest/test_runner: $(UT_DRUNTIME) src/test_runner.d
 	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIME) -debuglib= -defaultlib=
 
 endif
@@ -193,48 +237,62 @@ endif
 # macro that returns the module name given the src path
 moduleName=$(subst rt.invariant,invariant,$(subst object_,object,$(subst /,.,$(1))))
 
-$(OBJDIR)/% : $(OBJDIR)/test_runner
+$(ROOT)/unittest/% : $(ROOT)/unittest/test_runner
 	@mkdir -p $(dir $@)
 # make the file very old so it builds and runs again if it fails
 	@touch -t 197001230123 $@
 # run unittest in its own directory
-	$(QUIET)$(RUN) $(OBJDIR)/test_runner $(call moduleName,$*)
+	$(QUIET)$(RUN) $< $(call moduleName,$*)
 # succeeded, render the file new again
 	@touch $@
 
-test/init_fini/.run test/exceptions/.run: $(DRUNTIME)
+$(addsuffix /.run,$(filter-out test/shared,$(ADDITIONAL_TESTS))): $(DRUNTIME)
 test/shared/.run: $(DRUNTIMESO)
 
 test/%/.run: test/%/Makefile
-	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) \
+	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) BUILD=$(BUILD) \
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) QUIET=$(QUIET) LINKDL=$(LINKDL)
+
+#################### test for undesired white spaces ##########################
+CWS_MANIFEST = $(shell git ls-tree --name-only -r HEAD)
+CWS_MAKEFILES = $(filter mak/% %.mak %/Makefile,$(CWS_MANIFEST))
+NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES) src/rt/minit.obj test/%.exp,$(CWS_MANIFEST))
+GREP = grep
+
+checkwhitespace:
+# restrict to linux, other platforms don't have a version of grep that supports -P
+ifeq (linux,$(OS))
+	$(GREP) -n -U -P "([ \t]$$|\r)" $(CWS_MAKEFILES) ; test "$$?" -ne 0
+	$(GREP) -n -U -P "( $$|\r|\t)" $(NOT_MAKEFILES) ; test "$$?" -ne 0
+endif
 
 detab:
 	detab $(MANIFEST)
 	tolf $(MANIFEST)
 
+
+gitzip:
+	git archive --format=zip HEAD > druntime.zip
+
 zip: druntime.zip
 
-druntime.zip: $(MANIFEST) $(IMPORTS)
+druntime.zip: $(MANIFEST)
 	rm -rf $@
 	zip $@ $^
 
 install: target
 	mkdir -p $(INSTALL_DIR)/src/druntime/import
 	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
-	$(eval lib_dir=$(if $(filter $(OS),osx), lib, lib$(MODEL)))
-	mkdir -p $(INSTALL_DIR)/$(OS)/$(lib_dir)
-	cp -r lib/* $(INSTALL_DIR)/$(OS)/$(lib_dir)/
 	cp LICENSE $(INSTALL_DIR)/druntime-LICENSE.txt
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
-	rm -rf obj lib $(IMPDIR) $(DOCDIR) druntime.zip
+	rm -rf $(ROOT_OF_THEM_ALL) $(IMPDIR) $(DOCDIR) druntime.zip
 
 test/%/.clean: test/%/Makefile
 	$(MAKE) -C test/$* clean
 
 .PHONY : auto-tester-build
-auto-tester-build: target
+auto-tester-build: target checkwhitespace
 
 .PHONY : auto-tester-test
 auto-tester-test: unittest

@@ -94,6 +94,13 @@ version( CRuntime_Glibc )
         enum RTLD_GLOBAL    = 0x00100;
         enum RTLD_LOCAL     = 0;
     }
+    else version (SystemZ)
+    {
+        enum RTLD_LAZY      = 0x00001;
+        enum RTLD_NOW       = 0x00002;
+        enum RTLD_GLOBAL    = 0x00100;
+        enum RTLD_LOCAL     = 0;
+    }
     else
         static assert(0, "unimplemented");
 

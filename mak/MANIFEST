@@ -18,6 +18,7 @@ MANIFEST=\
 	src\test_runner.d \
 	\
 	src\core\atomic.d \
+	src\core\attribute.d \
 	src\core\bitop.d \
 	src\core\checkedint.d \
 	src\core\cpuid.d \
@@ -32,8 +33,10 @@ MANIFEST=\
 	src\core\time.d \
 	src\core\vararg.d \
 	\
+	src\core\internal\abort.d \
 	src\core\internal\convert.d \
 	src\core\internal\hash.d \
+	src\core\internal\string.d \
 	src\core\internal\traits.d \
 	\
 	src\core\stdc\complex.d \
@@ -86,6 +89,7 @@ MANIFEST=\
 	src\core\sys\linux\epoll.d \
 	src\core\sys\linux\errno.d \
 	src\core\sys\linux\execinfo.d \
+	src\core\sys\linux\fcntl.d \
 	src\core\sys\linux\link.d \
 	src\core\sys\linux\stdio.d \
 	src\core\sys\linux\termios.d \
@@ -110,6 +114,7 @@ MANIFEST=\
 	src\core\sys\osx\mach\thread_act.d \
 	\
 	src\core\sys\osx\sys\cdefs.d \
+	src\core\sys\osx\sys\event.d \
 	src\core\sys\osx\sys\mman.d \
 	\
 	src\core\sys\posix\config.d \
@@ -145,6 +150,7 @@ MANIFEST=\
 	src\core\sys\posix\sys\ioctl.d \
 	src\core\sys\posix\sys\ipc.d \
 	src\core\sys\posix\sys\mman.d \
+	src\core\sys\posix\sys\msg.d \
 	src\core\sys\posix\sys\resource.d \
 	src\core\sys\posix\sys\select.d \
 	src\core\sys\posix\sys\shm.d \
@@ -245,7 +251,6 @@ MANIFEST=\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
 	src\rt\util\random.d \
-	src\rt\util\string.d \
 	src\rt\util\typeinfo.d \
 	src\rt\util\utf.d \
 	src\rt\util\container\array.d \
@@ -291,4 +296,38 @@ MANIFEST=\
 	src\rt\typeinfo\ti_void.d \
 	src\rt\typeinfo\ti_wchar.d \
 	\
-	src\etc\linux\memoryerror.d
+	src\etc\linux\memoryerror.d \
+	\
+	test\common.mak \
+	test\coverage\Makefile \
+	test\coverage\src-basic.lst.exp \
+	test\coverage\src-merge.lst.exp \
+	test\coverage\src-merge_true.lst.exp \
+	test\coverage\src\basic.d \
+	test\coverage\src\merge.d \
+	test\coverage\src\merge_true.d \
+	test\exceptions\Makefile \
+	test\exceptions\src\stderr_msg.d \
+	test\exceptions\src\unittest_assert.d \
+	test\init_fini\Makefile \
+	test\init_fini\src\runtime_args.d \
+	test\init_fini\src\thread_join.d \
+	test\shared\Makefile \
+	test\shared\src\finalize.d \
+	test\shared\src\host.c \
+	test\shared\src\lib.d \
+	test\shared\src\lib_13414.d \
+	test\shared\src\liblinkdep.d \
+	test\shared\src\libloaddep.d \
+	test\shared\src\link.d \
+	test\shared\src\linkD.c \
+	test\shared\src\linkDR.c \
+	test\shared\src\link_linkdep.d \
+	test\shared\src\link_loaddep.d \
+	test\shared\src\load.d \
+	test\shared\src\loadDR.c \
+	test\shared\src\load_13414.d \
+	test\shared\src\load_linkdep.d \
+	test\shared\src\load_loaddep.d \
+	test\shared\src\plugin.d
+

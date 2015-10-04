@@ -373,10 +373,21 @@ enum int STATUS_DIGITAL_MARS_D_EXCEPTION = MAKE_EXCEPTION_CODE!(3,'D',1);
  * are shorter than D exceptions, for example.
  * (3) System exceptions don't have any space for a pointer to a D object.
  * So we cannot store the collision information in the exception record.
- * (4) it's important that this list is thread-local.
+ * (4) it's important that this list is fiber-local.
  */
 
 EXCEPTION_RECORD * inflightExceptionList = null;
+
+/***********************************
+ * Switch out inflightExceptionList on fiber context switches.
+ */
+extern(C) void* _d_eh_swapContext(void* newContext) nothrow
+{
+    auto old = inflightExceptionList;
+    inflightExceptionList = cast(EXCEPTION_RECORD*)newContext;
+    return old;
+}
+
 
 /***********************************
  * Find the first non-collateral exception in the list. If the last

@@ -478,7 +478,9 @@ public:
         extern(Windows)
         bool DllMain(HINSTANCE hInstance, uint ulReason, void* reserved)
         {
-            import core.sys.windows.windows;
+            import core.sys.windows.dll :
+                dll_process_attach, dll_process_detach,
+                dll_thread_attach, dll_thread_detach;
             switch(ulReason)
             {
                 default: assert(0);

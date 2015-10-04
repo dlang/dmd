@@ -44,6 +44,11 @@ class TypeInfo_h : TypeInfo
         return ubyte.sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. ubyte.sizeof];
+    }
+
     override void swap(void *p1, void *p2)
     {
         ubyte t;

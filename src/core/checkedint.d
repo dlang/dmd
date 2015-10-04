@@ -46,6 +46,7 @@ pure:
  *      the sum
  */
 
+pragma(inline, true)
 int adds(int x, int y, ref bool overflow)
 {
     long r = cast(long)x + cast(long)y;
@@ -73,6 +74,7 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 long adds(long x, long y, ref bool overflow)
 {
     long r = cast(ulong)x + cast(ulong)y;
@@ -114,6 +116,7 @@ unittest
  *      the sum
  */
 
+pragma(inline, true)
 uint addu(uint x, uint y, ref bool overflow)
 {
     uint r = x + y;
@@ -141,6 +144,7 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 ulong addu(ulong x, ulong y, ref bool overflow)
 {
     ulong r = x + y;
@@ -181,6 +185,7 @@ unittest
  *      the sum
  */
 
+pragma(inline, true)
 int subs(int x, int y, ref bool overflow)
 {
     long r = cast(long)x - cast(long)y;
@@ -208,12 +213,12 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 long subs(long x, long y, ref bool overflow)
 {
     long r = cast(ulong)x - cast(ulong)y;
     if (x <  0 && y >= 0 && r >= 0 ||
-        x >= 0 && y <  0 && r <  0 ||
-        y == long.min)
+        x >= 0 && y <  0 && (r <  0 || y == long.min))
         overflow = true;
     return r;
 }
@@ -226,6 +231,8 @@ unittest
     assert(subs(1L, -long.max + 1, overflow) == long.max);
     assert(!overflow);
     assert(subs(long.min + 1, 1, overflow) == long.min);
+    assert(!overflow);
+    assert(subs(-1L, long.min, overflow) == long.max);
     assert(!overflow);
     assert(subs(long.max, -1, overflow) == long.min);
     assert(overflow);
@@ -249,6 +256,7 @@ unittest
  *      the sum
  */
 
+pragma(inline, true)
 uint subu(uint x, uint y, ref bool overflow)
 {
     if (x < y)
@@ -276,6 +284,7 @@ unittest
 
 
 /// ditto
+pragma(inline, true)
 ulong subu(ulong x, ulong y, ref bool overflow)
 {
     if (x < y)
@@ -312,6 +321,7 @@ unittest
  *      the negation of x
  */
 
+pragma(inline, true)
 int negs(int x, ref bool overflow)
 {
     if (x == int.min)
@@ -335,6 +345,7 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 long negs(long x, ref bool overflow)
 {
     if (x == long.min)
@@ -371,6 +382,7 @@ unittest
  *      the sum
  */
 
+pragma(inline, true)
 int muls(int x, int y, ref bool overflow)
 {
     long r = cast(long)x * cast(long)y;
@@ -400,10 +412,12 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 long muls(long x, long y, ref bool overflow)
 {
     long r = cast(ulong)x * cast(ulong)y;
-    if (x && (r / x) != y)
+    enum not0or1 = ~1L;
+    if((x & not0or1) && ((r == y)? r : (r / x) != y))
         overflow = true;
     return r;
 }
@@ -420,6 +434,9 @@ unittest
     assert(muls(long.min, 1L, overflow) == long.min);
     assert(!overflow);
     assert(muls(long.max, 2L, overflow) == (long.max * 2));
+    assert(overflow);
+    overflow = false;
+    assert(muls(-1L, long.min, overflow) == long.min);
     assert(overflow);
     overflow = false;
     assert(muls(long.min, -1L, overflow) == long.min);
@@ -442,6 +459,7 @@ unittest
  *      the sum
  */
 
+pragma(inline, true)
 uint mulu(uint x, uint y, ref bool overflow)
 {
     ulong r = ulong(x) * ulong(y);
@@ -471,6 +489,7 @@ unittest
 }
 
 /// ditto
+pragma(inline, true)
 ulong mulu(ulong x, ulong y, ref bool overflow)
 {
     ulong r = x * y;

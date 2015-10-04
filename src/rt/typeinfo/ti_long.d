@@ -50,6 +50,11 @@ class TypeInfo_l : TypeInfo
         return long.sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. long.sizeof];
+    }
+
     override void swap(void *p1, void *p2)
     {
         long t;

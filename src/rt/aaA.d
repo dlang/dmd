@@ -851,17 +851,22 @@ unittest
     assert(aa.byKey.empty);
 }
 
+// test zero sized value (hashset)
 unittest
 {
-    alias E = void[0];
-    auto aa = [E.init : E.init];
+    alias V = void[0];
+    auto aa = [0 : V.init];
     assert(aa.length == 1);
-    assert(aa.byKey.front == E.init);
-    assert(aa.byValue.front == E.init);
-    aa[E.init] = E.init;
-    assert(aa.length == 1);
-    assert(aa.remove(E.init));
-    assert(aa.length == 0);
+    assert(aa.byKey.front == 0);
+    assert(aa.byValue.front == V.init);
+    aa[1] = V.init;
+    assert(aa.length == 2);
+    aa[0] = V.init;
+    assert(aa.length == 2);
+    assert(aa.remove(0));
+    aa[0] = V.init;
+    assert(aa.length == 2);
+    assert(aa == [0 : V.init, 1 : V.init]);
 }
 
 // test tombstone purging

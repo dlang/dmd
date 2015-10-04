@@ -21,12 +21,14 @@ import core.stdc.string;
 
 import core.exception : onOutOfMemoryError;
 
+struct Entry { size_t count, size; }
+
 char[] buffer;
-size_t[string] newCounts;
+Entry[string] newCounts;
 
 __gshared
 {
-    size_t[string] globalNewCounts;
+    Entry[string] globalNewCounts;
     string logfilename = "profilegc.log";
 }
 
@@ -72,9 +74,12 @@ public void accumulate(string file, uint line, string funcname, string type, siz
            type.length + 1 + funcname.length + 1 + file.length + 1 + buflen] = buf[0 .. buflen];
 
     if (auto pcount = cast(string)buffer[0 .. length] in newCounts)
-        *pcount += sz;                          // existing entry
+    { // existing entry
+        pcount.count++;
+        pcount.size += sz;
+    }
     else
-        newCounts[buffer[0..length].idup] = sz; // new entry
+        newCounts[buffer[0..length].idup] = Entry(1, sz); // new entry
 }
 
 // Merge thread local newCounts into globalNewCounts
@@ -87,9 +92,10 @@ static ~this()
             if (globalNewCounts.length)
             {
                 // Merge
-                foreach (name, count; newCounts)
+                foreach (name, entry; newCounts)
                 {
-                    globalNewCounts[name] += count;
+                    globalNewCounts[name].count += entry.count;
+                    globalNewCounts[name].size += entry.size;
                 }
             }
             else
@@ -108,14 +114,16 @@ shared static ~this()
     static struct Result
     {
         string name;
-        size_t count;
+        Entry entry;
 
         // qsort() comparator to sort by count field
         extern (C) static int qsort_cmp(const void *r1, const void *r2)
         {
             auto result1 = cast(Result*)r1;
             auto result2 = cast(Result*)r2;
-            ptrdiff_t cmp = result2.count - result1.count;
+            ptrdiff_t cmp = result2.entry.size - result1.entry.size;
+            if (cmp) return cmp < 0 ? -1 : 1;
+            cmp = result2.entry.count - result1.entry.count;
             return cmp < 0 ? -1 : (cmp > 0 ? 1 : 0);
         }
     }
@@ -123,10 +131,10 @@ shared static ~this()
     Result[] counts = new Result[globalNewCounts.length];
 
     size_t i;
-    foreach (name, count; globalNewCounts)
+    foreach (name, entry; globalNewCounts)
     {
         counts[i].name = name;
-        counts[i].count = count;
+        counts[i].entry = entry;
         ++i;
     }
 
@@ -137,10 +145,12 @@ shared static ~this()
         FILE* fp = logfilename.length == 0 ? stdout : fopen((logfilename ~ '\0').ptr, "w");
         if (fp)
         {
-            fprintf(fp, "bytes allocated, type, function, file:line\n");
+            fprintf(fp, "bytes allocated, allocations, type, function, file:line\n");
             foreach (ref c; counts)
             {
-                fprintf(fp, "%8llu\t%8.*s\n", cast(ulong)c.count, c.name.length, c.name.ptr);
+                fprintf(fp, "%15llu\t%15llu\t%8.*s\n",
+                    cast(ulong)c.entry.size, cast(ulong)c.entry.count,
+                    c.name.length, c.name.ptr);
             }
             if (logfilename.length)
                 fclose(fp);

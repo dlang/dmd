@@ -53,10 +53,10 @@ class TypeInfo_u : TypeInfo
         *cast(wchar *)p2 = t;
     }
 
-    override const(void)[] init()
+    override const(void)[] init() const @trusted
     {
         static immutable wchar c;
 
-        return (cast(wchar *)&c)[0 .. 1];
+        return (&c)[0 .. 1];
     }
 }

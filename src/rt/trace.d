@@ -18,7 +18,7 @@ private
     import core.stdc.stdio;
     import core.stdc.stdlib;
     import core.stdc.string;
-    import rt.util.string;
+    import core.internal.string;
 
     version (CRuntime_Microsoft)
         alias core.stdc.stdlib._strtoui64 strtoull;

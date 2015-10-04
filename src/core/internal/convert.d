@@ -325,7 +325,10 @@ version(unittest)
 
         enum ctbytes = toUbyte2(ctval);
 
-        assert(rtbytes[] == ctbytes);
+        // don't test pad bytes because can be anything
+        enum testsize =
+            (FloatTraits!TYPE.EXPONENT + FloatTraits!TYPE.MANTISSA + 1)/8;
+        assert(rtbytes[0..testsize] == ctbytes[0..testsize]);
     }
 
     private void testConvert()

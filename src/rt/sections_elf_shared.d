@@ -281,6 +281,12 @@ version (Shared)
      */
     __gshared pthread_mutex_t _handleToDSOMutex;
     __gshared HashTab!(void*, DSO*) _handleToDSO;
+
+    /*
+     * Section in executable that contains copy relocations.
+     * Might be null when druntime is dynamically loaded by a C host.
+     */
+    __gshared const(void)[] _copyRelocSection;
 }
 else
 {
@@ -331,7 +337,8 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
     // no backlink => register
     if (*data._slot is null)
     {
-        if (_loadedDSOs.empty) initLocks(); // first DSO
+        immutable firstDSO = _loadedDSOs.empty;
+        if (firstDSO) initLocks();
 
         DSO* pdso = cast(DSO*).calloc(1, DSO.sizeof);
         assert(typeid(DSO).init().ptr is null);
@@ -345,20 +352,21 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
 
         scanSegments(info, pdso);
 
-        checkModuleCollisions(info, pdso._moduleGroup.modules);
-
         version (Shared)
         {
-            // the first loaded DSO is druntime itself
-            assert(!_loadedDSOs.empty ||
-                   /* We need a local symbol (rt_get_bss_start) or the function
-                    * pointer might be a PLT address in the executable.
-                    * data._slot is already local in the shared library
-                    */
-                   handleForAddr(&rt_get_bss_start) == handleForAddr(data._slot));
+            auto handle = handleForAddr(data._slot);
+
+            if (firstDSO)
+            {
+                /// Assert that the first loaded DSO is druntime itself. Use a
+                /// local druntime symbol (rt_get_bss_start) to get the handle.
+                assert(handleForAddr(data._slot) == handleForAddr(&rt_get_bss_start));
+                _copyRelocSection = getCopyRelocSection();
+            }
+            checkModuleCollisions(info, pdso._moduleGroup.modules, _copyRelocSection);
 
             getDependencies(info, pdso._deps);
-            pdso._handle = handleForAddr(data._slot);
+            pdso._handle = handle;
             setDSOForHandle(pdso, pdso._handle);
 
             if (!_rtLoading)
@@ -586,6 +594,14 @@ nothrow:
         return map;
     }
 
+     link_map* exeLinkMap(link_map* map)
+     {
+         assert(map);
+         while (map.l_prev !is null)
+             map = map.l_prev;
+         return map;
+     }
+
     DSO* dsoForHandle(void* handle)
     {
         DSO* pdso;
@@ -786,21 +802,59 @@ extern(C)
     void* rt_get_end() @nogc nothrow;
 }
 
-nothrow
-void checkModuleCollisions(in ref dl_phdr_info info, in immutable(ModuleInfo)*[] modules)
+/// get the BSS section of the executable to check for copy relocations
+const(void)[] getCopyRelocSection() nothrow
+{
+    auto bss_start = rt_get_bss_start();
+    auto bss_end = rt_get_end();
+    immutable bss_size = bss_end - bss_start;
+
+    /**
+       Check whether __bss_start/_end both lie within the executable DSO.same DSO.
+
+       When a C host program dynamically loads druntime, i.e. it isn't linked
+       against, __bss_start/_end might be defined in different DSOs, b/c the
+       linker creates those symbols only when they are used.
+       But as there are no copy relocations when dynamically loading a shared
+       library, we can simply return a null bss range in that case.
+    */
+    if (bss_size <= 0)
+        return null;
+
+    version (linux)
+        enum ElfW!"Addr" exeBaseAddr = 0;
+    else version (FreeBSD)
+        enum ElfW!"Addr" exeBaseAddr = 0;
+
+    dl_phdr_info info = void;
+    findDSOInfoForAddr(bss_start, &info) || assert(0);
+    if (info.dlpi_addr != exeBaseAddr)
+        return null;
+    findDSOInfoForAddr(bss_end - 1, &info) || assert(0);
+    if (info.dlpi_addr != exeBaseAddr)
+        return null;
+
+    return bss_start[0 .. bss_size];
+}
+
+/**
+ * Check for module collisions. A module in a shared library collides
+ * with an existing module if it's ModuleInfo is interposed (search
+ * symbol interposition) by another DSO.  Therefor two modules with the
+ * same name do not collide if their DSOs are in separate symbol resolution
+ * chains.
+ */
+void checkModuleCollisions(in ref dl_phdr_info info, in immutable(ModuleInfo)*[] modules,
+                           in void[] copyRelocSection) nothrow
 in { assert(modules.length); }
 body
 {
     immutable(ModuleInfo)* conflicting;
 
-    auto bss_start = rt_get_bss_start();
-    immutable bss_size = rt_get_end() - bss_start;
-    assert(bss_size >= 0);
-
     foreach (m; modules)
     {
         auto addr = cast(const(void*))m;
-        if (cast(size_t)(addr - bss_start) < cast(size_t)bss_size)
+        if (cast(size_t)(addr - copyRelocSection.ptr) < copyRelocSection.length)
         {
             // Module is in .bss of the exe because it was copy relocated
         }
@@ -824,7 +878,8 @@ body
                 cast(int)loading.length, loading.ptr,
                 cast(int)modname.length, modname.ptr,
                 cast(int)existing.length, existing.ptr);
-        assert(0);
+        import core.stdc.stdlib : _Exit;
+        _Exit(1);
     }
 }
 

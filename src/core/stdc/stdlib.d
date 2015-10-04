@@ -156,7 +156,7 @@ void*   realloc(void* ptr, size_t size);
 void    free(void* ptr);
 
 ///
-void    abort();
+void    abort() @safe;
 ///
 void    exit(int status);
 ///

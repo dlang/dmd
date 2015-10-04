@@ -49,6 +49,8 @@ alias immutable(char)[]  string;
 alias immutable(wchar)[] wstring;
 alias immutable(dchar)[] dstring;
 
+version (D_ObjectiveC) public import core.attribute : selector;
+
 /**
  * All D class objects inherit from Object.
  */
@@ -232,8 +234,8 @@ class TypeInfo
     override int opCmp(Object o)
     {
         import core.internal.traits : externDFunc;
-        alias dstrcmp = externDFunc!("rt.util.string.dstrcmp",
-                                     int function(in char[] s1, in char[] s2) @trusted pure nothrow);
+        alias dstrcmp = externDFunc!("core.internal.string.dstrcmp",
+                                     int function(in char[] s1, in char[] s2) @trusted pure nothrow @nogc);
 
         if (this is o)
             return 0;
@@ -285,8 +287,7 @@ class TypeInfo
 
     /// Return default initializer.  If the type should be initialized to all zeros,
     /// an array with a null ptr and a length equal to the type size will be returned.
-    // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
-    const(void)[] init() nothrow pure const @safe @nogc { return null; }
+    abstract const(void)[] init() nothrow pure const @safe @nogc;
 
     /// Get flags for type: 1 means GC should scan for pointers,
     /// 2 means arg of this type is passed in XMM register
@@ -338,7 +339,7 @@ class TypeInfo_Typedef : TypeInfo
 
     override @property inout(TypeInfo) next() nothrow pure inout { return base.next; }
     override @property uint flags() nothrow pure const { return base.flags; }
-    override const(void)[] init() nothrow pure const @safe { return m_init.length ? m_init : base.init(); }
+    override const(void)[] init() const { return m_init.length ? m_init : base.init(); }
 
     override @property size_t talign() nothrow pure const { return base.talign; }
 
@@ -395,6 +396,11 @@ class TypeInfo_Pointer : TypeInfo
     override @property size_t tsize() nothrow pure const
     {
         return (void*).sizeof;
+    }
+
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. (void*).sizeof];
     }
 
     override void swap(void* p1, void* p2) const
@@ -466,6 +472,11 @@ class TypeInfo_Array : TypeInfo
         return (void[]).sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. (void[]).sizeof];
+    }
+
     override void swap(void* p1, void* p2) const
     {
         void[] tmp = *cast(void[]*)p1;
@@ -500,11 +511,11 @@ class TypeInfo_StaticArray : TypeInfo
     override string toString() const
     {
         import core.internal.traits : externDFunc;
-        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString",
-                                              char[] function(in size_t, char[]) @trusted pure nothrow);
+        alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
+                                              char[] function(ulong, char[], uint) @safe pure nothrow @nogc);
 
         char[20] tmpBuff = void;
-        return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff) ~ "]";
+        return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff, 10) ~ "]";
     }
 
     override bool opEquals(Object o)
@@ -650,6 +661,11 @@ class TypeInfo_AssociativeArray : TypeInfo
         return (char[int]).sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. (char[int]).sizeof];
+    }
+
     override @property inout(TypeInfo) next() nothrow pure inout { return value; }
     override @property uint flags() nothrow pure const { return 1; }
 
@@ -722,6 +738,11 @@ class TypeInfo_Function : TypeInfo
         return 0;       // no size for functions
     }
 
+    override const(void)[] init() const @safe
+    {
+        return null;
+    }
+
     TypeInfo next;
     string deco;
 }
@@ -747,6 +768,11 @@ class TypeInfo_Delegate : TypeInfo
     {
         alias int delegate() dg;
         return dg.sizeof;
+    }
+
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. (int delegate()).sizeof];
     }
 
     override @property uint flags() nothrow pure const { return 1; }
@@ -981,6 +1007,11 @@ class TypeInfo_Interface : TypeInfo
         return Object.sizeof;
     }
 
+    override const(void)[] init() const @trusted
+    {
+        return (cast(void *)null)[0 .. Object.sizeof];
+    }
+
     override @property uint flags() nothrow pure const { return 1; }
 
     TypeInfo_Class info;
@@ -1187,6 +1218,11 @@ class TypeInfo_Tuple : TypeInfo
     }
 
     override @property size_t tsize() nothrow pure const
+    {
+        assert(0);
+    }
+
+    override const(void)[] init() const @trusted
     {
         assert(0);
     }
@@ -1562,14 +1598,14 @@ class Throwable : Object
     void toString(scope void delegate(in char[]) sink) const
     {
         import core.internal.traits : externDFunc;
-        alias sizeToTempString = externDFunc!("rt.util.string.sizeToTempString",
-                                              char[] function(in size_t, char[]) @trusted pure nothrow);
+        alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
+                                              char[] function(ulong, char[], uint) @safe pure nothrow @nogc);
 
         char[20] tmpBuff = void;
 
         sink(typeid(this).name);
         sink("@"); sink(file);
-        sink("("); sink(sizeToTempString(line, tmpBuff)); sink(")");
+        sink("("); sink(sizeToTempString(line, tmpBuff, 10)); sink(")");
 
         if (msg.length)
         {
@@ -2691,7 +2727,8 @@ version(unittest) nothrow @safe @nogc unittest
 
 void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
 {
-    obj[] = U.init;
+    foreach_reverse (ref e; obj[])
+        destroy(e);
 }
 
 version(unittest) unittest
@@ -2714,6 +2751,42 @@ unittest
     destroy!vec2f(v);
 }
 
+unittest
+{
+    // Bugzilla 15009
+    static string op;
+    static struct S
+    {
+        int x;
+        this(int x) { op ~= "C" ~ cast(char)('0'+x); this.x = x; }
+        this(this)  { op ~= "P" ~ cast(char)('0'+x); }
+        ~this()     { op ~= "D" ~ cast(char)('0'+x); }
+    }
+
+    {
+        S[2] a1 = [S(1), S(2)];
+        op = "";
+    }
+    assert(op == "D2D1");   // built-in scope destruction
+    {
+        S[2] a1 = [S(1), S(2)];
+        op = "";
+        destroy(a1);
+        assert(op == "D2D1");   // consistent with built-in behavior
+    }
+
+    {
+        S[2][2] a2 = [[S(1), S(2)], [S(3), S(4)]];
+        op = "";
+    }
+    assert(op == "D4D3D2D1");
+    {
+        S[2][2] a2 = [[S(1), S(2)], [S(3), S(4)]];
+        op = "";
+        destroy(a2);
+        assert(op == "D4D3D2D1", op);
+    }
+}
 
 void destroy(T)(ref T obj)
     if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)

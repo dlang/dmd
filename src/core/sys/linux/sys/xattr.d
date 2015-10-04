@@ -15,8 +15,8 @@ extern (C):
 nothrow:
 
 enum {
-	XATTR_CREATE = 1, /* set value, fail if attr already exists.  */
-	XATTR_REPLACE = 2 /* set value, fail if attr does not exist.  */
+    XATTR_CREATE = 1, /* set value, fail if attr already exists.  */
+    XATTR_REPLACE = 2 /* set value, fail if attr does not exist.  */
 }
 
 enum XATTR_OS2_PREFIX = "os2.";

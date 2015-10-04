@@ -44,8 +44,8 @@ struct SectionGroup
 
     @property immutable(FuncTable)[] ehTables() const
     {
-        auto pbeg = cast(immutable(FuncTable)*)&_deh_beg;
-        auto pend = cast(immutable(FuncTable)*)&_deh_end;
+        auto pbeg = cast(immutable(FuncTable)*)&__start_deh;
+        auto pend = cast(immutable(FuncTable)*)&__stop_deh;
         return pbeg[0 .. pend - pbeg];
     }
 
@@ -62,7 +62,10 @@ private:
 void initSections()
 {
     pthread_key_create(&_tlsKey, null);
-    _sections.moduleGroup = ModuleGroup(getModuleInfos());
+
+    auto mbeg = cast(immutable ModuleInfo**)&__start_minfo;
+    auto mend = cast(immutable ModuleInfo**)&__stop_minfo;
+    _sections.moduleGroup = ModuleGroup(mbeg[0 .. mend - mbeg]);
 
     auto pbeg = cast(void*)&etext;
     auto pend = cast(void*)&_end;
@@ -148,38 +151,6 @@ ref void[] getTLSBlockAlloc()
 
 __gshared SectionGroup _sections;
 
-// This linked list is created by a compiler generated function inserted
-// into the .ctor list by the compiler.
-struct ModuleReference
-{
-    ModuleReference* next;
-    ModuleInfo* mod;
-}
-
-extern (C) __gshared immutable(ModuleReference*) _Dmodule_ref;   // start of linked list
-
-immutable(ModuleInfo*)[] getModuleInfos()
-out (result)
-{
-    foreach(m; result)
-        assert(m !is null);
-}
-body
-{
-    size_t len;
-    immutable(ModuleReference)* mr;
-
-    for (mr = _Dmodule_ref; mr; mr = mr.next)
-        len++;
-    auto result = (cast(immutable(ModuleInfo)**).malloc(len * size_t.sizeof))[0 .. len];
-    len = 0;
-    for (mr = _Dmodule_ref; mr; mr = mr.next)
-    {   result[len] = mr.mod;
-        len++;
-    }
-    return cast(immutable)result;
-}
-
 extern(C)
 {
     /* Symbols created by the compiler/linker and inserted into the
@@ -187,8 +158,10 @@ extern(C)
      */
     extern __gshared
     {
-        void* _deh_beg;
-        void* _deh_end;
+        void* __start_deh;
+        void* __stop_deh;
+        void* __start_minfo;
+        void* __stop_minfo;
 
         size_t etext;
         size_t _end;

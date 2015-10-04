@@ -107,6 +107,17 @@ private
     //
     extern (C) void  rt_moduleTlsCtor();
     extern (C) void  rt_moduleTlsDtor();
+
+    /**
+     * Hook for whatever EH implementation is used to save/restore some data
+     * per stack.
+     *
+     * Params:
+     *     newContext = The return value of the prior call to this function
+     *         where the stack was last swapped out, or null when a fiber stack
+     *         is switched in for the first time.
+     */
+    extern(C) void* _d_eh_swapContext(void* newContext) nothrow;
 }
 
 
@@ -751,6 +762,25 @@ class Thread
 
 
     /**
+     * Gets the OS identifier for this thread.
+     *
+     * Returns:
+     *  If the thread hasn't been started yet, returns $(LREF ThreadID)$(D.init).
+     *  Otherwise, returns the result of $(D GetCurrentThreadId) on Windows,
+     *  and $(D pthread_self) on POSIX.
+     *
+     *  The value is unique for the current process.
+     */
+    final @property ThreadID id()
+    {
+        synchronized( this )
+        {
+            return m_addr;
+        }
+    }
+
+
+    /**
      * Gets the user-readable label for this thread.
      *
      * Returns:
@@ -1344,12 +1374,10 @@ private:
     version( Windows )
     {
         alias uint TLSKey;
-        alias uint ThreadAddr;
     }
     else version( Posix )
     {
         alias pthread_key_t TLSKey;
-        alias pthread_t     ThreadAddr;
     }
 
 
@@ -1397,7 +1425,7 @@ private:
     {
         mach_port_t     m_tmach;
     }
-    ThreadAddr          m_addr;
+    ThreadID            m_addr;
     Call                m_call;
     string              m_name;
     union
@@ -1458,6 +1486,7 @@ private:
     }
     body
     {
+        m_curr.ehContext = _d_eh_swapContext(c.ehContext);
         c.within = m_curr;
         m_curr = c;
     }
@@ -1472,6 +1501,7 @@ private:
     {
         Context* c = m_curr;
         m_curr = c.within;
+        c.ehContext = _d_eh_swapContext(m_curr.ehContext);
         c.within = null;
     }
 
@@ -1491,6 +1521,12 @@ private:
     {
         void*           bstack,
                         tstack;
+
+        /// Slot for the EH implementation to keep some state for each stack
+        /// (will be necessary for exception chaining, etc.). Opaque as far as
+        /// we are concerned here.
+        void*           ehContext;
+
         Context*        within;
         Context*        next,
                         prev;
@@ -2067,14 +2103,14 @@ version( Windows )
     //       that only does the TLS lookup without the fancy fallback stuff.
 
     /// ditto
-    extern (C) Thread thread_attachByAddr( Thread.ThreadAddr addr )
+    extern (C) Thread thread_attachByAddr( ThreadID addr )
     {
         return thread_attachByAddrB( addr, getThreadStackBottom( addr ) );
     }
 
 
     /// ditto
-    extern (C) Thread thread_attachByAddrB( Thread.ThreadAddr addr, void* bstack )
+    extern (C) Thread thread_attachByAddrB( ThreadID addr, void* bstack )
     {
         GC.disable(); scope(exit) GC.enable();
 
@@ -2145,7 +2181,7 @@ extern (C) void thread_detachThis() nothrow
  *
  *       $(D extern(C) void rt_moduleTlsDtor();)
  */
-extern (C) void thread_detachByAddr( Thread.ThreadAddr addr )
+extern (C) void thread_detachByAddr( ThreadID addr )
 {
     if( auto t = thread_findByAddr( addr ) )
         Thread.remove( t );
@@ -2186,7 +2222,7 @@ unittest
  * Returns:
  *  The thread object associated with the thread identifier, null if not found.
  */
-static Thread thread_findByAddr( Thread.ThreadAddr addr )
+static Thread thread_findByAddr( ThreadID addr )
 {
     Thread.slock.lock_nothrow();
     scope(exit) Thread.slock.unlock_nothrow();
@@ -4017,7 +4053,7 @@ class Fiber
      * fibers that have terminated, as doing otherwise could result in
      * scope-dependent functionality that is not executed.
      * Stack-based classes, for example, may not be cleaned up
-     * properly if a fiber is reset before it has terminated. 
+     * properly if a fiber is reset before it has terminated.
      *
      * In:
      *  This fiber must be in state TERM or HOLD.
@@ -4994,6 +5030,43 @@ version (Win32) {
     }
 }
 
+// Test exception chaining when switching contexts in finally blocks.
+unittest
+{
+    static void throwAndYield(string msg) {
+      try {
+        throw new Exception(msg);
+      } finally {
+        Fiber.yield();
+      }
+    }
+
+    static void fiber(string name) {
+      try {
+        try {
+          throwAndYield(name ~ ".1");
+        } finally {
+          throwAndYield(name ~ ".2");
+        }
+      } catch (Exception e) {
+        assert(e.msg == name ~ ".1");
+        assert(e.next);
+        assert(e.next.msg == name ~ ".2");
+        assert(!e.next.next);
+      }
+    }
+
+    auto first = new Fiber(() => fiber("first"));
+    auto second = new Fiber(() => fiber("second"));
+    first.call();
+    second.call();
+    first.call();
+    second.call();
+    first.call();
+    second.call();
+    assert(first.state == Fiber.State.TERM);
+    assert(second.state == Fiber.State.TERM);
+}
 
 // Test Fiber resetting
 unittest
@@ -5229,3 +5302,13 @@ unittest
     auto thr = new Thread(function{}, 4096 + 1).start();
     thr.join();
 }
+
+/**
+ * Represents the ID of a thread, as returned by $(D Thread.)$(LREF id).
+ * The exact type varies from platform to platform.
+ */
+version (Windows)
+    alias ThreadID = uint;
+else
+version (Posix)
+    alias ThreadID = pthread_t;

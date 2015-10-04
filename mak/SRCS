@@ -2,6 +2,7 @@ SRCS=\
 	src\object.d \
 	\
 	src\core\atomic.d \
+	src\core\attribute.d \
 	src\core\bitop.d \
 	src\core\checkedint.d \
 	src\core\cpuid.d \
@@ -15,8 +16,10 @@ SRCS=\
 	src\core\time.d \
 	src\core\vararg.d \
 	\
+	src\core\internal\abort.d \
 	src\core\internal\convert.d \
 	src\core\internal\hash.d \
+	src\core\internal\string.d \
 	src\core\internal\traits.d \
 	\
 	src\core\stdc\config.d \
@@ -127,10 +130,12 @@ SRCS=\
 	src\rt\trace.d \
 	src\rt\tracegc.d \
 	\
+	src\rt\backtrace\dwarf.d \
+	src\rt\backtrace\elf.d \
+	\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
 	src\rt\util\random.d \
-	src\rt\util\string.d \
 	src\rt\util\typeinfo.d \
 	src\rt\util\utf.d \
 	src\rt\util\container\array.d \

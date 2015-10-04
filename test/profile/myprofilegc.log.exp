@@ -1,2 +1,2 @@
-bytes allocated, type, function, file:line
-       4	uint D main src/profilegc.d:6
+bytes allocated, allocations, type, function, file:line
+              4	              1	uint D main src/profilegc.d:6

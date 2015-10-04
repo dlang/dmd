@@ -215,6 +215,19 @@ version( CRuntime_Glibc )
         enum O_DSYNC        = 0x1000;   // octal   010000
         enum O_RSYNC        = O_SYNC;
     }
+    else version (SystemZ)
+    {
+        enum O_CREAT        = 0x40;     // octal     0100
+        enum O_EXCL         = 0x80;     // octal     0200
+        enum O_NOCTTY       = 0x100;    // octal     0400
+        enum O_TRUNC        = 0x200;    // octal    01000
+
+        enum O_APPEND       = 0x400;    // octal    02000
+        enum O_NONBLOCK     = 0x800;    // octal    04000
+        enum O_SYNC         = 0x101000; // octal 04010000
+        enum O_DSYNC        = 0x1000;   // octal   010000
+        enum O_RSYNC        = O_SYNC;
+    }
     else
         static assert(0, "unimplemented");
 
@@ -541,6 +554,9 @@ else
 int fcntl(int, int, ...);
 //int open(in char*, int, ...);
 
+// Generic Posix fallocate
+int posix_fallocate(int, off_t, off_t);
+
 //
 // Advisory Information (ADV)
 //
@@ -553,5 +569,4 @@ POSIX_FADV_DONTNEED
 POSIX_FADV_NOREUSE
 
 int posix_fadvise(int, off_t, off_t, int);
-int posix_fallocate(int, off_t, off_t);
 */
