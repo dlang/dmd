@@ -270,48 +270,48 @@ enum {
 
 static if (_WIN32_WINNT >= 0x600) {
     struct WTSCLIENTW {
-        WCHAR   ClientName[CLIENTNAME_LENGTH + 1];
-        WCHAR   Domain[DOMAIN_LENGTH + 1];
-        WCHAR   UserName[USERNAME_LENGTH + 1];
-        WCHAR   WorkDirectory[MAX_PATH + 1];
-        WCHAR   InitialProgram[MAX_PATH + 1];
-        BYTE    EncryptionLevel;
-        ULONG   ClientAddressFamily;
-        USHORT  ClientAddress[CLIENTADDRESS_LENGTH + 1];
-        USHORT  HRes;
-        USHORT  VRes;
-        USHORT  ColorDepth;
-        WCHAR   ClientDirectory[MAX_PATH + 1];
-        ULONG   ClientBuildNumber;
-        ULONG   ClientHardwareId;
-        USHORT  ClientProductId;
-        USHORT  OutBufCountHost;
-        USHORT  OutBufCountClient;
-        USHORT  OutBufLength;
-        WCHAR   DeviceId[MAX_PATH + 1];
+        WCHAR[CLIENTNAME_LENGTH + 1]      ClientName;
+        WCHAR[DOMAIN_LENGTH + 1]          Domain;
+        WCHAR[USERNAME_LENGTH + 1]        UserName;
+        WCHAR[MAX_PATH + 1]               WorkDirectory;
+        WCHAR[MAX_PATH + 1]               InitialProgram;
+        BYTE                              EncryptionLevel;
+        ULONG                             ClientAddressFamily;
+        USHORT[CLIENTADDRESS_LENGTH + 1]  ClientAddress;
+        USHORT                            HRes;
+        USHORT                            VRes;
+        USHORT                            ColorDepth;
+        WCHAR[MAX_PATH + 1]               ClientDirectory;
+        ULONG                             ClientBuildNumber;
+        ULONG                             ClientHardwareId;
+        USHORT                            ClientProductId;
+        USHORT                            OutBufCountHost;
+        USHORT                            OutBufCountClient;
+        USHORT                            OutBufLength;
+        WCHAR[MAX_PATH + 1]               DeviceId;
     }
     alias WTSCLIENTW* PWTSCLIENTW;
 
     struct WTSCLIENTA {
-        CHAR    ClientName[CLIENTNAME_LENGTH + 1];
-        CHAR    Domain[DOMAIN_LENGTH + 1 ];
-        CHAR    UserName[USERNAME_LENGTH + 1];
-        CHAR    WorkDirectory[MAX_PATH + 1];
-        CHAR    InitialProgram[MAX_PATH + 1];
-        BYTE    EncryptionLevel;
-        ULONG   ClientAddressFamily;
-        USHORT  ClientAddress[CLIENTADDRESS_LENGTH + 1];
-        USHORT  HRes;
-        USHORT  VRes;
-        USHORT  ColorDepth;
-        CHAR    ClientDirectory[MAX_PATH + 1];
-        ULONG   ClientBuildNumber;
-        ULONG   ClientHardwareId;
-        USHORT  ClientProductId;
-        USHORT  OutBufCountHost;
-        USHORT  OutBufCountClient;
-        USHORT  OutBufLength;
-        CHAR    DeviceId[MAX_PATH + 1];
+        CHAR[CLIENTNAME_LENGTH + 1]       ClientName;
+        CHAR[DOMAIN_LENGTH + 1 ]          Domain;
+        CHAR[USERNAME_LENGTH + 1]         UserName;
+        CHAR[MAX_PATH + 1]                WorkDirectory;
+        CHAR[MAX_PATH + 1]                InitialProgram;
+        BYTE                              EncryptionLevel;
+        ULONG                             ClientAddressFamily;
+        USHORT[CLIENTADDRESS_LENGTH + 1]  ClientAddress;
+        USHORT                            HRes;
+        USHORT                            VRes;
+        USHORT                            ColorDepth;
+        CHAR[MAX_PATH + 1]                ClientDirectory;
+        ULONG                             ClientBuildNumber;
+        ULONG                             ClientHardwareId;
+        USHORT                            ClientProductId;
+        USHORT                            OutBufCountHost;
+        USHORT                            OutBufCountClient;
+        USHORT                            OutBufLength;
+        CHAR[MAX_PATH + 1]                DeviceId;
     }
     alias WTSCLIENTA* PWTSCLIENTA;
 
@@ -324,38 +324,38 @@ static if (_WIN32_WINNT >= 0x600) {
     }
 
     struct WTSINFOW {
-        WTS_CONNECTSTATE_CLASS State;
-        DWORD                  SessionId;
-        DWORD                  IncomingBytes;
-        DWORD                  OutgoingBytes;
-        DWORD                  IncomingCompressedBytes;
-        DWORD                  OutgoingCompressedBytes;
-        WCHAR                  WinStationName[WINSTATIONNAME_LENGTH];
-        WCHAR                  Domain[DOMAIN_LENGTH];
-        WCHAR                  UserName[USERNAME_LENGTH+1];
-        LARGE_INTEGER          ConnectTime;
-        LARGE_INTEGER          DisconnectTime;
-        LARGE_INTEGER          LastInputTime;
-        LARGE_INTEGER          LogonTime;
-        LARGE_INTEGER          CurrentTime;
+        WTS_CONNECTSTATE_CLASS       State;
+        DWORD                        SessionId;
+        DWORD                        IncomingBytes;
+        DWORD                        OutgoingBytes;
+        DWORD                        IncomingCompressedBytes;
+        DWORD                        OutgoingCompressedBytes;
+        WCHAR[WINSTATIONNAME_LENGTH] WinStationName;
+        WCHAR[DOMAIN_LENGTH]         Domain;
+        WCHAR[USERNAME_LENGTH+1]     UserName;
+        LARGE_INTEGER                ConnectTime;
+        LARGE_INTEGER                DisconnectTime;
+        LARGE_INTEGER                LastInputTime;
+        LARGE_INTEGER                LogonTime;
+        LARGE_INTEGER                CurrentTime;
     }
     alias WTSINFOW* PWTSINFOW;
 
     struct WTSINFOA {
-        WTS_CONNECTSTATE_CLASS State;
-        DWORD                  SessionId;
-        DWORD                  IncomingBytes;
-        DWORD                  OutgoingBytes;
-        DWORD                  IncomingCompressedBytes;
-        DWORD                  OutgoingCompressedBytes;
-        CHAR                   WinStationName[WINSTATIONNAME_LENGTH];
-        CHAR                   Domain[DOMAIN_LENGTH];
-        CHAR                   UserName[USERNAME_LENGTH+1];
-        LARGE_INTEGER          ConnectTime;
-        LARGE_INTEGER          DisconnectTime;
-        LARGE_INTEGER          LastInputTime;
-        LARGE_INTEGER          LogonTime;
-        LARGE_INTEGER          CurrentTime;
+        WTS_CONNECTSTATE_CLASS      State;
+        DWORD                       SessionId;
+        DWORD                       IncomingBytes;
+        DWORD                       OutgoingBytes;
+        DWORD                       IncomingCompressedBytes;
+        DWORD                       OutgoingCompressedBytes;
+        CHAR[WINSTATIONNAME_LENGTH] WinStationName;
+        CHAR[DOMAIN_LENGTH]         Domain;
+        CHAR[USERNAME_LENGTH+1]     UserName;
+        LARGE_INTEGER               ConnectTime;
+        LARGE_INTEGER               DisconnectTime;
+        LARGE_INTEGER               LastInputTime;
+        LARGE_INTEGER               LogonTime;
+        LARGE_INTEGER               CurrentTime;
     }
     alias WTSINFOA* PWTSINFOA;
 
