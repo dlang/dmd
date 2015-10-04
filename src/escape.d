@@ -24,14 +24,17 @@ import ddmd.visitor;
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
  * lifetime of the stack frame.
+ * Print error messages when these are detected.
  * Params:
- *      gag     do not print error messages
+ *      sc = used to determine current function and module
+ *      e = expression to check
+ *      gag = do not print error messages
  * Returns:
- *      true    errors occured
+ *      true if pointers to the stack can escape
  */
-extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
+bool checkEscape(Scope* sc, Expression e, bool gag)
 {
-    //printf("[%s] checkEscape, e = %s\n", e->loc.toChars(), e->toChars());
+    //printf("[%s] checkEscape, e = %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeVisitor : Visitor
     {
         alias visit = super.visit;
@@ -233,14 +236,17 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
 /************************************
  * Detect cases where returning 'e' by ref can result in a reference to the stack
  * being returned.
+ * Print error messages when these are detected.
  * Params:
- *      gag     do not print error messages
+ *      sc = used to determine current function and module
+ *      e = expression to check
+ *      gag = do not print error messages
  * Returns:
- *      true    errors occured
+ *      true if referencess to the stack can escape
  */
-extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
+bool checkEscapeRef(Scope* sc, Expression e, bool gag)
 {
-    //printf("[%s] checkEscapeRef, e = %s\n", e->loc.toChars(), e->toChars());
+    //printf("[%s] checkEscapeRef, e = %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeRefVisitor : Visitor
     {
         alias visit = super.visit;
@@ -279,7 +285,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                 {
                     if (sc.func.flags & FUNCFLAGreturnInprocess)
                     {
-                        //printf("inferring 'return' for variable '%s'\n", v->toChars());
+                        //printf("inferring 'return' for variable '%s'\n", v.toChars());
                         v.storage_class |= STCreturn;
                         if (v == sc.func.vthis)
                         {
@@ -293,8 +299,8 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     }
                     else if (sc._module && sc._module.isRoot())
                     {
-                        //printf("escaping reference to local ref variable %s\n", v->toChars());
-                        //printf("storage class = x%llx\n", v->storage_class);
+                        //printf("escaping reference to local ref variable %s\n", v.toChars());
+                        //printf("storage class = x%llx\n", v.storage_class);
                         error(loc, "escaping reference to local ref variable %s", v);
                     }
                     return;
