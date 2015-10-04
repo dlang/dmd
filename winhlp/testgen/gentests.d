@@ -57,94 +57,100 @@ int main()
 
 	auto exclusions = PersistentStringSet("exclusions.txt");
 
-	File o = File("wintest.d", "wb");
-	o.writeln("import std.format : format;");
-
-	void typeCheck(string name, string typeA, string typeB)
+	foreach (model; ["32", "64"])
 	{
-		o.writefln("\tstatic if(!is(%s == %s)) pragma(msg, \"%%s(%%d): Error: type of %s is:\\n%%s\\nbut should be:\\n%%s\\n\".format(__FILE__, __LINE__, %s.stringof, %s.stringof));",
-			typeA, typeB, name, typeA, typeB);
-	}
+		auto fn = "wintest" ~ model ~ ".d";
+		File o = File(fn, "wb");
+		o.writeln("import std.format : format;");
 
-	auto modules = "druntime.json".readText.jsonParse!(Member[]);
-	foreach (m; modules)
-	{
-		if (m.name != "core.sys.windows.windows")
-			continue;
-
-		o.writefln("struct test_%s", m.name.replace(".", "_"));
-		o.writeln("{");
-		o.writefln("\tstatic import %s;", m.name);
-
-		void handleMembers(string[] prefix, Member[] members)
+		void typeCheck(string name, string typeA, string typeB)
 		{
-			foreach (d; members)
-			{
-				scope(failure) stderr.writefln("Error processing member %s:", d.name);
-				auto qname = (prefix ~ d.name).join(".");
-				auto lname = qname.replace(".", "_");
-				o.writefln("\talias %s = %s.%s;", lname, (m.name ~ prefix).join("."), d.name); // check existence
-				if (qname in exclusions) o.writeln("/+");
-				switch (d.kind)
-				{
-					case "function":
-					{
-						auto type = d.deco.demangleFunctionType().functionToFunctionPointerType();
-						if (type.isValidDType())
-						{
-							o.writefln("\talias typeof_%s = %s;", lname, type);
-							typeCheck(qname, "typeof(&%s)".format(lname), "typeof_%s".format(lname));
-						}
-						if (d.originalType)
-						{
-							o.writefln("\talias typeof_orig_%s = %s;", lname, d.originalType.functionToFunctionPointerType());
-							typeCheck(qname, "typeof(&%s)".format(lname), "typeof_orig_%s".format(lname));
-						}
-						break;
-					}
-					case "enum member":
-						o.writefln("\tstatic assert(%s == (%s));", lname, d.value);
-						break;
-					case "variable":
-						o.writefln("\talias typeof_%s = %s;", lname, d.deco.demangleType());
-						o.writefln("\tstatic assert(is(typeof(%s) == typeof_%s));", lname, lname);
-						if (d.originalType)
-						{
-							o.writefln("\talias typeof_orig_%s = %s;", lname, d.originalType);
-							o.writefln("\tstatic assert(is(typeof(%s) == typeof_orig_%s));", lname, lname);
-						}
-						break;
-					case "alias":
-						o.writefln("\talias aliasof_%s = %s;", lname, d.deco.demangleType());
-						typeCheck(qname, lname, "aliasof_" ~ lname);
-						break;
-					case "struct":
-					case "union":
-					case "enum":
-						// will descend to d.members below
-						break;
-					default:
-						stderr.writeln("Unknown kind: ", d.kind);
-						break;
-				}
-
-				if (d.offset != uint.max)
-					o.writefln("\tstatic assert(%s.offsetof == %d);", lname, d.offset);
-				if (qname in exclusions) o.writeln("+/");
-
-				handleMembers(prefix ~ d.name, d.members);
-			}
+			o.writefln("\tstatic if(!is(%s == %s)) pragma(msg, \"%%s(%%d): Error: type of %s is:\\n%%s\\nbut should be:\\n%%s\\n\".format(__FILE__, __LINE__, %s.stringof, %s.stringof));",
+				typeA, typeB, name, typeA, typeB);
 		}
 
-		handleMembers([], m.members);
+		auto modules = ("druntime" ~ model ~ ".json").readText.jsonParse!(Member[]);
+		foreach (m; modules)
+		{
+			if (m.name != "core.sys.windows.windows")
+				continue;
 
-		o.writeln("}");
-		o.writeln("");
+			o.writefln("struct test_%s", m.name.replace(".", "_"));
+			o.writeln("{");
+			o.writefln("\tstatic import %s;", m.name);
+
+			void handleMembers(string[] prefix, Member[] members)
+			{
+				foreach (d; members)
+				{
+					scope(failure) stderr.writefln("Error processing member %s:", d.name);
+					auto qname = (prefix ~ d.name).join(".");
+					auto lname = qname.replace(".", "_");
+					o.writefln("\talias %s = %s.%s;", lname, (m.name ~ prefix).join("."), d.name); // check existence
+					if (qname in exclusions) o.writeln("/+");
+					switch (d.kind)
+					{
+						case "function":
+						{
+							auto type = d.deco.demangleFunctionType().functionToFunctionPointerType();
+							if (type.isValidDType())
+							{
+								o.writefln("\talias typeof_%s = %s;", lname, type);
+								typeCheck(qname, "typeof(&%s)".format(lname), "typeof_%s".format(lname));
+							}
+							if (d.originalType)
+							{
+								o.writefln("\talias typeof_orig_%s = %s;", lname, d.originalType.functionToFunctionPointerType());
+								typeCheck(qname, "typeof(&%s)".format(lname), "typeof_orig_%s".format(lname));
+							}
+							break;
+						}
+						case "enum member":
+							o.writefln("\tstatic assert(%s == (%s));", lname, d.value);
+							break;
+						case "variable":
+							o.writefln("\talias typeof_%s = %s;", lname, d.deco.demangleType());
+							o.writefln("\tstatic assert(is(typeof(%s) == typeof_%s));", lname, lname);
+							if (d.originalType)
+							{
+								o.writefln("\talias typeof_orig_%s = %s;", lname, d.originalType);
+								o.writefln("\tstatic assert(is(typeof(%s) == typeof_orig_%s));", lname, lname);
+							}
+							break;
+						case "alias":
+							o.writefln("\talias aliasof_%s = %s;", lname, d.deco.demangleType());
+							typeCheck(qname, lname, "aliasof_" ~ lname);
+							break;
+						case "struct":
+						case "union":
+						case "enum":
+							// will descend to d.members below
+							break;
+						default:
+							stderr.writeln("Unknown kind: ", d.kind);
+							break;
+					}
+
+					if (d.offset != uint.max)
+						o.writefln("\tstatic assert(%s.offsetof == %d);", lname, d.offset);
+					if (qname in exclusions) o.writeln("+/");
+
+					handleMembers(prefix ~ d.name, d.members);
+				}
+			}
+
+			handleMembers([], m.members);
+
+			o.writeln("}");
+			o.writeln("");
+		}
+
+		o.close();
+
+		if (spawnProcess(["dmd", "-m" ~ model, "-I../../src", "-o-", fn]).wait() != 0)
+			return 1;
 	}
-
-	o.close();
-
-	return spawnProcess(["dmd", "-m32", "-I../../src", "-o-", "wintest.d"]).wait();
+	return 0;
 }
 
 /// nothrow @nogc extern (Windows) BOOL(LPCSTR lpPathName)
